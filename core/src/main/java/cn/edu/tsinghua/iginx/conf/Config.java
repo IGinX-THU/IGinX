@@ -1,20 +1,19 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 package cn.edu.tsinghua.iginx.conf;
 
@@ -53,8 +52,7 @@ public class Config {
   private TimePrecision timePrecision = TimePrecision.NS;
 
   private String databaseClassNames =
-      "iotdb12=cn.edu.tsinghua.iginx.iotdb.IoTDBStorage,influxdb=cn.edu.tsinghua.iginx.influxdb.InfluxDBStorage,parquet=cn.edu.tsinghua.iginx.parquet.ParquetStorage,postgresql=cn.edu.tsinghua.iginx.postgresql.PostgreSQLStorage,mongodb=cn.edu.tsinghua.iginx.mongodb.MongoDBStorage,redis=cn.edu.tsinghua.iginx.redis.RedisStorage";
-  // ,opentsdb=cn.edu.tsinghua.iginx.opentsdb.OpenTSDBStorage,timescaledb=cn.edu.tsinghua.iginx.timescaledb.TimescaleDBStorage,postgresql=cn.edu.tsinghua.iginx.postgresql.PostgreSQLStorage
+      "iotdb12=cn.edu.tsinghua.iginx.iotdb.IoTDBStorage,influxdb=cn.edu.tsinghua.iginx.influxdb.InfluxDBStorage,relational=cn.edu.tsinghua.iginx.relational.RelationalStorage,mongodb=cn.edu.tsinghua.iginx.mongodb.MongoDBStorage,redis=cn.edu.tsinghua.iginx.redis.RedisStorage,filestore=cn.edu.tsinghua.iginx.filestore.FileStorage";
 
   private String policyClassName = "cn.edu.tsinghua.iginx.policy.naive.NaivePolicy";
 
@@ -182,7 +180,8 @@ public class Config {
 
   private int maxThriftWrokerThreadNum = 2147483647;
 
-  private String ruleBasedOptimizer = "RemoveNotRule=on,FilterFragmentRule=on";
+  private String ruleBasedOptimizer =
+      "NotFilterRemoveRule=on,FragmentPruningByFilterRule=on,ColumnPruningRule=on,FragmentPruningByPatternRule=on";
 
   //////////////
 
@@ -205,6 +204,22 @@ public class Config {
   private int parallelGroupByPoolNum = 5;
 
   private int streamParallelGroupByWorkerNum = 5;
+
+  /////////////
+
+  private boolean enableEmailNotification = false;
+
+  private String mailSmtpHost = "";
+
+  private int mailSmtpPort = 465;
+
+  private String mailSmtpUser = "";
+
+  private String mailSmtpPassword = "";
+
+  private String mailSender = "";
+
+  private String mailRecipient = "";
 
   /////////////
 
@@ -894,5 +909,61 @@ public class Config {
 
   public void setRuleBasedOptimizer(String ruleBasedOptimizer) {
     this.ruleBasedOptimizer = ruleBasedOptimizer;
+  }
+
+  public boolean isEnableEmailNotification() {
+    return enableEmailNotification;
+  }
+
+  public void setEnableEmailNotification(boolean enableEmailNotification) {
+    this.enableEmailNotification = enableEmailNotification;
+  }
+
+  public String getMailSmtpHost() {
+    return mailSmtpHost;
+  }
+
+  public void setMailSmtpHost(String mailSmtpHost) {
+    this.mailSmtpHost = mailSmtpHost;
+  }
+
+  public int getMailSmtpPort() {
+    return mailSmtpPort;
+  }
+
+  public void setMailSmtpPort(int mailSmtpPort) {
+    this.mailSmtpPort = mailSmtpPort;
+  }
+
+  public String getMailSmtpUser() {
+    return mailSmtpUser;
+  }
+
+  public void setMailSmtpUser(String mailSmtpUser) {
+    this.mailSmtpUser = mailSmtpUser;
+  }
+
+  public String getMailSmtpPassword() {
+    return mailSmtpPassword;
+  }
+
+  public void setMailSmtpPassword(String mailSmtpPassword) {
+    this.mailSmtpPassword = mailSmtpPassword;
+  }
+
+  public String getMailSender() {
+    return mailSender;
+  }
+
+  public void setMailSender(String mailSender) {
+    this.mailSender = mailSender;
+  }
+
+  public String getMailRecipient() {
+    return mailRecipient;
+  }
+
+  public void setMailRecipient(String mailRecipients) {
+    this.mailRecipient = mailRecipients;
   }
 }

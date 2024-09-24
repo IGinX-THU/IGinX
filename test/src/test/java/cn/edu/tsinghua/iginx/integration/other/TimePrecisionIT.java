@@ -1,9 +1,26 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package cn.edu.tsinghua.iginx.integration.other;
 
 import static org.junit.Assert.fail;
 
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
-import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionQueryDataSet;
@@ -18,7 +35,7 @@ import org.slf4j.LoggerFactory;
 
 public class TimePrecisionIT {
 
-  private static final Logger logger = LoggerFactory.getLogger(TimePrecisionIT.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(TimePrecisionIT.class);
 
   private static Session session;
 
@@ -52,7 +69,7 @@ public class TimePrecisionIT {
   }
 
   @Before
-  public void insertData() throws ExecutionException, SessionException {
+  public void insertData() throws SessionException {
 
     for (int i = 0; i < 4; i++) {
       List<String> paths = new ArrayList<>();
@@ -79,7 +96,7 @@ public class TimePrecisionIT {
   }
 
   @Test
-  public void queryTimeS() throws ExecutionException, SessionException {
+  public void queryTimeS() throws SessionException {
     List<String> paths = new ArrayList<>(Arrays.asList(path).subList(0, 4));
 
     long startTime = 0L;
@@ -102,7 +119,7 @@ public class TimePrecisionIT {
   }
 
   @Test
-  public void queryTimeMS() throws ExecutionException, SessionException {
+  public void queryTimeMS() throws SessionException {
     List<String> paths = new ArrayList<>(Arrays.asList(path).subList(0, 4));
 
     long startTime = 0L;
@@ -125,7 +142,7 @@ public class TimePrecisionIT {
   }
 
   @Test
-  public void queryTimeUS() throws ExecutionException, SessionException {
+  public void queryTimeUS() throws SessionException {
     List<String> paths = new ArrayList<>(Arrays.asList(path).subList(0, 4));
 
     long startTime = 0L;
@@ -145,7 +162,7 @@ public class TimePrecisionIT {
   }
 
   @Test
-  public void queryTimeNS() throws ExecutionException, SessionException {
+  public void queryTimeNS() throws SessionException {
     List<String> paths = new ArrayList<>(Arrays.asList(path).subList(0, 4));
 
     long startTime = 0L;

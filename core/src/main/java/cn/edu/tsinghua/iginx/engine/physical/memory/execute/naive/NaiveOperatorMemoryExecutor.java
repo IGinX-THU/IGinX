@@ -1,20 +1,19 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.naive;
 
@@ -29,7 +28,7 @@ import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtil
 import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils.getSamePathWithSpecificPrefix;
 import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils.isValueEqualRow;
 import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils.removeDuplicateRows;
-import static cn.edu.tsinghua.iginx.engine.shared.Constants.KEY;
+import static cn.edu.tsinghua.iginx.engine.shared.Constants.*;
 import static cn.edu.tsinghua.iginx.engine.shared.function.FunctionUtils.isCanUseSetQuantifierFunction;
 import static cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils.getHash;
 import static cn.edu.tsinghua.iginx.sql.SQLConstant.DOT;
@@ -78,7 +77,6 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
 import cn.edu.tsinghua.iginx.engine.shared.operator.SetTransform;
 import cn.edu.tsinghua.iginx.engine.shared.operator.SingleJoin;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Sort;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Sort.SortType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.UnaryOperator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Union;
 import cn.edu.tsinghua.iginx.engine.shared.operator.ValueToSelectedPath;
@@ -90,23 +88,14 @@ import cn.edu.tsinghua.iginx.utils.Bitmap;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
 
-  private static final Logger logger = LoggerFactory.getLogger(NaiveOperatorMemoryExecutor.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(NaiveOperatorMemoryExecutor.class);
 
   private static final Config config = ConfigDescriptor.getInstance().getConfig();
 
@@ -202,7 +191,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     return new Table(header, rows);
   }
 
-  private RowStream executeProject(Project project, Table table) throws PhysicalException {
+  private RowStream executeProject(Project project, Table table) {
     List<String> patterns = project.getPatterns();
     Header header = table.getHeader();
     List<Field> targetFields = new ArrayList<>();
@@ -250,11 +239,12 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
   }
 
   private RowStream executeSort(Sort sort, Table table) throws PhysicalException {
-    RowUtils.sortRows(table.getRows(), sort.getSortType() == SortType.ASC, sort.getSortByCols());
+    List<Boolean> ascendingList = sort.getAscendingList();
+    RowUtils.sortRows(table.getRows(), ascendingList, sort.getSortByCols());
     return table;
   }
 
-  private RowStream executeLimit(Limit limit, Table table) throws PhysicalException {
+  private RowStream executeLimit(Limit limit, Table table) {
     int rowSize = table.getRowSize();
     Header header = table.getHeader();
     List<Row> rows = new ArrayList<>();
@@ -277,12 +267,20 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     List<Row> rows = table.getRows();
     long bias = downsample.getKeyRange().getActualBeginKey();
     long endKey = downsample.getKeyRange().getActualEndKey();
+    if (downsample.notSetInterval()) {
+      if (table.getRowSize() <= 0) {
+        return Table.EMPTY_TABLE;
+      }
+      bias = table.getRow(0).getKey();
+      endKey = table.getRow(table.getRowSize() - 1).getKey();
+    }
     long precision = downsample.getPrecision();
     long slideDistance = downsample.getSlideDistance();
     // startKey + (n - 1) * slideDistance + precision - 1 >= endKey
     long n = (int) (Math.ceil((double) (endKey - bias - precision + 1) / slideDistance) + 1);
 
     List<Table> tableList = new ArrayList<>();
+    boolean firstCol = true;
     for (FunctionCall functionCall : downsample.getFunctionCallList()) {
       SetMappingFunction function = (SetMappingFunction) functionCall.getFunction();
       FunctionParams params = functionCall.getParams();
@@ -310,10 +308,12 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
           }
         }
       }
-      List<Pair<Long, Row>> transformedRawRows = new ArrayList<>();
+      // <<window_start, window_end> row>
+      List<Pair<Pair<Long, Long>, Row>> transformedRawRows = new ArrayList<>();
       try {
         for (Map.Entry<Long, List<Row>> entry : groups.entrySet()) {
-          long time = entry.getKey();
+          long windowStartKey = entry.getKey();
+          long windowEndKey = windowStartKey + precision - 1;
           List<Row> group = entry.getValue();
 
           if (params.isDistinct()) {
@@ -330,7 +330,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
 
           Row row = function.transform(new Table(header, group), params);
           if (row != null) {
-            transformedRawRows.add(new Pair<>(time, row));
+            transformedRawRows.add(new Pair<>(new Pair<>(windowStartKey, windowEndKey), row));
           }
         }
       } catch (Exception e) {
@@ -341,19 +341,36 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
       if (transformedRawRows.size() == 0) {
         return Table.EMPTY_TABLE;
       }
-      Header newHeader = new Header(Field.KEY, transformedRawRows.get(0).v.getHeader().getFields());
+
+      // 只让第一张表保留 window_start, window_end 列，这样按key join后无需删除重复列
+      List<Field> fields = transformedRawRows.get(0).v.getHeader().getFields();
+      if (firstCol) {
+        fields.add(0, new Field(WINDOW_START_COL, DataType.LONG));
+        fields.add(1, new Field(WINDOW_END_COL, DataType.LONG));
+      }
+      Header newHeader = new Header(Field.KEY, fields);
       List<Row> transformedRows = new ArrayList<>();
-      for (Pair<Long, Row> pair : transformedRawRows) {
-        transformedRows.add(new Row(newHeader, pair.k, pair.v.getValues()));
+      Object[] values = new Object[transformedRawRows.get(0).v.getValues().length + 2];
+      for (Pair<Pair<Long, Long>, Row> pair : transformedRawRows) {
+        if (firstCol) {
+          values[0] = pair.k.k;
+          values[1] = pair.k.v;
+          System.arraycopy(pair.v.getValues(), 0, values, 2, pair.v.getValues().length);
+          transformedRows.add(new Row(newHeader, pair.k.k, values));
+        } else {
+          transformedRows.add(new Row(newHeader, pair.k.k, pair.v.getValues()));
+        }
+        values = new Object[transformedRawRows.get(0).v.getValues().length + 2];
       }
       tableList.add(new Table(newHeader, transformedRows));
+      firstCol = false;
     }
 
+    // key = window_start，而每个窗口长度一样，因此多表中key相同的列就是同一个窗口的结果，可以按key join
     return RowUtils.joinMultipleTablesByKey(tableList);
   }
 
-  private RowStream executeRowTransform(RowTransform rowTransform, Table table)
-      throws PhysicalException {
+  private RowStream executeRowTransform(RowTransform rowTransform, Table table) {
     List<Pair<RowMappingFunction, FunctionParams>> list = new ArrayList<>();
     rowTransform
         .getFunctionCallList()
@@ -455,60 +472,10 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     return RowUtils.calMappingTransform(table, functionCallList);
   }
 
-  private RowStream executeRename(Rename rename, Table table) throws PhysicalException {
+  private RowStream executeRename(Rename rename, Table table) {
     Header header = table.getHeader();
-    Map<String, String> aliasMap = rename.getAliasMap();
-
-    List<Field> fields = new ArrayList<>();
-    List<String> ignorePatterns = rename.getIgnorePatterns();
-    header
-        .getFields()
-        .forEach(
-            field -> {
-              // 如果列名在ignorePatterns中，对该列不执行rename
-              for (String ignorePattern : ignorePatterns) {
-                if (StringUtils.match(field.getName(), ignorePattern)) {
-                  fields.add(field);
-                  return;
-                }
-              }
-              String alias = "";
-              for (String oldPattern : aliasMap.keySet()) {
-                String newPattern = aliasMap.get(oldPattern);
-                if (oldPattern.equals("*") && newPattern.endsWith(".*")) {
-                  String newPrefix = newPattern.substring(0, newPattern.length() - 1);
-                  alias = newPrefix + field.getName();
-                } else if (oldPattern.endsWith(".*") && newPattern.endsWith(".*")) {
-                  String oldPrefix = oldPattern.substring(0, oldPattern.length() - 1);
-                  String newPrefix = newPattern.substring(0, newPattern.length() - 1);
-                  if (field.getName().startsWith(oldPrefix)) {
-                    alias = field.getName().replaceFirst(oldPrefix, newPrefix);
-                  }
-                  break;
-                } else if (oldPattern.equals(field.getFullName())) {
-                  alias = newPattern;
-                  break;
-                } else {
-                  if (StringUtils.match(field.getName(), oldPattern)) {
-                    if (newPattern.endsWith("." + oldPattern)) {
-                      String prefix =
-                          newPattern.substring(0, newPattern.length() - oldPattern.length());
-                      alias = prefix + field.getName();
-                    } else {
-                      alias = newPattern;
-                    }
-                    break;
-                  }
-                }
-              }
-              if (alias.isEmpty()) {
-                fields.add(field);
-              } else {
-                fields.add(new Field(alias, field.getType(), field.getTags()));
-              }
-            });
-
-    Header newHeader = new Header(header.getKey(), fields);
+    List<Pair<String, String>> aliasList = rename.getAliasList();
+    Header newHeader = header.renamedHeader(aliasList, rename.getIgnorePatterns());
 
     List<Row> rows = new ArrayList<>();
     table
@@ -525,8 +492,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     return new Table(newHeader, rows);
   }
 
-  private RowStream executeAddSchemaPrefix(AddSchemaPrefix addSchemaPrefix, Table table)
-      throws PhysicalException {
+  private RowStream executeAddSchemaPrefix(AddSchemaPrefix addSchemaPrefix, Table table) {
     Header header = table.getHeader();
     String schemaPrefix = addSchemaPrefix.getSchemaPrefix();
 
@@ -572,41 +538,12 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
 
   private RowStream executeReorder(Reorder reorder, Table table) {
     Header header = table.getHeader();
-    List<Field> targetFields = new ArrayList<>();
-    Map<Integer, Integer> reorderMap = new HashMap<>();
 
-    for (int index = 0; index < reorder.getPatterns().size(); index++) {
-      String pattern = reorder.getPatterns().get(index);
-      List<Pair<Field, Integer>> matchedFields = new ArrayList<>();
-      if (StringUtils.isPattern(pattern)) {
-        for (int i = 0; i < header.getFields().size(); i++) {
-          Field field = header.getField(i);
-          if (StringUtils.match(field.getName(), pattern)) {
-            matchedFields.add(new Pair<>(field, i));
-          }
-        }
-      } else {
-        for (int i = 0; i < header.getFields().size(); i++) {
-          Field field = header.getField(i);
-          if (pattern.equals(field.getName())) {
-            matchedFields.add(new Pair<>(field, i));
-          }
-        }
-      }
-      if (!matchedFields.isEmpty()) {
-        // 不对同一个UDF里返回的多列进行重新排序
-        if (!reorder.getIsPyUDF().get(index)) {
-          matchedFields.sort(Comparator.comparing(pair -> pair.getK().getFullName()));
-        }
-        matchedFields.forEach(
-            pair -> {
-              reorderMap.put(targetFields.size(), pair.getV());
-              targetFields.add(pair.getK());
-            });
-      }
-    }
-
-    Header newHeader = new Header(header.getKey(), targetFields);
+    Header.ReorderedHeaderWrapped res =
+        header.reorderedHeaderWrapped(reorder.getPatterns(), reorder.getIsPyUDF());
+    Header newHeader = res.getHeader();
+    List<Field> targetFields = res.getTargetFields();
+    Map<Integer, Integer> reorderMap = res.getReorderMap();
     List<Row> rows = new ArrayList<>();
     table
         .getRows()
@@ -694,7 +631,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
       // 检查时间戳
       if (!headerA.hasKey() || !headerB.hasKey()) {
         throw new InvalidOperatorParameterException(
-            "row streams for join operator by time should have timestamp.");
+            "row streams for join operator by key should have key.");
       }
       List<Field> newFields = new ArrayList<>();
       newFields.addAll(headerA.getFields());
@@ -790,8 +727,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     }
   }
 
-  private RowStream executeCrossJoin(CrossJoin crossJoin, Table tableA, Table tableB)
-      throws PhysicalException {
+  private RowStream executeCrossJoin(CrossJoin crossJoin, Table tableA, Table tableB) {
     Header newHeader =
         HeaderUtils.constructNewHead(
             tableA.getHeader(), tableB.getHeader(), crossJoin.getPrefixA(), crossJoin.getPrefixB());

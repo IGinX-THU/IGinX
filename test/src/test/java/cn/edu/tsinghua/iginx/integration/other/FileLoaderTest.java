@@ -1,9 +1,26 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package cn.edu.tsinghua.iginx.integration.other;
 
 import static org.junit.Assert.fail;
 
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
-import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.io.*;
@@ -117,14 +134,14 @@ public class FileLoaderTest {
     } catch (IOException e) {
       LOGGER.error("Read file {} error.", path, e);
       fail();
-    } catch (SessionException | ExecutionException e) {
+    } catch (SessionException e) {
       LOGGER.error("Insert data error.", e);
       fail();
     }
   }
 
   private void processChunk(byte[] chunk, String pathName, int chunkIndex, int step)
-      throws SessionException, ExecutionException {
+      throws SessionException {
     if (chunkIndex % step == 0) {
       LOGGER.info("Processing #{} chunk for {}", chunkIndex, pathName);
     }

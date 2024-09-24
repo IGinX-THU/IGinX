@@ -1,7 +1,24 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package cn.edu.tsinghua.iginx.session;
 
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
-import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.util.ArrayList;
 import java.util.List;
@@ -23,8 +40,7 @@ public class OpenTSDBSessionExample {
   private static final int INTERVAL = 10;
   private static Session session;
 
-  public static void main(String[] args)
-      throws SessionException, ExecutionException, InterruptedException {
+  public static void main(String[] args) throws SessionException, InterruptedException {
     session = new Session("127.0.0.1", 6888, "root", "root");
     // 打开 Session
     session.openSession();
@@ -40,7 +56,7 @@ public class OpenTSDBSessionExample {
     session.closeSession();
   }
 
-  private static void insertRowRecords() throws SessionException, ExecutionException {
+  private static void insertRowRecords() throws SessionException {
     List<String> paths = new ArrayList<>();
     paths.add(S1);
     paths.add(S2);
@@ -65,7 +81,7 @@ public class OpenTSDBSessionExample {
     session.insertRowRecords(paths, timestamps, valuesList, dataTypeList, null);
   }
 
-  private static void showColumns() throws SessionException, ExecutionException {
+  private static void showColumns() throws SessionException {
     List<Column> columns = session.showColumns();
     for (Column column : columns) {
       System.out.println(
@@ -73,7 +89,7 @@ public class OpenTSDBSessionExample {
     }
   }
 
-  private static void queryData() throws SessionException, ExecutionException {
+  private static void queryData() throws SessionException {
     List<String> paths = new ArrayList<>();
     paths.add(S1);
     paths.add(S2);
@@ -85,7 +101,7 @@ public class OpenTSDBSessionExample {
     dataSet.print();
   }
 
-  private static void deleteDataInColumns() throws SessionException, ExecutionException {
+  private static void deleteDataInColumns() throws SessionException {
     List<String> paths = new ArrayList<>();
     paths.add(S1);
     paths.add(S2);

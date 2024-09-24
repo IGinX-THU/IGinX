@@ -1,20 +1,19 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 package cn.edu.tsinghua.iginx.conf;
 
@@ -26,20 +25,20 @@ import org.slf4j.LoggerFactory;
 
 public class ConfigDescriptor {
 
-  private static final Logger logger = LoggerFactory.getLogger(ConfigDescriptor.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(ConfigDescriptor.class);
 
   private final Config config;
 
   private ConfigDescriptor() {
     config = new Config();
-    logger.info("load parameters from config.properties.");
+    LOGGER.info("load parameters from config.properties.");
     loadPropsFromFile();
     if (config.isEnableEnvParameter()) {
-      logger.info("load parameters from env.");
+      LOGGER.info("load parameters from env.");
       loadPropsFromEnv(); // 如果在环境变量中设置了相关参数，则会覆盖配置文件中设置的参数
     }
     if (config.isNeedInitBasicUDFFunctions()) {
-      logger.info("load UDF list from file.");
+      LOGGER.info("load UDF list from file.");
       loadUDFListFromFile();
     }
   }
@@ -86,8 +85,7 @@ public class ConfigDescriptor {
       config.setDatabaseClassNames(
           properties.getProperty(
               "databaseClassNames",
-              "iotdb12=cn.edu.tsinghua.iginx.iotdb.IoTDBStorage,influxdb=cn.edu.tsinghua.iginx.influxdb.InfluxDBStorage,parquet=cn.edu.tsinghua.iginx.parquet.ParquetStorage,postgresql=cn.edu.tsinghua.iginx.postgresql.PostgreSQLStorage,mongodb=cn.edu.tsinghua.iginx.mongodb.MongoDBStorage,redis=cn.edu.tsinghua.iginx.redis.RedisStorage"));
-      // ,opentsdb=cn.edu.tsinghua.iginx.opentsdb.OpenTSDBStorage,timescaledb=cn.edu.tsinghua.iginx.timescaledb.TimescaleDBStorage
+              "iotdb12=cn.edu.tsinghua.iginx.iotdb.IoTDBStorage,influxdb=cn.edu.tsinghua.iginx.influxdb.InfluxDBStorage,relational=cn.edu.tsinghua.iginx.relational.RelationalStorage,mongodb=cn.edu.tsinghua.iginx.mongodb.MongoDBStorage,redis=cn.edu.tsinghua.iginx.redis.RedisStorage,filestore=cn.edu.tsinghua.iginx.filestore.FileStorage"));
 
       config.setPolicyClassName(
           properties.getProperty(
@@ -231,12 +229,22 @@ public class ConfigDescriptor {
       config.setBatchSizeImportCsv(
           Integer.parseInt(properties.getProperty("batchSizeImportCsv", "10000")));
       config.setRuleBasedOptimizer(
-          properties.getProperty("ruleBasedOptimizer", "RemoveNotRule=on,FilterFragmentRule=on"));
+          properties.getProperty(
+              "ruleBasedOptimizer",
+              "NotFilterRemoveRule=on,FragmentPruningByFilterRule=on,ColumnPruningRule=on,FragmentPruningByPatternRule=on"));
+      config.setEnableEmailNotification(
+          Boolean.parseBoolean(properties.getProperty("enableEmailNotification", "false")));
+      config.setMailSmtpHost(properties.getProperty("mailSmtpHost", ""));
+      config.setMailSmtpPort(Integer.parseInt(properties.getProperty("mailSmtpPort", "465")));
+      config.setMailSmtpUser(properties.getProperty("mailSmtpUser", ""));
+      config.setMailSmtpPassword(properties.getProperty("mailSmtpPassword", ""));
+      config.setMailSender(properties.getProperty("mailSender", ""));
+      config.setMailRecipient(properties.getProperty("mailRecipient", ""));
     } catch (IOException e) {
       config.setUTTestEnv(true);
       config.setNeedInitBasicUDFFunctions(false);
       loadPropsFromEnv();
-      logger.warn(
+      LOGGER.warn(
           "Use default config, because fail to load properties(This error may be expected if it occurs during UT testing): ",
           e);
     }
@@ -358,6 +366,14 @@ public class ConfigDescriptor {
     config.setUTTestEnv(EnvUtils.loadEnv("utTestEnv", config.isUTTestEnv()));
     config.setRuleBasedOptimizer(
         EnvUtils.loadEnv("ruleBasedOptimizer", config.getRuleBasedOptimizer()));
+    config.setEnableEmailNotification(
+        Boolean.parseBoolean(EnvUtils.loadEnv("enableEmailNotification", "false")));
+    config.setMailSmtpHost(EnvUtils.loadEnv("mailSmtpHost", ""));
+    config.setMailSmtpPort(Integer.parseInt(EnvUtils.loadEnv("mailSmtpPort", "465")));
+    config.setMailSmtpUser(EnvUtils.loadEnv("mailSmtpUser", ""));
+    config.setMailSmtpPassword(EnvUtils.loadEnv("mailSmtpPassword", ""));
+    config.setMailSender(EnvUtils.loadEnv("mailSender", ""));
+    config.setMailRecipient(EnvUtils.loadEnv("mailRecipient", ""));
   }
 
   private void loadUDFListFromFile() {
@@ -377,7 +393,7 @@ public class ConfigDescriptor {
         }
       }
     } catch (IOException e) {
-      logger.error("Fail to load udf list: ", e);
+      LOGGER.error("Fail to load udf list: ", e);
     }
   }
 

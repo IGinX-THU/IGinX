@@ -1,3 +1,21 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package cn.edu.tsinghua.iginx.engine.shared.function;
 
 import static cn.edu.tsinghua.iginx.utils.DataTypeUtils.isWholeNumber;
@@ -14,12 +32,15 @@ import cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.python.PyUDAF;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.python.PyUDSF;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.python.PyUDTF;
+import cn.edu.tsinghua.iginx.engine.shared.operator.*;
+import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class FunctionUtils {
 
@@ -53,6 +74,10 @@ public class FunctionUtils {
     if (sysRowToRowFunctionSet.contains(identifier.toLowerCase())) {
       return true;
     }
+    if (sysSetToRowFunctionSet.contains(identifier.toLowerCase())
+        || sysSetToSetFunctionSet.contains(identifier.toLowerCase())) {
+      return false;
+    }
     initFunctionManager();
     Function function = functionManager.getFunction(identifier);
     return function.getIdentifier().equals("py_udtf");
@@ -62,6 +87,10 @@ public class FunctionUtils {
     if (sysSetToRowFunctionSet.contains(identifier.toLowerCase())) {
       return true;
     }
+    if (sysRowToRowFunctionSet.contains(identifier.toLowerCase())
+        || sysSetToSetFunctionSet.contains(identifier.toLowerCase())) {
+      return false;
+    }
     initFunctionManager();
     Function function = functionManager.getFunction(identifier);
     return function.getIdentifier().equals("py_udaf");
@@ -70,6 +99,10 @@ public class FunctionUtils {
   public static boolean isSetToSetFunction(String identifier) {
     if (sysSetToSetFunctionSet.contains(identifier.toLowerCase())) {
       return true;
+    }
+    if (sysRowToRowFunctionSet.contains(identifier.toLowerCase())
+        || sysSetToRowFunctionSet.contains(identifier.toLowerCase())) {
+      return false;
     }
     initFunctionManager();
     Function function = functionManager.getFunction(identifier);
@@ -242,5 +275,25 @@ public class FunctionUtils {
     }
     resultRows.sort(ValueUtils.firstLastRowComparator());
     return new Table(header, resultRows);
+  }
+
+  public static List<String> getFunctionsFullPath(List<FunctionCall> functionCalls) {
+    return functionCalls.stream().map(FunctionCall::getFunctionStr).collect(Collectors.toList());
+  }
+
+  public static List<String> getFunctionsFullPath(Operator operator) {
+    if (operator.getType() == OperatorType.Downsample) {
+      return getFunctionsFullPath(((Downsample) operator).getFunctionCallList());
+    } else if (operator.getType() == OperatorType.GroupBy) {
+      return getFunctionsFullPath(((GroupBy) operator).getFunctionCallList());
+    } else if (operator.getType() == OperatorType.SetTransform) {
+      return getFunctionsFullPath(((SetTransform) operator).getFunctionCallList());
+    } else if (operator.getType() == OperatorType.MappingTransform) {
+      return getFunctionsFullPath(((MappingTransform) operator).getFunctionCallList());
+    } else if (operator.getType() == OperatorType.RowTransform) {
+      return getFunctionsFullPath(((RowTransform) operator).getFunctionCallList());
+    } else {
+      return new ArrayList<>();
+    }
   }
 }

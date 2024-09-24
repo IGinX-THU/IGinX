@@ -1,20 +1,37 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package cn.edu.tsinghua.iginx.transform.utils;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class Mutex {
+  private static final Logger LOGGER = LoggerFactory.getLogger(Mutex.class);
 
   private boolean isLocked = false;
-
-  private static final Logger logger = LoggerFactory.getLogger(Mutex.class);
 
   public synchronized void lock() {
     while (this.isLocked) {
       try {
         wait();
       } catch (InterruptedException e) {
-        logger.error("Mutex was interrupted");
+        LOGGER.error("Mutex was interrupted");
       }
     }
     this.isLocked = true;

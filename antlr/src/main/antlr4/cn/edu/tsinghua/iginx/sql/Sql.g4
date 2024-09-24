@@ -1,3 +1,20 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
 grammar Sql;
 
 sqlStatement
@@ -6,7 +23,7 @@ sqlStatement
 
 statement
    : INSERT INTO insertFullPathSpec VALUES insertValuesSpec # insertStatement
-   | LOAD DATA importFileClause INTO insertFullPathSpec # insertFromFileStatement
+   | LOAD DATA importFileClause INTO (path tagList? (SET KEY keyName = stringLiteral)? | insertFullPathSpec) (AT keyBase = INT)? # insertFromFileStatement
    | DELETE FROM path (COMMA path)* whereClause? withClause? # deleteStatement
    | EXPLAIN? (LOGICAL | PHYSICAL)? cteClause? queryClause orderByClause? limitClause? exportFileClause? # selectStatement
    | COUNT POINTS # countPointsStatement
@@ -15,10 +32,16 @@ statement
    | SHOW COLUMNS showColumnsOptions # showColumnsStatement
    | SHOW REPLICA NUMBER # showReplicationStatement
    | ADD STORAGEENGINE storageEngineSpec # addStorageEngineStatement
+   | ALTER STORAGEENGINE engineId = INT WITH PARAMS params = stringLiteral # alterEngineStatement
    | SHOW CLUSTER INFO # showClusterInfoStatement
-   | SHOW REGISTER PYTHON TASK # showRegisterTaskStatement
-   | REGISTER udfType PYTHON TASK className = stringLiteral IN filePath = stringLiteral AS name = stringLiteral # registerTaskStatement
-   | DROP PYTHON TASK name = stringLiteral # dropTaskStatement
+   | CREATE USER username = nodeName IDENTIFIED BY password = nodeName # createUserStatement
+   | GRANT permissionSpec TO USER username = nodeName # grantUserStatement
+   | ALTER USER username = nodeName IDENTIFIED BY password = nodeName # changePasswordStatement
+   | DROP USER username = nodeName # dropUserStatement
+   | SHOW USER userSpec? # showUserStatement
+   | SHOW FUNCTIONS # showRegisterTaskStatement
+   | CREATE FUNCTION udfType udfClassRef (COMMA (udfType)? udfClassRef)* IN filePath = stringLiteral # registerTaskStatement
+   | DROP FUNCTION name = stringLiteral # dropTaskStatement
    | COMMIT TRANSFORM JOB filePath = stringLiteral # commitTransformJobStatement
    | SHOW TRANSFORM JOB STATUS jobId = INT # showJobStatusStatement
    | CANCEL TRANSFORM JOB jobId = INT # cancelJobStatement
@@ -30,6 +53,10 @@ statement
    | COMPACT # compactStatement
    | SHOW RULES # showRulesStatement
    | SET RULES ruleAssignment (COMMA ruleAssignment)* # setRulesStatement
+   ;
+
+udfClassRef
+   : name = stringLiteral FROM className = stringLiteral
    ;
 
 insertFullPathSpec
@@ -93,6 +120,7 @@ expression
    | (PLUS | MINUS) expr = expression
    | leftExpr = expression (STAR | DIV | MOD) rightExpr = expression
    | leftExpr = expression (PLUS | MINUS) rightExpr = expression
+   | caseSpecification
    | subquery
    ;
 
@@ -118,6 +146,31 @@ functionName
    | COUNT
    ;
 
+caseSpecification
+   : simipleCase
+   | searchedCase
+   ;
+
+simipleCase
+   : CASE expression simpleWhenClause (simpleWhenClause)* elseClause? END
+   ;
+
+simpleWhenClause
+   : WHEN ((comparisonOperator? value = expression) | (OPERATOR_NOT? stringLikeOperator regex = stringLiteral)) THEN result = expression
+   ;
+
+searchedCase
+   : CASE searchedWhenClause (searchedWhenClause)* elseClause? END
+   ;
+
+searchedWhenClause
+   : WHEN condition = orExpression THEN result = expression
+   ;
+
+elseClause
+   : ELSE expression
+   ;
+
 whereClause
    : WHERE orExpression
    ;
@@ -134,7 +187,7 @@ predicate
    : (KEY | path | functionName LR_BRACKET path RR_BRACKET) comparisonOperator constant
    | constant comparisonOperator (KEY | path | functionName LR_BRACKET path RR_BRACKET)
    | path comparisonOperator path
-   | path stringLikeOperator regex = stringLiteral
+   | path OPERATOR_NOT? stringLikeOperator regex = stringLiteral
    | OPERATOR_NOT? LR_BRACKET orExpression RR_BRACKET
    | predicateWithSubquery
    | expression comparisonOperator expression
@@ -255,11 +308,15 @@ havingClause
    ;
 
 orderByClause
-   : ORDER BY (KEY | path) (COMMA path)* (DESC | ASC)?
+   : ORDER BY ((KEY (DESC | ASC)?) | orderItem) (COMMA orderItem)*
+   ;
+
+orderItem
+   : path (DESC | ASC)?
    ;
 
 downsampleClause
-   : OVER LR_BRACKET RANGE aggLen IN timeInterval (STEP aggLen)? RR_BRACKET
+   : OVER WINDOW LR_BRACKET SIZE aggLen (IN timeInterval)? (SLIDE aggLen)? RR_BRACKET
    ;
 
 aggLen
@@ -309,6 +366,21 @@ fieldsOption
 
 linesOption
    : LINES TERMINATED BY linesTerminated = stringLiteral
+   ;
+
+permissionSpec
+   : permission (COMMA permission)*
+   ;
+
+userSpec
+   : nodeName (COMMA nodeName)*
+   ;
+
+permission
+   : READ
+   | WRITE
+   | ADMIN
+   | CLUSTER
    ;
 
 comparisonOperator
@@ -427,18 +499,24 @@ keyWords
    | POINTS
    | DATA
    | REPLICA
-   | IOTDB
-   | INFLUXDB
+   | USER
+   | PASSWORD
+   | CLUSTER
+   | ADMIN
+   | WRITE
+   | READ
    | DROP
-   | REGISTER
-   | PYTHON
-   | TASK
+   | CREATE
+   | FUNCTION
+   | FUNCTIONS
    | COMMIT
    | JOB
    | STATUS
    | AS
    | udfType
    | jobStatus
+   | ALTER
+   | PARAMS
    | WITH
    | WITHOUT
    | TAG
@@ -485,6 +563,14 @@ keyWords
    | HEADER
    | LOAD
    | VALUE2META
+   | WINDOW
+   | SIZE
+   | SLIDE
+   | CASE
+   | WHEN
+   | THEN
+   | ELSE
+   | END
    ;
 
 dateFormat
@@ -527,6 +613,14 @@ removedStorageEngine
    
    //============================
    
+ALTER
+   : A L T E R
+   ;
+
+PARAMS
+   : P A R A M S
+   ;
+
 INSERT
    : I N S E R T
    ;
@@ -537,6 +631,18 @@ DELETE
 
 SELECT
    : S E L E C T
+   ;
+
+GRANT
+   : G R A N T
+   ;
+
+USER
+   : U S E R
+   ;
+
+PASSWORD
+   : P A S S W O R D
    ;
 
 SHOW
@@ -555,6 +661,18 @@ CLUSTER
    : C L U S T E R
    ;
 
+ADMIN
+   : A D M I N
+   ;
+
+READ
+   : R E A D
+   ;
+
+WRITE
+   : W R I T E
+   ;
+
 INFO
    : I N F O
    ;
@@ -563,12 +681,24 @@ WHERE
    : W H E R E
    ;
 
+IDENTIFIED
+   : I D E N T I F I E D
+   ;
+
 IN
    : I N
    ;
 
+TO
+   : T O
+   ;
+
 INTO
    : I N T O
+   ;
+
+FOR
+   : F O R
    ;
 
 FROM
@@ -605,14 +735,6 @@ VALUE
 
 VALUES
    : V A L U E S
-   ;
-
-IOTDB
-   : I O T D B
-   ;
-
-INFLUXDB
-   : I N F L U X D B
    ;
 
 NOW
@@ -659,6 +781,10 @@ ADD
    : A D D
    ;
 
+UPDATE
+   : U P D A T E
+   ;
+
 RULES
    : R U L E S
    ;
@@ -685,18 +811,6 @@ ASC
 
 DROP
    : D R O P
-   ;
-
-REGISTER
-   : R E G I S T E R
-   ;
-
-PYTHON
-   : P Y T H O N
-   ;
-
-TASK
-   : T A S K
    ;
 
 COMMIT
@@ -753,6 +867,18 @@ UNKNOWN
 
 FINISHED
    : F I N I S H E D
+   ;
+
+CREATE
+   : C R E A T E
+   ;
+
+FUNCTION
+   : F U N C T I O N
+   ;
+
+FUNCTIONS
+   : F U N C T I O N S
    ;
 
 CREATED
@@ -919,6 +1045,10 @@ CSV
    : C S V
    ;
 
+AT
+   : A T
+   ;
+
 STREAM
    : S T R E A M
    ;
@@ -959,8 +1089,40 @@ LOAD
    : L O A D
    ;
 
+WINDOW
+   : W I N D O W
+   ;
+
+SIZE
+   : S I Z E
+   ;
+
+SLIDE
+   : S L I D E
+   ;
+
 VALUE2META
    : V A L U E INT_2 M E T A
+   ;
+
+CASE
+   : C A S E
+   ;
+
+WHEN
+   : W H E N
+   ;
+
+THEN
+   : T H E N
+   ;
+
+ELSE
+   : E L S E
+   ;
+
+END
+   : E N D
    ;
    //============================
    
@@ -1338,6 +1500,14 @@ fragment Y
 fragment Z
    : 'z'
    | 'Z'
+   ;
+
+SIMPLE_COMMENT
+   : '--' ~ [\r\n]* '\r'? '\n'? -> channel (HIDDEN)
+   ;
+
+BRACKETED_COMMENT
+   : '/*' .*? '*/' -> channel (HIDDEN)
    ;
 
 WS

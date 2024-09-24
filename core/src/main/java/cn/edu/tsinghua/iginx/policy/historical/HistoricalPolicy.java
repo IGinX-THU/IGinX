@@ -1,20 +1,19 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 package cn.edu.tsinghua.iginx.policy.historical;
 
@@ -22,6 +21,7 @@ import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
 import cn.edu.tsinghua.iginx.metadata.entity.*;
 import cn.edu.tsinghua.iginx.metadata.hook.StorageEngineChangeHook;
+import cn.edu.tsinghua.iginx.policy.AbstractPolicy;
 import cn.edu.tsinghua.iginx.policy.IPolicy;
 import cn.edu.tsinghua.iginx.policy.Utils;
 import cn.edu.tsinghua.iginx.policy.naive.Sampler;
@@ -34,7 +34,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,12 +43,10 @@ import org.slf4j.LoggerFactory;
 // historicalPrefixList=000,001,002,AAA
 // # 预期存储单元数量
 // expectedStorageUnitNum=50
-public class HistoricalPolicy implements IPolicy {
+public class HistoricalPolicy extends AbstractPolicy implements IPolicy {
 
-  private static final Logger logger = LoggerFactory.getLogger(HistoricalPolicy.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(HistoricalPolicy.class);
 
-  protected AtomicBoolean needReAllocate = new AtomicBoolean(false);
-  private IMetaManager iMetaManager;
   private Sampler sampler;
   private List<String> suffixList = new ArrayList<>();
 
@@ -88,7 +85,7 @@ public class HistoricalPolicy implements IPolicy {
           && after.getCreatedBy() == iMetaManager.getIginxId()
           && after.isNeedReAllocate()) {
         needReAllocate.set(true);
-        logger.info("新的可写节点进入集群，集群需要重新分片");
+        LOGGER.info("新的可写节点进入集群，集群需要重新分片");
       }
       // TODO: 针对节点退出的情况缩容
     };
@@ -236,15 +233,6 @@ public class HistoricalPolicy implements IPolicy {
     return new Pair<>(fragmentList, storageUnitList);
   }
 
-  private List<Long> generateStorageEngineIdList(int startIndex, int num) {
-    List<Long> storageEngineIdList = new ArrayList<>();
-    List<StorageEngineMeta> storageEngines = iMetaManager.getWritableStorageEngineList();
-    for (int i = startIndex; i < startIndex + num; i++) {
-      storageEngineIdList.add(storageEngines.get(i % storageEngines.size()).getId());
-    }
-    return storageEngineIdList;
-  }
-
   public Pair<FragmentMeta, StorageUnitMeta>
       generateFragmentAndStorageUnitByColumnsIntervalAndKeyInterval(
           String startPath,
@@ -262,15 +250,5 @@ public class HistoricalPolicy implements IPolicy {
               RandomStringUtils.randomAlphanumeric(16), storageEngineList.get(i), masterId, false));
     }
     return new Pair<>(fragment, storageUnit);
-  }
-
-  @Override
-  public boolean isNeedReAllocate() {
-    return needReAllocate.getAndSet(false);
-  }
-
-  @Override
-  public void setNeedReAllocate(boolean needReAllocate) {
-    this.needReAllocate.set(needReAllocate);
   }
 }

@@ -1,3 +1,21 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package cn.edu.tsinghua.iginx.migration;
 
 import cn.edu.tsinghua.iginx.metadata.entity.FragmentMeta;
@@ -15,11 +33,11 @@ import org.slf4j.LoggerFactory;
 
 public class SimulationBasedMigrationPolicy extends MigrationPolicy {
 
-  private static final Logger logger =
+  private static final Logger LOGGER =
       LoggerFactory.getLogger(SimulationBasedMigrationPolicy.class);
 
   public SimulationBasedMigrationPolicy() {
-    super(logger);
+    super(LOGGER);
   }
 
   @Override
@@ -62,7 +80,7 @@ public class SimulationBasedMigrationPolicy extends MigrationPolicy {
         targetIndex = currIndex;
       }
     }
-    logger.info(
+    LOGGER.info(
         "complete simulate migration task with time consumption: {} ms",
         System.currentTimeMillis() - startTime);
 
@@ -73,7 +91,7 @@ public class SimulationBasedMigrationPolicy extends MigrationPolicy {
       executeOneRoundMigration(migrationTaskQueueList, nodeLoadMap);
     }
 
-    logger.info(
+    LOGGER.info(
         "complete all migration task with time consumption: {} ms",
         System.currentTimeMillis() - startTime);
   }
@@ -166,7 +184,7 @@ public class SimulationBasedMigrationPolicy extends MigrationPolicy {
       candidateMigrationTaskQueueList.add(migrationTaskQueueList);
     }
 
-    logger.info(
+    LOGGER.info(
         "start to simulate migration task of {} possibilities",
         candidateMigrationTaskQueueList.size());
     return candidateMigrationTaskQueueList;

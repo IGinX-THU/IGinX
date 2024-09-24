@@ -1,15 +1,28 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.stream;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Rename;
-import cn.edu.tsinghua.iginx.utils.StringUtils;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 
 public class RenameLazyStream extends UnaryLazyStream {
 
@@ -26,57 +39,7 @@ public class RenameLazyStream extends UnaryLazyStream {
   public Header getHeader() throws PhysicalException {
     if (header == null) {
       Header header = stream.getHeader();
-      Map<String, String> aliasMap = rename.getAliasMap();
-
-      List<Field> fields = new ArrayList<>();
-      header
-          .getFields()
-          .forEach(
-              field -> {
-                // 如果列名在ignorePatterns中，对该列不执行rename
-                for (String ignorePattern : rename.getIgnorePatterns()) {
-                  if (StringUtils.match(field.getName(), ignorePattern)) {
-                    fields.add(field);
-                    return;
-                  }
-                }
-                String alias = "";
-                for (String oldPattern : aliasMap.keySet()) {
-                  String newPattern = aliasMap.get(oldPattern);
-                  if (oldPattern.equals("*") && newPattern.endsWith(".*")) {
-                    String newPrefix = newPattern.substring(0, newPattern.length() - 1);
-                    alias = newPrefix + field.getName();
-                  } else if (oldPattern.endsWith(".*") && newPattern.endsWith(".*")) {
-                    String oldPrefix = oldPattern.substring(0, oldPattern.length() - 1);
-                    String newPrefix = newPattern.substring(0, newPattern.length() - 1);
-                    if (field.getName().startsWith(oldPrefix)) {
-                      alias = field.getName().replaceFirst(oldPrefix, newPrefix);
-                    }
-                    break;
-                  } else if (oldPattern.equals(field.getFullName())) {
-                    alias = newPattern;
-                    break;
-                  } else {
-                    if (StringUtils.match(field.getName(), oldPattern)) {
-                      if (newPattern.endsWith("." + oldPattern)) {
-                        String prefix =
-                            newPattern.substring(0, newPattern.length() - oldPattern.length());
-                        alias = prefix + field.getName();
-                      } else {
-                        alias = newPattern;
-                      }
-                      break;
-                    }
-                  }
-                }
-                if (alias.isEmpty()) {
-                  fields.add(field);
-                } else {
-                  fields.add(new Field(alias, field.getType(), field.getTags()));
-                }
-              });
-
-      this.header = new Header(header.getKey(), fields);
+      this.header = header.renamedHeader(rename.getAliasList(), rename.getIgnorePatterns());
     }
     return header;
   }

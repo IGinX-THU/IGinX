@@ -1,3 +1,21 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package cn.edu.tsinghua.iginx.integration.expansion.postgresql;
 
 import cn.edu.tsinghua.iginx.integration.expansion.BaseHistoryDataGenerator;
@@ -10,20 +28,20 @@ import org.slf4j.LoggerFactory;
 
 public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
 
-  private static final Logger logger =
+  private static final Logger LOGGER =
       LoggerFactory.getLogger(PostgreSQLHistoryDataGenerator.class);
 
   private static final char SEPARATOR = '.';
 
   private static final String QUERY_DATABASES_STATEMENT = "SELECT datname FROM pg_database;";
 
-  private static final String CREATE_DATABASE_STATEMENT = "CREATE DATABASE \"%s\";";
+  public static final String CREATE_DATABASE_STATEMENT = "CREATE DATABASE \"%s\";";
 
-  private static final String CREATE_TABLE_STATEMENT = "CREATE TABLE %s (%s);";
+  public static final String CREATE_TABLE_STATEMENT = "CREATE TABLE %s (%s);";
 
-  private static final String INSERT_STATEMENT = "INSERT INTO %s VALUES %s;";
+  public static final String INSERT_STATEMENT = "INSERT INTO %s VALUES %s;";
 
-  private static final String DROP_DATABASE_STATEMENT = "DROP DATABASE \"%s\";";
+  public static final String DROP_DATABASE_STATEMENT = "DROP DATABASE \"%s\" WITH (FORCE);";
 
   private static final String USERNAME = "postgres";
 
@@ -35,7 +53,8 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
     Constant.readOnlyPort = 5434;
   }
 
-  private Connection connect(int port, boolean useSystemDatabase, String databaseName) {
+  public static Connection connect(
+      int port, boolean useSystemDatabase, String databaseName, String username, String password) {
     try {
       String url;
       if (useSystemDatabase) {
@@ -44,7 +63,7 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
         url = String.format("jdbc:postgresql://127.0.0.1:%d/%s", port, databaseName);
       }
       Class.forName("org.postgresql.Driver");
-      return DriverManager.getConnection(url, USERNAME, PASSWORD);
+      return DriverManager.getConnection(url, username, password);
     } catch (SQLException | ClassNotFoundException e) {
       throw new RuntimeException(e);
     }
@@ -59,9 +78,9 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
       List<List<Object>> valuesList) {
     Connection connection = null;
     try {
-      connection = connect(port, true, null);
+      connection = connect(port, true, null, USERNAME, PASSWORD);
       if (connection == null) {
-        logger.error("cannot connect to 127.0.0.1:{}!", port);
+        LOGGER.error("cannot connect to 127.0.0.1:{}!", port);
         return;
       }
 
@@ -85,14 +104,14 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
         Statement stmt = connection.createStatement();
         String createDatabaseSql = String.format(CREATE_DATABASE_STATEMENT, databaseName);
         try {
-          logger.info("create database with stmt: {}", createDatabaseSql);
+          LOGGER.info("create database with stmt: {}", createDatabaseSql);
           stmt.execute(createDatabaseSql);
         } catch (SQLException e) {
-          logger.info("database {} exists!", databaseName);
+          LOGGER.info("database {} exists!", databaseName);
         }
         stmt.close();
 
-        Connection conn = connect(port, false, databaseName);
+        Connection conn = connect(port, false, databaseName, USERNAME, PASSWORD);
         stmt = conn.createStatement();
         for (Map.Entry<String, List<Integer>> item : entry.getValue().entrySet()) {
           String tableName = item.getKey();
@@ -137,17 +156,16 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
       }
       connection.close();
 
-      logger.info("write data to 127.0.0.1:{} success!", port);
+      LOGGER.info("write data to 127.0.0.1:{} success!", port);
     } catch (RuntimeException | SQLException e) {
-      logger.error("write data to 127.0.0.1:{} failure: {}", port, e.getMessage());
-      e.printStackTrace();
+      LOGGER.error("write data to 127.0.0.1:{} failure: ", port, e);
     } finally {
       try {
         if (connection != null) {
           connection.close();
         }
       } catch (SQLException e) {
-        logger.error("close connection failure: {}", e.getMessage());
+        LOGGER.error("close connection failure: ", e);
       }
     }
   }
@@ -159,10 +177,20 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
   }
 
   @Override
+  public void writeSpecialHistoryData() {
+    // write float value
+    writeHistoryData(
+        Constant.readOnlyPort,
+        Constant.READ_ONLY_FLOAT_PATH_LIST,
+        new ArrayList<>(Collections.singletonList(DataType.FLOAT)),
+        Constant.READ_ONLY_FLOAT_VALUES_LIST);
+  }
+
+  @Override
   public void clearHistoryDataForGivenPort(int port) {
     Connection conn = null;
     try {
-      conn = connect(port, true, null);
+      conn = connect(port, true, null, USERNAME, PASSWORD);
       Statement stmt = conn.createStatement();
       ResultSet databaseSet = stmt.executeQuery(QUERY_DATABASES_STATEMENT);
       Statement dropDatabaseStatement = conn.createStatement();
@@ -182,16 +210,16 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
       databaseSet.close();
       stmt.close();
       conn.close();
-      logger.info("clear data on 127.0.0.1:{} success!", port);
+      LOGGER.info("clear data on 127.0.0.1:{} success!", port);
     } catch (SQLException e) {
-      logger.warn("clear data on 127.0.0.1:{} failure: {}", port, e.getMessage());
+      LOGGER.warn("clear data on 127.0.0.1:{} failure: ", port, e);
     } finally {
       try {
         if (conn != null) {
           conn.close();
         }
       } catch (SQLException e) {
-        logger.error("close connection failure: {}", e.getMessage());
+        LOGGER.error("close connection failure: ", e);
       }
     }
   }

@@ -1,20 +1,19 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 package cn.edu.tsinghua.iginx.metadata;
 
@@ -27,10 +26,10 @@ import static cn.edu.tsinghua.iginx.utils.HostUtils.isValidHost;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.conf.Constants;
 import cn.edu.tsinghua.iginx.engine.physical.storage.StorageManager;
-import cn.edu.tsinghua.iginx.exceptions.MetaStorageException;
 import cn.edu.tsinghua.iginx.metadata.cache.DefaultMetaCache;
 import cn.edu.tsinghua.iginx.metadata.cache.IMetaCache;
 import cn.edu.tsinghua.iginx.metadata.entity.*;
+import cn.edu.tsinghua.iginx.metadata.exception.MetaStorageException;
 import cn.edu.tsinghua.iginx.metadata.hook.StorageEngineChangeHook;
 import cn.edu.tsinghua.iginx.metadata.hook.StorageUnitHook;
 import cn.edu.tsinghua.iginx.metadata.storage.IMetaStorage;
@@ -56,7 +55,7 @@ import org.slf4j.LoggerFactory;
 
 public class DefaultMetaManager implements IMetaManager {
 
-  private static final Logger logger = LoggerFactory.getLogger(DefaultMetaManager.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(DefaultMetaManager.class);
   private static volatile DefaultMetaManager INSTANCE;
   private final IMetaCache cache;
 
@@ -82,21 +81,21 @@ public class DefaultMetaManager implements IMetaManager {
 
     switch (ConfigDescriptor.getInstance().getConfig().getMetaStorage()) {
       case Constants.ZOOKEEPER_META:
-        logger.info("use zookeeper as meta storage.");
+        LOGGER.info("use zookeeper as meta storage.");
         storage = ZooKeeperMetaStorage.getInstance();
         break;
       case Constants.FILE_META:
-        logger.error("file as meta storage has depreciated.");
+        LOGGER.error("file as meta storage has depreciated.");
         storage = null;
         System.exit(-1);
         break;
       case Constants.ETCD_META:
-        logger.info("use etcd as meta storage");
+        LOGGER.info("use etcd as meta storage");
         storage = ETCDMetaStorage.getInstance();
         break;
       default:
         // without configuration, file storage should be the safe choice
-        logger.info(
+        LOGGER.info(
             "unknown meta storage " + ConfigDescriptor.getInstance().getConfig().getMetaStorage());
         storage = null;
         System.exit(-1);
@@ -118,7 +117,7 @@ public class DefaultMetaManager implements IMetaManager {
       initReshardStatus();
       initReshardCounter();
     } catch (MetaStorageException e) {
-      logger.error("init meta manager error: ", e);
+      LOGGER.error("init meta manager error: ", e);
       System.exit(-1);
     }
   }
@@ -142,7 +141,7 @@ public class DefaultMetaManager implements IMetaManager {
           }
           updateMaxActiveEndKey(endKey);
           int updatedCounter = maxActiveEndKeyStatisticsCounter.incrementAndGet();
-          logger.info(
+          LOGGER.info(
               "iginx node {} increment max active end key statistics counter {}",
               this.id,
               updatedCounter);
@@ -165,16 +164,16 @@ public class DefaultMetaManager implements IMetaManager {
             }
             if (reshardStatus.equals(NON_RESHARDING)) {
               if (isProposer) {
-                logger.info("iginx node {}(proposer) finish to reshard", id);
+                LOGGER.info("iginx node {}(proposer) finish to reshard", id);
               } else {
-                logger.info("iginx node {} finish to reshard", id);
+                LOGGER.info("iginx node {} finish to reshard", id);
               }
 
               isProposer = false;
               maxActiveEndKeyStatisticsCounter.set(0);
             }
           } catch (MetaStorageException e) {
-            logger.error("encounter error when switching reshard status: ", e);
+            LOGGER.error("encounter error when switching reshard status: ", e);
           }
         });
     storage.lockReshardStatus();
@@ -201,7 +200,7 @@ public class DefaultMetaManager implements IMetaManager {
               }
             }
           } catch (MetaStorageException e) {
-            logger.error("encounter error when updating reshard counter: ", e);
+            LOGGER.error("encounter error when updating reshard counter: ", e);
           }
         });
     storage.lockReshardCounter();
@@ -263,7 +262,7 @@ public class DefaultMetaManager implements IMetaManager {
               StorageUnitMeta masterStorageUnitMeta =
                   cache.getStorageUnit(storageUnit.getMasterId());
               if (masterStorageUnitMeta == null) { // 子节点先于主节点加入系统中，不应该发生，报错
-                logger.error(
+                LOGGER.error(
                     "unexpected storage unit "
                         + storageUnit.toString()
                         + ", because it does not has a master storage unit");
@@ -278,7 +277,7 @@ public class DefaultMetaManager implements IMetaManager {
               StorageUnitMeta masterStorageUnitMeta =
                   cache.getStorageUnit(storageUnit.getMasterId());
               if (masterStorageUnitMeta == null) { // 子节点先于主节点加入系统中，不应该发生，报错
-                logger.error(
+                LOGGER.error(
                     "unexpected storage unit "
                         + storageUnit.toString()
                         + ", because it does not has a master storage unit");
@@ -358,7 +357,7 @@ public class DefaultMetaManager implements IMetaManager {
           try {
             storage.updateTimeseriesData(timeseriesData, getIginxId(), version);
           } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("unexpected error: ", e);
           }
         });
     int num = 0;
@@ -367,7 +366,7 @@ public class DefaultMetaManager implements IMetaManager {
       // 从元数据管理器取写入的最大时间戳
       maxActiveEndKey.set(storage.getMaxActiveEndKeyStatistics());
     } catch (Exception e) {
-      e.printStackTrace();
+      LOGGER.error("unexpected error: ", e);
     }
   }
 
@@ -409,7 +408,7 @@ public class DefaultMetaManager implements IMetaManager {
       }
       return true;
     } catch (MetaStorageException e) {
-      logger.error("add storage engines error:", e);
+      LOGGER.error("add storage engines error:", e);
     }
     return false;
   }
@@ -439,10 +438,13 @@ public class DefaultMetaManager implements IMetaManager {
   public boolean removeDummyStorageEngine(long storageEngineId) {
     try {
       storage.removeDummyStorageEngine(storageEngineId);
+      // release 对接层
+      for (StorageEngineChangeHook hook : storageEngineChangeHooks) {
+        hook.onChange(getStorageEngine(storageEngineId), null);
+      }
       return cache.removeDummyStorageEngine(storageEngineId);
-      // TODO 由于当前 StorageEngineChangeHook 和 StorageUnitHook 只会处理新增事件，因此不必调用相关 onChange 函数
     } catch (MetaStorageException e) {
-      logger.error("remove dummy storage engine {} error: {}", storageEngineId, e.getMessage());
+      LOGGER.error("remove dummy storage engine {} error: ", storageEngineId, e);
     }
     return false;
   }
@@ -747,13 +749,13 @@ public class DefaultMetaManager implements IMetaManager {
       }
       return true;
     } catch (MetaStorageException e) {
-      logger.error("create fragment error: ", e);
+      LOGGER.error("create fragment error: ", e);
     } finally {
       try {
         storage.releaseFragment();
         storage.releaseStorageUnit();
       } catch (MetaStorageException e) {
-        logger.error("release fragment lock error: ", e);
+        LOGGER.error("release fragment lock error: ", e);
       }
     }
     return false;
@@ -767,7 +769,7 @@ public class DefaultMetaManager implements IMetaManager {
       storage.lockStorageUnit();
 
       // 更新du
-      logger.info("update du");
+      LOGGER.info("update du");
       toAddStorageUnit.setCreatedBy(id);
       String actualName = storage.addStorageUnit();
       StorageUnitMeta actualMasterStorageUnit =
@@ -808,13 +810,13 @@ public class DefaultMetaManager implements IMetaManager {
       cache.addFragment(toAddFragment);
       storage.addFragment(toAddFragment);
     } catch (MetaStorageException e) {
-      logger.error("create fragment error: ", e);
+      LOGGER.error("create fragment error: ", e);
     } finally {
       try {
         storage.releaseFragment();
         storage.releaseStorageUnit();
       } catch (MetaStorageException e) {
-        logger.error("release fragment lock error: ", e);
+        LOGGER.error("release fragment lock error: ", e);
       }
     }
 
@@ -828,12 +830,12 @@ public class DefaultMetaManager implements IMetaManager {
       cache.deleteFragmentByColumnsInterval(fragmentMeta.getColumnsInterval(), fragmentMeta);
       storage.removeFragment(fragmentMeta);
     } catch (MetaStorageException e) {
-      logger.error("remove fragment error: ", e);
+      LOGGER.error("remove fragment error: ", e);
     } finally {
       try {
         storage.releaseFragment();
       } catch (MetaStorageException e) {
-        logger.error("release fragment lock error: ", e);
+        LOGGER.error("release fragment lock error: ", e);
       }
     }
   }
@@ -845,12 +847,12 @@ public class DefaultMetaManager implements IMetaManager {
       cache.addFragment(fragmentMeta);
       storage.addFragment(fragmentMeta);
     } catch (MetaStorageException e) {
-      logger.error("add fragment error: ", e);
+      LOGGER.error("add fragment error: ", e);
     } finally {
       try {
         storage.releaseFragment();
       } catch (MetaStorageException e) {
-        logger.error("release fragment lock error: ", e);
+        LOGGER.error("release fragment lock error: ", e);
       }
     }
   }
@@ -868,12 +870,12 @@ public class DefaultMetaManager implements IMetaManager {
       cache.addFragment(fragmentMeta);
       storage.updateFragmentByColumnsInterval(sourceColumnsInterval, fragmentMeta);
     } catch (MetaStorageException e) {
-      logger.error("end fragment by time series interval error: ", e);
+      LOGGER.error("end fragment by time series interval error: ", e);
     } finally {
       try {
         storage.releaseFragment();
       } catch (MetaStorageException e) {
-        logger.error("release fragment lock error: ", e);
+        LOGGER.error("release fragment lock error: ", e);
       }
     }
   }
@@ -886,12 +888,12 @@ public class DefaultMetaManager implements IMetaManager {
       cache.updateFragmentByColumnsInterval(columnsInterval, fragmentMeta);
       storage.updateFragmentByColumnsInterval(columnsInterval, fragmentMeta);
     } catch (Exception e) {
-      logger.error("update fragment error: ", e);
+      LOGGER.error("update fragment error: ", e);
     } finally {
       try {
         storage.releaseFragment();
       } catch (MetaStorageException e) {
-        logger.error("release fragment lock error: ", e);
+        LOGGER.error("release fragment lock error: ", e);
       }
     }
   }
@@ -919,7 +921,7 @@ public class DefaultMetaManager implements IMetaManager {
           endKey = fragment.getKeyInterval().getEndKey();
         }
         if (endKey != fragment.getKeyInterval().getEndKey()) {
-          logger.error("fragments which have the same start key should also have the same end key");
+          LOGGER.error("fragments which have the same start key should also have the same end key");
           return;
         }
         String startColumn = fragment.getColumnsInterval().getStartColumn();
@@ -929,7 +931,7 @@ public class DefaultMetaManager implements IMetaManager {
       }
       for (String border : borders.keySet()) {
         if (borders.get(border) != 0) {
-          logger.error("initial fragments should be completion");
+          LOGGER.error("initial fragments should be completion");
           return;
         }
       }
@@ -946,7 +948,7 @@ public class DefaultMetaManager implements IMetaManager {
       if (key == 0) {
         seeZeroKey = true;
         if (keyBorders.get(key) != -1) {
-          logger.error("initial fragments should be completion");
+          LOGGER.error("initial fragments should be completion");
           return;
         }
         continue;
@@ -954,18 +956,18 @@ public class DefaultMetaManager implements IMetaManager {
       if (key == Long.MAX_VALUE) {
         seeMaxKey = true;
         if (keyBorders.get(key) != 1) {
-          logger.error("initial fragments should be completion");
+          LOGGER.error("initial fragments should be completion");
           return;
         }
         continue;
       }
       if (keyBorders.get(key) != 0) {
-        logger.error("initial fragments should be completion");
+        LOGGER.error("initial fragments should be completion");
         return;
       }
     }
     if (!seeZeroKey || !seeMaxKey) {
-      logger.error("initial fragments should be completion");
+      LOGGER.error("initial fragments should be completion");
     }
   }
 
@@ -974,14 +976,14 @@ public class DefaultMetaManager implements IMetaManager {
     Map<String, Integer> borders = new HashMap<>();
     for (FragmentMeta fragment : fragments) {
       if (fragment.getKeyInterval().getEndKey() != Long.MAX_VALUE) {
-        logger.error("end key for new fragment should be Long.MAX_VALUE");
+        LOGGER.error("end key for new fragment should be Long.MAX_VALUE");
         return;
       }
       if (startKey == -1) {
         startKey = fragment.getKeyInterval().getStartKey();
       }
       if (startKey != fragment.getKeyInterval().getStartKey()) {
-        logger.error("new fragments created at the same key should have the same start key");
+        LOGGER.error("new fragments created at the same key should have the same start key");
         return;
       }
       String startTs = fragment.getColumnsInterval().getStartColumn();
@@ -991,7 +993,7 @@ public class DefaultMetaManager implements IMetaManager {
     }
     for (String border : borders.keySet()) {
       if (borders.get(border) != 0) {
-        logger.error("new fragments created at the same key should be completion");
+        LOGGER.error("new fragments created at the same key should be completion");
         return;
       }
     }
@@ -1021,14 +1023,14 @@ public class DefaultMetaManager implements IMetaManager {
         Map<ColumnsInterval, List<FragmentMeta>> globalFragmentMap = storage.loadFragment();
         newStorageUnits.addAll(globalStorageUnits.values());
         newStorageUnits.sort(Comparator.comparing(StorageUnitMeta::getId));
-        logger.warn("server has created storage unit, just need to load.");
-        logger.warn("notify storage unit listeners.");
+        LOGGER.warn("server has created storage unit, just need to load.");
+        LOGGER.warn("notify storage unit listeners.");
         for (StorageUnitHook hook : storageUnitHooks) {
           for (StorageUnitMeta meta : newStorageUnits) {
             hook.onChange(null, meta);
           }
         }
-        logger.warn("notify storage unit listeners finished.");
+        LOGGER.warn("notify storage unit listeners finished.");
         // 再初始化缓存
         cache.initStorageUnit(globalStorageUnits);
         cache.initFragment(globalFragmentMap);
@@ -1071,26 +1073,26 @@ public class DefaultMetaManager implements IMetaManager {
       newStorageUnits.addAll(loadedStorageUnits.values());
       newStorageUnits.sort(Comparator.comparing(StorageUnitMeta::getId));
       // 先通知
-      logger.warn("i have created storage unit.");
-      logger.warn("notify storage unit listeners.");
+      LOGGER.warn("i have created storage unit.");
+      LOGGER.warn("notify storage unit listeners.");
       for (StorageUnitHook hook : storageUnitHooks) {
         for (StorageUnitMeta meta : newStorageUnits) {
           hook.onChange(null, meta);
         }
       }
-      logger.warn("notify storage unit listeners finished.");
+      LOGGER.warn("notify storage unit listeners finished.");
       // 再初始化缓存
       cache.initStorageUnit(loadedStorageUnits);
       cache.initFragment(storage.loadFragment());
       return true;
     } catch (MetaStorageException e) {
-      logger.error("encounter error when init fragment: ", e);
+      LOGGER.error("encounter error when init fragment: ", e);
     } finally {
       try {
         storage.releaseStorageUnit();
         storage.releaseFragment();
       } catch (MetaStorageException e) {
-        logger.error("encounter error when release fragment lock: ", e);
+        LOGGER.error("encounter error when release fragment lock: ", e);
       }
     }
     return false;
@@ -1150,7 +1152,7 @@ public class DefaultMetaManager implements IMetaManager {
         cache.addOrUpdateSchemaMapping(schema, schemaMapping);
       }
     } catch (MetaStorageException e) {
-      logger.error("update schema mapping error: ", e);
+      LOGGER.error("update schema mapping error: ", e);
     }
   }
 
@@ -1173,7 +1175,7 @@ public class DefaultMetaManager implements IMetaManager {
         cache.addOrUpdateSchemaMappingItem(schema, key, value);
       }
     } catch (MetaStorageException e) {
-      logger.error("update schema mapping error: ", e);
+      LOGGER.error("update schema mapping error: ", e);
     }
   }
 
@@ -1198,7 +1200,7 @@ public class DefaultMetaManager implements IMetaManager {
       String[] storageEngineParts = storageEngineStrings[i].split("#");
       String ip = storageEngineParts[0];
       if (!isValidHost(ip)) { // IP 不合法
-        logger.error("ip {} is invalid", ip);
+        LOGGER.error("ip {} is invalid", ip);
         continue;
       }
       int port = -1;
@@ -1215,7 +1217,7 @@ public class DefaultMetaManager implements IMetaManager {
         } else {
           KAndV = storageEngineParts[j].split("=");
           if (KAndV.length != 2) {
-            logger.error("unexpected storage engine meta info {}", storageEngineStrings[i]);
+            LOGGER.error("unexpected storage engine meta info {}", storageEngineStrings[i]);
             continue;
           }
           extraParams.put(KAndV[0], KAndV[1]);
@@ -1230,7 +1232,7 @@ public class DefaultMetaManager implements IMetaManager {
           Boolean.parseBoolean(extraParams.getOrDefault(Constants.IS_READ_ONLY, "false"));
       if (!checkEmbeddedStorageExtraParams(
           StorageEngineType.valueOf(storageEngine.toLowerCase()), extraParams)) {
-        logger.error(
+        LOGGER.error(
             "missing params or providing invalid ones for {} in config file",
             storageEngineStrings[i]);
         continue;
@@ -1252,6 +1254,10 @@ public class DefaultMetaManager implements IMetaManager {
       if (hasData) {
         StorageUnitMeta dummyStorageUnit = new StorageUnitMeta(generateDummyStorageUnitId(i), i);
         Pair<ColumnsInterval, KeyInterval> boundary = StorageManager.getBoundaryOfStorage(storage);
+        if (boundary == null) {
+          LOGGER.error("Skip dummy engine:{}. Failed to obtain boundary.", storageEngineStrings[i]);
+          continue;
+        }
         FragmentMeta dummyFragment;
 
         if (dataPrefix == null) {
@@ -1298,7 +1304,7 @@ public class DefaultMetaManager implements IMetaManager {
       cache.addOrUpdateUser(user);
       return true;
     } catch (MetaStorageException e) {
-      logger.error("add user error: ", e);
+      LOGGER.error("add user error: ", e);
       return false;
     }
   }
@@ -1321,7 +1327,7 @@ public class DefaultMetaManager implements IMetaManager {
       cache.addOrUpdateUser(user);
       return true;
     } catch (MetaStorageException e) {
-      logger.error("update user error: ", e);
+      LOGGER.error("update user error: ", e);
       return false;
     }
   }
@@ -1333,7 +1339,7 @@ public class DefaultMetaManager implements IMetaManager {
       cache.removeUser(username);
       return true;
     } catch (MetaStorageException e) {
-      logger.error("remove user error: ", e);
+      LOGGER.error("remove user error: ", e);
       return false;
     }
   }
@@ -1413,7 +1419,7 @@ public class DefaultMetaManager implements IMetaManager {
       cache.addOrUpdateTransformTask(transformTask);
       return true;
     } catch (MetaStorageException e) {
-      logger.error("add transform task error: ", e);
+      LOGGER.error("add transform task error: ", e);
       return false;
     }
   }
@@ -1425,7 +1431,7 @@ public class DefaultMetaManager implements IMetaManager {
       cache.addOrUpdateTransformTask(transformTask);
       return true;
     } catch (MetaStorageException e) {
-      logger.error("add transform task error: ", e);
+      LOGGER.error("add transform task error: ", e);
       return false;
     }
   }
@@ -1437,7 +1443,7 @@ public class DefaultMetaManager implements IMetaManager {
       storage.dropTransformTask(name);
       return true;
     } catch (MetaStorageException e) {
-      logger.error("drop transform task error: ", e);
+      LOGGER.error("drop transform task error: ", e);
       return false;
     }
   }
@@ -1453,6 +1459,11 @@ public class DefaultMetaManager implements IMetaManager {
   }
 
   @Override
+  public List<TransformTaskMeta> getTransformTasksByModule(String moduleName) {
+    return cache.getTransformTasksByModule(moduleName);
+  }
+
+  @Override
   public void updateFragmentRequests(
       Map<FragmentMeta, Long> writeRequestsMap, Map<FragmentMeta, Long> readRequestsMap) {
     try {
@@ -1461,7 +1472,7 @@ public class DefaultMetaManager implements IMetaManager {
       storage.incrementFragmentRequestsCounter();
       storage.releaseFragmentRequestsCounter();
     } catch (Exception e) {
-      logger.error("encounter error when update fragment requests: ", e);
+      LOGGER.error("encounter error when update fragment requests: ", e);
     }
   }
 
@@ -1474,7 +1485,7 @@ public class DefaultMetaManager implements IMetaManager {
       storage.incrementFragmentHeatCounter();
       storage.releaseFragmentHeatCounter();
     } catch (Exception e) {
-      logger.error("encounter error when update fragment heat: ", e);
+      LOGGER.error("encounter error when update fragment heat: ", e);
     }
   }
 
@@ -1501,7 +1512,7 @@ public class DefaultMetaManager implements IMetaManager {
       HotSpotMonitor.getInstance().clear();
       RequestsMonitor.getInstance().clear();
     } catch (Exception e) {
-      logger.error("encounter error when clear monitors: ", e);
+      LOGGER.error("encounter error when clear monitors: ", e);
     }
   }
 
@@ -1510,7 +1521,7 @@ public class DefaultMetaManager implements IMetaManager {
     try {
       return storage.loadFragmentHeat(cache);
     } catch (Exception e) {
-      logger.error("encounter error when remove fragment heat: ", e);
+      LOGGER.error("encounter error when remove fragment heat: ", e);
       return new Pair<>(new HashMap<>(), new HashMap<>());
     }
   }
@@ -1520,7 +1531,7 @@ public class DefaultMetaManager implements IMetaManager {
     try {
       storage.updateFragmentPoints(fragmentMeta, points);
     } catch (Exception e) {
-      logger.error("encounter error when add fragment points: ", e);
+      LOGGER.error("encounter error when add fragment points: ", e);
     }
   }
 
@@ -1529,7 +1540,7 @@ public class DefaultMetaManager implements IMetaManager {
     try {
       return storage.loadFragmentPoints(cache);
     } catch (Exception e) {
-      logger.error("encounter error when load fragment points: ", e);
+      LOGGER.error("encounter error when load fragment points: ", e);
       return new HashMap<>();
     }
   }
@@ -1557,7 +1568,7 @@ public class DefaultMetaManager implements IMetaManager {
       storage.addOrUpdateMaxActiveEndKeyStatistics(maxActiveEndKey.get());
       storage.releaseMaxActiveEndKeyStatistics();
     } catch (MetaStorageException e) {
-      logger.error("encounter error when submitting max active key: ", e);
+      LOGGER.error("encounter error when submitting max active key: ", e);
     }
   }
 }

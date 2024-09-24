@@ -1,20 +1,19 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 package cn.edu.tsinghua.iginx.integration.func.session;
 
@@ -25,8 +24,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
-import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.tool.CombinedInsertTests;
 import cn.edu.tsinghua.iginx.session.SessionAggregateQueryDataSet;
 import cn.edu.tsinghua.iginx.session.SessionQueryDataSet;
@@ -43,7 +41,7 @@ import org.slf4j.LoggerFactory;
 
 public class SessionIT extends BaseSessionIT {
 
-  private static final Logger logger = LoggerFactory.getLogger(SessionIT.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(SessionIT.class);
 
   protected StorageEngineType storageEngineType;
   protected int defaultPort2 = 6668;
@@ -79,13 +77,12 @@ public class SessionIT extends BaseSessionIT {
     return sb.toString();
   }
 
-  private void insertTestsByFourInterfaces() throws SessionException, ExecutionException {
+  private void insertTestsByFourInterfaces() throws SessionException {
     CombinedInsertTests test = new CombinedInsertTests(session);
     test.testInserts();
   }
 
-  private void insertFakeNumRecords(List<String> insertPaths, long count)
-      throws SessionException, ExecutionException {
+  private void insertFakeNumRecords(List<String> insertPaths, long count) throws SessionException {
     int pathLen = insertPaths.size();
     long[] keys = new long[(int) KEY_PERIOD];
     for (long i = 0; i < KEY_PERIOD; i++) {
@@ -111,7 +108,7 @@ public class SessionIT extends BaseSessionIT {
 
   // the length of the insertPaths must be 6
   private void insertDataTypeRecords(List<String> insertPaths, int startPathNum)
-      throws SessionException, ExecutionException {
+      throws SessionException {
     long[] keys = new long[(int) KEY_PERIOD];
     for (long i = 0; i < KEY_PERIOD; i++) {
       keys[(int) i] = i + START_KEY;
@@ -167,7 +164,7 @@ public class SessionIT extends BaseSessionIT {
       try {
         result = (float) rawResult;
       } catch (Exception e) {
-        logger.error(e.getMessage());
+        LOGGER.error("unexpected error: ", e);
         fail();
       }
     }
@@ -182,7 +179,7 @@ public class SessionIT extends BaseSessionIT {
       try {
         result = (int) rawResult;
       } catch (Exception e) {
-        logger.error(e.getMessage());
+        LOGGER.error("unexpected error: ", e);
         fail();
       }
     }
@@ -190,7 +187,7 @@ public class SessionIT extends BaseSessionIT {
   }
 
   @Test
-  public void sessionTest() throws ExecutionException, SessionException, InterruptedException {
+  public void sessionTest() throws SessionException, InterruptedException {
     int simpleLen = 2;
     List<String> paths = getPaths(currPath, simpleLen);
     // Simple Test(Including query,valueFilter,aggr:max/min/first/last/count/sum/avg)
@@ -524,7 +521,8 @@ public class SessionIT extends BaseSessionIT {
         long dsStartKey = delDsAvgDataSet.getKeys()[i];
         assertEquals(START_KEY + i * PRECISION, dsStartKey);
         List<Object> dsResult = delDsAvgDataSet.getValues().get(i);
-        for (int j = 0; j < delDsResPaths.size(); j++) {
+        // j starts from 2 to skip WINDOW_START & WINDOW_END
+        for (int j = 2; j < delDsResPaths.size(); j++) {
           long dsEndKey = Math.min((START_KEY + (i + 1) * PRECISION - 1), END_KEY);
           double delDsAvg = (dsStartKey + dsEndKey) / 2.0;
           int pathNum = getPathNum(delDsResPaths.get(j));
@@ -638,7 +636,8 @@ public class SessionIT extends BaseSessionIT {
         long dsKey = dsDelDataInColSet.getKeys()[i];
         assertEquals(START_KEY + i * PRECISION, dsKey);
         List<Object> dsResult = dsDelDataInColSet.getValues().get(i);
-        for (int j = 0; j < dsDelDataResPaths.size(); j++) {
+        // j starts from 2 to skip WINDOW_START & WINDOW_END
+        for (int j = 2; j < dsDelDataResPaths.size(); j++) {
           long maxNum = Math.min((START_KEY + (i + 1) * PRECISION - 1), END_KEY);
           double avg = (dsKey + maxNum) / 2.0;
           int pathNum = getPathNum(dsDelDataResPaths.get(j));
@@ -708,7 +707,7 @@ public class SessionIT extends BaseSessionIT {
     try {
       insertFakeNumRecords(paths, count + KEY_PERIOD * 100);
     } catch (Exception e) {
-      logger.error(e.getMessage());
+      LOGGER.error("unexpected error: ", e);
       isError = true;
     } finally {
       // assertTrue(isError);
@@ -1181,6 +1180,6 @@ public class SessionIT extends BaseSessionIT {
         }
       }
     }
-    logger.info("session test finished");
+    LOGGER.info("session test finished");
   }
 }

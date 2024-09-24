@@ -1,23 +1,23 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 package cn.edu.tsinghua.iginx.rest.bean;
 
+import static cn.edu.tsinghua.iginx.engine.shared.Constants.*;
 import static cn.edu.tsinghua.iginx.rest.RestUtils.TOP_KEY;
 
 import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
@@ -34,7 +34,7 @@ import org.slf4j.LoggerFactory;
 
 @Data
 public class QueryResult {
-  public static final Logger logger = LoggerFactory.getLogger(QueryResult.class);
+  public static final Logger LOGGER = LoggerFactory.getLogger(QueryResult.class);
   private static final IMetaManager META_MANAGER = DefaultMetaManager.getInstance();
   private List<QueryMetric> queryMetrics = new ArrayList<>();
   private List<QueryResultDataset> queryResultDatasets = new ArrayList<>();
@@ -146,7 +146,15 @@ public class QueryResult {
     if (queryAggregators.get(pos).getType() == QueryAggregatorType.SAVE_AS) {
       return String.format("\"name\": \"%s\"", queryAggregators.get(pos).getMetric_name());
     } else {
-      return String.format("\"name\": \"%s\"", queryMetrics.get(pos).getName());
+      // downsample query, window_start & window_end columns are attached
+      if (queryMetrics.get(pos).getAggregators() != null
+          && queryMetrics.get(pos).getAggregators().size() != 0) {
+        return String.format(
+            "\"names\": [\"%s\", \"%s\", \"%s\"]",
+            WINDOW_START_COL, WINDOW_END_COL, queryMetrics.get(pos).getName());
+      } else {
+        return String.format("\"name\": \"%s\"", queryMetrics.get(pos).getName());
+      }
     }
   }
 
@@ -232,6 +240,7 @@ public class QueryResult {
   private Map<String, Set<String>> getTagsFromPaths(List<String> paths) {
     Map<String, Set<String>> ret = new TreeMap<>();
     for (String path : paths) {
+      if (RESERVED_COLS.contains(path)) continue;
       int firstBrace = path.indexOf("{");
       int lastBrace = path.indexOf("}");
       if (firstBrace == -1 || lastBrace == -1) {

@@ -1,38 +1,48 @@
 name: "Union Database Test With Push Down"
+
 on:
-    pull_request:
-        types: [opened, reopened]
-        branches:
-            - main
-env:
-    VERSION: 0.6.0-SNAPSHOT
-concurrency:
-    group: ${{ github.workflow }}-${{ github.ref }}
-    cancel-in-progress: true
+    workflow_call:
+        inputs:
+            java-matrix:
+                description: "The java version to run the test on"
+                type: string
+                required: false
+                default: '["8"]'
+            python-matrix:
+                description: "The python version to run the test on"
+                type: string
+                required: false
+                default: '["3.9"]'
+            os-matrix:
+                description: "The operating system to run the test on"
+                type: string
+                required: false
+                default: '["ubuntu-latest", "macos-latest", "windows-latest"]'
+            metadata-matrix:
+                description: "The metadata to run the test on"
+                type: string
+                required: false
+                default: '["zookeeper", "etcd"]'
+            db-matrix:
+                description: "The database to run the test on"
+                type: string
+                required: false
+                default: '["IoTDB12", "InfluxDB", "FileStore", "PostgreSQL", "Redis", "MongoDB", "MySQL"]'
 
 jobs:
     Union-DB-Test-Push_Down:
-        timeout-minutes: 30
+        timeout-minutes: 35
         strategy:
             fail-fast: false
             matrix:
-                java: [8]
-                python-version: ["3.9"]
-                os: [ubuntu-latest, macos-latest, windows-latest]
-                DB-name:
-                    [
-                        "InfluxDB",
-                        "Redis",
-                        "Parquet",
-                        "PostgreSQL",
-                        "Parquet",
-                        "FileSystem",
-                        "MongoDB",
-                        "IoTDB12",
-                    ]
+                java: ${{ fromJSON(inputs.java-matrix) }}
+                python-version: ${{ fromJSON(inputs.python-matrix) }}
+                os: ${{ fromJSON(inputs.os-matrix) }}
+                metadata: ${{ fromJSON(inputs.metadata-matrix) }}
+                DB-name: ${{ fromJSON(inputs.db-matrix) }}
         runs-on: ${{ matrix.os }}
         steps:
-            - uses: actions/checkout@v2
+            - uses: actions/checkout@v4
             - name: Environment dependence
               uses: ./.github/actions/dependence
               with:
@@ -43,8 +53,10 @@ jobs:
               name: Set JAVA_OPTS
               run: echo "JAVA_OPTS=-Xmx4g -Xmx2g" >> $GITHUB_ENV
 
-            - name: Run ZooKeeper
-              uses: ./.github/actions/zookeeperRunner
+            - name: Run Metadata
+              uses: ./.github/actions/metadataRunner
+              with:
+                  metadata: ${{ matrix.metadata }}
 
             - name: Run DB
               uses: ./.github/actions/dbRunner
@@ -62,6 +74,7 @@ jobs:
                   DB-name: ${{ matrix.DB-name }}
                   Push-Down: "true"
                   Set-Filter-Fragment-OFF: "true"
+                  Metadata: ${{ matrix.metadata }}
 
             - name: Start IGinX
               uses: ./.github/actions/iginxRunner
@@ -69,6 +82,8 @@ jobs:
             - name: TestController IT
               if: always()
               shell: bash
+              env:
+                  METADATA_STORAGE: ${{ matrix.metadata }}
               run: |
                   chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/test_union.sh"
                   mvn test -q -Dtest=Controller -DfailIfNoTests=false -P-format

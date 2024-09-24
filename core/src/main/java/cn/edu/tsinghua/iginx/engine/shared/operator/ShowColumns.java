@@ -1,3 +1,21 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package cn.edu.tsinghua.iginx.engine.shared.operator;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
@@ -54,7 +72,7 @@ public class ShowColumns extends AbstractUnaryOperator {
     return new ShowColumns(
         (GlobalSource) getSource().copy(),
         new HashSet<>(pathRegexSet),
-        tagFilter.copy(),
+        tagFilter == null ? null : tagFilter.copy(),
         limit,
         offset);
   }
@@ -62,7 +80,11 @@ public class ShowColumns extends AbstractUnaryOperator {
   @Override
   public UnaryOperator copyWithSource(Source source) {
     return new ShowColumns(
-        (GlobalSource) source, new HashSet<>(pathRegexSet), tagFilter.copy(), limit, offset);
+        (GlobalSource) source,
+        new HashSet<>(pathRegexSet),
+        tagFilter == null ? null : tagFilter.copy(),
+        limit,
+        offset);
   }
 
   @Override
@@ -82,5 +104,20 @@ public class ShowColumns extends AbstractUnaryOperator {
       builder.append(", Limit: ").append(limit).append(", Offset: ").append(offset);
     }
     return builder.toString();
+  }
+
+  @Override
+  public boolean equals(Object object) {
+    if (this == object) {
+      return true;
+    }
+    if (object == null || getClass() != object.getClass()) {
+      return false;
+    }
+    ShowColumns that = (ShowColumns) object;
+    return limit == that.limit
+        && offset == that.offset
+        && pathRegexSet.equals(that.pathRegexSet)
+        && tagFilter.equals(that.tagFilter);
   }
 }

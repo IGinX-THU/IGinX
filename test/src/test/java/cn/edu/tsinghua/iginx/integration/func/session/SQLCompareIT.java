@@ -1,10 +1,27 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package cn.edu.tsinghua.iginx.integration.func.session;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
-import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.tool.MultiConnection;
 import cn.edu.tsinghua.iginx.pool.IginxInfo;
@@ -27,7 +44,7 @@ import org.slf4j.LoggerFactory;
 
 public class SQLCompareIT {
 
-  private static final Logger logger = LoggerFactory.getLogger(SQLCompareIT.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(SQLCompareIT.class);
 
   protected static MultiConnection conn;
   protected static boolean isForSession = true;
@@ -78,7 +95,7 @@ public class SQLCompareIT {
         }
       }
     } catch (IOException e) {
-      logger.error("read file failed, filename: {}, cause: {}", filename, e.getMessage());
+      LOGGER.error("read file failed, filename: {}, cause: ", filename, e);
       fail();
     }
   }
@@ -122,11 +139,11 @@ public class SQLCompareIT {
   }
 
   @Before
-  public void insertData() throws ExecutionException, SessionException {
+  public void insertData() throws SessionException {
     for (String insertSQL : insertSQLGroup) {
       SessionExecuteSqlResult res = conn.executeSql(insertSQL);
       if (res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
-        logger.error("Insert date execute fail. Caused by: {}.", res.getParseErrorMsg());
+        LOGGER.error("Insert date execute fail. Caused by: {}.", res.getParseErrorMsg());
         fail();
       }
     }
@@ -145,19 +162,19 @@ public class SQLCompareIT {
 
   private String execute(String statement) {
     if (!statement.toLowerCase().startsWith("insert")) {
-      logger.info("Execute Statement: \"{}\"", statement);
+      LOGGER.info("Execute Statement: \"{}\"", statement);
     }
 
     SessionExecuteSqlResult res = null;
     try {
       res = conn.executeSql(statement);
-    } catch (SessionException | ExecutionException e) {
-      logger.error("Statement: \"{}\" execute fail. Caused by:", statement, e);
+    } catch (SessionException e) {
+      LOGGER.error("Statement: \"{}\" execute fail. Caused by:", statement, e);
       fail();
     }
 
     if (res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
-      logger.error(
+      LOGGER.error(
           "Statement: \"{}\" execute fail. Caused by: {}.", statement, res.getParseErrorMsg());
       fail();
       return "";
@@ -169,7 +186,7 @@ public class SQLCompareIT {
   @Test
   public void compareTest() {
     if (testSQLGroupA.size() != testSQLGroupB.size()) {
-      logger.error("two test groups' size are not equal.");
+      LOGGER.error("two test groups' size are not equal.");
       fail();
     }
 

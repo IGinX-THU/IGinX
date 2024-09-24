@@ -55,15 +55,15 @@ IGinX is the main part of the system, and the installation package can be downlo
 
 ```shell
 $ cd ~
-$ wget https://github.com/IGinX-THU/IGinX/releases/download/release%2Fv0.5.1/IGinX-FastDeploy-v0.5.1-bin.tar.gz
-$ tar -xzvf IGinX-FastDeploy-v0.5.1-bin.tar.gz
+$ wget https://github.com/IGinX-THU/IGinX/releases/download/v0.7.0/IGinX-FastDeploy-0.7.0.tar.gz
+$ tar -xzvf IGinX-FastDeploy-0.7.0.tar.gz
 ```
 
 ## Launch
 
 ```shell
 $ cd ~
-$ cd IGinX-FastDeploy-v0.5.0-bin
+$ cd IGinX-FastDeploy-0.7.0
 $ chmod +x ./runIginxOn1Host.sh
 $ ./runIginxOn1Host.sh
 ```
@@ -221,11 +221,11 @@ The command will return information about the data point just inserted:
 
 If you see the following information returned, it means you are able to successfully use RESTful interface to write and query data to IGinX.
 
-For more interfaces, please refer to the official [IGinX manual](https://github.com/IGinX-THU/IGinX/blob/main/docs/pdf/userManualC.pdf).
+For more interfaces, please refer to the official [IGinX manual](../pdf/userManualC.pdf).
 
 If you want to use a different interface, there is another option.
 
-In addition to the RESTful interface, IGinX also provides the RPC data access interface. For this specific interface, please refer to the official [IGinX manual](https://github.com/IGinX-THU/IGinX/blob/main/docs/pdf/userManualC.pdf).
+In addition to the RESTful interface, IGinX also provides the RPC data access interface. For this specific interface, please refer to the official [IGinX manual](../pdf/userManualC.pdf).
 
 At the same time, IGinX also provides some official examples, showing the most common usage of the RPC interface.
 
@@ -233,17 +233,17 @@ Below is a short tutorial on how to use it.
 
 ### RPC Interface
 
-Since the IGinX 0.5.1 version has not been released to the Maven central repository, if you want to use it, you need to manually install it to the local Maven repository.
+Since the IGinX jars have not been released to the Maven central repository, if you want to use it, you need to manually install it to the local Maven repository.
 
 The specific installation method is as follows:
 
 ```shell
-# download iginx 0.4 release version source code package
-$ wget https://github.com/IGinX-THU/IGinX/archive/refs/tags/release/v0.5.1.tar.gz
+# download the newest iginx release version source code package
+$ wget https://github.com/IGinX-THU/IGinX/archive/refs/tags/v0.7.0.tar.gz
 # Unzip the source package
-$ tar -zxvf v0.5.1.tar.gz
+$ tar -zxvf v0.7.0.tar.gz
 # go to the main project's directory
-$ cd IGinX-release-v0.5.1
+$ cd IGinX-release-v0.7.0
 # Install to local Maven repository
 $ mvn clean install -DskipTests
 ```
@@ -254,7 +254,7 @@ Specifically, when using it, you only need to introduce the following dependenci
 <dependency>
     <groupId>cn.edu.tsinghua</groupId>
     <artifactId>iginx-core</artifactId>
-    <version>0.6.0-SNAPSHOT</version>
+    <version>0.7.0</version>
 </dependency>
 ```
 

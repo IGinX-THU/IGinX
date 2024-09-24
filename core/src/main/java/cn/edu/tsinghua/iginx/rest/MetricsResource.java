@@ -1,20 +1,19 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 package cn.edu.tsinghua.iginx.rest;
 
@@ -23,7 +22,7 @@ import static cn.edu.tsinghua.iginx.rest.RestUtils.*;
 
 import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
+import cn.edu.tsinghua.iginx.engine.shared.exception.StatementExecutionException;
 import cn.edu.tsinghua.iginx.rest.bean.*;
 import cn.edu.tsinghua.iginx.rest.insert.InsertWorker;
 import cn.edu.tsinghua.iginx.rest.query.QueryExecutor;
@@ -51,6 +50,8 @@ import org.slf4j.LoggerFactory;
 @Path("/")
 public class MetricsResource {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(MetricsResource.class);
+
   private static final String INSERT_URL = "api/v1/datapoints";
   private static final String INSERT_ANNOTATION_URL = "api/v1/datapoints/annotations";
   private static final String ADD_ANNOTATION_URL = "api/v1/datapoints/annotations/add";
@@ -68,7 +69,6 @@ public class MetricsResource {
   private static final String ERROR_PATH = "{string : .+}";
 
   private static final Config config = ConfigDescriptor.getInstance().getConfig();
-  private static final Logger logger = LoggerFactory.getLogger(MetricsResource.class);
   private static final ExecutorService threadPool =
       Executors.newFixedThreadPool(config.getAsyncRestThreadPool());
 
@@ -95,7 +95,7 @@ public class MetricsResource {
       String entity = parser.parseResultToGrafanaJson(result);
       return setHeaders(Response.status(Status.OK).entity(entity + "\n")).build();
     } catch (Exception e) {
-      logger.error("Error occurred during execution ", e);
+      LOGGER.error("Error occurred during execution ", e);
       return setHeaders(
               Response.status(Status.BAD_REQUEST).entity("Error occurred during execution\n"))
           .build();
@@ -121,7 +121,7 @@ public class MetricsResource {
       String str = inputStreamToString(stream);
       appendAnno(str, httpheaders, asyncResponse);
     } catch (Exception e) {
-      logger.error("Error occurred during execution ", e);
+      LOGGER.error("Error occurred during execution ", e);
       return setHeaders(
               Response.status(Status.BAD_REQUEST).entity("Error occurred during execution\n"))
           .build();
@@ -139,7 +139,7 @@ public class MetricsResource {
       String str = inputStreamToString(stream);
       updateAnno(str, httpheaders, asyncResponse);
     } catch (Exception e) {
-      logger.error("Error occurred during execution ", e);
+      LOGGER.error("Error occurred during execution ", e);
       return setHeaders(Response.status(Status.BAD_REQUEST).entity(e.toString().trim())).build();
     }
     return setHeaders(Response.status(Status.OK).entity("update annotation OK")).build();
@@ -151,7 +151,7 @@ public class MetricsResource {
     try {
       return postQuery(jsonStr, true, false, true);
     } catch (Exception e) {
-      logger.error("Error occurred during execution ", e);
+      LOGGER.error("Error occurred during execution ", e);
       return setHeaders(
               Response.status(Status.BAD_REQUEST).entity("Error occurred during execution\n"))
           .build();
@@ -164,7 +164,7 @@ public class MetricsResource {
     try {
       return postQuery(jsonStr, true, false, false);
     } catch (Exception e) {
-      logger.error("Error occurred during execution ", e);
+      LOGGER.error("Error occurred during execution ", e);
       return setHeaders(
               Response.status(Status.BAD_REQUEST).entity("Error occurred during execution\n"))
           .build();
@@ -177,7 +177,7 @@ public class MetricsResource {
     try {
       return postQuery(jsonStr, true, true, false);
     } catch (Exception e) {
-      logger.error("Error occurred during execution ", e);
+      LOGGER.error("Error occurred during execution ", e);
       return setHeaders(
               Response.status(Status.BAD_REQUEST).entity("Error occurred during execution\n"))
           .build();
@@ -212,7 +212,7 @@ public class MetricsResource {
       String str = inputStreamToString(stream);
       return postQuery(str, false, false, false);
     } catch (Exception e) {
-      logger.error("Error occurred during execution ", e);
+      LOGGER.error("Error occurred during execution ", e);
       return setHeaders(
               Response.status(Status.BAD_REQUEST).entity("Error occurred during execution\n"))
           .build();
@@ -226,7 +226,7 @@ public class MetricsResource {
       String str = inputStreamToString(stream);
       return postDelete(str);
     } catch (Exception e) {
-      logger.error("Error occurred during execution ", e);
+      LOGGER.error("Error occurred during execution ", e);
       return setHeaders(
               Response.status(Status.BAD_REQUEST).entity("Error occurred during execution\n"))
           .build();
@@ -240,7 +240,7 @@ public class MetricsResource {
       String str = inputStreamToString(stream);
       return postAnnoDelete(str);
     } catch (Exception e) {
-      logger.error("Error occurred during execution ", e);
+      LOGGER.error("Error occurred during execution ", e);
       return setHeaders(
               Response.status(Status.BAD_REQUEST).entity("Error occurred during execution\n"))
           .build();
@@ -254,7 +254,7 @@ public class MetricsResource {
       deleteMetric(metricName);
       return setHeaders(Response.status(Status.OK)).build();
     } catch (Exception e) {
-      logger.error("Error occurred during execution ", e);
+      LOGGER.error("Error occurred during execution ", e);
       return setHeaders(
               Response.status(Status.BAD_REQUEST).entity("Error occurred during execution\n"))
           .build();
@@ -355,7 +355,7 @@ public class MetricsResource {
       }
       return setHeaders(Response.status(Status.OK).entity(entity + "\n")).build();
     } catch (Exception e) {
-      logger.error("Error occurred during execution ", e);
+      LOGGER.error("Error occurred during execution ", e);
       return setHeaders(
               Response.status(Status.BAD_REQUEST).entity("Error occurred during execution\n"))
           .build();
@@ -373,7 +373,7 @@ public class MetricsResource {
     try {
       executorAnno.queryAnno(resultAnno);
     } catch (Exception e) {
-      logger.error("Error occurred during execution ", e);
+      LOGGER.error("Error occurred during execution ", e);
       throw e;
     }
     return resultAnno;
@@ -469,7 +469,7 @@ public class MetricsResource {
       String entity = parser.parseResultToJson(null, true);
       return setHeaders(Response.status(Status.OK).entity(entity + "\n")).build();
     } catch (Exception e) {
-      logger.error("Error occurred during execution ", e);
+      LOGGER.error("Error occurred during execution ", e);
       return setHeaders(Response.status(Status.BAD_REQUEST).entity(e.toString().trim())).build();
     }
   }
@@ -486,7 +486,7 @@ public class MetricsResource {
       String entity = parser.parseResultToJson(result, true);
       return setHeaders(Response.status(Status.OK).entity(entity + "\n")).build();
     } catch (Exception e) {
-      logger.error("Error occurred during execution ", e);
+      LOGGER.error("Error occurred during execution ", e);
       return setHeaders(
               Response.status(Status.BAD_REQUEST).entity("Error occurred during execution\n"))
           .build();
@@ -550,13 +550,13 @@ public class MetricsResource {
     boolean cautionDuringDelete = false;
     try {
       executorData.deleteMetric();
-    } catch (ExecutionException e) {
+    } catch (StatementExecutionException e) {
       if (e.toString().trim().contains(CLEAR_DUMMY_DATA_CAUTION)) {
         exception = e;
         cautionDuringDelete = true;
-        logger.warn("cant delete the READ_ONLY data and go on.");
+        LOGGER.warn("cant delete the READ_ONLY data and go on.");
       } else {
-        logger.error("Error occurred during executing", e);
+        LOGGER.error("Error occurred during executing", e);
         throw e;
       }
     }

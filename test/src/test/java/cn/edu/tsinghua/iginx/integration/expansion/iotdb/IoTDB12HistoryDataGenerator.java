@@ -1,8 +1,28 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package cn.edu.tsinghua.iginx.integration.expansion.iotdb;
 
 import cn.edu.tsinghua.iginx.integration.expansion.BaseHistoryDataGenerator;
+import cn.edu.tsinghua.iginx.integration.expansion.constant.Constant;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -14,7 +34,7 @@ import org.slf4j.LoggerFactory;
 
 public class IoTDB12HistoryDataGenerator extends BaseHistoryDataGenerator {
 
-  private static final Logger logger = LoggerFactory.getLogger(IoTDB12HistoryDataGenerator.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(IoTDB12HistoryDataGenerator.class);
 
   private static final String CREATE_TIMESERIES = "CREATE TIMESERIES root.%s WITH DATATYPE=%s";
 
@@ -27,6 +47,7 @@ public class IoTDB12HistoryDataGenerator extends BaseHistoryDataGenerator {
           put("DOUBLE", "DOUBLE");
           put("BINARY", "TEXT");
           put("INTEGER", "INT32");
+          put("FLOAT", "FLOAT");
         }
       };
 
@@ -51,7 +72,7 @@ public class IoTDB12HistoryDataGenerator extends BaseHistoryDataGenerator {
                   DATA_TYPE_MAP.get(dataTypeList.get(i).toString())));
         } catch (StatementExecutionException e) {
           if (!e.getMessage().contains("already exist")) {
-            logger.warn("create timeseries {} failure: {}", pathList.get(i), e.getMessage());
+            LOGGER.warn("create timeseries {} failure: ", pathList.get(i), e);
             throw e;
           }
         }
@@ -81,9 +102,9 @@ public class IoTDB12HistoryDataGenerator extends BaseHistoryDataGenerator {
       }
 
       session.close();
-      logger.info("write data to 127.0.0.1:{} success!", port);
+      LOGGER.info("write data to 127.0.0.1:{} success!", port);
     } catch (IoTDBConnectionException | StatementExecutionException e) {
-      logger.error("write data to 127.0.0.1:{} failure: {}", port, e.getMessage());
+      LOGGER.error("write data to 127.0.0.1:{} failure: ", port, e);
     }
   }
 
@@ -94,15 +115,25 @@ public class IoTDB12HistoryDataGenerator extends BaseHistoryDataGenerator {
   }
 
   @Override
+  public void writeSpecialHistoryData() {
+    // write float value
+    writeHistoryData(
+        Constant.readOnlyPort,
+        Constant.READ_ONLY_FLOAT_PATH_LIST,
+        new ArrayList<>(Collections.singletonList(DataType.FLOAT)),
+        Constant.READ_ONLY_FLOAT_VALUES_LIST);
+  }
+
+  @Override
   public void clearHistoryDataForGivenPort(int port) {
     try {
       Session session = new Session("127.0.0.1", port, "root", "root");
       session.open();
       session.executeNonQueryStatement("DELETE STORAGE GROUP root.*");
       session.close();
-      logger.info("clear data on 127.0.0.1:{} success!", port);
+      LOGGER.info("clear data on 127.0.0.1:{} success!", port);
     } catch (IoTDBConnectionException | StatementExecutionException e) {
-      logger.warn("clear data on 127.0.0.1:{} failure: {}", port, e.getMessage());
+      LOGGER.warn("clear data on 127.0.0.1:{} failure: ", port, e);
     }
   }
 }

@@ -1,3 +1,21 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package cn.edu.tsinghua.iginx.integration.expansion.redis;
 
 import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.readOnlyPort;
@@ -13,7 +31,7 @@ import redis.clients.jedis.Jedis;
 
 public class RedisHistoryDataGenerator extends BaseHistoryDataGenerator {
 
-  private static final Logger logger = LoggerFactory.getLogger(RedisHistoryDataGenerator.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(RedisHistoryDataGenerator.class);
 
   private static final String LOCAL_IP = "127.0.0.1";
 
@@ -40,7 +58,7 @@ public class RedisHistoryDataGenerator extends BaseHistoryDataGenerator {
           }
         });
     jedis.close();
-    logger.info("write data to 127.0.0.1:{} success!", port);
+    LOGGER.info("write data to 127.0.0.1:{} success!", port);
   }
 
   @Override
@@ -65,8 +83,8 @@ public class RedisHistoryDataGenerator extends BaseHistoryDataGenerator {
   @Override
   public void clearHistoryDataForGivenPort(int port) {
     Jedis jedis = new Jedis(LOCAL_IP, port);
-    jedis.flushDB();
+    jedis.flushAll();
     jedis.close();
-    logger.info("clear data on 127.0.0.1:{} success!", port);
+    LOGGER.info("clear data on 127.0.0.1:{} success!", port);
   }
 }

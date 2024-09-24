@@ -1,3 +1,21 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package cn.edu.tsinghua.iginx.transform.driver;
 
 import cn.edu.tsinghua.iginx.conf.Config;
@@ -26,12 +44,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class PythonDriver implements Driver {
+  private static final Logger LOGGER = LoggerFactory.getLogger(PythonDriver.class);
 
   private final IMetaManager metaManager = DefaultMetaManager.getInstance();
 
   private static final Config config = ConfigDescriptor.getInstance().getConfig();
-
-  private static final Logger logger = LoggerFactory.getLogger(PythonDriver.class);
 
   private static final String PYTHON_CMD = config.getPythonCMD();
 
@@ -49,7 +66,7 @@ public class PythonDriver implements Driver {
   private PythonDriver() {
     File file = new File(PYTHON_DIR + PY_WORKER);
     if (!file.exists()) {
-      logger.error("Python driver file didn't exists.");
+      LOGGER.error("Python driver file didn't exists.");
     }
   }
 
@@ -128,7 +145,7 @@ public class PythonDriver implements Driver {
                   Constants.getWorkerStatusInfo(status)));
         } else {
           IPCWorker IPCWorker = new IPCWorker(pid, javaPort, pyPort, process, serverSocket, writer);
-          logger.info(IPCWorker.toString() + " has started.");
+          LOGGER.info("{} has started.", IPCWorker);
           return IPCWorker;
         }
       }
@@ -170,15 +187,15 @@ public class PythonDriver implements Driver {
         socket.close();
 
         if (pid < 0) {
-          logger.error(String.format("Failed to launch python worker with code=%d", pid));
+          LOGGER.error("Failed to launch python worker with code={}", pid);
           return false;
         } else {
-          logger.info(String.format("Worker(pid=%d) has started.", pid));
+          LOGGER.info("Worker(pid={}) has started.", pid);
           return true;
         }
       }
     } catch (IOException e) {
-      logger.error("Failed to launch python worker", e);
+      LOGGER.error("Failed to launch python worker", e);
       return false;
     } finally {
       if (process != null && process.isAlive()) {
@@ -188,7 +205,7 @@ public class PythonDriver implements Driver {
         try {
           serverSocket.close();
         } catch (IOException e) {
-          logger.error("Fail to close server socket, because ", e);
+          LOGGER.error("Fail to close server socket, because ", e);
         }
       }
     }

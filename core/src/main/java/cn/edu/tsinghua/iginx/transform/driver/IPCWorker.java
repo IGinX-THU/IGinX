@@ -1,3 +1,21 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package cn.edu.tsinghua.iginx.transform.driver;
 
 import cn.edu.tsinghua.iginx.conf.Config;
@@ -20,6 +38,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class IPCWorker extends Thread {
+  private static final Logger LOGGER = LoggerFactory.getLogger(IPCWorker.class);
 
   private final long pid;
 
@@ -34,8 +53,6 @@ public class IPCWorker extends Thread {
   private final ServerSocket serverSocket;
 
   private final Writer writer;
-
-  private static final Logger logger = LoggerFactory.getLogger(IPCWorker.class);
 
   private static final Config config = ConfigDescriptor.getInstance().getConfig();
 
@@ -65,7 +82,7 @@ public class IPCWorker extends Thread {
         threadPool.submit(() -> process(socket));
       }
     } catch (SocketException ignored) {
-      logger.info(toString() + " stop server socket.");
+      LOGGER.info("{} stop server socket.", this);
     } catch (IOException e) {
       throw new RuntimeException("An error occurred while listening.", e);
     }
@@ -86,7 +103,7 @@ public class IPCWorker extends Thread {
       reader.close();
       socket.close();
     } catch (IOException | WriteBatchException e) {
-      logger.error(String.format("Worker pid=%d fail to process socket.", pid));
+      LOGGER.error("Worker pid={} fail to process socket.", pid);
       throw new RuntimeException("Fail to process socket", e);
     }
   }

@@ -1,20 +1,19 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 package cn.edu.tsinghua.iginx.rest.query;
 
@@ -23,6 +22,7 @@ import static cn.edu.tsinghua.iginx.utils.TagKVUtils.*;
 import cn.edu.tsinghua.iginx.rest.RestUtils;
 import cn.edu.tsinghua.iginx.rest.bean.*;
 import cn.edu.tsinghua.iginx.rest.query.aggregator.*;
+import cn.edu.tsinghua.iginx.utils.TagKVUtils;
 import cn.edu.tsinghua.iginx.utils.TimeUtils;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -31,11 +31,12 @@ import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.function.BiFunction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class QueryParser {
-  private static final Logger logger = LoggerFactory.getLogger(QueryParser.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(QueryParser.class);
   private final ObjectMapper mapper = new ObjectMapper();
 
   public QueryParser() {}
@@ -46,7 +47,7 @@ public class QueryParser {
       Date date = df.parse(oldDateStr);
       return date.getTime() + 28800000L;
     } catch (ParseException e) {
-      e.printStackTrace();
+      LOGGER.error("unexpected error: ", e);
     }
     return null;
   }
@@ -84,7 +85,7 @@ public class QueryParser {
       JsonNode node = mapper.readTree(json);
       ret = getGrafanaQuery(node);
     } catch (Exception e) {
-      logger.error("Error occurred during parsing query ", e);
+      LOGGER.error("Error occurred during parsing query ", e);
       throw e;
     }
     return ret;
@@ -96,7 +97,7 @@ public class QueryParser {
       JsonNode node = mapper.readTree(json);
       ret = getQuery(node);
     } catch (Exception e) {
-      logger.error("Error occurred during parsing query ", e);
+      LOGGER.error("Error occurred during parsing query ", e);
       throw e;
     }
     return ret;
@@ -108,7 +109,7 @@ public class QueryParser {
       JsonNode node = mapper.readTree(json);
       ret = getAnnotationQuery(node, isGrafana);
     } catch (Exception e) {
-      logger.error("Error occurred during parsing query ", e);
+      LOGGER.error("Error occurred during parsing query ", e);
       throw e;
     }
     return ret;
@@ -539,42 +540,21 @@ public class QueryParser {
   }
 
   public String parseAnnoResultToJson(QueryResult anno) {
-    StringBuilder ret = new StringBuilder("{\"queries\":[");
-    Set<String> paths = new HashSet<>();
-    for (int i = 0; i < anno.getQueryResultDatasets().size(); i++) {
-      QueryResultDataset dataSet = anno.getQueryResultDatasets().get(i);
-      QueryMetric metric = anno.getQueryMetrics().get(i);
-      for (int j = 0; j < dataSet.getPaths().size(); j++) {
-        // 只解析特定的路径信息
-        if (!dataSet.getPaths().get(j).equals(metric.getQueryOriPath())) {
-          continue;
-        }
-        String tmpPath = metric.getQueryOriPath() + dataSet.getTitles().get(j);
-        if (!paths.contains(tmpPath)) {
-          paths.add(tmpPath);
-        } else {
-          continue;
-        }
-
-        ret.append(anno.toResultStringAnno(i, j));
-        ret.append(",");
-      }
-    }
-    if (ret.charAt(ret.length() - 1) == ',') {
-      ret.deleteCharAt(ret.length() - 1);
-    }
-    ret.append("]}");
-    return ret.toString();
+    return parseAnnoResultToJsonBase(anno, anno::toResultStringAnno);
   }
 
   public String parseAnnoDataResultToJson(QueryResult data) {
+    return parseAnnoResultToJsonBase(data, data::toResultString);
+  }
+
+  private String parseAnnoResultToJsonBase(
+      QueryResult result, BiFunction<Integer, Integer, String> resultGenerator) {
     StringBuilder ret = new StringBuilder("{\"queries\":[");
     Set<String> paths = new HashSet<>();
-    for (int i = 0; i < data.getQueryResultDatasets().size(); i++) {
-      QueryResultDataset dataSet = data.getQueryResultDatasets().get(i);
-      QueryMetric metric = data.getQueryMetrics().get(i);
+    for (int i = 0; i < result.getQueryResultDatasets().size(); i++) {
+      QueryResultDataset dataSet = result.getQueryResultDatasets().get(i);
+      QueryMetric metric = result.getQueryMetrics().get(i);
       for (int j = 0; j < dataSet.getPaths().size(); j++) {
-        // 只解析特定的路径信息
         if (!dataSet.getPaths().get(j).equals(metric.getQueryOriPath())) {
           continue;
         }
@@ -585,7 +565,7 @@ public class QueryParser {
           continue;
         }
 
-        ret.append(data.toResultString(i, j));
+        ret.append(resultGenerator.apply(i, j));
         ret.append(",");
       }
     }
@@ -650,21 +630,7 @@ public class QueryParser {
 
   public Map<String, String> getTagsFromPaths(String path, StringBuilder name) {
     Map<String, String> ret = new LinkedHashMap<>();
-    int firstBrace = path.indexOf("{");
-    int lastBrace = path.indexOf("}");
-    if (firstBrace == -1 || lastBrace == -1) {
-      name.append(path);
-      return ret;
-    }
-    name.append(path, 0, firstBrace);
-    String tagLists = path.substring(firstBrace + 1, lastBrace);
-    String[] splitPaths = tagLists.split(",");
-    for (String tag : splitPaths) {
-      int equalPos = tag.indexOf("=");
-      String tagKey = tag.substring(0, equalPos);
-      String tagVal = tag.substring(equalPos + 1);
-      ret.put(tagKey, tagVal);
-    }
+    TagKVUtils.fillNameAndTagMap(path, name, ret);
     return ret;
   }
 

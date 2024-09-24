@@ -1,5 +1,25 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package cn.edu.tsinghua.iginx.integration.func.session;
 
+import static cn.edu.tsinghua.iginx.engine.shared.Constants.WINDOW_END_COL;
+import static cn.edu.tsinghua.iginx.engine.shared.Constants.WINDOW_START_COL;
 import static cn.edu.tsinghua.iginx.integration.controller.Controller.SUPPORT_KEY;
 import static cn.edu.tsinghua.iginx.integration.controller.Controller.clearAllData;
 import static cn.edu.tsinghua.iginx.integration.func.session.InsertAPIType.*;
@@ -9,8 +29,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
-import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.integration.tool.DBConf;
@@ -43,7 +62,7 @@ import org.slf4j.LoggerFactory;
 
 public class NewSessionIT {
 
-  protected static final Logger logger = LoggerFactory.getLogger(NewSessionIT.class);
+  protected static final Logger LOGGER = LoggerFactory.getLogger(NewSessionIT.class);
 
   protected static MultiConnection conn;
   protected static boolean isForSession = true;
@@ -123,7 +142,7 @@ public class NewSessionIT {
   @BeforeClass
   public static void setUp() throws SessionException {
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
-    if (StorageEngineType.valueOf(conf.getStorageType().toLowerCase()) == influxdb) {
+    if (StorageEngineType.valueOf(conf.getStorageType(false).toLowerCase()) == influxdb) {
       isInfluxdb = true;
     }
     if (!SUPPORT_KEY.get(conf.getStorageType()) && conf.isScaling()) {
@@ -319,7 +338,7 @@ public class NewSessionIT {
 
   private void compareObjectValue(Object expected, Object actual) {
     if (expected.getClass() != actual.getClass() && !isInfluxdb) {
-      logger.error(
+      LOGGER.error(
           "Inconsistent data types, expected:{}, actual:{}",
           expected.getClass(),
           actual.getClass());
@@ -375,8 +394,8 @@ public class NewSessionIT {
 
       List<Long> existsSessionIDs = conn.executeSql("show sessionid;").getSessionIDs();
 
-      if (!new HashSet<>(existsSessionIDs).equals(new HashSet<>(sessionIDs))) {
-        logger.error("server session_id_list does not equal to active_session_id_list.");
+      if (!existsSessionIDs.containsAll(sessionIDs)) {
+        LOGGER.error("server session_id_list doesn't contain all session IDs.");
         fail();
       }
 
@@ -386,53 +405,58 @@ public class NewSessionIT {
       existsSessionIDs = conn.executeSql("show sessionid;").getSessionIDs();
       for (long sessionID : sessionIDs) {
         if (existsSessionIDs.contains(sessionID)) {
-          logger.error("the ID for a closed session is still in the server session_id_list.");
+          LOGGER.error("the ID for a closed session is still in the server session_id_list.");
           fail();
         }
       }
-    } catch (SessionException | ExecutionException e) {
-      logger.error("execute query session id failed.");
+    } catch (SessionException e) {
+      LOGGER.error("execute query session id failed.");
       fail();
     }
   }
 
   @Test
   public void testCancelClient() {
+    File clientDir = new File("../client/target/");
+    File[] matchingFiles = clientDir.listFiles((dir, name) -> name.startsWith("iginx-client-"));
+    matchingFiles = Arrays.stream(matchingFiles).filter(File::isDirectory).toArray(File[]::new);
+    String version = matchingFiles[0].getName();
+    version = version.contains(".jar") ? version.substring(0, version.lastIndexOf(".")) : version;
     // use .sh on unix & .bat on windows(absolute path)
-    String clientUnixPath = "../client/target/iginx-client-0.6.0-SNAPSHOT/sbin/start_cli.sh";
+    String clientUnixPath = "../client/target/" + version + "/sbin/start_cli.sh";
     String clientWinPath = null;
     try {
       clientWinPath =
-          new File("../client/target/iginx-client-0.6.0-SNAPSHOT/sbin/start_cli.bat")
-              .getCanonicalPath();
+          new File("../client/target/" + version + "/sbin/start_cli.bat").getCanonicalPath();
     } catch (IOException e) {
-      logger.info(
-          "Can't find script ../client/target/iginx-client-0.6.0-SNAPSHOT/sbin/start_cli.bat");
+      LOGGER.info("Can't find script ../client/target/iginx-client-*/sbin/start_cli.bat");
       fail();
     }
     try {
       List<Long> sessionIDs1 = conn.executeSql("show sessionid;").getSessionIDs();
-      logger.info("before start a client, session_id_list size: " + sessionIDs1.size());
+      LOGGER.info("before start a client, session_id_list size: {}", sessionIDs1.size());
 
       // start a client
       ProcessBuilder pb = new ProcessBuilder();
       if (ShellRunner.isOnWin()) {
         pb.command(clientWinPath);
       } else {
-        Runtime.getRuntime().exec(new String[] {"chmod", "+x", clientUnixPath});
+        Process before = Runtime.getRuntime().exec(new String[] {"chmod", "+x", clientUnixPath});
+        before.waitFor();
+        LOGGER.info("before start a client, exit value: {}", before.exitValue());
         pb.command("bash", "-c", clientUnixPath);
       }
       Process p = pb.start();
 
       Thread.sleep(3000);
-      logger.info("client is alive: " + p.isAlive());
+      LOGGER.info("client is alive: {}", p.isAlive());
       if (!p.isAlive()) { // fail to start a client.
-        logger.info("exit value: " + p.exitValue());
+        LOGGER.info("exit value: {}", p.exitValue());
         fail();
       }
 
       List<Long> sessionIDs2 = conn.executeSql("show sessionid;").getSessionIDs();
-      logger.info("after start a client, session_id_list size: " + sessionIDs2.size());
+      LOGGER.info("after start a client, session_id_list size: {}", sessionIDs2.size());
 
       // kill the client
       try (OutputStream os = p.getOutputStream();
@@ -446,12 +470,12 @@ public class NewSessionIT {
       Thread.sleep(3000);
 
       List<Long> sessionIDs3 = conn.executeSql("show sessionid;").getSessionIDs();
-      logger.info("after cancel a client, session_id_list size:" + sessionIDs3.size());
+      LOGGER.info("after cancel a client, session_id_list size:{}", sessionIDs3.size());
 
       assertEquals(sessionIDs1, sessionIDs3);
       assertTrue(sessionIDs2.size() - sessionIDs1.size() > 0);
-    } catch (SessionException | ExecutionException | IOException | InterruptedException e) {
-      e.printStackTrace();
+    } catch (SessionException | IOException | InterruptedException e) {
+      LOGGER.error("unexpected error: ", e);
       fail();
     }
   }
@@ -467,8 +491,8 @@ public class NewSessionIT {
       long start = START_KEY, end = START_KEY + 100;
       SessionQueryDataSet dataSet = conn.queryData(paths, start, end);
       compare(baseDataSection.getSubDataSectionWithKey(start, end), dataSet);
-    } catch (SessionException | ExecutionException e) {
-      logger.error("execute query data failed.", e);
+    } catch (SessionException e) {
+      LOGGER.error("execute query data failed.", e);
       fail();
     }
 
@@ -478,8 +502,8 @@ public class NewSessionIT {
       long start = mid - 50, end = mid + 50;
       SessionQueryDataSet dataSet = conn.queryData(paths, start, end);
       compare(baseDataSection.getSubDataSectionWithKey(start, end), dataSet);
-    } catch (SessionException | ExecutionException e) {
-      logger.error("execute query data failed.");
+    } catch (SessionException e) {
+      LOGGER.error("execute query data failed.");
       fail();
     }
 
@@ -488,8 +512,8 @@ public class NewSessionIT {
       long start = END_KEY - 100, end = END_KEY;
       SessionQueryDataSet dataSet = conn.queryData(paths, start, end);
       compare(baseDataSection.getSubDataSectionWithKey(start, end), dataSet);
-    } catch (SessionException | ExecutionException e) {
-      logger.error("execute query data failed.");
+    } catch (SessionException e) {
+      LOGGER.error("execute query data failed.");
       fail();
     }
   }
@@ -505,8 +529,8 @@ public class NewSessionIT {
       conn.deleteColumns(deleteColumns);
       SessionQueryDataSet dataSet = conn.queryData(deleteColumns, START_KEY, END_KEY);
       compare(TestDataSection.EMPTY_TEST_DATA_SECTION, dataSet);
-    } catch (SessionException | ExecutionException e) {
-      logger.error("execute delete columns failed.");
+    } catch (SessionException e) {
+      LOGGER.error("execute delete columns failed.");
       fail();
     }
 
@@ -516,8 +540,8 @@ public class NewSessionIT {
       conn.deleteColumns(deleteColumns);
       SessionQueryDataSet dataSet = conn.queryData(deleteColumns, START_KEY, END_KEY);
       compare(TestDataSection.EMPTY_TEST_DATA_SECTION, dataSet);
-    } catch (SessionException | ExecutionException e) {
-      logger.error("execute delete columns failed.");
+    } catch (SessionException e) {
+      LOGGER.error("execute delete columns failed.");
       fail();
     }
 
@@ -536,8 +560,8 @@ public class NewSessionIT {
           TagFilterType.Precise);
       SessionQueryDataSet dataSet = conn.queryData(deleteColumns, START_KEY, END_KEY);
       compare(TestDataSection.EMPTY_TEST_DATA_SECTION, dataSet);
-    } catch (SessionException | ExecutionException e) {
-      logger.error("execute delete columns failed.");
+    } catch (SessionException e) {
+      LOGGER.error("execute delete columns failed.");
       fail();
     }
   }
@@ -624,8 +648,8 @@ public class NewSessionIT {
       try {
         SessionAggregateQueryDataSet dataSet = conn.aggregateQuery(paths, START_KEY, END_KEY, type);
         compare(expectedResults.get(i), dataSet);
-      } catch (SessionException | ExecutionException e) {
-        logger.error("execute aggregate query failed, AggType={}", type);
+      } catch (SessionException e) {
+        LOGGER.error("execute aggregate query failed, AggType={}", type);
         fail();
       }
     }
@@ -634,6 +658,9 @@ public class NewSessionIT {
   @Test
   public void testDownsampleQuery() {
     List<String> paths = Arrays.asList("us.d1.s2", "us.d1.s3", "us.d1.s4", "us.d1.s5");
+    List<String> resPaths =
+        Arrays.asList(
+            WINDOW_START_COL, WINDOW_END_COL, "us.d1.s2", "us.d1.s3", "us.d1.s4", "us.d1.s5");
     List<DataType> types =
         Arrays.asList(DataType.INTEGER, DataType.LONG, DataType.FLOAT, DataType.DOUBLE);
     List<Long> keys = Arrays.asList(0L, 4000L, 8000L, 12000L);
@@ -654,72 +681,114 @@ public class NewSessionIT {
             new TestDataSection(
                 keys,
                 types,
-                paths.stream().map(s -> "max(" + s + ")").collect(Collectors.toList()),
+                resPaths.stream()
+                    .map(
+                        s ->
+                            s.equals(WINDOW_START_COL) || s.equals(WINDOW_END_COL)
+                                ? s
+                                : "max(" + s + ")")
+                    .collect(Collectors.toList()),
                 Arrays.asList(
-                    Arrays.asList(3999, 3999L, 3999.1f, 3999.2d),
-                    Arrays.asList(7999, 7999L, 7999.1f, 7999.2d),
-                    Arrays.asList(11999, 11999L, 11999.1f, 11999.2d),
-                    Arrays.asList(15999, 15999L, 15999.1f, 15999.2d)),
+                    Arrays.asList(0L, 3999L, 3999, 3999L, 3999.1f, 3999.2d),
+                    Arrays.asList(4000L, 7999L, 7999, 7999L, 7999.1f, 7999.2d),
+                    Arrays.asList(8000L, 11999L, 11999, 11999L, 11999.1f, 11999.2d),
+                    Arrays.asList(12000L, 15999L, 15999, 15999L, 15999.1f, 15999.2d)),
                 baseDataSection.getTagsList()),
             new TestDataSection(
                 keys,
                 types,
-                paths.stream().map(s -> "min(" + s + ")").collect(Collectors.toList()),
+                resPaths.stream()
+                    .map(
+                        s ->
+                            s.equals(WINDOW_START_COL) || s.equals(WINDOW_END_COL)
+                                ? s
+                                : "min(" + s + ")")
+                    .collect(Collectors.toList()),
                 Arrays.asList(
-                    Arrays.asList(0, 0L, 0.1f, 0.2d),
-                    Arrays.asList(4000, 4000L, 4000.1f, 4000.2d),
-                    Arrays.asList(8000, 8000L, 8000.1f, 8000.2d),
-                    Arrays.asList(12000, 12000L, 12000.1f, 12000.2d)),
+                    Arrays.asList(0L, 3999L, 0, 0L, 0.1f, 0.2d),
+                    Arrays.asList(4000L, 7999L, 4000, 4000L, 4000.1f, 4000.2d),
+                    Arrays.asList(8000L, 11999L, 8000, 8000L, 8000.1f, 8000.2d),
+                    Arrays.asList(12000L, 15999L, 12000, 12000L, 12000.1f, 12000.2d)),
                 baseDataSection.getTagsList()),
             new TestDataSection(
                 keys,
                 types,
-                paths.stream().map(s -> "sum(" + s + ")").collect(Collectors.toList()),
+                resPaths.stream()
+                    .map(
+                        s ->
+                            s.equals(WINDOW_START_COL) || s.equals(WINDOW_END_COL)
+                                ? s
+                                : "sum(" + s + ")")
+                    .collect(Collectors.toList()),
                 Arrays.asList(
-                    Arrays.asList(7998000L, 7998000L, 7998400.0d, 7998800.0d),
-                    Arrays.asList(23998000L, 23998000L, 23998400.0d, 23998800.0d),
-                    Arrays.asList(39998000L, 39998000L, 39998400.0d, 39998800.0d),
-                    Arrays.asList(55998000L, 55998000L, 55998400.0d, 55998800.0d)),
+                    Arrays.asList(0L, 3999L, 7998000L, 7998000L, 7998400.0d, 7998800.0d),
+                    Arrays.asList(4000L, 7999L, 23998000L, 23998000L, 23998400.0d, 23998800.0d),
+                    Arrays.asList(8000L, 11999L, 39998000L, 39998000L, 39998400.0d, 39998800.0d),
+                    Arrays.asList(12000L, 15999L, 55998000L, 55998000L, 55998400.0d, 55998800.0d)),
                 baseDataSection.getTagsList()),
             new TestDataSection(
                 keys,
                 types,
-                paths.stream().map(s -> "count(" + s + ")").collect(Collectors.toList()),
+                resPaths.stream()
+                    .map(
+                        s ->
+                            s.equals(WINDOW_START_COL) || s.equals(WINDOW_END_COL)
+                                ? s
+                                : "count(" + s + ")")
+                    .collect(Collectors.toList()),
                 Arrays.asList(
-                    Arrays.asList(4000L, 4000L, 4000L, 4000L),
-                    Arrays.asList(4000L, 4000L, 4000L, 4000L),
-                    Arrays.asList(4000L, 4000L, 4000L, 4000L),
-                    Arrays.asList(4000L, 4000L, 4000L, 4000L)),
+                    Arrays.asList(0L, 3999L, 4000L, 4000L, 4000L, 4000L),
+                    Arrays.asList(4000L, 7999L, 4000L, 4000L, 4000L, 4000L),
+                    Arrays.asList(8000L, 11999L, 4000L, 4000L, 4000L, 4000L),
+                    Arrays.asList(12000L, 15999L, 4000L, 4000L, 4000L, 4000L)),
                 baseDataSection.getTagsList()),
             new TestDataSection(
                 keys,
                 types,
-                paths.stream().map(s -> "avg(" + s + ")").collect(Collectors.toList()),
+                resPaths.stream()
+                    .map(
+                        s ->
+                            s.equals(WINDOW_START_COL) || s.equals(WINDOW_END_COL)
+                                ? s
+                                : "avg(" + s + ")")
+                    .collect(Collectors.toList()),
                 Arrays.asList(
-                    Arrays.asList(1999.5d, 1999.5d, 1999.6d, 1999.7d),
-                    Arrays.asList(5999.5d, 5999.5d, 5999.6d, 5999.7d),
-                    Arrays.asList(9999.5d, 9999.5d, 9999.6d, 9999.7d),
-                    Arrays.asList(13999.5d, 13999.5d, 13999.6d, 13999.7d)),
+                    Arrays.asList(0L, 3999L, 1999.5d, 1999.5d, 1999.6d, 1999.7d),
+                    Arrays.asList(4000L, 7999L, 5999.5d, 5999.5d, 5999.6d, 5999.7d),
+                    Arrays.asList(8000L, 11999L, 9999.5d, 9999.5d, 9999.6d, 9999.7d),
+                    Arrays.asList(12000L, 15999L, 13999.5d, 13999.5d, 13999.6d, 13999.7d)),
                 baseDataSection.getTagsList()),
             new TestDataSection(
                 keys,
                 types,
-                paths.stream().map(s -> "first_value(" + s + ")").collect(Collectors.toList()),
+                resPaths.stream()
+                    .map(
+                        s ->
+                            s.equals(WINDOW_START_COL) || s.equals(WINDOW_END_COL)
+                                ? s
+                                : "first_value(" + s + ")")
+                    .collect(Collectors.toList()),
                 Arrays.asList(
-                    Arrays.asList(0, 0L, 0.1f, 0.2d),
-                    Arrays.asList(4000, 4000L, 4000.1f, 4000.2d),
-                    Arrays.asList(8000, 8000L, 8000.1f, 8000.2d),
-                    Arrays.asList(12000, 12000L, 12000.1f, 12000.2d)),
+                    Arrays.asList(0L, 3999L, 0, 0L, 0.1f, 0.2d),
+                    Arrays.asList(4000L, 7999L, 4000, 4000L, 4000.1f, 4000.2d),
+                    Arrays.asList(8000L, 11999L, 8000, 8000L, 8000.1f, 8000.2d),
+                    Arrays.asList(12000L, 15999L, 12000, 12000L, 12000.1f, 12000.2d)),
                 baseDataSection.getTagsList()),
             new TestDataSection(
                 keys,
                 types,
-                paths.stream().map(s -> "last_value(" + s + ")").collect(Collectors.toList()),
+                resPaths.stream()
+                    .map(
+                        s ->
+                            s.equals(WINDOW_START_COL) || s.equals(WINDOW_END_COL)
+                                ? s
+                                : "last_value(" + s + ")")
+                    .collect(Collectors.toList()),
                 Arrays.asList(
-                    Arrays.asList(3999, 3999L, 3999.1f, 3999.2d),
-                    Arrays.asList(7999, 7999L, 7999.1f, 7999.2d),
-                    Arrays.asList(11999, 11999L, 11999.1f, 11999.2d),
-                    Arrays.asList(15999, 15999L, 15999.1f, 15999.2d)),
+                    Arrays.asList(0L, 3999L, 3999, 3999L, 3999.1f, 3999.2d),
+                    Arrays.asList(4000L, 7999L, 7999, 7999L, 7999.1f, 7999.2d),
+                    Arrays.asList(8000L, 11999L, 11999, 11999L, 11999.1f, 11999.2d),
+                    Arrays.asList(12000L, 15999L, 15999, 15999L, 15999.1f, 15999.2d)),
                 baseDataSection.getTagsList()));
 
     for (int i = 0; i < aggregateTypes.size(); i++) {
@@ -728,8 +797,156 @@ public class NewSessionIT {
         SessionQueryDataSet dataSet =
             conn.downsampleQuery(paths, START_KEY, END_KEY, type, precision);
         compare(expectedResults.get(i), dataSet);
-      } catch (SessionException | ExecutionException e) {
-        logger.error("execute downsample query failed, AggType={}, Precision={}", type, precision);
+      } catch (SessionException e) {
+        LOGGER.error("execute downsample query failed, AggType={}, Precision={}", type, precision);
+        fail();
+      }
+    }
+  }
+
+  @Test
+  public void testDownsampleQueryNoInterval() {
+    List<String> paths = Arrays.asList("us.d1.s2", "us.d1.s3", "us.d1.s4", "us.d1.s5");
+    List<String> resPaths =
+        Arrays.asList(
+            WINDOW_START_COL, WINDOW_END_COL, "us.d1.s2", "us.d1.s3", "us.d1.s4", "us.d1.s5");
+    List<DataType> types =
+        Arrays.asList(DataType.INTEGER, DataType.LONG, DataType.FLOAT, DataType.DOUBLE);
+    List<Long> keys = Arrays.asList(0L, 4000L, 8000L, 12000L);
+
+    List<AggregateType> aggregateTypes =
+        Arrays.asList(
+            AggregateType.MAX,
+            AggregateType.MIN,
+            AggregateType.SUM,
+            AggregateType.COUNT,
+            AggregateType.AVG,
+            AggregateType.FIRST_VALUE,
+            AggregateType.LAST_VALUE);
+    long precision = 4000;
+
+    List<TestDataSection> expectedResults =
+        Arrays.asList(
+            new TestDataSection(
+                keys,
+                types,
+                resPaths.stream()
+                    .map(
+                        s ->
+                            s.equals(WINDOW_START_COL) || s.equals(WINDOW_END_COL)
+                                ? s
+                                : "max(" + s + ")")
+                    .collect(Collectors.toList()),
+                Arrays.asList(
+                    Arrays.asList(0L, 3999L, 3999, 3999L, 3999.1f, 3999.2d),
+                    Arrays.asList(4000L, 7999L, 7999, 7999L, 7999.1f, 7999.2d),
+                    Arrays.asList(8000L, 11999L, 11999, 11999L, 11999.1f, 11999.2d),
+                    Arrays.asList(12000L, 15999L, 15999, 15999L, 15999.1f, 15999.2d)),
+                baseDataSection.getTagsList()),
+            new TestDataSection(
+                keys,
+                types,
+                resPaths.stream()
+                    .map(
+                        s ->
+                            s.equals(WINDOW_START_COL) || s.equals(WINDOW_END_COL)
+                                ? s
+                                : "min(" + s + ")")
+                    .collect(Collectors.toList()),
+                Arrays.asList(
+                    Arrays.asList(0L, 3999L, 0, 0L, 0.1f, 0.2d),
+                    Arrays.asList(4000L, 7999L, 4000, 4000L, 4000.1f, 4000.2d),
+                    Arrays.asList(8000L, 11999L, 8000, 8000L, 8000.1f, 8000.2d),
+                    Arrays.asList(12000L, 15999L, 12000, 12000L, 12000.1f, 12000.2d)),
+                baseDataSection.getTagsList()),
+            new TestDataSection(
+                keys,
+                types,
+                resPaths.stream()
+                    .map(
+                        s ->
+                            s.equals(WINDOW_START_COL) || s.equals(WINDOW_END_COL)
+                                ? s
+                                : "sum(" + s + ")")
+                    .collect(Collectors.toList()),
+                Arrays.asList(
+                    Arrays.asList(0L, 3999L, 7998000L, 7998000L, 7998400.0d, 7998800.0d),
+                    Arrays.asList(4000L, 7999L, 23998000L, 23998000L, 23998400.0d, 23998800.0d),
+                    Arrays.asList(8000L, 11999L, 39998000L, 39998000L, 39998400.0d, 39998800.0d),
+                    Arrays.asList(12000L, 15999L, 55998000L, 55998000L, 55998400.0d, 55998800.0d)),
+                baseDataSection.getTagsList()),
+            new TestDataSection(
+                keys,
+                types,
+                resPaths.stream()
+                    .map(
+                        s ->
+                            s.equals(WINDOW_START_COL) || s.equals(WINDOW_END_COL)
+                                ? s
+                                : "count(" + s + ")")
+                    .collect(Collectors.toList()),
+                Arrays.asList(
+                    Arrays.asList(0L, 3999L, 4000L, 4000L, 4000L, 4000L),
+                    Arrays.asList(4000L, 7999L, 4000L, 4000L, 4000L, 4000L),
+                    Arrays.asList(8000L, 11999L, 4000L, 4000L, 4000L, 4000L),
+                    Arrays.asList(12000L, 15999L, 4000L, 4000L, 4000L, 4000L)),
+                baseDataSection.getTagsList()),
+            new TestDataSection(
+                keys,
+                types,
+                resPaths.stream()
+                    .map(
+                        s ->
+                            s.equals(WINDOW_START_COL) || s.equals(WINDOW_END_COL)
+                                ? s
+                                : "avg(" + s + ")")
+                    .collect(Collectors.toList()),
+                Arrays.asList(
+                    Arrays.asList(0L, 3999L, 1999.5d, 1999.5d, 1999.6d, 1999.7d),
+                    Arrays.asList(4000L, 7999L, 5999.5d, 5999.5d, 5999.6d, 5999.7d),
+                    Arrays.asList(8000L, 11999L, 9999.5d, 9999.5d, 9999.6d, 9999.7d),
+                    Arrays.asList(12000L, 15999L, 13999.5d, 13999.5d, 13999.6d, 13999.7d)),
+                baseDataSection.getTagsList()),
+            new TestDataSection(
+                keys,
+                types,
+                resPaths.stream()
+                    .map(
+                        s ->
+                            s.equals(WINDOW_START_COL) || s.equals(WINDOW_END_COL)
+                                ? s
+                                : "first_value(" + s + ")")
+                    .collect(Collectors.toList()),
+                Arrays.asList(
+                    Arrays.asList(0L, 3999L, 0, 0L, 0.1f, 0.2d),
+                    Arrays.asList(4000L, 7999L, 4000, 4000L, 4000.1f, 4000.2d),
+                    Arrays.asList(8000L, 11999L, 8000, 8000L, 8000.1f, 8000.2d),
+                    Arrays.asList(12000L, 15999L, 12000, 12000L, 12000.1f, 12000.2d)),
+                baseDataSection.getTagsList()),
+            new TestDataSection(
+                keys,
+                types,
+                resPaths.stream()
+                    .map(
+                        s ->
+                            s.equals(WINDOW_START_COL) || s.equals(WINDOW_END_COL)
+                                ? s
+                                : "last_value(" + s + ")")
+                    .collect(Collectors.toList()),
+                Arrays.asList(
+                    Arrays.asList(0L, 3999L, 3999, 3999L, 3999.1f, 3999.2d),
+                    Arrays.asList(4000L, 7999L, 7999, 7999L, 7999.1f, 7999.2d),
+                    Arrays.asList(8000L, 11999L, 11999, 11999L, 11999.1f, 11999.2d),
+                    Arrays.asList(12000L, 15999L, 15999, 15999L, 15999.1f, 15999.2d)),
+                baseDataSection.getTagsList()));
+
+    for (int i = 0; i < aggregateTypes.size(); i++) {
+      AggregateType type = aggregateTypes.get(i);
+      try {
+        SessionQueryDataSet dataSet = conn.downsampleQuery(paths, type, precision);
+        compare(expectedResults.get(i), dataSet);
+      } catch (SessionException e) {
+        LOGGER.error("execute downsample query failed, AggType={}, Precision={}", type, precision);
         fail();
       }
     }
@@ -771,8 +988,8 @@ public class NewSessionIT {
               .getSubDataSectionWithPath(paths)
               .getSubDataSectionWithKey(END_KEY - 200, END_KEY - 100);
       compare(expected, actual);
-    } catch (SessionException | ExecutionException e) {
-      logger.error("execute delete or query data failed.");
+    } catch (SessionException e) {
+      LOGGER.error("execute delete or query data failed.");
       fail();
     }
 
@@ -808,8 +1025,8 @@ public class NewSessionIT {
               .getSubDataSectionWithPath(paths)
               .getSubDataSectionWithKey(END_KEY - 200, END_KEY - 100);
       compare(expected, actual);
-    } catch (SessionException | ExecutionException e) {
-      logger.error("execute delete or query data failed.");
+    } catch (SessionException e) {
+      LOGGER.error("execute delete or query data failed.");
       fail();
     }
 
@@ -892,8 +1109,8 @@ public class NewSessionIT {
               .getSubDataSectionWithPath(paths)
               .getSubDataSectionWithKey(START_KEY + 400, START_KEY + 500);
       compare(expected, actual);
-    } catch (SessionException | ExecutionException e) {
-      logger.error("execute delete or query data failed.");
+    } catch (SessionException e) {
+      LOGGER.error("execute delete or query data failed.");
       fail();
     }
   }

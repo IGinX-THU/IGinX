@@ -1,3 +1,21 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package cn.edu.tsinghua.iginx.integration.mds;
 
 import static org.junit.Assert.*;
@@ -16,8 +34,11 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class SyncProtocolTest {
+  private static final Logger LOGGER = LoggerFactory.getLogger(SyncProtocolTest.class);
 
   protected abstract SyncProtocol newSyncProtocol(String category);
 
@@ -47,7 +68,7 @@ public abstract class SyncProtocolTest {
             try {
               protocol.voteFor(proposalKey, new SyncVote(id, voteContent));
             } catch (Exception e) {
-              e.printStackTrace();
+              LOGGER.error("unexpected error: ", e);
               fail("unexpected vote failure");
             }
           }
@@ -83,7 +104,7 @@ public abstract class SyncProtocolTest {
                 try {
                   protocol.endProposal(voteKey, proposal);
                 } catch (Exception e) {
-                  e.printStackTrace();
+                  LOGGER.error("unexpected error: ", e);
                   fail("unexpected end proposal failure");
                 }
               }
@@ -133,7 +154,7 @@ public abstract class SyncProtocolTest {
                   try {
                     protocol.voteFor(proposalKey, new SyncVote(id, voteContents.get(id)));
                   } catch (Exception e) {
-                    e.printStackTrace();
+                    LOGGER.error("unexpected error: ", e);
                     fail("unexpected vote failure");
                   }
                 }
@@ -175,7 +196,7 @@ public abstract class SyncProtocolTest {
                       protocol.endProposal(key, proposal);
                     }
                   } catch (Exception e) {
-                    e.printStackTrace();
+                    LOGGER.error("unexpected error: ", e);
                     fail();
                   } finally {
                     lock.unlock();
@@ -194,7 +215,7 @@ public abstract class SyncProtocolTest {
           latch.await();
           protocol.close();
         } catch (Exception e) {
-          e.printStackTrace();
+          LOGGER.error("unexpected error: ", e);
           fail("unexpected exception");
         }
       }
@@ -249,7 +270,7 @@ public abstract class SyncProtocolTest {
                     try {
                       protocol.voteFor(proposalKey, new SyncVote(id, voteContents.get(id)));
                     } catch (Exception e) {
-                      e.printStackTrace();
+                      LOGGER.error("unexpected error: ", e);
                       fail("unexpected vote failure");
                     }
                   }
@@ -291,7 +312,7 @@ public abstract class SyncProtocolTest {
                         protocol.endProposal(key, proposal);
                       }
                     } catch (Exception e) {
-                      e.printStackTrace();
+                      LOGGER.error("unexpected error: ", e);
                       fail();
                     } finally {
                       lock.unlock();
@@ -310,7 +331,7 @@ public abstract class SyncProtocolTest {
             latch.await();
             protocol.close();
           } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("unexpected error: ", e);
             fail("unexpected exception");
           }
         }
@@ -376,7 +397,7 @@ public abstract class SyncProtocolTest {
                     try {
                       protocol.voteFor(proposalKey, new SyncVote(id, voteContent));
                     } catch (Exception e) {
-                      e.printStackTrace();
+                      LOGGER.error("unexpected error: ", e);
                       fail("unexpected vote failure");
                     }
                   }
@@ -426,7 +447,7 @@ public abstract class SyncProtocolTest {
                         protocol.endProposal(key, proposal);
                       }
                     } catch (Exception e) {
-                      e.printStackTrace();
+                      LOGGER.error("unexpected error: ", e);
                       fail();
                     } finally {
                       lock.unlock();
@@ -445,7 +466,7 @@ public abstract class SyncProtocolTest {
             latch.await();
             protocol.close();
           } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("unexpected error: ", e);
             fail("unexpected exception");
           }
         }

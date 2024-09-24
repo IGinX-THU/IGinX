@@ -1,3 +1,21 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package cn.edu.tsinghua.iginx.integration.func.tag;
 
 import static cn.edu.tsinghua.iginx.constant.GlobalConstant.CLEAR_DUMMY_DATA_CAUTION;
@@ -5,8 +23,7 @@ import static cn.edu.tsinghua.iginx.integration.controller.Controller.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
-import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.func.session.InsertAPIType;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
@@ -23,7 +40,7 @@ import org.slf4j.LoggerFactory;
 
 public class TagIT {
 
-  private static final Logger logger = LoggerFactory.getLogger(TagIT.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(TagIT.class);
 
   private static Session session;
 
@@ -55,7 +72,7 @@ public class TagIT {
   }
 
   @Before
-  public void insertData() throws ExecutionException, SessionException {
+  public void insertData() throws SessionException {
     //    "insert into ah.hr01 (key, s, v, s[t1=v1, t2=vv1], v[t1=v2, t2=vv1]) values (0, 1, 2, 3,
     // 4), (1, 2, 3, 4, 5), (2, 3, 4, 5, 6), (3, 4, 5, 6, 7);",
     //    "insert into ah.hr02 (key, s, v) values (100, true, \"v1\");",
@@ -231,6 +248,7 @@ public class TagIT {
         tagList6,
         InsertAPIType.Row,
         false);
+    Controller.after(session);
   }
 
   @After
@@ -244,16 +262,16 @@ public class TagIT {
   }
 
   private String execute(String statement) {
-    logger.info("Execute Statement: \"{}\"", statement);
+    LOGGER.info("Execute Statement: \"{}\"", statement);
 
     SessionExecuteSqlResult res = null;
     try {
       res = session.executeSql(statement);
-    } catch (SessionException | ExecutionException e) {
+    } catch (SessionException e) {
       if (e.toString().trim().contains(CLEAR_DUMMY_DATA_CAUTION)) {
-        logger.warn(CLEAR_DATA_WARNING);
+        LOGGER.warn(CLEAR_DATA_WARNING);
       } else {
-        logger.error(CLEAR_DATA_ERROR, statement, e.getMessage());
+        LOGGER.error("Statement: \"{}\" execute fail. Caused by: ", statement, e);
         fail();
       }
     }
@@ -263,7 +281,8 @@ public class TagIT {
     }
 
     if (res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
-      logger.error(CLEAR_DATA_ERROR, statement, res.getParseErrorMsg());
+      LOGGER.error(
+          "Statement: \"{}\" execute fail. Caused by: ", statement, res.getParseErrorMsg());
       fail();
       return "";
     }
@@ -916,7 +935,6 @@ public class TagIT {
 
     String showColumnsData = "SELECT v FROM ah.* WITH t1=v1 AND t2=v2;";
     expected = "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
-    ;
     executeAndCompare(showColumnsData, expected);
 
     deleteTimeSeries = "DELETE COLUMNS * WITH t1=v1 AND t2=vv2 OR t1=vv1 AND t2=v2;";
@@ -944,7 +962,6 @@ public class TagIT {
 
     showColumnsData = "SELECT * FROM * WITH t1=v1 AND t2=vv2 OR t1=vv1 AND t2=v2;";
     expected = "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
-    ;
     executeAndCompare(showColumnsData, expected);
   }
 
@@ -1324,6 +1341,18 @@ public class TagIT {
             + "Total line number = 2\n";
     executeAndCompare(statement, expected);
 
+    statement = "SELECT s AS ts, s AS ss FROM ah.hr02;";
+    expected =
+        "ResultSets:\n"
+            + "+---+----+---------+----+---------+\n"
+            + "|key|  ts|ts{t1=v1}|  ss|ss{t1=v1}|\n"
+            + "+---+----+---------+----+---------+\n"
+            + "|100|true|     null|true|     null|\n"
+            + "|400|null|    false|null|    false|\n"
+            + "+---+----+---------+----+---------+\n"
+            + "Total line number = 2\n";
+    executeAndCompare(statement, expected);
+
     statement = "SELECT s FROM ah.hr02 AS result_set;";
     expected =
         "ResultSets:\n"
@@ -1467,7 +1496,7 @@ public class TagIT {
   }
 
   @Test
-  public void testClearData() throws SessionException, ExecutionException {
+  public void testClearData() throws SessionException {
     if (!isAbleToClearData || isScaling) return;
     clearData();
 

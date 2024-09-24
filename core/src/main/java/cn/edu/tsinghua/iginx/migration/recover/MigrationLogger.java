@@ -1,3 +1,21 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package cn.edu.tsinghua.iginx.migration.recover;
 
 import cn.edu.tsinghua.iginx.migration.MigrationTask;
@@ -10,7 +28,7 @@ import org.slf4j.LoggerFactory;
 
 public class MigrationLogger {
 
-  private static final Logger logger = LoggerFactory.getLogger(MigrationLogger.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(MigrationLogger.class);
 
   public static final String MIGRATION_LOG_NAME = "migration.log";
   public static final String SOURCE_NAME = "migration-tasks";
@@ -24,7 +42,7 @@ public class MigrationLogger {
     try {
       logStream = new BufferedWriter(new FileWriter(MIGRATION_LOG_NAME));
     } catch (IOException e) {
-      logger.error("create log stream failed ", e);
+      LOGGER.error("create log stream failed ", e);
     }
   }
 
@@ -42,7 +60,7 @@ public class MigrationLogger {
       }
       logStream.flush();
     } catch (IOException e) {
-      logger.error("write log failed ", e);
+      LOGGER.error("write log failed ", e);
     }
   }
 
@@ -51,7 +69,7 @@ public class MigrationLogger {
       logStream.write(MIGRATION_FINISHED);
       logStream.flush();
     } catch (IOException e) {
-      logger.error("write log failed ", e);
+      LOGGER.error("write log failed ", e);
     }
   }
 
@@ -63,7 +81,7 @@ public class MigrationLogger {
       logStream.newLine();
       logStream.flush();
     } catch (IOException e) {
-      logger.error("write log failed ", e);
+      LOGGER.error("write log failed ", e);
     }
   }
 
@@ -73,7 +91,7 @@ public class MigrationLogger {
       logStream.newLine();
       logStream.flush();
     } catch (IOException e) {
-      logger.error("write log failed ", e);
+      LOGGER.error("write log failed ", e);
     }
   }
 }

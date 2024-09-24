@@ -1,0 +1,8 @@
+FROM openjdk:11-jre-slim
+COPY ./target/iginx-client-0.8.0-SNAPSHOT/ /iginx_client/
+
+RUN mkdir -p /iginx_client/logs
+RUN mkdir -p /iginx_client/data
+VOLUME /iginx_client/logs
+ENV PATH="/iginx_client/sbin/:${PATH}"
+ENTRYPOINT ["tail", "-f", "/dev/null"]

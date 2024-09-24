@@ -1,3 +1,21 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package cn.edu.tsinghua.iginx.policy;
 
 import cn.edu.tsinghua.iginx.conf.Constants;
@@ -23,7 +41,6 @@ public class Utils {
         return ((InsertStatement) statement).getPaths();
       default:
         // TODO: case label. should we return empty list for other statements?
-        break;
     }
     return Collections.emptyList();
   }
@@ -60,7 +77,8 @@ public class Utils {
       case INSERT:
         InsertStatement insertStatement = (InsertStatement) statement;
         List<Long> keys = insertStatement.getKeys();
-        return new KeyInterval(keys.get(0), keys.get(keys.size() - 1));
+        return new KeyInterval(
+            Collections.min(keys), Collections.min(keys)); // interval should require coparison
       case SELECT:
         UnarySelectStatement selectStatement = (UnarySelectStatement) statement;
         return new KeyInterval(selectStatement.getStartKey(), selectStatement.getEndKey());

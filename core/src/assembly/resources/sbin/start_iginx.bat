@@ -1,21 +1,21 @@
 @REM
-@REM Licensed to the Apache Software Foundation (ASF) under one
-@REM or more contributor license agreements.  See the NOTICE file
-@REM distributed with this work for additional information
-@REM regarding copyright ownership.  The ASF licenses this file
-@REM to you under the Apache License, Version 2.0 (the
-@REM "License"); you may not use this file except in compliance
-@REM with the License.  You may obtain a copy of the License at
+@REM IGinX - the polystore system with high performance
+@REM Copyright (C) Tsinghua University
 @REM
-@REM     http://www.apache.org/licenses/LICENSE-2.0
+@REM This program is free software: you can redistribute it and/or modify
+@REM it under the terms of the GNU General Public License as published by
+@REM the Free Software Foundation, either version 3 of the License, or
+@REM (at your option) any later version.
 @REM
-@REM Unless required by applicable law or agreed to in writing,
-@REM software distributed under the License is distributed on an
-@REM "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-@REM KIND, either express or implied.  See the License for the
-@REM specific language governing permissions and limitations
-@REM under the License.
+@REM This program is distributed in the hope that it will be useful,
+@REM but WITHOUT ANY WARRANTY; without even the implied warranty of
+@REM MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+@REM GNU General Public License for more details.
 @REM
+@REM You should have received a copy of the GNU General Public License
+@REM along with this program.  If not, see <http://www.gnu.org/licenses/>.
+@REM
+
 
 @echo off
 echo ````````````````````````
@@ -27,6 +27,16 @@ if "%OS%" == "Windows_NT" setlocal
 pushd %~dp0..
 if NOT DEFINED IGINX_HOME set IGINX_HOME=%CD%
 popd
+
+if NOT DEFINED IGINX_CONF_DIR set IGINX_CONF_DIR=%IGINX_HOME%\conf
+
+set IGINX_ENV=%IGINX_CONF_DIR%\iginx-env.cmd
+set IGINX_CONF=%IGINX_CONF_DIR%\config.properties
+set IGINX_DRIVER=%IGINX_HOME%\driver
+
+if exist "%IGINX_ENV%" (
+    call "%IGINX_ENV%"
+)
 
 set PATH="%JAVA_HOME%\bin\";%PATH%
 set "FULL_VERSION="
@@ -96,22 +106,16 @@ set system_memory_in_mb=%system_memory_in_mb:,=%
 set /a half_=%system_memory_in_mb%/4
 set /a quarter_=%half_%/8
 
-if ["%half_%"] GTR ["1024"] set half_=1024
-if ["%quarter_%"] GTR ["8192"] set quarter_=8192
+@REM if ["%half_%"] GTR ["1024"] set half_=1024
+@REM if ["%quarter_%"] GTR ["8192"] set quarter_=8192
 
-if ["%half_%"] GTR ["quarter_"] (
+if %half_% GTR %quarter_% (
 	set max_heap_size_in_mb=%half_%
 ) else set max_heap_size_in_mb=%quarter_%
 
 set MAX_HEAP_SIZE=%max_heap_size_in_mb%M
 
 @REM -----------------------------------------------------------------------------
-@REM JVM Opts we'll use in legacy run or installation
-set JAVA_OPTS=-ea^
- -DIGINX_HOME=%IGINX_HOME%^
- -DIGINX_DRIVER=%IGINX_HOME%\driver^
- -DIGINX_CONF=%IGINX_CONF%
-
 set HEAP_OPTS=-Xmx%MAX_HEAP_SIZE% -Xms%MAX_HEAP_SIZE% -Xloggc:"%IGINX_HOME%\gc.log" -XX:+PrintGCDateStamps -XX:+PrintGCDetails
 
 @REM ***** CLASSPATH library setting *****
@@ -122,10 +126,17 @@ goto okClasspath
 @REM -----------------------------------------------------------------------------
 :okClasspath
 
+set LOCAL_JAVA_OPTS=^
+ -ea^
+ -cp %CLASSPATH%^
+ -DIGINX_HOME=%IGINX_HOME%^
+ -DIGINX_DRIVER=%IGINX_DRIVER%^
+ -DIGINX_CONF=%IGINX_CONF%
+
 @REM set DRIVER=
 @REM setx DRIVER "%IGINX_HOME%\driver"
 
-"%JAVA_HOME%\bin\java" %JAVA_OPTS% %HEAP_OPTS% -Dfile.encoding=UTF-8 -cp %CLASSPATH% %MAIN_CLASS%
+"%JAVA_HOME%\bin\java" %HEAP_OPTS% %IGINX_JAVA_OPTS% %LOCAL_JAVA_OPTS% %MAIN_CLASS%
 
 @REM reg delete "HKEY_CURRENT_USER\Environment" /v "DRIVER" /f
 @REM set DRIVER=

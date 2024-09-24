@@ -1,9 +1,26 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package cn.edu.tsinghua.iginx.engine.shared.function.udf.python;
 
 import static cn.edu.tsinghua.iginx.engine.shared.Constants.UDF_CLASS;
 import static cn.edu.tsinghua.iginx.engine.shared.Constants.UDF_FUNC;
 
-import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
@@ -11,27 +28,21 @@ import cn.edu.tsinghua.iginx.engine.shared.function.FunctionType;
 import cn.edu.tsinghua.iginx.engine.shared.function.MappingType;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.UDTF;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.utils.CheckUtils;
+import cn.edu.tsinghua.iginx.engine.shared.function.udf.utils.DataUtils;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.utils.RowUtils;
-import cn.edu.tsinghua.iginx.thrift.DataType;
-import cn.edu.tsinghua.iginx.utils.StringUtils;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
-import java.util.regex.Pattern;
 import pemja.core.PythonInterpreter;
 
 public class PyUDTF extends PyUDF implements UDTF {
 
   private static final String PY_UDTF = "py_udtf";
 
-  private final BlockingQueue<PythonInterpreter> interpreters;
-
   private final String funcName;
 
-  public PyUDTF(BlockingQueue<PythonInterpreter> interpreters, String funcName) {
-    this.interpreters = interpreters;
+  public PyUDTF(BlockingQueue<PythonInterpreter> interpreters, String funcName, String moduleName) {
+    super(interpreters, moduleName);
     this.funcName = funcName;
   }
 
@@ -57,45 +68,10 @@ public class PyUDTF extends PyUDF implements UDTF {
     }
 
     PythonInterpreter interpreter = interpreters.take();
-
-    List<Object> colNames = new ArrayList<>(Collections.singletonList("key"));
-    List<Object> colTypes = new ArrayList<>(Collections.singletonList(DataType.LONG.toString()));
-    List<Object> rowData = new ArrayList<>(Collections.singletonList(row.getKey()));
-
-    List<String> paths = params.getPaths();
-    flag:
-    for (String target : paths) {
-      if (StringUtils.isPattern(target)) {
-        Pattern pattern = Pattern.compile(StringUtils.reformatPath(target));
-        for (int i = 0; i < row.getHeader().getFieldSize(); i++) {
-          Field field = row.getHeader().getField(i);
-          if (pattern.matcher(field.getName()).matches()) {
-            colNames.add(field.getName());
-            colTypes.add(field.getType().toString());
-            rowData.add(row.getValues()[i]);
-          }
-        }
-      } else {
-        for (int i = 0; i < row.getHeader().getFieldSize(); i++) {
-          Field field = row.getHeader().getField(i);
-          if (target.equals(field.getName())) {
-            colNames.add(field.getName());
-            colTypes.add(field.getType().toString());
-            rowData.add(row.getValues()[i]);
-            continue flag;
-          }
-        }
-      }
-    }
-
-    if (colNames.size() == 1) {
+    List<List<Object>> data = DataUtils.dataFromRow(row, params.getPaths());
+    if (data == null) {
       return Row.EMPTY_ROW;
     }
-
-    List<List<Object>> data = new ArrayList<>();
-    data.add(colNames);
-    data.add(colTypes);
-    data.add(rowData);
 
     List<List<Object>> posArgs = getPyPosParams(params.getPosArgs());
     Map<String, Object> kvargs = params.getKwargs();

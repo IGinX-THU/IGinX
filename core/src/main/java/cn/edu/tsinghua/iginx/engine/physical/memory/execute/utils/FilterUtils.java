@@ -1,20 +1,19 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils;
 
@@ -27,23 +26,10 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.BoolFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.ExprFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.FilterType;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.NotFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.OrFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.PathFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.ValueFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.utils.Pair;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class FilterUtils {
 
@@ -151,7 +137,7 @@ public class FilterUtils {
         }
         return true; // 所有子条件均满足，返回true
       } else {
-        throw new RuntimeException("Unknown op type: " + valueFilter.getOp());
+        throw new IllegalArgumentException("Unknown op type: " + valueFilter.getOp());
       }
     } else {
       Value value = row.getAsValue(path);
@@ -192,7 +178,7 @@ public class FilterUtils {
     return validateValueCompare(exprFilter.getOp(), valueA, valueB);
   }
 
-  private static boolean validateValueCompare(Op op, Value valueA, Value valueB)
+  public static boolean validateValueCompare(Op op, Value valueA, Value valueB)
       throws PhysicalException {
     if (valueA.getDataType() != valueB.getDataType()) {
       if (ValueUtils.isNumericType(valueA) && ValueUtils.isNumericType(valueB)) {
@@ -225,6 +211,9 @@ public class FilterUtils {
       case LIKE:
       case LIKE_AND:
         return ValueUtils.regexCompare(valueA, valueB);
+      case NOT_LIKE:
+      case NOT_LIKE_AND:
+        return !ValueUtils.regexCompare(valueA, valueB);
     }
     return false;
   }
@@ -298,6 +287,12 @@ public class FilterUtils {
         PathFilter pathFilter = (PathFilter) filter;
         paths.add(pathFilter.getPathA());
         paths.add(pathFilter.getPathB());
+        break;
+      case Expr:
+        ExprFilter exprFilter = (ExprFilter) filter;
+        paths.addAll(ExprUtils.getPathFromExpr(exprFilter.getExpressionA()));
+        paths.addAll(ExprUtils.getPathFromExpr(exprFilter.getExpressionB()));
+        break;
       default:
         break;
     }
@@ -335,7 +330,7 @@ public class FilterUtils {
       case Bool:
         return false;
       default:
-        throw new RuntimeException("Unexpected filter type: " + filter.getType());
+        throw new IllegalArgumentException("Unexpected filter type: " + filter.getType());
     }
   }
 
@@ -352,12 +347,52 @@ public class FilterUtils {
     } else if (baseFilter.getType().equals(FilterType.And)) {
       AndFilter andFilter = (AndFilter) baseFilter;
       List<Filter> filterList = new ArrayList<>(andFilter.getChildren());
-      filterList.add(additionFilter);
-      return new AndFilter(filterList);
+      if (additionFilter.getType().equals(FilterType.And)) {
+        AndFilter additionAndFilter = (AndFilter) additionFilter;
+        filterList.addAll(additionAndFilter.getChildren());
+      } else {
+        filterList.add(additionFilter);
+      }
+      return new AndFilter(filterList.stream().distinct().collect(Collectors.toList()));
     } else {
       List<Filter> filterList = new ArrayList<>(Collections.singletonList(baseFilter));
       filterList.add(additionFilter);
       return new AndFilter(filterList);
     }
+  }
+
+  public static List<PathFilter> getEqualPathFilter(Filter filter) {
+    List<PathFilter> pathFilters = new ArrayList<>();
+    filter.accept(
+        new FilterVisitor() {
+          @Override
+          public void visit(AndFilter filter) {}
+
+          @Override
+          public void visit(OrFilter filter) {}
+
+          @Override
+          public void visit(NotFilter filter) {}
+
+          @Override
+          public void visit(KeyFilter filter) {}
+
+          @Override
+          public void visit(ValueFilter filter) {}
+
+          @Override
+          public void visit(PathFilter filter) {
+            if (isEqualOp(filter.getOp())) {
+              pathFilters.add(filter);
+            }
+          }
+
+          @Override
+          public void visit(BoolFilter filter) {}
+
+          @Override
+          public void visit(ExprFilter filter) {}
+        });
+    return pathFilters;
   }
 }

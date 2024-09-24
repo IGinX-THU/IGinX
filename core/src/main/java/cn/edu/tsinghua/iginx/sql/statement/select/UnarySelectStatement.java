@@ -1,11 +1,31 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package cn.edu.tsinghua.iginx.sql.statement.select;
 
 import static cn.edu.tsinghua.iginx.sql.SQLConstant.DOT;
 import static cn.edu.tsinghua.iginx.sql.SQLConstant.L_PARENTHESES;
 import static cn.edu.tsinghua.iginx.sql.SQLConstant.R_PARENTHESES;
 
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.ExprUtils;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils;
 import cn.edu.tsinghua.iginx.engine.shared.expr.*;
+import cn.edu.tsinghua.iginx.engine.shared.function.FunctionUtils;
 import cn.edu.tsinghua.iginx.engine.shared.operator.MarkJoin;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
@@ -13,15 +33,25 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.FuncType;
-import cn.edu.tsinghua.iginx.exceptions.SQLParserException;
+import cn.edu.tsinghua.iginx.sql.exception.SQLParserException;
 import cn.edu.tsinghua.iginx.sql.statement.StatementType;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.FromPart;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.FromPartType;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.SubQueryFromPart;
 import cn.edu.tsinghua.iginx.sql.statement.select.subclause.*;
 import cn.edu.tsinghua.iginx.thrift.AggregateType;
+import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Queue;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class UnarySelectStatement extends SelectStatement {
 
@@ -63,8 +93,7 @@ public class UnarySelectStatement extends SelectStatement {
   }
 
   // aggregate query
-  public UnarySelectStatement(
-      List<String> paths, long startKey, long endKey, AggregateType aggregateType) {
+  public UnarySelectStatement(List<String> paths, AggregateType aggregateType) {
     this(false);
 
     if (aggregateType == AggregateType.LAST || aggregateType == AggregateType.FIRST) {
@@ -82,7 +111,11 @@ public class UnarySelectStatement extends SelectStatement {
         });
 
     setHasFunc(true);
+  }
 
+  public UnarySelectStatement(
+      List<String> paths, long startKey, long endKey, AggregateType aggregateType) {
+    this(paths, aggregateType);
     this.setFromSession(startKey, endKey);
   }
 
@@ -218,6 +251,14 @@ public class UnarySelectStatement extends SelectStatement {
         case Unary:
           queue.add(((UnaryExpression) expression).getExpression());
           break;
+        case Function:
+          FuncExpression funcExpression = (FuncExpression) expression;
+          if (FunctionUtils.isRowToRowFunction(funcExpression.getFuncName())) {
+            for (String column : funcExpression.getColumns()) {
+              baseExpressionList.add(new BaseExpression(column));
+            }
+          }
+          break;
         case Bracket:
           queue.add(((BracketExpression) expression).getExpression());
           break;
@@ -225,6 +266,22 @@ public class UnarySelectStatement extends SelectStatement {
           queue.add(((BinaryExpression) expression).getLeftExpression());
           queue.add(((BinaryExpression) expression).getRightExpression());
           break;
+        case Multiple:
+          queue.addAll(((MultipleExpression) expression).getChildren());
+          break;
+        case CaseWhen:
+          CaseWhenExpression caseWhenExpr = (CaseWhenExpression) expression;
+          Set<String> pathList = new HashSet<>();
+          for (Filter filter : caseWhenExpr.getConditions()) {
+            pathList.addAll(FilterUtils.getAllPathsFromFilter(filter));
+          }
+          for (String path : pathList) {
+            baseExpressionList.add(new BaseExpression(path));
+          }
+          queue.addAll(caseWhenExpr.getResults());
+          if (caseWhenExpr.getResultElse() != null) {
+            queue.add(caseWhenExpr.getResultElse());
+          }
       }
     }
     return baseExpressionList;
@@ -394,6 +451,11 @@ public class UnarySelectStatement extends SelectStatement {
     this.groupByClause.setSlideDistance(slideDistance);
   }
 
+  @Override
+  public boolean isSimpleQuery() {
+    return groupByClause.getQueryType() == QueryType.SimpleQuery;
+  }
+
   public QueryType getQueryType() {
     return groupByClause.getQueryType();
   }
@@ -404,54 +466,67 @@ public class UnarySelectStatement extends SelectStatement {
 
   @Override
   public List<Expression> getExpressions() {
-    List<Expression> expressions = new ArrayList<>();
-    expressions.addAll(selectClause.getExpressions());
-    return expressions;
+    return new ArrayList<>(selectClause.getExpressions());
   }
 
   public void addSelectClauseExpression(Expression expression) {
     selectClause.addExpression(expression);
   }
 
-  public Map<String, String> getSelectAliasMap() {
-    Map<String, String> aliasMap = new HashMap<>();
+  public List<Pair<String, String>> getSelectAliasList() {
+    List<Pair<String, String>> aliasList = new ArrayList<>();
+    AtomicBoolean hasAlias = new AtomicBoolean(false);
     getExpressions()
         .forEach(
             expression -> {
               if (expression.hasAlias()) {
-                aliasMap.put(expression.getColumnName(), expression.getAlias());
+                aliasList.add(new Pair<>(expression.getColumnName(), expression.getAlias()));
+                hasAlias.set(true);
+              } else {
+                aliasList.add(new Pair<>(expression.getColumnName(), expression.getColumnName()));
               }
             });
-    return aliasMap;
+    return hasAlias.get() ? aliasList : Collections.emptyList();
   }
 
   @Override
-  public Map<String, String> getSubQueryAliasMap(String alias) {
-    Map<String, String> aliasMap = new HashMap<>();
+  public List<Pair<String, String>> getSubQueryAliasList(String alias) {
+    List<Pair<String, String>> aliasList = new ArrayList<>();
     getExpressions()
         .forEach(
             expression -> {
               if (expression.hasAlias()) {
-                aliasMap.put(expression.getAlias(), alias + DOT + expression.getAlias());
+                aliasList.add(
+                    new Pair<>(expression.getAlias(), alias + DOT + expression.getAlias()));
               } else {
                 if (expression.getType().equals(Expression.ExpressionType.Binary)
                     || expression.getType().equals(Expression.ExpressionType.Unary)) {
-                  aliasMap.put(
-                      expression.getColumnName(),
-                      alias + DOT + L_PARENTHESES + expression.getColumnName() + R_PARENTHESES);
+                  aliasList.add(
+                      new Pair<>(
+                          expression.getColumnName(),
+                          alias
+                              + DOT
+                              + L_PARENTHESES
+                              + expression.getColumnName()
+                              + R_PARENTHESES));
                 } else {
-                  aliasMap.put(
-                      expression.getColumnName(), alias + DOT + expression.getColumnName());
+                  aliasList.add(
+                      new Pair<>(
+                          expression.getColumnName(), alias + DOT + expression.getColumnName()));
                 }
               }
             });
-    return aliasMap;
+    return aliasList;
   }
 
   public boolean needRowTransform() {
     for (Expression expression : getExpressions()) {
-      if (!expression.getType().equals(Expression.ExpressionType.Base)
-          && !expression.getType().equals(Expression.ExpressionType.Function)
+      if (expression.getType().equals(Expression.ExpressionType.Function)) {
+        FuncExpression funcExpression = (FuncExpression) expression;
+        if (FunctionUtils.isRowToRowFunction(funcExpression.getFuncName())) {
+          return true;
+        }
+      } else if (!expression.getType().equals(Expression.ExpressionType.Base)
           && !expression.getType().equals(Expression.ExpressionType.FromValue)) {
         return true;
       }
@@ -594,6 +669,29 @@ public class UnarySelectStatement extends SelectStatement {
     return false;
   }
 
+  public String getOriginPath(String path) {
+    if (path.startsWith(MarkJoin.MARK_PREFIX)) {
+      return path;
+    }
+    for (FromPart fromPart : getFromParts()) {
+      for (String pattern : fromPart.getPatterns()) {
+        if (StringUtils.match(path, pattern)) {
+          if (fromPart.hasAlias()) {
+            if (!path.startsWith(fromPart.getPrefix())) {
+              throw new RuntimeException(
+                  String.format(
+                      "prefix: %s not in path: %s, please check", fromPart.getPrefix(), path));
+            }
+            return path.replaceFirst(fromPart.getPrefix(), fromPart.getOriginPrefix());
+          } else {
+            return path;
+          }
+        }
+      }
+    }
+    return null;
+  }
+
   public boolean isFromSinglePath() {
     return !hasJoinParts()
         && !getFromParts().isEmpty()
@@ -605,7 +703,10 @@ public class UnarySelectStatement extends SelectStatement {
     if (hasGroupBy()) {
       setQueryType(QueryType.GroupByQuery);
     } else if (hasFunc()) {
-      if (hasDownsample()) {
+      if (ExprUtils.hasCaseWhen(selectClause.getExpressions())
+          || FuncType.isRow2RowFunc(getFuncTypeSet())) {
+        setQueryType(QueryType.SimpleQuery);
+      } else if (hasDownsample()) {
         setQueryType(QueryType.DownSampleQuery);
       } else {
         setQueryType(QueryType.AggregateQuery);

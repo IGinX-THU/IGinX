@@ -1,7 +1,24 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package cn.edu.tsinghua.iginx.session;
 
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
-import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import java.util.Arrays;
 import java.util.List;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -18,7 +35,7 @@ public class UDFCompareToSys {
 
   private static final List<String> FUNC_LIST = Arrays.asList("min", "max", "sum", "avg", "count");
 
-  public static void main(String[] args) throws ExecutionException, SessionException {
+  public static void main(String[] args) throws SessionException {
     setUp();
     insertData();
 
@@ -42,7 +59,7 @@ public class UDFCompareToSys {
     tearDown();
   }
 
-  private static void wholeRangeAggregationQuery() throws ExecutionException, SessionException {
+  private static void wholeRangeAggregationQuery() throws SessionException {
     String SQLFormatter = "SELECT %s(s1) FROM test.compare;";
     for (String func : FUNC_LIST) {
       String sysSql = String.format(SQLFormatter, func);
@@ -52,7 +69,7 @@ public class UDFCompareToSys {
     }
   }
 
-  private static void partialRangeAggregationQuery() throws ExecutionException, SessionException {
+  private static void partialRangeAggregationQuery() throws SessionException {
     String SQLFormatter = "SELECT %s(s1) FROM test.compare WHERE key < 50;";
     for (String func : FUNC_LIST) {
       String sysSql = String.format(SQLFormatter, func);
@@ -62,8 +79,7 @@ public class UDFCompareToSys {
     }
   }
 
-  private static void multiPathWholeRangeAggregationQuery()
-      throws ExecutionException, SessionException {
+  private static void multiPathWholeRangeAggregationQuery() throws SessionException {
     String SQLFormatter = "SELECT %s(s1), %s(s2) FROM test.compare;";
     for (String func : FUNC_LIST) {
       String sysSql = String.format(SQLFormatter, func, func);
@@ -73,8 +89,7 @@ public class UDFCompareToSys {
     }
   }
 
-  private static void multiPathPartialRangeAggregationQuery()
-      throws ExecutionException, SessionException {
+  private static void multiPathPartialRangeAggregationQuery() throws SessionException {
     String SQLFormatter = "SELECT %s(s1), %s(s2) FROM test.compare WHERE key < 50;";
     for (String func : FUNC_LIST) {
       String sysSql = String.format(SQLFormatter, func, func);
@@ -84,7 +99,7 @@ public class UDFCompareToSys {
     }
   }
 
-  private static void wholeRangeGroupByQuery() throws ExecutionException, SessionException {
+  private static void wholeRangeGroupByQuery() throws SessionException {
     String SQLFormatter = "SELECT %s(s1) FROM test.compare GROUP [%s, %s] BY 50s;";
     for (String func : FUNC_LIST) {
       String sysSql = String.format(SQLFormatter, func, START_TIMESTAMP, END_TIMESTAMP);
@@ -94,7 +109,7 @@ public class UDFCompareToSys {
     }
   }
 
-  private static void partialRangeGroupByQuery() throws ExecutionException, SessionException {
+  private static void partialRangeGroupByQuery() throws SessionException {
     String SQLFormatter = "SELECT %s(s1) FROM test.compare GROUP [0, 200] BY 50s;";
     for (String func : FUNC_LIST) {
       String sysSql = String.format(SQLFormatter, func);
@@ -104,8 +119,7 @@ public class UDFCompareToSys {
     }
   }
 
-  private static void multiPathWholeRangeGroupByQuery()
-      throws ExecutionException, SessionException {
+  private static void multiPathWholeRangeGroupByQuery() throws SessionException {
     String SQLFormatter = "SELECT %s(s1), %s(s2) FROM test.compare GROUP [%s, %s] BY 50s;";
     for (String func : FUNC_LIST) {
       String sysSql = String.format(SQLFormatter, func, func, START_TIMESTAMP, END_TIMESTAMP);
@@ -116,8 +130,7 @@ public class UDFCompareToSys {
     }
   }
 
-  private static void multiPathPartialRangeGroupByQuery()
-      throws ExecutionException, SessionException {
+  private static void multiPathPartialRangeGroupByQuery() throws SessionException {
     String SQLFormatter = "SELECT %s(s1), %s(s2) FROM test.compare GROUP [0, 200] BY 50s;";
     for (String func : FUNC_LIST) {
       String sysSql = String.format(SQLFormatter, func, func);
@@ -127,8 +140,7 @@ public class UDFCompareToSys {
     }
   }
 
-  private static void runAndCompare(String sysSql, String udfSql)
-      throws ExecutionException, SessionException {
+  private static void runAndCompare(String sysSql, String udfSql) throws SessionException {
     double sysCostTime = runAndRecordTime(sysSql, RETRY_TIMES);
     double udfCostTime = runAndRecordTime(udfSql, RETRY_TIMES);
 
@@ -139,8 +151,7 @@ public class UDFCompareToSys {
             sysCostTime, udfCostTime, sysCostTime / udfCostTime));
   }
 
-  private static double runAndRecordTime(String sql, int retryTimes)
-      throws ExecutionException, SessionException {
+  private static double runAndRecordTime(String sql, int retryTimes) throws SessionException {
     long startTime, endTime;
 
     double totalTime = 0.0;
@@ -171,7 +182,7 @@ public class UDFCompareToSys {
     }
   }
 
-  public static void insertData() throws ExecutionException, SessionException {
+  public static void insertData() throws SessionException {
     String insertStrPrefix = "INSERT INTO test.compare (key, s1, s2, s3, s4) values ";
 
     StringBuilder builder = new StringBuilder(insertStrPrefix);
@@ -200,7 +211,7 @@ public class UDFCompareToSys {
     }
   }
 
-  public static void clearData() throws ExecutionException, SessionException {
+  public static void clearData() throws SessionException {
     String clearData = "CLEAR DATA;";
 
     SessionExecuteSqlResult res = session.executeSql(clearData);

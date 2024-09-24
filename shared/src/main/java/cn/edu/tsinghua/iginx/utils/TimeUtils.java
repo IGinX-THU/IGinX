@@ -1,25 +1,24 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 package cn.edu.tsinghua.iginx.utils;
 
 import cn.edu.tsinghua.iginx.thrift.TimePrecision;
-import java.text.ParseException;
+import java.time.DateTimeException;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -383,6 +382,26 @@ public class TimeUtils {
           .appendOptional(ISO_DATE_TIME_WITH_DOT_WITH_SPACE_NS)
           .toFormatter();
 
+  public static final DateTimeFormatter formatterU =
+      new DateTimeFormatterBuilder()
+          .appendOptional(ISO_DATE_TIME_WITH_US)
+          .appendOptional(ISO_DATE_TIME_WITH_SLASH_US)
+          .appendOptional(ISO_DATE_TIME_WITH_DOT_US)
+          .appendOptional(ISO_DATE_TIME_WITH_SPACE_US)
+          .appendOptional(ISO_DATE_TIME_WITH_SLASH_WITH_SPACE_US)
+          .appendOptional(ISO_DATE_TIME_WITH_DOT_WITH_SPACE_US)
+          .toFormatter();
+
+  public static final DateTimeFormatter formatterN =
+      new DateTimeFormatterBuilder()
+          .appendOptional(ISO_DATE_TIME_WITH_NS)
+          .appendOptional(ISO_DATE_TIME_WITH_SLASH_NS)
+          .appendOptional(ISO_DATE_TIME_WITH_DOT_NS)
+          .appendOptional(ISO_DATE_TIME_WITH_SPACE_NS)
+          .appendOptional(ISO_DATE_TIME_WITH_SLASH_WITH_SPACE_NS)
+          .appendOptional(ISO_DATE_TIME_WITH_DOT_WITH_SPACE_NS)
+          .toFormatter();
+
   public static final TimePrecision DEFAULT_TIMESTAMP_PRECISION = TimePrecision.NS;
 
   public static long getTimeInMs(long timestamp, String timePrecision) {
@@ -497,8 +516,21 @@ public class TimeUtils {
     return currentTime + (nanoTime - nanoTime / 1000000 * 1000000) / 1000;
   }
 
-  public static long convertDatetimeStrToLong(String timestampStr) throws ParseException {
-    LocalDateTime localDateTime = LocalDateTime.parse(timestampStr, formatter);
+  public static long convertDatetimeStrToLong(String timestampStr) throws DateTimeException {
+    LocalDateTime localDateTime = null;
+    try {
+      localDateTime = LocalDateTime.parse(timestampStr, formatter);
+    } catch (DateTimeException e) {
+      try {
+        localDateTime = LocalDateTime.parse(timestampStr, formatterU);
+      } catch (DateTimeException eU) {
+        try {
+          localDateTime = LocalDateTime.parse(timestampStr, formatterN);
+        } catch (DateTimeException eN) {
+          throw eN;
+        }
+      }
+    }
     Instant time = LocalDateTime.from(localDateTime).atZone(ZoneId.systemDefault()).toInstant();
     return time.getEpochSecond() * 1_000_000_000L + time.getNano();
   }

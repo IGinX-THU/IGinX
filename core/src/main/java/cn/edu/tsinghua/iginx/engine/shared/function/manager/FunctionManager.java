@@ -1,24 +1,25 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 package cn.edu.tsinghua.iginx.engine.shared.function.manager;
 
 import static cn.edu.tsinghua.iginx.engine.shared.Constants.*;
+
+import static cn.edu.tsinghua.iginx.utils.ShellRunner.runCommand;
 
 import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
@@ -36,6 +37,7 @@ import cn.edu.tsinghua.iginx.engine.shared.function.system.Min;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.Ratio;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.Sum;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.python.PyUDAF;
+import cn.edu.tsinghua.iginx.engine.shared.function.udf.python.PyUDF;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.python.PyUDSF;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.python.PyUDTF;
 import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
@@ -59,6 +61,8 @@ import pemja.core.PythonInterpreterConfig;
 
 public class FunctionManager {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(FunctionManager.class);
+
   private static final int INTERPRETER_NUM = 5;
 
   private final Map<String, Function> functions;
@@ -66,8 +70,6 @@ public class FunctionManager {
   private static final IMetaManager metaManager = DefaultMetaManager.getInstance();
 
   private static final Config config = ConfigDescriptor.getInstance().getConfig();
-
-  private static final Logger logger = LoggerFactory.getLogger(FunctionManager.class);
 
   private static final String PY_SUFFIX = ".py";
 
@@ -81,6 +83,13 @@ public class FunctionManager {
     this.initSystemFunctions();
     if (config.isNeedInitBasicUDFFunctions()) {
       this.initBasicUDFFunctions();
+    }
+    String pythonCMD = config.getPythonCMD();
+    PythonInterpreterConfig config =
+            PythonInterpreterConfig.newBuilder().setPythonExec(pythonCMD).addPythonPaths(PATH).build();
+
+    try (PythonInterpreter interpreter = new PythonInterpreter(config)) {
+      interpreter.exec(String.format("import %s", IGINX_ROOT_MODULE));
     }
   }
 
@@ -108,7 +117,7 @@ public class FunctionManager {
     for (String udf : udfList) {
       String[] udfInfo = udf.split(",");
       if (udfInfo.length != 4) {
-        logger.error("udf info len must be 4.");
+        LOGGER.error("udf info len must be 4.");
         continue;
       }
       UDFType udfType;
@@ -126,7 +135,7 @@ public class FunctionManager {
           udfType = UDFType.TRANSFORM;
           break;
         default:
-          logger.error("unknown udf type: " + udfInfo[0]);
+          LOGGER.error("unknown udf type: {}", udfInfo[0]);
           continue;
       }
       metaList.add(
@@ -174,6 +183,14 @@ public class FunctionManager {
     return loadUDF(identifier);
   }
 
+  public void removeFunction(String identifier) {
+    if (functions.containsKey(identifier)) {
+      PyUDF function = (PyUDF) functions.get(identifier);
+      function.close();
+    }
+    functions.remove(identifier);
+  }
+
   private Function loadUDF(String identifier) {
     // load the udf & put it in cache.
     TransformTaskMeta taskMeta = metaManager.getTransformTask(identifier);
@@ -190,8 +207,17 @@ public class FunctionManager {
         PythonInterpreterConfig.newBuilder().setPythonExec(pythonCMD).addPythonPaths(PATH).build();
 
     String fileName = taskMeta.getFileName();
-    String moduleName = fileName.substring(0, fileName.indexOf(PY_SUFFIX));
+    String moduleName;
     String className = taskMeta.getClassName();
+    if (fileName.endsWith(PY_SUFFIX)) {
+      // accessing a python code file
+      moduleName = fileName.substring(0, fileName.indexOf(PY_SUFFIX));
+      className = taskMeta.getClassName();
+    } else {
+      // accessing a python module dir
+      moduleName = className.substring(0, className.lastIndexOf("."));
+      className = className.substring(className.lastIndexOf(".") + 1);
+    }
 
     UDFType type = UDFType.UNKNOWN;
     String udfType = "UNKNOWN";
@@ -226,17 +252,17 @@ public class FunctionManager {
     }
 
     if (type.equals(UDFType.UDAF)) {
-      PyUDAF udaf = new PyUDAF(queue, identifier);
+      PyUDAF udaf = new PyUDAF(queue, identifier, moduleName);
       functions.put(identifier, udaf);
       taskMeta.setType(type);
       return udaf;
     } else if (type.equals(UDFType.UDTF)) {
-      PyUDTF udtf = new PyUDTF(queue, identifier);
+      PyUDTF udtf = new PyUDTF(queue, identifier, moduleName);
       functions.put(identifier, udtf);
       taskMeta.setType(type);
       return udtf;
     } else if (type.equals(UDFType.UDSF)) {
-      PyUDSF udsf = new PyUDSF(queue, identifier);
+      PyUDSF udsf = new PyUDSF(queue, identifier, moduleName);
       functions.put(identifier, udsf);
       taskMeta.setType(type);
       return udsf;
@@ -246,6 +272,17 @@ public class FunctionManager {
       }
       throw new IllegalArgumentException(
           String.format("UDF %s registered in type %s", identifier, udfType));
+    }
+  }
+
+  // use pip to install requirements.txt in module root dir
+  public void installReqsByPip(String rootPath) throws Exception {
+    String reqFilePath = String.join(File.separator, PATH, rootPath, "requirements.txt");
+    File file = new File(reqFilePath);
+    if (file.exists()) {
+      runCommand(config.getPythonCMD(), "-m", "pip", "install", "-r", reqFilePath);
+    } else {
+      LOGGER.warn("No requirement document provided for python module {}.", rootPath);
     }
   }
 

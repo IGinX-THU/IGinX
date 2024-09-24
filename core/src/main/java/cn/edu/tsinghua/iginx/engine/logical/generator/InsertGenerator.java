@@ -1,3 +1,21 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package cn.edu.tsinghua.iginx.engine.logical.generator;
 
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
@@ -27,7 +45,7 @@ import org.slf4j.LoggerFactory;
 
 public class InsertGenerator extends AbstractGenerator {
 
-  private static final Logger logger = LoggerFactory.getLogger(InsertGenerator.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(InsertGenerator.class);
   private static final InsertGenerator instance = new InsertGenerator();
   private static final IMetaManager metaManager = DefaultMetaManager.getInstance();
   private final IPolicy policy =
@@ -69,7 +87,7 @@ public class InsertGenerator extends AbstractGenerator {
       fragments = metaManager.getFragmentMapByColumnsInterval(columnsInterval);
     } else if (policy.isNeedReAllocate()) {
       // on scale-out or any events requiring reallocation
-      logger.debug("Trig ReAllocate!");
+      LOGGER.debug("Trig ReAllocate!");
       Pair<List<FragmentMeta>, List<StorageUnitMeta>> fragmentsAndStorageUnits =
           policy.generateFragmentsAndStorageUnits(insertStatement);
       metaManager.createFragmentsAndStorageUnits(

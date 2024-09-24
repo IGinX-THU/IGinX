@@ -161,8 +161,8 @@ IoTDB 是 Apache 推出的时序数据库，具体安装方式如下：
 
 ```shell
 $ cd ~
-$ wget https://mirrors.bfsu.edu.cn/apache/iotdb/0.12.0/apache-iotdb-0.12.0-server-bin.zip
-$ unzip apache-iotdb-0.12.0-server-bin.zip
+$ wget https://github.com/IGinX-THU/IGinX-resources/raw/main/resources/apache-iotdb-0.12.6-server-bin.zip
+$ unzip apache-iotdb-0.12.6-server-bin.zip
 ```
 
 ### IGinX 安装
@@ -180,7 +180,7 @@ $ mvn clean install -Dmaven.test.skip=true
 
 ```shell
 [INFO] ------------------------------------------------------------------------
-[INFO] Reactor Summary for IGinX 0.6.0-SNAPSHOT:
+[INFO] Reactor Summary for IGinX 0.8.0-SNAPSHOT:
 [INFO]
 [INFO] IGinX .............................................. SUCCESS [ 20.674 s]
 [INFO] IGinX Thrift ....................................... SUCCESS [01:18 min]
@@ -217,7 +217,7 @@ $ mvn clean install -Dmaven.test.skip=true
 
 ```shell
 $ cd ~
-$ cd apache-iotdb-0.12.0-server-bin/
+$ cd apache-iotdb-0.12.6-server-bin/
 $ ./sbin/start-server.sh
 ```
 
@@ -257,7 +257,7 @@ Starting zookeeper ... STARTED
 
 ```shell
 $ cd ~
-$ cd IGinX/core/target/iginx-core-0.6.0-SNAPSHOT
+$ cd IGinX/core/target/iginx-core-0.8.0-SNAPSHOT
 $ chmod +x sbin/start_iginx.sh # 为启动脚本添加启动权限
 $ ./sbin/start_iginx.sh
 ```
@@ -410,26 +410,26 @@ $ curl -XPOST -H'Content-Type: application/json' -d @query.json http://127.0.0.1
 }
 ```
 
-更多接口可以参考 [IGinX 官方手册](https://github.com/IGinX-THU/IGinX/blob/main/docs/pdf/userManualC.pdf) 。
+更多接口可以参考 [IGinX 官方手册](../pdf/userManualC.pdf) 。
 
 ### RPC 接口
 
 除了 RESTful 接口外，IGinX 还提供了 RPC
-的数据访问接口，具体接口参考 [IGinX 官方手册](https://github.com/IGinX-THU/IGinX/blob/main/docs/pdf/userManualC.pdf)，同时 IGinX
+的数据访问接口，具体接口参考 [IGinX 官方手册](../pdf/userManualC.pdf)，同时 IGinX
 还提供了部分[官方 example](https://github.com/IGinX-THU/IGinX/tree/main/example/src/main/java/cn/edu/tsinghua/iginx/session)，展示了
 RPC 接口最常见的用法。
 
 下面是一个简短的使用教程。
 
-由于目前 IGinX 0.5.1 版本还未发布到 maven 中央仓库，因此如需使用的话，需要手动安装到本地的 maven 仓库。具体安装方式如下：
+由于目前 IGinX的jar包还未发布到 maven 中央仓库，因此如需使用的话，需要手动安装到本地的 maven 仓库。具体安装方式如下：
 
 ```shell
-# 下载 IGinX 0.5.1 release 版本源码包
-$ wget https://github.com/IGinX-THU/IGinX/archive/refs/tags/release/v0.5.1.tar.gz
+# 下载 IGinX 最新release 版本源码包
+$ wget https://github.com/IGinX-THU/IGinX/archive/refs/tags/v0.7.0.zip
 # 解压源码包
-$ tar -zxvf v0.5.1.tar.gz
+$ tar -zxvf v0.7.0.tar.gz
 # 进入项目主目录
-$ cd IGinX-rc-v0.5.1
+$ cd IGinX-rc-v0.7.0
 # 安装到本地 maven 仓库
 $ mvn clean install -DskipTests
 ```
@@ -440,7 +440,7 @@ $ mvn clean install -DskipTests
 <dependency>
   	<groupId>cn.edu.tsinghua</groupId>
   	<artifactId>iginx-core</artifactId>
-  	<version>0.6.0-SNAPSHOT</version>
+  	<version>0.7.0</version>
 </dependency>
 ```
 

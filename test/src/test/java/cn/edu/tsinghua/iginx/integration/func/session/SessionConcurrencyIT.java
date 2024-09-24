@@ -1,9 +1,26 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package cn.edu.tsinghua.iginx.integration.func.session;
 
 import static org.junit.Assert.*;
 
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
-import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.tool.MultiConnection;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionAggregateQueryDataSet;
@@ -17,13 +34,12 @@ import org.slf4j.LoggerFactory;
 
 public class SessionConcurrencyIT extends BaseSessionIT {
 
-  private static final Logger logger = LoggerFactory.getLogger(SessionConcurrencyIT.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(SessionConcurrencyIT.class);
 
   // TODO: a very suspicious test; somebody should do something
   // TODO: The following test must be added after bug fix
   //     @Test
-  public void multiThreadTestBad()
-      throws SessionException, InterruptedException, ExecutionException {
+  public void multiThreadTestBad() throws SessionException, InterruptedException {
     // query test, multithread insert for storage; multithread query
     int mulStQueryLen = 5;
     List<String> mulStPaths = getPaths(currPath, mulStQueryLen);
@@ -83,7 +99,7 @@ public class SessionConcurrencyIT extends BaseSessionIT {
         }
       }
     } catch (Exception e) {
-      e.printStackTrace();
+      LOGGER.error("unexpected error: ", e);
       fail();
     }
     // Test max function
@@ -561,16 +577,16 @@ public class SessionConcurrencyIT extends BaseSessionIT {
           try {
             localSession.insertNonAlignedColumnRecords(
                 path, timestamps, valuesList, dataTypeList, null);
-          } catch (SessionException | ExecutionException e) {
-            logger.error(e.getMessage());
+          } catch (SessionException e) {
+            LOGGER.error("unexpected error: ", e);
           }
           break;
           // delete
         case 2:
           try {
             localSession.deleteDataInColumns(path, startKey, endKey);
-          } catch (SessionException | ExecutionException e) {
-            logger.error(e.getMessage());
+          } catch (SessionException e) {
+            LOGGER.error("unexpected error: ", e);
           }
           break;
           // query
@@ -581,8 +597,8 @@ public class SessionConcurrencyIT extends BaseSessionIT {
             } else {
               queryDataSet = localSession.aggregateQuery(path, startKey, endKey, aggregateType);
             }
-          } catch (SessionException | ExecutionException e) {
-            logger.error(e.getMessage());
+          } catch (SessionException e) {
+            LOGGER.error("unexpected error: ", e);
           }
           break;
         default:
@@ -591,7 +607,7 @@ public class SessionConcurrencyIT extends BaseSessionIT {
       try {
         if (localSession.isSession()) this.localSession.closeSession();
       } catch (SessionException e) {
-        logger.error(e.getMessage());
+        LOGGER.error("unexpected error: ", e);
       }
     }
 

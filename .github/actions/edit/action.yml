@@ -1,0 +1,16 @@
+name: "edit"
+description: "use sed to edit files in different platforms"
+inputs:
+    paths:
+        description: "file paths delimited by space"
+        required: true
+    statements:
+        description: "sed statements delimited by newline"
+        required: true
+
+runs:
+    using: "composite"
+    steps:
+        - name: "edit"
+          shell: bash
+          run: sed -i"" -e "${{ inputs.statements }}" ${{ inputs.paths }}

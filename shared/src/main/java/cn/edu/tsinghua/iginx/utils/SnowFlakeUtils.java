@@ -1,20 +1,19 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 package cn.edu.tsinghua.iginx.utils;
 
@@ -23,7 +22,7 @@ import org.slf4j.LoggerFactory;
 
 public class SnowFlakeUtils {
 
-  private static final Logger logger = LoggerFactory.getLogger(SnowFlakeUtils.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(SnowFlakeUtils.class);
 
   // 起始的时间戳
   private static final long START_STAMP = 0L;
@@ -49,7 +48,7 @@ public class SnowFlakeUtils {
   private long lastStamp = -1L; // 上一次时间戳
 
   public SnowFlakeUtils(long datacenterId, long machineId) {
-    logger.info("data center id: " + datacenterId + ", machine id: " + machineId);
+    LOGGER.info("data center id: {}, machine id: {}", datacenterId, machineId);
     if (datacenterId > MAX_DATACENTER_NUM || datacenterId < 0) {
       throw new IllegalArgumentException(
           "datacenterId can't be greater than MAX_DATACENTER_NUM or less than 0");
@@ -78,7 +77,7 @@ public class SnowFlakeUtils {
     long currStamp = getNewTimestamp();
     // 如果当前时间小于上一次ID生成的时间戳，说明系统时钟回退过  这个时候应当抛出异常
     if (currStamp < lastStamp) {
-      logger.error("Clock moved backwards. Refusing to generate id");
+      LOGGER.error("Clock moved backwards. Refusing to generate id");
       return 0L;
     }
 

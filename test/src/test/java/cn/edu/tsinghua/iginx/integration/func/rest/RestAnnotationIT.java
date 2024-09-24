@@ -1,9 +1,27 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package cn.edu.tsinghua.iginx.integration.func.rest;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
-import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.integration.tool.DBConf;
@@ -44,7 +62,7 @@ import org.slf4j.LoggerFactory;
 
  */
 public class RestAnnotationIT {
-  private static final Logger logger = LoggerFactory.getLogger(RestAnnotationIT.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(RestAnnotationIT.class);
 
   private static Session session;
 
@@ -135,7 +153,7 @@ public class RestAnnotationIT {
     try {
       execute("insert.json", TYPE.INSERT, dataType);
     } catch (Exception e) {
-      logger.error("Error occurred during execution ", e);
+      LOGGER.error("Error occurred during execution ", e);
       fail();
     }
   }
@@ -150,7 +168,7 @@ public class RestAnnotationIT {
               String.class);
       assertEquals(new HashSet<>(expectedResult), new HashSet<>(actualResult));
     } catch (Exception e) {
-      logger.error("Error occurred during execution ", e);
+      LOGGER.error("Error occurred during execution ", e);
       fail();
     }
   }
@@ -185,7 +203,7 @@ public class RestAnnotationIT {
         }
       }
     } catch (Exception e) {
-      logger.error("Error occurred during execution ", e);
+      LOGGER.error("Error occurred during execution ", e);
       fail();
     }
     return removeSpecialChar(ret.toString());
@@ -213,7 +231,7 @@ public class RestAnnotationIT {
     try {
       Controller.clearData(session);
     } catch (Exception e) {
-      logger.error("Error occurred during execution ", e);
+      LOGGER.error("Error occurred during execution ", e);
       fail();
     }
   }
@@ -221,7 +239,7 @@ public class RestAnnotationIT {
   @Test
   public void testAll() {
     for (DataType dataType : DATA_TYPE_ARRAY) {
-      logger.info("Testing datatype: {}...", dataType);
+      LOGGER.info("Testing datatype: {}...", dataType);
       testQueryAnno(dataType);
       testQueryAll(dataType);
 
@@ -276,7 +294,7 @@ public class RestAnnotationIT {
       executeAndCompare("appendViaQueryAnno.json", ans, TYPE.QUERY_ANNOTATION, dataType);
       clearData();
     } catch (Exception e) {
-      logger.error("Error occurred during execution ", e);
+      LOGGER.error("Error occurred during execution ", e);
       fail();
     }
   }
@@ -290,7 +308,7 @@ public class RestAnnotationIT {
       executeAndCompare("appendViaQueryAll.json", ans, TYPE.QUERY_ALL, dataType);
       clearData();
     } catch (Exception e) {
-      logger.error("Error occurred during execution ", e);
+      LOGGER.error("Error occurred during execution ", e);
       fail();
     }
   }
@@ -304,7 +322,7 @@ public class RestAnnotationIT {
       executeAndCompare("updateViaQueryAnno.json", ans, TYPE.QUERY_ANNOTATION, dataType);
       clearData();
     } catch (Exception e) {
-      logger.error("Error occurred during execution ", e);
+      LOGGER.error("Error occurred during execution ", e);
       fail();
     }
   }
@@ -318,7 +336,7 @@ public class RestAnnotationIT {
       executeAndCompare("updateViaQueryAll.json", ans, TYPE.QUERY_ALL, dataType);
       clearData();
     } catch (Exception e) {
-      logger.error("Error occurred during execution ", e);
+      LOGGER.error("Error occurred during execution ", e);
       fail();
     }
   }
@@ -332,7 +350,7 @@ public class RestAnnotationIT {
       executeAndCompare("deleteViaQueryAnno.json", ans, TYPE.QUERY_ANNOTATION, dataType);
       clearData();
     } catch (Exception e) {
-      logger.error("Error occurred during execution ", e);
+      LOGGER.error("Error occurred during execution ", e);
       fail();
     }
   }
@@ -346,7 +364,7 @@ public class RestAnnotationIT {
       executeAndCompare("deleteViaQueryAll.json", ans, TYPE.QUERY_ALL, dataType);
       clearData();
     } catch (Exception e) {
-      logger.error("Error occurred during execution ", e);
+      LOGGER.error("Error occurred during execution ", e);
       fail();
     }
   }
@@ -361,7 +379,7 @@ public class RestAnnotationIT {
       executeAndCompare("append2ViaQueryAll.json", ans, TYPE.QUERY_ALL, dataType);
       clearData();
     } catch (Exception e) {
-      logger.error("Error occurred during execution ", e);
+      LOGGER.error("Error occurred during execution ", e);
       fail();
     }
   }
@@ -376,7 +394,7 @@ public class RestAnnotationIT {
       executeAndCompare("appendViaQueryAll.json", ans, TYPE.QUERY_ALL, dataType);
       clearData();
     } catch (Exception e) {
-      logger.error("Error occurred during execution ", e);
+      LOGGER.error("Error occurred during execution ", e);
       fail();
     }
   }
@@ -391,7 +409,7 @@ public class RestAnnotationIT {
       executeAndCompare("updateViaQueryAnno.json", ans, TYPE.QUERY_ANNOTATION, dataType);
       clearData();
     } catch (Exception e) {
-      logger.error("Error occurred during execution ", e);
+      LOGGER.error("Error occurred during execution ", e);
       fail();
     }
   }
@@ -406,7 +424,7 @@ public class RestAnnotationIT {
       executeAndCompare("updateViaQueryAll.json", ans, TYPE.QUERY_ALL, dataType);
       clearData();
     } catch (Exception e) {
-      logger.error("Error occurred during execution ", e);
+      LOGGER.error("Error occurred during execution ", e);
       fail();
     }
   }
@@ -421,7 +439,7 @@ public class RestAnnotationIT {
       executeAndCompare("deleteViaQueryAnno.json", ans, TYPE.QUERY_ANNOTATION, dataType);
       clearData();
     } catch (Exception e) {
-      logger.error("Error occurred during execution ", e);
+      LOGGER.error("Error occurred during execution ", e);
       fail();
     }
   }
@@ -436,7 +454,7 @@ public class RestAnnotationIT {
       executeAndCompare("deleteViaQueryAll.json", ans, TYPE.QUERY_ALL, dataType);
       clearData();
     } catch (Exception e) {
-      logger.error("Error occurred during execution ", e);
+      LOGGER.error("Error occurred during execution ", e);
       fail();
     }
   }
@@ -450,7 +468,7 @@ public class RestAnnotationIT {
       executeAndCompare("appendViaQueryAll.json", ans, TYPE.QUERY_ALL, dataType);
       clearData();
     } catch (Exception e) {
-      logger.error("Error occurred during execution ", e);
+      LOGGER.error("Error occurred during execution ", e);
       fail();
     }
   }
@@ -464,7 +482,7 @@ public class RestAnnotationIT {
       executeAndCompare("queryData.json", ans, TYPE.QUERY_ALL, dataType);
       clearData();
     } catch (Exception e) {
-      logger.error("Error occurred during execution ", e);
+      LOGGER.error("Error occurred during execution ", e);
       fail();
     }
   }
@@ -479,7 +497,7 @@ public class RestAnnotationIT {
       executeAndCompare("append2ViaQueryAll.json", ans, TYPE.QUERY_ALL, dataType);
       clearData();
     } catch (Exception e) {
-      logger.error("Error occurred during execution ", e);
+      LOGGER.error("Error occurred during execution ", e);
       fail();
     }
   }

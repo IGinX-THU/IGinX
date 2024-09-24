@@ -1,10 +1,6 @@
 name: "iginx-runner"
 description: "iginx runner"
 inputs:
-    version:
-        description: "iginx runner version"
-        required: false
-        default: 0.6.0-SNAPSHOT
     if-stop:
         description: "to stop the iginx"
         required: false
@@ -13,9 +9,11 @@ inputs:
         description: "to test UDF path detection"
         required: false
         default: "false"
+
 runs:
     using: "composite" # Mandatory parameter
     steps:
+        # TODO: use iginx binaries in assembly rather than core
         - if: inputs.if-test-udf=='true'
           name: Test UDF Path
           shell: bash
@@ -32,7 +30,7 @@ runs:
                 exit 1
               fi
               chmod +x "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx_udf_path.sh"
-              "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx_udf_path.sh"
+              "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx_udf_path.sh" ${VERSION}
 
         - if: inputs.if-test-udf=='false' && inputs.if-stop=='false'
           name: Start IGinX

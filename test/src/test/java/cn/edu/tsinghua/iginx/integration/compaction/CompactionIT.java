@@ -1,10 +1,27 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package cn.edu.tsinghua.iginx.integration.compaction;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
-import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.tool.MultiConnection;
 import cn.edu.tsinghua.iginx.session.Session;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -15,7 +32,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class CompactionIT {
-  protected static final Logger logger = LoggerFactory.getLogger(CompactionIT.class);
+  protected static final Logger LOGGER = LoggerFactory.getLogger(CompactionIT.class);
   // host info
   protected static String defaultTestHost = "127.0.0.1";
   protected static int defaultTestPort = 6888;
@@ -32,8 +49,8 @@ public class CompactionIT {
       session.openSession();
       session.executeSql("SET CONFIG \"enableInstantCompaction\" \"true\";");
       session.executeSql("SHOW CONFIG \"enableInstantCompaction\";").print(false, "");
-    } catch (SessionException | ExecutionException e) {
-      logger.error(e.getMessage());
+    } catch (SessionException e) {
+      LOGGER.error("unexpected error: ", e);
       fail();
     }
   }
@@ -43,14 +60,14 @@ public class CompactionIT {
     try {
       session.executeSql("SET CONFIG \"enableInstantCompaction\" \"false\";");
       session.closeSession();
-    } catch (SessionException | ExecutionException e) {
-      logger.error(e.getMessage());
+    } catch (SessionException e) {
+      LOGGER.error("unexpected error: ", e);
       fail();
     }
   }
 
   @Test
-  public void testCompact() throws ExecutionException, SessionException {
+  public void testCompact() throws SessionException {
     String insertStrPrefix = "INSERT INTO us.d1 (key, s1, s2, s3, s4) values ";
 
     StringBuilder builder = new StringBuilder(insertStrPrefix);
@@ -126,7 +143,7 @@ public class CompactionIT {
     try {
       Thread.sleep(1000);
     } catch (InterruptedException e) {
-      e.printStackTrace();
+      LOGGER.error("unexpected error: ", e);
     }
 
     selectSql1Output = session.executeSql(selectSql1).getResultInString(false, "");

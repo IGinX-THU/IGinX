@@ -1,28 +1,26 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 package cn.edu.tsinghua.iginx.session;
 
 import static cn.edu.tsinghua.iginx.utils.ByteUtils.getBytesFromByteBufferByDataType;
 import static cn.edu.tsinghua.iginx.utils.ByteUtils.getValueFromByteBufferByDataType;
 
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
-import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.ExportCSV;
 import cn.edu.tsinghua.iginx.thrift.QueryDataSetV2;
@@ -89,11 +87,11 @@ public class QueryDataSet {
     this.warningMsg = warningMsg;
   }
 
-  public void close() throws SessionException, ExecutionException {
+  public void close() throws SessionException {
     session.closeQuery(queryId);
   }
 
-  private void fetch() throws SessionException, ExecutionException {
+  private void fetch() throws SessionException {
     if (bitmapList != null && index != bitmapList.size()) { // 只有之前的被消费完才有可能继续取数据
       return;
     }
@@ -109,7 +107,7 @@ public class QueryDataSet {
     state = pair.v ? State.HAS_MORE : State.NO_MORE;
   }
 
-  public boolean hasMore() throws SessionException, ExecutionException {
+  public boolean hasMore() throws SessionException {
     if (valuesList != null && index < valuesList.size()) {
       return true;
     }
@@ -122,7 +120,7 @@ public class QueryDataSet {
     return valuesList != null;
   }
 
-  public Object[] nextRow() throws SessionException, ExecutionException {
+  public Object[] nextRow() throws SessionException {
     if (!hasMore()) {
       return null;
     }
@@ -140,7 +138,7 @@ public class QueryDataSet {
     return values;
   }
 
-  public List<byte[]> nextRowAsBytes() throws SessionException, ExecutionException {
+  public List<byte[]> nextRowAsBytes() throws SessionException {
     if (!hasMore()) {
       return null;
     }

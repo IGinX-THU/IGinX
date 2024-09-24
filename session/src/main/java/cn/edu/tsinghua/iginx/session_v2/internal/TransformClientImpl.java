@@ -1,12 +1,30 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package cn.edu.tsinghua.iginx.session_v2.internal;
 
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.session_v2.TransformClient;
 import cn.edu.tsinghua.iginx.session_v2.domain.Task;
 import cn.edu.tsinghua.iginx.session_v2.domain.Transform;
 import cn.edu.tsinghua.iginx.session_v2.exception.IginXException;
 import cn.edu.tsinghua.iginx.thrift.*;
-import cn.edu.tsinghua.iginx.utils.RpcUtils;
+import cn.edu.tsinghua.iginx.utils.StatusUtils;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.thrift.TException;
@@ -44,8 +62,8 @@ public class TransformClientImpl extends AbstractFunctionClient implements Trans
       iginXClient.checkIsClosed();
       try {
         resp = client.commitTransformJob(req);
-        RpcUtils.verifySuccess(resp.getStatus());
-      } catch (TException | ExecutionException e) {
+        StatusUtils.verifySuccess(resp.getStatus());
+      } catch (TException | SessionException e) {
         throw new IginXException("commit transform job failure: ", e);
       }
     }
@@ -62,8 +80,8 @@ public class TransformClientImpl extends AbstractFunctionClient implements Trans
       iginXClient.checkIsClosed();
       try {
         resp = client.queryTransformJobStatus(req);
-        RpcUtils.verifySuccess(resp.getStatus());
-      } catch (TException | ExecutionException e) {
+        StatusUtils.verifySuccess(resp.getStatus());
+      } catch (TException | SessionException e) {
         throw new IginXException("query transform job status failure: ", e);
       }
     }
@@ -79,8 +97,8 @@ public class TransformClientImpl extends AbstractFunctionClient implements Trans
       iginXClient.checkIsClosed();
       try {
         Status status = client.cancelTransformJob(req);
-        RpcUtils.verifySuccess(status);
-      } catch (TException | ExecutionException e) {
+        StatusUtils.verifySuccess(status);
+      } catch (TException | SessionException e) {
         throw new IginXException("cancel transform job failure: ", e);
       }
     }

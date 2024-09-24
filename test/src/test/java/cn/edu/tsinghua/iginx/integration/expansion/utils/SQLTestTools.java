@@ -1,9 +1,26 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package cn.edu.tsinghua.iginx.integration.expansion.utils;
 
 import static org.junit.Assert.*;
 
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
-import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import cn.edu.tsinghua.iginx.utils.ShellRunner;
@@ -18,7 +35,7 @@ import org.slf4j.LoggerFactory;
 
 public class SQLTestTools {
 
-  private static final Logger logger = LoggerFactory.getLogger(SQLTestTools.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(SQLTestTools.class);
 
   public static void executeAndCompare(Session session, String statement, String exceptOutput) {
     String actualOutput = execute(session, statement);
@@ -26,18 +43,18 @@ public class SQLTestTools {
   }
 
   public static String execute(Session session, String statement) {
-    logger.info("Execute Statement: \"{}\"", statement);
+    LOGGER.info("Execute Statement: \"{}\"", statement);
 
     SessionExecuteSqlResult res = null;
     try {
       res = session.executeSql(statement);
-    } catch (SessionException | ExecutionException e) {
-      logger.error("Statement: \"{}\" execute fail. Caused by:", statement, e);
+    } catch (SessionException e) {
+      LOGGER.error("Statement: \"{}\" execute fail. Caused by:", statement, e);
       fail();
     }
 
     if (res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
-      logger.error(
+      LOGGER.error(
           "Statement: \"{}\" execute fail. Caused by: {}.", statement, res.getParseErrorMsg());
       fail();
       return "";
@@ -48,6 +65,18 @@ public class SQLTestTools {
 
   private static void compareValuesList(
       List<List<Object>> expectedValuesList, List<List<Object>> actualValuesList) {
+    compareValuesList(expectedValuesList, actualValuesList, true);
+  }
+
+  private static void containValuesList(
+      List<List<Object>> expectedValuesList, List<List<Object>> actualValuesList) {
+    compareValuesList(expectedValuesList, actualValuesList, false);
+  }
+
+  private static void compareValuesList(
+      List<List<Object>> expectedValuesList,
+      List<List<Object>> actualValuesList,
+      boolean equalMode) {
     Set<List<String>> expectedSet =
         expectedValuesList.stream()
             .map(
@@ -82,8 +111,11 @@ public class SQLTestTools {
                 })
             .collect(Collectors.toSet());
 
-    if (!expectedSet.equals(actualSet)) {
-      logger.error("actual valuesList is {} and it should be {}", actualSet, expectedSet);
+    if (equalMode && !expectedSet.equals(actualSet)) {
+      LOGGER.error("actual valuesList is {} and it should be {}", actualSet, expectedSet);
+      fail();
+    } else if (!equalMode && !actualSet.containsAll(expectedSet)) {
+      LOGGER.error("actual valuesList is {} and it should contain {}", actualSet, expectedSet);
       fail();
     }
   }
@@ -101,8 +133,28 @@ public class SQLTestTools {
       assertArrayEquals(new List[] {pathListAns}, new List[] {pathList});
 
       compareValuesList(expectedValuesList, actualValuesList);
-    } catch (SessionException | ExecutionException e) {
-      logger.error("Statement: \"{}\" execute fail. Caused by:", statement, e);
+    } catch (SessionException e) {
+      LOGGER.error("Statement: \"{}\" execute fail. Caused by:", statement, e);
+      fail();
+    }
+  }
+
+  /** execute query and result should contain expected values for specified paths. */
+  public static void executeAndContainValue(
+      Session session,
+      String statement,
+      List<String> pathListAns,
+      List<List<Object>> expectedValuesList) {
+    try {
+      SessionExecuteSqlResult res = session.executeSql(statement);
+      List<String> pathList = res.getPaths();
+      List<List<Object>> actualValuesList = res.getValues();
+
+      assertArrayEquals(new List[] {pathListAns}, new List[] {pathList});
+
+      containValuesList(expectedValuesList, actualValuesList);
+    } catch (SessionException e) {
+      LOGGER.error("Statement: \"{}\" execute fail. Caused by:", statement, e);
       fail();
     }
   }
@@ -121,7 +173,7 @@ public class SQLTestTools {
       command[1] = scriptPath;
       System.arraycopy(args, 0, command, 2, args.length);
       // 创建进程并执行命令
-      logger.info("exe shell : {}", Arrays.toString(command));
+      LOGGER.info("exe shell : {}", Arrays.toString(command));
       ProcessBuilder processBuilder = new ProcessBuilder(command);
 
       // 设置工作目录（可选）
@@ -142,7 +194,7 @@ public class SQLTestTools {
                       System.out.println(line);
                     }
                   } catch (IOException e) {
-                    e.printStackTrace();
+                    LOGGER.error("unexpected error: ", e);
                   }
                 })
             .start();
@@ -165,7 +217,7 @@ public class SQLTestTools {
         return exitCode;
       }
     } catch (IOException | InterruptedException e) {
-      e.printStackTrace();
+      LOGGER.error("unexpected error: ", e);
     }
     return 0;
   }

@@ -1,0 +1,56 @@
+name: "metadata-runner"
+description: "metadata runner"
+inputs:
+    os:
+        description: "metadata runner environment"
+        required: false
+        default: ubuntu-latest
+    if-stop:
+        description: "to stop the metadata service"
+        required: false
+        default: "false"
+    if-rerun:
+        description: "to rerun the metadata service"
+        required: false
+        default: "false"
+    metadata:
+        description: "which metadata service to use"
+        required: false
+        default: zookeeper
+
+runs:
+    using: "composite" # Mandatory parameter
+    steps:
+        - if: inputs.if-stop=='false' && inputs.if-rerun=='false' && inputs.metadata=='zookeeper'
+          name: Run ZooKeeper
+          uses: ./.github/actions/zookeeperRunner
+
+        - if: inputs.if-stop=='false' && inputs.if-rerun=='false' && inputs.metadata=='etcd'
+          name: Run ETCD
+          uses: ./.github/actions/etcdRunner
+
+        - if: inputs.if-rerun=='true' && inputs.metadata=='zookeeper'
+          name: Rerun ZooKeeper
+          uses: ./.github/actions/zookeeperRunner
+          with:
+              if-rerun: true
+              os: ${inputs.os}
+
+        - if: inputs.if-rerun=='true' && inputs.metadata=='etcd'
+          name: Rerun ETCD
+          uses: ./.github/actions/etcdRunner
+          with:
+              if-rerun: true
+              os: ${inputs.os}
+
+        - if: inputs.if-stop=='true' && inputs.metadata=='zookeeper'
+          name: Stop ZooKeeper
+          uses: ./.github/actions/zookeeperRunner
+          with:
+              if-stop: true
+
+        - if: inputs.if-stop=='true' && inputs.metadata=='etcd'
+          name: Stop ETCD
+          uses: ./.github/actions/etcdRunner
+          with:
+              if-stop: true

@@ -1,3 +1,21 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package cn.edu.tsinghua.iginx.rest;
 
 import static org.junit.Assert.assertEquals;
@@ -17,6 +35,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ParseTest {
+  private static final Logger LOGGER = LoggerFactory.getLogger(ParseTest.class);
   // 测试数据更直观见注释
   /*
   测试的query-json
@@ -123,7 +142,7 @@ public class ParseTest {
           + "          }\n"
           + "      }\n"
           + "]";
-  private static final Logger logger = LoggerFactory.getLogger(MetricsResource.class);
+
   private final ObjectMapper mapper = new ObjectMapper();
   private List<Metric> metricList = new ArrayList<>();
 
@@ -161,7 +180,7 @@ public class ParseTest {
   //                testParseQueryMetrics(queryMetric);
   //            }
   //        } catch (Exception e) {
-  //            logger.error("Error occurred during execution ", e);
+  //            LOGGER.error("Error occurred during execution ", e);
   //        }
   //
   //    }
@@ -235,7 +254,7 @@ public class ParseTest {
       assertEquals(it.getKey(), "host");
       assertEquals(it.getValue(), "server2");
     } catch (Exception e) {
-      logger.error("Error occurred during execution ", e);
+      LOGGER.error("Error occurred during execution ", e);
     }
   }
 
@@ -254,7 +273,7 @@ public class ParseTest {
         pos++;
       }
     } catch (Exception e) {
-      logger.error("Error occurred during execution ", e);
+      LOGGER.error("Error occurred during execution ", e);
     }
   }
 
@@ -279,7 +298,7 @@ public class ParseTest {
         pos++;
       }
     } catch (Exception e) {
-      logger.error("Error occurred during execution ", e);
+      LOGGER.error("Error occurred during execution ", e);
     }
   }
 
@@ -300,7 +319,7 @@ public class ParseTest {
         pos++;
       }
     } catch (Exception e) {
-      logger.error("Error occurred during execution ", e);
+      LOGGER.error("Error occurred during execution ", e);
     }
   }
 
@@ -320,7 +339,7 @@ public class ParseTest {
   //            assertEquals(endRelative, query.getEndAbsolute());
   //            assertEquals(startRelative, query.getStartAbsolute());
   //        } catch (Exception e) {
-  //            logger.error("Error occurred during execution ", e);
+  //            LOGGER.error("Error occurred during execution ", e);
   //        }
   //    }
 
@@ -347,7 +366,7 @@ public class ParseTest {
         }
       }
     } catch (Exception e) {
-      logger.error("Error occurred during execution ", e);
+      LOGGER.error("Error occurred during execution ", e);
     }
   }
 
@@ -361,7 +380,7 @@ public class ParseTest {
       assertEquals(query.getQueryMetrics().get(0).getName(), "rem.hero");
       assertEquals(query.getQueryMetrics().get(1).getName(), "archive_file_search");
     } catch (Exception e) {
-      logger.error("Error occurred during execution ", e);
+      LOGGER.error("Error occurred during execution ", e);
     }
   }
 
@@ -381,7 +400,7 @@ public class ParseTest {
       dur = 2 * transTimeFromString("weeks");
       assertEquals(dur, queryMetric.getAggregators().get(1).getDur());
     } catch (Exception e) {
-      logger.error("Error occurred during execution ", e);
+      LOGGER.error("Error occurred during execution ", e);
     }
   }
 }

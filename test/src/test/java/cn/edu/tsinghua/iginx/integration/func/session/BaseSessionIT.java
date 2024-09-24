@@ -1,9 +1,26 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package cn.edu.tsinghua.iginx.integration.func.session;
 
 import static org.junit.Assert.fail;
 
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
-import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.integration.tool.DBConf;
@@ -21,7 +38,7 @@ import org.slf4j.LoggerFactory;
 
 public abstract class BaseSessionIT {
 
-  private static final Logger logger = LoggerFactory.getLogger(BaseSessionIT.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(BaseSessionIT.class);
 
   // parameters to be flexibly configured by inheritance
   protected static MultiConnection session;
@@ -63,7 +80,7 @@ public abstract class BaseSessionIT {
               new Session(defaultTestHost, defaultTestPort, defaultTestUser, defaultTestPass));
       session.openSession();
     } catch (Exception e) {
-      logger.error(e.getMessage());
+      LOGGER.error("unexpected error: ", e);
     }
   }
 
@@ -73,7 +90,7 @@ public abstract class BaseSessionIT {
       clearData();
       session.closeSession();
     } catch (SessionException e) {
-      logger.error(e.getMessage());
+      LOGGER.error("unexpected error: ", e);
     }
   }
 
@@ -117,8 +134,7 @@ public abstract class BaseSessionIT {
     return paths;
   }
 
-  protected void insertNumRecords(List<String> insertPaths)
-      throws SessionException, ExecutionException {
+  protected void insertNumRecords(List<String> insertPaths) throws SessionException {
     int pathLen = insertPaths.size();
     long[] keys = new long[(int) KEY_PERIOD];
     for (long i = 0; i < KEY_PERIOD; i++) {
@@ -150,7 +166,7 @@ public abstract class BaseSessionIT {
       try {
         result = (double) rawResult;
       } catch (Exception e) {
-        logger.error(e.getMessage());
+        LOGGER.error("unexpected error: ", e);
         fail();
       }
     }

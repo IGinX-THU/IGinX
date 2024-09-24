@@ -1,40 +1,35 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 package cn.edu.tsinghua.iginx.rest;
 
 import static cn.edu.tsinghua.iginx.constant.GlobalConstant.CLEAR_DUMMY_DATA_CAUTION;
-import static cn.edu.tsinghua.iginx.exceptions.StatusCode.STATEMENT_EXECUTION_ERROR;
+import static cn.edu.tsinghua.iginx.exception.StatusCode.STATEMENT_EXECUTION_ERROR;
 import static cn.edu.tsinghua.iginx.utils.ByteUtils.getByteArrayFromLongArray;
 
 import cn.edu.tsinghua.iginx.IginxWorker;
 import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.conf.Constants;
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
-import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.session.SessionAggregateQueryDataSet;
 import cn.edu.tsinghua.iginx.session.SessionQueryDataSet;
 import cn.edu.tsinghua.iginx.thrift.*;
-import cn.edu.tsinghua.iginx.utils.Bitmap;
-import cn.edu.tsinghua.iginx.utils.ByteUtils;
-import cn.edu.tsinghua.iginx.utils.RpcUtils;
-import cn.edu.tsinghua.iginx.utils.TimeUtils;
+import cn.edu.tsinghua.iginx.utils.*;
 import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -44,7 +39,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class RestSession {
-  private static final Logger logger = LoggerFactory.getLogger(RestSession.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(RestSession.class);
   private static final Config config = ConfigDescriptor.getInstance().getConfig();
   private final ReadWriteLock lock;
   private IginxWorker client;
@@ -83,7 +78,7 @@ public class RestSession {
     do {
       OpenSessionResp resp = tryOpenSession();
 
-      if (RpcUtils.verifyNoRedirect(resp.status)) {
+      if (StatusUtils.verifyNoRedirect(resp.status)) {
         sessionId = resp.getSessionId();
         break;
       }
@@ -92,7 +87,7 @@ public class RestSession {
       if (targetAddress.length != 2) {
         throw new SessionException("unexpected redirect address " + resp.status.getMessage());
       }
-      logger.info("当前请求将被重定向到：" + resp.status.getMessage());
+      LOGGER.info("当前请求将被重定向到：{}", resp.status.getMessage());
       redirectTimes += 1;
 
     } while (redirectTimes <= Constants.MAX_REDIRECT_TIME);
@@ -122,7 +117,7 @@ public class RestSession {
 
   public void addStorageEngine(
       String ip, int port, StorageEngineType type, Map<String, String> extraParams)
-      throws ExecutionException {
+      throws SessionException {
     StorageEngine storageEngine = new StorageEngine(ip, port, type, extraParams);
     AddStorageEnginesReq req =
         new AddStorageEnginesReq(sessionId, Collections.singletonList(storageEngine));
@@ -136,16 +131,16 @@ public class RestSession {
         lock.readLock().unlock();
       }
     } while (checkRedirect(status));
-    RpcUtils.verifySuccess(status);
+    StatusUtils.verifySuccess(status);
   }
 
   public void deleteColumn(String path, List<Map<String, List<String>>> tagList)
-      throws ExecutionException {
+      throws SessionException {
     deleteColumns(Collections.singletonList(path), tagList);
   }
 
   public void deleteColumns(List<String> paths, List<Map<String, List<String>>> tagList)
-      throws ExecutionException {
+      throws SessionException {
     DeleteColumnsReq req = new DeleteColumnsReq(sessionId, paths);
     if (!tagList.isEmpty()) {
       req.setTagsList(tagList);
@@ -163,11 +158,11 @@ public class RestSession {
     } while (checkRedirect(status));
     if (status.code == STATEMENT_EXECUTION_ERROR.getStatusCode()) {
       if (status.message.contains(CLEAR_DUMMY_DATA_CAUTION)) {
-        logger.warn(status.message);
+        LOGGER.warn(status.message);
         return;
       }
     }
-    RpcUtils.verifySuccess(status);
+    StatusUtils.verifySuccess(status);
   }
 
   public void insertNonAlignedColumnRecords(
@@ -176,7 +171,7 @@ public class RestSession {
       Object[] valuesList,
       List<DataType> dataTypeList,
       List<Map<String, String>> tagsList)
-      throws ExecutionException {
+      throws SessionException {
     insertNonAlignedColumnRecords(
         paths,
         timestamps,
@@ -193,20 +188,20 @@ public class RestSession {
       List<DataType> dataTypeList,
       List<Map<String, String>> tagsList,
       TimePrecision timePrecision)
-      throws ExecutionException {
+      throws SessionException {
     if (paths.isEmpty()
         || timestamps.length == 0
         || valuesList.length == 0
         || dataTypeList.isEmpty()) {
-      logger.error("Invalid insert request!");
+      LOGGER.error("Invalid insert request!");
       return;
     }
     if (paths.size() != valuesList.length || paths.size() != dataTypeList.size()) {
-      logger.error("The sizes of paths, valuesList and dataTypeList should be equal.");
+      LOGGER.error("The sizes of paths, valuesList and dataTypeList should be equal.");
       return;
     }
     if (tagsList != null && paths.size() != tagsList.size()) {
-      logger.error("The sizes of paths, valuesList, dataTypeList and tagsList should be equal.");
+      LOGGER.error("The sizes of paths, valuesList, dataTypeList and tagsList should be equal.");
       return;
     }
 
@@ -230,7 +225,7 @@ public class RestSession {
     for (int i = 0; i < valuesList.length; i++) {
       Object[] values = (Object[]) valuesList[i];
       if (values.length != timestamps.length) {
-        logger.error("The sizes of timestamps and the element of valuesList should be equal.");
+        LOGGER.error("The sizes of timestamps and the element of valuesList should be equal.");
         return;
       }
       valueBufferList.add(ByteUtils.getColumnByteBuffer(values, dataTypeList.get(i)));
@@ -262,7 +257,7 @@ public class RestSession {
         lock.readLock().unlock();
       }
     } while (checkRedirect(status));
-    RpcUtils.verifySuccess(status);
+    StatusUtils.verifySuccess(status);
   }
 
   public void insertNonAlignedRowRecords(
@@ -272,24 +267,24 @@ public class RestSession {
       List<DataType> dataTypeList,
       List<Map<String, String>> tagsList,
       TimePrecision timePrecision)
-      throws ExecutionException {
+      throws SessionException {
     if (paths.isEmpty()
         || timestamps.length == 0
         || valuesList.length == 0
         || dataTypeList.isEmpty()) {
-      logger.error("Invalid insert request!");
+      LOGGER.error("Invalid insert request!");
       return;
     }
     if (paths.size() != dataTypeList.size()) {
-      logger.error("The sizes of paths and dataTypeList should be equal.");
+      LOGGER.error("The sizes of paths and dataTypeList should be equal.");
       return;
     }
     if (timestamps.length != valuesList.length) {
-      logger.error("The sizes of timestamps and valuesList should be equal.");
+      LOGGER.error("The sizes of timestamps and valuesList should be equal.");
       return;
     }
     if (tagsList != null && paths.size() != tagsList.size()) {
-      logger.error("The sizes of paths, valuesList, dataTypeList and tagsList should be equal.");
+      LOGGER.error("The sizes of paths, valuesList, dataTypeList and tagsList should be equal.");
       return;
     }
 
@@ -334,7 +329,7 @@ public class RestSession {
     for (int i = 0; i < timestamps.length; i++) {
       Object[] values = (Object[]) sortedValuesList[i];
       if (values.length != paths.size()) {
-        logger.error("The sizes of paths and the element of valuesList should be equal.");
+        LOGGER.error("The sizes of paths and the element of valuesList should be equal.");
         return;
       }
       valueBufferList.add(ByteUtils.getRowByteBuffer(values, sortedDataTypeList));
@@ -366,12 +361,12 @@ public class RestSession {
         lock.readLock().unlock();
       }
     } while (checkRedirect(status));
-    RpcUtils.verifySuccess(status);
+    StatusUtils.verifySuccess(status);
   }
 
   public void deleteDataInColumn(
       String path, List<Map<String, List<String>>> tagList, long startKey, long endKey)
-      throws ExecutionException {
+      throws SessionException {
     List<String> paths = new ArrayList<>();
     paths.add(path);
     deleteDataInColumns(paths, tagList, startKey, endKey);
@@ -379,7 +374,7 @@ public class RestSession {
 
   public void deleteDataInColumns(
       List<String> paths, List<Map<String, List<String>>> tagList, long startKey, long endKey)
-      throws ExecutionException {
+      throws SessionException {
     deleteDataInColumns(paths, tagList, startKey, endKey, TimeUtils.DEFAULT_TIMESTAMP_PRECISION);
   }
 
@@ -389,7 +384,7 @@ public class RestSession {
       long startKey,
       long endKey,
       TimePrecision timePrecision)
-      throws ExecutionException {
+      throws SessionException {
     DeleteDataInColumnsReq req = new DeleteDataInColumnsReq(sessionId, paths, startKey, endKey);
     if (!tagList.isEmpty()) {
       req.setTagsList(tagList);
@@ -408,11 +403,11 @@ public class RestSession {
     } while (checkRedirect(status));
     if (status.code == STATEMENT_EXECUTION_ERROR.getStatusCode()) {
       if (status.message.contains(CLEAR_DUMMY_DATA_CAUTION)) {
-        logger.warn(status.message);
+        LOGGER.warn(status.message);
         return;
       }
     }
-    RpcUtils.verifySuccess(status);
+    StatusUtils.verifySuccess(status);
   }
 
   public SessionQueryDataSet queryData(
@@ -427,7 +422,7 @@ public class RestSession {
       List<Map<String, List<String>>> tagList,
       TimePrecision timePrecision) {
     if (paths.isEmpty() || startKey > endKey) {
-      logger.error("Invalid query request!");
+      LOGGER.error("Invalid query request!");
       return null;
     }
     QueryDataReq req = new QueryDataReq(sessionId, paths, startKey, endKey);

@@ -1,3 +1,21 @@
+#
+# IGinX - the polystore system with high performance
+# Copyright (C) Tsinghua University
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+ 
 """
 A simple example on how to manipulate file with IGinX
 """
@@ -7,8 +25,8 @@ import numpy as np
 import cv2
 import requests
 
-from iginx.session import Session
-from iginx.thrift.rpc.ttypes import StorageEngineType
+from iginx_pyclient.session import Session
+from iginx_pyclient.thrift.rpc.ttypes import StorageEngineType
 
 
 # 读取第一行是列名的csv文件，并将数据存入IGinX
@@ -267,7 +285,7 @@ def load_largecsv_and_export(session: Session, csv_path, out_file_path="csv_outf
 
 
 def add_storage_engine(session: Session, ip: str = "127.0.0.1", port: int = 6668,
-                       type: int = StorageEngineType.filesystem,
+                       type: int = StorageEngineType.filestore,
                        extra_params=None, dummy_path=None):
     if extra_params is None:
         extra_params = {

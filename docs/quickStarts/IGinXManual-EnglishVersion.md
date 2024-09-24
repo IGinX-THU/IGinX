@@ -136,18 +136,18 @@ The specific installation method is as follows:
 
 ```shell
 $ cd ~
-$ wget https://mirrors.bfsu.edu.cn/apache/iotdb/0.12.0/apache-iotdb-0.12.0-server-bin.zip
-$ unzip apache-iotdb-0.12.0-server-bin.zip
+$ wget https://github.com/IGinX-THU/IGinX-resources/raw/main/resources/apache-iotdb-0.12.6-server-bin.zip
+$ unzip apache-iotdb-0.12.6-server-bin.zip
 ```
 
 ### Download the binary executables
 
-Go directly to the [IGinX project](https://github.com/IGinX-THU/IGinX) and download the [IGinX project release package](https://github.com/IGinX-THU/IGinX/releases/download/release%2Fv0.5.1/IGinX-release-v0.5.1-bin.tar.gz).
+Go directly to the [IGinX project](https://github.com/IGinX-THU/IGinX) and download the [IGinX project release package](https://github.com/IGinX-THU/IGinX/releases/download/v0.7.0/IGinX-Server-0.7.0.tar.gz).
 
 ```shell
 $ cd ~
-$ wget https://github.com/IGinX-THU/IGinX/releases/download/release%2Fv0.5.1/IGinX-release-v0.5.1-bin.tar.gz
-$ tar -xzvf IGinX-release-v0.5.1-bin.tar.gz
+$ wget https://github.com/IGinX-THU/IGinX/releases/download/v0.7.0/IGinX-Server-0.7.0.tar.gz
+$ tar -xzvf IGinX-Server-0.7.0.tar.gz
 ```
 
 ### Compilation with source code
@@ -173,7 +173,7 @@ First of all, you need to launch IoTDB.
 
 ```shell
 $ cd ~
-$ cd apache-iotdb-0.12.0-server-bin/
+$ cd apache-iotdb-0.12.6-server-bin/
 $ ./sbin/start-server.sh
 ```
 
@@ -191,7 +191,7 @@ The following display of words means the IoTDB installation was successful：
 
 #### Launch ZooKeeper
 
-If you are taking a 0.2.0 binary installation package, or if you designate Zookeeper as the metadata management storage backend in the configuration file, you need to launch ZooKeeper. Otherwise, **skip this step entirely**.
+If you are taking a binary installation package, or if you designate Zookeeper as the metadata management storage backend in the configuration file, you need to launch ZooKeeper. Otherwise, **skip this step entirely**.
 
 ```shell
 $ cd ~
@@ -213,7 +213,7 @@ Using the release package to launch
 
 ```shell
 $ cd ~
-$ cd IGinX-release-v0.5.1-bin
+$ cd IGinX-Server-0.7.0
 $ chmod +x startIginX.sh # enable permissions for startup scripts
 $ ./startIginX.sh
 ```
@@ -241,7 +241,7 @@ Here is an example of starting two instances with ports 6667 and 7667, respectiv
 
 ```shell
 $ cd ~
-$ cd apache-iotdb-0.12.0-server-bin/
+$ cd apache-iotdb-0.12.6-server-bin/
 $ ./sbin/start-server.sh # 启动实例一 127.0.0.1: 6667
 ```
 
@@ -305,21 +305,33 @@ In order to facilitate installation and management of IGinX, IGinX provides user
 
 #### IGinX Configuration
 
-|      Configuration Item      |                                 Description                                 |                                                                                                                                                          Configuration                                                                                                                                                          |
-|------------------------------|-----------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| ip                           | iginx ip bounds                                                             | 0.0.0.0                                                                                                                                                                                                                                                                                                                         |
-| port                         | iginx back-end port                                                         | 6888                                                                                                                                                                                                                                                                                                                            |
-| username                     | iginx username                                                              | root                                                                                                                                                                                                                                                                                                                            |
-| password                     | iginx password                                                              | root                                                                                                                                                                                                                                                                                                                            |
-| storageEngineList            | Time series database list, use ',' to separate different instances          | 127.0.0.1#6667#iotdb12#username=root#password=root#sessionPoolSize=20#has_data=false#is_read_only=false                                                                                                                                                                                                                         |
-| maxAsyncRetryTimes           | The maximum number of repetitions of asynchronous requests                  | 3                                                                                                                                                                                                                                                                                                                               |
-| asyncExecuteThreadPool       | Asynchronous execution concurrent number                                    | 20                                                                                                                                                                                                                                                                                                                              |
-| syncExecuteThreadPool        | The number of concurrent executions                                         | 60                                                                                                                                                                                                                                                                                                                              |
-| replicaNum                   | number of copies written                                                    | 1                                                                                                                                                                                                                                                                                                                               |
-| databaseClassNames           | The underlying database class name, use ',' to separate different databases | iotdb12=cn.edu.tsinghua.iginx.iotdb.IoTDBStorage,influxdb=cn.edu.tsinghua.iginx.influxdb.InfluxDBStorage,parquet=cn.edu.tsinghua.iginx.parquet.ParquetStorage,postgresql=cn.edu.tsinghua.iginx.postgresql.PostgreSQLStorage,mongodb=cn.edu.tsinghua.iginx.mongodb.MongoDBStorage,redis=cn.edu.tsinghua.iginx.redis.RedisStorage |
-| policyClassName              | Policy class name                                                           | cn.edu.tsinghua.iginx.policy.naive.NaivePolicy                                                                                                                                                                                                                                                                                  |
-| statisticsCollectorClassName | Statistics collection class                                                 | cn.edu.tsinghua.iginx.statistics.StatisticsCollector                                                                                                                                                                                                                                                                            |
-| statisticsLogInterval        | Statistics print interval, in milliseconds                                  | 1000                                                                                                                                                                                                                                                                                                                            |
+|      Configuration Item      |                                 Description                                 |                                                                                                                                                             Configuration                                                                                                                                                             |
+|------------------------------|-----------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| ip                           | iginx ip bounds                                                             | 0.0.0.0                                                                                                                                                                                                                                                                                                                               |
+| port                         | iginx back-end port                                                         | 6888                                                                                                                                                                                                                                                                                                                                  |
+| username                     | iginx username                                                              | root                                                                                                                                                                                                                                                                                                                                  |
+| password                     | iginx password                                                              | root                                                                                                                                                                                                                                                                                                                                  |
+| storageEngineList            | Time series database list, use ',' to separate different instances          | 127.0.0.1#6667#iotdb12#username=root#password=root#sessionPoolSize=20#has_data=false#is_read_only=false                                                                                                                                                                                                                               |
+| maxAsyncRetryTimes           | The maximum number of repetitions of asynchronous requests                  | 3                                                                                                                                                                                                                                                                                                                                     |
+| asyncExecuteThreadPool       | Asynchronous execution concurrent number                                    | 20                                                                                                                                                                                                                                                                                                                                    |
+| syncExecuteThreadPool        | The number of concurrent executions                                         | 60                                                                                                                                                                                                                                                                                                                                    |
+| replicaNum                   | number of copies written                                                    | 1                                                                                                                                                                                                                                                                                                                                     |
+| databaseClassNames           | The underlying database class name, use ',' to separate different databases | iotdb12=cn.edu.tsinghua.iginx.iotdb.IoTDBStorage,influxdb=cn.edu.tsinghua.iginx.influxdb.InfluxDBStorage,parquet=cn.edu.tsinghua.iginx.parquet.ParquetStorage,relational=cn.edu.tsinghua.iginx.relational.RelationAbstractStorage,mongodb=cn.edu.tsinghua.iginx.mongodb.MongoDBStorage,redis=cn.edu.tsinghua.iginx.redis.RedisStorage |
+| policyClassName              | Policy class name                                                           | cn.edu.tsinghua.iginx.policy.naive.NaivePolicy                                                                                                                                                                                                                                                                                        |
+| statisticsCollectorClassName | Statistics collection class                                                 | cn.edu.tsinghua.iginx.statistics.StatisticsCollector                                                                                                                                                                                                                                                                                  |
+| statisticsLogInterval        | Statistics print interval, in milliseconds                                  | 1000                                                                                                                                                                                                                                                                                                                                  |
+
+When connecting to relational databases such as PostgreSQL and MySQL, you can configure the parameters of the HikariDataSource at `storageEngineList`
+
+|    Configuration Item     |                           Description                           | Defalt |
+|---------------------------|-----------------------------------------------------------------|--------|
+| connection_timeout        | Connection timeout (ms)                                         | 30000  |
+| idle_timeout              | Idle connection timeout (ms)                                    | 10000  |
+| maximum_pool_size         | The maximum number of connections in the connection pool        | 20     |
+| minimum_idle              | Minimum number of idle connections in the connection pool       | 1      |
+| leak_detection_threshold  | Threshold for detecting connection leaks (ms)                   | 2500   |
+| prep_stmt_cache_size      | Number of SQL precompiled objects cached                        | 250    |
+| prep_stmt_cache_sql_limit | The upper limit of the number of SQL precompiled objects cached | 2048   |
 
 #### Rest Configuration
 
@@ -476,23 +488,23 @@ The command will return information about the data point just inserted:
 }
 ```
 
-For more interfaces, please refer to [IGinX Official Manual](https://github.com/IGinX-THU/IGinX/blob/main/docs/pdf/userManualC.pdf).
+For more interfaces, please refer to [IGinX Official Manual](../pdf/userManualC.pdf).
 
 ### RPC Interface
 
-In addition to the RESTful interface, IGinX also provides RPC data access interface. For that specific interface, please refer to the official[IGinX Official Manual](https://github.com/IGinX-THU/IGinX/blob/main/docs/pdf/userManualC.pdf). At the same time, IGinX also provides some [official examples](https://github.com/IGinX-THU/IGinX/tree/main/example/src/main/java/cn/edu/tsinghua/iginx/session), showing the most common usage of the RPC interface.
+In addition to the RESTful interface, IGinX also provides RPC data access interface. For that specific interface, please refer to the official[IGinX Official Manual](../pdf/userManualC.pdf). At the same time, IGinX also provides some [official examples](https://github.com/IGinX-THU/IGinX/tree/main/example/src/main/java/cn/edu/tsinghua/iginx/session), showing the most common usage of the RPC interface.
 
 Below is a short tutorial on how to use it.
 
-Since the IGinX 0.5.1 version has not been released to the maven central repository, if you want to use it, you need to manually install it to the local maven repository. The specific installation method is as follows:
+Since the IGinX jars have not been released to the maven central repository, if you want to use it, you need to manually install it to the local maven repository. The specific installation method is as follows:
 
 ```shell
-# Download iginx 0.2 rc version source package
-$ wget https://github.com/IGinX-THU/IGinX/archive/refs/tags/release/v0.5.1.tar.gz
+# Download the newest IGinX version source package
+$ wget https://github.com/IGinX-THU/IGinX/archive/refs/tags/v0.7.0.tar.gz
 # Unzip the source package
-$ tar -zxvf v0.5.1.tar.gz
+$ tar -zxvf v0.7.0.tar.gz
 # Enter the project main directory
-$ cd IGinX-rc-v0.5.1
+$ cd IGinX-v0.7.0
 # Install to local maven repository
 $ mvn clean install -DskipTests
 ```
@@ -503,7 +515,7 @@ Only when you are using it, you need to introduce the following dependencies in 
 <dependency>
   <groupId>cn.edu.tsinghua</groupId>
   <artifactId>iginx-core</artifactId>
-  <version>0.6.0-SNAPSHOT</version>
+  <version>0.7.0</version>
 </dependency>
 ```
 
@@ -639,7 +651,7 @@ For the full version of the code, please refer to: https://github.com/IGinX-THU/
             <dependency>
                 <groupId>cn.edu.tsinghua</groupId>
                 <artifactId>iginx-session</artifactId>
-                <version>0.5.1</version>
+                <version>0.7.0</version>
             </dependency>
         </dependencies>
 

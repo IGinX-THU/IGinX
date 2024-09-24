@@ -1,3 +1,21 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package cn.edu.tsinghua.iginx.engine.shared;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
@@ -7,16 +25,13 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.file.CSVFile;
 import cn.edu.tsinghua.iginx.engine.shared.file.write.ExportCsv;
-import cn.edu.tsinghua.iginx.exceptions.StatusCode;
+import cn.edu.tsinghua.iginx.exception.StatusCode;
 import cn.edu.tsinghua.iginx.thrift.*;
 import cn.edu.tsinghua.iginx.utils.Bitmap;
 import cn.edu.tsinghua.iginx.utils.ByteUtils;
 import cn.edu.tsinghua.iginx.utils.RpcUtils;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import lombok.Data;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,7 +39,7 @@ import org.slf4j.LoggerFactory;
 @Data
 public class Result {
 
-  private static final Logger logger = LoggerFactory.getLogger(Result.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(Result.class);
 
   private Status status;
   private List<String> paths;
@@ -62,9 +77,15 @@ public class Result {
   private List<String> loadCSVColumns;
   private Long loadCSVRecordNum;
 
+  private String UDFModulePath;
+
   private List<Long> sessionIDs;
 
   private Map<String, Boolean> rules;
+
+  private List<String> usernames;
+  private List<UserType> userTypes;
+  private List<Set<AuthType>> auths;
 
   public Result(Status status) {
     this.status = status;
@@ -174,6 +195,12 @@ public class Result {
     resp.setLoadCsvPath(loadCSVPath);
     resp.setSessionIDList(sessionIDs);
     resp.setRules(rules);
+    // import udf
+    resp.setUDFModulePath(UDFModulePath);
+    // SHOW USER
+    resp.setUsernames(usernames);
+    resp.setUserTypes(userTypes);
+    resp.setAuths(auths);
     return resp;
   }
 
@@ -259,7 +286,7 @@ public class Result {
                 csvFile.getRecordSeparator()));
       }
     } catch (PhysicalException e) {
-      logger.error("unexpected error when load row stream: ", e);
+      LOGGER.error("unexpected error when load row stream: ", e);
       resp.setStatus(RpcUtils.FAILURE);
     }
     return resp;
@@ -273,6 +300,17 @@ public class Result {
     }
     resp.setColumns(loadCSVColumns);
     resp.setRecordsNum(loadCSVRecordNum);
+    return resp;
+  }
+
+  public LoadUDFResp getLoadUDFResp() {
+    LoadUDFResp resp = new LoadUDFResp(status);
+
+    if (status != RpcUtils.SUCCESS && status.code != StatusCode.PARTIAL_SUCCESS.getStatusCode()) {
+      resp.setParseErrorMsg(status.getMessage());
+      return resp;
+    }
+    resp.setUDFModulePath(UDFModulePath);
     return resp;
   }
 
@@ -322,7 +360,7 @@ public class Result {
       resp.setHasMoreResults(resultStream.hasNext());
       resp.setQueryDataSet(new QueryDataSetV2(valuesList, bitmapList));
     } catch (PhysicalException e) {
-      logger.error("unexpected error when load row stream: ", e);
+      LOGGER.error("unexpected error when load row stream: ", e);
       resp.setStatus(RpcUtils.FAILURE);
     }
     return resp;

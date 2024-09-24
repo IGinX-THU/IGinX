@@ -1,14 +1,35 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package cn.edu.tsinghua.iginx.jdbc;
 
-import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Properties;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.sql.DataSource;
 
 public class IginXDataSource implements DataSource {
+
+  private static final Logger LOGGER = Logger.getLogger(IginXDataSource.class.getName());
   private String url;
   private String user;
   private String password;
@@ -62,7 +83,7 @@ public class IginXDataSource implements DataSource {
     try {
       return new IginXConnection(url, properties);
     } catch (SessionException e) {
-      e.printStackTrace();
+      LOGGER.log(Level.SEVERE, "unexpected error: ", e);
     }
     return null;
   }
@@ -75,7 +96,7 @@ public class IginXDataSource implements DataSource {
       newProp.setProperty(Config.PASSWORD, password);
       return new IginXConnection(url, newProp);
     } catch (Exception e) {
-      e.printStackTrace();
+      LOGGER.log(Level.SEVERE, "unexpected error: ", e);
     }
     return null;
   }

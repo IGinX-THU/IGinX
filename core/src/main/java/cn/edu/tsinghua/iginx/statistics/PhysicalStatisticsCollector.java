@@ -1,3 +1,21 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package cn.edu.tsinghua.iginx.statistics;
 
 import cn.edu.tsinghua.iginx.engine.shared.processor.PostPhysicalProcessor;
@@ -14,7 +32,7 @@ import org.slf4j.LoggerFactory;
 public class PhysicalStatisticsCollector extends AbstractStageStatisticsCollector
     implements IPhysicalStatisticsCollector {
 
-  private static final Logger logger = LoggerFactory.getLogger(PhysicalStatisticsCollector.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(PhysicalStatisticsCollector.class);
   private final ReadWriteLock lock = new ReentrantReadWriteLock();
   private final Map<StatementType, Pair<Long, Long>> detailInfos = new HashMap<>();
   private long count = 0;
@@ -41,13 +59,13 @@ public class PhysicalStatisticsCollector extends AbstractStageStatisticsCollecto
   @Override
   public void broadcastStatistics() {
     lock.readLock().lock();
-    logger.info("Physical Stage Statistics Info: ");
-    logger.info("\tcount: " + count + ", span: " + span + "μs");
+    LOGGER.info("Physical Stage Statistics Info: ");
+    LOGGER.info("\tcount: {}, span: {}μs", count, span);
     if (count != 0) {
-      logger.info("\taverage-span: " + (1.0 * span) / count + "μs");
+      LOGGER.info("\taverage-span: {}μs", (1.0 * span) / count);
     }
     for (Map.Entry<StatementType, Pair<Long, Long>> entry : detailInfos.entrySet()) {
-      logger.info(
+      LOGGER.info(
           "\t\tFor Request: "
               + entry.getKey()
               + ", count: "

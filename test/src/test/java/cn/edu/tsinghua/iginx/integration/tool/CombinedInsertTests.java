@@ -1,7 +1,24 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package cn.edu.tsinghua.iginx.integration.tool;
 
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
-import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.util.ArrayList;
 import java.util.List;
@@ -28,7 +45,7 @@ public class CombinedInsertTests {
     session = passedSession;
   }
 
-  public void testInserts() throws SessionException, ExecutionException {
+  public void testInserts() throws SessionException {
     // 列式插入对齐数据
     insertColumnRecords();
     // 列式插入非对齐数据
@@ -39,7 +56,7 @@ public class CombinedInsertTests {
     insertNonAlignedRowRecords();
   }
 
-  private static void insertColumnRecords() throws SessionException, ExecutionException {
+  private static void insertColumnRecords() throws SessionException {
     String PREFIX = "insertCR.";
     List<String> paths = new ArrayList<>();
     paths.add(PREFIX + S1);
@@ -79,7 +96,7 @@ public class CombinedInsertTests {
     session.insertColumnRecords(paths, timestamps, valuesList, dataTypeList, null);
   }
 
-  private static void insertNonAlignedColumnRecords() throws SessionException, ExecutionException {
+  private static void insertNonAlignedColumnRecords() throws SessionException {
     String PREFIX = "insertCNAR.";
     List<String> paths = new ArrayList<>();
     paths.add(PREFIX + S1);
@@ -123,7 +140,7 @@ public class CombinedInsertTests {
     session.insertNonAlignedColumnRecords(paths, timestamps, valuesList, dataTypeList, null);
   }
 
-  private static void insertRowRecords() throws SessionException, ExecutionException {
+  private static void insertRowRecords() throws SessionException {
     String PREFIX = "insertRR.";
     List<String> paths = new ArrayList<>();
     paths.add(PREFIX + S1);
@@ -162,7 +179,7 @@ public class CombinedInsertTests {
     session.insertRowRecords(paths, timestamps, valuesList, dataTypeList, null);
   }
 
-  private static void insertNonAlignedRowRecords() throws SessionException, ExecutionException {
+  private static void insertNonAlignedRowRecords() throws SessionException {
     String PREFIX = "insertNARR.";
     List<String> paths = new ArrayList<>();
     paths.add(PREFIX + S1);

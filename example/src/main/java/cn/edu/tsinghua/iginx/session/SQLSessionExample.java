@@ -1,7 +1,24 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package cn.edu.tsinghua.iginx.session;
 
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
-import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import java.util.Arrays;
 import java.util.List;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -50,7 +67,7 @@ public class SQLSessionExample {
   private static final String showClusterInfo = "SHOW CLUSTER INFO;";
   private static final String clearData = "CLEAR DATA;";
 
-  public static void main(String[] args) throws SessionException, ExecutionException {
+  public static void main(String[] args) throws SessionException {
     session = new Session("127.0.0.1", 6888, "root", "root");
     // 打开 Session
     session.openSession();
@@ -102,24 +119,23 @@ public class SQLSessionExample {
     session.openSession();
   }
 
-  public static void lastQuery() throws SessionException, ExecutionException {
+  public static void lastQuery() throws SessionException {
     execute(String.format(lastQuery, "LAST", S2, "LAST", S3, 0), true);
   }
 
-  public static void aggregateQuery() throws SessionException, ExecutionException {
+  public static void aggregateQuery() throws SessionException {
     for (String type : funcTypeList) {
       execute(String.format(aggregateQuery, type, S1, type, S2, 0, 1000), true);
     }
   }
 
-  public static void downSampleQuery() throws SessionException, ExecutionException {
+  public static void downSampleQuery() throws SessionException {
     for (String type : funcTypeList) {
       execute(String.format(downSample, type, S1, type, S4, 0, 1000, "100ms"), true);
     }
   }
 
-  public static void execute(String statement, boolean needPrint)
-      throws SessionException, ExecutionException {
+  public static void execute(String statement, boolean needPrint) throws SessionException {
     SessionExecuteSqlResult res = session.executeSql(statement);
     if (!statement.startsWith("INSERT")) System.out.println("Statement:" + statement);
     System.out.println("SQL Type: " + res.getSqlType());

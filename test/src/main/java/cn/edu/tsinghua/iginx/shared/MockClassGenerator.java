@@ -1,3 +1,21 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package cn.edu.tsinghua.iginx.shared;
 
 import cn.edu.tsinghua.iginx.conf.Constants;
@@ -16,9 +34,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class MockClassGenerator {
-  private static final Logger logger = LoggerFactory.getLogger(MockClassGenerator.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(MockClassGenerator.class);
 
   public static DataView genRowDataViewNoKey(
+      long keyStart,
       List<String> pathList,
       List<Map<String, String>> tagsList,
       List<DataType> dataTypeList,
@@ -52,12 +71,12 @@ public class MockClassGenerator {
     // generate bitmaps and key
     List<Bitmap> bitmapList = new ArrayList<>();
     List<Long> keys = new ArrayList<>();
-    long keyIndex = 0L;
-    for (int i = 0; i < valuesList.length; i++) {
-      Object[] values = (Object[]) valuesList[i];
-      keys.set(i, keyIndex++);
+    long keyIndex = keyStart;
+    for (Object o : valuesList) {
+      Object[] values = (Object[]) o;
+      keys.add(keyIndex++);
       if (values.length != pathList.size()) {
-        logger.error("The sizes of paths and the element of valuesList should be equal.");
+        LOGGER.error("The sizes of paths and the element of valuesList should be equal.");
         return null;
       }
       Bitmap bitmap = new Bitmap(values.length);

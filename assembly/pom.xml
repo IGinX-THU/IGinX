@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+    IGinX - the polystore system with high performance
+    Copyright (C) Tsinghua University
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>cn.edu.tsinghua</groupId>
+        <artifactId>iginx</artifactId>
+        <version>${revision}</version>
+    </parent>
+
+    <artifactId>iginx-assembly</artifactId>
+    <packaging>pom</packaging>
+    <name>IGinX Assembly</name>
+
+    <properties>
+        <maven.deploy.skip>true</maven.deploy.skip>
+        <zookeeper.version>3.7.2</zookeeper.version>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>cn.edu.tsinghua</groupId>
+            <artifactId>iginx-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>cn.edu.tsinghua</groupId>
+            <artifactId>filestore</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>cn.edu.tsinghua</groupId>
+            <artifactId>influxdb</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>cn.edu.tsinghua</groupId>
+            <artifactId>iotdb12</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>cn.edu.tsinghua</groupId>
+            <artifactId>mongodb</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>cn.edu.tsinghua</groupId>
+            <artifactId>relational</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>cn.edu.tsinghua</groupId>
+            <artifactId>redis</artifactId>
+        </dependency>
+    </dependencies>
+
+    <profiles>
+        <profile>
+            <id>release</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-assembly-plugin</artifactId>
+                        <configuration>
+                            <descriptors>
+                                <descriptor>src/assembly/server.xml</descriptor>
+                                <descriptor>src/assembly/include.xml</descriptor>
+                            </descriptors>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>single</goal>
+                                </goals>
+                                <phase>package</phase>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>com.googlecode.maven-download-plugin</groupId>
+                        <artifactId>download-maven-plugin</artifactId>
+                        <version>1.9.0</version>
+                        <configuration>
+                            <unpack>true</unpack>
+                            <url>https://dlcdn.apache.org/zookeeper/zookeeper-${zookeeper.version}/apache-zookeeper-${zookeeper.version}-bin.tar.gz</url>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>download-zookeeper</id>
+                                <goals>
+                                    <goal>wget</goal>
+                                </goals>
+                                <phase>prepare-package</phase>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-resources-plugin</artifactId>
+                        <version>3.3.1</version>
+                        <executions>
+                            <execution>
+                                <id>copy-conf</id>
+                                <goals>
+                                    <goal>copy-resources</goal>
+                                </goals>
+                                <phase>generate-sources</phase>
+                                <configuration>
+                                    <outputDirectory>${project.build.directory}/conf</outputDirectory>
+                                    <resources>
+                                        <resource>
+                                            <directory>../conf</directory>
+                                            <includes>
+                                                <include>config.properties</include>
+                                            </includes>
+                                        </resource>
+                                    </resources>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>copy-udf</id>
+                                <goals>
+                                    <goal>copy-resources</goal>
+                                </goals>
+                                <phase>generate-sources</phase>
+                                <configuration>
+                                    <outputDirectory>${project.build.directory}/udf_funcs</outputDirectory>
+                                    <resources>
+                                        <resource>
+                                            <directory>../udf_funcs</directory>
+                                            <includes>
+                                                <include>udf_list</include>
+                                                <include>python_scripts/class_loader.py</include>
+                                                <include>python_scripts/constant.py</include>
+                                                <include>python_scripts/py_worker.py</include>
+                                            </includes>
+                                        </resource>
+                                    </resources>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>com.google.code.maven-replacer-plugin</groupId>
+                        <artifactId>replacer</artifactId>
+                        <version>1.5.3</version>
+                        <configuration>
+                            <basedir>${project.build.directory}</basedir>
+                            <includes>
+                                <include>conf/config.properties</include>
+                                <include>udf_funcs/udf_list</include>
+                            </includes>
+                            <regex>true</regex>
+                            <replacements>
+                                <replacement>
+                                    <token>storageEngineList=127.0.0.1#6667#iotdb</token>
+                                    <value>#storageEngineList=127.0.0.1#6667#iotdb</value>
+                                </replacement>
+                                <replacement>
+                                    <token>#storageEngineList=127.0.0.1#6667#filestore.*</token>
+                                    <value>storageEngineList=127.0.0.1#6667#filestore#dir=data#iginx_port=6888</value>
+                                </replacement>
+                                <replacement>
+                                    <token>UD[ATS]F,.*,.*,.*[.]py</token>
+                                    <value/>
+                                </replacement>
+                            </replacements>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>replace</goal>
+                                </goals>
+                                <phase>prepare-package</phase>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+
+</project>

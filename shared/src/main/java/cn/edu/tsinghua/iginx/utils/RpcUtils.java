@@ -1,32 +1,30 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 package cn.edu.tsinghua.iginx.utils;
 
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
-import cn.edu.tsinghua.iginx.exceptions.StatusCode;
+import cn.edu.tsinghua.iginx.exception.StatusCode;
 import cn.edu.tsinghua.iginx.thrift.Status;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class RpcUtils {
   @SuppressWarnings("unused")
-  private static final Logger logger = LoggerFactory.getLogger(RpcUtils.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(RpcUtils.class);
 
   public static Status WRONG_USERNAME_OR_PASSWORD =
       new Status(StatusCode.WRONG_USERNAME_OR_PASSWORD.getStatusCode());
@@ -58,20 +56,9 @@ public class RpcUtils {
     SERVICE_UNAVAILABLE.setMessage("service unavailable for the sake of high workload");
   }
 
-  public static void verifySuccess(Status status) throws ExecutionException {
-    if (status.code != StatusCode.SUCCESS_STATUS.getStatusCode()
-        && status.code != StatusCode.PARTIAL_SUCCESS.getStatusCode()) {
-      throw new ExecutionException(status);
-    }
-  }
-
   public static Status status(StatusCode code, String msg) {
     Status status = new Status(code.getStatusCode());
     status.setMessage(msg);
     return status;
-  }
-
-  public static boolean verifyNoRedirect(Status status) {
-    return status.code != StatusCode.REDIRECT.getStatusCode();
   }
 }

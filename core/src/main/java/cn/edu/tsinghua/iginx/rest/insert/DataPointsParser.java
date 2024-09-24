@@ -1,33 +1,33 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 package cn.edu.tsinghua.iginx.rest.insert;
 
 import static cn.edu.tsinghua.iginx.rest.RestUtils.*;
 
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
-import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.engine.shared.exception.StatementExecutionException;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.rest.RestSession;
 import cn.edu.tsinghua.iginx.rest.RestUtils;
 import cn.edu.tsinghua.iginx.rest.bean.*;
 import cn.edu.tsinghua.iginx.rest.query.QueryExecutor;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.TimePrecision;
+import cn.edu.tsinghua.iginx.utils.TagKVUtils;
 import cn.edu.tsinghua.iginx.utils.TimeUtils;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -37,7 +37,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class DataPointsParser {
-  private static final Logger logger = LoggerFactory.getLogger(DataPointsParser.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(DataPointsParser.class);
   private Reader inputStream = null;
   private final ObjectMapper mapper = new ObjectMapper();
   private List<Metric> metricList = new ArrayList<>();
@@ -53,7 +53,7 @@ public class DataPointsParser {
     try {
       session.openSession();
     } catch (SessionException e) {
-      logger.error("Error occurred during opening session", e);
+      LOGGER.error("Error occurred during opening session", e);
       throw e;
     }
     try {
@@ -66,13 +66,13 @@ public class DataPointsParser {
         metricList.add(getMetricObject(node));
       }
     } catch (Exception e) {
-      logger.error("Error occurred during parsing data ", e);
+      LOGGER.error("Error occurred during parsing data ", e);
       throw e;
     }
     try {
       sendMetricsData();
     } catch (Exception e) {
-      logger.debug("Exception occur for create and send ", e);
+      LOGGER.debug("Exception occur for create and send ", e);
       throw e;
     } finally {
       session.closeSession();
@@ -82,7 +82,7 @@ public class DataPointsParser {
   private boolean ifInputDataValid(JsonNode node) {
     String name = node.get("name").toString();
     if (!name.contains(".")) {
-      logger.error("The input path should contains at least second order path");
+      LOGGER.error("The input path should contains at least second order path");
       return false;
     }
     return true;
@@ -142,7 +142,7 @@ public class DataPointsParser {
       }
       return ret;
     } catch (Exception e) {
-      logger.error("Error occurred during parsing data ", e);
+      LOGGER.error("Error occurred during parsing data ", e);
       throw e;
     }
   }
@@ -152,7 +152,7 @@ public class DataPointsParser {
       session.openSession();
       sendMetricsData();
     } catch (Exception e) {
-      logger.error("Error occurred during sending data ", e);
+      LOGGER.error("Error occurred during sending data ", e);
     }
     session.closeSession();
   }
@@ -199,7 +199,7 @@ public class DataPointsParser {
         }
       }
     } catch (Exception e) {
-      logger.error("Error occurred during execution ", e);
+      LOGGER.error("Error occurred during execution ", e);
       return -1L;
     }
   }
@@ -229,8 +229,8 @@ public class DataPointsParser {
           type,
           null,
           TimePrecision.NS);
-    } catch (ExecutionException e) {
-      logger.error("Error occurred during insert ", e);
+    } catch (SessionException e) {
+      LOGGER.error("Error occurred during insert ", e);
       throw e;
     }
   }
@@ -258,8 +258,8 @@ public class DataPointsParser {
           type,
           null,
           TimePrecision.NS);
-    } catch (ExecutionException e) {
-      logger.error("Error occurred during insert ", e);
+    } catch (SessionException e) {
+      LOGGER.error("Error occurred during insert ", e);
       throw e;
     }
   }
@@ -309,8 +309,8 @@ public class DataPointsParser {
             type,
             tagsList,
             TimePrecision.NS);
-      } catch (ExecutionException e) {
-        logger.error("Error occurred during insert ", e);
+      } catch (SessionException e) {
+        LOGGER.error("Error occurred during insert ", e);
         throw e;
       }
     } else {
@@ -321,34 +321,10 @@ public class DataPointsParser {
 
   private void sendMetricsData() throws Exception {
     for (Metric metric : metricList) {
-      List<Map<String, String>> tagsList = new ArrayList<>();
-      tagsList.add(metric.getTags());
-
-      List<String> paths = new ArrayList<>();
-      paths.add(metric.getName());
-
-      int size = metric.getKeys().size();
-      List<DataType> type = new ArrayList<>();
-      type.add(findType(metric.getValues()));
-
-      Object[] valuesList = new Object[1];
-      Object[] values = new Object[size];
-      for (int i = 0; i < size; i++) {
-        values[i] = getType(metric.getValues().get(i), type.get(0));
-      }
-      valuesList[0] = values;
       try {
-        session.insertNonAlignedColumnRecords(
-            paths,
-            metric.getKeys().stream().mapToLong(Long::longValue).toArray(),
-            valuesList,
-            type,
-            tagsList);
-        if (!metric.getAnno().isEmpty()) {
-          insertAnno(paths, tagsList, metric.getAnno(), type.get(0));
-        }
-      } catch (ExecutionException e) {
-        logger.error("Error occurred during insert ", e);
+        insertExe(metric, TimeUtils.DEFAULT_TIMESTAMP_PRECISION);
+      } catch (StatementExecutionException e) {
+        LOGGER.error("Error occurred during insert ", e);
         throw e;
       }
     }
@@ -356,22 +332,7 @@ public class DataPointsParser {
 
   private Map<String, String> getTagsFromPaths(String path, StringBuilder name) { // LHZ确认下是否传入了引用
     Map<String, String> ret = new TreeMap<>(); // LHZ这里要再次确认下tag的顺序是否和底层存储一样
-    int firstBrace = path.indexOf("{");
-    int lastBrace = path.indexOf("}");
-    if (firstBrace == -1 || lastBrace == -1) {
-      name.append(path);
-      return ret;
-    }
-    name.append(path, 0, firstBrace);
-    String tagLists = path.substring(firstBrace + 1, lastBrace);
-    String[] splitPaths = tagLists.split(",");
-    for (String tag : splitPaths) {
-      int equalPos = tag.indexOf("=");
-      String tagKey = tag.substring(0, equalPos);
-      String tagVal = tag.substring(equalPos + 1);
-      ret.put(tagKey, tagVal);
-    }
-
+    TagKVUtils.fillNameAndTagMap(path, name, ret);
     return ret;
   }
 
@@ -418,8 +379,8 @@ public class DataPointsParser {
       if (!metric.getAnno().isEmpty()) {
         insertAnno(paths, taglist, metric.getAnno(), type.get(0));
       }
-    } catch (ExecutionException e) {
-      logger.error("Error occurred during insert ", e);
+    } catch (StatementExecutionException e) {
+      LOGGER.error("Error occurred during insert ", e);
       throw e;
     }
   }
@@ -430,7 +391,7 @@ public class DataPointsParser {
     try {
       session.openSession();
     } catch (SessionException e) {
-      logger.error("Error occurred during opening session", e);
+      LOGGER.error("Error occurred during opening session", e);
       throw e;
     }
     try {
@@ -456,7 +417,7 @@ public class DataPointsParser {
         }
       }
     } catch (Exception e) {
-      logger.debug("Exception occur for create and send ", e);
+      LOGGER.debug("Exception occur for create and send ", e);
       throw e;
     } finally {
       session.closeSession();
@@ -487,7 +448,7 @@ public class DataPointsParser {
     try {
       session.openSession();
     } catch (SessionException e) {
-      logger.error("Error occurred during opening session", e);
+      LOGGER.error("Error occurred during opening session", e);
       throw e;
     }
     try {
@@ -511,7 +472,7 @@ public class DataPointsParser {
         }
       }
     } catch (Exception e) {
-      logger.debug("Exception occur for create and send ", e);
+      LOGGER.debug("Exception occur for create and send ", e);
       throw e;
     } finally {
       session.closeSession();

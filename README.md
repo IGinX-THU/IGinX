@@ -8,7 +8,7 @@ IGinX (Intelligent enGine X) aims to facilitate users in profiting from their da
 
 ## Installation
 
-See the [getting started](https://github.com/IGinX-THU/IGinX/blob/main/docs/getting_started.md) documentation to start a IGinX in various ways.
+See the [getting started](./docs/getting_started.md) documentation to start a IGinX in various ways.
 
 ## Team and Contributions
 
@@ -18,7 +18,7 @@ IGinX is open for new team members or contributions. If you would like to join o
 
 ## License
 
-[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 © 2023 (Tsinghua University).
 
 Please note that this refers to the middleware pieces of the IGinX system.

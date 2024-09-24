@@ -1,8 +1,27 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package cn.edu.tsinghua.iginx.utils;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.Arrays;
 
 public class ShellRunner {
 
@@ -32,6 +51,35 @@ public class ShellRunner {
       if (p.exitValue() != 0) {
         throw new Exception("tests fail!");
       }
+    } finally {
+      if (p != null) {
+        p.destroy();
+      }
+    }
+  }
+
+  // to directly run command(compare to scripts)
+  public static void runCommand(String... command) throws Exception {
+    Process p = null;
+    try {
+      ProcessBuilder builder = new ProcessBuilder();
+      builder.command(command);
+      builder.redirectErrorStream(true);
+      p = builder.start();
+      BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()));
+      String line;
+      while ((line = br.readLine()) != null) {
+        System.out.println(line);
+      }
+
+      p.waitFor();
+      int i = p.exitValue();
+      if (i != 0) {
+        throw new Exception(
+            "process exited with value: " + i + "; command: " + Arrays.toString(command));
+      }
+    } catch (IOException | SecurityException e) {
+      throw new Exception("run command failed: " + e.getMessage());
     } finally {
       if (p != null) {
         p.destroy();

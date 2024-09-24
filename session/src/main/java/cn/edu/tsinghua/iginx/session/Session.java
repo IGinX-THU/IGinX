@@ -1,33 +1,32 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 package cn.edu.tsinghua.iginx.session;
 
 import static cn.edu.tsinghua.iginx.utils.ByteUtils.getByteArrayFromLongArray;
+import static cn.edu.tsinghua.iginx.utils.HostUtils.isLocalHost;
 
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
-import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.thrift.*;
-import cn.edu.tsinghua.iginx.utils.Bitmap;
-import cn.edu.tsinghua.iginx.utils.ByteUtils;
-import cn.edu.tsinghua.iginx.utils.Pair;
-import cn.edu.tsinghua.iginx.utils.RpcUtils;
+import cn.edu.tsinghua.iginx.utils.*;
+import java.io.File;
+import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.security.InvalidParameterException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -49,7 +48,7 @@ import org.slf4j.LoggerFactory;
 
 public class Session {
 
-  private static final Logger logger = LoggerFactory.getLogger(Session.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(Session.class);
 
   private static final int MAX_REDIRECT_TIME = 3;
 
@@ -101,7 +100,7 @@ public class Session {
   }
 
   private synchronized boolean checkRedirect(Status status) throws SessionException, TException {
-    if (RpcUtils.verifyNoRedirect(status)) {
+    if (StatusUtils.verifyNoRedirect(status)) {
       redirectTimes = 0;
       return false;
     }
@@ -122,13 +121,13 @@ public class Session {
         if (targetAddress.length != 2) {
           throw new SessionException("unexpected redirect address " + status.getMessage());
         }
-        logger.info("当前请求将被重定向到：" + status.getMessage());
+        LOGGER.info("当前请求将被重定向到：{}", status.getMessage());
         this.host = targetAddress[0];
         this.port = Integer.parseInt(targetAddress[1]);
 
         OpenSessionResp resp = tryOpenSession();
 
-        if (RpcUtils.verifyNoRedirect(resp.status)) {
+        if (StatusUtils.verifyNoRedirect(resp.status)) {
           sessionId = resp.getSessionId();
           break;
         }
@@ -189,7 +188,7 @@ public class Session {
       do {
         OpenSessionResp resp = tryOpenSession();
 
-        if (RpcUtils.verifyNoRedirect(resp.status)) {
+        if (StatusUtils.verifyNoRedirect(resp.status)) {
           sessionId = resp.getSessionId();
           break;
         }
@@ -200,7 +199,7 @@ public class Session {
         if (targetAddress.length != 2) {
           throw new SessionException("unexpected redirect address " + resp.status.getMessage());
         }
-        logger.info("当前请求将被重定向到：" + resp.status.getMessage());
+        LOGGER.info("当前请求将被重定向到：{}", resp.status.getMessage());
 
         this.host = targetAddress[0];
         this.port = Integer.parseInt(targetAddress[1]);
@@ -245,7 +244,7 @@ public class Session {
     Status exec() throws TException;
   }
 
-  private void executeWithCheck(SessionExecution proc) throws SessionException, ExecutionException {
+  private void executeWithCheck(SessionExecution proc) throws SessionException {
     try {
       Status status;
       do {
@@ -256,7 +255,7 @@ public class Session {
           lock.writeLock().unlock();
         }
       } while (checkRedirect(status));
-      RpcUtils.verifySuccess(status);
+      StatusUtils.verifySuccess(status);
     } catch (TException e) {
       throw new SessionException(e);
     }
@@ -264,18 +263,17 @@ public class Session {
 
   public void addStorageEngine(
       String ip, int port, StorageEngineType type, Map<String, String> extraParams)
-      throws SessionException, ExecutionException {
+      throws SessionException {
     StorageEngine storageEngine = new StorageEngine(ip, port, type, extraParams);
     addStorageEngines(Collections.singletonList(storageEngine));
   }
 
-  public void addStorageEngines(List<StorageEngine> storageEngines)
-      throws SessionException, ExecutionException {
+  public void addStorageEngines(List<StorageEngine> storageEngines) throws SessionException {
     AddStorageEnginesReq req = new AddStorageEnginesReq(sessionId, storageEngines);
     executeWithCheck(() -> client.addStorageEngines(req));
   }
 
-  public List<Column> showColumns() throws SessionException, ExecutionException {
+  public List<Column> showColumns() throws SessionException {
     ShowColumnsReq req = new ShowColumnsReq(sessionId);
     Reference<ShowColumnsResp> ref = new Reference<>();
     executeWithCheck(() -> (ref.resp = client.showColumns(req)).status);
@@ -286,19 +284,19 @@ public class Session {
     return columns;
   }
 
-  public void deleteColumn(String path) throws SessionException, ExecutionException {
+  public void deleteColumn(String path) throws SessionException {
     List<String> paths = new ArrayList<>();
     paths.add(path);
     deleteColumns(paths);
   }
 
-  public void deleteColumns(List<String> paths) throws SessionException, ExecutionException {
+  public void deleteColumns(List<String> paths) throws SessionException {
     deleteColumns(paths, null, null);
   }
 
   public void deleteColumns(
       List<String> paths, List<Map<String, List<String>>> tags, TagFilterType type)
-      throws SessionException, ExecutionException {
+      throws SessionException {
     DeleteColumnsReq req = new DeleteColumnsReq(sessionId, mergeAndSortPaths(paths));
     if (tags != null && !tags.isEmpty()) {
       req.setTagsList(tags);
@@ -310,53 +308,50 @@ public class Session {
   }
 
   public void insertColumnRecords(
-      List<String> paths, long[] timestamps, Object[] valuesList, List<DataType> dataTypeList)
-      throws SessionException, ExecutionException {
-    insertColumnRecords(paths, timestamps, valuesList, dataTypeList, null, timeUnit);
+      List<String> paths, long[] keys, Object[] valuesList, List<DataType> dataTypeList)
+      throws SessionException {
+    insertColumnRecords(paths, keys, valuesList, dataTypeList, null, timeUnit);
   }
 
   public void insertColumnRecords(
       List<String> paths,
-      long[] timestamps,
+      long[] keys,
       Object[] valuesList,
       List<DataType> dataTypeList,
       List<Map<String, String>> tagsList)
-      throws SessionException, ExecutionException {
-    insertColumnRecords(paths, timestamps, valuesList, dataTypeList, tagsList, timeUnit);
+      throws SessionException {
+    insertColumnRecords(paths, keys, valuesList, dataTypeList, tagsList, timeUnit);
   }
 
   public void insertColumnRecords(
       List<String> paths,
-      long[] timestamps,
+      long[] keys,
       Object[] valuesList,
       List<DataType> dataTypeList,
       List<Map<String, String>> tagsList,
       TimePrecision precision)
-      throws SessionException, ExecutionException {
-    if (paths.isEmpty()
-        || timestamps.length == 0
-        || valuesList.length == 0
-        || dataTypeList.isEmpty()) {
-      logger.error("Invalid insert request!");
+      throws SessionException {
+    if (paths.isEmpty() || keys.length == 0 || valuesList.length == 0 || dataTypeList.isEmpty()) {
+      LOGGER.error("Invalid insert request!");
       return;
     }
     if (paths.size() != valuesList.length || paths.size() != dataTypeList.size()) {
-      logger.error("The sizes of paths, valuesList and dataTypeList should be equal.");
+      LOGGER.error("The sizes of paths, valuesList and dataTypeList should be equal.");
       return;
     }
     if (tagsList != null && !tagsList.isEmpty() && paths.size() != tagsList.size()) {
-      logger.error("The sizes of paths, valuesList, dataTypeList and tagsList should be equal.");
+      LOGGER.error("The sizes of paths, valuesList, dataTypeList and tagsList should be equal.");
       return;
     }
 
-    long[] sortedTimestamps = Arrays.copyOf(timestamps, timestamps.length);
-    Integer[] index = new Integer[sortedTimestamps.length];
-    for (int i = 0; i < sortedTimestamps.length; i++) {
+    long[] sortedKeys = Arrays.copyOf(keys, keys.length);
+    Integer[] index = new Integer[sortedKeys.length];
+    for (int i = 0; i < sortedKeys.length; i++) {
       index[i] = i;
     }
     Arrays.sort(
-        index, Comparator.comparingLong(Arrays.asList(ArrayUtils.toObject(sortedTimestamps))::get));
-    Arrays.sort(sortedTimestamps);
+        index, Comparator.comparingLong(Arrays.asList(ArrayUtils.toObject(sortedKeys))::get));
+    Arrays.sort(sortedKeys);
     for (int i = 0; i < valuesList.length; i++) {
       Object[] values = new Object[index.length];
       for (int j = 0; j < index.length; j++) {
@@ -389,13 +384,13 @@ public class Session {
     List<ByteBuffer> bitmapBufferList = new ArrayList<>();
     for (int i = 0; i < sortedValuesList.length; i++) {
       Object[] values = (Object[]) sortedValuesList[i];
-      if (values.length != sortedTimestamps.length) {
-        logger.error("The sizes of timestamps and the element of valuesList should be equal.");
+      if (values.length != sortedKeys.length) {
+        LOGGER.error("The sizes of keys and the element of valuesList should be equal.");
         return;
       }
       valueBufferList.add(ByteUtils.getColumnByteBuffer(values, sortedDataTypeList.get(i)));
-      Bitmap bitmap = new Bitmap(sortedTimestamps.length);
-      for (int j = 0; j < sortedTimestamps.length; j++) {
+      Bitmap bitmap = new Bitmap(sortedKeys.length);
+      for (int j = 0; j < sortedKeys.length; j++) {
         if (values[j] != null) {
           bitmap.mark(j);
         }
@@ -406,7 +401,7 @@ public class Session {
     InsertColumnRecordsReq req = new InsertColumnRecordsReq();
     req.setSessionId(sessionId);
     req.setPaths(sortedPaths);
-    req.setKeys(getByteArrayFromLongArray(sortedTimestamps));
+    req.setKeys(getByteArrayFromLongArray(sortedKeys));
     req.setValuesList(valueBufferList);
     req.setBitmapList(bitmapBufferList);
     req.setDataTypeList(sortedDataTypeList);
@@ -417,53 +412,50 @@ public class Session {
   }
 
   public void insertNonAlignedColumnRecords(
-      List<String> paths, long[] timestamps, Object[] valuesList, List<DataType> dataTypeList)
-      throws SessionException, ExecutionException {
-    insertNonAlignedColumnRecords(paths, timestamps, valuesList, dataTypeList, null, timeUnit);
+      List<String> paths, long[] keys, Object[] valuesList, List<DataType> dataTypeList)
+      throws SessionException {
+    insertNonAlignedColumnRecords(paths, keys, valuesList, dataTypeList, null, timeUnit);
   }
 
   public void insertNonAlignedColumnRecords(
       List<String> paths,
-      long[] timestamps,
+      long[] keys,
       Object[] valuesList,
       List<DataType> dataTypeList,
       List<Map<String, String>> tagsList)
-      throws SessionException, ExecutionException {
-    insertNonAlignedColumnRecords(paths, timestamps, valuesList, dataTypeList, tagsList, timeUnit);
+      throws SessionException {
+    insertNonAlignedColumnRecords(paths, keys, valuesList, dataTypeList, tagsList, timeUnit);
   }
 
   public void insertNonAlignedColumnRecords(
       List<String> paths,
-      long[] timestamps,
+      long[] keys,
       Object[] valuesList,
       List<DataType> dataTypeList,
       List<Map<String, String>> tagsList,
       TimePrecision precision)
-      throws SessionException, ExecutionException {
-    if (paths.isEmpty()
-        || timestamps.length == 0
-        || valuesList.length == 0
-        || dataTypeList.isEmpty()) {
-      logger.error("Invalid insert request!");
+      throws SessionException {
+    if (paths.isEmpty() || keys.length == 0 || valuesList.length == 0 || dataTypeList.isEmpty()) {
+      LOGGER.error("Invalid insert request!");
       return;
     }
     if (paths.size() != valuesList.length || paths.size() != dataTypeList.size()) {
-      logger.error("The sizes of paths, valuesList and dataTypeList should be equal.");
+      LOGGER.error("The sizes of paths, valuesList and dataTypeList should be equal.");
       return;
     }
     if (tagsList != null && !tagsList.isEmpty() && paths.size() != tagsList.size()) {
-      logger.error("The sizes of paths, valuesList, dataTypeList and tagsList should be equal.");
+      LOGGER.error("The sizes of paths, valuesList, dataTypeList and tagsList should be equal.");
       return;
     }
 
-    long[] sortedTimestamps = Arrays.copyOf(timestamps, timestamps.length);
-    Integer[] index = new Integer[sortedTimestamps.length];
-    for (int i = 0; i < sortedTimestamps.length; i++) {
+    long[] sortedKeys = Arrays.copyOf(keys, keys.length);
+    Integer[] index = new Integer[sortedKeys.length];
+    for (int i = 0; i < sortedKeys.length; i++) {
       index[i] = i;
     }
     Arrays.sort(
-        index, Comparator.comparingLong(Arrays.asList(ArrayUtils.toObject(sortedTimestamps))::get));
-    Arrays.sort(sortedTimestamps);
+        index, Comparator.comparingLong(Arrays.asList(ArrayUtils.toObject(sortedKeys))::get));
+    Arrays.sort(sortedKeys);
     for (int i = 0; i < valuesList.length; i++) {
       Object[] values = new Object[index.length];
       for (int j = 0; j < index.length; j++) {
@@ -496,13 +488,13 @@ public class Session {
     List<ByteBuffer> bitmapBufferList = new ArrayList<>();
     for (int i = 0; i < sortedValuesList.length; i++) {
       Object[] values = (Object[]) sortedValuesList[i];
-      if (values.length != sortedTimestamps.length) {
-        logger.error("The sizes of timestamps and the element of valuesList should be equal.");
+      if (values.length != sortedKeys.length) {
+        LOGGER.error("The sizes of keys and the element of valuesList should be equal.");
         return;
       }
       valueBufferList.add(ByteUtils.getColumnByteBuffer(values, sortedDataTypeList.get(i)));
-      Bitmap bitmap = new Bitmap(sortedTimestamps.length);
-      for (int j = 0; j < sortedTimestamps.length; j++) {
+      Bitmap bitmap = new Bitmap(sortedKeys.length);
+      for (int j = 0; j < sortedKeys.length; j++) {
         if (values[j] != null) {
           bitmap.mark(j);
         }
@@ -513,7 +505,7 @@ public class Session {
     InsertNonAlignedColumnRecordsReq req = new InsertNonAlignedColumnRecordsReq();
     req.setSessionId(sessionId);
     req.setPaths(sortedPaths);
-    req.setKeys(getByteArrayFromLongArray(sortedTimestamps));
+    req.setKeys(getByteArrayFromLongArray(sortedKeys));
     req.setValuesList(valueBufferList);
     req.setBitmapList(bitmapBufferList);
     req.setDataTypeList(sortedDataTypeList);
@@ -525,50 +517,47 @@ public class Session {
 
   public void insertRowRecords(
       List<String> paths,
-      long[] timestamps,
+      long[] keys,
       Object[] valuesList,
       List<DataType> dataTypeList,
       List<Map<String, String>> tagsList)
-      throws SessionException, ExecutionException {
-    insertRowRecords(paths, timestamps, valuesList, dataTypeList, tagsList, timeUnit);
+      throws SessionException {
+    insertRowRecords(paths, keys, valuesList, dataTypeList, tagsList, timeUnit);
   }
 
   public void insertRowRecords(
       List<String> paths,
-      long[] timestamps,
+      long[] keys,
       Object[] valuesList,
       List<DataType> dataTypeList,
       List<Map<String, String>> tagsList,
       TimePrecision precision)
-      throws SessionException, ExecutionException {
-    if (paths.isEmpty()
-        || timestamps.length == 0
-        || valuesList.length == 0
-        || dataTypeList.isEmpty()) {
-      logger.error("Invalid insert request!");
+      throws SessionException {
+    if (paths.isEmpty() || keys.length == 0 || valuesList.length == 0 || dataTypeList.isEmpty()) {
+      LOGGER.error("Invalid insert request!");
       return;
     }
     if (paths.size() != dataTypeList.size()) {
-      logger.error("The sizes of paths and dataTypeList should be equal.");
+      LOGGER.error("The sizes of paths and dataTypeList should be equal.");
       return;
     }
-    if (timestamps.length != valuesList.length) {
-      logger.error("The sizes of timestamps and valuesList should be equal.");
+    if (keys.length != valuesList.length) {
+      LOGGER.error("The sizes of keys and valuesList should be equal.");
       return;
     }
     if (tagsList != null && !tagsList.isEmpty() && paths.size() != tagsList.size()) {
-      logger.error("The sizes of paths, valuesList, dataTypeList and tagsList should be equal.");
+      LOGGER.error("The sizes of paths, valuesList, dataTypeList and tagsList should be equal.");
       return;
     }
 
-    long[] sortedTimestamps = Arrays.copyOf(timestamps, timestamps.length);
-    Integer[] index = new Integer[sortedTimestamps.length];
-    for (int i = 0; i < sortedTimestamps.length; i++) {
+    long[] sortedKeys = Arrays.copyOf(keys, keys.length);
+    Integer[] index = new Integer[sortedKeys.length];
+    for (int i = 0; i < sortedKeys.length; i++) {
       index[i] = i;
     }
     Arrays.sort(
-        index, Comparator.comparingLong(Arrays.asList(ArrayUtils.toObject(sortedTimestamps))::get));
-    Arrays.sort(sortedTimestamps);
+        index, Comparator.comparingLong(Arrays.asList(ArrayUtils.toObject(sortedKeys))::get));
+    Arrays.sort(sortedKeys);
     Object[] sortedValuesList = new Object[valuesList.length];
     for (int i = 0; i < valuesList.length; i++) {
       sortedValuesList[i] = valuesList[index[i]];
@@ -601,10 +590,10 @@ public class Session {
 
     List<ByteBuffer> valueBufferList = new ArrayList<>();
     List<ByteBuffer> bitmapBufferList = new ArrayList<>();
-    for (int i = 0; i < sortedTimestamps.length; i++) {
+    for (int i = 0; i < sortedKeys.length; i++) {
       Object[] values = (Object[]) sortedValuesList[i];
       if (values.length != sortedPaths.size()) {
-        logger.error("The sizes of paths and the element of valuesList should be equal.");
+        LOGGER.error("The sizes of paths and the element of valuesList should be equal.");
         return;
       }
       valueBufferList.add(ByteUtils.getRowByteBuffer(values, sortedDataTypeList));
@@ -620,7 +609,7 @@ public class Session {
     InsertRowRecordsReq req = new InsertRowRecordsReq();
     req.setSessionId(sessionId);
     req.setPaths(sortedPaths);
-    req.setKeys(getByteArrayFromLongArray(sortedTimestamps));
+    req.setKeys(getByteArrayFromLongArray(sortedKeys));
     req.setValuesList(valueBufferList);
     req.setBitmapList(bitmapBufferList);
     req.setDataTypeList(sortedDataTypeList);
@@ -631,57 +620,54 @@ public class Session {
   }
 
   public void insertNonAlignedRowRecords(
-      List<String> paths, long[] timestamps, Object[] valuesList, List<DataType> dataTypeList)
-      throws SessionException, ExecutionException {
-    insertNonAlignedRowRecords(paths, timestamps, valuesList, dataTypeList, null, timeUnit);
+      List<String> paths, long[] keys, Object[] valuesList, List<DataType> dataTypeList)
+      throws SessionException {
+    insertNonAlignedRowRecords(paths, keys, valuesList, dataTypeList, null, timeUnit);
   }
 
   public void insertNonAlignedRowRecords(
       List<String> paths,
-      long[] timestamps,
+      long[] keys,
       Object[] valuesList,
       List<DataType> dataTypeList,
       List<Map<String, String>> tagsList)
-      throws SessionException, ExecutionException {
-    insertNonAlignedRowRecords(paths, timestamps, valuesList, dataTypeList, tagsList, timeUnit);
+      throws SessionException {
+    insertNonAlignedRowRecords(paths, keys, valuesList, dataTypeList, tagsList, timeUnit);
   }
 
   public void insertNonAlignedRowRecords(
       List<String> paths,
-      long[] timestamps,
+      long[] keys,
       Object[] valuesList,
       List<DataType> dataTypeList,
       List<Map<String, String>> tagsList,
       TimePrecision precision)
-      throws SessionException, ExecutionException {
-    if (paths.isEmpty()
-        || timestamps.length == 0
-        || valuesList.length == 0
-        || dataTypeList.isEmpty()) {
-      logger.error("Invalid insert request!");
+      throws SessionException {
+    if (paths.isEmpty() || keys.length == 0 || valuesList.length == 0 || dataTypeList.isEmpty()) {
+      LOGGER.error("Invalid insert request!");
       return;
     }
     if (paths.size() != dataTypeList.size()) {
-      logger.error("The sizes of paths and dataTypeList should be equal.");
+      LOGGER.error("The sizes of paths and dataTypeList should be equal.");
       return;
     }
-    if (timestamps.length != valuesList.length) {
-      logger.error("The sizes of timestamps and valuesList should be equal.");
+    if (keys.length != valuesList.length) {
+      LOGGER.error("The sizes of keys and valuesList should be equal.");
       return;
     }
     if (tagsList != null && !tagsList.isEmpty() && paths.size() != tagsList.size()) {
-      logger.error("The sizes of paths, valuesList, dataTypeList and tagsList should be equal.");
+      LOGGER.error("The sizes of paths, valuesList, dataTypeList and tagsList should be equal.");
       return;
     }
 
-    long[] sortedTimestamps = Arrays.copyOf(timestamps, timestamps.length);
-    Integer[] index = new Integer[sortedTimestamps.length];
-    for (int i = 0; i < sortedTimestamps.length; i++) {
+    long[] sortedKeys = Arrays.copyOf(keys, keys.length);
+    Integer[] index = new Integer[sortedKeys.length];
+    for (int i = 0; i < sortedKeys.length; i++) {
       index[i] = i;
     }
     Arrays.sort(
-        index, Comparator.comparingLong(Arrays.asList(ArrayUtils.toObject(sortedTimestamps))::get));
-    Arrays.sort(sortedTimestamps);
+        index, Comparator.comparingLong(Arrays.asList(ArrayUtils.toObject(sortedKeys))::get));
+    Arrays.sort(sortedKeys);
     Object[] sortedValuesList = new Object[valuesList.length];
     for (int i = 0; i < valuesList.length; i++) {
       sortedValuesList[i] = valuesList[index[i]];
@@ -714,10 +700,10 @@ public class Session {
 
     List<ByteBuffer> valueBufferList = new ArrayList<>();
     List<ByteBuffer> bitmapBufferList = new ArrayList<>();
-    for (int i = 0; i < sortedTimestamps.length; i++) {
+    for (int i = 0; i < sortedKeys.length; i++) {
       Object[] values = (Object[]) sortedValuesList[i];
       if (values.length != sortedPaths.size()) {
-        logger.error("The sizes of paths and the element of valuesList should be equal.");
+        LOGGER.error("The sizes of paths and the element of valuesList should be equal.");
         return;
       }
       valueBufferList.add(ByteUtils.getRowByteBuffer(values, sortedDataTypeList));
@@ -733,7 +719,7 @@ public class Session {
     InsertNonAlignedRowRecordsReq req = new InsertNonAlignedRowRecordsReq();
     req.setSessionId(sessionId);
     req.setPaths(sortedPaths);
-    req.setKeys(getByteArrayFromLongArray(sortedTimestamps));
+    req.setKeys(getByteArrayFromLongArray(sortedKeys));
     req.setValuesList(valueBufferList);
     req.setBitmapList(bitmapBufferList);
     req.setDataTypeList(sortedDataTypeList);
@@ -743,14 +729,13 @@ public class Session {
     executeWithCheck(() -> client.insertNonAlignedRowRecords(req));
   }
 
-  public void deleteDataInColumn(String path, long startKey, long endKey)
-      throws SessionException, ExecutionException {
+  public void deleteDataInColumn(String path, long startKey, long endKey) throws SessionException {
     List<String> paths = Collections.singletonList(path);
     deleteDataInColumns(paths, startKey, endKey);
   }
 
   public void deleteDataInColumns(List<String> paths, long startKey, long endKey)
-      throws SessionException, ExecutionException {
+      throws SessionException {
     deleteDataInColumns(paths, startKey, endKey, null, null);
   }
 
@@ -760,7 +745,7 @@ public class Session {
       long endKey,
       List<Map<String, List<String>>> tagsList,
       TagFilterType type)
-      throws SessionException, ExecutionException {
+      throws SessionException {
     DeleteDataInColumnsReq req =
         new DeleteDataInColumnsReq(sessionId, mergeAndSortPaths(paths), startKey, endKey);
 
@@ -775,13 +760,13 @@ public class Session {
   }
 
   public SessionQueryDataSet queryData(List<String> paths, long startKey, long endKey)
-      throws SessionException, ExecutionException {
+      throws SessionException {
     return queryData(paths, startKey, endKey, null, timeUnit);
   }
 
   public SessionQueryDataSet queryData(
       List<String> paths, long startKey, long endKey, List<Map<String, List<String>>> tagsList)
-      throws SessionException, ExecutionException {
+      throws SessionException {
     return queryData(paths, startKey, endKey, tagsList, timeUnit);
   }
 
@@ -791,9 +776,9 @@ public class Session {
       long endKey,
       List<Map<String, List<String>>> tagsList,
       TimePrecision timePrecision)
-      throws SessionException, ExecutionException {
+      throws SessionException {
     if (paths.isEmpty() || startKey > endKey) {
-      logger.error("Invalid query request!");
+      LOGGER.error("Invalid query request!");
       return null;
     }
     QueryDataReq req = new QueryDataReq(sessionId, mergeAndSortPaths(paths), startKey, endKey);
@@ -811,7 +796,7 @@ public class Session {
 
   public SessionAggregateQueryDataSet aggregateQuery(
       List<String> paths, long startKey, long endKey, AggregateType aggregateType)
-      throws SessionException, ExecutionException {
+      throws SessionException {
     return aggregateQuery(paths, startKey, endKey, aggregateType, null, timeUnit);
   }
 
@@ -821,7 +806,7 @@ public class Session {
       long endKey,
       AggregateType aggregateType,
       TimePrecision timePrecision)
-      throws SessionException, ExecutionException {
+      throws SessionException {
     return aggregateQuery(paths, startKey, endKey, aggregateType, null, timePrecision);
   }
 
@@ -831,7 +816,7 @@ public class Session {
       long endKey,
       AggregateType aggregateType,
       List<Map<String, List<String>>> tagsList)
-      throws SessionException, ExecutionException {
+      throws SessionException {
     return aggregateQuery(paths, startKey, endKey, aggregateType, tagsList, timeUnit);
   }
 
@@ -842,7 +827,7 @@ public class Session {
       AggregateType aggregateType,
       List<Map<String, List<String>>> tagsList,
       TimePrecision timePrecision)
-      throws SessionException, ExecutionException {
+      throws SessionException {
     AggregateQueryReq req =
         new AggregateQueryReq(sessionId, mergeAndSortPaths(paths), startKey, endKey, aggregateType);
 
@@ -864,13 +849,13 @@ public class Session {
       AggregateType aggregateType,
       long precision,
       TimePrecision timePrecision)
-      throws SessionException, ExecutionException {
+      throws SessionException {
     return downsampleQuery(paths, startKey, endKey, aggregateType, precision, null, timePrecision);
   }
 
   public SessionQueryDataSet downsampleQuery(
       List<String> paths, long startKey, long endKey, AggregateType aggregateType, long precision)
-      throws SessionException, ExecutionException {
+      throws SessionException {
     return downsampleQuery(paths, startKey, endKey, aggregateType, precision, null, timeUnit);
   }
 
@@ -881,7 +866,7 @@ public class Session {
       AggregateType aggregateType,
       long precision,
       List<Map<String, List<String>>> tagsList)
-      throws SessionException, ExecutionException {
+      throws SessionException {
     return downsampleQuery(paths, startKey, endKey, aggregateType, precision, tagsList, timeUnit);
   }
 
@@ -893,7 +878,7 @@ public class Session {
       long precision,
       List<Map<String, List<String>>> tagsList,
       TimePrecision timePrecision)
-      throws SessionException, ExecutionException {
+      throws SessionException {
     DownsampleQueryReq req =
         new DownsampleQueryReq(
             sessionId, mergeAndSortPaths(paths), startKey, endKey, aggregateType, precision);
@@ -909,7 +894,7 @@ public class Session {
     return new SessionQueryDataSet(ref.resp);
   }
 
-  public int getReplicaNum() throws SessionException, ExecutionException {
+  public int getReplicaNum() throws SessionException {
     GetReplicaNumReq req = new GetReplicaNumReq(sessionId);
     Reference<GetReplicaNumResp> ref = new Reference<>();
     executeWithCheck(() -> (ref.resp = client.getReplicaNum(req)).status);
@@ -917,8 +902,7 @@ public class Session {
     return ref.resp.getReplicaNum();
   }
 
-  public SessionExecuteSqlResult executeSql(String statement)
-      throws SessionException, ExecutionException {
+  public SessionExecuteSqlResult executeSql(String statement) throws SessionException {
     ExecuteSqlReq req = new ExecuteSqlReq(sessionId, statement);
     Reference<ExecuteSqlResp> ref = new Reference<>();
     executeWithCheck(() -> (ref.resp = client.executeSql(req)).status);
@@ -927,19 +911,17 @@ public class Session {
   }
 
   public SessionQueryDataSet queryLast(
-      List<String> paths, long startKey, TimePrecision timePrecision)
-      throws SessionException, ExecutionException {
+      List<String> paths, long startKey, TimePrecision timePrecision) throws SessionException {
     return queryLast(paths, startKey, null, timePrecision);
   }
 
-  public SessionQueryDataSet queryLast(List<String> paths, long startKey)
-      throws SessionException, ExecutionException {
+  public SessionQueryDataSet queryLast(List<String> paths, long startKey) throws SessionException {
     return queryLast(paths, startKey, null, timeUnit);
   }
 
   public SessionQueryDataSet queryLast(
       List<String> paths, long startKey, List<Map<String, List<String>>> tagsList)
-      throws SessionException, ExecutionException {
+      throws SessionException {
     return queryLast(paths, startKey, tagsList, timeUnit);
   }
 
@@ -948,9 +930,9 @@ public class Session {
       long startKey,
       List<Map<String, List<String>>> tagsList,
       TimePrecision timePrecision)
-      throws SessionException, ExecutionException {
+      throws SessionException {
     if (paths.isEmpty()) {
-      logger.error("Invalid query request!");
+      LOGGER.error("Invalid query request!");
       return null;
     }
 
@@ -967,13 +949,13 @@ public class Session {
   }
 
   public void addUser(String username, String password, Set<AuthType> auths)
-      throws SessionException, ExecutionException {
+      throws SessionException {
     AddUserReq req = new AddUserReq(sessionId, username, password, auths);
     executeWithCheck(() -> client.addUser(req));
   }
 
   public void updateUser(String username, String password, Set<AuthType> auths)
-      throws SessionException, ExecutionException {
+      throws SessionException {
     UpdateUserReq req = new UpdateUserReq(sessionId, username);
     if (password != null) {
       req.setPassword(password);
@@ -984,12 +966,12 @@ public class Session {
     executeWithCheck(() -> client.updateUser(req));
   }
 
-  public void deleteUser(String username) throws SessionException, ExecutionException {
+  public void deleteUser(String username) throws SessionException {
     DeleteUserReq req = new DeleteUserReq(sessionId, username);
     executeWithCheck(() -> client.deleteUser(req));
   }
 
-  public ClusterInfo getClusterInfo() throws SessionException, ExecutionException {
+  public ClusterInfo getClusterInfo() throws SessionException {
     GetClusterInfoReq req = new GetClusterInfoReq(sessionId);
 
     Reference<GetClusterInfoResp> ref = new Reference<>();
@@ -1034,12 +1016,11 @@ public class Session {
     return mergedPaths;
   }
 
-  public QueryDataSet executeQuery(String statement) throws SessionException, ExecutionException {
+  public QueryDataSet executeQuery(String statement) throws SessionException {
     return executeQuery(statement, Integer.MAX_VALUE);
   }
 
-  public QueryDataSet executeQuery(String statement, int fetchSize)
-      throws SessionException, ExecutionException {
+  public QueryDataSet executeQuery(String statement, int fetchSize) throws SessionException {
     ExecuteStatementReq req = new ExecuteStatementReq(sessionId, statement);
     req.setFetchSize(fetchSize);
     Reference<ExecuteStatementResp> ref = new Reference<>();
@@ -1066,8 +1047,7 @@ public class Session {
         exportCSV);
   }
 
-  Pair<QueryDataSetV2, Boolean> fetchResult(long queryId, int fetchSize)
-      throws SessionException, ExecutionException {
+  Pair<QueryDataSetV2, Boolean> fetchResult(long queryId, int fetchSize) throws SessionException {
     FetchResultsReq req = new FetchResultsReq(sessionId, queryId);
     req.setFetchSize(fetchSize);
     Reference<FetchResultsResp> ref = new Reference<>();
@@ -1077,7 +1057,7 @@ public class Session {
   }
 
   public Pair<List<String>, Long> executeLoadCSV(String statement, ByteBuffer csvFile)
-      throws SessionException, ExecutionException {
+      throws SessionException {
     LoadCSVReq req = new LoadCSVReq(sessionId, statement, csvFile);
     Reference<LoadCSVResp> ref = new Reference<>();
     executeWithCheck(() -> (ref.resp = client.loadCSV(req)).status);
@@ -1085,17 +1065,75 @@ public class Session {
     return new Pair<>(ref.resp.getColumns(), ref.resp.getRecordsNum());
   }
 
-  void closeQuery(long queryId) throws SessionException, ExecutionException {
+  public LoadUDFResp executeRegisterTask(String statement) throws SessionException {
+    return executeRegisterTask(statement, !isLocalHost(host));
+  }
+
+  public LoadUDFResp executeRegisterTask(String statement, boolean isRemote)
+      throws SessionException {
+    LoadUDFReq req = new LoadUDFReq(sessionId, statement, isRemote);
+    Reference<LoadUDFResp> ref = new Reference<>();
+    executeWithCheck(() -> (ref.resp = client.loadUDF(req)).status);
+
+    LoadUDFResp res = ref.resp;
+    String parseErrorMsg = res.getParseErrorMsg();
+    if (parseErrorMsg != null && !parseErrorMsg.equals("")) {
+      return new LoadUDFResp(RpcUtils.FAILURE.setMessage(parseErrorMsg));
+    }
+    String path = res.getUDFModulePath();
+    File file = new File(path);
+    if (!file.isAbsolute()) {
+      statement = statement.replace(path, file.getAbsolutePath());
+    } else if (!isRemote) {
+      return new LoadUDFResp(RpcUtils.SUCCESS);
+    }
+
+    if (!file.exists()) {
+      throw new InvalidParameterException(path + " does not exist!");
+    }
+
+    ByteBuffer moduleBuffer;
+    if (isRemote) {
+      try {
+        moduleBuffer = CompressionUtils.zipToByteBuffer(file);
+      } catch (IOException e) {
+        return new LoadUDFResp(
+            RpcUtils.FAILURE.setMessage(
+                String.format(
+                    "Failed to compress module and load into buffer. %s", e.getMessage())));
+      }
+    } else {
+      moduleBuffer = ByteBuffer.allocate(0);
+    }
+
+    LoadUDFReq newReq = new LoadUDFReq(sessionId, statement, isRemote);
+    newReq.setUdfFile(moduleBuffer);
+    Reference<LoadUDFResp> newRef = new Reference<>();
+    executeWithCheck(() -> (newRef.resp = client.loadUDF(newReq)).status);
+
+    return newRef.resp;
+  }
+
+  void closeQuery(long queryId) throws SessionException {
     CloseStatementReq req = new CloseStatementReq(sessionId, queryId);
     executeWithCheck(() -> client.closeStatement(req));
   }
 
   public long commitTransformJob(
-      List<TaskInfo> taskInfoList, ExportType exportType, String fileName)
-      throws SessionException, ExecutionException {
+      List<TaskInfo> taskInfoList, ExportType exportType, String fileName) throws SessionException {
+    return commitTransformJob(taskInfoList, exportType, fileName, null);
+  }
+
+  public long commitTransformJob(
+      List<TaskInfo> taskInfoList, ExportType exportType, String fileName, String schedule)
+      throws SessionException {
     CommitTransformJobReq req = new CommitTransformJobReq(sessionId, taskInfoList, exportType);
     if (fileName != null) {
       req.setFileName(fileName);
+    }
+
+    if (schedule != null) {
+      req.setSchedule(schedule);
     }
 
     Reference<CommitTransformJobResp> ref = new Reference<>();
@@ -1103,28 +1141,28 @@ public class Session {
     return ref.resp.getJobId();
   }
 
-  public JobState queryTransformJobStatus(long jobId) throws SessionException, ExecutionException {
+  public JobState queryTransformJobStatus(long jobId) throws SessionException {
     QueryTransformJobStatusReq req = new QueryTransformJobStatusReq(sessionId, jobId);
     Reference<QueryTransformJobStatusResp> ref = new Reference<>();
     executeWithCheck(() -> (ref.resp = client.queryTransformJobStatus(req)).status);
     return ref.resp.getJobState();
   }
 
-  public List<Long> showEligibleJob(JobState jobState) throws SessionException, ExecutionException {
+  public List<Long> showEligibleJob(JobState jobState) throws SessionException {
     ShowEligibleJobReq req = new ShowEligibleJobReq(sessionId, jobState);
     Reference<ShowEligibleJobResp> ref = new Reference<>();
     executeWithCheck(() -> (ref.resp = client.showEligibleJob(req)).status);
     return ref.resp.getJobIdList();
   }
 
-  public void cancelTransformJob(long jobId) throws SessionException, ExecutionException {
+  public void cancelTransformJob(long jobId) throws SessionException {
     CancelTransformJobReq req = new CancelTransformJobReq(sessionId, jobId);
     executeWithCheck(() -> client.cancelTransformJob(req));
   }
 
   public CurveMatchResult curveMatch(
       List<String> paths, long startKey, long endKey, List<Double> curveQuery, long curveUnit)
-      throws SessionException, ExecutionException {
+      throws SessionException {
     CurveMatchReq req =
         new CurveMatchReq(sessionId, paths, startKey, endKey, curveQuery, curveUnit);
     Reference<CurveMatchResp> ref = new Reference<>();
@@ -1133,7 +1171,7 @@ public class Session {
   }
 
   public void removeHistoryDataSource(List<RemovedStorageEngineInfo> removedStorageEngineList)
-      throws SessionException, ExecutionException {
+      throws SessionException {
     RemoveHistoryDataSourceReq req =
         new RemoveHistoryDataSourceReq(sessionId, removedStorageEngineList);
     executeWithCheck(() -> client.removeHistoryDataSource(req));

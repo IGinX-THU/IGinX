@@ -1,27 +1,24 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 package cn.edu.tsinghua.iginx.utils;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
+import java.util.regex.Pattern;
 
 public class TagKVUtils {
 
@@ -44,6 +41,11 @@ public class TagKVUtils {
    * 作为后缀，实际上起到的是一个保护作用。
    */
   public static final String tagSuffix = "A"; // "#tagSuffix";
+
+  /** 匹配类似 <string>({<string>=<string>(, <string>=<string>)*})? 的可能含tag的列名全名 */
+  public static final Pattern tagMatchRegex =
+      Pattern.compile(
+          "^[^\\{\\}]+(?:\\{[^\\{\\}=,]+=[^\\{\\}=,]+(?:, [^\\{\\}=,]+=[^\\{\\}=,]+)*\\})?$");
 
   public static String toPhysicalPath(String name, Map<String, String> tags) {
     StringBuilder builder = new StringBuilder();
@@ -101,6 +103,24 @@ public class TagKVUtils {
         tags.put(KV[0], KV[1]);
       }
       return new Pair<>(name, tags);
+    }
+  }
+
+  public static void fillNameAndTagMap(String path, StringBuilder name, Map<String, String> ret) {
+    int firstBrace = path.indexOf("{");
+    int lastBrace = path.indexOf("}");
+    if (firstBrace == -1 || lastBrace == -1) {
+      name.append(path);
+      return;
+    }
+    name.append(path, 0, firstBrace);
+    String tagLists = path.substring(firstBrace + 1, lastBrace);
+    String[] splitPaths = tagLists.split(",");
+    for (String tag : splitPaths) {
+      int equalPos = tag.indexOf("=");
+      String tagKey = tag.substring(0, equalPos);
+      String tagVal = tag.substring(equalPos + 1);
+      ret.put(tagKey, tagVal);
     }
   }
 }

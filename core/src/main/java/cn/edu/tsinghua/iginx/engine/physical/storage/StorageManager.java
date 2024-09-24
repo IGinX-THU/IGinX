@@ -1,26 +1,24 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 package cn.edu.tsinghua.iginx.engine.physical.storage;
 
-import static cn.edu.tsinghua.iginx.metadata.utils.StorageEngineUtils.isEmbeddedStorageEngine;
-
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
+import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
@@ -38,7 +36,7 @@ import org.slf4j.LoggerFactory;
 
 public class StorageManager {
 
-  private static final Logger logger = LoggerFactory.getLogger(StorageManager.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(StorageManager.class);
 
   private static final Map<StorageEngineType, ClassLoader> classLoaders = new ConcurrentHashMap<>();
 
@@ -68,7 +66,6 @@ public class StorageManager {
     StorageEngineType engine = meta.getStorageEngine();
     String driver = drivers.get(engine);
     long id = meta.getId();
-    boolean needRelease = false;
     IStorage storage = null;
     try {
       if (storageMap.containsKey(id)) {
@@ -78,25 +75,21 @@ public class StorageManager {
         storage =
             (IStorage)
                 loader.loadClass(driver).getConstructor(StorageEngineMeta.class).newInstance(meta);
-        if (!isEmbeddedStorageEngine(engine)) {
-          needRelease = true;
-        }
       }
       return storage.getBoundaryOfStorage(dataPrefix);
     } catch (ClassNotFoundException e) {
-      logger.error("load class {} for engine {} failure: {}", driver, engine, e);
+      LOGGER.error("load class {} for engine {} failure: {}", driver, engine, e);
+      return null;
     } catch (Exception e) {
-      logger.error("unexpected error when process engine {}: {}", engine, e);
+      LOGGER.error("unexpected error when process engine {}:", engine, e);
+      return null;
     } finally {
       try {
-        if (needRelease) {
-          storage.release();
-        }
+        storage.release();
       } catch (Exception e) {
-        logger.error("release session pool failure!");
+        LOGGER.error("release session pool failure!");
       }
     }
-    return new Pair<>(new ColumnsInterval(null, null), new KeyInterval(0, Long.MAX_VALUE));
   }
 
   private boolean initStorage(StorageEngineMeta meta) {
@@ -112,10 +105,10 @@ public class StorageManager {
         return initStorage(meta, storage);
       }
     } catch (ClassNotFoundException e) {
-      logger.error("load class {} for engine {} failure: {}", driver, engine, e);
+      LOGGER.error("load class {} for engine {} failure: {}", driver, engine, e);
       return false;
     } catch (Exception e) {
-      logger.error("unexpected error when process engine {}: {}", engine, e);
+      LOGGER.error("unexpected error when process engine {}: ", engine, e);
       return false;
     }
     return true;
@@ -139,7 +132,7 @@ public class StorageManager {
         storageMap.put(meta.getId(), new Pair<>(storage, dispatcher));
       }
     } catch (Exception e) {
-      logger.error("unexpected error when process engine {}: {}", engine, e);
+      LOGGER.error("unexpected error when process engine {}: {}", engine, e);
       return false;
     }
     return true;
@@ -153,7 +146,7 @@ public class StorageManager {
     for (String part : parts) {
       String[] kAndV = part.split("=");
       if (kAndV.length != 2) {
-        logger.error("unexpected database class names: {}", part);
+        LOGGER.error("unexpected database class names: {}", part);
         System.exit(-1);
       }
       String storage = kAndV[0];
@@ -164,7 +157,7 @@ public class StorageManager {
         classLoaders.put(type, classLoader);
         drivers.put(type, driver);
       } catch (IOException e) {
-        logger.error("encounter error when init class loader for {}: {}", storage, e);
+        LOGGER.error("encounter error when init class loader for {}: {}", storage, e);
         System.exit(-1);
       }
     }
@@ -181,40 +174,65 @@ public class StorageManager {
 
   public boolean addStorage(StorageEngineMeta meta) {
     if (!initStorage(meta)) {
-      logger.error("add storage " + meta + " failure!");
+      LOGGER.error("add storage {} failure!", meta);
       return false;
     } else {
-      logger.info("add storage " + meta + " success.");
+      LOGGER.info("add storage {} success.", meta);
     }
     return true;
   }
 
   public boolean addStorage(StorageEngineMeta meta, IStorage storage) {
     if (!initStorage(meta, storage)) {
-      logger.error("add storage " + meta + " failure!");
+      LOGGER.error("add storage {} failure!", meta);
       return false;
     } else {
-      logger.info("add storage " + meta + " success.");
+      LOGGER.info("add storage {} success.", meta);
     }
     return true;
   }
 
-  public IStorage initLocalStorage(StorageEngineMeta meta) {
+  public static IStorage initStorageInstance(StorageEngineMeta meta) {
     StorageEngineType engine = meta.getStorageEngine();
-    if (!isEmbeddedStorageEngine(engine)) {
-      return null;
-    }
     String driver = drivers.get(engine);
     ClassLoader loader = classLoaders.get(engine);
     try {
       return (IStorage)
           loader.loadClass(driver).getConstructor(StorageEngineMeta.class).newInstance(meta);
     } catch (ClassNotFoundException e) {
-      logger.error("load class {} for engine {} failure: {}", driver, engine, e);
+      LOGGER.error("load class {} for engine {} failure: {}", driver, engine, e);
       return null;
     } catch (Exception e) {
-      logger.error("add storage " + meta + " failure!");
+      LOGGER.error("add storage {} failure!", meta, e);
       return null;
     }
+  }
+
+  public boolean releaseStorage(StorageEngineMeta meta) throws PhysicalException {
+    long id = meta.getId();
+    Pair<IStorage, ThreadPoolExecutor> pair = storageMap.get(id);
+    if (pair == null) {
+      LOGGER.warn("Storage id {} not found", id);
+      return false;
+    }
+
+    ThreadPoolExecutor dispatcher = pair.getV();
+    dispatcher.shutdown(); // 停止接收新任务
+    try {
+      if (!dispatcher.awaitTermination(60, TimeUnit.SECONDS)) { // 等待任务完成
+        dispatcher.shutdownNow(); // 如果时间内未完成任务，强制关闭
+        if (!dispatcher.awaitTermination(60, TimeUnit.SECONDS)) {
+          LOGGER.error("Executor did not terminate");
+        }
+      }
+    } catch (InterruptedException ie) {
+      dispatcher.shutdownNow();
+      LOGGER.error("unexpected exception occurred in releasing storage engine: ", ie);
+      return false;
+    }
+
+    pair.getK().release();
+    storageMap.remove(id);
+    return true;
   }
 }
