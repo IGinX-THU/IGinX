@@ -36,6 +36,12 @@ public class Table implements RowStream {
 
   private RequestContext context;
 
+  public Table(Row row) {
+    this.header = row.getHeader();
+    this.rows = Collections.singletonList(row);
+    this.index = 0;
+  }
+
   public Table(Header header, List<Row> rows) {
     this.header = header;
     this.rows = rows;

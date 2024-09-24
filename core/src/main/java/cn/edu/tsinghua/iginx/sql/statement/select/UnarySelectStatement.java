@@ -35,10 +35,13 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.sql.exception.SQLParserException;
 import cn.edu.tsinghua.iginx.sql.statement.StatementType;
+import cn.edu.tsinghua.iginx.sql.statement.frompart.CteFromPart;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.FromPart;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.FromPartType;
+import cn.edu.tsinghua.iginx.sql.statement.frompart.PathFromPart;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.SubQueryFromPart;
 import cn.edu.tsinghua.iginx.sql.statement.select.subclause.*;
+import cn.edu.tsinghua.iginx.sql.utils.ExpressionUtils;
 import cn.edu.tsinghua.iginx.thrift.AggregateType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
@@ -213,6 +216,10 @@ public class UnarySelectStatement extends SelectStatement {
 
   public void setHasValueToSelectedPath(boolean hasValueToSelectedPath) {
     selectClause.setHasValueToSelectedPath(hasValueToSelectedPath);
+  }
+
+  public boolean isAllConstArith() {
+    return selectClause.isAllConstArith();
   }
 
   public boolean isLastFirst() {
@@ -617,6 +624,24 @@ public class UnarySelectStatement extends SelectStatement {
   }
 
   public void checkQueryType() {
+    boolean isAllConstArith =
+        getExpressions().stream().allMatch(ExpressionUtils::isConstantArithmeticExpr);
+    selectClause.setAllConstArith(isAllConstArith);
+    if (getFromParts().isEmpty() && !isAllConstArith) {
+      throw new SQLParserException(
+          "Statement without FROM clause should only contain constant arithmetic expressions.");
+    }
+    if (isAllConstArith) {
+      fromClause
+          .getFromParts()
+          .forEach(
+              fromPart -> {
+                if (fromPart instanceof PathFromPart || fromPart instanceof CteFromPart) {
+                  selectClause.addPath(fromPart.getOriginPrefix() + ".*");
+                }
+              });
+    }
+
     Set<MappingType> typeList = new HashSet<>();
     for (Expression expression : getExpressions()) {
       typeList.add(getExprMappingType(expression));

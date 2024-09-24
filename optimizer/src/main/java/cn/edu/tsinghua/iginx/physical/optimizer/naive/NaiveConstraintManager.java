@@ -76,6 +76,9 @@ class NaiveConstraintManager implements ConstraintManager {
     if (source == null) {
       return false;
     }
+    if (source.getType() == SourceType.Constant) {
+      return true;
+    }
     if (source.getType() == SourceType.Fragment) {
       return unaryOperator.getType() == OperatorType.Project
           || unaryOperator.getType() == OperatorType.Delete

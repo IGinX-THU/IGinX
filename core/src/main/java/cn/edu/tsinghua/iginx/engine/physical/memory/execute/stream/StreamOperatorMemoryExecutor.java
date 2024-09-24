@@ -23,6 +23,8 @@ import cn.edu.tsinghua.iginx.engine.physical.exception.InvalidOperatorParameterE
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.UnexpectedOperatorException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.OperatorMemoryExecutor;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.Table;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils;
 import cn.edu.tsinghua.iginx.engine.shared.Constants;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
@@ -58,7 +60,9 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.Sort;
 import cn.edu.tsinghua.iginx.engine.shared.operator.UnaryOperator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Union;
 import cn.edu.tsinghua.iginx.engine.shared.operator.ValueToSelectedPath;
+import cn.edu.tsinghua.iginx.engine.shared.source.ConstantSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.EmptySource;
+import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -168,8 +172,19 @@ public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
     return result;
   }
 
-  private RowStream executeProject(Project project, RowStream stream) {
-    return new ProjectLazyStream(project, stream);
+  private RowStream executeProject(Project project, RowStream stream) throws PhysicalException {
+    Source source = project.getSource();
+    switch (source.getType()) {
+      case Operator:
+      case Empty:
+        return new ProjectLazyStream(project, stream);
+      case Constant:
+        ConstantSource constantSource = (ConstantSource) source;
+        return new Table(RowUtils.buildConstRow(constantSource.getExpressionList()));
+      default:
+        throw new PhysicalException(
+            "Unexpected project source type in memory task: " + source.getType());
+    }
   }
 
   private RowStream executeSelect(Select select, RowStream stream) {
@@ -197,7 +212,8 @@ public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
     return new RowTransformLazyStream(rowTransform, stream);
   }
 
-  private RowStream executeSetTransform(SetTransform setTransform, RowStream stream) {
+  private RowStream executeSetTransform(SetTransform setTransform, RowStream stream)
+      throws PhysicalException {
     List<FunctionCall> functionCallList = setTransform.getFunctionCallList();
     Map<List<String>, RowStream> distinctStreamMap = new HashMap<>();
     Map<List<String>, RowStream> rowTransformStreamMap = new HashMap<>();
@@ -252,7 +268,7 @@ public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
     return new GroupByLazyStream(groupBy, stream);
   }
 
-  private RowStream executeDistinct(Distinct distinct, RowStream stream) {
+  private RowStream executeDistinct(Distinct distinct, RowStream stream) throws PhysicalException {
     Project project = new Project(EmptySource.EMPTY_SOURCE, distinct.getPatterns(), null);
     stream = executeProject(project, stream);
     return new DistinctLazyStream(stream);

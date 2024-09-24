@@ -33,6 +33,7 @@ public class SelectClause {
   private final List<SubQueryFromPart> selectSubQueryParts;
   private boolean isDistinct = false;
   private boolean hasValueToSelectedPath = false;
+  private boolean isAllConstArith = false;
   private final List<Expression> expressions;
   private final Set<String> pathSet;
 
@@ -64,6 +65,14 @@ public class SelectClause {
 
   public void setHasValueToSelectedPath(boolean hasValueToSelectedPath) {
     this.hasValueToSelectedPath = hasValueToSelectedPath;
+  }
+
+  public boolean isAllConstArith() {
+    return isAllConstArith;
+  }
+
+  public void setAllConstArith(boolean allConstArith) {
+    this.isAllConstArith = allConstArith;
   }
 
   public boolean isLastFirst() {

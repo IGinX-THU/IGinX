@@ -942,15 +942,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       if (ret.size() == 1 && select.asClause() != null) {
         ret.get(0).setAlias(select.asClause().ID().getText());
       }
-      ret.forEach(
-          expression -> {
-            if (ExpressionUtils.isConstantArithmeticExpr(expression)) {
-              throw new SQLParserException(
-                  "SELECT constant arithmetic expression isn't supported yet.");
-            } else {
-              selectStatement.addSelectClauseExpression(expression);
-            }
-          });
+      ret.forEach(selectStatement::addSelectClauseExpression);
     }
   }
 
@@ -1081,7 +1073,11 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
     List<Object> args = new ArrayList<>();
     ListIterator<Expression> iter = columns.listIterator(columns.size());
-    while (iter.hasPrevious()) {
+    int expectedColumnsSize =
+        FunctionUtils.isSysFunc(funcName)
+            ? FunctionUtils.getExpectedParamNum(funcName)
+            : 1; // 目前，只把UDF常数参数中的第一个转化成常量列传入UDF，剩余其它常量参数依然是作为现有UDF的常量参数传进去
+    while (iter.hasPrevious() && columns.size() > expectedColumnsSize) {
       Expression expression = iter.previous();
       if (!ExpressionUtils.isConstantArithmeticExpr(expression)) {
         break;
@@ -1098,6 +1094,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       args.add(value.getValue());
       iter.remove();
     }
+    Collections.reverse(args);
 
     Map<String, Object> kwargs = new HashMap<>();
     for (ParamContext paramContext : funcCtx.param()) {
