@@ -103,11 +103,11 @@ for /f "tokens=*" %%a in ('cscript //nologo %temp%\tmp.vbs') do set system_memor
 del %temp%\tmp.vbs
 set system_memory_in_mb=%system_memory_in_mb:,=%
 
-set /a half_=%system_memory_in_mb%/4
-set /a quarter_=%half_%/8
+set /a half_=%system_memory_in_mb%/2
+set /a quarter_=%half_%/4
 
-@REM if ["%half_%"] GTR ["1024"] set half_=1024
-@REM if ["%quarter_%"] GTR ["8192"] set quarter_=8192
+if ["%half_%"] GTR ["1024"] set half_=1024
+if ["%quarter_%"] GTR ["65536"] set quarter_=65536
 
 if %half_% GTR %quarter_% (
 	set max_heap_size_in_mb=%half_%
