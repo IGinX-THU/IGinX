@@ -131,7 +131,7 @@ public class InfluxDBStorage implements IStorage {
     if (!meta.getStorageEngine().equals(StorageEngineType.influxdb)) {
       throw new StorageInitializationException("unexpected database: " + meta.getStorageEngine());
     }
-    if (!testConnection()) {
+    if (!testConnection(this.meta)) {
       throw new StorageInitializationException("cannot connect to " + meta);
     }
     Map<String, String> extraParams = meta.getExtraParams();
@@ -156,7 +156,8 @@ public class InfluxDBStorage implements IStorage {
     }
   }
 
-  private boolean testConnection() {
+  @Override
+  public boolean testConnection(StorageEngineMeta meta) {
     Map<String, String> extraParams = meta.getExtraParams();
     String url = extraParams.get("url");
     try {

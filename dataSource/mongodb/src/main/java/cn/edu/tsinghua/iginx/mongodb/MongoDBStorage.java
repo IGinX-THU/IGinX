@@ -78,6 +78,7 @@ import java.util.stream.Collectors;
 import org.bson.BsonDocument;
 import org.bson.BsonInt64;
 import org.bson.BsonValue;
+import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -140,6 +141,31 @@ public class MongoDBStorage implements IStorage {
             .build();
 
     return MongoClients.create(settings);
+  }
+
+  @Override
+  public boolean testConnection(StorageEngineMeta meta) {
+    String defaultConnection = String.format("mongodb://%s:%d", meta.getIp(), meta.getPort());
+    String connectionString =
+            meta.getExtraParams().getOrDefault(CONNECTION_STRING, defaultConnection);
+
+    MongoClientSettings settings =
+            MongoClientSettings.builder()
+                    .applyToConnectionPoolSettings(
+                            builder ->
+                                    builder
+                                            .maxWaitTime(MAX_WAIT_TIME, TimeUnit.SECONDS)
+                                            .maxSize(SESSION_POOL_MAX_SIZE)
+                                            .maxConnectionIdleTime(60, TimeUnit.SECONDS))
+                    .applyConnectionString(new ConnectionString(connectionString))
+                    .build();
+    try (MongoClient mongoClient = MongoClients.create(settings)) {
+      mongoClient.getDatabase("admin").runCommand(new Document("ping", 1));
+      return true;
+    } catch (Exception e) {
+      LOGGER.error("Failed to connect MongoDB {}: e", meta, e);
+      return false;
+    }
   }
 
   @Override

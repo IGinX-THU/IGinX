@@ -427,7 +427,19 @@ public class IginxWorker implements IService.Iface {
           .get(storageEngineMetas.size() - 1)
           .setNeedReAllocate(true); // 如果这批节点不是只读的话，每一批最后一个是 true，表示需要进行扩容
     }
-    for (StorageEngineMeta meta : storageEngineMetas) {
+
+    Iterator<StorageEngineMeta> iterator = storageEngineMetas.iterator();
+    while (iterator.hasNext()) {
+      // 首先去掉ip不合要求的本地引擎（本地引擎必须在同地址的IGinX节点注册）
+      StorageEngineMeta meta = iterator.next();
+      if (isEmbeddedStorageEngine(meta.getStorageEngine())) {
+        if (!isLocal(meta)) {
+          LOGGER.error("storage engine {} needs to be local.", meta);
+          status.addToSubStatus(RpcUtils.FAILURE);
+          iterator.remove();
+        }
+      }
+      // 然后设置dummy信息
       if (meta.isHasData()) {
         String dataPrefix = meta.getDataPrefix();
         String schemaPrefix = meta.getSchemaPrefix();
@@ -459,42 +471,11 @@ public class IginxWorker implements IService.Iface {
       }
     }
 
-    // init local filesystem before adding to meta
-    // exclude remote filesystem
-    List<StorageEngineMeta> localMetas = new ArrayList<>();
-    List<StorageEngineMeta> otherMetas = new ArrayList<>();
-    for (StorageEngineMeta meta : storageEngineMetas) {
-      if (isEmbeddedStorageEngine(meta.getStorageEngine())) {
-        if (!isLocal(meta)) {
-          LOGGER.error("storage engine {} needs to be local.", meta);
-          status.addToSubStatus(RpcUtils.FAILURE);
-        } else {
-          localMetas.add(meta);
-        }
-      } else {
-        otherMetas.add(meta);
-      }
-    }
-
-    // TODO: 下面两个循环疑似可以合并在一起
     StorageManager storageManager = PhysicalEngineImpl.getInstance().getStorageManager();
-    for (StorageEngineMeta meta : otherMetas) {
-      IStorage storage = StorageManager.initStorageInstance(meta);
-      if (storage == null) {
-        status.addToSubStatus(
-            RpcUtils.status(
-                StatusCode.STATEMENT_EXECUTION_ERROR,
-                String.format("init storage engine %s failed", meta)));
-        continue;
-      }
-      if (!metaManager.addStorageEngines(Collections.singletonList(meta))) {
-        LOGGER.error("add storage engine {} failed.", meta);
-        status.addToSubStatus(RpcUtils.FAILURE);
-        continue;
-      }
-      storageManager.addStorage(meta, storage);
-    }
-    for (StorageEngineMeta meta : localMetas) {
+    for (StorageEngineMeta meta : storageEngineMetas) {
+      // 为什么本地文件系统必须先init instance，再加入meta，storageManager：当数据源信息被加入meta，集群内其他节点都会立刻去尝试连接本地文件引擎的服务
+      // 因此必须先init开启服务，然后在加入meta时获取唯一数据源id，再将id和引擎送入storageManager进行登记
+      // 其他类型的引擎也需要先init初始化，以在修改元数据前确保引擎可用
       IStorage storage = StorageManager.initStorageInstance(meta);
       if (storage == null) {
         status.addToSubStatus(

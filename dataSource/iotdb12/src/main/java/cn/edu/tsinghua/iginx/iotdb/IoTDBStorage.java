@@ -80,6 +80,7 @@ import org.apache.iotdb.tsfile.read.common.RowRecord;
 import org.apache.iotdb.tsfile.utils.Binary;
 import org.apache.iotdb.tsfile.write.record.Tablet;
 import org.apache.iotdb.tsfile.write.schema.MeasurementSchema;
+import org.checkerframework.checker.units.qual.Temperature;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -132,13 +133,14 @@ public class IoTDBStorage implements IStorage {
     if (!meta.getStorageEngine().equals(StorageEngineType.iotdb12)) {
       throw new StorageInitializationException("unexpected database: " + meta.getStorageEngine());
     }
-    if (!testConnection()) {
+    if (!testConnection(this.meta)) {
       throw new StorageInitializationException("cannot connect to " + meta);
     }
     sessionPool = createSessionPool();
   }
 
-  private boolean testConnection() {
+  @Override
+  public boolean testConnection(StorageEngineMeta meta) {
     Map<String, String> extraParams = meta.getExtraParams();
     String username = extraParams.getOrDefault(USERNAME, DEFAULT_USERNAME);
     String password = extraParams.getOrDefault(PASSWORD, DEFAULT_PASSWORD);
