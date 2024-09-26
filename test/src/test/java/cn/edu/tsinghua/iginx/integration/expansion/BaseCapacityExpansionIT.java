@@ -556,22 +556,28 @@ public abstract class BaseCapacityExpansionIT {
     SQLTestTools.executeAndCompare(session, statement, pathList, REPEAT_EXP_VALUES_LIST1);
 
     addStorageEngine(expPort, true, true, dataPrefix1, schemaPrefix2, extraParams);
-    addStorageEngine(expPort, true, true, dataPrefix1, null, extraParams);
-    testShowClusterInfo(5);
+    testShowClusterInfo(4);
 
     // 如果是重复添加，则报错
-    String res = addStorageEngine(expPort, true, true, dataPrefix1, null, extraParams);
+    String res = addStorageEngine(expPort, true, true, dataPrefix1, schemaPrefix2, extraParams);
     if (res != null && !res.contains("repeatedly add storage engine")) {
       fail();
     }
-    testShowClusterInfo(5);
+    testShowClusterInfo(4);
+
+    // data_prefix存在包含关系
+    res = addStorageEngine(expPort, true, true, dataPrefix1, null, extraParams);
+    if (res != null && !res.contains("repeatedly add storage engine")) {
+      fail();
+    }
+    testShowClusterInfo(4);
 
     addStorageEngine(expPort, true, true, dataPrefix1, schemaPrefix3, extraParams);
     // 这里是之后待测试的点，如果添加包含关系的，应当报错。
     //    res = addStorageEngine(expPort, true, true, "nt.wf03.wt01", "p3");
     // 添加相同 schemaPrefix，不同 dataPrefix
     addStorageEngine(expPort, true, true, dataPrefix2, schemaPrefix3, extraParams);
-    testShowClusterInfo(7);
+    testShowClusterInfo(6);
 
     // 添加节点 dataPrefix = dataPrefix1 && schemaPrefix = p1 后查询
     statement = "select wt01.status2 from p1.nt.wf03;";
@@ -602,7 +608,7 @@ public abstract class BaseCapacityExpansionIT {
         new RemovedStorageEngineInfo("127.0.0.1", expPort, "p3" + schemaPrefixSuffix, dataPrefix1));
     try {
       session.removeHistoryDataSource(removedStorageEngineList);
-      testShowClusterInfo(5);
+      testShowClusterInfo(4);
     } catch (SessionException e) {
       LOGGER.error("remove history data source through session api error: ", e);
     }
@@ -627,7 +633,6 @@ public abstract class BaseCapacityExpansionIT {
           String.format(removeStatement, expPort, "p1" + schemaPrefixSuffix, dataPrefix1));
       session.executeSql(
           String.format(removeStatement, expPort, "p3" + schemaPrefixSuffix, dataPrefix2));
-      session.executeSql(String.format(removeStatement, expPort, "", dataPrefix1));
       testShowClusterInfo(2);
     } catch (SessionException e) {
       LOGGER.error("remove history data source through sql error: ", e);
