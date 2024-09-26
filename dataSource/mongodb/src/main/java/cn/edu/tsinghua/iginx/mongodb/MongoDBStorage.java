@@ -147,18 +147,18 @@ public class MongoDBStorage implements IStorage {
   public boolean testConnection(StorageEngineMeta meta) {
     String defaultConnection = String.format("mongodb://%s:%d", meta.getIp(), meta.getPort());
     String connectionString =
-            meta.getExtraParams().getOrDefault(CONNECTION_STRING, defaultConnection);
+        meta.getExtraParams().getOrDefault(CONNECTION_STRING, defaultConnection);
 
     MongoClientSettings settings =
-            MongoClientSettings.builder()
-                    .applyToConnectionPoolSettings(
-                            builder ->
-                                    builder
-                                            .maxWaitTime(MAX_WAIT_TIME, TimeUnit.SECONDS)
-                                            .maxSize(SESSION_POOL_MAX_SIZE)
-                                            .maxConnectionIdleTime(60, TimeUnit.SECONDS))
-                    .applyConnectionString(new ConnectionString(connectionString))
-                    .build();
+        MongoClientSettings.builder()
+            .applyToConnectionPoolSettings(
+                builder ->
+                    builder
+                        .maxWaitTime(MAX_WAIT_TIME, TimeUnit.SECONDS)
+                        .maxSize(SESSION_POOL_MAX_SIZE)
+                        .maxConnectionIdleTime(60, TimeUnit.SECONDS))
+            .applyConnectionString(new ConnectionString(connectionString))
+            .build();
     try (MongoClient mongoClient = MongoClients.create(settings)) {
       mongoClient.getDatabase("admin").runCommand(new Document("ping", 1));
       return true;

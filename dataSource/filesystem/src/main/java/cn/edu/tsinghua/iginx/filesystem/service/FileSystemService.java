@@ -52,7 +52,6 @@ public class FileSystemService implements Service {
         // TODO: 无法创建服务端难道不应该抛出异常吗？来让客户端知道添加失败。
         //       过去的代码中也有类似的问题，但是没有处理。而且测试的运行依赖这个BUG
         LOGGER.error("failed to start thrift server at {}", address, e);
-        throw new FileSystemException("Failed to start thrift server.");
       }
       this.server = temp;
     } else {

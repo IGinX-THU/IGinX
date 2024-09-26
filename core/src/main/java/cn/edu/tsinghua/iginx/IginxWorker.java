@@ -399,19 +399,43 @@ public class IginxWorker implements IService.Iface {
     // 检测是否与已有的存储引擎冲突
     if (!hasChecked) {
       List<StorageEngineMeta> currentStorageEngines = metaManager.getStorageEngineList();
-      List<StorageEngineMeta> duplicatedStorageEngines = new ArrayList<>();
+      List<StorageEngineMeta> StorageEnginesToBeRemoved = new ArrayList<>();
       for (StorageEngineMeta storageEngine : storageEngineMetas) {
         for (StorageEngineMeta currentStorageEngine : currentStorageEngines) {
           if (storageEngine.equals(currentStorageEngine)) {
-            duplicatedStorageEngines.add(storageEngine);
+            // 存在相同数据库
+            StorageEnginesToBeRemoved.add(storageEngine);
             LOGGER.error("repeatedly add storage engine {}.", storageEngine);
             status.addToSubStatus(RpcUtils.FAILURE);
             break;
+          } else if (storageEngine.isSameAddress(currentStorageEngine)) {
+            // 已有相同IP、端口的数据库
+            if (StorageManager.testEngineConnection(currentStorageEngine)) {
+              // 已有的数据库仍可连接
+              if (currentStorageEngine.contains(storageEngine)) {
+                // 已有数据库能够覆盖新注册的数据库，拒绝注册
+                StorageEnginesToBeRemoved.add(storageEngine);
+                status.setCode(RpcUtils.PARTIAL_SUCCESS.code);
+              }
+            } else {
+              // 已有的数据库无法连接了，若是只读，直接删除
+              if (currentStorageEngine.isReadOnly() && currentStorageEngine.isHasData()) {
+                metaManager.removeDummyStorageEngine(currentStorageEngine.getId());
+              } else {
+                // 并非只读，需要手动操作，拒绝注册同地址引擎
+                LOGGER.warn(
+                    "Existing Storage engine {} cannot be connected. New engine {} will not be registered.",
+                    currentStorageEngine,
+                    storageEngine);
+                StorageEnginesToBeRemoved.add(storageEngine);
+                status.setCode(RpcUtils.PARTIAL_SUCCESS.code);
+              }
+            }
           }
         }
       }
-      if (!duplicatedStorageEngines.isEmpty()) {
-        storageEngineMetas.removeAll(duplicatedStorageEngines);
+      if (!StorageEnginesToBeRemoved.isEmpty()) {
+        storageEngineMetas.removeAll(StorageEnginesToBeRemoved);
         if (!storageEngineMetas.isEmpty()) {
           status.setCode(RpcUtils.PARTIAL_SUCCESS.code);
         } else {

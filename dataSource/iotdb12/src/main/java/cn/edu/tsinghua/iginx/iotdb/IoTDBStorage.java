@@ -80,7 +80,6 @@ import org.apache.iotdb.tsfile.read.common.RowRecord;
 import org.apache.iotdb.tsfile.utils.Binary;
 import org.apache.iotdb.tsfile.write.record.Tablet;
 import org.apache.iotdb.tsfile.write.schema.MeasurementSchema;
-import org.checkerframework.checker.units.qual.Temperature;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

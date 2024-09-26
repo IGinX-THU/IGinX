@@ -56,6 +56,15 @@ public class StorageManager {
     }
   }
 
+  public static boolean testEngineConnection(StorageEngineMeta meta) {
+    long id = meta.getId();
+    if (id < 0) {
+      LOGGER.error("Storage engine id must be >= 0");
+      return false;
+    }
+    return storageMap.get(id).k.testConnection(meta);
+  }
+
   public static Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage(StorageEngineMeta meta) {
     return getBoundaryOfStorage(meta, null);
   }
@@ -122,14 +131,14 @@ public class StorageManager {
         if (!storageMap.containsKey(id)) {
           // 启动一个派发线程池
           ThreadPoolExecutor dispatcher =
-                  new ThreadPoolExecutor(
-                          ConfigDescriptor.getInstance()
-                                  .getConfig()
-                                  .getPhysicalTaskThreadPoolSizePerStorage(),
-                          Integer.MAX_VALUE,
-                          60L,
-                          TimeUnit.SECONDS,
-                          new SynchronousQueue<>());
+              new ThreadPoolExecutor(
+                  ConfigDescriptor.getInstance()
+                      .getConfig()
+                      .getPhysicalTaskThreadPoolSizePerStorage(),
+                  Integer.MAX_VALUE,
+                  60L,
+                  TimeUnit.SECONDS,
+                  new SynchronousQueue<>());
           storageMap.put(meta.getId(), new Pair<>(storage, dispatcher));
         }
       } else {
@@ -202,8 +211,9 @@ public class StorageManager {
     String driver = drivers.get(engine);
     ClassLoader loader = classLoaders.get(engine);
     try {
-      IStorage storage =  (IStorage)
-          loader.loadClass(driver).getConstructor(StorageEngineMeta.class).newInstance(meta);
+      IStorage storage =
+          (IStorage)
+              loader.loadClass(driver).getConstructor(StorageEngineMeta.class).newInstance(meta);
       if (storage.testConnection(meta)) {
         return storage;
       } else {

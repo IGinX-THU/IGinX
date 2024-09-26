@@ -67,7 +67,6 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import javax.annotation.Nullable;
-
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
@@ -179,7 +178,7 @@ public class FileSystemStorage implements IStorage {
 
   @Override
   public boolean testConnection(StorageEngineMeta meta) {
-    try(TTransport transport = new TSocket(meta.getIp(), meta.getPort())) {
+    try (TTransport transport = new TSocket(meta.getIp(), meta.getPort())) {
       transport.open();
       return true;
     } catch (TException e) {
