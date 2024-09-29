@@ -70,6 +70,10 @@ public abstract class BaseCapacityExpansionIT {
 
   protected static final String updateParamsScriptDir = ".github/scripts/dataSources/update/";
 
+  protected static final String shutdownScriptDir = ".github/scripts/dataSources/shutdown/";
+
+  protected static final String restartScriptDir = ".github/scripts/dataSources/restart/";
+
   protected static BaseHistoryDataGenerator generator;
 
   public BaseCapacityExpansionIT(
@@ -251,14 +255,18 @@ public abstract class BaseCapacityExpansionIT {
     testQueryHistoryDataOriHasData();
     // 测试只读节点的参数修改
     testUpdateEngineParams();
+    testDatabaseShutdown();
+
     // 测试参数错误的只读节点扩容
-    testInvalidDummyParams(readOnlyPort, true, true, null, READ_ONLY_SCHEMA_PREFIX);
+    testInvalidEngineParams(readOnlyPort, true, true, null, READ_ONLY_SCHEMA_PREFIX);
     // 扩容只读节点
     addStorageEngineInProgress(readOnlyPort, true, true, null, READ_ONLY_SCHEMA_PREFIX);
     // 查询扩容只读节点的历史数据，结果不为空
     testQueryHistoryDataReadOnly();
-    // 测试参数错误的可写节点扩容
-    testInvalidDummyParams(expPort, true, false, null, EXP_SCHEMA_PREFIX);
+
+    // 测试参数错误的可写节点扩容，也需要测试非dummy情况
+    testInvalidEngineParams(expPort, true, false, null, EXP_SCHEMA_PREFIX);
+    testInvalidEngineParams(expPort, false, false, null, EXP_SCHEMA_PREFIX);
     // 扩容可写节点
     addStorageEngineInProgress(expPort, true, false, null, EXP_SCHEMA_PREFIX);
     // 查询扩容可写节点的历史数据，结果不为空
@@ -284,7 +292,7 @@ public abstract class BaseCapacityExpansionIT {
     queryExtendedColDummy();
   }
 
-  protected void testInvalidDummyParams(
+  protected void testInvalidEngineParams(
       int port, boolean hasData, boolean isReadOnly, String dataPrefix, String schemaPrefix) {
     // wrong params
     String res;
@@ -376,11 +384,55 @@ public abstract class BaseCapacityExpansionIT {
     restoreParams(readOnlyPort);
   }
 
-  /** 这个方法需要实现：通过脚本修改port对应数据源的可变参数，如密码等 */
+  /** 测试注册时发现原ip、端口的数据库失效的情形 */
+  protected void testDatabaseShutdown() {
+    String res;
+    // 当原数据库是只读，注册时应该发现原数据库失效并删除原数据库
+    addStorageEngineInProgress(expPort, true, true, null, EXP_SCHEMA_PREFIX);
+    shutdownDatabase(expPort);
+
+    // 添加一个ip、端口、类型相同的数据库，修改schema prefix以避免被认为是重复注册，此时应该发现该数据库失效，移除原数据库并拒绝注册新的
+    res = addStorageEngine(expPort, true, true, null, "nonexistdata", extraParams);
+    if (res != null) {
+      LOGGER.info("Successfully rejected dead datasource.");
+    } else {
+      LOGGER.error("Dead datasource shouldn't be added.");
+      fail();
+    }
+    // 只剩最开始的数据库
+    testShowClusterInfo(1);
+
+    // 重新启动原数据库
+    startDatabase(expPort);
+  }
+
+  /** mode: T:shutdown; F:restart */
+  protected void shutOrRestart(int port, boolean mode, String DBName) {
+    String dir = mode ? shutdownScriptDir : restartScriptDir;
+    String scriptPath = dir + DBName + ".sh";
+    String os = System.getProperty("os.name").toLowerCase();
+    if (os.contains("mac")) {
+      scriptPath = dir + DBName + "_macos.sh";
+    } else if (os.contains("win")) {
+      scriptPath = dir + DBName + "_windows.sh";
+    }
+    int res = executeShellScript(scriptPath, String.valueOf(port));
+    if (res != 0) {
+      fail("Fail to " + (mode ? "shutdown" : "restart") + " " + DBName + port);
+    }
+  }
+
+  /** 通过脚本修改port对应数据源的可变参数，如密码等 */
   protected abstract void updateParams(int port);
 
-  /** 这个方法需要实现：通过脚本恢复updateParams中修改的可变参数 */
+  /** 通过脚本恢复updateParams中修改的可变参数 */
   protected abstract void restoreParams(int port);
+
+  /** 暂时使对应port的数据库宕机 */
+  protected abstract void shutdownDatabase(int port);
+
+  /** 重新开启对应port的数据库 */
+  protected abstract void startDatabase(int port);
 
   protected void queryExtendedKeyDummy() {
     // ori
