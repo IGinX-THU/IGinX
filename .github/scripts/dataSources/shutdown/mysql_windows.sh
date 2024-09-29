@@ -17,13 +17,22 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-port=$1
-if tasklist | grep -q "mysqld.*$port"; then
-    echo "Stopping MySQL on port $port"
-    taskkill //F //PID $(tasklist | grep "mysqld.*$port" | awk '{print $2}')
-    sleep 2
+#port=$1
+#if tasklist | grep -q "mysqld.*$port"; then
+#    echo "Stopping MySQL on port $port"
+#    taskkill //F //PID $(tasklist | grep "mysqld.*$port" | awk '{print $2}')
+#    sleep 2
+#else
+#    echo "MySQL on port $port is not running"
+#fi
+
+pid=$(netstat -ano | grep ":$port" | awk '{print $5}' | head -n 1)
+if [ ! -z "$pid" ]; then
+    echo "Stopping mysql on port $port (PID: $pid)"
+    taskkill //PID $pid //F
+    sleep 5
 else
-    echo "MySQL on port $port is not running"
+    echo "No mysql instance found running on port $port"
 fi
 
 netstat -ano | grep ":$port"

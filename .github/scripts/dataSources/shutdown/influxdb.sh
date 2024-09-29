@@ -19,44 +19,15 @@
 
 # usage:.sh <target_port>
 
-if [ $# -eq 0 ]; then
-    echo "需要提供端口"
-    exit 1
-fi
-
-PORT=$1
-
-if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-    OS="Linux"
-elif [[ "$OSTYPE" == "darwin"* ]]; then
-    OS="macOS"
-elif [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" ]]; then
-    OS="Windows"
+port=$1
+pid=$(sudo lsof -t -i:$port)
+if [ ! -z "$pid" ]; then
+    echo "Stopping InfluxDB on port $port (PID: $pid)"
+    sudo kill -9 $pid
+    sleep 5
 else
-    echo "无法检测操作系统类型"
-    exit 1
-fi
-
-INFLUXDB_PATH="influxdb2-2.0.7-linux-amd64-$PORT"
-if [ "$OS" == "macOS" ]; then
-    INFLUXDB_PATH="influxdb2-2.0.7-darwin-amd64-$PORT"
-elif [ "$OS" == "Windows" ]; then
-    INFLUXDB_PATH="influxdb2-2.0.7-windows-amd64-$PORT"
-fi
-
-
-echo "正在停止端口 $PORT 上的InfluxDB进程..."
-if [ "$OS" == "Windows" ]; then
-    tasklist //FI "IMAGENAME eq influxd.exe" //FI "WINDOWTITLE eq *:$PORT*" //FO CSV //NH | findstr influxd.exe > nul
-    if [ $? -eq 0 ]; then
-        taskkill //F //FI "IMAGENAME eq influxd.exe" //FI "WINDOWTITLE eq *:$PORT*"
-    else
-        echo "未找到在端口 $PORT 上运行的InfluxDB进程"
-        return 1
-    fi
-else
-    pkill -f "influxd.*:$PORT"
+    echo "No InfluxDB instance found running on port $port"
 fi
 sleep 10
-netstat -ano | grep ":$1"
+lsof -i $port
 

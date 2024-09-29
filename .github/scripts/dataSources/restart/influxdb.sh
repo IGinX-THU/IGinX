@@ -20,37 +20,9 @@
 # usage:.sh <target_port>
 
 
-if [ $# -eq 0 ]; then
-    echo "需要提供端口"
-    exit 1
-fi
-
-PORT=$1
-
-if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-    OS="Linux"
-elif [[ "$OSTYPE" == "darwin"* ]]; then
-    OS="macOS"
-elif [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" ]]; then
-    OS="Windows"
-else
-    echo "无法检测操作系统类型"
-    exit 1
-fi
-
-INFLUXDB_PATH="influxdb2-2.0.7-linux-amd64-$PORT"
-if [ "$OS" == "macOS" ]; then
-    INFLUXDB_PATH="influxdb2-2.0.7-darwin-amd64-$PORT"
-elif [ "$OS" == "Windows" ]; then
-    INFLUXDB_PATH="influxdb2-2.0.7-windows-amd64-$PORT"
-fi
-
-# 启动
-if [ "$OS" == "Windows" ]; then
-    powershell -command "Start-Process -FilePath '$INFLUXDB_PATH/influxd' -ArgumentList 'run', '--bolt-path=$INFLUXDB_PATH/.influxdbv2/influxd.bolt', '--engine-path=$INFLUXDB_PATH/.influxdbv2/engine', '--http-bind-address=:$PORT', '--query-memory-bytes=20971520' -NoNewWindow -RedirectStandardOutput '$INFLUXDB_PATH/logs/db.log' -RedirectStandardError '$INFLUXDB_PATH/logs/db-error.log'"
-else
-    nohup $INFLUXDB_PATH/influxd run --bolt-path=$INFLUXDB_PATH/.influxdbv2/influxd.bolt --engine-path=$INFLUXDB_PATH/.influxdbv2/engine --http-bind-address=:$PORT --query-memory-bytes=20971520 > $INFLUXDB_PATH/logs/db.log 2> $INFLUXDB_PATH/logs/db-error.log &
-fi
-
+port=$1
+echo "Starting InfluxDB on port $port"
+sudo sh -c "cd influxdb2-2.0.7-linux-amd64-$port/; nohup ./influxd run --bolt-path=~/.influxdbv2/influxd.bolt --engine-path=~/.influxdbv2/engine --http-bind-address=:$port --query-memory-bytes=20971520 &"
 sleep 10
+
 lsof -i:$PORT

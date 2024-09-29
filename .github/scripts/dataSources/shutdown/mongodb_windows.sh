@@ -20,8 +20,22 @@
 
 set -e
 
-PGDATA=$1
+PORT=$1
+PID_FILE=".github/actions/service/mongodb/$PORT/mongodb.pid"
 
-pg_ctl -D ".github/actions/service/postgresql/${PGDATA}" start
+PID=$(cat "$PID_FILE")
+if tasklist //FI "PID eq $PID" 2>/dev/null | findstr /I /C:"mongod.exe" >NUL; then
+    echo "Stopping MongoDB on port $PORT"
+    taskkill //PID $PID //F
+    while tasklist //FI "PID eq $PID" 2>/dev/null | findstr /I /C:"mongod.exe" >NUL; do
+        echo "Waiting for mongoDB to be killed"
+        sleep 1
+    done
+    echo "MongoDB stopped"
+else
+    echo "MongoDB is not running on port $PORT"
+fi
+rm -f "$PID_FILE"
 
-netstat -ano | grep ":$1"
+
+netstat -ano | grep ":$port"

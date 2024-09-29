@@ -17,13 +17,25 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+#port=$1
+#if pgrep -f "mysqld.*port=$port" > /dev/null; then
+#    echo "Stopping MySQL on port $port"
+#    pkill -f "mysqld.*port=$port"
+#    sleep 2
+#else
+#    echo "MySQL on port $port is not running"
+#fi
+
 port=$1
-if pgrep -f "mysqld.*port=$port" > /dev/null; then
-    echo "Stopping MySQL on port $port"
-    pkill -f "mysqld.*port=$port"
-    sleep 2
+pid=$(sudo lsof -t -i:$port)
+if [ ! -z "$pid" ]; then
+    echo "Stopping mysql on port $port (PID: $pid)"
+    sudo kill -9 $pid
+    sleep 5
 else
-    echo "MySQL on port $port is not running"
+    echo "No mysql instance found running on port $port"
 fi
+
+lsof -t -i:$port
 
 lsof -i:$port

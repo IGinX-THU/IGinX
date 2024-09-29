@@ -22,7 +22,13 @@
 
 set -e
 
-cd apache-iotdb-0.12.6-server-bin-$1/
-sh -c "sbin/stop-server.sh"
+port=$1
+pid=$(lsof -ti tcp:$port)
+if [ ! -z "$pid" ]; then
+    echo "Killing process $pid on port $port"
+    kill -9 $pid
+else
+    echo "No process found on port $port"
+fi
 
-lsof -i $1
+lsof -i $port

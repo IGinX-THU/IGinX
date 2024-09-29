@@ -17,25 +17,16 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+# usage:.sh <target_port>
 
-set -e
-
-PORT=$1
-PID_FILE="$PORT/mongodb.pid"
-
-PID=$(cat "$PID_FILE")
-if tasklist //FI "PID eq $PID" 2>/dev/null | findstr /I /C:"mongod.exe" >NUL; then
-    echo "Stopping MongoDB on port $PORT"
-    taskkill //PID $PID //F
-    while tasklist //FI "PID eq $PID" 2>/dev/null | findstr /I /C:"mongod.exe" >NUL; do
-        echo "Waiting for mongoDB to be killed"
-        sleep 1
-    done
-    echo "MongoDB stopped"
+port=$1
+pid=$(netstat -ano | grep ":$port" | awk '{print $5}' | head -n 1)
+if [ ! -z "$pid" ]; then
+    echo "Stopping InfluxDB on port $port (PID: $pid)"
+    taskkill //PID $pid //F
+    sleep 5
 else
-    echo "MongoDB is not running on port $PORT"
+    echo "No InfluxDB instance found running on port $port"
 fi
-rm -f "$PID_FILE"
+netstat -ano | grep ":$port"
 
-
-lsof -i:$PORT

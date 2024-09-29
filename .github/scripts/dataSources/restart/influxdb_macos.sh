@@ -17,24 +17,12 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+# usage:.sh <target_port>
 
-set -e
 
-PORT=$1
-PID_FILE="$PORT/mongodb.pid"
-
-PID=$(cat "$PID_FILE")
-if kill -0 $PID 2>/dev/null; then
-    echo "Stopping MongoDB on port $PORT"
-    kill $PID
-    while kill -0 $PID 2>/dev/null; do
-        sleep 1
-    done
-    echo "MongoDB stopped"
-else
-    echo "MongoDB is not running on port $PORT"
-fi
-rm -f "$PID_FILE"
-
+port=$1
+echo "Starting InfluxDB on port $port"
+sudo sh -c "cd influxdb2-2.0.7-darwin-amd64-$port/; nohup ./influxd run --bolt-path=~/.influxdbv2/influxd.bolt --engine-path=~/.influxdbv2/engine --http-bind-address=:$port --query-memory-bytes=20971520 &"
+sleep 10
 
 lsof -i:$PORT

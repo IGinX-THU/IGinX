@@ -17,11 +17,17 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+# usage:.sh <target_port>
 
-set -e
-
-PGDATA=$1
-
-pg_ctl -D ".github/actions/service/postgresql/${PGDATA}" start
-
+port=$1
+pid=$(lsof -t -i:$port)
+if [ ! -z "$pid" ]; then
+    echo "Stopping InfluxDB on port $port (PID: $pid)"
+    kill -9 $pid
+    sleep 5
+else
+    echo "No InfluxDB instance found running on port $port"
+fi
+sleep 10
 netstat -ano | grep ":$1"
+

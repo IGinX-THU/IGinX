@@ -17,24 +17,17 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+# usage:.sh <target_port>
 
-set -e
+port=$1
+echo "Starting InfluxDB on port $port"
+pathPrefix="influxdb2-2.0.7-windows-amd64-$port"
 
-PORT=$1
-PID_FILE="$PORT/mongodb.pid"
+arguments="-ArgumentList 'run', '--bolt-path=$pathPrefix/.influxdbv2/influxd.bolt', '--engine-path=$pathPrefix/.influxdbv2/engine', '--http-bind-address=:$port', '--query-memory-bytes=20971520'"
 
-PID=$(cat "$PID_FILE")
-if kill -0 $PID 2>/dev/null; then
-    echo "Stopping MongoDB on port $PORT"
-    kill $PID
-    while kill -0 $PID 2>/dev/null; do
-        sleep 1
-    done
-    echo "MongoDB stopped"
-else
-    echo "MongoDB is not running on port $PORT"
-fi
-rm -f "$PID_FILE"
+redirect="-RedirectStandardOutput '$pathPrefix/logs/db.log' -RedirectStandardError '$pathPrefix/logs/db-error.log'"
 
+powershell -command "Start-Process -FilePath 'influxdb2-2.0.7-windows-amd64-$port/influxd' $arguments -NoNewWindow $redirect"
+sleep 10
 
 lsof -i:$PORT

@@ -18,7 +18,7 @@
 #
 
 port=$1
-mysqld --defaults-file=./$port.ini &
+mysqld --defaults-file=".github/actions/service/mongodb/$port.ini" &
 sleep 2
 
 netstat -ano | grep ":$port"
