@@ -24,10 +24,9 @@ pid=$(lsof -t -i:$port)
 if [ ! -z "$pid" ]; then
     echo "Stopping InfluxDB on port $port (PID: $pid)"
     kill -9 $pid
-    sleep 5
 else
     echo "No InfluxDB instance found running on port $port"
 fi
 sleep 10
-netstat -ano | grep ":$1"
+lsof -i:$port
 

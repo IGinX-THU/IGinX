@@ -18,7 +18,7 @@
 #
 
 port=$1
-mysqld --defaults-file=".github/actions/service/mongodb/$port.ini" &
+mysqld --defaults-file="$SERVICE_DIR/mongodb/$port.ini" &
 sleep 2
 
 lsof -i:$port

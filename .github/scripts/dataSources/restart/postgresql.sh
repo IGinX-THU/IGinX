@@ -22,6 +22,7 @@ set -e
 
 PGDATA=$1
 
-pg_ctl -D ".github/actions/service/postgresql/${PGDATA}" start
+pg_ctl -D ".github/actions/service/postgresql/${PGDATA}" start &
 
+sleep 3
 lsof -i:$1

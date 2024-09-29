@@ -17,7 +17,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-#port=$1
+port=$1
 #if tasklist | grep -q "mysqld.*$port"; then
 #    echo "Stopping MySQL on port $port"
 #    taskkill //F //PID $(tasklist | grep "mysqld.*$port" | awk '{print $2}')

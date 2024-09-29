@@ -37,6 +37,7 @@ runs:
           shell: bash
           working-directory: ${{ github.action_path }}
           run: |
+              pwd
               for port in ${{ inputs.ports }}; do
                 redis-server --port $port --dir $port --daemonize yes --pidfile $port/redis.pid
               done

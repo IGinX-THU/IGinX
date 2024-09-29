@@ -21,7 +21,7 @@
 set -e
 
 PORT=$1
-PID_FILE=".github/actions/service/redis/$PORT/redis.pid"
+PID_FILE="$SERVICE_DIR/redis/$PORT/redis.pid"
 
 PID=$(cat "$PID_FILE")
 if tasklist //FI "PID eq $PID" 2>/dev/null | grep -q "redis-server"; then

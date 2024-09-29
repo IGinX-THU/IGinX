@@ -23,7 +23,7 @@
 set -e
 
 port=$1
-pid=$(lsof -ti tcp:$port)
+pid=$(lsof -t -i:$port)
 if [ ! -z "$pid" ]; then
     echo "Killing process $pid on port $port"
     kill -9 $pid
@@ -32,4 +32,4 @@ else
 fi
 
 sleep 5
-lsof -i $port
+lsof -i:$port

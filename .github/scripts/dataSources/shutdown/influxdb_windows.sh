@@ -24,9 +24,10 @@ pid=$(netstat -ano | grep ":$port" | awk '{print $5}' | head -n 1)
 if [ ! -z "$pid" ]; then
     echo "Stopping InfluxDB on port $port (PID: $pid)"
     taskkill //PID $pid //F
-    sleep 5
 else
     echo "No InfluxDB instance found running on port $port"
 fi
+
+sleep 10
 netstat -ano | grep ":$port"
 

@@ -27,15 +27,17 @@
 #fi
 
 port=$1
-pid=$(sudo lsof -t -i:$port)
-if [ ! -z "$pid" ]; then
-    echo "Stopping mysql on port $port (PID: $pid)"
-    sudo kill -9 $pid
-    sleep 5
+PIDS=$(lsof -t -i:$port)
+
+if [ ! -z "$PIDS" ]; then
+  echo "Killing processes on port $port with PIDs:"
+  for PID in $PIDS; do
+    echo "Killing PID $PID"
+    kill -9 $PID
+  done
+  echo "Processes on port $port killed."
 else
-    echo "No mysql instance found running on port $port"
+  echo "No process found on port $port."
 fi
 
 lsof -t -i:$port
-
-lsof -i:$port

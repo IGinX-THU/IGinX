@@ -21,21 +21,16 @@
 set -e
 
 PORT=$1
-PID_FILE=".github/actions/service/mongodb/$PORT/mongodb.pid"
+PID_FILE="$SERVICE_DIR/mongodb/$PORT/mongodb.pid"
 
-PID=$(cat "$PID_FILE")
-if tasklist //FI "PID eq $PID" 2>/dev/null | findstr /I /C:"mongod.exe" >NUL; then
-    echo "Stopping MongoDB on port $PORT"
-    taskkill //PID $PID //F
-    while tasklist //FI "PID eq $PID" 2>/dev/null | findstr /I /C:"mongod.exe" >NUL; do
-        echo "Waiting for mongoDB to be killed"
-        sleep 1
-    done
-    echo "MongoDB stopped"
+pid=$(netstat -ano | grep ":$port" | awk '{print $5}' | head -n 1)
+if [ ! -z "$pid" ]; then
+    echo "Stopping mysql on port $port (PID: $pid)"
+    taskkill //PID $pid //F
 else
-    echo "MongoDB is not running on port $PORT"
+    echo "No mysql instance found running on port $port"
 fi
 rm -f "$PID_FILE"
 
-
+sleep 5
 netstat -ano | grep ":$port"
