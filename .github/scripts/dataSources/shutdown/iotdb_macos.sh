@@ -22,15 +22,12 @@
 
 set -ex
 port=$1
-#echo "Checking port: $port"
-#pid=$(sudo lsof -t -i:$port) || { echo "Failed to find process"; exit 1; }
-#if [ ! -z "$pid" ]; then
-#    echo "Killing process $pid on port $port"
-#    sudo kill -9 $pid || { echo "Failed to kill process"; exit 1; }
-#else
-#    echo "No process found on port $port"
-#fi
-
-cd apache-iotdb-0.12.6-server-bin-$1/
-sh -c "sbin/stop-server.sh"
+echo "Checking port: $port"
+pid=$(sudo lsof -t -i:$port) || { echo "Failed to find process"; exit 1; }
+if [ ! -z "$pid" ]; then
+    echo "Killing process $pid on port $port"
+    sudo kill -9 $pid || { echo "Failed to kill process"; exit 1; }
+else
+    echo "No process found on port $port"
+fi
 sleep 5

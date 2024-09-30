@@ -41,4 +41,4 @@ else
     echo "mysql is not running on port $PORT"
 fi
 rm -f "$PID_FILE"
-fi
+

@@ -164,6 +164,7 @@ public class InfluxDBStorage implements IStorage {
       InfluxDBClient client =
           InfluxDBClientFactory.create(url, extraParams.get("token").toCharArray())) {
       client.ping();
+      LOGGER.debug("influxdb connection success:{}", meta);
     } catch (Exception e) {
       LOGGER.error("test connection error: ", e);
       return false;

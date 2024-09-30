@@ -23,3 +23,5 @@ set -e
 cd apache-iotdb-0.12.6-server-bin-$1/
 sudo sysctl -w kern.ipc.somaxconn=65535
 sudo sh -c "nohup sbin/start-server.sh &"
+
+sudo lsof -i:$1

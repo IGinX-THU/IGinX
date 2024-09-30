@@ -18,7 +18,8 @@
 #
 
 port=$1
-mysqld --defaults-file="$SERVICE_DIR_WIN/mysql/$port.ini" &
+cd "$SERVICE_DIR_WIN/mysql"
+mysqld --defaults-file="$port.ini" &
 sleep 2
 
 netstat -ano | grep ":$port"
