@@ -27,17 +27,18 @@
 #fi
 
 port=$1
-PIDS=$(lsof -t -i:$port)
+PID_FILE="$SERVICE_DIR_MAC/mysql/mysql_$port.pid"
 
-if [ ! -z "$PIDS" ]; then
-  echo "Killing processes on port $port with PIDs:"
-  for PID in $PIDS; do
-    echo "Killing PID $PID"
-    kill -9 $PID
-  done
-  echo "Processes on port $port killed."
+PID=$(cat "$PID_FILE")
+if kill -0 $PID 2>/dev/null; then
+    echo "Stopping mysql on port $PORT"
+    kill $PID
+    while kill -0 $PID 2>/dev/null; do
+        sleep 1
+    done
+    echo "mysql stopped"
 else
-  echo "No process found on port $port."
+    echo "mysql is not running on port $PORT"
 fi
-
-sleep 3
+rm -f "$PID_FILE"
+fi

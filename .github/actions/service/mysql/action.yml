@@ -41,5 +41,5 @@ runs:
               for port in ${{ inputs.ports }}; do
                 pwd
                 mysqld --defaults-file=./$port.ini --initialize-insecure
-                mysqld --defaults-file=./$port.ini &
+                mysqld --defaults-file=./$port.ini & echo $! > ./mysql_$port.pid
               done

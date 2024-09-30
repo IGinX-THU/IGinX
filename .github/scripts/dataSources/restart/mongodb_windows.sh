@@ -21,9 +21,11 @@
 set -e
 
 PORT=$1
-PID_FILE="$SERVICE_DIR_WIN/mongodb/$PORT/mongodb.pid"
+cd "$SERVICE_DIR_WIN/mongodb"
+PID_FILE="$PORT/mongodb.pid"
 nohup mongod --port $PORT --dbpath $PORT --logpath $PORT/mongodb.log > /dev/null 2>&1 &
 echo $! > "$PID_FILE"
+cat $PORT/mongodb.log
 echo "MongoDB started on port $PORT"
 
 sleep 3

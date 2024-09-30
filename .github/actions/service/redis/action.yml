@@ -30,7 +30,6 @@ runs:
           run: |
               for port in ${{ inputs.ports }}; do
                 mkdir -p $port
-                chmod -R 755 $port
               done
 
         - if: fromJSON(inputs.start)
@@ -40,6 +39,7 @@ runs:
           run: |
               pwd
               for port in ${{ inputs.ports }}; do
+                mkdir -p $port
                 sudo redis-server --port $port --dir $port --daemonize yes --pidfile $port/redis.pid
                 ls $port
                 echo ls $port

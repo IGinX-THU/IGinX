@@ -18,7 +18,7 @@
 #
 
 port=$1
-cd "$SERVICE_DIR_MAC/mongodb"
+cd "$SERVICE_DIR_MAC/mysql"
 sudo nohup mongod --port $port --dbpath $port --logpath $port/mongodb.log > /dev/null 2>&1 &
 sudo echo $! > $port/mongodb.pid
 sleep 2
