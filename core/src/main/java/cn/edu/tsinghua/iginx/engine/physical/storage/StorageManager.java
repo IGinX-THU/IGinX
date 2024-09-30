@@ -63,6 +63,7 @@ public class StorageManager {
       return false;
     }
     LOGGER.debug("Testing connection for id={}, {}", id, meta);
+    LOGGER.debug(storageMap.keySet().toString());
     return storageMap.get(id).k.testConnection(meta);
   }
 

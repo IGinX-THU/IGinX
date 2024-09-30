@@ -159,6 +159,7 @@ public class InfluxDBStorage implements IStorage {
   @Override
   public boolean testConnection(StorageEngineMeta meta) {
     Map<String, String> extraParams = meta.getExtraParams();
+    LOGGER.debug("testing influxdb {}", extraParams.toString());
     String url = extraParams.get("url");
     try (
       InfluxDBClient client =

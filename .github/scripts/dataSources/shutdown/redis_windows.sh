@@ -17,23 +17,15 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-
 set -e
-
-PORT=$1
-PID_FILE="$SERVICE_DIR_WIN/redis/$PORT/redis.pid"
-
-PID=$(cat "$PID_FILE")
-if tasklist //FI "PID eq $PID" 2>/dev/null | grep -q "redis-server"; then
-    echo "Stopping Redis on port $PORT"
-    taskkill //PID $PID //F
-    while tasklist //FI "PID eq $PID" 2>/dev/null | grep -q "redis-server"; do
-        echo "Waiting for redis to be killed"
-        sleep 1
-    done
-    echo "Redis stopped"
+port=$1
+pid=$(netstat -ano | grep ":$port" | awk '{print $5}' | head -n 1)
+if [ ! -z "$pid" ]; then
+    echo "Stopping redis on port $port (PID: $pid)"
+    taskkill //PID $pid //F
 else
-    echo "Redis is not running on port $PORT"
+    echo "No redis instance found running on port $port"
 fi
 
-netstat -ano | grep ":$1"
+sleep 3
+netstat -ano | grep ":$port"

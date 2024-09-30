@@ -20,24 +20,14 @@
 
 set -e
 
-PORT=$1
-PID_FILE="$SERVICE_DIR_WIN/mongodb/$PORT/mongodb.pid"
-
-pid=$(cat "$PID_FILE")
+port=$1
+pid=$(netstat -ano | grep ":$port" | awk '{print $5}' | head -n 1)
 if [ ! -z "$pid" ]; then
-    echo "Stopping mongodb on port $PORT (PID: $pid)"
-
-    # Find the actual Windows PID for MongoDB by matching the port
-    win_pid=$(tasklist //FI "IMAGENAME eq mongod.exe" //FI "PID eq $pid" //NH //FO CSV | awk -F',' '{print $2}' | tr -d '"')
-
-    if [ ! -z "$win_pid" ]; then
-        taskkill //PID $win_pid //F
-    else
-        echo "No MongoDB process found for PID: $pid on Windows."
-    fi
+    echo "Stopping mongodb on port $port (PID: $pid)"
+    taskkill //PID $pid //F
 else
-    echo "No mongodb instance found running on port $PORT"
+    echo "No mongodb instance found running on port $port"
 fi
 
-rm -f "$PID_FILE"
 sleep 3
+netstat -ano | grep ":$port"

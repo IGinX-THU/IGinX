@@ -21,19 +21,14 @@
 set -e
 
 PORT=$1
-PID_FILE="$SERVICE_DIR_MAC/redis/$PORT/redis.pid"
 
-PID=$(cat "$PID_FILE")
-if kill -0 $PID 2>/dev/null; then
-    echo "Stopping Redis on port $PORT"
-    kill $PID
-    while kill -0 $PID 2>/dev/null; do
-        sleep 1
-    done
-    echo "Redis stopped"
+pid=$(sudo lsof -t -i:$PORT)
+
+if [ -z "$pid" ]; then
+  echo "No process is running on port $PORT."
+  exit 0
 else
-    echo "Redis is not running on port $PORT"
+  echo "Killing process $pid running on port $PORT."
+  sudo kill -9 $pid
+  echo "Process $pid has been killed."
 fi
-
-
-lsof -i:$PORT
