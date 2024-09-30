@@ -20,16 +20,15 @@
 # usage:.sh <target_port>
 
 port=$1
-cd influxdb2-2.0.7-windows-amd64-$port/
-ls
-pid=$(cat "influxdb.pid")
+set -e
+port=$1
+pid=$(netstat -ano | grep ":$port" | awk '{print $5}' | head -n 1)
 if [ ! -z "$pid" ]; then
-    echo "Stopping InfluxDB on port $port (PID: $pid)"
+    echo "Stopping influxdb on port $port (PID: $pid)"
     taskkill //PID $pid //F
 else
-    echo "No InfluxDB instance found running on port $port"
+    echo "No influxdb instance found running on port $port"
 fi
 
 sleep 3
 netstat -ano | grep ":$port"
-
