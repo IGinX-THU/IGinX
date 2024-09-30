@@ -421,6 +421,9 @@ public class IginxWorker implements IService.Iface {
               // 已有的数据库无法连接了，若是只读，直接删除
               if (currentStorageEngine.isReadOnly() && currentStorageEngine.isHasData()) {
                 metaManager.removeDummyStorageEngine(currentStorageEngine.getId());
+                LOGGER.warn(
+                        "Existing dummy Storage engine {} cannot be connected and will be removed.",
+                        currentStorageEngine);
               } else {
                 // 并非只读，需要手动操作，拒绝注册同地址引擎
                 LOGGER.warn(

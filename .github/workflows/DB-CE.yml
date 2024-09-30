@@ -81,6 +81,7 @@ jobs:
               shell: bash
               env:
                   SERVICE_DIR: "/home/runner/work/IGinX/IGinX/.github/actions/service"
+                  SERVICE_DIR_WIN: "/d/a/IGinX/IGinX/.github/actions/service"
               run: |
                   mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#testReadOnly -DfailIfNoTests=false -P-format
                   mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format

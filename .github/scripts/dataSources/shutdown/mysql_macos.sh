@@ -40,4 +40,4 @@ else
   echo "No process found on port $port."
 fi
 
-lsof -t -i:$port
+sleep 3

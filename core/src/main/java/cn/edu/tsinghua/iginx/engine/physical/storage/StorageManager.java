@@ -96,7 +96,7 @@ public class StorageManager {
       try {
         storage.release();
       } catch (Exception e) {
-        LOGGER.error("release session pool failure!");
+        LOGGER.error("release session pool failure!", e);
       }
     }
   }

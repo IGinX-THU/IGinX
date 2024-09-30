@@ -20,16 +20,14 @@
 
 # usage:.sh <port>
 
-set -e
-
+set -ex
 port=$1
-pid=$(lsof -t -i:$port)
+echo "Checking port: $port"
+pid=$(lsof -t -i:$port) || { echo "Failed to find process"; exit 1; }
 if [ ! -z "$pid" ]; then
     echo "Killing process $pid on port $port"
-    kill -9 $pid
+    kill -9 $pid || { echo "Failed to kill process"; exit 1; }
 else
     echo "No process found on port $port"
 fi
-
 sleep 5
-lsof -i:$port

@@ -36,5 +36,4 @@ else
 fi
 rm -f "$PID_FILE"
 
-
-lsof -i:$PORT
+sleep 3

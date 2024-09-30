@@ -26,13 +26,32 @@ port=$1
 #    echo "MySQL on port $port is not running"
 #fi
 
-pid=$(netstat -ano | grep ":$port" | awk '{print $5}' | head -n 1)
-if [ ! -z "$pid" ]; then
-    echo "Stopping mysql on port $port (PID: $pid)"
-    taskkill //PID $pid //F
-    sleep 5
+#pid=$(netstat -ano | grep ":$port" | awk '{print $5}' | head -n 1)
+#if [ ! -z "$pid" ]; then
+#    echo "Stopping mysql on port $port (PID: $pid)"
+#    taskkill //PID $pid //F
+#    sleep 5
+#else
+#    echo "No mysql instance found running on port $port"
+#fi
+#
+#netstat -ano | grep ":$port"
+
+PORT=$1
+PID_FILE="$SERVICE_DIR_WIN/mongodb/$PORT/mongodb.pid"
+
+PID=$(cat "$PID_FILE")
+if tasklist //FI "PID eq $PID" 2>/dev/null; then
+    echo "Stopping mongodb on port $PORT"
+    taskkill //PID $PID //F
+    while tasklist //FI "PID eq $PID" 2>/dev/null; do
+        echo "Waiting for mongodb to be killed"
+        sleep 1
+    done
+    echo "mongodb stopped"
 else
-    echo "No mysql instance found running on port $port"
+    echo "mongodb is not running on port $PORT"
 fi
 
-netstat -ano | grep ":$port"
+sleep 3
+netstat -ano | grep ":$1"

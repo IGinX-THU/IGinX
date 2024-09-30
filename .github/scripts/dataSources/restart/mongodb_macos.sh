@@ -20,6 +20,8 @@
 
 set -e
 
+ls
+
 PORT=$1
 PID_FILE="$SERVICE_DIR/mongodb/$PORT/mongodb.pid"
 nohup mongod --port $PORT --dbpath $PORT --logpath $PORT/mongodb.log > /dev/null 2>&1 &
@@ -27,4 +29,4 @@ echo $! > "$PID_FILE"
 echo "MongoDB started on port $PORT"
 
 sleep 1
-lsof -i:$PORT
+sudo lsof -i:$PORT

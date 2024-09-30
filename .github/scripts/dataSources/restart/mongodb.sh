@@ -26,4 +26,4 @@ nohup mongod --port $PORT --dbpath $PORT --logpath $PORT/mongodb.log > /dev/null
 echo $! > "$PID_FILE"
 echo "MongoDB started on port $PORT"
 
-lsof -i:$PORT
+sudo lsof -i:$PORT

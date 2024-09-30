@@ -21,7 +21,7 @@
 set -e
 
 PORT=$1
-PID_FILE="$SERVICE_DIR/mongodb/$PORT/mongodb.pid"
+PID_FILE="$SERVICE_DIR_WIN/mongodb/$PORT/mongodb.pid"
 
 pid=$(netstat -ano | grep ":$port" | awk '{print $5}' | head -n 1)
 if [ ! -z "$pid" ]; then
