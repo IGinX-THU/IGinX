@@ -28,6 +28,4 @@ arguments="-ArgumentList 'run', '--bolt-path=$pathPrefix/.influxdbv2/influxd.bol
 redirect="-RedirectStandardOutput '$pathPrefix/logs/db.log' -RedirectStandardError '$pathPrefix/logs/db-error.log'"
 
 powershell -command "Start-Process -FilePath 'influxdb2-2.0.7-windows-amd64-$port/influxd' $arguments -NoNewWindow $redirect"
-sleep 10
-
-lsof -i:$PORT
+sleep 3

@@ -23,7 +23,7 @@ set -e
 PORT=$1
 PID_FILE="$SERVICE_DIR_WIN/mongodb/$PORT/mongodb.pid"
 
-pid=$(netstat -ano | grep ":$port" | awk '{print $5}' | head -n 1)
+pid=$(cat "$PID_FILE")
 if [ ! -z "$pid" ]; then
     echo "Stopping mysql on port $port (PID: $pid)"
     taskkill //PID $pid //F
@@ -32,5 +32,4 @@ else
 fi
 rm -f "$PID_FILE"
 
-sleep 5
-netstat -ano | grep ":$port"
+sleep 3

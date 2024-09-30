@@ -160,10 +160,10 @@ public class InfluxDBStorage implements IStorage {
   public boolean testConnection(StorageEngineMeta meta) {
     Map<String, String> extraParams = meta.getExtraParams();
     String url = extraParams.get("url");
-    try {
+    try (
       InfluxDBClient client =
-          InfluxDBClientFactory.create(url, extraParams.get("token").toCharArray());
-      client.close();
+          InfluxDBClientFactory.create(url, extraParams.get("token").toCharArray())) {
+      client.ping();
     } catch (Exception e) {
       LOGGER.error("test connection error: ", e);
       return false;

@@ -21,7 +21,7 @@
 set -e
 
 PORT=$1
-PID_FILE="$SERVICE_DIR/redis/$PORT/redis.pid"
+PID_FILE="$SERVICE_DIR_MAC/redis/$PORT/redis.pid"
 
 PID=$(cat "$PID_FILE")
 if kill -0 $PID 2>/dev/null; then

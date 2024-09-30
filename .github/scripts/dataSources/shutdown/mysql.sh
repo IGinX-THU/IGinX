@@ -39,5 +39,3 @@ if [ ! -z "$PIDS" ]; then
 else
   echo "No process found on port $port."
 fi
-
-sleep 3

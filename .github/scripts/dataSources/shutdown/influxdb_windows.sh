@@ -28,6 +28,6 @@ else
     echo "No InfluxDB instance found running on port $port"
 fi
 
-sleep 30
+sleep 3
 netstat -ano | grep ":$port"
 

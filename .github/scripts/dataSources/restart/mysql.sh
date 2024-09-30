@@ -18,7 +18,5 @@
 #
 
 port=$1
-mysqld --defaults-file="$SERVICE_DIR/mongodb/$port.ini" &
+sudo mysqld --defaults-file="$SERVICE_DIR/mongodb/$port.ini" &
 sleep 2
-
-lsof -i:$port

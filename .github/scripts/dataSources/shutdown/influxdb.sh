@@ -27,4 +27,4 @@ if [ ! -z "$pid" ]; then
 else
     echo "No InfluxDB instance found running on port $port"
 fi
-sleep 10
+sleep 3

@@ -21,7 +21,7 @@
 set -e
 
 PORT=$1
-PID_FILE="$SERVICE_DIR/mongodb/$PORT/mongodb.pid"
+PID_FILE="$SERVICE_DIR_MAC/mongodb/$PORT/mongodb.pid"
 
 PID=$(cat "$PID_FILE")
 if kill -0 $PID 2>/dev/null; then

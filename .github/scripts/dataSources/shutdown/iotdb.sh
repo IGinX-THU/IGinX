@@ -23,7 +23,7 @@
 set -ex
 port=$1
 echo "Checking port: $port"
-pid=$(lsof -t -i:$port) || { echo "Failed to find process"; exit 1; }
+pid=$(sudo lsof -t -i:$port) || { echo "Failed to find process"; exit 1; }
 if [ ! -z "$pid" ]; then
     echo "Killing process $pid on port $port"
     kill -9 $pid || { echo "Failed to kill process"; exit 1; }
