@@ -19,9 +19,6 @@
 
 
 set -e
-
-ls
-
 PORT=$1
 PID_FILE="$SERVICE_DIR_MAC/mongodb/$PORT/mongodb.pid"
 nohup mongod --port $PORT --dbpath $PORT --logpath $PORT/mongodb.log > /dev/null 2>&1 &

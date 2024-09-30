@@ -18,9 +18,10 @@
 #
 
 # usage:.sh <target_port>
-
 port=$1
-pid=$(sudo lsof -t -i:$port)
+cd influxdb2-2.0.7-linux-amd64-$port/
+ls
+pid=$(cat "influxdb.pid")
 if [ ! -z "$pid" ]; then
     echo "Stopping InfluxDB on port $port (PID: $pid)"
     sudo kill -9 $pid

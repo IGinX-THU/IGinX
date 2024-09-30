@@ -20,11 +20,12 @@
 # usage:.sh <target_port>
 
 port=$1
-sudo lsof -i:$port
-pid=$(sudo lsof -t -i:$port)
+cd influxdb2-2.0.7-darwin-amd64-$port/
+ls
+pid=$(cat "influxdb.pid")
 if [ ! -z "$pid" ]; then
     echo "Stopping InfluxDB on port $port (PID: $pid)"
-    kill -9 $pid
+    sudo kill -9 $pid
     echo "killed"
 else
     echo "No InfluxDB instance found running on port $port"

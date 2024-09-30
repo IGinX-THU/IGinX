@@ -40,7 +40,4 @@ runs:
               for port in ${{ inputs.ports }}; do
                 nohup mongod --port $port --dbpath $port --logpath $port/mongodb.log > /dev/null 2>&1 &
                 echo $! > $port/mongodb.pid
-                echo $port
-                ls $port
-                pwd
               done

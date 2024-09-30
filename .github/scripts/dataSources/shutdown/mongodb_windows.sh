@@ -25,10 +25,10 @@ PID_FILE="$SERVICE_DIR_WIN/mongodb/$PORT/mongodb.pid"
 
 pid=$(cat "$PID_FILE")
 if [ ! -z "$pid" ]; then
-    echo "Stopping mysql on port $port (PID: $pid)"
+    echo "Stopping mongodb on port $PORT (PID: $pid)"
     taskkill //PID $pid //F
 else
-    echo "No mysql instance found running on port $port"
+    echo "No mongodb instance found running on port $PORT"
 fi
 rm -f "$PID_FILE"
 
