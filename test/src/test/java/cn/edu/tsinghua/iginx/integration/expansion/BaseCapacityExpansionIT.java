@@ -411,7 +411,7 @@ public abstract class BaseCapacityExpansionIT {
   protected void testDatabaseShutdown() {
     String res;
     // 当原数据库是只读，注册时应该发现原数据库失效并删除原数据库
-    addStorageEngineInProgress(readOnlyPort, true, true, null, EXP_SCHEMA_PREFIX);
+    addStorageEngineInProgress(readOnlyPort, true, true, null, READ_ONLY_SCHEMA_PREFIX);
     shutdownDatabase(readOnlyPort);
 
     // 添加一个ip、端口、类型相同的数据库，修改schema prefix以避免被认为是重复注册，此时应该发现该数据库失效，移除原数据库并拒绝注册新的

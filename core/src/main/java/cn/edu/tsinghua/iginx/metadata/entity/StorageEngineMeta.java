@@ -326,12 +326,14 @@ public final class StorageEngineMeta {
 
   @Override
   public String toString() {
-    return "StorageEngineMeta {" + "ip='" + ip + "', " +
+    return "StorageEngineMeta {" + "id='" + getId() + "', " +
+            "ip='" + ip + "', " +
             "port='" + port + "', " +
             "type='" + storageEngine.toString() + "', " +
             "has_data='" + (hasData ? "true" : "false") + "', " +
             "read_only='" + (readOnly ? "true" : "false") + "', " +
             "schema_prefix='" + (schemaPrefix != null ? schemaPrefix : "NULL") + "', " +
-            "data_prefix='" + (dataPrefix != null ? dataPrefix : "NULL") + "', ";
+            "data_prefix='" + (dataPrefix != null ? dataPrefix : "NULL") + "', " +
+            "extra_params='" + (extraParams.toString()) + "', ";
   }
 }

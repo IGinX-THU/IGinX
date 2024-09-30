@@ -62,6 +62,7 @@ public class StorageManager {
       LOGGER.error("Storage engine id must be >= 0");
       return false;
     }
+    LOGGER.debug("Testing connection for id={}, {}", id, meta);
     return storageMap.get(id).k.testConnection(meta);
   }
 
