@@ -109,7 +109,16 @@ selectClause
    ;
 
 selectSublist
-   : expression asClause?
+   : (expression | sequence) (asClause | asKeyClause)?
+   | KEY (asClause | asKeyClause)
+   ;
+
+sequence
+   : SEQUENCE LR_BRACKET (start = constant COMMA increment = constant)? RR_BRACKET
+   ;
+
+asKeyClause
+   : AS KEY
    ;
 
 expression
@@ -460,7 +469,6 @@ nodeName
    : ID
    | STAR
    | BACK_QUOTE_STRING_LITERAL_NOT_EMPTY
-   | keyWords
    ;
 
 keyWords
@@ -1125,6 +1133,10 @@ ELSE
 
 END
    : E N D
+   ;
+
+SEQUENCE
+   : S E Q U E N C E
    ;
    //============================
    

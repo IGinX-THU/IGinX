@@ -19,6 +19,9 @@ package cn.edu.tsinghua.iginx.engine.shared.data.read;
 
 import static cn.edu.tsinghua.iginx.engine.shared.Constants.RESERVED_COLS;
 
+import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
+import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
+import cn.edu.tsinghua.iginx.engine.shared.Constants;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.util.*;
@@ -127,9 +130,12 @@ public final class Header {
         && Objects.equals(indexMap, header.indexMap);
   }
 
-  public Header renamedHeader(List<Pair<String, String>> aliasList, List<String> ignorePatterns) {
+  public Pair<Header, Integer> renamedHeader(
+      List<Pair<String, String>> aliasList, List<String> ignorePatterns) throws PhysicalException {
     List<Field> newFields = new ArrayList<>();
     int size = getFieldSize();
+    int colIndex = -1;
+    scanFields:
     for (int i = 0; i < size; i++) {
       Field field = fields.get(i);
       // 如果列名在ignorePatterns中，对该列不执行rename
@@ -159,6 +165,14 @@ public final class Header {
           }
           break;
         } else if (oldPattern.equals(field.getName())) {
+          if (newPattern.equals(Constants.KEY)) {
+            if (colIndex != -1) {
+              throw new PhysicalTaskExecuteFailureException(
+                  "only one column can transform to key in each select");
+            }
+            colIndex = i;
+            continue scanFields;
+          }
           alias = newPattern;
           Set<Map<String, String>> tagSet = new HashSet<>();
           Field nextField = i < size - 1 ? fields.get(i + 1) : null;
@@ -193,7 +207,14 @@ public final class Header {
         newFields.add(new Field(alias, field.getType(), field.getTags()));
       }
     }
-    return new Header(getKey(), newFields);
+
+    Header newHeader;
+    if (!hasKey() && colIndex != -1) {
+      newHeader = new Header(Field.KEY, newFields);
+    } else {
+      newHeader = new Header(getKey(), newFields);
+    }
+    return new Pair<>(newHeader, colIndex);
   }
 
   public static class ReorderedHeaderWrapped {

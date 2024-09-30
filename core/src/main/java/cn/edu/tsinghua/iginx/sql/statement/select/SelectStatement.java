@@ -33,6 +33,8 @@ public abstract class SelectStatement extends DataStatement {
 
   public static int markJoinCount = 0;
   public static int caseWhenCount = 0;
+  public static int keyCount = 0;
+  public static int sequenceCount = 0;
   protected SelectStatementType selectStatementType;
   protected boolean needLogicalExplain = false;
   protected boolean needPhysicalExplain = false;

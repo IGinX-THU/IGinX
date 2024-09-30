@@ -35,6 +35,7 @@ import cn.edu.tsinghua.iginx.engine.shared.function.SetMappingFunction;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.Max;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.Min;
 import cn.edu.tsinghua.iginx.engine.shared.operator.AddSchemaPrefix;
+import cn.edu.tsinghua.iginx.engine.shared.operator.AddSequence;
 import cn.edu.tsinghua.iginx.engine.shared.operator.BinaryOperator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.CrossJoin;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Distinct;
@@ -118,6 +119,9 @@ public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
         break;
       case Distinct:
         result = executeDistinct((Distinct) operator, stream);
+        break;
+      case AddSequence:
+        result = executeAddSequence((AddSequence) operator, stream);
         break;
       case ValueToSelectedPath:
         result = executeValueToSelectedPath((ValueToSelectedPath) operator, stream);
@@ -272,6 +276,11 @@ public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
     Project project = new Project(EmptySource.EMPTY_SOURCE, distinct.getPatterns(), null);
     stream = executeProject(project, stream);
     return new DistinctLazyStream(stream);
+  }
+
+  private RowStream executeAddSequence(AddSequence addSequence, RowStream stream)
+      throws PhysicalException {
+    return new AddSequenceLazyStream(addSequence, stream);
   }
 
   private RowStream executeValueToSelectedPath(ValueToSelectedPath operator, RowStream stream) {

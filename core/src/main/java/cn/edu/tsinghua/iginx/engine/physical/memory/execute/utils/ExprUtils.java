@@ -32,6 +32,7 @@ import cn.edu.tsinghua.iginx.engine.shared.function.manager.FunctionManager;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.utils.DataTypeUtils;
+import java.security.Key;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -60,6 +61,8 @@ public class ExprUtils {
     switch (expr.getType()) {
       case Constant:
         return calculateConstantExpr((ConstantExpression) expr);
+      case Key:
+        return calculateKeyExpr(row, (KeyExpression) expr);
       case Base:
         return calculateBaseExpr(row, (BaseExpression) expr);
       case Function:
@@ -81,6 +84,13 @@ public class ExprUtils {
 
   private static Value calculateConstantExpr(ConstantExpression constantExpr) {
     return new Value(constantExpr.getValue());
+  }
+
+  private static Value calculateKeyExpr(Row row, KeyExpression expr) throws PhysicalException {
+    if (!row.getHeader().hasKey()) {
+      throw new PhysicalTaskExecuteFailureException("there is no key in row");
+    }
+    return new Value(row.getKey());
   }
 
   private static Value calculateBaseExpr(Row row, BaseExpression baseExpr) {
@@ -386,6 +396,8 @@ public class ExprUtils {
           }
           break;
         case Constant:
+        case Key:
+        case Sequence:
         case FromValue:
           break;
         default:
@@ -405,6 +417,8 @@ public class ExprUtils {
   public static Expression flattenExpression(Expression expr) {
     switch (expr.getType()) {
       case Constant:
+      case Key:
+      case Sequence:
       case Base:
       case Function:
         return expr;
@@ -824,6 +838,15 @@ public class ExprUtils {
                 : null;
         return new CaseWhenExpression(
             conditions, resultCopy, resultElse, caseWhenExpression.getColumnName());
+      case Key:
+        KeyExpression keyExpression = (KeyExpression) expression;
+        return new KeyExpression(keyExpression.getColumnName());
+      case Sequence:
+        SequenceExpression sequenceExpression = (SequenceExpression) expression;
+        return new SequenceExpression(
+            sequenceExpression.getStart(),
+            sequenceExpression.getIncrement(),
+            sequenceExpression.getColumnName());
       default:
         throw new IllegalArgumentException(
             String.format("Unknown expr type: %s", expression.getType()));
