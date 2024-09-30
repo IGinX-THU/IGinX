@@ -109,8 +109,8 @@ selectClause
    ;
 
 selectSublist
-   : (expression | sequence) (asClause | asKeyClause)?
-   | KEY (asClause | asKeyClause)
+   : KEY (asClause | asKeyClause)
+   | (expression | sequence) (asClause | asKeyClause)?
    ;
 
 sequence
@@ -469,6 +469,7 @@ nodeName
    : ID
    | STAR
    | BACK_QUOTE_STRING_LITERAL_NOT_EMPTY
+   | keyWords
    ;
 
 keyWords
