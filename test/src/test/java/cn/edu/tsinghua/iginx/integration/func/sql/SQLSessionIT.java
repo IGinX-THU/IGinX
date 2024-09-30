@@ -6317,13 +6317,20 @@ public class SQLSessionIT {
     errClause = "select * from test.a join test.b where a > 0;";
     executor.executeAndCompareErrMsg(errClause, "Unexpected paths' name: [a].");
 
-    errClause = "SELECT 1 * 2 FROM test;";
-    executor.executeAndCompareErrMsg(
-        errClause, "SELECT constant arithmetic expression isn't supported yet.");
-
     errClause = "select * from (show columns a.*), (show columns b.*);";
     executor.executeAndCompareErrMsg(
         errClause, "As clause is expected when multiple ShowColumns are joined together.");
+
+    errClause = "select sequence(\"a\", 1) from us.d1;";
+    executor.executeAndCompareErrMsg(errClause, "The value of start in sequence should be a long.");
+
+    errClause = "select sequence(1, 1.5) from us.d1;";
+    executor.executeAndCompareErrMsg(
+        errClause, "The value of increment in sequence should be a long.");
+
+    errClause = "select s1 as key, s2 as key from us.d1;";
+    executor.executeAndCompareErrMsg(
+        errClause, "Only one 'AS KEY' can be used in each select at most.");
   }
 
   @Test
@@ -8657,6 +8664,154 @@ public class SQLSessionIT {
             + "|1|    21|    8|\n"
             + "+-+------+-----+\n"
             + "Total line number = 6\n";
+    executor.executeAndCompare(statement, expected);
+  }
+
+  @Test
+  public void testSequence() {
+    String insert = "insert into test.a(key, a, b) values (1, 1, 1.1), (2, 3, 3.1);";
+    executor.execute(insert);
+    insert = "insert into test.b(key, a, b) values (1, 2, 2.1), (2, 3, 3.1), (3, 4, 4.1);";
+    executor.execute(insert);
+
+    String statement = "select sequence() as s1, sequence(-20, 30) as s2 from test.a;";
+    String expected =
+        "ResultSets:\n"
+            + "+---+--+---+\n"
+            + "|key|s1| s2|\n"
+            + "+---+--+---+\n"
+            + "|  1| 0|-20|\n"
+            + "|  2| 1| 10|\n"
+            + "+---+--+---+\n"
+            + "Total line number = 2\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "select sequence() as key, sequence(10, 100) as s, b from test.b;";
+    expected =
+        "ResultSets:\n"
+            + "+---+---+--------+\n"
+            + "|key|  s|test.b.b|\n"
+            + "+---+---+--------+\n"
+            + "|  0| 10|     2.1|\n"
+            + "|  1|110|     3.1|\n"
+            + "|  2|210|     4.1|\n"
+            + "+---+---+--------+\n"
+            + "Total line number = 3\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "select sequence() as key, test.a.b, test.b.b from test.a, test.b;";
+    expected =
+        "ResultSets:\n"
+            + "+---+--------+--------+\n"
+            + "|key|test.a.b|test.b.b|\n"
+            + "+---+--------+--------+\n"
+            + "|  0|     1.1|     2.1|\n"
+            + "|  1|     1.1|     3.1|\n"
+            + "|  2|     1.1|     4.1|\n"
+            + "|  3|     3.1|     2.1|\n"
+            + "|  4|     3.1|     3.1|\n"
+            + "|  5|     3.1|     4.1|\n"
+            + "+---+--------+--------+\n"
+            + "Total line number = 6\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement =
+        "select sequence() as key, test.a.b, sum(test.b.b) from (select test.a.b, test.b.b from test.a, test.b) group by test.a.b;";
+    expected =
+        "ResultSets:\n"
+            + "+---+--------+-------------+\n"
+            + "|key|test.a.b|sum(test.b.b)|\n"
+            + "+---+--------+-------------+\n"
+            + "|  0|     3.1|          9.3|\n"
+            + "|  1|     1.1|          9.3|\n"
+            + "+---+--------+-------------+\n"
+            + "Total line number = 2\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement =
+        "select sequence(1, 2) as key, test.a.b, sum(test.b.b) from (select test.a.b, test.b.b from test.a, test.b) group by test.a.b order by test.a.b;";
+    expected =
+        "ResultSets:\n"
+            + "+---+--------+-------------+\n"
+            + "|key|test.a.b|sum(test.b.b)|\n"
+            + "+---+--------+-------------+\n"
+            + "|  1|     1.1|          9.3|\n"
+            + "|  3|     3.1|          9.3|\n"
+            + "+---+--------+-------------+\n"
+            + "Total line number = 2\n";
+    executor.executeAndCompare(statement, expected);
+  }
+
+  @Test
+  public void testTransformKeyColumn() {
+    String insert =
+        "insert into test(key, a, b, c, d) values (0, 1, 1.1, true, \"2\"), (1, 3, 3.1, false, \"3\"), (2, 3, 3.1, false, \"3\");";
+    executor.execute(insert);
+
+    String statement = "select key as key from test;";
+    String expected =
+        "ResultSets:\n"
+            + "+---+\n"
+            + "|key|\n"
+            + "+---+\n"
+            + "|  0|\n"
+            + "|  1|\n"
+            + "|  2|\n"
+            + "+---+\n"
+            + "Total line number = 3\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "select a, b, key as eee from test;";
+    expected =
+        "ResultSets:\n"
+            + "+------+------+---+\n"
+            + "|test.a|test.b|eee|\n"
+            + "+------+------+---+\n"
+            + "|     1|   1.1|  0|\n"
+            + "|     3|   3.1|  1|\n"
+            + "|     3|   3.1|  2|\n"
+            + "+------+------+---+\n"
+            + "Total line number = 3\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "select a, b, key as eee, key as key from test;";
+    expected =
+        "ResultSets:\n"
+            + "+---+------+------+---+\n"
+            + "|key|test.a|test.b|eee|\n"
+            + "+---+------+------+---+\n"
+            + "|  0|     1|   1.1|  0|\n"
+            + "|  1|     3|   3.1|  1|\n"
+            + "|  2|     3|   3.1|  2|\n"
+            + "+---+------+------+---+\n"
+            + "Total line number = 3\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "select d as key, a from test where key < 2;";
+    expected =
+        "ResultSets:\n"
+            + "+---+------+\n"
+            + "|key|test.a|\n"
+            + "+---+------+\n"
+            + "|  2|     1|\n"
+            + "|  3|     3|\n"
+            + "+---+------+\n"
+            + "Total line number = 2\n";
+    executor.executeAndCompare(statement, expected);
+
+    String errClause = "select d as key, a from test;";
+    executor.executeAndCompareErrMsg(errClause, "duplicated key found: 3");
+
+    statement = "select c as key, a from test where key < 2;";
+    expected =
+        "ResultSets:\n"
+            + "+---+------+\n"
+            + "|key|test.a|\n"
+            + "+---+------+\n"
+            + "|  1|     1|\n"
+            + "|  0|     3|\n"
+            + "+---+------+\n"
+            + "Total line number = 2\n";
     executor.executeAndCompare(statement, expected);
   }
 }

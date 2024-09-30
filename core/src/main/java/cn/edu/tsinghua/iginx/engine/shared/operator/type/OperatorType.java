@@ -63,6 +63,7 @@ public enum OperatorType {
   AddSchemaPrefix,
   GroupBy,
   Distinct,
+  AddSequence,
   ProjectWaitingForPath,
   ValueToSelectedPath;
 

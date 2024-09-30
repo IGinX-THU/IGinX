@@ -249,6 +249,10 @@ public class UnarySelectStatement extends SelectStatement {
     return baseExpressionList;
   }
 
+  public List<SequenceExpression> getSequenceExpressionList() {
+    return selectClause.getSequenceExpressionList();
+  }
+
   @Override
   public Set<String> getPathSet() {
     Set<String> pathSet = new HashSet<>();
@@ -455,7 +459,8 @@ public class UnarySelectStatement extends SelectStatement {
           return true;
         }
       } else if (!expression.getType().equals(Expression.ExpressionType.Base)
-          && !expression.getType().equals(Expression.ExpressionType.FromValue)) {
+          && !expression.getType().equals(Expression.ExpressionType.FromValue)
+          && !expression.getType().equals(Expression.ExpressionType.Sequence)) {
         return true;
       }
     }
@@ -631,7 +636,10 @@ public class UnarySelectStatement extends SelectStatement {
       throw new SQLParserException(
           "Statement without FROM clause should only contain constant arithmetic expressions.");
     }
-    if (isAllConstArith) {
+
+    boolean isAllExprNeedNoPath =
+        getExpressions().stream().allMatch(UnarySelectStatement::isNeedNoPath);
+    if (isAllExprNeedNoPath) {
       fromClause
           .getFromParts()
           .forEach(
@@ -694,6 +702,13 @@ public class UnarySelectStatement extends SelectStatement {
     }
   }
 
+  private static boolean isNeedNoPath(Expression expression) {
+    if (expression instanceof KeyExpression || expression instanceof SequenceExpression) {
+      return true;
+    }
+    return ExpressionUtils.isConstantArithmeticExpr(expression);
+  }
+
   /**
    * 判断Expression的FuncExpression的映射类型
    *
@@ -703,9 +718,11 @@ public class UnarySelectStatement extends SelectStatement {
   private MappingType getExprMappingType(Expression expression) {
     switch (expression.getType()) {
       case Constant:
+      case Sequence:
       case FromValue:
         return null;
       case Base:
+      case Key:
       case CaseWhen:
         return MappingType.RowMapping; // case-when视为RowMapping函数
       case Unary:

@@ -26,7 +26,7 @@ import java.util.Objects;
 
 public class Row {
 
-  public static final long NON_EXISTED_KEY = -1L;
+  public static final long NON_EXISTED_KEY = Long.MIN_VALUE;
 
   public static final Row EMPTY_ROW = new Row(Header.EMPTY_HEADER, new Object[0]);
 

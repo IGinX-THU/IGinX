@@ -261,7 +261,7 @@ public class SessionExecuteSqlResult {
       }
 
       List<Object> rowData = values.get(i);
-      boolean isNull = true; // TODO 该行除系统级时间序列之外全部为空
+      boolean isNull = !rowData.isEmpty();
       for (int j = 0; j < rowData.size(); j++) {
         if (j == annotationPathIndex) {
           continue;

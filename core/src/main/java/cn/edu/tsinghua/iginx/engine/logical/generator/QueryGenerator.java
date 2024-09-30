@@ -29,6 +29,7 @@ import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
 import cn.edu.tsinghua.iginx.engine.shared.expr.FromValueExpression;
 import cn.edu.tsinghua.iginx.engine.shared.expr.FuncExpression;
+import cn.edu.tsinghua.iginx.engine.shared.expr.SequenceExpression;
 import cn.edu.tsinghua.iginx.engine.shared.function.Function;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
@@ -212,6 +213,8 @@ public class QueryGenerator extends AbstractGenerator {
     root = buildOrderByPaths(selectStatement, root);
 
     root = buildLimit(selectStatement, root);
+
+    root = buildAddSequence(selectStatement, root);
 
     root = buildReorder(selectStatement, root);
 
@@ -680,6 +683,30 @@ public class QueryGenerator extends AbstractGenerator {
         selectStatement.getSlideDistance(),
         functionCallList,
         new KeyRange(selectStatement.getStartKey(), selectStatement.getEndKey()));
+  }
+
+  /**
+   * 根据SelectStatement构建查询树的AddSequence操作符
+   *
+   * @param selectStatement Select上下文
+   * @param root 当前根节点
+   * @return 添加了AddSequence操作符的根节点；如果没有Sequence，返回原根节点
+   */
+  private Operator buildAddSequence(UnarySelectStatement selectStatement, Operator root) {
+    List<SequenceExpression> sequences = selectStatement.getSequenceExpressionList();
+    if (!sequences.isEmpty()) {
+      List<Long> startList = new ArrayList<>();
+      List<Long> incrementList = new ArrayList<>();
+      List<String> columns = new ArrayList<>();
+      sequences.forEach(
+          sequence -> {
+            startList.add(sequence.getStart());
+            incrementList.add(sequence.getIncrement());
+            columns.add(sequence.getColumnName());
+          });
+      root = new AddSequence(new OperatorSource(root), startList, incrementList, columns);
+    }
+    return root;
   }
 
   /**
