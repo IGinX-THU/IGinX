@@ -84,12 +84,23 @@ public abstract class BaseCapacityExpansionIT {
   }
 
   protected String addStorageEngine(
+          int port,
+          boolean hasData,
+          boolean isReadOnly,
+          String dataPrefix,
+          String schemaPrefix,
+          String extraParams) {
+    return this.addStorageEngine(port, hasData, isReadOnly, dataPrefix, schemaPrefix, extraParams, false);
+  }
+
+  protected String addStorageEngine(
       int port,
       boolean hasData,
       boolean isReadOnly,
       String dataPrefix,
       String schemaPrefix,
-      String extraParams) {
+      String extraParams,
+      boolean noError) {
     try {
       StringBuilder statement = new StringBuilder();
       statement.append("ADD STORAGEENGINE (\"127.0.0.1\", ");
@@ -132,16 +143,28 @@ public abstract class BaseCapacityExpansionIT {
       session.executeSql(statement.toString());
       return null;
     } catch (SessionException e) {
-      LOGGER.warn(
-          "add storage engine:{} port:{} hasData:{} isReadOnly:{} dataPrefix:{} schemaPrefix:{} extraParams:{} failure: ",
-          type.name(),
-          port,
-          hasData,
-          isReadOnly,
-          dataPrefix,
-          schemaPrefix,
-          extraParams,
-          e);
+      if (noError) {
+        LOGGER.warn(
+                "add storage engine:{} port:{} hasData:{} isReadOnly:{} dataPrefix:{} schemaPrefix:{} extraParams:{} failure: ",
+                type.name(),
+                port,
+                hasData,
+                isReadOnly,
+                dataPrefix,
+                schemaPrefix,
+                extraParams);
+      } else {
+        LOGGER.warn(
+                "add storage engine:{} port:{} hasData:{} isReadOnly:{} dataPrefix:{} schemaPrefix:{} extraParams:{} failure: ",
+                type.name(),
+                port,
+                hasData,
+                isReadOnly,
+                dataPrefix,
+                schemaPrefix,
+                extraParams,
+                e);
+      }
       return e.getMessage();
     }
   }
@@ -297,7 +320,7 @@ public abstract class BaseCapacityExpansionIT {
     // wrong params
     String res;
     for (String params : wrongExtraParams) {
-      res = addStorageEngine(port, hasData, isReadOnly, dataPrefix, schemaPrefix, params);
+      res = addStorageEngine(port, hasData, isReadOnly, dataPrefix, schemaPrefix, params, true);
       if (res != null) {
         LOGGER.info(
             "Successfully rejected dummy engine with wrong params: {}; {}. msg: {}",
@@ -311,7 +334,7 @@ public abstract class BaseCapacityExpansionIT {
     }
 
     // wrong port
-    res = addStorageEngine(port + 999, hasData, isReadOnly, dataPrefix, schemaPrefix, extraParams);
+    res = addStorageEngine(port + 999, hasData, isReadOnly, dataPrefix, schemaPrefix, extraParams, true);
     if (res != null) {
       LOGGER.info(
           "Successfully rejected dummy engine with wrong port: {}; params: {}. msg: {}",
@@ -392,7 +415,7 @@ public abstract class BaseCapacityExpansionIT {
     shutdownDatabase(readOnlyPort);
 
     // 添加一个ip、端口、类型相同的数据库，修改schema prefix以避免被认为是重复注册，此时应该发现该数据库失效，移除原数据库并拒绝注册新的
-    res = addStorageEngine(readOnlyPort, true, true, null, "nonexistdata", extraParams);
+    res = addStorageEngine(readOnlyPort, true, true, null, "nonexistdata", extraParams, false);
     if (res != null) {
       LOGGER.info("Successfully rejected dead datasource.");
     } else {
@@ -611,14 +634,14 @@ public abstract class BaseCapacityExpansionIT {
     testShowClusterInfo(4);
 
     // 如果是重复添加，则报错
-    String res = addStorageEngine(expPort, true, true, dataPrefix1, schemaPrefix2, extraParams);
+    String res = addStorageEngine(expPort, true, true, dataPrefix1, schemaPrefix2, extraParams, false);
     if (res != null && !res.contains("repeatedly add storage engine")) {
       fail();
     }
     testShowClusterInfo(4);
 
     // data_prefix存在包含关系
-    res = addStorageEngine(expPort, true, true, dataPrefix1, null, extraParams);
+    res = addStorageEngine(expPort, true, true, dataPrefix1, null, extraParams, false);
     if (res != null && !res.contains("repeatedly add storage engine")) {
       fail();
     }

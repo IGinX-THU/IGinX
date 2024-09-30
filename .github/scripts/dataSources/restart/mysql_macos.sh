@@ -19,6 +19,5 @@
 
 port=$1
 cd "$SERVICE_DIR_MAC/mysql"
-sudo nohup mongod --port $port --dbpath $port --logpath $port/mongodb.log > /dev/null 2>&1 &
-sudo echo $! > $port/mongodb.pid
+sudo mysqld --defaults-file=./$port.ini & echo $! > ./mysql_$port.pid
 sleep 2

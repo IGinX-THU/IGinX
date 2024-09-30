@@ -409,8 +409,10 @@ public class IginxWorker implements IService.Iface {
             status.addToSubStatus(RpcUtils.FAILURE);
             break;
           } else if (storageEngine.isSameAddress(currentStorageEngine)) {
+            LOGGER.debug("same address engine {} for new engine {}.", currentStorageEngine, storageEngine);
             // 已有相同IP、端口的数据库
             if (StorageManager.testEngineConnection(currentStorageEngine)) {
+              LOGGER.debug("old engine can be connected");
               // 已有的数据库仍可连接
               if (currentStorageEngine.contains(storageEngine)) {
                 // 已有数据库能够覆盖新注册的数据库，拒绝注册
@@ -418,6 +420,7 @@ public class IginxWorker implements IService.Iface {
                 status.setCode(RpcUtils.PARTIAL_SUCCESS.code);
               }
             } else {
+              LOGGER.debug("old engine cannot be connected");
               // 已有的数据库无法连接了，若是只读，直接删除
               if (currentStorageEngine.isReadOnly() && currentStorageEngine.isHasData()) {
                 metaManager.removeDummyStorageEngine(currentStorageEngine.getId());

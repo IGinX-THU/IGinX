@@ -28,7 +28,7 @@ if [ ! -z "$pid" ]; then
     echo "Stopping mongodb on port $PORT (PID: $pid)"
 
     # Find the actual Windows PID for MongoDB by matching the port
-    win_pid=$(tasklist /FI "IMAGENAME eq mongod.exe" /FI "PID eq $pid" /NH /FO CSV | awk -F',' '{print $2}' | tr -d '"')
+    win_pid=$(tasklist //FI "IMAGENAME eq mongod.exe" //FI "PID eq $pid" //NH //FO CSV | awk -F',' '{print $2}' | tr -d '"')
 
     if [ ! -z "$win_pid" ]; then
         taskkill //PID $win_pid //F
