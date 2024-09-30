@@ -161,16 +161,22 @@ public class InfluxDBStorage implements IStorage {
     Map<String, String> extraParams = meta.getExtraParams();
     LOGGER.debug("testing influxdb {}", extraParams.toString());
     String url = extraParams.get("url");
+    LOGGER.debug(extraParams.get("url"));
+    LOGGER.debug(extraParams.get("token"));
     try (
       InfluxDBClient client =
           InfluxDBClientFactory.create(url, extraParams.get("token").toCharArray())) {
-      client.ping();
-      LOGGER.debug("influxdb connection success:{}", meta);
+      if (client.ping()) {
+        LOGGER.debug("influxdb connection success:{}", meta);
+        return true;
+      } else {
+        LOGGER.debug("influxdb connection failed:{}", meta);
+        return false;
+      }
     } catch (Exception e) {
       LOGGER.error("test connection error: ", e);
       return false;
     }
-    return true;
   }
 
   private void reloadHistoryData() {

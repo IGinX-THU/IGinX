@@ -21,6 +21,6 @@
 set -e
 
 PORT=$1
-redis-server --port $PORT --dir $PORT --daemonize yes --pidfile "$SERVICE_DIR/redis/$PORT/redis.pid"
+cd "$SERVICE_DIR/redis"
+redis-server --port $PORT --dir $PORT --daemonize yes --pidfile "$PORT/redis.pid"
 
-lsof -i:$PORT

@@ -21,6 +21,7 @@
 set -e
 
 PORT=$1
-redis-server --port $PORT --dir $PORT --daemonize yes --pidfile "$SERVICE_DIR_WIN/redis/$PORT/redis.pid"
+cd "$SERVICE_DIR_WIN/redis"
+redis-server --port $PORT --dir $PORT --daemonize yes --pidfile "$PORT/redis.pid"
 
-netstat -ano | grep ":$1"
+
