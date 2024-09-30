@@ -400,7 +400,7 @@ public abstract class BaseCapacityExpansionIT {
       fail();
     }
     // 只剩最开始的数据库
-    testShowClusterInfo(1);
+    testShowClusterInfo(2);
 
     // 重新启动原数据库
     startDatabase(readOnlyPort);
