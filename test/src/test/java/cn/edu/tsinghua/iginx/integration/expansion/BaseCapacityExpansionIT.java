@@ -84,13 +84,14 @@ public abstract class BaseCapacityExpansionIT {
   }
 
   protected String addStorageEngine(
-          int port,
-          boolean hasData,
-          boolean isReadOnly,
-          String dataPrefix,
-          String schemaPrefix,
-          String extraParams) {
-    return this.addStorageEngine(port, hasData, isReadOnly, dataPrefix, schemaPrefix, extraParams, false);
+      int port,
+      boolean hasData,
+      boolean isReadOnly,
+      String dataPrefix,
+      String schemaPrefix,
+      String extraParams) {
+    return this.addStorageEngine(
+        port, hasData, isReadOnly, dataPrefix, schemaPrefix, extraParams, false);
   }
 
   protected String addStorageEngine(
@@ -145,25 +146,25 @@ public abstract class BaseCapacityExpansionIT {
     } catch (SessionException e) {
       if (noError) {
         LOGGER.warn(
-                "add storage engine:{} port:{} hasData:{} isReadOnly:{} dataPrefix:{} schemaPrefix:{} extraParams:{} failure: ",
-                type.name(),
-                port,
-                hasData,
-                isReadOnly,
-                dataPrefix,
-                schemaPrefix,
-                extraParams);
+            "add storage engine:{} port:{} hasData:{} isReadOnly:{} dataPrefix:{} schemaPrefix:{} extraParams:{} failure: ",
+            type.name(),
+            port,
+            hasData,
+            isReadOnly,
+            dataPrefix,
+            schemaPrefix,
+            extraParams);
       } else {
         LOGGER.warn(
-                "add storage engine:{} port:{} hasData:{} isReadOnly:{} dataPrefix:{} schemaPrefix:{} extraParams:{} failure: ",
-                type.name(),
-                port,
-                hasData,
-                isReadOnly,
-                dataPrefix,
-                schemaPrefix,
-                extraParams,
-                e);
+            "add storage engine:{} port:{} hasData:{} isReadOnly:{} dataPrefix:{} schemaPrefix:{} extraParams:{} failure: ",
+            type.name(),
+            port,
+            hasData,
+            isReadOnly,
+            dataPrefix,
+            schemaPrefix,
+            extraParams,
+            e);
       }
       return e.getMessage();
     }
@@ -334,7 +335,9 @@ public abstract class BaseCapacityExpansionIT {
     }
 
     // wrong port
-    res = addStorageEngine(port + 999, hasData, isReadOnly, dataPrefix, schemaPrefix, extraParams, true);
+    res =
+        addStorageEngine(
+            port + 999, hasData, isReadOnly, dataPrefix, schemaPrefix, extraParams, true);
     if (res != null) {
       LOGGER.info(
           "Successfully rejected dummy engine with wrong port: {}; params: {}. msg: {}",
@@ -634,7 +637,8 @@ public abstract class BaseCapacityExpansionIT {
     testShowClusterInfo(4);
 
     // 如果是重复添加，则报错
-    String res = addStorageEngine(expPort, true, true, dataPrefix1, schemaPrefix2, extraParams, false);
+    String res =
+        addStorageEngine(expPort, true, true, dataPrefix1, schemaPrefix2, extraParams, false);
     if (res != null && !res.contains("repeatedly add storage engine")) {
       fail();
     }
