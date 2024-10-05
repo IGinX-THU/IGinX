@@ -33,8 +33,10 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.AndTagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
+import cn.edu.tsinghua.iginx.engine.shared.source.ConstantSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.FragmentSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
+import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 import cn.edu.tsinghua.iginx.logical.optimizer.core.RuleCall;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
@@ -190,14 +192,11 @@ public class ColumnPruningRule extends Rule {
 
       // 递归处理下一个节点
       visitedOperators.add(operator);
-      if (((UnaryOperator) operator).getSource() instanceof FragmentSource) {
+      Source source = ((UnaryOperator) operator).getSource();
+      if (source instanceof FragmentSource || source instanceof ConstantSource) {
         return;
       }
-      collectColumns(
-          ((OperatorSource) ((UnaryOperator) operator).getSource()).getOperator(),
-          columns,
-          tagFilter,
-          visitedOperators);
+      collectColumns(((OperatorSource) source).getOperator(), columns, tagFilter, visitedOperators);
 
     } else if (OperatorType.isBinaryOperator(operator.getType())) {
       // 下面是处理BinaryOperator的情况，其中只有Join操作符需要处理

@@ -42,7 +42,9 @@ public class TaskUtils {
         break;
       case UnaryMemory:
         UnaryMemoryPhysicalTask unaryMemoryPhysicalTask = (UnaryMemoryPhysicalTask) root;
-        getBottomTasks(tasks, unaryMemoryPhysicalTask.getParentTask());
+        if (!unaryMemoryPhysicalTask.isProjectFromConstant()) {
+          getBottomTasks(tasks, unaryMemoryPhysicalTask.getParentTask());
+        }
         break;
       case MultipleMemory:
         MultipleMemoryPhysicalTask multipleMemoryPhysicalTask = (MultipleMemoryPhysicalTask) root;

@@ -41,6 +41,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.JoinAlgType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OuterJoinType;
+import cn.edu.tsinghua.iginx.engine.shared.source.ConstantSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.GlobalSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.Source;
@@ -72,6 +73,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -175,6 +177,7 @@ public class QueryGenerator extends AbstractGenerator {
     root = initProjectWaitingForPath(selectStatement);
     root = root != null ? root : initFilterAndMergeFragmentsWithJoin(selectStatement);
     root = root != null ? root : initFromPart(selectStatement);
+    root = root != null ? root : initSelectConstArith(selectStatement);
     root = root != null ? root : initFilterAndMergeFragments(selectStatement);
 
     if (!checkRoot(root) && !checkIsMetaWritable()) {
@@ -380,6 +383,23 @@ public class QueryGenerator extends AbstractGenerator {
       root = new Rename(new OperatorSource(root), fromPart.getAliasList());
     }
     return root;
+  }
+
+  /**
+   * 如果SelectStatement的select部分全为常数表达式且from部分为空，构造以ConstantSource为输入Project操作符来初始化操作符树
+   *
+   * @param selectStatement select语句上下文
+   * @return 以ConstantSource为输入Project操作符的操作符树；
+   */
+  private Operator initSelectConstArith(UnarySelectStatement selectStatement) {
+    if (!selectStatement.isAllConstArith() || !selectStatement.getFromParts().isEmpty()) {
+      return null;
+    }
+    List<String> columnNames =
+        selectStatement.getExpressions().stream()
+            .map(Expression::getColumnName)
+            .collect(Collectors.toList());
+    return new Project(new ConstantSource(selectStatement.getExpressions()), columnNames, null);
   }
 
   /**

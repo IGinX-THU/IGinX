@@ -17,11 +17,24 @@
  */
 package cn.edu.tsinghua.iginx.engine.shared.source;
 
-public enum SourceType {
-  Unknown,
-  Empty,
-  Constant,
-  Fragment,
-  Operator,
-  Global,
+import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
+import java.util.ArrayList;
+import java.util.List;
+
+public class ConstantSource extends AbstractSource {
+  private final List<Expression> expressionList;
+
+  public ConstantSource(List<Expression> expressionList) {
+    super(SourceType.Constant);
+    this.expressionList = new ArrayList<>(expressionList);
+  }
+
+  public List<Expression> getExpressionList() {
+    return expressionList;
+  }
+
+  @Override
+  public Source copy() {
+    return new ConstantSource(expressionList);
+  }
 }

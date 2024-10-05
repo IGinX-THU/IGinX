@@ -20,6 +20,7 @@ package cn.edu.tsinghua.iginx.engine.physical;
 import static cn.edu.tsinghua.iginx.engine.physical.task.utils.TaskUtils.getBottomTasks;
 
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
+import cn.edu.tsinghua.iginx.engine.logical.utils.OperatorUtils;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.MemoryPhysicalTaskDispatcher;
 import cn.edu.tsinghua.iginx.engine.physical.optimizer.PhysicalOptimizer;
@@ -83,9 +84,14 @@ public class PhysicalEngineImpl implements PhysicalEngine {
     }
     PhysicalTask task = optimizer.optimize(root, ctx);
     ctx.setPhysicalTree(task);
-    List<PhysicalTask> bottomTasks = new ArrayList<>();
-    getBottomTasks(bottomTasks, task);
-    commitBottomTasks(bottomTasks);
+
+    // 空表查询特殊处理，不需要getBottomTasks
+    if (!OperatorUtils.isProjectFromConstant(root)) {
+      List<PhysicalTask> bottomTasks = new ArrayList<>();
+      getBottomTasks(bottomTasks, task);
+      commitBottomTasks(bottomTasks);
+    }
+
     TaskExecuteResult result = task.getResult();
     if (result.getException() != null) {
       throw result.getException();

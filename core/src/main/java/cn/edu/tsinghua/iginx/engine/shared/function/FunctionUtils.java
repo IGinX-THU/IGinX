@@ -162,6 +162,25 @@ public class FunctionUtils {
         "sum", (dataType) -> isWholeNumber(dataType) ? DataType.LONG : DataType.DOUBLE);
   }
 
+  static Map<String, Integer> expectedParamNumMap = new HashMap<>(); // 此Map用于存储function期望的参数个数
+
+  static {
+    expectedParamNumMap.put("avg", 1);
+    expectedParamNumMap.put("sum", 1);
+    expectedParamNumMap.put("count", 1);
+    expectedParamNumMap.put("max", 1);
+    expectedParamNumMap.put("min", 1);
+    expectedParamNumMap.put("first_value", 1);
+    expectedParamNumMap.put("last_value", 1);
+    expectedParamNumMap.put("first", 1);
+    expectedParamNumMap.put("last", 1);
+    expectedParamNumMap.put("ratio", 2);
+  }
+
+  public static int getExpectedParamNum(String identifier) {
+    return expectedParamNumMap.get(identifier.toLowerCase());
+  }
+
   /**
    * 用于提取table中的表头字段和对应的索引
    *

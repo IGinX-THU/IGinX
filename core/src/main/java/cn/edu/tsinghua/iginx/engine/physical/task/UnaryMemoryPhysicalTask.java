@@ -18,10 +18,12 @@
 
 package cn.edu.tsinghua.iginx.engine.physical.task;
 
+import cn.edu.tsinghua.iginx.engine.logical.utils.OperatorUtils;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.UnexpectedOperatorException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.OperatorMemoryExecutor;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.OperatorMemoryExecutorFactory;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.stream.EmptyRowStream;
 import cn.edu.tsinghua.iginx.engine.physical.task.visitor.TaskVisitor;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
@@ -52,18 +54,25 @@ public class UnaryMemoryPhysicalTask extends MemoryPhysicalTask {
     return parentTask;
   }
 
+  public boolean isProjectFromConstant() {
+    return !getOperators().isEmpty() && OperatorUtils.isProjectFromConstant(getOperators().get(0));
+  }
+
   @Override
   public TaskExecuteResult execute() {
-    TaskExecuteResult parentResult = parentTask.getResult();
-    if (parentResult == null) {
-      return new TaskExecuteResult(
-          new PhysicalException("unexpected parent task execute result for " + this + ": null"));
-    }
-    if (parentResult.getException() != null) {
-      return parentResult;
+    RowStream stream = new EmptyRowStream();
+    if (!isProjectFromConstant()) {
+      TaskExecuteResult parentResult = parentTask.getResult();
+      if (parentResult == null) {
+        return new TaskExecuteResult(
+            new PhysicalException("unexpected parent task execute result for " + this + ": null"));
+      }
+      if (parentResult.getException() != null) {
+        return parentResult;
+      }
+      stream = parentResult.getRowStream();
     }
     List<Operator> operators = getOperators();
-    RowStream stream = parentResult.getRowStream();
     OperatorMemoryExecutor executor =
         OperatorMemoryExecutorFactory.getInstance().getMemoryExecutor();
     try {
