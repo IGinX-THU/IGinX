@@ -17,6 +17,7 @@
  */
 package cn.edu.tsinghua.iginx.utils;
 
+import cn.edu.tsinghua.iginx.constant.GlobalConstant;
 import cn.edu.tsinghua.iginx.exception.IginxRuntimeException;
 import cn.edu.tsinghua.iginx.exception.UnsupportedDataTypeException;
 import cn.edu.tsinghua.iginx.thrift.DataType;
@@ -25,6 +26,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.memory.RootAllocator;
 import org.apache.arrow.vector.FieldVector;
@@ -512,22 +514,49 @@ public class ByteUtils {
     }
   }
 
-  public static List<List<Object>> getValuesFromArrowData(List<ByteBuffer> dataList) {
-    List<List<Object>> ret = new ArrayList<>();
+  public static DataSet getDataFromArrowData(List<ByteBuffer> dataList) {
+    List<Long> keys = new ArrayList<>();
+    List<String> paths = new ArrayList<>();
+    List<DataType> dataTypeList = new ArrayList<>();
+    List<Map<String, String>> tagsList = new ArrayList<>();
+    List<List<Object>> values = new ArrayList<>();
+    boolean metaCollected = false;
+    boolean hasKey = false;
+
     try (BufferAllocator allocator = new RootAllocator(Long.MAX_VALUE)) {
       for (ByteBuffer data : dataList) {
         try (ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(data.array());
             ArrowStreamReader reader = new ArrowStreamReader(byteArrayInputStream, allocator);
             VectorSchemaRoot root = reader.getVectorSchemaRoot()) {
+          if (!metaCollected) {
+            root.getSchema()
+                .getFields()
+                .forEach(
+                    field -> {
+                      paths.add(field.getName());
+                      dataTypeList.add(TypeUtils.toDataType(field.getType()));
+                      tagsList.add(field.getMetadata());
+                    });
+            if (paths.get(0).equals(GlobalConstant.KEY_NAME)) {
+              hasKey = true;
+            }
+            metaCollected = true;
+          }
           while (reader.loadNextBatch()) {
             int rowCnt = root.getRowCount();
+            int colCnt = root.getFieldVectors().size();
             List<FieldVector> vectors = root.getFieldVectors();
             for (int i = 0; i < rowCnt; i++) {
               List<Object> row = new ArrayList<>();
-              for (FieldVector vector : vectors) {
-                row.add(vector.getObject(i));
+              int start = 0;
+              if (hasKey) {
+                keys.add((Long) vectors.get(0).getObject(i));
+                start++;
               }
-              ret.add(row);
+              for (int j = start; j < colCnt; j++) {
+                row.add(vectors.get(j).getObject(i));
+              }
+              values.add(row);
             }
           }
         } catch (IOException e) {
@@ -535,6 +564,48 @@ public class ByteUtils {
         }
       }
     }
-    return ret;
+    return new DataSet(keys, paths, dataTypeList, tagsList, values);
+  }
+
+  public static class DataSet {
+
+    private final long[] keys;
+    private final List<String> paths;
+    private final List<DataType> dataTypeList;
+    private final List<Map<String, String>> tagsList;
+    private final List<List<Object>> values;
+
+    public DataSet(
+        List<Long> keys,
+        List<String> paths,
+        List<DataType> dataTypeList,
+        List<Map<String, String>> tagsList,
+        List<List<Object>> values) {
+      this.keys = keys.stream().mapToLong(Long::longValue).toArray();
+      this.paths = paths;
+      this.dataTypeList = dataTypeList;
+      this.tagsList = tagsList;
+      this.values = values;
+    }
+
+    public long[] getKeys() {
+      return keys;
+    }
+
+    public List<String> getPaths() {
+      return paths;
+    }
+
+    public List<DataType> getDataTypeList() {
+      return dataTypeList;
+    }
+
+    public List<Map<String, String>> getTagsList() {
+      return tagsList;
+    }
+
+    public List<List<Object>> getValues() {
+      return values;
+    }
   }
 }

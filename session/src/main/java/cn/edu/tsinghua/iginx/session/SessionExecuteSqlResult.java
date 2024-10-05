@@ -79,12 +79,18 @@ public class SessionExecuteSqlResult {
         this.pointsNum = resp.getPointsNum();
         break;
       case Query:
-        constructQueryResult(resp);
+        ByteUtils.DataSet dataSet = ByteUtils.getDataFromArrowData(resp.getQueryArrowData());
+        this.keys = dataSet.getKeys();
+        this.paths = dataSet.getPaths();
+        this.dataTypeList = dataSet.getDataTypeList();
+        this.values = dataSet.getValues();
         break;
       case ShowColumns:
-        this.paths = resp.getPaths();
-        this.dataTypeList = resp.getDataTypeList();
-        break;
+        // TODO: refactor this part
+        throw new UnsupportedOperationException("Not implemented yet");
+        // this.paths = resp.getPaths();
+        // this.dataTypeList = resp.getDataTypeList();
+        // break;
       case ShowClusterInfo:
         this.iginxInfos = resp.getIginxInfos();
         this.storageEngineInfos = resp.getStorageEngineInfos();
@@ -125,18 +131,6 @@ public class SessionExecuteSqlResult {
         break;
       default:
         break;
-    }
-  }
-
-  private void constructQueryResult(ExecuteSqlResp resp) {
-    this.paths = resp.getPaths();
-    this.dataTypeList = resp.getDataTypeList();
-
-    // parse values
-    if (resp.getQueryArrowData() != null) {
-      this.values = ByteUtils.getValuesFromArrowData(resp.getQueryArrowData());
-    } else {
-      this.values = new ArrayList<>();
     }
   }
 
@@ -220,8 +214,13 @@ public class SessionExecuteSqlResult {
   private List<List<String>> cacheArrowResult(boolean needFormatTime, String timePrecision) {
     // TODO: time format
     List<List<String>> cache = new ArrayList<>();
+    boolean hasKey = keys.length > 0;
+    int index = 0;
     for (List<Object> rowValues : values) {
       List<String> rowCache = new ArrayList<>();
+      if (hasKey) {
+        rowCache.add(String.valueOf(keys[index]));
+      }
       boolean isNull = true;
       for (Object o : rowValues) {
         String rowValue = FormatUtils.valueToString(o);

@@ -19,7 +19,6 @@
 package cn.edu.tsinghua.iginx.engine.shared;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
@@ -34,7 +33,6 @@ import cn.edu.tsinghua.iginx.utils.RpcUtils;
 import java.nio.ByteBuffer;
 import java.util.*;
 import lombok.Data;
-import org.apache.arrow.vector.types.pojo.Schema;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,13 +42,7 @@ public class Result {
   private static final Logger LOGGER = LoggerFactory.getLogger(Result.class);
 
   private Status status;
-  private List<String> paths;
-  private List<Map<String, String>> tagsList;
-  private List<DataType> dataTypes;
-  private Long[] keys;
-  private List<ByteBuffer> valuesList;
-  private List<ByteBuffer> bitmapList;
-  private List<ByteBuffer> dataList;
+  private List<ByteBuffer> arrowData;
 
   private BatchStream batchStream;
 
@@ -100,68 +92,36 @@ public class Result {
 
   public QueryDataResp getQueryDataResp() {
     QueryDataResp resp = new QueryDataResp(status);
-    resp.setPaths(paths);
-    resp.setTagsList(tagsList);
-    resp.setDataTypeList(dataTypes);
-    if (keys == null || keys.length == 0) {
-      resp.setQueryDataSet(
-          new QueryDataSet(ByteBuffer.allocate(0), new ArrayList<>(), new ArrayList<>()));
-      return resp;
-    }
-    ByteBuffer keyBuffer = ByteUtils.getByteBufferFromLongArray(keys);
-    resp.setQueryDataSet(new QueryDataSet(keyBuffer, valuesList, bitmapList));
+    resp.setQueryArrowData(arrowData);
     return resp;
   }
 
   public AggregateQueryResp getAggregateQueryResp() {
     AggregateQueryResp resp = new AggregateQueryResp(status);
-    resp.setPaths(paths);
-    resp.setTagsList(tagsList);
-    resp.setDataTypeList(dataTypes);
-    if (valuesList == null || valuesList.size() == 0) {
-      resp.setValuesList(ByteBuffer.allocate(0));
-      return resp;
-    }
-    resp.setValuesList(valuesList.get(0));
+    resp.setQueryArrowData(arrowData);
     return resp;
   }
 
   public DownsampleQueryResp getDownSampleQueryResp() {
     DownsampleQueryResp resp = new DownsampleQueryResp(status);
-    resp.setPaths(paths);
-    resp.setTagsList(tagsList);
-    resp.setDataTypeList(dataTypes);
-    if (keys == null || keys.length == 0) {
-      resp.setQueryDataSet(
-          new QueryDataSet(ByteBuffer.allocate(0), new ArrayList<>(), new ArrayList<>()));
-      return resp;
-    }
-    ByteBuffer keyBuffer = ByteUtils.getByteBufferFromLongArray(keys);
-    resp.setQueryDataSet(new QueryDataSet(keyBuffer, valuesList, bitmapList));
+    resp.setQueryArrowData(arrowData);
     return resp;
   }
 
   public LastQueryResp getLastQueryResp() {
     LastQueryResp resp = new LastQueryResp(status);
-    resp.setPaths(paths);
-    resp.setTagsList(tagsList);
-    resp.setDataTypeList(dataTypes);
-    if (keys == null || keys.length == 0) {
-      resp.setQueryDataSet(
-          new QueryDataSet(ByteBuffer.allocate(0), new ArrayList<>(), new ArrayList<>()));
-      return resp;
-    }
-    ByteBuffer keyBuffer = ByteUtils.getByteBufferFromLongArray(keys);
-    resp.setQueryDataSet(new QueryDataSet(keyBuffer, valuesList, bitmapList));
+    resp.setQueryArrowData(arrowData);
     return resp;
   }
 
   public ShowColumnsResp getShowColumnsResp() {
     ShowColumnsResp resp = new ShowColumnsResp(status);
-    resp.setPaths(paths);
-    resp.setTagsList(tagsList);
-    resp.setDataTypeList(dataTypes);
-    return resp;
+    // TODO: refactor this part
+    throw new UnsupportedOperationException("Not implemented yet");
+    //    resp.setPaths(paths);
+    //    resp.setTagsList(tagsList);
+    //    resp.setDataTypeList(dataTypes);
+    //    return resp;
   }
 
   public ExecuteSqlResp getExecuteSqlResp() {
@@ -173,10 +133,7 @@ public class Result {
 
     resp.setReplicaNum(replicaNum);
     resp.setPointsNum(pointsNum);
-    resp.setPaths(paths);
-    resp.setTagsList(tagsList);
-    resp.setDataTypeList(dataTypes);
-    resp.setQueryArrowData(dataList);
+    resp.setQueryArrowData(arrowData);
 
     resp.setIginxInfos(iginxInfos);
     resp.setStorageEngineInfos(storageEngineInfos);
@@ -207,79 +164,63 @@ public class Result {
       return resp;
     }
     resp.setQueryId(queryId);
-    try {
-      List<String> paths = new ArrayList<>();
-      List<Map<String, String>> tagsList = new ArrayList<>();
-      List<DataType> types = new ArrayList<>();
-      Schema schema = batchStream.getSchema().raw();
-      schema
-          .getFields()
-          .forEach(
-              field -> {
-                paths.add(field.getName());
-                if (field.getMetadata() == null) {
-                  tagsList.add(new HashMap<>());
-                } else {
-                  tagsList.add(field.getMetadata());
-                }
-                types.add(BatchSchema.toDataType(field.getType()));
-              });
 
-      // TODO: need to be refactored
-      throw new UnsupportedOperationException("Not implemented yet");
-      //      List<ByteBuffer> valuesList = new ArrayList<>();
-      //      List<ByteBuffer> bitmapList = new ArrayList<>();
-      //
-      //      int cnt = 0;
-      //      boolean hasKey = resultStream.getHeader().hasKey();
-      //      while (resultStream.hasNext() && cnt < fetchSize) {
-      //        Row row = resultStream.next();
-      //
-      //        Object[] rawValues = row.getValues();
-      //        Object[] rowValues = rawValues;
-      //        if (hasKey) {
-      //          rowValues = new Object[rawValues.length + 1];
-      //          rowValues[0] = row.getKey();
-      //          System.arraycopy(rawValues, 0, rowValues, 1, rawValues.length);
-      //        }
-      //        valuesList.add(ByteUtils.getRowByteBuffer(rowValues, types));
-      //
-      //        Bitmap bitmap = new Bitmap(rowValues.length);
-      //        for (int i = 0; i < rowValues.length; i++) {
-      //          if (rowValues[i] != null) {
-      //            bitmap.mark(i);
-      //          }
-      //        }
-      //        bitmapList.add(ByteBuffer.wrap(bitmap.getBytes()));
-      //        cnt++;
-      //      }
-      //
-      //      resp.setColumns(paths);
-      //      resp.setTagsList(tagsList);
-      //      resp.setDataTypeList(types);
-      //      // resp.setQueryDataSet(new QueryDataSetV2(valuesList, bitmapList));
-      //
-      //      // OUTFILE AS STREAM
-      //      resp.setExportStreamDir(exportByteStreamDir);
-      //
-      //      // OUTFILE AS CSV
-      //      if (exportCsv != null) {
-      //        CSVFile csvFile = exportCsv.getCsvFile();
-      //        resp.setExportCSV(
-      //            new ExportCSV(
-      //                exportCsv.getFilepath(),
-      //                exportCsv.isExportHeader(),
-      //                csvFile.getDelimiter(),
-      //                csvFile.isOptionallyQuote(),
-      //                (short) csvFile.getQuote(),
-      //                (short) csvFile.getEscaped(),
-      //                csvFile.getRecordSeparator()));
-      //      }
-    } catch (PhysicalException e) {
-      LOGGER.error("unexpected error when load row stream: ", e);
-      resp.setStatus(RpcUtils.FAILURE);
-    }
-    return resp;
+    // TODO: need to be refactored
+    throw new UnsupportedOperationException("Not implemented yet");
+    //  try {
+    //      List<ByteBuffer> valuesList = new ArrayList<>();
+    //      List<ByteBuffer> bitmapList = new ArrayList<>();
+    //
+    //      int cnt = 0;
+    //      boolean hasKey = resultStream.getHeader().hasKey();
+    //      while (resultStream.hasNext() && cnt < fetchSize) {
+    //        Row row = resultStream.next();
+    //
+    //        Object[] rawValues = row.getValues();
+    //        Object[] rowValues = rawValues;
+    //        if (hasKey) {
+    //          rowValues = new Object[rawValues.length + 1];
+    //          rowValues[0] = row.getKey();
+    //          System.arraycopy(rawValues, 0, rowValues, 1, rawValues.length);
+    //        }
+    //        valuesList.add(ByteUtils.getRowByteBuffer(rowValues, types));
+    //
+    //        Bitmap bitmap = new Bitmap(rowValues.length);
+    //        for (int i = 0; i < rowValues.length; i++) {
+    //          if (rowValues[i] != null) {
+    //            bitmap.mark(i);
+    //          }
+    //        }
+    //        bitmapList.add(ByteBuffer.wrap(bitmap.getBytes()));
+    //        cnt++;
+    //      }
+    //
+    //      resp.setColumns(paths);
+    //      resp.setTagsList(tagsList);
+    //      resp.setDataTypeList(types);
+    //      // resp.setQueryDataSet(new QueryDataSetV2(valuesList, bitmapList));
+    //
+    //      // OUTFILE AS STREAM
+    //      resp.setExportStreamDir(exportByteStreamDir);
+    //
+    //      // OUTFILE AS CSV
+    //      if (exportCsv != null) {
+    //        CSVFile csvFile = exportCsv.getCsvFile();
+    //        resp.setExportCSV(
+    //            new ExportCSV(
+    //                exportCsv.getFilepath(),
+    //                exportCsv.isExportHeader(),
+    //                csvFile.getDelimiter(),
+    //                csvFile.isOptionallyQuote(),
+    //                (short) csvFile.getQuote(),
+    //                (short) csvFile.getEscaped(),
+    //                csvFile.getRecordSeparator()));
+    //      }
+    //    } catch (PhysicalException e) {
+    //      LOGGER.error("unexpected error when load row stream: ", e);
+    //      resp.setStatus(RpcUtils.FAILURE);
+    //    }
+    // return resp;
   }
 
   public LoadCSVResp getLoadCSVResp() {

@@ -18,8 +18,6 @@
 
 package cn.edu.tsinghua.iginx.session;
 
-import static cn.edu.tsinghua.iginx.utils.ByteUtils.getLongArrayFromByteBuffer;
-
 import cn.edu.tsinghua.iginx.thrift.AggregateQueryResp;
 import cn.edu.tsinghua.iginx.thrift.AggregateType;
 import cn.edu.tsinghua.iginx.utils.ByteUtils;
@@ -31,16 +29,15 @@ public class SessionAggregateQueryDataSet {
 
   private List<String> paths;
 
-  private long[] keys;
+  private final long[] keys;
 
   private final Object[] values;
 
   public SessionAggregateQueryDataSet(AggregateQueryResp resp, AggregateType type) {
-    this.paths = resp.getPaths();
-    if (resp.keys != null) {
-      this.keys = getLongArrayFromByteBuffer(resp.keys);
-    }
-    this.values = ByteUtils.getValuesByDataType(resp.valuesList, resp.dataTypeList);
+    ByteUtils.DataSet dataSet = ByteUtils.getDataFromArrowData(resp.getQueryArrowData());
+    this.keys = dataSet.getKeys();
+    this.paths = dataSet.getPaths();
+    this.values = dataSet.getValues().get(0).toArray();
     this.type = type;
   }
 
