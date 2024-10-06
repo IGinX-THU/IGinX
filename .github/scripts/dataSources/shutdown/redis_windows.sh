@@ -19,16 +19,13 @@
 
 set -e
 port=$1
-PORT=$1
-cd "$SERVICE_DIR_MAC/redis"
-redis-server stop
-#pid=$(netstat -ano | grep ":$port" | awk '{print $5}' | head -n 1)
-#if [ ! -z "$pid" ]; then
-#    echo "Stopping redis on port $port (PID: $pid)"
-#    taskkill //PID $pid //F
-#else
-#    echo "No redis instance found running on port $port"
-#fi
-#
-#sleep 3
-#netstat -ano | grep ":$port"
+pid=$(netstat -ano | grep ":$port" | awk '{print $5}' | head -n 1)
+if [ ! -z "$pid" ]; then
+    echo "Stopping redis on port $port (PID: $pid)"
+    taskkill //PID $pid //F
+else
+    echo "No redis instance found running on port $port"
+fi
+
+sleep 3
+netstat -ano | grep ":$port"
