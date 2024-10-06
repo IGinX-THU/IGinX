@@ -23,4 +23,4 @@
 port=$1
 echo "Starting InfluxDB on port $port"
 sudo sh -c "cd influxdb2-2.0.7-linux-amd64-$port/; nohup ./influxd run --bolt-path=~/.influxdbv2/influxd.bolt --engine-path=~/.influxdbv2/engine --http-bind-address=:$port --query-memory-bytes=20971520 &"
-sleep 3
+sleep 30

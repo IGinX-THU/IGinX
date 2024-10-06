@@ -87,7 +87,12 @@ public class StorageManager {
             (IStorage)
                 loader.loadClass(driver).getConstructor(StorageEngineMeta.class).newInstance(meta);
       }
-      return storage.getBoundaryOfStorage(dataPrefix);
+      if (storage.testConnection(meta)) {
+        return storage.getBoundaryOfStorage(dataPrefix);
+      } else {
+        LOGGER.error("Cannot connect to engine:{}", meta);
+        return null;
+      }
     } catch (ClassNotFoundException e) {
       LOGGER.error("load class {} for engine {} failure: {}", driver, engine, e);
       return null;

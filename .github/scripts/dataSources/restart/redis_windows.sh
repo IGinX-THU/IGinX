@@ -23,5 +23,5 @@ set -e
 PORT=$1
 cd "$SERVICE_DIR_WIN/redis"
 redis-server --port $PORT --dir $PORT --daemonize yes --pidfile "$PORT/redis.pid"
-
+mvn test -q -Dtest=RedisHistoryDataGenerator#oriHasDataExpHasData -DfailIfNoTests=false -P-format
 
