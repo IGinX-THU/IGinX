@@ -41,11 +41,4 @@ runs:
               for port in ${{ inputs.ports }}; do
                 mkdir -p $port
                 redis-server --port $port --dir $port --daemonize yes --pidfile $port/redis.pid
-                sleep 2
-                echo "Redis process status for port $port:"
-                ps aux | grep redis-server | grep $port
-                echo "Contents of $port directory:"
-                ls $port
-                echo ls $port
-                cat $port/redis.log 2>/dev/null || echo "No log file found"
               done
