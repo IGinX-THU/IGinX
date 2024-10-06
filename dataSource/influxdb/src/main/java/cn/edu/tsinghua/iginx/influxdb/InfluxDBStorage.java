@@ -73,9 +73,6 @@ import com.influxdb.client.write.Point;
 import com.influxdb.query.FluxColumn;
 import com.influxdb.query.FluxRecord;
 import com.influxdb.query.FluxTable;
-import java.io.IOException;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
@@ -162,29 +159,20 @@ public class InfluxDBStorage implements IStorage {
   @Override
   public boolean testConnection(StorageEngineMeta meta) {
     Map<String, String> extraParams = meta.getExtraParams();
-    String baseUrl = extraParams.get("url");
-    String token = extraParams.get("token");
-    String healthEndpoint = baseUrl + "/health";
-
-    LOGGER.debug("Testing InfluxDB connection: {}", baseUrl);
-
-    try {
-      URL url = new URL(healthEndpoint);
-      HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-      connection.setRequestMethod("GET");
-      connection.setRequestProperty("Authorization", "Token " + token);
-
-      int responseCode = connection.getResponseCode();
-
-      if (responseCode == 200) {
-        LOGGER.debug("InfluxDB connection successful. Response code: {}", responseCode);
+    LOGGER.debug("testing influxdb {}", extraParams.toString());
+    String url = extraParams.get("url");
+    try (InfluxDBClient client =
+        InfluxDBClientFactory.create(url, extraParams.get("token").toCharArray())) {
+      LOGGER.debug("start testing");
+      if (client.ping()) {
+        LOGGER.debug("influxdb connection success:{}", meta);
         return true;
       } else {
-        LOGGER.warn("InfluxDB connection failed. Response code: {}", responseCode);
+        LOGGER.error("influxdb connection failed:{}", meta);
         return false;
       }
-    } catch (IOException e) {
-      LOGGER.error("Error testing InfluxDB connection", e);
+    } catch (Exception e) {
+      LOGGER.error("test connection error: ", e);
       return false;
     }
   }
