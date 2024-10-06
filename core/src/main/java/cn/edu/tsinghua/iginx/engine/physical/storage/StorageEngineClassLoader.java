@@ -77,9 +77,6 @@ public class StorageEngineClassLoader extends ClassLoader {
     } else {
       clazz = super.loadClass(name, resolve);
     }
-    if (clazz == null) {
-      LOGGER.error("Cannot find class for:{}", name);
-    }
     classMap.put(name, clazz);
     return clazz;
   }
