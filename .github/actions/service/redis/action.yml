@@ -40,7 +40,7 @@ runs:
               pwd
               for port in ${{ inputs.ports }}; do
                 mkdir -p $port
-                redis-server --port $port --dir $port --daemonize yes --pidfile $port/redis.pid || echo "Failed to start Redis on port $port"
+                redis-server --port $port --dir $port --daemonize yes --pidfile $port/redis.pid
                 sleep 2
                 echo "Redis process status for port $port:"
                 ps aux | grep redis-server | grep $port
