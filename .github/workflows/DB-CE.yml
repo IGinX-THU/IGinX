@@ -69,6 +69,98 @@ jobs:
               run: |
                   mvn clean package -DskipTests -P-format -q
 
+              # 第 1 阶段测试开始==========================================
+            - name: Prepare CapExp environment oriHasDataExpHasData
+              uses: ./.github/actions/capacityExpansionUnionTest
+              with:
+                  DB-name: ${{ matrix.DB-name }}
+                  Test-Way: oriHasDataExpHasData
+
+            - name: oriHasDataExpHasData IT
+              shell: bash
+              run: |
+                  mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriHasDataExpHasData -DfailIfNoTests=false -P-format
+
+            - name: Clear history data
+              uses: ./.github/actions/dbWriter
+              with:
+                  DB-name: ${{ matrix.DB-name }}
+                  Test-Way: clearHistoryData
+
+            - name: oriHasDataExpHasData Normal IT
+              shell: bash
+              run: |
+                  mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
+
+            # 第 2 阶段测试开始==========================================
+            - name: Prepare CapExp environment oriNoDataExpNoData
+              uses: ./.github/actions/capacityExpansionUnionTest
+              with:
+                  DB-name: ${{ matrix.DB-name }}
+                  Test-Way: oriNoDataExpNoData
+
+            - name: oriNoDataExpNoData IT
+              shell: bash
+              run: |
+                  mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriNoDataExpNoData -DfailIfNoTests=false -P-format
+
+            - name: Clear history data
+              uses: ./.github/actions/dbWriter
+              with:
+                  DB-name: ${{ matrix.DB-name }}
+                  Test-Way: clearHistoryData
+
+            - name: oriNoDataExpNoData Normal IT
+              shell: bash
+              run: |
+                  mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
+
+            # 第 3 阶段测试开始==========================================
+            - name: Prepare CapExp environment oriHasDataExpNoData
+              uses: ./.github/actions/capacityExpansionUnionTest
+              with:
+                  DB-name: ${{ matrix.DB-name }}
+                  Test-Way: oriHasDataExpNoData
+
+            - name: oriHasDataExpNoData IT
+              shell: bash
+              run: |
+                  mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriHasDataExpNoData -DfailIfNoTests=false -P-format
+
+            - name: Clear history data
+              uses: ./.github/actions/dbWriter
+              with:
+                  DB-name: ${{ matrix.DB-name }}
+                  Test-Way: clearHistoryData
+
+            - name: oriHasDataExpNoData Normal IT
+              shell: bash
+              run: |
+                  mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
+
+            # 第 4 阶段测试开始==========================================
+            - name: Prepare CapExp environment oriNoDataExpHasData
+              uses: ./.github/actions/capacityExpansionUnionTest
+              with:
+                  DB-name: ${{ matrix.DB-name }}
+                  Test-Way: oriNoDataExpHasData
+
+            - name: oriNoDataExpHasData IT
+              shell: bash
+              run: |
+                  mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriNoDataExpHasData -DfailIfNoTests=false -P-format
+
+            - name: Clear history data
+              uses: ./.github/actions/dbWriter
+              with:
+                  DB-name: ${{ matrix.DB-name }}
+                  Test-Way: clearHistoryData
+
+            - name: oriNoDataExpHasData Normal IT
+              shell: bash
+              run: |
+                  mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
+
             # 测试只读节点===============================================
             - name: Prepare CapExp environment for testReadOnly
               uses: ./.github/actions/capacityExpansionUnionTest

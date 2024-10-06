@@ -56,6 +56,7 @@ public class StorageManager {
     }
   }
 
+  /** 仅适用于已经被注册的引擎 */
   public static boolean testEngineConnection(StorageEngineMeta meta) {
     long id = meta.getId();
     if (id < 0) {
