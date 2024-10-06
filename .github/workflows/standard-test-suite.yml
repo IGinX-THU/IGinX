@@ -15,3 +15,4 @@ jobs:
         uses: ./.github/workflows/DB-CE.yml
         with:
             metadata-matrix: '["zookeeper"]'
+            db-matrix: '["InfluxDB", "Redis"]'

@@ -21,14 +21,16 @@
 set -e
 
 PORT=$1
+cd "$SERVICE_DIR_MAC/redis"
+redis-server stop
 
-pid=$(sudo lsof -t -i:$PORT)
-
-if [ -z "$pid" ]; then
-  echo "No process is running on port $PORT."
-  exit 0
-else
-  echo "Killing process $pid running on port $PORT."
-  sudo kill -9 $pid
-  echo "Process $pid has been killed."
-fi
+#pid=$(sudo lsof -t -i:$PORT)
+#
+#if [ -z "$pid" ]; then
+#  echo "No process is running on port $PORT."
+#  exit 0
+#else
+#  echo "Killing process $pid running on port $PORT."
+#  sudo kill -9 $pid
+#  echo "Process $pid has been killed."
+#fi

@@ -22,5 +22,8 @@
 
 port=$1
 echo "Starting InfluxDB on port $port"
-sudo sh -c "cd influxdb2-2.0.7-darwin-amd64-$port/; nohup ./influxd run --bolt-path=~/.influxdbv2/influxd.bolt --engine-path=~/.influxdbv2/engine --http-bind-address=:$port --query-memory-bytes=20971520 &"
-sleep 30
+sudo sh -c "cd influxdb2-2.0.7-darwin-amd64-$port/; nohup ./influxd run --bolt-path=~/.influxdbv2/influxd.bolt --engine-path=~/.influxdbv2/engine --http-bind-address=:$port --query-memory-bytes=20971520 > influxdb_$port.log 2>&1 &"
+sleep 10
+
+echo "+++++++++++++++++++++++++++++++++"
+cat "influxdb2-2.0.7-darwin-amd64-$port/influxdb_$port.log"

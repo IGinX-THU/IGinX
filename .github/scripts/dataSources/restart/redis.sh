@@ -21,6 +21,8 @@
 set -e
 
 PORT=$1
+current_dir=$(pwd)
 cd "$SERVICE_DIR/redis"
-redis-server --port $PORT --dir $PORT --daemonize yes --pidfile "$PORT/redis.pid"
+redis-server --port $PORT --dir "$SERVICE_DIR/redis/$PORT" --daemonize yes --pidfile "$SERVICE_DIR/redis/$PORT/redis.pid"
+cd $current_dir
 mvn test -q -Dtest=RedisHistoryDataGenerator#oriHasDataExpHasData -DfailIfNoTests=false -P-format
