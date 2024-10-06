@@ -59,6 +59,16 @@ public class InfluxDBCapacityExpansionIT extends BaseCapacityExpansionIT {
   }
 
   @Override
+  protected void shutdownDatabase(int port) {
+    shutOrRestart(port, true, "influxdb");
+  }
+
+  @Override
+  protected void startDatabase(int port) {
+    shutOrRestart(port, false, "influxdb");
+  }
+
+  @Override
   protected void restoreParams(int port) {
     changeParams(port, "testOrg");
   }

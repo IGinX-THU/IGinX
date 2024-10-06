@@ -43,5 +43,5 @@ do
   # target path is also used in update/<db> script
   sh -c "sudo cp -r influxdb2-2.0.7-darwin-amd64/ influxdb2-2.0.7-darwin-amd64-$port/"
 
-  sudo sh -c "cd influxdb2-2.0.7-darwin-amd64-$port/; nohup ./influxd run --bolt-path=~/.influxdbv2/influxd.bolt --engine-path=~/.influxdbv2/engine --http-bind-address=:$port --query-memory-bytes=20971520 &"
+  sudo sh -c "cd influxdb2-2.0.7-darwin-amd64-$port/; nohup ./influxd run --bolt-path=~/.influxdbv2/influxd.bolt --engine-path=~/.influxdbv2/engine --http-bind-address=:$port --query-memory-bytes=20971520 & echo \$! > influxdb.pid"
 done

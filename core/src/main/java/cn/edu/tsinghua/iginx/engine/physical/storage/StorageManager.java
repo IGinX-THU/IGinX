@@ -56,6 +56,18 @@ public class StorageManager {
     }
   }
 
+  /** 仅适用于已经被注册的引擎 */
+  public static boolean testEngineConnection(StorageEngineMeta meta) {
+    long id = meta.getId();
+    if (id < 0) {
+      LOGGER.error("Storage engine id must be >= 0");
+      return false;
+    }
+    LOGGER.debug("Testing connection for id={}, {}", id, meta);
+    LOGGER.debug(storageMap.keySet().toString());
+    return storageMap.get(id).k.testConnection(meta);
+  }
+
   public static Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage(StorageEngineMeta meta) {
     return getBoundaryOfStorage(meta, null);
   }
@@ -87,7 +99,7 @@ public class StorageManager {
       try {
         storage.release();
       } catch (Exception e) {
-        LOGGER.error("release session pool failure!");
+        LOGGER.error("release session pool failure!", e);
       }
     }
   }
@@ -118,18 +130,23 @@ public class StorageManager {
     StorageEngineType engine = meta.getStorageEngine();
     long id = meta.getId();
     try {
-      if (!storageMap.containsKey(id)) {
-        // 启动一个派发线程池
-        ThreadPoolExecutor dispatcher =
-            new ThreadPoolExecutor(
-                ConfigDescriptor.getInstance()
-                    .getConfig()
-                    .getPhysicalTaskThreadPoolSizePerStorage(),
-                Integer.MAX_VALUE,
-                60L,
-                TimeUnit.SECONDS,
-                new SynchronousQueue<>());
-        storageMap.put(meta.getId(), new Pair<>(storage, dispatcher));
+      if (storage.testConnection(meta)) {
+        if (!storageMap.containsKey(id)) {
+          // 启动一个派发线程池
+          ThreadPoolExecutor dispatcher =
+              new ThreadPoolExecutor(
+                  ConfigDescriptor.getInstance()
+                      .getConfig()
+                      .getPhysicalTaskThreadPoolSizePerStorage(),
+                  Integer.MAX_VALUE,
+                  60L,
+                  TimeUnit.SECONDS,
+                  new SynchronousQueue<>());
+          storageMap.put(meta.getId(), new Pair<>(storage, dispatcher));
+        }
+      } else {
+        LOGGER.error("Connection test for {}:{} failed", engine, meta);
+        return false;
       }
     } catch (Exception e) {
       LOGGER.error("unexpected error when process engine {}: {}", engine, e);
@@ -197,8 +214,15 @@ public class StorageManager {
     String driver = drivers.get(engine);
     ClassLoader loader = classLoaders.get(engine);
     try {
-      return (IStorage)
-          loader.loadClass(driver).getConstructor(StorageEngineMeta.class).newInstance(meta);
+      IStorage storage =
+          (IStorage)
+              loader.loadClass(driver).getConstructor(StorageEngineMeta.class).newInstance(meta);
+      if (storage.testConnection(meta)) {
+        return storage;
+      } else {
+        LOGGER.error("Connection test for {}:{} failed", engine, meta);
+        return null;
+      }
     } catch (ClassNotFoundException e) {
       LOGGER.error("load class {} for engine {} failure: {}", driver, engine, e);
       return null;

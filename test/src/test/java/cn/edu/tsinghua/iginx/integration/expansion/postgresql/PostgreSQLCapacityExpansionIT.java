@@ -168,6 +168,16 @@ public class PostgreSQLCapacityExpansionIT extends BaseCapacityExpansionIT {
     changeParams(port, "newPassword", "postgres");
   }
 
+  @Override
+  protected void shutdownDatabase(int port) {
+    shutOrRestart(port, true, "postgresql");
+  }
+
+  @Override
+  protected void startDatabase(int port) {
+    shutOrRestart(port, false, "postgresql");
+  }
+
   private void changeParams(int port, String oldPw, String newPw) {
     String scriptPath = updateParamsScriptDir + "postgresql.sh";
     String os = System.getProperty("os.name").toLowerCase();

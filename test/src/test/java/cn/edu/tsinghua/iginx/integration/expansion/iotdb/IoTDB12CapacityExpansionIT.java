@@ -54,6 +54,16 @@ public class IoTDB12CapacityExpansionIT extends BaseCapacityExpansionIT {
     changeParams(port, "newPassword", "root");
   }
 
+  @Override
+  protected void shutdownDatabase(int port) {
+    shutOrRestart(port, true, "iotdb");
+  }
+
+  @Override
+  protected void startDatabase(int port) {
+    shutOrRestart(port, false, "iotdb");
+  }
+
   private void changeParams(int port, String oldPw, String newPw) {
     String scriptPath = updateParamsScriptDir + "iotdb.sh";
     String os = System.getProperty("os.name").toLowerCase();

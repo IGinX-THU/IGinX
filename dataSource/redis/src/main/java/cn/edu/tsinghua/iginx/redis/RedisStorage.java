@@ -146,6 +146,17 @@ public class RedisStorage implements IStorage {
   }
 
   @Override
+  public boolean testConnection(StorageEngineMeta meta) {
+    try (Jedis jedis = new Jedis(meta.getIp(), meta.getPort())) {
+      jedis.ping(); // 仅用于测试连接
+      return true;
+    } catch (Exception e) {
+      LOGGER.error("Failed to connect Redis {}: e", meta, e);
+      return false;
+    }
+  }
+
+  @Override
   public boolean isSupportProjectWithSelect() {
     return true;
   }

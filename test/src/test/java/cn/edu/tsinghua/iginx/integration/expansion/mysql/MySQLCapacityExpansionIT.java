@@ -60,6 +60,16 @@ public class MySQLCapacityExpansionIT extends BaseCapacityExpansionIT {
     changeParams(port, "newPassword", null);
   }
 
+  @Override
+  protected void shutdownDatabase(int port) {
+    shutOrRestart(port, true, "mysql");
+  }
+
+  @Override
+  protected void startDatabase(int port) {
+    shutOrRestart(port, false, "mysql");
+  }
+
   private void changeParams(int port, String oldPw, String newPw) {
     String scriptPath = updateParamsScriptDir + "mysql.sh";
     String mode = oldPw == null ? "set" : "unset";
