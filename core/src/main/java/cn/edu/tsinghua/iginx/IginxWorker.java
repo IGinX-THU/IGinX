@@ -1,20 +1,19 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 package cn.edu.tsinghua.iginx;
 
@@ -82,7 +81,7 @@ public class IginxWorker implements IService.Iface {
   private static final Config config = ConfigDescriptor.getInstance().getConfig();
 
   private IginxWorker() {
-    // if there are new local parquets/file systems in conf, add them to cluster.
+    // if there are new local filesystem in conf, add them to cluster.
     if (!addLocalStorageEngineMetas()) {
       LOGGER.error("there are no valid storage engines!");
       System.exit(-1);
@@ -108,7 +107,7 @@ public class IginxWorker implements IService.Iface {
       metaFromConf.setExtraParams(extraParams);
       boolean hasAdded = false;
       for (StorageEngineMeta meta : metaManager.getStorageEngineList()) {
-        if (isDuplicated(metaFromConf, meta)) {
+        if (metaFromConf.equals(meta)) {
           hasAdded = true;
           break;
         }
@@ -326,13 +325,15 @@ public class IginxWorker implements IService.Iface {
       int port = storageEngine.getPort();
       StorageEngineType type = storageEngine.getType();
       Map<String, String> extraParams = storageEngine.getExtraParams();
-      boolean hasData = Boolean.parseBoolean(extraParams.getOrDefault(Constants.HAS_DATA, "false"));
+      // 仅add时，默认为true
+      boolean hasData = Boolean.parseBoolean(extraParams.getOrDefault(Constants.HAS_DATA, "true"));
       String dataPrefix = null;
       if (hasData && extraParams.containsKey(Constants.DATA_PREFIX)) {
         dataPrefix = extraParams.get(Constants.DATA_PREFIX);
       }
+      // 仅add时，默认为true
       boolean readOnly =
-          Boolean.parseBoolean(extraParams.getOrDefault(Constants.IS_READ_ONLY, "false"));
+          Boolean.parseBoolean(extraParams.getOrDefault(Constants.IS_READ_ONLY, "true"));
 
       if (!isValidHost(ip)) { // IP 不合法
         LOGGER.error("ip {} is invalid.", ip);
@@ -401,7 +402,7 @@ public class IginxWorker implements IService.Iface {
       List<StorageEngineMeta> duplicatedStorageEngines = new ArrayList<>();
       for (StorageEngineMeta storageEngine : storageEngineMetas) {
         for (StorageEngineMeta currentStorageEngine : currentStorageEngines) {
-          if (isDuplicated(storageEngine, currentStorageEngine)) {
+          if (storageEngine.equals(currentStorageEngine)) {
             duplicatedStorageEngines.add(storageEngine);
             LOGGER.error("repeatedly add storage engine {}.", storageEngine);
             status.addToSubStatus(RpcUtils.FAILURE);
@@ -458,8 +459,8 @@ public class IginxWorker implements IService.Iface {
       }
     }
 
-    // init local parquet/file system before adding to meta
-    // exclude remote parquet/file system
+    // init local filesystem before adding to meta
+    // exclude remote filesystem
     List<StorageEngineMeta> localMetas = new ArrayList<>();
     List<StorageEngineMeta> otherMetas = new ArrayList<>();
     for (StorageEngineMeta meta : storageEngineMetas) {
@@ -515,23 +516,52 @@ public class IginxWorker implements IService.Iface {
     }
   }
 
-  private boolean isDuplicated(StorageEngineMeta engine1, StorageEngineMeta engine2) {
-    if (!engine1.getStorageEngine().equals(engine2.getStorageEngine())) {
-      return false;
+  /** This function is only for read-only dummy, temporarily */
+  @Override
+  public Status alterStorageEngine(AlterStorageEngineReq req) {
+    if (!sessionManager.checkSession(req.getSessionId(), AuthType.Cluster)) {
+      return RpcUtils.ACCESS_DENY;
     }
-    if (engine1.getPort() != engine2.getPort()) {
-      return false;
+    Status status = new Status(RpcUtils.SUCCESS.code);
+    long targetId = req.getEngineId();
+    Map<String, String> newParams = req.getNewParams();
+    StorageEngineMeta targetMeta = metaManager.getStorageEngine(targetId);
+    if (targetMeta == null) {
+      status.setCode(RpcUtils.FAILURE.code);
+      status.setMessage("No engine found with id:" + targetId);
+      return status;
     }
-    if (!Objects.equals(engine1.getDataPrefix(), engine2.getDataPrefix())) {
-      return false;
+    if (!targetMeta.isHasData() || !targetMeta.isReadOnly()) {
+      status.setCode(RpcUtils.FAILURE.code);
+      status.setMessage(
+          "Only read-only & dummy engines' params can be altered. Engine with id("
+              + targetId
+              + ") cannot be altered.");
+      return status;
     }
-    if (!Objects.equals(engine1.getSchemaPrefix(), engine2.getSchemaPrefix())) {
-      return false;
+
+    // update meta info
+    if (newParams.remove(Constants.IP) != null
+        || newParams.remove(Constants.PORT) != null
+        || newParams.remove(Constants.DATA_PREFIX) != null
+        || newParams.remove(Constants.SCHEMA_PREFIX) != null) {
+      status.setCode(RpcUtils.FAILURE.code);
+      status.setMessage(
+          "IP, port, type, data_prefix, schema_prefix cannot be altered. Removing and adding new engine is recommended.");
+      return status;
     }
-    if (isLocalHost(engine1.getIp()) && isLocalHost(engine2.getIp())) { // 都是本机IP
-      return true;
+    targetMeta.updateExtraParams(newParams);
+
+    // remove, then add
+    if (!metaManager.removeDummyStorageEngine(targetId)) {
+      LOGGER.error("unexpected error during removing dummy storage engine {}.", targetMeta);
+      status.setCode(RpcUtils.FAILURE.code);
+      status.setMessage("unexpected error occurred. Please check server log.");
+      return status;
     }
-    return engine1.getIp().equals(engine2.getIp());
+
+    addStorageEngineMetas(Collections.singletonList(targetMeta), status, true);
+    return status;
   }
 
   @Override
@@ -1042,6 +1072,7 @@ public class IginxWorker implements IService.Iface {
         FileUtils.deleteFileOrDir(file);
       }
       metaManager.dropTransformTask(name);
+      FunctionManager.getInstance().removeFunction(name);
       LOGGER.info("Register file has been dropped, path={}", filePath);
       return RpcUtils.SUCCESS;
     } catch (IOException e) {
@@ -1218,7 +1249,7 @@ public class IginxWorker implements IService.Iface {
     try {
       IRuleCollection ruleCollection = getRuleCollection();
       return new ShowRulesResp(RpcUtils.SUCCESS, ruleCollection.getRulesInfo());
-    } catch (ClassNotFoundException e) {
+    } catch (Exception e) {
       LOGGER.error("show rules failed: ", e);
       return new ShowRulesResp(RpcUtils.FAILURE, null);
     }
@@ -1230,20 +1261,21 @@ public class IginxWorker implements IService.Iface {
     try {
       getRuleCollection().setRules(rulesChange);
       return RpcUtils.SUCCESS;
-    } catch (ClassNotFoundException e) {
+    } catch (Exception e) {
       LOGGER.error("set rules failed: ", e);
       return RpcUtils.FAILURE;
     }
   }
 
-  private IRuleCollection getRuleCollection() throws ClassNotFoundException {
+  private IRuleCollection getRuleCollection()
+      throws ClassNotFoundException, NoSuchFieldException, IllegalAccessException {
     // 获取接口的类加载器
     ClassLoader classLoader = IRuleCollection.class.getClassLoader();
     // 加载枚举类
-    Class<?> enumClass =
+    Class<?> ruleCollectionClass =
         classLoader.loadClass("cn.edu.tsinghua.iginx.logical.optimizer.rules.RuleCollection");
-    // 获取枚举实例
-    Object enumInstance = enumClass.getEnumConstants()[0];
+    // get INSTANCE static field
+    Object enumInstance = ruleCollectionClass.getField("INSTANCE").get(null);
 
     // 强制转换为接口类型
     return (IRuleCollection) enumInstance;

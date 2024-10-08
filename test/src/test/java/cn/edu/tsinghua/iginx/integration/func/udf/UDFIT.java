@@ -1,20 +1,19 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 package cn.edu.tsinghua.iginx.integration.func.udf;
 
@@ -253,6 +252,45 @@ public class UDFIT {
       compareResult(1, ret.getValues().get(i).size());
       double expected = expectedValues.get(i);
       double actual = (double) ret.getValues().get(i).get(0);
+      compareResult(expected, actual, delta);
+    }
+  }
+
+  @Test
+  public void testNestedUDF() {
+    String statement = "SELECT arccos(cos(s1)) FROM us.d1 WHERE s1 < 4;";
+    SessionExecuteSqlResult ret = tool.execute(statement);
+    compareResult(Collections.singletonList("arccos(cos(us.d1.s1))"), ret.getPaths());
+    compareResult(new long[] {0L, 1L, 2L, 3L}, ret.getKeys());
+    List<Double> expectedValues = Arrays.asList(0.0, 1.0, 2.0, 3.0);
+    for (int i = 0; i < ret.getValues().size(); i++) {
+      compareResult(1, ret.getValues().get(i).size());
+      double expected = expectedValues.get(i);
+      double actual = (double) ret.getValues().get(i).get(0);
+      compareResult(expected, actual, delta);
+    }
+
+    statement = "SELECT sum(cos(s1)), avg(cos(s1)) FROM us.d1 WHERE s1 < 10;";
+    ret = tool.execute(statement);
+    compareResult(Arrays.asList("sum(cos(us.d1.s1))", "avg(cos(us.d1.s1))"), ret.getPaths());
+    assertEquals(1, ret.getValues().size());
+    expectedValues = Arrays.asList(0.42162378262054656, 0.042162378262054656);
+    assertEquals(2, ret.getValues().get(0).size());
+    for (int i = 0; i < 2; i++) {
+      double expected = expectedValues.get(i);
+      double actual = (double) ret.getValues().get(0).get(i);
+      compareResult(expected, actual, delta);
+    }
+
+    statement = "SELECT avg(s1), cos(avg(s1)) FROM us.d1 WHERE s1 < 10;";
+    ret = tool.execute(statement);
+    compareResult(Arrays.asList("avg(us.d1.s1)", "cos(avg(us.d1.s1))"), ret.getPaths());
+    assertEquals(1, ret.getValues().size());
+    expectedValues = Arrays.asList(4.5, -0.2107957994307797);
+    assertEquals(2, ret.getValues().get(0).size());
+    for (int i = 0; i < 2; i++) {
+      double expected = expectedValues.get(i);
+      double actual = (double) ret.getValues().get(0).get(i);
       compareResult(expected, actual, delta);
     }
   }
@@ -880,6 +918,21 @@ public class UDFIT {
       return;
     }
 
+    query = "explain select a, cos(a) from test;";
+    ret = tool.execute(query);
+    expected =
+        "ResultSets:\n"
+            + "+-----------------+-------------+----------------------------------------------------------------------------------------+\n"
+            + "|     Logical Tree|Operator Type|                                                                           Operator Info|\n"
+            + "+-----------------+-------------+----------------------------------------------------------------------------------------+\n"
+            + "|Reorder          |      Reorder|                                                               Order: test.a,cos(test.a)|\n"
+            + "|  +--RowTransform| RowTransform|FuncList(Name, FuncType): (arithmetic_expr, System), (cos, UDF), MappingType: RowMapping|\n"
+            + "|    +--Project   |      Project|                                                                        Patterns: test.a|\n"
+            + "|      +--Project |      Project|                                             Patterns: test.a, Target DU: unit0000000002|\n"
+            + "+-----------------+-------------+----------------------------------------------------------------------------------------+\n"
+            + "Total line number = 4\n";
+    assertEquals(expected, ret.getResultInString(false, ""));
+
     query = "explain select cos(a), pow(b, 2) from test;";
     ret = tool.execute(query);
     expected =
@@ -889,9 +942,10 @@ public class UDFIT {
             + "+-----------------+-------------+-------------------------------------------------------------------------+\n"
             + "|Reorder          |      Reorder|                                                                 Order: *|\n"
             + "|  +--RowTransform| RowTransform|FuncList(Name, FuncType): (cos, UDF), (pow, UDF), MappingType: RowMapping|\n"
-            + "|    +--Project   |      Project|                       Patterns: test.a,test.b, Target DU: unit0000000002|\n"
+            + "|    +--Project   |      Project|                                                  Patterns: test.b,test.a|\n"
+            + "|      +--Project |      Project|                       Patterns: test.a,test.b, Target DU: unit0000000002|\n"
             + "+-----------------+-------------+-------------------------------------------------------------------------+\n"
-            + "Total line number = 3\n";
+            + "Total line number = 4\n";
     assertEquals(expected, ret.getResultInString(false, ""));
   }
 

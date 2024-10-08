@@ -1,3 +1,21 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package cn.edu.tsinghua.iginx.metadata.utils;
 
 import static cn.edu.tsinghua.iginx.conf.Constants.*;
@@ -15,7 +33,7 @@ import java.util.Map;
 public class StorageEngineUtils {
 
   public static boolean isEmbeddedStorageEngine(StorageEngineType type) {
-    return type.equals(StorageEngineType.parquet) || type.equals(StorageEngineType.filesystem);
+    return type.equals(StorageEngineType.filesystem);
   }
 
   private static boolean isDirValid(String dir) {
@@ -42,7 +60,7 @@ public class StorageEngineUtils {
       if (iginxPort == null || iginxPort.isEmpty()) {
         return false;
       }
-      boolean hasData = Boolean.parseBoolean(extraParams.getOrDefault(HAS_DATA, "false"));
+      boolean hasData = Boolean.parseBoolean(extraParams.getOrDefault(Constants.HAS_DATA, "false"));
       boolean readOnly =
           Boolean.parseBoolean(extraParams.getOrDefault(Constants.IS_READ_ONLY, "false"));
       if (hasData) {
@@ -63,10 +81,7 @@ public class StorageEngineUtils {
             return false;
           }
         }
-        String separator = System.getProperty("file.separator");
-        // dummyDirPath是规范路径，一定不会以separator结尾
-        String dirPrefix = dummyDirPath.substring(dummyDirPath.lastIndexOf(separator) + 1);
-        extraParams.put(EMBEDDED_PREFIX, dirPrefix);
+        extraParams.put(EMBEDDED_PREFIX, StorageEngineMeta.extractEmbeddedPrefix(dummyDirPath));
       } else {
         // hasData=false readOnly=true 无意义的引擎
         if (readOnly) {

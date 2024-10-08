@@ -1,24 +1,24 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 package cn.edu.tsinghua.iginx.session;
 
-import static cn.edu.tsinghua.iginx.utils.ByteUtils.*;
+import static cn.edu.tsinghua.iginx.utils.ByteUtils.getLongArrayFromByteBuffer;
+import static cn.edu.tsinghua.iginx.utils.ByteUtils.getValuesFromBufferAndBitmaps;
 
 import cn.edu.tsinghua.iginx.constant.GlobalConstant;
 import cn.edu.tsinghua.iginx.thrift.*;
@@ -47,6 +47,9 @@ public class SessionExecuteSqlResult {
   private String loadCsvPath;
   private String UDFModulePath;
   private List<Long> sessionIDs;
+  private List<String> usernames;
+  private List<UserType> userTypes;
+  private List<Set<AuthType>> auths;
 
   private Map<String, Boolean> rules;
 
@@ -107,12 +110,21 @@ public class SessionExecuteSqlResult {
         break;
       case LoadCsv:
         this.loadCsvPath = resp.getLoadCsvPath();
+        break;
       case RegisterTask:
         this.UDFModulePath = resp.getUDFModulePath();
+        break;
       case ShowSessionID:
         this.sessionIDs = resp.getSessionIDList();
+        break;
       case ShowRules:
         this.rules = resp.getRules();
+        break;
+      case ShowUser:
+        this.usernames = resp.getUsernames();
+        this.userTypes = resp.getUserTypes();
+        this.auths = resp.getAuths();
+        break;
       default:
         break;
     }
@@ -189,6 +201,8 @@ public class SessionExecuteSqlResult {
         return buildShowConfigResult();
       case ShowRules:
         return buildShowRulesResult();
+      case ShowUser:
+        return buildShowUserResult();
       case GetReplicaNum:
         return "Replica num: " + replicaNum + "\n";
       case CountPoints:
@@ -410,6 +424,25 @@ public class SessionExecuteSqlResult {
       }
       builder.append(FormatUtils.formatResult(cache));
     }
+    return builder.toString();
+  }
+
+  private String buildShowUserResult() {
+    if (sqlType != SqlType.ShowUser) {
+      throw new IllegalStateException("sqlType is not ShowUser");
+    }
+    StringBuilder builder = new StringBuilder();
+    builder.append("User Info:").append("\n");
+    List<List<String>> cache = new ArrayList<>();
+    cache.add(new ArrayList<>(Arrays.asList("name", "type", "auths")));
+    for (int i = 0; i < usernames.size(); i++) {
+      cache.add(
+          new ArrayList<>(
+              Arrays.asList(
+                  usernames.get(i), userTypes.get(i).toString(), auths.get(i).toString())));
+    }
+    builder.append(FormatUtils.formatResult(cache));
+
     return builder.toString();
   }
 

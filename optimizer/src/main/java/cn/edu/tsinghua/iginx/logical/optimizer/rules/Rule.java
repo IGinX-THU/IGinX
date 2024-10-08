@@ -1,3 +1,21 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package cn.edu.tsinghua.iginx.logical.optimizer.rules;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
@@ -7,6 +25,10 @@ import java.util.Arrays;
 
 public abstract class Rule {
 
+  public static final long DEFAULT_PRIORITY = 0;
+
+  public static final RuleStrategy DEFAULT_STRATEGY = RuleStrategy.FIXED_POINT;
+
   private final String ruleName;
 
   /** operand describes the local topology we want to match in this rule */
@@ -14,15 +36,24 @@ public abstract class Rule {
 
   private final RuleStrategy strategy;
 
+  private final long priority;
+
   protected Rule(String ruleName, Operand operand) {
-    this.ruleName = ruleName;
-    this.operand = operand;
-    this.strategy = RuleStrategy.FIXED_POINT;
+    this(ruleName, operand, DEFAULT_PRIORITY, DEFAULT_STRATEGY);
+  }
+
+  protected Rule(String ruleName, Operand operand, long priority) {
+    this(ruleName, operand, priority, DEFAULT_STRATEGY);
   }
 
   protected Rule(String ruleName, Operand operand, RuleStrategy strategy) {
+    this(ruleName, operand, DEFAULT_PRIORITY, strategy);
+  }
+
+  protected Rule(String ruleName, Operand operand, long priority, RuleStrategy strategy) {
     this.ruleName = ruleName;
     this.operand = operand;
+    this.priority = priority;
     this.strategy = strategy;
   }
 
@@ -36,6 +67,10 @@ public abstract class Rule {
 
   public RuleStrategy getStrategy() {
     return strategy;
+  }
+
+  public long getPriority() {
+    return priority;
   }
 
   /**
@@ -59,5 +94,10 @@ public abstract class Rule {
 
   public static Operand operand(Class<? extends Operator> clazz, Operand... children) {
     return new Operand(clazz, Arrays.asList(children));
+  }
+
+  @Override
+  public String toString() {
+    return ruleName;
   }
 }

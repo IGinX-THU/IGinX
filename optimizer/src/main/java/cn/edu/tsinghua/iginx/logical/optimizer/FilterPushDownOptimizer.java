@@ -1,3 +1,21 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package cn.edu.tsinghua.iginx.logical.optimizer;
 
 import cn.edu.tsinghua.iginx.engine.logical.optimizer.Optimizer;
@@ -90,7 +108,7 @@ public class FilterPushDownOptimizer implements Optimizer {
       getRenameOperator(selectOperator, project, renameList);
       Filter unrenamedFilter = filter.copy();
       for (Operator rename : renameList) {
-        unrenamedFilter = replacePathByRenameMap(unrenamedFilter, ((Rename) rename).getAliasMap());
+        unrenamedFilter = replacePathByRenameMap(unrenamedFilter, ((Rename) rename).getAliasList());
       }
 
       // the same meta just call once.
@@ -246,7 +264,7 @@ public class FilterPushDownOptimizer implements Optimizer {
     return isCorrectRoad;
   }
 
-  private Filter replacePathByRenameMap(Filter filter, Map<String, String> renameMap) {
+  private Filter replacePathByRenameMap(Filter filter, List<Pair<String, String>> renameMap) {
     switch (filter.getType()) {
       case Or:
         List<Filter> orChildren = ((OrFilter) filter).getChildren();
@@ -264,8 +282,8 @@ public class FilterPushDownOptimizer implements Optimizer {
         break;
       case Value:
         String path = ((ValueFilter) filter).getPath();
-        for (Map.Entry<String, String> entry : renameMap.entrySet()) {
-          path = replacePathByRenameEntry(path, entry);
+        for (Pair<String, String> pair : renameMap) {
+          path = replacePathByRenameEntry(path, pair);
         }
         return new ValueFilter(
             path, ((ValueFilter) filter).getOp(), ((ValueFilter) filter).getValue());
@@ -273,8 +291,8 @@ public class FilterPushDownOptimizer implements Optimizer {
         String pathA = ((PathFilter) filter).getPathA();
         String pathB = ((PathFilter) filter).getPathB();
 
-        for (Map.Entry<String, String> entry : renameMap.entrySet()) {
-          pathA = replacePathByRenameEntry(pathA, entry);
+        for (Pair<String, String> pair : renameMap) {
+          pathA = replacePathByRenameEntry(pathA, pair);
         }
 
         return new PathFilter(pathA, ((PathFilter) filter).getOp(), pathB);
@@ -284,9 +302,9 @@ public class FilterPushDownOptimizer implements Optimizer {
     return filter;
   }
 
-  private String replacePathByRenameEntry(String path, Map.Entry<String, String> entry) {
-    String nameBeforeRename = entry.getKey();
-    String nameAfterRename = entry.getValue();
+  private String replacePathByRenameEntry(String path, Pair<String, String> pair) {
+    String nameBeforeRename = pair.k;
+    String nameAfterRename = pair.v;
     if (path.equals(nameAfterRename)) {
       return nameBeforeRename;
     }

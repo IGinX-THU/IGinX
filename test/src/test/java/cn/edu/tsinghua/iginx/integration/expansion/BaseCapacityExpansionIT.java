@@ -1,27 +1,42 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package cn.edu.tsinghua.iginx.integration.expansion;
 
 import static cn.edu.tsinghua.iginx.integration.controller.Controller.SUPPORT_KEY;
 import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.*;
 import static cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools.executeShellScript;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.expansion.filesystem.FileSystemCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.influxdb.InfluxDBCapacityExpansionIT;
-import cn.edu.tsinghua.iginx.integration.expansion.parquet.ParquetCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.session.ClusterInfo;
 import cn.edu.tsinghua.iginx.session.QueryDataSet;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.thrift.RemovedStorageEngineInfo;
+import cn.edu.tsinghua.iginx.thrift.StorageEngineInfo;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 import org.junit.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,6 +48,8 @@ public abstract class BaseCapacityExpansionIT {
 
   protected static Session session;
 
+  protected static final String ALTER_ENGINE_STRING = "alter storageengine %d with params \"%s\";";
+
   private static final ConfLoader testConf = new ConfLoader(Controller.CONFIG_FILE);
 
   protected StorageEngineType type;
@@ -41,14 +58,17 @@ public abstract class BaseCapacityExpansionIT {
 
   protected List<String> wrongExtraParams = new ArrayList<>();
 
-  private final boolean IS_PARQUET_OR_FILE_SYSTEM =
-      this instanceof FileSystemCapacityExpansionIT || this instanceof ParquetCapacityExpansionIT;
+  protected Map<String, String> updatedParams = new HashMap<>();
+
+  private final boolean IS_EMBEDDED = this instanceof FileSystemCapacityExpansionIT;
 
   private final String EXP_SCHEMA_PREFIX = null;
 
   private final String READ_ONLY_SCHEMA_PREFIX = null;
 
   public static final String DBCE_PARQUET_FS_TEST_DIR = "test";
+
+  protected static final String updateParamsScriptDir = ".github/scripts/dataSources/update/";
 
   protected static BaseHistoryDataGenerator generator;
 
@@ -82,12 +102,13 @@ public abstract class BaseCapacityExpansionIT {
         statement.append(port);
         statement.append("/");
       }
-      if (IS_PARQUET_OR_FILE_SYSTEM) {
+      if (IS_EMBEDDED) {
         statement.append(String.format(", dummy_dir:%s/", DBCE_PARQUET_FS_TEST_DIR));
         statement.append(PORT_TO_ROOT.get(port));
-        statement.append(String.format(", dir:%s/iginx_", DBCE_PARQUET_FS_TEST_DIR));
+        statement.append(
+            String.format(", dir:%s/" + IGINX_DATA_PATH_PREFIX_NAME, DBCE_PARQUET_FS_TEST_DIR));
         statement.append(PORT_TO_ROOT.get(port));
-        statement.append(", iginx_port:" + oriPortIginx);
+        statement.append(", iginx_port:").append(oriPortIginx);
       }
       if (extraParams != null) {
         statement.append(", ");
@@ -146,9 +167,8 @@ public abstract class BaseCapacityExpansionIT {
   }
 
   private void addStorageEngineInProgress(
-      int port, boolean hasData, boolean isReadOnly, String dataPrefix, String schemaPrefix)
-      throws InterruptedException {
-    if (IS_PARQUET_OR_FILE_SYSTEM) {
+      int port, boolean hasData, boolean isReadOnly, String dataPrefix, String schemaPrefix) {
+    if (IS_EMBEDDED) {
       startStorageEngineWithIginx(port, hasData, isReadOnly);
     } else {
       // 测试会添加初始数据，所以hasData=true
@@ -157,7 +177,7 @@ public abstract class BaseCapacityExpansionIT {
   }
 
   @Test
-  public void oriHasDataExpHasData() throws InterruptedException, SessionException {
+  public void oriHasDataExpHasData() {
     // 查询原始节点的历史数据，结果不为空
     testQueryHistoryDataOriHasData();
     // 写入并查询新数据
@@ -176,7 +196,7 @@ public abstract class BaseCapacityExpansionIT {
   }
 
   @Test
-  public void oriHasDataExpNoData() throws InterruptedException {
+  public void oriHasDataExpNoData() {
     // 查询原始节点的历史数据，结果不为空
     testQueryHistoryDataOriHasData();
     // 写入并查询新数据
@@ -192,7 +212,7 @@ public abstract class BaseCapacityExpansionIT {
   }
 
   @Test
-  public void oriNoDataExpHasData() throws InterruptedException {
+  public void oriNoDataExpHasData() {
     // 查询原始节点的历史数据，结果为空
     testQueryHistoryDataOriNoData();
     // 写入并查询新数据
@@ -210,7 +230,7 @@ public abstract class BaseCapacityExpansionIT {
   }
 
   @Test
-  public void oriNoDataExpNoData() throws InterruptedException {
+  public void oriNoDataExpNoData() {
     // 查询原始节点的历史数据，结果为空
     testQueryHistoryDataOriNoData();
     // 写入并查询新数据
@@ -226,11 +246,13 @@ public abstract class BaseCapacityExpansionIT {
   }
 
   @Test
-  public void testReadOnly() throws InterruptedException {
+  public void testReadOnly() throws SessionException {
     // 查询原始只读节点的历史数据，结果不为空
     testQueryHistoryDataOriHasData();
+    // 测试只读节点的参数修改
+    testUpdateEngineParams();
     // 测试参数错误的只读节点扩容
-    testInvalidDummyParams(readOnlyPort, true, false, null, EXP_SCHEMA_PREFIX);
+    testInvalidDummyParams(readOnlyPort, true, true, null, READ_ONLY_SCHEMA_PREFIX);
     // 扩容只读节点
     addStorageEngineInProgress(readOnlyPort, true, true, null, READ_ONLY_SCHEMA_PREFIX);
     // 查询扩容只读节点的历史数据，结果不为空
@@ -247,11 +269,6 @@ public abstract class BaseCapacityExpansionIT {
     testWriteAndQueryNewDataAfterCE();
 
     testQuerySpecialHistoryData();
-
-    if (this instanceof FileSystemCapacityExpansionIT) {
-      // 仅用于扩容文件系统后查询文件
-      testQueryForFileSystem();
-    }
 
     // 扩容后show columns测试
     testShowColumns();
@@ -301,6 +318,69 @@ public abstract class BaseCapacityExpansionIT {
       fail();
     }
   }
+
+  /** 测试引擎修改参数（目前仅支持dummy & read-only） */
+  protected void testUpdateEngineParams() throws SessionException {
+    // 修改前后通过相同schema_prefix查询判断引擎成功更新
+    LOGGER.info("Testing updating engine params...");
+    if (updatedParams.isEmpty()) {
+      LOGGER.info("Engine {} skipped this test.", type);
+      return;
+    }
+
+    String prefix = "prefix";
+    // 添加只读节点
+    addStorageEngine(readOnlyPort, true, true, null, prefix, extraParams);
+    // 查询
+    String statement = "select wt01.status, wt01.temperature from " + prefix + ".tm.wf05;";
+    List<String> pathList =
+        READ_ONLY_PATH_LIST.stream().map(s -> prefix + "." + s).collect(Collectors.toList());
+    List<List<Object>> valuesList = READ_ONLY_VALUES_LIST;
+    SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
+
+    // 修改数据库参数
+    updateParams(readOnlyPort);
+
+    // 修改
+    List<StorageEngineInfo> engineInfoList = session.getClusterInfo().getStorageEngineInfos();
+    long id = -1;
+    for (StorageEngineInfo info : engineInfoList) {
+      if (info.getIp().equals("127.0.0.1")
+          && info.getPort() == readOnlyPort
+          && info.getDataPrefix().equals("null")
+          && info.getSchemaPrefix().equals(prefix)
+          && info.getType().equals(type)) {
+        id = info.getId();
+      }
+    }
+    assertTrue(id != -1);
+
+    String newParams =
+        updatedParams.entrySet().stream()
+            .map(entry -> entry.getKey() + ":" + entry.getValue())
+            .collect(Collectors.joining(", "));
+    session.executeSql(String.format(ALTER_ENGINE_STRING, id, newParams));
+
+    // 重新查询
+    statement = "select wt01.status, wt01.temperature from " + prefix + ".tm.wf05;";
+    pathList = READ_ONLY_PATH_LIST.stream().map(s -> prefix + "." + s).collect(Collectors.toList());
+    valuesList = READ_ONLY_VALUES_LIST;
+    SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
+
+    // 删除，不影响后续测试
+    session.removeHistoryDataSource(
+        Collections.singletonList(
+            new RemovedStorageEngineInfo("127.0.0.1", readOnlyPort, prefix, "")));
+
+    // 改回数据库参数
+    restoreParams(readOnlyPort);
+  }
+
+  /** 这个方法需要实现：通过脚本修改port对应数据源的可变参数，如密码等 */
+  protected abstract void updateParams(int port);
+
+  /** 这个方法需要实现：通过脚本恢复updateParams中修改的可变参数 */
+  protected abstract void restoreParams(int port);
 
   protected void queryExtendedKeyDummy() {
     // ori
@@ -466,7 +546,9 @@ public abstract class BaseCapacityExpansionIT {
     List<List<Object>> valuesList = EXP_VALUES_LIST1;
 
     // 添加不同 schemaPrefix，相同 dataPrefix
+    testShowColumnsInExpansion(true);
     addStorageEngine(expPort, true, true, dataPrefix1, schemaPrefix1, extraParams);
+    testShowColumnsInExpansion(false);
 
     // 添加节点 dataPrefix = dataPrefix1 && schemaPrefix = p1 后查询
     String statement = "select status2 from *;";
@@ -512,6 +594,7 @@ public abstract class BaseCapacityExpansionIT {
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
 
     // 通过 session 接口测试移除节点
+    testShowColumnsRemoveStorageEngine(true);
     List<RemovedStorageEngineInfo> removedStorageEngineList = new ArrayList<>();
     removedStorageEngineList.add(
         new RemovedStorageEngineInfo("127.0.0.1", expPort, "p2" + schemaPrefixSuffix, dataPrefix1));
@@ -523,6 +606,8 @@ public abstract class BaseCapacityExpansionIT {
     } catch (SessionException e) {
       LOGGER.error("remove history data source through session api error: ", e);
     }
+    testShowColumnsRemoveStorageEngine(false);
+
     // 移除节点 dataPrefix = dataPrefix1 && schemaPrefix = p2 + schemaPrefixSuffix 后再查询
     statement = "select * from p2.nt.wf03;";
     String expect =
@@ -565,54 +650,131 @@ public abstract class BaseCapacityExpansionIT {
     testShowClusterInfo(2);
   }
 
+  protected void testShowColumnsInExpansion(boolean before) {
+    String statement = "SHOW COLUMNS nt.wf03.*;";
+    String expected =
+        "Columns:\n"
+            + "+--------------------+--------+\n"
+            + "|                Path|DataType|\n"
+            + "+--------------------+--------+\n"
+            + "|nt.wf03.wt01.status2|    LONG|\n"
+            + "+--------------------+--------+\n"
+            + "Total line number = 1\n";
+    SQLTestTools.executeAndCompare(session, statement, expected);
+
+    statement = "SHOW COLUMNS;";
+    if (before) {
+      expected =
+          "Columns:\n"
+              + "+--------------------------------------------------------------------------------------+--------+\n"
+              + "|                                                                                  Path|DataType|\n"
+              + "+--------------------------------------------------------------------------------------+--------+\n"
+              + "|                                                                                 b.b.b|    LONG|\n"
+              + "|                                                                        ln.wf02.status| BOOLEAN|\n"
+              + "|                                                                       ln.wf02.version|  BINARY|\n"
+              + "|                                                                  nt.wf03.wt01.status2|    LONG|\n"
+              + "|                                                              nt.wf04.wt01.temperature|  DOUBLE|\n"
+              + "|zzzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzzzz|    LONG|\n"
+              + "+--------------------------------------------------------------------------------------+--------+\n"
+              + "Total line number = 6\n";
+    } else { // 添加schemaPrefix为p1，dataPrefix为nt.wf03的数据源
+      expected =
+          "Columns:\n"
+              + "+--------------------------------------------------------------------------------------+--------+\n"
+              + "|                                                                                  Path|DataType|\n"
+              + "+--------------------------------------------------------------------------------------+--------+\n"
+              + "|                                                                                 b.b.b|    LONG|\n"
+              + "|                                                                        ln.wf02.status| BOOLEAN|\n"
+              + "|                                                                       ln.wf02.version|  BINARY|\n"
+              + "|                                                                  nt.wf03.wt01.status2|    LONG|\n"
+              + "|                                                              nt.wf04.wt01.temperature|  DOUBLE|\n"
+              + "|                                                               p1.nt.wf03.wt01.status2|    LONG|\n"
+              + "|zzzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzzzz|    LONG|\n"
+              + "+--------------------------------------------------------------------------------------+--------+\n"
+              + "Total line number = 7\n";
+    }
+    SQLTestTools.executeAndCompare(session, statement, expected);
+
+    statement = "SHOW COLUMNS p1.*;";
+    if (before) {
+      expected =
+          "Columns:\n"
+              + "+----+--------+\n"
+              + "|Path|DataType|\n"
+              + "+----+--------+\n"
+              + "+----+--------+\n"
+              + "Empty set.\n";
+    } else { // 添加schemaPrefix为p1，dataPrefix为nt.wf03的数据源
+      expected =
+          "Columns:\n"
+              + "+-----------------------+--------+\n"
+              + "|                   Path|DataType|\n"
+              + "+-----------------------+--------+\n"
+              + "|p1.nt.wf03.wt01.status2|    LONG|\n"
+              + "+-----------------------+--------+\n"
+              + "Total line number = 1\n";
+    }
+    SQLTestTools.executeAndCompare(session, statement, expected);
+
+    statement = "SHOW COLUMNS *.wf03.wt01.*;";
+    if (before) {
+      expected =
+          "Columns:\n"
+              + "+--------------------+--------+\n"
+              + "|                Path|DataType|\n"
+              + "+--------------------+--------+\n"
+              + "|nt.wf03.wt01.status2|    LONG|\n"
+              + "+--------------------+--------+\n"
+              + "Total line number = 1\n";
+    } else { // 添加schemaPrefix为p1，dataPrefix为nt.wf03的数据源
+      expected =
+          "Columns:\n"
+              + "+-----------------------+--------+\n"
+              + "|                   Path|DataType|\n"
+              + "+-----------------------+--------+\n"
+              + "|   nt.wf03.wt01.status2|    LONG|\n"
+              + "|p1.nt.wf03.wt01.status2|    LONG|\n"
+              + "+-----------------------+--------+\n"
+              + "Total line number = 2\n";
+    }
+    SQLTestTools.executeAndCompare(session, statement, expected);
+  }
+
+  protected void testShowColumnsRemoveStorageEngine(boolean before) {
+    String statement = "SHOW COLUMNS p1.*, p2.*, p3.*;";
+    String expected;
+    if (before) {
+      expected =
+          "Columns:\n"
+              + "+---------------------------+--------+\n"
+              + "|                       Path|DataType|\n"
+              + "+---------------------------+--------+\n"
+              + "|    p1.nt.wf03.wt01.status2|    LONG|\n"
+              + "|    p2.nt.wf03.wt01.status2|    LONG|\n"
+              + "|    p3.nt.wf03.wt01.status2|    LONG|\n"
+              + "|p3.nt.wf04.wt01.temperature|  DOUBLE|\n"
+              + "+---------------------------+--------+\n"
+              + "Total line number = 4\n";
+    } else { // schemaPrefix为p2及p3，dataPrefix为nt.wf03的数据源被移除
+      expected =
+          "Columns:\n"
+              + "+---------------------------+--------+\n"
+              + "|                       Path|DataType|\n"
+              + "+---------------------------+--------+\n"
+              + "|    p1.nt.wf03.wt01.status2|    LONG|\n"
+              + "|p3.nt.wf04.wt01.temperature|  DOUBLE|\n"
+              + "+---------------------------+--------+\n"
+              + "Total line number = 2\n";
+    }
+    SQLTestTools.executeAndCompare(session, statement, expected);
+  }
+
   private void testShowClusterInfo(int expected) {
     try {
       ClusterInfo clusterInfo = session.getClusterInfo();
       assertEquals(expected, clusterInfo.getStorageEngineInfos().size());
     } catch (SessionException e) {
       LOGGER.error("encounter error when showing cluster info: ", e);
-    }
-  }
-
-  private void testQueryForFileSystem() {
-    try {
-      session.executeSql(
-          "ADD STORAGEENGINE (\"127.0.0.1\", 6670, \"filesystem\", \"dummy_dir:test/test/a, has_data:true, is_read_only:true, iginx_port:6888, chunk_size_in_bytes:1048576\");");
-      String statement = "select 1\\txt from a.*;";
-      String expect =
-          "ResultSets:\n"
-              + "+---+---------------------------------------------------------------------------+\n"
-              + "|key|                                                              a.b.c.d.1\\txt|\n"
-              + "+---+---------------------------------------------------------------------------+\n"
-              + "|  0|979899100101102103104105106107108109110111112113114115116117118119120121122|\n"
-              + "+---+---------------------------------------------------------------------------+\n"
-              + "Total line number = 1\n";
-      SQLTestTools.executeAndCompare(session, statement, expect);
-
-      statement = "select 2\\txt from a.*;";
-      expect =
-          "ResultSets:\n"
-              + "+---+----------------------------------------------------+\n"
-              + "|key|                                           a.e.2\\txt|\n"
-              + "+---+----------------------------------------------------+\n"
-              + "|  0|6566676869707172737475767778798081828384858687888990|\n"
-              + "+---+----------------------------------------------------+\n"
-              + "Total line number = 1\n";
-      SQLTestTools.executeAndCompare(session, statement, expect);
-
-      statement = "select 3\\txt from a.*;";
-      expect =
-          "ResultSets:\n"
-              + "+---+------------------------------------------+\n"
-              + "|key|                               a.f.g.3\\txt|\n"
-              + "+---+------------------------------------------+\n"
-              + "|  0|012345678910111213141516171819202122232425|\n"
-              + "+---+------------------------------------------+\n"
-              + "Total line number = 1\n";
-      SQLTestTools.executeAndCompare(session, statement, expect);
-    } catch (SessionException e) {
-      LOGGER.error("test query for file system failed ", e);
-      fail();
     }
   }
 
@@ -643,7 +805,7 @@ public abstract class BaseCapacityExpansionIT {
             + "Total line number = 2\n";
     SQLTestTools.executeAndCompare(session, statement, expected);
 
-    statement = "SHOW COLUMNS tm.*;";
+    statement = "SHOW COLUMNS tm.wf05.wt01.*;";
     expected =
         "Columns:\n"
             + "+------------------------+--------+\n"
@@ -659,7 +821,7 @@ public abstract class BaseCapacityExpansionIT {
   // test dummy query for data out of initial key range (should be visible)
   protected void testDummyKeyRange() {
     String statement;
-    statement = "select * from mn where key < 1;";
+    statement = "select * from mn.wf01.wt01 where key < 1;";
     String expected =
         "Columns:\n"
             + "+------------------------+--------+\n"
@@ -699,8 +861,7 @@ public abstract class BaseCapacityExpansionIT {
     }
   }
 
-  protected void startStorageEngineWithIginx(int port, boolean hasData, boolean isReadOnly)
-      throws InterruptedException {
+  protected void startStorageEngineWithIginx(int port, boolean hasData, boolean isReadOnly) {
     String scriptPath, iginxPath = ".github/scripts/iginx/iginx.sh";
     String os = System.getProperty("os.name").toLowerCase();
     boolean isOnMac = false;
@@ -712,19 +873,9 @@ public abstract class BaseCapacityExpansionIT {
     }
 
     if (this instanceof FileSystemCapacityExpansionIT) {
-      if (isOnMac) {
-        scriptPath = ".github/scripts/dataSources/filesystem_macos.sh";
-      } else {
-        scriptPath = ".github/scripts/dataSources/filesystem_linux_windows.sh";
-      }
-    } else if (this instanceof ParquetCapacityExpansionIT) {
-      if (isOnMac) {
-        scriptPath = ".github/scripts/dataSources/parquet_macos.sh";
-      } else {
-        scriptPath = ".github/scripts/dataSources/parquet_linux_windows.sh";
-      }
+      scriptPath = ".github/scripts/dataSources/startup/filesystem.sh";
     } else {
-      throw new IllegalStateException("Only support file system and parquet");
+      throw new IllegalStateException("Only support filesystem");
     }
 
     int iginxPort = PORT_TO_IGINXPORT.get(port);
@@ -746,7 +897,7 @@ public abstract class BaseCapacityExpansionIT {
             hasData
                 ? DBCE_PARQUET_FS_TEST_DIR + "/" + PORT_TO_ROOT.get(port)
                 : DBCE_PARQUET_FS_TEST_DIR + "/" + INIT_PATH_LIST.get(0).replace(".", "/"),
-            DBCE_PARQUET_FS_TEST_DIR + "/iginx_" + PORT_TO_ROOT.get(port),
+            DBCE_PARQUET_FS_TEST_DIR + "/" + IGINX_DATA_PATH_PREFIX_NAME + PORT_TO_ROOT.get(port),
             String.valueOf(hasData),
             String.valueOf(isReadOnly),
             "core/target/iginx-core-*/conf/config.properties",

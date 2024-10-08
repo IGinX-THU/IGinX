@@ -1,6 +1,22 @@
-package cn.edu.tsinghua.iginx.logical.optimizer.rules;
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
 
-import static cn.edu.tsinghua.iginx.engine.logical.utils.PathUtils.*;
+package cn.edu.tsinghua.iginx.logical.optimizer.rules;
 
 import cn.edu.tsinghua.iginx.engine.logical.utils.OperatorUtils;
 import cn.edu.tsinghua.iginx.engine.logical.utils.PathUtils;
@@ -17,28 +33,25 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.AndTagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
+import cn.edu.tsinghua.iginx.engine.shared.source.ConstantSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.FragmentSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
+import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 import cn.edu.tsinghua.iginx.logical.optimizer.core.RuleCall;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
+import com.google.auto.service.AutoService;
 import java.util.*;
+import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@AutoService(Rule.class)
 public class ColumnPruningRule extends Rule {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ColumnPruningRule.class);
 
-  private static final class InstanceHolder {
-    static final ColumnPruningRule INSTANCE = new ColumnPruningRule();
-  }
-
-  public static ColumnPruningRule getInstance() {
-    return InstanceHolder.INSTANCE;
-  }
-
-  protected ColumnPruningRule() {
+  public ColumnPruningRule() {
     /*
      * we want to match the topology like:
      *         Any
@@ -105,9 +118,9 @@ public class ColumnPruningRule extends Rule {
         }
       } else if (operator.getType() == OperatorType.Rename) {
         Rename rename = (Rename) operator;
-        Map<String, String> aliasMap = rename.getAliasMap();
+        List<Pair<String, String>> aliasList = rename.getAliasList();
         columns =
-            new HashSet<>(PathUtils.recoverRenamedPatterns(aliasMap, new ArrayList<>(columns)));
+            new HashSet<>(PathUtils.recoverRenamedPatterns(aliasList, new ArrayList<>(columns)));
 
       } else if (operator.getType() == OperatorType.GroupBy) {
         GroupBy groupBy = (GroupBy) operator;
@@ -179,14 +192,11 @@ public class ColumnPruningRule extends Rule {
 
       // 递归处理下一个节点
       visitedOperators.add(operator);
-      if (((UnaryOperator) operator).getSource() instanceof FragmentSource) {
+      Source source = ((UnaryOperator) operator).getSource();
+      if (source instanceof FragmentSource || source instanceof ConstantSource) {
         return;
       }
-      collectColumns(
-          ((OperatorSource) ((UnaryOperator) operator).getSource()).getOperator(),
-          columns,
-          tagFilter,
-          visitedOperators);
+      collectColumns(((OperatorSource) source).getOperator(), columns, tagFilter, visitedOperators);
 
     } else if (OperatorType.isBinaryOperator(operator.getType())) {
       // 下面是处理BinaryOperator的情况，其中只有Join操作符需要处理
@@ -223,9 +233,11 @@ public class ColumnPruningRule extends Rule {
           columns.removeIf(column -> column.startsWith(MarkJoin.MARK_PREFIX));
           // MarkJoin的左侧是普通子树，右侧是WHERE关联子查询子树，我们只处理左侧，裁剪右侧的列会导致语义变化
           filter = markJoin.getFilter();
+          extraJoinPath.addAll(markJoin.getExtraJoinPrefix());
         } else if (operator.getType() == OperatorType.SingleJoin) {
           SingleJoin singleJoin = (SingleJoin) operator;
           filter = singleJoin.getFilter();
+          extraJoinPath.addAll(singleJoin.getExtraJoinPrefix());
         }
 
         if (isNaturalJoin) {
@@ -245,6 +257,9 @@ public class ColumnPruningRule extends Rule {
                   ((OperatorSource) ((BinaryOperator) operator).getSourceB()).getOperator(),
                   new ArrayList<>());
           leftColumns.addAll(getNewColumns(rightPatterns, columns));
+          if (!extraJoinPath.isEmpty()) {
+            leftColumns.addAll(getNewColumns(leftColumns, extraJoinPath));
+          }
         }
 
         // 将columns中的列名分成以PrefixA和PrefixB开头的两部分
@@ -312,6 +327,29 @@ public class ColumnPruningRule extends Rule {
           leftColumns.addAll(leftOrder);
           rightColumns.addAll(rightOrder);
         }
+      } else if (operator.getType().equals(OperatorType.Join)) {
+        List<String> leftPatterns =
+            OperatorUtils.getPatternFromOperatorChildren(
+                ((OperatorSource) ((BinaryOperator) operator).getSourceA()).getOperator(),
+                new ArrayList<>());
+        List<String> rightPatterns =
+            OperatorUtils.getPatternFromOperatorChildren(
+                ((OperatorSource) ((BinaryOperator) operator).getSourceB()).getOperator(),
+                new ArrayList<>());
+        for (String column : columns) {
+          for (String leftPattern : leftPatterns) {
+            if (Pattern.matches(StringUtils.reformatPath(leftPattern), column)) {
+              leftColumns.add(column);
+              break;
+            }
+          }
+          for (String rightPattern : rightPatterns) {
+            if (Pattern.matches(StringUtils.reformatPath(rightPattern), column)) {
+              rightColumns.add(column);
+              break;
+            }
+          }
+        }
       } else {
         leftColumns.addAll(columns);
         rightColumns.addAll(columns);
@@ -342,7 +380,7 @@ public class ColumnPruningRule extends Rule {
       List<FunctionCall> functionCallList, Set<String> columns) {
     for (FunctionCall functionCall : functionCallList) {
       String functionName = FunctionUtils.getFunctionName(functionCall.getFunction());
-      List<String> paths = functionCall.getParams().getPaths();
+      List<String> paths = ExprUtils.getPathFromExprList(functionCall.getParams().getExpressions());
       boolean isPyUDF;
       try {
         isPyUDF = FunctionUtils.isPyUDF(functionName);
@@ -356,9 +394,9 @@ public class ColumnPruningRule extends Rule {
         columns.remove("value");
         columns.addAll(paths);
       } else if (functionName.equals(ArithmeticExpr.ARITHMETIC_EXPR)) {
-        String functionStr = functionCall.getParams().getExpr().getColumnName();
+        String functionStr = functionCall.getParams().getExpression(0).getColumnName();
         columns.remove(functionStr);
-        columns.addAll(ExprUtils.getPathFromExpr(functionCall.getParams().getExpr()));
+        columns.addAll(ExprUtils.getPathFromExpr(functionCall.getParams().getExpression(0)));
       } else if (isPyUDF) {
         // UDF结果列括号内可以随意命名，因此我们识别columns中所有开头为UDF的列，不识别括号内的内容
         String prefix = functionName + "(";
@@ -373,9 +411,10 @@ public class ColumnPruningRule extends Rule {
         columns.clear();
         columns.addAll(newColumns);
       } else {
-        String functionStr = functionName + "(" + String.join(", ", paths) + ")";
+        List<String> columnNames = functionCall.getParams().getPaths();
+        String functionStr = functionName + "(" + String.join(", ", columnNames) + ")";
         if (functionCall.getParams().isDistinct()) {
-          functionStr = functionName + "(distinct " + String.join(", ", paths) + ")";
+          functionStr = functionName + "(distinct " + String.join(", ", columnNames) + ")";
         }
         columns.addAll(paths);
         if (columns.contains(functionStr)) {

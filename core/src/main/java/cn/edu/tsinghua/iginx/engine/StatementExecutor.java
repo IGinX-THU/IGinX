@@ -1,3 +1,21 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package cn.edu.tsinghua.iginx.engine;
 
 import static cn.edu.tsinghua.iginx.constant.GlobalConstant.CLEAR_DUMMY_DATA_CAUTION;
@@ -10,11 +28,7 @@ import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.engine.logical.constraint.ConstraintChecker;
 import cn.edu.tsinghua.iginx.engine.logical.constraint.ConstraintCheckerManager;
-import cn.edu.tsinghua.iginx.engine.logical.generator.DeleteGenerator;
-import cn.edu.tsinghua.iginx.engine.logical.generator.InsertGenerator;
-import cn.edu.tsinghua.iginx.engine.logical.generator.LogicalGenerator;
-import cn.edu.tsinghua.iginx.engine.logical.generator.QueryGenerator;
-import cn.edu.tsinghua.iginx.engine.logical.generator.ShowColumnsGenerator;
+import cn.edu.tsinghua.iginx.engine.logical.generator.*;
 import cn.edu.tsinghua.iginx.engine.physical.PhysicalEngine;
 import cn.edu.tsinghua.iginx.engine.physical.PhysicalEngineImpl;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
@@ -38,15 +52,7 @@ import cn.edu.tsinghua.iginx.engine.shared.file.write.ExportCsv;
 import cn.edu.tsinghua.iginx.engine.shared.file.write.ExportFile;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.visitor.OperatorInfoVisitor;
-import cn.edu.tsinghua.iginx.engine.shared.processor.PostExecuteProcessor;
-import cn.edu.tsinghua.iginx.engine.shared.processor.PostLogicalProcessor;
-import cn.edu.tsinghua.iginx.engine.shared.processor.PostParseProcessor;
-import cn.edu.tsinghua.iginx.engine.shared.processor.PostPhysicalProcessor;
-import cn.edu.tsinghua.iginx.engine.shared.processor.PreExecuteProcessor;
-import cn.edu.tsinghua.iginx.engine.shared.processor.PreLogicalProcessor;
-import cn.edu.tsinghua.iginx.engine.shared.processor.PreParseProcessor;
-import cn.edu.tsinghua.iginx.engine.shared.processor.PrePhysicalProcessor;
-import cn.edu.tsinghua.iginx.engine.shared.processor.Processor;
+import cn.edu.tsinghua.iginx.engine.shared.processor.*;
 import cn.edu.tsinghua.iginx.exception.StatusCode;
 import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
@@ -59,11 +65,7 @@ import cn.edu.tsinghua.iginx.statistics.IStatisticsCollector;
 import cn.edu.tsinghua.iginx.thrift.AggregateType;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.Status;
-import cn.edu.tsinghua.iginx.utils.Bitmap;
-import cn.edu.tsinghua.iginx.utils.ByteUtils;
-import cn.edu.tsinghua.iginx.utils.DataTypeInferenceUtils;
-import cn.edu.tsinghua.iginx.utils.DataTypeUtils;
-import cn.edu.tsinghua.iginx.utils.RpcUtils;
+import cn.edu.tsinghua.iginx.utils.*;
 import cn.hutool.core.io.CharsetDetector;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -309,6 +311,9 @@ public class StatementExecutor {
         ((SystemStatement) statement).execute(ctx);
       }
     } catch (StatementExecutionException | PhysicalException | IOException e) {
+      if (e.getCause() != null) {
+        LOGGER.error("Execute Error: ", e);
+      }
       StatusCode statusCode = StatusCode.STATEMENT_EXECUTION_ERROR;
       ctx.setResult(new Result(RpcUtils.status(statusCode, e.getMessage())));
     } catch (Exception e) {
@@ -704,8 +709,7 @@ public class StatementExecutor {
   private void processCountPoints(RequestContext ctx)
       throws StatementExecutionException, PhysicalException {
     SelectStatement statement =
-        new UnarySelectStatement(
-            Collections.singletonList("*"), 0, Long.MAX_VALUE, AggregateType.COUNT);
+        new UnarySelectStatement(Collections.singletonList("*"), AggregateType.COUNT);
     ctx.setStatement(statement);
     process(ctx);
 

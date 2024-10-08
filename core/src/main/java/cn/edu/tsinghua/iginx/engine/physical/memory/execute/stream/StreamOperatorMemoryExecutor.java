@@ -1,20 +1,19 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.stream;
 
@@ -24,11 +23,14 @@ import cn.edu.tsinghua.iginx.engine.physical.exception.InvalidOperatorParameterE
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.UnexpectedOperatorException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.OperatorMemoryExecutor;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.Table;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils;
 import cn.edu.tsinghua.iginx.engine.shared.Constants;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
+import cn.edu.tsinghua.iginx.engine.shared.function.FunctionUtils;
 import cn.edu.tsinghua.iginx.engine.shared.function.SetMappingFunction;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.Max;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.Min;
@@ -58,7 +60,9 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.Sort;
 import cn.edu.tsinghua.iginx.engine.shared.operator.UnaryOperator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Union;
 import cn.edu.tsinghua.iginx.engine.shared.operator.ValueToSelectedPath;
+import cn.edu.tsinghua.iginx.engine.shared.source.ConstantSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.EmptySource;
+import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -168,8 +172,19 @@ public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
     return result;
   }
 
-  private RowStream executeProject(Project project, RowStream stream) {
-    return new ProjectLazyStream(project, stream);
+  private RowStream executeProject(Project project, RowStream stream) throws PhysicalException {
+    Source source = project.getSource();
+    switch (source.getType()) {
+      case Operator:
+      case Empty:
+        return new ProjectLazyStream(project, stream);
+      case Constant:
+        ConstantSource constantSource = (ConstantSource) source;
+        return new Table(RowUtils.buildConstRow(constantSource.getExpressionList()));
+      default:
+        throw new PhysicalException(
+            "Unexpected project source type in memory task: " + source.getType());
+    }
   }
 
   private RowStream executeSelect(Select select, RowStream stream) {
@@ -188,7 +203,7 @@ public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
       throws PhysicalException {
     if (!stream.getHeader().hasKey()) {
       throw new InvalidOperatorParameterException(
-          "downsample operator is not support for row stream without timestamps.");
+          "downsample operator is not support for row stream without key.");
     }
     return new DownsampleLazyStream(downsample, stream);
   }
@@ -197,15 +212,24 @@ public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
     return new RowTransformLazyStream(rowTransform, stream);
   }
 
-  private RowStream executeSetTransform(SetTransform setTransform, RowStream stream) {
+  private RowStream executeSetTransform(SetTransform setTransform, RowStream stream)
+      throws PhysicalException {
     List<FunctionCall> functionCallList = setTransform.getFunctionCallList();
     Map<List<String>, RowStream> distinctStreamMap = new HashMap<>();
-    distinctStreamMap.put(null, stream);
+    Map<List<String>, RowStream> rowTransformStreamMap = new HashMap<>();
 
-    // 如果有distinct,构造不同function对应的stream的Map
     for (FunctionCall functionCall : functionCallList) {
       FunctionParams params = functionCall.getParams();
       SetMappingFunction function = (SetMappingFunction) functionCall.getFunction();
+      RowStream input = stream;
+      // 如果参数是表达式,构造不同function对应的stream的Map
+      if (functionCall.isNeedPreRowTransform()) {
+        List<FunctionCall> list = FunctionUtils.getArithFunctionCalls(params.getExpressions());
+        RowTransform rowTransform = new RowTransform(EmptySource.EMPTY_SOURCE, list);
+        input = executeRowTransform(rowTransform, input);
+        rowTransformStreamMap.put(params.getPaths(), input);
+      }
+      // 如果有distinct,构造不同function对应的stream的Map
       if (params.isDistinct()) {
         if (!isCanUseSetQuantifierFunction(function.getIdentifier())) {
           throw new IllegalArgumentException(
@@ -215,12 +239,13 @@ public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
         if (!function.getIdentifier().equals(Max.MAX)
             && !function.getIdentifier().equals(Min.MIN)) {
           Distinct distinct = new Distinct(EmptySource.EMPTY_SOURCE, params.getPaths());
-          distinctStreamMap.put(params.getPaths(), executeDistinct(distinct, stream));
+          distinctStreamMap.put(params.getPaths(), executeDistinct(distinct, input));
         }
       }
     }
 
-    return new SetTransformLazyStream(setTransform, distinctStreamMap);
+    return new SetTransformLazyStream(
+        setTransform, stream, rowTransformStreamMap, distinctStreamMap);
   }
 
   private RowStream executeMappingTransform(MappingTransform mappingTransform, RowStream stream) {
@@ -243,7 +268,7 @@ public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
     return new GroupByLazyStream(groupBy, stream);
   }
 
-  private RowStream executeDistinct(Distinct distinct, RowStream stream) {
+  private RowStream executeDistinct(Distinct distinct, RowStream stream) throws PhysicalException {
     Project project = new Project(EmptySource.EMPTY_SOURCE, distinct.getPatterns(), null);
     stream = executeProject(project, stream);
     return new DistinctLazyStream(stream);

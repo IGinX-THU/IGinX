@@ -1,3 +1,21 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package cn.edu.tsinghua.iginx.transform.pojo;
 
 import cn.edu.tsinghua.iginx.thrift.*;
@@ -9,6 +27,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.Data;
+import org.quartz.Trigger;
+import org.quartz.TriggerBuilder;
 
 @Data
 public class Job {
@@ -30,11 +50,15 @@ public class Job {
   private final List<Task> taskList;
   private final List<Stage> stageList;
 
+  private boolean scheduled = false;
+  private String scheduleStr = null;
+  private final Trigger trigger;
+
   public Job(long id, CommitTransformJobReq req) {
     jobId = id;
     sessionId = req.getSessionId();
     state = JobState.JOB_CREATED;
-    active = new AtomicBoolean(true);
+    active = new AtomicBoolean(false);
 
     exportType = req.getExportType();
     if (exportType.equals(ExportType.File)) {
@@ -79,13 +103,21 @@ public class Job {
       stage = new StreamStage(sessionId, stage, new ArrayList<>(stageTasks), writer);
       stageList.add(stage);
     }
+    if (req.isSetSchedule()) {
+      trigger = JobScheduleTriggerMaker.getTrigger(req.getSchedule());
+      scheduled = true;
+      scheduleStr = req.getSchedule();
+    } else {
+      // no schedule information provided. job will be fired instantly
+      trigger = TriggerBuilder.newTrigger().startNow().build();
+    }
   }
 
   public Job(long id, long sessionId, JobFromYAML jobFromYAML) {
     this.jobId = id;
     this.sessionId = sessionId;
     this.state = JobState.JOB_CREATED;
-    active = new AtomicBoolean(true);
+    active = new AtomicBoolean(false);
 
     String exportType = jobFromYAML.getExportType().toLowerCase().trim();
     if (exportType.equals("file")) {
@@ -133,6 +165,14 @@ public class Job {
       stage = new StreamStage(sessionId, stage, new ArrayList<>(stageTasks), writer);
       stageList.add(stage);
     }
+
+    if (jobFromYAML.getSchedule() != null && !jobFromYAML.getSchedule().isEmpty()) {
+      trigger = JobScheduleTriggerMaker.getTrigger(jobFromYAML.getSchedule());
+      scheduled = true;
+      scheduleStr = jobFromYAML.getSchedule();
+    } else {
+      trigger = TriggerBuilder.newTrigger().startNow().build();
+    }
   }
 
   @Override
@@ -158,6 +198,7 @@ public class Job {
         + taskList
         + ", stageList="
         + stageList
+        + (scheduleStr != null ? ", schedule string=" + scheduleStr : "")
         + '}';
   }
 }

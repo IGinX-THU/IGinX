@@ -1,20 +1,19 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute;
 
@@ -34,6 +33,7 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
+import cn.edu.tsinghua.iginx.engine.shared.expr.BaseExpression;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.Avg;
@@ -2175,7 +2175,9 @@ public abstract class AbstractOperatorMemoryExecutorTest {
     Table table = generateTableForUnaryOperator(true);
     Sort sort =
         new Sort(
-            EmptySource.EMPTY_SOURCE, Collections.singletonList(Constants.KEY), Sort.SortType.ASC);
+            EmptySource.EMPTY_SOURCE,
+            Collections.singletonList(Constants.KEY),
+            Collections.singletonList(Sort.SortType.ASC));
     RowStream stream = getExecutor().executeUnaryOperator(sort, table, null);
     assertEquals(table.getHeader(), stream.getHeader());
     int index = 0;
@@ -2194,7 +2196,9 @@ public abstract class AbstractOperatorMemoryExecutorTest {
     Table copyTable = generateTableForUnaryOperator(true);
     Sort sort =
         new Sort(
-            EmptySource.EMPTY_SOURCE, Collections.singletonList(Constants.KEY), Sort.SortType.DESC);
+            EmptySource.EMPTY_SOURCE,
+            Collections.singletonList(Constants.KEY),
+            Collections.singletonList(Sort.SortType.DESC));
     RowStream stream = getExecutor().executeUnaryOperator(sort, copyTable, null);
     assertEquals(table.getHeader(), stream.getHeader());
     int index = table.getRowSize();
@@ -2252,7 +2256,8 @@ public abstract class AbstractOperatorMemoryExecutorTest {
   public void testDownsample() throws PhysicalException {
     Table table = generateTableForUnaryOperator(true);
 
-    FunctionParams params = new FunctionParams(Collections.singletonList("a.a.b"));
+    FunctionParams params =
+        new FunctionParams(Collections.singletonList(new BaseExpression("a.a.b")));
 
     Downsample downsample =
         new Downsample(
@@ -2290,7 +2295,8 @@ public abstract class AbstractOperatorMemoryExecutorTest {
   public void testDownsampleWithoutTimestamp() throws PhysicalException {
     Table table = generateTableForUnaryOperator(false);
 
-    FunctionParams params = new FunctionParams(Collections.singletonList("a.a.b"));
+    FunctionParams params =
+        new FunctionParams(Collections.singletonList(new BaseExpression("a.a.b")));
 
     Downsample downsample =
         new Downsample(
@@ -2307,7 +2313,8 @@ public abstract class AbstractOperatorMemoryExecutorTest {
   public void testMappingTransform() throws PhysicalException {
     Table table = generateTableForUnaryOperator(false);
 
-    FunctionParams params = new FunctionParams(Collections.singletonList("a.a.b"));
+    FunctionParams params =
+        new FunctionParams(Collections.singletonList(new BaseExpression("a.a.b")));
 
     MappingTransform mappingTransform =
         new MappingTransform(
@@ -2338,7 +2345,8 @@ public abstract class AbstractOperatorMemoryExecutorTest {
   public void testSetTransform() throws PhysicalException {
     Table table = generateTableForUnaryOperator(false);
 
-    FunctionParams params = new FunctionParams(Collections.singletonList("a.a.b"));
+    FunctionParams params =
+        new FunctionParams(Collections.singletonList(new BaseExpression("a.a.b")));
 
     SetTransform setTransform =
         new SetTransform(

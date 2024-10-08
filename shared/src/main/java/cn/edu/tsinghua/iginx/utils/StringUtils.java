@@ -1,20 +1,19 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 package cn.edu.tsinghua.iginx.utils;
 
@@ -23,8 +22,11 @@ import static cn.edu.tsinghua.iginx.utils.TimeUtils.convertDatetimeStrToLong;
 import java.time.DateTimeException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -187,5 +189,181 @@ public class StringUtils {
       }
     }
     return res;
+  }
+
+  public static Set<String> cutSchemaPrefix(String schemaPrefix, Set<String> patterns) {
+    // show columns的patterns为空，查询所有列
+    if (patterns.isEmpty()) {
+      return Collections.singleton("*");
+    }
+    // 该数据源没有schema prefix，直接匹配patterns
+    if (schemaPrefix == null || schemaPrefix.isEmpty()) {
+      return patterns;
+    }
+
+    Set<String> patternsCutSchemaPrefix = new HashSet<>();
+    for (String pattern : patterns) {
+      Set<String> tmp = cutSchemaPrefix(schemaPrefix, pattern);
+      if (tmp.contains("*")) {
+        return Collections.singleton("*");
+      }
+      patternsCutSchemaPrefix.addAll(tmp);
+    }
+    return patternsCutSchemaPrefix;
+  }
+
+  private static Set<String> cutSchemaPrefix(String schemaPrefix, String pattern) {
+    String[] prefixSplit = schemaPrefix.split("\\.");
+    String[] patternSplit = pattern.split("\\.");
+    int minLen = Math.min(prefixSplit.length, patternSplit.length);
+    int index = 0;
+    // 逐级匹配pattern和schemaPrefix
+    while (index < minLen && prefixSplit[index].equals(patternSplit[index])) {
+      index++;
+    }
+
+    // pattern匹配结束，schemaPrefix还有剩余，则该storageEngine下没有该pattern
+    if (index == patternSplit.length) {
+      return Collections.emptySet();
+    }
+
+    // schemaPrefix匹配结束，pattern还有剩余，则把该pattern减去前缀schemaPrefix
+    if (index == prefixSplit.length) {
+      return Collections.singleton(joinWithDot(patternSplit, index));
+    }
+
+    // pattern和schemaPrefix不匹配
+    if (!patternSplit[index].equals("*")) {
+      return Collections.emptySet();
+    }
+
+    Set<String> target = new HashSet<>();
+    // 将pattern的'*'视为部分匹配该前缀，即把'*'下推到数据源
+    target.add(joinWithDot(patternSplit, index));
+    if (index + 1 < patternSplit.length) {
+      // 将pattern的'*'视为完全匹配该前缀，即不把'*'下推到数据源
+      String patternRemain = joinWithDot(patternSplit, index + 1);
+      target.add(patternRemain);
+
+      // 将schemaPrefix的每一级分别匹配'*'
+      for (int i = index + 1; i < prefixSplit.length; i++) {
+        String prefixRemain = joinWithDot(prefixSplit, i);
+        target.addAll(cutSchemaPrefix(prefixRemain, patternRemain));
+      }
+    }
+
+    return target;
+  }
+
+  private static String joinWithDot(String[] strings, int begin) {
+    if (begin >= strings.length) {
+      return "";
+    }
+    StringBuilder sb = new StringBuilder();
+    for (int i = begin; i < strings.length; i++) {
+      sb.append(strings[i]).append(".");
+    }
+    sb.setLength(sb.length() - 1);
+    return sb.toString();
+  }
+
+  public static Set<String> intersectDataPrefix(String dataPrefix, Set<String> patterns) {
+    if (dataPrefix == null || dataPrefix.isEmpty() || patterns.isEmpty()) {
+      return patterns;
+    }
+    String dataPrefixRegex = dataPrefix + ".*";
+    if (patterns.contains("*")) {
+      return Collections.singleton(dataPrefixRegex);
+    }
+
+    Set<String> target = new HashSet<>();
+    for (String pattern : patterns) {
+      Set<String> tmp = intersectDataPrefix(dataPrefix, pattern);
+      if (tmp == null) {
+        continue;
+      }
+      if (tmp.contains(dataPrefixRegex)) {
+        return Collections.singleton(dataPrefixRegex);
+      }
+      target.addAll(tmp);
+    }
+
+    // 移除不必要的pattern
+    return mergePatterns(target);
+  }
+
+  private static Set<String> intersectDataPrefix(String dataPrefix, String pattern) {
+    String[] prefixSplit = dataPrefix.split("\\.");
+    String[] patternSplit = pattern.split("\\.");
+    StringBuilder commonPrefix = new StringBuilder();
+    int minLen = Math.min(prefixSplit.length, patternSplit.length);
+    int index = 0;
+    // 逐级匹配pattern和dataPrefix
+    while (index < minLen && prefixSplit[index].equals(patternSplit[index])) {
+      commonPrefix.append(prefixSplit[index]);
+      index++;
+    }
+
+    // pattern匹配结束，dataPrefix还有剩余，则交集取dataPrefix
+    if (index == patternSplit.length) {
+      return Collections.singleton(dataPrefix + ".*");
+    }
+
+    // dataPrefix匹配结束，pattern还有剩余，则交集取pattern
+    if (index == prefixSplit.length) {
+      return Collections.singleton(pattern);
+    }
+
+    // pattern和dataPrefix不匹配
+    if (!patternSplit[index].equals("*")) {
+      return Collections.emptySet();
+    }
+
+    Set<String> target = new HashSet<>();
+    // 将pattern的'*'视为部分匹配该前缀，即把'*'下推到数据源
+    target.add(dataPrefix + "." + joinWithDot(patternSplit, index));
+    if (index + 1 < patternSplit.length) {
+      // 将pattern的'*'视为完全匹配该前缀，即不把'*'下推到数据源
+      String patternRemain = joinWithDot(patternSplit, index + 1);
+      target.add(dataPrefix + "." + patternRemain);
+
+      if (commonPrefix.length() > 0) {
+        commonPrefix.append(".");
+      }
+      // 将dataPrefix的每一级分别匹配'*'
+      for (int i = index + 1; i < prefixSplit.length; i++) {
+        commonPrefix.append(prefixSplit[i - 1]).append(".");
+        String prefixRemain = joinWithDot(prefixSplit, i);
+        Set<String> ret = intersectDataPrefix(prefixRemain, patternRemain);
+        ret.forEach(str -> target.add(commonPrefix + str));
+      }
+    }
+
+    return target;
+  }
+
+  private static Set<String> mergePatterns(Set<String> patterns) {
+    if (patterns.size() <= 1) {
+      return patterns;
+    }
+    Set<String> target = new HashSet<>();
+    List<String> list = new ArrayList<>(patterns);
+    int size = list.size();
+    List<Integer> toBeRemoved = new ArrayList<>(size);
+    for (int i = 0; i < size; i++) {
+      boolean removed = false;
+      for (int j = 0; j != i && !toBeRemoved.contains(j) && j < size; j++) {
+        // 第j个pattern包含第i个pattern
+        if (match(list.get(i), list.get(j))) {
+          toBeRemoved.add(i);
+          removed = true;
+          break;
+        }
+      }
+      if (!removed) {
+        target.add(list.get(i));
+      }
+    }
+    return target;
   }
 }

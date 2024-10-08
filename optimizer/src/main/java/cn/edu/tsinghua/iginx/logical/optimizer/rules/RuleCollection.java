@@ -1,47 +1,60 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package cn.edu.tsinghua.iginx.logical.optimizer.rules;
 
 import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.engine.logical.optimizer.IRuleCollection;
 import java.util.*;
+import javax.annotation.Nonnull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public enum RuleCollection implements IRuleCollection {
-  INSTANCE;
+public class RuleCollection implements IRuleCollection, Iterable<Rule> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(RuleCollection.class);
+
+  public static final RuleCollection INSTANCE = new RuleCollection();
 
   private final Map<String, Rule> rules = new HashMap<>();
 
   private final Map<String, Rule> bannedRules = new HashMap<>();
 
-  private ConfigDescriptor configDescriptor = ConfigDescriptor.getInstance();
+  private final ConfigDescriptor configDescriptor = ConfigDescriptor.getInstance();
 
-  private RuleCollection() {
-    // add rules here
-    // 在这里添加规则
-    addRule(NotFilterRemoveRule.getInstance());
-    addRule(FragmentPruningByFilterRule.getInstance());
-    addRule(ColumnPruningRule.getInstance());
-    addRule(FragmentPruningByPatternRule.getInstance());
-    addRule(ConstantPropagationRule.getInstance());
-    addRule(FilterConstantFoldingRule.getInstance());
-    addRule(RowTransformConstantFoldingRule.getInstance());
-    addRule(FunctionDistinctEliminateRule.getInstance());
-    addRule(InExistsDistinctEliminateRule.getInstance());
-    addRule(FilterPushDownAddSchemaPrefixRule.getInstance());
-    addRule(FilterPushDownGroupByRule.getInstance());
-    addRule(FilterPushDownPathUnionJoinRule.getInstance());
-    addRule(FilterPushDownProjectReorderSortRule.getInstance());
-    addRule(FilterPushDownRenameRule.getInstance());
-    addRule(FilterPushDownSelectRule.getInstance());
-    addRule(FilterPushDownSetOpRule.getInstance());
-    addRule(FilterPushDownTransformRule.getInstance());
-    addRule(FilterPushIntoJoinConditionRule.getInstance());
-    addRule(FilterPushOutJoinConditionRule.getInstance());
-
+  protected RuleCollection() {
+    addRulesBySPI();
     setRulesByConfig();
+  }
+
+  private void addRulesBySPI() {
+    if (LOGGER.isDebugEnabled()) {
+      ClassLoader cl = Thread.currentThread().getContextClassLoader();
+      LOGGER.debug("ClassLoader: {}", cl);
+      String path = System.getProperty("java.class.path");
+      LOGGER.debug("ClassPath: {}", path);
+    }
+
+    for (Rule rule : ServiceLoader.load(Rule.class)) {
+      LOGGER.debug("Add rule by SPI: {}", rule);
+      addRule(rule);
+    }
   }
 
   /** 根据配置文件设置rules，未在配置文件中出现的规则默认为off */
@@ -146,10 +159,17 @@ public enum RuleCollection implements IRuleCollection {
     return rulesInfo;
   }
 
+  @Override
+  @Nonnull
   public Iterator<Rule> iterator() {
     // ensure that this round of optimization will not be affected by rule set modifications
     // 确保这一轮优化不会受到规则集修改的影响
-    return new RuleIterator(new ArrayList<>(rules.values()), new HashSet<>(bannedRules.values()));
+    List<Rule> rules = new ArrayList<>(this.rules.values());
+    Set<Rule> bannedRules = new HashSet<>(this.bannedRules.values());
+
+    // sort rules by priority and rule name
+    rules.sort(Comparator.comparingLong(Rule::getPriority).thenComparing(Rule::getRuleName));
+    return new RuleIterator(rules, bannedRules);
   }
 
   static class RuleIterator implements Iterator<Rule> {

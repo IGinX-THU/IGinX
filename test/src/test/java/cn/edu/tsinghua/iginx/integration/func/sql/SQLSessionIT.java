@@ -1,3 +1,21 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package cn.edu.tsinghua.iginx.integration.func.sql;
 
 import static cn.edu.tsinghua.iginx.integration.controller.Controller.SUPPORT_KEY;
@@ -430,7 +448,51 @@ public class SQLSessionIT {
             + "Total line number = 4\n";
     executor.executeAndCompare(query, expected);
 
+    query = "SELECT c FROM us.d2 WHERE c not like \"^a.*\";";
+    expected =
+        "ResultSets:\n"
+            + "+---+-------+\n"
+            + "|key|us.d2.c|\n"
+            + "+---+-------+\n"
+            + "|  2|  sadaa|\n"
+            + "|  3| sadada|\n"
+            + "|  5| deadsa|\n"
+            + "|  6|  dasda|\n"
+            + "|  8|  frgsa|\n"
+            + "+---+-------+\n"
+            + "Total line number = 5\n";
+    executor.executeAndCompare(query, expected);
+
     query = "SELECT c FROM us.d2 WHERE c like \"^[s|f].*\";";
+    expected =
+        "ResultSets:\n"
+            + "+---+-------+\n"
+            + "|key|us.d2.c|\n"
+            + "+---+-------+\n"
+            + "|  2|  sadaa|\n"
+            + "|  3| sadada|\n"
+            + "|  8|  frgsa|\n"
+            + "+---+-------+\n"
+            + "Total line number = 3\n";
+    executor.executeAndCompare(query, expected);
+
+    query = "SELECT c FROM us.d2 WHERE c not like \"^[s|f].*\";";
+    expected =
+        "ResultSets:\n"
+            + "+---+-------+\n"
+            + "|key|us.d2.c|\n"
+            + "+---+-------+\n"
+            + "|  1|  asdas|\n"
+            + "|  4|  asdad|\n"
+            + "|  5| deadsa|\n"
+            + "|  6|  dasda|\n"
+            + "|  7| asdsad|\n"
+            + "|  9|  asdad|\n"
+            + "+---+-------+\n"
+            + "Total line number = 6\n";
+    executor.executeAndCompare(query, expected);
+
+    query = "SELECT c FROM us.d2 WHERE !(c not like \"^[s|f].*\");";
     expected =
         "ResultSets:\n"
             + "+---+-------+\n"
@@ -457,6 +519,21 @@ public class SQLSessionIT {
             + "Total line number = 4\n";
     executor.executeAndCompare(query, expected);
 
+    query = "SELECT c FROM us.d2 WHERE c not like \"^.*[s|d]\";";
+    expected =
+        "ResultSets:\n"
+            + "+---+-------+\n"
+            + "|key|us.d2.c|\n"
+            + "+---+-------+\n"
+            + "|  2|  sadaa|\n"
+            + "|  3| sadada|\n"
+            + "|  5| deadsa|\n"
+            + "|  6|  dasda|\n"
+            + "|  8|  frgsa|\n"
+            + "+---+-------+\n"
+            + "Total line number = 5\n";
+    executor.executeAndCompare(query, expected);
+
     StringBuilder builder = new StringBuilder();
     builder.append("INSERT INTO us.d2(key, s1) VALUES ");
     int size = (int) (endKey - startKey);
@@ -472,6 +549,20 @@ public class SQLSessionIT {
     executor.execute(insert);
 
     query = "SELECT s1 FROM us.* WHERE s1 &> 200 and s1 &< 210;";
+    expected =
+        "ResultSets:\n"
+            + "+---+--------+--------+\n"
+            + "|key|us.d1.s1|us.d2.s1|\n"
+            + "+---+--------+--------+\n"
+            + "|201|     201|     206|\n"
+            + "|202|     202|     207|\n"
+            + "|203|     203|     208|\n"
+            + "|204|     204|     209|\n"
+            + "+---+--------+--------+\n"
+            + "Total line number = 4\n";
+    executor.executeAndCompare(query, expected);
+
+    query = "SELECT s1 FROM us.* WHERE !(s1 <= 200 or s1 >= 210);";
     expected =
         "ResultSets:\n"
             + "+---+--------+--------+\n"
@@ -623,6 +714,20 @@ public class SQLSessionIT {
             + "Total line number = 5\n";
     executor.executeAndCompare(query, expected);
 
+    query = "SELECT a, b FROM us.d9 WHERE !(!(a < b));";
+    expected =
+        "ResultSets:\n"
+            + "+---+-------+-------+\n"
+            + "|key|us.d9.a|us.d9.b|\n"
+            + "+---+-------+-------+\n"
+            + "|  1|      1|      9|\n"
+            + "|  2|      2|      8|\n"
+            + "|  3|      3|      7|\n"
+            + "|  4|      4|      6|\n"
+            + "+---+-------+-------+\n"
+            + "Total line number = 4\n";
+    executor.executeAndCompare(query, expected);
+
     query = "SELECT a, b FROM us.d9 WHERE a = b;";
     expected =
         "ResultSets:\n"
@@ -650,6 +755,17 @@ public class SQLSessionIT {
             + "|  9|      9|      1|\n"
             + "+---+-------+-------+\n"
             + "Total line number = 8\n";
+    executor.executeAndCompare(query, expected);
+
+    query = "SELECT a, b FROM us.d9 WHERE !(a != b);";
+    expected =
+        "ResultSets:\n"
+            + "+---+-------+-------+\n"
+            + "|key|us.d9.a|us.d9.b|\n"
+            + "+---+-------+-------+\n"
+            + "|  5|      5|      5|\n"
+            + "+---+-------+-------+\n"
+            + "Total line number = 1\n";
     executor.executeAndCompare(query, expected);
   }
 
@@ -1157,7 +1273,7 @@ public class SQLSessionIT {
             + "Total line number = 9\n";
     executor.executeAndCompare(orderByQuery, expected);
 
-    orderByQuery = "SELECT * FROM us.d2 ORDER BY s3, s2 DESC;";
+    orderByQuery = "SELECT * FROM us.d2 ORDER BY s3 DESC, s2 DESC;";
     expected =
         "ResultSets:\n"
             + "+---+--------+--------+--------+\n"
@@ -1171,6 +1287,44 @@ public class SQLSessionIT {
             + "|  6|   dates|     119|   232.1|\n"
             + "|  5|   grape|     336|   132.5|\n"
             + "|  2|   peach|     123|   132.5|\n"
+            + "|  7|   melon|     516|   113.6|\n"
+            + "+---+--------+--------+--------+\n"
+            + "Total line number = 9\n";
+    executor.executeAndCompare(orderByQuery, expected);
+
+    orderByQuery = "SELECT * FROM us.d2 ORDER BY s3, s2 DESC;";
+    expected =
+        "ResultSets:\n"
+            + "+---+--------+--------+--------+\n"
+            + "|key|us.d2.s1|us.d2.s2|us.d2.s3|\n"
+            + "+---+--------+--------+--------+\n"
+            + "|  7|   melon|     516|   113.6|\n"
+            + "|  5|   grape|     336|   132.5|\n"
+            + "|  2|   peach|     123|   132.5|\n"
+            + "|  1|   apple|     871|   232.1|\n"
+            + "|  8|   mango|     458|   232.1|\n"
+            + "|  6|   dates|     119|   232.1|\n"
+            + "|  3|  banana|     356|   317.8|\n"
+            + "|  4|  cherry|     621|   456.1|\n"
+            + "|  9|    pear|     336|   613.1|\n"
+            + "+---+--------+--------+--------+\n"
+            + "Total line number = 9\n";
+    executor.executeAndCompare(orderByQuery, expected);
+
+    orderByQuery = "SELECT * FROM us.d2 ORDER BY s3 DESC, s2;";
+    expected =
+        "ResultSets:\n"
+            + "+---+--------+--------+--------+\n"
+            + "|key|us.d2.s1|us.d2.s2|us.d2.s3|\n"
+            + "+---+--------+--------+--------+\n"
+            + "|  9|    pear|     336|   613.1|\n"
+            + "|  4|  cherry|     621|   456.1|\n"
+            + "|  3|  banana|     356|   317.8|\n"
+            + "|  6|   dates|     119|   232.1|\n"
+            + "|  8|   mango|     458|   232.1|\n"
+            + "|  1|   apple|     871|   232.1|\n"
+            + "|  2|   peach|     123|   132.5|\n"
+            + "|  5|   grape|     336|   132.5|\n"
             + "|  7|   melon|     516|   113.6|\n"
             + "+---+--------+--------+--------+\n"
             + "Total line number = 9\n";
@@ -1418,6 +1572,70 @@ public class SQLSessionIT {
   }
 
   @Test
+  public void testAggregateQueryWithArithExpr() {
+    String statement = "SELECT %s(s1 + s2), %s(s2 * 3) FROM us.d1 WHERE key > 0 AND key < 100;";
+    List<String> funcTypeList =
+        Arrays.asList("MAX", "MIN", "FIRST_VALUE", "LAST_VALUE", "SUM", "AVG", "COUNT");
+    List<String> expectedList =
+        Arrays.asList(
+            "ResultSets:\n"
+                + "+------------------------+-----------------+\n"
+                + "|max(us.d1.s1 + us.d1.s2)|max(us.d1.s2 × 3)|\n"
+                + "+------------------------+-----------------+\n"
+                + "|                     199|              300|\n"
+                + "+------------------------+-----------------+\n"
+                + "Total line number = 1\n",
+            "ResultSets:\n"
+                + "+------------------------+-----------------+\n"
+                + "|min(us.d1.s1 + us.d1.s2)|min(us.d1.s2 × 3)|\n"
+                + "+------------------------+-----------------+\n"
+                + "|                       3|                6|\n"
+                + "+------------------------+-----------------+\n"
+                + "Total line number = 1\n",
+            "ResultSets:\n"
+                + "+--------------------------------+-------------------------+\n"
+                + "|first_value(us.d1.s1 + us.d1.s2)|first_value(us.d1.s2 × 3)|\n"
+                + "+--------------------------------+-------------------------+\n"
+                + "|                               3|                        6|\n"
+                + "+--------------------------------+-------------------------+\n"
+                + "Total line number = 1\n",
+            "ResultSets:\n"
+                + "+-------------------------------+------------------------+\n"
+                + "|last_value(us.d1.s1 + us.d1.s2)|last_value(us.d1.s2 × 3)|\n"
+                + "+-------------------------------+------------------------+\n"
+                + "|                            199|                     300|\n"
+                + "+-------------------------------+------------------------+\n"
+                + "Total line number = 1\n",
+            "ResultSets:\n"
+                + "+------------------------+-----------------+\n"
+                + "|sum(us.d1.s1 + us.d1.s2)|sum(us.d1.s2 × 3)|\n"
+                + "+------------------------+-----------------+\n"
+                + "|                    9999|            15147|\n"
+                + "+------------------------+-----------------+\n"
+                + "Total line number = 1\n",
+            "ResultSets:\n"
+                + "+------------------------+-----------------+\n"
+                + "|avg(us.d1.s1 + us.d1.s2)|avg(us.d1.s2 × 3)|\n"
+                + "+------------------------+-----------------+\n"
+                + "|                   101.0|            153.0|\n"
+                + "+------------------------+-----------------+\n"
+                + "Total line number = 1\n",
+            "ResultSets:\n"
+                + "+--------------------------+-------------------+\n"
+                + "|count(us.d1.s1 + us.d1.s2)|count(us.d1.s2 × 3)|\n"
+                + "+--------------------------+-------------------+\n"
+                + "|                        99|                 99|\n"
+                + "+--------------------------+-------------------+\n"
+                + "Total line number = 1\n");
+    for (int i = 0; i < funcTypeList.size(); i++) {
+      String type = funcTypeList.get(i);
+      String expected = expectedList.get(i);
+
+      executor.executeAndCompare(String.format(statement, type, type), expected);
+    }
+  }
+
+  @Test
   public void testDownSampleQuery() {
     String statement = "SELECT %s(s1), %s(s4) FROM us.d1 OVER WINDOW (size 100 IN (0, 1000));";
     List<String> funcTypeList =
@@ -1551,6 +1769,133 @@ public class SQLSessionIT {
     assertTrue(
         Arrays.stream(executor.execute(statement).split("\\n"))
             .anyMatch(s -> s.contains("Downsample") && s.contains("avg") && s.contains("count")));
+  }
+
+  @Test
+  public void testDownSampleQueryWithArithExpr() {
+    String statement =
+        "SELECT %s(s4 - s1), %s(s4 * s1 * 2) FROM us.d1 OVER WINDOW (size 10 IN (0, 100));";
+    List<String> funcTypeList =
+        Arrays.asList("MAX", "MIN", "FIRST_VALUE", "LAST_VALUE", "SUM", "AVG", "COUNT");
+    List<String> expectedList =
+        Arrays.asList(
+            "ResultSets:\n"
+                + "+---+------------+----------+------------------------+----------------------------+\n"
+                + "|key|window_start|window_end|max(us.d1.s4 - us.d1.s1)|max(us.d1.s4 × us.d1.s1 × 2)|\n"
+                + "+---+------------+----------+------------------------+----------------------------+\n"
+                + "|  1|           1|        10|     0.10000000000000009|                       202.0|\n"
+                + "| 11|          11|        20|     0.10000000000000142|                       804.0|\n"
+                + "| 21|          21|        30|     0.10000000000000142|                      1806.0|\n"
+                + "| 31|          31|        40|     0.10000000000000142|                      3208.0|\n"
+                + "| 41|          41|        50|     0.10000000000000142|                      5010.0|\n"
+                + "| 51|          51|        60|     0.10000000000000142|                      7212.0|\n"
+                + "| 61|          61|        70|     0.10000000000000142|                      9814.0|\n"
+                + "| 71|          71|        80|     0.09999999999999432|                     12816.0|\n"
+                + "| 81|          81|        90|     0.09999999999999432|          16217.999999999998|\n"
+                + "| 91|          91|       100|     0.09999999999999432|                     19621.8|\n"
+                + "+---+------------+----------+------------------------+----------------------------+\n"
+                + "Total line number = 10\n",
+            "ResultSets:\n"
+                + "+---+------------+----------+------------------------+----------------------------+\n"
+                + "|key|window_start|window_end|min(us.d1.s4 - us.d1.s1)|min(us.d1.s4 × us.d1.s1 × 2)|\n"
+                + "+---+------------+----------+------------------------+----------------------------+\n"
+                + "|  1|           1|        10|     0.09999999999999964|                         2.2|\n"
+                + "| 11|          11|        20|     0.09999999999999964|                       244.2|\n"
+                + "| 21|          21|        30|     0.10000000000000142|                       886.2|\n"
+                + "| 31|          31|        40|     0.10000000000000142|                      1928.2|\n"
+                + "| 41|          41|        50|     0.10000000000000142|          3370.2000000000003|\n"
+                + "| 51|          51|        60|     0.10000000000000142|                      5212.2|\n"
+                + "| 61|          61|        70|     0.09999999999999432|                      7454.2|\n"
+                + "| 71|          71|        80|     0.09999999999999432|          10096.199999999999|\n"
+                + "| 81|          81|        90|     0.09999999999999432|          13138.199999999999|\n"
+                + "| 91|          91|       100|     0.09999999999999432|                     16580.2|\n"
+                + "+---+------------+----------+------------------------+----------------------------+\n"
+                + "Total line number = 10\n",
+            "ResultSets:\n"
+                + "+---+------------+----------+--------------------------------+------------------------------------+\n"
+                + "|key|window_start|window_end|first_value(us.d1.s4 - us.d1.s1)|first_value(us.d1.s4 × us.d1.s1 × 2)|\n"
+                + "+---+------------+----------+--------------------------------+------------------------------------+\n"
+                + "|  1|           1|        10|             0.10000000000000009|                                 2.2|\n"
+                + "| 11|          11|        20|             0.09999999999999964|                               244.2|\n"
+                + "| 21|          21|        30|             0.10000000000000142|                               886.2|\n"
+                + "| 31|          31|        40|             0.10000000000000142|                              1928.2|\n"
+                + "| 41|          41|        50|             0.10000000000000142|                  3370.2000000000003|\n"
+                + "| 51|          51|        60|             0.10000000000000142|                              5212.2|\n"
+                + "| 61|          61|        70|             0.10000000000000142|                              7454.2|\n"
+                + "| 71|          71|        80|             0.09999999999999432|                  10096.199999999999|\n"
+                + "| 81|          81|        90|             0.09999999999999432|                  13138.199999999999|\n"
+                + "| 91|          91|       100|             0.09999999999999432|                             16580.2|\n"
+                + "+---+------------+----------+--------------------------------+------------------------------------+\n"
+                + "Total line number = 10\n",
+            "ResultSets:\n"
+                + "+---+------------+----------+-------------------------------+-----------------------------------+\n"
+                + "|key|window_start|window_end|last_value(us.d1.s4 - us.d1.s1)|last_value(us.d1.s4 × us.d1.s1 × 2)|\n"
+                + "+---+------------+----------+-------------------------------+-----------------------------------+\n"
+                + "|  1|           1|        10|            0.09999999999999964|                              202.0|\n"
+                + "| 11|          11|        20|            0.10000000000000142|                              804.0|\n"
+                + "| 21|          21|        30|            0.10000000000000142|                             1806.0|\n"
+                + "| 31|          31|        40|            0.10000000000000142|                             3208.0|\n"
+                + "| 41|          41|        50|            0.10000000000000142|                             5010.0|\n"
+                + "| 51|          51|        60|            0.10000000000000142|                             7212.0|\n"
+                + "| 61|          61|        70|            0.09999999999999432|                             9814.0|\n"
+                + "| 71|          71|        80|            0.09999999999999432|                            12816.0|\n"
+                + "| 81|          81|        90|            0.09999999999999432|                 16217.999999999998|\n"
+                + "| 91|          91|       100|            0.09999999999999432|                            19621.8|\n"
+                + "+---+------------+----------+-------------------------------+-----------------------------------+\n"
+                + "Total line number = 10\n",
+            "ResultSets:\n"
+                + "+---+------------+----------+------------------------+----------------------------+\n"
+                + "|key|window_start|window_end|sum(us.d1.s4 - us.d1.s1)|sum(us.d1.s4 × us.d1.s1 × 2)|\n"
+                + "+---+------------+----------+------------------------+----------------------------+\n"
+                + "|  1|           1|        10|      0.9999999999999978|           780.9999999999999|\n"
+                + "| 11|          11|        20|      1.0000000000000053|                      5001.0|\n"
+                + "| 21|          21|        30|      1.0000000000000142|                     13221.0|\n"
+                + "| 31|          31|        40|      1.0000000000000142|                     25441.0|\n"
+                + "| 41|          41|        50|      1.0000000000000142|           41661.00000000001|\n"
+                + "| 51|          51|        60|      1.0000000000000142|                     61881.0|\n"
+                + "| 61|          61|        70|      0.9999999999999645|                     86101.0|\n"
+                + "| 71|          71|        80|      0.9999999999999432|          114320.99999999999|\n"
+                + "| 81|          81|        90|      0.9999999999999432|          146540.99999999997|\n"
+                + "| 91|          91|       100|      0.8999999999999488|          162740.99999999997|\n"
+                + "+---+------------+----------+------------------------+----------------------------+\n"
+                + "Total line number = 10\n",
+            "ResultSets:\n"
+                + "+---+------------+----------+------------------------+----------------------------+\n"
+                + "|key|window_start|window_end|avg(us.d1.s4 - us.d1.s1)|avg(us.d1.s4 × us.d1.s1 × 2)|\n"
+                + "+---+------------+----------+------------------------+----------------------------+\n"
+                + "|  1|           1|        10|     0.09999999999999978|                        78.1|\n"
+                + "| 11|          11|        20|     0.10000000000000053|                       500.1|\n"
+                + "| 21|          21|        30|     0.10000000000000142|                      1322.1|\n"
+                + "| 31|          31|        40|     0.10000000000000142|                      2544.1|\n"
+                + "| 41|          41|        50|     0.10000000000000142|                      4166.1|\n"
+                + "| 51|          51|        60|     0.10000000000000142|                      6188.1|\n"
+                + "| 61|          61|        70|     0.09999999999999645|                      8610.1|\n"
+                + "| 71|          71|        80|     0.09999999999999432|          11432.099999999999|\n"
+                + "| 81|          81|        90|     0.09999999999999432|          14654.099999999997|\n"
+                + "| 91|          91|       100|     0.09999999999999432|           18082.33333333333|\n"
+                + "+---+------------+----------+------------------------+----------------------------+\n"
+                + "Total line number = 10\n",
+            "ResultSets:\n"
+                + "+---+------------+----------+--------------------------+------------------------------+\n"
+                + "|key|window_start|window_end|count(us.d1.s4 - us.d1.s1)|count(us.d1.s4 × us.d1.s1 × 2)|\n"
+                + "+---+------------+----------+--------------------------+------------------------------+\n"
+                + "|  1|           1|        10|                        10|                            10|\n"
+                + "| 11|          11|        20|                        10|                            10|\n"
+                + "| 21|          21|        30|                        10|                            10|\n"
+                + "| 31|          31|        40|                        10|                            10|\n"
+                + "| 41|          41|        50|                        10|                            10|\n"
+                + "| 51|          51|        60|                        10|                            10|\n"
+                + "| 61|          61|        70|                        10|                            10|\n"
+                + "| 71|          71|        80|                        10|                            10|\n"
+                + "| 81|          81|        90|                        10|                            10|\n"
+                + "| 91|          91|       100|                         9|                             9|\n"
+                + "+---+------------+----------+--------------------------+------------------------------+\n"
+                + "Total line number = 10\n");
+    for (int i = 0; i < funcTypeList.size(); i++) {
+      String type = funcTypeList.get(i);
+      String expected = expectedList.get(i);
+      executor.executeAndCompare(String.format(statement, type, type), expected);
+    }
   }
 
   @Test
@@ -2391,7 +2736,7 @@ public class SQLSessionIT {
             + "|    Logical Tree|Operator Type|                                                                                                                      Operator Info|\n"
             + "+----------------+-------------+-----------------------------------------------------------------------------------------------------------------------------------+\n"
             + "|Reorder         |      Reorder|                                                                                Order: avg(test.a),sum(test.b),test.c,test.b,test.d|\n"
-            + "|  +--Sort       |         Sort|                                                                                        SortBy: test.c,test.b,test.d, SortType: ASC|\n"
+            + "|  +--Sort       |         Sort|                                                                                SortBy: test.c,test.b,test.d, SortType: ASC,ASC,ASC|\n"
             + "|    +--GroupBy  |      GroupBy|GroupByCols: test.c,test.b,test.d, FuncList(Name, FuncType): (avg, System),(sum, System), MappingType: SetMapping isDistinct: false|\n"
             + "|      +--Project|      Project|                                                                   Patterns: test.a,test.b,test.c,test.d, Target DU: unit0000000002|\n"
             + "+----------------+-------------+-----------------------------------------------------------------------------------------------------------------------------------+\n"
@@ -2432,6 +2777,17 @@ public class SQLSessionIT {
             + "Total line number = 1\n";
     executor.executeAndCompare(query, expected);
 
+    query = "select avg(a), b from test group by b having AVG(a) < 2;";
+    expected =
+        "ResultSets:\n"
+            + "+-----------+------+\n"
+            + "|avg(test.a)|test.b|\n"
+            + "+-----------+------+\n"
+            + "|        1.0|     3|\n"
+            + "+-----------+------+\n"
+            + "Total line number = 1\n";
+    executor.executeAndCompare(query, expected);
+
     query = "select min(a), c from test group by c having c > 1.5 order by c;";
     expected =
         "ResultSets:\n"
@@ -2454,6 +2810,131 @@ public class SQLSessionIT {
             + "|          3|   2.1|\n"
             + "|          3|   3.1|\n"
             + "+-----------+------+\n"
+            + "Total line number = 2\n";
+    executor.executeAndCompare(query, expected);
+  }
+
+  @Test
+  public void testGroupByWithArithExpr() {
+    String insert =
+        "insert into test(key, a, b, c, d) values (1, 3, 2, 3.1, \"val1\"), (2, 1, 3, 2.1, \"val2\"), (3, 2, 2, 1.1, \"val5\"), (4, 3, 2, 2.1, \"val2\"), (5, 1, 2, 3.1, \"val1\"), (6, 2, 2, 5.1, \"val3\");";
+    executor.execute(insert);
+
+    String query = "select * from test;";
+    String expected =
+        "ResultSets:\n"
+            + "+---+------+------+------+------+\n"
+            + "|key|test.a|test.b|test.c|test.d|\n"
+            + "+---+------+------+------+------+\n"
+            + "|  1|     3|     2|   3.1|  val1|\n"
+            + "|  2|     1|     3|   2.1|  val2|\n"
+            + "|  3|     2|     2|   1.1|  val5|\n"
+            + "|  4|     3|     2|   2.1|  val2|\n"
+            + "|  5|     1|     2|   3.1|  val1|\n"
+            + "|  6|     2|     2|   5.1|  val3|\n"
+            + "+---+------+------+------+------+\n"
+            + "Total line number = 6\n";
+    executor.executeAndCompare(query, expected);
+
+    query = "select b, sum(c / a * 5), avg(a * c + 1) from test group by b order by b;";
+    expected =
+        "ResultSets:\n"
+            + "+------+------------------------+------------------------+\n"
+            + "|test.b|sum(test.c ÷ test.a × 5)|avg(test.a × test.c + 1)|\n"
+            + "+------+------------------------+------------------------+\n"
+            + "|     2|       39.66666666666667|       7.219999999999999|\n"
+            + "|     3|                    10.5|                     3.1|\n"
+            + "+------+------------------------+------------------------+\n"
+            + "Total line number = 2\n";
+    executor.executeAndCompare(query, expected);
+
+    query =
+        "select b, sum(c / a * 5), avg(a * c + 1) from test group by b having sum(c / a * 5) > 20 order by b;";
+    expected =
+        "ResultSets:\n"
+            + "+------+------------------------+------------------------+\n"
+            + "|test.b|sum(test.c ÷ test.a × 5)|avg(test.a × test.c + 1)|\n"
+            + "+------+------------------------+------------------------+\n"
+            + "|     2|       39.66666666666667|       7.219999999999999|\n"
+            + "+------+------------------------+------------------------+\n"
+            + "Total line number = 1\n";
+    executor.executeAndCompare(query, expected);
+
+    query = "select b, d, avg(c / a * 5), sum(a * (c + 1)) from test group by b, d order by b, d;";
+    expected =
+        "ResultSets:\n"
+            + "+------+------+------------------------+--------------------------+\n"
+            + "|test.b|test.d|avg(test.c ÷ test.a × 5)|sum(test.a × (test.c + 1))|\n"
+            + "+------+------+------------------------+--------------------------+\n"
+            + "|     2|  val1|      10.333333333333334|                      16.4|\n"
+            + "|     2|  val2|      3.5000000000000004|                       9.3|\n"
+            + "|     2|  val3|                   12.75|                      12.2|\n"
+            + "|     2|  val5|                    2.75|                       4.2|\n"
+            + "|     3|  val2|                    10.5|                       3.1|\n"
+            + "+------+------+------------------------+--------------------------+\n"
+            + "Total line number = 5\n";
+    executor.executeAndCompare(query, expected);
+
+    query =
+        "select b, d, avg(c / a * 5), sum(a * (c + 1)) from test group by b, d having SUM(a * (c + 1)) < 10 order by b, d;";
+    expected =
+        "ResultSets:\n"
+            + "+------+------+------------------------+--------------------------+\n"
+            + "|test.b|test.d|avg(test.c ÷ test.a × 5)|sum(test.a × (test.c + 1))|\n"
+            + "+------+------+------------------------+--------------------------+\n"
+            + "|     2|  val2|      3.5000000000000004|                       9.3|\n"
+            + "|     2|  val5|                    2.75|                       4.2|\n"
+            + "|     3|  val2|                    10.5|                       3.1|\n"
+            + "+------+------+------------------------+--------------------------+\n"
+            + "Total line number = 3\n";
+    executor.executeAndCompare(query, expected);
+  }
+
+  @Test
+  public void testGroupByWithCaseWhen() {
+    String insert =
+        "insert into test(key, a, b, c, d) values (1, 3, 2, 3.1, \"val1\"), (2, 1, 3, 2.1, \"val2\"), (3, 2, 2, 1.1, \"val5\"), (4, 3, 2, 2.1, \"val2\"), (5, 1, 2, 3.1, \"val1\"), (6, 2, 2, 5.1, \"val3\");";
+    executor.execute(insert);
+
+    String query = "select * from test;";
+    String expected =
+        "ResultSets:\n"
+            + "+---+------+------+------+------+\n"
+            + "|key|test.a|test.b|test.c|test.d|\n"
+            + "+---+------+------+------+------+\n"
+            + "|  1|     3|     2|   3.1|  val1|\n"
+            + "|  2|     1|     3|   2.1|  val2|\n"
+            + "|  3|     2|     2|   1.1|  val5|\n"
+            + "|  4|     3|     2|   2.1|  val2|\n"
+            + "|  5|     1|     2|   3.1|  val1|\n"
+            + "|  6|     2|     2|   5.1|  val3|\n"
+            + "+---+------+------+------+------+\n"
+            + "Total line number = 6\n";
+    executor.executeAndCompare(query, expected);
+
+    query =
+        "select b, sum(case when d = \"val1\" then 1 when d = \"val2\" then 2 else 3 end) as val from test group by b;";
+    expected =
+        "ResultSets:\n"
+            + "+------+---+\n"
+            + "|test.b|val|\n"
+            + "+------+---+\n"
+            + "|     2| 10|\n"
+            + "|     3|  2|\n"
+            + "+------+---+\n"
+            + "Total line number = 2\n";
+    executor.executeAndCompare(query, expected);
+
+    query =
+        "select b, sum(case when a = 1 then 1 else 0 end) + sum(a) as column from test group by b;";
+    expected =
+        "ResultSets:\n"
+            + "+------+------+\n"
+            + "|test.b|column|\n"
+            + "+------+------+\n"
+            + "|     2|    12|\n"
+            + "|     3|     2|\n"
+            + "+------+------+\n"
             + "Total line number = 2\n";
     executor.executeAndCompare(query, expected);
   }
@@ -2555,6 +3036,21 @@ public class SQLSessionIT {
             + "|  2.0|val3|\n"
             + "+-----+----+\n"
             + "Total line number = 1\n";
+    executor.executeAndCompare(query, expected);
+
+    query =
+        "select test1.d, sum(avg_a) from test1 join (select d, avg(a) as avg_a from test2 group by d) on test1.d = test2.d group by test1.d;";
+    expected =
+        "ResultSets:\n"
+            + "+-------+----------+\n"
+            + "|test1.d|sum(avg_a)|\n"
+            + "+-------+----------+\n"
+            + "|   val5|       2.0|\n"
+            + "|   val3|       2.0|\n"
+            + "|   val2|       4.0|\n"
+            + "|   val1|       4.0|\n"
+            + "+-------+----------+\n"
+            + "Total line number = 4\n";
     executor.executeAndCompare(query, expected);
   }
 
@@ -3223,6 +3719,38 @@ public class SQLSessionIT {
             + "|1009|                           1009|                      1010|\n"
             + "+----+-------------------------------+--------------------------+\n"
             + "Total line number = 10\n";
+    executor.executeAndCompare(statement, expected);
+
+    // duplicate columns
+    statement = "SELECT s1 AS a, s1, s1 AS s1, s2 AS c, s2 FROM us.d1 WHERE s1 > 50 AND s1 < 55;";
+    expected =
+        "ResultSets:\n"
+            + "+---+--+--------+--+--+--------+\n"
+            + "|key| a|us.d1.s1|s1| c|us.d1.s2|\n"
+            + "+---+--+--------+--+--+--------+\n"
+            + "| 51|51|      51|51|52|      52|\n"
+            + "| 52|52|      52|52|53|      53|\n"
+            + "| 53|53|      53|53|54|      54|\n"
+            + "| 54|54|      54|54|55|      55|\n"
+            + "+---+--+--------+--+--+--------+\n"
+            + "Total line number = 4\n";
+    executor.executeAndCompare(statement, expected);
+
+    // test rename in subquery with filter
+    statement =
+        "SELECT * FROM (SELECT s1, s2 FROM us.d1 AS test WHERE test.s1 >= 1000 AND test.s2 <= 1005);";
+    expected =
+        "ResultSets:\n"
+            + "+----+-------+-------+\n"
+            + "| key|test.s1|test.s2|\n"
+            + "+----+-------+-------+\n"
+            + "|1000|   1000|   1001|\n"
+            + "|1001|   1001|   1002|\n"
+            + "|1002|   1002|   1003|\n"
+            + "|1003|   1003|   1004|\n"
+            + "|1004|   1004|   1005|\n"
+            + "+----+-------+-------+\n"
+            + "Total line number = 5\n";
     executor.executeAndCompare(statement, expected);
   }
 
@@ -4679,6 +5207,94 @@ public class SQLSessionIT {
   }
 
   @Test
+  public void testCaseWhen() {
+    String insert =
+        "INSERT INTO student(key, s_id, name, sex, age) VALUES "
+            + "(0, 1, \"Alan\", 1, 16), (1, 2, \"Bob\", 1, 14), (2, 3, \"Candy\", 0, 17), "
+            + "(3, 4, \"Alice\", 0, 22), (4, 5, \"Jack\", 1, 36), (5, 6, \"Tom\", 1, 20);";
+    executor.execute(insert);
+
+    insert =
+        "INSERT INTO math(key, s_id, score) VALUES (0, 1, 82), (1, 2, 58), (2, 3, 54), (3, 4, 92), (4, 5, 78), (5, 6, 98);";
+    executor.execute(insert);
+
+    String statement =
+        "SELECT student.name AS name, student.age AS age,\n"
+            + "    CASE student.sex\n"
+            + "        WHEN 1 THEN 'Male'\n"
+            + "        WHEN 0 THEN 'Female'\n"
+            + "        ELSE 'Unknown'\n"
+            + "    END AS strSex,\n"
+            + "    CASE\n"
+            + "        WHEN math.score >= 90 THEN 'A'\n"
+            + "        WHEN math.score >= 80 AND math.score < 90 THEN 'B'\n"
+            + "        WHEN math.score >= 70 AND math.score < 80 THEN 'C'\n"
+            + "        WHEN math.score >= 60 AND math.score < 70 THEN 'D'\n"
+            + "        ELSE 'F'\n"
+            + "    END AS gpa\n"
+            + "FROM student JOIN math ON student.s_id = math.s_id\n"
+            + "ORDER BY student.age\n;";
+    String expected =
+        "ResultSets:\n"
+            + "+-----+---+------+---+\n"
+            + "| name|age|strSex|gpa|\n"
+            + "+-----+---+------+---+\n"
+            + "|  Bob| 14|  Male|  F|\n"
+            + "| Alan| 16|  Male|  B|\n"
+            + "|Candy| 17|Female|  F|\n"
+            + "|  Tom| 20|  Male|  A|\n"
+            + "|Alice| 22|Female|  A|\n"
+            + "| Jack| 36|  Male|  C|\n"
+            + "+-----+---+------+---+\n"
+            + "Total line number = 6\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement =
+        "SELECT student.name AS name,\n"
+            + "    CASE math.score - 20\n"
+            + "        WHEN > student.age * 3 THEN 3 * student.s_id\n"
+            + "        WHEN > student.age * 2 THEN 2 * student.s_id\n"
+            + "        ELSE student.s_id\n"
+            + "    END AS result\n"
+            + "FROM student JOIN math ON student.s_id = math.s_id\n;";
+    expected =
+        "ResultSets:\n"
+            + "+-----+------+\n"
+            + "| name|result|\n"
+            + "+-----+------+\n"
+            + "| Alan|     3|\n"
+            + "|  Bob|     4|\n"
+            + "|Candy|     3|\n"
+            + "|Alice|    12|\n"
+            + "| Jack|     5|\n"
+            + "|  Tom|    18|\n"
+            + "+-----+------+\n"
+            + "Total line number = 6\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement =
+        "SELECT strSex, avg(score) FROM (\n"
+            + "    SELECT math.score AS score,\n"
+            + "        CASE student.sex\n"
+            + "            WHEN 1 THEN 'Male'\n"
+            + "            WHEN 0 THEN 'Female'\n"
+            + "            ELSE 'Unknown'\n"
+            + "        END AS strSex\n"
+            + "    FROM student JOIN math ON student.s_id = math.s_id)\n"
+            + "GROUP BY strSex ORDER BY strSex;\n";
+    expected =
+        "ResultSets:\n"
+            + "+------+----------+\n"
+            + "|strSex|avg(score)|\n"
+            + "+------+----------+\n"
+            + "|Female|      73.0|\n"
+            + "|  Male|      79.0|\n"
+            + "+------+----------+\n"
+            + "Total line number = 2\n";
+    executor.executeAndCompare(statement, expected);
+  }
+
+  @Test
   public void testSetOperators() {
     String insert =
         "INSERT INTO test(key, a.a, a.b, a.c) VALUES (1, 1, \"aaa\", true), (2, 1, \"eee\", false), (3, 4, \"ccc\", true), (5, 6, \"eee\", false);";
@@ -5591,159 +6207,82 @@ public class SQLSessionIT {
 
   @Test
   public void testSpecialCharacterPath() {
-    // filesystem does not support special character path on windows
     if (!isSupportSpecialCharacterPath) {
       return;
     }
 
-    boolean isTestingFilesystemOnWin = isOnWin && runningEngine.equalsIgnoreCase("filesystem");
+    // IGinX SQL 路径中支持的合法字符
+    String insert =
+        "INSERT INTO _:@#$~^{}(key, _:@#$~^{}, _:@#$~\\^) VALUES (1, 1, 2), (2, 2, 3), (3, 3, 4), (4, 4, 4), (5, 5, 5);";
+    executor.execute(insert);
 
-    if (!isTestingFilesystemOnWin) {
-      // IGinX SQL 路径中支持的合法字符
-      String insert =
-          "INSERT INTO _:@#$~^{}(key, _:@#$~^{}, _:@#$~\\^) VALUES (1, 1, 2), (2, 2, 3), (3, 3, 4), (4, 4, 4), (5, 5, 5);";
-      executor.execute(insert);
+    String query = "SELECT _:@#$~^{} FROM _:@#$~^{};";
+    String expected =
+        "ResultSets:\n"
+            + "+---+-------------------+\n"
+            + "|key|_:@#$~^{}._:@#$~^{}|\n"
+            + "+---+-------------------+\n"
+            + "|  1|                  1|\n"
+            + "|  2|                  2|\n"
+            + "|  3|                  3|\n"
+            + "|  4|                  4|\n"
+            + "|  5|                  5|\n"
+            + "+---+-------------------+\n"
+            + "Total line number = 5\n";
+    executor.executeAndCompare(query, expected);
 
-      String query = "SELECT _:@#$~^{} FROM _:@#$~^{};";
-      String expected =
-          "ResultSets:\n"
-              + "+---+-------------------+\n"
-              + "|key|_:@#$~^{}._:@#$~^{}|\n"
-              + "+---+-------------------+\n"
-              + "|  1|                  1|\n"
-              + "|  2|                  2|\n"
-              + "|  3|                  3|\n"
-              + "|  4|                  4|\n"
-              + "|  5|                  5|\n"
-              + "+---+-------------------+\n"
-              + "Total line number = 5\n";
-      executor.executeAndCompare(query, expected);
+    query = "SELECT _:@#$~^{} FROM _:@#$~^{} WHERE _:@#$~^{} >= 2 AND _:@#$~^{} <= 4;";
+    expected =
+        "ResultSets:\n"
+            + "+---+-------------------+\n"
+            + "|key|_:@#$~^{}._:@#$~^{}|\n"
+            + "+---+-------------------+\n"
+            + "|  2|                  2|\n"
+            + "|  3|                  3|\n"
+            + "|  4|                  4|\n"
+            + "+---+-------------------+\n"
+            + "Total line number = 3\n";
+    executor.executeAndCompare(query, expected);
 
-      query = "SELECT _:@#$~^{} FROM _:@#$~^{} WHERE _:@#$~^{} >= 2 AND _:@#$~^{} <= 4;";
-      expected =
-          "ResultSets:\n"
-              + "+---+-------------------+\n"
-              + "|key|_:@#$~^{}._:@#$~^{}|\n"
-              + "+---+-------------------+\n"
-              + "|  2|                  2|\n"
-              + "|  3|                  3|\n"
-              + "|  4|                  4|\n"
-              + "+---+-------------------+\n"
-              + "Total line number = 3\n";
-      executor.executeAndCompare(query, expected);
-
-      query = "SELECT _:@#$~^{}, _:@#$~\\^ FROM _:@#$~^{} WHERE _:@#$~^{} < _:@#$~\\^;";
-      expected =
-          "ResultSets:\n"
-              + "+---+-------------------+------------------+\n"
-              + "|key|_:@#$~^{}._:@#$~^{}|_:@#$~^{}._:@#$~\\^|\n"
-              + "+---+-------------------+------------------+\n"
-              + "|  1|                  1|                 2|\n"
-              + "|  2|                  2|                 3|\n"
-              + "|  3|                  3|                 4|\n"
-              + "+---+-------------------+------------------+\n"
-              + "Total line number = 3\n";
-      executor.executeAndCompare(query, expected);
-    } else {
-      // :, \\ can't be used in filesystem in windows
-      String insert =
-          "INSERT INTO _@#$~^{}(key, _@#$~^{}, _@#$~^) VALUES (1, 1, 2), (2, 2, 3), (3, 3, 4), (4, 4, 4), (5, 5, 5);";
-      executor.execute(insert);
-
-      String query = "SELECT _@#$~^{} FROM _@#$~^{};";
-      String expected =
-          "ResultSets:\n"
-              + "+---+-----------------+\n"
-              + "|key|_@#$~^{}._@#$~^{}|\n"
-              + "+---+-----------------+\n"
-              + "|  1|                1|\n"
-              + "|  2|                2|\n"
-              + "|  3|                3|\n"
-              + "|  4|                4|\n"
-              + "|  5|                5|\n"
-              + "+---+-----------------+\n"
-              + "Total line number = 5\n";
-      executor.executeAndCompare(query, expected);
-
-      query = "SELECT _@#$~^{} FROM _@#$~^{} WHERE _@#$~^{} >= 2 AND _@#$~^{} <= 4;";
-      expected =
-          "ResultSets:\n"
-              + "+---+-----------------+\n"
-              + "|key|_@#$~^{}._@#$~^{}|\n"
-              + "+---+-----------------+\n"
-              + "|  2|                2|\n"
-              + "|  3|                3|\n"
-              + "|  4|                4|\n"
-              + "+---+-----------------+\n"
-              + "Total line number = 3\n";
-      executor.executeAndCompare(query, expected);
-
-      query = "SELECT _@#$~^{}, _@#$~^ FROM _@#$~^{} WHERE _@#$~^{} < _@#$~^;";
-      expected =
-          "ResultSets:\n"
-              + "+---+-----------------+---------------+\n"
-              + "|key|_@#$~^{}._@#$~^{}|_@#$~^{}._@#$~^|\n"
-              + "+---+-----------------+---------------+\n"
-              + "|  1|                1|              2|\n"
-              + "|  2|                2|              3|\n"
-              + "|  3|                3|              4|\n"
-              + "+---+-----------------+---------------+\n"
-              + "Total line number = 3\n";
-      executor.executeAndCompare(query, expected);
-    }
+    query = "SELECT _:@#$~^{}, _:@#$~\\^ FROM _:@#$~^{} WHERE _:@#$~^{} < _:@#$~\\^;";
+    expected =
+        "ResultSets:\n"
+            + "+---+-------------------+------------------+\n"
+            + "|key|_:@#$~^{}._:@#$~^{}|_:@#$~^{}._:@#$~\\^|\n"
+            + "+---+-------------------+------------------+\n"
+            + "|  1|                  1|                 2|\n"
+            + "|  2|                  2|                 3|\n"
+            + "|  3|                  3|                 4|\n"
+            + "+---+-------------------+------------------+\n"
+            + "Total line number = 3\n";
+    executor.executeAndCompare(query, expected);
   }
 
   @Test
   public void testMixSpecialPath() {
-    // filesystem does not support special character path on windows
     if (!isSupportChinesePath || !isSupportNumericalPath || !isSupportSpecialCharacterPath) {
       return;
     }
 
-    boolean isTestingFilesystemOnWin = isOnWin && runningEngine.equalsIgnoreCase("filesystem");
+    // mix path
+    String insert =
+        "INSERT INTO 测试.前缀.`114514`(key, `1919810`._:@#$.后缀) VALUES (1, 1), (2, 2), (3, 3), (4, 4), (5, 5);";
+    executor.execute(insert);
 
-    if (!isTestingFilesystemOnWin) {
-      // mix path
-      String insert =
-          "INSERT INTO 测试.前缀.`114514`(key, `1919810`._:@#$.后缀) VALUES (1, 1), (2, 2), (3, 3), (4, 4), (5, 5);";
-      executor.execute(insert);
-
-      String query = "SELECT `1919810`._:@#$.后缀 FROM 测试.前缀.`114514`;";
-      String expected =
-          "ResultSets:\n"
-              + "+---+-----------------------------+\n"
-              + "|key|测试.前缀.114514.1919810._:@#$.后缀|\n"
-              + "+---+-----------------------------+\n"
-              + "|  1|                            1|\n"
-              + "|  2|                            2|\n"
-              + "|  3|                            3|\n"
-              + "|  4|                            4|\n"
-              + "|  5|                            5|\n"
-              + "+---+-----------------------------+\n"
-              + "Total line number = 5\n";
-      executor.executeAndCompare(query, expected);
-    } else {
-      // :, \\ can't be used in filesystem in windows
-      // mix path
-      String insert =
-          "INSERT INTO 测试.前缀.`114514`(key, `1919810`._@#$.后缀) VALUES (1, 1), (2, 2), (3, 3), (4, 4), (5, 5);";
-      executor.execute(insert);
-
-      String query = "SELECT `1919810`._@#$.后缀 FROM 测试.前缀.`114514`;";
-      String expected =
-          "ResultSets:\n"
-              + "+---+----------------------------+\n"
-              + "|key|测试.前缀.114514.1919810._@#$.后缀|\n"
-              + "+---+----------------------------+\n"
-              + "|  1|                           1|\n"
-              + "|  2|                           2|\n"
-              + "|  3|                           3|\n"
-              + "|  4|                           4|\n"
-              + "|  5|                           5|\n"
-              + "+---+----------------------------+\n"
-              + "Total line number = 5\n";
-      executor.executeAndCompare(query, expected);
-    }
+    String query = "SELECT `1919810`._:@#$.后缀 FROM 测试.前缀.`114514`;";
+    String expected =
+        "ResultSets:\n"
+            + "+---+-----------------------------+\n"
+            + "|key|测试.前缀.114514.1919810._:@#$.后缀|\n"
+            + "+---+-----------------------------+\n"
+            + "|  1|                            1|\n"
+            + "|  2|                            2|\n"
+            + "|  3|                            3|\n"
+            + "|  4|                            4|\n"
+            + "|  5|                            5|\n"
+            + "+---+-----------------------------+\n"
+            + "Total line number = 5\n";
+    executor.executeAndCompare(query, expected);
   }
 
   @Test
@@ -5765,15 +6304,15 @@ public class SQLSessionIT {
 
     errClause = "SELECT last(s1), max(s2) FROM us.d1;";
     executor.executeAndCompareErrMsg(
-        errClause, "SetToSet/SetToRow/RowToRow functions can not be mixed in aggregate query.");
+        errClause,
+        "SetToSet/SetToRow/RowToRow functions can not be mixed in selected expressions.");
 
     errClause = "SELECT s1 FROM us.d1 OVER WINDOW (size 100 IN (100, 10));";
     executor.executeAndCompareErrMsg(
         errClause, "start key should be smaller than end key in key interval.");
 
     errClause = "SELECT last(s1) FROM us.d1 GROUP BY s2;";
-    executor.executeAndCompareErrMsg(
-        errClause, "Group by can not use SetToSet and RowToRow functions.");
+    executor.executeAndCompareErrMsg(errClause, "Group by can not use SetToSet functions.");
 
     errClause = "select * from test.a join test.b where a > 0;";
     executor.executeAndCompareErrMsg(errClause, "Unexpected paths' name: [a].");
@@ -5797,7 +6336,7 @@ public class SQLSessionIT {
             + "|     Logical Tree|Operator Type|                                                                                     Operator Info|\n"
             + "+-----------------+-------------+--------------------------------------------------------------------------------------------------+\n"
             + "|Reorder          |      Reorder|                                                                Order: max(us.d1.s2),min(us.d1.s1)|\n"
-            + "|  +--SetTransform| SetTransform|FuncList(Name, FuncType): (min, System), (max, System), MappingType: SetMapping, isDistinct: false|\n"
+            + "|  +--SetTransform| SetTransform|FuncList(Name, FuncType): (max, System), (min, System), MappingType: SetMapping, isDistinct: false|\n"
             + "|    +--Project   |      Project|                                            Patterns: us.d1.s1,us.d1.s2, Target DU: unit0000000000|\n"
             + "+-----------------+-------------+--------------------------------------------------------------------------------------------------+\n"
             + "Total line number = 3\n";
@@ -6669,7 +7208,7 @@ public class SQLSessionIT {
                     + "|  +--Project          |      Project|                                                                                                            Patterns: *|\n"
                     + "|    +--Reorder        |      Reorder|                                                                            Order: max(us.d1.s2),min(us.d1.s3),us.d1.s1|\n"
                     + "|      +--Select       |       Select|                                                                                           Filter: (max(us.d1.s2) > 10)|\n"
-                    + "|        +--GroupBy    |      GroupBy|GroupByCols: us.d1.s1, FuncList(Name, FuncType): (min, System),(max, System), MappingType: SetMapping isDistinct: false|\n"
+                    + "|        +--GroupBy    |      GroupBy|GroupByCols: us.d1.s1, FuncList(Name, FuncType): (max, System),(min, System), MappingType: SetMapping isDistinct: false|\n"
                     + "|          +--Select   |       Select|                                                                                                Filter: (us.d1.s1 < 10)|\n"
                     + "|            +--Project|      Project|                                                        Patterns: us.d1.s1,us.d1.s2,us.d1.s3, Target DU: unit0000000000|\n"
                     + "+----------------------+-------------+-----------------------------------------------------------------------------------------------------------------------+\n"
@@ -6856,7 +7395,7 @@ public class SQLSessionIT {
                     + "|Reorder                 |      Reorder|                                                                                     Order: avg(bb)|\n"
                     + "|  +--GroupBy            |      GroupBy|GroupByCols: aa, FuncList(Name, FuncType): (avg, System), MappingType: SetMapping isDistinct: false|\n"
                     + "|    +--Select           |       Select|                                                                                    Filter: key > 2|\n"
-                    + "|      +--Rename         |       Rename|                                                              AliasMap: (us.d2.a, aa),(us.d2.b, bb)|\n"
+                    + "|      +--Rename         |       Rename|                                                             AliasList: (us.d2.a, aa),(us.d2.b, bb)|\n"
                     + "|        +--Reorder      |      Reorder|                                                                             Order: us.d2.a,us.d2.b|\n"
                     + "|          +--Project    |      Project|                                                                          Patterns: us.d2.a,us.d2.b|\n"
                     + "|            +--PathUnion|    PathUnion|                                                                                                   |\n"
@@ -6882,7 +7421,7 @@ public class SQLSessionIT {
                     + "|Reorder                 |      Reorder|                                                                                                                               Order: count(*)|\n"
                     + "|  +--Downsample         |   Downsample|             Precision: 20, SlideDistance: 20, TimeRange: [1000, 1100), FuncList(Name, FunctionType): (count, System), MappingType: SetMapping|\n"
                     + "|    +--Select           |       Select|                                                                                                           Filter: (key >= 1000 && key < 1100)|\n"
-                    + "|      +--Rename         |       Rename|                                                                                     AliasMap: (avg(us.d1.s1), avg_s1),(sum(us.d1.s2), sum_s2)|\n"
+                    + "|      +--Rename         |       Rename|                                                                                    AliasList: (avg(us.d1.s1), avg_s1),(sum(us.d1.s2), sum_s2)|\n"
                     + "|        +--Reorder      |      Reorder|                                                                                                            Order: avg(us.d1.s1),sum(us.d1.s2)|\n"
                     + "|          +--Downsample |   Downsample|Precision: 10, SlideDistance: 10, TimeRange: [1000, 1100), FuncList(Name, FunctionType): (avg, System), (sum, System), MappingType: SetMapping|\n"
                     + "|            +--Select   |       Select|                                                                                                           Filter: (key >= 1000 && key < 1100)|\n"
@@ -6941,7 +7480,7 @@ public class SQLSessionIT {
                     + "|Reorder                   |      Reorder|                                                                                                                               Order: count(*)|\n"
                     + "|  +--Downsample           |   Downsample|             Precision: 20, SlideDistance: 20, TimeRange: [1000, 1100), FuncList(Name, FunctionType): (count, System), MappingType: SetMapping|\n"
                     + "|    +--Select             |       Select|                                                                                                           Filter: (key >= 1000 && key < 1100)|\n"
-                    + "|      +--Rename           |       Rename|                                                                                     AliasMap: (avg(us.d1.s1), avg_s1),(sum(us.d1.s2), sum_s2)|\n"
+                    + "|      +--Rename           |       Rename|                                                                                    AliasList: (avg(us.d1.s1), avg_s1),(sum(us.d1.s2), sum_s2)|\n"
                     + "|        +--Reorder        |      Reorder|                                                                                                            Order: avg(us.d1.s1),sum(us.d1.s2)|\n"
                     + "|          +--Downsample   |   Downsample|Precision: 10, SlideDistance: 10, TimeRange: [1000, 1100), FuncList(Name, FunctionType): (avg, System), (sum, System), MappingType: SetMapping|\n"
                     + "|            +--Select     |       Select|                                                                                                           Filter: (key >= 1000 && key < 1100)|\n"
@@ -7049,7 +7588,7 @@ public class SQLSessionIT {
               + "|     Logical Tree|Operator Type|                                                                                       Operator Info|\n"
               + "+-----------------+-------------+----------------------------------------------------------------------------------------------------+\n"
               + "|Reorder          |      Reorder|                                                                Order: count(us.d1.s1),avg(us.d1.s2)|\n"
-              + "|  +--SetTransform| SetTransform|FuncList(Name, FuncType): (avg, System), (count, System), MappingType: SetMapping, isDistinct: false|\n"
+              + "|  +--SetTransform| SetTransform|FuncList(Name, FuncType): (count, System), (avg, System), MappingType: SetMapping, isDistinct: false|\n"
               + "|    +--Project   |      Project|                                              Patterns: us.d1.s1,us.d1.s2, Target DU: unit0000000000|\n"
               + "+-----------------+-------------+----------------------------------------------------------------------------------------------------+\n"
               + "Total line number = 3\n";
@@ -7092,7 +7631,7 @@ public class SQLSessionIT {
               + "|         Logical Tree|   Operator Type|                                                                                                   Operator Info|\n"
               + "+---------------------+----------------+----------------------------------------------------------------------------------------------------------------+\n"
               + "|Reorder              |         Reorder|                                                                                               Order: path,value|\n"
-              + "|  +--MappingTransform|MappingTransform|FuncList(Name, FuncType): (last, System), (last, System), (first, System), (first, System), MappingType: Mapping|\n"
+              + "|  +--MappingTransform|MappingTransform|FuncList(Name, FuncType): (first, System), (last, System), (first, System), (last, System), MappingType: Mapping|\n"
               + "|    +--Join          |            Join|                                                                                                     JoinBy: key|\n"
               + "|      +--Project     |         Project|                                                 Patterns: us.d1.s1,us.d1.s2,us.d1.s3, Target DU: unit0000000000|\n"
               + "|      +--Project     |         Project|                                                                   Patterns: us.d1.s4, Target DU: unit0000000001|\n"
@@ -7979,6 +8518,148 @@ public class SQLSessionIT {
     assertEquals(openResult, closeResult);
     assertTrue(!openExplain.contains("OuterJoin") && closeExplain.contains("OuterJoin"));
   }
+
+  @Test
+  public void testSingleLineComment() {
+    String statement =
+        "SELECT\n"
+            + "    s1, s2\n"
+            + "FROM\n"
+            + "    us.d1\n"
+            + "WHERE\n"
+            + "    s1 = 1\n"
+            + "    -- AND s2 = 1\n"
+            + ";";
+    String expect =
+        "ResultSets:\n"
+            + "+---+--------+--------+\n"
+            + "|key|us.d1.s1|us.d1.s2|\n"
+            + "+---+--------+--------+\n"
+            + "|  1|       1|       2|\n"
+            + "+---+--------+--------+\n"
+            + "Total line number = 1\n";
+    executor.executeAndCompare(statement, expect);
+  }
+
+  @Test
+  public void testMultiLineComment() {
+    String statement =
+        "SELECT\n"
+            + "    s1, s2\n"
+            + "FROM\n"
+            + "    us.d1\n"
+            + "WHERE\n"
+            + "    s1 = 1  \n"
+            + "    /* \n"
+            + "    AND s2 = 3 \n"
+            + "    */\n"
+            + ";";
+    String expect =
+        "ResultSets:\n"
+            + "+---+--------+--------+\n"
+            + "|key|us.d1.s1|us.d1.s2|\n"
+            + "+---+--------+--------+\n"
+            + "|  1|       1|       2|\n"
+            + "+---+--------+--------+\n"
+            + "Total line number = 1\n";
+    executor.executeAndCompare(statement, expect);
+  }
+
+  @Test
+  public void testSelectWithoutFromClause() {
+    String statement = "select 1+1 as one_plus_one, 2, 3*3, 10 as ten;";
+    String expected =
+        "ResultSets:\n"
+            + "+------------+-+-----+---+\n"
+            + "|one_plus_one|2|3 × 3|ten|\n"
+            + "+------------+-+-----+---+\n"
+            + "|           2|2|    9| 10|\n"
+            + "+------------+-+-----+---+\n"
+            + "Total line number = 1\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "select ratio(20, 5) as rate;";
+    expected =
+        "ResultSets:\n"
+            + "+----+\n"
+            + "|rate|\n"
+            + "+----+\n"
+            + "| 4.0|\n"
+            + "+----+\n"
+            + "Total line number = 1\n";
+    executor.executeAndCompare(statement, expected);
+  }
+
+  @Test
+  public void testConstantExpression() {
+    String insert = "insert into test.a(key, a, b) values (1, 1, 1.1), (2, 3, 3.1);";
+    executor.execute(insert);
+    insert = "insert into test.b(key, a, b) values (1, 2, 2.1), (2, 3, 3.1), (3, 4, 4.1);";
+    executor.execute(insert);
+
+    String statement = "select 1, 2+19, 4*2 as eight from test.a;";
+    String expected =
+        "ResultSets:\n"
+            + "+---+-+------+-----+\n"
+            + "|key|1|2 + 19|eight|\n"
+            + "+---+-+------+-----+\n"
+            + "|  1|1|    21|    8|\n"
+            + "|  2|1|    21|    8|\n"
+            + "+---+-+------+-----+\n"
+            + "Total line number = 2\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "select 1, a from test.a;";
+    expected =
+        "ResultSets:\n"
+            + "+---+-+--------+\n"
+            + "|key|1|test.a.a|\n"
+            + "+---+-+--------+\n"
+            + "|  1|1|       1|\n"
+            + "|  2|1|       3|\n"
+            + "+---+-+--------+\n"
+            + "Total line number = 2\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "select 1, a from test.a where a > 2;";
+    expected =
+        "ResultSets:\n"
+            + "+---+-+--------+\n"
+            + "|key|1|test.a.a|\n"
+            + "+---+-+--------+\n"
+            + "|  2|1|       3|\n"
+            + "+---+-+--------+\n"
+            + "Total line number = 1\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "select sum(1), sum(a), avg(1), count(1) from test.b;";
+    expected =
+        "ResultSets:\n"
+            + "+------+-------------+------+--------+\n"
+            + "|sum(1)|sum(test.b.a)|avg(1)|count(1)|\n"
+            + "+------+-------------+------+--------+\n"
+            + "|     3|            9|   1.0|       3|\n"
+            + "+------+-------------+------+--------+\n"
+            + "Total line number = 1\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "select 1, 2+19, 4*2 as eight from test.a, test.b;";
+    expected =
+        "ResultSets:\n"
+            + "+-+------+-----+\n"
+            + "|1|2 + 19|eight|\n"
+            + "+-+------+-----+\n"
+            + "|1|    21|    8|\n"
+            + "|1|    21|    8|\n"
+            + "|1|    21|    8|\n"
+            + "|1|    21|    8|\n"
+            + "|1|    21|    8|\n"
+            + "|1|    21|    8|\n"
+            + "+-+------+-----+\n"
+            + "Total line number = 6\n";
+    executor.executeAndCompare(statement, expected);
+  }
+
 
   @Test
   public void testInFilter() {

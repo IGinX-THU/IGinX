@@ -1,3 +1,21 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package cn.edu.tsinghua.iginx.transform.exec;
 
 import cn.edu.tsinghua.iginx.conf.Config;
@@ -7,6 +25,7 @@ import cn.edu.tsinghua.iginx.thrift.CommitTransformJobReq;
 import cn.edu.tsinghua.iginx.thrift.JobState;
 import cn.edu.tsinghua.iginx.thrift.TaskType;
 import cn.edu.tsinghua.iginx.transform.api.Checker;
+import cn.edu.tsinghua.iginx.transform.exception.TransformException;
 import cn.edu.tsinghua.iginx.transform.pojo.Job;
 import cn.edu.tsinghua.iginx.transform.pojo.PythonTask;
 import cn.edu.tsinghua.iginx.transform.pojo.Task;
@@ -89,20 +108,15 @@ public class TransformJobManager {
       runner.start();
       jobRunnerMap.put(job.getJobId(), runner);
       runner.run();
-      jobRunnerMap.remove(job.getJobId()); // since we will retry, we can't do this in finally
     } catch (Exception e) {
       LOGGER.error("Fail to process transform job id={}, because", job.getJobId(), e);
       throw e;
-    } finally {
-      // TODO: is it legal to retry after runner.close()???
-      // TODO:
-      // we don't need to close runner for FINISHED or FAILED jobs
-      // can we move runner.close() into catch clause?
-      runner.close();
     }
     // TODO: should we set end time and log time cost for failed jobs?
-    job.setEndTime(System.currentTimeMillis());
-    LOGGER.info("Job id={} cost {} ms.", job.getJobId(), job.getEndTime() - job.getStartTime());
+    if (!runner.scheduled()) {
+      job.setEndTime(System.currentTimeMillis());
+      LOGGER.info("Job id={} cost {} ms.", job.getJobId(), job.getEndTime() - job.getStartTime());
+    }
   }
 
   public boolean cancel(long jobId) {
@@ -129,22 +143,40 @@ public class TransformJobManager {
     switch (job.getState()) { // won't be null
       case JOB_RUNNING:
       case JOB_CREATED:
-        break; // continue execution
+        // atomic guard
+        if (!job.getActive().compareAndSet(true, false)) {
+          return false;
+        }
+      case JOB_IDLE:
+        // reorder as Normal run: [set-ING,] close, set-ED, remove[, set end time, log time cost].
+        job.setState(JobState.JOB_CLOSING);
+        runner.close();
+        job.setState(JobState.JOB_CLOSED);
+        jobRunnerMap.remove(jobId);
+        job.setEndTime(System.currentTimeMillis());
+        LOGGER.info("Job id={} cost {} ms.", job.getJobId(), job.getEndTime() - job.getStartTime());
+        return true;
       default:
         return false;
     }
-    // atomic guard
-    if (!job.getActive().compareAndSet(true, false)) {
-      return false;
+  }
+
+  public void removeFinishedScheduleJob(long jobID) throws TransformException {
+    Job job = jobMap.get(jobID);
+    if (job == null) {
+      throw new TransformException("No job with id: " + jobID + " exists.");
     }
-    // reorder as Normal run: [set-ING,] close, set-ED, remove[, set end time, log time cost].
-    job.setState(JobState.JOB_CLOSING);
-    runner.close();
-    job.setState(JobState.JOB_CLOSED);
-    jobRunnerMap.remove(jobId);
-    job.setEndTime(System.currentTimeMillis());
-    LOGGER.info("Job id={} cost {} ms.", job.getJobId(), job.getEndTime() - job.getStartTime());
-    return true;
+    JobRunner runner = jobRunnerMap.get(jobID);
+    if (runner == null) {
+      throw new TransformException("No job runner with id: " + jobID + " exists.");
+    }
+    if (job.getState() == JobState.JOB_FINISHED) {
+      jobRunnerMap.remove(jobID);
+      runner.close();
+      return;
+    }
+    throw new TransformException(
+        "Job with id: " + jobID + "did not finish correctly. Current state: " + job.getState());
   }
 
   public JobState queryJobState(long jobId) {

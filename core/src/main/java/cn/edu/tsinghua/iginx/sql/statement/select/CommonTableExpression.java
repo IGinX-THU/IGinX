@@ -1,12 +1,30 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package cn.edu.tsinghua.iginx.sql.statement.select;
 
 import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import cn.edu.tsinghua.iginx.sql.SQLConstant;
+import cn.edu.tsinghua.iginx.utils.Pair;
+import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public class CommonTableExpression {
 
@@ -48,18 +66,18 @@ public class CommonTableExpression {
     this.root = root;
   }
 
-  public Map<String, String> getAliasMap() {
+  public List<Pair<String, String>> getAliasList() {
     if (columns.isEmpty()) {
-      return statement.getSubQueryAliasMap(name);
+      return statement.getSubQueryAliasList(name);
     } else {
-      Map<String, String> aliasMap = new HashMap<>();
+      List<Pair<String, String>> aliasList = new ArrayList<>(columns.size());
       for (int i = 0; i < columns.size(); i++) {
         Expression expression = statement.getExpressions().get(i);
         String originName =
             expression.hasAlias() ? expression.getAlias() : expression.getColumnName();
-        aliasMap.put(originName, name + SQLConstant.DOT + columns.get(i));
+        aliasList.add(new Pair<>(originName, name + SQLConstant.DOT + columns.get(i)));
       }
-      return aliasMap;
+      return aliasList;
     }
   }
 }

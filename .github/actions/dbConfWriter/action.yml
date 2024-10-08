@@ -1,0 +1,99 @@
+name: "db-conf-writer"
+description: "use db-conf-writer to rewrite conf for target db before install IGinX"
+inputs:
+    DB-name:
+        description: "DB name"
+        required: false
+        default: IoTDB12
+    Root-Dir-Path:
+        description: "the path of IGinX root directory"
+        required: false
+        default: "${GITHUB_WORKSPACE}"
+
+runs:
+    using: "composite" # Mandatory parameter
+    steps:
+        - name: Modify IGinX Config
+          uses: ./.github/actions/edit
+          with:
+              paths: ${{ inputs.Root-Dir-Path }}/conf/config.properties
+              statements: s/^storageEngineList=/#storageEngineList=/g
+
+        - if: inputs.DB-name == 'IoTDB12'
+          name: Modify IGinX Config
+          uses: ./.github/actions/edit
+          with:
+              paths: ${{ inputs.Root-Dir-Path }}/conf/config.properties
+              statements: s/#storageEngineList=127.0.0.1#6667#iotdb12/storageEngineList=127.0.0.1#6667#iotdb12/g
+
+        - if: inputs.DB-name == 'InfluxDB'
+          name: Modify IGinX Config
+          uses: ./.github/actions/edit
+          with:
+              paths: ${{ inputs.Root-Dir-Path }}/conf/config.properties
+              statements: s/your-token/testToken/g
+
+        - if: inputs.DB-name == 'InfluxDB'
+          name: Modify IGinX Config
+          uses: ./.github/actions/edit
+          with:
+              paths: ${{ inputs.Root-Dir-Path }}/conf/config.properties
+              statements: s/your-organization/testOrg/g
+
+        - if: inputs.DB-name == 'InfluxDB'
+          name: Modify IGinX Config
+          uses: ./.github/actions/edit
+          with:
+              paths: ${{ inputs.Root-Dir-Path }}/conf/config.properties
+              statements: s/#storageEngineList=127.0.0.1#8086/storageEngineList=127.0.0.1#8086/g
+
+        - if: inputs.DB-name == 'FileSystem'
+          name: Modify IGinX Config
+          uses: ./.github/actions/edit
+          with:
+              paths: ${{ inputs.Root-Dir-Path }}/conf/config.properties
+              statements: |
+                  s/^#storageEngineList=127.0.0.1#6667#filesystem/storageEngineList=127.0.0.1#6667#filesystem/g
+                  s#dir=data#dir=${PWD}/test/iginx_mn#g
+                  s/data.config.write.buffer.size=104857600/data.config.write.buffer.size=1048576/g
+                  s/write.buffer.size=104857600/write.buffer.size=1048576/g
+
+        - if: inputs.DB-name == 'MongoDB'
+          name: Modify IGinX Config
+          uses: ./.github/actions/edit
+          with:
+              paths: ${{ inputs.Root-Dir-Path }}/conf/config.properties
+              statements: s/^#storageEngineList=127.0.0.1#27017/storageEngineList=127.0.0.1#27017/g
+
+        - if: inputs.DB-name == 'Redis'
+          name: Modify IGinX Config
+          uses: ./.github/actions/edit
+          with:
+              paths: ${{ inputs.Root-Dir-Path }}/conf/config.properties
+              statements: s/^#storageEngineList=127.0.0.1#6379/storageEngineList=127.0.0.1#6379/g
+
+        - if: inputs.DB-name == 'PostgreSQL'
+          name: Modify IGinX Config
+          uses: ./.github/actions/edit
+          with:
+              paths: ${{ inputs.Root-Dir-Path }}/conf/config.properties
+              statements: s/^#storageEngineList=127.0.0.1#5432#relational#engine=postgresql/storageEngineList=127.0.0.1#5432#relational#engine=postgresql/g
+
+        - if: inputs.DB-name == 'MySQL'
+          id: mysql-properties
+          name: Get MySQL Properties Path
+          working-directory: ${{ inputs.Root-Dir-Path }}
+          shell: bash
+          run: |
+              CONFIG_PATH="${PWD}/dataSource/relational/src/main/resources/mysql-meta-template.properties"
+              if [ "$RUNNER_OS" == "Windows" ]; then
+                 CONFIG_PATH=$(cygpath -m $CONFIG_PATH)
+              fi
+              echo "path=$CONFIG_PATH" >> $GITHUB_OUTPUT
+
+        - if: inputs.DB-name == 'MySQL'
+          name: Modify IGinX Config
+          uses: ./.github/actions/edit
+          with:
+              paths: ${{ inputs.Root-Dir-Path }}/conf/config.properties
+              statements: s|^#storageEngineList=127.0.0.1#3306#relational#engine=mysql#username=root#password=mysql#has_data=false#meta_properties_path=your-meta-properties-path|storageEngineList=127.0.0.1#3306#relational#engine=mysql#username=root#has_data=false#meta_properties_path=${{ steps.mysql-properties.outputs.path }}|g

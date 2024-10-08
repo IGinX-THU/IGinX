@@ -1,29 +1,28 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 package cn.edu.tsinghua.iginx.integration.func.udf;
 
 import static cn.edu.tsinghua.iginx.integration.controller.Controller.SUPPORT_KEY;
 import static cn.edu.tsinghua.iginx.integration.controller.Controller.clearAllData;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static cn.edu.tsinghua.iginx.integration.tool.TestUtils.downloadFile;
+import static cn.edu.tsinghua.iginx.utils.FileUtils.appendFile;
+import static cn.edu.tsinghua.iginx.utils.FileUtils.deleteFileOrDir;
+import static org.junit.Assert.*;
 
 import cn.edu.tsinghua.iginx.constant.GlobalConstant;
 import cn.edu.tsinghua.iginx.exception.SessionException;
@@ -33,25 +32,19 @@ import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import cn.edu.tsinghua.iginx.thrift.*;
-import cn.edu.tsinghua.iginx.utils.JobFromYAML;
-import cn.edu.tsinghua.iginx.utils.RpcUtils;
-import cn.edu.tsinghua.iginx.utils.YAMLReader;
-import cn.edu.tsinghua.iginx.utils.YAMLWriter;
-import java.io.BufferedReader;
-import java.io.File;
+import cn.edu.tsinghua.iginx.utils.*;
+import cn.hutool.core.collection.CollectionUtil;
+import java.io.*;
 import java.io.FileReader;
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -71,6 +64,17 @@ public class TransformIT {
           + "resources"
           + File.separator
           + "transform";
+
+  private static final String DOWNLOAD_DIR =
+      System.getProperty("user.dir")
+          + File.separator
+          + "src"
+          + File.separator
+          + "test"
+          + File.separator
+          + "resources"
+          + File.separator
+          + "downloads";
 
   private static final long START_TIMESTAMP = 0L;
 
@@ -104,6 +108,8 @@ public class TransformIT {
         "AddOneTransformer", OUTPUT_DIR_PREFIX + File.separator + "transformer_add_one.py");
     TASK_MAP.put("SumTransformer", OUTPUT_DIR_PREFIX + File.separator + "transformer_sum.py");
     TASK_MAP.put("SleepTransformer", OUTPUT_DIR_PREFIX + File.separator + "transformer_sleep.py");
+    TASK_MAP.put(
+        "ToBytesTransformer", OUTPUT_DIR_PREFIX + File.separator + "transformer_to_bytes.py");
   }
 
   @BeforeClass
@@ -174,10 +180,7 @@ public class TransformIT {
   }
 
   private static void dropAllTask() throws SessionException {
-    String[] taskList = {
-      "RowSumTransformer", "AddOneTransformer", "SumTransformer", "SleepTransformer"
-    };
-    for (String task : taskList) {
+    for (String task : TASK_MAP.keySet()) {
       dropTask(task);
     }
   }
@@ -214,6 +217,22 @@ public class TransformIT {
 
     List<Long> finishedJobIds = session.showEligibleJob(JobState.JOB_FINISHED);
     assertTrue(finishedJobIds.contains(jobId));
+  }
+
+  private void cancelJob(long jobID) {
+    try {
+      JobState jobState;
+      session.cancelTransformJob(jobID);
+      jobState = session.queryTransformJobStatus(jobID);
+      LOGGER.info("After cancellation, job {} state is {}", jobID, jobState.toString());
+      assertEquals(JobState.JOB_CLOSED, jobState);
+
+      List<Long> closedJobIds = session.showEligibleJob(JobState.JOB_CLOSED);
+      assertTrue(closedJobIds.contains(jobID));
+    } catch (SessionException e) {
+      LOGGER.error("Failed to cancel job: {}", jobID, e);
+      fail();
+    }
   }
 
   @Test
@@ -269,6 +288,145 @@ public class TransformIT {
       verifyJobState(jobId);
     } catch (SessionException | InterruptedException e) {
       LOGGER.error("Transform:  execute fail. Caused by:", e);
+      fail();
+    }
+  }
+
+  @Test
+  public void commitScheduledYamlTestAfter10s() {
+    LOGGER.info("commitScheduledYamlTest(after 10s)");
+    String outputFileName = OUTPUT_DIR_PREFIX + File.separator + "export_file_after_10_s.txt";
+    try {
+      String yamlFileName = OUTPUT_DIR_PREFIX + File.separator + "TransformScheduledAfter10s.yaml";
+      SessionExecuteSqlResult result =
+          session.executeSql(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
+
+      Thread.sleep(3000L); // sleep 3s to delay insertion
+      String insertSQL = "insert into scheduleData(key, %s) values(1, 2);";
+      // add col0
+      session.executeSql(String.format(insertSQL, "col0"));
+
+      long jobId = result.getJobId();
+      verifyJobState(jobId);
+      // job will finish after 10 seconds
+
+      // check whether new column is in job result
+      fileResultContains(outputFileName, "col0");
+    } catch (SessionException | InterruptedException e) {
+      LOGGER.error("Transform:  execute fail. Caused by:", e);
+      fail();
+    } finally {
+      try {
+        assertTrue(Files.deleteIfExists(Paths.get(outputFileName)));
+      } catch (IOException e) {
+        LOGGER.error("Fail to delete result file: {}", outputFileName, e);
+        fail();
+      }
+    }
+  }
+
+  @Test
+  public void commitScheduledYamlTestEvery10sAndCancel() {
+    LOGGER.info("commitScheduledYamlTest(every 10s) and cancel");
+    String outputFileName = OUTPUT_DIR_PREFIX + File.separator + "export_file_every_10_s.txt";
+    try {
+      String insertSQL = "insert into scheduleData(key, %s) values(1, 2);";
+      String yamlFileName = OUTPUT_DIR_PREFIX + File.separator + "TransformScheduledEvery10s.yaml";
+      // add col0
+      session.executeSql(String.format(insertSQL, "col0"));
+      SessionExecuteSqlResult result =
+          session.executeSql(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
+      long jobId = result.getJobId();
+      try {
+
+        Thread.sleep(3000L); // sleep 3s to make sure first try is triggered.
+        LOGGER.info("Verifying 0th try...");
+        fileResultContains(outputFileName, "col0");
+
+        // add col1, col2 and verify res are changed
+        for (int i = 1; i < 3; i++) {
+          session.executeSql(String.format(insertSQL, "col" + i));
+          Thread.sleep(10000L); // sleep 10s to make sure next try is triggered.
+          LOGGER.info("Verifying " + i + "th try...");
+          fileResultContains(outputFileName, "col" + i);
+        }
+      } finally {
+        cancelJob(jobId);
+        assertTrue(Files.deleteIfExists(Paths.get(outputFileName)));
+      }
+    } catch (SessionException | InterruptedException e) {
+      LOGGER.error("Transform:  execute fail. Caused by:", e);
+      fail();
+    } catch (IOException e) {
+      LOGGER.error("Fail to delete result file: {}", outputFileName, e);
+      fail();
+    }
+  }
+
+  @Ignore // this test takes too much time(> 1 minute) because the smallest time unit in cron is
+  // minute. This test has been tested locally before committed
+  @Test
+  public void commitScheduledYamlTestByCronAndCancel() {
+    LOGGER.info("commitScheduledYamlTest(every 1 minute by cron) and cancel");
+    String outputFileName =
+        OUTPUT_DIR_PREFIX + File.separator + "export_file_every_1_minute_cron.txt";
+    try {
+      String insertSQL = "insert into scheduleData(key, %s) values(1, 2);";
+      String yamlFileName = OUTPUT_DIR_PREFIX + File.separator + "TransformScheduledCron.yaml";
+      SessionExecuteSqlResult result =
+          session.executeSql(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
+      long jobId = result.getJobId();
+      try {
+        // add col0
+        session.executeSql(String.format(insertSQL, "col0"));
+        Thread.sleep(62000L); // sleep 62s to make sure next try is triggered.
+        LOGGER.info("Verifying 0th try...");
+        fileResultContains(outputFileName, "col0");
+      } finally {
+        cancelJob(jobId);
+        assertTrue(Files.deleteIfExists(Paths.get(outputFileName)));
+      }
+    } catch (SessionException | InterruptedException e) {
+      LOGGER.error("Transform:  execute fail. Caused by:", e);
+      fail();
+    } catch (IOException e) {
+      LOGGER.error("Fail to delete result file: {}", outputFileName, e);
+      fail();
+    }
+  }
+
+  @Ignore // the time system on github action is somehow bugged, thus it cannot be tested in action
+  // It has passed local test
+  @Test
+  public void commitScheduledYamlTestAt10sFromNow() {
+    LOGGER.info("commitScheduledYamlTest(at 10s from now)");
+    String outputFileName = OUTPUT_DIR_PREFIX + File.separator + "export_file_at_10_s.txt";
+    try {
+      String insertSQL = "insert into scheduleData(key, %s) values(1, 2);";
+      String yamlFileName =
+          OUTPUT_DIR_PREFIX + File.separator + "TransformScheduledAt10sFromNow.yaml";
+
+      LocalDateTime tenSecondsLater = LocalDateTime.now().plusSeconds(10);
+      String formattedDateTime =
+          tenSecondsLater.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+      appendFile(new File(yamlFileName), "\nschedule: \"at '" + formattedDateTime + "'\"");
+
+      SessionExecuteSqlResult result =
+          session.executeSql(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
+      long jobId = result.getJobId();
+      Thread.sleep(2000L); // add new data after 2s, before job is triggered.
+      // add col0
+      session.executeSql(String.format(insertSQL, "col0"));
+
+      Thread.sleep(8000L); // verify result after 10s
+      fileResultContains(outputFileName, "col0");
+
+      verifyJobState(jobId);
+    } catch (SessionException | InterruptedException e) {
+      LOGGER.error("Transform:  execute fail. Caused by:", e);
+      fail();
+    } catch (IOException e) {
+      LOGGER.error("Fail to add schedule line in yaml", e);
       fail();
     }
   }
@@ -519,6 +677,68 @@ public class TransformIT {
     }
   }
 
+  /**
+   * add picture dummy dir as engine; convert to bytes in transform function and export to iginx;
+   * compare result and original pic data
+   */
+  @Test
+  public void commitPythonExportBinaryToIginxTest() {
+    LOGGER.info("commitPythonExportBinaryToIginxTest");
+    String picDirSuffix = "pics";
+    String picDir = DOWNLOAD_DIR + File.separator + picDirSuffix;
+    try {
+      String[] taskList = {"ToBytesTransformer"};
+      for (String task : taskList) {
+        registerTask(task);
+      }
+      downloadFile(
+          "https://raw.githubusercontent.com/IGinX-THU/IGinX-resources/main/iginx-python-example/image/small.png",
+          picDir + File.separator + "small.png");
+      Map<String, String> params = new HashMap<>();
+      params.put("iginx_port", "6888");
+      params.put("dummy_dir", "test/src/test/resources/downloads/pics");
+      params.put("is_read_only", "true");
+      params.put("has_data", "true");
+      session.addStorageEngine("127.0.0.1", 6660, StorageEngineType.filesystem, params);
+
+      String yamlFileName =
+          OUTPUT_DIR_PREFIX + File.separator + "TransformBinaryExportToIginx.yaml";
+      SessionExecuteSqlResult result =
+          session.executeSql(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
+      long jobId = result.getJobId();
+
+      verifyJobState(jobId);
+
+      SessionExecuteSqlResult queryResult = session.executeSql("SELECT * FROM transform;");
+      SessionExecuteSqlResult oriResult = session.executeSql("select * from pics;");
+      assertEquals(queryResult.getPaths().size() - 1, oriResult.getPaths().size());
+      List<Object> oriRow, row;
+      for (int i = 0; i < queryResult.getValues().size(); i++) {
+        row = queryResult.getValues().get(i);
+        // remove transform.key
+        row.remove(0);
+        oriRow = oriResult.getValues().get(i);
+        CollectionUtil.isEqualList(row, oriRow);
+        i++;
+      }
+    } catch (SessionException | InterruptedException | IOException e) {
+      LOGGER.error("Transform:  execute fail. Caused by:", e);
+      fail();
+    } finally {
+      try {
+        deleteFileOrDir(Paths.get(picDir).toFile());
+      } catch (IOException e) {
+        LOGGER.error("Remove test resource dir failed:", e);
+      }
+      try {
+        session.removeHistoryDataSource(
+            Collections.singletonList(new RemovedStorageEngineInfo("127.0.0.1", 6660, "", "")));
+      } catch (SessionException e) {
+        LOGGER.error("Remove read-only dummy engine failed:", e);
+      }
+    }
+  }
+
   // no need to write query result into txt file then read file and compare.
   private void verifyMultiplePythonJobs(
       SessionExecuteSqlResult queryResult, int timeIndex, int sumIndex, int lineCount) {
@@ -738,5 +958,24 @@ public class TransformIT {
       LOGGER.error("Transform:  execute fail. Caused by:", e);
       fail();
     }
+  }
+
+  // file <filename> contains <content>
+  private void fileResultContains(String filename, String content) {
+    boolean contains = false;
+    try (BufferedReader reader = new BufferedReader(new FileReader(filename))) {
+      String line = reader.readLine();
+      while (line != null) {
+        if (line.contains(content)) {
+          contains = true;
+          break;
+        }
+        line = reader.readLine();
+      }
+    } catch (IOException e) {
+      LOGGER.error("Verify file export result failed.", e);
+      fail();
+    }
+    assertTrue(contains);
   }
 }

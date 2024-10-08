@@ -1,20 +1,19 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 package cn.edu.tsinghua.iginx.engine.shared.data.read;
 
@@ -128,52 +127,72 @@ public final class Header {
         && Objects.equals(indexMap, header.indexMap);
   }
 
-  public Header renamedHeader(Map<String, String> aliasMap, List<String> ignorePatterns) {
+  public Header renamedHeader(List<Pair<String, String>> aliasList, List<String> ignorePatterns) {
     List<Field> newFields = new ArrayList<>();
-    fields.forEach(
-        field -> {
-          // 如果列名在ignorePatterns中，对该列不执行rename
-          for (String ignorePattern : ignorePatterns) {
-            if (StringUtils.match(field.getName(), ignorePattern)) {
-              newFields.add(field);
-              return;
-            }
+    int size = getFieldSize();
+    for (int i = 0; i < size; i++) {
+      Field field = fields.get(i);
+      // 如果列名在ignorePatterns中，对该列不执行rename
+      boolean ignore = false;
+      for (String ignorePattern : ignorePatterns) {
+        if (StringUtils.match(field.getName(), ignorePattern)) {
+          newFields.add(field);
+          ignore = true;
+          break;
+        }
+      }
+      if (ignore) {
+        continue;
+      }
+      String alias = "";
+      for (Pair<String, String> pair : aliasList) {
+        String oldPattern = pair.k;
+        String newPattern = pair.v;
+        if (oldPattern.equals("*") && newPattern.endsWith(".*")) {
+          String newPrefix = newPattern.substring(0, newPattern.length() - 1);
+          alias = newPrefix + field.getName();
+        } else if (oldPattern.endsWith(".*") && newPattern.endsWith(".*")) {
+          String oldPrefix = oldPattern.substring(0, oldPattern.length() - 1);
+          String newPrefix = newPattern.substring(0, newPattern.length() - 1);
+          if (field.getName().startsWith(oldPrefix)) {
+            alias = field.getName().replaceFirst(oldPrefix, newPrefix);
           }
-          String alias = "";
-          for (String oldPattern : aliasMap.keySet()) {
-            String newPattern = aliasMap.get(oldPattern);
-            if (oldPattern.equals("*") && newPattern.endsWith(".*")) {
-              String newPrefix = newPattern.substring(0, newPattern.length() - 1);
-              alias = newPrefix + field.getName();
-            } else if (oldPattern.endsWith(".*") && newPattern.endsWith(".*")) {
-              String oldPrefix = oldPattern.substring(0, oldPattern.length() - 1);
-              String newPrefix = newPattern.substring(0, newPattern.length() - 1);
-              if (field.getName().startsWith(oldPrefix)) {
-                alias = field.getName().replaceFirst(oldPrefix, newPrefix);
-              }
-              break;
-            } else if (oldPattern.equals(field.getFullName())) {
-              alias = newPattern;
-              break;
-            } else {
-              if (StringUtils.match(field.getName(), oldPattern)) {
-                if (newPattern.endsWith("." + oldPattern)) {
-                  String prefix =
-                      newPattern.substring(0, newPattern.length() - oldPattern.length());
-                  alias = prefix + field.getName();
-                } else {
-                  alias = newPattern;
-                }
-                break;
-              }
-            }
-          }
-          if (alias.isEmpty()) {
-            newFields.add(field);
-          } else {
+          break;
+        } else if (oldPattern.equals(field.getName())) {
+          alias = newPattern;
+          Set<Map<String, String>> tagSet = new HashSet<>();
+          Field nextField = i < size - 1 ? fields.get(i + 1) : null;
+          tagSet.add(field.getTags());
+          // 处理同一列但不同tag的情况
+          while (nextField != null
+              && oldPattern.equals(nextField.getName())
+              && !tagSet.contains(nextField.getTags())) {
             newFields.add(new Field(alias, field.getType(), field.getTags()));
+            field = nextField;
+            i++;
+            nextField = i < size - 1 ? fields.get(i + 1) : null;
+            tagSet.add(field.getTags());
           }
-        });
+          aliasList.remove(pair);
+          break;
+        } else {
+          if (StringUtils.match(field.getName(), oldPattern)) {
+            if (newPattern.endsWith("." + oldPattern)) {
+              String prefix = newPattern.substring(0, newPattern.length() - oldPattern.length());
+              alias = prefix + field.getName();
+            } else {
+              alias = newPattern;
+            }
+            break;
+          }
+        }
+      }
+      if (alias.isEmpty()) {
+        newFields.add(field);
+      } else {
+        newFields.add(new Field(alias, field.getType(), field.getTags()));
+      }
+    }
     return new Header(getKey(), newFields);
   }
 

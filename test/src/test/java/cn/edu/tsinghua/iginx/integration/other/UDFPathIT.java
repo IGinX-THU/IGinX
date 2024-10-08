@@ -1,3 +1,21 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package cn.edu.tsinghua.iginx.integration.other;
 
 import cn.edu.tsinghua.iginx.exception.SessionException;
@@ -46,6 +64,7 @@ public class UDFPathIT {
             + "|    columnExpand|UDFColumnExpand|udtf_column_expand.py|0.0.0.0|    UDTF|\n"
             + "|         udf_min|         UDFMin|           udf_min.py|0.0.0.0|    UDAF|\n"
             + "|         udf_avg|         UDFAvg|           udf_avg.py|0.0.0.0|    UDAF|\n"
+            + "|          arccos|      UDFArcCos|       udtf_arccos.py|0.0.0.0|    UDTF|\n"
             + "|     key_add_one|   UDFKeyAddOne|  udtf_key_add_one.py|0.0.0.0|    UDTF|\n"
             + "|             pow|         UDFPow|          udtf_pow.py|0.0.0.0|    UDTF|\n"
             + "|    reverse_rows| UDFReverseRows| udsf_reverse_rows.py|0.0.0.0|    UDSF|\n"

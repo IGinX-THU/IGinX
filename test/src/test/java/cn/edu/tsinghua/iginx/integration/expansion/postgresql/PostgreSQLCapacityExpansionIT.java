@@ -1,4 +1,25 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package cn.edu.tsinghua.iginx.integration.expansion.postgresql;
+
+import static cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools.executeShellScript;
+import static org.junit.Assert.fail;
 
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.expansion.BaseCapacityExpansionIT;
@@ -9,6 +30,8 @@ import cn.edu.tsinghua.iginx.integration.tool.DBConf;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import java.sql.Connection;
 import java.sql.Statement;
+import java.util.Arrays;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,12 +51,15 @@ public class PostgreSQLCapacityExpansionIT extends BaseCapacityExpansionIT {
     Constant.readOnlyPort = dbConf.getDBCEPortMap().get(Constant.READ_ONLY_PORT_NAME);
     wrongExtraParams.add("username:wrong, password:postgres");
     // wrong password situation cannot be tested because trust mode is used
+
+    updatedParams.put("password", "newPassword");
   }
 
   @Override
   protected void testQuerySpecialHistoryData() {
     testRepeatsQuery();
     testConcatFunction();
+    testFloatData();
   }
 
   /** 执行一个简单查询1000次，测试是否会使连接池耗尽，来验证PG的dummy查询是否正确释放连接 */
@@ -118,6 +144,42 @@ public class PostgreSQLCapacityExpansionIT extends BaseCapacityExpansionIT {
     } catch (Exception e) {
       LOGGER.error("create table failed", e);
       assert false;
+    }
+  }
+
+  /** 测试float类型数据 */
+  private void testFloatData() {
+    String statement = "select wt02.float from tm.wf05 where wt02.float <= 44.55;";
+    List<String> pathList = Constant.READ_ONLY_FLOAT_PATH_LIST;
+    List<List<Object>> valuesList = Constant.READ_ONLY_FLOAT_VALUES_LIST;
+    SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
+    statement = "select wt02.float from tm.wf05 where wt02.float = 44.55;";
+    valuesList = Arrays.asList(Arrays.asList(44.55F));
+    SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
+  }
+
+  @Override
+  protected void updateParams(int port) {
+    changeParams(port, "postgres", "newPassword");
+  }
+
+  @Override
+  protected void restoreParams(int port) {
+    changeParams(port, "newPassword", "postgres");
+  }
+
+  private void changeParams(int port, String oldPw, String newPw) {
+    String scriptPath = updateParamsScriptDir + "postgresql.sh";
+    String os = System.getProperty("os.name").toLowerCase();
+    if (os.contains("mac")) {
+      scriptPath = updateParamsScriptDir + "postgresql_macos.sh";
+    } else if (os.contains("win")) {
+      scriptPath = updateParamsScriptDir + "postgresql_windows.sh";
+    }
+    // 脚本参数：对应端口，旧密码，新密码
+    int res = executeShellScript(scriptPath, String.valueOf(port), oldPw, newPw);
+    if (res != 0) {
+      fail("Fail to update postgresql params.");
     }
   }
 }

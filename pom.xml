@@ -1,4 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+    IGinX - the polystore system with high performance
+    Copyright (C) Tsinghua University
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+-->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
@@ -10,18 +29,21 @@
     <name>IGinX</name>
 
     <modules>
-        <module>core</module>
-        <module>thrift</module>
+        <!-- dependency module must be the first one -->
+        <module>dependency</module>
         <module>shared</module>
+        <module>thrift</module>
+        <module>session</module>
+        <module>jdbc</module>
         <module>client</module>
         <module>antlr</module>
-        <module>jdbc</module>
-        <module>session</module>
-        <module>dataSources</module>
+        <module>core</module>
+        <module>optimizer</module>
+        <module>dataSource</module>
         <module>example</module>
         <module>test</module>
+        <!-- assembly module must be the last one -->
         <module>assembly</module>
-        <module>optimizer</module>
     </modules>
 
     <distributionManagement>
@@ -38,11 +60,15 @@
     </distributionManagement>
 
     <properties>
+        <auto-service.version>1.1.1</auto-service.version>
         <build-plugin.jacoco.version>0.8.6</build-plugin.jacoco.version>
         <deploy.repo.dir>${project.basedir}</deploy.repo.dir>
+        <lombok.version>1.18.34</lombok.version>
+        <maven.compiler.source>8</maven.compiler.source>
+        <maven.compiler.target>8</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <revision>0.7.0-SNAPSHOT</revision>
+        <revision>0.8.0-SNAPSHOT</revision>
     </properties>
 
     <dependencyManagement>
@@ -84,11 +110,6 @@
             </dependency>
             <dependency>
                 <groupId>cn.edu.tsinghua</groupId>
-                <artifactId>filesystem</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>cn.edu.tsinghua</groupId>
                 <artifactId>influxdb</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -99,7 +120,7 @@
             </dependency>
             <dependency>
                 <groupId>cn.edu.tsinghua</groupId>
-                <artifactId>parquet</artifactId>
+                <artifactId>filesystem</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -133,14 +154,23 @@
                 <version>2.2</version>
             </dependency>
             <dependency>
-                <groupId>com.fasterxml.jackson.core</groupId>
-                <artifactId>jackson-databind</artifactId>
-                <version>2.13.4.2</version>
+                <groupId>com.fasterxml.jackson</groupId>
+                <artifactId>jackson-bom</artifactId>
+                <version>2.17.2</version>
+                <type>pom</type>
+                <scope>import</scope>
             </dependency>
             <dependency>
                 <groupId>cn.hutool</groupId>
                 <artifactId>hutool-all</artifactId>
                 <version>5.8.26</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.arrow</groupId>
+                <artifactId>arrow-bom</artifactId>
+                <version>17.0.0</version>
+                <type>pom</type>
+                <scope>import</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.commons</groupId>
@@ -178,6 +208,13 @@
                 <version>1.6.0</version>
             </dependency>
             <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-bom</artifactId>
+                <version>4.1.110.Final</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
                 <groupId>org.apache.zookeeper</groupId>
                 <artifactId>zookeeper</artifactId>
                 <version>3.7.2</version>
@@ -195,7 +232,7 @@
             <dependency>
                 <groupId>cn.edu.tsinghua.iginx</groupId>
                 <artifactId>parquet-file</artifactId>
-                <version>0.0.2</version>
+                <version>0.1.0</version>
             </dependency>
             <dependency>
                 <groupId>redis.clients</groupId>
@@ -210,18 +247,15 @@
             <dependency>
                 <groupId>io.etcd</groupId>
                 <artifactId>jetcd-core</artifactId>
-                <version>0.5.7</version>
-                <optional>true</optional>
-                <exclusions>
-                    <exclusion>
-                        <groupId>org.slf4j</groupId>
-                        <artifactId>slf4j-log4j12</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>log4j</groupId>
-                        <artifactId>log4j</artifactId>
-                    </exclusion>
-                </exclusions>
+                <version>0.5.11</version>
+            </dependency>
+            <!-- jetcd-core requires grpc version not exceeding 1.57 -->
+            <dependency>
+                <groupId>io.grpc</groupId>
+                <artifactId>grpc-bom</artifactId>
+                <version>1.57.2</version>
+                <type>pom</type>
+                <scope>import</scope>
             </dependency>
             <dependency>
                 <groupId>com.influxdb</groupId>
@@ -248,7 +282,22 @@
             <dependency>
                 <groupId>org.projectlombok</groupId>
                 <artifactId>lombok</artifactId>
-                <version>1.18.20</version>
+                <version>${lombok.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.google.guava</groupId>
+                <artifactId>guava-bom</artifactId>
+                <version>33.2.1-jre</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.junit</groupId>
+                <artifactId>junit-bom</artifactId>
+                <version>5.11.0</version>
+                <type>pom</type>
+                <scope>import</scope>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -260,11 +309,21 @@
             <version>4.13.2</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
         <pluginManagement>
             <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-jar-plugin</artifactId>
+                    <version>3.4.2</version>
+                </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-surefire-plugin</artifactId>
@@ -276,7 +335,34 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-assembly-plugin</artifactId>
-                    <version>3.6.0</version>
+                    <version>3.7.1</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.thrift</groupId>
+                    <artifactId>thrift-maven-plugin</artifactId>
+                    <version>0.10.0</version>
+                </plugin>
+                <plugin>
+                    <groupId>com.mycila</groupId>
+                    <artifactId>license-maven-plugin</artifactId>
+                    <version>4.5</version>
+                    <configuration>
+                        <useDefaultExcludes>true</useDefaultExcludes>
+                        <prohibitLegacyUse>true</prohibitLegacyUse>
+                        <licenseSets>
+                            <licenseSet>
+                                <header>LICENSE_HEADER</header>
+                                <excludes>
+                                    <exclude>**/test/resources/**</exclude>
+                                    <exclude>**/requirements.txt</exclude>
+                                </excludes>
+                            </licenseSet>
+                        </licenseSets>
+                        <mapping>
+                            <thrift>SLASHSTAR_STYLE</thrift>
+                            <g4>SLASHSTAR_STYLE</g4>
+                        </mapping>
+                    </configuration>
                 </plugin>
             </plugins>
         </pluginManagement>
@@ -347,8 +433,9 @@
                                 <includes>
                                     <include>**/*.sql</include>
                                 </includes>
-                                <!--prettier/>
-                                <dbeaver/-->
+                                <!--<prettier/>-->
+                                <dbeaver/>
+                                <toggleOffOn/>
                             </sql>
                             <yaml>
                                 <includes>
@@ -403,6 +490,18 @@
                                 <goals>
                                     <goal>apply</goal>
                                     <!--goal>check</goal-->
+                                </goals>
+                                <phase>initialize</phase>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>com.mycila</groupId>
+                        <artifactId>license-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>format</goal>
                                 </goals>
                                 <phase>initialize</phase>
                             </execution>

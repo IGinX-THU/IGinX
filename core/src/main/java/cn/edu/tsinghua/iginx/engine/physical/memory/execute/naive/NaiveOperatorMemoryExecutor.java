@@ -1,20 +1,19 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.naive;
 
@@ -78,13 +77,14 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
 import cn.edu.tsinghua.iginx.engine.shared.operator.SetTransform;
 import cn.edu.tsinghua.iginx.engine.shared.operator.SingleJoin;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Sort;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Sort.SortType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.UnaryOperator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Union;
 import cn.edu.tsinghua.iginx.engine.shared.operator.ValueToSelectedPath;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OuterJoinType;
+import cn.edu.tsinghua.iginx.engine.shared.source.ConstantSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.EmptySource;
+import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Bitmap;
 import cn.edu.tsinghua.iginx.utils.Pair;
@@ -194,6 +194,21 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
   }
 
   private RowStream executeProject(Project project, Table table) throws PhysicalException {
+    Source source = project.getSource();
+    switch (source.getType()) {
+      case Operator:
+      case Empty:
+        return executeProjectFromOperator(project, table);
+      case Constant:
+        ConstantSource constantSource = (ConstantSource) source;
+        return new Table(RowUtils.buildConstRow(constantSource.getExpressionList()));
+      default:
+        throw new PhysicalException(
+            "Unexpected project source type in memory task: " + source.getType());
+    }
+  }
+
+  private RowStream executeProjectFromOperator(Project project, Table table) {
     List<String> patterns = project.getPatterns();
     Header header = table.getHeader();
     List<Field> targetFields = new ArrayList<>();
@@ -241,11 +256,12 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
   }
 
   private RowStream executeSort(Sort sort, Table table) throws PhysicalException {
-    RowUtils.sortRows(table.getRows(), sort.getSortType() == SortType.ASC, sort.getSortByCols());
+    List<Boolean> ascendingList = sort.getAscendingList();
+    RowUtils.sortRows(table.getRows(), ascendingList, sort.getSortByCols());
     return table;
   }
 
-  private RowStream executeLimit(Limit limit, Table table) throws PhysicalException {
+  private RowStream executeLimit(Limit limit, Table table) {
     int rowSize = table.getRowSize();
     Header header = table.getHeader();
     List<Row> rows = new ArrayList<>();
@@ -263,83 +279,54 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     Header header = table.getHeader();
     if (!header.hasKey()) {
       throw new InvalidOperatorParameterException(
-          "downsample operator is not support for row stream without timestamps.");
+          "downsample operator is not support for row stream without key.");
     }
-    List<Row> rows = table.getRows();
-    long bias = downsample.getKeyRange().getActualBeginKey();
-    long endKey = downsample.getKeyRange().getActualEndKey();
-    if (downsample.notSetInterval()) {
-      if (table.getRowSize() <= 0) {
-        return Table.EMPTY_TABLE;
-      }
-      bias = table.getRow(0).getKey();
-      endKey = table.getRow(table.getRowSize() - 1).getKey();
+    if (downsample.notSetInterval() && table.getRowSize() <= 0) {
+      return Table.EMPTY_TABLE;
     }
-    long precision = downsample.getPrecision();
-    long slideDistance = downsample.getSlideDistance();
-    // startKey + (n - 1) * slideDistance + precision - 1 >= endKey
-    long n = (int) (Math.ceil((double) (endKey - bias - precision + 1) / slideDistance) + 1);
 
+    long precision = downsample.getPrecision();
+    Map<List<String>, Table> rowTransformMap = new HashMap<>();
     List<Table> tableList = new ArrayList<>();
     boolean firstCol = true;
     for (FunctionCall functionCall : downsample.getFunctionCallList()) {
       SetMappingFunction function = (SetMappingFunction) functionCall.getFunction();
       FunctionParams params = functionCall.getParams();
 
-      TreeMap<Long, List<Row>> groups = new TreeMap<>();
-      if (precision == slideDistance) {
-        for (Row row : rows) {
-          long timestamp = row.getKey() - (row.getKey() - bias) % precision;
-          groups.compute(timestamp, (k, v) -> v == null ? new ArrayList<>() : v).add(row);
-        }
-      } else {
-        HashMap<Long, Long> timestamps = new HashMap<>();
-        for (long i = 0; i < n; i++) {
-          timestamps.put(i, bias + i * slideDistance);
-        }
-        for (Row row : rows) {
-          long rowTimestamp = row.getKey();
-          for (long i = 0; i < n; i++) {
-            if (rowTimestamp - timestamps.get(i) >= 0
-                && rowTimestamp - timestamps.get(i) < precision) {
-              groups
-                  .compute(timestamps.get(i), (k, v) -> v == null ? new ArrayList<>() : v)
-                  .add(row);
-            }
-          }
-        }
-      }
+      Table functable = RowUtils.preRowTransform(table, rowTransformMap, functionCall);
+      TreeMap<Long, List<Row>> groups = RowUtils.computeDownsampleGroup(downsample, functable);
+
       // <<window_start, window_end> row>
       List<Pair<Pair<Long, Long>, Row>> transformedRawRows = new ArrayList<>();
-      try {
-        for (Map.Entry<Long, List<Row>> entry : groups.entrySet()) {
-          long windowStartKey = entry.getKey();
-          long windowEndKey = windowStartKey + precision - 1;
-          List<Row> group = entry.getValue();
+      for (Map.Entry<Long, List<Row>> entry : groups.entrySet()) {
+        long windowStartKey = entry.getKey();
+        long windowEndKey = windowStartKey + precision - 1;
+        List<Row> group = entry.getValue();
 
-          if (params.isDistinct()) {
-            if (!isCanUseSetQuantifierFunction(function.getIdentifier())) {
-              throw new IllegalArgumentException(
-                  "function " + function.getIdentifier() + " can't use DISTINCT");
-            }
-            // min和max无需去重
-            if (!function.getIdentifier().equals(Max.MAX)
-                && !function.getIdentifier().equals(Min.MIN)) {
-              group = removeDuplicateRows(group);
-            }
+        if (params.isDistinct()) {
+          if (!isCanUseSetQuantifierFunction(function.getIdentifier())) {
+            throw new IllegalArgumentException(
+                "function " + function.getIdentifier() + " can't use DISTINCT");
           }
+          // min和max无需去重
+          if (!function.getIdentifier().equals(Max.MAX)
+              && !function.getIdentifier().equals(Min.MIN)) {
+            group = removeDuplicateRows(group);
+          }
+        }
 
-          Row row = function.transform(new Table(header, group), params);
+        try {
+          Row row = function.transform(new Table(functable.getHeader(), group), params);
           if (row != null) {
             transformedRawRows.add(new Pair<>(new Pair<>(windowStartKey, windowEndKey), row));
           }
+        } catch (Exception e) {
+          throw new PhysicalTaskExecuteFailureException(
+              "encounter error when execute set mapping function " + function.getIdentifier() + ".",
+              e);
         }
-      } catch (Exception e) {
-        throw new PhysicalTaskExecuteFailureException(
-            "encounter error when execute set mapping function " + function.getIdentifier() + ".",
-            e);
       }
-      if (transformedRawRows.size() == 0) {
+      if (transformedRawRows.isEmpty()) {
         return Table.EMPTY_TABLE;
       }
 
@@ -373,65 +360,21 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
 
   private RowStream executeRowTransform(RowTransform rowTransform, Table table)
       throws PhysicalException {
-    List<Pair<RowMappingFunction, FunctionParams>> list = new ArrayList<>();
-    rowTransform
-        .getFunctionCallList()
-        .forEach(
-            functionCall -> {
-              list.add(
-                  new Pair<>(
-                      (RowMappingFunction) functionCall.getFunction(), functionCall.getParams()));
-            });
-
-    List<Row> rows = new ArrayList<>();
-    while (table.hasNext()) {
-      Row current = table.next();
-      List<Row> columnList = new ArrayList<>();
-      list.forEach(
-          pair -> {
-            RowMappingFunction function = pair.k;
-            FunctionParams params = pair.v;
-            try {
-              // 分别计算每个表达式得到相应的结果
-              Row column = function.transform(current, params);
-              if (column != null) {
-                columnList.add(column);
-              }
-            } catch (Exception e) {
-              try {
-                throw new PhysicalTaskExecuteFailureException(
-                    "encounter error when execute row mapping function "
-                        + function.getIdentifier()
-                        + ".",
-                    e);
-              } catch (PhysicalTaskExecuteFailureException ex) {
-                throw new RuntimeException(ex);
-              }
-            }
-          });
-      // 如果计算结果都不为空，将计算结果合并成一行
-      if (columnList.size() == list.size()) {
-        rows.add(combineMultipleColumns(columnList));
-      }
-    }
-    if (rows.size() == 0) {
-      return Table.EMPTY_TABLE;
-    }
-    Header header = rows.get(0).getHeader();
-    return new Table(header, rows);
+    List<FunctionCall> functionCallList = rowTransform.getFunctionCallList();
+    return RowUtils.calRowTransform(table, functionCallList);
   }
 
   private RowStream executeSetTransform(SetTransform setTransform, Table table)
       throws PhysicalException {
     List<FunctionCall> functionList = setTransform.getFunctionCallList();
-
+    Map<List<String>, Table> rowTransformMap = new HashMap<>();
     Map<List<String>, Table> distinctMap = new HashMap<>();
     List<Row> rows = new ArrayList<>();
 
     for (FunctionCall functionCall : functionList) {
       SetMappingFunction function = (SetMappingFunction) functionCall.getFunction();
       FunctionParams params = functionCall.getParams();
-      Table functable = table;
+      Table functable = RowUtils.preRowTransform(table, rowTransformMap, functionCall);
       if (setTransform.isDistinct()) {
         // min和max无需去重
         if (!function.getIdentifier().equals(Max.MAX)
@@ -474,12 +417,10 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     return RowUtils.calMappingTransform(table, functionCallList);
   }
 
-  private RowStream executeRename(Rename rename, Table table) throws PhysicalException {
+  private RowStream executeRename(Rename rename, Table table) {
     Header header = table.getHeader();
-    Map<String, String> aliasMap = rename.getAliasMap();
-
-    List<String> ignorePatterns = rename.getIgnorePatterns();
-    Header newHeader = header.renamedHeader(aliasMap, ignorePatterns);
+    List<Pair<String, String>> aliasList = rename.getAliasList();
+    Header newHeader = header.renamedHeader(aliasList, rename.getIgnorePatterns());
 
     List<Row> rows = new ArrayList<>();
     table
@@ -496,8 +437,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     return new Table(newHeader, rows);
   }
 
-  private RowStream executeAddSchemaPrefix(AddSchemaPrefix addSchemaPrefix, Table table)
-      throws PhysicalException {
+  private RowStream executeAddSchemaPrefix(AddSchemaPrefix addSchemaPrefix, Table table) {
     Header header = table.getHeader();
     String schemaPrefix = addSchemaPrefix.getSchemaPrefix();
 
@@ -636,7 +576,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
       // 检查时间戳
       if (!headerA.hasKey() || !headerB.hasKey()) {
         throw new InvalidOperatorParameterException(
-            "row streams for join operator by time should have timestamp.");
+            "row streams for join operator by key should have key.");
       }
       List<Field> newFields = new ArrayList<>();
       newFields.addAll(headerA.getFields());
@@ -732,8 +672,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     }
   }
 
-  private RowStream executeCrossJoin(CrossJoin crossJoin, Table tableA, Table tableB)
-      throws PhysicalException {
+  private RowStream executeCrossJoin(CrossJoin crossJoin, Table tableA, Table tableB) {
     Header newHeader =
         HeaderUtils.constructNewHead(
             tableA.getHeader(), tableB.getHeader(), crossJoin.getPrefixA(), crossJoin.getPrefixB());

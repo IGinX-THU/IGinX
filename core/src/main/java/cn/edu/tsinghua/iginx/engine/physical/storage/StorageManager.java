@@ -1,24 +1,24 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 package cn.edu.tsinghua.iginx.engine.physical.storage;
 
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
+import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
@@ -66,7 +66,6 @@ public class StorageManager {
     StorageEngineType engine = meta.getStorageEngine();
     String driver = drivers.get(engine);
     long id = meta.getId();
-    boolean needRelease = false;
     IStorage storage = null;
     try {
       if (storageMap.containsKey(id)) {
@@ -76,9 +75,6 @@ public class StorageManager {
         storage =
             (IStorage)
                 loader.loadClass(driver).getConstructor(StorageEngineMeta.class).newInstance(meta);
-        if (!engine.equals(StorageEngineType.filesystem)) {
-          needRelease = true;
-        }
       }
       return storage.getBoundaryOfStorage(dataPrefix);
     } catch (ClassNotFoundException e) {
@@ -89,9 +85,7 @@ public class StorageManager {
       return null;
     } finally {
       try {
-        if (needRelease) {
-          storage.release();
-        }
+        storage.release();
       } catch (Exception e) {
         LOGGER.error("release session pool failure!");
       }
@@ -209,8 +203,36 @@ public class StorageManager {
       LOGGER.error("load class {} for engine {} failure: {}", driver, engine, e);
       return null;
     } catch (Exception e) {
-      LOGGER.error("add storage {} failure!", meta);
+      LOGGER.error("add storage {} failure!", meta, e);
       return null;
     }
+  }
+
+  public boolean releaseStorage(StorageEngineMeta meta) throws PhysicalException {
+    long id = meta.getId();
+    Pair<IStorage, ThreadPoolExecutor> pair = storageMap.get(id);
+    if (pair == null) {
+      LOGGER.warn("Storage id {} not found", id);
+      return false;
+    }
+
+    ThreadPoolExecutor dispatcher = pair.getV();
+    dispatcher.shutdown(); // 停止接收新任务
+    try {
+      if (!dispatcher.awaitTermination(60, TimeUnit.SECONDS)) { // 等待任务完成
+        dispatcher.shutdownNow(); // 如果时间内未完成任务，强制关闭
+        if (!dispatcher.awaitTermination(60, TimeUnit.SECONDS)) {
+          LOGGER.error("Executor did not terminate");
+        }
+      }
+    } catch (InterruptedException ie) {
+      dispatcher.shutdownNow();
+      LOGGER.error("unexpected exception occurred in releasing storage engine: ", ie);
+      return false;
+    }
+
+    pair.getK().release();
+    storageMap.remove(id);
+    return true;
   }
 }
