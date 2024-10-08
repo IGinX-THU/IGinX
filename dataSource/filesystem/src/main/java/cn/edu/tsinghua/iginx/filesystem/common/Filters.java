@@ -203,6 +203,11 @@ public class Filters {
           public void visit(ExprFilter filter) {
             test(filter);
           }
+
+          @Override
+          public void visit(InFilter filter) {
+            test(filter);
+          }
         });
 
     return result[0];

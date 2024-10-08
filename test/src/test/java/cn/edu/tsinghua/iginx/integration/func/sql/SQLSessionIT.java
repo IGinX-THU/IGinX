@@ -8660,7 +8660,6 @@ public class SQLSessionIT {
     executor.executeAndCompare(statement, expected);
   }
 
-
   @Test
   public void testInFilter() {
     // 插入数据

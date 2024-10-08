@@ -17,8 +17,6 @@
  */
 package cn.edu.tsinghua.iginx.influxdb.tools;
 
-import static cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op.isLikeOp;
-
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.influxdb.query.entity.InfluxDBSchema;
