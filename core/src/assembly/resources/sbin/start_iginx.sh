@@ -106,19 +106,23 @@ calculate_heap_sizes() {
   # calculate 1/2 ram and cap to 1024MB
   # calculate 1/4 ram and cap to 65536MB
   # pick the max
-  half_system_memory_in_mb=$((${system_memory_in_mb} / 2))
-  quarter_system_memory_in_mb=$((${half_system_memory_in_mb} / 2))
-  if (( ${half_system_memory_in_mb} > 1024 )); then
-    half_system_memory_in_mb=1024
-  fi
-  if (( ${quarter_system_memory_in_mb} > 65536 )); then
-    quarter_system_memory_in_mb=65536
-  fi
-  if (( ${half_system_memory_in_mb} > ${quarter_system_memory_in_mb} )); then
-    max_heap_size_in_mb=$half_system_memory_in_mb
-  else
-    max_heap_size_in_mb=$quarter_system_memory_in_mb
-  fi
+  # half_system_memory_in_mb=$((${system_memory_in_mb} / 2))
+  # quarter_system_memory_in_mb=$((${half_system_memory_in_mb} / 2))
+  # if (( ${half_system_memory_in_mb} > 1024 )); then
+  #   half_system_memory_in_mb=1024
+  # fi
+  # if (( ${quarter_system_memory_in_mb} > 65536 )); then
+  #   quarter_system_memory_in_mb=65536
+  # fi
+  # if (( ${half_system_memory_in_mb} > ${quarter_system_memory_in_mb} )); then
+  #   max_heap_size_in_mb=$half_system_memory_in_mb
+  # else
+  #   max_heap_size_in_mb=$quarter_system_memory_in_mb
+  # fi
+
+  # set the required memory ratio according to your needs (< 1 & must be a fraction)
+  max_ratio=1/2
+  max_heap_size_in_mb=$((${system_memory_in_mb} * ${max_ratio}))
   MAX_HEAP_SIZE=${max_heap_size_in_mb}M
 }
 
