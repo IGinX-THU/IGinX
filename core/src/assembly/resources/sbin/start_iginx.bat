@@ -103,16 +103,19 @@ for /f "tokens=*" %%a in ('cscript //nologo %temp%\tmp.vbs') do set system_memor
 del %temp%\tmp.vbs
 set system_memory_in_mb=%system_memory_in_mb:,=%
 
-set /a half_=%system_memory_in_mb%/2
-set /a quarter_=%half_%/2
+@REM set /a half_=%system_memory_in_mb%/2
+@REM set /a quarter_=%half_%/2
 
-if ["%half_%"] GTR ["1024"] set half_=1024
-if ["%quarter_%"] GTR ["65536"] set quarter_=65536
+@REM if ["%half_%"] GTR ["1024"] set half_=1024
+@REM if ["%quarter_%"] GTR ["65536"] set quarter_=65536
 
-if %half_% GTR %quarter_% (
-	set max_heap_size_in_mb=%half_%
-) else set max_heap_size_in_mb=%quarter_%
+@REM if %half_% GTR %quarter_% (
+@REM 	set max_heap_size_in_mb=%half_%
+@REM ) else set max_heap_size_in_mb=%quarter_%
 
+@REM set the required memory ratio according to your needs (< 100 & must be a fraction)
+set /a max_ratio=50
+set /a max_heap_size_in_mb=%system_memory_in_mb% * %max_ratio% / 100
 set MAX_HEAP_SIZE=%max_heap_size_in_mb%M
 
 @REM -----------------------------------------------------------------------------
