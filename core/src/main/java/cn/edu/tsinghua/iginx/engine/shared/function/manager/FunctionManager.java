@@ -165,7 +165,7 @@ public class FunctionManager {
   public void removeFunction(String identifier) {
     if (functions.containsKey(identifier)) {
       PyUDF function = (PyUDF) functions.get(identifier);
-      function.close();
+      function.close(identifier);
     }
     functions.remove(identifier);
   }

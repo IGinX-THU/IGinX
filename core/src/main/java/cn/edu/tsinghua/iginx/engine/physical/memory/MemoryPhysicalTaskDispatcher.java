@@ -20,6 +20,7 @@ package cn.edu.tsinghua.iginx.engine.physical.memory;
 import cn.edu.tsinghua.iginx.auth.SessionManager;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.pool.MemoryTaskThreadPoolExecutor;
 import cn.edu.tsinghua.iginx.engine.physical.memory.queue.MemoryPhysicalTaskQueue;
 import cn.edu.tsinghua.iginx.engine.physical.memory.queue.MemoryPhysicalTaskQueueImpl;
 import cn.edu.tsinghua.iginx.engine.physical.task.MemoryPhysicalTask;
@@ -44,7 +45,7 @@ public class MemoryPhysicalTaskDispatcher {
   private MemoryPhysicalTaskDispatcher() {
     taskQueue = new MemoryPhysicalTaskQueueImpl();
     taskExecuteThreadPool =
-        Executors.newFixedThreadPool(
+        new MemoryTaskThreadPoolExecutor(
             ConfigDescriptor.getInstance().getConfig().getMemoryTaskThreadPoolSize());
     taskDispatcher = Executors.newSingleThreadExecutor();
   }

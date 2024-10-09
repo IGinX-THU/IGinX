@@ -21,14 +21,12 @@ import static cn.edu.tsinghua.iginx.engine.shared.Constants.UDF_CLASS;
 import static cn.edu.tsinghua.iginx.engine.shared.Constants.UDF_FUNC;
 
 import cn.edu.tsinghua.iginx.engine.shared.function.Function;
-import cn.edu.tsinghua.iginx.engine.shared.function.manager.FunctionManager;
-import cn.edu.tsinghua.iginx.engine.shared.function.udf.pool.InterpreterThreadPoolExecutor;
+import cn.edu.tsinghua.iginx.engine.shared.function.manager.ThreadInterpreterManager;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.*;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pemja.core.PythonInterpreter;
 
 public abstract class PyUDF implements Function {
 
@@ -38,65 +36,34 @@ public abstract class PyUDF implements Function {
 
   protected final String className;
 
-  // this should be per UDF
-  protected InterpreterThreadPoolExecutor executorService;
-
   public PyUDF(String moduleName, String className) {
     this.moduleName = moduleName;
     this.className = className;
   }
 
-  public void close() {
-    shutdownExecutorService();
-    try (PythonInterpreter interpreter =
-        new PythonInterpreter(FunctionManager.getInstance().getConfig())) {
-      // remove the module
-      interpreter.exec(String.format("import sys; sys.modules.pop('%s', None)", moduleName));
-    }
-  }
-
-  private void shutdownExecutorService() {
-    if (executorService == null) return;
-    executorService.shutdown();
+  public void close(String funcName) {
     try {
-      // 等待已提交的任务
-      if (!executorService.awaitTermination(60, TimeUnit.SECONDS)) {
-        executorService.shutdownNow();
-      }
-    } catch (InterruptedException e) {
-      executorService.shutdownNow();
-      throw new RuntimeException("Error occurred when shutting down UDF thread pool: ", e);
+      ThreadInterpreterManager.executeWithInterpreter(
+          interpreter ->
+              interpreter.exec(
+                  String.format("import sys; sys.modules.pop('%s', None)", moduleName)));
+    } catch (Exception e) {
+      LOGGER.error("Remove module for udf {} failed:", funcName, e);
     }
   }
 
   protected List<List<Object>> invokePyUDF(
       List<List<Object>> data, List<Object> args, Map<String, Object> kvargs) {
-    if (executorService == null) {
-      executorService =
-          new InterpreterThreadPoolExecutor(
-              5, 10, 60, TimeUnit.SECONDS, FunctionManager.getInstance().getConfig());
-    }
-    Future<List<List<Object>>> futureResult =
-        executorService.submit(
-            () -> {
-              try {
-                PythonInterpreter interpreter = executorService.getInterpreterForCurrentThread();
-                interpreter.exec(
-                    String.format("import %s; t = %s.%s()", moduleName, moduleName, className));
-                List<List<Object>> res =
-                    (List<List<Object>>)
-                        interpreter.invokeMethod(UDF_CLASS, UDF_FUNC, data, args, kvargs);
-                return res;
-              } catch (Exception e) {
-                LOGGER.error("Error occurred invoking python UDF:", e);
-                return null;
-              }
-            });
-
     try {
-      return futureResult.get();
+      ThreadInterpreterManager.executeWithInterpreter(
+          interpreter ->
+              interpreter.exec(
+                  String.format("import %s; t = %s.%s()", moduleName, moduleName, className)));
+      return (List<List<Object>>)
+          ThreadInterpreterManager.executeWithInterpreterAndReturn(
+              interpreter -> interpreter.invokeMethod(UDF_CLASS, UDF_FUNC, data, args, kvargs));
     } catch (Exception e) {
-      LOGGER.error("Error occurred invoking python UDF:", e);
+      LOGGER.error("Invoke python failure: ", e);
       return null;
     }
   }
