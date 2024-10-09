@@ -17,16 +17,15 @@
  */
 package cn.edu.tsinghua.iginx.engine.shared.function.udf.python;
 
-import static cn.edu.tsinghua.iginx.engine.shared.Constants.UDF_CLASS;
 import static cn.edu.tsinghua.iginx.engine.shared.Constants.UDF_FUNC;
 
 import cn.edu.tsinghua.iginx.engine.shared.function.Function;
 import cn.edu.tsinghua.iginx.engine.shared.function.manager.ThreadInterpreterManager;
 import java.util.List;
 import java.util.Map;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pemja.core.PythonInterpreter;
 
 public abstract class PyUDF implements Function {
 
@@ -41,12 +40,9 @@ public abstract class PyUDF implements Function {
     this.className = className;
   }
 
-  public void close(String funcName) {
+  public void close(String funcName, PythonInterpreter interpreter) {
     try {
-      ThreadInterpreterManager.executeWithInterpreter(
-          interpreter ->
-              interpreter.exec(
-                  String.format("import sys; sys.modules.pop('%s', None)", moduleName)));
+      interpreter.exec(String.format("import sys; sys.modules.pop('%s', None)", moduleName));
     } catch (Exception e) {
       LOGGER.error("Remove module for udf {} failed:", funcName, e);
     }
@@ -55,13 +51,16 @@ public abstract class PyUDF implements Function {
   protected List<List<Object>> invokePyUDF(
       List<List<Object>> data, List<Object> args, Map<String, Object> kvargs) {
     try {
+      // 由于多个UDF共享interpreter，因此使用独特的对象名
+      String obj = (moduleName + className).replace(".", "a");
       ThreadInterpreterManager.executeWithInterpreter(
           interpreter ->
               interpreter.exec(
-                  String.format("import %s; t = %s.%s()", moduleName, moduleName, className)));
+                  String.format(
+                      "import %s; %s = %s.%s()", moduleName, obj, moduleName, className)));
       return (List<List<Object>>)
           ThreadInterpreterManager.executeWithInterpreterAndReturn(
-              interpreter -> interpreter.invokeMethod(UDF_CLASS, UDF_FUNC, data, args, kvargs));
+              interpreter -> interpreter.invokeMethod(obj, UDF_FUNC, data, args, kvargs));
     } catch (Exception e) {
       LOGGER.error("Invoke python failure: ", e);
       return null;

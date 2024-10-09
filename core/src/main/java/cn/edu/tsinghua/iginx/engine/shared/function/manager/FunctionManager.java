@@ -36,6 +36,7 @@ import java.io.File;
 import java.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pemja.core.PythonInterpreter;
 import pemja.core.PythonInterpreterConfig;
 
 public class FunctionManager {
@@ -55,6 +56,8 @@ public class FunctionManager {
 
   private final PythonInterpreterConfig INTERPRETER_CONFIG;
 
+  private final PythonInterpreter interpreter;
+
   private FunctionManager() {
     this.functions = new HashMap<>();
     this.INTERPRETER_CONFIG =
@@ -62,6 +65,9 @@ public class FunctionManager {
             .setPythonExec(config.getPythonCMD())
             .addPythonPaths(PATH)
             .build();
+    // 这是主线程的interpreter，用于删除UDF，UDF运行时使用线程池
+    this.interpreter = new PythonInterpreter(getConfig());
+    ThreadInterpreterManager.setInterpreter(interpreter);
     this.initSystemFunctions();
     if (config.isNeedInitBasicUDFFunctions()) {
       this.initBasicUDFFunctions();
@@ -165,7 +171,7 @@ public class FunctionManager {
   public void removeFunction(String identifier) {
     if (functions.containsKey(identifier)) {
       PyUDF function = (PyUDF) functions.get(identifier);
-      function.close(identifier);
+      function.close(identifier, interpreter);
     }
     functions.remove(identifier);
   }
