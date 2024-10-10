@@ -32,7 +32,12 @@ public class ThreadInterpreterManager {
 
   @NotNull
   public static PythonInterpreter getInterpreter() {
-    return interpreterThreadLocal.get();
+    PythonInterpreter interpreter = interpreterThreadLocal.get();
+    if (interpreter != null) {
+      return interpreter;
+    } else {
+      throw new RuntimeException("Python interpreter not set.");
+    }
   }
 
   public static void setInterpreter(@NotNull PythonInterpreter interpreter) {
@@ -49,7 +54,7 @@ public class ThreadInterpreterManager {
     return action.apply(interpreter);
   }
 
-  /** task所在线程被异常结束时调用，从threadlocal中移除interpreter */
+  /** 从threadlocal中移除interpreter */
   public static void cleanupInterpreter() {
     PythonInterpreter interpreter = interpreterThreadLocal.get();
     if (interpreter != null) {

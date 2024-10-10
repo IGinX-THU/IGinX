@@ -52,7 +52,7 @@ public class AbstractTaskThreadPoolExecutor extends ThreadPoolExecutor {
     }
   }
 
-  /** 创建 fixed thread pool */
+  /** 创建固定大小线程池，使用LinkedBlockingQueue */
   public AbstractTaskThreadPoolExecutor(int poolSize) {
     super(
         poolSize,
@@ -63,7 +63,7 @@ public class AbstractTaskThreadPoolExecutor extends ThreadPoolExecutor {
         new TaskThreadFactory());
   }
 
-  /** 创建参数自定义的 thread pool */
+  /** 创建参数自定义的线程池 */
   public AbstractTaskThreadPoolExecutor(
       int corePoolSize,
       int maximumPoolSize,
@@ -79,6 +79,13 @@ public class AbstractTaskThreadPoolExecutor extends ThreadPoolExecutor {
     super.beforeExecute(t, r);
     threadInterpreterMap.computeIfAbsent(t, k -> new PythonInterpreter(config));
     ThreadInterpreterManager.setInterpreter(threadInterpreterMap.get(t));
+  }
+
+  /** 每次执行后，线程清除threadlocal，但interpreter保存在map中以备下次使用 */
+  @Override
+  protected void afterExecute(Runnable r, Throwable t) {
+    super.afterExecute(r, t);
+    ThreadInterpreterManager.cleanupInterpreter();
   }
 
   /** 所有线程已被关闭，线程池退出前关闭所有interpreter资源 */
