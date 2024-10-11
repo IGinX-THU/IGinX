@@ -143,6 +143,7 @@ public class TPCHRegressionNewIT {
 
       // 与主分支运行结果进行比较
       long oldTimeCostMedian = getMedian(oldTimeCosts.get(queryId - 1));
+      
       long newTimeCostMedian = getMedian(newTimeCosts.get(queryId - 1));
       if (oldTimeCostMedian * ratio < newTimeCostMedian) {
         if (iterationTimes >= MAX_REPETITIONS_NUM) {
