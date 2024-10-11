@@ -15,34 +15,47 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
 package cn.edu.tsinghua.iginx.engine.shared.expr;
 
-public interface Expression {
+public class KeyExpression implements Expression {
 
-  String getColumnName();
+  public static String KEY_PREFIX = "&key@";
 
-  ExpressionType getType();
+  private final String columnName;
 
-  boolean hasAlias();
+  private String alias;
 
-  String getAlias();
+  public KeyExpression(String columnName) {
+    this.columnName = columnName;
+  }
 
-  void setAlias(String alias);
+  @Override
+  public String getColumnName() {
+    return columnName;
+  }
 
-  void accept(ExpressionVisitor visitor);
+  @Override
+  public ExpressionType getType() {
+    return ExpressionType.Key;
+  }
 
-  enum ExpressionType {
-    Bracket,
-    Binary,
-    Unary,
-    Function,
-    Base,
-    Constant,
-    FromValue,
-    Multiple,
-    CaseWhen,
-    Key,
-    Sequence,
+  @Override
+  public boolean hasAlias() {
+    return alias != null && !alias.isEmpty();
+  }
+
+  @Override
+  public String getAlias() {
+    return alias;
+  }
+
+  @Override
+  public void setAlias(String alias) {
+    this.alias = alias;
+  }
+
+  @Override
+  public void accept(ExpressionVisitor visitor) {
+    visitor.visit(this);
   }
 }

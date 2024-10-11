@@ -109,7 +109,16 @@ selectClause
    ;
 
 selectSublist
-   : expression asClause?
+   : KEY (asClause | asKeyClause)
+   | (expression | sequence) (asClause | asKeyClause)?
+   ;
+
+sequence
+   : SEQUENCE LR_BRACKET (start = constant COMMA increment = constant)? RR_BRACKET
+   ;
+
+asKeyClause
+   : AS KEY
    ;
 
 expression
@@ -1139,6 +1148,10 @@ ELSE
 
 END
    : E N D
+   ;
+
+SEQUENCE
+   : S E Q U E N C E
    ;
    //============================
    

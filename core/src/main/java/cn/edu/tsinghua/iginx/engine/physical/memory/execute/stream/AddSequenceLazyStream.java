@@ -15,43 +15,54 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.stream;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
-import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Rename;
-import cn.edu.tsinghua.iginx.utils.Pair;
-import java.util.HashSet;
+import cn.edu.tsinghua.iginx.engine.shared.operator.AddSequence;
+import cn.edu.tsinghua.iginx.thrift.DataType;
+import java.util.ArrayList;
+import java.util.List;
 
-public class RenameLazyStream extends UnaryLazyStream {
-
-  private final Rename rename;
+public class AddSequenceLazyStream extends UnaryLazyStream {
 
   private Header header;
 
-  private int colIndex;
+  private final AddSequence addSequence;
 
-  private final HashSet<Long> keySet;
+  private final List<Long> cur;
 
-  public RenameLazyStream(Rename rename, RowStream stream) {
+  private final List<Long> increments;
+
+  private final int oldSize;
+
+  private final int newSize;
+
+  private final int sequenceSize;
+
+  public AddSequenceLazyStream(AddSequence addSequence, RowStream stream) throws PhysicalException {
     super(stream);
-    this.rename = rename;
-    this.keySet = new HashSet<>();
+    this.addSequence = addSequence;
+    this.cur = new ArrayList<>(addSequence.getStartList());
+    this.increments = new ArrayList<>(addSequence.getIncrementList());
+    this.header = getHeader();
+    this.oldSize = stream.getHeader().getFieldSize();
+    this.newSize = header.getFieldSize();
+    this.sequenceSize = newSize - oldSize;
   }
 
   @Override
   public Header getHeader() throws PhysicalException {
     if (header == null) {
       Header header = stream.getHeader();
-      Pair<Header, Integer> pair =
-          header.renamedHeader(rename.getAliasList(), rename.getIgnorePatterns());
-      this.header = pair.k;
-      this.colIndex = pair.v;
+      List<Field> targetFields = new ArrayList<>(stream.getHeader().getFields());
+      addSequence
+          .getColumns()
+          .forEach(column -> targetFields.add(new Field(column, DataType.LONG)));
+      this.header = new Header(header.getKey(), targetFields);
     }
     return header;
   }
@@ -68,15 +79,12 @@ public class RenameLazyStream extends UnaryLazyStream {
     }
 
     Row row = stream.next();
-    if (colIndex == -1) {
-      return new Row(header, row.getKey(), row.getValues());
-    } else {
-      Row newRow = RowUtils.transformColumnToKey(header, row, colIndex);
-      if (keySet.contains(newRow.getKey())) {
-        throw new PhysicalTaskExecuteFailureException("duplicated key found: " + newRow.getKey());
-      }
-      keySet.add(newRow.getKey());
-      return newRow;
+    Object[] values = new Object[newSize];
+    System.arraycopy(row.getValues(), 0, values, 0, oldSize);
+    for (int i = 0; i < sequenceSize; i++) {
+      values[oldSize + i] = cur.get(i);
+      cur.set(i, cur.get(i) + increments.get(i));
     }
+    return new Row(header, row.getKey(), values);
   }
 }
