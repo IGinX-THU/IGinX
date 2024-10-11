@@ -102,11 +102,11 @@ calculate_heap_sizes() {
   fi
 
   # set the required memory percentage according to your needs (< 100 & must be a integer)
-  max_percentageNumerator=1/2
+  max_percentageNumerator=50
   max_heap_size_in_mb=$((${system_memory_in_mb} * ${max_percentageNumerator} / 100))
   MAX_HEAP_SIZE=${max_heap_size_in_mb}M
 
-  min_percentageNumerator=1/2
+  min_percentageNumerator=50
   min_heap_size_in_mb=$((${system_memory_in_mb} * ${min_percentageNumerator} / 100))
   MIN_HEAP_SIZE=${min_heap_size_in_mb}M
 }
