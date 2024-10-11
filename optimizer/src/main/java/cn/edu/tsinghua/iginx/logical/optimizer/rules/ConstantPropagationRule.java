@@ -123,7 +123,7 @@ public class ConstantPropagationRule extends Rule {
 
           @Override
           public void visit(ValueFilter filter) {
-            if (filter == targetFilter) {
+            if (filter == targetFilter || filter.toString().equals(targetFilter.toString())) {
               return;
             }
 
@@ -289,7 +289,8 @@ public class ConstantPropagationRule extends Rule {
         ValueFilter valueFilter = (ValueFilter) replaceFilter;
         Op valueOp = valueFilter.getOp();
         Value valueValue = valueFilter.getValue();
-        if (valueFilter.getPath().equals(constantPath)) {
+        if (valueFilter.getPath().equals(constantPath)
+            && !valueFilter.toString().equals(constantFilter.toString())) {
           return new BoolFilter(
               FilterUtils.validateValueCompare(valueOp, constantValue, valueValue));
         }
