@@ -168,7 +168,7 @@ The following words are displayed, indicating that the IGinX build is successful
 
 ```shell
 [INFO] ------------------------------------------------------------------------
-[INFO] Reactor Summary for IGinX 0.7.1:
+[INFO] Reactor Summary for IGinX 0.7.2:
 [INFO]
 [INFO] IGinX .............................................. SUCCESS [ 20.674 s]
 [INFO] IGinX Thrift ....................................... SUCCESS [01:18 min]
