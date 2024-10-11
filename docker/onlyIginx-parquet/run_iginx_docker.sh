@@ -139,6 +139,6 @@ fi
 
 configFileConfig="-v ${localConfigFile}:/iginx/conf/config.properties "
 
-command="docker run --name=${name} ${localIPConfig}${configFileConfig}--add-host=host.docker.internal:host-gateway ${network}--privileged -dit -e host_iginx_port=${hostPort}${portCastParams} iginx:0.7.1"
+command="docker run --name=${name} ${localIPConfig}${configFileConfig}--add-host=host.docker.internal:host-gateway ${network}--privileged -dit -e host_iginx_port=${hostPort}${portCastParams} iginx:0.7.2"
 echo "RUNNING ${command}"
 # ${command}
