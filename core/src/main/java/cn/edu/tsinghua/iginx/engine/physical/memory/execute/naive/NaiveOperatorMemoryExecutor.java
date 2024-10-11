@@ -55,6 +55,7 @@ import cn.edu.tsinghua.iginx.engine.shared.function.*;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.Max;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.Min;
 import cn.edu.tsinghua.iginx.engine.shared.operator.AddSchemaPrefix;
+import cn.edu.tsinghua.iginx.engine.shared.operator.AddSequence;
 import cn.edu.tsinghua.iginx.engine.shared.operator.BinaryOperator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.CrossJoin;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Distinct;
@@ -137,6 +138,8 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
         return executeAddSchemaPrefix((AddSchemaPrefix) operator, table);
       case GroupBy:
         return executeGroupBy((GroupBy) operator, table);
+      case AddSequence:
+        return executeAddSequence((AddSequence) operator, table);
       case Distinct:
         return executeDistinct((Distinct) operator, table);
       case ValueToSelectedPath:
@@ -417,22 +420,27 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     return RowUtils.calMappingTransform(table, functionCallList);
   }
 
-  private RowStream executeRename(Rename rename, Table table) {
+  private RowStream executeRename(Rename rename, Table table) throws PhysicalException {
     Header header = table.getHeader();
     List<Pair<String, String>> aliasList = rename.getAliasList();
-    Header newHeader = header.renamedHeader(aliasList, rename.getIgnorePatterns());
+    Pair<Header, Integer> pair = header.renamedHeader(aliasList, rename.getIgnorePatterns());
+    Header newHeader = pair.k;
+    int colIndex = pair.v;
 
     List<Row> rows = new ArrayList<>();
-    table
-        .getRows()
-        .forEach(
-            row -> {
-              if (newHeader.hasKey()) {
-                rows.add(new Row(newHeader, row.getKey(), row.getValues()));
-              } else {
-                rows.add(new Row(newHeader, row.getValues()));
-              }
-            });
+    if (colIndex == -1) {
+      table.getRows().forEach(row -> rows.add(new Row(newHeader, row.getKey(), row.getValues())));
+    } else {
+      HashSet<Long> keySet = new HashSet<>();
+      for (Row row : table.getRows()) {
+        Row newRow = RowUtils.transformColumnToKey(newHeader, row, colIndex);
+        if (keySet.contains(newRow.getKey())) {
+          throw new PhysicalTaskExecuteFailureException("duplicated key found: " + newRow.getKey());
+        }
+        keySet.add(newRow.getKey());
+        rows.add(newRow);
+      }
+    }
 
     return new Table(newHeader, rows);
   }
@@ -479,6 +487,33 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     }
     Header header = rows.get(0).getHeader();
     return new Table(header, rows);
+  }
+
+  private RowStream executeAddSequence(AddSequence addSequence, Table table) {
+    Header header = table.getHeader();
+    List<Field> targetFields = new ArrayList<>(header.getFields());
+    addSequence.getColumns().forEach(column -> targetFields.add(new Field(column, DataType.LONG)));
+    Header newHeader = new Header(header.getKey(), targetFields);
+
+    List<Row> rows = new ArrayList<>();
+    int oldSize = header.getFieldSize();
+    int newSize = targetFields.size();
+    int sequenceSize = newSize - oldSize;
+    List<Long> cur = new ArrayList<>(addSequence.getStartList());
+    List<Long> increments = new ArrayList<>(addSequence.getIncrementList());
+    table
+        .getRows()
+        .forEach(
+            row -> {
+              Object[] values = new Object[newSize];
+              System.arraycopy(row.getValues(), 0, values, 0, oldSize);
+              for (int i = 0; i < sequenceSize; i++) {
+                values[oldSize + i] = cur.get(i);
+                cur.set(i, cur.get(i) + increments.get(i));
+              }
+              rows.add(new Row(newHeader, row.getKey(), values));
+            });
+    return new Table(newHeader, rows);
   }
 
   private RowStream executeReorder(Reorder reorder, Table table) {

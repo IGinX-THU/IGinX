@@ -158,6 +158,10 @@ public class ColumnPruningRule extends Rule {
       } else if (operator.getType() == OperatorType.MappingTransform) {
         MappingTransform mappingTransform = (MappingTransform) operator;
         functionCallList = mappingTransform.getFunctionCallList();
+      } else if (operator.getType() == OperatorType.AddSequence) {
+        // 移除自增列算子中添加的列
+        AddSequence addSequence = (AddSequence) operator;
+        addSequence.getColumns().forEach(columns::remove);
       }
 
       if (newColumnList != null) {
