@@ -130,6 +130,13 @@ public final class Header {
         && Objects.equals(indexMap, header.indexMap);
   }
 
+  /**
+   * 根据Rename算子的aliasList和ignorePatterns计算重命名后的header和要升级成key列的普通列的下标
+   *
+   * @param aliasList Rename算子参数
+   * @param ignorePatterns Rename算子参数
+   * @return pair.k表示重命名后的header;pair.v表示要升级成key列的普通列的下标,为-1时表示没有列需要升级成key列
+   */
   public Pair<Header, Integer> renamedHeader(
       List<Pair<String, String>> aliasList, List<String> ignorePatterns) throws PhysicalException {
     List<Field> newFields = new ArrayList<>();
