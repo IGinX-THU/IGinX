@@ -417,6 +417,9 @@ public class IginxWorker implements IService.Iface {
               // 已有的数据库仍可连接
               if (currentStorageEngine.contains(storageEngine)) {
                 // 已有数据库能够覆盖新注册的数据库，拒绝注册
+                LOGGER.warn(
+                    "engine:{} would not be registered: duplicate data coverage detected. Please check existing engines.",
+                    storageEngine);
                 StorageEnginesToBeRemoved.add(storageEngine);
                 status.setCode(RpcUtils.PARTIAL_SUCCESS.code);
               }
@@ -443,11 +446,9 @@ public class IginxWorker implements IService.Iface {
       }
       if (!StorageEnginesToBeRemoved.isEmpty()) {
         storageEngineMetas.removeAll(StorageEnginesToBeRemoved);
-        if (!storageEngineMetas.isEmpty()) {
-          status.setCode(RpcUtils.PARTIAL_SUCCESS.code);
-        } else {
+        if (storageEngineMetas.isEmpty()) {
           status.setCode(RpcUtils.FAILURE.code);
-          status.setMessage("repeatedly add storage engine");
+          status.setMessage("No valid engine can be registered. Check server log for details.");
           return;
         }
       }
