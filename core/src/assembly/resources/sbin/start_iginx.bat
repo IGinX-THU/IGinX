@@ -103,23 +103,17 @@ for /f "tokens=*" %%a in ('cscript //nologo %temp%\tmp.vbs') do set system_memor
 del %temp%\tmp.vbs
 set system_memory_in_mb=%system_memory_in_mb:,=%
 
-@REM set /a half_=%system_memory_in_mb%/2
-@REM set /a quarter_=%half_%/2
-
-@REM if ["%half_%"] GTR ["1024"] set half_=1024
-@REM if ["%quarter_%"] GTR ["65536"] set quarter_=65536
-
-@REM if %half_% GTR %quarter_% (
-@REM 	set max_heap_size_in_mb=%half_%
-@REM ) else set max_heap_size_in_mb=%quarter_%
-
-@REM set the required memory ratio according to your needs (< 100 & must be a fraction)
-set /a max_ratio=50
-set /a max_heap_size_in_mb=%system_memory_in_mb% * %max_ratio% / 100
+@REM set the required memory percentage according to your needs (< 100 & must be a integer)
+set /a max_percentageNumerator=50
+set /a max_heap_size_in_mb=%system_memory_in_mb% * %max_percentageNumerator% / 100
 set MAX_HEAP_SIZE=%max_heap_size_in_mb%M
 
+set /a min_percentageNumerator=50
+set /a min_heap_size_in_mb=%system_memory_in_mb% * %min_percentageNumerator% / 100
+set MIN_HEAP_SIZE=%min_heap_size_in_mb%M
+
 @REM -----------------------------------------------------------------------------
-set HEAP_OPTS=-Xmx%MAX_HEAP_SIZE% -Xms%MAX_HEAP_SIZE% -Xloggc:"%IGINX_HOME%\gc.log" -XX:+PrintGCDateStamps -XX:+PrintGCDetails
+set HEAP_OPTS=-Xmx%MAX_HEAP_SIZE% -Xms%MIN_HEAP_SIZE% -Xloggc:"%IGINX_HOME%\gc.log" -XX:+PrintGCDateStamps -XX:+PrintGCDetails
 
 @REM ***** CLASSPATH library setting *****
 @REM Ensure that any user defined CLASSPATH variables are not used on startup
