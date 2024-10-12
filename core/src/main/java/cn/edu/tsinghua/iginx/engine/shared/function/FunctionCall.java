@@ -17,6 +17,10 @@
  */
 package cn.edu.tsinghua.iginx.engine.shared.function;
 
+import static cn.edu.tsinghua.iginx.engine.shared.function.system.ArithmeticExpr.ARITHMETIC_EXPR;
+
+import cn.edu.tsinghua.iginx.engine.shared.expr.BaseExpression;
+import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.ArithmeticExpr;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.UDAF;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.UDSF;
@@ -28,9 +32,23 @@ public class FunctionCall {
 
   private final FunctionParams params;
 
+  private final boolean needPreRowTransform;
+
   public FunctionCall(Function function, FunctionParams params) {
     this.function = function;
     this.params = params;
+
+    // init needPreRowTransform
+    boolean needPreRowTransform = false;
+    if (!function.getIdentifier().equalsIgnoreCase(ARITHMETIC_EXPR)) {
+      for (Expression expression : params.getExpressions()) {
+        if (!(expression instanceof BaseExpression)) {
+          needPreRowTransform = true;
+          break;
+        }
+      }
+    }
+    this.needPreRowTransform = needPreRowTransform;
   }
 
   public Function getFunction() {
@@ -39,6 +57,10 @@ public class FunctionCall {
 
   public FunctionParams getParams() {
     return params;
+  }
+
+  public boolean isNeedPreRowTransform() {
+    return needPreRowTransform;
   }
 
   public FunctionCall copy() {
@@ -54,7 +76,9 @@ public class FunctionCall {
 
   private String getFuncName() {
     if (function instanceof ArithmeticExpr) {
-      return params.getExpr().getColumnName();
+      if (params.getExpressions().size() == 1) {
+        return params.getExpressions().get(0).getColumnName();
+      }
     } else if (function.getFunctionType() == FunctionType.UDF) {
       if (function instanceof UDAF) {
         return ((UDAF) function).getFunctionName();
@@ -71,7 +95,7 @@ public class FunctionCall {
 
   public String getFunctionStr() {
     if (function instanceof ArithmeticExpr) {
-      return params.getExpr().getColumnName();
+      return params.getExpressions().get(0).getColumnName();
     }
 
     return String.format(

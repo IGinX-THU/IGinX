@@ -24,9 +24,12 @@ import static org.junit.Assert.fail;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.expansion.BaseCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.constant.Constant;
+import cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.integration.tool.DBConf;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
+import java.util.Arrays;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,8 +40,7 @@ public class MySQLCapacityExpansionIT extends BaseCapacityExpansionIT {
   public MySQLCapacityExpansionIT() {
     super(
         StorageEngineType.relational,
-        "engine:mysql, username:root,"
-            + "meta_properties_path:dataSource/relational/src/main/resources/mysql-meta-template.properties",
+        "engine:mysql, username:root",
         new MySQLHistoryDataGenerator());
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
     DBConf dbConf = conf.loadDBConf(conf.getStorageType());
@@ -73,5 +75,21 @@ public class MySQLCapacityExpansionIT extends BaseCapacityExpansionIT {
     if (res != 0) {
       fail("Fail to update mysql params.");
     }
+  }
+
+  @Override
+  protected void testQuerySpecialHistoryData() {
+    testFloatData();
+  }
+
+  /** 测试float类型数据 */
+  private void testFloatData() {
+    String statement = "select wt02.float from tm.wf05 where wt02.float <= 44.55;";
+    List<String> pathList = Constant.READ_ONLY_FLOAT_PATH_LIST;
+    List<List<Object>> valuesList = Constant.READ_ONLY_FLOAT_VALUES_LIST;
+    SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
+    statement = "select wt02.float from tm.wf05 where wt02.float = 44.55;";
+    valuesList = Arrays.asList(Arrays.asList(44.55F));
+    SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
   }
 }

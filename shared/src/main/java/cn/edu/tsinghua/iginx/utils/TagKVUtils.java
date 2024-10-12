@@ -18,6 +18,7 @@
 package cn.edu.tsinghua.iginx.utils;
 
 import java.util.*;
+import java.util.regex.Pattern;
 
 public class TagKVUtils {
 
@@ -40,6 +41,11 @@ public class TagKVUtils {
    * 作为后缀，实际上起到的是一个保护作用。
    */
   public static final String tagSuffix = "A"; // "#tagSuffix";
+
+  /** 匹配类似 <string>({<string>=<string>(, <string>=<string>)*})? 的可能含tag的列名全名 */
+  public static final Pattern tagMatchRegex =
+      Pattern.compile(
+          "^[^\\{\\}]+(?:\\{[^\\{\\}=,]+=[^\\{\\}=,]+(?:, [^\\{\\}=,]+=[^\\{\\}=,]+)*\\})?$");
 
   public static String toPhysicalPath(String name, Map<String, String> tags) {
     StringBuilder builder = new StringBuilder();

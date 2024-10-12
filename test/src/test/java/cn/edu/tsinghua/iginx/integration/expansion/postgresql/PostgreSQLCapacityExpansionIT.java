@@ -30,6 +30,8 @@ import cn.edu.tsinghua.iginx.integration.tool.DBConf;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import java.sql.Connection;
 import java.sql.Statement;
+import java.util.Arrays;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,6 +59,7 @@ public class PostgreSQLCapacityExpansionIT extends BaseCapacityExpansionIT {
   protected void testQuerySpecialHistoryData() {
     testRepeatsQuery();
     testConcatFunction();
+    testFloatData();
   }
 
   /** 执行一个简单查询1000次，测试是否会使连接池耗尽，来验证PG的dummy查询是否正确释放连接 */
@@ -142,6 +145,17 @@ public class PostgreSQLCapacityExpansionIT extends BaseCapacityExpansionIT {
       LOGGER.error("create table failed", e);
       assert false;
     }
+  }
+
+  /** 测试float类型数据 */
+  private void testFloatData() {
+    String statement = "select wt02.float from tm.wf05 where wt02.float <= 44.55;";
+    List<String> pathList = Constant.READ_ONLY_FLOAT_PATH_LIST;
+    List<List<Object>> valuesList = Constant.READ_ONLY_FLOAT_VALUES_LIST;
+    SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
+    statement = "select wt02.float from tm.wf05 where wt02.float = 44.55;";
+    valuesList = Arrays.asList(Arrays.asList(44.55F));
+    SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
   }
 
   @Override

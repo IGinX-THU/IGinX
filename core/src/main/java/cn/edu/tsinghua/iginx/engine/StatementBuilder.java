@@ -66,6 +66,11 @@ public class StatementBuilder {
     typeMap.put(StatementType.SHOW_SESSION_ID, SqlType.ShowSessionID);
     typeMap.put(StatementType.SHOW_RULES, SqlType.ShowRules);
     typeMap.put(StatementType.SET_RULES, SqlType.SetRules);
+    typeMap.put(StatementType.CREATE_USER, SqlType.CreateUser);
+    typeMap.put(StatementType.GRANT_USER, SqlType.GrantUser);
+    typeMap.put(StatementType.CHANGE_USER_PASSWORD, SqlType.ChangeUserPassword);
+    typeMap.put(StatementType.DROP_USER, SqlType.DropUser);
+    typeMap.put(StatementType.SHOW_USER, SqlType.ShowUser);
   }
 
   private static final StatementBuilder instance = new StatementBuilder();

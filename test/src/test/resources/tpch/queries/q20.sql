@@ -1,45 +1,60 @@
-insert into tmpTableA(key, partkey, suppkey, val) values (
-     select
-     partkey,
-     suppkey,
-     0.5 * tmp from(
-      select
-		      l_partkey as partkey,
-		      l_suppkey as suppkey,
-          sum(l_quantity) as tmp
-      from
-          lineitem
-      where
-          lineitem.l_shipdate >= 757353600000
-          and lineitem.l_shipdate < 788889600000
-      group by l_partkey, l_suppkey
-  )
-);
+INSERT
+    INTO
+        tmpTableA(
+            KEY,
+            partkey,
+            suppkey,
+            val
+        )
+    VALUES(
+        SELECT
+            partkey,
+            suppkey,
+            0.5 * tmp
+        FROM
+            (
+                SELECT
+                    l_partkey AS partkey,
+                    l_suppkey AS suppkey,
+                    SUM( l_quantity ) AS tmp
+                FROM
+                    lineitem
+                WHERE
+                    lineitem.l_shipdate >= 757353600000
+                    AND lineitem.l_shipdate < 788889600000
+                GROUP BY
+                    l_partkey,
+                    l_suppkey
+            )
+    );
 
-select
+SELECT
     supplier.s_name,
     supplier.s_address
-from
+FROM
     supplier
-        join nation on supplier.s_nationkey = nation.n_nationkey
-where
-        supplier.s_suppkey in (
-        select
+JOIN nation ON
+    supplier.s_nationkey = nation.n_nationkey
+WHERE
+    supplier.s_suppkey IN(
+        SELECT
             partsupp.ps_suppkey
-        from
+        FROM
             partsupp
-                join tmpTableA on tmpTableA.suppkey = partsupp.ps_suppkey and tmpTableA.partkey = partsupp.ps_partkey
-        where
-                partsupp.ps_partkey in (
-                select
+        JOIN tmpTableA ON
+            tmpTableA.suppkey = partsupp.ps_suppkey
+            AND tmpTableA.partkey = partsupp.ps_partkey
+        WHERE
+            partsupp.ps_partkey IN(
+                SELECT
                     p_partkey
-                from
+                FROM
                     part
-                where
-                        part.p_name like 'forest.*'
+                WHERE
+                    part.p_name LIKE 'forest.*'
             )
-          and partsupp.ps_availqty > tmpTableA.val
+            AND partsupp.ps_availqty > tmpTableA.val
     )
-  and nation.n_name = 'CANADA'
-order by
+    AND nation.n_name = 'CANADA'
+ORDER BY
     supplier.s_name;

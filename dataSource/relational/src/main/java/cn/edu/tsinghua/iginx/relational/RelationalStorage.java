@@ -18,17 +18,7 @@
 package cn.edu.tsinghua.iginx.relational;
 
 import static cn.edu.tsinghua.iginx.constant.GlobalConstant.SEPARATOR;
-import static cn.edu.tsinghua.iginx.relational.tools.Constants.ADD_COLUMN_STATEMENT;
-import static cn.edu.tsinghua.iginx.relational.tools.Constants.BATCH_SIZE;
-import static cn.edu.tsinghua.iginx.relational.tools.Constants.CREATE_DATABASE_STATEMENT;
-import static cn.edu.tsinghua.iginx.relational.tools.Constants.DATABASE_PREFIX;
-import static cn.edu.tsinghua.iginx.relational.tools.Constants.DROP_COLUMN_STATEMENT;
-import static cn.edu.tsinghua.iginx.relational.tools.Constants.KEY_NAME;
-import static cn.edu.tsinghua.iginx.relational.tools.Constants.PASSWORD;
-import static cn.edu.tsinghua.iginx.relational.tools.Constants.QUERY_STATEMENT_WITHOUT_KEYNAME;
-import static cn.edu.tsinghua.iginx.relational.tools.Constants.TAGKV_SEPARATOR;
-import static cn.edu.tsinghua.iginx.relational.tools.Constants.USERNAME;
-import static cn.edu.tsinghua.iginx.relational.tools.Constants.classMap;
+import static cn.edu.tsinghua.iginx.relational.tools.Constants.*;
 import static cn.edu.tsinghua.iginx.relational.tools.TagKVUtils.splitFullName;
 import static cn.edu.tsinghua.iginx.relational.tools.TagKVUtils.toFullName;
 
@@ -80,6 +70,7 @@ import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import com.zaxxer.hikari.pool.HikariPool;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -87,13 +78,7 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -148,13 +133,21 @@ public class RelationalStorage implements IStorage {
       config.setJdbcUrl(getUrl(databaseName, meta));
       config.setUsername(meta.getExtraParams().get(USERNAME));
       config.setPassword(meta.getExtraParams().get(PASSWORD));
-      config.addDataSourceProperty("prepStmtCacheSize", "250");
-      config.setLeakDetectionThreshold(2500);
-      config.setConnectionTimeout(30000);
-      config.setIdleTimeout(10000);
-      config.setMaximumPoolSize(10);
-      config.setMinimumIdle(1);
-      config.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
+      config.addDataSourceProperty(
+          "prepStmtCacheSize", meta.getExtraParams().getOrDefault("prep_stmt_cache_size", "250"));
+      config.setLeakDetectionThreshold(
+          Long.parseLong(meta.getExtraParams().getOrDefault("leak_detection_threshold", "2500")));
+      config.setConnectionTimeout(
+          Long.parseLong(meta.getExtraParams().getOrDefault("connection_timeout", "30000")));
+      config.setIdleTimeout(
+          Long.parseLong(meta.getExtraParams().getOrDefault("idle_timeout", "10000")));
+      config.setMaximumPoolSize(
+          Integer.parseInt(meta.getExtraParams().getOrDefault("maximum_pool_size", "20")));
+      config.setMinimumIdle(
+          Integer.parseInt(meta.getExtraParams().getOrDefault("minimum_idle", "1")));
+      config.addDataSourceProperty(
+          "prepStmtCacheSqlLimit",
+          meta.getExtraParams().getOrDefault("prep_stmt_cache_sql_limit", "2048"));
 
       HikariDataSource newDataSource = new HikariDataSource(config);
       connectionPoolMap.put(databaseName, newDataSource);
@@ -212,18 +205,33 @@ public class RelationalStorage implements IStorage {
 
   private void buildRelationalMeta() throws RelationalTaskExecuteFailureException {
     String engineName = meta.getExtraParams().get("engine");
-    if (classMap.containsKey(engineName)) {
-      try {
-        Class<?> clazz = Class.forName(classMap.get(engineName));
-        relationalMeta =
-            (AbstractRelationalMeta)
-                clazz.getConstructor(StorageEngineMeta.class).newInstance(meta);
-      } catch (Exception e) {
+    // load jdbc meta from properties file
+    String propertiesPath = meta.getExtraParams().get("meta_properties_path");
+    if (propertiesPath == null) {
+      if (!metaPathMap.containsKey(engineName)) {
+        // no default .properties exists & not provided by user
         throw new RelationalTaskExecuteFailureException(
-            String.format("engine %s is not supported", engineName), e);
+            String.format(
+                "A meta config .properties file must be provided for engine %s as 'meta_properties_path'.",
+                engineName));
+      } else {
+        // load default .properties
+        try (InputStream propertiesIS =
+            this.getClass().getClassLoader().getResourceAsStream(metaPathMap.get(engineName))) {
+          if (propertiesIS == null) {
+            throw new RelationalTaskExecuteFailureException(
+                String.format(
+                    "failed to find default meta properties %s for engine %s",
+                    metaPathMap.get(engineName), engineName));
+          }
+          relationalMeta = new JDBCMeta(meta, propertiesIS);
+        } catch (IOException e) {
+          throw new RelationalTaskExecuteFailureException(
+              String.format("failed to load default meta properties for engine %s", engineName), e);
+        }
       }
     } else {
-      String propertiesPath = meta.getExtraParams().get("meta_properties_path");
+      // load user-provided .properties
       try {
         relationalMeta = new JDBCMeta(meta, propertiesPath);
       } catch (IOException e) {

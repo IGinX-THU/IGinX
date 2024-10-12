@@ -38,6 +38,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.PathFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.JoinAlgType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OuterJoinType;
+import cn.edu.tsinghua.iginx.engine.shared.source.ConstantSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.FragmentSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.Source;
@@ -95,7 +96,8 @@ public class OperatorUtils {
 
     if (OperatorType.isUnaryOperator(operator.getType())) {
       AbstractUnaryOperator unaryOperator = (AbstractUnaryOperator) operator;
-      if (unaryOperator.getSource().getType() != SourceType.Fragment) {
+      if (unaryOperator.getSource().getType() != SourceType.Fragment
+          && unaryOperator.getSource().getType() != SourceType.Constant) {
         pathList.addAll(findPathList(((OperatorSource) unaryOperator.getSource()).getOperator()));
       }
     } else if (OperatorType.isBinaryOperator(operator.getType())) {
@@ -123,7 +125,7 @@ public class OperatorUtils {
     if (OperatorType.isUnaryOperator(operator.getType())) {
       UnaryOperator unaryOp = (UnaryOperator) operator;
       Source source = unaryOp.getSource();
-      if (source.getType() != SourceType.Fragment) {
+      if (source.getType() != SourceType.Fragment && source.getType() != SourceType.Constant) {
         findProjectOperators(projectOperatorList, ((OperatorSource) source).getOperator());
       }
     } else if (OperatorType.isBinaryOperator(operator.getType())) {
@@ -280,7 +282,8 @@ public class OperatorUtils {
         apply.setSourceB(rowTransform.getSource());
         List<FunctionCall> functionCallList = new ArrayList<>(rowTransform.getFunctionCallList());
         for (String correlatedVariable : correlatedVariables) {
-          FunctionParams params = new FunctionParams(new BaseExpression(correlatedVariable));
+          FunctionParams params =
+              new FunctionParams(Collections.singletonList(new BaseExpression(correlatedVariable)));
           functionCallList.add(
               new FunctionCall(FunctionManager.getInstance().getFunction(ARITHMETIC_EXPR), params));
         }
@@ -708,5 +711,12 @@ public class OperatorUtils {
       }
     }
     return true;
+  }
+
+  public static boolean isProjectFromConstant(Operator operator) {
+    if (operator instanceof Project) {
+      return ((Project) operator).getSource() instanceof ConstantSource;
+    }
+    return false;
   }
 }

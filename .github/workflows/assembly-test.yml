@@ -16,7 +16,7 @@ on:
                 description: "The operating system to run the test on"
                 type: string
                 required: false
-                default: '["ubuntu-latest", "macos-13", "windows-latest"]'
+                default: '["ubuntu-latest", "macos-latest", "windows-latest"]'
 
 env:
     FUNCTEST: SQLSessionIT#testShowColumns

@@ -17,7 +17,7 @@ on:
                 description: "The operating system to run the test on"
                 type: string
                 required: false
-                default: '["ubuntu-latest", "macos-13", "windows-latest"]'
+                default: '["ubuntu-latest", "macos-latest", "windows-latest"]'
             metadata-matrix:
                 description: "The metadata to run the test on"
                 type: string
@@ -27,7 +27,7 @@ on:
                 description: "The database to run the test on"
                 type: string
                 required: false
-                default: '["FileSystem", "IoTDB12", "InfluxDB", "PostgreSQL", "Redis", "MongoDB", "Parquet", "MySQL"]'
+                default: '["IoTDB12", "InfluxDB", "FileSystem", "PostgreSQL", "Redis", "MongoDB", "MySQL"]'
 
 jobs:
     TPC-H-Test:
@@ -78,8 +78,10 @@ jobs:
             - name: Download TPC-H Data
               shell: bash
               run: |
-                  chmod +x "${GITHUB_WORKSPACE}/.github/scripts/tpch/download_tpch_data.sh"
-                  "${GITHUB_WORKSPACE}/.github/scripts/tpch/download_tpch_data.sh"
+                  wget https://github.com/IGinX-THU/IGinX-resources/raw/main/resources/tpc.7z
+                  sudo apt-get install p7zip-full
+                  7za x tpc.7z
+                  ls tpc
 
             - name: Run ZooKeeper
               uses: ./.github/actions/zookeeperRunner
@@ -91,7 +93,13 @@ jobs:
 
             - name: Get Old Version IGinX
               shell: bash
-              run: git clone https://github.com/IGinX-THU/IGinX.git
+              run: |
+                  git clone https://github.com/IGinX-THU/IGinX.git
+                  cp -rf test/src/test/resources/tpch/queries/* IGinX/test/src/test/resources/tpch/queries/
+                  cp -rf test/src/test/resources/tpch/sf0.1/* IGinX/test/src/test/resources/tpch/sf0.1/
+                  cp -rf test/src/test/resources/tpch/udf/* IGinX/test/src/test/resources/tpch/udf/
+                  cp -f test/src/test/resources/testConfig.properties IGinX/test/src/test/resources/testConfig.properties
+            # 新增tpc-h查询测试时，旧版本代码中没有这些查询，需从新分支复制过去，添加完所有的tpc_h测试后可删除这些复制命令
 
             - name: Rewrite DB Conf in Old IGinX
               uses: ./.github/actions/dbConfWriter

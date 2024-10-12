@@ -17,8 +17,6 @@
  */
 package cn.edu.tsinghua.iginx.influxdb.tools;
 
-import static cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op.isLikeOp;
-
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
@@ -91,16 +89,17 @@ public class FilterTransformer {
             ? "\"" + filter.getValue().getBinaryVAsString() + "\""
             : filter.getValue().getValue().toString();
 
-    if (isLikeOp(filter.getOp())) {
-      return "r[\""
-          + path
-          + "\"] "
-          + " =~ /"
-          + filter.getValue().getBinaryVAsString()
-          + "$/"; // SQL的正则匹配需要全部匹配，但InfluxDB可以部分匹配，所以需要在最后加上$以保证匹配全部字符串。
+    switch (filter.getOp()) {
+      case LIKE:
+      case LIKE_AND:
+        // SQL的正则匹配需要全部匹配，但InfluxDB可以部分匹配，所以需要在最后加上$以保证匹配全部字符串。
+        return "r[\"" + path + "\"]  =~ /" + filter.getValue().getBinaryVAsString() + "$/";
+      case NOT_LIKE:
+      case NOT_LIKE_AND:
+        return "r[\"" + path + "\"]  !~ /" + filter.getValue().getBinaryVAsString() + "$/";
+      default:
+        return "r[\"" + path + "\"] " + Op.op2StrWithoutAndOr(filter.getOp()) + " " + value;
     }
-
-    return "r[\"" + path + "\"] " + Op.op2StrWithoutAndOr(filter.getOp()) + " " + value;
   }
 
   private static String toString(OrFilter filter) {

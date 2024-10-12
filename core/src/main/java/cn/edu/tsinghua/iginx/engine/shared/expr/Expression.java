@@ -41,5 +41,8 @@ public interface Expression {
     Constant,
     FromValue,
     Multiple,
+    CaseWhen,
+    Key,
+    Sequence,
   }
 }

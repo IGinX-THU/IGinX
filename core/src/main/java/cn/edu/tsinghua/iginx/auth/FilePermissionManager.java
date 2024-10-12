@@ -79,7 +79,7 @@ public class FilePermissionManager {
      */
     @Deprecated
     default Optional<Path> cheatNormalize(Path path) {
-      Path p = path.toAbsolutePath();
+      Path p = path.normalize().toAbsolutePath();
       // split path nodes
       String root = p.getRoot().toString();
       String[] nodes = new String[p.getNameCount()];

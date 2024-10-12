@@ -118,15 +118,22 @@ public class FilterPushDownAddSchemaPrefixRule extends Rule {
           public void visit(FromValueExpression expression) {}
 
           @Override
-          public void visit(FuncExpression expression) {
-            expression.getColumns().replaceAll(column -> removePrefix(column, prefix));
-          }
+          public void visit(FuncExpression expression) {}
 
           @Override
           public void visit(MultipleExpression expression) {}
 
           @Override
           public void visit(UnaryExpression expression) {}
+
+          @Override
+          public void visit(CaseWhenExpression expression) {}
+
+          @Override
+          public void visit(KeyExpression expression) {}
+
+          @Override
+          public void visit(SequenceExpression expression) {}
         });
   }
 

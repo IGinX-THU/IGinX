@@ -32,6 +32,9 @@ import java.util.Set;
 public abstract class SelectStatement extends DataStatement {
 
   public static int markJoinCount = 0;
+  public static int caseWhenCount = 0;
+  public static int keyCount = 0;
+  public static int sequenceCount = 0;
   protected SelectStatementType selectStatementType;
   protected boolean needLogicalExplain = false;
   protected boolean needPhysicalExplain = false;
@@ -136,6 +139,8 @@ public abstract class SelectStatement extends DataStatement {
   public abstract void initFreeVariables();
 
   public abstract List<Pair<String, String>> getSubQueryAliasList(String alias);
+
+  public abstract boolean isSimpleQuery();
 
   public enum SelectStatementType {
     UNARY,

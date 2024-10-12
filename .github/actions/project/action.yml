@@ -10,6 +10,9 @@ outputs:
     version:
         description: "project version"
         value: ${{ steps.info.outputs.version }}
+    workspace:
+        description: "absolute workspace path"
+        value: ${{ steps.workspace.outputs.workspace }}
 
 runs:
     using: "composite"
@@ -21,3 +24,16 @@ runs:
           run: |
               VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
               echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+        - name: "absolute workspace path"
+          id: workspace
+          shell: bash
+          working-directory: ${{ inputs.workspace }}
+          run: |
+              # if git bash for windows
+              if [ "$RUNNER_OS" == "Windows" ]; then
+                ABSOLUTE_WORKSPACE=$(pwd -W)
+              else
+                ABSOLUTE_WORKSPACE=$(pwd)
+              fi
+              echo "workspace=$ABSOLUTE_WORKSPACE" >> $GITHUB_OUTPUT

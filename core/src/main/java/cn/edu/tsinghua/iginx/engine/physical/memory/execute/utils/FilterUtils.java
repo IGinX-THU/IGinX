@@ -137,7 +137,7 @@ public class FilterUtils {
         }
         return true; // 所有子条件均满足，返回true
       } else {
-        throw new RuntimeException("Unknown op type: " + valueFilter.getOp());
+        throw new IllegalArgumentException("Unknown op type: " + valueFilter.getOp());
       }
     } else {
       Value value = row.getAsValue(path);
@@ -211,6 +211,9 @@ public class FilterUtils {
       case LIKE:
       case LIKE_AND:
         return ValueUtils.regexCompare(valueA, valueB);
+      case NOT_LIKE:
+      case NOT_LIKE_AND:
+        return !ValueUtils.regexCompare(valueA, valueB);
     }
     return false;
   }
@@ -284,6 +287,12 @@ public class FilterUtils {
         PathFilter pathFilter = (PathFilter) filter;
         paths.add(pathFilter.getPathA());
         paths.add(pathFilter.getPathB());
+        break;
+      case Expr:
+        ExprFilter exprFilter = (ExprFilter) filter;
+        paths.addAll(ExprUtils.getPathFromExpr(exprFilter.getExpressionA()));
+        paths.addAll(ExprUtils.getPathFromExpr(exprFilter.getExpressionB()));
+        break;
       default:
         break;
     }
@@ -321,7 +330,7 @@ public class FilterUtils {
       case Bool:
         return false;
       default:
-        throw new RuntimeException("Unexpected filter type: " + filter.getType());
+        throw new IllegalArgumentException("Unexpected filter type: " + filter.getType());
     }
   }
 

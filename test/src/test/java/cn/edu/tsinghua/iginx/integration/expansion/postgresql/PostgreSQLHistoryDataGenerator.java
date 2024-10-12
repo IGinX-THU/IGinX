@@ -177,6 +177,16 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
   }
 
   @Override
+  public void writeSpecialHistoryData() {
+    // write float value
+    writeHistoryData(
+        Constant.readOnlyPort,
+        Constant.READ_ONLY_FLOAT_PATH_LIST,
+        new ArrayList<>(Collections.singletonList(DataType.FLOAT)),
+        Constant.READ_ONLY_FLOAT_VALUES_LIST);
+  }
+
+  @Override
   public void clearHistoryDataForGivenPort(int port) {
     Connection conn = null;
     try {

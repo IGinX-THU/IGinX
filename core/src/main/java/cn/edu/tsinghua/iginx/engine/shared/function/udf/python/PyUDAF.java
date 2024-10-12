@@ -36,16 +36,14 @@ import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import pemja.core.PythonInterpreter;
 
-public class PyUDAF implements UDAF {
+public class PyUDAF extends PyUDF implements UDAF {
 
   private static final String PY_UDAF = "py_udaf";
 
-  private final BlockingQueue<PythonInterpreter> interpreters;
-
   private final String funcName;
 
-  public PyUDAF(BlockingQueue<PythonInterpreter> interpreter, String funcName) {
-    this.interpreters = interpreter;
+  public PyUDAF(BlockingQueue<PythonInterpreter> interpreters, String funcName, String moduleName) {
+    super(interpreters, moduleName);
     this.funcName = funcName;
   }
 

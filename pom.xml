@@ -60,13 +60,15 @@
     </distributionManagement>
 
     <properties>
+        <auto-service.version>1.1.1</auto-service.version>
         <build-plugin.jacoco.version>0.8.6</build-plugin.jacoco.version>
         <deploy.repo.dir>${project.basedir}</deploy.repo.dir>
+        <lombok.version>1.18.34</lombok.version>
         <maven.compiler.source>8</maven.compiler.source>
         <maven.compiler.target>8</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <revision>0.7.1</revision>
+        <revision>0.8.0-SNAPSHOT</revision>
     </properties>
 
     <dependencyManagement>
@@ -108,11 +110,6 @@
             </dependency>
             <dependency>
                 <groupId>cn.edu.tsinghua</groupId>
-                <artifactId>filesystem</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>cn.edu.tsinghua</groupId>
                 <artifactId>influxdb</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -123,7 +120,7 @@
             </dependency>
             <dependency>
                 <groupId>cn.edu.tsinghua</groupId>
-                <artifactId>parquet</artifactId>
+                <artifactId>filesystem</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -285,12 +282,20 @@
             <dependency>
                 <groupId>org.projectlombok</groupId>
                 <artifactId>lombok</artifactId>
-                <version>1.18.20</version>
+                <version>${lombok.version}</version>
+                <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava-bom</artifactId>
                 <version>33.2.1-jre</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.junit</groupId>
+                <artifactId>junit-bom</artifactId>
+                <version>5.11.0</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -304,11 +309,21 @@
             <version>4.13.2</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
         <pluginManagement>
             <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-jar-plugin</artifactId>
+                    <version>3.4.2</version>
+                </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-surefire-plugin</artifactId>
@@ -321,6 +336,11 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-assembly-plugin</artifactId>
                     <version>3.7.1</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.thrift</groupId>
+                    <artifactId>thrift-maven-plugin</artifactId>
+                    <version>0.10.0</version>
                 </plugin>
                 <plugin>
                     <groupId>com.mycila</groupId>
@@ -413,8 +433,9 @@
                                 <includes>
                                     <include>**/*.sql</include>
                                 </includes>
-                                <!--prettier/>
-                                <dbeaver/-->
+                                <!--<prettier/>-->
+                                <dbeaver/>
+                                <toggleOffOn/>
                             </sql>
                             <yaml>
                                 <includes>
