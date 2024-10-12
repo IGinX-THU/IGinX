@@ -28,6 +28,7 @@ import org.apache.commons.pool2.impl.GenericObjectPool;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
+import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,10 +42,12 @@ public class ThriftConnPool {
   private static final long IDLE_TIMEOUT =
       BaseObjectPoolConfig.DEFAULT_MIN_EVICTABLE_IDLE_DURATION.toMillis();
 
+  private static final long TRY_TIMES = 6;
+
   private final GenericObjectPool<TTransport> pool;
 
   public ThriftConnPool(String ip, int port) {
-    this(ip, port, DEFAULT_MAX_SIZE, MAX_WAIT_TIME, IDLE_TIMEOUT);
+    this(ip, port, DEFAULT_MAX_SIZE, MAX_WAIT_TIME, IDLE_TIMEOUT, TRY_TIMES);
   }
 
   public ThriftConnPool(String ip, int port, Map<String, String> extraParams) {
@@ -56,15 +59,18 @@ public class ThriftConnPool {
         Integer.parseInt(extraParams.getOrDefault("thrift_timeout", String.valueOf(MAX_WAIT_TIME))),
         Long.parseLong(
             extraParams.getOrDefault(
-                "thrift_pool_min_evictable_idle_time_millis", String.valueOf(IDLE_TIMEOUT))));
+                "thrift_pool_min_evictable_idle_time_millis", String.valueOf(IDLE_TIMEOUT))),
+        Long.parseLong(
+            extraParams.getOrDefault("thrift_pool_try_connect_times", String.valueOf(TRY_TIMES))));
   }
 
-  public ThriftConnPool(String ip, int port, int maxSize, int maxWaitTime, long idleTimeout) {
+  public ThriftConnPool(
+      String ip, int port, int maxSize, int maxWaitTime, long idleTimeout, long tryTimes) {
     GenericObjectPoolConfig<TTransport> poolConfig = new GenericObjectPoolConfig<>();
     poolConfig.setMaxTotal(maxSize);
     poolConfig.setMinEvictableIdleDuration(Duration.ofMillis(idleTimeout)); // 设置空闲连接的超时时间
 
-    TSocketFactory socketFactory = new TSocketFactory(ip, port, maxWaitTime);
+    TSocketFactory socketFactory = new TSocketFactory(ip, port, maxWaitTime, tryTimes);
     pool = new GenericObjectPool<>(socketFactory, poolConfig);
   }
 
@@ -99,18 +105,29 @@ public class ThriftConnPool {
     private final int port;
 
     private final int maxWaitTime; // 连接超时时间（毫秒） 以及 socket 超时时间
+    private final long tryTimes;
 
-    public TSocketFactory(String ip, int port, int maxWaitTime) {
+    public TSocketFactory(String ip, int port, int maxWaitTime, long tryTimes) {
       this.ip = ip;
       this.port = port;
       this.maxWaitTime = maxWaitTime;
+      this.tryTimes = tryTimes;
     }
 
     @Override
     public PooledObject<TTransport> makeObject() throws Exception {
-      TTransport transport = new TSocket(ip, port, maxWaitTime);
-      transport.open();
-      return new DefaultPooledObject<>(transport);
+      TSocket socket = new TSocket(ip, port, maxWaitTime);
+      for (int i = 1; ; i++) {
+        try {
+          socket.open();
+          return new DefaultPooledObject<>(socket);
+        } catch (TTransportException e) {
+          if (i >= tryTimes) {
+            throw e;
+          }
+          LOGGER.warn("makeObject failed, retrying...", e);
+        }
+      }
     }
 
     @Override
