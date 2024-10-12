@@ -505,24 +505,26 @@ public class IginxWorker implements IService.Iface {
       }
     }
 
+    iterator = storageEngineMetas.iterator();
     StorageManager storageManager = PhysicalEngineImpl.getInstance().getStorageManager();
-    for (StorageEngineMeta meta : storageEngineMetas) {
+    while (iterator.hasNext()) {
+      StorageEngineMeta meta = iterator.next();
       // 为什么本地文件系统必须先init instance，再加入meta，storageManager：当数据源信息被加入meta，集群内其他节点都会立刻去尝试连接本地文件引擎的服务
       // 因此必须先init开启服务，然后在加入meta时获取唯一数据源id，再将id和引擎送入storageManager进行登记
       // 其他类型的引擎也需要先init初始化，以在修改元数据前确保引擎可用
       IStorage storage = StorageManager.initStorageInstance(meta);
       if (storage == null) {
         partialFailAndLog(status, String.format("init storage engine %s failed", meta));
-        continue;
+        iterator.remove();
       }
       if (!metaManager.addStorageEngines(Collections.singletonList(meta))) {
         partialFailAndLog(status, String.format("add storage engine %s failed.", meta));
-        continue;
+        iterator.remove();
       }
       storageManager.addStorage(meta, storage);
     }
     if (status.isSetSubStatus()) {
-      if (status.subStatus.size() == storageEngineMetas.size()) {
+      if (storageEngineMetas.isEmpty()) {
         // 所有请求均失败
         status
             .setCode(RpcUtils.FAILURE.code)
