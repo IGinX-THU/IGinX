@@ -646,7 +646,7 @@ public abstract class BaseCapacityExpansionIT {
 
     // data_prefix存在包含关系
     res = addStorageEngine(expPort, true, true, dataPrefix1, null, extraParams, false);
-    if (res != null && !res.contains("repeatedly add storage engine")) {
+    if (res != null && !res.contains("duplicate data coverage detected")) {
       fail();
     }
     testShowClusterInfo(4);
