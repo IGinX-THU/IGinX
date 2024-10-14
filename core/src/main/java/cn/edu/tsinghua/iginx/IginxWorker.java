@@ -471,6 +471,7 @@ public class IginxWorker implements IService.Iface {
         if (!isLocal(meta)) {
           partialFailAndLog(status, String.format("storage engine %s needs to be local.", meta));
           iterator.remove();
+          continue;
         }
       }
       // 然后设置dummy信息
@@ -487,6 +488,7 @@ public class IginxWorker implements IService.Iface {
                   "Failed to read data in dummy storage engine %s. Please check params:%s;%s.",
                   meta.getStorageEngine(), meta, meta.getExtraParams()));
           iterator.remove();
+          continue;
         }
         LOGGER.info("boundary for {}: {}", meta, boundary);
         FragmentMeta dummyFragment;
@@ -516,10 +518,12 @@ public class IginxWorker implements IService.Iface {
       if (storage == null) {
         partialFailAndLog(status, String.format("init storage engine %s failed", meta));
         iterator.remove();
+        continue;
       }
       if (!metaManager.addStorageEngines(Collections.singletonList(meta))) {
         partialFailAndLog(status, String.format("add storage engine %s failed.", meta));
         iterator.remove();
+        continue;
       }
       storageManager.addStorage(meta, storage);
     }
