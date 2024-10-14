@@ -18,11 +18,10 @@
 package cn.edu.tsinghua.iginx.engine.shared.data.read;
 
 import cn.edu.tsinghua.iginx.engine.shared.Constants;
+import cn.edu.tsinghua.iginx.engine.shared.data.arrow.Schemas;
 import cn.edu.tsinghua.iginx.thrift.DataType;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
+import javax.annotation.Nullable;
 import org.apache.arrow.vector.types.Types;
 import org.apache.arrow.vector.types.pojo.ArrowType;
 import org.apache.arrow.vector.types.pojo.Field;
@@ -35,9 +34,11 @@ public class BatchSchema {
       Field.notNullable(Constants.KEY, Types.MinorType.BIGINT.getType());
 
   private final Schema schema;
+  private final Map<String, Integer> indexMap;
 
-  protected BatchSchema(Schema schema) {
+  protected BatchSchema(Schema schema, Map<String, Integer> indexMap) {
     this.schema = Objects.requireNonNull(schema);
+    this.indexMap = Objects.requireNonNull(indexMap);
   }
 
   public boolean hasKey() {
@@ -49,12 +50,40 @@ public class BatchSchema {
     return schema.getFields().get(index);
   }
 
-  public String getFieldName(int index) {
+  public int getFieldCount() {
+    return schema.getFields().size();
+  }
+
+  @Nullable
+  public Integer indexOf(String name) {
+    return indexMap.get(name);
+  }
+
+  public String getName(int index) {
     return schema.getFields().get(index).getName();
   }
 
-  public ArrowType getFieldArrowType(int index) {
+  public ArrowType getArrowType(int index) {
     return schema.getFields().get(index).getType();
+  }
+
+  public DataType getDataType(int index) {
+    return Schemas.toDataType(getArrowType(index));
+  }
+
+  public FieldType getFieldType(int index) {
+    return schema.getFields().get(index).getFieldType();
+  }
+
+  public Types.MinorType getMinorType(int index) {
+    return Types.getMinorTypeForArrowType(getArrowType(index));
+  }
+
+  public Types.MinorType[] getMinorTypeArray() {
+    return schema.getFields().stream()
+        .map(Field::getType)
+        .map(Types::getMinorTypeForArrowType)
+        .toArray(Types.MinorType[]::new);
   }
 
   public Map<String, String> getTag(int index) {
@@ -90,30 +119,42 @@ public class BatchSchema {
   public static class Builder {
 
     protected final List<Field> fields = new ArrayList<>();
+    private final Map<String, Integer> indexMap = new HashMap<>();
 
     protected Builder() {}
 
-    public Builder withKey() {
-      if (!fields.isEmpty()) {
-        throw new IllegalStateException("Key field must be the first field");
+    public Builder addField(Field field) {
+      String name = field.getName();
+      Objects.requireNonNull(field);
+      Objects.requireNonNull(field.getName());
+      if (name.equals(Constants.KEY)) {
+        if (!fields.isEmpty()) {
+          throw new IllegalStateException("Key field must be the first field");
+        } else if (!field.equals(KEY)) {
+          throw new IllegalStateException(
+              "Key field must be defined as " + KEY + " but was " + field);
+        }
       }
-      fields.add(KEY);
-      return this;
-    }
-
-    protected Builder addField(Field field) {
-      if (Objects.equals(field.getName(), KEY.getName())) {
-        throw new IllegalArgumentException("Field name cannot be duplicated with key field");
+      if (field.getFieldType().getMetadata().isEmpty()) {
+        Integer oldIndex = indexMap.put(name, fields.size());
+        if (oldIndex != null) {
+          throw new IllegalStateException("Field " + name + " is already defined");
+        }
       }
       fields.add(field);
       return this;
     }
 
-    protected Builder addField(String name, FieldType type) {
+    public Builder addField(String name, FieldType type) {
       return addField(new Field(name, type, null));
     }
 
-    public Builder addField(String name, ArrowType type, Map<String, String> tags) {
+    public Builder withKey() {
+      addField(KEY);
+      return this;
+    }
+
+    public Builder addField(String name, ArrowType type, @Nullable Map<String, String> tags) {
       return addField(name, new FieldType(true, type, null, tags));
     }
 
@@ -121,39 +162,16 @@ public class BatchSchema {
       return addField(name, type, null);
     }
 
-    public Builder addField(String name, DataType type, Map<String, String> tags) {
-      return addField(name, toArrowType(type), tags);
+    public Builder addField(String name, DataType type, @Nullable Map<String, String> tags) {
+      return addField(name, Schemas.toArrowType(type), tags);
     }
 
     public Builder addField(String name, DataType type) {
-      return addField(name, toArrowType(type));
+      return addField(name, Schemas.toArrowType(type));
     }
 
     public BatchSchema build() {
-      return new BatchSchema(new Schema(fields));
+      return new BatchSchema(new Schema(fields), indexMap);
     }
-  }
-
-  public static Types.MinorType toMinorType(DataType dataType) {
-    switch (dataType) {
-      case BOOLEAN:
-        return Types.MinorType.BIT;
-      case INTEGER:
-        return Types.MinorType.INT;
-      case LONG:
-        return Types.MinorType.BIGINT;
-      case FLOAT:
-        return Types.MinorType.FLOAT4;
-      case DOUBLE:
-        return Types.MinorType.FLOAT8;
-      case BINARY:
-        return Types.MinorType.VARBINARY;
-      default:
-        throw new UnsupportedOperationException("Unsupported data type: " + dataType);
-    }
-  }
-
-  public static ArrowType toArrowType(DataType dataType) {
-    return toMinorType(dataType).getType();
   }
 }

@@ -35,17 +35,22 @@ public class PhysicalTaskExecutorContext implements ExecutorContext {
   }
 
   @Override
+  public int getMaxBatchRowCount() {
+    return task.getContext().getBatchRowCount();
+  }
+
+  @Override
   public void addWarningMessage(String message) {
     task.getContext().addWarningMessage(message);
   }
 
   @Override
-  public void accumulateCpuTime(long millis) {
+  public void addCostTime(long millis) {
     task.getMetrics().accumulateCpuTime(millis);
   }
 
   @Override
-  public void accumulateProducedRows(long rows) {
+  public void addProducedRowNumber(long rows) {
     task.getMetrics().accumulateAffectRows(rows);
   }
 }

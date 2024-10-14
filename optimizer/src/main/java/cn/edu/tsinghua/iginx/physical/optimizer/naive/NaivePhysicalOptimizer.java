@@ -19,7 +19,8 @@ package cn.edu.tsinghua.iginx.physical.optimizer.naive;
 
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.ExecutorType;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.pipeline.PipelineExecutor;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.pipeline.PipelineExecutor;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.sink.UnarySinkExecutor;
 import cn.edu.tsinghua.iginx.engine.physical.optimizer.PhysicalOptimizer;
 import cn.edu.tsinghua.iginx.engine.physical.optimizer.ReplicaDispatcher;
 import cn.edu.tsinghua.iginx.engine.physical.task.*;
@@ -30,6 +31,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 import cn.edu.tsinghua.iginx.engine.shared.source.SourceType;
+import cn.edu.tsinghua.iginx.physical.optimizer.naive.planner.NaivePhysicalExecutorFactory;
 import cn.edu.tsinghua.iginx.physical.optimizer.rule.Rule;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -158,7 +160,9 @@ public class NaivePhysicalOptimizer implements PhysicalOptimizer {
       case Pipeline:
         PipelineExecutor pipelineExecutor = executorFactory.createPipelineExecutor(operator);
         return new PipelineMemoryPhysicalTask(source, context, pipelineExecutor);
-
+      case UnarySink:
+        UnarySinkExecutor unarySinkExecutor = executorFactory.createUnarySinkExecutor(operator);
+        return new UnarySinkMemoryPhysicalTask(source, context, unarySinkExecutor);
       default:
         throw new UnsupportedOperationException("Unsupported executor type: " + executorType);
     }

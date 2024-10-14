@@ -15,95 +15,63 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.memory.execute.pipeline;
+package cn.edu.tsinghua.iginx.physical.optimizer.naive.planner;
 
-import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
-import cn.edu.tsinghua.iginx.engine.physical.exception.UnexpectedOperatorException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.ExecutorContext;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.ComputeException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.expression.FieldNode;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.expression.PhysicalExpression;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutorInitializer;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.pipeline.ProjectionExecutor;
 import cn.edu.tsinghua.iginx.engine.shared.Constants;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.Batch;
+import cn.edu.tsinghua.iginx.engine.shared.data.arrow.Schemas;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
-import cn.edu.tsinghua.iginx.engine.shared.operator.AddSchemaPrefix;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Rename;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Reorder;
-import cn.edu.tsinghua.iginx.engine.shared.operator.UnaryOperator;
+import cn.edu.tsinghua.iginx.engine.shared.operator.*;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.regex.Pattern;
-import org.apache.arrow.vector.FieldVector;
-import org.apache.arrow.vector.table.Table;
 import org.apache.arrow.vector.types.pojo.Field;
 
-public class Projector extends PipelineExecutor {
+public class SimpleProjectionInfoGenerator
+    implements UnaryExecutorInitializer<List<ProjectionExecutor.ProjectionInfo>> {
 
-  private final UnaryOperator operator;
+  private final Operator operator;
 
-  private List<Pair<String, Integer>> columnsAndIndices; // 输出的列名和对应输入列的索引
-
-  private BatchSchema outputSchema;
-
-  public Projector(final UnaryOperator operator) {
+  public SimpleProjectionInfoGenerator(Operator operator) {
     this.operator = operator;
   }
 
   @Override
-  public String getDescription() {
-    return "Projector(" + operator.getType() + "): [" + operator.getInfo() + "]";
-  }
-
-  @Override
-  public void close() throws PhysicalException {}
-
-  @Override
-  protected BatchSchema internalInitialize(BatchSchema inputSchema) throws PhysicalException {
-    if (outputSchema != null) {
-      return outputSchema;
-    }
+  public List<ProjectionExecutor.ProjectionInfo> initialize(
+      ExecutorContext context, BatchSchema inputSchema) throws ComputeException {
     switch (operator.getType()) {
       case Project:
-        columnsAndIndices = getColumnsAndIndices(inputSchema, (Project) operator);
-        break;
+        return getExpressionsWithFields(
+            inputSchema, getColumnsAndIndices(inputSchema, (Project) operator));
       case Reorder:
-        columnsAndIndices = getColumnsAndIndices(inputSchema, (Reorder) operator);
-        break;
+        return getExpressionsWithFields(
+            inputSchema, getColumnsAndIndices(inputSchema, (Reorder) operator));
       case Rename:
-        columnsAndIndices = getColumnsAndIndices(inputSchema, (Rename) operator);
-        break;
+        return getExpressionsWithFields(
+            inputSchema, getColumnsAndIndices(inputSchema, (Rename) operator));
       case AddSchemaPrefix:
-        columnsAndIndices = getColumnsAndIndices(inputSchema, (AddSchemaPrefix) operator);
-        break;
+        return getExpressionsWithFields(
+            inputSchema, getColumnsAndIndices(inputSchema, (AddSchemaPrefix) operator));
       default:
-        throw new UnexpectedOperatorException(
-            "Unexpected operator type in Projector: " + operator.getType());
+        throw new IllegalArgumentException("Unsupported operator type: " + operator.getType());
     }
-
-    // 生成输出结果的BatchSchema
-    BatchSchema.Builder builder = BatchSchema.builder();
-    if (inputSchema.hasKey()) {
-      builder.withKey();
-    }
-    int start = inputSchema.hasKey() ? 1 : 0;
-    for (int i = start; i < columnsAndIndices.size(); i++) {
-      Pair<String, Integer> pair = columnsAndIndices.get(i);
-      builder.addField(pair.k, inputSchema.getFieldArrowType(pair.v), inputSchema.getTag(pair.v));
-    }
-    outputSchema = builder.build();
-    return outputSchema;
   }
 
-  @Override
-  protected Batch internalCompute(Batch batch) throws PhysicalException {
-    List<FieldVector> fieldVectors = new ArrayList<>();
+  private List<ProjectionExecutor.ProjectionInfo> getExpressionsWithFields(
+      BatchSchema inputSchema, List<Pair<String, Integer>> columnsAndIndices) {
+    List<ProjectionExecutor.ProjectionInfo> ret = new ArrayList<>();
     for (Pair<String, Integer> pair : columnsAndIndices) {
-      fieldVectors.add(batch.raw().getVectorCopy(pair.v)); // TODO:能否不复制或少复制数据
+      Field field = Schemas.fieldWithName(inputSchema.getField(pair.v), pair.k);
+      PhysicalExpression expression = new FieldNode(pair.v);
+      ret.add(new ProjectionExecutor.ProjectionInfo(field, expression));
     }
-    return new Batch(new Table(fieldVectors), outputSchema);
+    return ret;
   }
 
   /**
@@ -113,18 +81,18 @@ public class Projector extends PipelineExecutor {
    * @param project Project算子
    * @return 输出的列名和对应输入列的索引
    */
-  public static List<Pair<String, Integer>> getColumnsAndIndices(
+  protected static List<Pair<String, Integer>> getColumnsAndIndices(
       BatchSchema inputSchema, Project project) {
     List<Pair<String, Integer>> ret = new ArrayList<>();
     int start = inputSchema.hasKey() ? 1 : 0;
     int totalFieldSize = inputSchema.raw().getFields().size();
     if (inputSchema.hasKey()) {
-      ret.add(new Pair<>(Constants.KEY, 0));
+      ret.add(new Pair<>(BatchSchema.KEY.getName(), 0));
     }
     List<String> patterns = project.getPatterns();
     for (int i = start; i < totalFieldSize; i++) {
-      String name = inputSchema.getFieldName(i);
-      if (project.isRemainKey() && name.endsWith(Constants.KEY)) {
+      String name = inputSchema.getName(i);
+      if (project.isRemainKey() && name.endsWith(BatchSchema.KEY.getName())) {
         ret.add(new Pair<>(name, i));
         continue;
       }
@@ -150,20 +118,20 @@ public class Projector extends PipelineExecutor {
    * @param reorder Reorder算子
    * @return 输出的列名和对应原来输入列的索引
    */
-  public static List<Pair<String, Integer>> getColumnsAndIndices(
+  protected static List<Pair<String, Integer>> getColumnsAndIndices(
       BatchSchema inputSchema, Reorder reorder) {
     List<Pair<String, Integer>> ret = new ArrayList<>();
     int start = inputSchema.hasKey() ? 1 : 0;
     int totalFieldSize = inputSchema.raw().getFields().size();
     if (inputSchema.hasKey()) {
-      ret.add(new Pair<>(Constants.KEY, 0));
+      ret.add(new Pair<>(BatchSchema.KEY.getName(), 0));
     }
     List<String> patterns = reorder.getPatterns();
     List<Boolean> isPyUDFList = reorder.getIsPyUDF();
 
     // 保留关键字列
     for (int i = start; i < totalFieldSize; i++) {
-      String name = inputSchema.getFieldName(i);
+      String name = inputSchema.getName(i);
       if (Constants.RESERVED_COLS.contains(name)) {
         ret.add(new Pair<>(name, i));
       }
@@ -175,14 +143,14 @@ public class Projector extends PipelineExecutor {
       List<Pair<String, Integer>> matchedFields = new ArrayList<>();
       if (StringUtils.isPattern(pattern)) {
         for (int i = start; i < totalFieldSize; i++) {
-          String name = inputSchema.getFieldName(i);
+          String name = inputSchema.getName(i);
           if (StringUtils.match(name, pattern)) {
             matchedFields.add(new Pair<>(name, i));
           }
         }
       } else {
         for (int i = start; i < totalFieldSize; i++) {
-          String name = inputSchema.getFieldName(i);
+          String name = inputSchema.getName(i);
           if (pattern.equals(name)) {
             matchedFields.add(new Pair<>(name, i));
           }
@@ -206,13 +174,13 @@ public class Projector extends PipelineExecutor {
    * @param rename Rename算子
    * @return 输出的列名和对应原来输入列的索引
    */
-  public static List<Pair<String, Integer>> getColumnsAndIndices(
+  protected static List<Pair<String, Integer>> getColumnsAndIndices(
       BatchSchema inputSchema, Rename rename) {
     List<Pair<String, Integer>> ret = new ArrayList<>();
     int start = inputSchema.hasKey() ? 1 : 0;
     int totalFieldSize = inputSchema.raw().getFields().size();
     if (inputSchema.hasKey()) {
-      ret.add(new Pair<>(Constants.KEY, 0));
+      ret.add(new Pair<>(BatchSchema.KEY.getName(), 0));
     }
 
     List<Pair<String, String>> aliasList = rename.getAliasList();
@@ -286,17 +254,17 @@ public class Projector extends PipelineExecutor {
    * @param addSchemaPrefix AddSchemaPrefix算子
    * @return 输出的列名和对应原来输入列的索引
    */
-  public static List<Pair<String, Integer>> getColumnsAndIndices(
+  protected static List<Pair<String, Integer>> getColumnsAndIndices(
       BatchSchema inputSchema, AddSchemaPrefix addSchemaPrefix) {
     List<Pair<String, Integer>> ret = new ArrayList<>();
     int start = inputSchema.hasKey() ? 1 : 0;
     int totalFieldSize = inputSchema.raw().getFields().size();
     if (inputSchema.hasKey()) {
-      ret.add(new Pair<>(Constants.KEY, 0));
+      ret.add(new Pair<>(BatchSchema.KEY.getName(), 0));
     }
     String prefix = addSchemaPrefix.getSchemaPrefix();
     for (int i = start; i < totalFieldSize; i++) {
-      ret.add(new Pair<>(prefix + "." + inputSchema.getFieldName(i), i));
+      ret.add(new Pair<>(prefix + "." + inputSchema.getName(i), i));
     }
     return ret;
   }

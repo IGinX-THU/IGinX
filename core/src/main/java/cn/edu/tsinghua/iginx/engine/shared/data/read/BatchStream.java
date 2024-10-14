@@ -18,11 +18,13 @@
 package cn.edu.tsinghua.iginx.engine.shared.data.read;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
+import javax.annotation.Nullable;
 
 public interface BatchStream extends AutoCloseable {
 
   BatchSchema getSchema() throws PhysicalException;
 
+  @Nullable
   Batch getNext() throws PhysicalException;
 
   @Override

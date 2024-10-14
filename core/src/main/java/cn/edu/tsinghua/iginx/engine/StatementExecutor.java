@@ -60,13 +60,12 @@ import cn.edu.tsinghua.iginx.statistics.IStatisticsCollector;
 import cn.edu.tsinghua.iginx.thrift.AggregateType;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.Status;
-import cn.edu.tsinghua.iginx.utils.*;
+import cn.edu.tsinghua.iginx.utils.Bitmap;
+import cn.edu.tsinghua.iginx.utils.DataTypeInferenceUtils;
+import cn.edu.tsinghua.iginx.utils.DataTypeUtils;
+import cn.edu.tsinghua.iginx.utils.RpcUtils;
 import cn.hutool.core.io.CharsetDetector;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
@@ -75,7 +74,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.antlr.v4.runtime.misc.ParseCancellationException;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VarBinaryVector;
-import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.ipc.ArrowStreamWriter;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
@@ -819,9 +817,8 @@ public class StatementExecutor {
           if (batch == null) {
             break;
           }
-          try (VectorSchemaRoot root = batch.raw().toVectorSchemaRoot();
-              ByteArrayOutputStream out = new ByteArrayOutputStream();
-              ArrowStreamWriter writer = new ArrowStreamWriter(root, null, out)) {
+          try (ByteArrayOutputStream out = new ByteArrayOutputStream();
+              ArrowStreamWriter writer = new ArrowStreamWriter(batch.raw(), null, out)) {
             writer.start();
             writer.writeBatch();
             writer.end();
@@ -863,23 +860,20 @@ public class StatementExecutor {
           if (batch == null) {
             break;
           }
-          try (VectorSchemaRoot root = batch.raw().toVectorSchemaRoot()) {
-            int rowCnt = root.getRowCount();
-            List<FieldVector> vectors = root.getFieldVectors();
-            if (vectors.size() != 2) {
-              LOGGER.warn("show columns result col size = {}", vectors.size());
-            } else {
-              try (VarBinaryVector pathVector = (VarBinaryVector) vectors.get(0);
-                  VarBinaryVector typeVector = (VarBinaryVector) vectors.get(1)) {
-                for (int i = 0; i < rowCnt; i++) {
-                  paths.add(new String(pathVector.get(i)));
-                  DataType type =
-                      DataTypeUtils.getDataTypeFromString(new String(typeVector.get(i)));
-                  if (type == null) {
-                    LOGGER.warn("unknown data type [{}]", typeVector.get(i));
-                  }
-                  types.add(type);
+          int rowCnt = batch.getRowCount();
+          List<FieldVector> vectors = batch.getVectors();
+          if (vectors.size() != 2) {
+            LOGGER.warn("show columns result col size = {}", vectors.size());
+          } else {
+            try (VarBinaryVector pathVector = (VarBinaryVector) vectors.get(0);
+                VarBinaryVector typeVector = (VarBinaryVector) vectors.get(1)) {
+              for (int i = 0; i < rowCnt; i++) {
+                paths.add(new String(pathVector.get(i)));
+                DataType type = DataTypeUtils.getDataTypeFromString(new String(typeVector.get(i)));
+                if (type == null) {
+                  LOGGER.warn("unknown data type [{}]", typeVector.get(i));
                 }
+                types.add(type);
               }
             }
           }

@@ -75,7 +75,7 @@ public class PhysicalEngineImpl implements PhysicalEngine {
       } else {
         GlobalPhysicalTask task = new GlobalPhysicalTask(root, ctx);
         try (TaskResult result = storageTaskExecutor.executeGlobalTask(task)) {
-          return result.unwrap();
+          return result.nullableUnwrap();
         }
       }
     }
@@ -85,7 +85,7 @@ public class PhysicalEngineImpl implements PhysicalEngine {
     getBottomTasks(bottomTasks, task);
     commitBottomTasks(bottomTasks);
     try (TaskResult result = task.getResult()) {
-      return result.unwrap();
+      return result.nullableUnwrap();
     }
   }
 

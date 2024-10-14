@@ -15,31 +15,32 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.memory.execute;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.ComputeException;
-import java.util.Objects;
+public enum Arity {
+  NULLARY(0, false),
+  UNARY(1, false),
+  BINARY(2, false),
+  TERNARY(3, false),
+  VAR_ARGS(0, true);
 
-public abstract class PhysicalExecutor implements AutoCloseable {
+  private final int arity;
+  public final boolean varArgs;
 
-  private ExecutorContext context = null;
-
-  protected void initialize(ExecutorContext context) {
-    if (this.context != null) {
-      throw new IllegalStateException("Already initialized");
-    }
-    this.context = Objects.requireNonNull(context);
+  Arity(int arity, boolean varArgs) {
+    this.arity = arity;
+    this.varArgs = varArgs;
   }
 
-  protected ExecutorContext getContext() {
-    if (context == null) {
-      throw new IllegalStateException("Not initialized");
-    }
-    return context;
+  public int getArity() {
+    return arity;
   }
 
-  public abstract String getDescription();
+  public boolean isVarArgs() {
+    return varArgs;
+  }
 
-  @Override
-  public abstract void close() throws ComputeException;;
+  public boolean checkArity(int arity) {
+    return this.arity == arity || (varArgs && arity >= this.arity);
+  }
 }

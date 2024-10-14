@@ -17,34 +17,46 @@
  */
 package cn.edu.tsinghua.iginx.engine.shared.data.read;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 import javax.annotation.WillCloseWhenClosed;
 import javax.annotation.WillNotClose;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.FieldVector;
+import org.apache.arrow.vector.ValueVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
+import org.apache.arrow.vector.holders.ValueHolder;
 import org.apache.arrow.vector.table.Table;
+import org.apache.arrow.vector.util.TransferPair;
 
 public class Batch implements AutoCloseable {
 
-  private final Table table;
-  private final transient BatchSchema schema;
+  private final VectorSchemaRoot group;
 
-  protected Batch(@WillCloseWhenClosed Table table) {
-    this.table = table;
-    this.schema = new BatchSchema(table.getSchema());
+  protected Batch(@WillCloseWhenClosed VectorSchemaRoot group) {
+    this.group = Objects.requireNonNull(group);
   }
 
-  public Batch(@WillCloseWhenClosed Table table, BatchSchema schema) {
-    this.table = table;
-    this.schema = schema;
+  public VectorSchemaRoot raw() {
+    return group;
+  }
+
+  public List<FieldVector> getVectors() {
+    return group.getFieldVectors();
+  }
+
+  public FieldVector getVector(int index) {
+    return group.getFieldVectors().get(index);
   }
 
   @Override
   public void close() {
-    table.close();
+    group.close();
+  }
+
+  public boolean isEmpty() {
+    return group.getRowCount() == 0;
   }
 
   @Override
@@ -52,46 +64,39 @@ public class Batch implements AutoCloseable {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
     Batch that = (Batch) o;
-    return Objects.equals(table, that.table);
+    return Objects.equals(group, that.group);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(table);
+    return Objects.hashCode(group);
   }
 
   @Override
   public String toString() {
-    return table.toString();
+    return group.toString();
   }
 
-  public Table raw() {
-    return table;
-  }
-
-  public long getRowCount() {
-    return table.getRowCount();
-  }
-
-  public static Builder builder(
-      BufferAllocator allocator, BatchSchema schema, int initialCapacity) {
-    return new Builder(allocator, schema, initialCapacity);
-  }
-
-  public BatchSchema getSchema() {
-    return schema;
+  public int getRowCount() {
+    return group.getRowCount();
   }
 
   public static class Builder implements AutoCloseable {
     private final VectorSchemaRoot root;
-    private final List<ColumnBuilder> fieldBuilders = new ArrayList<>();
+    private final List<ColumnBuilder> fieldBuilders;
 
-    Builder(@WillNotClose BufferAllocator allocator, BatchSchema schema, int initialCapacity) {
-      this.root = VectorSchemaRoot.create(schema.raw(), allocator);
+    public Builder(@WillNotClose BufferAllocator allocator, BatchSchema schema, int rowCount) {
+      this(allocator, schema);
       for (FieldVector vector : root.getFieldVectors()) {
-        vector.setInitialCapacity(initialCapacity);
-        fieldBuilders.add(ColumnBuilder.create(vector));
+        vector.setInitialCapacity(rowCount);
       }
+      root.setRowCount(rowCount);
+    }
+
+    public Builder(@WillNotClose BufferAllocator allocator, BatchSchema schema) {
+      this.root = VectorSchemaRoot.create(schema.raw(), allocator);
+      this.fieldBuilders =
+          root.getFieldVectors().stream().map(ColumnBuilder::create).collect(Collectors.toList());
     }
 
     @Override
@@ -99,7 +104,11 @@ public class Batch implements AutoCloseable {
       root.close();
     }
 
-    public Builder appendRow(long key, Object... values) {
+    public VectorSchemaRoot raw() {
+      return root;
+    }
+
+    public Builder append(long key, Object... values) {
       if (values.length + 1 != fieldBuilders.size()) {
         throw new IllegalArgumentException(
             "Expected key and "
@@ -115,7 +124,7 @@ public class Batch implements AutoCloseable {
       return this;
     }
 
-    public Builder appendRow(Object... values) {
+    public Builder append(Object... values) {
       if (values.length != fieldBuilders.size()) {
         throw new IllegalArgumentException(
             "Expected " + fieldBuilders.size() + " values, but got " + values.length);
@@ -126,27 +135,36 @@ public class Batch implements AutoCloseable {
       return this;
     }
 
-    public Builder setRowCount(int rowCount) {
-      root.setRowCount(rowCount);
+    public Builder append(ValueHolder... values) {
+      if (values.length != fieldBuilders.size()) {
+        throw new IllegalArgumentException(
+            "Expected " + fieldBuilders.size() + " values, but got " + values.length);
+      }
+      for (int i = 0; i < values.length; i++) {
+        fieldBuilders.get(i).append(values[i]);
+      }
       return this;
     }
 
-    public Batch build() {
-      Integer rowCount = null;
-      for (FieldVector fieldBuilder : root.getFieldVectors()) {
-        if (rowCount == null) {
-          rowCount = fieldBuilder.getValueCount();
-        } else if (rowCount != fieldBuilder.getValueCount()) {
-          throw new IllegalStateException("Row counts are inconsistent");
-        }
+    public Batch build(int rowCount) {
+      root.setRowCount(rowCount);
+      try (Table table = new Table(root)) {
+        return new Batch(table.toVectorSchemaRoot());
       }
-      Batch result = new Batch(new Table(root.getFieldVectors()));
-      root.clear();
-      return result;
     }
 
     public ColumnBuilder getField(int index) {
       return fieldBuilders.get(index);
+    }
+
+    public TransferPair getTransferPair(int targetIndex, ValueVector source) {
+      return source.makeTransferPair(root.getFieldVectors().get(targetIndex));
+    }
+  }
+
+  public static Batch empty(BufferAllocator allocator, BatchSchema schema) {
+    try (Builder builder = new Builder(allocator, schema)) {
+      return builder.build(0);
     }
   }
 }

@@ -21,6 +21,7 @@ import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
 import java.util.NoSuchElementException;
 import java.util.Objects;
+import javax.annotation.Nullable;
 
 public class TaskResult implements AutoCloseable {
 
@@ -54,15 +55,21 @@ public class TaskResult implements AutoCloseable {
   }
 
   public BatchStream unwrap() throws PhysicalException {
+    BatchStream stream = nullableUnwrap();
+    if (stream == null) {
+      throw new NoSuchElementException();
+    }
+    return stream;
+  }
+
+  @Nullable
+  public BatchStream nullableUnwrap() throws PhysicalException {
     try {
       if (exception != null) {
         assert batchStream == null;
         throw exception;
       }
-      if (batchStream != null) {
-        return batchStream;
-      }
-      throw new NoSuchElementException();
+      return batchStream;
     } finally {
       batchStream = null;
       exception = null;
