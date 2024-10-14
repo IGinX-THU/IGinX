@@ -58,13 +58,12 @@ public class FunctionManager {
 
   private final PythonInterpreter interpreter;
 
+  private static final String PythonCMD = "python";
+
   private FunctionManager() {
     this.functions = new HashMap<>();
     this.INTERPRETER_CONFIG =
-        PythonInterpreterConfig.newBuilder()
-            .setPythonExec(config.getPythonCMD())
-            .addPythonPaths(PATH)
-            .build();
+        PythonInterpreterConfig.newBuilder().setPythonExec(PythonCMD).addPythonPaths(PATH).build();
     // 这是主线程的interpreter，用于删除UDF，UDF运行时使用线程池
     this.interpreter = new PythonInterpreter(getConfig());
     ThreadInterpreterManager.setInterpreter(interpreter);
@@ -171,7 +170,11 @@ public class FunctionManager {
   public void removeFunction(String identifier) {
     if (functions.containsKey(identifier)) {
       PyUDF function = (PyUDF) functions.get(identifier);
-      function.close(identifier, interpreter);
+      try {
+        function.close();
+      } catch (Exception e) {
+        LOGGER.error("Failed to remove UDF {}.", identifier, e);
+      }
     }
     functions.remove(identifier);
   }
@@ -223,10 +226,23 @@ public class FunctionManager {
     String reqFilePath = String.join(File.separator, PATH, rootPath, "requirements.txt");
     File file = new File(reqFilePath);
     if (file.exists()) {
-      runCommand(config.getPythonCMD(), "-m", "pip", "install", "-r", reqFilePath);
+      runCommand(PythonCMD, "-m", "pip", "install", "-r", reqFilePath);
     } else {
       LOGGER.warn("No requirement document provided for python module {}.", rootPath);
     }
+  }
+
+  public void removePythonModule(String moduleName) throws Exception {
+    try {
+      interpreter.exec(String.format("import sys; sys.modules.pop('%s', None)", moduleName));
+    } catch (Exception e) {
+      LOGGER.error("Remove module {} failed:", moduleName, e);
+      throw e;
+    }
+  }
+
+  public PythonInterpreter getInterpreter() {
+    return interpreter;
   }
 
   public boolean hasFunction(String identifier) {

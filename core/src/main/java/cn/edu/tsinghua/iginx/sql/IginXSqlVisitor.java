@@ -833,6 +833,13 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
   }
 
   @Override
+  public Statement visitDropPythonModuleStatement(SqlParser.DropPythonModuleStatementContext ctx) {
+    String name = ctx.name.getText();
+    name = name.substring(1, name.length() - 1);
+    return new DropPythonModuleStatement(name);
+  }
+
+  @Override
   public Statement visitCommitTransformJobStatement(CommitTransformJobStatementContext ctx) {
     String path = ctx.filePath.getText();
     path = path.substring(1, path.length() - 1);

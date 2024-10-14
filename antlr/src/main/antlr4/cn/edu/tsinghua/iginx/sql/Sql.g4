@@ -42,6 +42,7 @@ statement
    | SHOW FUNCTIONS # showRegisterTaskStatement
    | CREATE FUNCTION udfType udfClassRef (COMMA (udfType)? udfClassRef)* IN filePath = stringLiteral # registerTaskStatement
    | DROP FUNCTION name = stringLiteral # dropTaskStatement
+   | DROP PYTHON MODULE name = stringLiteral # dropPythonModuleStatement
    | COMMIT TRANSFORM JOB filePath = stringLiteral # commitTransformJobStatement
    | SHOW TRANSFORM JOB STATUS jobId = INT # showJobStatusStatement
    | CANCEL TRANSFORM JOB jobId = INT # cancelJobStatement
@@ -500,6 +501,8 @@ keyWords
    | WRITE
    | READ
    | DROP
+   | PYTHON
+   | MODULE
    | CREATE
    | FUNCTION
    | FUNCTIONS
@@ -805,6 +808,14 @@ ASC
 
 DROP
    : D R O P
+   ;
+
+PYTHON
+   : P Y T H O N
+   ;
+
+MODULE
+   : M O D U L E
    ;
 
 COMMIT
