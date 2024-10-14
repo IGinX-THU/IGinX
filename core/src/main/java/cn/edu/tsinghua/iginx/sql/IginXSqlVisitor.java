@@ -1581,7 +1581,11 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     // deal with having filter with functions like having avg(a) > 3.
     // we need a instead of avg(a) to combine fragments' raw data.
     if (ctx.functionName() != null) {
-      path = ctx.functionName().getText() + "(" + path + ")";
+      String funcName = ctx.functionName().getText();
+      if (FunctionUtils.isSysFunc(funcName)) {
+        funcName = funcName.toLowerCase();
+      }
+      path = funcName + "(" + path + ")";
     }
 
     for (ConstantContext constantContext : ctx.array().constant()) {
