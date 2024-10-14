@@ -419,7 +419,7 @@ public abstract class BaseCapacityExpansionIT {
 
     // 添加一个ip、端口、类型相同的数据库，修改schema prefix以避免被认为是重复注册，此时应该发现该数据库失效，移除原数据库并拒绝注册新的
     res = addStorageEngine(readOnlyPort, true, true, null, "nonexistdata", extraParams, false);
-    if (res.contains("init storage engine") && res.contains("failed")) {
+    if (res.contains("Failed to read data in dummy storage engine")) {
       LOGGER.info("Successfully rejected dead datasource.");
     } else {
       LOGGER.error("Dead datasource shouldn't be added.");
