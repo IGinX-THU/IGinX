@@ -17,6 +17,9 @@
  */
 package cn.edu.tsinghua.iginx.engine.shared.operator.filter;
 
+import static cn.edu.tsinghua.iginx.engine.shared.operator.filter.InFilter.InOp.getDeMorganOpposite;
+import static cn.edu.tsinghua.iginx.engine.shared.operator.filter.InFilter.InOp.getOppositeOp;
+
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.sql.exception.SQLParserException;
 import java.util.Collection;
@@ -43,15 +46,33 @@ public class InFilter implements Filter {
       return this == NOT_IN_AND || this == NOT_IN_OR;
     }
 
-    public InOp getOppositeOp() {
-      if (this == IN_AND) {
-        return NOT_IN_AND;
-      } else if (this == IN_OR) {
-        return NOT_IN_OR;
-      } else if (this == NOT_IN_AND) {
-        return IN_AND;
-      } else {
-        return IN_OR;
+    public static InOp getOppositeOp(InOp inOp) {
+      switch (inOp) {
+        case IN_AND:
+          return NOT_IN_AND;
+        case IN_OR:
+          return NOT_IN_OR;
+        case NOT_IN_AND:
+          return IN_AND;
+        case NOT_IN_OR:
+          return IN_OR;
+        default:
+          return inOp;
+      }
+    }
+
+    public static InOp getDeMorganOpposite(InOp inOp) {
+      switch (inOp) {
+        case IN_AND:
+          return NOT_IN_OR;
+        case IN_OR:
+          return NOT_IN_AND;
+        case NOT_IN_AND:
+          return IN_OR;
+        case NOT_IN_OR:
+          return IN_AND;
+        default:
+          return inOp;
       }
     }
 
@@ -121,7 +142,11 @@ public class InFilter implements Filter {
   }
 
   public void reverseFunc() {
-    this.inOp = inOp.getOppositeOp();
+    if (path.contains("*")) {
+      this.inOp = getDeMorganOpposite(inOp);
+    } else {
+      this.inOp = getOppositeOp(inOp);
+    }
   }
 
   public boolean validate(Value value) {
