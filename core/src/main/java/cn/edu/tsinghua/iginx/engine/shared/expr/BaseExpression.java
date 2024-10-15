@@ -69,4 +69,16 @@ public class BaseExpression implements Expression {
   public void accept(ExpressionVisitor visitor) {
     visitor.visit(this);
   }
+
+  @Override
+  public boolean equalExceptAlias(Expression expr) {
+    if (this == expr) {
+      return true;
+    }
+    if (expr == null || expr.getType() != ExpressionType.Base) {
+      return false;
+    }
+    BaseExpression that = (BaseExpression) expr;
+    return this.pathName.equals(that.pathName);
+  }
 }

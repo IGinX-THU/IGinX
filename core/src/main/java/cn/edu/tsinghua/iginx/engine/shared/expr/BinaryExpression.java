@@ -96,4 +96,18 @@ public class BinaryExpression implements Expression {
     leftExpression.accept(visitor);
     rightExpression.accept(visitor);
   }
+
+  @Override
+  public boolean equalExceptAlias(Expression expr) {
+    if (this == expr) {
+      return true;
+    }
+    if (expr == null || expr.getType() != ExpressionType.Binary) {
+      return false;
+    }
+    BinaryExpression that = (BinaryExpression) expr;
+    return this.leftExpression.equalExceptAlias(that.leftExpression)
+        && this.rightExpression.equalExceptAlias(that.rightExpression)
+        && this.op == that.op;
+  }
 }

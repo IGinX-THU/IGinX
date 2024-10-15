@@ -24,6 +24,7 @@ import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.UnexpectedOperatorException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.OperatorMemoryExecutor;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.Table;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.HeaderUtils;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils;
 import cn.edu.tsinghua.iginx.engine.shared.Constants;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
@@ -196,6 +197,11 @@ public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
   }
 
   private RowStream executeSort(Sort sort, RowStream stream) throws PhysicalException {
+    RowTransform preRowTransform = HeaderUtils.checkSortHeader(stream.getHeader(), sort);
+    if (preRowTransform != null) {
+      stream = executeRowTransform(preRowTransform, stream);
+    }
+
     return new SortLazyStream(sort, stream);
   }
 
@@ -268,7 +274,12 @@ public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
     return new AddSchemaPrefixLazyStream(addSchemaPrefix, stream);
   }
 
-  private RowStream executeGroupBy(GroupBy groupBy, RowStream stream) {
+  private RowStream executeGroupBy(GroupBy groupBy, RowStream stream) throws PhysicalException {
+    RowTransform preRowTransform = HeaderUtils.checkGroupByHeader(stream.getHeader(), groupBy);
+    if (preRowTransform != null) {
+      stream = executeRowTransform(preRowTransform, stream);
+    }
+
     return new GroupByLazyStream(groupBy, stream);
   }
 

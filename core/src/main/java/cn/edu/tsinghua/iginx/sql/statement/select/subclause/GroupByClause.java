@@ -18,6 +18,7 @@
 
 package cn.edu.tsinghua.iginx.sql.statement.select.subclause;
 
+import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
 import cn.edu.tsinghua.iginx.sql.statement.select.UnarySelectStatement.QueryType;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -28,26 +29,26 @@ public class GroupByClause {
   private boolean hasDownsample;
   private boolean hasGroupBy;
   private QueryType queryType;
-  private final List<String> groupByPaths;
+  private final List<Expression> groupByExpressions;
   private final Set<String> pathSet;
   private long precision;
   private long slideDistance;
 
   public GroupByClause() {
-    groupByPaths = new ArrayList<>();
+    groupByExpressions = new ArrayList<>();
     pathSet = new HashSet<>();
     hasDownsample = false;
     hasGroupBy = false;
     queryType = QueryType.Unknown;
   }
 
-  public void addGroupByPath(String path) {
-    groupByPaths.add(path);
+  public void addGroupByExpression(Expression expression) {
+    groupByExpressions.add(expression);
     hasGroupBy = true;
   }
 
-  public List<String> getGroupByPaths() {
-    return groupByPaths;
+  public List<Expression> getGroupByExpressions() {
+    return groupByExpressions;
   }
 
   public boolean hasDownsample() {

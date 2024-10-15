@@ -17,6 +17,8 @@
  */
 package cn.edu.tsinghua.iginx.engine.shared.operator;
 
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.ExprUtils;
+import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 import java.util.ArrayList;
@@ -25,20 +27,28 @@ import java.util.stream.Collectors;
 
 public class Sort extends AbstractUnaryOperator {
 
+  private final List<Expression> sortByExpressions;
+
   private final List<String> sortByCols;
 
   private final List<SortType> sortTypes;
 
-  public Sort(Source source, List<String> sortByCols, List<SortType> sortTypes) {
+  public Sort(Source source, List<Expression> sortByExpressions, List<SortType> sortTypes) {
     super(OperatorType.Sort, source);
-    if (sortByCols == null || sortByCols.isEmpty()) {
+    if (sortByExpressions == null || sortByExpressions.isEmpty()) {
       throw new IllegalArgumentException("sortBy shouldn't be null");
     }
     if (sortTypes == null || sortTypes.isEmpty()) {
       throw new IllegalArgumentException("sortType shouldn't be null");
     }
-    this.sortByCols = sortByCols;
+    this.sortByExpressions = sortByExpressions;
+    this.sortByCols =
+        sortByExpressions.stream().map(Expression::getColumnName).collect(Collectors.toList());
     this.sortTypes = sortTypes;
+  }
+
+  public List<Expression> getSortByExpressions() {
+    return sortByExpressions;
   }
 
   public List<String> getSortByCols() {
@@ -59,12 +69,20 @@ public class Sort extends AbstractUnaryOperator {
 
   @Override
   public Operator copy() {
-    return new Sort(getSource().copy(), new ArrayList<>(sortByCols), new ArrayList<>(sortTypes));
+    List<Expression> copySortByExpressions = new ArrayList<>(sortByExpressions.size());
+    for (Expression expression : sortByExpressions) {
+      copySortByExpressions.add(ExprUtils.copy(expression));
+    }
+    return new Sort(getSource().copy(), copySortByExpressions, new ArrayList<>(sortTypes));
   }
 
   @Override
   public UnaryOperator copyWithSource(Source source) {
-    return new Sort(source, new ArrayList<>(sortByCols), new ArrayList<>(sortTypes));
+    List<Expression> copySortByExpressions = new ArrayList<>(sortByExpressions.size());
+    for (Expression expression : sortByExpressions) {
+      copySortByExpressions.add(ExprUtils.copy(expression));
+    }
+    return new Sort(source, copySortByExpressions, new ArrayList<>(sortTypes));
   }
 
   public enum SortType {
@@ -89,6 +107,14 @@ public class Sort extends AbstractUnaryOperator {
       return false;
     }
     Sort sort = (Sort) object;
-    return sortByCols.equals(sort.sortByCols) && sortTypes.equals(sort.sortTypes);
+    if (this.sortByExpressions.size() != sort.sortByExpressions.size()) {
+      return false;
+    }
+    for (int i = 0; i < this.sortByExpressions.size(); i++) {
+      if (!this.sortByExpressions.get(i).equalExceptAlias(sort.sortByExpressions.get(i))) {
+        return false;
+      }
+    }
+    return sortTypes.equals(sort.sortTypes);
   }
 }

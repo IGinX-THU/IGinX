@@ -105,4 +105,38 @@ public class CaseWhenExpression implements Expression {
     }
     resultElse.accept(visitor);
   }
+
+  @Override
+  public boolean equalExceptAlias(Expression expr) {
+    if (this == expr) {
+      return true;
+    }
+    if (expr == null || expr.getType() != ExpressionType.CaseWhen) {
+      return false;
+    }
+    CaseWhenExpression that = (CaseWhenExpression) expr;
+    if (this.conditions.size() != that.conditions.size()) {
+      return false;
+    }
+    for (int i = 0; i < this.conditions.size(); i++) {
+      if (!this.conditions.get(i).equals(that.conditions.get(i))) {
+        return false;
+      }
+    }
+    if (this.results.size() != that.results.size()) {
+      return false;
+    }
+    for (int i = 0; i < this.results.size(); i++) {
+      if (!this.results.get(i).equalExceptAlias(that.results.get(i))) {
+        return false;
+      }
+    }
+    if (this.resultElse == null && that.resultElse == null) {
+      return true;
+    }
+    if (this.resultElse == null || that.resultElse == null) {
+      return false;
+    }
+    return this.resultElse.equalExceptAlias(that.resultElse);
+  }
 }

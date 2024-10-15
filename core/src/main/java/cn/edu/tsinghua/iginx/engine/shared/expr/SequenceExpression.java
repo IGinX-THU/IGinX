@@ -76,4 +76,16 @@ public class SequenceExpression implements Expression {
   public void accept(ExpressionVisitor visitor) {
     visitor.visit(this);
   }
+
+  @Override
+  public boolean equalExceptAlias(Expression expr) {
+    if (this == expr) {
+      return true;
+    }
+    if (expr == null || expr.getType() != ExpressionType.Sequence) {
+      return false;
+    }
+    SequenceExpression that = (SequenceExpression) expr;
+    return this.start == that.start && this.increment == that.increment;
+  }
 }
