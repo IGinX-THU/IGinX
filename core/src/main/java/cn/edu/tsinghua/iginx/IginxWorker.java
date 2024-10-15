@@ -399,12 +399,12 @@ public class IginxWorker implements IService.Iface {
     // 检测是否与已有的存储引擎冲突
     if (!hasChecked) {
       List<StorageEngineMeta> currentStorageEngines = metaManager.getStorageEngineList();
-      List<StorageEngineMeta> StorageEnginesToBeRemoved = new ArrayList<>();
+      List<StorageEngineMeta> storageEnginesToBeRemoved = new ArrayList<>();
       for (StorageEngineMeta storageEngine : storageEngineMetas) {
         for (StorageEngineMeta currentStorageEngine : currentStorageEngines) {
           if (storageEngine.equals(currentStorageEngine)) {
             // 存在相同数据库
-            StorageEnginesToBeRemoved.add(storageEngine);
+            storageEnginesToBeRemoved.add(storageEngine);
             partialFailAndLog(
                 status, String.format("repeatedly add storage engine %s.", storageEngine));
             break;
@@ -417,7 +417,7 @@ public class IginxWorker implements IService.Iface {
               // 已有的数据库仍可连接
               if (currentStorageEngine.contains(storageEngine)) {
                 // 已有数据库能够覆盖新注册的数据库，拒绝注册
-                StorageEnginesToBeRemoved.add(storageEngine);
+                storageEnginesToBeRemoved.add(storageEngine);
                 partialFailAndLog(
                     status,
                     String.format(
@@ -434,7 +434,7 @@ public class IginxWorker implements IService.Iface {
                     currentStorageEngine);
               } else {
                 // 并非只读，需要手动操作，拒绝注册同地址引擎
-                StorageEnginesToBeRemoved.add(storageEngine);
+                storageEnginesToBeRemoved.add(storageEngine);
                 partialFailAndLog(
                     status,
                     String.format(
@@ -445,8 +445,8 @@ public class IginxWorker implements IService.Iface {
           }
         }
       }
-      if (!StorageEnginesToBeRemoved.isEmpty()) {
-        storageEngineMetas.removeAll(StorageEnginesToBeRemoved);
+      if (!storageEnginesToBeRemoved.isEmpty()) {
+        storageEngineMetas.removeAll(storageEnginesToBeRemoved);
         if (storageEngineMetas.isEmpty()) {
           status
               .setCode(RpcUtils.FAILURE.code)
