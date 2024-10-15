@@ -38,7 +38,7 @@ public class UnarySinkMemoryPhysicalTask extends UnaryMemoryPhysicalTask {
 
   @Override
   public String getInfo() {
-    return "Sink: " + executor.getDescription();
+    return executor.getDescription();
   }
 
   @Override

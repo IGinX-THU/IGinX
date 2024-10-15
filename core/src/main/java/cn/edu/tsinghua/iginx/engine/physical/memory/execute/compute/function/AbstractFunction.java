@@ -18,38 +18,43 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.ExecutorContext;
-import java.util.Arrays;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.Arity;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ArityException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.NotAllowTypeException;
 import java.util.Objects;
 import javax.annotation.WillNotClose;
-import org.apache.arrow.vector.ValueVector;
+import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.types.Types;
 
 public abstract class AbstractFunction implements ScalarFunction {
 
+  private final String name;
   private final Arity arity;
 
-  protected AbstractFunction(Arity arity) {
+  protected AbstractFunction(String name, Arity arity) {
+    this.name = Objects.requireNonNull(name);
     this.arity = Objects.requireNonNull(arity);
   }
 
   @Override
-  public Types.MinorType getResultType(ExecutorContext context, Types.MinorType... args) {
-    checkArgument(args);
-    return getReturnTypeImpl(context, args);
+  public String getName() {
+    return name;
   }
 
   @Override
-  public ValueVector invoke(
-      ExecutorContext context, int rowCount, @WillNotClose ValueVector... args) {
-    checkArgument(
-        Arrays.stream(args).map(ValueVector::getMinorType).toArray(Types.MinorType[]::new));
-    for (ValueVector arg : args) {
-      if (arg.getValueCount() != rowCount) {
-        throw new IllegalArgumentException(
-            "Invalid number of rows for argument " + arg.getField() + " for function " + getName());
+  public VectorSchemaRoot invoke(ExecutorContext context, @WillNotClose VectorSchemaRoot args)
+      throws ComputeException {
+    int vectorCount = args.getFieldVectors().size();
+    if (!arity.checkArity(vectorCount)) {
+      throw new ArityException(getName(), arity, vectorCount);
+    }
+    for (int i = 0; i < vectorCount; i++) {
+      if (!allowType(i, args.getVector(i).getMinorType())) {
+        throw new NotAllowTypeException(getName(), i, args.getVector(i).getMinorType());
       }
     }
-    return invokeImpl(context, rowCount, args);
+    return invokeImpl(context, args);
   }
 
   @Override
@@ -57,24 +62,8 @@ public abstract class AbstractFunction implements ScalarFunction {
     return getName();
   }
 
-  private void checkArgument(Types.MinorType... args) {
-    if (!arity.checkArity(args.length)) {
-      throw new IllegalArgumentException(
-          "Invalid number " + args.length + " of arguments for function " + getName());
-    }
-    for (int i = 0; i < args.length; i++) {
-      if (!allowType(i, args[i])) {
-        throw new IllegalArgumentException(
-            "Invalid type " + args[i] + " of argument " + i + " for function " + getName());
-      }
-    }
-  }
-
   protected abstract boolean allowType(int index, Types.MinorType type);
 
-  protected abstract Types.MinorType getReturnTypeImpl(
-      ExecutorContext context, Types.MinorType... args);
-
-  protected abstract ValueVector invokeImpl(
-      ExecutorContext context, int rowCount, ValueVector... args);
+  protected abstract VectorSchemaRoot invokeImpl(
+      ExecutorContext context, @WillNotClose VectorSchemaRoot args);
 }

@@ -18,9 +18,9 @@
 package cn.edu.tsinghua.iginx.physical.optimizer.naive.planner;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.ExecutorContext;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.Accumulator;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.sum.PhysicalSumFloat8;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutorInitializer;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.sink.AggregateExecutor;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.Schemas;

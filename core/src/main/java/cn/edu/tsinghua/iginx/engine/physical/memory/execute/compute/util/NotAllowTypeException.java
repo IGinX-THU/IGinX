@@ -15,21 +15,18 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util;
 
-import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
+import org.apache.arrow.vector.types.Types;
 
-public class ComputeException extends PhysicalException {
+public class NotAllowTypeException extends ArgumentException {
 
-  public ComputeException(String message) {
-    super(message);
-  }
+  private final int index;
+  private final Types.MinorType type;
 
-  public ComputeException(String message, Throwable cause) {
-    super(message, cause);
-  }
-
-  public ComputeException(Throwable cause) {
-    super(cause);
+  public NotAllowTypeException(String function, int index, Types.MinorType type) {
+    super(function, "not allow type " + type + " of argument " + index);
+    this.index = index;
+    this.type = type;
   }
 }

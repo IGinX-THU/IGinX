@@ -41,7 +41,7 @@ public class PipelineMemoryPhysicalTask extends UnaryMemoryPhysicalTask {
 
   @Override
   public String getInfo() {
-    return "Pipeline: " + executor.getDescription();
+    return executor.getDescription();
   }
 
   @Override

@@ -17,7 +17,7 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.pipeline;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.ComputeException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutor;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.StopWatch;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Batch;
@@ -27,7 +27,6 @@ import javax.annotation.WillNotClose;
 public abstract class PipelineExecutor extends UnaryExecutor {
 
   public Batch compute(@WillClose Batch batch) throws ComputeException {
-    getOutputSchema(); // Ensure initialized
     try (StopWatch watch = new StopWatch(getContext()::addPipelineComputeTime)) {
       Batch producedBatch = internalCompute(batch);
       getContext().addProducedRowNumber(producedBatch.getRowCount());

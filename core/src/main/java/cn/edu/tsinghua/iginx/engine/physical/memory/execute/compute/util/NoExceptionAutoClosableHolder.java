@@ -15,13 +15,33 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.ExecutorContext;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
+import java.util.ArrayList;
+import java.util.List;
 
-public interface UnaryExecutorInitializer<T> {
+public class NoExceptionAutoClosableHolder implements NoExceptionAutoCloseable {
 
-  T initialize(ExecutorContext context, BatchSchema inputSchema) throws ComputeException;
+  private final List<NoExceptionAutoCloseable> autoCloseables;
+
+  public NoExceptionAutoClosableHolder() {
+    this.autoCloseables = new ArrayList<>();
+  }
+
+  public <T extends NoExceptionAutoCloseable> T add(T autoCloseable) {
+    autoCloseables.add(autoCloseable);
+    return autoCloseable;
+  }
+
+  public void detachAll() {
+    autoCloseables.clear();
+  }
+
+  @Override
+  public void close() {
+    for (NoExceptionAutoCloseable autoCloseable : autoCloseables) {
+      autoCloseable.close();
+    }
+    autoCloseables.clear();
+  }
 }

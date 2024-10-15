@@ -20,6 +20,7 @@ package cn.edu.tsinghua.iginx.engine.shared.data.arrow;
 import org.apache.arrow.memory.ArrowBuf;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.BitVectorHelper;
+import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.ValueVector;
 import org.apache.arrow.vector.types.Types;
 import org.apache.arrow.vector.util.TransferPair;
@@ -28,10 +29,19 @@ public class ValueVectors {
 
   @SuppressWarnings("unchecked")
   public static <T extends ValueVector> T slice(
-      BufferAllocator allocator, T source, int valueCount) {
-    TransferPair transferPair = source.getTransferPair(allocator);
+      BufferAllocator allocator, T source, int valueCount, String ref) {
+    TransferPair transferPair = source.getTransferPair(ref, allocator);
     transferPair.splitAndTransfer(0, valueCount);
     return (T) transferPair.getTo();
+  }
+
+  public static <T extends ValueVector> T slice(BufferAllocator allocator, T source, String ref) {
+    return slice(allocator, source, source.getValueCount(), ref);
+  }
+
+  public static <T extends ValueVector> T slice(
+      BufferAllocator allocator, T source, int valueCount) {
+    return slice(allocator, source, valueCount, source.getName());
   }
 
   public static <T extends ValueVector> T slice(BufferAllocator allocator, T source) {
@@ -66,5 +76,17 @@ public class ValueVectors {
     BitVectors.and(retValidityBuffer, firstValidityBuffer, secondValidityBuffer, byteCount);
 
     return ret;
+  }
+
+  @SuppressWarnings("unchecked")
+  public static <T extends ValueVector> T transfer(
+      BufferAllocator allocator, T result, String ref) {
+    TransferPair transferPair = result.getTransferPair(ref, allocator);
+    transferPair.transfer();
+    return (T) transferPair.getTo();
+  }
+
+  public static FieldVector transfer(BufferAllocator allocator, FieldVector vector) {
+    return transfer(allocator, vector, vector.getName());
   }
 }

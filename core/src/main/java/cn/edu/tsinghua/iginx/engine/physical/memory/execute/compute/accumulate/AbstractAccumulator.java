@@ -18,7 +18,7 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.ExecutorContext;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.ComputeException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
 import java.util.Objects;
 import javax.annotation.WillNotClose;
 import org.apache.arrow.vector.ValueVector;

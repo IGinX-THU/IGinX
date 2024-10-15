@@ -15,33 +15,24 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util;
 
-import java.util.ArrayList;
-import java.util.List;
+public class ArityException extends ArgumentException {
 
-public class NoExceptionAutoClosableHolder implements NoExceptionAutoCloseable {
+  private final Arity arity;
+  private final int actual;
 
-  private final List<NoExceptionAutoCloseable> autoCloseables;
-
-  public NoExceptionAutoClosableHolder() {
-    this.autoCloseables = new ArrayList<>();
+  public ArityException(String function, Arity arity, int actual) {
+    super(function, "expected " + arity + ", but got " + actual);
+    this.arity = arity;
+    this.actual = actual;
   }
 
-  public <T extends NoExceptionAutoCloseable> T add(T autoCloseable) {
-    autoCloseables.add(autoCloseable);
-    return autoCloseable;
+  public Arity getArity() {
+    return arity;
   }
 
-  public void detachAll() {
-    autoCloseables.clear();
-  }
-
-  @Override
-  public void close() {
-    for (NoExceptionAutoCloseable autoCloseable : autoCloseables) {
-      autoCloseable.close();
-    }
-    autoCloseables.clear();
+  public int getActual() {
+    return actual;
   }
 }

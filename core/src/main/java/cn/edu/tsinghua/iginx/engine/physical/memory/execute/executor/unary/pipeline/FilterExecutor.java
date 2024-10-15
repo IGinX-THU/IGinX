@@ -17,7 +17,7 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.pipeline;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.ComputeException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Batch;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 

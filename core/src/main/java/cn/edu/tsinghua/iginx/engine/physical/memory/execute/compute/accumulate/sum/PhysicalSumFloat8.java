@@ -18,7 +18,7 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.sum;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.ExecutorContext;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.ComputeException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
 import javax.annotation.WillNotClose;
 import org.apache.arrow.vector.Float8Vector;
 import org.apache.arrow.vector.types.Types;

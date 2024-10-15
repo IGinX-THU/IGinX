@@ -18,19 +18,23 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.ExecutorContext;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.NoExceptionAutoCloseable;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.NoExceptionAutoCloseable;
 import javax.annotation.WillNotClose;
-import org.apache.arrow.vector.ValueVector;
-import org.apache.arrow.vector.types.Types;
+import org.apache.arrow.vector.VectorSchemaRoot;
 
 public interface ScalarFunction extends NoExceptionAutoCloseable {
 
   String getName();
 
-  Types.MinorType getResultType(ExecutorContext context, Types.MinorType... args);
-
-  ValueVector invoke(ExecutorContext context, int rowCount, @WillNotClose ValueVector... args);
-
-  @Override
-  void close();
+  /**
+   * Invoke the function with the given arguments.
+   *
+   * @param context the executor context
+   * @param args the arguments, modification is not allowed inner the function
+   * @return the result of the function
+   * @throws ComputeException if the function cannot be executed
+   */
+  VectorSchemaRoot invoke(ExecutorContext context, @WillNotClose VectorSchemaRoot args)
+      throws ComputeException;
 }

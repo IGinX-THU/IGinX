@@ -17,10 +17,10 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.sink;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.Accumulator;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.NoExceptionAutoCloseable;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutorInitializer;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.NoExceptionAutoCloseable;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Batch;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import java.util.List;

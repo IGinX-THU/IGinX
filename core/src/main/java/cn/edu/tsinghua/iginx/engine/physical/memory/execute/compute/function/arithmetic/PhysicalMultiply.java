@@ -17,12 +17,10 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.arithmetic;
 
-import org.apache.arrow.vector.types.Types;
-
 public class PhysicalMultiply extends ArithmeticFunction {
 
-  public PhysicalMultiply(Types.MinorType leftType, Types.MinorType rightType) {
-    super("multiply", leftType, rightType);
+  public PhysicalMultiply() {
+    super("multiply");
   }
 
   @Override

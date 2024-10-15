@@ -17,7 +17,7 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.ComputeException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
 import java.util.Objects;
 
 public abstract class PhysicalExecutor implements AutoCloseable {
@@ -41,5 +41,10 @@ public abstract class PhysicalExecutor implements AutoCloseable {
   public abstract String getDescription();
 
   @Override
-  public abstract void close() throws ComputeException;;
+  public abstract void close() throws ComputeException;
+
+  @Override
+  public String toString() {
+    return getDescription();
+  }
 }

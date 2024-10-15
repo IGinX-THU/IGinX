@@ -15,13 +15,21 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.ExecutorContext;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
+import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 
-public interface UnaryExecutorInitializer<T> {
+public class ComputeException extends PhysicalException {
 
-  T initialize(ExecutorContext context, BatchSchema inputSchema) throws ComputeException;
+  public ComputeException(String message) {
+    super(message);
+  }
+
+  public ComputeException(String message, Throwable cause) {
+    super(message, cause);
+  }
+
+  public ComputeException(Throwable cause) {
+    super(cause);
+  }
 }

@@ -28,14 +28,21 @@ import org.apache.arrow.vector.ValueVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.holders.ValueHolder;
 import org.apache.arrow.vector.table.Table;
+import org.apache.arrow.vector.types.pojo.Field;
 import org.apache.arrow.vector.util.TransferPair;
 
 public class Batch implements AutoCloseable {
 
+  private final transient BatchSchema schema;
   private final VectorSchemaRoot group;
 
-  protected Batch(@WillCloseWhenClosed VectorSchemaRoot group) {
+  public Batch(@WillCloseWhenClosed VectorSchemaRoot group) {
     this.group = Objects.requireNonNull(group);
+    BatchSchema.Builder builder = new BatchSchema.Builder();
+    for (Field field : group.getSchema().getFields()) {
+      builder.addField(field);
+    }
+    this.schema = builder.build();
   }
 
   public VectorSchemaRoot raw() {
@@ -48,6 +55,18 @@ public class Batch implements AutoCloseable {
 
   public FieldVector getVector(int index) {
     return group.getFieldVectors().get(index);
+  }
+
+  public BatchSchema getSchema() {
+    return schema;
+  }
+
+  public FieldVector getKeyVector() {
+    FieldVector key = group.getVector(BatchSchema.KEY);
+    if (key == null) {
+      throw new IllegalStateException("Key vector is missing");
+    }
+    return key;
   }
 
   @Override

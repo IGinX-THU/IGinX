@@ -19,32 +19,23 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.ar
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.AbstractFunction;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.Arity;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.cast.CastNumericAsFloat8;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.Arity;
+import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ConstantVectors;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.Schemas;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ValueVectors;
-import java.util.Objects;
+import java.util.Collections;
+import javax.annotation.WillNotClose;
 import org.apache.arrow.memory.ArrowBuf;
 import org.apache.arrow.vector.*;
 import org.apache.arrow.vector.types.Types;
 
 public abstract class ArithmeticFunction extends AbstractFunction {
 
-  private final String name;
-  private final Types.MinorType returnType;
-  private final Types.MinorType leftType;
-  private final Types.MinorType rightType;
-  private final CastNumericAsFloat8 leftCast;
-  private final CastNumericAsFloat8 rightCast;
+  private final CastNumericAsFloat8 castFunction = new CastNumericAsFloat8();
 
-  protected ArithmeticFunction(String name, Types.MinorType leftType, Types.MinorType rightType) {
-    super(Arity.BINARY);
-    this.name = Objects.requireNonNull(name);
-    this.returnType = determineResultType(leftType, rightType);
-    this.leftType = leftType;
-    this.rightType = rightType;
-    this.leftCast = new CastNumericAsFloat8(leftType);
-    this.rightCast = new CastNumericAsFloat8(rightType);
+  protected ArithmeticFunction(String name) {
+    super(name, Arity.BINARY);
   }
 
   protected abstract int evaluate(int left, int right);
@@ -56,23 +47,29 @@ public abstract class ArithmeticFunction extends AbstractFunction {
   protected abstract double evaluate(double left, double right);
 
   @Override
-  protected Types.MinorType getReturnTypeImpl(ExecutorContext context, Types.MinorType... args) {
-    return returnType;
+  protected VectorSchemaRoot invokeImpl(
+      ExecutorContext context, @WillNotClose VectorSchemaRoot args) {
+    FieldVector leftVector = args.getVector(0);
+    FieldVector rightVector = args.getVector(1);
+    FieldVector resultVector = invokeImpl(context, leftVector, rightVector);
+    return new VectorSchemaRoot(Collections.singleton(resultVector));
   }
 
-  @Override
-  protected ValueVector invokeImpl(ExecutorContext context, int rowCount, ValueVector... args) {
-    if (leftType == rightType) {
-      return evaluate(context, args[0], args[1]);
+  private FieldVector invokeImpl(ExecutorContext context, FieldVector left, FieldVector right) {
+    if (left instanceof NullVector || right instanceof NullVector) {
+      return ConstantVectors.ofNull(context.getAllocator(), left.getValueCount());
+    }
+    if (left.getMinorType() == right.getMinorType()) {
+      return evaluate(context, left, right);
     } else {
-      try (Float8Vector left = leftCast.evaluate(context, args[0]);
-          Float8Vector right = rightCast.evaluate(context, args[1])) {
-        return evaluate(context, left, right);
+      try (FieldVector leftCast = castFunction.evaluate(context, left);
+          FieldVector rightCast = castFunction.evaluate(context, right)) {
+        return evaluate(context, leftCast, rightCast);
       }
     }
   }
 
-  private ValueVector evaluate(ExecutorContext context, ValueVector left, ValueVector right) {
+  private FieldVector evaluate(ExecutorContext context, FieldVector left, FieldVector right) {
     if (left.getValueCount() != right.getValueCount()) {
       throw new IllegalArgumentException(
           "Invalid number of rows for argument "
@@ -141,35 +138,11 @@ public abstract class ArithmeticFunction extends AbstractFunction {
 
   @Override
   public void close() {
-    leftCast.close();
-    rightCast.close();
+    castFunction.close();
   }
 
   @Override
   protected boolean allowType(int index, Types.MinorType type) {
-    if (index == 0) {
-      return type == leftType;
-    } else if (index == 1) {
-      return type == rightType;
-    } else {
-      return false;
-    }
-  }
-
-  @Override
-  public String getName() {
-    return name;
-  }
-
-  public static Types.MinorType determineResultType(
-      Types.MinorType leftType, Types.MinorType rightType) {
-    if (!Schemas.isNumeric(leftType) || !Schemas.isNumeric(rightType)) {
-      throw new IllegalStateException("Unsupported type: " + leftType + " and " + rightType);
-    }
-    if (leftType == rightType) {
-      return leftType;
-    } else {
-      return Types.MinorType.FLOAT8;
-    }
+    return Schemas.isNumeric(type);
   }
 }

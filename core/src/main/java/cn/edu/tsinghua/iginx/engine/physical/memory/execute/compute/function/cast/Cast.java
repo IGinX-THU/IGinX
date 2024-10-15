@@ -19,42 +19,23 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.ca
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.AbstractFunction;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.Arity;
-import java.util.Objects;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.Arity;
+import java.util.Collections;
+import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.ValueVector;
-import org.apache.arrow.vector.types.Types;
+import org.apache.arrow.vector.VectorSchemaRoot;
 
-public abstract class Cast<OUT extends ValueVector> extends AbstractFunction {
+public abstract class Cast extends AbstractFunction {
 
-  protected final Types.MinorType returnType;
-  protected final Types.MinorType inputType;
-
-  protected Cast(Types.MinorType returnType, Types.MinorType inputType) {
-    super(Arity.UNARY);
-    this.returnType = Objects.requireNonNull(returnType);
-    this.inputType = Objects.requireNonNull(inputType);
+  protected Cast(String from, String to) {
+    super("cast_" + from + "_as_" + to, Arity.UNARY);
   }
 
-  public abstract OUT evaluate(ExecutorContext context, ValueVector input);
+  public abstract FieldVector evaluate(ExecutorContext context, ValueVector input);
 
   @Override
-  protected boolean allowType(int index, Types.MinorType type) {
-    return type == inputType;
-  }
-
-  @Override
-  protected Types.MinorType getReturnTypeImpl(ExecutorContext context, Types.MinorType... args) {
-    return returnType;
-  }
-
-  @Override
-  protected OUT invokeImpl(ExecutorContext context, int rowCount, ValueVector... args) {
-    return evaluate(context, args[0]);
-  }
-
-  @Override
-  public String getName() {
-    return ("cast<" + inputType + "," + returnType + ">").toLowerCase();
+  protected VectorSchemaRoot invokeImpl(ExecutorContext context, VectorSchemaRoot args) {
+    return new VectorSchemaRoot(Collections.singleton(evaluate(context, args.getVector(0))));
   }
 
   @Override

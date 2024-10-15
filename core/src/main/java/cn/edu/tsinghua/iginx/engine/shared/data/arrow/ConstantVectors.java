@@ -28,10 +28,19 @@ import org.apache.arrow.vector.types.pojo.Field;
 
 public class ConstantVectors {
 
-  public static ValueVector of(
+  public static FieldVector of(
+      @WillNotClose BufferAllocator allocator, @Nullable Object value, int valueCount) {
+    if (value instanceof Value) {
+      return of(allocator, (Value) value, valueCount);
+    } else {
+      return of(allocator, new Value(value), valueCount);
+    }
+  }
+
+  public static FieldVector of(
       @WillNotClose BufferAllocator allocator, @Nullable Value value, int valueCount) {
     if (value == null) {
-      return new NullVector((String) null, valueCount);
+      return ofNull(allocator, valueCount);
     } else if (value.isNull()) {
       return new NullVector(
           Field.nullable(null, Schemas.toArrowType(value.getDataType())), valueCount);
@@ -54,9 +63,14 @@ public class ConstantVectors {
     }
   }
 
-  public static ValueVector of(
+  public static FieldVector ofNull(@WillNotClose BufferAllocator allocator, int valueCount) {
+    return new NullVector((String) null, valueCount);
+  }
+
+  public static FieldVector of(
       @WillNotClose BufferAllocator allocator, boolean value, int valueCount) {
-    BitVector vector = new BitVector(Schemas.defaultField(Types.MinorType.BIT), allocator);
+    BitVector vector =
+        new BitVector(Schemas.field(String.valueOf(value), Types.MinorType.BIT), allocator);
     vector.allocateNew(valueCount);
     setValueCountWithValidity(vector, valueCount);
     if (value) {
@@ -65,8 +79,9 @@ public class ConstantVectors {
     return vector;
   }
 
-  public static ValueVector of(@WillNotClose BufferAllocator allocator, int value, int valueCount) {
-    IntVector vector = new IntVector(Schemas.defaultField(Types.MinorType.INT), allocator);
+  public static FieldVector of(@WillNotClose BufferAllocator allocator, int value, int valueCount) {
+    IntVector vector =
+        new IntVector(Schemas.field(String.valueOf(value), Types.MinorType.INT), allocator);
     vector.allocateNew(valueCount);
     setValueCountWithValidity(vector, valueCount);
     if (value != 0) {
@@ -75,9 +90,10 @@ public class ConstantVectors {
     return vector;
   }
 
-  public static ValueVector of(
+  public static FieldVector of(
       @WillNotClose BufferAllocator allocator, long value, int valueCount) {
-    BigIntVector vector = new BigIntVector(Schemas.defaultField(Types.MinorType.BIGINT), allocator);
+    BigIntVector vector =
+        new BigIntVector(Schemas.field(String.valueOf(value), Types.MinorType.BIGINT), allocator);
     vector.allocateNew(valueCount);
     setValueCountWithValidity(vector, valueCount);
     if (value != 0) {
@@ -86,9 +102,10 @@ public class ConstantVectors {
     return vector;
   }
 
-  public static ValueVector of(
+  public static FieldVector of(
       @WillNotClose BufferAllocator allocator, float value, int valueCount) {
-    Float4Vector vector = new Float4Vector(Schemas.defaultField(Types.MinorType.FLOAT4), allocator);
+    Float4Vector vector =
+        new Float4Vector(Schemas.field(String.valueOf(value), Types.MinorType.FLOAT4), allocator);
     vector.allocateNew(valueCount);
     setValueCountWithValidity(vector, valueCount);
     if (value != 0) {
@@ -97,9 +114,10 @@ public class ConstantVectors {
     return vector;
   }
 
-  public static ValueVector of(
+  public static FieldVector of(
       @WillNotClose BufferAllocator allocator, double value, int valueCount) {
-    Float8Vector vector = new Float8Vector(Schemas.defaultField(Types.MinorType.FLOAT8), allocator);
+    Float8Vector vector =
+        new Float8Vector(Schemas.field(String.valueOf(value), Types.MinorType.FLOAT8), allocator);
     vector.allocateNew(valueCount);
     setValueCountWithValidity(vector, valueCount);
     if (value != 0) {
@@ -108,9 +126,9 @@ public class ConstantVectors {
     return vector;
   }
 
-  public static ValueVector of(BufferAllocator allocator, byte[] value, int valueCount) {
+  public static FieldVector of(BufferAllocator allocator, byte[] value, int valueCount) {
     VarBinaryVector vector =
-        new VarBinaryVector(Schemas.defaultField(Types.MinorType.VARBINARY), allocator);
+        new VarBinaryVector(Schemas.field(new String(value), Types.MinorType.VARBINARY), allocator);
     vector.allocateNew(valueCount * (long) value.length, valueCount);
     setValueCountWithValidity(vector, valueCount);
     ArrowBuf offsetBuffer = vector.getOffsetBuffer();

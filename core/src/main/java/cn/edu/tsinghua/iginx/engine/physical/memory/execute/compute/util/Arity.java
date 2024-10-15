@@ -15,13 +15,32 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.ExecutorContext;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
+public enum Arity {
+  NULLARY(0, false),
+  UNARY(1, false),
+  BINARY(2, false),
+  TERNARY(3, false),
+  VAR_ARGS(0, true);
 
-public interface UnaryExecutorInitializer<T> {
+  private final int arity;
+  public final boolean varArgs;
 
-  T initialize(ExecutorContext context, BatchSchema inputSchema) throws ComputeException;
+  Arity(int arity, boolean varArgs) {
+    this.arity = arity;
+    this.varArgs = varArgs;
+  }
+
+  public int getArity() {
+    return arity;
+  }
+
+  public boolean isVarArgs() {
+    return varArgs;
+  }
+
+  public boolean checkArity(int arity) {
+    return this.arity == arity || (varArgs && arity >= this.arity);
+  }
 }

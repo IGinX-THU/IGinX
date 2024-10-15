@@ -22,6 +22,7 @@ import cn.edu.tsinghua.iginx.engine.shared.data.arrow.Schemas;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.util.*;
 import javax.annotation.Nullable;
+import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.types.Types;
 import org.apache.arrow.vector.types.pojo.ArrowType;
 import org.apache.arrow.vector.types.pojo.Field;
@@ -48,6 +49,12 @@ public class BatchSchema {
 
   public Field getField(int index) {
     return schema.getFields().get(index);
+  }
+
+  public Batch emptyBatch(BufferAllocator allocator) {
+    try (Batch.Builder builder = new Batch.Builder(allocator, this)) {
+      return builder.build(0);
+    }
   }
 
   public int getFieldCount() {
@@ -114,6 +121,10 @@ public class BatchSchema {
 
   public Schema raw() {
     return schema;
+  }
+
+  public int getKeyIndex() {
+    return 0;
   }
 
   public static class Builder {

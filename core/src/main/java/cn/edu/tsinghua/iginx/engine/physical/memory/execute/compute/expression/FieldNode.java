@@ -15,23 +15,26 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.expression;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.expression;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.ExecutorContext;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ValueVectors;
 import java.util.Collections;
-import javax.annotation.WillNotClose;
-import org.apache.arrow.util.Preconditions;
-import org.apache.arrow.vector.ValueVector;
-import org.apache.arrow.vector.types.Types;
+import org.apache.arrow.vector.FieldVector;
+import org.apache.arrow.vector.VectorSchemaRoot;
 
-public class FieldNode extends PhysicalExpression {
+public class FieldNode extends AbstractPhysicalExpression {
 
   private final int index;
 
   public FieldNode(int index) {
-    super(Collections.emptyList());
-    this.index = Preconditions.checkElementIndex(index, Integer.MAX_VALUE);
+    this(index, null);
+  }
+
+  public FieldNode(int index, String alias) {
+    super(alias, Collections.emptyList());
+    this.index = index;
   }
 
   @Override
@@ -40,13 +43,10 @@ public class FieldNode extends PhysicalExpression {
   }
 
   @Override
-  public Types.MinorType getResultType(ExecutorContext context, Types.MinorType... args) {
-    return args[index];
-  }
-
-  @Override
-  public ValueVector invoke(
-      ExecutorContext context, int rowCount, @WillNotClose ValueVector... args) {
-    return ValueVectors.slice(context.getAllocator(), args[index], rowCount);
+  protected VectorSchemaRoot invokeImpl(ExecutorContext context, VectorSchemaRoot args)
+      throws ComputeException {
+    FieldVector slice =
+        ValueVectors.slice(context.getAllocator(), args.getFieldVectors().get(index));
+    return new VectorSchemaRoot(Collections.singletonList(slice));
   }
 }

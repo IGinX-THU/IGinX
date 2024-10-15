@@ -18,13 +18,10 @@
 package cn.edu.tsinghua.iginx.physical.optimizer.naive.planner;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.ExecutorContext;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.ComputeException;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.expression.FieldNode;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.expression.PhysicalExpression;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.expression.FieldNode;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.expression.PhysicalExpression;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutorInitializer;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.pipeline.ProjectionExecutor;
 import cn.edu.tsinghua.iginx.engine.shared.Constants;
-import cn.edu.tsinghua.iginx.engine.shared.data.arrow.Schemas;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.operator.*;
 import cn.edu.tsinghua.iginx.utils.Pair;
@@ -34,7 +31,7 @@ import java.util.regex.Pattern;
 import org.apache.arrow.vector.types.pojo.Field;
 
 public class SimpleProjectionInfoGenerator
-    implements UnaryExecutorInitializer<List<ProjectionExecutor.ProjectionInfo>> {
+    implements UnaryExecutorInitializer<List<PhysicalExpression>> {
 
   private final Operator operator;
 
@@ -43,8 +40,7 @@ public class SimpleProjectionInfoGenerator
   }
 
   @Override
-  public List<ProjectionExecutor.ProjectionInfo> initialize(
-      ExecutorContext context, BatchSchema inputSchema) throws ComputeException {
+  public List<PhysicalExpression> initialize(ExecutorContext context, BatchSchema inputSchema) {
     switch (operator.getType()) {
       case Project:
         return getExpressionsWithFields(
@@ -63,13 +59,11 @@ public class SimpleProjectionInfoGenerator
     }
   }
 
-  private List<ProjectionExecutor.ProjectionInfo> getExpressionsWithFields(
+  private List<PhysicalExpression> getExpressionsWithFields(
       BatchSchema inputSchema, List<Pair<String, Integer>> columnsAndIndices) {
-    List<ProjectionExecutor.ProjectionInfo> ret = new ArrayList<>();
+    List<PhysicalExpression> ret = new ArrayList<>();
     for (Pair<String, Integer> pair : columnsAndIndices) {
-      Field field = Schemas.fieldWithName(inputSchema.getField(pair.v), pair.k);
-      PhysicalExpression expression = new FieldNode(pair.v);
-      ret.add(new ProjectionExecutor.ProjectionInfo(field, expression));
+      ret.add(new FieldNode(pair.v, pair.k));
     }
     return ret;
   }

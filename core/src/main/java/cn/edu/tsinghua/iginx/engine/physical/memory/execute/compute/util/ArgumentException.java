@@ -15,10 +15,18 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util;
 
-public interface NoExceptionAutoCloseable extends AutoCloseable {
+public class ArgumentException extends ComputeException {
 
-  @Override
-  void close();
+  private final String function;
+
+  public ArgumentException(String function, String message) {
+    super("Invalid argument for physical function '" + function + "': " + message);
+    this.function = function;
+  }
+
+  public String getFunction() {
+    return function;
+  }
 }

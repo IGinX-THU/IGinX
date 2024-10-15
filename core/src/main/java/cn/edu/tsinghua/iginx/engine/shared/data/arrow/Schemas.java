@@ -27,6 +27,7 @@ import org.apache.arrow.vector.types.Types;
 import org.apache.arrow.vector.types.pojo.ArrowType;
 import org.apache.arrow.vector.types.pojo.Field;
 import org.apache.arrow.vector.types.pojo.FieldType;
+import org.apache.arrow.vector.types.pojo.Schema;
 
 public class Schemas {
 
@@ -111,10 +112,14 @@ public class Schemas {
   }
 
   public static List<Integer> matchPattern(BatchSchema inputSchema, String pattern) {
+    return matchPattern(inputSchema.raw(), pattern);
+  }
+
+  public static List<Integer> matchPattern(Schema inputSchema, String pattern) {
     List<Integer> indexes = new ArrayList<>();
     Predicate<String> matcher = StringUtils.toColumnMatcher(pattern);
-    for (int i = 0; i < inputSchema.getFieldCount(); i++) {
-      if (matcher.test(inputSchema.getName(i))) {
+    for (int i = 0; i < inputSchema.getFields().size(); i++) {
+      if (matcher.test(inputSchema.getFields().get(i).getName())) {
         indexes.add(i);
       }
     }

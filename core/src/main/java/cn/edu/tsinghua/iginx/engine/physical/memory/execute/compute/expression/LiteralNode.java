@@ -15,43 +15,38 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.expression;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.expression;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.ExecutorContext;
-import cn.edu.tsinghua.iginx.engine.shared.data.Value;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ConstantVectors;
-import cn.edu.tsinghua.iginx.engine.shared.data.arrow.Schemas;
 import java.util.Collections;
 import javax.annotation.Nullable;
-import javax.annotation.WillNotClose;
-import org.apache.arrow.vector.ValueVector;
-import org.apache.arrow.vector.types.Types;
+import org.apache.arrow.vector.VectorSchemaRoot;
 
-public class LiteralNode extends PhysicalExpression {
+public class LiteralNode extends AbstractPhysicalExpression {
 
-  private final Value value;
+  private final Object value;
 
-  public LiteralNode(@Nullable Value value) {
-    super(Collections.emptyList());
+  public LiteralNode(@Nullable Object value) {
+    this(value, null);
+  }
+
+  public LiteralNode(@Nullable Object value, String alias) {
+    super(alias, Collections.emptyList());
     this.value = value;
   }
 
   @Override
   public String getName() {
-    return "literal(" + value + ")";
+    return String.valueOf(value);
   }
 
   @Override
-  public Types.MinorType getResultType(ExecutorContext context, Types.MinorType... args) {
-    if (value == null) {
-      return Types.MinorType.NULL;
-    }
-    return Schemas.toMinorType(value.getDataType());
-  }
-
-  @Override
-  public ValueVector invoke(
-      ExecutorContext context, int rowCount, @WillNotClose ValueVector... args) {
-    return ConstantVectors.of(context.getAllocator(), value, rowCount);
+  protected VectorSchemaRoot invokeImpl(ExecutorContext context, VectorSchemaRoot args)
+      throws ComputeException {
+    return new VectorSchemaRoot(
+        Collections.singleton(
+            ConstantVectors.of(context.getAllocator(), value, args.getRowCount())));
   }
 }

@@ -18,18 +18,16 @@
 package cn.edu.tsinghua.iginx.physical.optimizer.naive.planner;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.ExecutorContext;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.ComputeException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.expression.CallNode;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.expression.FieldNode;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.expression.LiteralNode;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.expression.PhysicalExpression;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.ScalarFunction;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.arithmetic.ArithmeticFunction;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.arithmetic.PhysicalMultiply;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.expression.FieldNode;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.expression.FunctionNode;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.expression.LiteralNode;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.expression.PhysicalExpression;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.NoExceptionAutoClosableHolder;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutorInitializer;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.pipeline.ProjectionExecutor;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.NoExceptionAutoClosableHolder;
-import cn.edu.tsinghua.iginx.engine.shared.data.arrow.Schemas;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.expr.BaseExpression;
 import cn.edu.tsinghua.iginx.engine.shared.expr.BinaryExpression;
@@ -44,11 +42,9 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.RowTransform;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import org.apache.arrow.vector.types.Types;
-import org.apache.arrow.vector.types.pojo.Field;
 
 public class TransformProjectionInfoGenerator
-    implements UnaryExecutorInitializer<List<ProjectionExecutor.ProjectionInfo>> {
+    implements UnaryExecutorInitializer<List<PhysicalExpression>> {
 
   private final RowTransform operator;
 
@@ -56,31 +52,25 @@ public class TransformProjectionInfoGenerator
     this.operator = Objects.requireNonNull(operator);
   }
 
-  @Override
-  public List<ProjectionExecutor.ProjectionInfo> initialize(
-      ExecutorContext context, BatchSchema inputSchema) throws ComputeException {
-    List<ProjectionExecutor.ProjectionInfo> temp = new ArrayList<>();
+  public List<PhysicalExpression> initialize(ExecutorContext context, BatchSchema inputSchema)
+      throws ComputeException {
+    List<PhysicalExpression> temp = new ArrayList<>();
     try {
-      Integer keyIndex = inputSchema.indexOf(BatchSchema.KEY.getName());
-      if (keyIndex != null) {
-        Field keyField = BatchSchema.KEY;
-        temp.add(new ProjectionExecutor.ProjectionInfo(keyField, new FieldNode(keyIndex)));
+      if (inputSchema.hasKey()) {
+        temp.add(new FieldNode(inputSchema.getKeyIndex(), BatchSchema.KEY.getName()));
       }
       for (int targetIndex = 0;
           targetIndex < operator.getFunctionCallList().size();
           targetIndex++) {
         FunctionCall functionCall = operator.getFunctionCallList().get(targetIndex);
         PhysicalExpression expression = getPhysicalExpression(context, inputSchema, functionCall);
-        Types.MinorType resultType =
-            expression.getResultType(context, inputSchema.getMinorTypeArray());
-        Field field = Schemas.field(functionCall.getFunctionStr(), resultType);
-        temp.add(new ProjectionExecutor.ProjectionInfo(field, expression));
+        temp.add(expression);
       }
-      List<ProjectionExecutor.ProjectionInfo> ret = new ArrayList<>(temp);
+      List<PhysicalExpression> ret = new ArrayList<>(temp);
       temp.clear();
       return ret;
     } finally {
-      temp.forEach(ProjectionExecutor.ProjectionInfo::close);
+      temp.forEach(PhysicalExpression::close);
     }
   }
 
@@ -140,35 +130,20 @@ public class TransformProjectionInfoGenerator
       PhysicalExpression right =
           holder.add(getPhysicalExpression(context, inputSchema, expr.getRightExpression()));
 
-      Types.MinorType[] inputTypes = inputSchema.getMinorTypeArray();
-      Types.MinorType leftType = left.getResultType(context, inputTypes);
-      Types.MinorType rightType = right.getResultType(context, inputTypes);
-
-      ScalarFunction function =
-          holder.add(getArithmeticFunction(context, expr.getOp(), leftType, rightType));
-      FunctionNode functionNode = holder.add(new FunctionNode(function, left, right));
-
+      ScalarFunction function = holder.add(getArithmeticFunction(expr.getOp()));
+      CallNode callNode = holder.add(new CallNode(function, expr.getColumnName(), left, right));
       holder.detachAll();
-      return functionNode;
+      return callNode;
     }
   }
 
-  public ArithmeticFunction getArithmeticFunction(
-      ExecutorContext context,
-      Operator operator,
-      Types.MinorType leftType,
-      Types.MinorType rightType)
-      throws ComputeException {
-    if (!Schemas.isNumeric(leftType) || !Schemas.isNumeric(rightType)) {
-      throw new ComputeException(
-          "Unsupported data type for arithmetic expression: " + leftType + " and " + rightType);
-    }
+  public ArithmeticFunction getArithmeticFunction(Operator operator) {
     switch (operator) {
       case PLUS:
       case MINUS:
         throw new UnsupportedOperationException("Unsupported operator: " + operator);
       case STAR:
-        return new PhysicalMultiply(leftType, rightType);
+        return new PhysicalMultiply();
       case DIV:
       case MOD:
       default:

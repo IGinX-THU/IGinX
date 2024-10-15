@@ -23,14 +23,10 @@ import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ValueVectors;
 import org.apache.arrow.vector.*;
 import org.apache.arrow.vector.types.Types;
 
-public class CastNumericAsFloat8 extends Cast<Float8Vector> {
+public class CastNumericAsFloat8 extends Cast {
 
-  public CastNumericAsFloat8(Types.MinorType inputType) {
-    super(Types.MinorType.FLOAT8, inputType);
-    if (!Schemas.isNumeric(inputType)) {
-      throw new IllegalArgumentException(
-          "CastNumericToFloat8 only supports numeric types, but got " + inputType);
-    }
+  public CastNumericAsFloat8() {
+    super("numeric", "float8");
   }
 
   @Override
@@ -63,5 +59,10 @@ public class CastNumericAsFloat8 extends Cast<Float8Vector> {
 
   private Float8Vector evaluate(ExecutorContext context, Float8Vector input) {
     return ValueVectors.slice(context.getAllocator(), input);
+  }
+
+  @Override
+  protected boolean allowType(int index, Types.MinorType type) {
+    return Schemas.isNumeric(type);
   }
 }
