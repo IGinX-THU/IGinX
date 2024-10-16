@@ -27,11 +27,11 @@ import org.apache.arrow.memory.ArrowBuf;
 import org.apache.arrow.vector.*;
 import org.apache.arrow.vector.types.Types;
 
-public abstract class ArithmeticFunction extends BinaryFunction<FieldVector> {
+public abstract class BinaryArithmeticFunction extends BinaryFunction<FieldVector> {
 
   protected final CastNumericAsFloat8 castFunction = new CastNumericAsFloat8();
 
-  protected ArithmeticFunction(String name) {
+  protected BinaryArithmeticFunction(String name) {
     super(name);
   }
 
