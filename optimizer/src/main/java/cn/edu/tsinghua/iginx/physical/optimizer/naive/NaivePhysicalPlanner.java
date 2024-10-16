@@ -1,4 +1,4 @@
-package cn.edu.tsinghua.iginx.physical.optimizer.naive.planner;
+package cn.edu.tsinghua.iginx.physical.optimizer.naive;
 
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.pipeline.FilterExecutor;
@@ -11,6 +11,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.source.FragmentSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.Source;
+import cn.edu.tsinghua.iginx.physical.optimizer.naive.initializer.*;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -79,18 +80,11 @@ public class NaivePhysicalPlanner {
     return new StoragePhysicalTask(newOperators, storageTask.getTargetFragment(), storageTask.isSync(), needBroadcasting, context);
   }
 
-  private void checkIsMemoryTask(PhysicalTask task) {
-    if (!TaskType.isMemoryTask(task.getType())) {
-      throw new IllegalStateException("Unexpected task type: " + task.getType());
-    }
-  }
-
   public PhysicalTask construct(Project operator, RequestContext context) {
     PhysicalTask sourceTask = construct(operator.getSource(), context);
     if (sourceTask.getType() == TaskType.Storage) {
       return reConstruct((StoragePhysicalTask) sourceTask, context, false, operator);
     }
-    checkIsMemoryTask(sourceTask);
     return new PipelineMemoryPhysicalTask(
         sourceTask,
         Collections.singletonList(operator),
@@ -101,7 +95,6 @@ public class NaivePhysicalPlanner {
 
   public PhysicalTask construct(Rename operator, RequestContext context) {
     PhysicalTask sourceTask = construct(operator.getSource(), context);
-    checkIsMemoryTask(sourceTask);
     return new PipelineMemoryPhysicalTask(
         sourceTask,
         Collections.singletonList(operator),
@@ -112,7 +105,6 @@ public class NaivePhysicalPlanner {
 
   public PhysicalTask construct(Reorder operator, RequestContext context) {
     PhysicalTask sourceTask = construct(operator.getSource(), context);
-    checkIsMemoryTask(sourceTask);
     return new PipelineMemoryPhysicalTask(
         sourceTask,
         Collections.singletonList(operator),
@@ -123,7 +115,6 @@ public class NaivePhysicalPlanner {
 
   public PhysicalTask construct(AddSchemaPrefix operator, RequestContext context) {
     PhysicalTask sourceTask = construct(operator.getSource(), context);
-    checkIsMemoryTask(sourceTask);
     return new PipelineMemoryPhysicalTask(
         sourceTask,
         Collections.singletonList(operator),
@@ -134,7 +125,6 @@ public class NaivePhysicalPlanner {
 
   public PhysicalTask construct(RowTransform operator, RequestContext context) {
     PhysicalTask sourceTask = construct(operator.getSource(), context);
-    checkIsMemoryTask(sourceTask);
     return new PipelineMemoryPhysicalTask(
         sourceTask,
         Collections.singletonList(operator),
@@ -151,8 +141,6 @@ public class NaivePhysicalPlanner {
     if (storageTask != null) {
       return storageTask;
     }
-
-    checkIsMemoryTask(sourceTask);
 
     if (operator.getTagFilter() != null) {
       sourceTask = new PipelineMemoryPhysicalTask(
@@ -205,14 +193,11 @@ public class NaivePhysicalPlanner {
 
   public PhysicalTask construct(SetTransform operator, RequestContext context) {
     PhysicalTask sourceTask = construct(operator.getSource(), context);
-    checkIsMemoryTask(sourceTask);
-
     StoragePhysicalTask storageTask = tryPushDownAloneWithProject(sourceTask, context, operator);
     if (storageTask != null) {
       return storageTask;
     }
 
-    checkIsMemoryTask(sourceTask);
     return new UnarySinkMemoryPhysicalTask(
         sourceTask,
         Collections.singletonList(operator),

@@ -7,13 +7,11 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.Compute
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.Schemas;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ValueVectors;
 import org.apache.arrow.memory.ArrowBuf;
-import org.apache.arrow.vector.BitVector;
-import org.apache.arrow.vector.BitVectorHelper;
-import org.apache.arrow.vector.FieldVector;
-import org.apache.arrow.vector.Float8Vector;
+import org.apache.arrow.vector.*;
 import org.apache.arrow.vector.types.Types;
 
 import javax.annotation.WillNotClose;
+import java.util.function.IntPredicate;
 
 public abstract class ComparisonFunction extends BinaryFunction<BitVector> {
 
@@ -39,7 +37,8 @@ public abstract class ComparisonFunction extends BinaryFunction<BitVector> {
       return evaluateSameType(context, left, right);
     }
     if (Schemas.isNumeric(left.getMinorType()) && Schemas.isNumeric(right.getMinorType())) {
-      try (FieldVector leftCast = castFunction.evaluate(context, left); FieldVector rightCast = castFunction.evaluate(context, right)) {
+      try (FieldVector leftCast = castFunction.evaluate(context, left);
+           FieldVector rightCast = castFunction.evaluate(context, right)) {
         return evaluateSameType(context, leftCast, rightCast);
       }
     }
@@ -47,23 +46,55 @@ public abstract class ComparisonFunction extends BinaryFunction<BitVector> {
   }
 
   public BitVector evaluateSameType(ExecutorContext context, FieldVector left, FieldVector right) {
-    BitVector result = (BitVector) ValueVectors.createIntersect(context.getAllocator(), left, right, Types.MinorType.BIT);
-    int rowCount = left.getValueCount();
+    BitVector result = (BitVector) ValueVectors.createWithBothValidity(context.getAllocator(), left, right, Types.MinorType.BIT);
     ArrowBuf resultBuf = result.getDataBuffer();
     switch (left.getMinorType()) {
-      case FLOAT8:
-        Float8Vector leftFloat8 = (Float8Vector) left;
-        Float8Vector rightFloat8 = (Float8Vector) right;
-        for (int i = 0; i < rowCount; i++) {
-          if (evaluate(leftFloat8.get(i), rightFloat8.get(i))) {
-            BitVectorHelper.setBit(resultBuf, i);
-          }
-        }
+      case INT:
+        evaluate(resultBuf, (IntVector) left, (IntVector) right);
         break;
+      case BIGINT:
+        evaluate(resultBuf, (BigIntVector) left, (BigIntVector) right);
+        break;
+      case FLOAT4:
+        evaluate(resultBuf, (Float4Vector) left, (Float4Vector) right);
+        break;
+      case FLOAT8:
+        evaluate(resultBuf, (Float8Vector) left, (Float8Vector) right);
+        break;
+      case VARBINARY:
+        evaluate(resultBuf, (VarBinaryVector) left, (VarBinaryVector) right);
       default:
         throw new IllegalStateException("Unexpected type: " + left.getMinorType());
     }
     return result;
+  }
+
+  public void evaluate(ArrowBuf resultBuf, IntVector left, IntVector right) {
+    evaluateLoop(resultBuf, left.getValueCount(), index -> evaluate(left.get(index), right.get(index)));
+  }
+
+  public void evaluate(ArrowBuf resultBuf, BigIntVector left, BigIntVector right) {
+    evaluateLoop(resultBuf, left.getValueCount(), index -> evaluate(left.get(index), right.get(index)));
+  }
+
+  public void evaluate(ArrowBuf resultBuf, Float4Vector left, Float4Vector right) {
+    evaluateLoop(resultBuf, left.getValueCount(), index -> evaluate(left.get(index), right.get(index)));
+  }
+
+  public void evaluate(ArrowBuf resultBuf, Float8Vector left, Float8Vector right) {
+    evaluateLoop(resultBuf, left.getValueCount(), index -> evaluate(left.get(index), right.get(index)));
+  }
+
+  public void evaluate(ArrowBuf resultBuf, VarBinaryVector left, VarBinaryVector right) {
+    evaluateLoop(resultBuf, left.getValueCount(), index -> evaluate(left.get(index), right.get(index)));
+  }
+
+  private void evaluateLoop(ArrowBuf resultBuf, int valueCount, IntPredicate tester) {
+    for (int i = 0; i < valueCount; i++) {
+      if (tester.test(i)) {
+        BitVectorHelper.setBit(resultBuf, i);
+      }
+    }
   }
 
   @Override

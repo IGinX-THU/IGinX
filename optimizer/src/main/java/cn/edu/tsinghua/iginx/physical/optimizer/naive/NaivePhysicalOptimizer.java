@@ -17,30 +17,18 @@
  */
 package cn.edu.tsinghua.iginx.physical.optimizer.naive;
 
-import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.ExecutorType;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.pipeline.PipelineExecutor;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.sink.UnarySinkExecutor;
 import cn.edu.tsinghua.iginx.engine.physical.optimizer.PhysicalOptimizer;
 import cn.edu.tsinghua.iginx.engine.physical.optimizer.ReplicaDispatcher;
-import cn.edu.tsinghua.iginx.engine.physical.task.*;
+import cn.edu.tsinghua.iginx.engine.physical.task.PhysicalTask;
+import cn.edu.tsinghua.iginx.engine.physical.task.UnaryMemoryPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.constraint.ConstraintManager;
-import cn.edu.tsinghua.iginx.engine.shared.operator.*;
-import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
-import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
-import cn.edu.tsinghua.iginx.engine.shared.source.Source;
-import cn.edu.tsinghua.iginx.engine.shared.source.SourceType;
-import cn.edu.tsinghua.iginx.physical.optimizer.naive.planner.NaivePhysicalExecutorFactory;
-import cn.edu.tsinghua.iginx.physical.optimizer.naive.planner.NaivePhysicalPlanner;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import cn.edu.tsinghua.iginx.physical.optimizer.rule.Rule;
-import java.util.ArrayList;
+
 import java.util.Collection;
-import java.util.List;
 
 public class NaivePhysicalOptimizer implements PhysicalOptimizer {
-
-  private final NaivePhysicalExecutorFactory executorFactory = new NaivePhysicalExecutorFactory();
 
   public static NaivePhysicalOptimizer getInstance() {
     return NaivePhysicalOptimizerHolder.INSTANCE;
@@ -51,7 +39,9 @@ public class NaivePhysicalOptimizer implements PhysicalOptimizer {
     if (root == null) {
       return null;
     }
-    return constructTask(root, context);
+    NaivePhysicalPlanner planner = new NaivePhysicalPlanner();
+    PhysicalTask task = planner.construct(root, context);
+    return setFollowerTask(task);
   }
 
   @Override
@@ -64,10 +54,10 @@ public class NaivePhysicalOptimizer implements PhysicalOptimizer {
     return NaiveReplicaDispatcher.getInstance();
   }
 
-  public void setRules(Collection<Rule> rules) {}
+  public void setRules(Collection<Rule> rules) {
+  }
 
-  private PhysicalTask constructTask(Operator operator, RequestContext context) {
-    return new NaivePhysicalPlanner().construct(operator, context);
+//  private PhysicalTask constructTask(Operator operator, RequestContext context) {
 //    if (OperatorType.isUnaryOperator(operator.getType())) {
 //      UnaryOperator unaryOperator = (UnaryOperator) operator;
 //      Source source = unaryOperator.getSource();
@@ -153,12 +143,30 @@ public class NaivePhysicalOptimizer implements PhysicalOptimizer {
 //      }
 //      return task;
 //    }
+//  }
+
+  private static PhysicalTask setFollowerTask(PhysicalTask task) {
+    switch (task.getType()) {
+      case Storage:
+      case Global:
+        break;
+      case UnaryMemory:
+        setFollowerTask(((UnaryMemoryPhysicalTask) task).getParentTask()).setFollowerTask(task);
+        break;
+      case BinaryMemory:
+      case MultipleMemory:
+        throw new UnsupportedOperationException("Not implemented yet");
+      default:
+        throw new UnsupportedOperationException("Unsupported task type: " + task.getType());
+    }
+    return task;
   }
 
   private static class NaivePhysicalOptimizerHolder {
 
     private static final NaivePhysicalOptimizer INSTANCE = new NaivePhysicalOptimizer();
 
-    private NaivePhysicalOptimizerHolder() {}
+    private NaivePhysicalOptimizerHolder() {
+    }
   }
 }

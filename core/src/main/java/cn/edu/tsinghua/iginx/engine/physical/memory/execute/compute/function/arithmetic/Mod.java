@@ -24,7 +24,7 @@ public class Mod extends BinaryArithmeticFunction {
   }
 
   @Override
-  public int evaluate(int left, int right) {
+  public int evaluateWithoutValidity(int left, int right) {
     return left % right;
   }
 

@@ -17,7 +17,7 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.arithmetic;
 
-public class Negate extends UnaryFunction {
+public class Negate extends UnaryArithmeticFunction {
 
   public Negate() {
     super("negate");

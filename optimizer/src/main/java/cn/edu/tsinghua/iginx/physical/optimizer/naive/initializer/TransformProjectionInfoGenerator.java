@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.physical.optimizer.naive.planner;
+package cn.edu.tsinghua.iginx.physical.optimizer.naive.initializer;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.expression.CallNode;
@@ -24,10 +24,6 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.exp
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.expression.PhysicalExpression;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.ScalarFunction;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.arithmetic.*;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.expression.CallNode;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.expression.FieldNode;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.expression.LiteralNode;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.expression.PhysicalExpression;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.NoExceptionAutoClosableHolder;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutorInitializer;
@@ -161,7 +157,7 @@ public class TransformProjectionInfoGenerator
     }
   }
 
-  public BinaryFunction getArithmeticFunction(Operator operator) {
+  public BinaryArithmeticFunction getArithmeticFunction(Operator operator) {
     switch (operator) {
       case PLUS:
         return new Add();
@@ -178,7 +174,7 @@ public class TransformProjectionInfoGenerator
     }
   }
 
-  public UnaryFunction getUnaryFunction(Operator operator) {
+  public UnaryArithmeticFunction getUnaryFunction(Operator operator) {
     switch (operator) {
       case PLUS:
         return new MakePositive();

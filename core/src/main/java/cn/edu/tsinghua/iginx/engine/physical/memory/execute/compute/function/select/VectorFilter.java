@@ -27,7 +27,6 @@ public class VectorFilter extends AbstractFunction {
 
   public <T extends FieldVector> FieldVector evaluate(ExecutorContext context, BitVector bitVector, T fieldVector) {
     T result = ValueVectors.like(context.getAllocator(), fieldVector);
-    result.setInitialCapacity(bitVector.getValueCount());
     int targetIndex = 0;
     for (int sourceIndex = 0; sourceIndex < bitVector.getValueCount(); sourceIndex++) {
       if (!bitVector.isNull(sourceIndex) && bitVector.get(sourceIndex) != 0) {

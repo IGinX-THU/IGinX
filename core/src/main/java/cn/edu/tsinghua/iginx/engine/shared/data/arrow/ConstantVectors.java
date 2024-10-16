@@ -47,15 +47,15 @@ public class ConstantVectors {
     }
     switch (value.getDataType()) {
       case BOOLEAN:
-        return of(allocator, value.getBoolV(), valueCount);
+        return of(allocator, (boolean) value.getBoolV(), valueCount);
       case INTEGER:
-        return of(allocator, value.getIntV(), valueCount);
+        return of(allocator, (int) value.getIntV(), valueCount);
       case LONG:
-        return of(allocator, value.getLongV(), valueCount);
+        return of(allocator, (long) value.getLongV(), valueCount);
       case FLOAT:
-        return of(allocator, value.getFloatV(), valueCount);
+        return of(allocator, (float) value.getFloatV(), valueCount);
       case DOUBLE:
-        return of(allocator, value.getDoubleV(), valueCount);
+        return of(allocator, (double) value.getDoubleV(), valueCount);
       case BINARY:
         return of(allocator, value.getBinaryV(), valueCount);
       default:

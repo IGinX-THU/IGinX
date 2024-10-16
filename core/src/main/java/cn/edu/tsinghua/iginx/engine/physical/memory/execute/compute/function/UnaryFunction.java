@@ -10,35 +10,27 @@ import org.apache.arrow.vector.types.Types;
 import javax.annotation.WillNotClose;
 import java.util.Collections;
 
-public abstract class BinaryFunction<OUT extends FieldVector> extends AbstractFunction {
+public abstract class UnaryFunction<OUT extends FieldVector> extends AbstractFunction {
 
-  protected BinaryFunction(String name) {
-    super(name, Arity.BINARY);
+  protected UnaryFunction(String name) {
+    super(name, Arity.UNARY);
   }
 
   @Override
   protected VectorSchemaRoot invokeImpl(ExecutorContext context, VectorSchemaRoot args) throws ComputeException {
-    FieldVector leftVector = args.getVector(0);
-    FieldVector rightVector = args.getVector(1);
-    FieldVector resultVector = evaluate(context, leftVector, rightVector);
+    FieldVector resultVector = evaluate(context, args.getVector(0));
     return new VectorSchemaRoot(Collections.singleton(resultVector));
   }
 
   @Override
   public boolean allowType(int index, Types.MinorType type) {
-    switch (index) {
-      case 0:
-        return allowLeftType(type);
-      case 1:
-        return allowRightType(type);
-      default:
-        return false;
+    if (index == 0) {
+      return allowType(type);
     }
+    return false;
   }
 
-  protected abstract boolean allowLeftType(Types.MinorType type);
+  protected abstract boolean allowType(Types.MinorType type);
 
-  protected abstract boolean allowRightType(Types.MinorType type);
-
-  public abstract OUT evaluate(ExecutorContext context, @WillNotClose FieldVector left, @WillNotClose FieldVector right) throws ComputeException;
+  public abstract OUT evaluate(ExecutorContext context, @WillNotClose FieldVector input) throws ComputeException;
 }

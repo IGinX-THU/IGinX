@@ -20,9 +20,12 @@ package cn.edu.tsinghua.iginx.engine.shared.data.arrow;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.logic.And;
 import org.apache.arrow.memory.ArrowBuf;
 import org.apache.arrow.memory.BufferAllocator;
+import org.apache.arrow.memory.util.MemoryUtil;
+import org.apache.arrow.vector.BitVectorHelper;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.ValueVector;
 import org.apache.arrow.vector.types.Types;
+import org.apache.arrow.vector.types.pojo.Field;
 import org.apache.arrow.vector.util.TransferPair;
 
 public class ValueVectors {
@@ -52,18 +55,23 @@ public class ValueVectors {
     return returnType.getNewVector(Schemas.defaultField(returnType), allocator, null);
   }
 
+  public static FieldVector create(BufferAllocator allocator, Field field) {
+    return field.createVector(allocator);
+  }
+
   @SuppressWarnings("unchecked")
-  public static <T extends ValueVector> T likeType(BufferAllocator allocator, T left) {
-    return (T) create(allocator, left.getMinorType());
+  public static <T extends ValueVector> T likeOnlyField(BufferAllocator allocator, T left) {
+    return (T) create(allocator, left.getField());
   }
 
   public static <T extends ValueVector> T like(BufferAllocator allocator, T left) {
-    T ret = likeType(allocator, left);
+    T ret = likeOnlyField(allocator, left);
+    ret.setInitialCapacity(left.getValueCount());
     ret.setValueCount(left.getValueCount());
     return ret;
   }
 
-  public static ValueVector createIntersect(BufferAllocator allocator, ValueVector left, ValueVector right, Types.MinorType type) {
+  public static ValueVector createWithBothValidity(BufferAllocator allocator, ValueVector left, ValueVector right, Types.MinorType type) {
     ValueVector ret = create(allocator, type);
 
     int valueCount = Math.min(left.getValueCount(), right.getValueCount());
@@ -74,19 +82,39 @@ public class ValueVectors {
     ArrowBuf firstValidityBuffer = left.getValidityBuffer();
     ArrowBuf secondValidityBuffer = right.getValidityBuffer();
     try (And and = new And()) {
-      and.evaluate(retValidityBuffer, firstValidityBuffer, secondValidityBuffer);
+      and.evaluate(retValidityBuffer, firstValidityBuffer, secondValidityBuffer, BitVectorHelper.getValidityBufferSize(valueCount));
     }
 
     return ret;
   }
 
+  public static ValueVector createWithValidity(BufferAllocator allocator, ValueVector input, Types.MinorType type) {
+    ValueVector ret = create(allocator, type);
+
+    int valueCount = input.getValueCount();
+    ret.setInitialCapacity(valueCount);
+    ret.setValueCount(valueCount);
+
+    ArrowBuf retValidityBuffer = ret.getValidityBuffer();
+    ArrowBuf inputValidityBuffer = input.getValidityBuffer();
+    long capacity = Math.min(retValidityBuffer.capacity(), inputValidityBuffer.capacity());
+    MemoryUtil.UNSAFE.copyMemory(retValidityBuffer.memoryAddress(), inputValidityBuffer.memoryAddress(), capacity);
+
+    return ret;
+  }
+
   @SuppressWarnings("unchecked")
-  public static <T extends ValueVector> T likeIntersection(
+  public static <T extends ValueVector> T likeWithBothValidity(
       BufferAllocator allocator, T first, T second) {
     if (first.getMinorType() != second.getMinorType()) {
       throw new IllegalArgumentException("Cannot create intersection vector for different types");
     }
-    return (T) createIntersect(allocator, first, second, first.getMinorType());
+    return (T) createWithBothValidity(allocator, first, second, first.getMinorType());
+  }
+
+  @SuppressWarnings("unchecked")
+  public static <T extends ValueVector> T likeWithValidity(BufferAllocator allocator, T vector) {
+    return (T) createWithValidity(allocator, vector, vector.getMinorType());
   }
 
   @SuppressWarnings("unchecked")
@@ -100,4 +128,6 @@ public class ValueVectors {
   public static FieldVector transfer(BufferAllocator allocator, FieldVector vector) {
     return transfer(allocator, vector, vector.getName());
   }
+
+
 }

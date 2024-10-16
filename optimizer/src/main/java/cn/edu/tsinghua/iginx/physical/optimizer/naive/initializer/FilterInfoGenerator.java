@@ -1,4 +1,4 @@
-package cn.edu.tsinghua.iginx.physical.optimizer.naive.planner;
+package cn.edu.tsinghua.iginx.physical.optimizer.naive.initializer;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.ScalarFunction;
@@ -20,6 +20,7 @@ import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.BiFunction;
 import java.util.function.Predicate;
 
 public class FilterInfoGenerator implements UnaryExecutorInitializer<PhysicalExpression> {
@@ -73,18 +74,27 @@ public class FilterInfoGenerator implements UnaryExecutorInitializer<PhysicalExp
     if (children.isEmpty()) {
       return construct(new BoolFilter(true), context, inputSchema);
     }
-    return children.stream()
-        .reduce((left, right) -> new CallNode(new And(), left, right))
-        .orElseThrow(() -> new IllegalStateException("Empty children list"));
+    return binaryReduce(children, (l, r) -> new CallNode(new And(), l, r), 0, children.size());
+  }
+
+  private static <T> T binaryReduce(List<T> list, BiFunction<T, T, T> combiner, int start, int end) {
+    if (start == end) {
+      throw new IllegalArgumentException("Empty list");
+    }
+    if (start == end - 1) {
+      return list.get(start);
+    }
+    int mid = start + (end - start) / 2;
+    T left = binaryReduce(list, combiner, start, mid);
+    T right = binaryReduce(list, combiner, mid, end);
+    return combiner.apply(left, right);
   }
 
   private static PhysicalExpression or(List<PhysicalExpression> children, ExecutorContext context, BatchSchema inputSchema) throws ComputeException {
     if (children.isEmpty()) {
       return construct(new BoolFilter(false), context, inputSchema);
     }
-    return children.stream()
-        .reduce((left, right) -> new CallNode(new Or(), left, right))
-        .orElseThrow(() -> new IllegalStateException("Empty children list"));
+    return binaryReduce(children, (l, r) -> new CallNode(new Or(), l, r), 0, children.size());
   }
 
   private static PhysicalExpression construct(ValueFilter filter, ExecutorContext context, BatchSchema inputSchema) throws ComputeException {

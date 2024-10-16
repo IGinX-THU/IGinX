@@ -17,7 +17,7 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.arithmetic;
 
-public class MakePositive extends UnaryFunction {
+public class MakePositive extends UnaryArithmeticFunction {
 
   public MakePositive() {
     super("MakePositive");

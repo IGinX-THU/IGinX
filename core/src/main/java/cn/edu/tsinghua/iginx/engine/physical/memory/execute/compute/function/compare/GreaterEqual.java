@@ -4,7 +4,7 @@ public class GreaterEqual extends ComparisonFunction {
 
   private static final String NAME = "greater_equal";
 
-  protected GreaterEqual() {
+  public GreaterEqual() {
     super(NAME);
   }
 

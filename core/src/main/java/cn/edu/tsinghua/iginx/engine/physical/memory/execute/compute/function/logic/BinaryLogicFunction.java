@@ -5,6 +5,7 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.Bin
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ValueVectors;
 import org.apache.arrow.memory.ArrowBuf;
 import org.apache.arrow.vector.BitVector;
+import org.apache.arrow.vector.BitVectorHelper;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.types.Types;
 
@@ -17,12 +18,12 @@ public abstract class BinaryLogicFunction extends BinaryFunction<BitVector> {
   }
 
   @Override
-  protected boolean allowLeftType(Types.MinorType type){
+  protected boolean allowLeftType(Types.MinorType type) {
     return Types.MinorType.BIT == type;
   }
 
   @Override
-  protected boolean allowRightType(Types.MinorType type){
+  protected boolean allowRightType(Types.MinorType type) {
     return Types.MinorType.BIT == type;
   }
 
@@ -32,22 +33,26 @@ public abstract class BinaryLogicFunction extends BinaryFunction<BitVector> {
   }
 
   public BitVector evaluate(ExecutorContext context, @WillNotClose BitVector left, @WillNotClose BitVector right) {
-    BitVector result = ValueVectors.likeIntersection(context.getAllocator(), left, right);
-    evaluate(result.getDataBuffer(), left.getDataBuffer(), right.getDataBuffer());
+    BitVector result = ValueVectors.likeWithBothValidity(context.getAllocator(), left, right);
+    evaluate(result.getDataBuffer(), left.getDataBuffer(), right.getDataBuffer(), BitVectorHelper.getValidityBufferSize(result.getValueCount()));
     return result;
   }
 
-  public void evaluate(@WillNotClose ArrowBuf result, @WillNotClose ArrowBuf left, @WillNotClose ArrowBuf right) {
-    if (result.capacity() < left.capacity() || result.capacity() < right.capacity()) {
+  public void evaluate(@WillNotClose ArrowBuf result, @WillNotClose ArrowBuf left, @WillNotClose ArrowBuf right, long byteCount) {
+    if (result.capacity() < byteCount) {
       throw new IllegalArgumentException("The capacity of result buffer is not enough");
     }
-
-    long capacity = result.capacity();
-    long countAligned = (capacity / Long.BYTES) * Long.BYTES;
+    if (left.capacity() < byteCount) {
+      throw new IllegalArgumentException("The capacity of left buffer is not enough");
+    }
+    if (right.capacity() < byteCount) {
+      throw new IllegalArgumentException("The capacity of right buffer is not enough");
+    }
+    long countAligned = (byteCount / Long.BYTES) * Long.BYTES;
     for (long index = 0; index < countAligned; index += Long.BYTES) {
       result.setLong(index, evaluate(left.getLong(index), right.getLong(index)));
     }
-    for (long index = countAligned; index < capacity; index++) {
+    for (long index = countAligned; index < byteCount; index++) {
       result.setByte(index, evaluate(left.getByte(index), right.getByte(index)));
     }
   }

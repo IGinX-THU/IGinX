@@ -20,6 +20,7 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.ar
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.BinaryFunction;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.cast.CastNumericAsFloat8;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.logic.And;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ConstantVectors;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.Schemas;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ValueVectors;
@@ -61,65 +62,86 @@ public abstract class BinaryArithmeticFunction extends BinaryFunction<FieldVecto
   }
 
   public FieldVector evaluateSameType(ExecutorContext context, FieldVector left, FieldVector right) {
-    if (left.getValueCount() != right.getValueCount()) {
-      throw new IllegalArgumentException(
-          "Invalid number of rows for argument "
-              + left.getField()
-              + " and "
-              + right.getField()
-              + " for function "
-              + getName());
-    }
-    ArrowBuf leftBuf = left.getDataBuffer();
-    ArrowBuf rightBuf = right.getDataBuffer();
-    int rowCount = left.getValueCount();
+    FieldVector dest = ValueVectors.likeWithBothValidity(context.getAllocator(), left, right);
     switch (left.getMinorType()) {
-      case INT: {
-        IntVector dest =
-            ValueVectors.likeIntersection(
-                context.getAllocator(), (IntVector) left, (IntVector) right);
-        ArrowBuf destBuf = dest.getDataBuffer();
-        for (long i = 0; i < rowCount; i++) {
-          long index = i * IntVector.TYPE_WIDTH;
-          destBuf.setInt(index, evaluate(leftBuf.getInt(index), rightBuf.getInt(index)));
-        }
-        return dest;
-      }
-      case BIGINT: {
-        BigIntVector dest =
-            ValueVectors.likeIntersection(
-                context.getAllocator(), (BigIntVector) left, (BigIntVector) right);
-        ArrowBuf destBuf = dest.getDataBuffer();
-        for (long i = 0; i < rowCount; i++) {
-          long index = i * BigIntVector.TYPE_WIDTH;
-          destBuf.setLong(index, evaluate(leftBuf.getLong(index), rightBuf.getLong(index)));
-        }
-        return dest;
-      }
-      case FLOAT4: {
-        Float4Vector dest =
-            ValueVectors.likeIntersection(
-                context.getAllocator(), (Float4Vector) left, (Float4Vector) right);
-        ArrowBuf destBuf = dest.getDataBuffer();
-        for (long i = 0; i < rowCount; i++) {
-          long index = i * Float4Vector.TYPE_WIDTH;
-          destBuf.setFloat(index, evaluate(leftBuf.getFloat(index), rightBuf.getFloat(index)));
-        }
-        return dest;
-      }
-      case FLOAT8: {
-        Float8Vector dest =
-            ValueVectors.likeIntersection(
-                context.getAllocator(), (Float8Vector) left, (Float8Vector) right);
-        ArrowBuf destBuf = dest.getDataBuffer();
-        for (long i = 0; i < rowCount; i++) {
-          long index = i * Float8Vector.TYPE_WIDTH;
-          destBuf.setDouble(index, evaluate(leftBuf.getDouble(index), rightBuf.getDouble(index)));
-        }
-        return dest;
-      }
+      case INT:
+        evaluate((IntVector) dest, (IntVector) left, (IntVector) right);
+        break;
+      case BIGINT:
+        evaluate((BigIntVector) dest, (BigIntVector) left, (BigIntVector) right);
+        break;
+      case FLOAT4:
+        evaluate((Float4Vector) dest, (Float4Vector) left, (Float4Vector) right);
+        break;
+      case FLOAT8:
+        evaluate((Float8Vector) dest, (Float8Vector) left, (Float8Vector) right);
+        break;
       default:
         throw new IllegalStateException("Unsupported type: " + left.getMinorType());
+    }
+    return dest;
+  }
+
+  public void evaluate(IntVector dest, IntVector left, IntVector right) {
+    checkCapacity(dest, left, right);
+    andValidity(dest, left, right);
+    int rowCount = dest.getValueCount();
+    ArrowBuf destBuf = dest.getDataBuffer();
+    for (int i = 0; i < rowCount; i++) {
+      long index = i * (long) IntVector.TYPE_WIDTH;
+      destBuf.setInt(index, evaluate(left.get(i), right.get(i)));
+    }
+  }
+
+  public void evaluate(BigIntVector dest, BigIntVector left, BigIntVector right) {
+    checkCapacity(dest, left, right);
+    andValidity(dest, left, right);
+    int rowCount = dest.getValueCount();
+    ArrowBuf destBuf = dest.getDataBuffer();
+    for (int i = 0; i < rowCount; i++) {
+      long index = i * (long) BigIntVector.TYPE_WIDTH;
+      destBuf.setLong(index, evaluate(left.get(i), right.get(i)));
+    }
+  }
+
+  public void evaluate(Float4Vector dest, Float4Vector left, Float4Vector right) {
+    checkCapacity(dest, left, right);
+    andValidity(dest, left, right);
+    int rowCount = dest.getValueCount();
+    ArrowBuf destBuf = dest.getDataBuffer();
+    for (int i = 0; i < rowCount; i++) {
+      long index = i * (long) Float4Vector.TYPE_WIDTH;
+      destBuf.setFloat(index, evaluate(left.get(i), right.get(i)));
+    }
+  }
+
+  public void evaluate(Float8Vector dest, Float8Vector left, Float8Vector right) {
+    checkCapacity(dest, left, right);
+    andValidity(dest, left, right);
+    int rowCount = dest.getValueCount();
+    ArrowBuf destBuf = dest.getDataBuffer();
+    for (int i = 0; i < rowCount; i++) {
+      long index = i * (long) Float8Vector.TYPE_WIDTH;
+      destBuf.setDouble(index, evaluate(left.get(i), right.get(i)));
+    }
+  }
+
+  private void checkCapacity(FieldVector dest, FieldVector left, FieldVector right) {
+    if (dest.getValueCount() > left.getValueCount()) {
+      throw new IllegalArgumentException("The capacity of left buffer is not enough");
+    }
+    if (dest.getValueCount() > right.getValueCount()) {
+      throw new IllegalArgumentException("The capacity of right buffer is not enough");
+    }
+  }
+
+  private void andValidity(FieldVector dest, FieldVector left, FieldVector right) {
+    try (And and = new And()) {
+      and.evaluate(
+          dest.getValidityBuffer(),
+          left.getValidityBuffer(),
+          right.getValidityBuffer(),
+          BitVectorHelper.getValidityBufferSize(dest.getValueCount()));
     }
   }
 

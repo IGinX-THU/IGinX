@@ -1,4 +1,4 @@
-package cn.edu.tsinghua.iginx.physical.optimizer.naive.planner;
+package cn.edu.tsinghua.iginx.physical.optimizer.naive.initializer;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.expression.PhysicalExpression;
