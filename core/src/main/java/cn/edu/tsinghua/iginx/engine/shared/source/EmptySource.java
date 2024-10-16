@@ -24,7 +24,7 @@ public class EmptySource implements Source {
 
   @Override
   public SourceType getType() {
-    return null;
+    return SourceType.Empty;
   }
 
   @Override

@@ -21,6 +21,8 @@ package cn.edu.tsinghua.iginx.sql.utils;
 import cn.edu.tsinghua.iginx.engine.shared.expr.BinaryExpression;
 import cn.edu.tsinghua.iginx.engine.shared.expr.BracketExpression;
 import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
+import cn.edu.tsinghua.iginx.engine.shared.expr.FuncExpression;
+import cn.edu.tsinghua.iginx.engine.shared.expr.MultipleExpression;
 import cn.edu.tsinghua.iginx.engine.shared.expr.Operator;
 import cn.edu.tsinghua.iginx.engine.shared.expr.UnaryExpression;
 
@@ -40,6 +42,14 @@ public class ExpressionUtils {
         BinaryExpression binaryExpression = (BinaryExpression) expression;
         return isConstantArithmeticExpr(binaryExpression.getLeftExpression())
             && isConstantArithmeticExpr(binaryExpression.getRightExpression());
+      case Function:
+        FuncExpression funcExpression = (FuncExpression) expression;
+        return funcExpression.getExpressions().stream()
+            .allMatch(ExpressionUtils::isConstantArithmeticExpr);
+      case Multiple:
+        MultipleExpression multipleExpression = (MultipleExpression) expression;
+        return multipleExpression.getChildren().stream()
+            .allMatch(ExpressionUtils::isConstantArithmeticExpr);
       default:
         return false;
     }

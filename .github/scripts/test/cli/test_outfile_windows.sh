@@ -63,8 +63,7 @@ bash -c "client/target/iginx-client-$2/sbin/start_cli.bat -e 'select * from byte
 
 db_name=$1
 
-# 只测FileSystem和Parquet
-if [[ "$db_name" != "FileStore" ]] && [[ "$db_name" != "FileSystem" ]] && [[ "$db_name" != "Parquet" ]]; then
+if [[ "$db_name" != "FileSystem" ]]; then
   exit 0
 fi
 

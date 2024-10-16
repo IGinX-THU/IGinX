@@ -96,4 +96,9 @@ public class BinarySelectStatement extends SelectStatement {
   public List<Pair<String, String>> getSubQueryAliasList(String alias) {
     return leftQuery.getSubQueryAliasList(alias);
   }
+
+  @Override
+  public boolean isSimpleQuery() {
+    return leftQuery.isSimpleQuery() && rightQuery.isSimpleQuery();
+  }
 }

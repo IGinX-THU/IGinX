@@ -19,8 +19,6 @@
 package cn.edu.tsinghua.iginx.engine.logical.generator;
 
 import static cn.edu.tsinghua.iginx.engine.shared.Constants.ALL_PATH_SUFFIX;
-import static cn.edu.tsinghua.iginx.engine.shared.Constants.ORDINAL;
-import static cn.edu.tsinghua.iginx.engine.shared.function.system.ArithmeticExpr.ARITHMETIC_EXPR;
 
 import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
@@ -31,17 +29,20 @@ import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
 import cn.edu.tsinghua.iginx.engine.shared.expr.FromValueExpression;
 import cn.edu.tsinghua.iginx.engine.shared.expr.FuncExpression;
+import cn.edu.tsinghua.iginx.engine.shared.expr.SequenceExpression;
+import cn.edu.tsinghua.iginx.engine.shared.function.Function;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionUtils;
+import cn.edu.tsinghua.iginx.engine.shared.function.MappingType;
 import cn.edu.tsinghua.iginx.engine.shared.function.manager.FunctionManager;
 import cn.edu.tsinghua.iginx.engine.shared.operator.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.type.FuncType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.JoinAlgType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OuterJoinType;
+import cn.edu.tsinghua.iginx.engine.shared.source.ConstantSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.GlobalSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.Source;
@@ -73,6 +74,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -176,6 +178,7 @@ public class QueryGenerator extends AbstractGenerator {
     root = initProjectWaitingForPath(selectStatement);
     root = root != null ? root : initFilterAndMergeFragmentsWithJoin(selectStatement);
     root = root != null ? root : initFromPart(selectStatement);
+    root = root != null ? root : initSelectConstArith(selectStatement);
     root = root != null ? root : initFilterAndMergeFragments(selectStatement);
 
     if (!checkRoot(root) && !checkIsMetaWritable()) {
@@ -195,7 +198,7 @@ public class QueryGenerator extends AbstractGenerator {
 
     root = buildAggregateQuery(selectStatement, root);
 
-    root = buildLastFirstQuery(selectStatement, root);
+    root = buildMappingQuery(selectStatement, root);
 
     root = buildSimpleQuery(selectStatement, root);
 
@@ -210,6 +213,8 @@ public class QueryGenerator extends AbstractGenerator {
     root = buildOrderByPaths(selectStatement, root);
 
     root = buildLimit(selectStatement, root);
+
+    root = buildAddSequence(selectStatement, root);
 
     root = buildReorder(selectStatement, root);
 
@@ -381,6 +386,23 @@ public class QueryGenerator extends AbstractGenerator {
       root = new Rename(new OperatorSource(root), fromPart.getAliasList());
     }
     return root;
+  }
+
+  /**
+   * 如果SelectStatement的select部分全为常数表达式且from部分为空，构造以ConstantSource为输入Project操作符来初始化操作符树
+   *
+   * @param selectStatement select语句上下文
+   * @return 以ConstantSource为输入Project操作符的操作符树；
+   */
+  private Operator initSelectConstArith(UnarySelectStatement selectStatement) {
+    if (!selectStatement.isAllConstArith() || !selectStatement.getFromParts().isEmpty()) {
+      return null;
+    }
+    List<String> columnNames =
+        selectStatement.getExpressions().stream()
+            .map(Expression::getColumnName)
+            .collect(Collectors.toList());
+    return new Project(new ConstantSource(selectStatement.getExpressions()), columnNames, null);
   }
 
   /**
@@ -595,28 +617,17 @@ public class QueryGenerator extends AbstractGenerator {
   }
 
   /**
-   * 如果SelectStatement的QueryType是LastFirstQuery，在root之上构建相关操作符
+   * 如果SelectStatement的QueryType是MappingQuery，在root之上构建相关操作符
    *
    * @param selectStatement Select上下文
    * @param root 当前根节点
-   * @return 添加了相关操作符的根节点；如果QueryType不是LastFirstQuery，返回原根节点
+   * @return 添加了相关操作符的根节点；如果QueryType不是MappingQuery，返回原根节点
    */
-  private static Operator buildLastFirstQuery(UnarySelectStatement selectStatement, Operator root) {
-    if (selectStatement.getQueryType() != QueryType.LastFirstQuery) {
+  private static Operator buildMappingQuery(UnarySelectStatement selectStatement, Operator root) {
+    if (selectStatement.getQueryType() != QueryType.MappingQuery) {
       return root;
     }
-    List<FunctionCall> functionCallList = new ArrayList<>();
-    selectStatement
-        .getFuncExpressionMap()
-        .forEach(
-            (k, v) ->
-                v.forEach(
-                    expression -> {
-                      FunctionParams params = getFunctionParams(k, expression);
-                      functionCallList.add(
-                          new FunctionCall(functionManager.getFunction(k), params));
-                    }));
-
+    List<FunctionCall> functionCallList = getFunctionCallList(selectStatement, MappingType.Mapping);
     return new MappingTransform(new OperatorSource(root), functionCallList);
   }
 
@@ -631,56 +642,9 @@ public class QueryGenerator extends AbstractGenerator {
     if (selectStatement.getQueryType() != QueryType.AggregateQuery) {
       return root;
     }
-    List<Operator> queryList = new ArrayList<>();
-    List<FunctionCall> functionCallList = new ArrayList<>();
-    Operator finalRoot = root;
-    selectStatement
-        .getFuncExpressionMap()
-        .forEach(
-            (k, v) ->
-                v.forEach(
-                    expression -> {
-                      FunctionParams params = getFunctionParams(k, expression);
-                      functionCallList.add(
-                          new FunctionCall(functionManager.getFunction(k), params));
-                    }));
-
-    if (!functionCallList.isEmpty()) {
-      switch (functionCallList.get(0).getFunction().getMappingType()) {
-        case Mapping:
-          queryList.add(new MappingTransform(new OperatorSource(finalRoot), functionCallList));
-          break;
-        case RowMapping:
-          queryList.add(new RowTransform(new OperatorSource(finalRoot), functionCallList));
-          break;
-        case SetMapping:
-          queryList.add(new SetTransform(new OperatorSource(finalRoot), functionCallList));
-          break;
-        default:
-          throw new RuntimeException(
-              "Unknown mapping type: " + functionCallList.get(0).getFunction().getMappingType());
-      }
-    }
-
-    selectStatement
-        .getBaseExpressionList()
-        .forEach(
-            expression -> {
-              Operator copySelect = finalRoot.copy();
-              queryList.add(
-                  new Project(
-                      new OperatorSource(copySelect),
-                      Collections.singletonList(expression.getPathName()),
-                      selectStatement.getTagFilter()));
-            });
-
-    if (selectStatement.getFuncTypeSet().contains(FuncType.Udtf)) {
-      root = OperatorUtils.joinOperatorsByTime(queryList);
-    } else {
-      root = OperatorUtils.joinOperators(queryList, ORDINAL);
-    }
-
-    return root;
+    List<FunctionCall> functionCallList =
+        getFunctionCallList(selectStatement, MappingType.SetMapping);
+    return new SetTransform(new OperatorSource(root), functionCallList);
   }
 
   /**
@@ -694,21 +658,8 @@ public class QueryGenerator extends AbstractGenerator {
     if (selectStatement.getQueryType() != QueryType.GroupByQuery) {
       return root;
     }
-    List<FunctionCall> functionCallList = new ArrayList<>();
-    selectStatement
-        .getFuncExpressionMap()
-        .forEach(
-            (k, v) -> {
-              if (!k.equals("")) {
-                v.forEach(
-                    expression -> {
-                      FunctionParams params = getFunctionParams(k, expression);
-                      functionCallList.add(
-                          new FunctionCall(functionManager.getFunction(k), params));
-                    });
-              }
-            });
-
+    List<FunctionCall> functionCallList =
+        getFunctionCallList(selectStatement, MappingType.SetMapping);
     return new GroupBy(
         new OperatorSource(root), selectStatement.getGroupByPaths(), functionCallList);
   }
@@ -724,25 +675,38 @@ public class QueryGenerator extends AbstractGenerator {
     if (selectStatement.getQueryType() != QueryType.DownSampleQuery) {
       return root;
     }
-    List<FunctionCall> functionCallList = new ArrayList<>();
-
-    selectStatement
-        .getFuncExpressionMap()
-        .forEach(
-            (k, v) ->
-                v.forEach(
-                    expression -> {
-                      FunctionParams params = getFunctionParams(k, expression);
-                      functionCallList.add(
-                          new FunctionCall(functionManager.getFunction(k), params));
-                    }));
-
+    List<FunctionCall> functionCallList =
+        getFunctionCallList(selectStatement, MappingType.SetMapping);
     return new Downsample(
         new OperatorSource(root),
         selectStatement.getPrecision(),
         selectStatement.getSlideDistance(),
         functionCallList,
         new KeyRange(selectStatement.getStartKey(), selectStatement.getEndKey()));
+  }
+
+  /**
+   * 根据SelectStatement构建查询树的AddSequence操作符
+   *
+   * @param selectStatement Select上下文
+   * @param root 当前根节点
+   * @return 添加了AddSequence操作符的根节点；如果没有Sequence，返回原根节点
+   */
+  private Operator buildAddSequence(UnarySelectStatement selectStatement, Operator root) {
+    List<SequenceExpression> sequences = selectStatement.getSequenceExpressionList();
+    if (!sequences.isEmpty()) {
+      List<Long> startList = new ArrayList<>();
+      List<Long> incrementList = new ArrayList<>();
+      List<String> columns = new ArrayList<>();
+      sequences.forEach(
+          sequence -> {
+            startList.add(sequence.getStart());
+            incrementList.add(sequence.getIncrement());
+            columns.add(sequence.getColumnName());
+          });
+      root = new AddSequence(new OperatorSource(root), startList, incrementList, columns);
+    }
+    return root;
   }
 
   /**
@@ -765,7 +729,7 @@ public class QueryGenerator extends AbstractGenerator {
                       || !funcExpression.getKvargs().isEmpty();
                 });
 
-    if (selectStatement.getQueryType().equals(QueryType.LastFirstQuery)) {
+    if (selectStatement.isLastFirst()) {
       root = new Reorder(new OperatorSource(root), Arrays.asList("path", "value"));
     } else if (hasFuncWithArgs) {
       root = new Reorder(new OperatorSource(root), Collections.singletonList("*"));
@@ -874,20 +838,8 @@ public class QueryGenerator extends AbstractGenerator {
     if (!selectStatement.needRowTransform()) {
       return root;
     }
-    List<FunctionCall> functionCallList = new ArrayList<>();
-    for (Expression expression : selectStatement.getExpressions()) {
-      if (expression instanceof FuncExpression) {
-        FuncExpression funcExpression = (FuncExpression) expression;
-        functionCallList.add(
-            new FunctionCall(
-                functionManager.getFunction(funcExpression.getFuncName()),
-                getFunctionParams(funcExpression.getFuncName(), funcExpression)));
-      } else {
-        functionCallList.add(
-            new FunctionCall(
-                functionManager.getFunction(ARITHMETIC_EXPR), new FunctionParams(expression)));
-      }
-    }
+    List<FunctionCall> functionCallList =
+        FunctionUtils.getFunctionCalls(selectStatement.getExpressions());
     root = new RowTransform(new OperatorSource(root), functionCallList);
 
     return root;
@@ -1056,14 +1008,29 @@ public class QueryGenerator extends AbstractGenerator {
     return MetaUtils.mergeRawData(fragments, dummyFragments, pathList, tagFilter);
   }
 
+  /** 获取对应类型的FunctionCall */
+  private static List<FunctionCall> getFunctionCallList(
+      UnarySelectStatement selectStatement, MappingType mappingType) {
+    List<FunctionCall> functionCallList = new ArrayList<>();
+    List<FuncExpression> target = selectStatement.getTargetTypeFuncExprList(mappingType);
+    target.forEach(
+        expression -> {
+          Function function = functionManager.getFunction(expression.getFuncName());
+          FunctionParams params = getFunctionParams(expression.getFuncName(), expression);
+          functionCallList.add(new FunctionCall(function, params));
+        });
+    return functionCallList;
+  }
+
   /** 从Expression中获取params */
   private static FunctionParams getFunctionParams(String functionName, FuncExpression expression) {
     return FunctionUtils.isCanUseSetQuantifierFunction(functionName)
         ? new FunctionParams(
-            expression.getColumns(),
+            expression.getExpressions(),
             expression.getArgs(),
             expression.getKvargs(),
             expression.isDistinct())
-        : new FunctionParams(expression.getColumns(), expression.getArgs(), expression.getKvargs());
+        : new FunctionParams(
+            expression.getExpressions(), expression.getArgs(), expression.getKvargs());
   }
 }

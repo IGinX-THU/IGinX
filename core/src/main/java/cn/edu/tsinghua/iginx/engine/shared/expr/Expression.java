@@ -42,5 +42,7 @@ public interface Expression {
     FromValue,
     Multiple,
     CaseWhen,
+    Key,
+    Sequence,
   }
 }

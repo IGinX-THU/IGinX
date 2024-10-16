@@ -100,7 +100,7 @@ queryClause
    ;
 
 select
-   : selectClause fromClause whereClause? withClause? specialClause?
+   : selectClause (fromClause whereClause? withClause? specialClause?)?
    ;
 
 selectClause
@@ -109,7 +109,16 @@ selectClause
    ;
 
 selectSublist
-   : expression asClause?
+   : KEY (asClause | asKeyClause)
+   | (expression | sequence) (asClause | asKeyClause)?
+   ;
+
+sequence
+   : SEQUENCE LR_BRACKET (start = constant COMMA increment = constant)? RR_BRACKET
+   ;
+
+asKeyClause
+   : AS KEY
    ;
 
 expression
@@ -125,7 +134,7 @@ expression
    ;
 
 function
-   : functionName LR_BRACKET (ALL | DISTINCT)? path (COMMA path)* (COMMA param)* RR_BRACKET
+   : functionName LR_BRACKET (ALL | DISTINCT)? expression (COMMA expression)* (COMMA param)* RR_BRACKET
    ;
 
 param
@@ -1125,6 +1134,10 @@ ELSE
 
 END
    : E N D
+   ;
+
+SEQUENCE
+   : S E Q U E N C E
    ;
    //============================
    

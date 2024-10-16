@@ -32,9 +32,15 @@ import cn.edu.tsinghua.iginx.engine.shared.function.manager.FunctionManager;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.utils.DataTypeUtils;
+import java.security.Key;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
+import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,6 +61,8 @@ public class ExprUtils {
     switch (expr.getType()) {
       case Constant:
         return calculateConstantExpr((ConstantExpression) expr);
+      case Key:
+        return calculateKeyExpr(row, (KeyExpression) expr);
       case Base:
         return calculateBaseExpr(row, (BaseExpression) expr);
       case Function:
@@ -78,6 +86,13 @@ public class ExprUtils {
     return new Value(constantExpr.getValue());
   }
 
+  private static Value calculateKeyExpr(Row row, KeyExpression expr) throws PhysicalException {
+    if (!row.getHeader().hasKey()) {
+      throw new PhysicalTaskExecuteFailureException("there is no key in row");
+    }
+    return new Value(row.getKey());
+  }
+
   private static Value calculateBaseExpr(Row row, BaseExpression baseExpr) {
     String colName = baseExpr.getColumnName();
     int index = row.getHeader().indexOf(colName);
@@ -89,6 +104,9 @@ public class ExprUtils {
 
   private static Value calculateFuncExpr(Row row, FuncExpression funcExpr)
       throws PhysicalException {
+    if (row == null) {
+      row = RowUtils.buildConstRow(funcExpr.getExpressions());
+    }
     String colName = funcExpr.getColumnName();
     int index = row.getHeader().indexOf(colName);
     if (index == -1) {
@@ -107,7 +125,10 @@ public class ExprUtils {
     RowMappingFunction rowMappingFunction = (RowMappingFunction) function;
     FunctionParams params =
         new FunctionParams(
-            funcExpr.getColumns(), funcExpr.getArgs(), funcExpr.getKvargs(), funcExpr.isDistinct());
+            funcExpr.getExpressions(),
+            funcExpr.getArgs(),
+            funcExpr.getKvargs(),
+            funcExpr.isDistinct());
     Row ret;
     try {
       ret = rowMappingFunction.transform(row, params);
@@ -189,7 +210,7 @@ public class ExprUtils {
     }
   }
 
-  public static Value calculateMultipleExpr(Row row, MultipleExpression multipleExpr)
+  private static Value calculateMultipleExpr(Row row, MultipleExpression multipleExpr)
       throws PhysicalException {
     List<Expression> children = multipleExpr.getChildren();
     List<Operator> ops = multipleExpr.getOps();
@@ -239,7 +260,7 @@ public class ExprUtils {
     return values.get(values.size() - 1);
   }
 
-  public static Value calculateCaseWhenExpr(Row row, CaseWhenExpression caseWhenExpr)
+  private static Value calculateCaseWhenExpr(Row row, CaseWhenExpression caseWhenExpr)
       throws PhysicalException {
     for (int i = 0; i < caseWhenExpr.getConditions().size(); i++) {
       if (FilterUtils.validate(caseWhenExpr.getConditions().get(i), row)) {
@@ -328,44 +349,63 @@ public class ExprUtils {
   }
 
   public static List<String> getPathFromExpr(Expression expr) {
+    return getPathFromExprList(Collections.singletonList(expr), false);
+  }
+
+  public static List<String> getPathFromExprList(List<Expression> exprList) {
+    return getPathFromExprList(exprList, false);
+  }
+
+  public static List<String> getPathFromExprList(List<Expression> exprList, boolean exceptFunc) {
     List<String> ret = new ArrayList<>();
-    switch (expr.getType()) {
-      case Constant:
-        return ret;
-      case Base:
-        ret.add(expr.getColumnName());
-        return ret;
-      case Function:
-        return new ArrayList<>(((FuncExpression) expr).getColumns());
-      case Bracket:
-        return getPathFromExpr(((BracketExpression) expr).getExpression());
-      case Unary:
-        return getPathFromExpr(((UnaryExpression) expr).getExpression());
-      case Binary:
-        List<String> left = getPathFromExpr(((BinaryExpression) expr).getLeftExpression());
-        List<String> right = getPathFromExpr(((BinaryExpression) expr).getRightExpression());
-        left.addAll(right);
-        return left;
-      case Multiple:
-        for (Expression child : ((MultipleExpression) expr).getChildren()) {
-          ret.addAll(getPathFromExpr(child));
-        }
-        return ret;
-      case CaseWhen:
-        CaseWhenExpression caseWhenExpr = (CaseWhenExpression) expr;
-        for (Filter filter : caseWhenExpr.getConditions()) {
-          ret.addAll(FilterUtils.getAllPathsFromFilter(filter));
-        }
-        for (Expression expression : caseWhenExpr.getResults()) {
-          ret.addAll(getPathFromExpr(expression));
-        }
-        if (caseWhenExpr.getResultElse() != null) {
-          ret.addAll(getPathFromExpr(caseWhenExpr.getResultElse()));
-        }
-        return ret;
-      default:
-        throw new IllegalArgumentException(String.format("Unknown expr type: %s", expr.getType()));
+    Queue<Expression> queue = new LinkedList<>(exprList);
+    while (!queue.isEmpty()) {
+      Expression expr = queue.poll();
+      switch (expr.getType()) {
+        case Base:
+          ret.add(expr.getColumnName());
+          break;
+        case Unary:
+          queue.add(((UnaryExpression) expr).getExpression());
+          break;
+        case Function:
+          if (!exceptFunc) {
+            queue.addAll(((FuncExpression) expr).getExpressions());
+          }
+          break;
+        case Bracket:
+          queue.add(((BracketExpression) expr).getExpression());
+          break;
+        case Binary:
+          queue.add(((BinaryExpression) expr).getLeftExpression());
+          queue.add(((BinaryExpression) expr).getRightExpression());
+          break;
+        case Multiple:
+          queue.addAll(((MultipleExpression) expr).getChildren());
+          break;
+        case CaseWhen:
+          CaseWhenExpression caseWhenExpr = (CaseWhenExpression) expr;
+          Set<String> pathList = new HashSet<>();
+          for (Filter filter : caseWhenExpr.getConditions()) {
+            pathList.addAll(FilterUtils.getAllPathsFromFilter(filter));
+          }
+          ret.addAll(pathList);
+          queue.addAll(caseWhenExpr.getResults());
+          if (caseWhenExpr.getResultElse() != null) {
+            queue.add(caseWhenExpr.getResultElse());
+          }
+          break;
+        case Constant:
+        case Key:
+        case Sequence:
+        case FromValue:
+          break;
+        default:
+          throw new IllegalArgumentException(
+              String.format("Unknown expr type: %s", expr.getType()));
+      }
     }
+    return ret;
   }
 
   /**
@@ -377,6 +417,8 @@ public class ExprUtils {
   public static Expression flattenExpression(Expression expr) {
     switch (expr.getType()) {
       case Constant:
+      case Key:
+      case Sequence:
       case Base:
       case Function:
         return expr;
@@ -748,12 +790,16 @@ public class ExprUtils {
       case Constant:
         return new ConstantExpression(((ConstantExpression) expression).getValue());
       case Base:
-        return new BaseExpression(((BaseExpression) expression).getColumnName());
+        return new BaseExpression(expression.getColumnName());
       case Function:
         FuncExpression funcExpression = (FuncExpression) expression;
+        List<Expression> newExpressions = new ArrayList<>(funcExpression.getExpressions().size());
+        for (Expression expr : funcExpression.getExpressions()) {
+          newExpressions.add(ExprUtils.copy(expr));
+        }
         return new FuncExpression(
             funcExpression.getFuncName(),
-            new ArrayList<>(funcExpression.getColumns()),
+            newExpressions,
             new ArrayList<>(funcExpression.getArgs()),
             new HashMap<>(funcExpression.getKvargs()),
             funcExpression.isDistinct());
@@ -792,6 +838,15 @@ public class ExprUtils {
                 : null;
         return new CaseWhenExpression(
             conditions, resultCopy, resultElse, caseWhenExpression.getColumnName());
+      case Key:
+        KeyExpression keyExpression = (KeyExpression) expression;
+        return new KeyExpression(keyExpression.getColumnName());
+      case Sequence:
+        SequenceExpression sequenceExpression = (SequenceExpression) expression;
+        return new SequenceExpression(
+            sequenceExpression.getStart(),
+            sequenceExpression.getIncrement(),
+            sequenceExpression.getColumnName());
       default:
         throw new IllegalArgumentException(
             String.format("Unknown expr type: %s", expression.getType()));

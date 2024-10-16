@@ -55,6 +55,7 @@ import cn.edu.tsinghua.iginx.engine.shared.function.*;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.Max;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.Min;
 import cn.edu.tsinghua.iginx.engine.shared.operator.AddSchemaPrefix;
+import cn.edu.tsinghua.iginx.engine.shared.operator.AddSequence;
 import cn.edu.tsinghua.iginx.engine.shared.operator.BinaryOperator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.CrossJoin;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Distinct;
@@ -82,7 +83,9 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.Union;
 import cn.edu.tsinghua.iginx.engine.shared.operator.ValueToSelectedPath;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OuterJoinType;
+import cn.edu.tsinghua.iginx.engine.shared.source.ConstantSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.EmptySource;
+import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Bitmap;
 import cn.edu.tsinghua.iginx.utils.Pair;
@@ -135,6 +138,8 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
         return executeAddSchemaPrefix((AddSchemaPrefix) operator, table);
       case GroupBy:
         return executeGroupBy((GroupBy) operator, table);
+      case AddSequence:
+        return executeAddSequence((AddSequence) operator, table);
       case Distinct:
         return executeDistinct((Distinct) operator, table);
       case ValueToSelectedPath:
@@ -191,7 +196,22 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     return new Table(header, rows);
   }
 
-  private RowStream executeProject(Project project, Table table) {
+  private RowStream executeProject(Project project, Table table) throws PhysicalException {
+    Source source = project.getSource();
+    switch (source.getType()) {
+      case Operator:
+      case Empty:
+        return executeProjectFromOperator(project, table);
+      case Constant:
+        ConstantSource constantSource = (ConstantSource) source;
+        return new Table(RowUtils.buildConstRow(constantSource.getExpressionList()));
+      default:
+        throw new PhysicalException(
+            "Unexpected project source type in memory task: " + source.getType());
+    }
+  }
+
+  private RowStream executeProjectFromOperator(Project project, Table table) {
     List<String> patterns = project.getPatterns();
     Header header = table.getHeader();
     List<Field> targetFields = new ArrayList<>();
@@ -262,83 +282,54 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     Header header = table.getHeader();
     if (!header.hasKey()) {
       throw new InvalidOperatorParameterException(
-          "downsample operator is not support for row stream without timestamps.");
+          "downsample operator is not support for row stream without key.");
     }
-    List<Row> rows = table.getRows();
-    long bias = downsample.getKeyRange().getActualBeginKey();
-    long endKey = downsample.getKeyRange().getActualEndKey();
-    if (downsample.notSetInterval()) {
-      if (table.getRowSize() <= 0) {
-        return Table.EMPTY_TABLE;
-      }
-      bias = table.getRow(0).getKey();
-      endKey = table.getRow(table.getRowSize() - 1).getKey();
+    if (downsample.notSetInterval() && table.getRowSize() <= 0) {
+      return Table.EMPTY_TABLE;
     }
-    long precision = downsample.getPrecision();
-    long slideDistance = downsample.getSlideDistance();
-    // startKey + (n - 1) * slideDistance + precision - 1 >= endKey
-    long n = (int) (Math.ceil((double) (endKey - bias - precision + 1) / slideDistance) + 1);
 
+    long precision = downsample.getPrecision();
+    Map<List<String>, Table> rowTransformMap = new HashMap<>();
     List<Table> tableList = new ArrayList<>();
     boolean firstCol = true;
     for (FunctionCall functionCall : downsample.getFunctionCallList()) {
       SetMappingFunction function = (SetMappingFunction) functionCall.getFunction();
       FunctionParams params = functionCall.getParams();
 
-      TreeMap<Long, List<Row>> groups = new TreeMap<>();
-      if (precision == slideDistance) {
-        for (Row row : rows) {
-          long timestamp = row.getKey() - (row.getKey() - bias) % precision;
-          groups.compute(timestamp, (k, v) -> v == null ? new ArrayList<>() : v).add(row);
-        }
-      } else {
-        HashMap<Long, Long> timestamps = new HashMap<>();
-        for (long i = 0; i < n; i++) {
-          timestamps.put(i, bias + i * slideDistance);
-        }
-        for (Row row : rows) {
-          long rowTimestamp = row.getKey();
-          for (long i = 0; i < n; i++) {
-            if (rowTimestamp - timestamps.get(i) >= 0
-                && rowTimestamp - timestamps.get(i) < precision) {
-              groups
-                  .compute(timestamps.get(i), (k, v) -> v == null ? new ArrayList<>() : v)
-                  .add(row);
-            }
-          }
-        }
-      }
+      Table functable = RowUtils.preRowTransform(table, rowTransformMap, functionCall);
+      TreeMap<Long, List<Row>> groups = RowUtils.computeDownsampleGroup(downsample, functable);
+
       // <<window_start, window_end> row>
       List<Pair<Pair<Long, Long>, Row>> transformedRawRows = new ArrayList<>();
-      try {
-        for (Map.Entry<Long, List<Row>> entry : groups.entrySet()) {
-          long windowStartKey = entry.getKey();
-          long windowEndKey = windowStartKey + precision - 1;
-          List<Row> group = entry.getValue();
+      for (Map.Entry<Long, List<Row>> entry : groups.entrySet()) {
+        long windowStartKey = entry.getKey();
+        long windowEndKey = windowStartKey + precision - 1;
+        List<Row> group = entry.getValue();
 
-          if (params.isDistinct()) {
-            if (!isCanUseSetQuantifierFunction(function.getIdentifier())) {
-              throw new IllegalArgumentException(
-                  "function " + function.getIdentifier() + " can't use DISTINCT");
-            }
-            // min和max无需去重
-            if (!function.getIdentifier().equals(Max.MAX)
-                && !function.getIdentifier().equals(Min.MIN)) {
-              group = removeDuplicateRows(group);
-            }
+        if (params.isDistinct()) {
+          if (!isCanUseSetQuantifierFunction(function.getIdentifier())) {
+            throw new IllegalArgumentException(
+                "function " + function.getIdentifier() + " can't use DISTINCT");
           }
+          // min和max无需去重
+          if (!function.getIdentifier().equals(Max.MAX)
+              && !function.getIdentifier().equals(Min.MIN)) {
+            group = removeDuplicateRows(group);
+          }
+        }
 
-          Row row = function.transform(new Table(header, group), params);
+        try {
+          Row row = function.transform(new Table(functable.getHeader(), group), params);
           if (row != null) {
             transformedRawRows.add(new Pair<>(new Pair<>(windowStartKey, windowEndKey), row));
           }
+        } catch (Exception e) {
+          throw new PhysicalTaskExecuteFailureException(
+              "encounter error when execute set mapping function " + function.getIdentifier() + ".",
+              e);
         }
-      } catch (Exception e) {
-        throw new PhysicalTaskExecuteFailureException(
-            "encounter error when execute set mapping function " + function.getIdentifier() + ".",
-            e);
       }
-      if (transformedRawRows.size() == 0) {
+      if (transformedRawRows.isEmpty()) {
         return Table.EMPTY_TABLE;
       }
 
@@ -370,66 +361,23 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     return RowUtils.joinMultipleTablesByKey(tableList);
   }
 
-  private RowStream executeRowTransform(RowTransform rowTransform, Table table) {
-    List<Pair<RowMappingFunction, FunctionParams>> list = new ArrayList<>();
-    rowTransform
-        .getFunctionCallList()
-        .forEach(
-            functionCall -> {
-              list.add(
-                  new Pair<>(
-                      (RowMappingFunction) functionCall.getFunction(), functionCall.getParams()));
-            });
-
-    List<Row> rows = new ArrayList<>();
-    while (table.hasNext()) {
-      Row current = table.next();
-      List<Row> columnList = new ArrayList<>();
-      list.forEach(
-          pair -> {
-            RowMappingFunction function = pair.k;
-            FunctionParams params = pair.v;
-            try {
-              // 分别计算每个表达式得到相应的结果
-              Row column = function.transform(current, params);
-              if (column != null) {
-                columnList.add(column);
-              }
-            } catch (Exception e) {
-              try {
-                throw new PhysicalTaskExecuteFailureException(
-                    "encounter error when execute row mapping function "
-                        + function.getIdentifier()
-                        + ".",
-                    e);
-              } catch (PhysicalTaskExecuteFailureException ex) {
-                throw new RuntimeException(ex);
-              }
-            }
-          });
-      // 如果计算结果都不为空，将计算结果合并成一行
-      if (columnList.size() == list.size()) {
-        rows.add(combineMultipleColumns(columnList));
-      }
-    }
-    if (rows.size() == 0) {
-      return Table.EMPTY_TABLE;
-    }
-    Header header = rows.get(0).getHeader();
-    return new Table(header, rows);
+  private RowStream executeRowTransform(RowTransform rowTransform, Table table)
+      throws PhysicalException {
+    List<FunctionCall> functionCallList = rowTransform.getFunctionCallList();
+    return RowUtils.calRowTransform(table, functionCallList);
   }
 
   private RowStream executeSetTransform(SetTransform setTransform, Table table)
       throws PhysicalException {
     List<FunctionCall> functionList = setTransform.getFunctionCallList();
-
+    Map<List<String>, Table> rowTransformMap = new HashMap<>();
     Map<List<String>, Table> distinctMap = new HashMap<>();
     List<Row> rows = new ArrayList<>();
 
     for (FunctionCall functionCall : functionList) {
       SetMappingFunction function = (SetMappingFunction) functionCall.getFunction();
       FunctionParams params = functionCall.getParams();
-      Table functable = table;
+      Table functable = RowUtils.preRowTransform(table, rowTransformMap, functionCall);
       if (setTransform.isDistinct()) {
         // min和max无需去重
         if (!function.getIdentifier().equals(Max.MAX)
@@ -472,22 +420,27 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     return RowUtils.calMappingTransform(table, functionCallList);
   }
 
-  private RowStream executeRename(Rename rename, Table table) {
+  private RowStream executeRename(Rename rename, Table table) throws PhysicalException {
     Header header = table.getHeader();
     List<Pair<String, String>> aliasList = rename.getAliasList();
-    Header newHeader = header.renamedHeader(aliasList, rename.getIgnorePatterns());
+    Pair<Header, Integer> pair = header.renamedHeader(aliasList, rename.getIgnorePatterns());
+    Header newHeader = pair.k;
+    int colIndex = pair.v;
 
     List<Row> rows = new ArrayList<>();
-    table
-        .getRows()
-        .forEach(
-            row -> {
-              if (newHeader.hasKey()) {
-                rows.add(new Row(newHeader, row.getKey(), row.getValues()));
-              } else {
-                rows.add(new Row(newHeader, row.getValues()));
-              }
-            });
+    if (colIndex == -1) {
+      table.getRows().forEach(row -> rows.add(new Row(newHeader, row.getKey(), row.getValues())));
+    } else {
+      HashSet<Long> keySet = new HashSet<>();
+      for (Row row : table.getRows()) {
+        Row newRow = RowUtils.transformColumnToKey(newHeader, row, colIndex);
+        if (keySet.contains(newRow.getKey())) {
+          throw new PhysicalTaskExecuteFailureException("duplicated key found: " + newRow.getKey());
+        }
+        keySet.add(newRow.getKey());
+        rows.add(newRow);
+      }
+    }
 
     return new Table(newHeader, rows);
   }
@@ -534,6 +487,33 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     }
     Header header = rows.get(0).getHeader();
     return new Table(header, rows);
+  }
+
+  private RowStream executeAddSequence(AddSequence addSequence, Table table) {
+    Header header = table.getHeader();
+    List<Field> targetFields = new ArrayList<>(header.getFields());
+    addSequence.getColumns().forEach(column -> targetFields.add(new Field(column, DataType.LONG)));
+    Header newHeader = new Header(header.getKey(), targetFields);
+
+    List<Row> rows = new ArrayList<>();
+    int oldSize = header.getFieldSize();
+    int newSize = targetFields.size();
+    int sequenceSize = newSize - oldSize;
+    List<Long> cur = new ArrayList<>(addSequence.getStartList());
+    List<Long> increments = new ArrayList<>(addSequence.getIncrementList());
+    table
+        .getRows()
+        .forEach(
+            row -> {
+              Object[] values = new Object[newSize];
+              System.arraycopy(row.getValues(), 0, values, 0, oldSize);
+              for (int i = 0; i < sequenceSize; i++) {
+                values[oldSize + i] = cur.get(i);
+                cur.set(i, cur.get(i) + increments.get(i));
+              }
+              rows.add(new Row(newHeader, row.getKey(), values));
+            });
+    return new Table(newHeader, rows);
   }
 
   private RowStream executeReorder(Reorder reorder, Table table) {

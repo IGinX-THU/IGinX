@@ -120,11 +120,7 @@ public class FilterPushDownRenameRule extends Rule {
           public void visit(FromValueExpression expression) {}
 
           @Override
-          public void visit(FuncExpression expression) {
-            expression
-                .getColumns()
-                .replaceAll(column -> PathUtils.recoverRenamedPattern(renameMap, column));
-          }
+          public void visit(FuncExpression expression) {}
 
           @Override
           public void visit(MultipleExpression expression) {}
@@ -134,6 +130,12 @@ public class FilterPushDownRenameRule extends Rule {
 
           @Override
           public void visit(CaseWhenExpression expression) {}
+
+          @Override
+          public void visit(KeyExpression expression) {}
+
+          @Override
+          public void visit(SequenceExpression expression) {}
         });
   }
 }

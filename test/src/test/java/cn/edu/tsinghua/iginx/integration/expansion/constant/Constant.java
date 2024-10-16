@@ -71,6 +71,9 @@ public class Constant {
   public static final List<String> READ_ONLY_PATH_LIST =
       Arrays.asList("tm.wf05.wt01.status", "tm.wf05.wt01.temperature");
 
+  public static final List<String> READ_ONLY_FLOAT_PATH_LIST =
+      Collections.singletonList("tm.wf05.wt02.float");
+
   public static final List<String> READ_ONLY_EXTEND_PATH_LIST =
       Arrays.asList("a.a.c.status", "a.a.c.temperature");
 
@@ -115,6 +118,9 @@ public class Constant {
   public static List<List<Object>> READ_ONLY_VALUES_LIST =
       Arrays.asList(Arrays.asList(55555555L, 10012.01), Arrays.asList(66666666L, 99123.99));
 
+  public static List<List<Object>> READ_ONLY_FLOAT_VALUES_LIST =
+      Arrays.asList(Collections.singletonList(22.33F), Collections.singletonList(44.55F));
+
   public static List<List<Object>> READ_ONLY_EXTEND_VALUES_LIST =
       Collections.singletonList(Arrays.asList(9999999L, 152346.1));
 
@@ -124,8 +130,7 @@ public class Constant {
   // key list
   public static List<Long> INIT_KEYS_LIST = Arrays.asList(1L, (long) Integer.MAX_VALUE);
 
-  // for file system
-  // for file system & influxdb
+  // for filesystem & influxdb
   public static Map<Integer, String> PORT_TO_ROOT =
       new HashMap<Integer, String>() {
         {
@@ -152,29 +157,6 @@ public class Constant {
           put(oriPort, oriPortIginx);
           put(expPort, expPortIginx);
           put(readOnlyPort, readOnlyPortIginx);
-        }
-      };
-
-  // for parquet
-  // <port, [dataDir, dataFilename]>
-  private static final String oriDir = "mn";
-
-  private static final String expDir = "nt";
-
-  private static final String readOnlyDir = "tm";
-
-  private static final String oriFilename = "oriData.parquet";
-
-  private static final String expFilename = "expData.parquet";
-
-  private static final String readOnlyFilename = "readOnlyData.parquet";
-
-  public static final Map<Integer, List<String>> PARQUET_PARAMS =
-      new HashMap<Integer, List<String>>() {
-        {
-          put(oriPort, Arrays.asList(oriDir, oriFilename));
-          put(expPort, Arrays.asList(expDir, expFilename));
-          put(readOnlyPort, Arrays.asList(readOnlyDir, readOnlyFilename));
         }
       };
 }

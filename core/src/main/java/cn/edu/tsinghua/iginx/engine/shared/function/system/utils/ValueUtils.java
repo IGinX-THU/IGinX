@@ -21,7 +21,9 @@ import cn.edu.tsinghua.iginx.engine.physical.exception.InvalidOperatorParameterE
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
+import cn.edu.tsinghua.iginx.exception.IginxRuntimeException;
 import cn.edu.tsinghua.iginx.thrift.DataType;
+import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -53,7 +55,8 @@ public class ValueUtils {
         dVal = value.getLongV().doubleValue();
         break;
       case FLOAT:
-        dVal = value.getFloatV().doubleValue();
+        BigDecimal bd = new BigDecimal(value.getFloatV().toString());
+        dVal = bd.doubleValue();
         break;
       case DOUBLE:
         dVal = value.getDoubleV();
@@ -68,6 +71,50 @@ public class ValueUtils {
         throw new IllegalArgumentException("Unexpected dataType: " + dataType);
     }
     return new Value(DataType.DOUBLE, dVal);
+  }
+
+  public static long transformToLong(Value value) {
+    DataType dataType = value.getDataType();
+    long longV;
+    switch (dataType) {
+      case INTEGER:
+        longV = value.getIntV().longValue();
+        break;
+      case LONG:
+        longV = value.getLongV();
+        break;
+      case BOOLEAN:
+        longV = value.getBoolV() ? 1L : 0L;
+        break;
+      case DOUBLE:
+        double doubleV = value.getDoubleV();
+        if (doubleV > Long.MAX_VALUE) {
+          throw new IginxRuntimeException(
+              "Overflow: double value " + doubleV + " is too large for long.");
+        } else if (doubleV < Long.MIN_VALUE) {
+          throw new IginxRuntimeException(
+              "Overflow: double value " + doubleV + " is too small for long.");
+        }
+        longV = Math.round(value.getDoubleV());
+        break;
+      case FLOAT:
+        float floatV = value.getFloatV();
+        if (floatV > Long.MAX_VALUE) {
+          throw new IginxRuntimeException(
+              "Overflow: float value " + floatV + " is too large for long.");
+        } else if (floatV < Long.MIN_VALUE) {
+          throw new IginxRuntimeException(
+              "Overflow: float value " + floatV + " is too small for long.");
+        }
+        longV = Math.round(floatV);
+        break;
+      case BINARY:
+        longV = Long.parseLong(value.getBinaryVAsString());
+        break;
+      default:
+        throw new IllegalArgumentException("Unexpected dataType: " + dataType);
+    }
+    return longV;
   }
 
   public static int compare(Value v1, Value v2) throws PhysicalException {

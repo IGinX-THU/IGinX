@@ -37,4 +37,8 @@ public interface ExpressionVisitor {
   void visit(UnaryExpression expression);
 
   void visit(CaseWhenExpression expression);
+
+  void visit(KeyExpression expression);
+
+  void visit(SequenceExpression expression);
 }

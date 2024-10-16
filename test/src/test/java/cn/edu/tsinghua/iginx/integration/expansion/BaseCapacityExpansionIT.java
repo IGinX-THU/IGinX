@@ -25,10 +25,8 @@ import static org.junit.Assert.*;
 
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
-import cn.edu.tsinghua.iginx.integration.expansion.filestore.FileStoreCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.filesystem.FileSystemCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.influxdb.InfluxDBCapacityExpansionIT;
-import cn.edu.tsinghua.iginx.integration.expansion.parquet.ParquetCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.session.ClusterInfo;
@@ -62,10 +60,7 @@ public abstract class BaseCapacityExpansionIT {
 
   protected Map<String, String> updatedParams = new HashMap<>();
 
-  private final boolean IS_EMBEDDED =
-      this instanceof FileStoreCapacityExpansionIT
-          || this instanceof FileSystemCapacityExpansionIT
-          || this instanceof ParquetCapacityExpansionIT;
+  private final boolean IS_EMBEDDED = this instanceof FileSystemCapacityExpansionIT;
 
   private final String EXP_SCHEMA_PREFIX = null;
 
@@ -274,11 +269,6 @@ public abstract class BaseCapacityExpansionIT {
     testWriteAndQueryNewDataAfterCE();
 
     testQuerySpecialHistoryData();
-
-    if (this instanceof FileSystemCapacityExpansionIT) {
-      // 仅用于扩容文件系统后查询文件
-      testQueryForFileSystem();
-    }
 
     // 扩容后show columns测试
     testShowColumns();
@@ -788,48 +778,6 @@ public abstract class BaseCapacityExpansionIT {
     }
   }
 
-  private void testQueryForFileSystem() {
-    try {
-      session.executeSql(
-          "ADD STORAGEENGINE (\"127.0.0.1\", 6670, \"filesystem\", \"dummy_dir:test/test/a, has_data:true, is_read_only:true, iginx_port:6888, chunk_size_in_bytes:1048576\");");
-      String statement = "select 1\\txt from a.*;";
-      String expect =
-          "ResultSets:\n"
-              + "+---+---------------------------------------------------------------------------+\n"
-              + "|key|                                                              a.b.c.d.1\\txt|\n"
-              + "+---+---------------------------------------------------------------------------+\n"
-              + "|  0|979899100101102103104105106107108109110111112113114115116117118119120121122|\n"
-              + "+---+---------------------------------------------------------------------------+\n"
-              + "Total line number = 1\n";
-      SQLTestTools.executeAndCompare(session, statement, expect);
-
-      statement = "select 2\\txt from a.*;";
-      expect =
-          "ResultSets:\n"
-              + "+---+----------------------------------------------------+\n"
-              + "|key|                                           a.e.2\\txt|\n"
-              + "+---+----------------------------------------------------+\n"
-              + "|  0|6566676869707172737475767778798081828384858687888990|\n"
-              + "+---+----------------------------------------------------+\n"
-              + "Total line number = 1\n";
-      SQLTestTools.executeAndCompare(session, statement, expect);
-
-      statement = "select 3\\txt from a.*;";
-      expect =
-          "ResultSets:\n"
-              + "+---+------------------------------------------+\n"
-              + "|key|                               a.f.g.3\\txt|\n"
-              + "+---+------------------------------------------+\n"
-              + "|  0|012345678910111213141516171819202122232425|\n"
-              + "+---+------------------------------------------+\n"
-              + "Total line number = 1\n";
-      SQLTestTools.executeAndCompare(session, statement, expect);
-    } catch (SessionException e) {
-      LOGGER.error("test query for file system failed ", e);
-      fail();
-    }
-  }
-
   // test dummy and non-dummy columns, in read only test
   @Test
   public void testShowColumns() {
@@ -857,7 +805,7 @@ public abstract class BaseCapacityExpansionIT {
             + "Total line number = 2\n";
     SQLTestTools.executeAndCompare(session, statement, expected);
 
-    statement = "SHOW COLUMNS tm.*;";
+    statement = "SHOW COLUMNS tm.wf05.wt01.*;";
     expected =
         "Columns:\n"
             + "+------------------------+--------+\n"
@@ -873,7 +821,7 @@ public abstract class BaseCapacityExpansionIT {
   // test dummy query for data out of initial key range (should be visible)
   protected void testDummyKeyRange() {
     String statement;
-    statement = "select * from mn where key < 1;";
+    statement = "select * from mn.wf01.wt01 where key < 1;";
     String expected =
         "Columns:\n"
             + "+------------------------+--------+\n"
@@ -924,22 +872,10 @@ public abstract class BaseCapacityExpansionIT {
       iginxPath = ".github/scripts/iginx/iginx_windows.sh";
     }
 
-    if (this instanceof FileStoreCapacityExpansionIT) {
-      scriptPath = ".github/scripts/dataSources/startup/filestore.sh";
-    } else if (this instanceof FileSystemCapacityExpansionIT) {
-      if (isOnMac) {
-        scriptPath = ".github/scripts/dataSources/startup/filesystem_macos.sh";
-      } else {
-        scriptPath = ".github/scripts/dataSources/startup/filesystem_linux_windows.sh";
-      }
-    } else if (this instanceof ParquetCapacityExpansionIT) {
-      if (isOnMac) {
-        scriptPath = ".github/scripts/dataSources/startup/parquet_macos.sh";
-      } else {
-        scriptPath = ".github/scripts/dataSources/startup/parquet_linux_windows.sh";
-      }
+    if (this instanceof FileSystemCapacityExpansionIT) {
+      scriptPath = ".github/scripts/dataSources/startup/filesystem.sh";
     } else {
-      throw new IllegalStateException("Only support file system and parquet");
+      throw new IllegalStateException("Only support filesystem");
     }
 
     int iginxPort = PORT_TO_IGINXPORT.get(port);

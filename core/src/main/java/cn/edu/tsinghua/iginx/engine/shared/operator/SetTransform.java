@@ -111,6 +111,6 @@ public class SetTransform extends AbstractUnaryOperator {
       return false;
     }
     SetTransform that = (SetTransform) object;
-    return functionCallList.equals(that.functionCallList);
+    return functionCallList.equals(that.functionCallList); // todo
   }
 }

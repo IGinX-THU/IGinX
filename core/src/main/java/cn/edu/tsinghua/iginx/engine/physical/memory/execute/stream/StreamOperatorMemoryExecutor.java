@@ -23,15 +23,19 @@ import cn.edu.tsinghua.iginx.engine.physical.exception.InvalidOperatorParameterE
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.UnexpectedOperatorException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.OperatorMemoryExecutor;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.Table;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils;
 import cn.edu.tsinghua.iginx.engine.shared.Constants;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
+import cn.edu.tsinghua.iginx.engine.shared.function.FunctionUtils;
 import cn.edu.tsinghua.iginx.engine.shared.function.SetMappingFunction;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.Max;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.Min;
 import cn.edu.tsinghua.iginx.engine.shared.operator.AddSchemaPrefix;
+import cn.edu.tsinghua.iginx.engine.shared.operator.AddSequence;
 import cn.edu.tsinghua.iginx.engine.shared.operator.BinaryOperator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.CrossJoin;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Distinct;
@@ -57,7 +61,9 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.Sort;
 import cn.edu.tsinghua.iginx.engine.shared.operator.UnaryOperator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Union;
 import cn.edu.tsinghua.iginx.engine.shared.operator.ValueToSelectedPath;
+import cn.edu.tsinghua.iginx.engine.shared.source.ConstantSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.EmptySource;
+import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -114,6 +120,9 @@ public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
       case Distinct:
         result = executeDistinct((Distinct) operator, stream);
         break;
+      case AddSequence:
+        result = executeAddSequence((AddSequence) operator, stream);
+        break;
       case ValueToSelectedPath:
         result = executeValueToSelectedPath((ValueToSelectedPath) operator, stream);
         break;
@@ -167,8 +176,19 @@ public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
     return result;
   }
 
-  private RowStream executeProject(Project project, RowStream stream) {
-    return new ProjectLazyStream(project, stream);
+  private RowStream executeProject(Project project, RowStream stream) throws PhysicalException {
+    Source source = project.getSource();
+    switch (source.getType()) {
+      case Operator:
+      case Empty:
+        return new ProjectLazyStream(project, stream);
+      case Constant:
+        ConstantSource constantSource = (ConstantSource) source;
+        return new Table(RowUtils.buildConstRow(constantSource.getExpressionList()));
+      default:
+        throw new PhysicalException(
+            "Unexpected project source type in memory task: " + source.getType());
+    }
   }
 
   private RowStream executeSelect(Select select, RowStream stream) {
@@ -187,7 +207,7 @@ public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
       throws PhysicalException {
     if (!stream.getHeader().hasKey()) {
       throw new InvalidOperatorParameterException(
-          "downsample operator is not support for row stream without timestamps.");
+          "downsample operator is not support for row stream without key.");
     }
     return new DownsampleLazyStream(downsample, stream);
   }
@@ -196,15 +216,24 @@ public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
     return new RowTransformLazyStream(rowTransform, stream);
   }
 
-  private RowStream executeSetTransform(SetTransform setTransform, RowStream stream) {
+  private RowStream executeSetTransform(SetTransform setTransform, RowStream stream)
+      throws PhysicalException {
     List<FunctionCall> functionCallList = setTransform.getFunctionCallList();
     Map<List<String>, RowStream> distinctStreamMap = new HashMap<>();
-    distinctStreamMap.put(null, stream);
+    Map<List<String>, RowStream> rowTransformStreamMap = new HashMap<>();
 
-    // 如果有distinct,构造不同function对应的stream的Map
     for (FunctionCall functionCall : functionCallList) {
       FunctionParams params = functionCall.getParams();
       SetMappingFunction function = (SetMappingFunction) functionCall.getFunction();
+      RowStream input = stream;
+      // 如果参数是表达式,构造不同function对应的stream的Map
+      if (functionCall.isNeedPreRowTransform()) {
+        List<FunctionCall> list = FunctionUtils.getArithFunctionCalls(params.getExpressions());
+        RowTransform rowTransform = new RowTransform(EmptySource.EMPTY_SOURCE, list);
+        input = executeRowTransform(rowTransform, input);
+        rowTransformStreamMap.put(params.getPaths(), input);
+      }
+      // 如果有distinct,构造不同function对应的stream的Map
       if (params.isDistinct()) {
         if (!isCanUseSetQuantifierFunction(function.getIdentifier())) {
           throw new IllegalArgumentException(
@@ -214,12 +243,13 @@ public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
         if (!function.getIdentifier().equals(Max.MAX)
             && !function.getIdentifier().equals(Min.MIN)) {
           Distinct distinct = new Distinct(EmptySource.EMPTY_SOURCE, params.getPaths());
-          distinctStreamMap.put(params.getPaths(), executeDistinct(distinct, stream));
+          distinctStreamMap.put(params.getPaths(), executeDistinct(distinct, input));
         }
       }
     }
 
-    return new SetTransformLazyStream(setTransform, distinctStreamMap);
+    return new SetTransformLazyStream(
+        setTransform, stream, rowTransformStreamMap, distinctStreamMap);
   }
 
   private RowStream executeMappingTransform(MappingTransform mappingTransform, RowStream stream) {
@@ -242,10 +272,15 @@ public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
     return new GroupByLazyStream(groupBy, stream);
   }
 
-  private RowStream executeDistinct(Distinct distinct, RowStream stream) {
+  private RowStream executeDistinct(Distinct distinct, RowStream stream) throws PhysicalException {
     Project project = new Project(EmptySource.EMPTY_SOURCE, distinct.getPatterns(), null);
     stream = executeProject(project, stream);
     return new DistinctLazyStream(stream);
+  }
+
+  private RowStream executeAddSequence(AddSequence addSequence, RowStream stream)
+      throws PhysicalException {
+    return new AddSequenceLazyStream(addSequence, stream);
   }
 
   private RowStream executeValueToSelectedPath(ValueToSelectedPath operator, RowStream stream) {

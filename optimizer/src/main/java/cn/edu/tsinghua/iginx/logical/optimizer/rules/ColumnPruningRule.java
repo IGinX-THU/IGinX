@@ -33,8 +33,10 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.AndTagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
+import cn.edu.tsinghua.iginx.engine.shared.source.ConstantSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.FragmentSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
+import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 import cn.edu.tsinghua.iginx.logical.optimizer.core.RuleCall;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
@@ -156,6 +158,10 @@ public class ColumnPruningRule extends Rule {
       } else if (operator.getType() == OperatorType.MappingTransform) {
         MappingTransform mappingTransform = (MappingTransform) operator;
         functionCallList = mappingTransform.getFunctionCallList();
+      } else if (operator.getType() == OperatorType.AddSequence) {
+        // 移除自增列算子中添加的列
+        AddSequence addSequence = (AddSequence) operator;
+        addSequence.getColumns().forEach(columns::remove);
       }
 
       if (newColumnList != null) {
@@ -190,14 +196,11 @@ public class ColumnPruningRule extends Rule {
 
       // 递归处理下一个节点
       visitedOperators.add(operator);
-      if (((UnaryOperator) operator).getSource() instanceof FragmentSource) {
+      Source source = ((UnaryOperator) operator).getSource();
+      if (source instanceof FragmentSource || source instanceof ConstantSource) {
         return;
       }
-      collectColumns(
-          ((OperatorSource) ((UnaryOperator) operator).getSource()).getOperator(),
-          columns,
-          tagFilter,
-          visitedOperators);
+      collectColumns(((OperatorSource) source).getOperator(), columns, tagFilter, visitedOperators);
 
     } else if (OperatorType.isBinaryOperator(operator.getType())) {
       // 下面是处理BinaryOperator的情况，其中只有Join操作符需要处理
@@ -381,7 +384,7 @@ public class ColumnPruningRule extends Rule {
       List<FunctionCall> functionCallList, Set<String> columns) {
     for (FunctionCall functionCall : functionCallList) {
       String functionName = FunctionUtils.getFunctionName(functionCall.getFunction());
-      List<String> paths = functionCall.getParams().getPaths();
+      List<String> paths = ExprUtils.getPathFromExprList(functionCall.getParams().getExpressions());
       boolean isPyUDF;
       try {
         isPyUDF = FunctionUtils.isPyUDF(functionName);
@@ -395,9 +398,9 @@ public class ColumnPruningRule extends Rule {
         columns.remove("value");
         columns.addAll(paths);
       } else if (functionName.equals(ArithmeticExpr.ARITHMETIC_EXPR)) {
-        String functionStr = functionCall.getParams().getExpr().getColumnName();
+        String functionStr = functionCall.getParams().getExpression(0).getColumnName();
         columns.remove(functionStr);
-        columns.addAll(ExprUtils.getPathFromExpr(functionCall.getParams().getExpr()));
+        columns.addAll(ExprUtils.getPathFromExpr(functionCall.getParams().getExpression(0)));
       } else if (isPyUDF) {
         // UDF结果列括号内可以随意命名，因此我们识别columns中所有开头为UDF的列，不识别括号内的内容
         String prefix = functionName + "(";
@@ -412,9 +415,10 @@ public class ColumnPruningRule extends Rule {
         columns.clear();
         columns.addAll(newColumns);
       } else {
-        String functionStr = functionName + "(" + String.join(", ", paths) + ")";
+        List<String> columnNames = functionCall.getParams().getPaths();
+        String functionStr = functionName + "(" + String.join(", ", columnNames) + ")";
         if (functionCall.getParams().isDistinct()) {
-          functionStr = functionName + "(distinct " + String.join(", ", paths) + ")";
+          functionStr = functionName + "(distinct " + String.join(", ", columnNames) + ")";
         }
         columns.addAll(paths);
         if (columns.contains(functionStr)) {
