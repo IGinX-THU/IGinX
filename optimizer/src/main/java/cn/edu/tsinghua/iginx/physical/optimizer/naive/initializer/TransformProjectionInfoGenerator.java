@@ -18,12 +18,12 @@
 package cn.edu.tsinghua.iginx.physical.optimizer.naive.initializer;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.ExecutorContext;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.ScalarFunction;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.arithmetic.*;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.expression.CallNode;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.expression.FieldNode;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.expression.LiteralNode;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.expression.PhysicalExpression;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.ScalarFunction;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.arithmetic.*;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.NoExceptionAutoClosableHolder;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutorInitializer;
@@ -35,6 +35,7 @@ import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
 import cn.edu.tsinghua.iginx.engine.shared.function.MappingType;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.ArithmeticExpr;
 import cn.edu.tsinghua.iginx.engine.shared.operator.RowTransform;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -56,8 +57,8 @@ public class TransformProjectionInfoGenerator
         temp.add(new FieldNode(inputSchema.getKeyIndex(), BatchSchema.KEY.getName()));
       }
       for (int targetIndex = 0;
-          targetIndex < operator.getFunctionCallList().size();
-          targetIndex++) {
+           targetIndex < operator.getFunctionCallList().size();
+           targetIndex++) {
         FunctionCall functionCall = operator.getFunctionCallList().get(targetIndex);
         PhysicalExpression expression = getPhysicalExpression(context, inputSchema, functionCall);
         temp.add(expression);
@@ -147,17 +148,18 @@ public class TransformProjectionInfoGenerator
   private PhysicalExpression getPhysicalExpression(
       ExecutorContext context, BatchSchema inputSchema, UnaryExpression expr)
       throws ComputeException {
-    try (NoExceptionAutoClosableHolder holder = new NoExceptionAutoClosableHolder()) {
-      PhysicalExpression expression =
-          holder.add(getPhysicalExpression(context, inputSchema, expr.getExpression()));
-      ScalarFunction function = holder.add(getUnaryFunction(expr.getOperator()));
-      CallNode callNode = holder.add(new CallNode(function, expr.getColumnName(), expression));
-      holder.detachAll();
-      return callNode;
+    PhysicalExpression expression = getPhysicalExpression(context, inputSchema, expr.getExpression());
+    switch (expr.getOperator()) {
+      case PLUS:
+        return expression;
+      case MINUS:
+        return new CallNode(new Negate(), expr.getColumnName(), expression);
+      default:
+        throw new UnsupportedOperationException("Unsupported operator: " + operator);
     }
   }
 
-  public BinaryArithmeticFunction getArithmeticFunction(Operator operator) {
+  private BinaryArithmeticFunction getArithmeticFunction(Operator operator) {
     switch (operator) {
       case PLUS:
         return new Add();
@@ -169,17 +171,6 @@ public class TransformProjectionInfoGenerator
         return new Ratio();
       case MOD:
         return new Mod();
-      default:
-        throw new UnsupportedOperationException("Unsupported operator: " + operator);
-    }
-  }
-
-  public UnaryArithmeticFunction getUnaryFunction(Operator operator) {
-    switch (operator) {
-      case PLUS:
-        return new MakePositive();
-      case MINUS:
-        return new Negate();
       default:
         throw new UnsupportedOperationException("Unsupported operator: " + operator);
     }

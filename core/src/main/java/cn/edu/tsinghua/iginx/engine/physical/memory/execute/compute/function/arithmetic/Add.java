@@ -20,7 +20,7 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.ar
 public class Add extends BinaryArithmeticFunction {
 
   public Add() {
-    super("Add");
+    super("add");
   }
 
   @Override
