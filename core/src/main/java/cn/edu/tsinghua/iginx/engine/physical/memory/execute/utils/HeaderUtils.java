@@ -51,8 +51,6 @@ import java.util.Set;
 
 public class HeaderUtils {
 
-  private static final FunctionManager functionManager = FunctionManager.getInstance();
-
   public static Header constructNewHead(Header header, String markColumn) {
     List<Field> fields = new ArrayList<>(header.getFields());
     fields.add(new Field(markColumn, BOOLEAN));
@@ -386,7 +384,7 @@ public class HeaderUtils {
 
   private static RowTransform appendArithExpressions(Header header, List<Expression> expressions) {
     List<FunctionCall> functionCallList = new ArrayList<>();
-    Function function = functionManager.getFunction(ARITHMETIC_EXPR);
+    Function function = FunctionManager.getInstance().getFunction(ARITHMETIC_EXPR);
     for (Field field : header.getFields()) {
       functionCallList.add(
           new FunctionCall(function, new FunctionParams(new BaseExpression(field.getName()))));
