@@ -22,10 +22,12 @@ import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
 
+import java.util.Collections;
+
 public class CompletedFoldedPhysicalTask extends UnaryMemoryPhysicalTask {
 
   public CompletedFoldedPhysicalTask(PhysicalTask parentTask, RequestContext context) {
-    super(parentTask, context);
+    super(parentTask, Collections.emptyList(), context);
   }
 
   @Override
