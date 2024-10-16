@@ -24,7 +24,7 @@ public class Add extends BinaryArithmeticFunction {
   }
 
   @Override
-  public int evaluateWithoutValidity(int left, int right) {
+  public int evaluate(int left, int right) {
     return left + right;
   }
 

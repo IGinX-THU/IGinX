@@ -30,7 +30,7 @@ public class Ratio extends BinaryArithmeticFunction {
   }
 
   @Override
-  public int evaluateWithoutValidity(int left, int right) {
+  public int evaluate(int left, int right) {
     throw new UnsupportedOperationException("Unreachable");
   }
 
