@@ -98,7 +98,6 @@ public class TransformProjectionInfoGenerator
   private PhysicalExpression getPhysicalExpression(
       ExecutorContext context, BatchSchema inputSchema, Expression expr) throws ComputeException {
     switch (expr.getType()) {
-      case Multiple:
       case FromValue:
         throw new IllegalArgumentException(String.format("%s not implemented", expr.getType()));
       case Base:
@@ -111,6 +110,7 @@ public class TransformProjectionInfoGenerator
       case CaseWhen:
       case Constant:
       case Function:
+      case Multiple:
         throw new UnsupportedOperationException("Unsupported operator: " + operator);
       default:
         throw new IllegalArgumentException(String.format("Unknown expr type: %s", expr.getType()));
