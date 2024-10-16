@@ -18,14 +18,12 @@
 package cn.edu.tsinghua.iginx.physical.optimizer.naive.planner;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.ExecutorType;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.pipeline.FilterExecutor;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.pipeline.PipelineExecutor;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.pipeline.ProjectionExecutor;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.sink.AggregateExecutor;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.sink.UnarySinkExecutor;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
-import cn.edu.tsinghua.iginx.engine.shared.operator.RowTransform;
-import cn.edu.tsinghua.iginx.engine.shared.operator.SetTransform;
-import cn.edu.tsinghua.iginx.engine.shared.operator.UnaryOperator;
+import cn.edu.tsinghua.iginx.engine.shared.operator.*;
 
 public class NaivePhysicalExecutorFactory {
 
@@ -36,6 +34,7 @@ public class NaivePhysicalExecutorFactory {
       case Reorder:
       case AddSchemaPrefix:
       case RowTransform:
+      case Select:
         return ExecutorType.Pipeline;
       case SetTransform:
         return ExecutorType.UnarySink;
@@ -55,6 +54,7 @@ public class NaivePhysicalExecutorFactory {
         return new ProjectionExecutor(
             new TransformProjectionInfoGenerator((RowTransform) operator));
       case Select:
+        return new FilterExecutor(new FilterInfoGenerator((Select) operator));
       default:
         throw new UnsupportedOperationException("Unsupported operator type: " + operator.getType());
     }

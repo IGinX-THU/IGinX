@@ -18,58 +18,49 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.arithmetic;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.ExecutorContext;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.AbstractFunction;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.BinaryFunction;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.cast.CastNumericAsFloat8;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.Arity;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ConstantVectors;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.Schemas;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ValueVectors;
-import java.util.Collections;
-import javax.annotation.WillNotClose;
 import org.apache.arrow.memory.ArrowBuf;
 import org.apache.arrow.vector.*;
 import org.apache.arrow.vector.types.Types;
 
-public abstract class BinaryFunction extends AbstractFunction {
+public abstract class ArithmeticFunction extends BinaryFunction<FieldVector> {
 
   protected final CastNumericAsFloat8 castFunction = new CastNumericAsFloat8();
 
-  protected BinaryFunction(String name) {
-    super(name, Arity.BINARY);
+  protected ArithmeticFunction(String name) {
+    super(name);
   }
-
-  protected abstract int evaluate(int left, int right);
-
-  protected abstract long evaluate(long left, long right);
-
-  protected abstract float evaluate(float left, float right);
-
-  protected abstract double evaluate(double left, double right);
 
   @Override
-  protected VectorSchemaRoot invokeImpl(
-      ExecutorContext context, @WillNotClose VectorSchemaRoot args) {
-    FieldVector leftVector = args.getVector(0);
-    FieldVector rightVector = args.getVector(1);
-    FieldVector resultVector = invokeImpl(context, leftVector, rightVector);
-    return new VectorSchemaRoot(Collections.singleton(resultVector));
+  protected boolean allowLeftType(Types.MinorType type) {
+    return Schemas.isNumeric(type);
   }
 
-  protected FieldVector invokeImpl(ExecutorContext context, FieldVector left, FieldVector right) {
+  @Override
+  protected boolean allowRightType(Types.MinorType type) {
+    return Schemas.isNumeric(type);
+  }
+
+  @Override
+  public FieldVector evaluate(ExecutorContext context, FieldVector left, FieldVector right) {
     if (left instanceof NullVector || right instanceof NullVector) {
       return ConstantVectors.ofNull(context.getAllocator(), left.getValueCount());
     }
     if (left.getMinorType() == right.getMinorType()) {
-      return evaluate(context, left, right);
+      return evaluateSameType(context, left, right);
     } else {
       try (FieldVector leftCast = castFunction.evaluate(context, left);
-          FieldVector rightCast = castFunction.evaluate(context, right)) {
-        return evaluate(context, leftCast, rightCast);
+           FieldVector rightCast = castFunction.evaluate(context, right)) {
+        return evaluateSameType(context, leftCast, rightCast);
       }
     }
   }
 
-  private FieldVector evaluate(ExecutorContext context, FieldVector left, FieldVector right) {
+  public FieldVector evaluateSameType(ExecutorContext context, FieldVector left, FieldVector right) {
     if (left.getValueCount() != right.getValueCount()) {
       throw new IllegalArgumentException(
           "Invalid number of rows for argument "
@@ -83,54 +74,50 @@ public abstract class BinaryFunction extends AbstractFunction {
     ArrowBuf rightBuf = right.getDataBuffer();
     int rowCount = left.getValueCount();
     switch (left.getMinorType()) {
-      case INT:
-        {
-          IntVector dest =
-              ValueVectors.likeIntersection(
-                  context.getAllocator(), (IntVector) left, (IntVector) right);
-          ArrowBuf destBuf = dest.getDataBuffer();
-          for (long i = 0; i < rowCount; i++) {
-            long index = i * IntVector.TYPE_WIDTH;
-            destBuf.setInt(index, evaluate(leftBuf.getInt(index), rightBuf.getInt(index)));
-          }
-          return dest;
+      case INT: {
+        IntVector dest =
+            ValueVectors.likeIntersection(
+                context.getAllocator(), (IntVector) left, (IntVector) right);
+        ArrowBuf destBuf = dest.getDataBuffer();
+        for (long i = 0; i < rowCount; i++) {
+          long index = i * IntVector.TYPE_WIDTH;
+          destBuf.setInt(index, evaluate(leftBuf.getInt(index), rightBuf.getInt(index)));
         }
-      case BIGINT:
-        {
-          BigIntVector dest =
-              ValueVectors.likeIntersection(
-                  context.getAllocator(), (BigIntVector) left, (BigIntVector) right);
-          ArrowBuf destBuf = dest.getDataBuffer();
-          for (long i = 0; i < rowCount; i++) {
-            long index = i * BigIntVector.TYPE_WIDTH;
-            destBuf.setLong(index, evaluate(leftBuf.getLong(index), rightBuf.getLong(index)));
-          }
-          return dest;
+        return dest;
+      }
+      case BIGINT: {
+        BigIntVector dest =
+            ValueVectors.likeIntersection(
+                context.getAllocator(), (BigIntVector) left, (BigIntVector) right);
+        ArrowBuf destBuf = dest.getDataBuffer();
+        for (long i = 0; i < rowCount; i++) {
+          long index = i * BigIntVector.TYPE_WIDTH;
+          destBuf.setLong(index, evaluate(leftBuf.getLong(index), rightBuf.getLong(index)));
         }
-      case FLOAT4:
-        {
-          Float4Vector dest =
-              ValueVectors.likeIntersection(
-                  context.getAllocator(), (Float4Vector) left, (Float4Vector) right);
-          ArrowBuf destBuf = dest.getDataBuffer();
-          for (long i = 0; i < rowCount; i++) {
-            long index = i * Float4Vector.TYPE_WIDTH;
-            destBuf.setFloat(index, evaluate(leftBuf.getFloat(index), rightBuf.getFloat(index)));
-          }
-          return dest;
+        return dest;
+      }
+      case FLOAT4: {
+        Float4Vector dest =
+            ValueVectors.likeIntersection(
+                context.getAllocator(), (Float4Vector) left, (Float4Vector) right);
+        ArrowBuf destBuf = dest.getDataBuffer();
+        for (long i = 0; i < rowCount; i++) {
+          long index = i * Float4Vector.TYPE_WIDTH;
+          destBuf.setFloat(index, evaluate(leftBuf.getFloat(index), rightBuf.getFloat(index)));
         }
-      case FLOAT8:
-        {
-          Float8Vector dest =
-              ValueVectors.likeIntersection(
-                  context.getAllocator(), (Float8Vector) left, (Float8Vector) right);
-          ArrowBuf destBuf = dest.getDataBuffer();
-          for (long i = 0; i < rowCount; i++) {
-            long index = i * Float8Vector.TYPE_WIDTH;
-            destBuf.setDouble(index, evaluate(leftBuf.getDouble(index), rightBuf.getDouble(index)));
-          }
-          return dest;
+        return dest;
+      }
+      case FLOAT8: {
+        Float8Vector dest =
+            ValueVectors.likeIntersection(
+                context.getAllocator(), (Float8Vector) left, (Float8Vector) right);
+        ArrowBuf destBuf = dest.getDataBuffer();
+        for (long i = 0; i < rowCount; i++) {
+          long index = i * Float8Vector.TYPE_WIDTH;
+          destBuf.setDouble(index, evaluate(leftBuf.getDouble(index), rightBuf.getDouble(index)));
         }
+        return dest;
+      }
       default:
         throw new IllegalStateException("Unsupported type: " + left.getMinorType());
     }
@@ -141,8 +128,11 @@ public abstract class BinaryFunction extends AbstractFunction {
     castFunction.close();
   }
 
-  @Override
-  protected boolean allowType(int index, Types.MinorType type) {
-    return Schemas.isNumeric(type);
-  }
+  public abstract int evaluate(int left, int right);
+
+  public abstract long evaluate(long left, long right);
+
+  public abstract float evaluate(float left, float right);
+
+  public abstract double evaluate(double left, double right);
 }

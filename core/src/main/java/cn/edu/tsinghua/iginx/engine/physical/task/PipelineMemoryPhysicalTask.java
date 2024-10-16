@@ -23,37 +23,42 @@ import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Batch;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
-import java.util.Objects;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
+import jdk.nashorn.internal.ir.annotations.Immutable;
+
 import javax.annotation.WillClose;
 import javax.annotation.WillCloseWhenClosed;
-import jdk.nashorn.internal.ir.annotations.Immutable;
+import java.util.List;
+import java.util.Objects;
+import java.util.function.Supplier;
 
 @Immutable
 public class PipelineMemoryPhysicalTask extends UnaryMemoryPhysicalTask {
 
-  private final PipelineExecutor executor;
+  private final Supplier<PipelineExecutor> executorSupplier;
 
   public PipelineMemoryPhysicalTask(
-      PhysicalTask parentTask, RequestContext context, PipelineExecutor executor) {
-    super(parentTask, context);
-    this.executor = Objects.requireNonNull(executor);
+      PhysicalTask parentTask, List<Operator> operators, RequestContext context, Supplier<PipelineExecutor> executorSupplier) {
+    super(parentTask, operators, context);
+    this.executorSupplier = Objects.requireNonNull(executorSupplier);
   }
+
+  private String info;
 
   @Override
   public String getInfo() {
-    return executor.getDescription();
+    return info;
   }
 
   @Override
   protected BatchStream compute(@WillClose BatchStream previous) throws PhysicalException {
+    PipelineExecutor executor = executorSupplier.get();
     try {
       executor.initialize(executorContext, previous.getSchema());
-    } catch (Throwable e) {
-      try {
-        previous.close();
-      } catch (Throwable e2) {
-        e.addSuppressed(e2);
-      }
+      info = executor.getDescription();
+    } catch (PhysicalException e) {
+      previous.close();
+      executor.close();
       throw e;
     }
     return new PipelineBatchStream(previous, executor);
@@ -86,7 +91,7 @@ public class PipelineMemoryPhysicalTask extends UnaryMemoryPhysicalTask {
     @Override
     public void close() throws PhysicalException {
       try (BatchStream source = this.source;
-          PipelineExecutor executor = this.executor) {
+           PipelineExecutor executor = this.executor) {
         // Do nothing
       }
     }

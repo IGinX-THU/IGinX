@@ -65,5 +65,5 @@ public abstract class AbstractFunction implements ScalarFunction {
   protected abstract boolean allowType(int index, Types.MinorType type);
 
   protected abstract VectorSchemaRoot invokeImpl(
-      ExecutorContext context, @WillNotClose VectorSchemaRoot args);
+      ExecutorContext context, @WillNotClose VectorSchemaRoot args) throws ComputeException;
 }

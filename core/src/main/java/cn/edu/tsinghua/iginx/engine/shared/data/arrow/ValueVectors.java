@@ -17,9 +17,9 @@
  */
 package cn.edu.tsinghua.iginx.engine.shared.data.arrow;
 
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.logic.And;
 import org.apache.arrow.memory.ArrowBuf;
 import org.apache.arrow.memory.BufferAllocator;
-import org.apache.arrow.vector.BitVectorHelper;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.ValueVector;
 import org.apache.arrow.vector.types.Types;
@@ -48,34 +48,45 @@ public class ValueVectors {
     return slice(allocator, source, source.getValueCount());
   }
 
-  public static ValueVector create(BufferAllocator allocator, Types.MinorType returnType) {
+  public static FieldVector create(BufferAllocator allocator, Types.MinorType returnType) {
     return returnType.getNewVector(Schemas.defaultField(returnType), allocator, null);
   }
 
   @SuppressWarnings("unchecked")
+  public static <T extends ValueVector> T likeType(BufferAllocator allocator, T left) {
+    return (T) create(allocator, left.getMinorType());
+  }
+
   public static <T extends ValueVector> T like(BufferAllocator allocator, T left) {
-    T ret = (T) create(allocator, left.getMinorType());
+    T ret = likeType(allocator, left);
     ret.setValueCount(left.getValueCount());
+    return ret;
+  }
+
+  public static ValueVector createIntersect(BufferAllocator allocator, ValueVector left, ValueVector right, Types.MinorType type) {
+    ValueVector ret = create(allocator, type);
+
+    int valueCount = Math.min(left.getValueCount(), right.getValueCount());
+    ret.setInitialCapacity(valueCount);
+    ret.setValueCount(valueCount);
+
+    ArrowBuf retValidityBuffer = ret.getValidityBuffer();
+    ArrowBuf firstValidityBuffer = left.getValidityBuffer();
+    ArrowBuf secondValidityBuffer = right.getValidityBuffer();
+    try (And and = new And()) {
+      and.evaluate(retValidityBuffer, firstValidityBuffer, secondValidityBuffer);
+    }
+
     return ret;
   }
 
   @SuppressWarnings("unchecked")
   public static <T extends ValueVector> T likeIntersection(
       BufferAllocator allocator, T first, T second) {
-    int valueCount = Math.min(first.getValueCount(), second.getValueCount());
     if (first.getMinorType() != second.getMinorType()) {
       throw new IllegalArgumentException("Cannot create intersection vector for different types");
     }
-    T ret = (T) create(allocator, first.getMinorType());
-    ret.setValueCount(first.getValueCount());
-
-    ArrowBuf retValidityBuffer = ret.getValidityBuffer();
-    ArrowBuf firstValidityBuffer = first.getValidityBuffer();
-    ArrowBuf secondValidityBuffer = second.getValidityBuffer();
-    int byteCount = BitVectorHelper.getValidityBufferSize(valueCount);
-    BitVectors.and(retValidityBuffer, firstValidityBuffer, secondValidityBuffer, byteCount);
-
-    return ret;
+    return (T) createIntersect(allocator, first, second, first.getMinorType());
   }
 
   @SuppressWarnings("unchecked")

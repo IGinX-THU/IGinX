@@ -18,6 +18,10 @@
 package cn.edu.tsinghua.iginx.physical.optimizer.naive.planner;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.ExecutorContext;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.expression.CallNode;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.expression.FieldNode;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.expression.LiteralNode;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.expression.PhysicalExpression;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.ScalarFunction;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.arithmetic.*;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.expression.CallNode;

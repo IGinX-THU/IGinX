@@ -22,10 +22,12 @@ import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.task.visitor.TaskVisitor;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
-import java.util.Collections;
-import javax.annotation.WillClose;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.annotation.WillClose;
+import java.util.List;
 
 public abstract class UnaryMemoryPhysicalTask extends MemoryPhysicalTask {
 
@@ -33,8 +35,8 @@ public abstract class UnaryMemoryPhysicalTask extends MemoryPhysicalTask {
 
   private PhysicalTask parentTask;
 
-  public UnaryMemoryPhysicalTask(PhysicalTask parentTask, RequestContext context) {
-    super(TaskType.UnaryMemory, Collections.emptyList(), context);
+  public UnaryMemoryPhysicalTask(PhysicalTask parentTask, List<Operator> operators, RequestContext context) {
+    super(TaskType.UnaryMemory, operators, context);
     this.parentTask = parentTask;
   }
 

@@ -17,10 +17,38 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.expression;
 
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.ScalarFunction;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
+import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ValueVectors;
+import org.apache.arrow.vector.FieldVector;
+import org.apache.arrow.vector.VectorSchemaRoot;
+
+import javax.annotation.WillNotClose;
 import java.util.List;
 
 public interface PhysicalExpression extends ScalarFunction {
 
   List<PhysicalExpression> getChildren();
+
+  default FieldVector evaluate(ExecutorContext context, @WillNotClose VectorSchemaRoot args)
+      throws ComputeException {
+    try (VectorSchemaRoot result = invoke(context, args)) {
+      if (result.getFieldVectors().size() != 1) {
+        throw new ComputeException("Physical expression " + this + " returned multiple columns: " + result.getSchema());
+      }
+      return ValueVectors.transfer(context.getAllocator(), result.getFieldVectors().get(0));
+    }
+  }
+
+  default <T extends FieldVector> T evaluate(ExecutorContext context, @WillNotClose VectorSchemaRoot args, Class<T> clazz)
+      throws ComputeException {
+    FieldVector vector = evaluate(context, args);
+    if (!clazz.isInstance(vector)) {
+      vector.close();
+      throw new ComputeException("Physical expression " + this + " returned not a " + clazz.getSimpleName() + " but a " + vector.getClass().getSimpleName());
+    } else {
+      return clazz.cast(vector);
+    }
+  }
 }

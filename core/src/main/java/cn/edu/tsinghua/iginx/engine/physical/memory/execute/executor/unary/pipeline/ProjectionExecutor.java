@@ -20,14 +20,14 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.pipe
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.expression.PhysicalExpression;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutorInitializer;
-import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ValueVectors;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Batch;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
-import java.util.ArrayList;
-import java.util.List;
-import javax.annotation.WillNotClose;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
+
+import javax.annotation.WillNotClose;
+import java.util.ArrayList;
+import java.util.List;
 
 public class ProjectionExecutor extends PipelineExecutor {
 
@@ -53,11 +53,7 @@ public class ProjectionExecutor extends PipelineExecutor {
     List<FieldVector> results = new ArrayList<>();
     try {
       for (PhysicalExpression expression : expressions) {
-        try (VectorSchemaRoot result = expression.invoke(getContext(), batch.raw())) {
-          for (FieldVector vector : result.getFieldVectors()) {
-            results.add(ValueVectors.transfer(getContext().getAllocator(), vector));
-          }
-        }
+        results.add(expression.evaluate(getContext(), batch.raw()));
       }
       return new Batch(new VectorSchemaRoot(results));
     } catch (Exception e) {

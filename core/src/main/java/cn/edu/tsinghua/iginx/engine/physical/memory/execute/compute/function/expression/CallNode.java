@@ -21,20 +21,25 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.ScalarFunction;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ValueVectors;
+import org.apache.arrow.util.Preconditions;
+import org.apache.arrow.vector.FieldVector;
+import org.apache.arrow.vector.VectorSchemaRoot;
+
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
-import javax.annotation.Nullable;
-import org.apache.arrow.util.Preconditions;
-import org.apache.arrow.vector.FieldVector;
-import org.apache.arrow.vector.VectorSchemaRoot;
 
 public class CallNode extends AbstractPhysicalExpression {
 
   private final ScalarFunction function;
 
-  public CallNode(ScalarFunction function, String alias, PhysicalExpression... children) {
+  public CallNode(ScalarFunction function, PhysicalExpression... children) {
+    this(function, null, children);
+  }
+
+  public CallNode(ScalarFunction function, @Nullable String alias, PhysicalExpression... children) {
     this(function, alias, Arrays.asList(children));
   }
 
@@ -48,8 +53,8 @@ public class CallNode extends AbstractPhysicalExpression {
   public String getName() {
     return function.getName()
         + getChildren().stream()
-            .map(PhysicalExpression::toString)
-            .collect(Collectors.joining(",", "(", ")"));
+        .map(PhysicalExpression::toString)
+        .collect(Collectors.joining(",", "(", ")"));
   }
 
   @Override

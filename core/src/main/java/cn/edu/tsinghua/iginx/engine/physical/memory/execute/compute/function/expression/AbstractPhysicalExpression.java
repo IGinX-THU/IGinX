@@ -20,12 +20,13 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.ex
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ValueVectors;
+import org.apache.arrow.vector.FieldVector;
+import org.apache.arrow.vector.VectorSchemaRoot;
+
+import javax.annotation.WillNotClose;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import javax.annotation.WillNotClose;
-import org.apache.arrow.vector.FieldVector;
-import org.apache.arrow.vector.VectorSchemaRoot;
 
 public abstract class AbstractPhysicalExpression implements PhysicalExpression {
 
