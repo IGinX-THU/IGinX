@@ -46,11 +46,31 @@ public class CastNumericAsFloat8 extends Cast {
   }
 
   private Float8Vector evaluate(ExecutorContext context, IntVector input) {
-    throw new UnsupportedOperationException("Not implemented yet");
+    Float8Vector res = new Float8Vector(input.getName(), context.getAllocator());
+    res.allocateNew(input.getValueCount());
+    for (int i = 0; i < input.getValueCount(); i++) {
+      if (!input.isNull(i)) {
+        res.setSafe(i, input.get(i));
+      } else {
+        res.setNull(i);
+      }
+    }
+    res.setValueCount(input.getValueCount());
+    return res;
   }
 
   private Float8Vector evaluate(ExecutorContext context, BigIntVector input) {
-    throw new UnsupportedOperationException("Not implemented yet");
+    Float8Vector res = new Float8Vector(input.getName(), context.getAllocator());
+    res.allocateNew(input.getValueCount());
+    for (int i = 0; i < input.getValueCount(); i++) {
+      if (!input.isNull(i)) {
+        res.setSafe(i, (double) input.get(i));
+      } else {
+        res.setNull(i);
+      }
+    }
+    res.setValueCount(input.getValueCount());
+    return res;
   }
 
   private Float8Vector evaluate(ExecutorContext context, Float4Vector input) {

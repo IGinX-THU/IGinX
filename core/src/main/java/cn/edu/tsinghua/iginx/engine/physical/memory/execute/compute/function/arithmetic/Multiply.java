@@ -17,9 +17,9 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.arithmetic;
 
-public class PhysicalMultiply extends ArithmeticFunction {
+public class Multiply extends BinaryFunction {
 
-  public PhysicalMultiply() {
+  public Multiply() {
     super("multiply");
   }
 
