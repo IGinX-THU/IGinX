@@ -30,11 +30,11 @@ import org.apache.arrow.memory.ArrowBuf;
 import org.apache.arrow.vector.*;
 import org.apache.arrow.vector.types.Types;
 
-public abstract class ArithmeticFunction extends AbstractFunction {
+public abstract class BinaryFunction extends AbstractFunction {
 
-  private final CastNumericAsFloat8 castFunction = new CastNumericAsFloat8();
+  protected final CastNumericAsFloat8 castFunction = new CastNumericAsFloat8();
 
-  protected ArithmeticFunction(String name) {
+  protected BinaryFunction(String name) {
     super(name, Arity.BINARY);
   }
 
@@ -55,7 +55,7 @@ public abstract class ArithmeticFunction extends AbstractFunction {
     return new VectorSchemaRoot(Collections.singleton(resultVector));
   }
 
-  private FieldVector invokeImpl(ExecutorContext context, FieldVector left, FieldVector right) {
+  protected FieldVector invokeImpl(ExecutorContext context, FieldVector left, FieldVector right) {
     if (left instanceof NullVector || right instanceof NullVector) {
       return ConstantVectors.ofNull(context.getAllocator(), left.getValueCount());
     }

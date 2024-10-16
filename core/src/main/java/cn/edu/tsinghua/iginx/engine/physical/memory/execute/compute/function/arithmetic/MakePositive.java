@@ -15,12 +15,31 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.expression;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.arithmetic;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.ScalarFunction;
-import java.util.List;
+public class MakePositive extends UnaryFunction {
 
-public interface PhysicalExpression extends ScalarFunction {
+  public MakePositive() {
+    super("MakePositive");
+  }
 
-  List<PhysicalExpression> getChildren();
+  @Override
+  public int evaluate(int value) {
+    return value;
+  }
+
+  @Override
+  public long evaluate(long value) {
+    return value;
+  }
+
+  @Override
+  public float evaluate(float value) {
+    return value;
+  }
+
+  @Override
+  public double evaluate(double value) {
+    return value;
+  }
 }

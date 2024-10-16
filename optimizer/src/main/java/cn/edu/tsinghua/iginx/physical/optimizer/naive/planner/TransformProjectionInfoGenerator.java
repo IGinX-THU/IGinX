@@ -18,21 +18,17 @@
 package cn.edu.tsinghua.iginx.physical.optimizer.naive.planner;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.ExecutorContext;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.expression.CallNode;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.expression.FieldNode;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.expression.LiteralNode;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.expression.PhysicalExpression;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.ScalarFunction;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.arithmetic.ArithmeticFunction;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.arithmetic.PhysicalMultiply;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.arithmetic.*;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.expression.CallNode;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.expression.FieldNode;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.expression.LiteralNode;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.expression.PhysicalExpression;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.NoExceptionAutoClosableHolder;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutorInitializer;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
-import cn.edu.tsinghua.iginx.engine.shared.expr.BaseExpression;
-import cn.edu.tsinghua.iginx.engine.shared.expr.BinaryExpression;
-import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
-import cn.edu.tsinghua.iginx.engine.shared.expr.Operator;
+import cn.edu.tsinghua.iginx.engine.shared.expr.*;
 import cn.edu.tsinghua.iginx.engine.shared.function.Function;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
@@ -102,10 +98,20 @@ public class TransformProjectionInfoGenerator
   private PhysicalExpression getPhysicalExpression(
       ExecutorContext context, BatchSchema inputSchema, Expression expr) throws ComputeException {
     switch (expr.getType()) {
+      case Multiple:
+      case FromValue:
+        throw new IllegalArgumentException(String.format("%s not implemented", expr.getType()));
       case Base:
         return getPhysicalExpression(context, inputSchema, (BaseExpression) expr);
       case Binary:
         return getPhysicalExpression(context, inputSchema, (BinaryExpression) expr);
+      case Unary:
+        return getPhysicalExpression(context, inputSchema, (UnaryExpression) expr);
+      case Bracket:
+      case CaseWhen:
+      case Constant:
+      case Function:
+        throw new UnsupportedOperationException("Unsupported operator: " + operator);
       default:
         throw new IllegalArgumentException(String.format("Unknown expr type: %s", expr.getType()));
     }
@@ -132,20 +138,48 @@ public class TransformProjectionInfoGenerator
 
       ScalarFunction function = holder.add(getArithmeticFunction(expr.getOp()));
       CallNode callNode = holder.add(new CallNode(function, expr.getColumnName(), left, right));
+
       holder.detachAll();
       return callNode;
     }
   }
 
-  public ArithmeticFunction getArithmeticFunction(Operator operator) {
+  private PhysicalExpression getPhysicalExpression(
+      ExecutorContext context, BatchSchema inputSchema, UnaryExpression expr)
+      throws ComputeException {
+    try (NoExceptionAutoClosableHolder holder = new NoExceptionAutoClosableHolder()) {
+      PhysicalExpression expression =
+          holder.add(getPhysicalExpression(context, inputSchema, expr.getExpression()));
+      ScalarFunction function = holder.add(getUnaryFunction(expr.getOperator()));
+      CallNode callNode = holder.add(new CallNode(function, expr.getColumnName(), expression));
+      holder.detachAll();
+      return callNode;
+    }
+  }
+
+  public BinaryFunction getArithmeticFunction(Operator operator) {
     switch (operator) {
       case PLUS:
+        return new Add();
       case MINUS:
-        throw new UnsupportedOperationException("Unsupported operator: " + operator);
+        return new Minus();
       case STAR:
-        return new PhysicalMultiply();
+        return new Multiply();
       case DIV:
+        return new Ratio();
       case MOD:
+        return new Mod();
+      default:
+        throw new UnsupportedOperationException("Unsupported operator: " + operator);
+    }
+  }
+
+  public UnaryFunction getUnaryFunction(Operator operator) {
+    switch (operator) {
+      case PLUS:
+        return new MakePositive();
+      case MINUS:
+        return new Negate();
       default:
         throw new UnsupportedOperationException("Unsupported operator: " + operator);
     }
