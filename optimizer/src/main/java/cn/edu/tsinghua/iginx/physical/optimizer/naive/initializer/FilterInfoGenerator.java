@@ -17,29 +17,29 @@
  */
 package cn.edu.tsinghua.iginx.physical.optimizer.naive.initializer;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.ExecutorContext;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.ScalarFunction;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.compare.GreaterEqual;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.compare.Less;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.compare.LessEqual;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.expression.CallNode;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.expression.FieldNode;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.expression.LiteralNode;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.expression.PhysicalExpression;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.logic.And;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.logic.Or;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.ScalarFunction;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.compare.GreaterEqual;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.compare.Less;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.compare.LessEqual;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.CallNode;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.FieldNode;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.LiteralNode;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.PhysicalExpression;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.logic.And;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.logic.Or;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutorInitializer;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutorFactory;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.pipeline.FilterExecutor;
+import cn.edu.tsinghua.iginx.engine.shared.data.arrow.Schemas;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
-import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.BiFunction;
-import java.util.function.Predicate;
 
-public class FilterInfoGenerator implements UnaryExecutorInitializer<PhysicalExpression> {
+public class FilterInfoGenerator implements UnaryExecutorFactory<FilterExecutor> {
 
   private final Filter filter;
 
@@ -48,7 +48,12 @@ public class FilterInfoGenerator implements UnaryExecutorInitializer<PhysicalExp
   }
 
   @Override
-  public PhysicalExpression initialize(ExecutorContext context, BatchSchema inputSchema)
+  public FilterExecutor initialize(ExecutorContext context, BatchSchema inputSchema)
+      throws ComputeException {
+    return new FilterExecutor(context, inputSchema, getCondition(context, inputSchema));
+  }
+
+  public PhysicalExpression getCondition(ExecutorContext context, BatchSchema inputSchema)
       throws ComputeException {
     return construct(filter, context, inputSchema);
   }
@@ -122,7 +127,7 @@ public class FilterInfoGenerator implements UnaryExecutorInitializer<PhysicalExp
   private static PhysicalExpression construct(
       ValueFilter filter, ExecutorContext context, BatchSchema inputSchema)
       throws ComputeException {
-    List<Integer> paths = match(filter.getPath(), context, inputSchema);
+    List<Integer> paths = Schemas.matchPattern(inputSchema, filter.getPath());
     List<PhysicalExpression> comparisons = new ArrayList<>();
     for (Integer pathIndex : paths) {
       comparisons.add(
@@ -154,17 +159,5 @@ public class FilterInfoGenerator implements UnaryExecutorInitializer<PhysicalExp
       default:
         throw new UnsupportedOperationException("Unsupported operator: " + op);
     }
-  }
-
-  private static List<Integer> match(
-      String path, ExecutorContext context, BatchSchema inputSchema) {
-    Predicate<String> matcher = StringUtils.toColumnMatcher(path);
-    List<Integer> result = new ArrayList<>();
-    for (int i = 0; i < inputSchema.getFieldCount(); i++) {
-      if (matcher.test(inputSchema.getField(i).getName())) {
-        result.add(i);
-      }
-    }
-    return result;
   }
 }

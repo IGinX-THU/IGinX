@@ -17,7 +17,7 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.ScalarFunction;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.PhysicalFunction;
 import org.apache.arrow.vector.types.Types;
 
 public class NotAllowArgumentTypeException extends ArgumentException {
@@ -25,7 +25,7 @@ public class NotAllowArgumentTypeException extends ArgumentException {
   private final int index;
   private final Types.MinorType type;
 
-  public NotAllowArgumentTypeException(ScalarFunction function, int index, Types.MinorType type) {
+  public NotAllowArgumentTypeException(PhysicalFunction function, int index, Types.MinorType type) {
     super(function, "not allow type " + type + " at index " + index);
     this.index = index;
     this.type = type;

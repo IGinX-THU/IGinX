@@ -18,9 +18,6 @@
 package cn.edu.tsinghua.iginx.physical.optimizer.naive;
 
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.pipeline.FilterExecutor;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.pipeline.ProjectionExecutor;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.sink.AggregateExecutor;
 import cn.edu.tsinghua.iginx.engine.physical.task.*;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.operator.*;
@@ -115,7 +112,7 @@ public class NaivePhysicalPlanner {
         sourceTask,
         Collections.singletonList(operator),
         context,
-        () -> new ProjectionExecutor(new SimpleProjectionInfoGenerator(operator)));
+        new SimpleProjectionInfoGenerator(operator));
   }
 
   public PhysicalTask construct(Rename operator, RequestContext context) {
@@ -124,7 +121,7 @@ public class NaivePhysicalPlanner {
         sourceTask,
         Collections.singletonList(operator),
         context,
-        () -> new ProjectionExecutor(new SimpleProjectionInfoGenerator(operator)));
+        new SimpleProjectionInfoGenerator(operator));
   }
 
   public PhysicalTask construct(Reorder operator, RequestContext context) {
@@ -133,7 +130,7 @@ public class NaivePhysicalPlanner {
         sourceTask,
         Collections.singletonList(operator),
         context,
-        () -> new ProjectionExecutor(new SimpleProjectionInfoGenerator(operator)));
+        new SimpleProjectionInfoGenerator(operator));
   }
 
   public PhysicalTask construct(AddSchemaPrefix operator, RequestContext context) {
@@ -142,7 +139,7 @@ public class NaivePhysicalPlanner {
         sourceTask,
         Collections.singletonList(operator),
         context,
-        () -> new ProjectionExecutor(new SimpleProjectionInfoGenerator(operator)));
+        new SimpleProjectionInfoGenerator(operator));
   }
 
   public PhysicalTask construct(RowTransform operator, RequestContext context) {
@@ -151,7 +148,7 @@ public class NaivePhysicalPlanner {
         sourceTask,
         Collections.singletonList(operator),
         context,
-        () -> new ProjectionExecutor(new TransformProjectionInfoGenerator(operator)));
+        new TransformProjectionInfoGenerator(operator));
   }
 
   public PhysicalTask construct(Select operator, RequestContext context) {
@@ -169,9 +166,7 @@ public class NaivePhysicalPlanner {
               sourceTask,
               Collections.singletonList(new Select(source, null, operator.getTagFilter())),
               context,
-              () ->
-                  new ProjectionExecutor(
-                      new TagKVProjectionInfoGenerator(operator.getTagFilter())));
+              new TagKVProjectionInfoGenerator(operator.getTagFilter()));
     }
 
     if (operator.getFilter() != null) {
@@ -180,7 +175,7 @@ public class NaivePhysicalPlanner {
               sourceTask,
               Collections.singletonList(new Select(source, operator.getFilter(), null)),
               context,
-              () -> new FilterExecutor(new FilterInfoGenerator(operator.getFilter())));
+              new FilterInfoGenerator(operator.getFilter()));
     }
 
     return sourceTask;
@@ -226,6 +221,6 @@ public class NaivePhysicalPlanner {
         sourceTask,
         Collections.singletonList(operator),
         context,
-        () -> new AggregateExecutor(new AggregateInfoGenerator(operator)));
+        new AggregateInfoGenerator(operator));
   }
 }

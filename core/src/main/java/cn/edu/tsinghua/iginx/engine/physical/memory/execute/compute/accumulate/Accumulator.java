@@ -17,16 +17,26 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate;
 
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.PhysicalFunction;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.NoExceptionAutoCloseable;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputingCloseable;
 import javax.annotation.WillNotClose;
-import org.apache.arrow.vector.ValueVector;
+import org.apache.arrow.memory.BufferAllocator;
+import org.apache.arrow.vector.FieldVector;
+import org.apache.arrow.vector.VectorSchemaRoot;
+import org.apache.arrow.vector.types.pojo.Schema;
 
-public interface Accumulator extends NoExceptionAutoCloseable {
+public interface Accumulator extends PhysicalFunction {
 
-  String getName();
+  State initialize(@WillNotClose BufferAllocator allocator, @WillNotClose Schema schema)
+      throws ComputeException;
 
-  void accumulate(@WillNotClose ValueVector vector) throws ComputeException;
+  interface State extends ComputingCloseable {
 
-  Object evaluate() throws ComputeException;
+    boolean needMoreData() throws ComputeException;
+
+    void accumulate(@WillNotClose VectorSchemaRoot root) throws ComputeException;
+
+    FieldVector evaluate() throws ComputeException;
+  }
 }

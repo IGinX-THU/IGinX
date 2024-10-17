@@ -17,25 +17,23 @@
  */
 package cn.edu.tsinghua.iginx.physical.optimizer.naive.initializer;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.Accumulator;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.sum.PhysicalSumFloat8;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.unary.PhysicalSum;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.FieldNode;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutorInitializer;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutorFactory;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.sink.AggregateExecutor;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.Schemas;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.function.*;
-import cn.edu.tsinghua.iginx.engine.shared.function.system.Sum;
 import cn.edu.tsinghua.iginx.engine.shared.operator.SetTransform;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import org.apache.arrow.vector.types.Types;
-import org.apache.arrow.vector.types.pojo.Field;
 
-public class AggregateInfoGenerator
-    implements UnaryExecutorInitializer<List<AggregateExecutor.AggregateInfo>> {
+public class AggregateInfoGenerator implements UnaryExecutorFactory<AggregateExecutor> {
 
   private final SetTransform transform;
 
@@ -44,19 +42,13 @@ public class AggregateInfoGenerator
   }
 
   @Override
-  public List<AggregateExecutor.AggregateInfo> initialize(
-      ExecutorContext context, BatchSchema inputSchema) throws ComputeException {
-    List<AggregateExecutor.AggregateInfo> temp = new ArrayList<>();
-    try {
-      for (FunctionCall functionCall : transform.getFunctionCallList()) {
-        temp.addAll(generateAggregateInfo(context, inputSchema, functionCall));
-      }
-      List<AggregateExecutor.AggregateInfo> result = new ArrayList<>(temp);
-      temp.clear();
-      return result;
-    } finally {
-      temp.forEach(AggregateExecutor.AggregateInfo::close);
+  public AggregateExecutor initialize(ExecutorContext context, BatchSchema inputSchema)
+      throws ComputeException {
+    List<AggregateExecutor.AggregateInfo> infos = new ArrayList<>();
+    for (FunctionCall functionCall : transform.getFunctionCallList()) {
+      infos.addAll(generateAggregateInfo(context, inputSchema, functionCall));
     }
+    return new AggregateExecutor(context, inputSchema, infos);
   }
 
   private static List<AggregateExecutor.AggregateInfo> generateAggregateInfo(
@@ -77,38 +69,24 @@ public class AggregateInfoGenerator
       throw new ComputeException("Function " + function + " should have exactly one parameter");
     }
     List<Integer> matchedIndexes = Schemas.matchPattern(inputSchema, params.getPaths().get(0));
-    List<AggregateExecutor.AggregateInfo> temp = new ArrayList<>();
-    try {
-      for (int index : matchedIndexes) {
-        String name = getResultName(mappingFunction, inputSchema.getName(index));
-        Field field = Schemas.fieldWithName(inputSchema.getField(index), name);
-        Accumulator accumulator =
-            createAccumulator(context, mappingFunction, inputSchema.getMinorType(index));
-        temp.add(new AggregateExecutor.AggregateInfo(field, accumulator, index));
-      }
-      List<AggregateExecutor.AggregateInfo> result = new ArrayList<>(temp);
-      temp.clear();
-      return result;
-    } finally {
-      temp.forEach(AggregateExecutor.AggregateInfo::close);
+    Accumulator accumulator = getAccumulator(context, mappingFunction);
+    List<AggregateExecutor.AggregateInfo> result = new ArrayList<>();
+    for (int index : matchedIndexes) {
+      AggregateExecutor.AggregateInfo info =
+          new AggregateExecutor.AggregateInfo(
+              accumulator, Collections.singletonList(new FieldNode(index)));
+      result.add(info);
     }
+    return result;
   }
 
-  private static Accumulator createAccumulator(
-      ExecutorContext context, SetMappingFunction function, Types.MinorType type) {
-    if (function instanceof Sum) {
-      switch (type) {
-        case FLOAT8:
-          return new PhysicalSumFloat8(context);
-        default:
-          throw new UnsupportedOperationException("Not implemented yet: " + type);
-      }
-    } else {
-      throw new UnsupportedOperationException("Not implemented yet: " + function);
+  private static Accumulator getAccumulator(ExecutorContext context, SetMappingFunction function) {
+    switch (function.getIdentifier()) {
+      case PhysicalSum.NAME:
+        return new PhysicalSum();
+      default:
+        throw new UnsupportedOperationException(
+            "Unsupported function: " + function.getIdentifier());
     }
-  }
-
-  private static String getResultName(SetMappingFunction function, String name) {
-    return function.getIdentifier() + "(" + name + ")";
   }
 }

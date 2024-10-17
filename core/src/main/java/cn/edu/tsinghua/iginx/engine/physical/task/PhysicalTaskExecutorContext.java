@@ -17,7 +17,7 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.task;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.ExecutorContext;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import java.util.Objects;
 import org.apache.arrow.memory.BufferAllocator;
 

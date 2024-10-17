@@ -17,42 +17,64 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.ExecutorContext;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.Arity;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ArityException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
 import java.util.Objects;
 import javax.annotation.WillNotClose;
-import org.apache.arrow.vector.ValueVector;
-import org.apache.arrow.vector.types.Types;
+import org.apache.arrow.memory.BufferAllocator;
+import org.apache.arrow.vector.VectorSchemaRoot;
+import org.apache.arrow.vector.types.pojo.Schema;
 
-public abstract class AbstractAccumulator<IN extends ValueVector, OUT> implements Accumulator {
+public abstract class AbstractAccumulator implements Accumulator {
 
-  protected final ExecutorContext context;
-  protected final Types.MinorType type;
+  private final String name;
+  private final Arity arity;
 
-  protected AbstractAccumulator(ExecutorContext context, Types.MinorType type) {
-    this.context = Objects.requireNonNull(context);
-    this.type = Objects.requireNonNull(type);
+  protected AbstractAccumulator(String name, Arity arity) {
+    this.name = Objects.requireNonNull(name);
+    this.arity = Objects.requireNonNull(arity);
   }
 
   @Override
-  @SuppressWarnings("unchecked")
-  public void accumulate(@WillNotClose ValueVector vector) throws ComputeException {
-    if (vector.getMinorType() != type) {
-      throw new ComputeException(
-          getClass().getSimpleName()
-              + " only supports "
-              + type
-              + ", but got "
-              + vector.getMinorType());
-    }
-    if (vector.getValueCount() == 0) {
-      return;
-    }
-    accumulateTyped((IN) vector);
+  public String getName() {
+    return name;
   }
 
-  public abstract void accumulateTyped(@WillNotClose IN vector) throws ComputeException;
-
   @Override
-  public abstract OUT evaluate() throws ComputeException;
+  public State initialize(@WillNotClose BufferAllocator allocator, @WillNotClose Schema schema)
+      throws ComputeException {
+    if (!arity.checkArity(schema.getFields().size())) {
+      throw new ArityException(this, arity, schema.getFields().size());
+    }
+    return initializeImpl(allocator, schema);
+  }
+
+  protected abstract AbstractState initializeImpl(
+      @WillNotClose BufferAllocator allocator, @WillNotClose Schema schema) throws ComputeException;
+
+  protected abstract static class AbstractState implements State {
+
+    protected final BufferAllocator allocator;
+    protected final Schema schema;
+    protected final AbstractAccumulator accumulator;
+
+    protected AbstractState(
+        BufferAllocator allocator, Schema schema, AbstractAccumulator accumulator) {
+      this.allocator = allocator;
+      this.schema = schema;
+      this.accumulator = accumulator;
+    }
+
+    @Override
+    public void accumulate(VectorSchemaRoot root) throws ComputeException {
+      if (!root.getSchema().equals(schema)) {
+        throw new ComputeException(
+            "Schema mismatch: expected " + schema + ", got " + root.getSchema());
+      }
+      accumulateImpl(root);
+    }
+
+    protected abstract void accumulateImpl(VectorSchemaRoot root) throws ComputeException;
+  }
 }

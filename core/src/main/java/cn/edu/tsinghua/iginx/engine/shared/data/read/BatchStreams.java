@@ -17,7 +17,7 @@
  */
 package cn.edu.tsinghua.iginx.engine.shared.data.read;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.ExecutorContext;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import javax.annotation.WillClose;
 import javax.annotation.WillNotClose;
 import org.apache.arrow.memory.BufferAllocator;

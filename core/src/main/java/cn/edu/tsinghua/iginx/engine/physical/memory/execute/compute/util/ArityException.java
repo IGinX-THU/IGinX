@@ -17,14 +17,14 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.ScalarFunction;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.PhysicalFunction;
 
 public class ArityException extends ArgumentException {
 
   private final Arity arity;
   private final int actual;
 
-  public ArityException(ScalarFunction function, Arity arity, int actual) {
+  public ArityException(PhysicalFunction function, Arity arity, int actual) {
     super(function, "expected " + arity + ", but got " + actual);
     this.arity = arity;
     this.actual = actual;

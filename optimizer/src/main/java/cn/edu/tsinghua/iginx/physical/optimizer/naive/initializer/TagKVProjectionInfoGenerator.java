@@ -17,17 +17,15 @@
  */
 package cn.edu.tsinghua.iginx.physical.optimizer.naive.initializer;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.ExecutorContext;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.expression.PhysicalExpression;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutorInitializer;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutorFactory;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.pipeline.ProjectionExecutor;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
-import java.util.List;
 import java.util.Objects;
 
-public class TagKVProjectionInfoGenerator
-    implements UnaryExecutorInitializer<List<PhysicalExpression>> {
+public class TagKVProjectionInfoGenerator implements UnaryExecutorFactory<ProjectionExecutor> {
 
   private final TagFilter tagFilter;
 
@@ -36,7 +34,7 @@ public class TagKVProjectionInfoGenerator
   }
 
   @Override
-  public List<PhysicalExpression> initialize(ExecutorContext context, BatchSchema inputSchema)
+  public ProjectionExecutor initialize(ExecutorContext context, BatchSchema inputSchema)
       throws ComputeException {
     throw new ComputeException("TagFilter not implemented");
   }

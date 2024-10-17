@@ -18,18 +18,33 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.pipeline;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutor;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.StopWatch;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Batch;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import javax.annotation.WillClose;
 import javax.annotation.WillNotClose;
 
 public abstract class PipelineExecutor extends UnaryExecutor {
 
+  protected PipelineExecutor(ExecutorContext context, BatchSchema inputSchema) {
+    super(context, inputSchema);
+  }
+
+  @Override
+  public BatchSchema getOutputSchema() throws ComputeException {
+    try (Batch emptyBatch = inputSchema.emptyBatch(context.getAllocator())) {
+      try (Batch producedBatch = compute(emptyBatch)) {
+        return producedBatch.getSchema();
+      }
+    }
+  }
+
   public Batch compute(@WillClose Batch batch) throws ComputeException {
-    try (StopWatch watch = new StopWatch(getContext()::addPipelineComputeTime)) {
+    try (StopWatch watch = new StopWatch(context::addPipelineComputeTime)) {
       Batch producedBatch = internalCompute(batch);
-      getContext().addProducedRowNumber(producedBatch.getRowCount());
+      context.addProducedRowNumber(producedBatch.getRowCount());
       return producedBatch;
     } finally {
       batch.close();

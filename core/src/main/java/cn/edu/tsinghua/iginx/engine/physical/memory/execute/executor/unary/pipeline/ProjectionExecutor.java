@@ -17,9 +17,9 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.pipeline;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.expression.PhysicalExpression;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.PhysicalExpression;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutorInitializer;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ValueVectors;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Batch;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
@@ -28,21 +28,22 @@ import java.util.List;
 import javax.annotation.WillNotClose;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
-import org.apache.arrow.vector.complex.StructVector;
+import org.apache.arrow.vector.complex.NonNullableStructVector;
 import org.apache.arrow.vector.types.Types;
 
 public class ProjectionExecutor extends PipelineExecutor {
 
-  private final UnaryExecutorInitializer<List<PhysicalExpression>> initializer;
-  private List<PhysicalExpression> expressions;
+  protected final List<PhysicalExpression> expressions;
 
-  public ProjectionExecutor(UnaryExecutorInitializer<List<PhysicalExpression>> initializer) {
-    this.initializer = initializer;
+  public ProjectionExecutor(
+      ExecutorContext context, BatchSchema inputSchema, List<PhysicalExpression> expressions) {
+    super(context, inputSchema);
+    this.expressions = new ArrayList<>(expressions);
   }
 
   @Override
-  public String getDescription() {
-    return "Projection" + expressions;
+  public String getInfo() {
+    return "Project" + expressions;
   }
 
   @Override
@@ -53,12 +54,12 @@ public class ProjectionExecutor extends PipelineExecutor {
     List<FieldVector> results = new ArrayList<>();
     try {
       for (PhysicalExpression expression : expressions) {
-        FieldVector result = expression.invoke(getContext().getAllocator(), batch.raw());
+        FieldVector result = expression.invoke(context.getAllocator(), batch.raw());
         if (result.getMinorType() == Types.MinorType.STRUCT) {
           // unnest multi-column results
-          try (StructVector structVector = (StructVector) result) {
+          try (NonNullableStructVector structVector = (NonNullableStructVector) result) {
             for (FieldVector fieldVector : structVector.getChildrenFromFields()) {
-              results.add(ValueVectors.transfer(getContext().getAllocator(), fieldVector));
+              results.add(ValueVectors.transfer(context.getAllocator(), fieldVector));
             }
           }
         } else {
@@ -70,13 +71,5 @@ public class ProjectionExecutor extends PipelineExecutor {
       throw e;
     }
     return new Batch(new VectorSchemaRoot(results));
-  }
-
-  @Override
-  protected BatchSchema internalInitialize(BatchSchema inputSchema) throws ComputeException {
-    expressions = initializer.initialize(getContext(), inputSchema);
-    try (Batch result = internalCompute(inputSchema.emptyBatch(getContext().getAllocator()))) {
-      return result.getSchema();
-    }
   }
 }

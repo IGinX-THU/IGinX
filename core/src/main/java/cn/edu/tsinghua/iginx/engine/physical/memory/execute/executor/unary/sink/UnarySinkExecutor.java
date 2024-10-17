@@ -18,53 +18,56 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.sink;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutor;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.StopWatch;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Batch;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import javax.annotation.WillNotClose;
 
 public abstract class UnarySinkExecutor extends UnaryExecutor {
 
   private boolean finished = false;
 
+  protected UnarySinkExecutor(ExecutorContext context, BatchSchema inputSchema) {
+    super(context, inputSchema);
+  }
+
   public void consume(@WillNotClose Batch batch) throws ComputeException {
-    getOutputSchema(); // check if initialized
     if (finished) {
-      throw new IllegalStateException(getClass().getSimpleName() + " has been finished");
+      throw new IllegalStateException(this + " has been finished, cannot consume");
     }
-    try (StopWatch watch = new StopWatch(getContext()::addSinkConsumeTime)) {
+    try (StopWatch watch = new StopWatch(context::addSinkConsumeTime)) {
       internalConsume(batch);
-    } finally {
-      batch.close();
     }
-    getContext().addConsumedRowNumber(batch.getRowCount());
+    context.addConsumedRowNumber(batch.getRowCount());
   }
 
   public void finish() throws ComputeException {
-    getOutputSchema(); // check if initialized
     if (finished) {
-      throw new IllegalStateException(getClass().getSimpleName() + " has been finished");
+      throw new IllegalStateException(this + " has been finished, cannot finish again");
     }
-    try (StopWatch watch = new StopWatch(getContext()::addSinkFinishTime)) {
+    try (StopWatch watch = new StopWatch(context::addSinkFinishTime)) {
       internalFinish();
     }
     finished = true;
   }
 
   public Batch produce() throws ComputeException {
-    getOutputSchema(); // check if initialized
     if (!canProduce()) {
       throw new IllegalStateException(getClass().getSimpleName() + " cannot produce");
     }
     Batch batch;
-    try (StopWatch watch = new StopWatch(getContext()::addSinkProduceTime)) {
+    try (StopWatch watch = new StopWatch(context::addSinkProduceTime)) {
       batch = internalProduce();
     }
-    getContext().addProducedRowNumber(batch.getRowCount());
+    context.addProducedRowNumber(batch.getRowCount());
     return batch;
   }
 
-  public abstract boolean canProduce();
+  public abstract boolean needConsume() throws ComputeException;
+
+  public abstract boolean canProduce() throws ComputeException;
 
   protected abstract void internalConsume(@WillNotClose Batch batch) throws ComputeException;
 

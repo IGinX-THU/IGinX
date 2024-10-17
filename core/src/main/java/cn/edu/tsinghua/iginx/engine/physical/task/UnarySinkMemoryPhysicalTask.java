@@ -18,6 +18,8 @@
 package cn.edu.tsinghua.iginx.engine.physical.task;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutorFactory;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.sink.UnarySinkExecutor;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Batch;
@@ -26,20 +28,19 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import java.util.List;
 import java.util.Objects;
-import java.util.function.Supplier;
 import javax.annotation.WillCloseWhenClosed;
 
 public class UnarySinkMemoryPhysicalTask extends UnaryMemoryPhysicalTask {
 
-  private final Supplier<UnarySinkExecutor> executorSupplier;
+  private final UnaryExecutorFactory<? extends UnarySinkExecutor> executorFactory;
 
   public UnarySinkMemoryPhysicalTask(
       PhysicalTask parentTask,
       List<Operator> operators,
       RequestContext context,
-      Supplier<UnarySinkExecutor> executorSupplier) {
+      UnaryExecutorFactory<? extends UnarySinkExecutor> executorFactory) {
     super(parentTask, operators, context);
-    this.executorSupplier = Objects.requireNonNull(executorSupplier);
+    this.executorFactory = Objects.requireNonNull(executorFactory);
   }
 
   private String info;
@@ -51,10 +52,10 @@ public class UnarySinkMemoryPhysicalTask extends UnaryMemoryPhysicalTask {
 
   @Override
   protected BatchStream compute(BatchStream previous) throws PhysicalException {
-    UnarySinkExecutor executor = executorSupplier.get();
+    UnarySinkExecutor executor = null;
     try (BatchStream previousHolder = previous) {
-      executor.initialize(executorContext, previous.getSchema());
-      info = executor.getDescription();
+      executor = executorFactory.initialize(executorContext, previous.getSchema());
+      info = executor.toString();
       while (true) {
         try (Batch batch = previousHolder.getNext()) {
           if (batch == null) {
@@ -65,7 +66,9 @@ public class UnarySinkMemoryPhysicalTask extends UnaryMemoryPhysicalTask {
       }
       executor.finish();
     } catch (PhysicalException e) {
-      executor.close();
+      if (executor != null) {
+        executor.close();
+      }
       throw e;
     }
     return new UnarySinkBatchStream(executor);
@@ -80,7 +83,7 @@ public class UnarySinkMemoryPhysicalTask extends UnaryMemoryPhysicalTask {
     }
 
     @Override
-    public BatchSchema getSchema() {
+    public BatchSchema getSchema() throws ComputeException {
       return executor.getOutputSchema();
     }
 

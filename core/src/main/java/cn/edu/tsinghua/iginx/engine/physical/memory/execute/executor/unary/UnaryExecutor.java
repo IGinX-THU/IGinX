@@ -17,33 +17,21 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.ExecutorContext;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.PhysicalExecutor;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.StopWatch;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.PhysicalExecutor;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
+import java.util.Objects;
 
 public abstract class UnaryExecutor extends PhysicalExecutor {
 
-  private BatchSchema outputSchema;
+  protected final BatchSchema inputSchema;
 
-  public void initialize(ExecutorContext context, BatchSchema inputSchema) throws ComputeException {
-    super.initialize(context);
-    if (outputSchema != null) {
-      throw new IllegalStateException(getClass().getSimpleName() + " has been initialized");
-    }
-    try (StopWatch watch = new StopWatch(context::addInitializeTime)) {
-      outputSchema = internalInitialize(inputSchema);
-    }
+  protected UnaryExecutor(ExecutorContext context, BatchSchema inputSchema) {
+    super(context);
+    this.inputSchema = Objects.requireNonNull(inputSchema);
   }
 
-  public BatchSchema getOutputSchema() {
-    if (outputSchema == null) {
-      throw new IllegalStateException(getClass().getSimpleName() + " has not been initialized");
-    }
-    return outputSchema;
+  public BatchSchema getInputSchema() {
+    return inputSchema;
   }
-
-  protected abstract BatchSchema internalInitialize(BatchSchema inputSchema)
-      throws ComputeException;
 }
