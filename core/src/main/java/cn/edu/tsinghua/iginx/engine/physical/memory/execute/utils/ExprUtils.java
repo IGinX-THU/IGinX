@@ -423,28 +423,24 @@ public class ExprUtils {
                 nMatches++;
                 break;
               }
-              //            } else if (children.get(i).getType() ==
-              // Expression.ExpressionType.Multiple) {
-              //              // 如果是多叉树且运算符优先级相同，也提取上来
-              //              MultipleExpression childMultipleExpr = (MultipleExpression)
-              // children.get(i);
-              //              if (Operator.hasSamePriority(op, childMultipleExpr.getOpType())) {
-              //                children.addAll(i + 1, childMultipleExpr.getChildren());
-              //                ops.addAll(
-              //                    i + 2,
-              //                    childMultipleExpr.getOps().subList(1,
-              // childMultipleExpr.getOps().size()));
-              //                if (childMultipleExpr.getOps().get(0) == Operator.MINUS) {
-              //                  children.set(
-              //                      i + 1,
-              //                      new UnaryExpression(Operator.MINUS,
-              // childMultipleExpr.getChildren().get(0)));
-              //                }
-              //              }
-              //              children.remove(i);
-              //              fixedPoint = false;
-              //              nMatches++;
-              //              break;
+            } else if (children.get(i).getType() == Expression.ExpressionType.Multiple) {
+              // 如果是多叉树且运算符优先级相同，也提取上来
+              MultipleExpression childMultipleExpr = (MultipleExpression) children.get(i);
+              if (Operator.hasSamePriority(op, childMultipleExpr.getOpType())) {
+                children.addAll(i + 1, childMultipleExpr.getChildren());
+                ops.addAll(
+                    i + 2,
+                    childMultipleExpr.getOps().subList(1, childMultipleExpr.getOps().size()));
+                if (childMultipleExpr.getOps().get(0) == Operator.MINUS) {
+                  children.set(
+                      i + 1,
+                      new UnaryExpression(Operator.MINUS, childMultipleExpr.getChildren().get(0)));
+                }
+              }
+              children.remove(i);
+              fixedPoint = false;
+              nMatches++;
+              break;
             } else if (children.get(i).getType() == Expression.ExpressionType.Unary) {
               // UnaryExpression就是前面是负号的情况，也提取上来拍平，一般用于变量前的负号和括号前的负号
               UnaryExpression childUnaryExpr = (UnaryExpression) children.get(i);
@@ -488,14 +484,13 @@ public class ExprUtils {
                   if (!Operator.hasSamePriority(op, childBiExpr.getOp())) {
                     continue;
                   }
-                  //                } else if (childBracketExpr.getExpression().getType()
-                  //                    == Expression.ExpressionType.Multiple) {
-                  //                  MultipleExpression childMultipleExpr =
-                  //                      (MultipleExpression) childBracketExpr.getExpression();
-                  //                  if (!Operator.hasSamePriority(op,
-                  // childMultipleExpr.getOpType())) {
-                  //                    continue;
-                  //                  }
+                } else if (childBracketExpr.getExpression().getType()
+                    == Expression.ExpressionType.Multiple) {
+                  MultipleExpression childMultipleExpr =
+                      (MultipleExpression) childBracketExpr.getExpression();
+                  if (!Operator.hasSamePriority(op, childMultipleExpr.getOpType())) {
+                    continue;
+                  }
                 }
 
                 if (bracketOp == Operator.DIV || bracketOp == Operator.MINUS) {
