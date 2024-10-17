@@ -23,28 +23,38 @@ import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Batch;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
+import java.util.List;
 import java.util.Objects;
+import java.util.function.Supplier;
 import javax.annotation.WillCloseWhenClosed;
 
 public class UnarySinkMemoryPhysicalTask extends UnaryMemoryPhysicalTask {
 
-  private final UnarySinkExecutor executor;
+  private final Supplier<UnarySinkExecutor> executorSupplier;
 
   public UnarySinkMemoryPhysicalTask(
-      PhysicalTask parentTask, RequestContext context, UnarySinkExecutor executor) {
-    super(parentTask, context);
-    this.executor = Objects.requireNonNull(executor);
+      PhysicalTask parentTask,
+      List<Operator> operators,
+      RequestContext context,
+      Supplier<UnarySinkExecutor> executorSupplier) {
+    super(parentTask, operators, context);
+    this.executorSupplier = Objects.requireNonNull(executorSupplier);
   }
+
+  private String info;
 
   @Override
   public String getInfo() {
-    return executor.getDescription();
+    return info;
   }
 
   @Override
   protected BatchStream compute(BatchStream previous) throws PhysicalException {
+    UnarySinkExecutor executor = executorSupplier.get();
     try (BatchStream previousHolder = previous) {
       executor.initialize(executorContext, previous.getSchema());
+      info = executor.getDescription();
       while (true) {
         try (Batch batch = previousHolder.getNext()) {
           if (batch == null) {
@@ -54,8 +64,11 @@ public class UnarySinkMemoryPhysicalTask extends UnaryMemoryPhysicalTask {
         }
       }
       executor.finish();
-      return new UnarySinkBatchStream(executor);
+    } catch (PhysicalException e) {
+      executor.close();
+      throw e;
     }
+    return new UnarySinkBatchStream(executor);
   }
 
   private static class UnarySinkBatchStream implements BatchStream {

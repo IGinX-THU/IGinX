@@ -15,20 +15,21 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.convert;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.ScalarFunction;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.UnaryFunction;
+import org.apache.arrow.vector.types.Types;
 
-public class ArgumentException extends ComputeException {
+public abstract class AbstractCast extends UnaryFunction {
 
-  private final ScalarFunction function;
+  protected final Types.MinorType resultType;
 
-  public ArgumentException(ScalarFunction function, String message) {
-    super("Invalid argument for physical function '" + function.getName() + "': " + message);
-    this.function = function;
+  protected AbstractCast(Types.MinorType resultType) {
+    super("cast_as_" + resultType.toString().toLowerCase());
+    this.resultType = resultType;
   }
 
-  public ScalarFunction getFunction() {
-    return function;
+  public Types.MinorType getResultType() {
+    return resultType;
   }
 }

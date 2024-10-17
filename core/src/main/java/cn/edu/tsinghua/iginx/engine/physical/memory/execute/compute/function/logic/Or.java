@@ -15,18 +15,23 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.logic;
 
-import org.apache.arrow.vector.types.Types;
+public class Or extends BinaryLogicFunction {
 
-public class NotAllowTypeException extends ArgumentException {
+  public static final String NAME = "or";
 
-  private final int index;
-  private final Types.MinorType type;
+  public Or() {
+    super(NAME);
+  }
 
-  public NotAllowTypeException(String function, int index, Types.MinorType type) {
-    super(function, "not allow type " + type + " of argument " + index);
-    this.index = index;
-    this.type = type;
+  @Override
+  public byte evaluate(byte left, byte right) {
+    return (byte) (left | right);
+  }
+
+  @Override
+  public long evaluate(long left, long right) {
+    return left | right;
   }
 }

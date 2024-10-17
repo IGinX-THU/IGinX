@@ -15,31 +15,23 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.arithmetic;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.logic;
 
-public class MakePositive extends UnaryFunction {
+public class And extends BinaryLogicFunction {
 
-  public MakePositive() {
-    super("MakePositive");
+  public static final String NAME = "and";
+
+  public And() {
+    super(NAME);
   }
 
   @Override
-  public int evaluate(int value) {
-    return value;
+  public byte evaluate(byte left, byte right) {
+    return (byte) (left & right);
   }
 
   @Override
-  public long evaluate(long value) {
-    return value;
-  }
-
-  @Override
-  public float evaluate(float value) {
-    return value;
-  }
-
-  @Override
-  public double evaluate(double value) {
-    return value;
+  public long evaluate(long left, long right) {
+    return left & right;
   }
 }

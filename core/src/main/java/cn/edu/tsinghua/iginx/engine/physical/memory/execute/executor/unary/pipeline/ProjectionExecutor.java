@@ -28,6 +28,8 @@ import java.util.List;
 import javax.annotation.WillNotClose;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
+import org.apache.arrow.vector.complex.StructVector;
+import org.apache.arrow.vector.types.Types;
 
 public class ProjectionExecutor extends PipelineExecutor {
 
@@ -44,26 +46,30 @@ public class ProjectionExecutor extends PipelineExecutor {
   }
 
   @Override
-  public void close() {
-    expressions.forEach(PhysicalExpression::close);
-  }
+  public void close() {}
 
   @Override
   protected Batch internalCompute(@WillNotClose Batch batch) throws ComputeException {
     List<FieldVector> results = new ArrayList<>();
     try {
       for (PhysicalExpression expression : expressions) {
-        try (VectorSchemaRoot result = expression.invoke(getContext(), batch.raw())) {
-          for (FieldVector vector : result.getFieldVectors()) {
-            results.add(ValueVectors.transfer(getContext().getAllocator(), vector));
+        FieldVector result = expression.invoke(getContext().getAllocator(), batch.raw());
+        if (result.getMinorType() == Types.MinorType.STRUCT) {
+          // unnest multi-column results
+          try (StructVector structVector = (StructVector) result) {
+            for (FieldVector fieldVector : structVector.getChildrenFromFields()) {
+              results.add(ValueVectors.transfer(getContext().getAllocator(), fieldVector));
+            }
           }
+        } else {
+          results.add(result);
         }
       }
-      return new Batch(new VectorSchemaRoot(results));
-    } catch (Exception e) {
+    } catch (ComputeException e) {
       results.forEach(FieldVector::close);
       throw e;
     }
+    return new Batch(new VectorSchemaRoot(results));
   }
 
   @Override

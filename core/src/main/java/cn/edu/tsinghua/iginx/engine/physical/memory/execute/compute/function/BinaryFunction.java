@@ -18,46 +18,27 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.Arity;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ArityException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
-import java.util.Objects;
 import javax.annotation.WillNotClose;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 
-public abstract class AbstractFunction implements ScalarFunction {
+public abstract class BinaryFunction extends AbstractFunction {
 
-  private final String name;
-  private final Arity arity;
-
-  protected AbstractFunction(String name, Arity arity) {
-    this.name = Objects.requireNonNull(name);
-    this.arity = Objects.requireNonNull(arity);
+  protected BinaryFunction(String name) {
+    super(name, Arity.BINARY);
   }
 
   @Override
-  public String getName() {
-    return name;
-  }
-
-  @Override
-  public FieldVector invoke(
-      @WillNotClose BufferAllocator allocator, @WillNotClose VectorSchemaRoot input)
+  protected FieldVector invokeImpl(BufferAllocator allocator, VectorSchemaRoot input)
       throws ComputeException {
-    int vectorCount = input.getFieldVectors().size();
-    if (!arity.checkArity(vectorCount)) {
-      throw new ArityException(this, arity, vectorCount);
-    }
-    return invokeImpl(allocator, input);
+    return evaluate(allocator, input.getFieldVectors().get(0), input.getFieldVectors().get(1));
   }
 
-  @Override
-  public String toString() {
-    return getName();
-  }
-
-  protected abstract FieldVector invokeImpl(
-      @WillNotClose BufferAllocator allocator, @WillNotClose VectorSchemaRoot input)
+  public abstract FieldVector evaluate(
+      @WillNotClose BufferAllocator allocator,
+      @WillNotClose FieldVector left,
+      @WillNotClose FieldVector right)
       throws ComputeException;
 }

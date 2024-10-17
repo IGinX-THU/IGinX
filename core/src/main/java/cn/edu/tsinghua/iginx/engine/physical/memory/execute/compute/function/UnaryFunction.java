@@ -15,29 +15,28 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.cast;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.ExecutorContext;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.AbstractFunction;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.Arity;
-import java.util.Collections;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
+import javax.annotation.WillNotClose;
+import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.FieldVector;
-import org.apache.arrow.vector.ValueVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 
-public abstract class Cast extends AbstractFunction {
+public abstract class UnaryFunction extends AbstractFunction {
 
-  protected Cast(String from, String to) {
-    super("cast_" + from + "_as_" + to, Arity.UNARY);
-  }
-
-  public abstract FieldVector evaluate(ExecutorContext context, ValueVector input);
-
-  @Override
-  protected VectorSchemaRoot invokeImpl(ExecutorContext context, VectorSchemaRoot args) {
-    return new VectorSchemaRoot(Collections.singleton(evaluate(context, args.getVector(0))));
+  protected UnaryFunction(String name) {
+    super(name, Arity.UNARY);
   }
 
   @Override
-  public void close() {}
+  protected FieldVector invokeImpl(BufferAllocator allocator, VectorSchemaRoot input)
+      throws ComputeException {
+    return evaluate(allocator, input.getFieldVectors().get(0));
+  }
+
+  public abstract FieldVector evaluate(
+      @WillNotClose BufferAllocator allocator, @WillNotClose FieldVector input)
+      throws ComputeException;
 }

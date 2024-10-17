@@ -17,29 +17,17 @@
  */
 package cn.edu.tsinghua.iginx.physical.optimizer.naive;
 
-import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.ExecutorType;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.pipeline.PipelineExecutor;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.sink.UnarySinkExecutor;
 import cn.edu.tsinghua.iginx.engine.physical.optimizer.PhysicalOptimizer;
 import cn.edu.tsinghua.iginx.engine.physical.optimizer.ReplicaDispatcher;
-import cn.edu.tsinghua.iginx.engine.physical.task.*;
+import cn.edu.tsinghua.iginx.engine.physical.task.PhysicalTask;
+import cn.edu.tsinghua.iginx.engine.physical.task.UnaryMemoryPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.constraint.ConstraintManager;
-import cn.edu.tsinghua.iginx.engine.shared.operator.*;
-import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
-import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
-import cn.edu.tsinghua.iginx.engine.shared.source.Source;
-import cn.edu.tsinghua.iginx.engine.shared.source.SourceType;
-import cn.edu.tsinghua.iginx.physical.optimizer.naive.planner.NaivePhysicalExecutorFactory;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import cn.edu.tsinghua.iginx.physical.optimizer.rule.Rule;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 
 public class NaivePhysicalOptimizer implements PhysicalOptimizer {
-
-  private final NaivePhysicalExecutorFactory executorFactory = new NaivePhysicalExecutorFactory();
 
   public static NaivePhysicalOptimizer getInstance() {
     return NaivePhysicalOptimizerHolder.INSTANCE;
@@ -50,7 +38,9 @@ public class NaivePhysicalOptimizer implements PhysicalOptimizer {
     if (root == null) {
       return null;
     }
-    return constructTask(root, context);
+    NaivePhysicalPlanner planner = new NaivePhysicalPlanner();
+    PhysicalTask task = planner.construct(root, context);
+    return setFollowerTask(task);
   }
 
   @Override
@@ -65,107 +55,109 @@ public class NaivePhysicalOptimizer implements PhysicalOptimizer {
 
   public void setRules(Collection<Rule> rules) {}
 
-  private PhysicalTask constructTask(Operator operator, RequestContext context) {
-    if (OperatorType.isUnaryOperator(operator.getType())) {
-      UnaryOperator unaryOperator = (UnaryOperator) operator;
-      Source source = unaryOperator.getSource();
-      if (source.getType() == SourceType.Fragment) { // 构建物理计划
-        List<Operator> operators = new ArrayList<>();
-        operators.add(operator);
-        if (OperatorType.isNeedBroadcasting(operator.getType())) {
-          return new StoragePhysicalTask(operators, true, true, context);
-        } else {
-          return new StoragePhysicalTask(operators, context);
-        }
-      } else { // 构建内存中的计划
-        OperatorSource operatorSource = (OperatorSource) source;
-        Operator sourceOperator = operatorSource.getOperator();
-        PhysicalTask sourceTask = constructTask(operatorSource.getOperator(), context);
-        // push down Select operator
-        if (ConfigDescriptor.getInstance().getConfig().isEnablePushDown()
-            && sourceTask instanceof StoragePhysicalTask
-            && sourceOperator.getType() == OperatorType.Project
-            && ((Project) sourceOperator).getTagFilter() == null
-            && ((UnaryOperator) sourceOperator).getSource().getType() == SourceType.Fragment) {
-          switch (operator.getType()) {
-            case Select:
-              if (((Select) operator).getTagFilter() == null) {
-                sourceTask.getOperators().add(operator);
-                return sourceTask;
-              }
-              break;
-            case SetTransform:
-              sourceTask.getOperators().add(operator);
-              return sourceTask;
-          }
-        }
-        UnaryMemoryPhysicalTask task =
-            constructUnaryMemoryTask((UnaryOperator) operator, sourceTask, context);
-        sourceTask.setFollowerTask(task);
-        return task;
-      }
-    } else if (OperatorType.isBinaryOperator(operator.getType())) {
-      throw new UnsupportedOperationException("Not implemented yet");
-      //      BinaryOperator binaryOperator = (BinaryOperator) operator;
-      //      OperatorSource sourceA = (OperatorSource) binaryOperator.getSourceA();
-      //      OperatorSource sourceB = (OperatorSource) binaryOperator.getSourceB();
-      //      PhysicalTask sourceTaskA = constructTask(sourceA.getOperator(), context);
-      //      PhysicalTask sourceTaskB = constructTask(sourceB.getOperator(), context);
-      //      List<Operator> operators = new ArrayList<>();
-      //      operators.add(operator);
-      //      PhysicalTask task =
-      //          new BinaryMemoryPhysicalTask(operators, sourceTaskA, sourceTaskB, context);
-      //      sourceTaskA.setFollowerTask(task);
-      //      sourceTaskB.setFollowerTask(task);
-      //      return task;
-    } else if (operator.getType().equals(OperatorType.ShowColumns)) {
-      return new GlobalPhysicalTask(operator, context);
-    } else {
-      MultipleOperator multipleOperator = (MultipleOperator) operator;
-      List<Source> sources = multipleOperator.getSources();
-      List<PhysicalTask> parentTasks = new ArrayList<>();
-      for (Source source : sources) {
-        OperatorSource operatorSource = (OperatorSource) source;
-        PhysicalTask parentTask = constructTask(operatorSource.getOperator(), context);
-        parentTasks.add(parentTask);
-      }
-      List<Operator> operators = new ArrayList<>();
-      operators.add(operator);
+  //  private PhysicalTask constructTask(Operator operator, RequestContext context) {
+  //    if (OperatorType.isUnaryOperator(operator.getType())) {
+  //      UnaryOperator unaryOperator = (UnaryOperator) operator;
+  //      Source source = unaryOperator.getSource();
+  //      if (source.getType() == SourceType.Fragment) { // 构建物理计划
+  //        List<Operator> operators = new ArrayList<>();
+  //        operators.add(operator);
+  //        if (OperatorType.isNeedBroadcasting(operator.getType())) {
+  //          return new StoragePhysicalTask(operators, true, true, context);
+  //        } else {
+  //          return new StoragePhysicalTask(operators, context);
+  //        }
+  //      } else { // 构建内存中的计划
+  //        OperatorSource operatorSource = (OperatorSource) source;
+  //        Operator sourceOperator = operatorSource.getOperator();
+  //        PhysicalTask sourceTask = constructTask(operatorSource.getOperator(), context);
+  //        // push down Select operator
+  //        if (ConfigDescriptor.getInstance().getConfig().isEnablePushDown()
+  //            && sourceTask instanceof StoragePhysicalTask
+  //            && sourceOperator.getType() == OperatorType.Project
+  //            && ((Project) sourceOperator).getTagFilter() == null
+  //            && ((UnaryOperator) sourceOperator).getSource().getType() == SourceType.Fragment) {
+  //          switch (operator.getType()) {
+  //            case Select:
+  //              if (((Select) operator).getTagFilter() == null) {
+  //                sourceTask.getOperators().add(operator);
+  //                return sourceTask;
+  //              }
+  //              break;
+  //            case SetTransform:
+  //              sourceTask.getOperators().add(operator);
+  //              return sourceTask;
+  //          }
+  //        }
+  //        UnaryMemoryPhysicalTask task =
+  //            constructUnaryMemoryTask((UnaryOperator) operator, sourceTask, context);
+  //        sourceTask.setFollowerTask(task);
+  //        return task;
+  //      }
+  //    } else if (OperatorType.isBinaryOperator(operator.getType())) {
+  //      throw new UnsupportedOperationException("Not implemented yet");
+  //      //      BinaryOperator binaryOperator = (BinaryOperator) operator;
+  //      //      OperatorSource sourceA = (OperatorSource) binaryOperator.getSourceA();
+  //      //      OperatorSource sourceB = (OperatorSource) binaryOperator.getSourceB();
+  //      //      PhysicalTask sourceTaskA = constructTask(sourceA.getOperator(), context);
+  //      //      PhysicalTask sourceTaskB = constructTask(sourceB.getOperator(), context);
+  //      //      List<Operator> operators = new ArrayList<>();
+  //      //      operators.add(operator);
+  //      //      PhysicalTask task =
+  //      //          new BinaryMemoryPhysicalTask(operators, sourceTaskA, sourceTaskB, context);
+  //      //      sourceTaskA.setFollowerTask(task);
+  //      //      sourceTaskB.setFollowerTask(task);
+  //      //      return task;
+  //    } else if (operator.getType().equals(OperatorType.ShowColumns)) {
+  //      return new GlobalPhysicalTask(operator, context);
+  //    } else {
+  //      MultipleOperator multipleOperator = (MultipleOperator) operator;
+  //      List<Source> sources = multipleOperator.getSources();
+  //      List<PhysicalTask> parentTasks = new ArrayList<>();
+  //      for (Source source : sources) {
+  //        OperatorSource operatorSource = (OperatorSource) source;
+  //        PhysicalTask parentTask = constructTask(operatorSource.getOperator(), context);
+  //        parentTasks.add(parentTask);
+  //      }
+  //      List<Operator> operators = new ArrayList<>();
+  //      operators.add(operator);
+  //
+  //      PhysicalTask task;
+  //      if (operator.getType().equals(OperatorType.Folded)) {
+  //        FoldedOperator foldedOperator = (FoldedOperator) multipleOperator;
+  //        PhysicalTask foldedTask =
+  //            new FoldedMemoryPhysicalTask(
+  //                operators, foldedOperator.getIncompleteRoot(), parentTasks, context);
+  //        for (PhysicalTask parentTask : parentTasks) {
+  //          parentTask.setFollowerTask(foldedTask);
+  //        }
+  //        task = new CompletedFoldedPhysicalTask(foldedTask, context);
+  //        foldedTask.setFollowerTask(task);
+  //      } else {
+  //        task = new MultipleMemoryPhysicalTask(operators, parentTasks, context);
+  //        for (PhysicalTask parentTask : parentTasks) {
+  //          parentTask.setFollowerTask(task);
+  //        }
+  //      }
+  //      return task;
+  //    }
+  //  }
 
-      PhysicalTask task;
-      if (operator.getType().equals(OperatorType.Folded)) {
-        FoldedOperator foldedOperator = (FoldedOperator) multipleOperator;
-        PhysicalTask foldedTask =
-            new FoldedMemoryPhysicalTask(
-                operators, foldedOperator.getIncompleteRoot(), parentTasks, context);
-        for (PhysicalTask parentTask : parentTasks) {
-          parentTask.setFollowerTask(foldedTask);
-        }
-        task = new CompletedFoldedPhysicalTask(foldedTask, context);
-        foldedTask.setFollowerTask(task);
-      } else {
-        task = new MultipleMemoryPhysicalTask(operators, parentTasks, context);
-        for (PhysicalTask parentTask : parentTasks) {
-          parentTask.setFollowerTask(task);
-        }
-      }
-      return task;
-    }
-  }
-
-  private UnaryMemoryPhysicalTask constructUnaryMemoryTask(
-      UnaryOperator operator, PhysicalTask source, RequestContext context) {
-    ExecutorType executorType = executorFactory.getExecutorType(operator);
-    switch (executorType) {
-      case Pipeline:
-        PipelineExecutor pipelineExecutor = executorFactory.createPipelineExecutor(operator);
-        return new PipelineMemoryPhysicalTask(source, context, pipelineExecutor);
-      case UnarySink:
-        UnarySinkExecutor unarySinkExecutor = executorFactory.createUnarySinkExecutor(operator);
-        return new UnarySinkMemoryPhysicalTask(source, context, unarySinkExecutor);
+  private static PhysicalTask setFollowerTask(PhysicalTask task) {
+    switch (task.getType()) {
+      case Storage:
+      case Global:
+        break;
+      case UnaryMemory:
+        setFollowerTask(((UnaryMemoryPhysicalTask) task).getParentTask()).setFollowerTask(task);
+        break;
+      case BinaryMemory:
+      case MultipleMemory:
+        throw new UnsupportedOperationException("Not implemented yet");
       default:
-        throw new UnsupportedOperationException("Unsupported executor type: " + executorType);
+        throw new UnsupportedOperationException("Unsupported task type: " + task.getType());
     }
+    return task;
   }
 
   private static class NaivePhysicalOptimizerHolder {

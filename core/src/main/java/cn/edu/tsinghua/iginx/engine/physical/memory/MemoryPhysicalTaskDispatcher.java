@@ -76,7 +76,7 @@ public class MemoryPhysicalTaskDispatcher {
                       TaskResult result;
                       try {
                         result = currentTask.execute();
-                      } catch (Exception e) {
+                      } catch (Throwable e) {
                         LOGGER.error("execute memory task failure: ", e);
                         result = new TaskResult(new PhysicalException(e));
                       }

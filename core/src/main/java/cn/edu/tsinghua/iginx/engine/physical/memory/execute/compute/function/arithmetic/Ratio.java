@@ -17,13 +17,13 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.arithmetic;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.ExecutorContext;
-import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ConstantVectors;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.convert.CastAsFloat8;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
+import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.FieldVector;
-import org.apache.arrow.vector.NullVector;
 import org.apache.arrow.vector.types.Types;
 
-public class Ratio extends BinaryFunction {
+public class Ratio extends BinaryArithmeticFunction {
 
   public Ratio() {
     super("ratio");
@@ -31,50 +31,37 @@ public class Ratio extends BinaryFunction {
 
   @Override
   protected int evaluate(int left, int right) {
-    if (right == 0) {
-      throw new ArithmeticException("Divided by 0");
-    }
-    return left / right;
+    throw new UnsupportedOperationException("Unreachable");
   }
 
   @Override
   protected long evaluate(long left, long right) {
-    if (right == 0) {
-      throw new ArithmeticException("Divided by 0");
-    }
-    return left / right;
+    throw new UnsupportedOperationException("Unreachable");
   }
 
   @Override
   protected float evaluate(float left, float right) {
-    if (right == 0) {
-      throw new ArithmeticException("Divided by 0");
-    }
     return left / right;
   }
 
   @Override
   protected double evaluate(double left, double right) {
-    if (right == 0) {
-      throw new ArithmeticException("Divided by 0");
-    }
     return left / right;
   }
 
   @Override
-  protected FieldVector invokeImpl(ExecutorContext context, FieldVector left, FieldVector right) {
-    if (left instanceof NullVector || right instanceof NullVector) {
-      return ConstantVectors.ofNull(context.getAllocator(), left.getValueCount());
+  public FieldVector evaluate(BufferAllocator allocator, FieldVector left, FieldVector right)
+      throws ComputeException {
+    if (left.getMinorType() == right.getMinorType()) {
+      if (left.getMinorType() == Types.MinorType.INT
+          || left.getMinorType() == Types.MinorType.BIGINT) {
+        CastAsFloat8 castFunction = new CastAsFloat8();
+        try (FieldVector leftCast = castFunction.evaluate(allocator, left);
+            FieldVector rightCast = castFunction.evaluate(allocator, right)) {
+          return super.evaluate(allocator, leftCast, rightCast);
+        }
+      }
     }
-    // cast int&long to double before compute
-    if (left.getMinorType() == Types.MinorType.INT
-        || left.getMinorType() == Types.MinorType.BIGINT) {
-      left = castFunction.evaluate(context, left);
-    }
-    if (right.getMinorType() == Types.MinorType.INT
-        || right.getMinorType() == Types.MinorType.BIGINT) {
-      right = castFunction.evaluate(context, right);
-    }
-    return super.invokeImpl(context, left, right);
+    return super.evaluate(allocator, left, right);
   }
 }

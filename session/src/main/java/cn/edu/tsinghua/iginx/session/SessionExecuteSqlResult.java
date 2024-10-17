@@ -205,7 +205,6 @@ public class SessionExecuteSqlResult {
   private String buildQueryResult(boolean needFormatTime, String timePrecision) {
     StringBuilder builder = new StringBuilder();
     builder.append("ResultSets:").append("\n");
-    //    builder.append(values.size()).append(" rows in set").append("\n");
     List<List<String>> cache = cacheArrowResult(needFormatTime, timePrecision);
     builder.append(FormatUtils.formatResult(cache));
     builder.append(FormatUtils.formatCount(cache.size() - 1));
@@ -216,14 +215,13 @@ public class SessionExecuteSqlResult {
     // TODO: time format
     List<List<String>> cache = new ArrayList<>();
     boolean hasKey = keys.length > 0;
-    int index = 0;
-    for (List<Object> rowValues : values) {
+    for (int index = 0; index < values.size(); index++) {
       List<String> rowCache = new ArrayList<>();
       if (hasKey) {
         rowCache.add(String.valueOf(keys[index]));
       }
       boolean isNull = true;
-      for (Object o : rowValues) {
+      for (Object o : values.get(index)) {
         String rowValue = FormatUtils.valueToString(o);
         rowCache.add(rowValue);
         if (!rowValue.equalsIgnoreCase("null")) {

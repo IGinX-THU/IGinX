@@ -17,13 +17,12 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.expression;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ValueVectors;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import javax.annotation.WillNotClose;
+import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 
@@ -47,28 +46,20 @@ public abstract class AbstractPhysicalExpression implements PhysicalExpression {
     return getName() + (alias == null ? "" : " as " + alias);
   }
 
-  public VectorSchemaRoot invoke(ExecutorContext context, @WillNotClose VectorSchemaRoot args)
-      throws ComputeException {
-    try (VectorSchemaRoot result = invokeImpl(context, args)) {
-      List<FieldVector> vectorsWithAlias = new ArrayList<>();
-      for (FieldVector vector : result.getFieldVectors()) {
-        if (alias == null) {
-          vectorsWithAlias.add(ValueVectors.transfer(context.getAllocator(), vector));
-        } else {
-          vectorsWithAlias.add(ValueVectors.transfer(context.getAllocator(), vector, alias));
-        }
-      }
-      return new VectorSchemaRoot(vectorsWithAlias);
-    }
-  }
-
-  protected abstract VectorSchemaRoot invokeImpl(
-      ExecutorContext context, @WillNotClose VectorSchemaRoot args) throws ComputeException;
-
   @Override
-  public void close() {
-    for (PhysicalExpression child : children) {
-      child.close();
+  public FieldVector invoke(
+      @WillNotClose BufferAllocator allocator, @WillNotClose VectorSchemaRoot input)
+      throws ComputeException {
+    if (alias == null) {
+      return invokeImpl(allocator, input);
+    } else {
+      try (FieldVector result = invokeImpl(allocator, input)) {
+        return ValueVectors.transfer(allocator, result, alias);
+      }
     }
   }
+
+  protected abstract FieldVector invokeImpl(
+      @WillNotClose BufferAllocator allocator, @WillNotClose VectorSchemaRoot input)
+      throws ComputeException;
 }

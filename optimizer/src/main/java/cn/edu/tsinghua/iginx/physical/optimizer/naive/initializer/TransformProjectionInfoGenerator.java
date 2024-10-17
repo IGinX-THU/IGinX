@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.physical.optimizer.naive.planner;
+package cn.edu.tsinghua.iginx.physical.optimizer.naive.initializer;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.ScalarFunction;
@@ -25,7 +25,6 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.exp
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.expression.LiteralNode;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.expression.PhysicalExpression;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.NoExceptionAutoClosableHolder;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutorInitializer;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.expr.*;
@@ -50,24 +49,16 @@ public class TransformProjectionInfoGenerator
 
   public List<PhysicalExpression> initialize(ExecutorContext context, BatchSchema inputSchema)
       throws ComputeException {
-    List<PhysicalExpression> temp = new ArrayList<>();
-    try {
-      if (inputSchema.hasKey()) {
-        temp.add(new FieldNode(inputSchema.getKeyIndex(), BatchSchema.KEY.getName()));
-      }
-      for (int targetIndex = 0;
-          targetIndex < operator.getFunctionCallList().size();
-          targetIndex++) {
-        FunctionCall functionCall = operator.getFunctionCallList().get(targetIndex);
-        PhysicalExpression expression = getPhysicalExpression(context, inputSchema, functionCall);
-        temp.add(expression);
-      }
-      List<PhysicalExpression> ret = new ArrayList<>(temp);
-      temp.clear();
-      return ret;
-    } finally {
-      temp.forEach(PhysicalExpression::close);
+    List<PhysicalExpression> ret = new ArrayList<>();
+    if (inputSchema.hasKey()) {
+      ret.add(new FieldNode(inputSchema.getKeyIndex(), BatchSchema.KEY.getName()));
     }
+    for (int targetIndex = 0; targetIndex < operator.getFunctionCallList().size(); targetIndex++) {
+      FunctionCall functionCall = operator.getFunctionCallList().get(targetIndex);
+      PhysicalExpression expression = getPhysicalExpression(context, inputSchema, functionCall);
+      ret.add(expression);
+    }
+    return ret;
   }
 
   private PhysicalExpression getPhysicalExpression(
@@ -130,34 +121,29 @@ public class TransformProjectionInfoGenerator
   private PhysicalExpression getPhysicalExpression(
       ExecutorContext context, BatchSchema inputSchema, BinaryExpression expr)
       throws ComputeException {
-    try (NoExceptionAutoClosableHolder holder = new NoExceptionAutoClosableHolder()) {
-      PhysicalExpression left =
-          holder.add(getPhysicalExpression(context, inputSchema, expr.getLeftExpression()));
-      PhysicalExpression right =
-          holder.add(getPhysicalExpression(context, inputSchema, expr.getRightExpression()));
-
-      ScalarFunction function = holder.add(getArithmeticFunction(expr.getOp()));
-      CallNode callNode = holder.add(new CallNode(function, expr.getColumnName(), left, right));
-
-      holder.detachAll();
-      return callNode;
-    }
+    PhysicalExpression left = getPhysicalExpression(context, inputSchema, expr.getLeftExpression());
+    PhysicalExpression right =
+        getPhysicalExpression(context, inputSchema, expr.getRightExpression());
+    ScalarFunction function = getArithmeticFunction(expr.getOp());
+    return new CallNode(function, expr.getColumnName(), left, right);
   }
 
   private PhysicalExpression getPhysicalExpression(
       ExecutorContext context, BatchSchema inputSchema, UnaryExpression expr)
       throws ComputeException {
-    try (NoExceptionAutoClosableHolder holder = new NoExceptionAutoClosableHolder()) {
-      PhysicalExpression expression =
-          holder.add(getPhysicalExpression(context, inputSchema, expr.getExpression()));
-      ScalarFunction function = holder.add(getUnaryFunction(expr.getOperator()));
-      CallNode callNode = holder.add(new CallNode(function, expr.getColumnName(), expression));
-      holder.detachAll();
-      return callNode;
+    PhysicalExpression expression =
+        getPhysicalExpression(context, inputSchema, expr.getExpression());
+    switch (expr.getOperator()) {
+      case PLUS:
+        return expression;
+      case MINUS:
+        return new CallNode(new Negate(), expr.getColumnName(), expression);
+      default:
+        throw new UnsupportedOperationException("Unsupported operator: " + operator);
     }
   }
 
-  public BinaryFunction getArithmeticFunction(Operator operator) {
+  private BinaryArithmeticFunction getArithmeticFunction(Operator operator) {
     switch (operator) {
       case PLUS:
         return new Add();
@@ -169,17 +155,6 @@ public class TransformProjectionInfoGenerator
         return new Ratio();
       case MOD:
         return new Mod();
-      default:
-        throw new UnsupportedOperationException("Unsupported operator: " + operator);
-    }
-  }
-
-  public UnaryFunction getUnaryFunction(Operator operator) {
-    switch (operator) {
-      case PLUS:
-        return new MakePositive();
-      case MINUS:
-        return new Negate();
       default:
         throw new UnsupportedOperationException("Unsupported operator: " + operator);
     }

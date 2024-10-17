@@ -17,24 +17,26 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.NoExceptionAutoCloseable;
 import javax.annotation.WillNotClose;
+import org.apache.arrow.memory.BufferAllocator;
+import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 
-public interface ScalarFunction extends NoExceptionAutoCloseable {
+public interface ScalarFunction {
 
   String getName();
 
   /**
    * Invoke the function with the given arguments.
    *
-   * @param context the executor context
-   * @param args the arguments, modification is not allowed inner the function
-   * @return the result of the function
+   * @param allocator the allocator to allocate memory
+   * @param input the input vector schema root
+   * @return the result of the function, may be a struct vector
    * @throws ComputeException if the function cannot be executed
    */
-  VectorSchemaRoot invoke(ExecutorContext context, @WillNotClose VectorSchemaRoot args)
+  FieldVector invoke(@WillNotClose BufferAllocator allocator, @WillNotClose VectorSchemaRoot input)
       throws ComputeException;
 }
+
+// TODO: give name to the function return

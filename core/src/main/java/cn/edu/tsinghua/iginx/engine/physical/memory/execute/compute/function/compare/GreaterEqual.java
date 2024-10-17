@@ -15,20 +15,38 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.compare;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.ScalarFunction;
+public class GreaterEqual extends ComparisonFunction {
 
-public class ArgumentException extends ComputeException {
+  private static final String NAME = "greater_equal";
 
-  private final ScalarFunction function;
-
-  public ArgumentException(ScalarFunction function, String message) {
-    super("Invalid argument for physical function '" + function.getName() + "': " + message);
-    this.function = function;
+  public GreaterEqual() {
+    super(NAME);
   }
 
-  public ScalarFunction getFunction() {
-    return function;
+  @Override
+  public boolean evaluate(int left, int right) {
+    return left >= right;
+  }
+
+  @Override
+  public boolean evaluate(long left, long right) {
+    return left >= right;
+  }
+
+  @Override
+  public boolean evaluate(float left, float right) {
+    return left >= right;
+  }
+
+  @Override
+  public boolean evaluate(double left, double right) {
+    return left >= right;
+  }
+
+  @Override
+  public boolean evaluate(byte[] left, byte[] right) {
+    return new String(left).compareTo(new String(right)) >= 0;
   }
 }
