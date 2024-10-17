@@ -103,7 +103,7 @@ public class SQLSessionIT {
         dbConf.getEnumValue(DBConfType.isSupportSpecialCharacterPath);
 
     String rules = executor.execute("SHOW RULES;");
-    this.isFilterPushDown = rules.contains("FilterPushOutJoinConditionRule|    ON|");
+    this.isFilterPushDown = rules.contains("FilterPushDownRule|    ON|");
   }
 
   @BeforeClass
@@ -6925,7 +6925,7 @@ public class SQLSessionIT {
         "INSERT INTO us.d3(key, s1) VALUES (1, 1), (2, 2), (3, 3), (4, 4), (5, 5), (6, 6), (7, 7), (8, 8), (9, 9);";
     executor.execute(insert);
 
-    String closeRule = "SET RULES FragmentPruningByPatternRule=OFF, ColumnPruningRule=OFF;";
+    String closeRule = "SET RULES ColumnPruningRule=OFF;";
     executor.execute(closeRule);
 
     StringBuilder builder = new StringBuilder();
@@ -7315,7 +7315,7 @@ public class SQLSessionIT {
       assertEquals(res, expectRes);
     }
 
-    String openRule = "SET RULES FragmentPruningByPatternRule=ON, ColumnPruningRule=ON;";
+    String openRule = "SET RULES ColumnPruningRule=ON;";
     executor.execute(openRule);
   }
 
@@ -7339,7 +7339,7 @@ public class SQLSessionIT {
       return;
     }
 
-    String closeRule = "SET RULES FragmentPruningByPatternRule=OFF, ColumnPruningRule=OFF;";
+    String closeRule = "SET RULES ColumnPruningRule=OFF;";
     executor.execute(closeRule);
 
     String insert =
@@ -7535,8 +7535,7 @@ public class SQLSessionIT {
     executor.concurrentExecuteAndCompare(statementsAndExpectResNoChange);
 
     // 开启filter_fragment
-    statement =
-        "SET RULES FragmentPruningByFilterRule=ON, FragmentPruningByPatternRule=ON, ColumnPruningRule=ON;";
+    statement = "SET RULES FragmentPruningByFilterRule=ON, ColumnPruningRule=ON;";
     executor.execute(statement);
   }
 
@@ -7694,7 +7693,7 @@ public class SQLSessionIT {
     insert.append(";");
     executor.execute(insert.toString());
 
-    String closeRule = "SET RULES ColumnPruningRule=OFF, FragmentPruningByPatternRule=OFF;";
+    String closeRule = "SET RULES ColumnPruningRule=OFF;";
     executor.execute(closeRule);
 
     String sql1 = "explain SELECT us.d1.s1 FROM (SELECT * FROM us.d1);";
@@ -7814,7 +7813,7 @@ public class SQLSessionIT {
             + "Total line number = 11\n";
     executor.executeAndCompare(sql6, expect6);
 
-    String openRule = "SET RULES ColumnPruningRule=ON, FragmentPruningByPatternRule=ON;";
+    String openRule = "SET RULES ColumnPruningRule=ON;";
     executor.execute(openRule);
 
     expect1 =
@@ -7978,9 +7977,8 @@ public class SQLSessionIT {
   /** 对常量折叠进行测试，因为RowTransform常量折叠和Filter常量折叠使用的代码都是公共的，所以这里只测试更好对比结果的RowTransform常量折叠 */
   @Test
   public void testConstantFolding() {
-    String openRule = "SET RULES RowTransformConstantFoldingRule=on, FilterConstantFoldingRule=on;";
-    String closeRule =
-        "SET RULES RowTransformConstantFoldingRule=off, FilterConstantFoldingRule=off;";
+    String openRule = "SET RULES ConstantFoldingRule=on;";
+    String closeRule = "SET RULES ConstantFoldingRule=off;";
 
     executor.execute(openRule);
 
@@ -8188,10 +8186,8 @@ public class SQLSessionIT {
     insert.append(";");
     executor.execute(insert.toString());
 
-    String openRule =
-        "SET RULES FunctionDistinctEliminateRule=on, InExistsDistinctEliminateRule=on;";
-    String closeRule =
-        "SET RULES FunctionDistinctEliminateRule=off, InExistsDistinctEliminateRule=off;";
+    String openRule = "SET RULES DistinctEliminateRule=on;";
+    String closeRule = "SET RULES DistinctEliminateRule=off;";
 
     String closeResult = null;
     // 测试InExistsDistinctEliminateRule

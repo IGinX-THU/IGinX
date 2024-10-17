@@ -50,7 +50,10 @@ public class FilterPushOutJoinConditionRule extends Rule {
      *       /       \
      *    any        any
      */
-    super("FilterPushOutJoinConditionRule", operand(AbstractJoin.class, any(), any()));
+    super(
+        "FilterPushOutJoinConditionRule",
+        "FilterPushDownRule",
+        operand(AbstractJoin.class, any(), any()));
   }
 
   @Override

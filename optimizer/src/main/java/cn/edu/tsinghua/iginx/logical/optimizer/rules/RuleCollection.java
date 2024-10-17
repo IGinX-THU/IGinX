@@ -62,7 +62,7 @@ public class RuleCollection implements IRuleCollection, Iterable<Rule> {
     Config config = configDescriptor.getConfig();
     String[] ruleSettingList = config.getRuleBasedOptimizer().split(",");
 
-    Set<String> banRules = new HashSet<>(rules.keySet());
+    Set<String> banRules = getAllGroup();
 
     for (String ruleSetting : ruleSettingList) {
       String[] ruleInfo = ruleSetting.split("=");
@@ -76,7 +76,15 @@ public class RuleCollection implements IRuleCollection, Iterable<Rule> {
       }
     }
 
-    banRulesByName(banRules);
+    banRulesGroupByName(banRules);
+  }
+
+  private Set<String> getAllGroup() {
+    Set<String> group = new HashSet<>();
+    for (Rule rule : rules.values()) {
+      group.add(rule.getRuleGroupName());
+    }
+    return group;
   }
 
   private void addRule(Rule rule) {
@@ -121,30 +129,35 @@ public class RuleCollection implements IRuleCollection, Iterable<Rule> {
     return true;
   }
 
-  public boolean banRuleByName(String ruleName) {
-    if (!rules.containsKey(ruleName)) {
-      LOGGER.error("IGinX rule collection does not include rule: {}", ruleName);
-      return false;
+  public boolean banRulesGroupByName(Collection<String> ruleGroupNames) {
+    for (String ruleGroupName : ruleGroupNames) {
+      banRulesGroup(ruleGroupName);
     }
-    bannedRules.put(ruleName, rules.get(ruleName));
     return true;
   }
 
-  public boolean setRules(Map<String, Boolean> rulesChange) {
-    // Check whether any rule does not exist before setting it
-    // 先检查是否有不存在的规则，再进行设置
-    for (String ruleName : rulesChange.keySet()) {
-      if (!rules.containsKey(ruleName)) {
-        LOGGER.error("IGinX rule collection does not include rule: {}", ruleName);
-        return false;
+  public void banRulesGroup(String ruleGroupName) {
+    for (Rule rule : rules.values()) {
+      if (rule.getRuleGroupName().equals(ruleGroupName)) {
+        banRules(rule);
       }
     }
+  }
 
-    for (String ruleName : rulesChange.keySet()) {
-      if (rulesChange.get(ruleName)) {
-        unbanRule(rules.get(ruleName));
+  public void unbanRulesGroup(String ruleGroupName) {
+    for (Rule rule : rules.values()) {
+      if (rule.getRuleGroupName().equals(ruleGroupName)) {
+        unbanRule(rule);
+      }
+    }
+  }
+
+  public boolean setRules(Map<String, Boolean> rulesChange) {
+    for (String ruleGroupName : rulesChange.keySet()) {
+      if (rulesChange.get(ruleGroupName)) {
+        unbanRulesGroup(ruleGroupName);
       } else {
-        banRules(rules.get(ruleName));
+        banRulesGroup(ruleGroupName);
       }
     }
 
@@ -153,8 +166,8 @@ public class RuleCollection implements IRuleCollection, Iterable<Rule> {
 
   public Map<String, Boolean> getRulesInfo() {
     Map<String, Boolean> rulesInfo = new HashMap<>();
-    for (String ruleName : rules.keySet()) {
-      rulesInfo.put(ruleName, !bannedRules.containsKey(ruleName));
+    for (Rule rule : rules.values()) {
+      rulesInfo.put(rule.getRuleGroupName(), !bannedRules.containsKey(rule.getRuleName()));
     }
     return rulesInfo;
   }

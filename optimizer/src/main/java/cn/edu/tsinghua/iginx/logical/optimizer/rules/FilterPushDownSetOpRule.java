@@ -46,6 +46,7 @@ public class FilterPushDownSetOpRule extends Rule {
      */
     super(
         "FilterPushDownSetOpRule",
+        "FilterPushDownRule",
         operand(Select.class, operand(AbstractBinaryOperator.class, any(), any())));
   }
 

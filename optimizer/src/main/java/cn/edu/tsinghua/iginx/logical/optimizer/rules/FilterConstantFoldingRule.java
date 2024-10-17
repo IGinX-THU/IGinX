@@ -38,7 +38,7 @@ public class FilterConstantFoldingRule extends Rule {
      *           |
      *          Any
      */
-    super("FilterConstantFoldingRule", operand(Select.class, any()));
+    super("FilterConstantFoldingRule", "ConstantFoldingRule", operand(Select.class, any()));
   }
 
   @Override

@@ -57,7 +57,11 @@ public class ColumnPruningRule extends Rule {
      *         Any
      */
     // 匹配任意操作符，但由于策略是ONCE，所以只会匹配到树的顶端
-    super("ColumnPruningRule", operand(AbstractOperator.class, any()), RuleStrategy.ONCE);
+    super(
+        "ColumnPruningRule",
+        "ColumnPruningRule",
+        operand(AbstractOperator.class, any()),
+        RuleStrategy.ONCE);
   }
 
   @Override

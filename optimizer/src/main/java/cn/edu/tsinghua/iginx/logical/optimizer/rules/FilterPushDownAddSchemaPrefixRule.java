@@ -38,6 +38,7 @@ public class FilterPushDownAddSchemaPrefixRule extends Rule {
      */
     super(
         "FilterPushDownAddSchemaPrefixRule",
+        "FilterPushDownRule",
         operand(Select.class, operand(AddSchemaPrefix.class, any())));
   }
 

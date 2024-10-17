@@ -45,7 +45,7 @@ public class FragmentPruningByPatternRule extends Rule {
      *          Fragment
      */
     // Fragment的检测在matches中进行
-    super("FragmentPruningByPatternRule", operand(Project.class));
+    super("FragmentPruningByPatternRule", "ColumnPruningRule", operand(Project.class));
   }
 
   @Override

@@ -44,6 +44,7 @@ public class FilterPushDownTransformRule extends Rule {
      */
     super(
         "FilterPushDownTransformRule",
+        "FilterPushDownRule",
         operand(Select.class, operand(AbstractUnaryOperator.class, any())));
   }
 

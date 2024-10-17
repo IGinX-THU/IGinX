@@ -42,6 +42,7 @@ public class FilterPushDownProjectReorderSortRule extends Rule {
      */
     super(
         "FilterPushDownProjectReorderSortRule",
+        "FilterPushDownRule",
         operand(Select.class, operand(AbstractUnaryOperator.class, any())));
   }
 

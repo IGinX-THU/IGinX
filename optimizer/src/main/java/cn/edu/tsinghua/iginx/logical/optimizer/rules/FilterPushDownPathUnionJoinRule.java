@@ -58,6 +58,7 @@ public class FilterPushDownPathUnionJoinRule extends Rule {
      */
     super(
         "FilterPushDownPathUnionJoinRule",
+        "FilterPushDownRule",
         operand(Select.class, operand(AbstractBinaryOperator.class, any(), any())));
   }
 
