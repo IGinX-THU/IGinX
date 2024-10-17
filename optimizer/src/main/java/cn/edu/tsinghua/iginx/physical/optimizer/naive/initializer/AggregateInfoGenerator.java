@@ -17,25 +17,26 @@
  */
 package cn.edu.tsinghua.iginx.physical.optimizer.naive.initializer;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.Accumulator;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.sum.PhysicalSumFloat8;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutorInitializer;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutorFactory;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.sink.AggregateExecutor;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.Schemas;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.function.*;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.Sum;
 import cn.edu.tsinghua.iginx.engine.shared.operator.SetTransform;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
 import org.apache.arrow.vector.types.Types;
 import org.apache.arrow.vector.types.pojo.Field;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+
 public class AggregateInfoGenerator
-    implements UnaryExecutorInitializer<List<AggregateExecutor.AggregateInfo>> {
+    implements UnaryExecutorFactory<AggregateExecutor> {
 
   private final SetTransform transform;
 
@@ -44,19 +45,13 @@ public class AggregateInfoGenerator
   }
 
   @Override
-  public List<AggregateExecutor.AggregateInfo> initialize(
+  public AggregateExecutor initialize(
       ExecutorContext context, BatchSchema inputSchema) throws ComputeException {
-    List<AggregateExecutor.AggregateInfo> temp = new ArrayList<>();
-    try {
-      for (FunctionCall functionCall : transform.getFunctionCallList()) {
-        temp.addAll(generateAggregateInfo(context, inputSchema, functionCall));
-      }
-      List<AggregateExecutor.AggregateInfo> result = new ArrayList<>(temp);
-      temp.clear();
-      return result;
-    } finally {
-      temp.forEach(AggregateExecutor.AggregateInfo::close);
+    List<AggregateExecutor.AggregateInfo> infos = new ArrayList<>();
+    for (FunctionCall functionCall : transform.getFunctionCallList()) {
+      infos.addAll(generateAggregateInfo(context, inputSchema, functionCall));
     }
+    return new AggregateExecutor(context, inputSchema, infos);
   }
 
   private static List<AggregateExecutor.AggregateInfo> generateAggregateInfo(

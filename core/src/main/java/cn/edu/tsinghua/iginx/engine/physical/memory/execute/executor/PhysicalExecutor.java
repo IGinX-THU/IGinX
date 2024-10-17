@@ -15,13 +15,29 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputingCloseable;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 
-public interface UnaryExecutorInitializer<T> {
+import java.util.Objects;
 
-  T initialize(ExecutorContext context, BatchSchema inputSchema) throws ComputeException;
+public abstract class PhysicalExecutor implements ComputingCloseable {
+
+  protected final ExecutorContext context;
+
+  protected PhysicalExecutor(ExecutorContext context) {
+    this.context = Objects.requireNonNull(context);
+  }
+
+  @Override
+  public String toString() {
+    return getInfo();
+  }
+
+  public abstract BatchSchema getOutputSchema() throws ComputeException;
+
+  protected abstract String getInfo();
+
 }

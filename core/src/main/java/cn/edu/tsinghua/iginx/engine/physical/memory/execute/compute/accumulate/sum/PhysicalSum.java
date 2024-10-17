@@ -17,22 +17,23 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.sum;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.ExecutorContext;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.AbstractAccumulator;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
 import javax.annotation.WillNotClose;
+
+import org.apache.arrow.vector.Float8Vector;
 import org.apache.arrow.vector.ValueVector;
 import org.apache.arrow.vector.types.Types;
 
-public abstract class PhysicalSum<IN extends ValueVector, OUT>
-    extends AbstractAccumulator<IN, OUT> {
+public abstract class PhysicalSum extends AbstractAccumulator {
 
   protected PhysicalSum(ExecutorContext context, Types.MinorType type) {
     super(context, type);
   }
 
   @Override
-  public void accumulateTyped(@WillNotClose IN vector) throws ComputeException {
+  public void accumulateTyped(@WillNotClose Float8Vector vector) throws ComputeException {
     int nullCount = vector.getNullCount();
     if (nullCount == 0) {
       accumulateNotNull(vector);

@@ -17,7 +17,6 @@
  */
 package cn.edu.tsinghua.iginx.physical.optimizer.naive.initializer;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.ScalarFunction;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.compare.GreaterEqual;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.compare.Less;
@@ -29,17 +28,20 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.exp
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.logic.And;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.logic.Or;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutorInitializer;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutorFactory;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.pipeline.FilterExecutor;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.BiFunction;
 import java.util.function.Predicate;
 
-public class FilterInfoGenerator implements UnaryExecutorInitializer<PhysicalExpression> {
+public class FilterInfoGenerator implements UnaryExecutorFactory<FilterExecutor> {
 
   private final Filter filter;
 
@@ -48,7 +50,11 @@ public class FilterInfoGenerator implements UnaryExecutorInitializer<PhysicalExp
   }
 
   @Override
-  public PhysicalExpression initialize(ExecutorContext context, BatchSchema inputSchema)
+  public FilterExecutor initialize(ExecutorContext context, BatchSchema inputSchema) throws ComputeException {
+    return new FilterExecutor(context, inputSchema, getCondition(context, inputSchema));
+  }
+
+  public PhysicalExpression getCondition(ExecutorContext context, BatchSchema inputSchema)
       throws ComputeException {
     return construct(filter, context, inputSchema);
   }
@@ -167,4 +173,6 @@ public class FilterInfoGenerator implements UnaryExecutorInitializer<PhysicalExp
     }
     return result;
   }
+
+
 }

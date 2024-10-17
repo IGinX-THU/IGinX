@@ -17,14 +17,15 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
-import java.util.Objects;
-import javax.annotation.WillNotClose;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import org.apache.arrow.vector.ValueVector;
 import org.apache.arrow.vector.types.Types;
 
-public abstract class AbstractAccumulator<IN extends ValueVector, OUT> implements Accumulator {
+import javax.annotation.WillNotClose;
+import java.util.Objects;
+
+public abstract class AbstractAccumulator implements Accumulator {
 
   protected final ExecutorContext context;
   protected final Types.MinorType type;

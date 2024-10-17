@@ -20,37 +20,32 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.pipe
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.expression.PhysicalExpression;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.select.VectorFilter;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutorInitializer;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Batch;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+
 public class FilterExecutor extends PipelineExecutor {
 
-  private final UnaryExecutorInitializer<PhysicalExpression> initializer;
-  private final VectorFilter filter = new VectorFilter();
-  private PhysicalExpression expression;
+  private final PhysicalExpression condition;
 
-  public FilterExecutor(UnaryExecutorInitializer<PhysicalExpression> initializer) {
-    this.initializer = Objects.requireNonNull(initializer);
-  }
-
-  @Override
-  protected BatchSchema internalInitialize(BatchSchema inputSchema) throws ComputeException {
-    expression = initializer.initialize(getContext(), inputSchema);
-    return inputSchema;
+  public FilterExecutor(ExecutorContext context, BatchSchema inputSchema, PhysicalExpression condition) {
+    super(context, inputSchema);
+    this.condition = Objects.requireNonNull(condition);
   }
 
   @Override
   protected Batch internalCompute(Batch batch) throws ComputeException {
     List<FieldVector> results = new ArrayList<>();
-    try (FieldVector mask = expression.invoke(getContext().getAllocator(), batch.raw())) {
+    VectorFilter filter = new VectorFilter();
+    try (FieldVector mask = condition.invoke(context.getAllocator(), batch.raw())) {
       for (FieldVector fieldVector : batch.raw().getFieldVectors()) {
-        results.add(filter.evaluate(getContext().getAllocator(), mask, fieldVector));
+        results.add(filter.evaluate(context.getAllocator(), mask, fieldVector));
       }
     } catch (ComputeException e) {
       results.forEach(FieldVector::close);
@@ -60,10 +55,11 @@ public class FilterExecutor extends PipelineExecutor {
   }
 
   @Override
-  public String getDescription() {
-    return "Filter(" + expression + ")";
+  public String getInfo() {
+    return "Filter(" + condition + ")";
   }
 
   @Override
-  public void close() {}
+  public void close() {
+  }
 }
