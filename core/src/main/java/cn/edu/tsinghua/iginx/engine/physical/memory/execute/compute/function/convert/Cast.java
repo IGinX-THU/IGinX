@@ -15,23 +15,23 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.cast;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.convert;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.AbstractFunction;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.Arity;
-import java.util.Collections;
 import org.apache.arrow.vector.FieldVector;
-import org.apache.arrow.vector.ValueVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 
-public abstract class Cast extends AbstractFunction {
+import java.util.Collections;
+
+public abstract class Cast<OUT extends FieldVector> extends AbstractFunction {
 
   protected Cast(String from, String to) {
     super("cast_" + from + "_as_" + to, Arity.UNARY);
   }
 
-  public abstract FieldVector evaluate(ExecutorContext context, ValueVector input);
+  public abstract OUT evaluate(ExecutorContext context, FieldVector input);
 
   @Override
   protected VectorSchemaRoot invokeImpl(ExecutorContext context, VectorSchemaRoot args) {
@@ -39,5 +39,6 @@ public abstract class Cast extends AbstractFunction {
   }
 
   @Override
-  public void close() {}
+  public void close() {
+  }
 }

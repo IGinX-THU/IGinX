@@ -18,9 +18,8 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.arithmetic;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.ExecutorContext;
-import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ConstantVectors;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.convert.CastNumericAsFloat8;
 import org.apache.arrow.vector.FieldVector;
-import org.apache.arrow.vector.NullVector;
 import org.apache.arrow.vector.types.Types;
 
 public class Ratio extends BinaryArithmeticFunction {
@@ -30,38 +29,37 @@ public class Ratio extends BinaryArithmeticFunction {
   }
 
   @Override
-  public int evaluate(int left, int right) {
+  protected int evaluate(int left, int right) {
     throw new UnsupportedOperationException("Unreachable");
   }
 
   @Override
-  public long evaluate(long left, long right) {
+  protected long evaluate(long left, long right) {
     throw new UnsupportedOperationException("Unreachable");
   }
 
   @Override
-  public float evaluate(float left, float right) {
+  protected float evaluate(float left, float right) {
     return left / right;
   }
 
   @Override
-  public double evaluate(double left, double right) {
+  protected double evaluate(double left, double right) {
     return left / right;
   }
 
   @Override
   public FieldVector evaluate(ExecutorContext context, FieldVector left, FieldVector right) {
-    if (left instanceof NullVector || right instanceof NullVector) {
-      return ConstantVectors.ofNull(context.getAllocator(), left.getValueCount());
-    }
     if (left.getMinorType() == right.getMinorType()) {
-      if (left.getMinorType() != Types.MinorType.INT && left.getMinorType() != Types.MinorType.BIGINT) {
-        return evaluateSameType(context, left, right);
+      if (left.getMinorType() == Types.MinorType.INT || left.getMinorType() == Types.MinorType.BIGINT) {
+        try (CastNumericAsFloat8 castFunction = new CastNumericAsFloat8();
+             FieldVector leftCast = castFunction.evaluate(context, left);
+             FieldVector rightCast = castFunction.evaluate(context, right)) {
+          return super.evaluate(context, leftCast, rightCast);
+        }
       }
     }
-    try (FieldVector leftCast = castFunction.evaluate(context, left);
-         FieldVector rightCast = castFunction.evaluate(context, right)) {
-      return evaluateSameType(context, leftCast, rightCast);
-    }
+    return super.evaluate(context, left, right);
   }
+
 }

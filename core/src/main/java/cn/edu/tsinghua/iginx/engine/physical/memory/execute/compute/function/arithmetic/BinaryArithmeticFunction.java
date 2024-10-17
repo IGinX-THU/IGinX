@@ -19,18 +19,16 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.ar
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.BinaryFunction;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.cast.CastNumericAsFloat8;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.logic.And;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.convert.CastNumericAsFloat8;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ConstantVectors;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.Schemas;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ValueVectors;
-import org.apache.arrow.memory.ArrowBuf;
 import org.apache.arrow.vector.*;
 import org.apache.arrow.vector.types.Types;
 
-public abstract class BinaryArithmeticFunction extends BinaryFunction<FieldVector> {
+import java.util.function.IntConsumer;
 
-  protected final CastNumericAsFloat8 castFunction = new CastNumericAsFloat8();
+public abstract class BinaryArithmeticFunction extends BinaryFunction<FieldVector> {
 
   protected BinaryArithmeticFunction(String name) {
     super(name);
@@ -48,21 +46,24 @@ public abstract class BinaryArithmeticFunction extends BinaryFunction<FieldVecto
 
   @Override
   public FieldVector evaluate(ExecutorContext context, FieldVector left, FieldVector right) {
-    if (left instanceof NullVector || right instanceof NullVector) {
-      return ConstantVectors.ofNull(context.getAllocator(), left.getValueCount());
-    }
     if (left.getMinorType() == right.getMinorType()) {
       return evaluateSameType(context, left, right);
     } else {
-      try (FieldVector leftCast = castFunction.evaluate(context, left);
+      try (CastNumericAsFloat8 castFunction = new CastNumericAsFloat8();
+           FieldVector leftCast = castFunction.evaluate(context, left);
            FieldVector rightCast = castFunction.evaluate(context, right)) {
         return evaluateSameType(context, leftCast, rightCast);
       }
     }
   }
 
-  public FieldVector evaluateSameType(ExecutorContext context, FieldVector left, FieldVector right) {
-    FieldVector dest = ValueVectors.likeWithBothValidity(context.getAllocator(), left, right);
+  private FieldVector evaluateSameType(ExecutorContext context, FieldVector left, FieldVector right) {
+    int rowCount = Math.min(left.getValueCount(), right.getValueCount());
+    if (left instanceof NullVector || right instanceof NullVector) {
+      return ConstantVectors.ofNull(context.getAllocator(), left.getValueCount());
+    }
+
+    FieldVector dest = ValueVectors.create(context.getAllocator(), left.getMinorType(), rowCount);
     switch (left.getMinorType()) {
       case INT:
         evaluate((IntVector) dest, (IntVector) left, (IntVector) right);
@@ -82,79 +83,46 @@ public abstract class BinaryArithmeticFunction extends BinaryFunction<FieldVecto
     return dest;
   }
 
-  public void evaluate(IntVector dest, IntVector left, IntVector right) {
-    checkCapacity(dest, left, right);
-    andValidity(dest, left, right);
-    int rowCount = dest.getValueCount();
-    ArrowBuf destBuf = dest.getDataBuffer();
-    for (int i = 0; i < rowCount; i++) {
-      long index = i * (long) IntVector.TYPE_WIDTH;
-      destBuf.setInt(index, evaluate(left.get(i), right.get(i)));
-    }
+  private void evaluate(IntVector dest, IntVector left, IntVector right) {
+    genericEvaluate(dest, left, right, i -> dest.set(i, evaluate(left.get(i), right.get(i))));
   }
 
-  public void evaluate(BigIntVector dest, BigIntVector left, BigIntVector right) {
-    checkCapacity(dest, left, right);
-    andValidity(dest, left, right);
-    int rowCount = dest.getValueCount();
-    ArrowBuf destBuf = dest.getDataBuffer();
-    for (int i = 0; i < rowCount; i++) {
-      long index = i * (long) BigIntVector.TYPE_WIDTH;
-      destBuf.setLong(index, evaluate(left.get(i), right.get(i)));
-    }
+  private void evaluate(BigIntVector dest, BigIntVector left, BigIntVector right) {
+    genericEvaluate(dest, left, right, i -> dest.set(i, evaluate(left.get(i), right.get(i))));
   }
 
-  public void evaluate(Float4Vector dest, Float4Vector left, Float4Vector right) {
-    checkCapacity(dest, left, right);
-    andValidity(dest, left, right);
-    int rowCount = dest.getValueCount();
-    ArrowBuf destBuf = dest.getDataBuffer();
-    for (int i = 0; i < rowCount; i++) {
-      long index = i * (long) Float4Vector.TYPE_WIDTH;
-      destBuf.setFloat(index, evaluate(left.get(i), right.get(i)));
-    }
+  private void evaluate(Float4Vector dest, Float4Vector left, Float4Vector right) {
+    genericEvaluate(dest, left, right, i -> dest.set(i, evaluate(left.get(i), right.get(i))));
   }
 
-  public void evaluate(Float8Vector dest, Float8Vector left, Float8Vector right) {
-    checkCapacity(dest, left, right);
-    andValidity(dest, left, right);
-    int rowCount = dest.getValueCount();
-    ArrowBuf destBuf = dest.getDataBuffer();
-    for (int i = 0; i < rowCount; i++) {
-      long index = i * (long) Float8Vector.TYPE_WIDTH;
-      destBuf.setDouble(index, evaluate(left.get(i), right.get(i)));
-    }
+  private void evaluate(Float8Vector dest, Float8Vector left, Float8Vector right) {
+    genericEvaluate(dest, left, right, i -> dest.set(i, evaluate(left.get(i), right.get(i))));
   }
 
-  private void checkCapacity(FieldVector dest, FieldVector left, FieldVector right) {
+  private void genericEvaluate(FieldVector dest, FieldVector left, FieldVector right, IntConsumer consumer) {
     if (dest.getValueCount() > left.getValueCount()) {
       throw new IllegalArgumentException("The capacity of left buffer is not enough");
     }
     if (dest.getValueCount() > right.getValueCount()) {
       throw new IllegalArgumentException("The capacity of right buffer is not enough");
     }
-  }
-
-  private void andValidity(FieldVector dest, FieldVector left, FieldVector right) {
-    try (And and = new And()) {
-      and.evaluate(
-          dest.getValidityBuffer(),
-          left.getValidityBuffer(),
-          right.getValidityBuffer(),
-          BitVectorHelper.getValidityBufferSize(dest.getValueCount()));
+    int rowCount = dest.getValueCount();
+    for (int i = 0; i < rowCount; i++) {
+      if (!left.isNull(i) && !right.isNull(i)) {
+        consumer.accept(i);
+      }
     }
   }
 
   @Override
   public void close() {
-    castFunction.close();
   }
 
-  public abstract int evaluate(int left, int right);
+  protected abstract int evaluate(int left, int right);
 
-  public abstract long evaluate(long left, long right);
+  protected abstract long evaluate(long left, long right);
 
-  public abstract float evaluate(float left, float right);
+  protected abstract float evaluate(float left, float right);
 
-  public abstract double evaluate(double left, double right);
+  protected abstract double evaluate(double left, double right);
 }

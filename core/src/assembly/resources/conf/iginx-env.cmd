@@ -89,8 +89,8 @@ set IGINX_JAVA_OPTS=%IGINX_JAVA_OPTS% -Dio.netty.allocator.maxOrder=11
 @REM # Arrow
 @REM ##################
 
-@REM Disable safety checks to improve performance (uncomment if needed)
-@REM set IGINX_JAVA_OPTS=%IGINX_JAVA_OPTS% -Darrow.enable_null_check_for_get=false
+@REM Disable null checks to improve performance
+set IGINX_JAVA_OPTS=%IGINX_JAVA_OPTS% -Darrow.enable_null_check_for_get=false
 
 @REM Enable unsafe memory access to improve performance (uncomment if needed)
 @REM set IGINX_JAVA_OPTS=%IGINX_JAVA_OPTS% -Darrow.enable_unsafe_memory_access=true

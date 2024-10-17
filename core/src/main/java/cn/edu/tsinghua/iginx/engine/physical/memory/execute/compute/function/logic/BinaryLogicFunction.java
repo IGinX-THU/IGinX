@@ -33,8 +33,13 @@ public abstract class BinaryLogicFunction extends BinaryFunction<BitVector> {
   }
 
   public BitVector evaluate(ExecutorContext context, @WillNotClose BitVector left, @WillNotClose BitVector right) {
-    BitVector result = ValueVectors.likeWithBothValidity(context.getAllocator(), left, right);
-    evaluate(result.getDataBuffer(), left.getDataBuffer(), right.getDataBuffer(), BitVectorHelper.getValidityBufferSize(result.getValueCount()));
+    int rowCount = Math.min(left.getValueCount(), right.getValueCount());
+    BitVector result = (BitVector) ValueVectors.create(context.getAllocator(), Types.MinorType.BIT, rowCount);
+    int byteCount = BitVectorHelper.getValidityBufferSize(rowCount);
+    try (And and = new And()) {
+      and.evaluate(result.getValidityBuffer(), left.getValidityBuffer(), right.getValidityBuffer(), byteCount);
+    }
+    evaluate(result.getDataBuffer(), left.getDataBuffer(), right.getDataBuffer(), byteCount);
     return result;
   }
 

@@ -24,22 +24,22 @@ public class Negate extends UnaryArithmeticFunction {
   }
 
   @Override
-  public int evaluate(int value) {
+  protected int evaluate(int value) {
     return -value;
   }
 
   @Override
-  public long evaluate(long value) {
+  protected long evaluate(long value) {
     return -value;
   }
 
   @Override
-  public float evaluate(float value) {
+  protected float evaluate(float value) {
     return -value;
   }
 
   @Override
-  public double evaluate(double value) {
+  protected double evaluate(double value) {
     return -value;
   }
 }

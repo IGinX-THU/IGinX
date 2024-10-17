@@ -23,12 +23,11 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.Compute
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ConstantVectors;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.Schemas;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ValueVectors;
-import org.apache.arrow.memory.ArrowBuf;
 import org.apache.arrow.vector.*;
 import org.apache.arrow.vector.types.Types;
 
 import javax.annotation.WillNotClose;
-import java.util.Collections;
+import java.util.function.IntConsumer;
 
 public abstract class UnaryArithmeticFunction extends UnaryFunction<FieldVector> {
 
@@ -42,51 +41,55 @@ public abstract class UnaryArithmeticFunction extends UnaryFunction<FieldVector>
   }
 
   @Override
-  public FieldVector evaluate(ExecutorContext context, @WillNotClose FieldVector vector) throws ComputeException {
-    if (vector instanceof NullVector) {
-      return ConstantVectors.ofNull(context.getAllocator(), vector.getValueCount());
+  public FieldVector evaluate(ExecutorContext context, @WillNotClose FieldVector in) throws ComputeException {
+    if (in instanceof NullVector) {
+      return ConstantVectors.ofNull(context.getAllocator(), in.getValueCount());
     }
-    ArrowBuf buf = vector.getDataBuffer();
-    int rowCount = vector.getValueCount();
-    switch (vector.getMinorType()) {
-      case INT: {
-        IntVector dest = ValueVectors.likeWithValidity(context.getAllocator(), (IntVector) vector);
-        ArrowBuf destBuf = dest.getDataBuffer();
-        for (long i = 0; i < rowCount; i++) {
-          long index = i * IntVector.TYPE_WIDTH;
-          destBuf.setInt(index, evaluate(buf.getInt(index)));
-        }
-        return dest;
-      }
-      case BIGINT: {
-        BigIntVector dest = ValueVectors.likeWithValidity(context.getAllocator(), (BigIntVector) vector);
-        ArrowBuf destBuf = dest.getDataBuffer();
-        for (long i = 0; i < rowCount; i++) {
-          long index = i * BigIntVector.TYPE_WIDTH;
-          destBuf.setLong(index, evaluate(buf.getLong(index)));
-        }
-        return dest;
-      }
-      case FLOAT4: {
-        Float4Vector dest = ValueVectors.likeWithValidity(context.getAllocator(), (Float4Vector) vector);
-        ArrowBuf destBuf = dest.getDataBuffer();
-        for (long i = 0; i < rowCount; i++) {
-          long index = i * Float4Vector.TYPE_WIDTH;
-          destBuf.setFloat(index, evaluate(buf.getFloat(index)));
-        }
-        return dest;
-      }
-      case FLOAT8: {
-        Float8Vector dest = ValueVectors.likeWithValidity(context.getAllocator(), (Float8Vector) vector);
-        ArrowBuf destBuf = dest.getDataBuffer();
-        for (long i = 0; i < rowCount; i++) {
-          long index = i * Float8Vector.TYPE_WIDTH;
-          destBuf.setDouble(index, evaluate(buf.getDouble(index)));
-        }
-        return dest;
-      }
+
+    FieldVector dest = ValueVectors.create(context.getAllocator(), in.getMinorType(), in.getValueCount());
+    switch (in.getMinorType()) {
+      case INT:
+        evaluate((IntVector) dest, (IntVector) in);
+        break;
+      case BIGINT:
+        evaluate((BigIntVector) dest, (BigIntVector) in);
+        break;
+      case FLOAT4:
+        evaluate((Float4Vector) dest, (Float4Vector) in);
+        break;
+      case FLOAT8:
+        evaluate((Float8Vector) dest, (Float8Vector) in);
       default:
-        throw new IllegalStateException("Unsupported type: " + vector.getMinorType());
+        throw new IllegalStateException("Unsupported type: " + in.getMinorType());
+    }
+    return dest;
+  }
+
+  private void evaluate(IntVector out, IntVector in) {
+    genericEvaluate(out, in, i -> out.set(i, evaluate(in.get(i))));
+  }
+
+  private void evaluate(BigIntVector out, BigIntVector in) {
+    genericEvaluate(out, in, i -> out.set(i, evaluate(in.get(i))));
+  }
+
+  private void evaluate(Float4Vector out, Float4Vector in) {
+    genericEvaluate(out, in, i -> out.set(i, evaluate(in.get(i))));
+  }
+
+  private void evaluate(Float8Vector out, Float8Vector in) {
+    genericEvaluate(out, in, i -> out.set(i, evaluate(in.get(i))));
+  }
+
+  private void genericEvaluate(FieldVector out, FieldVector in, IntConsumer consumer) {
+    if (out.getValueCount() > in.getValueCount()) {
+      throw new IllegalArgumentException("The capacity of in buffer is not enough");
+    }
+    int rowCount = out.getValueCount();
+    for (int i = 0; i < rowCount; i++) {
+      if (!in.isNull(i)) {
+        consumer.accept(i);
+      }
     }
   }
 
@@ -94,11 +97,11 @@ public abstract class UnaryArithmeticFunction extends UnaryFunction<FieldVector>
   public void close() {
   }
 
-  public abstract int evaluate(int value);
+  protected abstract int evaluate(int value);
 
-  public abstract long evaluate(long value);
+  protected abstract long evaluate(long value);
 
-  public abstract float evaluate(float value);
+  protected abstract float evaluate(float value);
 
-  public abstract double evaluate(double value);
+  protected abstract double evaluate(double value);
 }

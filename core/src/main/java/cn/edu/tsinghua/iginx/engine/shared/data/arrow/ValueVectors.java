@@ -59,6 +59,13 @@ public class ValueVectors {
     return field.createVector(allocator);
   }
 
+  public static FieldVector create(BufferAllocator allocator, Types.MinorType minorType, int rowCount) {
+    FieldVector ret = create(allocator, minorType);
+    ret.setInitialCapacity(rowCount);
+    ret.setValueCount(rowCount);
+    return ret;
+  }
+
   @SuppressWarnings("unchecked")
   public static <T extends ValueVector> T likeOnlyField(BufferAllocator allocator, T left) {
     return (T) create(allocator, left.getField());
@@ -128,6 +135,7 @@ public class ValueVectors {
   public static FieldVector transfer(BufferAllocator allocator, FieldVector vector) {
     return transfer(allocator, vector, vector.getName());
   }
+
 
 
 }

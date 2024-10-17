@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.cast;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.convert;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.Schemas;
@@ -23,14 +23,15 @@ import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ValueVectors;
 import org.apache.arrow.vector.*;
 import org.apache.arrow.vector.types.Types;
 
-public class CastNumericAsFloat8 extends Cast {
+public class CastNumericAsFloat8 extends Cast<Float8Vector> {
 
   public CastNumericAsFloat8() {
     super("numeric", "float8");
   }
 
   @Override
-  public Float8Vector evaluate(ExecutorContext context, ValueVector input) {
+  public Float8Vector evaluate(ExecutorContext context, FieldVector input) {
+    FieldVector result = ValueVectors.create(context.getAllocator(), Types.MinorType.FLOAT8);
     switch (input.getMinorType()) {
       case INT:
         return evaluate(context, (IntVector) input);
@@ -46,7 +47,7 @@ public class CastNumericAsFloat8 extends Cast {
   }
 
   private Float8Vector evaluate(ExecutorContext context, IntVector input) {
-    Float8Vector res = new Float8Vector(input.getName(), context.getAllocator());
+    Float8Vector res = ValueVectors.create()
     res.allocateNew(input.getValueCount());
     for (int i = 0; i < input.getValueCount(); i++) {
       if (!input.isNull(i)) {
