@@ -18,6 +18,7 @@
 package cn.edu.tsinghua.iginx.engine.physical.task;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutorFactory;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.sink.UnarySinkExecutor;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
@@ -83,7 +84,7 @@ public class UnarySinkMemoryPhysicalTask extends UnaryMemoryPhysicalTask {
     }
 
     @Override
-    public BatchSchema getSchema() {
+    public BatchSchema getSchema() throws ComputeException {
       return executor.getOutputSchema();
     }
 
