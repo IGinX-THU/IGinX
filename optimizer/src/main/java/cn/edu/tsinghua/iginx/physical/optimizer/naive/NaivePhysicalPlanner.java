@@ -1,3 +1,20 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
 package cn.edu.tsinghua.iginx.physical.optimizer.naive;
 
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
@@ -12,11 +29,10 @@ import cn.edu.tsinghua.iginx.engine.shared.source.FragmentSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 import cn.edu.tsinghua.iginx.physical.optimizer.naive.initializer.*;
-
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import javax.annotation.Nullable;
 
 public class NaivePhysicalPlanner {
 
@@ -49,7 +65,8 @@ public class NaivePhysicalPlanner {
     switch (source.getType()) {
       case Fragment:
         FragmentSource fragmentSource = (FragmentSource) source;
-        return new StoragePhysicalTask(new ArrayList<>(), fragmentSource.getFragment(), true, false, context);
+        return new StoragePhysicalTask(
+            new ArrayList<>(), fragmentSource.getFragment(), true, false, context);
       case Operator:
         OperatorSource operatorSource = (OperatorSource) source;
         return construct(operatorSource.getOperator(), context);
@@ -74,10 +91,19 @@ public class NaivePhysicalPlanner {
     return reConstruct((StoragePhysicalTask) task, context, true, operator);
   }
 
-  private StoragePhysicalTask reConstruct(StoragePhysicalTask storageTask, RequestContext context, boolean needBroadcasting, Operator... extraOperators) {
+  private StoragePhysicalTask reConstruct(
+      StoragePhysicalTask storageTask,
+      RequestContext context,
+      boolean needBroadcasting,
+      Operator... extraOperators) {
     List<Operator> newOperators = new ArrayList<>(storageTask.getOperators());
     Collections.addAll(newOperators, extraOperators);
-    return new StoragePhysicalTask(newOperators, storageTask.getTargetFragment(), storageTask.isSync(), needBroadcasting, context);
+    return new StoragePhysicalTask(
+        newOperators,
+        storageTask.getTargetFragment(),
+        storageTask.isSync(),
+        needBroadcasting,
+        context);
   }
 
   public PhysicalTask construct(Project operator, RequestContext context) {
@@ -89,8 +115,7 @@ public class NaivePhysicalPlanner {
         sourceTask,
         Collections.singletonList(operator),
         context,
-        () -> new ProjectionExecutor(new SimpleProjectionInfoGenerator(operator))
-    );
+        () -> new ProjectionExecutor(new SimpleProjectionInfoGenerator(operator)));
   }
 
   public PhysicalTask construct(Rename operator, RequestContext context) {
@@ -99,8 +124,7 @@ public class NaivePhysicalPlanner {
         sourceTask,
         Collections.singletonList(operator),
         context,
-        () -> new ProjectionExecutor(new SimpleProjectionInfoGenerator(operator))
-    );
+        () -> new ProjectionExecutor(new SimpleProjectionInfoGenerator(operator)));
   }
 
   public PhysicalTask construct(Reorder operator, RequestContext context) {
@@ -109,8 +133,7 @@ public class NaivePhysicalPlanner {
         sourceTask,
         Collections.singletonList(operator),
         context,
-        () -> new ProjectionExecutor(new SimpleProjectionInfoGenerator(operator))
-    );
+        () -> new ProjectionExecutor(new SimpleProjectionInfoGenerator(operator)));
   }
 
   public PhysicalTask construct(AddSchemaPrefix operator, RequestContext context) {
@@ -119,8 +142,7 @@ public class NaivePhysicalPlanner {
         sourceTask,
         Collections.singletonList(operator),
         context,
-        () -> new ProjectionExecutor(new SimpleProjectionInfoGenerator(operator))
-    );
+        () -> new ProjectionExecutor(new SimpleProjectionInfoGenerator(operator)));
   }
 
   public PhysicalTask construct(RowTransform operator, RequestContext context) {
@@ -129,8 +151,7 @@ public class NaivePhysicalPlanner {
         sourceTask,
         Collections.singletonList(operator),
         context,
-        () -> new ProjectionExecutor(new TransformProjectionInfoGenerator(operator))
-    );
+        () -> new ProjectionExecutor(new TransformProjectionInfoGenerator(operator)));
   }
 
   public PhysicalTask construct(Select operator, RequestContext context) {
@@ -143,28 +164,31 @@ public class NaivePhysicalPlanner {
     }
 
     if (operator.getTagFilter() != null) {
-      sourceTask = new PipelineMemoryPhysicalTask(
-          sourceTask,
-          Collections.singletonList(new Select(source, null, operator.getTagFilter())),
-          context,
-          () -> new ProjectionExecutor(new TagKVProjectionInfoGenerator(operator.getTagFilter()))
-      );
+      sourceTask =
+          new PipelineMemoryPhysicalTask(
+              sourceTask,
+              Collections.singletonList(new Select(source, null, operator.getTagFilter())),
+              context,
+              () ->
+                  new ProjectionExecutor(
+                      new TagKVProjectionInfoGenerator(operator.getTagFilter())));
     }
 
     if (operator.getFilter() != null) {
-      sourceTask = new PipelineMemoryPhysicalTask(
-          sourceTask,
-          Collections.singletonList(new Select(source, operator.getFilter(), null)),
-          context,
-          () -> new FilterExecutor(new FilterInfoGenerator(operator.getFilter()))
-      );
+      sourceTask =
+          new PipelineMemoryPhysicalTask(
+              sourceTask,
+              Collections.singletonList(new Select(source, operator.getFilter(), null)),
+              context,
+              () -> new FilterExecutor(new FilterInfoGenerator(operator.getFilter())));
     }
 
     return sourceTask;
   }
 
   @Nullable
-  private StoragePhysicalTask tryPushDownAloneWithProject(PhysicalTask sourceTask, RequestContext context, Operator operator) {
+  private StoragePhysicalTask tryPushDownAloneWithProject(
+      PhysicalTask sourceTask, RequestContext context, Operator operator) {
     if (!ConfigDescriptor.getInstance().getConfig().isEnablePushDown()) {
       return null;
     }
@@ -202,8 +226,6 @@ public class NaivePhysicalPlanner {
         sourceTask,
         Collections.singletonList(operator),
         context,
-        () -> new AggregateExecutor(new AggregateInfoGenerator(operator))
-    );
+        () -> new AggregateExecutor(new AggregateInfoGenerator(operator)));
   }
-
 }

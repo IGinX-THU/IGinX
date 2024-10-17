@@ -25,7 +25,6 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.exp
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.expression.LiteralNode;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.expression.PhysicalExpression;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.NoExceptionAutoClosableHolder;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutorInitializer;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.expr.*;
@@ -35,7 +34,6 @@ import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
 import cn.edu.tsinghua.iginx.engine.shared.function.MappingType;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.ArithmeticExpr;
 import cn.edu.tsinghua.iginx.engine.shared.operator.RowTransform;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -51,24 +49,16 @@ public class TransformProjectionInfoGenerator
 
   public List<PhysicalExpression> initialize(ExecutorContext context, BatchSchema inputSchema)
       throws ComputeException {
-    List<PhysicalExpression> temp = new ArrayList<>();
-    try {
-      if (inputSchema.hasKey()) {
-        temp.add(new FieldNode(inputSchema.getKeyIndex(), BatchSchema.KEY.getName()));
-      }
-      for (int targetIndex = 0;
-           targetIndex < operator.getFunctionCallList().size();
-           targetIndex++) {
-        FunctionCall functionCall = operator.getFunctionCallList().get(targetIndex);
-        PhysicalExpression expression = getPhysicalExpression(context, inputSchema, functionCall);
-        temp.add(expression);
-      }
-      List<PhysicalExpression> ret = new ArrayList<>(temp);
-      temp.clear();
-      return ret;
-    } finally {
-      temp.forEach(PhysicalExpression::close);
+    List<PhysicalExpression> ret = new ArrayList<>();
+    if (inputSchema.hasKey()) {
+      ret.add(new FieldNode(inputSchema.getKeyIndex(), BatchSchema.KEY.getName()));
     }
+    for (int targetIndex = 0; targetIndex < operator.getFunctionCallList().size(); targetIndex++) {
+      FunctionCall functionCall = operator.getFunctionCallList().get(targetIndex);
+      PhysicalExpression expression = getPhysicalExpression(context, inputSchema, functionCall);
+      ret.add(expression);
+    }
+    return ret;
   }
 
   private PhysicalExpression getPhysicalExpression(
@@ -131,24 +121,18 @@ public class TransformProjectionInfoGenerator
   private PhysicalExpression getPhysicalExpression(
       ExecutorContext context, BatchSchema inputSchema, BinaryExpression expr)
       throws ComputeException {
-    try (NoExceptionAutoClosableHolder holder = new NoExceptionAutoClosableHolder()) {
-      PhysicalExpression left =
-          holder.add(getPhysicalExpression(context, inputSchema, expr.getLeftExpression()));
-      PhysicalExpression right =
-          holder.add(getPhysicalExpression(context, inputSchema, expr.getRightExpression()));
-
-      ScalarFunction function = holder.add(getArithmeticFunction(expr.getOp()));
-      CallNode callNode = holder.add(new CallNode(function, expr.getColumnName(), left, right));
-
-      holder.detachAll();
-      return callNode;
-    }
+    PhysicalExpression left = getPhysicalExpression(context, inputSchema, expr.getLeftExpression());
+    PhysicalExpression right =
+        getPhysicalExpression(context, inputSchema, expr.getRightExpression());
+    ScalarFunction function = getArithmeticFunction(expr.getOp());
+    return new CallNode(function, expr.getColumnName(), left, right);
   }
 
   private PhysicalExpression getPhysicalExpression(
       ExecutorContext context, BatchSchema inputSchema, UnaryExpression expr)
       throws ComputeException {
-    PhysicalExpression expression = getPhysicalExpression(context, inputSchema, expr.getExpression());
+    PhysicalExpression expression =
+        getPhysicalExpression(context, inputSchema, expr.getExpression());
     switch (expr.getOperator()) {
       case PLUS:
         return expression;

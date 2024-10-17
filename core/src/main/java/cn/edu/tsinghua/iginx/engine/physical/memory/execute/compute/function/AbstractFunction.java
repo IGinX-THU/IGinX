@@ -17,15 +17,14 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.Arity;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ArityException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.NotAllowTypeException;
 import java.util.Objects;
 import javax.annotation.WillNotClose;
+import org.apache.arrow.memory.BufferAllocator;
+import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
-import org.apache.arrow.vector.types.Types;
 
 public abstract class AbstractFunction implements ScalarFunction {
 
@@ -43,18 +42,14 @@ public abstract class AbstractFunction implements ScalarFunction {
   }
 
   @Override
-  public VectorSchemaRoot invoke(ExecutorContext context, @WillNotClose VectorSchemaRoot args)
+  public FieldVector invoke(
+      @WillNotClose BufferAllocator allocator, @WillNotClose VectorSchemaRoot input)
       throws ComputeException {
-    int vectorCount = args.getFieldVectors().size();
+    int vectorCount = input.getFieldVectors().size();
     if (!arity.checkArity(vectorCount)) {
-      throw new ArityException(getName(), arity, vectorCount);
+      throw new ArityException(this, arity, vectorCount);
     }
-    for (int i = 0; i < vectorCount; i++) {
-      if (!allowType(i, args.getVector(i).getMinorType())) {
-        throw new NotAllowTypeException(getName(), i, args.getVector(i).getMinorType());
-      }
-    }
-    return invokeImpl(context, args);
+    return invokeImpl(allocator, input);
   }
 
   @Override
@@ -62,8 +57,7 @@ public abstract class AbstractFunction implements ScalarFunction {
     return getName();
   }
 
-  protected abstract boolean allowType(int index, Types.MinorType type);
-
-  protected abstract VectorSchemaRoot invokeImpl(
-      ExecutorContext context, @WillNotClose VectorSchemaRoot args) throws ComputeException;
+  protected abstract FieldVector invokeImpl(
+      @WillNotClose BufferAllocator allocator, @WillNotClose VectorSchemaRoot input)
+      throws ComputeException;
 }

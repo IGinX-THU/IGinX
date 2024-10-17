@@ -17,8 +17,9 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.arithmetic;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.ExecutorContext;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.convert.CastNumericAsFloat8;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.convert.CastAsFloat8;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
+import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.types.Types;
 
@@ -49,17 +50,18 @@ public class Ratio extends BinaryArithmeticFunction {
   }
 
   @Override
-  public FieldVector evaluate(ExecutorContext context, FieldVector left, FieldVector right) {
+  public FieldVector evaluate(BufferAllocator allocator, FieldVector left, FieldVector right)
+      throws ComputeException {
     if (left.getMinorType() == right.getMinorType()) {
-      if (left.getMinorType() == Types.MinorType.INT || left.getMinorType() == Types.MinorType.BIGINT) {
-        try (CastNumericAsFloat8 castFunction = new CastNumericAsFloat8();
-             FieldVector leftCast = castFunction.evaluate(context, left);
-             FieldVector rightCast = castFunction.evaluate(context, right)) {
-          return super.evaluate(context, leftCast, rightCast);
+      if (left.getMinorType() == Types.MinorType.INT
+          || left.getMinorType() == Types.MinorType.BIGINT) {
+        CastAsFloat8 castFunction = new CastAsFloat8();
+        try (FieldVector leftCast = castFunction.evaluate(allocator, left);
+            FieldVector rightCast = castFunction.evaluate(allocator, right)) {
+          return super.evaluate(allocator, leftCast, rightCast);
         }
       }
     }
-    return super.evaluate(context, left, right);
+    return super.evaluate(allocator, left, right);
   }
-
 }

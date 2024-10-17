@@ -17,10 +17,11 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.expression;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ValueVectors;
 import java.util.Collections;
+import java.util.List;
+import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 
@@ -43,10 +44,13 @@ public class FieldNode extends AbstractPhysicalExpression {
   }
 
   @Override
-  protected VectorSchemaRoot invokeImpl(ExecutorContext context, VectorSchemaRoot args)
+  protected FieldVector invokeImpl(BufferAllocator allocator, VectorSchemaRoot input)
       throws ComputeException {
-    FieldVector slice =
-        ValueVectors.slice(context.getAllocator(), args.getFieldVectors().get(index));
-    return new VectorSchemaRoot(Collections.singletonList(slice));
+    List<FieldVector> args = input.getFieldVectors();
+    if (index >= args.size() || index < 0) {
+      throw new ComputeException(
+          "Field index out of bound, index: " + index + ", size: " + args.size());
+    }
+    return ValueVectors.slice(allocator, args.get(index), input.getRowCount());
   }
 }

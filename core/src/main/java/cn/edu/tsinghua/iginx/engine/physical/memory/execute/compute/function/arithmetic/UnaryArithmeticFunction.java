@@ -17,36 +17,35 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.arithmetic;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.UnaryFunction;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.NotAllowArgumentTypeException;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ConstantVectors;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.Schemas;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ValueVectors;
-import org.apache.arrow.vector.*;
-import org.apache.arrow.vector.types.Types;
-
-import javax.annotation.WillNotClose;
 import java.util.function.IntConsumer;
+import javax.annotation.WillNotClose;
+import org.apache.arrow.memory.BufferAllocator;
+import org.apache.arrow.vector.*;
 
-public abstract class UnaryArithmeticFunction extends UnaryFunction<FieldVector> {
+public abstract class UnaryArithmeticFunction extends UnaryFunction {
 
   public UnaryArithmeticFunction(String name) {
     super(name);
   }
 
   @Override
-  protected boolean allowType(Types.MinorType type) {
-    return Schemas.isNumeric(type);
-  }
-
-  @Override
-  public FieldVector evaluate(ExecutorContext context, @WillNotClose FieldVector in) throws ComputeException {
+  public FieldVector evaluate(@WillNotClose BufferAllocator allocator, @WillNotClose FieldVector in)
+      throws ComputeException {
     if (in instanceof NullVector) {
-      return ConstantVectors.ofNull(context.getAllocator(), in.getValueCount());
+      return ConstantVectors.ofNull(allocator, in.getValueCount());
     }
 
-    FieldVector dest = ValueVectors.create(context.getAllocator(), in.getMinorType(), in.getValueCount());
+    if (!Schemas.isNumeric(in.getMinorType())) {
+      throw new NotAllowArgumentTypeException(this, 0, in.getMinorType());
+    }
+
+    FieldVector dest = ValueVectors.create(allocator, in.getMinorType(), in.getValueCount());
     switch (in.getMinorType()) {
       case INT:
         evaluate((IntVector) dest, (IntVector) in);
@@ -91,10 +90,6 @@ public abstract class UnaryArithmeticFunction extends UnaryFunction<FieldVector>
         consumer.accept(i);
       }
     }
-  }
-
-  @Override
-  public void close() {
   }
 
   protected abstract int evaluate(int value);

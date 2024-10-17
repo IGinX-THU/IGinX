@@ -47,6 +47,10 @@ public class Schemas {
     }
   }
 
+  public static boolean isNumeric(ArrowType arrowType) {
+    return isNumeric(Types.getMinorTypeForArrowType(arrowType));
+  }
+
   public static Types.MinorType getNumericResultType(Types.MinorType... types) {
     return null;
   }

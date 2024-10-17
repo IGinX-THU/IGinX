@@ -23,11 +23,10 @@ import cn.edu.tsinghua.iginx.engine.physical.task.visitor.TaskVisitor;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
+import java.util.List;
+import javax.annotation.WillClose;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.annotation.WillClose;
-import java.util.List;
 
 public abstract class UnaryMemoryPhysicalTask extends MemoryPhysicalTask {
 
@@ -35,7 +34,8 @@ public abstract class UnaryMemoryPhysicalTask extends MemoryPhysicalTask {
 
   private PhysicalTask parentTask;
 
-  public UnaryMemoryPhysicalTask(PhysicalTask parentTask, List<Operator> operators, RequestContext context) {
+  public UnaryMemoryPhysicalTask(
+      PhysicalTask parentTask, List<Operator> operators, RequestContext context) {
     super(TaskType.UnaryMemory, operators, context);
     this.parentTask = parentTask;
   }

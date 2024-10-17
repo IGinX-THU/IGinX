@@ -215,7 +215,7 @@ public class SessionExecuteSqlResult {
     // TODO: time format
     List<List<String>> cache = new ArrayList<>();
     boolean hasKey = keys.length > 0;
-    for(int index = 0; index < values.size(); index++) {
+    for (int index = 0; index < values.size(); index++) {
       List<String> rowCache = new ArrayList<>();
       if (hasKey) {
         rowCache.add(String.valueOf(keys[index]));

@@ -18,17 +18,24 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.ScalarFunction;
+import org.apache.arrow.vector.types.Types;
 
-public class ArgumentException extends ComputeException {
+public class NotAllowArgumentTypeException extends ArgumentException {
 
-  private final ScalarFunction function;
+  private final int index;
+  private final Types.MinorType type;
 
-  public ArgumentException(ScalarFunction function, String message) {
-    super("Invalid argument for physical function '" + function.getName() + "': " + message);
-    this.function = function;
+  public NotAllowArgumentTypeException(ScalarFunction function, int index, Types.MinorType type) {
+    super(function, "not allow type " + type + " at index " + index);
+    this.index = index;
+    this.type = type;
   }
 
-  public ScalarFunction getFunction() {
-    return function;
+  public int getIndex() {
+    return index;
+  }
+
+  public Types.MinorType getType() {
+    return type;
   }
 }

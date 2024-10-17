@@ -59,7 +59,8 @@ public class ValueVectors {
     return field.createVector(allocator);
   }
 
-  public static FieldVector create(BufferAllocator allocator, Types.MinorType minorType, int rowCount) {
+  public static FieldVector create(
+      BufferAllocator allocator, Types.MinorType minorType, int rowCount) {
     FieldVector ret = create(allocator, minorType);
     ret.setInitialCapacity(rowCount);
     ret.setValueCount(rowCount);
@@ -78,7 +79,8 @@ public class ValueVectors {
     return ret;
   }
 
-  public static ValueVector createWithBothValidity(BufferAllocator allocator, ValueVector left, ValueVector right, Types.MinorType type) {
+  public static ValueVector createWithBothValidity(
+      BufferAllocator allocator, ValueVector left, ValueVector right, Types.MinorType type) {
     ValueVector ret = create(allocator, type);
 
     int valueCount = Math.min(left.getValueCount(), right.getValueCount());
@@ -88,14 +90,18 @@ public class ValueVectors {
     ArrowBuf retValidityBuffer = ret.getValidityBuffer();
     ArrowBuf firstValidityBuffer = left.getValidityBuffer();
     ArrowBuf secondValidityBuffer = right.getValidityBuffer();
-    try (And and = new And()) {
-      and.evaluate(retValidityBuffer, firstValidityBuffer, secondValidityBuffer, BitVectorHelper.getValidityBufferSize(valueCount));
-    }
 
+    new And()
+        .evaluate(
+            retValidityBuffer,
+            firstValidityBuffer,
+            secondValidityBuffer,
+            BitVectorHelper.getValidityBufferSize(valueCount));
     return ret;
   }
 
-  public static ValueVector createWithValidity(BufferAllocator allocator, ValueVector input, Types.MinorType type) {
+  public static ValueVector createWithValidity(
+      BufferAllocator allocator, ValueVector input, Types.MinorType type) {
     ValueVector ret = create(allocator, type);
 
     int valueCount = input.getValueCount();
@@ -105,7 +111,8 @@ public class ValueVectors {
     ArrowBuf retValidityBuffer = ret.getValidityBuffer();
     ArrowBuf inputValidityBuffer = input.getValidityBuffer();
     long capacity = Math.min(retValidityBuffer.capacity(), inputValidityBuffer.capacity());
-    MemoryUtil.UNSAFE.copyMemory(retValidityBuffer.memoryAddress(), inputValidityBuffer.memoryAddress(), capacity);
+    MemoryUtil.UNSAFE.copyMemory(
+        retValidityBuffer.memoryAddress(), inputValidityBuffer.memoryAddress(), capacity);
 
     return ret;
   }
@@ -135,7 +142,4 @@ public class ValueVectors {
   public static FieldVector transfer(BufferAllocator allocator, FieldVector vector) {
     return transfer(allocator, vector, vector.getName());
   }
-
-
-
 }

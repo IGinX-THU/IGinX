@@ -24,12 +24,11 @@ import cn.edu.tsinghua.iginx.sql.statement.Statement;
 import cn.edu.tsinghua.iginx.thrift.SqlType;
 import cn.edu.tsinghua.iginx.thrift.Status;
 import cn.edu.tsinghua.iginx.utils.SnowFlakeUtils;
+import java.nio.ByteBuffer;
+import java.util.*;
 import lombok.Data;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.BaseValueVector;
-
-import java.nio.ByteBuffer;
-import java.util.*;
 
 @Data
 public class RequestContext implements TaskContext {

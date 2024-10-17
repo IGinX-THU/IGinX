@@ -24,18 +24,20 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Batch;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
-
-import javax.annotation.WillCloseWhenClosed;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Supplier;
+import javax.annotation.WillCloseWhenClosed;
 
 public class UnarySinkMemoryPhysicalTask extends UnaryMemoryPhysicalTask {
 
   private final Supplier<UnarySinkExecutor> executorSupplier;
 
   public UnarySinkMemoryPhysicalTask(
-      PhysicalTask parentTask, List<Operator> operators, RequestContext context, Supplier<UnarySinkExecutor> executorSupplier) {
+      PhysicalTask parentTask,
+      List<Operator> operators,
+      RequestContext context,
+      Supplier<UnarySinkExecutor> executorSupplier) {
     super(parentTask, operators, context);
     this.executorSupplier = Objects.requireNonNull(executorSupplier);
   }

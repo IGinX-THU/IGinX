@@ -21,7 +21,6 @@ package cn.edu.tsinghua.iginx.engine.physical.task;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
-
 import java.util.Collections;
 
 public class CompletedFoldedPhysicalTask extends UnaryMemoryPhysicalTask {

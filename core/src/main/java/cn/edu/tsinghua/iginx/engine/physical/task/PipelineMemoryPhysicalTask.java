@@ -24,13 +24,12 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Batch;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
-import jdk.nashorn.internal.ir.annotations.Immutable;
-
-import javax.annotation.WillClose;
-import javax.annotation.WillCloseWhenClosed;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Supplier;
+import javax.annotation.WillClose;
+import javax.annotation.WillCloseWhenClosed;
+import jdk.nashorn.internal.ir.annotations.Immutable;
 
 @Immutable
 public class PipelineMemoryPhysicalTask extends UnaryMemoryPhysicalTask {
@@ -38,7 +37,10 @@ public class PipelineMemoryPhysicalTask extends UnaryMemoryPhysicalTask {
   private final Supplier<PipelineExecutor> executorSupplier;
 
   public PipelineMemoryPhysicalTask(
-      PhysicalTask parentTask, List<Operator> operators, RequestContext context, Supplier<PipelineExecutor> executorSupplier) {
+      PhysicalTask parentTask,
+      List<Operator> operators,
+      RequestContext context,
+      Supplier<PipelineExecutor> executorSupplier) {
     super(parentTask, operators, context);
     this.executorSupplier = Objects.requireNonNull(executorSupplier);
   }
@@ -91,7 +93,7 @@ public class PipelineMemoryPhysicalTask extends UnaryMemoryPhysicalTask {
     @Override
     public void close() throws PhysicalException {
       try (BatchStream source = this.source;
-           PipelineExecutor executor = this.executor) {
+          PipelineExecutor executor = this.executor) {
         // Do nothing
       }
     }

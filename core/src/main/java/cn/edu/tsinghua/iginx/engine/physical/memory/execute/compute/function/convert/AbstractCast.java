@@ -15,18 +15,21 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.convert;
 
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.UnaryFunction;
 import org.apache.arrow.vector.types.Types;
 
-public class NotAllowTypeException extends ArgumentException {
+public abstract class AbstractCast extends UnaryFunction {
 
-  private final int index;
-  private final Types.MinorType type;
+  protected final Types.MinorType resultType;
 
-  public NotAllowTypeException(String function, int index, Types.MinorType type) {
-    super(function, "not allow type " + type + " of argument " + index);
-    this.index = index;
-    this.type = type;
+  protected AbstractCast(Types.MinorType resultType) {
+    super("cast_as_" + resultType.toString().toLowerCase());
+    this.resultType = resultType;
+  }
+
+  public Types.MinorType getResultType() {
+    return resultType;
   }
 }

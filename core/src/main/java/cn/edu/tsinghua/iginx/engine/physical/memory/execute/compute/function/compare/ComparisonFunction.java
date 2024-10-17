@@ -1,53 +1,67 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.compare;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.BinaryFunction;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.convert.CastNumericAsFloat8;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.convert.CastAsFloat8;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.logic.And;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ArgumentException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.NotAllowArgumentTypeException;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.Schemas;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ValueVectors;
+import java.util.function.IntPredicate;
+import javax.annotation.WillNotClose;
 import org.apache.arrow.memory.ArrowBuf;
+import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.*;
 import org.apache.arrow.vector.types.Types;
 
-import javax.annotation.WillNotClose;
-import java.util.function.IntPredicate;
-
-public abstract class ComparisonFunction extends BinaryFunction<BitVector> {
+public abstract class ComparisonFunction extends BinaryFunction {
 
   protected ComparisonFunction(String name) {
     super(name);
   }
 
   @Override
-  protected boolean allowLeftType(Types.MinorType type) {
-    return Schemas.isNumeric(type) || type == Types.MinorType.VARBINARY;
-  }
-
-  @Override
-  protected boolean allowRightType(Types.MinorType type) {
-    return Schemas.isNumeric(type) || type == Types.MinorType.VARBINARY;
-  }
-
-  @Override
-  public BitVector evaluate(ExecutorContext context, @WillNotClose FieldVector left, @WillNotClose FieldVector right) throws ComputeException {
+  public BitVector evaluate(
+      @WillNotClose BufferAllocator allocator,
+      @WillNotClose FieldVector left,
+      @WillNotClose FieldVector right)
+      throws ComputeException {
     if (left.getMinorType() == right.getMinorType()) {
-      return evaluateSameType(context, left, right);
+      return evaluateSameType(allocator, left, right);
     }
     if (Schemas.isNumeric(left.getMinorType()) && Schemas.isNumeric(right.getMinorType())) {
-      try (CastNumericAsFloat8 castFunction = new CastNumericAsFloat8();
-           FieldVector leftCast = castFunction.evaluate(context, left);
-           FieldVector rightCast = castFunction.evaluate(context, right)) {
-        return evaluateSameType(context, leftCast, rightCast);
+      CastAsFloat8 castFunction = new CastAsFloat8();
+      try (FieldVector leftCast = castFunction.evaluate(allocator, left);
+          FieldVector rightCast = castFunction.evaluate(allocator, right)) {
+        return evaluateSameType(allocator, leftCast, rightCast);
       }
     }
-    throw new ComputeException("Cannot compare " + left.getField() + " with " + right.getField());
+    throw new ArgumentException(
+        this, "Cannot compare " + left.getField() + " with " + right.getField());
   }
 
-  private BitVector evaluateSameType(ExecutorContext context, FieldVector left, FieldVector right) {
+  private BitVector evaluateSameType(BufferAllocator allocator, FieldVector left, FieldVector right)
+      throws NotAllowArgumentTypeException {
     int rowCount = Math.min(left.getValueCount(), right.getValueCount());
-    BitVector dest = (BitVector) ValueVectors.create(context.getAllocator(), Types.MinorType.BIT, rowCount);
+    BitVector dest = (BitVector) ValueVectors.create(allocator, Types.MinorType.BIT, rowCount);
     if (left instanceof NullVector || right instanceof NullVector) {
       return dest;
     }
@@ -68,7 +82,8 @@ public abstract class ComparisonFunction extends BinaryFunction<BitVector> {
       case VARBINARY:
         evaluate(dest, (VarBinaryVector) left, (VarBinaryVector) right);
       default:
-        throw new IllegalStateException("Unexpected type: " + left.getMinorType());
+        dest.close();
+        throw new NotAllowArgumentTypeException(this, 0, left.getMinorType());
     }
     return dest;
   }
@@ -93,25 +108,23 @@ public abstract class ComparisonFunction extends BinaryFunction<BitVector> {
     genericEvaluate(dest, left, right, index -> evaluate(left.get(index), right.get(index)));
   }
 
-  private <T extends FieldVector> void genericEvaluate(BitVector dest, T left, T right, IntPredicate predicate) {
+  private <T extends FieldVector> void genericEvaluate(
+      BitVector dest, T left, T right, IntPredicate predicate) {
     int rowCount = dest.getValueCount();
-    try (And and = new And()) {
-      and.evaluate(
-          dest.getValidityBuffer(),
-          left.getValidityBuffer(),
-          right.getValidityBuffer(),
-          BitVectorHelper.getValidityBufferSize(dest.getValueCount()));
-    }
+
+    new And()
+        .evaluate(
+            dest.getValidityBuffer(),
+            left.getValidityBuffer(),
+            right.getValidityBuffer(),
+            BitVectorHelper.getValidityBufferSize(dest.getValueCount()));
+
     ArrowBuf destDataBuf = dest.getDataBuffer();
     for (int i = 0; i < rowCount; i++) {
       if (!dest.isNull(i) && predicate.test(i)) {
         BitVectorHelper.setBit(destDataBuf, i);
       }
     }
-  }
-
-  @Override
-  public void close() {
   }
 
   protected abstract boolean evaluate(int left, int right);
@@ -123,5 +136,4 @@ public abstract class ComparisonFunction extends BinaryFunction<BitVector> {
   protected abstract boolean evaluate(double left, double right);
 
   protected abstract boolean evaluate(byte[] left, byte[] right);
-
 }

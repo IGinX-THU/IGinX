@@ -17,53 +17,51 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.arithmetic;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.BinaryFunction;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.convert.CastNumericAsFloat8;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.convert.CastAsFloat8;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.NotAllowArgumentTypeException;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ConstantVectors;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.Schemas;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ValueVectors;
-import org.apache.arrow.vector.*;
-import org.apache.arrow.vector.types.Types;
-
 import java.util.function.IntConsumer;
+import org.apache.arrow.memory.BufferAllocator;
+import org.apache.arrow.vector.*;
 
-public abstract class BinaryArithmeticFunction extends BinaryFunction<FieldVector> {
+public abstract class BinaryArithmeticFunction extends BinaryFunction {
 
   protected BinaryArithmeticFunction(String name) {
     super(name);
   }
 
   @Override
-  protected boolean allowLeftType(Types.MinorType type) {
-    return Schemas.isNumeric(type);
-  }
-
-  @Override
-  protected boolean allowRightType(Types.MinorType type) {
-    return Schemas.isNumeric(type);
-  }
-
-  @Override
-  public FieldVector evaluate(ExecutorContext context, FieldVector left, FieldVector right) {
+  public FieldVector evaluate(BufferAllocator allocator, FieldVector left, FieldVector right)
+      throws ComputeException {
+    if (left instanceof NullVector || right instanceof NullVector) {
+      return ConstantVectors.ofNull(allocator, left.getValueCount());
+    }
+    if (!Schemas.isNumeric(left.getMinorType())) {
+      throw new NotAllowArgumentTypeException(this, 0, left.getMinorType());
+    }
+    if (!Schemas.isNumeric(right.getMinorType())) {
+      throw new NotAllowArgumentTypeException(this, 1, right.getMinorType());
+    }
     if (left.getMinorType() == right.getMinorType()) {
-      return evaluateSameType(context, left, right);
+      return evaluateSameType(allocator, left, right);
     } else {
-      try (CastNumericAsFloat8 castFunction = new CastNumericAsFloat8();
-           FieldVector leftCast = castFunction.evaluate(context, left);
-           FieldVector rightCast = castFunction.evaluate(context, right)) {
-        return evaluateSameType(context, leftCast, rightCast);
+      CastAsFloat8 castFunction = new CastAsFloat8();
+      try (FieldVector leftCast = castFunction.evaluate(allocator, left);
+          FieldVector rightCast = castFunction.evaluate(allocator, right)) {
+        return evaluateSameType(allocator, leftCast, rightCast);
       }
     }
   }
 
-  private FieldVector evaluateSameType(ExecutorContext context, FieldVector left, FieldVector right) {
+  private FieldVector evaluateSameType(
+      BufferAllocator allocator, FieldVector left, FieldVector right) throws ComputeException {
     int rowCount = Math.min(left.getValueCount(), right.getValueCount());
-    if (left instanceof NullVector || right instanceof NullVector) {
-      return ConstantVectors.ofNull(context.getAllocator(), left.getValueCount());
-    }
 
-    FieldVector dest = ValueVectors.create(context.getAllocator(), left.getMinorType(), rowCount);
+    FieldVector dest = ValueVectors.create(allocator, left.getMinorType(), rowCount);
     switch (left.getMinorType()) {
       case INT:
         evaluate((IntVector) dest, (IntVector) left, (IntVector) right);
@@ -78,7 +76,7 @@ public abstract class BinaryArithmeticFunction extends BinaryFunction<FieldVecto
         evaluate((Float8Vector) dest, (Float8Vector) left, (Float8Vector) right);
         break;
       default:
-        throw new IllegalStateException("Unsupported type: " + left.getMinorType());
+        throw new IllegalStateException("Unexpected type: " + left.getMinorType());
     }
     return dest;
   }
@@ -99,7 +97,8 @@ public abstract class BinaryArithmeticFunction extends BinaryFunction<FieldVecto
     genericEvaluate(dest, left, right, i -> dest.set(i, evaluate(left.get(i), right.get(i))));
   }
 
-  private void genericEvaluate(FieldVector dest, FieldVector left, FieldVector right, IntConsumer consumer) {
+  private void genericEvaluate(
+      FieldVector dest, FieldVector left, FieldVector right, IntConsumer consumer) {
     if (dest.getValueCount() > left.getValueCount()) {
       throw new IllegalArgumentException("The capacity of left buffer is not enough");
     }
@@ -112,10 +111,6 @@ public abstract class BinaryArithmeticFunction extends BinaryFunction<FieldVecto
         consumer.accept(i);
       }
     }
-  }
-
-  @Override
-  public void close() {
   }
 
   protected abstract int evaluate(int left, int right);
