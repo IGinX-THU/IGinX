@@ -15,10 +15,31 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.arithmetic;
 
-public interface ComputingCloseable extends AutoCloseable {
+public class Multiply extends BinaryArithmeticFunction {
+
+  public Multiply() {
+    super("multiply");
+  }
 
   @Override
-  void close() throws ComputeException;
+  public int evaluate(int left, int right) {
+    return left * right;
+  }
+
+  @Override
+  public long evaluate(long left, long right) {
+    return left * right;
+  }
+
+  @Override
+  public float evaluate(float left, float right) {
+    return left * right;
+  }
+
+  @Override
+  public double evaluate(double left, double right) {
+    return left * right;
+  }
 }

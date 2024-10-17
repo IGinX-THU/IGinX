@@ -26,12 +26,11 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Batch;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
-import jdk.nashorn.internal.ir.annotations.Immutable;
-
-import javax.annotation.WillClose;
-import javax.annotation.WillCloseWhenClosed;
 import java.util.List;
 import java.util.Objects;
+import javax.annotation.WillClose;
+import javax.annotation.WillCloseWhenClosed;
+import jdk.nashorn.internal.ir.annotations.Immutable;
 
 @Immutable
 public class PipelineMemoryPhysicalTask extends UnaryMemoryPhysicalTask {
@@ -62,7 +61,7 @@ public class PipelineMemoryPhysicalTask extends UnaryMemoryPhysicalTask {
       info = executor.toString();
     } catch (PhysicalException e) {
       try (BatchStream previousHolder = previous;
-           PipelineExecutor executorHolder = executor) {
+          PipelineExecutor executorHolder = executor) {
         throw e;
       }
     }
@@ -96,7 +95,7 @@ public class PipelineMemoryPhysicalTask extends UnaryMemoryPhysicalTask {
     @Override
     public void close() throws PhysicalException {
       try (BatchStream source = this.source;
-           PipelineExecutor executor = this.executor) {
+          PipelineExecutor executor = this.executor) {
         // Do nothing
       }
     }

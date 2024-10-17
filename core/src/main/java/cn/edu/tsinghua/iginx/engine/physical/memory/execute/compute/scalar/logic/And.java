@@ -15,10 +15,23 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.logic;
 
-public interface ComputingCloseable extends AutoCloseable {
+public class And extends BinaryLogicFunction {
+
+  public static final String NAME = "and";
+
+  public And() {
+    super(NAME);
+  }
 
   @Override
-  void close() throws ComputeException;
+  public byte evaluate(byte left, byte right) {
+    return (byte) (left & right);
+  }
+
+  @Override
+  public long evaluate(long left, long right) {
+    return left & right;
+  }
 }

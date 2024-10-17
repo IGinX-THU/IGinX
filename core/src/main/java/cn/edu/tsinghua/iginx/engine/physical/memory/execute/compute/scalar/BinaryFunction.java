@@ -15,28 +15,30 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.PhysicalFunction;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.Arity;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputingCloseable;
 import javax.annotation.WillNotClose;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
-import org.apache.arrow.vector.types.pojo.Schema;
 
-public interface Accumulator extends PhysicalFunction {
+public abstract class BinaryFunction extends AbstractFunction {
 
-  State initialize(@WillNotClose BufferAllocator allocator, @WillNotClose Schema schema)
-      throws ComputeException;
-
-  interface State extends ComputingCloseable {
-
-    boolean needMoreData() throws ComputeException;
-
-    void accumulate(@WillNotClose VectorSchemaRoot root) throws ComputeException;
-
-    FieldVector evaluate() throws ComputeException;
+  protected BinaryFunction(String name) {
+    super(name, Arity.BINARY);
   }
+
+  @Override
+  protected FieldVector invokeImpl(BufferAllocator allocator, VectorSchemaRoot input)
+      throws ComputeException {
+    return evaluate(allocator, input.getFieldVectors().get(0), input.getFieldVectors().get(1));
+  }
+
+  public abstract FieldVector evaluate(
+      @WillNotClose BufferAllocator allocator,
+      @WillNotClose FieldVector left,
+      @WillNotClose FieldVector right)
+      throws ComputeException;
 }

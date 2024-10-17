@@ -15,10 +15,12 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression;
 
-public interface ComputingCloseable extends AutoCloseable {
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.ScalarFunction;
+import java.util.List;
 
-  @Override
-  void close() throws ComputeException;
+public interface PhysicalExpression extends ScalarFunction {
+
+  List<PhysicalExpression> getChildren();
 }

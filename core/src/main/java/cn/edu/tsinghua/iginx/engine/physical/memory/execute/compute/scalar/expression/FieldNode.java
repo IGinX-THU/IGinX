@@ -15,28 +15,42 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.PhysicalFunction;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputingCloseable;
-import javax.annotation.WillNotClose;
+import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ValueVectors;
+import java.util.Collections;
+import java.util.List;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
-import org.apache.arrow.vector.types.pojo.Schema;
 
-public interface Accumulator extends PhysicalFunction {
+public class FieldNode extends AbstractPhysicalExpression {
 
-  State initialize(@WillNotClose BufferAllocator allocator, @WillNotClose Schema schema)
-      throws ComputeException;
+  private final int index;
 
-  interface State extends ComputingCloseable {
+  public FieldNode(int index) {
+    this(index, null);
+  }
 
-    boolean needMoreData() throws ComputeException;
+  public FieldNode(int index, String alias) {
+    super(alias, Collections.emptyList());
+    this.index = index;
+  }
 
-    void accumulate(@WillNotClose VectorSchemaRoot root) throws ComputeException;
+  @Override
+  public String getName() {
+    return "field(" + index + ")";
+  }
 
-    FieldVector evaluate() throws ComputeException;
+  @Override
+  protected FieldVector invokeImpl(BufferAllocator allocator, VectorSchemaRoot input)
+      throws ComputeException {
+    List<FieldVector> args = input.getFieldVectors();
+    if (index >= args.size() || index < 0) {
+      throw new ComputeException(
+          "Field index out of bound, index: " + index + ", size: " + args.size());
+    }
+    return ValueVectors.slice(allocator, args.get(index), input.getRowCount());
   }
 }

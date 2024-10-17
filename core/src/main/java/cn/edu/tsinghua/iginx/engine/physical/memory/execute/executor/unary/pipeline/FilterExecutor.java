@@ -17,24 +17,24 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.pipeline;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.expression.PhysicalExpression;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.select.VectorFilter;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.PhysicalExpression;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.select.VectorFilter;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Batch;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
-import org.apache.arrow.vector.FieldVector;
-import org.apache.arrow.vector.VectorSchemaRoot;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import org.apache.arrow.vector.FieldVector;
+import org.apache.arrow.vector.VectorSchemaRoot;
 
 public class FilterExecutor extends PipelineExecutor {
 
   private final PhysicalExpression condition;
 
-  public FilterExecutor(ExecutorContext context, BatchSchema inputSchema, PhysicalExpression condition) {
+  public FilterExecutor(
+      ExecutorContext context, BatchSchema inputSchema, PhysicalExpression condition) {
     super(context, inputSchema);
     this.condition = Objects.requireNonNull(condition);
   }
@@ -60,6 +60,5 @@ public class FilterExecutor extends PipelineExecutor {
   }
 
   @Override
-  public void close() {
-  }
+  public void close() {}
 }

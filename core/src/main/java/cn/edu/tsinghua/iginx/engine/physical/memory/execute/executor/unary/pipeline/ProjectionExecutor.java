@@ -17,26 +17,26 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.pipeline;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.expression.PhysicalExpression;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.PhysicalExpression;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ValueVectors;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Batch;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
+import java.util.ArrayList;
+import java.util.List;
+import javax.annotation.WillNotClose;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.complex.NonNullableStructVector;
 import org.apache.arrow.vector.types.Types;
 
-import javax.annotation.WillNotClose;
-import java.util.ArrayList;
-import java.util.List;
-
 public class ProjectionExecutor extends PipelineExecutor {
 
   protected final List<PhysicalExpression> expressions;
 
-  public ProjectionExecutor(ExecutorContext context, BatchSchema inputSchema, List<PhysicalExpression> expressions) {
+  public ProjectionExecutor(
+      ExecutorContext context, BatchSchema inputSchema, List<PhysicalExpression> expressions) {
     super(context, inputSchema);
     this.expressions = new ArrayList<>(expressions);
   }
@@ -47,8 +47,7 @@ public class ProjectionExecutor extends PipelineExecutor {
   }
 
   @Override
-  public void close() {
-  }
+  public void close() {}
 
   @Override
   protected Batch internalCompute(@WillNotClose Batch batch) throws ComputeException {
@@ -73,5 +72,4 @@ public class ProjectionExecutor extends PipelineExecutor {
     }
     return new Batch(new VectorSchemaRoot(results));
   }
-
 }

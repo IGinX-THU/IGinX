@@ -15,10 +15,21 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.convert;
 
-public interface ComputingCloseable extends AutoCloseable {
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.UnaryFunction;
+import org.apache.arrow.vector.types.Types;
 
-  @Override
-  void close() throws ComputeException;
+public abstract class AbstractCast extends UnaryFunction {
+
+  protected final Types.MinorType resultType;
+
+  protected AbstractCast(Types.MinorType resultType) {
+    super("cast_as_" + resultType.toString().toLowerCase());
+    this.resultType = resultType;
+  }
+
+  public Types.MinorType getResultType() {
+    return resultType;
+  }
 }

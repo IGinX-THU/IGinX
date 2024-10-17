@@ -26,10 +26,9 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Batch;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
-
-import javax.annotation.WillCloseWhenClosed;
 import java.util.List;
 import java.util.Objects;
+import javax.annotation.WillCloseWhenClosed;
 
 public class UnarySinkMemoryPhysicalTask extends UnaryMemoryPhysicalTask {
 

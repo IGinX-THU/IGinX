@@ -15,13 +15,28 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar;
 
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.Arity;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
+import javax.annotation.WillNotClose;
+import org.apache.arrow.memory.BufferAllocator;
+import org.apache.arrow.vector.FieldVector;
+import org.apache.arrow.vector.VectorSchemaRoot;
 
-public interface UnaryExecutorFactory<T extends UnaryExecutor> {
+public abstract class UnaryFunction extends AbstractFunction {
 
-  T initialize(ExecutorContext context, BatchSchema inputSchema) throws ComputeException;
+  protected UnaryFunction(String name) {
+    super(name, Arity.UNARY);
+  }
+
+  @Override
+  protected FieldVector invokeImpl(BufferAllocator allocator, VectorSchemaRoot input)
+      throws ComputeException {
+    return evaluate(allocator, input.getFieldVectors().get(0));
+  }
+
+  public abstract FieldVector evaluate(
+      @WillNotClose BufferAllocator allocator, @WillNotClose FieldVector input)
+      throws ComputeException;
 }

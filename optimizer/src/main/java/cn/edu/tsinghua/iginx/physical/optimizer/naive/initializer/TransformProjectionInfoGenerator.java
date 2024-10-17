@@ -17,14 +17,14 @@
  */
 package cn.edu.tsinghua.iginx.physical.optimizer.naive.initializer;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.ScalarFunction;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.arithmetic.*;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.expression.CallNode;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.expression.FieldNode;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.expression.LiteralNode;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.expression.PhysicalExpression;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.ScalarFunction;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.arithmetic.*;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.CallNode;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.FieldNode;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.LiteralNode;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.PhysicalExpression;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutorFactory;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.pipeline.ProjectionExecutor;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
@@ -39,8 +39,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-public class TransformProjectionInfoGenerator
-    implements UnaryExecutorFactory<ProjectionExecutor> {
+public class TransformProjectionInfoGenerator implements UnaryExecutorFactory<ProjectionExecutor> {
 
   private final RowTransform operator;
 
@@ -49,7 +48,8 @@ public class TransformProjectionInfoGenerator
   }
 
   @Override
-  public ProjectionExecutor initialize(ExecutorContext context, BatchSchema inputSchema) throws ComputeException {
+  public ProjectionExecutor initialize(ExecutorContext context, BatchSchema inputSchema)
+      throws ComputeException {
     List<PhysicalExpression> expressions = getExpressions(context, inputSchema);
     return new ProjectionExecutor(context, inputSchema, expressions);
   }
@@ -166,6 +166,4 @@ public class TransformProjectionInfoGenerator
         throw new UnsupportedOperationException("Unsupported operator: " + operator);
     }
   }
-
-
 }

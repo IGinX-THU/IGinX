@@ -17,7 +17,7 @@
  */
 package cn.edu.tsinghua.iginx.engine.shared.data.arrow;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.logic.And;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.logic.And;
 import org.apache.arrow.memory.ArrowBuf;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.memory.util.MemoryUtil;

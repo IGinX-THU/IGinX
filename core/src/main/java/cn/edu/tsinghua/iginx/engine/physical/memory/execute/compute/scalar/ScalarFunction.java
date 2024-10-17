@@ -15,28 +15,27 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.PhysicalFunction;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputingCloseable;
 import javax.annotation.WillNotClose;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
-import org.apache.arrow.vector.types.pojo.Schema;
 
-public interface Accumulator extends PhysicalFunction {
+public interface ScalarFunction extends PhysicalFunction {
 
-  State initialize(@WillNotClose BufferAllocator allocator, @WillNotClose Schema schema)
+  /**
+   * Invoke the function with the given arguments.
+   *
+   * @param allocator the allocator to allocate memory
+   * @param input the input vector schema root
+   * @return the result of the function, may be a struct vector
+   * @throws ComputeException if the function cannot be executed
+   */
+  FieldVector invoke(@WillNotClose BufferAllocator allocator, @WillNotClose VectorSchemaRoot input)
       throws ComputeException;
-
-  interface State extends ComputingCloseable {
-
-    boolean needMoreData() throws ComputeException;
-
-    void accumulate(@WillNotClose VectorSchemaRoot root) throws ComputeException;
-
-    FieldVector evaluate() throws ComputeException;
-  }
 }
+
+// TODO: give name to the function return

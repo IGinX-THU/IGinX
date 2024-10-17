@@ -15,10 +15,31 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.arithmetic;
 
-public interface ComputingCloseable extends AutoCloseable {
+public class Negate extends UnaryArithmeticFunction {
+
+  public Negate() {
+    super("negate");
+  }
 
   @Override
-  void close() throws ComputeException;
+  protected int evaluate(int value) {
+    return -value;
+  }
+
+  @Override
+  protected long evaluate(long value) {
+    return -value;
+  }
+
+  @Override
+  protected float evaluate(float value) {
+    return -value;
+  }
+
+  @Override
+  protected double evaluate(double value) {
+    return -value;
+  }
 }

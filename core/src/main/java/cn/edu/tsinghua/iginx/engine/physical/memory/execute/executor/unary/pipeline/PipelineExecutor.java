@@ -23,7 +23,6 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.Unary
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.StopWatch;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Batch;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
-
 import javax.annotation.WillClose;
 import javax.annotation.WillNotClose;
 

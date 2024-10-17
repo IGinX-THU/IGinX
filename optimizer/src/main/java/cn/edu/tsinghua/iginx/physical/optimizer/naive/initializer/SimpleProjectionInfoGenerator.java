@@ -17,10 +17,10 @@
  */
 package cn.edu.tsinghua.iginx.physical.optimizer.naive.initializer;
 
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.FieldNode;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.PhysicalExpression;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.expression.FieldNode;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.expression.PhysicalExpression;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutorFactory;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.pipeline.ProjectionExecutor;
 import cn.edu.tsinghua.iginx.engine.shared.Constants;
@@ -32,8 +32,7 @@ import java.util.*;
 import java.util.regex.Pattern;
 import org.apache.arrow.vector.types.pojo.Field;
 
-public class SimpleProjectionInfoGenerator
-    implements UnaryExecutorFactory<ProjectionExecutor> {
+public class SimpleProjectionInfoGenerator implements UnaryExecutorFactory<ProjectionExecutor> {
 
   private final Operator operator;
 
@@ -42,7 +41,8 @@ public class SimpleProjectionInfoGenerator
   }
 
   @Override
-  public ProjectionExecutor initialize(ExecutorContext context, BatchSchema inputSchema) throws ComputeException {
+  public ProjectionExecutor initialize(ExecutorContext context, BatchSchema inputSchema)
+      throws ComputeException {
     List<PhysicalExpression> expressions = getExpression(context, inputSchema);
     return new ProjectionExecutor(context, inputSchema, expressions);
   }
@@ -269,6 +269,4 @@ public class SimpleProjectionInfoGenerator
     }
     return ret;
   }
-
-
 }

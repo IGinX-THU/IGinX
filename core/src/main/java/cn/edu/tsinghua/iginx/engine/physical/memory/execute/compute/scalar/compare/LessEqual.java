@@ -15,10 +15,38 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.compare;
 
-public interface ComputingCloseable extends AutoCloseable {
+public class LessEqual extends ComparisonFunction {
+
+  public static final String NAME = "less_equal";
+
+  public LessEqual() {
+    super(NAME);
+  }
 
   @Override
-  void close() throws ComputeException;
+  public boolean evaluate(int left, int right) {
+    return left <= right;
+  }
+
+  @Override
+  public boolean evaluate(long left, long right) {
+    return left <= right;
+  }
+
+  @Override
+  public boolean evaluate(float left, float right) {
+    return left <= right;
+  }
+
+  @Override
+  public boolean evaluate(double left, double right) {
+    return left <= right;
+  }
+
+  @Override
+  public boolean evaluate(byte[] left, byte[] right) {
+    return new String(left).compareTo(new String(right)) <= 0;
+  }
 }

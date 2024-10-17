@@ -17,18 +17,18 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.ScalarFunction;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.PhysicalFunction;
 
 public class ArgumentException extends ComputeException {
 
-  private final ScalarFunction function;
+  private final PhysicalFunction function;
 
-  public ArgumentException(ScalarFunction function, String message) {
+  public ArgumentException(PhysicalFunction function, String message) {
     super("Invalid argument for physical function '" + function.getName() + "': " + message);
     this.function = function;
   }
 
-  public ScalarFunction getFunction() {
+  public PhysicalFunction getFunction() {
     return function;
   }
 }
