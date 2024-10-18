@@ -187,7 +187,7 @@
                                 <goals>
                                     <goal>run</goal>
                                 </goals>
-                                <phase>package</phase>
+                                <phase>generate-sources</phase>
                                 <configuration>
                                     <target>
                                         <copy todir="../session_py/iginx/iginx_pyclient/thrift">
