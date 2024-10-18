@@ -18,7 +18,7 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.compare;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.BinaryFunction;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.convert.CastAsFloat8;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.convert.Cast;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.logic.And;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ArgumentException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
@@ -48,7 +48,7 @@ public abstract class ComparisonFunction extends BinaryFunction {
       return evaluateSameType(allocator, left, right);
     }
     if (Schemas.isNumeric(left.getMinorType()) && Schemas.isNumeric(right.getMinorType())) {
-      CastAsFloat8 castFunction = new CastAsFloat8();
+      Cast castFunction = new Cast(Types.MinorType.FLOAT8);
       try (FieldVector leftCast = castFunction.evaluate(allocator, left);
           FieldVector rightCast = castFunction.evaluate(allocator, right)) {
         return evaluateSameType(allocator, leftCast, rightCast);
@@ -108,6 +108,7 @@ public abstract class ComparisonFunction extends BinaryFunction {
     genericEvaluate(dest, left, right, index -> evaluate(left.get(index), right.get(index)));
   }
 
+  // TODO: 可以和 arithmetic 进行代码复用
   private <T extends FieldVector> void genericEvaluate(
       BitVector dest, T left, T right, IntPredicate predicate) {
     int rowCount = dest.getValueCount();
