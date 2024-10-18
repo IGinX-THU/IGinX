@@ -89,7 +89,7 @@ public class TaskInfoVisitor implements TaskVisitor {
 
     Object[] values = new Object[5];
     values[0] = builder.toString();
-    values[1] = (task.getMetrics().cpuTime().get(ChronoUnit.MILLIS) + "ms").getBytes();
+    values[1] = (task.getMetrics().cpuTime().toMillis() + "ms").getBytes();
     values[2] = task.getType().toString().getBytes();
     values[3] = task.getInfo().getBytes();
     values[4] = task.getMetrics().affectRows();
