@@ -31,29 +31,29 @@ public interface ExecutorContext {
 
   default void addConsumedRowNumber(int rowCount) {}
 
-  void addCostTime(long millis);
+  void addCostTime(long nanos);
 
-  default void addInitializeTime(long millis) {
-    addCostTime(millis);
+  default void addInitializeTime(long nanos) {
+    addCostTime(nanos);
   }
 
-  default void addFetchTime(long millis) {
-    addCostTime(millis);
+  default void addFetchTime(long nanos) {
+    addCostTime(nanos);
   }
 
-  default void addPipelineComputeTime(long millis) {
-    addCostTime(millis);
+  default void addPipelineComputeTime(long nanos) {
+    addCostTime(nanos);
   }
 
-  default void addSinkConsumeTime(long millis) {
-    addCostTime(millis);
+  default void addSinkConsumeTime(long nanos) {
+    addCostTime(nanos);
   }
 
-  default void addSinkFinishTime(long millis) {
-    addCostTime(millis);
+  default void addSinkFinishTime(long nanos) {
+    addCostTime(nanos);
   }
 
-  default void addSinkProduceTime(long millis) {
-    addCostTime(millis);
+  default void addSinkProduceTime(long nanos) {
+    addCostTime(nanos);
   }
 }

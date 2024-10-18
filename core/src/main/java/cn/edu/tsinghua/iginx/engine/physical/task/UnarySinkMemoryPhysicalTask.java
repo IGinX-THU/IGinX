@@ -21,6 +21,7 @@ import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutorFactory;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.sink.UnarySinkExecutor;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.StopWatch;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Batch;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
@@ -54,7 +55,10 @@ public class UnarySinkMemoryPhysicalTask extends UnaryMemoryPhysicalTask {
   protected BatchStream compute(BatchStream previous) throws PhysicalException {
     UnarySinkExecutor executor = null;
     try (BatchStream previousHolder = previous) {
-      executor = executorFactory.initialize(executorContext, previous.getSchema());
+      BatchSchema schema = previous.getSchema();
+      try (StopWatch watch = new StopWatch(executorContext::addInitializeTime)) {
+        executor = executorFactory.initialize(executorContext, schema);
+      }
       info = executor.toString();
       while (true) {
         try (Batch batch = previousHolder.getNext()) {

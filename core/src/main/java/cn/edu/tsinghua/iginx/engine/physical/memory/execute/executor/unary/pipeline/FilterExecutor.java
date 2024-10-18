@@ -17,17 +17,25 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.pipeline;
 
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.BinaryFunction;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.PhysicalExpression;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.select.VectorFilter;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.NotAllowArgumentTypeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
+import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ConstantVectors;
+import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ValueVectors;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Batch;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import javax.annotation.WillNotClose;
+import org.apache.arrow.memory.BufferAllocator;
+import org.apache.arrow.vector.BitVector;
 import org.apache.arrow.vector.FieldVector;
+import org.apache.arrow.vector.NullVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
+import org.apache.arrow.vector.types.Types;
 
 public class FilterExecutor extends PipelineExecutor {
 
@@ -39,6 +47,7 @@ public class FilterExecutor extends PipelineExecutor {
     this.condition = Objects.requireNonNull(condition);
   }
 
+  // TODO: use SelectionVector to filter, rather than bit vector
   @Override
   protected Batch internalCompute(Batch batch) throws ComputeException {
     List<FieldVector> results = new ArrayList<>();
@@ -61,4 +70,44 @@ public class FilterExecutor extends PipelineExecutor {
 
   @Override
   public void close() {}
+
+  public static class VectorFilter extends BinaryFunction {
+
+    public static final String NAME = "filter";
+
+    public VectorFilter() {
+      super(NAME);
+    }
+
+    @Override
+    public FieldVector evaluate(
+        @WillNotClose BufferAllocator allocator,
+        @WillNotClose FieldVector left,
+        @WillNotClose FieldVector right)
+        throws ComputeException {
+      if (left instanceof NullVector || right instanceof NullVector) {
+        // TODO: give type for null vector
+        return ConstantVectors.ofNull(
+            allocator, Math.min(left.getValueCount(), right.getValueCount()));
+      }
+      if (left.getMinorType() != Types.MinorType.BIT) {
+        throw new NotAllowArgumentTypeException(this, 0, left.getMinorType());
+      }
+      return evaluate(allocator, (BitVector) left, right);
+    }
+
+    public <T extends FieldVector> FieldVector evaluate(
+        @WillNotClose BufferAllocator allocator, BitVector bitVector, T fieldVector) {
+      T result = ValueVectors.like(allocator, fieldVector);
+      int targetIndex = 0;
+      for (int sourceIndex = 0; sourceIndex < bitVector.getValueCount(); sourceIndex++) {
+        if (!bitVector.isNull(sourceIndex) && bitVector.get(sourceIndex) != 0) {
+          result.copyFrom(sourceIndex, targetIndex, fieldVector);
+          targetIndex++;
+        }
+      }
+      result.setValueCount(targetIndex);
+      return result;
+    }
+  }
 }

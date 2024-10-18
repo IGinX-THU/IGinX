@@ -27,11 +27,11 @@ public class StopWatch implements AutoCloseable {
 
   public StopWatch(LongConsumer timeAccumulator) {
     this.timeAccumulator = Objects.requireNonNull(timeAccumulator);
-    this.startTimestamp = System.currentTimeMillis();
+    this.startTimestamp = System.nanoTime();
   }
 
   @Override
   public void close() {
-    timeAccumulator.accept(System.currentTimeMillis() - startTimestamp);
+    timeAccumulator.accept(System.nanoTime() - startTimestamp);
   }
 }

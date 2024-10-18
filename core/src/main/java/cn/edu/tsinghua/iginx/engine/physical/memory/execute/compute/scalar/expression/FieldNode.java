@@ -54,3 +54,5 @@ public class FieldNode extends AbstractPhysicalExpression {
     return ValueVectors.slice(allocator, args.get(index), input.getRowCount());
   }
 }
+
+// TODO: optimize this node with Run-End-Encoding (REE) in Arrow-18.0.0, which requires java 11.

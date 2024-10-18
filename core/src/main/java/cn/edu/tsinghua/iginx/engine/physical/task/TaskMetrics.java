@@ -17,6 +17,7 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.task;
 
+import java.time.Duration;
 import java.util.concurrent.atomic.LongAdder;
 import javax.annotation.concurrent.ThreadSafe;
 
@@ -30,15 +31,15 @@ public class TaskMetrics {
     affectRows.add(number);
   }
 
-  public void accumulateCpuTime(long ms) {
-    this.span.add(ms);
+  public void accumulateCpuTime(long nanos) {
+    this.span.add(nanos);
   }
 
   public long affectRows() {
     return affectRows.sum();
   }
 
-  public long cpuTime() {
-    return span.sum();
+  public Duration cpuTime() {
+    return Duration.ofNanos(span.sum());
   }
 }

@@ -18,13 +18,8 @@
 
 package cn.edu.tsinghua.iginx.engine.physical.task.visitor;
 
-import cn.edu.tsinghua.iginx.engine.physical.task.BinaryMemoryPhysicalTask;
-import cn.edu.tsinghua.iginx.engine.physical.task.GlobalPhysicalTask;
-import cn.edu.tsinghua.iginx.engine.physical.task.MultipleMemoryPhysicalTask;
-import cn.edu.tsinghua.iginx.engine.physical.task.PhysicalTask;
-import cn.edu.tsinghua.iginx.engine.physical.task.StoragePhysicalTask;
-import cn.edu.tsinghua.iginx.engine.physical.task.TaskType;
-import cn.edu.tsinghua.iginx.engine.physical.task.UnaryMemoryPhysicalTask;
+import cn.edu.tsinghua.iginx.engine.physical.task.*;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -94,7 +89,7 @@ public class TaskInfoVisitor implements TaskVisitor {
 
     Object[] values = new Object[5];
     values[0] = builder.toString();
-    values[1] = (task.getMetrics().cpuTime() + "ms").getBytes();
+    values[1] = (task.getMetrics().cpuTime().get(ChronoUnit.MILLIS) + "ms").getBytes();
     values[2] = task.getType().toString().getBytes();
     values[3] = task.getInfo().getBytes();
     values[4] = task.getMetrics().affectRows();

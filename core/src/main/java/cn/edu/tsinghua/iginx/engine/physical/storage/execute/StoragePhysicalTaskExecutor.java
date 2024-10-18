@@ -126,8 +126,8 @@ public class StoragePhysicalTaskExecutor {
                       pair.v.submit(
                           () -> {
                             TaskExecuteResult result = null;
-                            long taskId = System.nanoTime();
-                            long startTime = System.currentTimeMillis();
+                            long startTime = System.nanoTime();
+                            long taskId = startTime;
                             try {
                               List<Operator> operators = task.getOperators();
                               if (operators.size() < 1) {
@@ -236,7 +236,7 @@ public class StoragePhysicalTaskExecutor {
                             } catch (Exception e) {
                               LOGGER.error("Monitor catch error:", e);
                             }
-                            long span = System.currentTimeMillis() - startTime;
+                            long span = System.nanoTime() - startTime;
                             task.getMetrics().accumulateCpuTime(span);
                             task.setResult(result);
                             if (task.getFollowerTask() != null
@@ -339,9 +339,9 @@ public class StoragePhysicalTaskExecutor {
   public TaskResult executeGlobalTask(GlobalPhysicalTask task) {
     switch (task.getOperator().getType()) {
       case ShowColumns:
-        long startTime = System.currentTimeMillis();
+        long startTime = System.nanoTime();
         TaskExecuteResult result = executeShowColumns((ShowColumns) task.getOperator());
-        long span = System.currentTimeMillis() - startTime;
+        long span = System.nanoTime() - startTime;
         task.getMetrics().accumulateCpuTime(span);
         task.setResult(result);
         if (task.getFollowerTask() != null) {
