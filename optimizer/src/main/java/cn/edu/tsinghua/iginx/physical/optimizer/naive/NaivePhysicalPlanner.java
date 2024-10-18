@@ -35,10 +35,12 @@ public class NaivePhysicalPlanner {
 
   public PhysicalTask construct(Operator operator, RequestContext context) {
     switch (operator.getType()) {
-      case Insert:
-        return construct((Insert) operator, context);
+      case CombineNonQuery:
+        return construct((CombineNonQuery) operator, context);
       case Delete:
         return construct((Delete) operator, context);
+      case Insert:
+        return construct((Insert) operator, context);
       case Project:
         return construct((Project) operator, context);
       case Rename:
@@ -53,6 +55,8 @@ public class NaivePhysicalPlanner {
         return construct((Select) operator, context);
       case SetTransform:
         return construct((SetTransform) operator, context);
+      case GroupBy:
+        return construct((GroupBy) operator, context);
       default:
         throw new UnsupportedOperationException("Unsupported operator type: " + operator.getType());
     }
@@ -70,6 +74,16 @@ public class NaivePhysicalPlanner {
       default:
         throw new UnsupportedOperationException("Unsupported source type: " + source.getType());
     }
+  }
+
+  public PhysicalTask construct(CombineNonQuery operator, RequestContext context) {
+    List<PhysicalTask> sourceTasks = new ArrayList<>();
+    for (Source source : operator.getSources()) {
+      sourceTasks.add(construct(source, context));
+    }
+
+    return new MultipleMemoryPhysicalTask(
+        Collections.singletonList(operator), sourceTasks, context);
   }
 
   public PhysicalTask construct(Insert operator, RequestContext context) {
@@ -222,5 +236,14 @@ public class NaivePhysicalPlanner {
         Collections.singletonList(operator),
         context,
         new AggregateInfoGenerator(operator));
+  }
+
+  public PhysicalTask construct(GroupBy operator, RequestContext context) {
+    PhysicalTask sourceTask = construct(operator.getSource(), context);
+    return new UnarySinkMemoryPhysicalTask(
+        sourceTask,
+        Collections.singletonList(operator),
+        context,
+        new GroupAggregateInfoGenerator(operator));
   }
 }

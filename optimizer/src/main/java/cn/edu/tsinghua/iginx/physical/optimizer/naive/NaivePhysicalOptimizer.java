@@ -19,6 +19,7 @@ package cn.edu.tsinghua.iginx.physical.optimizer.naive;
 
 import cn.edu.tsinghua.iginx.engine.physical.optimizer.PhysicalOptimizer;
 import cn.edu.tsinghua.iginx.engine.physical.optimizer.ReplicaDispatcher;
+import cn.edu.tsinghua.iginx.engine.physical.task.MultipleMemoryPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.PhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.UnaryMemoryPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
@@ -153,7 +154,10 @@ public class NaivePhysicalOptimizer implements PhysicalOptimizer {
         break;
       case BinaryMemory:
       case MultipleMemory:
-        throw new UnsupportedOperationException("Not implemented yet");
+        for (PhysicalTask parentTask : ((MultipleMemoryPhysicalTask) task).getParentTasks()) {
+          setFollowerTask(parentTask).setFollowerTask(task);
+        }
+        break;
       default:
         throw new UnsupportedOperationException("Unsupported task type: " + task.getType());
     }
