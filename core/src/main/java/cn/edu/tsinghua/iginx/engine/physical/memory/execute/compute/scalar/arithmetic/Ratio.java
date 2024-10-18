@@ -17,7 +17,7 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.arithmetic;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.convert.CastAsFloat8;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.convert.Cast;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.FieldVector;
@@ -55,7 +55,7 @@ public class Ratio extends BinaryArithmeticFunction {
     if (left.getMinorType() == right.getMinorType()) {
       if (left.getMinorType() == Types.MinorType.INT
           || left.getMinorType() == Types.MinorType.BIGINT) {
-        CastAsFloat8 castFunction = new CastAsFloat8();
+        Cast castFunction = new Cast(Types.MinorType.FLOAT8);
         try (FieldVector leftCast = castFunction.evaluate(allocator, left);
             FieldVector rightCast = castFunction.evaluate(allocator, right)) {
           return super.evaluate(allocator, leftCast, rightCast);

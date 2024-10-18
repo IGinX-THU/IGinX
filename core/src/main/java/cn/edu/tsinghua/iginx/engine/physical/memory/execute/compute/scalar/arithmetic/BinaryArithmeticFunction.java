@@ -18,7 +18,7 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.arithmetic;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.BinaryFunction;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.convert.CastAsFloat8;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.convert.Cast;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.NotAllowArgumentTypeException;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ConstantVectors;
@@ -27,6 +27,7 @@ import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ValueVectors;
 import java.util.function.IntConsumer;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.*;
+import org.apache.arrow.vector.types.Types;
 
 public abstract class BinaryArithmeticFunction extends BinaryFunction {
 
@@ -49,7 +50,7 @@ public abstract class BinaryArithmeticFunction extends BinaryFunction {
     if (left.getMinorType() == right.getMinorType()) {
       return evaluateSameType(allocator, left, right);
     } else {
-      CastAsFloat8 castFunction = new CastAsFloat8();
+      Cast castFunction = new Cast(Types.MinorType.FLOAT8);
       try (FieldVector leftCast = castFunction.evaluate(allocator, left);
           FieldVector rightCast = castFunction.evaluate(allocator, right)) {
         return evaluateSameType(allocator, leftCast, rightCast);
