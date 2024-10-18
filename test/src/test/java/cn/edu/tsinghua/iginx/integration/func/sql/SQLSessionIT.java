@@ -4665,7 +4665,6 @@ public class SQLSessionIT {
 
     statement =
         "SELECT a, (SELECT AVG(a) AS a1 FROM test.b GROUP BY d HAVING avg(test.b.a) > 2) * (SELECT AVG(a) AS a2 FROM test.b) FROM test.a;";
-    LOGGER.debug(executor.execute("EXPLAIN " + statement));
     expected =
         "ResultSets:\n"
             + "+---+--------+-------+\n"
@@ -8295,7 +8294,6 @@ public class SQLSessionIT {
     statement = "SELECT max(distinct s1) FROM us.d1 GROUP BY s2;";
     executor.execute(closeRule);
     assertTrue(executor.execute("EXPLAIN " + statement).contains("isDistinct: true"));
-    LOGGER.debug(executor.execute("EXPLAIN " + statement));
     closeResult = executor.execute(statement);
     executor.execute(openRule);
     assertTrue(executor.execute("EXPLAIN " + statement).contains("isDistinct: false"));

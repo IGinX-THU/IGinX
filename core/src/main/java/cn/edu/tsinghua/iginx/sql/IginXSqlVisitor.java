@@ -1369,7 +1369,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         // GROUP BY的表达式没有出现在SELECT子句中
         if (groupByExprSet.isEmpty()) {
           selectStatement.setGroupByExpr(expr);
-          String originPath = selectStatement.getOriginPath(path);
+          String originPath = selectStatement.getOriginPath(baseExpr.getPathName());
           if (originPath != null) {
             selectStatement.addGroupByPath(originPath);
           }
