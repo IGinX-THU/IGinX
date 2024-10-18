@@ -108,6 +108,7 @@ public abstract class ComparisonFunction extends BinaryFunction {
     genericEvaluate(dest, left, right, index -> evaluate(left.get(index), right.get(index)));
   }
 
+  // TODO: 可以和 arithmetic 进行代码复用
   private <T extends FieldVector> void genericEvaluate(
       BitVector dest, T left, T right, IntPredicate predicate) {
     int rowCount = dest.getValueCount();
