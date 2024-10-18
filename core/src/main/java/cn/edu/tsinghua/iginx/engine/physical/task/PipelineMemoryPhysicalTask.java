@@ -21,6 +21,7 @@ import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutorFactory;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.pipeline.PipelineExecutor;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.StopWatch;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Batch;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
@@ -57,7 +58,10 @@ public class PipelineMemoryPhysicalTask extends UnaryMemoryPhysicalTask {
   protected BatchStream compute(@WillClose BatchStream previous) throws PhysicalException {
     PipelineExecutor executor = null;
     try {
-      executor = executorFactory.initialize(executorContext, previous.getSchema());
+      BatchSchema schema = previous.getSchema();
+      try (StopWatch watch = new StopWatch(executorContext::addInitializeTime)) {
+        executor = executorFactory.initialize(executorContext, schema);
+      }
       info = executor.toString();
     } catch (PhysicalException e) {
       try (BatchStream previousHolder = previous;

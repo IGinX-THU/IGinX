@@ -45,8 +45,8 @@ public class PhysicalTaskExecutorContext implements ExecutorContext {
   }
 
   @Override
-  public void addCostTime(long millis) {
-    task.getMetrics().accumulateCpuTime(millis);
+  public void addCostTime(long nanos) {
+    task.getMetrics().accumulateCpuTime(nanos);
   }
 
   @Override

@@ -47,7 +47,7 @@ public class BatchStreams {
           public void addProducedRowNumber(long rows) {}
 
           @Override
-          public void addCostTime(long millis) {}
+          public void addCostTime(long nanos) {}
         },
         rowStream);
   }
