@@ -237,7 +237,9 @@ public class QueryGenerator extends AbstractGenerator {
     selectStatement.initFreeVariables();
     List<String> freeVariables = selectStatement.getFreeVariables();
     if (!freeVariables.isEmpty()) {
-      throw new RuntimeException("Unexpected paths' name: " + freeVariables + ".");
+      throw new RuntimeException(
+          String.format(
+              "Unexpected paths' name: %s, check if there exists missing prefix.", freeVariables));
     }
   }
 
