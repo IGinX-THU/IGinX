@@ -18,7 +18,7 @@
 package cn.edu.tsinghua.iginx.physical.optimizer.naive.initializer;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.FieldNode;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.PhysicalExpression;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpression;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutorFactory;
@@ -43,11 +43,11 @@ public class SimpleProjectionInfoGenerator implements UnaryExecutorFactory<Proje
   @Override
   public ProjectionExecutor initialize(ExecutorContext context, BatchSchema inputSchema)
       throws ComputeException {
-    List<PhysicalExpression> expressions = getExpression(context, inputSchema);
+    List<ScalarExpression> expressions = getExpression(context, inputSchema);
     return new ProjectionExecutor(context, inputSchema, expressions);
   }
 
-  public List<PhysicalExpression> getExpression(ExecutorContext context, BatchSchema inputSchema) {
+  public List<ScalarExpression> getExpression(ExecutorContext context, BatchSchema inputSchema) {
     switch (operator.getType()) {
       case Project:
         return getExpressionsWithFields(
@@ -66,9 +66,9 @@ public class SimpleProjectionInfoGenerator implements UnaryExecutorFactory<Proje
     }
   }
 
-  private List<PhysicalExpression> getExpressionsWithFields(
+  private List<ScalarExpression> getExpressionsWithFields(
       BatchSchema inputSchema, List<Pair<String, Integer>> columnsAndIndices) {
-    List<PhysicalExpression> ret = new ArrayList<>();
+    List<ScalarExpression> ret = new ArrayList<>();
     for (Pair<String, Integer> pair : columnsAndIndices) {
       ret.add(new FieldNode(pair.v, pair.k));
     }

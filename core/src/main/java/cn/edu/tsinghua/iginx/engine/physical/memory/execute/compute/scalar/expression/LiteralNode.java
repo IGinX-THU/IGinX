@@ -20,12 +20,13 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expr
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ConstantVectors;
 import java.util.Collections;
+import java.util.Objects;
 import javax.annotation.Nullable;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 
-public class LiteralNode extends AbstractPhysicalExpression {
+public final class LiteralNode extends AbstractScalarExpression {
 
   private final Object value;
 
@@ -41,6 +42,15 @@ public class LiteralNode extends AbstractPhysicalExpression {
   @Override
   public String getName() {
     return String.valueOf(value);
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (obj instanceof LiteralNode) {
+      LiteralNode literalNode = (LiteralNode) obj;
+      return Objects.equals(value, literalNode.value);
+    }
+    return false;
   }
 
   @Override

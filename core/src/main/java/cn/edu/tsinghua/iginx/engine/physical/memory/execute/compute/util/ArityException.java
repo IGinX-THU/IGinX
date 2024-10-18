@@ -18,23 +18,18 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.PhysicalFunction;
+import org.apache.arrow.vector.types.pojo.Schema;
 
 public class ArityException extends ArgumentException {
 
   private final Arity arity;
-  private final int actual;
 
-  public ArityException(PhysicalFunction function, Arity arity, int actual) {
-    super(function, "expected " + arity + ", but got " + actual);
+  public ArityException(PhysicalFunction function, Schema schema, Arity arity) {
+    super(function, schema, "arity " + arity + " is not satisfied");
     this.arity = arity;
-    this.actual = actual;
   }
 
   public Arity getArity() {
     return arity;
-  }
-
-  public int getActual() {
-    return actual;
   }
 }

@@ -20,23 +20,19 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.PhysicalFunction;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputingCloseable;
+import java.util.List;
 import javax.annotation.WillNotClose;
-import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
-import org.apache.arrow.vector.types.pojo.Schema;
 
 public interface Accumulator extends PhysicalFunction {
 
-  State initialize(@WillNotClose BufferAllocator allocator, @WillNotClose Schema schema)
+  State createState() throws ComputeException;
+
+  void update(@WillNotClose State state, @WillNotClose VectorSchemaRoot input)
       throws ComputeException;
 
-  interface State extends ComputingCloseable {
+  FieldVector evaluate(@WillNotClose List<State> states) throws ComputeException;
 
-    boolean needMoreData() throws ComputeException;
-
-    void accumulate(@WillNotClose VectorSchemaRoot root) throws ComputeException;
-
-    FieldVector evaluate() throws ComputeException;
-  }
+  interface State extends ComputingCloseable {}
 }

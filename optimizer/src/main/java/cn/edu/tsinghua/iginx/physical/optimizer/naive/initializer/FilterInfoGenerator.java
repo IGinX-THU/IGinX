@@ -24,7 +24,7 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.compa
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.CallNode;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.FieldNode;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.LiteralNode;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.PhysicalExpression;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpression;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.logic.And;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.logic.Or;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
@@ -53,12 +53,12 @@ public class FilterInfoGenerator implements UnaryExecutorFactory<FilterExecutor>
     return new FilterExecutor(context, inputSchema, getCondition(context, inputSchema));
   }
 
-  public PhysicalExpression getCondition(ExecutorContext context, BatchSchema inputSchema)
+  public ScalarExpression getCondition(ExecutorContext context, BatchSchema inputSchema)
       throws ComputeException {
     return construct(filter, context, inputSchema);
   }
 
-  private static PhysicalExpression construct(
+  private static ScalarExpression construct(
       Filter filter, ExecutorContext context, BatchSchema inputSchema) throws ComputeException {
     switch (filter.getType()) {
       case Value:
@@ -74,28 +74,28 @@ public class FilterInfoGenerator implements UnaryExecutorFactory<FilterExecutor>
     }
   }
 
-  private static PhysicalExpression construct(
+  private static ScalarExpression construct(
       AndFilter filter, ExecutorContext context, BatchSchema inputSchema) throws ComputeException {
     return and(construct(filter.getChildren(), context, inputSchema), context, inputSchema);
   }
 
-  private static PhysicalExpression construct(
+  private static ScalarExpression construct(
       OrFilter filter, ExecutorContext context, BatchSchema inputSchema) throws ComputeException {
     return or(construct(filter.getChildren(), context, inputSchema), context, inputSchema);
   }
 
-  private static List<PhysicalExpression> construct(
+  private static List<ScalarExpression> construct(
       List<Filter> filters, ExecutorContext context, BatchSchema inputSchema)
       throws ComputeException {
-    List<PhysicalExpression> result = new ArrayList<>();
+    List<ScalarExpression> result = new ArrayList<>();
     for (Filter filter : filters) {
       result.add(construct(filter, context, inputSchema));
     }
     return result;
   }
 
-  private static PhysicalExpression and(
-      List<PhysicalExpression> children, ExecutorContext context, BatchSchema inputSchema)
+  private static ScalarExpression and(
+      List<ScalarExpression> children, ExecutorContext context, BatchSchema inputSchema)
       throws ComputeException {
     if (children.isEmpty()) {
       return construct(new BoolFilter(true), context, inputSchema);
@@ -117,8 +117,8 @@ public class FilterInfoGenerator implements UnaryExecutorFactory<FilterExecutor>
     return combiner.apply(left, right);
   }
 
-  private static PhysicalExpression or(
-      List<PhysicalExpression> children, ExecutorContext context, BatchSchema inputSchema)
+  private static ScalarExpression or(
+      List<ScalarExpression> children, ExecutorContext context, BatchSchema inputSchema)
       throws ComputeException {
     if (children.isEmpty()) {
       return construct(new BoolFilter(false), context, inputSchema);
@@ -126,11 +126,11 @@ public class FilterInfoGenerator implements UnaryExecutorFactory<FilterExecutor>
     return binaryReduce(children, (l, r) -> new CallNode(new Or(), l, r), 0, children.size());
   }
 
-  private static PhysicalExpression construct(
+  private static ScalarExpression construct(
       ValueFilter filter, ExecutorContext context, BatchSchema inputSchema)
       throws ComputeException {
-    List<Integer> paths = Schemas.matchPattern(inputSchema, filter.getPath());
-    List<PhysicalExpression> comparisons = new ArrayList<>();
+    List<Integer> paths = Schemas.matchPattern(inputSchema.raw(), filter.getPath());
+    List<ScalarExpression> comparisons = new ArrayList<>();
     for (Integer pathIndex : paths) {
       comparisons.add(
           new CallNode(

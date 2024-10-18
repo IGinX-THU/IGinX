@@ -17,13 +17,13 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.arithmetic;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.convert.Cast;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.convert.cast.Cast;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.types.Types;
 
-public class Ratio extends BinaryArithmeticFunction {
+public final class Ratio extends BinaryArithmeticFunction {
 
   public Ratio() {
     super("ratio");
@@ -63,5 +63,10 @@ public class Ratio extends BinaryArithmeticFunction {
       }
     }
     return super.evaluate(allocator, left, right);
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    return obj instanceof Ratio;
   }
 }

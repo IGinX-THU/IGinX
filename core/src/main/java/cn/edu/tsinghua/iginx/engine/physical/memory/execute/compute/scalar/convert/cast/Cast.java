@@ -15,16 +15,16 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.convert;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.convert.cast;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.types.Types;
 
-public class Cast extends AbstractCast {
+public final class Cast extends AbstractCast<FieldVector> {
 
-  private final AbstractCast delegate;
+  private final AbstractCast<?> delegate;
 
   public Cast(Types.MinorType resultType) throws ComputeException {
     super(resultType);
@@ -37,12 +37,19 @@ public class Cast extends AbstractCast {
     return delegate.evaluate(allocator, input);
   }
 
-  private AbstractCast getDelegate(Types.MinorType resultType) throws ComputeException {
+  private AbstractCast<?> getDelegate(Types.MinorType resultType) throws ComputeException {
     switch (resultType) {
+      case BIT:
+        return new CastAsBit();
       case FLOAT8:
         return new CastAsFloat8();
       default:
         throw new ComputeException("Cast to " + resultType + " is not supported");
     }
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    return delegate.equals(obj);
   }
 }

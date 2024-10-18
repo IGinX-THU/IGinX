@@ -17,7 +17,7 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.arithmetic;
 
-public class Minus extends BinaryArithmeticFunction {
+public final class Minus extends BinaryArithmeticFunction {
 
   public Minus() {
     super("minus");
@@ -41,5 +41,10 @@ public class Minus extends BinaryArithmeticFunction {
   @Override
   public double evaluate(double left, double right) {
     return left - right;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    return obj instanceof Minus;
   }
 }

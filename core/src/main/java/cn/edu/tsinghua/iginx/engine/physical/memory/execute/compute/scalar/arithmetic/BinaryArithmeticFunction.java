@@ -18,9 +18,9 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.arithmetic;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.BinaryFunction;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.convert.Cast;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.convert.cast.Cast;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.CallContracts;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.NotAllowArgumentTypeException;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ConstantVectors;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.Schemas;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ValueVectors;
@@ -41,12 +41,9 @@ public abstract class BinaryArithmeticFunction extends BinaryFunction {
     if (left instanceof NullVector || right instanceof NullVector) {
       return ConstantVectors.ofNull(allocator, left.getValueCount());
     }
-    if (!Schemas.isNumeric(left.getMinorType())) {
-      throw new NotAllowArgumentTypeException(this, 0, left.getMinorType());
-    }
-    if (!Schemas.isNumeric(right.getMinorType())) {
-      throw new NotAllowArgumentTypeException(this, 1, right.getMinorType());
-    }
+
+    CallContracts.ensureType(this, Schemas.of(left, right), Schemas::isNumeric);
+
     if (left.getMinorType() == right.getMinorType()) {
       return evaluateSameType(allocator, left, right);
     } else {

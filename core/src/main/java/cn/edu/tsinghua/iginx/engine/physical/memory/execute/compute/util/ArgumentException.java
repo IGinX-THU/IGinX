@@ -18,17 +18,18 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.PhysicalFunction;
+import org.apache.arrow.vector.types.pojo.Schema;
 
-public class ArgumentException extends ComputeException {
+public class ArgumentException extends PhysicalFunctionException {
 
-  private final PhysicalFunction function;
+  private final Schema inputSchema;
 
-  public ArgumentException(PhysicalFunction function, String message) {
-    super("Invalid argument for physical function '" + function.getName() + "': " + message);
-    this.function = function;
+  public ArgumentException(PhysicalFunction function, Schema inputSchema, String message) {
+    super(function, "Unexpected argument " + inputSchema + ": " + message);
+    this.inputSchema = inputSchema;
   }
 
-  public PhysicalFunction getFunction() {
-    return function;
+  public Schema getInputSchema() {
+    return inputSchema;
   }
 }

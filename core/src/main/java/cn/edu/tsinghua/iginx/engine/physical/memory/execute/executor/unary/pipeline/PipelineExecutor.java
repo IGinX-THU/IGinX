@@ -32,13 +32,18 @@ public abstract class PipelineExecutor extends UnaryExecutor {
     super(context, inputSchema);
   }
 
+  private BatchSchema outputSchema;
+
   @Override
   public BatchSchema getOutputSchema() throws ComputeException {
-    try (Batch emptyBatch = inputSchema.emptyBatch(context.getAllocator())) {
-      try (Batch producedBatch = compute(emptyBatch)) {
-        return producedBatch.getSchema();
+    if (outputSchema == null) {
+      try (Batch emptyBatch = inputSchema.emptyBatch(context.getAllocator())) {
+        try (Batch producedBatch = compute(emptyBatch)) {
+          outputSchema = producedBatch.getSchema();
+        }
       }
     }
+    return outputSchema;
   }
 
   public Batch compute(@WillClose Batch batch) throws ComputeException {

@@ -42,6 +42,14 @@ public class BatchSchema {
     this.indexMap = Objects.requireNonNull(indexMap);
   }
 
+  public static BatchSchema of(Schema groupKeySchema) {
+    BatchSchema.Builder builder = new BatchSchema.Builder();
+    for (Field field : groupKeySchema.getFields()) {
+      builder.addField(field);
+    }
+    return builder.build();
+  }
+
   public boolean hasKey() {
     return !schema.getFields().isEmpty()
         && schema.getFields().get(0).getName().equals(Constants.KEY);

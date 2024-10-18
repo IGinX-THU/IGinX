@@ -17,12 +17,12 @@
  */
 package cn.edu.tsinghua.iginx.engine.shared.data.arrow;
 
-import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.types.Types;
 import org.apache.arrow.vector.types.pojo.ArrowType;
 import org.apache.arrow.vector.types.pojo.Field;
@@ -45,6 +45,14 @@ public class Schemas {
       default:
         return false;
     }
+  }
+
+  public static List<Types.MinorType> getNumericTypes() {
+    return Arrays.asList(
+        Types.MinorType.INT,
+        Types.MinorType.BIGINT,
+        Types.MinorType.FLOAT4,
+        Types.MinorType.FLOAT8);
   }
 
   public static boolean isNumeric(ArrowType arrowType) {
@@ -115,10 +123,6 @@ public class Schemas {
     return new Field(name, field.getFieldType(), field.getChildren());
   }
 
-  public static List<Integer> matchPattern(BatchSchema inputSchema, String pattern) {
-    return matchPattern(inputSchema.raw(), pattern);
-  }
-
   public static List<Integer> matchPattern(Schema inputSchema, String pattern) {
     List<Integer> indexes = new ArrayList<>();
     Predicate<String> matcher = StringUtils.toColumnMatcher(pattern);
@@ -128,5 +132,43 @@ public class Schemas {
       }
     }
     return indexes;
+  }
+
+  public static List<Integer> matchPattern(Schema inputSchema, Collection<String> patterns) {
+    List<Integer> indexes = new ArrayList<>();
+    for (String pattern : patterns) {
+      indexes.addAll(matchPattern(inputSchema, pattern));
+    }
+    Collections.sort(indexes);
+    return indexes;
+  }
+
+  public static Schema of(Field... fields) {
+    return new Schema(Arrays.asList(fields));
+  }
+
+  public static Schema of(FieldVector... fieldVectors) {
+    return of(Arrays.asList(fieldVectors));
+  }
+
+  public static Schema of(List<FieldVector> fieldVectors) {
+    return new Schema(
+        fieldVectors.stream().map(FieldVector::getField).collect(Collectors.toList()));
+  }
+
+  public static Types.MinorType minorTypeOf(Field inputField) {
+    return Types.getMinorTypeForArrowType(inputField.getFieldType().getType());
+  }
+
+  public static Schema merge(List<Schema> schemas) {
+    List<Field> fields = new ArrayList<>();
+    for (Schema schema : schemas) {
+      fields.addAll(schema.getFields());
+    }
+    return new Schema(fields);
+  }
+
+  public static Schema merge(Schema... schemas) {
+    return merge(Arrays.asList(schemas));
   }
 }

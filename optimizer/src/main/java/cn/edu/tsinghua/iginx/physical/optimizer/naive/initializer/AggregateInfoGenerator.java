@@ -17,8 +17,10 @@
  */
 package cn.edu.tsinghua.iginx.physical.optimizer.naive.initializer;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.Accumulator;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.unary.PhysicalSum;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.Accumulation;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.expression.ExpressionAccumulation;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.expression.ExpressionAccumulator;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.unary.*;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.FieldNode;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
@@ -28,6 +30,7 @@ import cn.edu.tsinghua.iginx.engine.shared.data.arrow.Schemas;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.function.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.SetTransform;
+import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -44,46 +47,69 @@ public class AggregateInfoGenerator implements UnaryExecutorFactory<AggregateExe
   @Override
   public AggregateExecutor initialize(ExecutorContext context, BatchSchema inputSchema)
       throws ComputeException {
-    List<AggregateExecutor.AggregateInfo> infos = new ArrayList<>();
-    for (FunctionCall functionCall : transform.getFunctionCallList()) {
-      infos.addAll(generateAggregateInfo(context, inputSchema, functionCall));
+    List<Pair<Accumulation, Integer>> aggregateInfo =
+        generateAggregateInfo(context, inputSchema, transform.getFunctionCallList());
+    List<ExpressionAccumulation> accumulations = new ArrayList<>();
+    for (Pair<Accumulation, Integer> pair : aggregateInfo) {
+      ExpressionAccumulation accumulation =
+          new ExpressionAccumulation(
+              pair.getK(), Collections.singletonList(new FieldNode(pair.getV())));
+      accumulations.add(accumulation);
     }
-    return new AggregateExecutor(context, inputSchema, infos);
+    List<ExpressionAccumulator> accumulators = new ArrayList<>();
+    for (ExpressionAccumulation accumulation : accumulations) {
+      accumulators.add(accumulation.accumulate(context.getAllocator(), inputSchema.raw()));
+    }
+    return new AggregateExecutor(context, inputSchema, accumulators);
   }
 
-  private static List<AggregateExecutor.AggregateInfo> generateAggregateInfo(
-      ExecutorContext context, BatchSchema inputSchema, FunctionCall call) throws ComputeException {
-    Function function = call.getFunction();
-    if (function.getFunctionType() != FunctionType.System) {
-      throw new UnsupportedOperationException("Not implemented yet");
-    }
-    FunctionParams params = call.getParams();
-    if (function.getMappingType() != MappingType.SetMapping) {
-      throw new ComputeException("Function " + function + " is not an aggregate function");
-    }
-    SetMappingFunction mappingFunction = (SetMappingFunction) function;
-    if (params.isDistinct()) {
-      throw new UnsupportedOperationException("Not implemented yet");
-    }
-    if (params.getPaths().size() != 1) {
-      throw new ComputeException("Function " + function + " should have exactly one parameter");
-    }
-    List<Integer> matchedIndexes = Schemas.matchPattern(inputSchema, params.getPaths().get(0));
-    Accumulator accumulator = getAccumulator(context, mappingFunction);
-    List<AggregateExecutor.AggregateInfo> result = new ArrayList<>();
-    for (int index : matchedIndexes) {
-      AggregateExecutor.AggregateInfo info =
-          new AggregateExecutor.AggregateInfo(
-              accumulator, Collections.singletonList(new FieldNode(index)));
-      result.add(info);
+  public static List<Pair<Accumulation, Integer>> generateAggregateInfo(
+      ExecutorContext context, BatchSchema inputSchema, List<FunctionCall> calls)
+      throws ComputeException {
+    List<Pair<Accumulation, Integer>> result = new ArrayList<>();
+    for (FunctionCall call : calls) {
+      Function function = call.getFunction();
+      if (function.getFunctionType() != FunctionType.System) {
+        throw new UnsupportedOperationException("Not implemented yet");
+      }
+      FunctionParams params = call.getParams();
+      if (function.getMappingType() != MappingType.SetMapping) {
+        throw new ComputeException("Function " + function + " is not an aggregate function");
+      }
+      SetMappingFunction mappingFunction = (SetMappingFunction) function;
+      if (params.isDistinct()) {
+        throw new UnsupportedOperationException("Not implemented yet");
+      }
+      if (params.getPaths().size() != 1) {
+        throw new ComputeException("Function " + function + " should have exactly one parameter");
+      }
+      List<Integer> matchedIndexes =
+          Schemas.matchPattern(inputSchema.raw(), params.getPaths().get(0));
+      Accumulation accumulation = getAccumulation(context, mappingFunction);
+      for (int index : matchedIndexes) {
+        result.add(new Pair<>(accumulation, index));
+      }
     }
     return result;
   }
 
-  private static Accumulator getAccumulator(ExecutorContext context, SetMappingFunction function) {
+  private static Accumulation getAccumulation(
+      ExecutorContext context, SetMappingFunction function) {
     switch (function.getIdentifier()) {
+      case PhysicalCount.NAME:
+        return new PhysicalCount();
       case PhysicalSum.NAME:
         return new PhysicalSum();
+      case PhysicalAvg.NAME:
+        return new PhysicalAvg();
+      case PhysicalMax.NAME:
+        return new PhysicalMax();
+      case PhysicalMin.NAME:
+        return new PhysicalMin();
+      case PhysicalFirst.NAME:
+        return new PhysicalFirst();
+      case PhysicalLast.NAME:
+        return new PhysicalLast();
       default:
         throw new UnsupportedOperationException(
             "Unsupported function: " + function.getIdentifier());

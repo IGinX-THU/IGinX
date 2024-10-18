@@ -18,8 +18,10 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.logic;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.BinaryFunction;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.NotAllowArgumentTypeException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.CallContracts;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.NotAllowTypeException;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ConstantVectors;
+import cn.edu.tsinghua.iginx.engine.shared.data.arrow.Schemas;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ValueVectors;
 import javax.annotation.WillNotClose;
 import org.apache.arrow.memory.ArrowBuf;
@@ -41,20 +43,13 @@ public abstract class BinaryLogicFunction extends BinaryFunction {
       @WillNotClose BufferAllocator allocator,
       @WillNotClose FieldVector left,
       @WillNotClose FieldVector right)
-      throws NotAllowArgumentTypeException {
+      throws NotAllowTypeException {
     if (left instanceof NullVector || right instanceof NullVector) {
       return ConstantVectors.ofNull(
           allocator, Math.min(left.getValueCount(), right.getValueCount()));
     }
 
-    if (left.getMinorType() != Types.MinorType.BIT) {
-      throw new NotAllowArgumentTypeException(this, 0, left.getMinorType());
-    }
-
-    if (right.getMinorType() != Types.MinorType.BIT) {
-      throw new NotAllowArgumentTypeException(this, 1, right.getMinorType());
-    }
-
+    CallContracts.ensureType(this, Schemas.of(left, right), Types.MinorType.BIT);
     return evaluate(allocator, (BitVector) left, (BitVector) right);
   }
 

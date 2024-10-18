@@ -17,73 +17,40 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.sink;
 
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.PhysicalFunctions;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.Accumulator;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.PhysicalExpression;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.expression.ExpressionAccumulator;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.expression.ExpressionAccumulators;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputingCloseable;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputingCloseables;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.pipeline.ProjectionExecutor;
-import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ValueVectors;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Batch;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import javax.annotation.WillNotClose;
-import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
-import org.apache.arrow.vector.complex.NonNullableStructVector;
-import org.apache.arrow.vector.types.Types;
+import org.apache.arrow.vector.types.pojo.Schema;
 
 public class AggregateExecutor extends UnarySinkExecutor {
 
-  public static class AggregateInfo {
-    private final Accumulator accumulator;
-    private final List<PhysicalExpression> expressions;
-
-    public AggregateInfo(Accumulator accumulator, List<PhysicalExpression> expressions) {
-      this.accumulator = accumulator;
-      this.expressions = expressions;
-    }
-
-    public Accumulator getAccumulator() {
-      return accumulator;
-    }
-
-    public List<PhysicalExpression> getExpressions() {
-      return expressions;
-    }
-
-    @Override
-    public String toString() {
-      return accumulator.getName()
-          + expressions.stream()
-              .map(PhysicalExpression::toString)
-              .collect(Collectors.joining(", ", "(", ")"));
-    }
-  }
-
-  private final List<AggregateInfo> aggregateInfos;
-  private final List<ProjectionExecutor> expressionExecutors;
+  private final List<ExpressionAccumulator> accumulators;
+  private final BatchSchema outputSchema;
   private final List<Accumulator.State> states;
 
   public AggregateExecutor(
-      ExecutorContext context, BatchSchema inputSchema, List<AggregateInfo> aggregateInfos)
+      ExecutorContext context, BatchSchema inputSchema, List<ExpressionAccumulator> accumulators)
       throws ComputeException {
     super(context, inputSchema);
-    this.aggregateInfos = new ArrayList<>(aggregateInfos);
-    this.expressionExecutors = new ArrayList<>(aggregateInfos.size());
-    this.states = new ArrayList<>(aggregateInfos.size());
+    this.accumulators = new ArrayList<>(accumulators);
+    Schema outputSchema = ExpressionAccumulators.getOutputSchema(accumulators);
+    this.outputSchema = BatchSchema.of(outputSchema);
+    this.states = new ArrayList<>(accumulators.size());
     try {
-      for (AggregateInfo aggregateInfo : aggregateInfos) {
-        ProjectionExecutor expressionExecutor =
-            new ProjectionExecutor(context, inputSchema, aggregateInfo.getExpressions());
-        expressionExecutors.add(expressionExecutor);
-        states.add(
-            aggregateInfo
-                .getAccumulator()
-                .initialize(context.getAllocator(), expressionExecutor.getOutputSchema().raw()));
+      for (ExpressionAccumulator acc : accumulators) {
+        states.add(acc.createState());
       }
     } catch (ComputeException e) {
       close();
@@ -93,73 +60,34 @@ public class AggregateExecutor extends UnarySinkExecutor {
 
   @Override
   public String getInfo() {
-    return "Aggregate" + aggregateInfos;
+    return "Aggregate" + accumulators;
   }
 
   @Override
-  public boolean needConsume() throws ComputeException {
-    for (Accumulator.State state : states) {
-      if (state.needMoreData()) {
-        return true;
-      }
-    }
-    return false;
+  public BatchSchema getOutputSchema() {
+    return outputSchema;
   }
 
   @Override
   protected void internalConsume(@WillNotClose Batch batch) throws ComputeException {
-    for (int i = 0; i < aggregateInfos.size(); i++) {
-      Accumulator.State state = states.get(i);
-      if (state.needMoreData()) {
-        try (Batch exprResult = expressionExecutors.get(i).compute(batch)) {
-          state.accumulate(exprResult.raw());
-        }
-      }
-    }
+    ExpressionAccumulators.update(accumulators, states, batch.raw());
   }
 
-  private BatchSchema outputSchema;
   private Batch result;
 
   @Override
   protected void internalFinish() throws ComputeException {
-    List<FieldVector> results = new ArrayList<>();
-    try {
-      for (Accumulator.State state : states) {
-        FieldVector result = state.evaluate();
-        if (result.getMinorType() == Types.MinorType.STRUCT) {
-          // unnest multi-column results
-          try (NonNullableStructVector structVector = (NonNullableStructVector) result) {
-            for (FieldVector fieldVector : structVector.getChildrenFromFields()) {
-              results.add(ValueVectors.transfer(context.getAllocator(), fieldVector));
-            }
-          }
-        } else {
-          results.add(result);
-        }
-      }
-      if (results.stream().map(FieldVector::getValueCount).anyMatch(count -> count != 1)) {
-        throw new ComputeException("Aggregate result should have exactly one row");
-      }
-    } catch (ComputeException e) {
-      results.forEach(FieldVector::close);
-      throw e;
+    List<List<Accumulator.State>> states =
+        this.states.stream().map(Collections::singletonList).collect(Collectors.toList());
+    try (VectorSchemaRoot root = ExpressionAccumulators.evaluateSafe(accumulators, states)) {
+      VectorSchemaRoot unnest = PhysicalFunctions.unnest(context.getAllocator(), root);
+      result = new Batch(unnest);
     }
-    result = new Batch(new VectorSchemaRoot(results));
-    outputSchema = result.getSchema();
   }
 
   @Override
   public boolean canProduce() {
     return result != null;
-  }
-
-  @Override
-  public BatchSchema getOutputSchema() throws ComputeException {
-    if (outputSchema == null) {
-      throw new ComputeException("Cannot produce batch before finish");
-    }
-    return outputSchema;
   }
 
   @Override
@@ -171,12 +99,9 @@ public class AggregateExecutor extends UnarySinkExecutor {
 
   @Override
   public void close() throws ComputeException {
-    List<ComputingCloseable> closeables = new ArrayList<>();
     if (result != null) {
-      closeables.add(result::close);
+      result.close();
     }
-    closeables.addAll(states);
-    closeables.addAll(expressionExecutors);
-    ComputingCloseables.close(closeables);
+    ComputingCloseables.close(states);
   }
 }

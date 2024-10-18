@@ -42,6 +42,20 @@ public abstract class ColumnBuilder {
     return this;
   }
 
+  public static boolean support(FieldVector wrapped) {
+    switch (wrapped.getMinorType()) {
+      case INT:
+      case BIGINT:
+      case FLOAT4:
+      case FLOAT8:
+      case BIT:
+      case VARBINARY:
+        return true;
+      default:
+        return false;
+    }
+  }
+
   public static ColumnBuilder create(FieldVector wrapped) {
     switch (wrapped.getMinorType()) {
       case INT:

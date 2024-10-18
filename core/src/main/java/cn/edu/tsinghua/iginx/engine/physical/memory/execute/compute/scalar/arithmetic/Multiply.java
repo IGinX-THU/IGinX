@@ -17,7 +17,7 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.arithmetic;
 
-public class Multiply extends BinaryArithmeticFunction {
+public final class Multiply extends BinaryArithmeticFunction {
 
   public Multiply() {
     super("multiply");
@@ -41,5 +41,10 @@ public class Multiply extends BinaryArithmeticFunction {
   @Override
   public double evaluate(double left, double right) {
     return left * right;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    return obj instanceof Multiply;
   }
 }

@@ -19,7 +19,6 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expr
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.ScalarFunction;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -29,20 +28,20 @@ import org.apache.arrow.util.Preconditions;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 
-public class CallNode extends AbstractPhysicalExpression {
+public final class CallNode extends AbstractScalarExpression {
 
   private final ScalarFunction function;
 
-  public CallNode(ScalarFunction function, PhysicalExpression... children) {
+  public CallNode(ScalarFunction function, ScalarExpression... children) {
     this(function, null, children);
   }
 
-  public CallNode(ScalarFunction function, @Nullable String alias, PhysicalExpression... children) {
+  public CallNode(ScalarFunction function, @Nullable String alias, ScalarExpression... children) {
     this(function, alias, Arrays.asList(children));
   }
 
   public CallNode(
-      ScalarFunction function, @Nullable String alias, List<PhysicalExpression> children) {
+      ScalarFunction function, @Nullable String alias, List<ScalarExpression> children) {
     super(alias, children);
     this.function = Preconditions.checkNotNull(function);
   }
@@ -51,23 +50,24 @@ public class CallNode extends AbstractPhysicalExpression {
   public String getName() {
     return function.getName()
         + getChildren().stream()
-            .map(PhysicalExpression::toString)
+            .map(ScalarExpression::toString)
             .collect(Collectors.joining(",", "(", ")"));
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (obj instanceof CallNode) {
+      CallNode callNode = (CallNode) obj;
+      return function.equals(callNode.function) && getChildren().equals(callNode.getChildren());
+    }
+    return false;
   }
 
   @Override
   protected FieldVector invokeImpl(BufferAllocator allocator, VectorSchemaRoot input)
       throws ComputeException {
-    List<FieldVector> subResultList = new ArrayList<>();
-    try {
-      for (PhysicalExpression child : getChildren()) {
-        subResultList.add(child.invoke(allocator, input));
-      }
-      try (VectorSchemaRoot args = new VectorSchemaRoot(subResultList)) {
-        return function.invoke(allocator, args);
-      }
-    } finally {
-      subResultList.forEach(FieldVector::close);
+    try (VectorSchemaRoot args = ScalarExpressions.evaluateSafe(allocator, getChildren(), input)) {
+      return function.invoke(allocator, args);
     }
   }
 }
