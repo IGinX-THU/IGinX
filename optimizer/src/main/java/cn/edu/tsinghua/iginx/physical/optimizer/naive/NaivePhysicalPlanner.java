@@ -239,11 +239,6 @@ public class NaivePhysicalPlanner {
   }
 
   public PhysicalTask construct(GroupBy operator, RequestContext context) {
-    PhysicalTask sourceTask = construct(operator.getSource(), context);
-    return new UnarySinkMemoryPhysicalTask(
-        sourceTask,
-        Collections.singletonList(operator),
-        context,
-        new GroupAggregateInfoGenerator(operator));
+    throw new UnsupportedOperationException("Not implemented yet");
   }
 }
