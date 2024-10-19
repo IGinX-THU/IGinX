@@ -89,6 +89,7 @@ import cn.edu.tsinghua.iginx.sql.SqlParser.ExpressionContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.FromClauseContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.FunctionContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.GroupByClauseContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.GroupByItemContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.ImportFileClauseContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.InsertFromFileStatementContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.InsertFullPathSpecContext;
@@ -1331,71 +1332,12 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
   private void parseGroupByClause(GroupByClauseContext ctx, UnarySelectStatement selectStatement) {
     selectStatement.setHasGroupBy(true);
-    for (ExpressionContext exprCtx : ctx.expression()) {
-      if (exprCtx.subquery() != null) {
-        throw new SQLParserException("Subquery is not supported in GROUP BY columns.");
-      }
-
-      Expression expr = parseExpression(exprCtx, selectStatement, false).get(0);
-
-      if (expr instanceof BaseExpression) {
-        BaseExpression baseExpr = (BaseExpression) expr;
-        Set<Expression> groupByExprSet = new HashSet<>();
-        String path = baseExpr.getPathName();
-        if (path.contains("*")) {
-          throw new SQLParserException(
-              String.format("GROUP BY column '%s' has '*', which is not supported.", path));
-        }
-        // 删去在解析expression时加上的前缀
-        if (selectStatement.isFromSinglePath()) {
-          path = path.replaceFirst(selectStatement.getFromPart(0).getPrefix() + "\\.", "");
-        }
-
-        for (Expression selectExpr : selectStatement.getExpressions()) {
-          if (selectExpr.equalExceptAlias(baseExpr)) { // 匹配select表达式
-            groupByExprSet.add(selectExpr);
-            continue;
-          }
-          if (selectExpr.getAlias().equals(path)) { // 匹配select表达式别名
-            groupByExprSet.add(selectExpr);
-          }
-        }
-
-        // 匹配到了多个select表达式
-        if (groupByExprSet.size() > 1) {
-          throw new SQLParserException(String.format("GROUP BY column '%s' is ambiguous.", path));
-        }
-
-        // GROUP BY的表达式没有出现在SELECT子句中
-        if (groupByExprSet.isEmpty()) {
-          selectStatement.setGroupByExpr(expr);
-          String originPath = selectStatement.getOriginPath(baseExpr.getPathName());
-          if (originPath != null) {
-            selectStatement.addGroupByPath(originPath);
-          }
-        } else {
-          selectStatement.setGroupByExpr(groupByExprSet.iterator().next());
-        }
-      } else {
-        MappingType type = ExpressionUtils.getExprMappingType(expr);
-        if (type == MappingType.SetMapping || type == MappingType.Mapping) {
-          throw new SQLParserException("GROUP BY column can not use SetToSet/SetToRow functions.");
-        }
-        selectStatement.setGroupByExpr(expr);
-
-        List<BaseExpression> baseExpressions =
-            ExpressionUtils.getBaseExpressionList(Collections.singletonList(expr), false);
-        baseExpressions.forEach(
-            baseExpression -> {
-              String path = baseExpression.getPathName();
-              String originPath = selectStatement.getOriginPath(path);
-              if (originPath != null) {
-                selectStatement.addGroupByPath(originPath);
-              }
-            });
-      }
+    for (GroupByItemContext groupByItemContext : ctx.groupByItem()) {
+      Expression groupByExpr = parseGroupByItem(groupByItemContext, selectStatement);
+      selectStatement.setGroupByExpr(groupByExpr);
     }
 
+    // 检查SELECT子句中未被聚合的列是否在GROUP BY子句中出现
     selectStatement
         .getExpressions()
         .forEach(
@@ -1418,6 +1360,73 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
                 }
               }
             });
+  }
+
+  private Expression parseGroupByItem(
+      GroupByItemContext ctx, UnarySelectStatement selectStatement) {
+    if (ctx.path() != null) {
+      String path = parsePath(ctx.path());
+      if (path.contains("*")) {
+        throw new SQLParserException(
+            String.format("GROUP BY column '%s' has '*', which is not supported.", path));
+      }
+
+      String fullPath = path;
+      // 如果查询语句的FROM子句只有一个部分且FROM一个前缀，则GROUP BY后的path只用写出后缀
+      if (selectStatement.isFromSinglePath()) {
+        fullPath = selectStatement.getFromPart(0).getPrefix() + SQLConstant.DOT + path;
+      }
+
+      Set<Expression> groupByExprSet = new HashSet<>();
+      for (Expression selectExpr : selectStatement.getExpressions()) {
+        if (selectExpr.getColumnName().equals(fullPath)) { // 直接匹配select表达式
+          groupByExprSet.add(selectExpr);
+          continue;
+        }
+        if (selectExpr.getAlias().equals(path)) { // 根据别名匹配select表达式
+          groupByExprSet.add(selectExpr);
+        }
+      }
+
+      // 匹配到了多个select表达式
+      if (groupByExprSet.size() > 1) {
+        throw new SQLParserException(String.format("GROUP BY column '%s' is ambiguous.", path));
+      }
+
+      String originPath = selectStatement.getOriginPath(fullPath);
+      if (originPath != null) {
+        selectStatement.addGroupByPath(originPath);
+      }
+
+      // GROUP BY的列没有出现在SELECT子句中
+      if (groupByExprSet.isEmpty()) {
+        return new BaseExpression(fullPath);
+      } else {
+        return groupByExprSet.iterator().next();
+      }
+    } else {
+      assert ctx.expression() != null;
+      if (ctx.expression().subquery() != null) {
+        throw new SQLParserException("Subquery is not supported in GROUP BY columns.");
+      }
+      Expression expr = parseExpression(ctx.expression(), selectStatement, false).get(0);
+      MappingType type = ExpressionUtils.getExprMappingType(expr);
+      if (type == MappingType.SetMapping || type == MappingType.Mapping) {
+        throw new SQLParserException("GROUP BY column can not use SetToSet/SetToRow functions.");
+      }
+
+      // 查找需要加入到pathSet的path
+      List<BaseExpression> baseExpressions =
+          ExpressionUtils.getBaseExpressionList(Collections.singletonList(expr), false);
+      baseExpressions.forEach(
+          baseExpression -> {
+            String originPath = selectStatement.getOriginPath(baseExpression.getPathName());
+            if (originPath != null) {
+              selectStatement.addGroupByPath(originPath);
+            }
+          });
+      return expr;
+    }
   }
 
   // like standard SQL, limit N, M means limit M offset N
@@ -1465,61 +1474,60 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
   }
 
   private void parseOrderItem(OrderItemContext ctx, SelectStatement selectStatement) {
-    if (ctx.expression().subquery() != null) {
-      throw new SQLParserException("Subquery is not supported in ORDER BY columns.");
-    }
+    UnarySelectStatement statement = selectStatement.getFirstUnarySelectStatement();
+    if (ctx.path() != null) {
+      String path = parsePath(ctx.path());
 
-    UnarySelectStatement unarySelectStatement = selectStatement.getFirstUnarySelectStatement();
-    Expression expr = parseExpression(ctx.expression(), unarySelectStatement, false).get(0);
-    if (expr instanceof BaseExpression) {
-      BaseExpression baseExpr = (BaseExpression) expr;
       Set<Expression> orderByExprSet = new HashSet<>();
-      String path = baseExpr.getPathName();
       if (path.contains("*")) {
         throw new SQLParserException(
             String.format("ORDER BY column '%s' has '*', which is not supported.", path));
       }
-      if (selectStatement.getSelectType() == SelectStatement.SelectStatementType.UNARY) {
-        UnarySelectStatement stmt = (UnarySelectStatement) selectStatement;
-        String pathRemovePrefix = path;
-        // 删去在解析expression时加上的前缀
-        if (stmt.isFromSinglePath()) {
-          pathRemovePrefix = path.replaceFirst(stmt.getFromPart(0).getPrefix() + "\\.", "");
-        }
 
-        for (Expression selectExpr : selectStatement.getExpressions()) {
-          if (StringUtils.match(path, selectExpr.getColumnName())) { // 匹配select表达式
-            orderByExprSet.add(expr);
-            continue;
-          }
-          if (selectExpr.getAlias().equals(pathRemovePrefix)) { // 匹配select表达式别名
-            orderByExprSet.add(selectExpr);
-          }
-        }
+      String fullPath = path;
+      // 如果查询语句的FROM子句只有一个部分且FROM一个前缀，则ORDER BY后的path只用写出后缀
+      if (statement.isFromSinglePath()) {
+        fullPath = statement.getFromPart(0).getPrefix() + SQLConstant.DOT + path;
+      }
 
-        // 匹配到了多个select表达式
-        if (orderByExprSet.size() > 1) {
-          throw new SQLParserException(String.format("ORDER BY column '%s' is ambiguous.", path));
+      for (Expression selectExpr : selectStatement.getExpressions()) {
+        if (StringUtils.match(fullPath, selectExpr.getColumnName())) { // 直接匹配select表达式
+          orderByExprSet.add(new BaseExpression(fullPath));
+          continue;
         }
-
-        // ORDER BY的表达式没有出现在SELECT子句中
-        if (orderByExprSet.isEmpty()) {
-          selectStatement.setOrderByExpr(expr);
-          String originPath = selectStatement.getOriginPath(path);
-          if (originPath != null) {
-            ((UnarySelectStatement) selectStatement).addOrderByPath(originPath);
-          }
-        } else {
-          selectStatement.setOrderByExpr(orderByExprSet.iterator().next());
+        if (selectExpr.getAlias().equals(path)) { // 根据别名匹配select表达式
+          orderByExprSet.add(selectExpr);
         }
       }
+
+      // 匹配到了多个select表达式
+      if (orderByExprSet.size() > 1) {
+        throw new SQLParserException(String.format("ORDER BY column '%s' is ambiguous.", path));
+      }
+
+      String originPath = selectStatement.getOriginPath(path);
+      if (originPath != null) {
+        ((UnarySelectStatement) selectStatement).addOrderByPath(originPath);
+      }
+
+      // ORDER BY的表达式没有出现在SELECT子句中
+      if (orderByExprSet.isEmpty()) {
+        selectStatement.setOrderByExpr(new BaseExpression(fullPath));
+      } else {
+        selectStatement.setOrderByExpr(orderByExprSet.iterator().next());
+      }
     } else {
+      assert ctx.expression() != null;
+      if (ctx.expression().subquery() != null) {
+        throw new SQLParserException("Subquery is not supported in ORDER BY columns.");
+      }
+      Expression expr = parseExpression(ctx.expression(), statement, false).get(0);
       MappingType type = ExpressionUtils.getExprMappingType(expr);
       if (type == MappingType.SetMapping || type == MappingType.Mapping) {
         throw new SQLParserException("ORDER BY column can not use SetToSet/SetToRow functions.");
       }
 
-      // 在SELECT子句中查找相同的表达式，避免重复计算（主要是case when）
+      // 在SELECT子句中查找相同的表达式，替换ORDER BY中的表达式，避免重复计算（主要是case when）
       boolean foundInSelect = false;
       for (Expression selectExpr : selectStatement.getExpressions()) {
         if (ExpressionUtils.getExprMappingType(selectExpr) == MappingType.RowMapping
@@ -1538,8 +1546,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
           ExpressionUtils.getBaseExpressionList(Collections.singletonList(expr), false);
       baseExpressions.forEach(
           baseExpression -> {
-            String path = baseExpression.getPathName();
-            String originPath = selectStatement.getOriginPath(path);
+            String originPath = selectStatement.getOriginPath(baseExpression.getPathName());
             if (originPath != null) {
               ((UnarySelectStatement) selectStatement).addOrderByPath(originPath);
             }

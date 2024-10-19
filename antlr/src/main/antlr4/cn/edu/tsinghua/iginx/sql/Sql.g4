@@ -301,7 +301,12 @@ specialClause
    ;
 
 groupByClause
-   : GROUP BY expression (COMMA expression)*
+   : GROUP BY groupByItem (COMMA groupByItem)*
+   ;
+
+groupByItem
+   : path
+   | expression
    ;
 
 havingClause
@@ -313,7 +318,7 @@ orderByClause
    ;
 
 orderItem
-   : expression (DESC | ASC)?
+   : (path | expression) (DESC | ASC)?
    ;
 
 downsampleClause
