@@ -60,9 +60,14 @@ public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
 
   // skip this test
   @Override
-  protected void testInvalidDummyParams(
+  protected void testInvalidEngineParams(
       int port, boolean hasData, boolean isReadOnly, String dataPrefix, String schemaPrefix) {
-    LOGGER.info("filesystem skips test for wrong dummy engine params.");
+    LOGGER.info("filesystem skips test for wrong engine params.");
+  }
+
+  @Override
+  protected void testDatabaseShutdown() {
+    LOGGER.info("filesystem skips test for shutting down data sources.");
   }
 
   @Override
@@ -70,6 +75,12 @@ public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
 
   @Override
   protected void restoreParams(int port) {}
+
+  @Override
+  protected void shutdownDatabase(int port) {}
+
+  @Override
+  protected void startDatabase(int port) {}
 
   @Override
   public void testShowColumns() {

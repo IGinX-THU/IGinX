@@ -29,11 +29,15 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.SetTransform;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
+import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.List;
 import java.util.Set;
 
 public interface IStorage {
+  /** 测试数据库连接 */
+  boolean testConnection(StorageEngineMeta meta);
+
   /** 对非叠加分片查询数据 */
   TaskExecuteResult executeProject(Project project, DataArea dataArea);
 

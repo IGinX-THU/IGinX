@@ -131,7 +131,7 @@ public class InfluxDBStorage implements IStorage {
     if (!meta.getStorageEngine().equals(StorageEngineType.influxdb)) {
       throw new StorageInitializationException("unexpected database: " + meta.getStorageEngine());
     }
-    if (!testConnection()) {
+    if (!testConnection(this.meta)) {
       throw new StorageInitializationException("cannot connect to " + meta);
     }
     Map<String, String> extraParams = meta.getExtraParams();
@@ -156,18 +156,25 @@ public class InfluxDBStorage implements IStorage {
     }
   }
 
-  private boolean testConnection() {
+  @Override
+  public boolean testConnection(StorageEngineMeta meta) {
     Map<String, String> extraParams = meta.getExtraParams();
+    LOGGER.debug("testing influxdb {}", extraParams.toString());
     String url = extraParams.get("url");
-    try {
-      InfluxDBClient client =
-          InfluxDBClientFactory.create(url, extraParams.get("token").toCharArray());
-      client.close();
+    try (InfluxDBClient client =
+        InfluxDBClientFactory.create(url, extraParams.get("token").toCharArray())) {
+      LOGGER.debug("start testing");
+      if (client.ping()) {
+        LOGGER.debug("influxdb connection success:{}", meta);
+        return true;
+      } else {
+        LOGGER.error("influxdb connection failed:{}", meta);
+        return false;
+      }
     } catch (Exception e) {
       LOGGER.error("test connection error: ", e);
       return false;
     }
-    return true;
   }
 
   private void reloadHistoryData() {
