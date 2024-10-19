@@ -4492,7 +4492,7 @@ public class SQLSessionIT {
     executor.executeAndCompare(statement, expected);
 
     statement =
-        "SELECT a, (SELECT d, AVG(a) FROM test.b GROUP BY d HAVING avg(test.b.a) > 2) FROM test.a;";
+        "SELECT a, (SELECT d, AVG(a) FROM test.b GROUP BY d HAVING avg(a) > 2) FROM test.a;";
     expected =
         "ResultSets:\n"
             + "+---+--------+--------+-------------+\n"
@@ -4606,7 +4606,7 @@ public class SQLSessionIT {
     executor.executeAndCompare(statement, expected);
 
     statement =
-        "SELECT a, (SELECT AVG(a) AS a1 FROM test.b GROUP BY d HAVING avg(test.b.a) > 2) * (SELECT AVG(a) AS a2 FROM test.b) FROM test.a;";
+        "SELECT a, (SELECT AVG(a) AS a1 FROM test.b GROUP BY d HAVING avg(a) > 2) * (SELECT AVG(a) AS a2 FROM test.b) FROM test.a;";
     expected =
         "ResultSets:\n"
             + "+---+--------+-------+\n"

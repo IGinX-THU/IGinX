@@ -702,7 +702,9 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         JoinType joinType = parseJoinType(joinPartContext.join());
         Filter filter = null;
         if (joinPartContext.orExpression() != null) {
-          filter = parseOrExpression(joinPartContext.orExpression(), selectStatement).getFilter();
+          filter =
+              parseOrExpression(joinPartContext.orExpression(), selectStatement, Pos.FromClause)
+                  .getFilter();
         }
         List<String> columns = new ArrayList<>();
         if (joinPartContext.colList() != null && !joinPartContext.colList().isEmpty()) {
@@ -1277,7 +1279,8 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       parseGroupByClause(ctx.groupByClause(), selectStatement);
     }
     if (ctx.havingClause() != null) {
-      FilterData filterData = parseOrExpression(ctx.havingClause().orExpression(), selectStatement);
+      FilterData filterData =
+          parseOrExpression(ctx.havingClause().orExpression(), selectStatement, Pos.HavingClause);
       selectStatement.setHavingFilter(filterData.getFilter());
       filterData.getPathList().forEach(selectStatement::addHavingPath);
       filterData.getSubQueryFromPartList().forEach(selectStatement::addHavingSubQueryPart);
@@ -1553,7 +1556,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
       if (ctx.predicateWithSubquery() != null) {
         return parseFilterWithSubQuery(
-            ctx.predicateWithSubquery(), (UnarySelectStatement) statement);
+            ctx.predicateWithSubquery(), (UnarySelectStatement) statement, pos);
       } else if (ctx.expression().size() == 2) {
         return parseExprFilter(ctx, (UnarySelectStatement) statement, pos);
       } else if (ctx.path().size() == 2) {
@@ -1640,15 +1643,15 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
   }
 
   private FilterData parseFilterWithSubQuery(
-      PredicateWithSubqueryContext ctx, UnarySelectStatement statement) {
+      PredicateWithSubqueryContext ctx, UnarySelectStatement statement, Pos pos) {
     if (ctx.EXISTS() != null) {
       return parseExistsFilter(ctx, statement);
     } else if (ctx.IN() != null) {
-      return parseInFilter(ctx, statement);
+      return parseInFilter(ctx, statement, pos);
     } else if (ctx.quantifier() != null) {
-      return parseQuantifierComparisonFilter(ctx, statement);
+      return parseQuantifierComparisonFilter(ctx, statement, pos);
     } else if (ctx.subquery().size() == 1) {
-      return parseScalarSubQueryComparisonFilter(ctx, statement);
+      return parseScalarSubQueryComparisonFilter(ctx, statement, pos);
     } else {
       return parseTwoScalarSubQueryComparisonFilter(ctx, statement);
     }
@@ -1676,7 +1679,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
   }
 
   private FilterData parseInFilter(
-      PredicateWithSubqueryContext ctx, UnarySelectStatement statement) {
+      PredicateWithSubqueryContext ctx, UnarySelectStatement statement, Pos pos) {
     SelectStatement subStatement = buildSubStatement(ctx, statement, 0, 1);
     // 计算子查询的自由变量
     subStatement.initFreeVariables();
@@ -1700,7 +1703,10 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     } else {
       assert ctx.expression() != null;
       Expression expr = parseExpression(ctx.expression(), statement, Pos.WhereClause).get(0);
-      filter = new ExprFilter(expr, Op.E, new BaseExpression(subQueryPath));
+      filter =
+          pos == Pos.HavingClause
+              ? new PathFilter(expr.getColumnName(), Op.E, subQueryPath)
+              : new ExprFilter(expr, Op.E, new BaseExpression(subQueryPath));
       subStatement.addFreeVariable(expr.getColumnName());
     }
 
@@ -1715,7 +1721,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
   }
 
   private FilterData parseQuantifierComparisonFilter(
-      PredicateWithSubqueryContext ctx, UnarySelectStatement statement) {
+      PredicateWithSubqueryContext ctx, UnarySelectStatement statement, Pos pos) {
     SelectStatement subStatement = buildSubStatement(ctx, statement, 0, 1);
     // 计算子查询的自由变量
     subStatement.initFreeVariables();
@@ -1749,7 +1755,10 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       if (ctx.quantifier().all() != null) {
         op = Op.getOpposite(op);
       }
-      filter = new ExprFilter(expr, op, new BaseExpression(subQueryPath));
+      filter =
+          pos == Pos.HavingClause
+              ? new PathFilter(expr.getColumnName(), op, subQueryPath)
+              : new ExprFilter(expr, op, new BaseExpression(subQueryPath));
       subStatement.addFreeVariable(expr.getColumnName());
     }
 
@@ -1764,7 +1773,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
   }
 
   private FilterData parseScalarSubQueryComparisonFilter(
-      PredicateWithSubqueryContext ctx, UnarySelectStatement statement) {
+      PredicateWithSubqueryContext ctx, UnarySelectStatement statement, Pos pos) {
     SelectStatement subStatement = buildSubStatement(ctx, statement, 0, 1);
     // 计算子查询的自由变量
     subStatement.initFreeVariables();
@@ -1797,7 +1806,11 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     } else {
       assert ctx.expression() != null;
       Expression expr = parseExpression(ctx.expression(), statement, Pos.WhereClause).get(0);
-      filterData.setFilter(new ExprFilter(expr, op, new BaseExpression(subQueryPath)));
+      if (pos == Pos.HavingClause) {
+        filterData.setFilter(new PathFilter(expr.getColumnName(), op, subQueryPath));
+      } else {
+        filterData.setFilter(new ExprFilter(expr, op, new BaseExpression(subQueryPath)));
+      }
     }
 
     return filterData;
