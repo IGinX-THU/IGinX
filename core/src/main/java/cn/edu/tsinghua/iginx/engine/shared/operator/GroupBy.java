@@ -18,25 +18,37 @@
 
 package cn.edu.tsinghua.iginx.engine.shared.operator;
 
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.ExprUtils;
+import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class GroupBy extends AbstractUnaryOperator {
+
+  private final List<Expression> groupByExpressions;
 
   private final List<String> groupByCols;
 
   private final List<FunctionCall> functionCallList;
 
-  public GroupBy(Source source, List<String> groupByCols, List<FunctionCall> functionCallList) {
+  public GroupBy(
+      Source source, List<Expression> groupByExpressions, List<FunctionCall> functionCallList) {
     super(OperatorType.GroupBy, source);
-    if (groupByCols == null || groupByCols.isEmpty()) {
+    if (groupByExpressions == null || groupByExpressions.isEmpty()) {
       throw new IllegalArgumentException("groupByCols shouldn't be null");
     }
-    this.groupByCols = groupByCols;
+    this.groupByExpressions = groupByExpressions;
+    this.groupByCols =
+        groupByExpressions.stream().map(Expression::getColumnName).collect(Collectors.toList());
     this.functionCallList = functionCallList;
+  }
+
+  public List<Expression> getGroupByExpressions() {
+    return groupByExpressions;
   }
 
   public List<String> getGroupByCols() {
@@ -49,13 +61,21 @@ public class GroupBy extends AbstractUnaryOperator {
 
   @Override
   public Operator copy() {
+    List<Expression> copyGroupByExpressions = new ArrayList<>(groupByExpressions.size());
+    for (Expression expression : groupByExpressions) {
+      copyGroupByExpressions.add(ExprUtils.copy(expression));
+    }
     return new GroupBy(
-        getSource().copy(), new ArrayList<>(groupByCols), new ArrayList<>(functionCallList));
+        getSource().copy(), copyGroupByExpressions, new ArrayList<>(functionCallList));
   }
 
   @Override
   public UnaryOperator copyWithSource(Source source) {
-    return new GroupBy(source, new ArrayList<>(groupByCols), new ArrayList<>(functionCallList));
+    List<Expression> copyGroupByExpressions = new ArrayList<>(groupByExpressions.size());
+    for (Expression expression : groupByExpressions) {
+      copyGroupByExpressions.add(ExprUtils.copy(expression));
+    }
+    return new GroupBy(source, copyGroupByExpressions, new ArrayList<>(functionCallList));
   }
 
   public boolean isDistinct() {
@@ -95,6 +115,14 @@ public class GroupBy extends AbstractUnaryOperator {
       return false;
     }
     GroupBy that = (GroupBy) object;
-    return groupByCols.equals(that.groupByCols) && functionCallList.equals(that.functionCallList);
+    if (this.groupByExpressions.size() != that.groupByExpressions.size()) {
+      return false;
+    }
+    for (int i = 0; i < this.groupByExpressions.size(); i++) {
+      if (!this.groupByExpressions.get(i).equalExceptAlias(that.groupByExpressions.get(i))) {
+        return false;
+      }
+    }
+    return functionCallList.equals(that.functionCallList);
   }
 }

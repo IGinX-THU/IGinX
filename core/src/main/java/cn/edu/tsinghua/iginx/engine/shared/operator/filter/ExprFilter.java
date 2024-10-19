@@ -20,6 +20,7 @@ package cn.edu.tsinghua.iginx.engine.shared.operator.filter;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.ExprUtils;
 import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
+import java.util.Objects;
 
 public class ExprFilter implements Filter {
 
@@ -79,5 +80,24 @@ public class ExprFilter implements Filter {
   @Override
   public String toString() {
     return expressionA.getColumnName() + " " + Op.op2Str(op) + " " + expressionB.getColumnName();
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    ExprFilter that = (ExprFilter) o;
+    return expressionA.equalExceptAlias(that.expressionA)
+        && op == that.op
+        && expressionB.equalExceptAlias(that.expressionB);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(type, expressionA, expressionB, op);
   }
 }

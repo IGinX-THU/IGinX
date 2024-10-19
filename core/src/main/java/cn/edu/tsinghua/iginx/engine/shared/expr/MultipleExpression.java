@@ -110,4 +110,26 @@ public class MultipleExpression implements Expression {
     visitor.visit(this);
     children.forEach(e -> e.accept(visitor));
   }
+
+  @Override
+  public boolean equalExceptAlias(Expression expr) {
+    if (this == expr) {
+      return true;
+    }
+    if (expr == null || expr.getType() != ExpressionType.Multiple) {
+      return false;
+    }
+    MultipleExpression that = (MultipleExpression) expr;
+
+    if (this.getChildren().size() != that.getChildren().size()) {
+      return false;
+    }
+    for (int i = 0; i < this.getChildren().size(); i++) {
+      if (!this.getChildren().get(i).equalExceptAlias(that.getChildren().get(i))) {
+        return false;
+      }
+    }
+
+    return this.ops.equals(that.ops);
+  }
 }

@@ -69,6 +69,11 @@ public class BinarySelectStatement extends SelectStatement {
   }
 
   @Override
+  public UnarySelectStatement getFirstUnarySelectStatement() {
+    return leftQuery.getFirstUnarySelectStatement();
+  }
+
+  @Override
   public Set<String> getPathSet() {
     Set<String> pathSet = new HashSet<>(leftQuery.getPathSet());
     pathSet.addAll(rightQuery.getPathSet());

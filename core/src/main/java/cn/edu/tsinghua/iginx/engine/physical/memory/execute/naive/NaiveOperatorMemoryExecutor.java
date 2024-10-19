@@ -259,6 +259,11 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
   }
 
   private RowStream executeSort(Sort sort, Table table) throws PhysicalException {
+    RowTransform preRowTransform = HeaderUtils.checkSortHeader(table.getHeader(), sort);
+    if (preRowTransform != null) {
+      table = transformToTable(executeRowTransform(preRowTransform, table));
+    }
+
     List<Boolean> ascendingList = sort.getAscendingList();
     RowUtils.sortRows(table.getRows(), ascendingList, sort.getSortByCols());
     return table;
@@ -481,6 +486,11 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
   }
 
   private RowStream executeGroupBy(GroupBy groupBy, Table table) throws PhysicalException {
+    RowTransform preRowTransform = HeaderUtils.checkGroupByHeader(table.getHeader(), groupBy);
+    if (preRowTransform != null) {
+      table = transformToTable(executeRowTransform(preRowTransform, table));
+    }
+
     List<Row> rows = RowUtils.cacheGroupByResult(groupBy, table);
     if (rows.isEmpty()) {
       return Table.EMPTY_TABLE;

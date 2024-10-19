@@ -83,12 +83,18 @@ public abstract class SelectStatement extends DataStatement {
 
   public abstract Set<String> getPathSet();
 
-  public List<String> getOrderByPaths() {
-    return orderByClause.getOrderByPaths();
+  public abstract UnarySelectStatement getFirstUnarySelectStatement();
+
+  public String getOriginPath(String path) {
+    return null;
   }
 
-  public void setOrderByPath(String orderByPath) {
-    this.orderByClause.setOrderByPaths(orderByPath);
+  public List<Expression> getOrderByExpressions() {
+    return orderByClause.getOrderByExpressions();
+  }
+
+  public void setOrderByExpr(Expression orderByExpr) {
+    this.orderByClause.setOrderByExpr(orderByExpr);
   }
 
   public List<Boolean> getAscendingList() {
