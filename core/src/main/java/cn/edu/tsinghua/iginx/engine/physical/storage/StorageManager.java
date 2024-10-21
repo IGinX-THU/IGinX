@@ -19,6 +19,7 @@ package cn.edu.tsinghua.iginx.engine.physical.storage;
 
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
+import cn.edu.tsinghua.iginx.engine.physical.storage.pool.StorageTaskThreadPoolExecutor;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
@@ -130,11 +131,23 @@ public class StorageManager {
     StorageEngineType engine = meta.getStorageEngine();
     long id = meta.getId();
     try {
+      if (!storageMap.containsKey(id)) {
+        // 启动一个派发线程池
+        ThreadPoolExecutor dispatcher =
+            new StorageTaskThreadPoolExecutor(
+                ConfigDescriptor.getInstance()
+                    .getConfig()
+                    .getPhysicalTaskThreadPoolSizePerStorage(),
+                Integer.MAX_VALUE,
+                60L,
+                TimeUnit.SECONDS,
+                new SynchronousQueue<>());
+        storageMap.put(meta.getId(), new Pair<>(storage, dispatcher));
       if (storage.testConnection(meta)) {
         if (!storageMap.containsKey(id)) {
           // 启动一个派发线程池
           ThreadPoolExecutor dispatcher =
-              new ThreadPoolExecutor(
+              new StorageTaskThreadPoolExecutor(
                   ConfigDescriptor.getInstance()
                       .getConfig()
                       .getPhysicalTaskThreadPoolSizePerStorage(),

@@ -81,7 +81,11 @@ public class BatchStageRunner implements Runner {
   }
 
   @Override
-  public void close() {}
+  public void close() {
+    if (pemjaWorker != null) {
+      pemjaWorker.close();
+    }
+  }
 
   // schedule config would be set at higher level
   @Override

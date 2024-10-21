@@ -18,9 +18,6 @@
 
 package cn.edu.tsinghua.iginx.engine.shared.function.udf.python;
 
-import static cn.edu.tsinghua.iginx.engine.shared.Constants.UDF_CLASS;
-import static cn.edu.tsinghua.iginx.engine.shared.Constants.UDF_FUNC;
-
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.Table;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
@@ -33,8 +30,6 @@ import cn.edu.tsinghua.iginx.engine.shared.function.udf.utils.DataUtils;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.utils.RowUtils;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.BlockingQueue;
-import pemja.core.PythonInterpreter;
 
 public class PyUDAF extends PyUDF implements UDAF {
 
@@ -42,8 +37,8 @@ public class PyUDAF extends PyUDF implements UDAF {
 
   private final String funcName;
 
-  public PyUDAF(BlockingQueue<PythonInterpreter> interpreters, String funcName, String moduleName) {
-    super(interpreters, moduleName);
+  public PyUDAF(String funcName, String moduleName, String className) {
+    super(moduleName, className);
     this.funcName = funcName;
   }
 
@@ -68,7 +63,6 @@ public class PyUDAF extends PyUDF implements UDAF {
       throw new IllegalArgumentException("unexpected params for PyUDAF.");
     }
 
-    PythonInterpreter interpreter = interpreters.take();
     List<List<Object>> data = DataUtils.dataFromTable(table, params.getPaths());
     if (data == null) {
       return Row.EMPTY_ROW;
@@ -77,13 +71,11 @@ public class PyUDAF extends PyUDF implements UDAF {
     List<Object> args = params.getArgs();
     Map<String, Object> kvargs = params.getKwargs();
 
-    List<List<Object>> res =
-        (List<List<Object>>) interpreter.invokeMethod(UDF_CLASS, UDF_FUNC, data, args, kvargs);
+    List<List<Object>> res = invokePyUDF(data, args, kvargs);
 
     if (res == null || res.size() < 3) {
       return Row.EMPTY_ROW;
     }
-    interpreters.add(interpreter);
 
     // [["key", col1, col2 ....],
     // ["LONG", type1, type2 ...],

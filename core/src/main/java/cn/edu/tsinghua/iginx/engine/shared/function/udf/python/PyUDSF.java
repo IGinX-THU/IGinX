@@ -18,9 +18,6 @@
 
 package cn.edu.tsinghua.iginx.engine.shared.function.udf.python;
 
-import static cn.edu.tsinghua.iginx.engine.shared.Constants.UDF_CLASS;
-import static cn.edu.tsinghua.iginx.engine.shared.Constants.UDF_FUNC;
-
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.Table;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
@@ -32,8 +29,6 @@ import cn.edu.tsinghua.iginx.engine.shared.function.udf.utils.CheckUtils;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.utils.DataUtils;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.utils.RowUtils;
 import java.util.*;
-import java.util.concurrent.BlockingQueue;
-import pemja.core.PythonInterpreter;
 
 public class PyUDSF extends PyUDF implements UDSF {
 
@@ -41,8 +36,8 @@ public class PyUDSF extends PyUDF implements UDSF {
 
   private final String funcName;
 
-  public PyUDSF(BlockingQueue<PythonInterpreter> interpreters, String funcName, String moduleName) {
-    super(interpreters, moduleName);
+  public PyUDSF(String funcName, String moduleName, String className) {
+    super(moduleName, className);
     this.funcName = funcName;
   }
 
@@ -66,8 +61,6 @@ public class PyUDSF extends PyUDF implements UDSF {
     if (!CheckUtils.isLegal(params)) {
       throw new IllegalArgumentException("unexpected params for PyUDSF.");
     }
-
-    PythonInterpreter interpreter = interpreters.take();
     List<List<Object>> data = DataUtils.dataFromTable(table, params.getPaths());
     if (data == null) {
       return Table.EMPTY_TABLE;
@@ -76,13 +69,11 @@ public class PyUDSF extends PyUDF implements UDSF {
     List<Object> args = params.getArgs();
     Map<String, Object> kvargs = params.getKwargs();
 
-    List<List<Object>> res =
-        (List<List<Object>>) interpreter.invokeMethod(UDF_CLASS, UDF_FUNC, data, args, kvargs);
+    List<List<Object>> res = invokePyUDF(data, args, kvargs);
 
     if (res == null || res.size() < 3) {
       return Table.EMPTY_TABLE;
     }
-    interpreters.add(interpreter);
 
     // [["key", col1, col2 ....],
     // ["LONG", type1, type2 ...],
