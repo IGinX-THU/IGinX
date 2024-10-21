@@ -1,21 +1,22 @@
 /*
  * IGinX - the polystore system with high performance
  * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-
 package cn.edu.tsinghua.iginx.integration.expansion;
 
 import static cn.edu.tsinghua.iginx.integration.controller.Controller.SUPPORT_KEY;
@@ -70,6 +71,10 @@ public abstract class BaseCapacityExpansionIT {
 
   protected static final String updateParamsScriptDir = ".github/scripts/dataSources/update/";
 
+  protected static final String shutdownScriptDir = ".github/scripts/dataSources/shutdown/";
+
+  protected static final String restartScriptDir = ".github/scripts/dataSources/restart/";
+
   protected static BaseHistoryDataGenerator generator;
 
   public BaseCapacityExpansionIT(
@@ -86,6 +91,18 @@ public abstract class BaseCapacityExpansionIT {
       String dataPrefix,
       String schemaPrefix,
       String extraParams) {
+    return this.addStorageEngine(
+        port, hasData, isReadOnly, dataPrefix, schemaPrefix, extraParams, false);
+  }
+
+  protected String addStorageEngine(
+      int port,
+      boolean hasData,
+      boolean isReadOnly,
+      String dataPrefix,
+      String schemaPrefix,
+      String extraParams,
+      boolean noError) {
     try {
       StringBuilder statement = new StringBuilder();
       statement.append("ADD STORAGEENGINE (\"127.0.0.1\", ");
@@ -128,16 +145,28 @@ public abstract class BaseCapacityExpansionIT {
       session.executeSql(statement.toString());
       return null;
     } catch (SessionException e) {
-      LOGGER.warn(
-          "add storage engine:{} port:{} hasData:{} isReadOnly:{} dataPrefix:{} schemaPrefix:{} extraParams:{} failure: ",
-          type.name(),
-          port,
-          hasData,
-          isReadOnly,
-          dataPrefix,
-          schemaPrefix,
-          extraParams,
-          e);
+      if (noError) {
+        LOGGER.warn(
+            "add storage engine:{} port:{} hasData:{} isReadOnly:{} dataPrefix:{} schemaPrefix:{} extraParams:{} failure: ",
+            type.name(),
+            port,
+            hasData,
+            isReadOnly,
+            dataPrefix,
+            schemaPrefix,
+            extraParams);
+      } else {
+        LOGGER.warn(
+            "add storage engine:{} port:{} hasData:{} isReadOnly:{} dataPrefix:{} schemaPrefix:{} extraParams:{} failure: ",
+            type.name(),
+            port,
+            hasData,
+            isReadOnly,
+            dataPrefix,
+            schemaPrefix,
+            extraParams,
+            e);
+      }
       return e.getMessage();
     }
   }
@@ -251,14 +280,18 @@ public abstract class BaseCapacityExpansionIT {
     testQueryHistoryDataOriHasData();
     // 测试只读节点的参数修改
     testUpdateEngineParams();
+    testDatabaseShutdown();
+
     // 测试参数错误的只读节点扩容
-    testInvalidDummyParams(readOnlyPort, true, true, null, READ_ONLY_SCHEMA_PREFIX);
+    testInvalidEngineParams(readOnlyPort, true, true, null, READ_ONLY_SCHEMA_PREFIX);
     // 扩容只读节点
     addStorageEngineInProgress(readOnlyPort, true, true, null, READ_ONLY_SCHEMA_PREFIX);
     // 查询扩容只读节点的历史数据，结果不为空
     testQueryHistoryDataReadOnly();
-    // 测试参数错误的可写节点扩容
-    testInvalidDummyParams(expPort, true, false, null, EXP_SCHEMA_PREFIX);
+
+    // 测试参数错误的可写节点扩容，也需要测试非dummy情况
+    testInvalidEngineParams(expPort, true, false, null, EXP_SCHEMA_PREFIX);
+    testInvalidEngineParams(expPort, false, false, null, EXP_SCHEMA_PREFIX);
     // 扩容可写节点
     addStorageEngineInProgress(expPort, true, false, null, EXP_SCHEMA_PREFIX);
     // 查询扩容可写节点的历史数据，结果不为空
@@ -284,12 +317,12 @@ public abstract class BaseCapacityExpansionIT {
     queryExtendedColDummy();
   }
 
-  protected void testInvalidDummyParams(
+  protected void testInvalidEngineParams(
       int port, boolean hasData, boolean isReadOnly, String dataPrefix, String schemaPrefix) {
     // wrong params
     String res;
     for (String params : wrongExtraParams) {
-      res = addStorageEngine(port, hasData, isReadOnly, dataPrefix, schemaPrefix, params);
+      res = addStorageEngine(port, hasData, isReadOnly, dataPrefix, schemaPrefix, params, true);
       if (res != null) {
         LOGGER.info(
             "Successfully rejected dummy engine with wrong params: {}; {}. msg: {}",
@@ -303,7 +336,9 @@ public abstract class BaseCapacityExpansionIT {
     }
 
     // wrong port
-    res = addStorageEngine(port + 999, hasData, isReadOnly, dataPrefix, schemaPrefix, extraParams);
+    res =
+        addStorageEngine(
+            port + 999, hasData, isReadOnly, dataPrefix, schemaPrefix, extraParams, true);
     if (res != null) {
       LOGGER.info(
           "Successfully rejected dummy engine with wrong port: {}; params: {}. msg: {}",
@@ -376,11 +411,55 @@ public abstract class BaseCapacityExpansionIT {
     restoreParams(readOnlyPort);
   }
 
-  /** 这个方法需要实现：通过脚本修改port对应数据源的可变参数，如密码等 */
+  /** 测试注册时发现原ip、端口的数据库失效的情形 */
+  protected void testDatabaseShutdown() {
+    String res;
+    // 当原数据库是只读，注册时应该发现原数据库失效并删除原数据库
+    addStorageEngineInProgress(readOnlyPort, true, true, null, READ_ONLY_SCHEMA_PREFIX);
+    shutdownDatabase(readOnlyPort);
+
+    // 添加一个ip、端口、类型相同的数据库，修改schema prefix以避免被认为是重复注册，此时应该发现该数据库失效，移除原数据库并拒绝注册新的
+    res = addStorageEngine(readOnlyPort, true, true, null, "nonexistdata", extraParams, false);
+    if (res.contains("Failed to read data in dummy storage engine")) {
+      LOGGER.info("Successfully rejected dead datasource.");
+    } else {
+      LOGGER.error("Dead datasource shouldn't be added.");
+      fail();
+    }
+    // 只剩最开始的数据库
+    testShowClusterInfo(1);
+
+    // 重新启动原数据库
+    startDatabase(readOnlyPort);
+  }
+
+  /** mode: T:shutdown; F:restart */
+  protected void shutOrRestart(int port, boolean mode, String DBName) {
+    String dir = mode ? shutdownScriptDir : restartScriptDir;
+    String scriptPath = dir + DBName + ".sh";
+    String os = System.getProperty("os.name").toLowerCase();
+    if (os.contains("mac")) {
+      scriptPath = dir + DBName + "_macos.sh";
+    } else if (os.contains("win")) {
+      scriptPath = dir + DBName + "_windows.sh";
+    }
+    int res = executeShellScript(scriptPath, String.valueOf(port));
+    if (res != 0) {
+      fail("Fail to " + (mode ? "shutdown" : "restart") + " " + DBName + port);
+    }
+  }
+
+  /** 通过脚本修改port对应数据源的可变参数，如密码等 */
   protected abstract void updateParams(int port);
 
-  /** 这个方法需要实现：通过脚本恢复updateParams中修改的可变参数 */
+  /** 通过脚本恢复updateParams中修改的可变参数 */
   protected abstract void restoreParams(int port);
+
+  /** 暂时使对应port的数据库宕机 */
+  protected abstract void shutdownDatabase(int port);
+
+  /** 重新开启对应port的数据库 */
+  protected abstract void startDatabase(int port);
 
   protected void queryExtendedKeyDummy() {
     // ori
@@ -556,22 +635,29 @@ public abstract class BaseCapacityExpansionIT {
     SQLTestTools.executeAndCompare(session, statement, pathList, REPEAT_EXP_VALUES_LIST1);
 
     addStorageEngine(expPort, true, true, dataPrefix1, schemaPrefix2, extraParams);
-    addStorageEngine(expPort, true, true, dataPrefix1, null, extraParams);
-    testShowClusterInfo(5);
+    testShowClusterInfo(4);
 
     // 如果是重复添加，则报错
-    String res = addStorageEngine(expPort, true, true, dataPrefix1, null, extraParams);
+    String res =
+        addStorageEngine(expPort, true, true, dataPrefix1, schemaPrefix2, extraParams, false);
     if (res != null && !res.contains("repeatedly add storage engine")) {
       fail();
     }
-    testShowClusterInfo(5);
+    testShowClusterInfo(4);
+
+    // data_prefix存在包含关系
+    res = addStorageEngine(expPort, true, true, dataPrefix1, null, extraParams, false);
+    if (res != null && !res.contains("duplicate data coverage detected")) {
+      fail();
+    }
+    testShowClusterInfo(4);
 
     addStorageEngine(expPort, true, true, dataPrefix1, schemaPrefix3, extraParams);
     // 这里是之后待测试的点，如果添加包含关系的，应当报错。
     //    res = addStorageEngine(expPort, true, true, "nt.wf03.wt01", "p3");
     // 添加相同 schemaPrefix，不同 dataPrefix
     addStorageEngine(expPort, true, true, dataPrefix2, schemaPrefix3, extraParams);
-    testShowClusterInfo(7);
+    testShowClusterInfo(6);
 
     // 添加节点 dataPrefix = dataPrefix1 && schemaPrefix = p1 后查询
     statement = "select wt01.status2 from p1.nt.wf03;";
@@ -602,7 +688,7 @@ public abstract class BaseCapacityExpansionIT {
         new RemovedStorageEngineInfo("127.0.0.1", expPort, "p3" + schemaPrefixSuffix, dataPrefix1));
     try {
       session.removeHistoryDataSource(removedStorageEngineList);
-      testShowClusterInfo(5);
+      testShowClusterInfo(4);
     } catch (SessionException e) {
       LOGGER.error("remove history data source through session api error: ", e);
     }
@@ -627,7 +713,6 @@ public abstract class BaseCapacityExpansionIT {
           String.format(removeStatement, expPort, "p1" + schemaPrefixSuffix, dataPrefix1));
       session.executeSql(
           String.format(removeStatement, expPort, "p3" + schemaPrefixSuffix, dataPrefix2));
-      session.executeSql(String.format(removeStatement, expPort, "", dataPrefix1));
       testShowClusterInfo(2);
     } catch (SessionException e) {
       LOGGER.error("remove history data source through sql error: ", e);
