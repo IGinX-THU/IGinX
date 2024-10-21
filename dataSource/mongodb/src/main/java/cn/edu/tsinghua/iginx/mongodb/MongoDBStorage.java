@@ -1,21 +1,22 @@
 /*
  * IGinX - the polystore system with high performance
  * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-
 package cn.edu.tsinghua.iginx.mongodb;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
@@ -78,6 +79,7 @@ import java.util.stream.Collectors;
 import org.bson.BsonDocument;
 import org.bson.BsonInt64;
 import org.bson.BsonValue;
+import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -140,6 +142,31 @@ public class MongoDBStorage implements IStorage {
             .build();
 
     return MongoClients.create(settings);
+  }
+
+  @Override
+  public boolean testConnection(StorageEngineMeta meta) {
+    String defaultConnection = String.format("mongodb://%s:%d", meta.getIp(), meta.getPort());
+    String connectionString =
+        meta.getExtraParams().getOrDefault(CONNECTION_STRING, defaultConnection);
+
+    MongoClientSettings settings =
+        MongoClientSettings.builder()
+            .applyToConnectionPoolSettings(
+                builder ->
+                    builder
+                        .maxWaitTime(MAX_WAIT_TIME, TimeUnit.SECONDS)
+                        .maxSize(SESSION_POOL_MAX_SIZE)
+                        .maxConnectionIdleTime(60, TimeUnit.SECONDS))
+            .applyConnectionString(new ConnectionString(connectionString))
+            .build();
+    try (MongoClient mongoClient = MongoClients.create(settings)) {
+      mongoClient.getDatabase("admin").runCommand(new Document("ping", 1));
+      return true;
+    } catch (Exception e) {
+      LOGGER.error("Failed to connect MongoDB {}: e", meta, e);
+      return false;
+    }
   }
 
   @Override

@@ -1,19 +1,21 @@
 /*
  * IGinX - the polystore system with high performance
  * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 package cn.edu.tsinghua.iginx.influxdb;
 
@@ -131,7 +133,7 @@ public class InfluxDBStorage implements IStorage {
     if (!meta.getStorageEngine().equals(StorageEngineType.influxdb)) {
       throw new StorageInitializationException("unexpected database: " + meta.getStorageEngine());
     }
-    if (!testConnection()) {
+    if (!testConnection(this.meta)) {
       throw new StorageInitializationException("cannot connect to " + meta);
     }
     Map<String, String> extraParams = meta.getExtraParams();
@@ -156,18 +158,25 @@ public class InfluxDBStorage implements IStorage {
     }
   }
 
-  private boolean testConnection() {
+  @Override
+  public boolean testConnection(StorageEngineMeta meta) {
     Map<String, String> extraParams = meta.getExtraParams();
+    LOGGER.debug("testing influxdb {}", extraParams.toString());
     String url = extraParams.get("url");
-    try {
-      InfluxDBClient client =
-          InfluxDBClientFactory.create(url, extraParams.get("token").toCharArray());
-      client.close();
+    try (InfluxDBClient client =
+        InfluxDBClientFactory.create(url, extraParams.get("token").toCharArray())) {
+      LOGGER.debug("start testing");
+      if (client.ping()) {
+        LOGGER.debug("influxdb connection success:{}", meta);
+        return true;
+      } else {
+        LOGGER.error("influxdb connection failed:{}", meta);
+        return false;
+      }
     } catch (Exception e) {
       LOGGER.error("test connection error: ", e);
       return false;
     }
-    return true;
   }
 
   private void reloadHistoryData() {
