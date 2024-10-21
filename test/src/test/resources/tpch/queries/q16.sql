@@ -20,9 +20,9 @@ FROM
                 SELECT
                     p_partkey
                 FROM
-                    part
+                    part AS p
                 WHERE
-                    part.p_type LIKE '.*MEDIUM POLISHED.*'
+                    p.p_type LIKE '.*MEDIUM POLISHED.*'
             )
             AND(
                 part.p_size = 3
