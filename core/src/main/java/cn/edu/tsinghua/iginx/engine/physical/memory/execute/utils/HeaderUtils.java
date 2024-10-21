@@ -233,13 +233,15 @@ public class HeaderUtils {
               "filter: " + filter + " can't be used in hash join.");
         }
         for (Pair<String, String> pair : pairs) {
-          if (headerA.indexOf(pair.k) != -1 && headerB.indexOf(pair.v) != -1) {
-            joinPathA = pair.k;
-            joinPathB = pair.v;
+          if (!headerA.patternIndexOf(pair.k).isEmpty()
+              && !headerB.patternIndexOf(pair.v).isEmpty()) {
+            joinPathA = headerA.getField(headerA.patternIndexOf(pair.k).get(0)).getName();
+            joinPathB = headerB.getField(headerB.patternIndexOf(pair.v).get(0)).getName();
             break;
-          } else if (headerA.indexOf(pair.v) != -1 && headerB.indexOf(pair.k) != -1) {
-            joinPathA = pair.v;
-            joinPathB = pair.k;
+          } else if (!headerA.patternIndexOf(pair.v).isEmpty()
+              && !headerB.patternIndexOf(pair.k).isEmpty()) {
+            joinPathA = headerA.getField(headerA.patternIndexOf(pair.v).get(0)).getName();
+            joinPathB = headerB.getField(headerB.patternIndexOf(pair.k).get(0)).getName();
             break;
           }
         }

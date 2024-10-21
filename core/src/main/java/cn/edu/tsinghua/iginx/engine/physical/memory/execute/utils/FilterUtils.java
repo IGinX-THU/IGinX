@@ -195,15 +195,40 @@ public class FilterUtils {
 
   private static boolean validatePathFilter(PathFilter pathFilter, Row row)
       throws PhysicalException {
-    Value valueA = row.getAsValue(pathFilter.getPathA());
-    Value valueB = row.getAsValue(pathFilter.getPathB());
-    if (valueA == null
-        || valueA.isNull()
-        || valueB == null
-        || valueB.isNull()) { // 如果任何一个是空值，则认为不可比较
+    List<Value> valueListA = row.getAsValueByPattern(pathFilter.getPathA());
+    List<Value> valueListB = row.getAsValueByPattern(pathFilter.getPathB());
+
+    if (valueListA.isEmpty() || valueListB.isEmpty()) {
       return false;
     }
-    return validateValueCompare(pathFilter.getOp(), valueA, valueB);
+
+    boolean isOrOp = Op.isOrOp(pathFilter.getOp());
+
+    for (Value valueA : valueListA) {
+      if (valueA == null || valueA.isNull()) {
+        if (isOrOp) continue;
+        return false;
+      }
+
+      for (Value valueB : valueListB) {
+        if (valueB == null || valueB.isNull()) {
+          if (isOrOp) continue;
+          return false;
+        }
+        boolean res = validateValueCompare(pathFilter.getOp(), valueA, valueB);
+        if (res && isOrOp) {
+          return true;
+        } else if (!res && !isOrOp) {
+          return false;
+        }
+      }
+    }
+
+    if (!isOrOp) {
+      return true;
+    }
+
+    return false;
   }
 
   private static boolean validateExprFilter(ExprFilter exprFilter, Row row)
@@ -372,7 +397,9 @@ public class FilterUtils {
         return canUseHashJoin(notFilter.getChild());
       case Path:
         PathFilter pathFilter = (PathFilter) filter;
-        return isEqualOp(pathFilter.getOp());
+        boolean hasWildcard =
+            pathFilter.getPathA().contains("*") || pathFilter.getPathB().contains("*");
+        return isEqualOp(pathFilter.getOp()) && (!hasWildcard || Op.isAndOp(pathFilter.getOp()));
       case Key:
       case Value:
       case Bool:
