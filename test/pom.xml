@@ -46,13 +46,6 @@
         </dependency>
         <dependency>
             <groupId>cn.edu.tsinghua</groupId>
-            <artifactId>filesystem</artifactId>
-            <version>${project.version}</version>
-            <classifier>tests</classifier>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>cn.edu.tsinghua</groupId>
             <artifactId>iotdb12</artifactId>
         </dependency>
         <dependency>
