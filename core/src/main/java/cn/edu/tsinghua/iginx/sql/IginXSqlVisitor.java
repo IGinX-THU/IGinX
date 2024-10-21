@@ -1032,7 +1032,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     }
     if (ctx.caseSpecification() != null) {
       return Collections.singletonList(
-          parseCaseWhenExpression(ctx.caseSpecification(), selectStatement));
+          parseCaseWhenExpression(ctx.caseSpecification(), selectStatement, pos));
     }
 
     List<Expression> ret = new ArrayList<>();
@@ -1178,26 +1178,26 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
   }
 
   private Expression parseCaseWhenExpression(
-      CaseSpecificationContext ctx, UnarySelectStatement selectStatement) {
+      CaseSpecificationContext ctx, UnarySelectStatement selectStatement, Pos pos) {
     if (ctx.simpleCase() != null) {
-      return parseSimpleCase(ctx.simpleCase(), selectStatement);
+      return parseSimpleCase(ctx.simpleCase(), selectStatement, pos);
     } else if (ctx.searchedCase() != null) {
-      return parseSearchedCase(ctx.searchedCase(), selectStatement);
+      return parseSearchedCase(ctx.searchedCase(), selectStatement, pos);
     } else {
       throw new SQLParserException("Illegal case when selected expression");
     }
   }
 
   private CaseWhenExpression parseSimpleCase(
-      SimpleCaseContext ctx, UnarySelectStatement selectStatement) {
+      SimpleCaseContext ctx, UnarySelectStatement selectStatement, Pos pos) {
     List<Filter> conditions = new ArrayList<>();
     List<Expression> results = new ArrayList<>();
-    Expression leftExpr = parseExpression(ctx.expression(), selectStatement).get(0);
+    Expression leftExpr = parseExpression(ctx.expression(), selectStatement, pos).get(0);
     String leftPath = ExpressionUtils.transformToBaseExpr(leftExpr);
 
     for (SimpleWhenClauseContext context : ctx.simpleWhenClause()) {
       if (context.value != null) {
-        Expression rightExpr = parseExpression(context.value, selectStatement).get(0);
+        Expression rightExpr = parseExpression(context.value, selectStatement, pos).get(0);
         String rightPath = ExpressionUtils.transformToBaseExpr(rightExpr);
         Op op =
             context.comparisonOperator() == null
@@ -1223,11 +1223,11 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         }
       }
 
-      results.add(parseExpression(context.result, selectStatement).get(0));
+      results.add(parseExpression(context.result, selectStatement, pos).get(0));
     }
     Expression resultElse = null;
     if (ctx.elseClause() != null) {
-      resultElse = parseExpression(ctx.elseClause().expression(), selectStatement).get(0);
+      resultElse = parseExpression(ctx.elseClause().expression(), selectStatement, pos).get(0);
     }
     String columnName = CaseWhenExpression.CASE_WHEN_PREFIX + caseWhenCount;
     caseWhenCount++;
@@ -1235,7 +1235,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
   }
 
   private CaseWhenExpression parseSearchedCase(
-      SearchedCaseContext ctx, UnarySelectStatement selectStatement) {
+      SearchedCaseContext ctx, UnarySelectStatement selectStatement, Pos pos) {
     List<Filter> conditions = new ArrayList<>();
     List<Expression> results = new ArrayList<>();
     for (SearchedWhenClauseContext context : ctx.searchedWhenClause()) {
@@ -1247,12 +1247,12 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       }
       conditions.add(filterData.getFilter());
       filterData.getPathList().forEach(selectStatement::addSelectPath);
-      results.add(parseExpression(context.result, selectStatement).get(0));
+      results.add(parseExpression(context.result, selectStatement, pos).get(0));
     }
 
     Expression resultElse = null;
     if (ctx.elseClause() != null) {
-      resultElse = parseExpression(ctx.elseClause().expression(), selectStatement).get(0);
+      resultElse = parseExpression(ctx.elseClause().expression(), selectStatement, pos).get(0);
     }
     String columnName = CaseWhenExpression.CASE_WHEN_PREFIX + caseWhenCount;
     caseWhenCount++;
@@ -1407,7 +1407,8 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       if (ctx.expression().subquery() != null) {
         throw new SQLParserException("Subquery is not supported in GROUP BY columns.");
       }
-      Expression expr = parseExpression(ctx.expression(), selectStatement, Pos.GroupByClause).get(0);
+      Expression expr =
+          parseExpression(ctx.expression(), selectStatement, Pos.GroupByClause).get(0);
       MappingType type = ExpressionUtils.getExprMappingType(expr);
       if (type == MappingType.SetMapping || type == MappingType.Mapping) {
         throw new SQLParserException("GROUP BY column can not use SetToSet/SetToRow functions.");

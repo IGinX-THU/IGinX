@@ -208,6 +208,14 @@ public class ValueUtils {
     return "";
   }
 
+  public static String toString(Object value) {
+    if (value instanceof byte[]) {
+      return new String((byte[]) value);
+    } else {
+      return value.toString();
+    }
+  }
+
   public static int getHash(Value value, boolean needTypeCast) {
     if (needTypeCast) {
       value = ValueUtils.transformToDouble(value);

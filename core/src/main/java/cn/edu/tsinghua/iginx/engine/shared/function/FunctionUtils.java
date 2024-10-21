@@ -52,7 +52,7 @@ public class FunctionUtils {
   private static final String VALUE = "value";
 
   private static final Set<String> sysRowToRowFunctionSet =
-      new HashSet<>(Collections.singletonList("ratio"));
+      new HashSet<>(Arrays.asList("ratio", "substring"));
 
   private static final Set<String> sysSetToRowFunctionSet =
       new HashSet<>(
@@ -164,6 +164,7 @@ public class FunctionUtils {
 
   static Map<String, Integer> expectedParamNumMap = new HashMap<>(); // 此Map用于存储function期望的参数个数
 
+  // TODO
   static {
     expectedParamNumMap.put("avg", 1);
     expectedParamNumMap.put("sum", 1);
@@ -175,6 +176,7 @@ public class FunctionUtils {
     expectedParamNumMap.put("first", 1);
     expectedParamNumMap.put("last", 1);
     expectedParamNumMap.put("ratio", 2);
+    expectedParamNumMap.put("substring", 1);
   }
 
   public static int getExpectedParamNum(String identifier) {

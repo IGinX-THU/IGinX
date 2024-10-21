@@ -33,6 +33,7 @@ import cn.edu.tsinghua.iginx.engine.shared.function.system.LastValue;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.Max;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.Min;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.Ratio;
+import cn.edu.tsinghua.iginx.engine.shared.function.system.SubString;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.Sum;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.python.PyUDAF;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.python.PyUDF;
@@ -98,6 +99,7 @@ public class FunctionManager {
     registerFunction(Sum.getInstance());
     registerFunction(ArithmeticExpr.getInstance());
     registerFunction(Ratio.getInstance());
+    registerFunction(SubString.getInstance());
   }
 
   private void initBasicUDFFunctions() {

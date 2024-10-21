@@ -19,6 +19,7 @@
 package cn.edu.tsinghua.iginx.engine.shared.expr;
 
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionUtils;
+import cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -96,6 +97,12 @@ public class FuncExpression implements Expression {
     }
     for (Expression expression : expressions) {
       columnName.append(expression.getColumnName()).append(", ");
+    }
+    for (Object arg : args) {
+      columnName.append(ValueUtils.toString(arg)).append(", ");
+    }
+    for (Map.Entry<String, Object> kvarg : kvargs.entrySet()) {
+      columnName.append(kvarg.getValue()).append(", ");
     }
     columnName.setLength(columnName.length() - 2);
     columnName.append(")");
