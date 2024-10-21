@@ -499,4 +499,14 @@ public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
 
   @Override
   protected void restoreParams(int port) {}
+
+  @Override
+  protected void shutdownDatabase(int port) {
+    shutOrRestart(port, true, "mongodb");
+  }
+
+  @Override
+  protected void startDatabase(int port) {
+    shutOrRestart(port, false, "mongodb");
+  }
 }
