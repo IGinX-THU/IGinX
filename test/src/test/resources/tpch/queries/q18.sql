@@ -25,7 +25,7 @@ WHERE
                 GROUP BY
                     l_orderkey
                 HAVING -- spotless:off
-                    sum(lineitem.l_quantity)> 300 -- spotless:on
+                    sum( l_quantity )> 300 -- spotless:on
 
             )
     )
