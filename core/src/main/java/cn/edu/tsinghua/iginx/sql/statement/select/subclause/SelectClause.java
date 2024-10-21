@@ -23,6 +23,7 @@ import cn.edu.tsinghua.iginx.engine.shared.expr.BracketExpression;
 import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
 import cn.edu.tsinghua.iginx.engine.shared.expr.FuncExpression;
 import cn.edu.tsinghua.iginx.engine.shared.expr.MultipleExpression;
+import cn.edu.tsinghua.iginx.engine.shared.expr.SequenceExpression;
 import cn.edu.tsinghua.iginx.engine.shared.expr.UnaryExpression;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionUtils;
 import cn.edu.tsinghua.iginx.engine.shared.function.MappingType;
@@ -131,11 +132,23 @@ public class SelectClause {
         break;
       case Base:
       case Constant:
+      case Key:
+      case Sequence:
       case FromValue:
       case CaseWhen:
         break;
       default:
         throw new IllegalArgumentException(String.format("Unknown expr type: %s", expr.getType()));
+    }
+    return ret;
+  }
+
+  public List<SequenceExpression> getSequenceExpressionList() {
+    List<SequenceExpression> ret = new ArrayList<>();
+    for (Expression expression : expressions) {
+      if (expression instanceof SequenceExpression) {
+        ret.add((SequenceExpression) expression);
+      }
     }
     return ret;
   }

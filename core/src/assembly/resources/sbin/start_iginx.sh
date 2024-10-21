@@ -101,25 +101,14 @@ calculate_heap_sizes() {
     system_cpu_cores=1
   fi
 
-  # set max heap size based on the following
-  # max(min(1/2 ram, 1024MB), min(1/4 ram, 64GB))
-  # calculate 1/2 ram and cap to 1024MB
-  # calculate 1/4 ram and cap to 65536MB
-  # pick the max
-  half_system_memory_in_mb=$((${system_memory_in_mb} / 2))
-  quarter_system_memory_in_mb=$((${half_system_memory_in_mb} / 2))
-#  if (( ${half_system_memory_in_mb} > 1024 )); then
-#    half_system_memory_in_mb=1024
-#  fi
-#  if (( ${quarter_system_memory_in_mb} > 65536 )); then
-#    quarter_system_memory_in_mb=65536
-#  fi
-  if (( ${half_system_memory_in_mb} > ${quarter_system_memory_in_mb} )); then
-    max_heap_size_in_mb=$half_system_memory_in_mb
-  else
-    max_heap_size_in_mb=$quarter_system_memory_in_mb
-  fi
+  # set the required memory percentage according to your needs (< 100 & must be a integer)
+  max_percentageNumerator=50
+  max_heap_size_in_mb=$((${system_memory_in_mb} * ${max_percentageNumerator} / 100))
   MAX_HEAP_SIZE=${max_heap_size_in_mb}M
+
+  min_percentageNumerator=50
+  min_heap_size_in_mb=$((${system_memory_in_mb} * ${min_percentageNumerator} / 100))
+  MIN_HEAP_SIZE=${min_heap_size_in_mb}M
 }
 
 calculate_heap_sizes
@@ -128,7 +117,7 @@ calculate_heap_sizes
 # to ensure Word Splitting works as expected,
 # i.e. split $HEAP_OPTS into two arguments
 HEAP_OPTS[0]=-Xmx$MAX_HEAP_SIZE
-HEAP_OPTS[1]=-Xms$MAX_HEAP_SIZE
+HEAP_OPTS[1]=-Xms$MIN_HEAP_SIZE
 
 # continue to other parameters
 LOCAL_JAVA_OPTS=(

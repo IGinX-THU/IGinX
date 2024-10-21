@@ -22,11 +22,14 @@ import static cn.edu.tsinghua.iginx.constant.GlobalConstant.KEY_MAX_VAL;
 import static cn.edu.tsinghua.iginx.constant.GlobalConstant.KEY_MIN_VAL;
 import static cn.edu.tsinghua.iginx.engine.shared.operator.MarkJoin.MARK_PREFIX;
 import static cn.edu.tsinghua.iginx.sql.statement.select.SelectStatement.caseWhenCount;
+import static cn.edu.tsinghua.iginx.sql.statement.select.SelectStatement.keyCount;
 import static cn.edu.tsinghua.iginx.sql.statement.select.SelectStatement.markJoinCount;
+import static cn.edu.tsinghua.iginx.sql.statement.select.SelectStatement.sequenceCount;
 
 import cn.edu.tsinghua.iginx.engine.logical.utils.LogicalFilterUtils;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.ExprUtils;
+import cn.edu.tsinghua.iginx.engine.shared.Constants;
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.RawDataType;
@@ -38,7 +41,9 @@ import cn.edu.tsinghua.iginx.engine.shared.expr.ConstantExpression;
 import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
 import cn.edu.tsinghua.iginx.engine.shared.expr.FromValueExpression;
 import cn.edu.tsinghua.iginx.engine.shared.expr.FuncExpression;
+import cn.edu.tsinghua.iginx.engine.shared.expr.KeyExpression;
 import cn.edu.tsinghua.iginx.engine.shared.expr.Operator;
+import cn.edu.tsinghua.iginx.engine.shared.expr.SequenceExpression;
 import cn.edu.tsinghua.iginx.engine.shared.expr.UnaryExpression;
 import cn.edu.tsinghua.iginx.engine.shared.file.CSVFile;
 import cn.edu.tsinghua.iginx.engine.shared.file.read.ImportCsv;
@@ -111,6 +116,7 @@ import cn.edu.tsinghua.iginx.sql.SqlParser.SelectClauseContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.SelectContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.SelectStatementContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.SelectSublistContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.SequenceContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.SetConfigStatementContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.SetRulesStatementContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.ShowClusterInfoStatementContext;
@@ -939,18 +945,58 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       selectStatement.setDistinct(true);
     }
 
-    List<SelectSublistContext> selectList = ctx.selectSublist();
-
-    for (SelectSublistContext select : selectList) {
-      List<Expression> ret = parseExpression(select.expression(), selectStatement);
-      if (select.expression().subquery() != null && select.asClause() != null) {
-        throw new SQLParserException("Select Subquery doesn't support AS clause.");
+    int asKeyCnt = 0;
+    for (SelectSublistContext select : ctx.selectSublist()) {
+      List<Expression> ret;
+      if (select.expression() != null) {
+        ret = parseExpression(select.expression(), selectStatement);
+        if (select.expression().subquery() != null
+            && (select.asClause() != null || select.asKeyClause() != null)) {
+          throw new SQLParserException("Select Subquery doesn't support AS clause.");
+        }
+      } else if (select.sequence() != null) {
+        ret = parseSequence(select.sequence());
+      } else if (select.KEY() != null) {
+        String keyName = KeyExpression.KEY_PREFIX + keyCount;
+        keyCount++;
+        ret = Collections.singletonList(new KeyExpression(keyName));
+      } else {
+        throw new SQLParserException("Unknown selected item: " + select.getText());
       }
-      if (ret.size() == 1 && select.asClause() != null) {
-        ret.get(0).setAlias(select.asClause().ID().getText());
+      if (ret.size() == 1) {
+        if (select.asClause() != null) {
+          ret.get(0).setAlias(select.asClause().ID().getText());
+        } else if (select.asKeyClause() != null) {
+          ret.get(0).setAlias(Constants.KEY);
+          asKeyCnt++;
+        }
       }
       ret.forEach(selectStatement::addSelectClauseExpression);
     }
+    if (asKeyCnt > 1) {
+      throw new SQLParserException("Only one 'AS KEY' can be used in each select at most.");
+    }
+  }
+
+  private List<Expression> parseSequence(SequenceContext ctx) {
+    long start = 0;
+    long increment = 1;
+    if (ctx.start != null) {
+      Object startObject = parseValue(ctx.start);
+      if (!(startObject instanceof Long)) {
+        throw new SQLParserException("The value of start in sequence should be a long.");
+      }
+      start = (Long) startObject;
+      Object incrementObject = parseValue(ctx.increment);
+      if (!(incrementObject instanceof Long)) {
+        throw new SQLParserException("The value of increment in sequence should be a long.");
+      }
+      increment = (Long) incrementObject;
+    }
+    String sequenceName =
+        SequenceExpression.SEQUENCE_PREFIX + "(" + start + ", " + increment + ")@" + sequenceCount;
+    sequenceCount++;
+    return Collections.singletonList(new SequenceExpression(start, increment, sequenceName));
   }
 
   private void parseSelectPathsWithValue2Meta(

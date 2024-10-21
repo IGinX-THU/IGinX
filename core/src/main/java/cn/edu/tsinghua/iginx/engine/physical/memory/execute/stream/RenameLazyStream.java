@@ -19,10 +19,14 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.stream;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
+import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Rename;
+import cn.edu.tsinghua.iginx.utils.Pair;
+import java.util.HashSet;
 
 public class RenameLazyStream extends UnaryLazyStream {
 
@@ -30,16 +34,24 @@ public class RenameLazyStream extends UnaryLazyStream {
 
   private Header header;
 
+  private int colIndex;
+
+  private final HashSet<Long> keySet;
+
   public RenameLazyStream(Rename rename, RowStream stream) {
     super(stream);
     this.rename = rename;
+    this.keySet = new HashSet<>();
   }
 
   @Override
   public Header getHeader() throws PhysicalException {
     if (header == null) {
       Header header = stream.getHeader();
-      this.header = header.renamedHeader(rename.getAliasList(), rename.getIgnorePatterns());
+      Pair<Header, Integer> pair =
+          header.renamedHeader(rename.getAliasList(), rename.getIgnorePatterns());
+      this.header = pair.k;
+      this.colIndex = pair.v;
     }
     return header;
   }
@@ -56,10 +68,15 @@ public class RenameLazyStream extends UnaryLazyStream {
     }
 
     Row row = stream.next();
-    if (header.hasKey()) {
+    if (colIndex == -1) {
       return new Row(header, row.getKey(), row.getValues());
     } else {
-      return new Row(header, row.getValues());
+      Row newRow = RowUtils.transformColumnToKey(header, row, colIndex);
+      if (keySet.contains(newRow.getKey())) {
+        throw new PhysicalTaskExecuteFailureException("duplicated key found: " + newRow.getKey());
+      }
+      keySet.add(newRow.getKey());
+      return newRow;
     }
   }
 }
