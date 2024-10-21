@@ -277,24 +277,22 @@ public class IginxWorker implements IService.Iface {
       if (storageEngineMeta == null
           || storageEngineMeta.getDummyFragment() == null
           || storageEngineMeta.getDummyStorageUnit() == null) {
-        LOGGER.error("dummy storage engine {} does not exist.", info);
-        status.addToSubStatus(RpcUtils.FAILURE);
+        partialFailAndLog(status, String.format("dummy storage engine %s does not exist.", info));
         continue;
       }
       if (!storageEngineMeta.isHasData()) {
-        LOGGER.error("dummy storage engine {} has no data.", info);
-        status.addToSubStatus(RpcUtils.FAILURE);
+        partialFailAndLog(status, String.format("dummy storage engine %s has no data.", info));
         continue;
       }
       if (!storageEngineMeta.isReadOnly()) {
-        LOGGER.error("dummy storage engine {} is not read-only.", info);
-        status.addToSubStatus(RpcUtils.FAILURE);
+        partialFailAndLog(status, String.format("dummy storage engine %s is not read-only.", info));
         continue;
       }
       // 更新 zk 以及缓存中的元数据信息
       if (!metaManager.removeDummyStorageEngine(storageEngineMeta.getId())) {
-        LOGGER.error("unexpected error during removing dummy storage engine {}.", info);
-        status.addToSubStatus(RpcUtils.FAILURE);
+        partialFailAndLog(
+            status,
+            String.format("unexpected error during removing dummy storage engine %s.", info));
       }
     }
 
@@ -336,25 +334,25 @@ public class IginxWorker implements IService.Iface {
           Boolean.parseBoolean(extraParams.getOrDefault(Constants.IS_READ_ONLY, "true"));
 
       if (!isValidHost(ip)) { // IP 不合法
-        LOGGER.error("ip {} is invalid.", ip);
-        status.addToSubStatus(RpcUtils.FAILURE);
+        partialFailAndLog(status, String.format("ip %s is invalid.", ip));
         continue;
       }
-      if (isEmbeddedStorageEngine(type) && !isLocalHost(ip)) {
-        status.setCode(StatusCode.REDIRECT.getStatusCode());
-        status.setMessage(ip + ":" + extraParams.get("iginx_port"));
-        LOGGER.warn("redirect to {}:{}.", ip, extraParams.get("iginx_port"));
-        return status;
+      if (isEmbeddedStorageEngine(type) && !isLocalHost(ip)) { // 非本地的文件系统引擎不可注册
+        partialFailAndLog(
+            status, String.format("redirect to %s:%s.", ip, extraParams.get("iginx_port")));
+        continue;
       }
       if (!hasData & readOnly) { // 无意义的存储引擎：不带数据且只读
-        LOGGER.error("normal storage engine {} should not be read-only.", storageEngine);
-        status.addToSubStatus(RpcUtils.FAILURE);
+        partialFailAndLog(
+            status,
+            String.format("normal storage engine %s should not be read-only.", storageEngine));
         continue;
       }
-      if (!checkEmbeddedStorageExtraParams(type, extraParams)) {
-        LOGGER.error(
-            "missing params or providing invalid ones for {} in statement.", storageEngine);
-        status.addToSubStatus(RpcUtils.FAILURE);
+      if (!checkEmbeddedStorageExtraParams(type, extraParams)) { // 参数不合法
+        partialFailAndLog(
+            status,
+            String.format(
+                "missing params or providing invalid ones for %s in statement.", storageEngine));
         continue;
       }
       String schemaPrefix = extraParams.get(Constants.SCHEMA_PREFIX);
@@ -375,11 +373,13 @@ public class IginxWorker implements IService.Iface {
 
     if (status.isSetSubStatus()) {
       if (status.subStatus.size() == storageEngines.size()) {
-        status.setCode(RpcUtils.FAILURE.code); // 所有请求均失败
-        status.setMessage("add storage engines failed");
+        status
+            .setCode(RpcUtils.FAILURE.code)
+            .setMessage("No valid engine can be registered. Detailed information:\n");
+        appendFullMsg(status);
         return status;
       } else {
-        status.setCode(RpcUtils.PARTIAL_SUCCESS.code); // 部分请求失败
+        status.setCode(RpcUtils.PARTIAL_SUCCESS.code); // 部分请求失败，message待后续处理时设置
       }
     }
 
@@ -399,24 +399,59 @@ public class IginxWorker implements IService.Iface {
     // 检测是否与已有的存储引擎冲突
     if (!hasChecked) {
       List<StorageEngineMeta> currentStorageEngines = metaManager.getStorageEngineList();
-      List<StorageEngineMeta> duplicatedStorageEngines = new ArrayList<>();
+      List<StorageEngineMeta> storageEnginesToBeRemoved = new ArrayList<>();
       for (StorageEngineMeta storageEngine : storageEngineMetas) {
         for (StorageEngineMeta currentStorageEngine : currentStorageEngines) {
           if (storageEngine.equals(currentStorageEngine)) {
-            duplicatedStorageEngines.add(storageEngine);
-            LOGGER.error("repeatedly add storage engine {}.", storageEngine);
-            status.addToSubStatus(RpcUtils.FAILURE);
+            // 存在相同数据库
+            storageEnginesToBeRemoved.add(storageEngine);
+            partialFailAndLog(
+                status, String.format("repeatedly add storage engine %s.", storageEngine));
             break;
+          } else if (storageEngine.isSameAddress(currentStorageEngine)) {
+            LOGGER.debug(
+                "same address engine {} for new engine {}.", currentStorageEngine, storageEngine);
+            // 已有相同IP、端口的数据库
+            if (StorageManager.testEngineConnection(currentStorageEngine)) {
+              LOGGER.debug("old engine can be connected");
+              // 已有的数据库仍可连接
+              if (currentStorageEngine.contains(storageEngine)) {
+                // 已有数据库能够覆盖新注册的数据库，拒绝注册
+                storageEnginesToBeRemoved.add(storageEngine);
+                partialFailAndLog(
+                    status,
+                    String.format(
+                        "engine:%s would not be registered: duplicate data coverage detected. Please check existing engines.",
+                        storageEngine));
+              }
+            } else {
+              LOGGER.debug("old engine cannot be connected");
+              // 已有的数据库无法连接了，若是只读，直接删除
+              if (currentStorageEngine.isReadOnly() && currentStorageEngine.isHasData()) {
+                metaManager.removeDummyStorageEngine(currentStorageEngine.getId());
+                LOGGER.warn(
+                    "Existing dummy Storage engine {} cannot be connected and will be removed.",
+                    currentStorageEngine);
+              } else {
+                // 并非只读，需要手动操作，拒绝注册同地址引擎
+                storageEnginesToBeRemoved.add(storageEngine);
+                partialFailAndLog(
+                    status,
+                    String.format(
+                        "Existing Storage engine %s cannot be connected. New engine %s will not be registered.",
+                        currentStorageEngine, storageEngine));
+              }
+            }
           }
         }
       }
-      if (!duplicatedStorageEngines.isEmpty()) {
-        storageEngineMetas.removeAll(duplicatedStorageEngines);
-        if (!storageEngineMetas.isEmpty()) {
-          status.setCode(RpcUtils.PARTIAL_SUCCESS.code);
-        } else {
-          status.setCode(RpcUtils.FAILURE.code);
-          status.setMessage("repeatedly add storage engine");
+      if (!storageEnginesToBeRemoved.isEmpty()) {
+        storageEngineMetas.removeAll(storageEnginesToBeRemoved);
+        if (storageEngineMetas.isEmpty()) {
+          status
+              .setCode(RpcUtils.FAILURE.code)
+              .setMessage("No valid engine can be registered. Detailed information:\n");
+          appendFullMsg(status);
           return;
         }
       }
@@ -427,7 +462,19 @@ public class IginxWorker implements IService.Iface {
           .get(storageEngineMetas.size() - 1)
           .setNeedReAllocate(true); // 如果这批节点不是只读的话，每一批最后一个是 true，表示需要进行扩容
     }
-    for (StorageEngineMeta meta : storageEngineMetas) {
+
+    Iterator<StorageEngineMeta> iterator = storageEngineMetas.iterator();
+    while (iterator.hasNext()) {
+      // 首先去掉ip不合要求的本地引擎（本地引擎必须在同地址的IGinX节点注册）
+      StorageEngineMeta meta = iterator.next();
+      if (isEmbeddedStorageEngine(meta.getStorageEngine())) {
+        if (!isLocal(meta)) {
+          partialFailAndLog(status, String.format("storage engine %s needs to be local.", meta));
+          iterator.remove();
+          continue;
+        }
+      }
+      // 然后设置dummy信息
       if (meta.isHasData()) {
         String dataPrefix = meta.getDataPrefix();
         String schemaPrefix = meta.getSchemaPrefix();
@@ -435,12 +482,13 @@ public class IginxWorker implements IService.Iface {
         Pair<ColumnsInterval, KeyInterval> boundary =
             StorageManager.getBoundaryOfStorage(meta, dataPrefix);
         if (boundary == null) {
-          status.setCode(RpcUtils.FAILURE.code);
-          status.setMessage(
+          partialFailAndLog(
+              status,
               String.format(
-                  "Failed to process dummy storage engine %s. Please check params:%s;%s.",
+                  "Failed to read data in dummy storage engine %s. Please check params:%s;%s.",
                   meta.getStorageEngine(), meta, meta.getExtraParams()));
-          return;
+          iterator.remove();
+          continue;
         }
         LOGGER.info("boundary for {}: {}", meta, boundary);
         FragmentMeta dummyFragment;
@@ -459,61 +507,57 @@ public class IginxWorker implements IService.Iface {
       }
     }
 
-    // init local filesystem before adding to meta
-    // exclude remote filesystem
-    List<StorageEngineMeta> localMetas = new ArrayList<>();
-    List<StorageEngineMeta> otherMetas = new ArrayList<>();
-    for (StorageEngineMeta meta : storageEngineMetas) {
-      if (isEmbeddedStorageEngine(meta.getStorageEngine())) {
-        if (!isLocal(meta)) {
-          LOGGER.error("storage engine {} needs to be local.", meta);
-          status.addToSubStatus(RpcUtils.FAILURE);
-        } else {
-          localMetas.add(meta);
-        }
-      } else {
-        otherMetas.add(meta);
-      }
-    }
-
-    // TODO: 下面两个循环疑似可以合并在一起
+    iterator = storageEngineMetas.iterator();
     StorageManager storageManager = PhysicalEngineImpl.getInstance().getStorageManager();
-    for (StorageEngineMeta meta : otherMetas) {
+    while (iterator.hasNext()) {
+      StorageEngineMeta meta = iterator.next();
+      // 为什么本地文件系统必须先init instance，再加入meta，storageManager：当数据源信息被加入meta，集群内其他节点都会立刻去尝试连接本地文件引擎的服务
+      // 因此必须先init开启服务，然后在加入meta时获取唯一数据源id，再将id和引擎送入storageManager进行登记
+      // 其他类型的引擎也需要先init初始化，以在修改元数据前确保引擎可用
       IStorage storage = StorageManager.initStorageInstance(meta);
       if (storage == null) {
-        status.addToSubStatus(
-            RpcUtils.status(
-                StatusCode.STATEMENT_EXECUTION_ERROR,
-                String.format("init storage engine %s failed", meta)));
+        partialFailAndLog(status, String.format("init storage engine %s failed", meta));
+        iterator.remove();
         continue;
       }
       if (!metaManager.addStorageEngines(Collections.singletonList(meta))) {
-        LOGGER.error("add storage engine {} failed.", meta);
-        status.addToSubStatus(RpcUtils.FAILURE);
-        continue;
-      }
-      storageManager.addStorage(meta, storage);
-    }
-    for (StorageEngineMeta meta : localMetas) {
-      IStorage storage = StorageManager.initStorageInstance(meta);
-      if (storage == null) {
-        status.addToSubStatus(
-            RpcUtils.status(
-                StatusCode.STATEMENT_EXECUTION_ERROR,
-                String.format("init storage engine %s failed", meta)));
-        continue;
-      }
-      if (!metaManager.addStorageEngines(Collections.singletonList(meta))) {
-        LOGGER.error("add storage engine {} failed.", meta);
-        status.addToSubStatus(RpcUtils.FAILURE);
+        partialFailAndLog(status, String.format("add storage engine %s failed.", meta));
+        iterator.remove();
         continue;
       }
       storageManager.addStorage(meta, storage);
     }
     if (status.isSetSubStatus()) {
-      status.setCode(RpcUtils.FAILURE.code);
-      status.setMessage("add storage engines failed");
+      if (storageEngineMetas.isEmpty()) {
+        // 所有请求均失败
+        status
+            .setCode(RpcUtils.FAILURE.code)
+            .setMessage("No valid engine can be registered. Detailed information:\n");
+        appendFullMsg(status);
+      } else {
+        // 部分请求失败
+        status
+            .setCode(RpcUtils.PARTIAL_SUCCESS.code)
+            .setMessage("Some of the engines cannot be registered. Detailed information:\n");
+        appendFullMsg(status);
+      }
     }
+  }
+
+  /** add failed sub status and log the message */
+  private static void partialFailAndLog(Status status, String errMsg) {
+    LOGGER.error(errMsg);
+    status.addToSubStatus(
+        new Status(StatusCode.STATEMENT_EXECUTION_ERROR.getStatusCode()).setMessage(errMsg));
+  }
+
+  /** append messages of sub status to the message of main status */
+  private static void appendFullMsg(Status status) {
+    StringBuilder msg = new StringBuilder(status.getMessage());
+    for (Status subStatus : status.getSubStatus()) {
+      msg.append("* ").append(subStatus.getMessage()).append("\n");
+    }
+    status.setMessage(String.valueOf(msg));
   }
 
   /** This function is only for read-only dummy, temporarily */

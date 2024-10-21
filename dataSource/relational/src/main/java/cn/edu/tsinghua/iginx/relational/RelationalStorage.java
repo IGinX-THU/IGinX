@@ -179,7 +179,7 @@ public class RelationalStorage implements IStorage {
     } catch (RelationalTaskExecuteFailureException e) {
       throw new StorageInitializationException("cannot build relational meta: ", e);
     }
-    if (!testConnection()) {
+    if (!testConnection(this.meta)) {
       throw new StorageInitializationException("cannot connect to " + meta.toString());
     }
     filterTransformer = new FilterTransformer(relationalMeta);
@@ -241,7 +241,8 @@ public class RelationalStorage implements IStorage {
     }
   }
 
-  private boolean testConnection() {
+  @Override
+  public boolean testConnection(StorageEngineMeta meta) {
     Map<String, String> extraParams = meta.getExtraParams();
     String username = extraParams.get(USERNAME);
     String password = extraParams.get(PASSWORD);
