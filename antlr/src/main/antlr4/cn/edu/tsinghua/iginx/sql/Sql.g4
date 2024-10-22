@@ -631,7 +631,9 @@ removedStorageEngine
    // Start of the keywords list
    
    //============================
-   
+NOT
+     :N O T
+    ;
 ALTER
    : A L T E R
    ;
@@ -1268,7 +1270,7 @@ OPERATOR_OR
    ;
 
 OPERATOR_NOT
-   : NOT
+   : N O T
    | '!'
    ;
 
@@ -1277,7 +1279,7 @@ OPERATOR_CONTAINS
    ;
 
 OPERATOR_NOT_IN
-   : NOT WS IN
+   : N O T WS IN
    ;
 
 OPERATOR_IN_AND
@@ -1314,10 +1316,6 @@ MOD
 
 DOT
    : '.'
-   ;
-
-NOT
-   : N O T
    ;
 
 LR_BRACKET
