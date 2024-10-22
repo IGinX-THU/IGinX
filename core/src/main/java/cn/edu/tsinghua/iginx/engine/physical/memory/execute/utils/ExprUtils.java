@@ -26,6 +26,7 @@ import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.expr.*;
 import cn.edu.tsinghua.iginx.engine.shared.function.Function;
+import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
 import cn.edu.tsinghua.iginx.engine.shared.function.MappingType;
 import cn.edu.tsinghua.iginx.engine.shared.function.RowMappingFunction;
@@ -130,14 +131,9 @@ public class ExprUtils {
             funcExpr.getArgs(),
             funcExpr.getKvargs(),
             funcExpr.isDistinct());
-    Row ret;
-    try {
-      ret = rowMappingFunction.transform(row, params);
-    } catch (Exception e) {
-      throw new PhysicalTaskExecuteFailureException(
-          "encounter error when execute row mapping function " + rowMappingFunction.getIdentifier(),
-          e);
-    }
+    FunctionCall functionCall = new FunctionCall(rowMappingFunction, params);
+
+    Row ret = RowUtils.calRowTransform(row, Collections.singletonList(functionCall), false);
     int retValueSize = ret.getValues().length;
     if (retValueSize != 1) {
       throw new InvalidOperatorParameterException(

@@ -5163,6 +5163,30 @@ public class SQLSessionIT {
             + "+-------------+--------+\n"
             + "Total line number = 1\n";
     executor.executeAndCompare(statement, expected);
+
+    statement = "SELECT AVG(a + c), b FROM test.a GROUP BY b;";
+    expected =
+        "ResultSets:\n"
+            + "+------------------------+--------+\n"
+            + "|avg(test.a.a + test.a.c)|test.a.b|\n"
+            + "+------------------------+--------+\n"
+            + "|                     5.1|       2|\n"
+            + "|                     3.1|       3|\n"
+            + "+------------------------+--------+\n"
+            + "Total line number = 2\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement =
+        "SELECT AVG(a + c), b FROM test.a GROUP BY b HAVING AVG(a + c) > (SELECT AVG(a) * 2 FROM test.b);";
+    expected =
+        "ResultSets:\n"
+            + "+------------------------+--------+\n"
+            + "|avg(test.a.a + test.a.c)|test.a.b|\n"
+            + "+------------------------+--------+\n"
+            + "|                     5.1|       2|\n"
+            + "+------------------------+--------+\n"
+            + "Total line number = 1\n";
+    executor.executeAndCompare(statement, expected);
   }
 
   @Test
