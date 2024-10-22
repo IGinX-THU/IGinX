@@ -32,6 +32,8 @@ public abstract class Rule {
 
   private final String ruleName;
 
+  private final String ruleGroupName;
+
   /** operand describes the local topology we want to match in this rule */
   private final Operand operand;
 
@@ -43,6 +45,10 @@ public abstract class Rule {
     this(ruleName, operand, DEFAULT_PRIORITY, DEFAULT_STRATEGY);
   }
 
+  protected Rule(String ruleName, String ruleGroupName, Operand operand) {
+    this(ruleName, ruleGroupName, operand, DEFAULT_PRIORITY, DEFAULT_STRATEGY);
+  }
+
   protected Rule(String ruleName, Operand operand, long priority) {
     this(ruleName, operand, priority, DEFAULT_STRATEGY);
   }
@@ -51,8 +57,26 @@ public abstract class Rule {
     this(ruleName, operand, DEFAULT_PRIORITY, strategy);
   }
 
+  protected Rule(String ruleName, String ruleGroupName, Operand operand, RuleStrategy strategy) {
+    this(ruleName, ruleGroupName, operand, DEFAULT_PRIORITY, strategy);
+  }
+
   protected Rule(String ruleName, Operand operand, long priority, RuleStrategy strategy) {
     this.ruleName = ruleName;
+    this.ruleGroupName = ruleName;
+    this.operand = operand;
+    this.priority = priority;
+    this.strategy = strategy;
+  }
+
+  protected Rule(
+      String ruleName,
+      String ruleGroupName,
+      Operand operand,
+      long priority,
+      RuleStrategy strategy) {
+    this.ruleName = ruleName;
+    this.ruleGroupName = ruleGroupName;
     this.operand = operand;
     this.priority = priority;
     this.strategy = strategy;
@@ -60,6 +84,10 @@ public abstract class Rule {
 
   public String getRuleName() {
     return ruleName;
+  }
+
+  public String getRuleGroupName() {
+    return ruleGroupName;
   }
 
   public Operand getOperand() {
