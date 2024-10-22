@@ -64,7 +64,7 @@ public class FilterUtils {
         if (row.getKey() == Row.NON_EXISTED_KEY) {
           return false;
         }
-        return validateTimeFilter(keyFilter, row);
+        return validateKeyFilter(keyFilter, row);
       case Value:
         ValueFilter valueFilter = (ValueFilter) filter;
         return validateValueFilter(valueFilter, row);
@@ -80,7 +80,7 @@ public class FilterUtils {
     return false;
   }
 
-  private static boolean validateTimeFilter(KeyFilter keyFilter, Row row) {
+  private static boolean validateKeyFilter(KeyFilter keyFilter, Row row) {
     long timestamp = row.getKey();
     switch (keyFilter.getOp()) {
       case E:
@@ -116,8 +116,8 @@ public class FilterUtils {
       return false;
     }
 
-    if (path.contains("*")) { // 带通配符的filter
-      List<Value> valueList = row.getAsValueByPattern(path);
+    List<Value> valueList = row.getAsValueByPattern(path);
+    if (valueList.size() > 1) { // filter的路径名带通配符或同一列名有多个tag
       if (Op.isOrOp(valueFilter.getOp())) {
         for (Value value : valueList) {
           if (value == null || value.isNull()) {
@@ -141,12 +141,14 @@ public class FilterUtils {
       } else {
         throw new IllegalArgumentException("Unknown op type: " + valueFilter.getOp());
       }
-    } else {
-      Value value = row.getAsValue(path);
+    } else if (valueList.size() == 1) {
+      Value value = valueList.get(0);
       if (value == null || value.isNull()) { // value是空值，则认为不可比较
         return false;
       }
       return validateValueCompare(valueFilter.getOp(), value, targetValue);
+    } else {
+      return false;
     }
   }
 
