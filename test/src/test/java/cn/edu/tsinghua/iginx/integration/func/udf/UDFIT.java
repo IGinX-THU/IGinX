@@ -894,6 +894,17 @@ public class UDFIT {
     compareResult(expected, ret.getResultInString(false, ""));
   }
 
+  @Test
+  public void testErrorClause() {
+    String errClause = "select s1, s2, count(s3) from us.d1 group by reverse_rows(s1);";
+    tool.executeAndCompareErrMsg(
+        errClause, "GROUP BY column can not use SetToSet/SetToRow functions.");
+
+    errClause = "select s1, s2, count(s3) from us.d1 group by s1, s2 order by transpose(s1);";
+    tool.executeAndCompareErrMsg(
+        errClause, "ORDER BY column can not use SetToSet/SetToRow functions.");
+  }
+
   void compareResult(Object expected, Object actual) {
     if (!needCompareResult) {
       return;
