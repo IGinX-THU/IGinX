@@ -735,6 +735,23 @@ public class UDFIT {
             + "+---+-------+-------+\n"
             + "Total line number = 6\n";
     compareResult(expected, ret.getResultInString(false, ""));
+
+    query = "SELECT s1, s2 FROM test ORDER BY pow(s2, 2);";
+    ret = tool.execute(query);
+    expected =
+        "ResultSets:\n"
+            + "+---+-------+-------+\n"
+            + "|key|test.s1|test.s2|\n"
+            + "+---+-------+-------+\n"
+            + "|  2|      3|      1|\n"
+            + "|  1|      2|      3|\n"
+            + "|  3|      2|      3|\n"
+            + "|  6|      0|      4|\n"
+            + "|  5|      3|      6|\n"
+            + "|  4|      3|      7|\n"
+            + "+---+-------+-------+\n"
+            + "Total line number = 6\n";
+    compareResult(expected, ret.getResultInString(false, ""));
   }
 
   @Test
