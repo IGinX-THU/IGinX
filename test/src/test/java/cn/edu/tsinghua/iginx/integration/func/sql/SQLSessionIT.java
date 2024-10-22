@@ -2941,6 +2941,64 @@ public class SQLSessionIT {
   }
 
   @Test
+  public void testGroupByAndOrderByExpr() {
+    String insert =
+        "INSERT INTO student(key, s_id, name, sex, age) VALUES "
+            + "(0, 1, \"Alan\", 1, 16), (1, 2, \"Bob\", 1, 14), (2, 3, \"Candy\", 0, 17), "
+            + "(3, 4, \"Alice\", 0, 22), (4, 5, \"Jack\", 1, 36), (5, 6, \"Tom\", 1, 20);";
+    executor.execute(insert);
+    insert =
+        "INSERT INTO math(key, s_id, score) VALUES (0, 1, 82), (1, 2, 58), (2, 3, 54), (3, 4, 92), (4, 5, 78), (5, 6, 98);";
+    executor.execute(insert);
+
+    // use alias in GROUP BY and ORDER BY
+    String statement =
+        "SELECT avg(math.score) as avg_score, CASE student.sex WHEN 1 THEN 'Male' WHEN 0 THEN 'Female' ELSE 'Unknown' END AS strSex\n"
+            + "FROM student JOIN math ON student.s_id = math.s_id\n"
+            + "GROUP BY strSex ORDER BY strSex;";
+    String expected =
+        "ResultSets:\n"
+            + "+---------+------+\n"
+            + "|avg_score|strSex|\n"
+            + "+---------+------+\n"
+            + "|     73.0|Female|\n"
+            + "|     79.0|  Male|\n"
+            + "+---------+------+\n"
+            + "Total line number = 2\n";
+    executor.executeAndCompare(statement, expected);
+
+    // don't use alias in GROUP BY and ORDER BY
+    statement =
+        "SELECT avg(math.score) as avg_score, CASE student.sex WHEN 1 THEN 'Male' WHEN 0 THEN 'Female' ELSE 'Unknown' END AS strSex\n"
+            + "FROM student JOIN math ON student.s_id = math.s_id\n"
+            + "GROUP BY CASE student.sex WHEN 1 THEN 'Male' WHEN 0 THEN 'Female' ELSE 'Unknown' END\n"
+            + "ORDER BY CASE student.sex WHEN 1 THEN 'Male' WHEN 0 THEN 'Female' ELSE 'Unknown' END DESC;";
+    expected =
+        "ResultSets:\n"
+            + "+---------+------+\n"
+            + "|avg_score|strSex|\n"
+            + "+---------+------+\n"
+            + "|     79.0|  Male|\n"
+            + "|     73.0|Female|\n"
+            + "+---------+------+\n"
+            + "Total line number = 2\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "SELECT s_id % 3 AS id, sum(score) FROM math GROUP BY id ORDER BY id;";
+    expected =
+        "ResultSets:\n"
+            + "+--+---------------+\n"
+            + "|id|sum(math.score)|\n"
+            + "+--+---------------+\n"
+            + "| 0|            152|\n"
+            + "| 1|            174|\n"
+            + "| 2|            136|\n"
+            + "+--+---------------+\n"
+            + "Total line number = 3\n";
+    executor.executeAndCompare(statement, expected);
+  }
+
+  @Test
   public void testJoinWithGroupBy() {
     String insert =
         "insert into test1(key, a, b, c, d) values (1, 3, 2, 3.1, \"val1\"), (2, 1, 3, 2.1, \"val2\"), (3, 2, 2, 1.1, \"val5\"), (4, 3, 2, 2.1, \"val2\"), (5, 1, 2, 3.1, \"val1\"), (6, 2, 2, 5.1, \"val3\");";
@@ -6332,6 +6390,17 @@ public class SQLSessionIT {
     errClause = "select s1 as key, s2 as key from us.d1;";
     executor.executeAndCompareErrMsg(
         errClause, "Only one 'AS KEY' can be used in each select at most.");
+
+    errClause = "select s1, s2 AS s1, count(s3) from us.d1 group by s1, s2;";
+    executor.executeAndCompareErrMsg(errClause, "GROUP BY column 's1' is ambiguous.");
+
+    errClause = "select s1, s2, count(s3) from us.d1 group by max(s1);";
+    executor.executeAndCompareErrMsg(
+        errClause, "GROUP BY column can not use SetToSet/SetToRow functions.");
+
+    errClause = "select s1, s2, count(s3) from us.d1 group by s1, s2 order by first(s1);";
+    executor.executeAndCompareErrMsg(
+        errClause, "ORDER BY column can not use SetToSet/SetToRow functions.");
   }
 
   @Test

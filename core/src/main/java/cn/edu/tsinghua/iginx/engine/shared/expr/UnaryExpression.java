@@ -77,4 +77,16 @@ public class UnaryExpression implements Expression {
     visitor.visit(this);
     expression.accept(visitor);
   }
+
+  @Override
+  public boolean equalExceptAlias(Expression expr) {
+    if (this == expr) {
+      return true;
+    }
+    if (expr == null || expr.getType() != ExpressionType.Unary) {
+      return false;
+    }
+    UnaryExpression that = (UnaryExpression) expr;
+    return this.expression.equalExceptAlias(that.expression) && this.operator.equals(that.operator);
+  }
 }

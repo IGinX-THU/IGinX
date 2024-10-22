@@ -19,13 +19,19 @@
  */
 package cn.edu.tsinghua.iginx.logical.optimizer.rules;
 
+import static cn.edu.tsinghua.iginx.engine.shared.function.system.ArithmeticExpr.ARITHMETIC_EXPR;
+
 import cn.edu.tsinghua.iginx.engine.logical.utils.OperatorUtils;
 import cn.edu.tsinghua.iginx.engine.logical.utils.PathUtils;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.ExprUtils;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils;
 import cn.edu.tsinghua.iginx.engine.shared.Constants;
+import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
+import cn.edu.tsinghua.iginx.engine.shared.expr.KeyExpression;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
+import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionUtils;
+import cn.edu.tsinghua.iginx.engine.shared.function.manager.FunctionManager;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.ArithmeticExpr;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.First;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.Last;
@@ -51,6 +57,8 @@ import org.slf4j.LoggerFactory;
 public class ColumnPruningRule extends Rule {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ColumnPruningRule.class);
+
+  private static final FunctionManager functionManager = FunctionManager.getInstance();
 
   public ColumnPruningRule() {
     /*
@@ -129,16 +137,23 @@ public class ColumnPruningRule extends Rule {
 
       } else if (operator.getType() == OperatorType.GroupBy) {
         GroupBy groupBy = (GroupBy) operator;
-        newColumnList = groupBy.getGroupByCols();
-        functionCallList = groupBy.getFunctionCallList();
+        functionCallList = new ArrayList<>(groupBy.getFunctionCallList());
+        for (Expression groupByExpr : groupBy.getGroupByExpressions()) {
+          functionCallList.add(
+              new FunctionCall(
+                  functionManager.getFunction(ARITHMETIC_EXPR), new FunctionParams(groupByExpr)));
+        }
       } else if (operator.getType() == OperatorType.Downsample) {
         Downsample downsample = (Downsample) operator;
         functionCallList = downsample.getFunctionCallList();
       } else if (operator.getType() == OperatorType.Sort) {
         Sort sort = (Sort) operator;
-        for (String column : sort.getSortByCols()) {
-          if (!column.equalsIgnoreCase(Constants.KEY)) {
-            columns.add(column);
+        functionCallList = new ArrayList<>();
+        for (Expression sortByExpr : sort.getSortByExpressions()) {
+          if (!(sortByExpr instanceof KeyExpression)) {
+            functionCallList.add(
+                new FunctionCall(
+                    functionManager.getFunction(ARITHMETIC_EXPR), new FunctionParams(sortByExpr)));
           }
         }
       } else if (operator.getType() == OperatorType.AddSchemaPrefix) {

@@ -27,6 +27,7 @@ import static cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType.isM
 import static cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType.isUnaryOperator;
 
 import cn.edu.tsinghua.iginx.engine.shared.expr.BaseExpression;
+import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionUtils;
@@ -316,18 +317,19 @@ public class OperatorUtils {
         root =
             new GroupBy(
                 new OperatorSource(pushDownApply(apply, correlatedVariables)),
-                correlatedVariables,
+                correlatedVariables.stream().map(BaseExpression::new).collect(Collectors.toList()),
                 setTransform.getFunctionCallList());
         break;
       case GroupBy:
         GroupBy groupBy = (GroupBy) operatorB;
         apply.setSourceB(groupBy.getSource());
-        List<String> groupByCols = groupBy.getGroupByCols();
-        groupByCols.addAll(correlatedVariables);
+        List<Expression> groupByExpressions = groupBy.getGroupByExpressions();
+        groupByExpressions.addAll(
+            correlatedVariables.stream().map(BaseExpression::new).collect(Collectors.toList()));
         root =
             new GroupBy(
                 new OperatorSource(pushDownApply(apply, correlatedVariables)),
-                groupByCols,
+                groupByExpressions,
                 groupBy.getFunctionCallList());
         break;
       case Rename:

@@ -60,4 +60,12 @@ public class KeyExpression implements Expression {
   public void accept(ExpressionVisitor visitor) {
     visitor.visit(this);
   }
+
+  @Override
+  public boolean equalExceptAlias(Expression expr) {
+    if (this == expr) {
+      return true;
+    }
+    return expr != null && expr.getType() == ExpressionType.Key;
+  }
 }
