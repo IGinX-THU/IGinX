@@ -631,9 +631,11 @@ removedStorageEngine
    // Start of the keywords list
    
    //============================
+   
 NOT
-     :N O T
-    ;
+   : N O T
+   ;
+
 ALTER
    : A L T E R
    ;
