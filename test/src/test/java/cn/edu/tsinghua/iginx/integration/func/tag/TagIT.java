@@ -580,7 +580,7 @@ public class TagIT {
   public void testValueFilter() {
     // 至少有一列的值大于等于4
     String statement = "SELECT s FROM ah.hr01 WHERE s >= 4;";
-    LOGGER.info("EXPLAIN {}", execute(statement));
+    LOGGER.info(execute("EXPLAIN " + statement));
     String expected =
         "ResultSets:\n"
             + "+---+---------+-----------------------+\n"
