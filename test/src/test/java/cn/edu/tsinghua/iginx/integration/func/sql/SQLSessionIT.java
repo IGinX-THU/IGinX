@@ -6427,6 +6427,17 @@ public class SQLSessionIT {
     errClause = "select s1 as key, s2 as key from us.d1;";
     executor.executeAndCompareErrMsg(
         errClause, "Only one 'AS KEY' can be used in each select at most.");
+
+    errClause = "select s1, s2 AS s1, count(s3) from us.d1 group by s1, s2;";
+    executor.executeAndCompareErrMsg(errClause, "GROUP BY column 's1' is ambiguous.");
+
+    errClause = "select s1, s2, count(s3) from us.d1 group by max(s1);";
+    executor.executeAndCompareErrMsg(
+        errClause, "GROUP BY column can not use SetToSet/SetToRow functions.");
+
+    errClause = "select s1, s2, count(s3) from us.d1 group by s1, s2 order by first(s1);";
+    executor.executeAndCompareErrMsg(
+        errClause, "ORDER BY column can not use SetToSet/SetToRow functions.");
   }
 
   @Test
