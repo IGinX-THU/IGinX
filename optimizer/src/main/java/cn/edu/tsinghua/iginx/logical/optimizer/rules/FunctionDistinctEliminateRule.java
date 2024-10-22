@@ -43,7 +43,10 @@ public class FunctionDistinctEliminateRule extends Rule {
      *               |
      *              Any
      */
-    super("FunctionDistinctEliminateRule", operand(AbstractUnaryOperator.class, any()));
+    super(
+        "FunctionDistinctEliminateRule",
+        "DistinctEliminateRule",
+        operand(AbstractUnaryOperator.class, any()));
   }
 
   public boolean matches(RuleCall call) {

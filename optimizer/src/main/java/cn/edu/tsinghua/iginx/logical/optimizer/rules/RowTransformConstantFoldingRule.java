@@ -42,7 +42,10 @@ public class RowTransformConstantFoldingRule extends Rule {
      *           |
      *          Any
      */
-    super("RowTransformConstantFoldingRule", operand(RowTransform.class, any()));
+    super(
+        "RowTransformConstantFoldingRule",
+        "ConstantFoldingRule",
+        operand(RowTransform.class, any()));
   }
 
   @Override

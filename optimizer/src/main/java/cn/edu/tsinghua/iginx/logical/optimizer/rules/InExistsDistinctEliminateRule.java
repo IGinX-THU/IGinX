@@ -44,7 +44,7 @@ public class InExistsDistinctEliminateRule extends Rule {
      *                      |
      *                     Any
      */
-    super("InExistsDistinctEliminateRule", operand(Distinct.class, any()));
+    super("InExistsDistinctEliminateRule", "DistinctEliminateRule", operand(Distinct.class, any()));
   }
 
   public boolean matches(RuleCall call) {
