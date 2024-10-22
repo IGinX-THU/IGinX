@@ -283,7 +283,7 @@ public class TagIT {
 
     if (res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
       LOGGER.error(
-          "Statement: \"{}\" execute fail. Caused by: ", statement, res.getParseErrorMsg());
+          "Statement: \"{}\" execute fail. Caused by: {}", statement, res.getParseErrorMsg());
       fail();
       return "";
     }
@@ -525,17 +525,17 @@ public class TagIT {
 
   @Test
   public void testKeyFilter() {
-    String statement = "SELECT * FROM ah WHERE key < 100;";
+    String statement = "SELECT s FROM ah.* WHERE key < 100;";
     String expected =
         "ResultSets:\n"
-            + "+---+---------+-----------------------+---------+-----------------------+---------+----------------+---------+----------------------+----------------+-----------------------+-----------------------+----------------+------------------+\n"
-            + "|key|ah.hr01.s|ah.hr01.s{t1=v1,t2=vv1}|ah.hr01.v|ah.hr01.v{t1=v2,t2=vv1}|ah.hr02.s|ah.hr02.s{t1=v1}|ah.hr02.v|ah.hr02.v{t1=v1,t2=v2}|ah.hr02.v{t1=v1}|ah.hr03.s{t1=v1,t2=vv2}|ah.hr03.s{t1=vv1,t2=v2}|ah.hr03.v{t1=v1}|ah.hr03.v{t1=vv11}|\n"
-            + "+---+---------+-----------------------+---------+-----------------------+---------+----------------+---------+----------------------+----------------+-----------------------+-----------------------+----------------+------------------+\n"
-            + "|  0|        1|                      3|        2|                      4|     null|            null|     null|                  null|            null|                   null|                   null|            null|              null|\n"
-            + "|  1|        2|                      4|        3|                      5|     null|            null|     null|                  null|            null|                   null|                   null|            null|              null|\n"
-            + "|  2|        3|                      5|        4|                      6|     null|            null|     null|                  null|            null|                   null|                   null|            null|              null|\n"
-            + "|  3|        4|                      6|        5|                      7|     null|            null|     null|                  null|            null|                   null|                   null|            null|              null|\n"
-            + "+---+---------+-----------------------+---------+-----------------------+---------+----------------+---------+----------------------+----------------+-----------------------+-----------------------+----------------+------------------+\n"
+            + "+---+---------+-----------------------+---------+----------------+-----------------------+-----------------------+\n"
+            + "|key|ah.hr01.s|ah.hr01.s{t1=v1,t2=vv1}|ah.hr02.s|ah.hr02.s{t1=v1}|ah.hr03.s{t1=v1,t2=vv2}|ah.hr03.s{t1=vv1,t2=v2}|\n"
+            + "+---+---------+-----------------------+---------+----------------+-----------------------+-----------------------+\n"
+            + "|  0|        1|                      3|     null|            null|                   null|                   null|\n"
+            + "|  1|        2|                      4|     null|            null|                   null|                   null|\n"
+            + "|  2|        3|                      5|     null|            null|                   null|                   null|\n"
+            + "|  3|        4|                      6|     null|            null|                   null|                   null|\n"
+            + "+---+---------+-----------------------+---------+----------------+-----------------------+-----------------------+\n"
             + "Total line number = 4\n";
     executeAndCompare(statement, expected);
 
@@ -580,6 +580,7 @@ public class TagIT {
   public void testValueFilter() {
     // 至少有一列的值大于等于4
     String statement = "SELECT s FROM ah.hr01 WHERE s >= 4;";
+    LOGGER.debug("EXPLAIN{}", execute(statement));
     String expected =
         "ResultSets:\n"
             + "+---+---------+-----------------------+\n"
