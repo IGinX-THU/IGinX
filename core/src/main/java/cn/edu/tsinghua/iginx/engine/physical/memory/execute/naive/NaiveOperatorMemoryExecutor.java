@@ -142,6 +142,8 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
         return executeGroupBy((GroupBy) operator, table);
       case AddSequence:
         return executeAddSequence((AddSequence) operator, table);
+      case RemoveNullColumn:
+        return executeRemoveNullColumn(table);
       case Distinct:
         return executeDistinct((Distinct) operator, table);
       case ValueToSelectedPath:
@@ -556,6 +558,44 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     List<Row> targetRows = removeDuplicateRows(table.getRows());
 
     return new Table(newHeader, targetRows);
+  }
+
+  private RowStream executeRemoveNullColumn(Table table) {
+    Header header = table.getHeader();
+    int fieldSize = header.getFieldSize();
+    List<Row> rows = table.getRows();
+
+    List<Integer> remainIndexes = new ArrayList<>();
+    for (int i = 0; i < fieldSize; i++) {
+      int finalI = i;
+      boolean isEmptyColumn = rows.stream().allMatch(row -> row.getValue(finalI) == null);
+      if (!isEmptyColumn) {
+        remainIndexes.add(finalI);
+      }
+    }
+
+    int remainColumnSize = remainIndexes.size();
+    if (remainColumnSize == fieldSize) { // 没有空列
+      return table;
+    } else if (remainIndexes.isEmpty()) { // 全是空列
+      return rows.isEmpty() ? table : Table.EMPTY_TABLE;
+    }
+
+    List<Field> newFields = new ArrayList<>(remainColumnSize);
+    for (int index : remainIndexes) {
+      newFields.add(header.getField(index));
+    }
+    Header newHeader = new Header(header.getKey(), newFields);
+
+    List<Row> newRows = new ArrayList<>();
+    for (Row row : rows) {
+      Object[] values = new Object[remainColumnSize];
+      for (int i = 0; i < remainColumnSize; i++) {
+        values[i] = row.getValue(remainIndexes.get(i));
+      }
+      newRows.add(new Row(newHeader, row.getKey(), values));
+    }
+    return new Table(newHeader, newRows);
   }
 
   private RowStream executeValueToSelectedPath(ValueToSelectedPath operator, Table table) {

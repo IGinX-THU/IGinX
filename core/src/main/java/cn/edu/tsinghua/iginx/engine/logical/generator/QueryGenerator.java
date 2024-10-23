@@ -115,7 +115,14 @@ public class QueryGenerator extends AbstractGenerator {
               root = new Rename(new OperatorSource(root), cte.getAliasList());
               cte.setRoot(root);
             });
-    return generateRoot(selectStatement);
+
+    // 计算语句的操作符树
+    Operator root = generateRoot(selectStatement);
+
+    // 去除最终结果的空列
+    root = new RemoveNullColumn(new OperatorSource(root));
+
+    return root;
   }
 
   private Operator generateRoot(SelectStatement selectStatement) {
