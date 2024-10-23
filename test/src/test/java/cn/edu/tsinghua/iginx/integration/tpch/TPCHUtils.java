@@ -161,9 +161,9 @@ public class TPCHUtils {
           }
           assert answerNumber - number < 1e-3 && number - answerNumber < 1e-3;
         } else {
-          String resultString = new String((byte[]) values.get(i).get(j), StandardCharsets.UTF_8);
-          String answerString = answers.get(i).get(j);
-          if (!resultString.trim().equals(answerString.trim())) {
+          String resultString = new String((byte[]) values.get(i).get(j), StandardCharsets.UTF_8).trim();
+          String answerString = answers.get(i).get(j).trim();
+          if (!resultString.equals(answerString)) {
             System.out.println("Result string: '" + resultString + "'");
             System.out.println("Answer string: '" + answerString + "'");
           }
