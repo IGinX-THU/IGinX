@@ -150,11 +150,11 @@ functionName
    ;
 
 caseSpecification
-   : simipleCase
+   : simpleCase
    | searchedCase
    ;
 
-simipleCase
+simpleCase
    : CASE expression simpleWhenClause (simpleWhenClause)* elseClause? END
    ;
 
@@ -308,7 +308,12 @@ specialClause
    ;
 
 groupByClause
-   : GROUP BY path (COMMA path)*
+   : GROUP BY groupByItem (COMMA groupByItem)*
+   ;
+
+groupByItem
+   : path
+   | expression
    ;
 
 havingClause
@@ -320,7 +325,7 @@ orderByClause
    ;
 
 orderItem
-   : path (DESC | ASC)?
+   : (path | expression) (DESC | ASC)?
    ;
 
 downsampleClause

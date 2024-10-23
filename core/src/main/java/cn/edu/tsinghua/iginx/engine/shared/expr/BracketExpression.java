@@ -71,4 +71,16 @@ public class BracketExpression implements Expression {
     visitor.visit(this);
     expression.accept(visitor);
   }
+
+  @Override
+  public boolean equalExceptAlias(Expression expr) {
+    if (this == expr) {
+      return true;
+    }
+    if (expr == null || expr.getType() != ExpressionType.Bracket) {
+      return false;
+    }
+    BracketExpression that = (BracketExpression) expr;
+    return this.expression.equalExceptAlias(that.expression);
+  }
 }

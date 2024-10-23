@@ -128,4 +128,41 @@ public class FuncExpression implements Expression {
     visitor.visit(this);
     expressions.forEach(e -> e.accept(visitor));
   }
+
+  @Override
+  public boolean equalExceptAlias(Expression expr) {
+    if (this == expr) {
+      return true;
+    }
+    if (expr == null || expr.getType() != ExpressionType.Function) {
+      return false;
+    }
+    FuncExpression that = (FuncExpression) expr;
+
+    if (this.isPyUDF != that.isPyUDF) {
+      return false;
+    }
+    if (this.isPyUDF) {
+      if (!this.funcName.equals(that.funcName)) {
+        return false;
+      }
+    } else {
+      if (!this.funcName.equalsIgnoreCase(that.funcName)) {
+        return false;
+      }
+    }
+
+    if (this.getExpressions().size() != that.getExpressions().size()) {
+      return false;
+    }
+    for (int i = 0; i < this.getExpressions().size(); i++) {
+      if (!this.getExpressions().get(i).equalExceptAlias(that.getExpressions().get(i))) {
+        return false;
+      }
+    }
+
+    return this.args.equals(that.args)
+        && this.kvargs.equals(that.kvargs)
+        && this.isDistinct == that.isDistinct;
+  }
 }

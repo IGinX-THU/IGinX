@@ -22,6 +22,7 @@ package cn.edu.tsinghua.iginx.engine.shared.function;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.ExprUtils;
 import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,6 +39,10 @@ public class FunctionParams {
   private final Map<String, Object> kwargs;
 
   private boolean isDistinct;
+
+  public FunctionParams(Expression expression) {
+    this(Collections.singletonList(expression), null, null, false);
+  }
 
   public FunctionParams(List<Expression> expressions) {
     this(expressions, null, null, false);

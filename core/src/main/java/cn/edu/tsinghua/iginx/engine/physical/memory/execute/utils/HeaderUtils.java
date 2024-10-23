@@ -19,6 +19,7 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils;
 
+import static cn.edu.tsinghua.iginx.engine.shared.function.system.ArithmeticExpr.ARITHMETIC_EXPR;
 import static cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils.isNumericType;
 import static cn.edu.tsinghua.iginx.sql.SQLConstant.DOT;
 import static cn.edu.tsinghua.iginx.thrift.DataType.BOOLEAN;
@@ -28,13 +29,26 @@ import cn.edu.tsinghua.iginx.engine.physical.exception.InvalidOperatorParameterE
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
+import cn.edu.tsinghua.iginx.engine.shared.expr.BaseExpression;
+import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
+import cn.edu.tsinghua.iginx.engine.shared.expr.KeyExpression;
+import cn.edu.tsinghua.iginx.engine.shared.function.Function;
+import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
+import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
+import cn.edu.tsinghua.iginx.engine.shared.function.manager.FunctionManager;
+import cn.edu.tsinghua.iginx.engine.shared.operator.GroupBy;
+import cn.edu.tsinghua.iginx.engine.shared.operator.RowTransform;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Sort;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
+import cn.edu.tsinghua.iginx.engine.shared.source.EmptySource;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 public class HeaderUtils {
 
@@ -332,5 +346,56 @@ public class HeaderUtils {
                 + ") are incomparable.");
       }
     }
+  }
+
+  public static RowTransform checkGroupByHeader(Header header, GroupBy groupBy) {
+    Set<Expression> appendExpressions = new HashSet<>();
+    for (Expression groupByExpr : groupBy.getGroupByExpressions()) {
+      String exprName = groupByExpr.getColumnName();
+      boolean found =
+          header.getFields().stream().anyMatch(field -> field.getName().equals(exprName));
+      if (!found) {
+        appendExpressions.add(groupByExpr);
+      }
+    }
+
+    if (appendExpressions.isEmpty()) {
+      return null;
+    }
+    return appendArithExpressions(header, new ArrayList<>(appendExpressions));
+  }
+
+  public static RowTransform checkSortHeader(Header header, Sort sort) {
+    List<Expression> sortExpressions = new ArrayList<>(sort.getSortByExpressions());
+    if (sortExpressions.get(0) instanceof KeyExpression) {
+      sortExpressions.remove(0);
+    }
+    Set<Expression> appendExpressions = new HashSet<>();
+    for (Expression sortExpr : sortExpressions) {
+      String exprName = sortExpr.getColumnName();
+      boolean found =
+          header.getFields().stream().anyMatch(field -> field.getName().equals(exprName));
+      if (!found) {
+        appendExpressions.add(sortExpr);
+      }
+    }
+
+    if (appendExpressions.isEmpty()) {
+      return null;
+    }
+    return appendArithExpressions(header, new ArrayList<>(appendExpressions));
+  }
+
+  private static RowTransform appendArithExpressions(Header header, List<Expression> expressions) {
+    List<FunctionCall> functionCallList = new ArrayList<>();
+    Function function = FunctionManager.getInstance().getFunction(ARITHMETIC_EXPR);
+    for (Field field : header.getFields()) {
+      functionCallList.add(
+          new FunctionCall(function, new FunctionParams(new BaseExpression(field.getName()))));
+    }
+    for (Expression expr : expressions) {
+      functionCallList.add(new FunctionCall(function, new FunctionParams(expr)));
+    }
+    return new RowTransform(EmptySource.EMPTY_SOURCE, functionCallList);
   }
 }

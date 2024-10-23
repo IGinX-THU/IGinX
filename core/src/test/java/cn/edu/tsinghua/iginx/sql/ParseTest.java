@@ -23,7 +23,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import cn.edu.tsinghua.iginx.engine.shared.expr.BaseExpression;
 import cn.edu.tsinghua.iginx.engine.shared.expr.FuncExpression;
+import cn.edu.tsinghua.iginx.engine.shared.expr.KeyExpression;
 import cn.edu.tsinghua.iginx.engine.shared.function.MappingType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.PathFilter;
@@ -145,12 +147,19 @@ public class ParseTest {
 
     String orderBy = "SELECT a FROM test ORDER BY KEY";
     statement = (UnarySelectStatement) TestUtils.buildStatement(orderBy);
-    assertEquals(Collections.singletonList(SQLConstant.KEY), statement.getOrderByPaths());
+    assertEquals(1, statement.getOrderByExpressions().size());
+    assertTrue(
+        statement
+            .getOrderByExpressions()
+            .get(0)
+            .equalExceptAlias(new KeyExpression(SQLConstant.KEY)));
     assertTrue(statement.getAscendingList().get(0));
 
     String orderByAndLimit = "SELECT a FROM test ORDER BY a DESC LIMIT 10 OFFSET 5;";
     statement = (UnarySelectStatement) TestUtils.buildStatement(orderByAndLimit);
-    assertEquals(Collections.singletonList("test.a"), statement.getOrderByPaths());
+    assertEquals(1, statement.getOrderByExpressions().size());
+    assertTrue(
+        statement.getOrderByExpressions().get(0).equalExceptAlias(new BaseExpression("test.a")));
     assertFalse(statement.getAscendingList().get(0));
     assertEquals(5, statement.getOffset());
     assertEquals(10, statement.getLimit());
