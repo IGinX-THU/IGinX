@@ -154,6 +154,7 @@ public class TPCHUtils {
             System.out.println("Answer string: '" + answerDate + "'");
           }
           assert date.equals(answerDate);
+          continue;
         }
         // if only contains number and dot, then parse to double
         if (values.get(i).get(j).toString().matches("-?[0-9]+.*[0-9]*")) {
