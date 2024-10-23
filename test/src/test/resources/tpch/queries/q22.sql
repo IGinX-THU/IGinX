@@ -1,39 +1,39 @@
 SELECT
     cntrycode,
-    COUNT( customer.c_acctbal ) AS numcust,
-    SUM( customer.c_acctbal ) AS totacctbal
+    COUNT( c1.c_acctbal ) AS numcust,
+    SUM( c1.c_acctbal ) AS totacctbal
 FROM
     (
         SELECT
             SUBSTRING( c_phone, 1, 2 ) AS cntrycode,
             c_acctbal
         FROM
-            customer
+            customer AS c1
         WHERE
             (
-                SUBSTRING( customer.c_phone, 1, 2 )= '13'
-                OR SUBSTRING( customer.c_phone, 1, 2 )= '31'
-                OR SUBSTRING( customer.c_phone, 1, 2 )= '23'
-                OR SUBSTRING( customer.c_phone, 1, 2 )= '29'
-                OR SUBSTRING( customer.c_phone, 1, 2 )= '30'
-                OR SUBSTRING( customer.c_phone, 1, 2 )= '18'
-                OR SUBSTRING( customer.c_phone, 1, 2 )= '17'
+                SUBSTRING( c1.c_phone, 1, 2 )= '13'
+                OR SUBSTRING( c1.c_phone, 1, 2 )= '31'
+                OR SUBSTRING( c1.c_phone, 1, 2 )= '23'
+                OR SUBSTRING( c1.c_phone, 1, 2 )= '29'
+                OR SUBSTRING( c1.c_phone, 1, 2 )= '30'
+                OR SUBSTRING( c1.c_phone, 1, 2 )= '18'
+                OR SUBSTRING( c1.c_phone, 1, 2 )= '17'
             )
-            AND customer.c_acctbal >(
+            AND c1.c_acctbal >(
                 SELECT
                     AVG( c_acctbal )
                 FROM
-                    customer
+                    customer AS c2
                 WHERE
-                    customer.c_acctbal > 0.00
+                    c2.c_acctbal > 0.00
                     AND(
-                        SUBSTRING( customer.c_phone, 1, 2 )= '13'
-                        OR SUBSTRING( customer.c_phone, 1, 2 )= '31'
-                        OR SUBSTRING( customer.c_phone, 1, 2 )= '23'
-                        OR SUBSTRING( customer.c_phone, 1, 2 )= '29'
-                        OR SUBSTRING( customer.c_phone, 1, 2 )= '30'
-                        OR SUBSTRING( customer.c_phone, 1, 2 )= '18'
-                        OR SUBSTRING( customer.c_phone, 1, 2 )= '17'
+                        SUBSTRING( c2.c_phone, 1, 2 )= '13'
+                        OR SUBSTRING( c2.c_phone, 1, 2 )= '31'
+                        OR SUBSTRING( c2.c_phone, 1, 2 )= '23'
+                        OR SUBSTRING( c2.c_phone, 1, 2 )= '29'
+                        OR SUBSTRING( c2.c_phone, 1, 2 )= '30'
+                        OR SUBSTRING( c2.c_phone, 1, 2 )= '18'
+                        OR SUBSTRING( c2.c_phone, 1, 2 )= '17'
                     )
             )
             AND NOT EXISTS(
@@ -42,7 +42,7 @@ FROM
                 FROM
                     orders
                 WHERE
-                    orders.o_custkey = customer.c_custkey
+                    orders.o_custkey = c1.c_custkey
             )
     )
 GROUP BY

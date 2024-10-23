@@ -31,10 +31,13 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 import java.util.Scanner;
+import java.util.TimeZone;
 import java.util.stream.Collectors;
 import org.junit.Assert;
 import org.slf4j.Logger;
@@ -140,11 +143,13 @@ public class TPCHUtils {
     }
     for (int i = 0; i < values.size(); i++) {
       for (int j = 0; j < values.get(i).size(); j++) {
-        if (result.getPaths().get(j).contains("address")
-            || result.getPaths().get(j).contains("comment")
-            || result.getPaths().get(j).contains("orderdate")) {
-          // TODO change unix time to date
-          continue;
+        if (result.getPaths().get(j).contains("orderdate")) {
+          long timestamp = (long) values.get(i).get(j);
+          SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+          dateFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
+          String date = dateFormat.format(new Date(timestamp));
+          String answerDate = answers.get(j).get(i);
+          assert date.equals(answerDate);
         }
         // if only contains number and dot, then parse to double
         if (values.get(i).get(j).toString().matches("-?[0-9]+.*[0-9]*")) {
@@ -159,8 +164,8 @@ public class TPCHUtils {
           String resultString = new String((byte[]) values.get(i).get(j), StandardCharsets.UTF_8);
           String answerString = answers.get(i).get(j);
           if (!resultString.equals(answerString)) {
-            System.out.println("Result string: " + resultString);
-            System.out.println("Answer string: " + answerString);
+            System.out.println("Result string: '" + resultString + "'");
+            System.out.println("Answer string: '" + answerString + "'");
           }
           assert resultString.equals(answerString);
         }

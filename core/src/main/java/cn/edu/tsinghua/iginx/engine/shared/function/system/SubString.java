@@ -33,7 +33,7 @@ import java.util.Collections;
 
 public class SubString implements RowMappingFunction {
 
-  private static final String SUB_STRING = "substring";
+  public static final String SUB_STRING = "substring";
 
   private static final SubString INSTANCE = new SubString();
 
