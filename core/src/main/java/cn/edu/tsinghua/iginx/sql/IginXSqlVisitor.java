@@ -1706,7 +1706,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
     Filter filter = new BoolFilter(true);
 
-    boolean isAntiJoin = ctx.OPERATOR_NOT() != null;
+    boolean isAntiJoin = ctx.NOT() != null;
     SubQueryFromPart subQueryPart =
         new SubQueryFromPart(
             subStatement, new JoinCondition(JoinType.MarkJoin, filter, markColumn, isAntiJoin));

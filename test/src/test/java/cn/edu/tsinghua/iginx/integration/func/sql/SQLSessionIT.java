@@ -4975,6 +4975,17 @@ public class SQLSessionIT {
             + "+---+--------+--------+--------+--------+\n"
             + "Total line number = 6\n";
     executor.executeAndCompare(statement, expected);
+
+    statement =
+        "SELECT * FROM test.a WHERE !EXISTS (SELECT * FROM test.b WHERE test.b.d = \"val4\");";
+    executor.executeAndCompareErrMsg(
+        statement, "Parse Error: line 1:28 extraneous input 'EXISTS' expecting '('");
+
+    statement =
+        "SELECT * FROM test.a WHERE a !IN (SELECT * FROM test.b WHERE test.b.d = test.a.d);";
+    executor.executeAndCompareErrMsg(
+        statement,
+        "Parse Error: line 1:30 mismatched input 'IN' expecting {OPERATOR_LIKE, OPERATOR_LIKE_AND, OPERATOR_LIKE_OR}");
   }
 
   @Test
