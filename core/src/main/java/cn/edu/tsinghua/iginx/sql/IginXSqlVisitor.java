@@ -1706,7 +1706,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
     Filter filter = new BoolFilter(true);
 
-    boolean isAntiJoin = ctx.NOT() != null;
+    boolean isAntiJoin = ctx.OPERATOR_NOT() != null;
     SubQueryFromPart subQueryPart =
         new SubQueryFromPart(
             subStatement, new JoinCondition(JoinType.MarkJoin, filter, markColumn, isAntiJoin));
@@ -1741,20 +1741,11 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       }
 
       String pathB = expression.hasAlias() ? expression.getAlias() : expression.getColumnName();
-      if (ctx.inOperator().OPERATOR_IN_AND() != null
-          || ctx.inOperator().OPERATOR_NOT_IN_OR() != null
-          || ctx.inOperator().OPERATOR_NOT_IN() != null) {
-        filter = new PathFilter(pathA, Op.E_AND, pathB);
-      } else {
-        filter = new PathFilter(pathA, Op.E, pathB);
-      }
+      filter = new PathFilter(pathA, Op.E, pathB);
       subStatement.addFreeVariable(pathA);
     }
 
-    boolean isAntiJoin =
-        ctx.inOperator().OPERATOR_NOT_IN() != null
-            || ctx.inOperator().OPERATOR_NOT_IN_OR() != null
-            || ctx.inOperator().OPERATOR_NOT_IN_AND() != null;
+    boolean isAntiJoin = ctx.inOperator().OPERATOR_NOT_IN() != null;
     SubQueryFromPart subQueryPart =
         new SubQueryFromPart(
             subStatement, new JoinCondition(JoinType.MarkJoin, filter, markColumn, isAntiJoin));
