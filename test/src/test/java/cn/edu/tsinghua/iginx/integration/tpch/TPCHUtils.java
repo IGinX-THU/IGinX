@@ -148,7 +148,11 @@ public class TPCHUtils {
           SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
           dateFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
           String date = dateFormat.format(new Date(timestamp));
-          String answerDate = answers.get(j).get(i);
+          String answerDate = answers.get(i).get(j);
+          if (!date.equals(answerDate)) {
+            System.out.println("Result string: '" + date + "'");
+            System.out.println("Answer string: '" + answerDate + "'");
+          }
           assert date.equals(answerDate);
         }
         // if only contains number and dot, then parse to double
