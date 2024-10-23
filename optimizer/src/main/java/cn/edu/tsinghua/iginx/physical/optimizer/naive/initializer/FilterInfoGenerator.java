@@ -67,6 +67,8 @@ public class FilterInfoGenerator implements UnaryExecutorFactory<FilterExecutor>
         return construct((AndFilter) filter, context, inputSchema);
       case Or:
         return construct((OrFilter) filter, context, inputSchema);
+      case Bool:
+        return new LiteralNode(((BoolFilter) filter).isTrue());
       default:
         throw new UnsupportedOperationException("Unsupported filter type: " + filter.getType());
     }

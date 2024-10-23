@@ -105,8 +105,11 @@ public class TransformProjectionInfoGenerator implements UnaryExecutorFactory<Pr
       case Unary:
         return getPhysicalExpression(context, inputSchema, (UnaryExpression) expr);
       case Bracket:
-      case CaseWhen:
+        return getPhysicalExpression(
+            context, inputSchema, ((BracketExpression) expr).getExpression());
       case Constant:
+        return new LiteralNode(((ConstantExpression) expr).getValue());
+      case CaseWhen:
       case Function:
       case Multiple:
         throw new IllegalArgumentException(String.format("%s not implemented", expr.getType()));
