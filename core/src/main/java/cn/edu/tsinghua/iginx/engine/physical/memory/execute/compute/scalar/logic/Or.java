@@ -17,7 +17,7 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.logic;
 
-public class Or extends BinaryLogicFunction {
+public final class Or extends BinaryLogicFunction {
 
   public static final String NAME = "or";
 
@@ -33,5 +33,10 @@ public class Or extends BinaryLogicFunction {
   @Override
   public long evaluate(long left, long right) {
     return left | right;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    return obj instanceof Or;
   }
 }

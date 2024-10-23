@@ -274,6 +274,9 @@ public class StatementExecutor {
 
   public void executeStatement(RequestContext ctx) {
     try {
+      if (ctx.isFromSQL()) {
+        LOGGER.debug("Execute statement: {}", ctx.getSql());
+      }
       Statement statement = ctx.getStatement();
       if (statement instanceof DataStatement) {
         StatementType type = statement.getType();
@@ -313,6 +316,8 @@ public class StatementExecutor {
     } catch (StatementExecutionException | PhysicalException | IOException e) {
       if (e.getCause() != null) {
         LOGGER.error("Execute Error: ", e);
+      } else {
+        LOGGER.debug("statement execution failed: ", e);
       }
       StatusCode statusCode = StatusCode.STATEMENT_EXECUTION_ERROR;
       ctx.setResult(new Result(RpcUtils.status(statusCode, e.getMessage())));

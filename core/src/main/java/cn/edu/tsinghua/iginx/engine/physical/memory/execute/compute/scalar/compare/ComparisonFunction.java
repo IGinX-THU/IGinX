@@ -18,17 +18,18 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.compare;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.BinaryFunction;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.convert.Cast;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.convert.cast.Cast;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.logic.And;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ArgumentException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.NotAllowArgumentTypeException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.NotAllowTypeException;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.Schemas;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ValueVectors;
 import java.util.function.IntPredicate;
 import javax.annotation.WillNotClose;
 import org.apache.arrow.memory.ArrowBuf;
 import org.apache.arrow.memory.BufferAllocator;
+import org.apache.arrow.memory.util.ArrowBufPointer;
 import org.apache.arrow.vector.*;
 import org.apache.arrow.vector.types.Types;
 
@@ -54,12 +55,11 @@ public abstract class ComparisonFunction extends BinaryFunction {
         return evaluateSameType(allocator, leftCast, rightCast);
       }
     }
-    throw new ArgumentException(
-        this, "Cannot compare " + left.getField() + " with " + right.getField());
+    throw new ArgumentException(this, Schemas.of(left, right), "Cannot compare given types");
   }
 
   private BitVector evaluateSameType(BufferAllocator allocator, FieldVector left, FieldVector right)
-      throws NotAllowArgumentTypeException {
+      throws NotAllowTypeException {
     int rowCount = Math.min(left.getValueCount(), right.getValueCount());
     BitVector dest = (BitVector) ValueVectors.create(allocator, Types.MinorType.BIT, rowCount);
     if (left instanceof NullVector || right instanceof NullVector) {
@@ -83,7 +83,7 @@ public abstract class ComparisonFunction extends BinaryFunction {
         evaluate(dest, (VarBinaryVector) left, (VarBinaryVector) right);
       default:
         dest.close();
-        throw new NotAllowArgumentTypeException(this, 0, left.getMinorType());
+        throw new NotAllowTypeException(this, Schemas.of(left, right), 0);
     }
     return dest;
   }
@@ -105,7 +105,17 @@ public abstract class ComparisonFunction extends BinaryFunction {
   }
 
   private void evaluate(BitVector dest, VarBinaryVector left, VarBinaryVector right) {
-    genericEvaluate(dest, left, right, index -> evaluate(left.get(index), right.get(index)));
+    ArrowBufPointer leftPointer = new ArrowBufPointer();
+    ArrowBufPointer rightPointer = new ArrowBufPointer();
+    genericEvaluate(
+        dest,
+        left,
+        right,
+        index -> {
+          left.getDataPointer(index, leftPointer);
+          right.getDataPointer(index, rightPointer);
+          return evaluate(leftPointer, rightPointer);
+        });
   }
 
   // TODO: 可以和 arithmetic 进行代码复用
@@ -136,5 +146,5 @@ public abstract class ComparisonFunction extends BinaryFunction {
 
   protected abstract boolean evaluate(double left, double right);
 
-  protected abstract boolean evaluate(byte[] left, byte[] right);
+  protected abstract boolean evaluate(ArrowBufPointer left, ArrowBufPointer right);
 }

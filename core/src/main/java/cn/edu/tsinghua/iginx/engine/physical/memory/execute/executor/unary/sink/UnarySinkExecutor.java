@@ -65,8 +65,6 @@ public abstract class UnarySinkExecutor extends UnaryExecutor {
     return batch;
   }
 
-  public abstract boolean needConsume() throws ComputeException;
-
   public abstract boolean canProduce() throws ComputeException;
 
   protected abstract void internalConsume(@WillNotClose Batch batch) throws ComputeException;

@@ -21,23 +21,24 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.Compute
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ValueVectors;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import javax.annotation.WillNotClose;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 
-public abstract class AbstractPhysicalExpression implements PhysicalExpression {
+public abstract class AbstractScalarExpression implements ScalarExpression {
 
-  private final List<PhysicalExpression> children;
+  private final List<ScalarExpression> children;
   private final String alias;
 
-  protected AbstractPhysicalExpression(String alias, List<PhysicalExpression> children) {
+  protected AbstractScalarExpression(String alias, List<ScalarExpression> children) {
     this.alias = alias;
     this.children = Collections.unmodifiableList(children);
   }
 
   @Override
-  public List<PhysicalExpression> getChildren() {
+  public List<ScalarExpression> getChildren() {
     return children;
   }
 
@@ -45,6 +46,13 @@ public abstract class AbstractPhysicalExpression implements PhysicalExpression {
   public String toString() {
     return getName() + (alias == null ? "" : " as " + alias);
   }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(getName(), alias, children);
+  }
+
+  public abstract boolean equals(Object obj);
 
   @Override
   public FieldVector invoke(

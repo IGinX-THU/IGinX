@@ -25,7 +25,7 @@ import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 
-public class FieldNode extends AbstractPhysicalExpression {
+public final class FieldNode extends AbstractScalarExpression {
 
   private final int index;
 
@@ -41,6 +41,15 @@ public class FieldNode extends AbstractPhysicalExpression {
   @Override
   public String getName() {
     return "field(" + index + ")";
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (obj instanceof FieldNode) {
+      FieldNode fieldNode = (FieldNode) obj;
+      return index == fieldNode.index;
+    }
+    return false;
   }
 
   @Override

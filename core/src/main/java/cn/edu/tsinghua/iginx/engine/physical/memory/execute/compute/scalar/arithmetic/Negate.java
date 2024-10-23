@@ -17,7 +17,7 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.arithmetic;
 
-public class Negate extends UnaryArithmeticFunction {
+public final class Negate extends UnaryArithmeticFunction {
 
   public Negate() {
     super("negate");
@@ -41,5 +41,10 @@ public class Negate extends UnaryArithmeticFunction {
   @Override
   protected double evaluate(double value) {
     return -value;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    return obj instanceof Negate;
   }
 }

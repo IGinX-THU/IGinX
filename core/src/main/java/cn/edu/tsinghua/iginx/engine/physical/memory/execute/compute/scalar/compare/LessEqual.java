@@ -17,7 +17,9 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.compare;
 
-public class LessEqual extends ComparisonFunction {
+import org.apache.arrow.memory.util.ArrowBufPointer;
+
+public final class LessEqual extends ComparisonFunction {
 
   public static final String NAME = "less_equal";
 
@@ -46,7 +48,12 @@ public class LessEqual extends ComparisonFunction {
   }
 
   @Override
-  public boolean evaluate(byte[] left, byte[] right) {
-    return new String(left).compareTo(new String(right)) <= 0;
+  protected boolean evaluate(ArrowBufPointer left, ArrowBufPointer right) {
+    return left.compareTo(right) <= 0;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    return obj instanceof LessEqual;
   }
 }

@@ -15,21 +15,16 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.convert;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.UnaryFunction;
-import org.apache.arrow.vector.types.Types;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.PhysicalFunction;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
+import javax.annotation.WillNotClose;
+import org.apache.arrow.memory.BufferAllocator;
+import org.apache.arrow.vector.types.pojo.Schema;
 
-public abstract class AbstractCast extends UnaryFunction {
+public interface Accumulation extends PhysicalFunction {
 
-  protected final Types.MinorType resultType;
-
-  protected AbstractCast(Types.MinorType resultType) {
-    super("cast_as_" + resultType.toString().toLowerCase());
-    this.resultType = resultType;
-  }
-
-  public Types.MinorType getResultType() {
-    return resultType;
-  }
+  Accumulator accumulate(@WillNotClose BufferAllocator allocator, Schema inputSchema)
+      throws ComputeException;
 }

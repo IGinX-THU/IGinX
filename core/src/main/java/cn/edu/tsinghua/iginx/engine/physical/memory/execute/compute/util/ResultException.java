@@ -15,12 +15,22 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.ScalarFunction;
-import java.util.List;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.PhysicalFunction;
+import org.apache.arrow.vector.types.pojo.Schema;
 
-public interface PhysicalExpression extends ScalarFunction {
+public class ResultException extends PhysicalFunctionException {
 
-  List<PhysicalExpression> getChildren();
+  private final Schema outputSchema;
+
+  public ResultException(PhysicalFunction function, Schema outputSchema, String message) {
+    super(function, "Unexpected result " + outputSchema + ": " + message);
+
+    this.outputSchema = outputSchema;
+  }
+
+  public Schema getOutputSchema() {
+    return outputSchema;
+  }
 }

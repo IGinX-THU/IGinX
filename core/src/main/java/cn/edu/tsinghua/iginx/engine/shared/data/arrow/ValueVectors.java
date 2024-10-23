@@ -139,7 +139,7 @@ public class ValueVectors {
     return (T) transferPair.getTo();
   }
 
-  public static FieldVector transfer(BufferAllocator allocator, FieldVector vector) {
+  public static <T extends ValueVector> T transfer(BufferAllocator allocator, T vector) {
     return transfer(allocator, vector, vector.getName());
   }
 }

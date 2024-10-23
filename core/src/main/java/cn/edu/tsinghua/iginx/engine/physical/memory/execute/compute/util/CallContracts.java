@@ -18,24 +18,27 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.PhysicalFunction;
+import java.util.function.Predicate;
 import org.apache.arrow.vector.types.Types;
+import org.apache.arrow.vector.types.pojo.Schema;
 
-public class NotAllowArgumentTypeException extends ArgumentException {
+public class CallContracts {
+  private CallContracts() {}
 
-  private final int index;
-  private final Types.MinorType type;
-
-  public NotAllowArgumentTypeException(PhysicalFunction function, int index, Types.MinorType type) {
-    super(function, "not allow type " + type + " at index " + index);
-    this.index = index;
-    this.type = type;
+  public static void ensureType(PhysicalFunction function, Schema schema, Types.MinorType type)
+      throws NotAllowTypeException {
+    ensureType(function, schema, type::equals);
   }
 
-  public int getIndex() {
-    return index;
-  }
-
-  public Types.MinorType getType() {
-    return type;
+  public static void ensureType(
+      PhysicalFunction function, Schema schema, Predicate<Types.MinorType> predicate)
+      throws NotAllowTypeException {
+    for (int i = 0; i < schema.getFields().size(); i++) {
+      Types.MinorType minorType =
+          Types.getMinorTypeForArrowType(schema.getFields().get(i).getType());
+      if (!predicate.test(minorType)) {
+        throw new NotAllowTypeException(function, schema, i);
+      }
+    }
   }
 }

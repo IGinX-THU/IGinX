@@ -25,6 +25,7 @@ import javax.annotation.WillNotClose;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
+import org.apache.arrow.vector.types.pojo.Schema;
 
 public abstract class AbstractFunction implements ScalarFunction {
 
@@ -45,9 +46,9 @@ public abstract class AbstractFunction implements ScalarFunction {
   public FieldVector invoke(
       @WillNotClose BufferAllocator allocator, @WillNotClose VectorSchemaRoot input)
       throws ComputeException {
-    int vectorCount = input.getFieldVectors().size();
-    if (!arity.checkArity(vectorCount)) {
-      throw new ArityException(this, arity, vectorCount);
+    Schema schema = input.getSchema();
+    if (!arity.checkArity(schema.getFields().size())) {
+      throw new ArityException(this, schema, arity);
     }
     return invokeImpl(allocator, input);
   }
@@ -56,6 +57,13 @@ public abstract class AbstractFunction implements ScalarFunction {
   public String toString() {
     return getName();
   }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(name, arity);
+  }
+
+  public abstract boolean equals(Object obj);
 
   protected abstract FieldVector invokeImpl(
       @WillNotClose BufferAllocator allocator, @WillNotClose VectorSchemaRoot input)

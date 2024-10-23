@@ -18,14 +18,15 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.unary;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.NotAllowArgumentTypeException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.NotAllowTypeException;
+import cn.edu.tsinghua.iginx.engine.shared.data.arrow.Schemas;
+import java.util.function.Supplier;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.*;
 import org.apache.arrow.vector.complex.writer.FieldWriter;
-import org.apache.arrow.vector.types.Types;
 import org.apache.arrow.vector.types.pojo.Field;
 
-public class PhysicalSum extends UnaryAccumulator {
+public class PhysicalSum extends UnaryAccumulation {
 
   public static final String NAME = "sum";
 
@@ -34,59 +35,54 @@ public class PhysicalSum extends UnaryAccumulator {
   }
 
   @Override
-  protected UnaryState initializeImpl(BufferAllocator allocator, Field field)
-      throws ComputeException {
-    Types.MinorType minorType = Types.getMinorTypeForArrowType(field.getType());
-    switch (minorType) {
+  protected SumAccumulator<? extends SumState> accumulate(
+      BufferAllocator allocator, Field inputField) throws ComputeException {
+    Field resultField = new Field(getResultFieldName(inputField), inputField.getFieldType(), null);
+    switch (Schemas.minorTypeOf(inputField)) {
       case INT:
-        return new IntSumState(allocator, field, this);
+        return new SumAccumulator<>(
+            allocator, inputField, resultField, IntSumState.class, IntSumState::new);
       case BIGINT:
-        return new BigIntSumState(allocator, field, this);
+        return new SumAccumulator<>(
+            allocator, inputField, resultField, BigIntSumState.class, BigIntSumState::new);
       case FLOAT4:
-        return new Float4SumState(allocator, field, this);
+        return new SumAccumulator<>(
+            allocator, inputField, resultField, Float4SumState.class, Float4SumState::new);
       case FLOAT8:
-        return new Float8SumState(allocator, field, this);
+        return new SumAccumulator<>(
+            allocator, inputField, resultField, Float8SumState.class, Float8SumState::new);
       default:
-        throw new NotAllowArgumentTypeException(this, 0, minorType);
+        throw new NotAllowTypeException(this, Schemas.of(inputField), 0);
     }
   }
 
-  protected abstract static class SumState extends UnaryState {
+  protected class SumAccumulator<S extends SumState> extends UnaryAccumulator<S> {
 
-    protected SumState(BufferAllocator allocator, Field field, PhysicalSum accumulator) {
-      super(allocator, field, accumulator);
+    protected SumAccumulator(
+        BufferAllocator allocator,
+        Field inputField,
+        Field outpuField,
+        Class<S> clazz,
+        Supplier<S> stateSupplier) {
+      super(allocator, inputField, outpuField, clazz, stateSupplier);
     }
-
-    @Override
-    public boolean needMoreData() throws ComputeException {
-      return true;
-    }
-
-    @Override
-    public void close() throws ComputeException {}
-
-    @Override
-    protected FieldVector evaluateImpl() throws ComputeException {
-      FieldVector result = field.createVector(allocator);
-      writeValue(result.getMinorType().getNewFieldWriter(result));
-      return result;
-    }
-
-    protected abstract void writeValue(FieldWriter writer);
   }
+
+  protected abstract static class SumState extends UnaryState {}
 
   protected static class IntSumState extends SumState {
 
     private int sum = 0;
 
-    public IntSumState(BufferAllocator allocator, Field field, PhysicalSum accumulator) {
-      super(allocator, field, accumulator);
-    }
-
     @Override
-    protected void accumulateImpl(ValueVector vector) throws ComputeException {
-      IntVector intVector = (IntVector) vector;
-      for (int i = 0; i < intVector.getValueCount(); i++) {
+    protected void update(FieldVector inputVector) throws ComputeException {
+      if (!(inputVector instanceof IntVector)) {
+        throw new ComputeException(
+            "InputVector is not IntVector, but " + inputVector.getClass().getSimpleName());
+      }
+      IntVector intVector = (IntVector) inputVector;
+      int valueCount = intVector.getValueCount();
+      for (int i = 0; i < valueCount; i++) {
         if (!intVector.isNull(i)) {
           sum += intVector.get(i);
         }
@@ -94,7 +90,7 @@ public class PhysicalSum extends UnaryAccumulator {
     }
 
     @Override
-    protected void writeValue(FieldWriter writer) {
+    protected void evaluate(FieldWriter writer) {
       writer.writeInt(sum);
     }
   }
@@ -103,14 +99,15 @@ public class PhysicalSum extends UnaryAccumulator {
 
     private long sum = 0;
 
-    public BigIntSumState(BufferAllocator allocator, Field field, PhysicalSum accumulator) {
-      super(allocator, field, accumulator);
-    }
-
     @Override
-    protected void accumulateImpl(ValueVector vector) throws ComputeException {
-      BigIntVector bigIntVector = (BigIntVector) vector;
-      for (int i = 0; i < bigIntVector.getValueCount(); i++) {
+    protected void update(FieldVector inputVector) throws ComputeException {
+      if (!(inputVector instanceof BigIntVector)) {
+        throw new ComputeException(
+            "InputVector is not BigIntVector, but " + inputVector.getClass().getSimpleName());
+      }
+      BigIntVector bigIntVector = (BigIntVector) inputVector;
+      int valueCount = bigIntVector.getValueCount();
+      for (int i = 0; i < valueCount; i++) {
         if (!bigIntVector.isNull(i)) {
           sum += bigIntVector.get(i);
         }
@@ -118,7 +115,7 @@ public class PhysicalSum extends UnaryAccumulator {
     }
 
     @Override
-    protected void writeValue(FieldWriter writer) {
+    protected void evaluate(FieldWriter writer) {
       writer.writeBigInt(sum);
     }
   }
@@ -127,14 +124,15 @@ public class PhysicalSum extends UnaryAccumulator {
 
     private float sum = 0;
 
-    public Float4SumState(BufferAllocator allocator, Field field, PhysicalSum accumulator) {
-      super(allocator, field, accumulator);
-    }
-
     @Override
-    protected void accumulateImpl(ValueVector vector) throws ComputeException {
-      Float4Vector float4Vector = (Float4Vector) vector;
-      for (int i = 0; i < float4Vector.getValueCount(); i++) {
+    protected void update(FieldVector inputVector) throws ComputeException {
+      if (!(inputVector instanceof Float4Vector)) {
+        throw new ComputeException(
+            "InputVector is not Float4Vector, but " + inputVector.getClass().getSimpleName());
+      }
+      Float4Vector float4Vector = (Float4Vector) inputVector;
+      int valueCount = float4Vector.getValueCount();
+      for (int i = 0; i < valueCount; i++) {
         if (!float4Vector.isNull(i)) {
           sum += float4Vector.get(i);
         }
@@ -142,7 +140,7 @@ public class PhysicalSum extends UnaryAccumulator {
     }
 
     @Override
-    protected void writeValue(FieldWriter writer) {
+    protected void evaluate(FieldWriter writer) {
       writer.writeFloat4(sum);
     }
   }
@@ -151,14 +149,15 @@ public class PhysicalSum extends UnaryAccumulator {
 
     private double sum = 0;
 
-    public Float8SumState(BufferAllocator allocator, Field field, PhysicalSum accumulator) {
-      super(allocator, field, accumulator);
-    }
-
     @Override
-    protected void accumulateImpl(ValueVector vector) throws ComputeException {
-      Float8Vector float8Vector = (Float8Vector) vector;
-      for (int i = 0; i < float8Vector.getValueCount(); i++) {
+    protected void update(FieldVector inputVector) throws ComputeException {
+      if (!(inputVector instanceof Float8Vector)) {
+        throw new ComputeException(
+            "InputVector is not Float8Vector, but " + inputVector.getClass().getSimpleName());
+      }
+      Float8Vector float8Vector = (Float8Vector) inputVector;
+      int valueCount = float8Vector.getValueCount();
+      for (int i = 0; i < valueCount; i++) {
         if (!float8Vector.isNull(i)) {
           sum += float8Vector.get(i);
         }
@@ -166,7 +165,7 @@ public class PhysicalSum extends UnaryAccumulator {
     }
 
     @Override
-    protected void writeValue(FieldWriter writer) {
+    protected void evaluate(FieldWriter writer) throws ComputeException {
       writer.writeFloat8(sum);
     }
   }

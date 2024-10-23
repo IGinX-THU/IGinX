@@ -18,8 +18,8 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.arithmetic;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.UnaryFunction;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.CallContracts;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.NotAllowArgumentTypeException;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ConstantVectors;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.Schemas;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ValueVectors;
@@ -41,9 +41,7 @@ public abstract class UnaryArithmeticFunction extends UnaryFunction {
       return ConstantVectors.ofNull(allocator, in.getValueCount());
     }
 
-    if (!Schemas.isNumeric(in.getMinorType())) {
-      throw new NotAllowArgumentTypeException(this, 0, in.getMinorType());
-    }
+    CallContracts.ensureType(this, Schemas.of(in), Schemas::isNumeric);
 
     FieldVector dest = ValueVectors.create(allocator, in.getMinorType(), in.getValueCount());
     switch (in.getMinorType()) {

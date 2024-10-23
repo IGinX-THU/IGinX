@@ -17,7 +17,7 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.logic;
 
-public class And extends BinaryLogicFunction {
+public final class And extends BinaryLogicFunction {
 
   public static final String NAME = "and";
 
@@ -33,5 +33,10 @@ public class And extends BinaryLogicFunction {
   @Override
   public long evaluate(long left, long right) {
     return left & right;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    return obj instanceof And;
   }
 }

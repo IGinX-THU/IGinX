@@ -17,6 +17,7 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute;
 
+/** 物理函数接口，所有物理函数都应该实现该接口 equals and hashCode is required */
 public interface PhysicalFunction {
   String getName();
 }
