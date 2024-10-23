@@ -159,7 +159,7 @@ simpleCase
    ;
 
 simpleWhenClause
-   : WHEN ((comparisonOperator? value = expression) | (OPERATOR_NOT? stringLikeOperator regex = stringLiteral)) THEN result = expression
+   : WHEN ((comparisonOperator? value = expression) | ((NOT | EXCLAMATION)? stringLikeOperator regex = stringLiteral)) THEN result = expression
    ;
 
 searchedCase
@@ -191,8 +191,8 @@ predicate
    | constant comparisonOperator (KEY | path | functionName LR_BRACKET path RR_BRACKET)
    | (path | functionName LR_BRACKET path RR_BRACKET) inOperator array
    | path comparisonOperator path
-   | path OPERATOR_NOT? stringLikeOperator regex = stringLiteral
-   | OPERATOR_NOT? LR_BRACKET orExpression RR_BRACKET
+   | path (NOT | EXCLAMATION)? stringLikeOperator regex = stringLiteral
+   | (NOT | EXCLAMATION)? LR_BRACKET orExpression RR_BRACKET
    | predicateWithSubquery
    | expression comparisonOperator expression
    ;
@@ -637,10 +637,6 @@ removedStorageEngine
    
    //============================
    
-NOT
-   : N O T
-   ;
-
 ALTER
    : A L T E R
    ;
@@ -1164,6 +1160,10 @@ END
 SEQUENCE
    : S E Q U E N C E
    ;
+
+NOT
+   : N O T
+   ;
    //============================
    
    // End of the keywords list
@@ -1276,9 +1276,8 @@ OPERATOR_OR
    | '||'
    ;
 
-OPERATOR_NOT
-   : N O T
-   | '!'
+EXCLAMATION
+   : '!'
    ;
 
 OPERATOR_CONTAINS

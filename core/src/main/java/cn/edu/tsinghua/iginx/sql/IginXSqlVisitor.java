@@ -1215,7 +1215,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         }
       } else {
         String strOp = context.stringLikeOperator().getText().trim().toLowerCase();
-        if (context.OPERATOR_NOT() != null) {
+        if (context.NOT() != null || context.EXCLAMATION() != null) {
           strOp = "not " + strOp;
         }
         Op op = Op.str2Op(strOp);
@@ -1667,7 +1667,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
   private FilterData parsePredicate(PredicateContext ctx, Statement statement) {
     if (ctx.orExpression() != null) {
       FilterData filterData = parseOrExpression(ctx.orExpression(), statement);
-      if (ctx.OPERATOR_NOT() != null) {
+      if (ctx.NOT() != null || ctx.EXCLAMATION() != null) {
         filterData.setFilter(new NotFilter(filterData.getFilter()));
       }
       return filterData;
@@ -1766,7 +1766,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     Op op;
     if (ctx.stringLikeOperator() != null) {
       String strOp = ctx.stringLikeOperator().getText().trim().toLowerCase();
-      if (ctx.OPERATOR_NOT() != null) {
+      if (ctx.NOT() != null || ctx.EXCLAMATION() != null) {
         strOp = "not " + strOp;
       }
       op = Op.str2Op(strOp);
