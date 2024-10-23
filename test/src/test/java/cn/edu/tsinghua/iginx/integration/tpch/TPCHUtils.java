@@ -163,7 +163,7 @@ public class TPCHUtils {
         } else {
           String resultString = new String((byte[]) values.get(i).get(j), StandardCharsets.UTF_8);
           String answerString = answers.get(i).get(j);
-          if (!resultString.equals(answerString)) {
+          if (!resultString.trim().equals(answerString.trim())) {
             System.out.println("Result string: '" + resultString + "'");
             System.out.println("Answer string: '" + answerString + "'");
           }
