@@ -141,6 +141,17 @@ public class UDFTestTools {
     fail("Statement: \"{}\" execute without failure, which was not expected.");
   }
 
+  public void executeAndCompareErrMsg(String statement, String expectedErrMsg) {
+    LOGGER.info("Execute Statement: \"{}\"", statement);
+
+    try {
+      session.executeSql(statement);
+    } catch (SessionException e) {
+      LOGGER.info("Statement: \"{}\" execute fail. Because: ", statement, e);
+      assertEquals(expectedErrMsg, e.getMessage());
+    }
+  }
+
   boolean isUDFRegistered(String udfName) {
     SessionExecuteSqlResult ret = execute(SHOW_FUNCTION_SQL);
     List<String> registerUDFs =

@@ -33,6 +33,8 @@ public interface Expression {
 
   void accept(ExpressionVisitor visitor);
 
+  boolean equalExceptAlias(Expression expr);
+
   enum ExpressionType {
     Bracket,
     Binary,

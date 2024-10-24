@@ -877,7 +877,7 @@ public class RowUtils {
                   try {
                     return FilterUtils.validate(filter, row);
                   } catch (PhysicalException e) {
-                    LOGGER.error("execute parallel filter error, cause by: ", e.getCause());
+                    LOGGER.error("execute parallel filter error, cause by: ", e);
                     return false;
                   }
                 })
@@ -896,7 +896,7 @@ public class RowUtils {
                 try {
                   return FilterUtils.validate(filter, row);
                 } catch (PhysicalException e) {
-                  LOGGER.error("execute sequence filter error, cause by: ", e.getCause());
+                  LOGGER.error("execute sequence filter error, cause by: ", e);
                   return false;
                 }
               })

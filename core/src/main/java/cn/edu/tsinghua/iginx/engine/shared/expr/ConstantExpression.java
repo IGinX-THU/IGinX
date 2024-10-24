@@ -19,6 +19,8 @@
  */
 package cn.edu.tsinghua.iginx.engine.shared.expr;
 
+import java.util.Arrays;
+
 public class ConstantExpression implements Expression {
 
   private final Object value;
@@ -42,6 +44,8 @@ public class ConstantExpression implements Expression {
     // 如果是小数，保留小数点后5位
     if (value instanceof Double || value instanceof Float) {
       return String.format("%.5f", value);
+    } else if (value instanceof byte[]) {
+      return "'" + new String((byte[]) value) + "'";
     }
     return value.toString();
   }
@@ -69,5 +73,21 @@ public class ConstantExpression implements Expression {
   @Override
   public void accept(ExpressionVisitor visitor) {
     visitor.visit(this);
+  }
+
+  @Override
+  public boolean equalExceptAlias(Expression expr) {
+    if (this == expr) {
+      return true;
+    }
+    if (expr == null || expr.getType() != ExpressionType.Constant) {
+      return false;
+    }
+    ConstantExpression that = (ConstantExpression) expr;
+    if (value instanceof byte[]) {
+      return Arrays.equals((byte[]) value, (byte[]) that.value);
+    } else {
+      return this.value.equals(that.value);
+    }
   }
 }

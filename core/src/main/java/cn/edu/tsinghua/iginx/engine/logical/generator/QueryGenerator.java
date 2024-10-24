@@ -245,7 +245,9 @@ public class QueryGenerator extends AbstractGenerator {
     selectStatement.initFreeVariables();
     List<String> freeVariables = selectStatement.getFreeVariables();
     if (!freeVariables.isEmpty()) {
-      throw new RuntimeException("Unexpected paths' name: " + freeVariables + ".");
+      throw new RuntimeException(
+          String.format(
+              "Unexpected paths' name: %s, check if there exists missing prefix.", freeVariables));
     }
   }
 
@@ -590,7 +592,7 @@ public class QueryGenerator extends AbstractGenerator {
    * @return 添加了Sort操作符的根节点；如果没有Order By子句，返回原根节点
    */
   private static Operator buildOrderByPaths(SelectStatement selectStatement, Operator root) {
-    if (selectStatement.getOrderByPaths().isEmpty()) {
+    if (selectStatement.getOrderByExpressions().isEmpty()) {
       return root;
     }
     List<Sort.SortType> sortTypes = new ArrayList<>();
@@ -598,7 +600,7 @@ public class QueryGenerator extends AbstractGenerator {
         .getAscendingList()
         .forEach(
             isAscending -> sortTypes.add(isAscending ? Sort.SortType.ASC : Sort.SortType.DESC));
-    return new Sort(new OperatorSource(root), selectStatement.getOrderByPaths(), sortTypes);
+    return new Sort(new OperatorSource(root), selectStatement.getOrderByExpressions(), sortTypes);
   }
 
   /**
@@ -669,7 +671,7 @@ public class QueryGenerator extends AbstractGenerator {
     List<FunctionCall> functionCallList =
         getFunctionCallList(selectStatement, MappingType.SetMapping);
     return new GroupBy(
-        new OperatorSource(root), selectStatement.getGroupByPaths(), functionCallList);
+        new OperatorSource(root), selectStatement.getGroupByExpressions(), functionCallList);
   }
 
   /**
@@ -740,7 +742,7 @@ public class QueryGenerator extends AbstractGenerator {
     if (selectStatement.isLastFirst()) {
       root = new Reorder(new OperatorSource(root), Arrays.asList("path", "value"));
     } else if (hasFuncWithArgs) {
-      root = new Reorder(new OperatorSource(root), Collections.singletonList("*"));
+      root = new Reorder(new OperatorSource(root), new ArrayList<>(Collections.singletonList("*")));
     } else {
       List<String> order = new ArrayList<>();
       List<Boolean> isPyUDF = new ArrayList<>();
