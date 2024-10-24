@@ -4551,7 +4551,7 @@ public class SQLSessionIT {
     executor.executeAndCompare(statement, expected);
 
     statement =
-        "SELECT a, (SELECT d, AVG(a) FROM test.b GROUP BY d HAVING avg(test.b.a) > 2) FROM test.a;";
+        "SELECT a, (SELECT d, AVG(a) FROM test.b GROUP BY d HAVING avg(a) > 2) FROM test.a;";
     expected =
         "ResultSets:\n"
             + "+---+--------+--------+-------------+\n"
@@ -4665,7 +4665,7 @@ public class SQLSessionIT {
     executor.executeAndCompare(statement, expected);
 
     statement =
-        "SELECT a, (SELECT AVG(a) AS a1 FROM test.b GROUP BY d HAVING avg(test.b.a) > 2) * (SELECT AVG(a) AS a2 FROM test.b) FROM test.a;";
+        "SELECT a, (SELECT AVG(a) AS a1 FROM test.b GROUP BY d HAVING avg(a) > 2) * (SELECT AVG(a) AS a2 FROM test.b) FROM test.a;";
     expected =
         "ResultSets:\n"
             + "+---+--------+-------+\n"
@@ -5017,6 +5017,18 @@ public class SQLSessionIT {
             + "Total line number = 2\n";
     executor.executeAndCompare(statement, expected);
 
+    statement = "SELECT * FROM test.a WHERE (SELECT AVG(a) FROM test.b) > a;";
+    expected =
+        "ResultSets:\n"
+            + "+---+--------+--------+--------+--------+\n"
+            + "|key|test.a.a|test.a.b|test.a.c|test.a.d|\n"
+            + "+---+--------+--------+--------+--------+\n"
+            + "|  2|       1|       3|     2.1|    val2|\n"
+            + "|  5|       1|       2|     3.1|    val1|\n"
+            + "+---+--------+--------+--------+--------+\n"
+            + "Total line number = 2\n";
+    executor.executeAndCompare(statement, expected);
+
     statement =
         "SELECT * FROM test.a WHERE (SELECT AVG(a) AS a FROM test.c) = (SELECT AVG(a) AS b FROM test.b);";
     expected =
@@ -5149,6 +5161,30 @@ public class SQLSessionIT {
             + "+-------------+--------+\n"
             + "|          2.2|       2|\n"
             + "+-------------+--------+\n"
+            + "Total line number = 1\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "SELECT AVG(a + c), b FROM test.a GROUP BY b;";
+    expected =
+        "ResultSets:\n"
+            + "+------------------------+--------+\n"
+            + "|avg(test.a.a + test.a.c)|test.a.b|\n"
+            + "+------------------------+--------+\n"
+            + "|                     5.1|       2|\n"
+            + "|                     3.1|       3|\n"
+            + "+------------------------+--------+\n"
+            + "Total line number = 2\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement =
+        "SELECT AVG(a + c), b FROM test.a GROUP BY b HAVING AVG(a + c) > (SELECT AVG(a) * 2 FROM test.b);";
+    expected =
+        "ResultSets:\n"
+            + "+------------------------+--------+\n"
+            + "|avg(test.a.a + test.a.c)|test.a.b|\n"
+            + "+------------------------+--------+\n"
+            + "|                     5.1|       2|\n"
+            + "+------------------------+--------+\n"
             + "Total line number = 1\n";
     executor.executeAndCompare(statement, expected);
   }
@@ -6374,7 +6410,8 @@ public class SQLSessionIT {
     executor.executeAndCompareErrMsg(errClause, "Group by can not use SetToSet functions.");
 
     errClause = "select * from test.a join test.b where a > 0;";
-    executor.executeAndCompareErrMsg(errClause, "Unexpected paths' name: [a].");
+    executor.executeAndCompareErrMsg(
+        errClause, "Unexpected paths' name: [a], check if there exists missing prefix.");
 
     errClause = "select * from (show columns a.*), (show columns b.*);";
     executor.executeAndCompareErrMsg(

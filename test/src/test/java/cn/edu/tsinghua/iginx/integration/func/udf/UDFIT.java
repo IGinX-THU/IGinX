@@ -520,6 +520,35 @@ public class UDFIT {
             + "+---+-------+-------+-------+\n"
             + "Total line number = 6\n";
     assertEquals(expected, ret.getResultInString(false, ""));
+
+    query = "SELECT * FROM test WHERE pow(s1 + s2, 2) - 5 > 30;";
+    ret = tool.execute(query);
+    expected =
+        "ResultSets:\n"
+            + "+---+-------+-------+-------+\n"
+            + "|key|test.s1|test.s2|test.s3|\n"
+            + "+---+-------+-------+-------+\n"
+            + "|  3|      4|      3|      1|\n"
+            + "|  4|      9|      7|      5|\n"
+            + "|  5|      3|      6|      2|\n"
+            + "|  6|      6|      4|      2|\n"
+            + "+---+-------+-------+-------+\n"
+            + "Total line number = 4\n";
+    assertEquals(expected, ret.getResultInString(false, ""));
+
+    query = "SELECT * FROM test WHERE multiply(s1, s2 + s3) > 20;";
+    ret = tool.execute(query);
+    expected =
+        "ResultSets:\n"
+            + "+---+-------+-------+-------+\n"
+            + "|key|test.s1|test.s2|test.s3|\n"
+            + "+---+-------+-------+-------+\n"
+            + "|  4|      9|      7|      5|\n"
+            + "|  5|      3|      6|      2|\n"
+            + "|  6|      6|      4|      2|\n"
+            + "+---+-------+-------+-------+\n"
+            + "Total line number = 3\n";
+    assertEquals(expected, ret.getResultInString(false, ""));
   }
 
   @Test

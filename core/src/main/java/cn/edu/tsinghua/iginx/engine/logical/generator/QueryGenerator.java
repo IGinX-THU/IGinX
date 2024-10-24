@@ -238,7 +238,9 @@ public class QueryGenerator extends AbstractGenerator {
     selectStatement.initFreeVariables();
     List<String> freeVariables = selectStatement.getFreeVariables();
     if (!freeVariables.isEmpty()) {
-      throw new RuntimeException("Unexpected paths' name: " + freeVariables + ".");
+      throw new RuntimeException(
+          String.format(
+              "Unexpected paths' name: %s, check if there exists missing prefix.", freeVariables));
     }
   }
 
@@ -733,7 +735,7 @@ public class QueryGenerator extends AbstractGenerator {
     if (selectStatement.isLastFirst()) {
       root = new Reorder(new OperatorSource(root), Arrays.asList("path", "value"));
     } else if (hasFuncWithArgs) {
-      root = new Reorder(new OperatorSource(root), Collections.singletonList("*"));
+      root = new Reorder(new OperatorSource(root), new ArrayList<>(Collections.singletonList("*")));
     } else {
       List<String> order = new ArrayList<>();
       List<Boolean> isPyUDF = new ArrayList<>();

@@ -34,6 +34,6 @@ WHERE
     AND nation.n_name = 'SAUDI ARABIA'
 GROUP BY
     supplier.s_name
-ORDER BY -- spotless:off
-    `count(supplier.s_name)` DESC, -- spotless:on
+ORDER BY
+    numwait DESC,
     supplier.s_name LIMIT 100;
