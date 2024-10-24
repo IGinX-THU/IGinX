@@ -20,8 +20,7 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.arit
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.BinaryFunction;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.convert.cast.Cast;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.CallContracts;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
-import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ConstantVectors;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.Schemas;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ValueVectors;
 import java.util.function.IntConsumer;
@@ -29,7 +28,7 @@ import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.*;
 import org.apache.arrow.vector.types.Types;
 
-public abstract class BinaryArithmeticFunction extends BinaryFunction {
+public abstract class BinaryArithmeticFunction extends BinaryFunction<FieldVector> {
 
   protected BinaryArithmeticFunction(String name) {
     super(name);
@@ -38,10 +37,6 @@ public abstract class BinaryArithmeticFunction extends BinaryFunction {
   @Override
   public FieldVector evaluate(BufferAllocator allocator, FieldVector left, FieldVector right)
       throws ComputeException {
-    if (left instanceof NullVector || right instanceof NullVector) {
-      return ConstantVectors.ofNull(allocator, left.getValueCount());
-    }
-
     CallContracts.ensureType(this, Schemas.of(left, right), Schemas::isNumeric);
 
     if (left.getMinorType() == right.getMinorType()) {

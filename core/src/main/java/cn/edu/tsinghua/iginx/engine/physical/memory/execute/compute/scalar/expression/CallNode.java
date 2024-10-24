@@ -18,7 +18,7 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.ScalarFunction;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -28,20 +28,27 @@ import org.apache.arrow.util.Preconditions;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 
-public final class CallNode extends AbstractScalarExpression {
+public class CallNode<OUTPUT extends FieldVector> extends AbstractScalarExpression<OUTPUT> {
 
-  private final ScalarFunction function;
+  private final ScalarFunction<OUTPUT> function;
 
-  public CallNode(ScalarFunction function, ScalarExpression... children) {
+  public CallNode(ScalarFunction<OUTPUT> function, ScalarExpression<?>... children) {
     this(function, null, children);
   }
 
-  public CallNode(ScalarFunction function, @Nullable String alias, ScalarExpression... children) {
+  public CallNode(ScalarFunction<OUTPUT> function, List<? extends ScalarExpression<?>> children) {
+    this(function, null, children);
+  }
+
+  public CallNode(
+      ScalarFunction<OUTPUT> function, @Nullable String alias, ScalarExpression<?>... children) {
     this(function, alias, Arrays.asList(children));
   }
 
   public CallNode(
-      ScalarFunction function, @Nullable String alias, List<ScalarExpression> children) {
+      ScalarFunction<OUTPUT> function,
+      @Nullable String alias,
+      List<? extends ScalarExpression<?>> children) {
     super(alias, children);
     this.function = Preconditions.checkNotNull(function);
   }
@@ -57,14 +64,14 @@ public final class CallNode extends AbstractScalarExpression {
   @Override
   public boolean equals(Object obj) {
     if (obj instanceof CallNode) {
-      CallNode callNode = (CallNode) obj;
+      CallNode<?> callNode = (CallNode<?>) obj;
       return function.equals(callNode.function) && getChildren().equals(callNode.getChildren());
     }
     return false;
   }
 
   @Override
-  protected FieldVector invokeImpl(BufferAllocator allocator, VectorSchemaRoot input)
+  protected OUTPUT invokeImpl(BufferAllocator allocator, VectorSchemaRoot input)
       throws ComputeException {
     try (VectorSchemaRoot args = ScalarExpressions.evaluateSafe(allocator, getChildren(), input)) {
       return function.invoke(allocator, args);

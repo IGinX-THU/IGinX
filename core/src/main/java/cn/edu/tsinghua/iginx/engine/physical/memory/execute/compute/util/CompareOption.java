@@ -17,19 +17,34 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util;
 
-import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
+import lombok.Value;
 
-public class ComputeException extends PhysicalException {
+@Value
+public class CompareOption {
 
-  public ComputeException(String message) {
-    super(message);
-  }
+  public static final CompareOption ASC_NULL_FIRST = new CompareOption(false, false);
+  public static final CompareOption DESC_NULL_LAST = new CompareOption(true, true);
 
-  public ComputeException(String message, Throwable cause) {
-    super(message, cause);
-  }
+  public static final CompareOption ASC = ASC_NULL_FIRST;
+  public static final CompareOption DESC = DESC_NULL_LAST;
 
-  public ComputeException(Throwable cause) {
-    super(cause);
+  boolean descending;
+  boolean nullLast;
+
+  @Override
+  public String toString() {
+    StringBuilder builder = new StringBuilder();
+    if (descending) {
+      builder.append("DESC");
+      if (!nullLast) {
+        builder.append(" NULLS FIRST");
+      }
+    } else {
+      builder.append("ASC");
+      if (nullLast) {
+        builder.append(" NULLS LAST");
+      }
+    }
+    return builder.toString();
   }
 }

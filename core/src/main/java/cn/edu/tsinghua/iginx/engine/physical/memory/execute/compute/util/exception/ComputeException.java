@@ -15,20 +15,21 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.PhysicalFunction;
+import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 
-public class PhysicalFunctionException extends ComputeException {
+public class ComputeException extends PhysicalException {
 
-  private final PhysicalFunction function;
-
-  public PhysicalFunctionException(PhysicalFunction function, String message) {
-    super("Invalid call of physical function '" + function.getName() + "': " + message);
-    this.function = function;
+  public ComputeException(String message) {
+    super(message);
   }
 
-  public PhysicalFunction getFunction() {
-    return function;
+  public ComputeException(String message, Throwable cause) {
+    super(message, cause);
+  }
+
+  public ComputeException(Throwable cause) {
+    super(cause);
   }
 }

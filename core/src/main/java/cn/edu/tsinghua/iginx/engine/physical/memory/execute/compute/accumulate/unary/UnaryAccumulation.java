@@ -19,7 +19,7 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.AbstractAccumulation;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.Arity;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.Schemas;
 import java.util.function.Supplier;
 import javax.annotation.WillNotClose;

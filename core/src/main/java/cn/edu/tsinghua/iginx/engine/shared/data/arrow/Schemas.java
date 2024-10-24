@@ -111,8 +111,12 @@ public class Schemas {
     }
   }
 
-  public static Field field(String name, Types.MinorType type) {
-    return new Field(name, FieldType.nullable(type.getType()), null);
+  public static Field nullableField(String name, Types.MinorType type) {
+    return field(name, true, type);
+  }
+
+  public static Field field(String name, boolean nullable, Types.MinorType type) {
+    return new Field(name, new FieldType(nullable, type.getType(), null), null);
   }
 
   public static Field defaultField(Types.MinorType type) {

@@ -15,22 +15,21 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.PhysicalFunction;
 import org.apache.arrow.vector.types.pojo.Schema;
 
-public class ResultException extends PhysicalFunctionException {
+public class ArgumentException extends PhysicalFunctionException {
 
-  private final Schema outputSchema;
+  private final Schema inputSchema;
 
-  public ResultException(PhysicalFunction function, Schema outputSchema, String message) {
-    super(function, "Unexpected result " + outputSchema + ": " + message);
-
-    this.outputSchema = outputSchema;
+  public ArgumentException(PhysicalFunction function, Schema inputSchema, String message) {
+    super(function, "Unexpected argument " + inputSchema + ": " + message);
+    this.inputSchema = inputSchema;
   }
 
-  public Schema getOutputSchema() {
-    return outputSchema;
+  public Schema getInputSchema() {
+    return inputSchema;
   }
 }

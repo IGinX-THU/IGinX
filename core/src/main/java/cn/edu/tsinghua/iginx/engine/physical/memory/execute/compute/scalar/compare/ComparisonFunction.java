@@ -20,9 +20,9 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.comp
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.BinaryFunction;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.convert.cast.Cast;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.logic.And;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ArgumentException;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.NotAllowTypeException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ArgumentException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.NotAllowTypeException;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.Schemas;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ValueVectors;
 import java.util.function.IntPredicate;
@@ -33,7 +33,7 @@ import org.apache.arrow.memory.util.ArrowBufPointer;
 import org.apache.arrow.vector.*;
 import org.apache.arrow.vector.types.Types;
 
-public abstract class ComparisonFunction extends BinaryFunction {
+public abstract class ComparisonFunction extends BinaryFunction<BitVector> {
 
   protected ComparisonFunction(String name) {
     super(name);
@@ -62,9 +62,6 @@ public abstract class ComparisonFunction extends BinaryFunction {
       throws NotAllowTypeException {
     int rowCount = Math.min(left.getValueCount(), right.getValueCount());
     BitVector dest = (BitVector) ValueVectors.create(allocator, Types.MinorType.BIT, rowCount);
-    if (left instanceof NullVector || right instanceof NullVector) {
-      return dest;
-    }
 
     switch (left.getMinorType()) {
       case INT:

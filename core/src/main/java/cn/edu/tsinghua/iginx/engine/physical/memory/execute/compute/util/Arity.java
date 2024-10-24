@@ -17,17 +17,22 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util;
 
-public enum Arity {
-  NULLARY(0, false),
-  UNARY(1, false),
-  BINARY(2, false),
-  TERNARY(3, false),
-  VAR_ARGS(0, true);
+import org.apache.arrow.util.Preconditions;
+
+public class Arity {
+
+  public static Arity UNARY = new Arity(1);
+  public static Arity BINARY = new Arity(2);
 
   private final int arity;
-  public final boolean varArgs;
+  private final boolean varArgs;
 
-  Arity(int arity, boolean varArgs) {
+  public Arity(int arity) {
+    this(arity, false);
+  }
+
+  public Arity(int arity, boolean varArgs) {
+    Preconditions.checkArgument(arity >= 0, "Arity must be non-negative");
     this.arity = arity;
     this.varArgs = varArgs;
   }

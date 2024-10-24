@@ -18,8 +18,8 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.PhysicalFunction;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputingCloseable;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import java.util.List;
 import javax.annotation.WillNotClose;
 import org.apache.arrow.vector.FieldVector;

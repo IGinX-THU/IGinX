@@ -19,7 +19,7 @@ package cn.edu.tsinghua.iginx.physical.optimizer.naive.initializer;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.FieldNode;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpression;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutorFactory;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.pipeline.ProjectionExecutor;
@@ -43,11 +43,11 @@ public class SimpleProjectionInfoGenerator implements UnaryExecutorFactory<Proje
   @Override
   public ProjectionExecutor initialize(ExecutorContext context, BatchSchema inputSchema)
       throws ComputeException {
-    List<ScalarExpression> expressions = getExpression(context, inputSchema);
+    List<ScalarExpression<?>> expressions = getExpression(context, inputSchema);
     return new ProjectionExecutor(context, inputSchema, expressions);
   }
 
-  public List<ScalarExpression> getExpression(ExecutorContext context, BatchSchema inputSchema) {
+  public List<ScalarExpression<?>> getExpression(ExecutorContext context, BatchSchema inputSchema) {
     switch (operator.getType()) {
       case Project:
         return getExpressionsWithFields(
@@ -66,9 +66,9 @@ public class SimpleProjectionInfoGenerator implements UnaryExecutorFactory<Proje
     }
   }
 
-  private List<ScalarExpression> getExpressionsWithFields(
+  private List<ScalarExpression<?>> getExpressionsWithFields(
       BatchSchema inputSchema, List<Pair<String, Integer>> columnsAndIndices) {
-    List<ScalarExpression> ret = new ArrayList<>();
+    List<ScalarExpression<?>> ret = new ArrayList<>();
     for (Pair<String, Integer> pair : columnsAndIndices) {
       ret.add(new FieldNode(pair.v, pair.k));
     }

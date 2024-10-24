@@ -18,25 +18,25 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.Arity;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import javax.annotation.WillNotClose;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 
-public abstract class UnaryFunction extends AbstractFunction {
+public abstract class UnaryFunction<OUTPUT extends FieldVector> extends AbstractFunction<OUTPUT> {
 
   protected UnaryFunction(String name) {
     super(name, Arity.UNARY);
   }
 
   @Override
-  protected FieldVector invokeImpl(BufferAllocator allocator, VectorSchemaRoot input)
+  protected OUTPUT invokeImpl(BufferAllocator allocator, VectorSchemaRoot input)
       throws ComputeException {
     return evaluate(allocator, input.getFieldVectors().get(0));
   }
 
-  public abstract FieldVector evaluate(
+  public abstract OUTPUT evaluate(
       @WillNotClose BufferAllocator allocator, @WillNotClose FieldVector input)
       throws ComputeException;
 }

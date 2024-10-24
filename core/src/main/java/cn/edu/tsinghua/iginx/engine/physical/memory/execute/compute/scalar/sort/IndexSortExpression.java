@@ -15,30 +15,35 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.sort;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.Arity;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.CallNode;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpression;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.CompareOption;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
-import javax.annotation.WillNotClose;
+import java.util.List;
+import java.util.Objects;
 import org.apache.arrow.memory.BufferAllocator;
-import org.apache.arrow.vector.FieldVector;
+import org.apache.arrow.vector.IntVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 
-public abstract class BinaryFunction<OUTPUT extends FieldVector> extends AbstractFunction<OUTPUT> {
+public class IndexSortExpression extends CallNode<IntVector> {
 
-  protected BinaryFunction(String name) {
-    super(name, Arity.BINARY);
+  private final List<CompareOption> options;
+
+  public IndexSortExpression(
+      List<CompareOption> options, List<? extends ScalarExpression<?>> children) {
+    super(new IndexSort(options), children);
+    this.options = Objects.requireNonNull(options);
+  }
+
+  public List<CompareOption> getOptions() {
+    return options;
   }
 
   @Override
-  protected OUTPUT invokeImpl(BufferAllocator allocator, VectorSchemaRoot input)
+  protected IntVector invokeImpl(BufferAllocator allocator, VectorSchemaRoot input)
       throws ComputeException {
-    return evaluate(allocator, input.getFieldVectors().get(0), input.getFieldVectors().get(1));
+    return super.invokeImpl(allocator, input);
   }
-
-  public abstract OUTPUT evaluate(
-      @WillNotClose BufferAllocator allocator,
-      @WillNotClose FieldVector left,
-      @WillNotClose FieldVector right)
-      throws ComputeException;
 }

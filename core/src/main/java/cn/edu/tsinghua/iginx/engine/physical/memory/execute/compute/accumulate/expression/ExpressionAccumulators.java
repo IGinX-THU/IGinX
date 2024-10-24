@@ -18,8 +18,8 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.expression;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.Accumulator;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ResultRowCountException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ResultRowCountException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;

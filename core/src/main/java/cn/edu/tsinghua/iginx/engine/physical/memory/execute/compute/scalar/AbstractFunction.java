@@ -18,8 +18,8 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.Arity;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ArityException;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ArityException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import java.util.Objects;
 import javax.annotation.WillNotClose;
 import org.apache.arrow.memory.BufferAllocator;
@@ -27,7 +27,8 @@ import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.types.pojo.Schema;
 
-public abstract class AbstractFunction implements ScalarFunction {
+public abstract class AbstractFunction<OUTPUT extends FieldVector>
+    implements ScalarFunction<OUTPUT> {
 
   private final String name;
   private final Arity arity;
@@ -43,7 +44,7 @@ public abstract class AbstractFunction implements ScalarFunction {
   }
 
   @Override
-  public FieldVector invoke(
+  public OUTPUT invoke(
       @WillNotClose BufferAllocator allocator, @WillNotClose VectorSchemaRoot input)
       throws ComputeException {
     Schema schema = input.getSchema();
@@ -65,7 +66,7 @@ public abstract class AbstractFunction implements ScalarFunction {
 
   public abstract boolean equals(Object obj);
 
-  protected abstract FieldVector invokeImpl(
+  protected abstract OUTPUT invokeImpl(
       @WillNotClose BufferAllocator allocator, @WillNotClose VectorSchemaRoot input)
       throws ComputeException;
 }

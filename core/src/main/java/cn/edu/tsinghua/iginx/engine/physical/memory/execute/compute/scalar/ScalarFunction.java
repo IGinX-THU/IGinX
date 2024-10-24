@@ -18,13 +18,13 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.PhysicalFunction;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import javax.annotation.WillNotClose;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 
-public interface ScalarFunction extends PhysicalFunction {
+public interface ScalarFunction<OUTPUT extends FieldVector> extends PhysicalFunction {
 
   /**
    * Invoke the function with the given arguments.
@@ -34,7 +34,7 @@ public interface ScalarFunction extends PhysicalFunction {
    * @return the result of the function, may be a struct vector
    * @throws ComputeException if the function cannot be executed
    */
-  FieldVector invoke(@WillNotClose BufferAllocator allocator, @WillNotClose VectorSchemaRoot input)
+  OUTPUT invoke(@WillNotClose BufferAllocator allocator, @WillNotClose VectorSchemaRoot input)
       throws ComputeException;
 }
 

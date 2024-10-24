@@ -19,8 +19,7 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.arit
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.UnaryFunction;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.CallContracts;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
-import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ConstantVectors;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.Schemas;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ValueVectors;
 import java.util.function.IntConsumer;
@@ -28,7 +27,7 @@ import javax.annotation.WillNotClose;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.*;
 
-public abstract class UnaryArithmeticFunction extends UnaryFunction {
+public abstract class UnaryArithmeticFunction extends UnaryFunction<FieldVector> {
 
   public UnaryArithmeticFunction(String name) {
     super(name);
@@ -37,10 +36,6 @@ public abstract class UnaryArithmeticFunction extends UnaryFunction {
   @Override
   public FieldVector evaluate(@WillNotClose BufferAllocator allocator, @WillNotClose FieldVector in)
       throws ComputeException {
-    if (in instanceof NullVector) {
-      return ConstantVectors.ofNull(allocator, in.getValueCount());
-    }
-
     CallContracts.ensureType(this, Schemas.of(in), Schemas::isNumeric);
 
     FieldVector dest = ValueVectors.create(allocator, in.getMinorType(), in.getValueCount());

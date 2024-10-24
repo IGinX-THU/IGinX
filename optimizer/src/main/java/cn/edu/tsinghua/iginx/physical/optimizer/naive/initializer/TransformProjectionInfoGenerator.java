@@ -23,7 +23,7 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expre
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.FieldNode;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.LiteralNode;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpression;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutorFactory;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.pipeline.ProjectionExecutor;
@@ -50,25 +50,25 @@ public class TransformProjectionInfoGenerator implements UnaryExecutorFactory<Pr
   @Override
   public ProjectionExecutor initialize(ExecutorContext context, BatchSchema inputSchema)
       throws ComputeException {
-    List<ScalarExpression> expressions = getExpressions(context, inputSchema);
+    List<ScalarExpression<?>> expressions = getExpressions(context, inputSchema);
     return new ProjectionExecutor(context, inputSchema, expressions);
   }
 
-  public List<ScalarExpression> getExpressions(ExecutorContext context, BatchSchema inputSchema)
+  public List<ScalarExpression<?>> getExpressions(ExecutorContext context, BatchSchema inputSchema)
       throws ComputeException {
-    List<ScalarExpression> ret = new ArrayList<>();
+    List<ScalarExpression<?>> ret = new ArrayList<>();
     if (inputSchema.hasKey()) {
       ret.add(new FieldNode(inputSchema.getKeyIndex(), BatchSchema.KEY.getName()));
     }
     for (int targetIndex = 0; targetIndex < operator.getFunctionCallList().size(); targetIndex++) {
       FunctionCall functionCall = operator.getFunctionCallList().get(targetIndex);
-      ScalarExpression expression = getPhysicalExpression(context, inputSchema, functionCall);
+      ScalarExpression<?> expression = getPhysicalExpression(context, inputSchema, functionCall);
       ret.add(expression);
     }
     return ret;
   }
 
-  private ScalarExpression getPhysicalExpression(
+  private ScalarExpression<?> getPhysicalExpression(
       ExecutorContext context, BatchSchema inputSchema, FunctionCall functionCall)
       throws ComputeException {
     Function function = functionCall.getFunction();
@@ -93,7 +93,7 @@ public class TransformProjectionInfoGenerator implements UnaryExecutorFactory<Pr
     }
   }
 
-  private ScalarExpression getPhysicalExpression(
+  private ScalarExpression<?> getPhysicalExpression(
       ExecutorContext context, BatchSchema inputSchema, Expression expr) throws ComputeException {
     switch (expr.getType()) {
       case FromValue:
@@ -108,7 +108,7 @@ public class TransformProjectionInfoGenerator implements UnaryExecutorFactory<Pr
         return getPhysicalExpression(
             context, inputSchema, ((BracketExpression) expr).getExpression());
       case Constant:
-        return new LiteralNode(((ConstantExpression) expr).getValue());
+        return new LiteralNode<>(((ConstantExpression) expr).getValue());
       case CaseWhen:
       case Function:
       case Multiple:
@@ -118,34 +118,39 @@ public class TransformProjectionInfoGenerator implements UnaryExecutorFactory<Pr
     }
   }
 
-  private ScalarExpression getPhysicalExpression(
-      ExecutorContext context, BatchSchema inputSchema, BaseExpression expr) {
+  private ScalarExpression<?> getPhysicalExpression(
+      ExecutorContext context, BatchSchema inputSchema, BaseExpression expr)
+      throws ComputeException {
     Integer index = inputSchema.indexOf(expr.getColumnName());
     if (index == null) {
-      return new LiteralNode(null);
+      throw new ComputeException(
+          "Column not found: " + expr.getColumnName() + " in " + inputSchema);
     } else {
       return new FieldNode(index);
     }
   }
 
-  private ScalarExpression getPhysicalExpression(
+  private ScalarExpression<?> getPhysicalExpression(
       ExecutorContext context, BatchSchema inputSchema, BinaryExpression expr)
       throws ComputeException {
-    ScalarExpression left = getPhysicalExpression(context, inputSchema, expr.getLeftExpression());
-    ScalarExpression right = getPhysicalExpression(context, inputSchema, expr.getRightExpression());
-    ScalarFunction function = getArithmeticFunction(expr.getOp());
-    return new CallNode(function, expr.getColumnName(), left, right);
+    ScalarExpression<?> left =
+        getPhysicalExpression(context, inputSchema, expr.getLeftExpression());
+    ScalarExpression<?> right =
+        getPhysicalExpression(context, inputSchema, expr.getRightExpression());
+    ScalarFunction<?> function = getArithmeticFunction(expr.getOp());
+    return new CallNode<>(function, expr.getColumnName(), left, right);
   }
 
-  private ScalarExpression getPhysicalExpression(
+  private ScalarExpression<?> getPhysicalExpression(
       ExecutorContext context, BatchSchema inputSchema, UnaryExpression expr)
       throws ComputeException {
-    ScalarExpression expression = getPhysicalExpression(context, inputSchema, expr.getExpression());
+    ScalarExpression<?> expression =
+        getPhysicalExpression(context, inputSchema, expr.getExpression());
     switch (expr.getOperator()) {
       case PLUS:
         return expression;
       case MINUS:
-        return new CallNode(new Negate(), expr.getColumnName(), expression);
+        return new CallNode<>(new Negate(), expr.getColumnName(), expression);
       default:
         throw new UnsupportedOperationException("Unsupported operator: " + operator);
     }
