@@ -8883,6 +8883,9 @@ public class SQLSessionIT {
             + "Total line number = 10\n";
     executor.executeAndCompare(statement, expect);
 
+    statement = "SELECT s1 FROM us.* WHERE NOT (s1 &IN (1,2,3,6,8)) AND s1 > 100 LIMIT 10;";
+    executor.executeAndCompare(statement, expect);
+
     statement = "SELECT s1 FROM us.* WHERE s1 &NOT IN (1,2,3,6,8) AND s1 > 100 LIMIT 10;";
     expect =
         "ResultSets:\n"
@@ -8901,6 +8904,9 @@ public class SQLSessionIT {
             + "|115|     115|      15|\n"
             + "+---+--------+--------+\n"
             + "Total line number = 10\n";
+    executor.executeAndCompare(statement, expect);
+
+    statement = "SELECT s1 FROM us.* WHERE NOT (s1 |IN (1,2,3,6,8)) AND s1 > 100 LIMIT 10;";
     executor.executeAndCompare(statement, expect);
   }
 
