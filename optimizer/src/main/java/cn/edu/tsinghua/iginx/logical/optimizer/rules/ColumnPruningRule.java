@@ -47,9 +47,11 @@ import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 import cn.edu.tsinghua.iginx.logical.optimizer.core.RuleCall;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
+import cn.edu.tsinghua.iginx.utils.ValueUtils;
 import com.google.auto.service.AutoService;
 import java.util.*;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -436,10 +438,27 @@ public class ColumnPruningRule extends Rule {
         columns.addAll(newColumns);
       } else {
         List<String> columnNames = functionCall.getParams().getPaths();
-        String functionStr = functionName + "(" + String.join(", ", columnNames) + ")";
+        List<Object> args = functionCall.getParams().getArgs();
+        Map<String, Object> kvargs = functionCall.getParams().getKwargs();
+
+        StringBuilder sb = new StringBuilder();
+        sb.append(functionName).append("(");
         if (functionCall.getParams().isDistinct()) {
-          functionStr = functionName + "(distinct " + String.join(", ", columnNames) + ")";
+          sb.append("distinct ");
         }
+        sb.append(String.join(", ", columnNames));
+        if (!args.isEmpty()) {
+          sb.append(", ");
+          sb.append(args.stream().map(ValueUtils::toString).collect(Collectors.joining(", ")));
+        }
+        if (!kvargs.isEmpty()) {
+          sb.append(", ");
+          sb.append(
+              kvargs.values().stream().map(Object::toString).collect(Collectors.joining(", ")));
+        }
+        sb.append(")");
+
+        String functionStr = sb.toString();
         columns.addAll(paths);
         if (columns.contains(functionStr)) {
           columns.remove(functionStr);
