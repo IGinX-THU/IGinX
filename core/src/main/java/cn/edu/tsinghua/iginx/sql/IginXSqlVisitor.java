@@ -1690,25 +1690,26 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         return parseFilterWithSubQuery(
             ctx.predicateWithSubquery(), (UnarySelectStatement) statement, pos);
       } else if (ctx.expression().size() == 2) {
-        return parseExprFilter(ctx, (UnarySelectStatement) statement);
+        return parseExprFilter(ctx, (UnarySelectStatement) statement, pos);
       } else if (ctx.path().size() == 1 && ctx.array() == null) {
-        return parseValueFilter(ctx, (UnarySelectStatement) statement);
+        return parseValueFilter(ctx, (UnarySelectStatement) statement, pos);
       } else if (ctx.array() != null) {
-        return parseInFilter(ctx, (UnarySelectStatement) statement);
+        return parseInFilter(ctx, (UnarySelectStatement) statement, pos);
       } else if (ctx.path().size() == 2) {
-        return parsePathFilter(ctx, (UnarySelectStatement) statement);
+        return parsePathFilter(ctx, (UnarySelectStatement) statement, pos);
       } else {
         throw new SQLParserException("Illegal predicate.");
       }
     }
   }
 
-  private FilterData parseInFilter(PredicateContext ctx, UnarySelectStatement statement) {
+  private FilterData parseInFilter(PredicateContext ctx, UnarySelectStatement statement, Pos pos) {
     String path = parsePath(ctx.path().get(0));
     List<Value> values = new ArrayList<>();
 
-    if (statement.isFromSinglePath() && !statement.isSubQuery()) {
-      FromPart fromPart = statement.getFromPart(0);
+    FromPart fromPart = getFromPartIfNeedPrefix(statement, pos);
+
+    if (fromPart != null) {
       path = fromPart.getPrefix() + SQLConstant.DOT + path;
     }
 
@@ -1810,7 +1811,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     if (ctx.EXISTS() != null) {
       return parseExistsFilter(ctx, statement);
     } else if (ctx.inOperator() != null) {
-      return parseInSubqueryFilter(ctx, statement);
+      return parseInSubqueryFilter(ctx, statement, pos);
     } else if (ctx.quantifier() != null) {
       return parseQuantifierComparisonFilter(ctx, statement, pos);
     } else if (ctx.subquery().size() == 1) {
@@ -1842,7 +1843,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
   }
 
   private FilterData parseInSubqueryFilter(
-      PredicateWithSubqueryContext ctx, UnarySelectStatement statement) {
+      PredicateWithSubqueryContext ctx, UnarySelectStatement statement, Pos pos) {
     SelectStatement subStatement = buildSubStatement(ctx, statement, 0, 1);
     // 计算子查询的自由变量
     subStatement.initFreeVariables();
