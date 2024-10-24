@@ -17,16 +17,18 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ConstantVectors;
 import java.util.Collections;
 import java.util.Objects;
 import javax.annotation.Nullable;
 import org.apache.arrow.memory.BufferAllocator;
+import org.apache.arrow.vector.BitVector;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 
-public final class LiteralNode extends AbstractScalarExpression {
+public final class LiteralNode<OUTPUT extends FieldVector>
+    extends AbstractScalarExpression<OUTPUT> {
 
   private final Object value;
 
@@ -39,6 +41,10 @@ public final class LiteralNode extends AbstractScalarExpression {
     this.value = value;
   }
 
+  public static LiteralNode<BitVector> of(boolean value) {
+    return new LiteralNode<>(value);
+  }
+
   @Override
   public String getName() {
     return String.valueOf(value);
@@ -47,15 +53,16 @@ public final class LiteralNode extends AbstractScalarExpression {
   @Override
   public boolean equals(Object obj) {
     if (obj instanceof LiteralNode) {
-      LiteralNode literalNode = (LiteralNode) obj;
-      return Objects.equals(value, literalNode.value);
+      LiteralNode<?> literalNode = (LiteralNode<?>) obj;
+      return Objects.deepEquals(value, literalNode.value);
     }
     return false;
   }
 
   @Override
-  protected FieldVector invokeImpl(BufferAllocator allocator, VectorSchemaRoot input)
+  @SuppressWarnings("unchecked")
+  protected OUTPUT invokeImpl(BufferAllocator allocator, VectorSchemaRoot input)
       throws ComputeException {
-    return ConstantVectors.of(allocator, value, input.getRowCount());
+    return (OUTPUT) ConstantVectors.of(allocator, value, input.getRowCount());
   }
 }

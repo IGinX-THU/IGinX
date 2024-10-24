@@ -17,7 +17,7 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ValueVectors;
 import java.util.Collections;
 import java.util.List;
@@ -27,24 +27,25 @@ import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 
-public abstract class AbstractScalarExpression implements ScalarExpression {
+public abstract class AbstractScalarExpression<OUTPUT extends FieldVector>
+    implements ScalarExpression<OUTPUT> {
 
-  private final List<ScalarExpression> children;
+  private final List<ScalarExpression<?>> children;
   private final String alias;
 
-  protected AbstractScalarExpression(String alias, List<ScalarExpression> children) {
+  protected AbstractScalarExpression(String alias, List<? extends ScalarExpression<?>> children) {
     this.alias = alias;
     this.children = Collections.unmodifiableList(children);
   }
 
   @Override
-  public List<ScalarExpression> getChildren() {
+  public List<ScalarExpression<?>> getChildren() {
     return children;
   }
 
   @Override
   public String toString() {
-    return getName() + (alias == null ? "" : " as " + alias);
+    return getName() + (alias == null ? "" : " AS " + alias);
   }
 
   @Override
@@ -55,19 +56,19 @@ public abstract class AbstractScalarExpression implements ScalarExpression {
   public abstract boolean equals(Object obj);
 
   @Override
-  public FieldVector invoke(
+  public OUTPUT invoke(
       @WillNotClose BufferAllocator allocator, @WillNotClose VectorSchemaRoot input)
       throws ComputeException {
     if (alias == null) {
       return invokeImpl(allocator, input);
     } else {
-      try (FieldVector result = invokeImpl(allocator, input)) {
+      try (OUTPUT result = invokeImpl(allocator, input)) {
         return ValueVectors.transfer(allocator, result, alias);
       }
     }
   }
 
-  protected abstract FieldVector invokeImpl(
+  protected abstract OUTPUT invokeImpl(
       @WillNotClose BufferAllocator allocator, @WillNotClose VectorSchemaRoot input)
       throws ComputeException;
 }

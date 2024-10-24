@@ -18,32 +18,35 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.sink;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.expression.ExpressionAccumulator;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.group.GroupTable;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpression;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Batch;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
 public class GroupsAggregateExecutor extends UnarySinkExecutor {
 
-  private final List<ScalarExpression> groupKeyExpressions;
-  private final List<ScalarExpression> groupValueExpressions;
+  private final List<ScalarExpression<?>> groupKeyExpressions;
+  private final List<ScalarExpression<?>> groupValueExpressions;
   private final List<ExpressionAccumulator> accumulators;
   private final GroupTable.Builder groupTableBuilder;
   private GroupTable groupTable = null;
+  private int groupIndex = 0;
 
   public GroupsAggregateExecutor(
       ExecutorContext context,
       BatchSchema inputSchema,
-      List<ScalarExpression> groupKeyExpressions,
-      List<ScalarExpression> groupValueExpressions,
+      List<? extends ScalarExpression<?>> groupKeyExpressions,
+      List<? extends ScalarExpression<?>> groupValueExpressions,
       List<ExpressionAccumulator> accumulators)
       throws ComputeException {
     super(context, inputSchema);
-    this.groupKeyExpressions = Objects.requireNonNull(groupKeyExpressions);
-    this.groupValueExpressions = Objects.requireNonNull(groupValueExpressions);
+    this.groupKeyExpressions = new ArrayList<>(groupKeyExpressions);
+    this.groupValueExpressions = new ArrayList<>(groupValueExpressions);
     this.accumulators = Objects.requireNonNull(accumulators);
     this.groupTableBuilder =
         new GroupTable.Builder(
@@ -85,12 +88,12 @@ public class GroupsAggregateExecutor extends UnarySinkExecutor {
 
   @Override
   public boolean canProduce() throws ComputeException {
-    return groupTable != null && !groupTable.isEmpty();
+    return groupTable != null && groupIndex < groupTable.getGroups().size();
   }
 
   @Override
   protected Batch internalProduce() throws ComputeException {
-    return new Batch(groupTable.poll());
+    return new Batch(groupTable.getGroups().get(groupIndex++));
   }
 
   @Override

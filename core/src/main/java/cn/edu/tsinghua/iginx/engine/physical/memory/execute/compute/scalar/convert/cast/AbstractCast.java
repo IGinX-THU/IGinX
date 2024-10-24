@@ -18,8 +18,8 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.convert.cast;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.UnaryFunction;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.NotAllowTypeException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.NotAllowTypeException;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.Schemas;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ValueVectors;
 import javax.annotation.WillNotClose;
@@ -29,7 +29,7 @@ import org.apache.arrow.vector.types.Types;
 import org.apache.arrow.vector.types.pojo.Field;
 import org.apache.arrow.vector.types.pojo.FieldType;
 
-public abstract class AbstractCast<VEC extends FieldVector> extends UnaryFunction {
+public abstract class AbstractCast<OUTPUT extends FieldVector> extends UnaryFunction<OUTPUT> {
 
   protected final Types.MinorType resultType;
 
@@ -40,10 +40,10 @@ public abstract class AbstractCast<VEC extends FieldVector> extends UnaryFunctio
 
   @Override
   @SuppressWarnings("unchecked")
-  public VEC evaluate(@WillNotClose BufferAllocator allocator, @WillNotClose FieldVector input)
+  public OUTPUT evaluate(@WillNotClose BufferAllocator allocator, @WillNotClose FieldVector input)
       throws ComputeException {
     if (input.getMinorType() == resultType) {
-      return ValueVectors.slice(allocator, (VEC) input);
+      return ValueVectors.slice(allocator, (OUTPUT) input);
     }
 
     Field inputField = input.getField();
@@ -57,13 +57,13 @@ public abstract class AbstractCast<VEC extends FieldVector> extends UnaryFunctio
                 inputField.getMetadata()),
             inputField.getChildren());
 
-    try (VEC dest = (VEC) outField.createVector(allocator)) {
+    try (OUTPUT dest = (OUTPUT) outField.createVector(allocator)) {
       evaluate(dest, input);
       return ValueVectors.transfer(allocator, dest);
     }
   }
 
-  protected void evaluate(VEC dest, FieldVector input) throws ComputeException {
+  protected void evaluate(OUTPUT dest, FieldVector input) throws ComputeException {
     if (dest instanceof FixedWidthVector) {
       ((FixedWidthVector) dest).allocateNew(input.getValueCount());
     } else {
@@ -98,27 +98,27 @@ public abstract class AbstractCast<VEC extends FieldVector> extends UnaryFunctio
     throw new NotAllowTypeException(this, Schemas.of(input), 0);
   }
 
-  protected void evaluate(VEC dest, BitVector input) throws ComputeException {
+  protected void evaluate(OUTPUT dest, BitVector input) throws ComputeException {
     fail(input);
   }
 
-  protected void evaluate(VEC dest, IntVector input) throws ComputeException {
+  protected void evaluate(OUTPUT dest, IntVector input) throws ComputeException {
     fail(input);
   }
 
-  protected void evaluate(VEC dest, BigIntVector input) throws ComputeException {
+  protected void evaluate(OUTPUT dest, BigIntVector input) throws ComputeException {
     fail(input);
   }
 
-  protected void evaluate(VEC dest, Float4Vector input) throws ComputeException {
+  protected void evaluate(OUTPUT dest, Float4Vector input) throws ComputeException {
     fail(input);
   }
 
-  protected void evaluate(VEC dest, Float8Vector input) throws ComputeException {
+  protected void evaluate(OUTPUT dest, Float8Vector input) throws ComputeException {
     fail(input);
   }
 
-  protected void evaluate(VEC dest, VarBinaryVector input) throws ComputeException {
+  protected void evaluate(OUTPUT dest, VarBinaryVector input) throws ComputeException {
     fail(input);
   }
 }

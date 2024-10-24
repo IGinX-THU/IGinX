@@ -21,7 +21,7 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.A
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.Accumulator;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpression;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpressions;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -32,9 +32,10 @@ import org.apache.arrow.vector.types.pojo.Schema;
 public class ExpressionAccumulation implements Accumulation {
 
   private final Accumulation accumulation;
-  private final List<ScalarExpression> expressions;
+  private final List<? extends ScalarExpression<?>> expressions;
 
-  public ExpressionAccumulation(Accumulation accumulation, List<ScalarExpression> expressions)
+  public ExpressionAccumulation(
+      Accumulation accumulation, List<? extends ScalarExpression<?>> expressions)
       throws ComputeException {
     this.accumulation = Objects.requireNonNull(accumulation);
     this.expressions = Objects.requireNonNull(expressions);

@@ -53,6 +53,8 @@ public class NaivePhysicalPlanner {
         return construct((RowTransform) operator, context);
       case Select:
         return construct((Select) operator, context);
+      case Sort:
+        return construct((Sort) operator, context);
       case SetTransform:
         return construct((SetTransform) operator, context);
       case GroupBy:
@@ -245,5 +247,22 @@ public class NaivePhysicalPlanner {
         Collections.singletonList(operator),
         context,
         new GroupsAggregateInfoGenerator(operator));
+  }
+
+  public PhysicalTask construct(Sort operator, RequestContext context) {
+    PhysicalTask sourceTask = construct(operator.getSource(), context);
+
+    PipelineMemoryPhysicalTask sortBatchTask =
+        new PipelineMemoryPhysicalTask(
+            construct(operator.getSource(), context),
+            Collections.singletonList(operator),
+            context,
+            new InnerBatchSortInfoGenerator(operator));
+
+    return new UnarySinkMemoryPhysicalTask(
+        sortBatchTask,
+        Collections.singletonList(operator),
+        context,
+        new MergeSortedBatchInfoGenerator(operator));
   }
 }

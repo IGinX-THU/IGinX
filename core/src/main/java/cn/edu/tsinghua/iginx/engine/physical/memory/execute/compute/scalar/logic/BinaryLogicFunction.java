@@ -19,8 +19,7 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.logi
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.BinaryFunction;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.CallContracts;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.NotAllowTypeException;
-import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ConstantVectors;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.NotAllowTypeException;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.Schemas;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ValueVectors;
 import javax.annotation.WillNotClose;
@@ -29,26 +28,20 @@ import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.BitVector;
 import org.apache.arrow.vector.BitVectorHelper;
 import org.apache.arrow.vector.FieldVector;
-import org.apache.arrow.vector.NullVector;
 import org.apache.arrow.vector.types.Types;
 
-public abstract class BinaryLogicFunction extends BinaryFunction {
+public abstract class BinaryLogicFunction extends BinaryFunction<BitVector> {
 
   protected BinaryLogicFunction(String name) {
     super(name);
   }
 
   @Override
-  public FieldVector evaluate(
+  public BitVector evaluate(
       @WillNotClose BufferAllocator allocator,
       @WillNotClose FieldVector left,
       @WillNotClose FieldVector right)
       throws NotAllowTypeException {
-    if (left instanceof NullVector || right instanceof NullVector) {
-      return ConstantVectors.ofNull(
-          allocator, Math.min(left.getValueCount(), right.getValueCount()));
-    }
-
     CallContracts.ensureType(this, Schemas.of(left, right), Types.MinorType.BIT);
     return evaluate(allocator, (BitVector) left, (BitVector) right);
   }

@@ -70,7 +70,7 @@ public class ConstantVectors {
   public static FieldVector of(
       @WillNotClose BufferAllocator allocator, boolean value, int valueCount) {
     BitVector vector =
-        new BitVector(Schemas.field(String.valueOf(value), Types.MinorType.BIT), allocator);
+        new BitVector(Schemas.nullableField(String.valueOf(value), Types.MinorType.BIT), allocator);
     vector.allocateNew(valueCount);
     setValueCountWithValidity(vector, valueCount);
     if (value) {
@@ -81,7 +81,7 @@ public class ConstantVectors {
 
   public static FieldVector of(@WillNotClose BufferAllocator allocator, int value, int valueCount) {
     IntVector vector =
-        new IntVector(Schemas.field(String.valueOf(value), Types.MinorType.INT), allocator);
+        new IntVector(Schemas.nullableField(String.valueOf(value), Types.MinorType.INT), allocator);
     vector.allocateNew(valueCount);
     setValueCountWithValidity(vector, valueCount);
     if (value != 0) {
@@ -93,7 +93,8 @@ public class ConstantVectors {
   public static FieldVector of(
       @WillNotClose BufferAllocator allocator, long value, int valueCount) {
     BigIntVector vector =
-        new BigIntVector(Schemas.field(String.valueOf(value), Types.MinorType.BIGINT), allocator);
+        new BigIntVector(
+            Schemas.nullableField(String.valueOf(value), Types.MinorType.BIGINT), allocator);
     vector.allocateNew(valueCount);
     setValueCountWithValidity(vector, valueCount);
     if (value != 0) {
@@ -105,7 +106,8 @@ public class ConstantVectors {
   public static FieldVector of(
       @WillNotClose BufferAllocator allocator, float value, int valueCount) {
     Float4Vector vector =
-        new Float4Vector(Schemas.field(String.valueOf(value), Types.MinorType.FLOAT4), allocator);
+        new Float4Vector(
+            Schemas.nullableField(String.valueOf(value), Types.MinorType.FLOAT4), allocator);
     vector.allocateNew(valueCount);
     setValueCountWithValidity(vector, valueCount);
     if (value != 0) {
@@ -117,7 +119,8 @@ public class ConstantVectors {
   public static FieldVector of(
       @WillNotClose BufferAllocator allocator, double value, int valueCount) {
     Float8Vector vector =
-        new Float8Vector(Schemas.field(String.valueOf(value), Types.MinorType.FLOAT8), allocator);
+        new Float8Vector(
+            Schemas.nullableField(String.valueOf(value), Types.MinorType.FLOAT8), allocator);
     vector.allocateNew(valueCount);
     setValueCountWithValidity(vector, valueCount);
     if (value != 0) {
@@ -128,7 +131,8 @@ public class ConstantVectors {
 
   public static FieldVector of(BufferAllocator allocator, byte[] value, int valueCount) {
     VarBinaryVector vector =
-        new VarBinaryVector(Schemas.field(new String(value), Types.MinorType.VARBINARY), allocator);
+        new VarBinaryVector(
+            Schemas.nullableField(new String(value), Types.MinorType.VARBINARY), allocator);
     vector.allocateNew(valueCount * (long) value.length, valueCount);
     setValueCountWithValidity(vector, valueCount);
     ArrowBuf offsetBuffer = vector.getOffsetBuffer();

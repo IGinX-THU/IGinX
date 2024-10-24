@@ -23,6 +23,7 @@ import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.memory.util.MemoryUtil;
 import org.apache.arrow.vector.BitVectorHelper;
 import org.apache.arrow.vector.FieldVector;
+import org.apache.arrow.vector.IntVector;
 import org.apache.arrow.vector.ValueVector;
 import org.apache.arrow.vector.types.Types;
 import org.apache.arrow.vector.types.pojo.Field;
@@ -33,6 +34,9 @@ public class ValueVectors {
   @SuppressWarnings("unchecked")
   public static <T extends ValueVector> T slice(
       BufferAllocator allocator, T source, int valueCount, String ref) {
+    if (source.getValueCount() == 0) {
+      return (T) source.getField().createVector(allocator);
+    }
     TransferPair transferPair = source.getTransferPair(ref, allocator);
     transferPair.splitAndTransfer(0, valueCount);
     return (T) transferPair.getTo();
@@ -141,5 +145,25 @@ public class ValueVectors {
 
   public static <T extends ValueVector> T transfer(BufferAllocator allocator, T vector) {
     return transfer(allocator, vector, vector.getName());
+  }
+
+  public static IntVector ofNonnull(BufferAllocator allocator, String name, Integer[] values) {
+    return of(allocator, name, false, values);
+  }
+
+  public static IntVector of(
+      BufferAllocator allocator, String name, boolean nullable, Integer[] values) {
+    Field field = Schemas.field(name, nullable, Types.MinorType.INT);
+    IntVector ret = (IntVector) field.createVector(allocator);
+    ret.allocateNew(values.length);
+    for (int i = 0; i < values.length; i++) {
+      if (nullable && values[i] == null) {
+        ret.setNull(i);
+      } else {
+        ret.set(i, values[i]);
+      }
+    }
+    ret.setValueCount(values.length);
+    return ret;
   }
 }

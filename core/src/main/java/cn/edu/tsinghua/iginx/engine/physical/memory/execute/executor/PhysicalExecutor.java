@@ -17,8 +17,8 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputingCloseable;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import java.util.Objects;
 

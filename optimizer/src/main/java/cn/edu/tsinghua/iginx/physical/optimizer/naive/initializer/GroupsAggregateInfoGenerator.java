@@ -23,7 +23,7 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.e
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.FieldNode;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpression;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpressions;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutorFactory;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.sink.GroupsAggregateExecutor;
@@ -46,7 +46,7 @@ public class GroupsAggregateInfoGenerator implements UnaryExecutorFactory<Groups
   @Override
   public GroupsAggregateExecutor initialize(ExecutorContext context, BatchSchema inputSchema)
       throws ComputeException {
-    List<ScalarExpression> groupKeyExpressions =
+    List<ScalarExpression<?>> groupKeyExpressions =
         generateGroupKeyExpressions(groupBy.getGroupByCols(), inputSchema);
     List<Pair<Accumulation, Integer>> aggregateInfo =
         AggregateInfoGenerator.generateAggregateInfo(
@@ -62,7 +62,7 @@ public class GroupsAggregateInfoGenerator implements UnaryExecutorFactory<Groups
       groupValueIndexesMap.put(indexInInput, groupValueIndexes.size());
       groupValueIndexes.add(indexInInput);
     }
-    List<ScalarExpression> groupValueExpressions =
+    List<ScalarExpression<?>> groupValueExpressions =
         groupValueIndexes.stream().map(FieldNode::new).collect(Collectors.toList());
 
     List<ExpressionAccumulation> accumulations = new ArrayList<>();
@@ -89,7 +89,7 @@ public class GroupsAggregateInfoGenerator implements UnaryExecutorFactory<Groups
         context, inputSchema, groupKeyExpressions, groupValueExpressions, accumulators);
   }
 
-  private static List<ScalarExpression> generateGroupKeyExpressions(
+  private static List<ScalarExpression<?>> generateGroupKeyExpressions(
       List<String> groupByCols, BatchSchema inputSchema) {
     List<Integer> groupKeyIndexes = Schemas.matchPattern(inputSchema.raw(), groupByCols);
     return groupKeyIndexes.stream().map(FieldNode::new).collect(Collectors.toList());

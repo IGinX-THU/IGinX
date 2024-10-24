@@ -18,37 +18,45 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.pipeline;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.PhysicalFunctions;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.convert.cast.CastAsBit;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpression;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpressions;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Batch;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import org.apache.arrow.vector.BitVector;
-import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.IntVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 
 public class FilterExecutor extends PipelineExecutor {
 
-  private final ScalarExpression condition;
-  private final CastAsBit castAsBit = new CastAsBit();
+  private final ScalarExpression<BitVector> condition;
+  private final List<ScalarExpression<?>> outputExpressions;
 
   public FilterExecutor(
-      ExecutorContext context, BatchSchema inputSchema, ScalarExpression condition) {
+      ExecutorContext context,
+      BatchSchema inputSchema,
+      ScalarExpression<BitVector> condition,
+      List<? extends ScalarExpression<?>> outputExpressions) {
     super(context, inputSchema);
     this.condition = Objects.requireNonNull(condition);
+    this.outputExpressions = new ArrayList<>(outputExpressions);
   }
 
   @Override
   protected Batch internalCompute(Batch batch) throws ComputeException {
-    try (FieldVector mask = condition.invoke(context.getAllocator(), batch.raw());
-        BitVector bitmask = castAsBit.evaluate(context.getAllocator(), mask);
-        IntVector selection = PhysicalFunctions.filter(context.getAllocator(), bitmask)) {
-      VectorSchemaRoot root =
-          PhysicalFunctions.take(context.getAllocator(), selection, batch.raw());
-      return new Batch(root);
+    try (BitVector mask =
+            ScalarExpressions.evaluateSafe(context.getAllocator(), condition, batch.raw());
+        IntVector selection = PhysicalFunctions.filter(context.getAllocator(), mask);
+        VectorSchemaRoot output =
+            ScalarExpressions.evaluateSafe(
+                context.getAllocator(), outputExpressions, batch.raw())) {
+      VectorSchemaRoot filteredOutput =
+          PhysicalFunctions.take(context.getAllocator(), selection, output);
+      return new Batch(filteredOutput);
     }
   }
 

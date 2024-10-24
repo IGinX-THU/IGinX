@@ -15,19 +15,19 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.sink;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.group;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.Accumulator;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.expression.ExpressionAccumulator;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.expression.ExpressionAccumulators;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpression;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpressions;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputingCloseable;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputingCloseables;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.util.MapKey;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.Schemas;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.VectorSchemaRoots;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.ColumnBuilder;
 import java.util.*;
 import java.util.stream.Collectors;
 import org.apache.arrow.memory.BufferAllocator;
@@ -39,11 +39,13 @@ import org.apache.arrow.vector.types.pojo.Schema;
 public class GroupTable implements AutoCloseable {
 
   private final Schema schema;
-  private final Queue<VectorSchemaRoot> groups;
+  private final List<VectorSchemaRoot> groups;
+  private final List<VectorSchemaRoot> unmodifiableGroups;
 
   GroupTable(Schema tableSchema) {
     this.schema = tableSchema;
-    this.groups = new ArrayDeque<>();
+    this.groups = new ArrayList<>();
+    this.unmodifiableGroups = Collections.unmodifiableList(groups);
   }
 
   public Schema getSchema() {
@@ -61,12 +63,8 @@ public class GroupTable implements AutoCloseable {
     return table;
   }
 
-  public boolean isEmpty() {
-    return groups.isEmpty();
-  }
-
-  public VectorSchemaRoot poll() {
-    return groups.remove();
+  public List<VectorSchemaRoot> getGroups() {
+    return unmodifiableGroups;
   }
 
   @Override
@@ -77,26 +75,26 @@ public class GroupTable implements AutoCloseable {
   public static class Builder implements AutoCloseable {
     private final BufferAllocator allocator;
     private final int maxBatchRowCount;
-    private final List<ScalarExpression> groupKeyExpressions;
-    private final List<ScalarExpression> groupValueExpressions;
+    private final List<ScalarExpression<?>> groupKeyExpressions;
+    private final List<ScalarExpression<?>> groupValueExpressions;
     private final List<ExpressionAccumulator> accumulators;
     private final Schema groupKeySchema;
     private final Schema groupValueSchema;
     private final Schema accumulatedSchema;
-    private final HashMap<MapKey, GroupState> groups = new HashMap<>();
+    private final HashMap<GroupKey, GroupState> groups = new HashMap<>();
 
     public Builder(
         BufferAllocator allocator,
         int maxBatchRowCount,
         Schema inputSchema,
-        List<ScalarExpression> groupKeyExpressions,
-        List<ScalarExpression> groupValueExpressions,
+        List<? extends ScalarExpression<?>> groupKeyExpressions,
+        List<? extends ScalarExpression<?>> groupValueExpressions,
         List<ExpressionAccumulator> accumulators)
         throws ComputeException {
       this.allocator = allocator;
       this.maxBatchRowCount = maxBatchRowCount;
-      this.groupKeyExpressions = groupKeyExpressions;
-      this.groupValueExpressions = groupValueExpressions;
+      this.groupKeyExpressions = new ArrayList<>(groupKeyExpressions);
+      this.groupValueExpressions = new ArrayList<>(groupValueExpressions);
       this.accumulators = accumulators;
       this.groupKeySchema =
           ScalarExpressions.getOutputSchema(allocator, groupKeyExpressions, inputSchema);
@@ -110,11 +108,11 @@ public class GroupTable implements AutoCloseable {
       try (VectorSchemaRoot groupKeys =
           ScalarExpressions.evaluateSafe(allocator, groupKeyExpressions, data)) {
         for (int row = 0; row < data.getRowCount(); row++) {
-          MapKey mapKey = new MapKey(groupKeys, row);
-          GroupState groupState = groups.get(mapKey);
+          GroupKey groupKey = new GroupKey(groupKeys, row);
+          GroupState groupState = groups.get(groupKey);
           if (groupState == null) {
             groupState = new GroupState();
-            groups.put(mapKey, groupState);
+            groups.put(groupKey, groupState);
           }
           groupStates.add(groupState);
         }
@@ -133,8 +131,8 @@ public class GroupTable implements AutoCloseable {
     public GroupTable build() throws ComputeException {
       Schema tableSchema = Schemas.merge(groupKeySchema, accumulatedSchema);
       try (GroupTable table = new GroupTable(tableSchema)) {
-        List<Map.Entry<MapKey, GroupState>> entryBatch = new ArrayList<>(maxBatchRowCount);
-        for (Map.Entry<MapKey, GroupState> entry : groups.entrySet()) {
+        List<Map.Entry<GroupKey, GroupState>> entryBatch = new ArrayList<>(maxBatchRowCount);
+        for (Map.Entry<GroupKey, GroupState> entry : groups.entrySet()) {
           entryBatch.add(entry);
           if (entryBatch.size() >= maxBatchRowCount) {
             table.add(build(entryBatch));
@@ -148,10 +146,13 @@ public class GroupTable implements AutoCloseable {
       }
     }
 
-    private VectorSchemaRoot build(List<Map.Entry<MapKey, GroupState>> entries)
+    private VectorSchemaRoot build(List<Map.Entry<GroupKey, GroupState>> entries)
         throws ComputeException {
       List<Object[]> groupKeys =
-          entries.stream().map(Map.Entry::getKey).map(MapKey::getData).collect(Collectors.toList());
+          entries.stream()
+              .map(Map.Entry::getKey)
+              .map(GroupKey::getData)
+              .collect(Collectors.toList());
       List<GroupState> groupStates =
           entries.stream().map(Map.Entry::getValue).collect(Collectors.toList());
       List<List<Accumulator.State>> statesColumns = new ArrayList<>(accumulators.size());
@@ -164,7 +165,7 @@ public class GroupTable implements AutoCloseable {
           statesColumns.get(i).add(groupState.states.get(i));
         }
       }
-      try (VectorSchemaRoot keysTable = MapKey.merge(allocator, groupKeySchema, groupKeys);
+      try (VectorSchemaRoot keysTable = GroupKey.merge(allocator, groupKeySchema, groupKeys);
           VectorSchemaRoot valuesTable =
               ExpressionAccumulators.evaluateSafe(accumulators, statesColumns)) {
         return VectorSchemaRoots.join(allocator, keysTable, valuesTable);
@@ -232,6 +233,64 @@ public class GroupTable implements AutoCloseable {
         buffer.close();
         ComputingCloseables.close(states);
       }
+    }
+  }
+
+  private static final class GroupKey {
+    private final Object[] key;
+    private final transient int hashCode;
+
+    public GroupKey(VectorSchemaRoot data, int index) {
+      this(VectorSchemaRoots.get(data, index));
+    }
+
+    GroupKey(Object[] key) {
+      this.key = key;
+      hashCode = Arrays.deepHashCode(key);
+    }
+
+    public static VectorSchemaRoot merge(
+        BufferAllocator allocator, Schema groupKeySchema, List<Object[]> groupKeys)
+        throws ComputeException {
+      VectorSchemaRoot root = VectorSchemaRoot.create(groupKeySchema, allocator);
+      List<ColumnBuilder> columnBuilders = new ArrayList<>();
+      try {
+        for (FieldVector fieldVector : root.getFieldVectors()) {
+          if (!ColumnBuilder.support(fieldVector)) {
+            throw new ComputeException("Unsupported type: " + fieldVector.getMinorType());
+          }
+          columnBuilders.add(ColumnBuilder.create(fieldVector));
+          fieldVector.setInitialCapacity(groupKeys.size());
+        }
+      } catch (ComputeException e) {
+        root.close();
+        throw e;
+      }
+      for (Object[] groupKey : groupKeys) {
+        for (int i = 0; i < groupKey.length; i++) {
+          columnBuilders.get(i).append(groupKey[i]);
+        }
+      }
+      root.setRowCount(groupKeys.size());
+      return root;
+    }
+
+    public Object[] getData() {
+      return key;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (!(o instanceof GroupKey)) {
+        return false;
+      }
+      GroupKey groupKey = (GroupKey) o;
+      return Arrays.deepEquals(key, groupKey.key);
+    }
+
+    @Override
+    public int hashCode() {
+      return hashCode;
     }
   }
 }

@@ -20,7 +20,8 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.Accumulator;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpression;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpressions;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -33,15 +34,15 @@ public class ExpressionAccumulator implements Accumulator {
 
   private final BufferAllocator allocator;
   private final Accumulator accumulator;
-  private final List<ScalarExpression> expressions;
+  private final List<ScalarExpression<?>> expressions;
 
   ExpressionAccumulator(
       @WillNotClose BufferAllocator allocator,
       Accumulator accumulator,
-      List<ScalarExpression> expressions) {
+      List<? extends ScalarExpression<?>> expressions) {
     this.allocator = Objects.requireNonNull(allocator);
     this.accumulator = Objects.requireNonNull(accumulator);
-    this.expressions = Objects.requireNonNull(expressions);
+    this.expressions = new ArrayList<>(expressions);
   }
 
   @Override

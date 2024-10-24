@@ -15,16 +15,21 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.PhysicalFunction;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
-import javax.annotation.WillNotClose;
-import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.types.pojo.Schema;
 
-public interface Accumulation extends PhysicalFunction {
+public class NotAllowTypeException extends ArgumentException {
 
-  Accumulator accumulate(@WillNotClose BufferAllocator allocator, Schema inputSchema)
-      throws ComputeException;
+  private final int index;
+
+  public NotAllowTypeException(PhysicalFunction function, Schema schema, int index) {
+    super(function, schema, "type of column " + index);
+    this.index = index;
+  }
+
+  public int getIndex() {
+    return index;
+  }
 }
