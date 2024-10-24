@@ -31,6 +31,8 @@ import java.util.*;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class LogicalFilterUtils {
 
@@ -357,11 +359,73 @@ public class LogicalFilterUtils {
     }
   }
 
-  public static List<KeyRange> getKeyRangesFromFilter(Filter filter) {
-    filter = toDNF(filter.copy());
+  public static List<KeyRange> getKeyRangesFromFilter(final Filter filter) {
+    // 先将filter中的非keyfilter全部去掉，否则toDNF可能会指数爆炸
+    Filter copy = removeExceptKeyFilter(filter.copy());
+    if (copy == null || copy.getType() == FilterType.Bool) return new ArrayList<>();
+    copy = toDNF(copy);
     List<KeyRange> keyRanges = new ArrayList<>();
-    extractKeyRange(keyRanges, filter);
+    extractKeyRange(keyRanges, copy);
     return unionKeyRanges(keyRanges);
+  }
+
+  /**
+   * 去除所有非KeyFilter、AndFilter、OrFilter,以在toDNF时不会指数爆炸
+   *
+   * @param filter 待处理的filter
+   * @return 处理后的filter
+   */
+  private static Filter removeExceptKeyFilter(Filter filter) {
+    switch (filter.getType()) {
+      case And:
+        // AndFilter可以把所有的非KeyFilter、OrFilter去掉
+        AndFilter andFilter = (AndFilter) filter;
+        // 展开所有的AndFilter children,并去除所有非Or、KeyFilter
+        List<Filter> andChildren =
+            andFilter.getChildren().stream()
+                .flatMap(
+                    child -> {
+                      if (child.getType() == FilterType.And) {
+                        return ((AndFilter) child).getChildren().stream();
+                      }
+                      return Stream.of(child);
+                    })
+                .map(LogicalFilterUtils::removeExceptKeyFilter)
+                .filter(f -> f.getType() == FilterType.Key || f.getType() == FilterType.Or)
+                .collect(Collectors.toList());
+
+        if (andChildren.isEmpty()) return new BoolFilter(true);
+        if (andChildren.size() == 1) return andChildren.get(0);
+        return new AndFilter(andChildren);
+      case Or:
+        // 如果orFilter中有非KeyFilter/AndFilter,则返回True,因为有可能仅命中非KeyFilter，那就不受keyfilter的约束
+        OrFilter orFilter = (OrFilter) filter;
+        List<Filter> children = orFilter.getChildren();
+        // 展开所有的OrFilter children
+        children =
+            children.stream()
+                .flatMap(
+                    child -> {
+                      if (child.getType() == FilterType.Or) {
+                        return ((OrFilter) child).getChildren().stream();
+                      }
+                      return Stream.of(child);
+                    })
+                .collect(Collectors.toList());
+
+        // 如果所有的children都是KeyFilter或者AndFilter,则返回一个新的OrFilter,否则返回True
+        if (children.stream()
+            .map(LogicalFilterUtils::removeExceptKeyFilter)
+            .allMatch(f -> f.getType() == FilterType.Key || f.getType() == FilterType.And)) {
+          return new OrFilter(children);
+        }
+        return new BoolFilter(true);
+
+      case Key:
+        return filter;
+      default:
+        return new BoolFilter(true);
+    }
   }
 
   private static void extractKeyRange(List<KeyRange> keyRanges, Filter f) {
