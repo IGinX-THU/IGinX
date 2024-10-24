@@ -757,7 +757,21 @@ public class LogicalFilterUtils {
           return new BoolFilter(true);
         }
         return filter;
-
+      case Expr:
+        ExprFilter exprFilter = (ExprFilter) filter;
+        List<String> pathAList = ExprUtils.getPathFromExpr(exprFilter.getExpressionA());
+        List<String> pathBList = ExprUtils.getPathFromExpr(exprFilter.getExpressionB());
+        boolean pathAHasStar = pathAList.stream().anyMatch(s -> s.contains("*"));
+        boolean pathBHasStar = pathBList.stream().anyMatch(s -> s.contains("*"));
+        if (Op.isOrOp(((ExprFilter) filter).getOp()) && (pathAHasStar || pathBHasStar)) {
+          return new BoolFilter(true);
+        }
+        boolean matchPathA = pathAList.stream().allMatch(predicate);
+        boolean matchPathB = pathBList.stream().allMatch(predicate);
+        if (!matchPathA || !matchPathB) {
+          return new BoolFilter(true);
+        }
+        return filter;
       default:
         return filter;
     }

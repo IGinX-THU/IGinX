@@ -187,8 +187,8 @@ andExpression
    ;
 
 predicate
-   : (KEY | path | functionName LR_BRACKET path RR_BRACKET) comparisonOperator constant
-   | constant comparisonOperator (KEY | path | functionName LR_BRACKET path RR_BRACKET)
+   : (KEY | path) comparisonOperator constant
+   | constant comparisonOperator (KEY | path)
    | (path | functionName LR_BRACKET path RR_BRACKET) inOperator array
    | path comparisonOperator path
    | path (NOT | EXCLAMATION)? stringLikeOperator regex = stringLiteral
@@ -199,11 +199,11 @@ predicate
 
 predicateWithSubquery
    : NOT? EXISTS subquery
-   | (path | constant | functionName LR_BRACKET path RR_BRACKET) inOperator subquery
-   | (path | constant | functionName LR_BRACKET path RR_BRACKET) comparisonOperator quantifier subquery
-   | (path | constant | functionName LR_BRACKET path RR_BRACKET) comparisonOperator subquery
-   | subquery comparisonOperator (path | constant | functionName LR_BRACKET path RR_BRACKET)
+   | (path | constant | expression) inOperator subquery
+   | (path | constant | expression) comparisonOperator quantifier subquery
    | subquery comparisonOperator subquery
+   | (path | constant | expression) comparisonOperator subquery
+   | subquery comparisonOperator (path | constant | expression)
    ;
 
 quantifier

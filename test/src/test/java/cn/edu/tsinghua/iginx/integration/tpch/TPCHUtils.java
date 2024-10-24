@@ -31,10 +31,13 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 import java.util.Scanner;
+import java.util.TimeZone;
 import java.util.stream.Collectors;
 import org.junit.Assert;
 import org.slf4j.Logger;
@@ -140,10 +143,17 @@ public class TPCHUtils {
     }
     for (int i = 0; i < values.size(); i++) {
       for (int j = 0; j < values.get(i).size(); j++) {
-        if (result.getPaths().get(j).contains("address")
-            || result.getPaths().get(j).contains("comment")
-            || result.getPaths().get(j).contains("orderdate")) {
-          // TODO change unix time to date
+        if (result.getPaths().get(j).contains("orderdate")) {
+          long timestamp = (long) values.get(i).get(j);
+          SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+          dateFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
+          String date = dateFormat.format(new Date(timestamp));
+          String answerDate = answers.get(i).get(j);
+          if (!date.equals(answerDate)) {
+            System.out.println("Result string: '" + date + "'");
+            System.out.println("Answer string: '" + answerDate + "'");
+          }
+          assert date.equals(answerDate);
           continue;
         }
         // if only contains number and dot, then parse to double
@@ -157,11 +167,12 @@ public class TPCHUtils {
 
           assert answerNumber - number < 1e-3 && number - answerNumber < 1e-3;
         } else {
-          String resultString = new String((byte[]) values.get(i).get(j), StandardCharsets.UTF_8);
-          String answerString = answers.get(i).get(j);
+          String resultString =
+              new String((byte[]) values.get(i).get(j), StandardCharsets.UTF_8).trim();
+          String answerString = answers.get(i).get(j).trim();
           if (!resultString.equals(answerString)) {
-            System.out.println("Result string: " + resultString);
-            System.out.println("Answer string: " + answerString);
+            System.out.println("Result string: '" + resultString + "'");
+            System.out.println("Answer string: '" + answerString + "'");
           }
           assert resultString.equals(answerString);
         }

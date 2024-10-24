@@ -48,4 +48,12 @@ public class ValueUtils {
       throw new IllegalArgumentException("Unexpected data type");
     }
   }
+
+  public static String toString(Object value) {
+    if (value instanceof byte[]) {
+      return new String((byte[]) value);
+    } else {
+      return value.toString();
+    }
+  }
 }
