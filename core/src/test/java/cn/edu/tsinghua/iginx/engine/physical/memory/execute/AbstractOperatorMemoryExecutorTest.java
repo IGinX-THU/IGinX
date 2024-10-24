@@ -28,7 +28,6 @@ import static org.junit.Assert.fail;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.InvalidOperatorParameterException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
-import cn.edu.tsinghua.iginx.engine.shared.Constants;
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
@@ -36,6 +35,7 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.expr.BaseExpression;
+import cn.edu.tsinghua.iginx.engine.shared.expr.KeyExpression;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.Avg;
@@ -67,6 +67,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.ValueFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.JoinAlgType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OuterJoinType;
 import cn.edu.tsinghua.iginx.engine.shared.source.EmptySource;
+import cn.edu.tsinghua.iginx.sql.SQLConstant;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -2178,7 +2179,7 @@ public abstract class AbstractOperatorMemoryExecutorTest {
     Sort sort =
         new Sort(
             EmptySource.EMPTY_SOURCE,
-            Collections.singletonList(Constants.KEY),
+            Collections.singletonList(new KeyExpression(SQLConstant.KEY)),
             Collections.singletonList(Sort.SortType.ASC));
     RowStream stream = getExecutor().executeUnaryOperator(sort, table, null);
     assertEquals(table.getHeader(), stream.getHeader());
@@ -2199,7 +2200,7 @@ public abstract class AbstractOperatorMemoryExecutorTest {
     Sort sort =
         new Sort(
             EmptySource.EMPTY_SOURCE,
-            Collections.singletonList(Constants.KEY),
+            Collections.singletonList(new KeyExpression(SQLConstant.KEY)),
             Collections.singletonList(Sort.SortType.DESC));
     RowStream stream = getExecutor().executeUnaryOperator(sort, copyTable, null);
     assertEquals(table.getHeader(), stream.getHeader());

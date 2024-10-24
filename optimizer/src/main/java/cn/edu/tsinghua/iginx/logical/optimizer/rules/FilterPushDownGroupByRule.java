@@ -46,6 +46,7 @@ public class FilterPushDownGroupByRule extends Rule {
      */
     super(
         "FilterPushDownGroupByRule",
+        "FilterPushDownRule",
         operand(Select.class, operand(AbstractUnaryOperator.class, any())));
   }
 

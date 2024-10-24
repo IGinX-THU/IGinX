@@ -20,6 +20,7 @@
 package cn.edu.tsinghua.iginx.engine.shared.expr;
 
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionUtils;
+import cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -98,6 +99,12 @@ public class FuncExpression implements Expression {
     for (Expression expression : expressions) {
       columnName.append(expression.getColumnName()).append(", ");
     }
+    for (Object arg : args) {
+      columnName.append(ValueUtils.toString(arg)).append(", ");
+    }
+    for (Map.Entry<String, Object> kvarg : kvargs.entrySet()) {
+      columnName.append(kvarg.getValue()).append(", ");
+    }
     columnName.setLength(columnName.length() - 2);
     columnName.append(")");
     return columnName.toString();
@@ -127,5 +134,42 @@ public class FuncExpression implements Expression {
   public void accept(ExpressionVisitor visitor) {
     visitor.visit(this);
     expressions.forEach(e -> e.accept(visitor));
+  }
+
+  @Override
+  public boolean equalExceptAlias(Expression expr) {
+    if (this == expr) {
+      return true;
+    }
+    if (expr == null || expr.getType() != ExpressionType.Function) {
+      return false;
+    }
+    FuncExpression that = (FuncExpression) expr;
+
+    if (this.isPyUDF != that.isPyUDF) {
+      return false;
+    }
+    if (this.isPyUDF) {
+      if (!this.funcName.equals(that.funcName)) {
+        return false;
+      }
+    } else {
+      if (!this.funcName.equalsIgnoreCase(that.funcName)) {
+        return false;
+      }
+    }
+
+    if (this.getExpressions().size() != that.getExpressions().size()) {
+      return false;
+    }
+    for (int i = 0; i < this.getExpressions().size(); i++) {
+      if (!this.getExpressions().get(i).equalExceptAlias(that.getExpressions().get(i))) {
+        return false;
+      }
+    }
+
+    return this.args.equals(that.args)
+        && this.kvargs.equals(that.kvargs)
+        && this.isDistinct == that.isDistinct;
   }
 }

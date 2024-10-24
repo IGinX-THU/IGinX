@@ -40,7 +40,10 @@ public class FilterPushDownRenameRule extends Rule {
      *           |
      *         Rename
      */
-    super("FilterPushDownRenameRule", operand(Select.class, operand(Rename.class, any())));
+    super(
+        "FilterPushDownRenameRule",
+        "FilterPushDownRule",
+        operand(Select.class, operand(Rename.class, any())));
   }
 
   @Override

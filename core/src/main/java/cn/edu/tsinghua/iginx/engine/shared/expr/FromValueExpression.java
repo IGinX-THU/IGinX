@@ -35,7 +35,7 @@ public class FromValueExpression implements Expression {
 
   @Override
   public String getColumnName() {
-    return "";
+    return "*";
   }
 
   @Override
@@ -50,7 +50,7 @@ public class FromValueExpression implements Expression {
 
   @Override
   public String getAlias() {
-    return null;
+    return "";
   }
 
   @Override
@@ -59,5 +59,17 @@ public class FromValueExpression implements Expression {
   @Override
   public void accept(ExpressionVisitor visitor) {
     visitor.visit(this);
+  }
+
+  @Override
+  public boolean equalExceptAlias(Expression expr) {
+    if (this == expr) {
+      return true;
+    }
+    if (expr == null || expr.getType() != ExpressionType.FromValue) {
+      return false;
+    }
+    FromValueExpression that = (FromValueExpression) expr;
+    return this.subStatement.equals(that.subStatement);
   }
 }

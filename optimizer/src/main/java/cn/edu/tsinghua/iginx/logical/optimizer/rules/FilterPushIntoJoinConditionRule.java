@@ -40,6 +40,7 @@ public class FilterPushIntoJoinConditionRule extends Rule {
      */
     super(
         "FilterPushIntoJoinConditionRule",
+        "FilterPushDownRule",
         operand(Select.class, operand(AbstractJoin.class, any(), any())));
   }
 

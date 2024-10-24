@@ -104,7 +104,7 @@ public class SQLSessionIT {
         dbConf.getEnumValue(DBConfType.isSupportSpecialCharacterPath);
 
     String rules = executor.execute("SHOW RULES;");
-    this.isFilterPushDown = rules.contains("FilterPushOutJoinConditionRule|    ON|");
+    this.isFilterPushDown = rules.contains("FilterPushDownRule|    ON|");
   }
 
   @BeforeClass
@@ -2941,6 +2941,64 @@ public class SQLSessionIT {
   }
 
   @Test
+  public void testGroupByAndOrderByExpr() {
+    String insert =
+        "INSERT INTO student(key, s_id, name, sex, age) VALUES "
+            + "(0, 1, \"Alan\", 1, 16), (1, 2, \"Bob\", 1, 14), (2, 3, \"Candy\", 0, 17), "
+            + "(3, 4, \"Alice\", 0, 22), (4, 5, \"Jack\", 1, 36), (5, 6, \"Tom\", 1, 20);";
+    executor.execute(insert);
+    insert =
+        "INSERT INTO math(key, s_id, score) VALUES (0, 1, 82), (1, 2, 58), (2, 3, 54), (3, 4, 92), (4, 5, 78), (5, 6, 98);";
+    executor.execute(insert);
+
+    // use alias in GROUP BY and ORDER BY
+    String statement =
+        "SELECT avg(math.score) as avg_score, CASE student.sex WHEN 1 THEN 'Male' WHEN 0 THEN 'Female' ELSE 'Unknown' END AS strSex\n"
+            + "FROM student JOIN math ON student.s_id = math.s_id\n"
+            + "GROUP BY strSex ORDER BY strSex;";
+    String expected =
+        "ResultSets:\n"
+            + "+---------+------+\n"
+            + "|avg_score|strSex|\n"
+            + "+---------+------+\n"
+            + "|     73.0|Female|\n"
+            + "|     79.0|  Male|\n"
+            + "+---------+------+\n"
+            + "Total line number = 2\n";
+    executor.executeAndCompare(statement, expected);
+
+    // don't use alias in GROUP BY and ORDER BY
+    statement =
+        "SELECT avg(math.score) as avg_score, CASE student.sex WHEN 1 THEN 'Male' WHEN 0 THEN 'Female' ELSE 'Unknown' END AS strSex\n"
+            + "FROM student JOIN math ON student.s_id = math.s_id\n"
+            + "GROUP BY CASE student.sex WHEN 1 THEN 'Male' WHEN 0 THEN 'Female' ELSE 'Unknown' END\n"
+            + "ORDER BY CASE student.sex WHEN 1 THEN 'Male' WHEN 0 THEN 'Female' ELSE 'Unknown' END DESC;";
+    expected =
+        "ResultSets:\n"
+            + "+---------+------+\n"
+            + "|avg_score|strSex|\n"
+            + "+---------+------+\n"
+            + "|     79.0|  Male|\n"
+            + "|     73.0|Female|\n"
+            + "+---------+------+\n"
+            + "Total line number = 2\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "SELECT s_id % 3 AS id, sum(score) FROM math GROUP BY id ORDER BY id;";
+    expected =
+        "ResultSets:\n"
+            + "+--+---------------+\n"
+            + "|id|sum(math.score)|\n"
+            + "+--+---------------+\n"
+            + "| 0|            152|\n"
+            + "| 1|            174|\n"
+            + "| 2|            136|\n"
+            + "+--+---------------+\n"
+            + "Total line number = 3\n";
+    executor.executeAndCompare(statement, expected);
+  }
+
+  @Test
   public void testJoinWithGroupBy() {
     String insert =
         "insert into test1(key, a, b, c, d) values (1, 3, 2, 3.1, \"val1\"), (2, 1, 3, 2.1, \"val2\"), (3, 2, 2, 1.1, \"val5\"), (4, 3, 2, 2.1, \"val2\"), (5, 1, 2, 3.1, \"val1\"), (6, 2, 2, 5.1, \"val3\");";
@@ -4493,7 +4551,7 @@ public class SQLSessionIT {
     executor.executeAndCompare(statement, expected);
 
     statement =
-        "SELECT a, (SELECT d, AVG(a) FROM test.b GROUP BY d HAVING avg(test.b.a) > 2) FROM test.a;";
+        "SELECT a, (SELECT d, AVG(a) FROM test.b GROUP BY d HAVING avg(a) > 2) FROM test.a;";
     expected =
         "ResultSets:\n"
             + "+---+--------+--------+-------------+\n"
@@ -4607,7 +4665,7 @@ public class SQLSessionIT {
     executor.executeAndCompare(statement, expected);
 
     statement =
-        "SELECT a, (SELECT AVG(a) AS a1 FROM test.b GROUP BY d HAVING avg(test.b.a) > 2) * (SELECT AVG(a) AS a2 FROM test.b) FROM test.a;";
+        "SELECT a, (SELECT AVG(a) AS a1 FROM test.b GROUP BY d HAVING avg(a) > 2) * (SELECT AVG(a) AS a2 FROM test.b) FROM test.a;";
     expected =
         "ResultSets:\n"
             + "+---+--------+-------+\n"
@@ -4959,6 +5017,18 @@ public class SQLSessionIT {
             + "Total line number = 2\n";
     executor.executeAndCompare(statement, expected);
 
+    statement = "SELECT * FROM test.a WHERE (SELECT AVG(a) FROM test.b) > a;";
+    expected =
+        "ResultSets:\n"
+            + "+---+--------+--------+--------+--------+\n"
+            + "|key|test.a.a|test.a.b|test.a.c|test.a.d|\n"
+            + "+---+--------+--------+--------+--------+\n"
+            + "|  2|       1|       3|     2.1|    val2|\n"
+            + "|  5|       1|       2|     3.1|    val1|\n"
+            + "+---+--------+--------+--------+--------+\n"
+            + "Total line number = 2\n";
+    executor.executeAndCompare(statement, expected);
+
     statement =
         "SELECT * FROM test.a WHERE (SELECT AVG(a) AS a FROM test.c) = (SELECT AVG(a) AS b FROM test.b);";
     expected =
@@ -5091,6 +5161,30 @@ public class SQLSessionIT {
             + "+-------------+--------+\n"
             + "|          2.2|       2|\n"
             + "+-------------+--------+\n"
+            + "Total line number = 1\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "SELECT AVG(a + c), b FROM test.a GROUP BY b;";
+    expected =
+        "ResultSets:\n"
+            + "+------------------------+--------+\n"
+            + "|avg(test.a.a + test.a.c)|test.a.b|\n"
+            + "+------------------------+--------+\n"
+            + "|                     5.1|       2|\n"
+            + "|                     3.1|       3|\n"
+            + "+------------------------+--------+\n"
+            + "Total line number = 2\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement =
+        "SELECT AVG(a + c), b FROM test.a GROUP BY b HAVING AVG(a + c) > (SELECT AVG(a) * 2 FROM test.b);";
+    expected =
+        "ResultSets:\n"
+            + "+------------------------+--------+\n"
+            + "|avg(test.a.a + test.a.c)|test.a.b|\n"
+            + "+------------------------+--------+\n"
+            + "|                     5.1|       2|\n"
+            + "+------------------------+--------+\n"
             + "Total line number = 1\n";
     executor.executeAndCompare(statement, expected);
   }
@@ -6316,7 +6410,8 @@ public class SQLSessionIT {
     executor.executeAndCompareErrMsg(errClause, "Group by can not use SetToSet functions.");
 
     errClause = "select * from test.a join test.b where a > 0;";
-    executor.executeAndCompareErrMsg(errClause, "Unexpected paths' name: [a].");
+    executor.executeAndCompareErrMsg(
+        errClause, "Unexpected paths' name: [a], check if there exists missing prefix.");
 
     errClause = "select * from (show columns a.*), (show columns b.*);";
     executor.executeAndCompareErrMsg(
@@ -6332,6 +6427,17 @@ public class SQLSessionIT {
     errClause = "select s1 as key, s2 as key from us.d1;";
     executor.executeAndCompareErrMsg(
         errClause, "Only one 'AS KEY' can be used in each select at most.");
+
+    errClause = "select s1, s2 AS s1, count(s3) from us.d1 group by s1, s2;";
+    executor.executeAndCompareErrMsg(errClause, "GROUP BY column 's1' is ambiguous.");
+
+    errClause = "select s1, s2, count(s3) from us.d1 group by max(s1);";
+    executor.executeAndCompareErrMsg(
+        errClause, "GROUP BY column can not use SetToSet/SetToRow functions.");
+
+    errClause = "select s1, s2, count(s3) from us.d1 group by s1, s2 order by first(s1);";
+    executor.executeAndCompareErrMsg(
+        errClause, "ORDER BY column can not use SetToSet/SetToRow functions.");
   }
 
   @Test
@@ -6926,7 +7032,7 @@ public class SQLSessionIT {
         "INSERT INTO us.d3(key, s1) VALUES (1, 1), (2, 2), (3, 3), (4, 4), (5, 5), (6, 6), (7, 7), (8, 8), (9, 9);";
     executor.execute(insert);
 
-    String closeRule = "SET RULES FragmentPruningByPatternRule=OFF, ColumnPruningRule=OFF;";
+    String closeRule = "SET RULES ColumnPruningRule=OFF;";
     executor.execute(closeRule);
 
     StringBuilder builder = new StringBuilder();
@@ -7316,7 +7422,7 @@ public class SQLSessionIT {
       assertEquals(res, expectRes);
     }
 
-    String openRule = "SET RULES FragmentPruningByPatternRule=ON, ColumnPruningRule=ON;";
+    String openRule = "SET RULES ColumnPruningRule=ON;";
     executor.execute(openRule);
   }
 
@@ -7340,7 +7446,7 @@ public class SQLSessionIT {
       return;
     }
 
-    String closeRule = "SET RULES FragmentPruningByPatternRule=OFF, ColumnPruningRule=OFF;";
+    String closeRule = "SET RULES ColumnPruningRule=OFF;";
     executor.execute(closeRule);
 
     String insert =
@@ -7536,8 +7642,7 @@ public class SQLSessionIT {
     executor.concurrentExecuteAndCompare(statementsAndExpectResNoChange);
 
     // 开启filter_fragment
-    statement =
-        "SET RULES FragmentPruningByFilterRule=ON, FragmentPruningByPatternRule=ON, ColumnPruningRule=ON;";
+    statement = "SET RULES FragmentPruningByFilterRule=ON, ColumnPruningRule=ON;";
     executor.execute(statement);
   }
 
@@ -7695,7 +7800,7 @@ public class SQLSessionIT {
     insert.append(";");
     executor.execute(insert.toString());
 
-    String closeRule = "SET RULES ColumnPruningRule=OFF, FragmentPruningByPatternRule=OFF;";
+    String closeRule = "SET RULES ColumnPruningRule=OFF;";
     executor.execute(closeRule);
 
     String sql1 = "explain SELECT us.d1.s1 FROM (SELECT * FROM us.d1);";
@@ -7815,7 +7920,7 @@ public class SQLSessionIT {
             + "Total line number = 11\n";
     executor.executeAndCompare(sql6, expect6);
 
-    String openRule = "SET RULES ColumnPruningRule=ON, FragmentPruningByPatternRule=ON;";
+    String openRule = "SET RULES ColumnPruningRule=ON;";
     executor.execute(openRule);
 
     expect1 =
@@ -7979,9 +8084,8 @@ public class SQLSessionIT {
   /** 对常量折叠进行测试，因为RowTransform常量折叠和Filter常量折叠使用的代码都是公共的，所以这里只测试更好对比结果的RowTransform常量折叠 */
   @Test
   public void testConstantFolding() {
-    String openRule = "SET RULES RowTransformConstantFoldingRule=on, FilterConstantFoldingRule=on;";
-    String closeRule =
-        "SET RULES RowTransformConstantFoldingRule=off, FilterConstantFoldingRule=off;";
+    String openRule = "SET RULES ConstantFoldingRule=on;";
+    String closeRule = "SET RULES ConstantFoldingRule=off;";
 
     executor.execute(openRule);
 
@@ -8189,10 +8293,8 @@ public class SQLSessionIT {
     insert.append(";");
     executor.execute(insert.toString());
 
-    String openRule =
-        "SET RULES FunctionDistinctEliminateRule=on, InExistsDistinctEliminateRule=on;";
-    String closeRule =
-        "SET RULES FunctionDistinctEliminateRule=off, InExistsDistinctEliminateRule=off;";
+    String openRule = "SET RULES DistinctEliminateRule=on;";
+    String closeRule = "SET RULES DistinctEliminateRule=off;";
 
     String closeResult = null;
     // 测试InExistsDistinctEliminateRule
