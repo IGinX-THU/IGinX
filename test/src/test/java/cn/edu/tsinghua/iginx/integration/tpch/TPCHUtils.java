@@ -213,6 +213,7 @@ public class TPCHUtils {
     String result = "";
     try {
       result = session.executeSql(SHOW_FUNCTION).getResultInString(false, "");
+      LOGGER.info("Execute statement:{}\n{}", SHOW_FUNCTION, result);
     } catch (SessionException e) {
       LOGGER.error("Statement: \"{}\" execute fail. Caused by:", SHOW_FUNCTION, e);
       fail();
