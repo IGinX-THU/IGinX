@@ -1027,7 +1027,7 @@ public class LogicalFilterUtils {
 
     List<Filter> splitFilter = new ArrayList<>();
     if (filter.getType() != FilterType.And) {
-      filter = toCNF(filter);
+      filter = toCNF(filter.copy());
     }
 
     if (filter.getType() != FilterType.And) {
