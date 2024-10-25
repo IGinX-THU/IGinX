@@ -29,7 +29,6 @@ import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.session.Session;
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.text.ParseException;
@@ -57,13 +56,6 @@ public class TPCHDataGeneratorIT {
 
   // .tbl文件所在目录
   static final String DATA_DIR = System.getProperty("user.dir") + "/../tpc/TPC-H V3.0.1/data";
-
-  // udf文件所在目录
-  static final String UDF_DIR = "src/test/resources/tpch/udf/";
-
-  static final String SHOW_FUNCTION = "SHOW FUNCTIONS;";
-
-  static final String SINGLE_UDF_REGISTER_SQL = "CREATE FUNCTION %s \"%s\" FROM \"%s\" IN \"%s\";";
 
   protected static Session session;
 
@@ -198,7 +190,7 @@ public class TPCHDataGeneratorIT {
     UDFInfos.add(Arrays.asList("UDTF", "extractYear", "UDFExtractYear", "udtf_extract_year.py"));
     // 注册UDF函数
     for (List<String> UDFInfo : UDFInfos) {
-      registerUDF(UDFInfo);
+      TPCHUtils.registerUDF(session, UDFInfo);
     }
   }
 
@@ -268,35 +260,6 @@ public class TPCHDataGeneratorIT {
       LOGGER.info("Insert {} records into table [{}].", count, table);
     } catch (IOException | ParseException | SessionException e) {
       LOGGER.error("Insert into table {} fail. Caused by:", table, e);
-      fail();
-    }
-  }
-
-  private void registerUDF(List<String> UDFInfo) {
-    String result = "";
-    try {
-      result = session.executeSql(SHOW_FUNCTION).getResultInString(false, "");
-    } catch (SessionException e) {
-      LOGGER.error("Statement: \"{}\" execute fail. Caused by:", SHOW_FUNCTION, e);
-      fail();
-    }
-    // UDF已注册
-    if (result.contains(UDFInfo.get(1))) {
-      return;
-    }
-    File udfFile = new File(UDF_DIR + UDFInfo.get(3));
-    String register =
-        String.format(
-            SINGLE_UDF_REGISTER_SQL,
-            UDFInfo.get(0),
-            UDFInfo.get(1),
-            UDFInfo.get(2),
-            udfFile.getAbsolutePath());
-    try {
-      LOGGER.info("Execute register UDF statement: {}", register);
-      session.executeRegisterTask(register, false);
-    } catch (SessionException e) {
-      LOGGER.error("Statement: \"{}\" execute fail. Caused by:", register, e);
       fail();
     }
   }
