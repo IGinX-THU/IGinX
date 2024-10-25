@@ -24,7 +24,7 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.Compare
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutorFactory;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.pipeline.InnerBatchSortExecutor;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateless.InnerBatchSortUnaryExecutor;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.Schemas;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Sort;
@@ -35,7 +35,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import org.apache.arrow.util.Preconditions;
 
-public class InnerBatchSortInfoGenerator implements UnaryExecutorFactory<InnerBatchSortExecutor> {
+public class InnerBatchSortInfoGenerator implements UnaryExecutorFactory<InnerBatchSortUnaryExecutor> {
 
   private final Sort sort;
 
@@ -44,11 +44,11 @@ public class InnerBatchSortInfoGenerator implements UnaryExecutorFactory<InnerBa
   }
 
   @Override
-  public InnerBatchSortExecutor initialize(ExecutorContext context, BatchSchema inputSchema)
+  public InnerBatchSortUnaryExecutor initialize(ExecutorContext context, BatchSchema inputSchema)
       throws ComputeException {
     IndexSortExpression indexSortExpression = createIndexSortExpression(sort, inputSchema);
     List<FieldNode> outputExpressions = Generators.allFieldExpressions(inputSchema.getFieldCount());
-    return new InnerBatchSortExecutor(context, inputSchema, indexSortExpression, outputExpressions);
+    return new InnerBatchSortUnaryExecutor(context, inputSchema, indexSortExpression, outputExpressions);
   }
 
   private static IndexSortExpression createIndexSortExpression(Sort sort, BatchSchema inputSchema)

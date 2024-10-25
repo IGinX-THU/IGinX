@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.sink;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateful;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.PhysicalFunctions;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.Accumulator;
@@ -34,13 +34,13 @@ import javax.annotation.WillNotClose;
 import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.types.pojo.Schema;
 
-public class AggregateExecutor extends UnarySinkExecutor {
+public class AggregateUnaryExecutor extends StatefulUnaryExecutor {
 
   private final List<ExpressionAccumulator> accumulators;
   private final BatchSchema outputSchema;
   private final List<Accumulator.State> states;
 
-  public AggregateExecutor(
+  public AggregateUnaryExecutor(
       ExecutorContext context, BatchSchema inputSchema, List<ExpressionAccumulator> accumulators)
       throws ComputeException {
     super(context, inputSchema);

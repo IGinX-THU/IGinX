@@ -24,14 +24,15 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.excepti
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.row.RowCursor;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.row.RowCursorComparator;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ValueVectors;
+import org.apache.arrow.memory.BufferAllocator;
+import org.apache.arrow.vector.IntVector;
+import org.apache.arrow.vector.VectorSchemaRoot;
+
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
-import org.apache.arrow.memory.BufferAllocator;
-import org.apache.arrow.vector.IntVector;
-import org.apache.arrow.vector.VectorSchemaRoot;
 
 public class IndexSort extends AbstractFunction<IntVector> {
 
@@ -76,22 +77,13 @@ public class IndexSort extends AbstractFunction<IntVector> {
   }
 
   private Comparator<Integer> getComparator(VectorSchemaRoot input) throws ComputeException {
-    if (options.size() != input.getFieldVectors().size()) {
-      throw new IllegalStateException("Sort options and input fields do not match");
-    }
-
     RowCursor leftCursor = new RowCursor(input);
     RowCursor rightCursor = new RowCursor(input);
-
-    RowCursorComparator.Builder builder = new RowCursorComparator.Builder();
-    for (int i = 0; i < options.size(); i++) {
-      builder.add(input.getVector(i).getMinorType(), options.get(i));
-    }
-    RowCursorComparator comparator = builder.build();
+    RowCursorComparator comparator = RowCursorComparator.ofVectors(input.getFieldVectors(), options);
 
     return (left, right) -> {
-      leftCursor.setIndex(left);
-      rightCursor.setIndex(right);
+      leftCursor.setPosition(left);
+      rightCursor.setPosition(right);
       return comparator.compare(leftCursor, rightCursor);
     };
   }

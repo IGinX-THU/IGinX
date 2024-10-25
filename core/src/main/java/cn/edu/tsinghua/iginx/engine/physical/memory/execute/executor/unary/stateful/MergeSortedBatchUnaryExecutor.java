@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.sink;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateful;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
@@ -25,11 +25,11 @@ import java.util.ArrayList;
 import java.util.List;
 import org.apache.arrow.vector.VectorSchemaRoot;
 
-public class MergeSortedBatchExecutor extends UnarySinkExecutor {
+public class MergeSortedBatchUnaryExecutor extends StatefulUnaryExecutor {
 
   private final List<VectorSchemaRoot> batches = new ArrayList<>();
 
-  public MergeSortedBatchExecutor(ExecutorContext context, BatchSchema inputSchema) {
+  public MergeSortedBatchUnaryExecutor(ExecutorContext context, BatchSchema inputSchema) {
     super(context, inputSchema);
   }
 

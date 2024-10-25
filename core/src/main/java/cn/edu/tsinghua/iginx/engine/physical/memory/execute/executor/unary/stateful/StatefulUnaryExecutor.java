@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.sink;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateful;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
@@ -25,11 +25,11 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Batch;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import javax.annotation.WillNotClose;
 
-public abstract class UnarySinkExecutor extends UnaryExecutor {
+public abstract class StatefulUnaryExecutor extends UnaryExecutor {
 
   private boolean finished = false;
 
-  protected UnarySinkExecutor(ExecutorContext context, BatchSchema inputSchema) {
+  protected StatefulUnaryExecutor(ExecutorContext context, BatchSchema inputSchema) {
     super(context, inputSchema);
   }
 

@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.pipeline;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateless;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
@@ -26,9 +26,9 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import javax.annotation.WillClose;
 import javax.annotation.WillNotClose;
 
-public abstract class PipelineExecutor extends UnaryExecutor {
+public abstract class StatelessUnaryExecutor extends UnaryExecutor {
 
-  protected PipelineExecutor(ExecutorContext context, BatchSchema inputSchema) {
+  protected StatelessUnaryExecutor(ExecutorContext context, BatchSchema inputSchema) {
     super(context, inputSchema);
   }
 

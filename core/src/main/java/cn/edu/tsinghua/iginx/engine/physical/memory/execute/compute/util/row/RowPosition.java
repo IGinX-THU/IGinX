@@ -22,6 +22,6 @@ import lombok.Data;
 
 @Data
 @AllArgsConstructor
-public class RowIndex {
-  int index;
+public class RowPosition {
+  int position;
 }

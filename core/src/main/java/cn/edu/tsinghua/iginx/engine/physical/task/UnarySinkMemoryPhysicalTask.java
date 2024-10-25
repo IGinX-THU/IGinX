@@ -20,7 +20,7 @@ package cn.edu.tsinghua.iginx.engine.physical.task;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutorFactory;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.sink.UnarySinkExecutor;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateful.StatefulUnaryExecutor;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.StopWatch;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Batch;
@@ -33,13 +33,13 @@ import javax.annotation.WillCloseWhenClosed;
 
 public class UnarySinkMemoryPhysicalTask extends UnaryMemoryPhysicalTask {
 
-  private final UnaryExecutorFactory<? extends UnarySinkExecutor> executorFactory;
+  private final UnaryExecutorFactory<? extends StatefulUnaryExecutor> executorFactory;
 
   public UnarySinkMemoryPhysicalTask(
       PhysicalTask parentTask,
       List<Operator> operators,
       RequestContext context,
-      UnaryExecutorFactory<? extends UnarySinkExecutor> executorFactory) {
+      UnaryExecutorFactory<? extends StatefulUnaryExecutor> executorFactory) {
     super(parentTask, operators, context);
     this.executorFactory = Objects.requireNonNull(executorFactory);
   }
@@ -53,7 +53,7 @@ public class UnarySinkMemoryPhysicalTask extends UnaryMemoryPhysicalTask {
 
   @Override
   protected BatchStream compute(BatchStream previous) throws PhysicalException {
-    UnarySinkExecutor executor = null;
+    StatefulUnaryExecutor executor = null;
     try (BatchStream previousHolder = previous) {
       BatchSchema schema = previous.getSchema();
       try (StopWatch watch = new StopWatch(executorContext::addInitializeTime)) {
@@ -80,9 +80,9 @@ public class UnarySinkMemoryPhysicalTask extends UnaryMemoryPhysicalTask {
 
   private static class UnarySinkBatchStream implements BatchStream {
 
-    private final UnarySinkExecutor executor;
+    private final StatefulUnaryExecutor executor;
 
-    public UnarySinkBatchStream(@WillCloseWhenClosed UnarySinkExecutor executor) {
+    public UnarySinkBatchStream(@WillCloseWhenClosed StatefulUnaryExecutor executor) {
       this.executor = Objects.requireNonNull(executor);
     }
 

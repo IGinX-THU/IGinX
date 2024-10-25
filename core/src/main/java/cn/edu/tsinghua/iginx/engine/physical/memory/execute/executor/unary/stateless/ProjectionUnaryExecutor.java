@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.pipeline;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateless;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.PhysicalFunctions;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpression;
@@ -26,45 +26,34 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Batch;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
-import org.apache.arrow.vector.BitVector;
-import org.apache.arrow.vector.IntVector;
+import javax.annotation.WillNotClose;
 import org.apache.arrow.vector.VectorSchemaRoot;
 
-public class FilterExecutor extends PipelineExecutor {
+public class ProjectionUnaryExecutor extends StatelessUnaryExecutor {
 
-  private final ScalarExpression<BitVector> condition;
-  private final List<ScalarExpression<?>> outputExpressions;
+  protected final List<ScalarExpression<?>> expressions;
 
-  public FilterExecutor(
+  public ProjectionUnaryExecutor(
       ExecutorContext context,
       BatchSchema inputSchema,
-      ScalarExpression<BitVector> condition,
-      List<? extends ScalarExpression<?>> outputExpressions) {
+      List<? extends ScalarExpression<?>> expressions) {
     super(context, inputSchema);
-    this.condition = Objects.requireNonNull(condition);
-    this.outputExpressions = new ArrayList<>(outputExpressions);
-  }
-
-  @Override
-  protected Batch internalCompute(Batch batch) throws ComputeException {
-    try (BitVector mask =
-            ScalarExpressions.evaluateSafe(context.getAllocator(), condition, batch.raw());
-        IntVector selection = PhysicalFunctions.filter(context.getAllocator(), mask);
-        VectorSchemaRoot output =
-            ScalarExpressions.evaluateSafe(
-                context.getAllocator(), outputExpressions, batch.raw())) {
-      VectorSchemaRoot filteredOutput =
-          PhysicalFunctions.take(context.getAllocator(), selection, output);
-      return new Batch(filteredOutput);
-    }
+    this.expressions = new ArrayList<>(expressions);
   }
 
   @Override
   public String getInfo() {
-    return "Filter(" + condition + ")";
+    return "Project" + expressions;
   }
 
   @Override
   public void close() {}
+
+  @Override
+  protected Batch internalCompute(@WillNotClose Batch batch) throws ComputeException {
+    try (VectorSchemaRoot result =
+        ScalarExpressions.evaluateSafe(context.getAllocator(), expressions, batch.raw())) {
+      return new Batch(PhysicalFunctions.unnest(context.getAllocator(), result));
+    }
+  }
 }

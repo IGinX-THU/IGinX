@@ -26,10 +26,12 @@ import cn.edu.tsinghua.iginx.engine.shared.source.FragmentSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 import cn.edu.tsinghua.iginx.physical.optimizer.naive.initializer.*;
+import org.apache.commons.lang3.tuple.Pair;
+
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import javax.annotation.Nullable;
 
 public class NaivePhysicalPlanner {
 
@@ -59,6 +61,8 @@ public class NaivePhysicalPlanner {
         return construct((SetTransform) operator, context);
       case GroupBy:
         return construct((GroupBy) operator, context);
+      case InnerJoin:
+        return construct((InnerJoin) operator, context);
       default:
         throw new UnsupportedOperationException("Unsupported operator type: " + operator.getType());
     }
@@ -254,7 +258,7 @@ public class NaivePhysicalPlanner {
 
     PipelineMemoryPhysicalTask sortBatchTask =
         new PipelineMemoryPhysicalTask(
-            construct(operator.getSource(), context),
+            sourceTask,
             Collections.singletonList(operator),
             context,
             new InnerBatchSortInfoGenerator(operator));
@@ -264,5 +268,19 @@ public class NaivePhysicalPlanner {
         Collections.singletonList(operator),
         context,
         new MergeSortedBatchInfoGenerator(operator));
+  }
+
+  public PhysicalTask construct(InnerJoin operator, RequestContext context) {
+
+//    PhysicalTask leftTask = construct(operator.getLeftSource(), context);
+//    PhysicalTask rightTask = construct(operator.getRightSource(), context);
+//
+//    return new BinarySinkMemoryPhysicalTask(
+//        leftTask,
+//        rightTask,
+//        Collections.singletonList(operator),
+//        context,
+//        new InnerJoinInfoGenerator(operator));
+    throw new UnsupportedOperationException("InnerJoin is not supported yet");
   }
 }

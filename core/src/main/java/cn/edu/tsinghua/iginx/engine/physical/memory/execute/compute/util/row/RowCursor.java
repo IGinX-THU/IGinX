@@ -17,12 +17,14 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.row;
 
-import java.util.Objects;
-import javax.annotation.WillNotClose;
 import org.apache.arrow.vector.FieldVector;
+import org.apache.arrow.vector.FixedWidthVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 
-public class RowCursor extends RowIndex {
+import javax.annotation.WillNotClose;
+import java.util.Objects;
+
+public class RowCursor extends RowPosition {
 
   private final FieldVector[] columns;
 
@@ -31,39 +33,53 @@ public class RowCursor extends RowIndex {
   }
 
   protected RowCursor(FieldVector[] columns, int index) {
-    super(0);
+    super(index);
     this.columns = columns;
   }
 
-  public FieldVector getColumn(int columnIndex) {
-    return columns[columnIndex];
+  public FieldVector[] getColumns() {
+    return columns;
+  }
+
+  public FieldVector getColumn(int column) {
+    return columns[column];
+  }
+
+  public RowCursor withPosition(int position) {
+    return new RowCursor(this.columns, position);
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (o == null || getClass() != o.getClass()) return false;
+    RowCursor that = (RowCursor) o;
+    if (this.columns.length != that.columns.length) return false;
+    for (int i = 0; i < this.columns.length; i++) {
+      Object thisColumn = this.columns[i].getObject(this.getPosition());
+      Object thatColumn = that.columns[i].getObject(that.getPosition());
+      if (!Objects.deepEquals(thisColumn, thatColumn)) return false;
+    }
+    return true;
   }
 
   @Override
   public int hashCode() {
-    int result = super.hashCode();
-    for (FieldVector column : columns) {
-      result = 31 * result + column.hashCode(index);
+    int result = 0;
+    for (FieldVector column : this.columns) {
+      result = 31 * result + column.hashCode(getPosition());
     }
     return result;
   }
 
-  @Override
-  public boolean equals(Object obj) {
-    if (!(obj instanceof RowCursor)) {
-      return false;
-    }
-    RowCursor other = (RowCursor) obj;
-    if (columns.length != other.columns.length) {
-      return false;
-    }
-    for (int i = 0; i < columns.length; i++) {
-      Object left = columns[i].getObject(index);
-      Object right = other.columns[i].getObject(index);
-      if (!Objects.equals(left, right)) {
-        return false;
+  public void copyFrom(RowCursor source) {
+    for (int column = 0; column < this.columns.length; column++) {
+      FieldVector sourceColumn = source.getColumn(column);
+      FieldVector targetColumn = this.columns[column];
+      if (sourceColumn instanceof FixedWidthVector) {
+        targetColumn.copyFrom(source.getPosition(), 1, sourceColumn);
+      } else {
+        targetColumn.copyFromSafe(source.getPosition(), 1, sourceColumn);
       }
     }
-    return true;
   }
 }

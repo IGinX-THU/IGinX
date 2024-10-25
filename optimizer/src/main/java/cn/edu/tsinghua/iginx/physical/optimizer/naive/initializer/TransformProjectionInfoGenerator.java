@@ -27,7 +27,7 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.selec
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutorFactory;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.pipeline.ProjectionExecutor;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateless.ProjectionUnaryExecutor;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.expr.*;
 import cn.edu.tsinghua.iginx.engine.shared.expr.CaseWhenExpression;
@@ -41,7 +41,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-public class TransformProjectionInfoGenerator implements UnaryExecutorFactory<ProjectionExecutor> {
+public class TransformProjectionInfoGenerator implements UnaryExecutorFactory<ProjectionUnaryExecutor> {
 
   private static RowTransform operator = null;
 
@@ -50,10 +50,10 @@ public class TransformProjectionInfoGenerator implements UnaryExecutorFactory<Pr
   }
 
   @Override
-  public ProjectionExecutor initialize(ExecutorContext context, BatchSchema inputSchema)
+  public ProjectionUnaryExecutor initialize(ExecutorContext context, BatchSchema inputSchema)
       throws ComputeException {
     List<ScalarExpression<?>> expressions = getExpressions(context, inputSchema);
-    return new ProjectionExecutor(context, inputSchema, expressions);
+    return new ProjectionUnaryExecutor(context, inputSchema, expressions);
   }
 
   public List<ScalarExpression<?>> getExpressions(ExecutorContext context, BatchSchema inputSchema)

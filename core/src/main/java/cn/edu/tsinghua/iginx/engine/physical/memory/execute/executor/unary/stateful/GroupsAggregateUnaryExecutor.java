@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.sink;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateful;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.expression.ExpressionAccumulator;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.group.GroupTable;
@@ -28,7 +28,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-public class GroupsAggregateExecutor extends UnarySinkExecutor {
+public class GroupsAggregateUnaryExecutor extends StatefulUnaryExecutor {
 
   private final List<ScalarExpression<?>> groupKeyExpressions;
   private final List<ScalarExpression<?>> groupValueExpressions;
@@ -37,7 +37,7 @@ public class GroupsAggregateExecutor extends UnarySinkExecutor {
   private GroupTable groupTable = null;
   private int groupIndex = 0;
 
-  public GroupsAggregateExecutor(
+  public GroupsAggregateUnaryExecutor(
       ExecutorContext context,
       BatchSchema inputSchema,
       List<? extends ScalarExpression<?>> groupKeyExpressions,

@@ -166,4 +166,12 @@ public class ValueVectors {
     ret.setValueCount(values.length);
     return ret;
   }
+
+  public static <T extends ValueVector> Object[] getObjects(T[] columns, int position) {
+    Object[] ret = new Object[columns.length];
+    for (int i = 0; i < columns.length; i++) {
+      ret[i] = columns[i].getObject(position);
+    }
+    return ret;
+  }
 }

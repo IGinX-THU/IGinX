@@ -20,7 +20,7 @@ package cn.edu.tsinghua.iginx.engine.physical.task;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutorFactory;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.pipeline.PipelineExecutor;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateless.StatelessUnaryExecutor;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.StopWatch;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Batch;
@@ -36,13 +36,13 @@ import jdk.nashorn.internal.ir.annotations.Immutable;
 @Immutable
 public class PipelineMemoryPhysicalTask extends UnaryMemoryPhysicalTask {
 
-  private final UnaryExecutorFactory<? extends PipelineExecutor> executorFactory;
+  private final UnaryExecutorFactory<? extends StatelessUnaryExecutor> executorFactory;
 
   public PipelineMemoryPhysicalTask(
       PhysicalTask parentTask,
       List<Operator> operators,
       RequestContext context,
-      UnaryExecutorFactory<? extends PipelineExecutor> executorFactory) {
+      UnaryExecutorFactory<? extends StatelessUnaryExecutor> executorFactory) {
     super(parentTask, operators, context);
     this.executorFactory = Objects.requireNonNull(executorFactory);
   }
@@ -56,7 +56,7 @@ public class PipelineMemoryPhysicalTask extends UnaryMemoryPhysicalTask {
 
   @Override
   protected BatchStream compute(@WillClose BatchStream previous) throws PhysicalException {
-    PipelineExecutor executor = null;
+    StatelessUnaryExecutor executor = null;
     try {
       BatchSchema schema = previous.getSchema();
       try (StopWatch watch = new StopWatch(executorContext::addInitializeTime)) {
@@ -65,7 +65,7 @@ public class PipelineMemoryPhysicalTask extends UnaryMemoryPhysicalTask {
       info = executor.toString();
     } catch (PhysicalException e) {
       try (BatchStream previousHolder = previous;
-          PipelineExecutor executorHolder = executor) {
+          StatelessUnaryExecutor executorHolder = executor) {
         throw e;
       }
     }
@@ -75,9 +75,9 @@ public class PipelineMemoryPhysicalTask extends UnaryMemoryPhysicalTask {
   private static class PipelineBatchStream implements BatchStream {
 
     private final BatchStream source;
-    private final PipelineExecutor executor;
+    private final StatelessUnaryExecutor executor;
 
-    public PipelineBatchStream(@WillCloseWhenClosed BatchStream source, PipelineExecutor executor) {
+    public PipelineBatchStream(@WillCloseWhenClosed BatchStream source, StatelessUnaryExecutor executor) {
       this.source = Objects.requireNonNull(source);
       this.executor = Objects.requireNonNull(executor);
     }
@@ -99,7 +99,7 @@ public class PipelineMemoryPhysicalTask extends UnaryMemoryPhysicalTask {
     @Override
     public void close() throws PhysicalException {
       try (BatchStream source = this.source;
-          PipelineExecutor executor = this.executor) {
+          StatelessUnaryExecutor executor = this.executor) {
         // Do nothing
       }
     }
