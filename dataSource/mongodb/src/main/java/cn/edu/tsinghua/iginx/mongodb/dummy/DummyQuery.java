@@ -20,10 +20,7 @@
 package cn.edu.tsinghua.iginx.mongodb.dummy;
 
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.FilterType;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.PathFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.ValueFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import com.mongodb.client.*;
 import java.util.ArrayList;
@@ -122,7 +119,7 @@ public class DummyQuery {
     private static Bson getPredicate(Filter filter) {
       try {
         Filter removedKey = FilterUtils.tryIgnore(filter, f -> f.getType().equals(FilterType.Key));
-        Filter removedNumberPath =
+        Filter removedUnsupportedFilter =
             FilterUtils.tryIgnore(
                 removedKey,
                 f -> {
@@ -132,10 +129,13 @@ public class DummyQuery {
                     case Path:
                       return NameUtils.containNumberNode(((PathFilter) f).getPathA())
                           || NameUtils.containNumberNode(((PathFilter) f).getPathB());
+                    case In:
+                    case Expr:
+                      return true;
                   }
                   return false;
                 });
-        return FilterUtils.toBson(removedNumberPath);
+        return FilterUtils.toBson(removedUnsupportedFilter);
       } catch (Exception ignored) {
         return new Document();
       }

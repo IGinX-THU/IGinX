@@ -145,6 +145,11 @@ public class FilterPushDownTransformRule extends Rule {
             hasFunction[0] |= expressionHasFunction(filter.getExpressionA(), functionCallList);
             hasFunction[0] |= expressionHasFunction(filter.getExpressionB(), functionCallList);
           }
+
+          @Override
+          public void visit(InFilter filter) {
+            hasFunction[0] |= isFunc(filter.getPath(), functionCallList);
+          }
         });
 
     return hasFunction[0];

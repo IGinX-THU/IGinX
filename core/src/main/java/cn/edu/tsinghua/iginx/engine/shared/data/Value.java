@@ -22,6 +22,7 @@ package cn.edu.tsinghua.iginx.engine.shared.data;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Objects;
 
 public class Value {
 
@@ -245,5 +246,10 @@ public class Value {
         && (floatV == null || floatV.equals(value.floatV))
         && (doubleV == null || doubleV.equals(value.doubleV))
         && (binaryV == null || Arrays.equals(binaryV, value.binaryV));
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(dataType, boolV, intV, longV, floatV, doubleV, Arrays.hashCode(binaryV));
   }
 }
