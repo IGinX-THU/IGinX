@@ -112,7 +112,7 @@ jobs:
               shell: bash
               run: |
                   cd IGinX
-                  sudo sed -i 's/defaultUDFDir=udf_funcs/defaultUDFDir=${GITHUB_WORKSPACE}/udf_funcs/g' conf/config.properties
+                  sudo sed -i 's/defaultUDFDir=udf_funcs/defaultUDFDir=\${GITHUB_WORKSPACE}\/udf_funcs/g' conf/config.properties
                   mvn clean package -DskipTests -P-format -q
 
             - name: Change Old IGinX Config
