@@ -37,6 +37,6 @@ public class MergeSortedBatchInfoGenerator
   @Override
   public MergeSortedBatchUnaryExecutor initialize(ExecutorContext context, BatchSchema inputSchema)
       throws ComputeException {
-    return new MergeSortedBatchUnaryExecutor(context, inputSchema);
+    return new MergeSortedBatchUnaryExecutor(context, inputSchema.raw());
   }
 }

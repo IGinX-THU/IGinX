@@ -60,7 +60,7 @@ public class AggregateInfoGenerator implements UnaryExecutorFactory<AggregateUna
     for (ExpressionAccumulation accumulation : accumulations) {
       accumulators.add(accumulation.accumulate(context.getAllocator(), inputSchema.raw()));
     }
-    return new AggregateUnaryExecutor(context, inputSchema, accumulators);
+    return new AggregateUnaryExecutor(context, inputSchema.raw(), accumulators);
   }
 
   public static List<Pair<Accumulation, Integer>> generateAggregateInfo(

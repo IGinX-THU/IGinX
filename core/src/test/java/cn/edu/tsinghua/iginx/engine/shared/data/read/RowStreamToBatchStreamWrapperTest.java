@@ -20,9 +20,6 @@ package cn.edu.tsinghua.iginx.engine.shared.data.read;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.Table;
 import cn.edu.tsinghua.iginx.thrift.DataType;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.memory.RootAllocator;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -30,38 +27,42 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
 class RowStreamToBatchStreamWrapperTest {
 
   @ParameterizedTest
   @CsvSource({
-    "true,1984,0",
-    "true,1984,1",
-    "true,1984,2",
-    "true,1984,1983",
-    "true,1984,1984",
-    "true,1984,1985",
-    "true,1984,4096",
-    "true,2048,0",
-    "true,2048,1",
-    "true,2048,2",
-    "true,2048,2047",
-    "true,2048,2048",
-    "true,2048,2049",
-    "true,2048,4096",
-    "false,1984,0",
-    "false,1984,1",
-    "false,1984,2",
-    "false,1984,1983",
-    "false,1984,1984",
-    "false,1984,1985",
-    "false,1984,4096",
-    "false,2048,0",
-    "false,2048,1",
-    "false,2048,2",
-    "false,2048,2047",
-    "false,2048,2048",
-    "false,2048,2049",
-    "false,2048,4096"
+      "true,1984,0",
+      "true,1984,1",
+      "true,1984,2",
+      "true,1984,1983",
+      "true,1984,1984",
+      "true,1984,1985",
+      "true,1984,4096",
+      "true,2048,0",
+      "true,2048,1",
+      "true,2048,2",
+      "true,2048,2047",
+      "true,2048,2048",
+      "true,2048,2049",
+      "true,2048,4096",
+      "false,1984,0",
+      "false,1984,1",
+      "false,1984,2",
+      "false,1984,1983",
+      "false,1984,1984",
+      "false,1984,1985",
+      "false,1984,4096",
+      "false,2048,0",
+      "false,2048,1",
+      "false,2048,2",
+      "false,2048,2047",
+      "false,2048,2048",
+      "false,2048,2049",
+      "false,2048,4096"
   })
   void test(boolean hasKey, int batchSize, int scale) throws PhysicalException {
     Field key = hasKey ? Field.KEY : null;
@@ -78,13 +79,13 @@ class RowStreamToBatchStreamWrapperTest {
     List<Row> rows = new ArrayList<>();
     for (int i = 0; i < scale; i++) {
       Object[] values =
-          new Object[] {
-            i % 3 == 0 ? null : i % 2 == 0,
-            i % 5 == 0 ? null : i,
-            i % 7 == 0 ? null : (long) i,
-            i % 11 == 0 ? null : (float) i,
-            i % 13 == 0 ? null : (double) i,
-            i % 17 == 0 ? null : RandomStringUtils.random(10).getBytes()
+          new Object[]{
+              i % 3 == 0 ? null : i % 2 == 0,
+              i % 5 == 0 ? null : i,
+              i % 7 == 0 ? null : (long) i,
+              i % 11 == 0 ? null : (float) i,
+              i % 13 == 0 ? null : (double) i,
+              i % 17 == 0 ? null : RandomStringUtils.random(10).getBytes()
           };
       if (hasKey) {
         rows.add(new Row(header, i, values));
@@ -117,7 +118,7 @@ class RowStreamToBatchStreamWrapperTest {
             Assertions.assertEquals(
                 Math.min(batchSize, scale - batchIndex * batchSize), batch.getRowCount());
             try (org.apache.arrow.vector.table.Table table =
-                new org.apache.arrow.vector.table.Table(batch.raw())) {
+                     new org.apache.arrow.vector.table.Table(batch.raw())) {
               org.apache.arrow.vector.table.Row arrowRow = table.immutableRow();
               for (int rowIndex = 0; rowIndex < batch.getRowCount(); rowIndex++) {
                 int globalRowIndex = batchIndex * batchSize + rowIndex;
@@ -160,7 +161,9 @@ class RowStreamToBatchStreamWrapperTest {
             }
           }
         }
-        Assertions.assertNull(batchStream.getNext());
+        try (Batch endBatch = batchStream.getNext()) {
+          Assertions.assertEquals(0, endBatch.getRowCount());
+        }
       }
     }
   }

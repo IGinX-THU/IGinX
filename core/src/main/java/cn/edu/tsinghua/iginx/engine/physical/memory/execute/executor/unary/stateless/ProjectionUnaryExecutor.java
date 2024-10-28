@@ -22,12 +22,13 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expre
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpressions;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.Batch;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
+import org.apache.arrow.vector.VectorSchemaRoot;
+import org.apache.arrow.vector.types.pojo.Schema;
+
+import javax.annotation.WillNotClose;
 import java.util.ArrayList;
 import java.util.List;
-import javax.annotation.WillNotClose;
-import org.apache.arrow.vector.VectorSchemaRoot;
 
 public class ProjectionUnaryExecutor extends StatelessUnaryExecutor {
 
@@ -35,7 +36,7 @@ public class ProjectionUnaryExecutor extends StatelessUnaryExecutor {
 
   public ProjectionUnaryExecutor(
       ExecutorContext context,
-      BatchSchema inputSchema,
+      Schema inputSchema,
       List<? extends ScalarExpression<?>> expressions) {
     super(context, inputSchema);
     this.expressions = new ArrayList<>(expressions);
@@ -47,13 +48,14 @@ public class ProjectionUnaryExecutor extends StatelessUnaryExecutor {
   }
 
   @Override
-  public void close() {}
+  public void close() {
+  }
 
   @Override
-  protected Batch internalCompute(@WillNotClose Batch batch) throws ComputeException {
+  public VectorSchemaRoot compute(@WillNotClose VectorSchemaRoot batch) throws ComputeException {
     try (VectorSchemaRoot result =
-        ScalarExpressions.evaluateSafe(context.getAllocator(), expressions, batch.raw())) {
-      return new Batch(PhysicalFunctions.unnest(context.getAllocator(), result));
+             ScalarExpressions.evaluateSafe(context.getAllocator(), expressions, batch)) {
+      return PhysicalFunctions.unnest(context.getAllocator(), result);
     }
   }
 }

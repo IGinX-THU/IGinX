@@ -17,6 +17,7 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.group;
 
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.PhysicalFunctions;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.Accumulator;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.expression.ExpressionAccumulator;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.expression.ExpressionAccumulators;
@@ -83,6 +84,7 @@ public class GroupTable implements AutoCloseable {
     private final Schema groupKeySchema;
     private final Schema groupValueSchema;
     private final Schema accumulatedSchema;
+    private final Schema outputSchema;
     private final HashMap<MaterializedRowKey, GroupState> groups = new HashMap<>();
 
     public Builder(
@@ -103,6 +105,7 @@ public class GroupTable implements AutoCloseable {
       this.groupValueSchema =
           ScalarExpressions.getOutputSchema(allocator, groupValueExpressions, inputSchema);
       this.accumulatedSchema = ExpressionAccumulators.getOutputSchema(accumulators);
+      this.outputSchema = PhysicalFunctions.unnest(Schemas.merge(groupKeySchema, accumulatedSchema));
     }
 
     public void add(VectorSchemaRoot data) throws ComputeException {
@@ -111,6 +114,7 @@ public class GroupTable implements AutoCloseable {
                ScalarExpressions.evaluateSafe(allocator, groupKeyExpressions, data)) {
         RowCursor cursor = new RowCursor(groupKeys);
         for (int row = 0; row < data.getRowCount(); row++) {
+          cursor.setPosition(row);
           MaterializedRowKey materializedRowKey = MaterializedRowKey.of(cursor);
           GroupState groupState = groups.get(materializedRowKey);
           if (groupState == null) {
@@ -122,7 +126,7 @@ public class GroupTable implements AutoCloseable {
       }
       try (VectorSchemaRoot groupValues =
                ScalarExpressions.evaluateSafe(allocator, groupValueExpressions, data)) {
-        RowCursor cursor = new RowCursor(data);
+        RowCursor cursor = new RowCursor(groupValues);
         for (int row = 0; row < groupStates.size(); row++) {
           cursor.setPosition(row);
           GroupState groupState = groupStates.get(row);
@@ -132,8 +136,7 @@ public class GroupTable implements AutoCloseable {
     }
 
     public GroupTable build() throws ComputeException {
-      Schema tableSchema = Schemas.merge(groupKeySchema, accumulatedSchema);
-      try (GroupTable table = new GroupTable(tableSchema)) {
+      try (GroupTable table = new GroupTable(outputSchema)) {
         List<Map.Entry<MaterializedRowKey, GroupState>> entryBatch = new ArrayList<>(maxBatchRowCount);
         for (Map.Entry<MaterializedRowKey, GroupState> entry : groups.entrySet()) {
           entryBatch.add(entry);
@@ -166,15 +169,19 @@ public class GroupTable implements AutoCloseable {
         }
       }
       try (VectorSchemaRoot keysTable = MaterializedRowKey.merge(allocator, groupKeySchema, groupKeys);
-           VectorSchemaRoot valuesTable =
-               ExpressionAccumulators.evaluateSafe(accumulators, statesColumns)) {
-        return VectorSchemaRoots.join(allocator, keysTable, valuesTable);
+           VectorSchemaRoot valuesTable = ExpressionAccumulators.evaluateSafe(accumulators, statesColumns);
+           VectorSchemaRoot joined = VectorSchemaRoots.join(allocator, keysTable, valuesTable)) {
+        return PhysicalFunctions.unnest(allocator, joined);
       }
     }
 
     @Override
     public void close() throws ComputeException {
       ComputingCloseables.close(groups.values());
+    }
+
+    public Schema getOutputSchema() {
+      return outputSchema;
     }
 
     private class GroupState implements ComputingCloseable {

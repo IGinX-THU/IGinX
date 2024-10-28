@@ -44,7 +44,7 @@ public class SimpleProjectionInfoGenerator implements UnaryExecutorFactory<Proje
   public ProjectionUnaryExecutor initialize(ExecutorContext context, BatchSchema inputSchema)
       throws ComputeException {
     List<ScalarExpression<?>> expressions = getExpression(context, inputSchema);
-    return new ProjectionUnaryExecutor(context, inputSchema, expressions);
+    return new ProjectionUnaryExecutor(context, inputSchema.raw(), expressions);
   }
 
   public List<ScalarExpression<?>> getExpression(ExecutorContext context, BatchSchema inputSchema) {

@@ -11,9 +11,6 @@ public class JoinHashMap {
 
   public JoinHashMap() {
     this.hashCodeToRowCursor = MultimapBuilder.hashKeys().arrayListValues().build();
-    Hasher
   }
-
-  private final
 
 }

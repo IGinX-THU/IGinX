@@ -27,9 +27,11 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Batch;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
+import org.apache.arrow.vector.VectorSchemaRoot;
+
+import javax.annotation.WillCloseWhenClosed;
 import java.util.List;
 import java.util.Objects;
-import javax.annotation.WillCloseWhenClosed;
 
 public class UnarySinkMemoryPhysicalTask extends UnaryMemoryPhysicalTask {
 
@@ -54,54 +56,73 @@ public class UnarySinkMemoryPhysicalTask extends UnaryMemoryPhysicalTask {
   @Override
   protected BatchStream compute(BatchStream previous) throws PhysicalException {
     StatefulUnaryExecutor executor = null;
-    try (BatchStream previousHolder = previous) {
-      BatchSchema schema = previous.getSchema();
-      try (StopWatch watch = new StopWatch(executorContext::addInitializeTime)) {
-        executor = executorFactory.initialize(executorContext, schema);
-      }
+    BatchSchema schema = previous.getSchema();
+    BatchSchema outputSchema;
+    try (StopWatch watch = new StopWatch(getMetrics()::accumulateCpuTime)) {
+      executor = executorFactory.initialize(executorContext, schema);
+      outputSchema = BatchSchema.of(executor.getOutputSchema());
       info = executor.toString();
-      while (true) {
-        try (Batch batch = previousHolder.getNext()) {
-          if (batch == null) {
+    } catch (ComputeException e) {
+      try (BatchStream previousHolder = previous;
+           StatefulUnaryExecutor executorHolder = executor) {
+        throw e;
+      }
+    }
+    while (true) {
+      try (Batch batch = previous.getNext()) {
+        try (StopWatch watch = new StopWatch(getMetrics()::accumulateCpuTime)) {
+          if (!executor.consume(batch.raw())) {
             break;
           }
-          executor.consume(batch);
         }
       }
-      executor.finish();
-    } catch (PhysicalException e) {
-      if (executor != null) {
-        executor.close();
-      }
-      throw e;
     }
-    return new UnarySinkBatchStream(executor);
+    return new UnarySinkBatchStream(previous, outputSchema, executor);
   }
 
-  private static class UnarySinkBatchStream implements BatchStream {
+  private class UnarySinkBatchStream implements BatchStream {
 
+    private final BatchStream source;
+    private final BatchSchema outputSchema;
     private final StatefulUnaryExecutor executor;
 
-    public UnarySinkBatchStream(@WillCloseWhenClosed StatefulUnaryExecutor executor) {
+    public UnarySinkBatchStream(@WillCloseWhenClosed BatchStream source, BatchSchema outputSchema, @WillCloseWhenClosed StatefulUnaryExecutor executor) {
+      this.source = Objects.requireNonNull(source);
+      this.outputSchema = Objects.requireNonNull(outputSchema);
       this.executor = Objects.requireNonNull(executor);
     }
 
     @Override
     public BatchSchema getSchema() throws ComputeException {
-      return executor.getOutputSchema();
+      return outputSchema;
     }
 
     @Override
     public Batch getNext() throws PhysicalException {
-      if (executor.canProduce()) {
-        return executor.produce();
+      while (true) {
+        try (Batch batch = source.getNext()) {
+          try (StopWatch watch = new StopWatch(getMetrics()::accumulateCpuTime)) {
+            if (!executor.consume(batch.raw())) {
+              break;
+            }
+          }
+        }
       }
-      return null;
+      try (StopWatch watch = new StopWatch(getMetrics()::accumulateCpuTime)) {
+        VectorSchemaRoot compute = executor.produce();
+        getMetrics().accumulateAffectRows(compute.getRowCount());
+        return Batch.of(compute);
+      }
     }
 
     @Override
     public void close() throws PhysicalException {
-      executor.close();
+      try (StopWatch watch = new StopWatch(getMetrics()::accumulateCpuTime)) {
+        try (BatchStream source = this.source;
+             StatefulUnaryExecutor executor = this.executor) {
+          // Do nothing
+        }
+      }
     }
   }
 }

@@ -53,7 +53,7 @@ public class TransformProjectionInfoGenerator implements UnaryExecutorFactory<Pr
   public ProjectionUnaryExecutor initialize(ExecutorContext context, BatchSchema inputSchema)
       throws ComputeException {
     List<ScalarExpression<?>> expressions = getExpressions(context, inputSchema);
-    return new ProjectionUnaryExecutor(context, inputSchema, expressions);
+    return new ProjectionUnaryExecutor(context, inputSchema.raw(), expressions);
   }
 
   public List<ScalarExpression<?>> getExpressions(ExecutorContext context, BatchSchema inputSchema)

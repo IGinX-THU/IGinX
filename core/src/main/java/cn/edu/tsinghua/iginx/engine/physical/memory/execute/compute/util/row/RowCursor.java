@@ -76,9 +76,9 @@ public class RowCursor extends RowPosition {
       FieldVector sourceColumn = source.getColumn(column);
       FieldVector targetColumn = this.columns[column];
       if (sourceColumn instanceof FixedWidthVector) {
-        targetColumn.copyFrom(source.getPosition(), 1, sourceColumn);
+        targetColumn.copyFrom(source.getPosition(), this.getPosition(), sourceColumn);
       } else {
-        targetColumn.copyFromSafe(source.getPosition(), 1, sourceColumn);
+        targetColumn.copyFromSafe(source.getPosition(), this.getPosition(), sourceColumn);
       }
     }
   }

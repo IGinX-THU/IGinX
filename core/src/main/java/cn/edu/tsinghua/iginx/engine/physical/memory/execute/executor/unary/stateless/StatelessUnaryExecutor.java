@@ -20,42 +20,30 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stat
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutor;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.StopWatch;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.Batch;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
+import org.apache.arrow.vector.VectorSchemaRoot;
+import org.apache.arrow.vector.types.pojo.Schema;
+
 import javax.annotation.WillClose;
-import javax.annotation.WillNotClose;
 
 public abstract class StatelessUnaryExecutor extends UnaryExecutor {
 
-  protected StatelessUnaryExecutor(ExecutorContext context, BatchSchema inputSchema) {
+  protected StatelessUnaryExecutor(ExecutorContext context, Schema inputSchema) {
     super(context, inputSchema);
   }
 
-  private BatchSchema outputSchema;
+  private Schema outputSchema;
 
   @Override
-  public BatchSchema getOutputSchema() throws ComputeException {
+  public Schema getOutputSchema() throws ComputeException {
     if (outputSchema == null) {
-      try (Batch emptyBatch = inputSchema.emptyBatch(context.getAllocator())) {
-        try (Batch producedBatch = compute(emptyBatch)) {
-          outputSchema = producedBatch.getSchema();
-        }
+      try (VectorSchemaRoot emptyBatch = VectorSchemaRoot.create(getInputSchema(), context.getAllocator());
+           VectorSchemaRoot outputBatch = compute(emptyBatch)) {
+        outputSchema = outputBatch.getSchema();
       }
     }
     return outputSchema;
   }
 
-  public Batch compute(@WillClose Batch batch) throws ComputeException {
-    try (StopWatch watch = new StopWatch(context::addPipelineComputeTime)) {
-      try(Batch producedBatch = internalCompute(batch)) {
-        context.addProducedRowNumber(producedBatch.getRowCount());
-        return producedBatch;
-      }
-    } finally {
-      batch.close();
-    }
-  }
+  public abstract VectorSchemaRoot compute(@WillClose VectorSchemaRoot batch) throws ComputeException;
 
-  protected abstract Batch internalCompute(@WillNotClose Batch batch) throws ComputeException;
 }

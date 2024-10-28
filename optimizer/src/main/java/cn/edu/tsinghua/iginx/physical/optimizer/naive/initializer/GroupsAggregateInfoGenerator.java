@@ -86,7 +86,7 @@ public class GroupsAggregateInfoGenerator implements UnaryExecutorFactory<Groups
     }
 
     return new GroupsAggregateUnaryExecutor(
-        context, inputSchema, groupKeyExpressions, groupValueExpressions, accumulators);
+        context, inputSchema.raw(), groupKeyExpressions, groupValueExpressions, accumulators);
   }
 
   private static List<ScalarExpression<?>> generateGroupKeyExpressions(

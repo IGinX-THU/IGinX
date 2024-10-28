@@ -20,6 +20,8 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputingCloseable;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
+import org.apache.arrow.vector.types.pojo.Schema;
+
 import java.util.Objects;
 
 /**
@@ -39,7 +41,7 @@ public abstract class PhysicalExecutor implements ComputingCloseable {
     return getInfo();
   }
 
-  public abstract BatchSchema getOutputSchema() throws ComputeException;
+  public abstract Schema getOutputSchema() throws ComputeException;
 
   protected abstract String getInfo();
 }

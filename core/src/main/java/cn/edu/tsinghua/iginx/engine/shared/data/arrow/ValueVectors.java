@@ -33,14 +33,25 @@ public class ValueVectors {
 
   @SuppressWarnings("unchecked")
   public static <T extends ValueVector> T slice(
-      BufferAllocator allocator, T source, int valueCount, String ref) {
+      BufferAllocator allocator, T source, int startIndex, int valueCount, String ref) {
     if (source.getValueCount() == 0) {
       return (T) source.getField().createVector(allocator);
     }
     TransferPair transferPair = source.getTransferPair(ref, allocator);
-    transferPair.splitAndTransfer(0, valueCount);
+    transferPair.splitAndTransfer(startIndex, valueCount);
     return (T) transferPair.getTo();
   }
+
+  public static <T extends ValueVector> T slice(
+      BufferAllocator allocator, T source, int startIndex, int valueCount) {
+    return slice(allocator, source, startIndex, valueCount, source.getName());
+  }
+
+  public static <T extends ValueVector> T slice(
+      BufferAllocator allocator, T source, int valueCount, String ref) {
+    return slice(allocator, source, 0, valueCount, ref);
+  }
+
 
   public static <T extends ValueVector> T slice(BufferAllocator allocator, T source, String ref) {
     return slice(allocator, source, source.getValueCount(), ref);
@@ -48,7 +59,7 @@ public class ValueVectors {
 
   public static <T extends ValueVector> T slice(
       BufferAllocator allocator, T source, int valueCount) {
-    return slice(allocator, source, valueCount, source.getName());
+    return slice(allocator, source, 0, valueCount);
   }
 
   public static <T extends ValueVector> T slice(BufferAllocator allocator, T source) {

@@ -18,12 +18,6 @@
 
 package cn.edu.tsinghua.iginx.engine;
 
-import static cn.edu.tsinghua.iginx.constant.GlobalConstant.CLEAR_DUMMY_DATA_CAUTION;
-import static cn.edu.tsinghua.iginx.constant.GlobalConstant.KEY_NAME;
-import static cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils.moveForwardNotNull;
-import static cn.edu.tsinghua.iginx.utils.StringUtils.replaceSpecialCharsWithUnderscore;
-import static cn.edu.tsinghua.iginx.utils.StringUtils.tryParse2Key;
-
 import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.engine.logical.constraint.ConstraintChecker;
@@ -65,12 +59,6 @@ import cn.edu.tsinghua.iginx.utils.DataTypeInferenceUtils;
 import cn.edu.tsinghua.iginx.utils.DataTypeUtils;
 import cn.edu.tsinghua.iginx.utils.RpcUtils;
 import cn.hutool.core.io.CharsetDetector;
-import java.io.*;
-import java.lang.reflect.InvocationTargetException;
-import java.nio.ByteBuffer;
-import java.nio.file.Files;
-import java.util.*;
-import java.util.concurrent.atomic.AtomicBoolean;
 import org.antlr.v4.runtime.misc.ParseCancellationException;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VarBinaryVector;
@@ -79,6 +67,19 @@ import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.*;
+import java.lang.reflect.InvocationTargetException;
+import java.nio.ByteBuffer;
+import java.nio.file.Files;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import static cn.edu.tsinghua.iginx.constant.GlobalConstant.CLEAR_DUMMY_DATA_CAUTION;
+import static cn.edu.tsinghua.iginx.constant.GlobalConstant.KEY_NAME;
+import static cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils.moveForwardNotNull;
+import static cn.edu.tsinghua.iginx.utils.StringUtils.replaceSpecialCharsWithUnderscore;
+import static cn.edu.tsinghua.iginx.utils.StringUtils.tryParse2Key;
 
 public class StatementExecutor {
 
@@ -154,10 +155,10 @@ public class StatementExecutor {
         statisticsCollector.startBroadcasting();
       }
     } catch (ClassNotFoundException
-        | InstantiationException
-        | IllegalAccessException
-        | NoSuchMethodException
-        | InvocationTargetException e) {
+             | InstantiationException
+             | IllegalAccessException
+             | NoSuchMethodException
+             | InvocationTargetException e) {
       LOGGER.error("initial statistics collector error: ", e);
     }
   }
@@ -339,7 +340,7 @@ public class StatementExecutor {
       after(ctx, postLogicalProcessors);
       if (root == null && !metaManager.hasWritableStorageEngines()) {
         ctx.setResult(new Result(RpcUtils.SUCCESS));
-        setResult(ctx, BatchStreams.empty());
+        setResult(ctx, BatchStreams.empty(ctx.getAllocator()));
         return;
       }
       if (constraintManager.check(root) && checker.check(root)) {
@@ -360,7 +361,7 @@ public class StatementExecutor {
           if (selectStatement.isNeedPhysicalExplain()) {
             while (true) {
               try (Batch batch = stream.getNext()) {
-                if (batch == null) {
+                if (batch.getRowCount() == 0) {
                   break; // 确保语句执行完毕
                 }
               }
@@ -821,11 +822,11 @@ public class StatementExecutor {
     try (BatchStream batchStream = stream) {
       while (true) {
         try (Batch batch = batchStream.getNext()) {
-          if (batch == null) {
+          if (batch.getRowCount() == 0) {
             break;
           }
           try (ByteArrayOutputStream out = new ByteArrayOutputStream();
-              ArrowStreamWriter writer = new ArrowStreamWriter(batch.raw(), null, out)) {
+               ArrowStreamWriter writer = new ArrowStreamWriter(batch.raw(), null, out)) {
             writer.start();
             writer.writeBatch();
             writer.end();
@@ -864,7 +865,7 @@ public class StatementExecutor {
     try (BatchStream batchStream = stream) {
       while (true) {
         try (Batch batch = batchStream.getNext()) {
-          if (batch == null) {
+          if (batch.getRowCount() == 0) {
             break;
           }
           int rowCnt = batch.getRowCount();
@@ -873,7 +874,7 @@ public class StatementExecutor {
             LOGGER.warn("show columns result col size = {}", vectors.size());
           } else {
             try (VarBinaryVector pathVector = (VarBinaryVector) vectors.get(0);
-                VarBinaryVector typeVector = (VarBinaryVector) vectors.get(1)) {
+                 VarBinaryVector typeVector = (VarBinaryVector) vectors.get(1)) {
               for (int i = 0; i < rowCnt; i++) {
                 paths.add(new String(pathVector.get(i)));
                 DataType type = DataTypeUtils.getDataTypeFromString(new String(typeVector.get(i)));

@@ -19,54 +19,13 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stat
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.Batch;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
-import java.util.ArrayList;
-import java.util.List;
 import org.apache.arrow.vector.VectorSchemaRoot;
+import org.apache.arrow.vector.types.pojo.Schema;
 
 public class MergeSortedBatchUnaryExecutor extends StatefulUnaryExecutor {
 
-  private final List<VectorSchemaRoot> batches = new ArrayList<>();
-
-  public MergeSortedBatchUnaryExecutor(ExecutorContext context, BatchSchema inputSchema) {
+  public MergeSortedBatchUnaryExecutor(ExecutorContext context, Schema inputSchema) {
     super(context, inputSchema);
-  }
-
-  @Override
-  protected void internalConsume(Batch batch) throws ComputeException {
-    batches.add(batch.raw().slice(0));
-  }
-
-  @Override
-  protected void internalFinish() throws ComputeException {
-    if (batches.isEmpty()) {
-      throw new ComputeException("Cannot merge empty batches");
-    } else if (batches.size() != 1) {
-      throw new ComputeException("Merging multiple batches is not implemented");
-    }
-    canProduce = true;
-  }
-
-  private boolean canProduce = false;
-
-  @Override
-  public boolean canProduce() throws ComputeException {
-    return canProduce;
-  }
-
-  @Override
-  protected Batch internalProduce() throws ComputeException {
-    canProduce = false;
-    return new Batch(batches.get(0).slice(0));
-  }
-
-  @Override
-  public BatchSchema getOutputSchema() throws ComputeException {
-    if (batches.isEmpty()) {
-      throw new ComputeException("Cannot get output schema from empty batches");
-    }
-    return BatchSchema.of(batches.get(0).getSchema());
   }
 
   @Override
@@ -75,8 +34,39 @@ public class MergeSortedBatchUnaryExecutor extends StatefulUnaryExecutor {
   }
 
   @Override
-  public void close() throws ComputeException {
-    batches.forEach(VectorSchemaRoot::close);
-    batches.clear();
+  public Schema getOutputSchema() throws ComputeException {
+    return getInputSchema();
   }
+
+  @Override
+  public void close() throws ComputeException {
+    if (temporaryBatch != null) {
+      temporaryBatch.close();
+    }
+  }
+
+  protected VectorSchemaRoot temporaryBatch;
+
+  @Override
+  public boolean consume(VectorSchemaRoot batch) throws ComputeException {
+    if (temporaryBatch != null) {
+      if (batch.getRowCount() != 0) {
+        throw new IllegalStateException("Cannot consume more data after finish consuming");
+      }
+      return false;
+    }
+    temporaryBatch = batch.slice(0, batch.getRowCount());
+    return false;
+  }
+
+  @Override
+  public VectorSchemaRoot produce() throws ComputeException {
+    if (temporaryBatch == null) {
+      return VectorSchemaRoot.create(getOutputSchema(), context.getAllocator());
+    }
+    VectorSchemaRoot result = temporaryBatch;
+    temporaryBatch = null;
+    return result;
+  }
+
 }

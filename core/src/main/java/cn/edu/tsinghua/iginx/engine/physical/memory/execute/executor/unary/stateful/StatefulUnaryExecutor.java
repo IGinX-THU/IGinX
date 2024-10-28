@@ -20,56 +20,30 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stat
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutor;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.StopWatch;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.Batch;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
+import org.apache.arrow.vector.VectorSchemaRoot;
+import org.apache.arrow.vector.types.pojo.Schema;
+
 import javax.annotation.WillNotClose;
 
 public abstract class StatefulUnaryExecutor extends UnaryExecutor {
 
-  private boolean finished = false;
-
-  protected StatefulUnaryExecutor(ExecutorContext context, BatchSchema inputSchema) {
+  protected StatefulUnaryExecutor(ExecutorContext context, Schema inputSchema) {
     super(context, inputSchema);
   }
 
-  public void consume(@WillNotClose Batch batch) throws ComputeException {
-    if (finished) {
-      throw new IllegalStateException(this + " has been finished, cannot consume");
-    }
-    try (StopWatch watch = new StopWatch(context::addSinkConsumeTime)) {
-      internalConsume(batch);
-    }
-    context.addConsumedRowNumber(batch.getRowCount());
-  }
+  /**
+   * Consume a batch of data.
+   *
+   * @param batch the batch to consume, notify the consumer to finalize states if the batch's size less than the batch size
+   * @return true if the executor needs to consume more data, false otherwise
+   * @throws ComputeException if an error occurs during consumption
+   */
+  public abstract boolean consume(@WillNotClose VectorSchemaRoot batch) throws ComputeException;
 
-  public void finish() throws ComputeException {
-    if (finished) {
-      throw new IllegalStateException(this + " has been finished, cannot finish again");
-    }
-    try (StopWatch watch = new StopWatch(context::addSinkFinishTime)) {
-      internalFinish();
-    }
-    finished = true;
-  }
-
-  public Batch produce() throws ComputeException {
-    if (!canProduce()) {
-      throw new IllegalStateException(getClass().getSimpleName() + " cannot produce");
-    }
-    Batch batch;
-    try (StopWatch watch = new StopWatch(context::addSinkProduceTime)) {
-      batch = internalProduce();
-    }
-    context.addProducedRowNumber(batch.getRowCount());
-    return batch;
-  }
-
-  public abstract boolean canProduce() throws ComputeException;
-
-  protected abstract void internalConsume(@WillNotClose Batch batch) throws ComputeException;
-
-  protected abstract void internalFinish() throws ComputeException;
-
-  protected abstract Batch internalProduce() throws ComputeException;
+  /**
+   * Produce the result of the computation.
+   *
+   * @return the result of the computation. Empty if executor needs to consume more data.
+   */
+  public abstract VectorSchemaRoot produce() throws ComputeException;
 }

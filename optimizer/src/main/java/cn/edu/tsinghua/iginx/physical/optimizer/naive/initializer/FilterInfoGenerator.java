@@ -31,7 +31,7 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.logic
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutorFactory;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateless.FilterUnaryExecutor;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateful.FilterUnaryExecutor;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.Schemas;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
@@ -55,7 +55,7 @@ public class FilterInfoGenerator implements UnaryExecutorFactory<FilterUnaryExec
       throws ComputeException {
     ScalarExpression<BitVector> condition = getCondition(context, inputSchema);
     List<FieldNode> outputExpressions = Generators.allFieldExpressions(inputSchema.getFieldCount());
-    return new FilterUnaryExecutor(context, inputSchema, condition, outputExpressions);
+    return new FilterUnaryExecutor(context, inputSchema.raw(), condition, outputExpressions);
   }
 
   public ScalarExpression<BitVector> getCondition(ExecutorContext context, BatchSchema inputSchema)
@@ -179,6 +179,9 @@ public class FilterInfoGenerator implements UnaryExecutorFactory<FilterUnaryExec
       ValueFilter filter, ExecutorContext context, BatchSchema inputSchema)
       throws ComputeException {
     List<Integer> paths = Schemas.matchPattern(inputSchema.raw(), filter.getPath());
+    if(paths.isEmpty()) {
+      throw new ComputeException("Path not found: " + filter.getPath()+ " in " + inputSchema);
+    }
     List<ScalarExpression<BitVector>> comparisons = new ArrayList<>();
     for (Integer pathIndex : paths) {
       comparisons.add(

@@ -18,21 +18,21 @@
 package cn.edu.tsinghua.iginx.engine.shared.data.read;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.StopWatch;
-import java.util.ArrayList;
-import java.util.List;
+import org.apache.arrow.memory.BufferAllocator;
+
 import java.util.Map;
 import java.util.Objects;
 
 class RowStreamToBatchStreamWrapper implements BatchStream {
 
-  private final ExecutorContext context;
+  private final BufferAllocator allocator;
   private final RowStream rowStream;
+  private final int batchRowCount;
 
-  public RowStreamToBatchStreamWrapper(ExecutorContext context, RowStream rowStream) {
-    this.context = Objects.requireNonNull(context);
+  public RowStreamToBatchStreamWrapper(BufferAllocator allocator, RowStream rowStream, int batchRowCount) {
+    this.allocator = Objects.requireNonNull(allocator);
     this.rowStream = Objects.requireNonNull(rowStream);
+    this.batchRowCount = batchRowCount;
   }
 
   private BatchSchema schemaCache = null;
@@ -40,25 +40,20 @@ class RowStreamToBatchStreamWrapper implements BatchStream {
   @Override
   public BatchSchema getSchema() throws PhysicalException {
     if (schemaCache == null) {
-      Header header;
-      try (StopWatch watch = new StopWatch(context::addFetchTime)) {
-        header = rowStream.getHeader();
+      Header header = rowStream.getHeader();
+      BatchSchema.Builder builder = BatchSchema.builder();
+      if (header.hasKey()) {
+        builder.withKey();
       }
-      try (StopWatch watch = new StopWatch(context::addPipelineComputeTime)) {
-        BatchSchema.Builder builder = BatchSchema.builder();
-        if (header.hasKey()) {
-          builder.withKey();
+      for (Field field : header.getFields()) {
+        Map<String, String> tags = field.getTags();
+        if (tags.isEmpty()) {
+          builder.addField(field.getName(), field.getType());
+        } else {
+          builder.addField(field.getName(), field.getType(), tags);
         }
-        for (Field field : header.getFields()) {
-          Map<String, String> tags = field.getTags();
-          if (tags.isEmpty()) {
-            builder.addField(field.getName(), field.getType());
-          } else {
-            builder.addField(field.getName(), field.getType(), tags);
-          }
-        }
-        schemaCache = builder.build();
       }
+      schemaCache = builder.build();
     }
 
     return schemaCache;
@@ -66,32 +61,20 @@ class RowStreamToBatchStreamWrapper implements BatchStream {
 
   @Override
   public Batch getNext() throws PhysicalException {
-    List<Row> rows = new ArrayList<>();
-    try (StopWatch watch = new StopWatch(context::addFetchTime)) {
-      while (rowStream.hasNext() && rows.size() < context.getMaxBatchRowCount()) {
-        rows.add(rowStream.next());
-      }
-    }
-
-    if (rows.isEmpty()) {
-      return null;
-    }
-
-    context.addProducedRowNumber(rows.size());
-
     boolean hasKey = getSchema().hasKey();
-    try (StopWatch watch = new StopWatch(context::addPipelineComputeTime)) {
-      try (Batch.Builder builder =
-          new Batch.Builder(context.getAllocator(), getSchema(), rows.size())) {
-        for (Row row : rows) {
-          if (hasKey) {
-            builder.append(row.getKey(), row.getValues());
-          } else {
-            builder.append(row.getValues());
-          }
+
+    try (Batch.Builder builder =
+             new Batch.Builder(allocator, getSchema(), batchRowCount)) {
+      int count;
+      for (count = 0; rowStream.hasNext() && count < batchRowCount; count++) {
+        Row row = rowStream.next();
+        if (hasKey) {
+          builder.append(row.getKey(), row.getValues());
+        } else {
+          builder.append(row.getValues());
         }
-        return builder.build(rows.size());
       }
+      return builder.build(count);
     }
   }
 

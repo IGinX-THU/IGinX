@@ -50,6 +50,10 @@ public class BatchSchema {
     return builder.build();
   }
 
+  public static BatchSchema empty() {
+    return new BatchSchema(new Schema(Collections.emptyList()), Collections.emptyMap());
+  }
+
   public boolean hasKey() {
     return !schema.getFields().isEmpty()
         && schema.getFields().get(0).getName().equals(Constants.KEY);

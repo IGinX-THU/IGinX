@@ -191,7 +191,7 @@ public class NaivePhysicalPlanner {
 
     if (operator.getFilter() != null) {
       sourceTask =
-          new PipelineMemoryPhysicalTask(
+          new UnarySinkMemoryPhysicalTask(
               sourceTask,
               Collections.singletonList(new Select(source, operator.getFilter(), null)),
               context,

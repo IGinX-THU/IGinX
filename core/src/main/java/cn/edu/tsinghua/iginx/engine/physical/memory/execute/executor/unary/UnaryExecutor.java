@@ -20,18 +20,20 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.PhysicalExecutor;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
+import org.apache.arrow.vector.types.pojo.Schema;
+
 import java.util.Objects;
 
 public abstract class UnaryExecutor extends PhysicalExecutor {
 
-  protected final BatchSchema inputSchema;
+  protected final Schema inputSchema;
 
-  protected UnaryExecutor(ExecutorContext context, BatchSchema inputSchema) {
+  protected UnaryExecutor(ExecutorContext context, Schema inputSchema) {
     super(context);
     this.inputSchema = Objects.requireNonNull(inputSchema);
   }
 
-  public BatchSchema getInputSchema() {
+  public Schema getInputSchema() {
     return inputSchema;
   }
 }

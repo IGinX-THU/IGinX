@@ -23,13 +23,13 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expre
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.sort.IndexSortExpression;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.Batch;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
+import org.apache.arrow.vector.IntVector;
+import org.apache.arrow.vector.VectorSchemaRoot;
+import org.apache.arrow.vector.types.pojo.Schema;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import org.apache.arrow.vector.IntVector;
-import org.apache.arrow.vector.VectorSchemaRoot;
 
 public class InnerBatchSortUnaryExecutor extends StatelessUnaryExecutor {
 
@@ -38,7 +38,7 @@ public class InnerBatchSortUnaryExecutor extends StatelessUnaryExecutor {
 
   public InnerBatchSortUnaryExecutor(
       ExecutorContext context,
-      BatchSchema inputSchema,
+      Schema inputSchema,
       IndexSortExpression indexSortExpression,
       List<? extends ScalarExpression<?>> outputExpressions) {
     super(context, inputSchema);
@@ -47,24 +47,23 @@ public class InnerBatchSortUnaryExecutor extends StatelessUnaryExecutor {
   }
 
   @Override
-  protected Batch internalCompute(Batch batch) throws ComputeException {
-    try (IntVector sortedIndices =
-            ScalarExpressions.evaluateSafe(
-                context.getAllocator(), indexSortExpression, batch.raw());
-        VectorSchemaRoot output =
-            ScalarExpressions.evaluateSafe(
-                context.getAllocator(), outputExpressions, batch.raw())) {
-      VectorSchemaRoot sortedOutput =
-          PhysicalFunctions.take(context.getAllocator(), sortedIndices, output);
-      return new Batch(sortedOutput);
-    }
-  }
-
-  @Override
   protected String getInfo() {
     return "InnerBatchSort" + outputExpressions + "By" + indexSortExpression.getOptions();
   }
 
   @Override
-  public void close() throws ComputeException {}
+  public void close() throws ComputeException {
+  }
+
+  @Override
+  public VectorSchemaRoot compute(VectorSchemaRoot batch) throws ComputeException {
+    try (IntVector sortedIndices =
+             ScalarExpressions.evaluateSafe(
+                 context.getAllocator(), indexSortExpression, batch);
+         VectorSchemaRoot output =
+             ScalarExpressions.evaluateSafe(
+                 context.getAllocator(), outputExpressions, batch)) {
+      return PhysicalFunctions.take(context.getAllocator(), sortedIndices, output);
+    }
+  }
 }

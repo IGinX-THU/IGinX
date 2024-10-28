@@ -27,11 +27,13 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Batch;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
-import java.util.List;
-import java.util.Objects;
+import jdk.nashorn.internal.ir.annotations.Immutable;
+import org.apache.arrow.vector.VectorSchemaRoot;
+
 import javax.annotation.WillClose;
 import javax.annotation.WillCloseWhenClosed;
-import jdk.nashorn.internal.ir.annotations.Immutable;
+import java.util.List;
+import java.util.Objects;
 
 @Immutable
 public class PipelineMemoryPhysicalTask extends UnaryMemoryPhysicalTask {
@@ -57,50 +59,56 @@ public class PipelineMemoryPhysicalTask extends UnaryMemoryPhysicalTask {
   @Override
   protected BatchStream compute(@WillClose BatchStream previous) throws PhysicalException {
     StatelessUnaryExecutor executor = null;
-    try {
-      BatchSchema schema = previous.getSchema();
-      try (StopWatch watch = new StopWatch(executorContext::addInitializeTime)) {
-        executor = executorFactory.initialize(executorContext, schema);
-      }
+    BatchSchema schema = previous.getSchema();
+    BatchSchema outputSchema;
+    try (StopWatch watch = new StopWatch(getMetrics()::accumulateCpuTime)) {
+      executor = executorFactory.initialize(executorContext, schema);
+      outputSchema = BatchSchema.of(executor.getOutputSchema());
       info = executor.toString();
     } catch (PhysicalException e) {
       try (BatchStream previousHolder = previous;
-          StatelessUnaryExecutor executorHolder = executor) {
+           StatelessUnaryExecutor executorHolder = executor) {
         throw e;
       }
     }
-    return new PipelineBatchStream(previous, executor);
+    return new PipelineBatchStream(previous, outputSchema, executor);
   }
 
-  private static class PipelineBatchStream implements BatchStream {
+  private class PipelineBatchStream implements BatchStream {
 
     private final BatchStream source;
+    private final BatchSchema outputSchema;
     private final StatelessUnaryExecutor executor;
 
-    public PipelineBatchStream(@WillCloseWhenClosed BatchStream source, StatelessUnaryExecutor executor) {
+    public PipelineBatchStream(@WillCloseWhenClosed BatchStream source, BatchSchema outputSchema, StatelessUnaryExecutor executor) {
       this.source = Objects.requireNonNull(source);
+      this.outputSchema = Objects.requireNonNull(outputSchema);
       this.executor = Objects.requireNonNull(executor);
     }
 
     @Override
     public BatchSchema getSchema() throws ComputeException {
-      return executor.getOutputSchema();
+      return outputSchema;
     }
 
     @Override
     public Batch getNext() throws PhysicalException {
-      Batch sourceNext = source.getNext();
-      if (sourceNext == null) {
-        return null;
+      try (Batch sourceNext = source.getNext()) {
+        try (StopWatch watch = new StopWatch(getMetrics()::accumulateCpuTime)) {
+          VectorSchemaRoot compute = executor.compute(sourceNext.raw());
+          getMetrics().accumulateAffectRows(sourceNext.getRowCount());
+          return Batch.of(compute);
+        }
       }
-      return executor.compute(sourceNext);
     }
 
     @Override
     public void close() throws PhysicalException {
-      try (BatchStream source = this.source;
-          StatelessUnaryExecutor executor = this.executor) {
-        // Do nothing
+      try (StopWatch watch = new StopWatch(getMetrics()::accumulateCpuTime)) {
+        try (BatchStream source = this.source;
+             StatelessUnaryExecutor executor = this.executor) {
+          // Do nothing
+        }
       }
     }
   }
