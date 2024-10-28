@@ -39,15 +39,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.Delete;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Insert;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.BoolFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.FilterType;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.NotFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.OrFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.PathFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.ValueFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilterType;
 import cn.edu.tsinghua.iginx.influxdb.exception.InfluxDBException;
@@ -715,6 +707,13 @@ public class InfluxDBStorage implements IStorage {
           return new BoolFilter(true);
         }
         break;
+      case In:
+        String inPath = ((InFilter) filter).getPath();
+        InfluxDBSchema inSchema = new InfluxDBSchema(inPath);
+        if (!inSchema.getMeasurement().equals(measurementName)) {
+          return new BoolFilter(true);
+        }
+        break;
       case Path:
         String pathA = ((PathFilter) filter).getPathA();
         String pathB = ((PathFilter) filter).getPathB();
@@ -754,6 +753,11 @@ public class InfluxDBStorage implements IStorage {
         break;
       case Value:
         if (((ValueFilter) filter).getPath().startsWith("*")) {
+          res = true;
+        }
+        break;
+      case In:
+        if (((InFilter) filter).getPath().startsWith("*")) {
           res = true;
         }
         break;
@@ -810,6 +814,13 @@ public class InfluxDBStorage implements IStorage {
             map.put(pathB, null);
           }
         }
+      case In:
+        if (filter instanceof InFilter) {
+          String path = ((InFilter) filter).getPath();
+          if (path.contains("*") && !map.containsKey(path)) {
+            map.put(path, null);
+          }
+        }
       case Key:
       default:
         return;
@@ -842,6 +853,30 @@ public class InfluxDBStorage implements IStorage {
       case Not:
         Filter notChild = ((NotFilter) filter).getChild();
         return generateFilterByWildCardEntry(notChild, entry);
+      case In:
+        InFilter inFilter = (InFilter) filter;
+        InFilter.InOp inOp = inFilter.getInOp();
+        if (inFilter.getPath().equals(wildcardsPath)) {
+          if (matchedPaths == null) {
+            return new BoolFilter(true);
+          }
+
+          List<Filter> newInValueChildren = new ArrayList<>();
+          for (String matchedPath : matchedPaths) {
+            InFilter newInFilter =
+                new InFilter(measurement + "." + matchedPath, inOp, inFilter.getValues());
+            newInValueChildren.add(newInFilter);
+          }
+          if (newInValueChildren.size() == 1) {
+            return newInValueChildren.get(0);
+          }
+
+          if (!inOp.isOrOp()) {
+            return new AndFilter(newInValueChildren);
+          }
+          return new OrFilter(newInValueChildren);
+        }
+        break;
       case Value:
         ValueFilter valueFilter = (ValueFilter) filter;
         if (valueFilter.getPath().equals(wildcardsPath)) {

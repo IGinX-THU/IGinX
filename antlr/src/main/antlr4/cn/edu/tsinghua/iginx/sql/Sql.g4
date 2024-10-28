@@ -159,7 +159,7 @@ simpleCase
    ;
 
 simpleWhenClause
-   : WHEN ((comparisonOperator? value = expression) | (OPERATOR_NOT? stringLikeOperator regex = stringLiteral)) THEN result = expression
+   : WHEN ((comparisonOperator? value = expression) | ((NOT | EXCLAMATION)? stringLikeOperator regex = stringLiteral)) THEN result = expression
    ;
 
 searchedCase
@@ -189,16 +189,17 @@ andExpression
 predicate
    : (KEY | path) comparisonOperator constant
    | constant comparisonOperator (KEY | path)
+   | (path | functionName LR_BRACKET path RR_BRACKET) inOperator array
    | path comparisonOperator path
-   | path OPERATOR_NOT? stringLikeOperator regex = stringLiteral
-   | OPERATOR_NOT? LR_BRACKET orExpression RR_BRACKET
+   | path (NOT | EXCLAMATION)? stringLikeOperator regex = stringLiteral
+   | (NOT | EXCLAMATION)? LR_BRACKET orExpression RR_BRACKET
    | predicateWithSubquery
    | expression comparisonOperator expression
    ;
 
 predicateWithSubquery
-   : OPERATOR_NOT? EXISTS subquery
-   | (path | constant | expression) OPERATOR_NOT? IN subquery
+   : NOT? EXISTS subquery
+   | (path | constant | expression) inOperator subquery
    | (path | constant | expression) comparisonOperator quantifier subquery
    | subquery comparisonOperator subquery
    | (path | constant | expression) comparisonOperator subquery
@@ -208,6 +209,10 @@ predicateWithSubquery
 quantifier
    : all
    | some
+   ;
+
+array
+   : LR_BRACKET (constant (COMMA constant)*)? RR_BRACKET
    ;
 
 all
@@ -416,6 +421,15 @@ stringLikeOperator
    : type = OPERATOR_LIKE
    | type = OPERATOR_LIKE_AND
    | type = OPERATOR_LIKE_OR
+   ;
+
+inOperator
+   : type = IN
+   | type = OPERATOR_IN_AND
+   | type = OPERATOR_IN_OR
+   | type = OPERATOR_NOT_IN
+   | type = OPERATOR_NOT_IN_AND
+   | type = OPERATOR_NOT_IN_OR
    ;
 
 insertColumnsSpec
@@ -1146,6 +1160,10 @@ END
 SEQUENCE
    : S E Q U E N C E
    ;
+
+NOT
+   : N O T
+   ;
    //============================
    
    // End of the keywords list
@@ -1234,10 +1252,6 @@ OPERATOR_NEQ_OR
    : '|' OPERATOR_NEQ
    ;
 
-OPERATOR_IN
-   : I N
-   ;
-
 OPERATOR_LIKE
    : L I K E
    ;
@@ -1262,13 +1276,32 @@ OPERATOR_OR
    | '||'
    ;
 
-OPERATOR_NOT
-   : N O T
-   | '!'
+EXCLAMATION
+   : '!'
    ;
 
 OPERATOR_CONTAINS
    : C O N T A I N S
+   ;
+
+OPERATOR_NOT_IN
+   : N O T WS IN
+   ;
+
+OPERATOR_IN_AND
+   : '&' IN
+   ;
+
+OPERATOR_IN_OR
+   : '|' IN
+   ;
+
+OPERATOR_NOT_IN_AND
+   : '&' OPERATOR_NOT_IN
+   ;
+
+OPERATOR_NOT_IN_OR
+   : '|' OPERATOR_NOT_IN
    ;
 
 MINUS

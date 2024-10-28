@@ -1211,7 +1211,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         }
       } else {
         String strOp = context.stringLikeOperator().getText().trim().toLowerCase();
-        if (context.OPERATOR_NOT() != null) {
+        if (context.NOT() != null || context.EXCLAMATION() != null) {
           strOp = "not " + strOp;
         }
         Op op = Op.str2Op(strOp);
@@ -1669,8 +1669,8 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
   private FilterData parsePredicate(PredicateContext ctx, Statement statement, Pos pos) {
     if (ctx.orExpression() != null) {
-      FilterData filterData = parseOrExpression(ctx.orExpression(), statement, pos);
-      if (ctx.OPERATOR_NOT() != null) {
+      FilterData filterData = parseOrExpression(ctx.orExpression(), statement);
+      if (ctx.NOT() != null || ctx.EXCLAMATION() != null) {
         filterData.setFilter(new NotFilter(filterData.getFilter()));
       }
       return filterData;
@@ -1691,12 +1691,44 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
             ctx.predicateWithSubquery(), (UnarySelectStatement) statement, pos);
       } else if (ctx.expression().size() == 2) {
         return parseExprFilter(ctx, (UnarySelectStatement) statement, pos);
+      } else if (ctx.path().size() == 1 && ctx.array() == null) {
+        return parseValueFilter(ctx, (UnarySelectStatement) statement, pos);
+      } else if (ctx.array() != null) {
+        return parseInFilter(ctx, (UnarySelectStatement) statement, pos);
       } else if (ctx.path().size() == 2) {
         return parsePathFilter(ctx, (UnarySelectStatement) statement, pos);
       } else {
-        return parseValueFilter(ctx, (UnarySelectStatement) statement, pos);
+        throw new SQLParserException("Illegal predicate.");
       }
     }
+  }
+
+  private FilterData parseInFilter(PredicateContext ctx, UnarySelectStatement statement, Pos pos) {
+    String path = parsePath(ctx.path().get(0));
+    List<Value> values = new ArrayList<>();
+
+    FromPart fromPart = getFromPartIfNeedPrefix(statement, pos);
+
+    if (fromPart != null) {
+      path = fromPart.getPrefix() + SQLConstant.DOT + path;
+    }
+
+    // deal with having filter with functions like having avg(a) > 3.
+    // we need a instead of avg(a) to combine fragments' raw data.
+    if (ctx.functionName() != null) {
+      String funcName = ctx.functionName().getText();
+      if (FunctionUtils.isSysFunc(funcName)) {
+        funcName = funcName.toLowerCase();
+      }
+      path = funcName + "(" + path + ")";
+    }
+
+    for (ConstantContext constantContext : ctx.array().constant()) {
+      values.add(new Value(parseValue(constantContext)));
+    }
+    SqlParser.InOperatorContext inOperatorContext = ctx.inOperator();
+    return new FilterData(
+        new InFilter(path, InFilter.InOp.str2Op(inOperatorContext.getText()), values));
   }
 
   private FilterData parseKeyFilter(PredicateContext ctx) {
@@ -1730,7 +1762,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     Op op;
     if (ctx.stringLikeOperator() != null) {
       String strOp = ctx.stringLikeOperator().getText().trim().toLowerCase();
-      if (ctx.OPERATOR_NOT() != null) {
+      if (ctx.NOT() != null || ctx.EXCLAMATION() != null) {
         strOp = "not " + strOp;
       }
       op = Op.str2Op(strOp);
@@ -1778,8 +1810,8 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       PredicateWithSubqueryContext ctx, UnarySelectStatement statement, Pos pos) {
     if (ctx.EXISTS() != null) {
       return parseExistsFilter(ctx, statement);
-    } else if (ctx.IN() != null) {
-      return parseInFilter(ctx, statement, pos);
+    } else if (ctx.inOperator() != null) {
+      return parseInSubqueryFilter(ctx, statement, pos);
     } else if (ctx.quantifier() != null) {
       return parseQuantifierComparisonFilter(ctx, statement, pos);
     } else if (ctx.subquery().size() == 1) {
@@ -1800,7 +1832,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
     Filter filter = new BoolFilter(true);
 
-    boolean isAntiJoin = ctx.OPERATOR_NOT() != null;
+    boolean isAntiJoin = ctx.NOT() != null;
     SubQueryFromPart subQueryPart =
         new SubQueryFromPart(
             subStatement, new JoinCondition(JoinType.MarkJoin, filter, markColumn, isAntiJoin));
@@ -1810,7 +1842,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     return filterData;
   }
 
-  private FilterData parseInFilter(
+  private FilterData parseInSubqueryFilter(
       PredicateWithSubqueryContext ctx, UnarySelectStatement statement, Pos pos) {
     SelectStatement subStatement = buildSubStatement(ctx, statement, 0, 1);
     // 计算子查询的自由变量
@@ -1842,7 +1874,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       subStatement.addFreeVariable(expr.getColumnName());
     }
 
-    boolean isAntiJoin = ctx.OPERATOR_NOT() != null;
+    boolean isAntiJoin = ctx.inOperator().OPERATOR_NOT_IN() != null;
     SubQueryFromPart subQueryPart =
         new SubQueryFromPart(
             subStatement, new JoinCondition(JoinType.MarkJoin, filter, markColumn, isAntiJoin));
