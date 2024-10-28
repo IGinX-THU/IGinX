@@ -95,7 +95,6 @@ jobs:
               shell: bash
               run: |
                   git clone https://github.com/IGinX-THU/IGinX.git
-                  cp -rf test/src/test/java/cn/edu/tsinghua/iginx/integration/tpch/* IGinX/test/src/test/java/cn/edu/tsinghua/iginx/integration/tpch/
                   cp -rf test/src/test/resources/tpch/queries/* IGinX/test/src/test/resources/tpch/queries/
                   cp -rf test/src/test/resources/tpch/sf0.1/* IGinX/test/src/test/resources/tpch/sf0.1/
                   cp -rf test/src/test/resources/tpch/udf/* IGinX/test/src/test/resources/tpch/udf/

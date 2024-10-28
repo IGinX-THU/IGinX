@@ -24,11 +24,9 @@ import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.session.Session;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import org.junit.AfterClass;
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -92,16 +90,6 @@ public class TPCHRegressionMainIT {
   @AfterClass
   public static void tearDown() throws SessionException {
     session.closeSession();
-  }
-
-  @Before
-  public void prepare() {
-    List<List<String>> UDFInfos = new ArrayList<>();
-    UDFInfos.add(Arrays.asList("UDTF", "extractYear", "UDFExtractYear", "udtf_extract_year.py"));
-    // 注册UDF函数
-    for (List<String> UDFInfo : UDFInfos) {
-      TPCHUtils.registerUDF(session, UDFInfo);
-    }
   }
 
   @Test

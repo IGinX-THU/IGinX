@@ -19,14 +19,11 @@
  */
 package cn.edu.tsinghua.iginx.integration.tpch;
 
-import static org.junit.Assert.fail;
-
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
-import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -49,13 +46,6 @@ import org.slf4j.LoggerFactory;
 public class TPCHUtils {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(TPCHUtils.class);
-
-  // udf文件所在目录
-  static final String UDF_DIR = "src/test/resources/tpch/udf/";
-
-  static final String SHOW_FUNCTION = "SHOW FUNCTIONS;";
-
-  static final String SINGLE_UDF_REGISTER_SQL = "CREATE FUNCTION %s \"%s\" FROM \"%s\" IN \"%s\";";
 
   public static String readSqlFileAsString(String filePath) throws IOException {
     StringBuilder contentBuilder = new StringBuilder();
@@ -208,35 +198,5 @@ public class TPCHUtils {
       Assert.fail();
     }
     return data;
-  }
-
-  public static void registerUDF(Session session, List<String> UDFInfo) {
-    String result = "";
-    try {
-      result = session.executeSql(SHOW_FUNCTION).getResultInString(false, "");
-      LOGGER.info("Execute statement:{}\n{}", SHOW_FUNCTION, result);
-    } catch (SessionException e) {
-      LOGGER.error("Statement: \"{}\" execute fail. Caused by:", SHOW_FUNCTION, e);
-      fail();
-    }
-    // UDF已注册
-    if (result.contains(UDFInfo.get(1))) {
-      return;
-    }
-    File udfFile = new File(UDF_DIR + UDFInfo.get(3));
-    String register =
-        String.format(
-            SINGLE_UDF_REGISTER_SQL,
-            UDFInfo.get(0),
-            UDFInfo.get(1),
-            UDFInfo.get(2),
-            udfFile.getAbsolutePath());
-    try {
-      LOGGER.info("Execute register UDF statement: {}", register);
-      session.executeRegisterTask(register, false);
-    } catch (SessionException e) {
-      LOGGER.error("Statement: \"{}\" execute fail. Caused by:", register, e);
-      fail();
-    }
   }
 }
