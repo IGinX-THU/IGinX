@@ -27,7 +27,7 @@ public final class MaterializedRowKey {
   }
 
   public static VectorSchemaRoot merge(
-      BufferAllocator allocator, Schema groupKeySchema, List<Object[]> groupKeys)
+      BufferAllocator allocator, Schema groupKeySchema, List<MaterializedRowKey> groupKeys)
       throws ComputeException {
     VectorSchemaRoot root = VectorSchemaRoot.create(groupKeySchema, allocator);
     List<ColumnBuilder> columnBuilders = new ArrayList<>();
@@ -43,9 +43,9 @@ public final class MaterializedRowKey {
       root.close();
       throw e;
     }
-    for (Object[] groupKey : groupKeys) {
-      for (int i = 0; i < groupKey.length; i++) {
-        columnBuilders.get(i).append(groupKey[i]);
+    for (MaterializedRowKey groupKey : groupKeys) {
+      for (int i = 0; i < groupKey.key.length; i++) {
+        columnBuilders.get(i).append(groupKey.key[i]);
       }
     }
     root.setRowCount(groupKeys.size());

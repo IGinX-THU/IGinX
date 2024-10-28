@@ -48,9 +48,10 @@ public abstract class StatelessUnaryExecutor extends UnaryExecutor {
 
   public Batch compute(@WillClose Batch batch) throws ComputeException {
     try (StopWatch watch = new StopWatch(context::addPipelineComputeTime)) {
-      Batch producedBatch = internalCompute(batch);
-      context.addProducedRowNumber(producedBatch.getRowCount());
-      return producedBatch;
+      try(Batch producedBatch = internalCompute(batch)) {
+        context.addProducedRowNumber(producedBatch.getRowCount());
+        return producedBatch;
+      }
     } finally {
       batch.close();
     }

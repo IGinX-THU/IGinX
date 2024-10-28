@@ -151,11 +151,8 @@ public class GroupTable implements AutoCloseable {
 
     private VectorSchemaRoot build(List<Map.Entry<MaterializedRowKey, GroupState>> entries)
         throws ComputeException {
-      List<Object[]> groupKeys =
-          entries.stream()
-              .map(Map.Entry::getKey)
-              .map(MaterializedRowKey::getData)
-              .collect(Collectors.toList());
+      List<MaterializedRowKey> groupKeys =
+          entries.stream().map(Map.Entry::getKey).collect(Collectors.toList());
       List<GroupState> groupStates =
           entries.stream().map(Map.Entry::getValue).collect(Collectors.toList());
       List<List<Accumulator.State>> statesColumns = new ArrayList<>(accumulators.size());
