@@ -20,9 +20,11 @@
 package cn.edu.tsinghua.iginx.conf;
 
 import cn.edu.tsinghua.iginx.thrift.TimePrecision;
+import cn.edu.tsinghua.iginx.utils.HostUtils;
 import cn.edu.tsinghua.iginx.utils.TagKVUtils;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public class Config {
 
@@ -237,8 +239,18 @@ public class Config {
     this.maxTimeseriesLength = maxTimeseriesLength;
   }
 
+  /* 获取监听IP地址 */
   public String getIp() {
     return ip;
+  }
+
+  /* 获取本机IP地址 */
+  public String getRepresentativeIP() {
+    if (!Objects.equals(ip, "0.0.0.0")) {
+      return ip;
+    } else {
+      return HostUtils.getRepresentativeIP();
+    }
   }
 
   public void setIp(String ip) {
