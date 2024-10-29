@@ -47,3 +47,4 @@ jobs:
         with:
             os-matrix: '["ubuntu-latest"]'
             metadata-matrix: '["zookeeper"]'
+            db-matrix: '["InfluxDB", "FileSystem", "PostgreSQL", "Redis", "MongoDB", "MySQL"]'
