@@ -19,17 +19,15 @@
  */
 package cn.edu.tsinghua.iginx.utils;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.net.Inet4Address;
-import java.net.InetAddress;
-import java.net.NetworkInterface;
-import java.net.SocketException;
+import java.net.*;
 import java.util.Enumeration;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Pattern;
+import javax.annotation.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class HostUtils {
 
@@ -61,43 +59,52 @@ public class HostUtils {
 
   private static String representativeIP;
 
-  static {
-    initRepresentativeIP();
-  }
+  @Nullable
+  private static InetAddress getLocalHostExactAddress() {
+    // 多网卡环境下，找到真正在使用的IP地址
+    try (final DatagramSocket socket = new DatagramSocket()) {
+      socket.connect(InetAddress.getByName("8.8.8.8"), 10002);
+      return socket.getLocalAddress();
+    } catch (SocketException | UnknownHostException e) {
+      // 无法通过网络连接找到IP地址，遍历网卡
+      try {
+        Enumeration<NetworkInterface> networkInterfaces = NetworkInterface.getNetworkInterfaces();
+        InetAddress candidate = null;
+        if (networkInterfaces == null) {
+          LOGGER.error("Cannot get network interfaces");
+          return null;
+        } else {
+          while (networkInterfaces.hasMoreElements()) {
+            NetworkInterface networkInterface = networkInterfaces.nextElement();
 
-  private static void initRepresentativeIP() {
-    try {
-      Enumeration<NetworkInterface> networkInterfaces = NetworkInterface.getNetworkInterfaces();
-      if (networkInterfaces == null) {
-        System.out.print("Cannot get network interfaces");
-      } else {
-        while (networkInterfaces.hasMoreElements()) {
-          NetworkInterface networkInterface = networkInterfaces.nextElement();
-          if (networkInterface.isLoopback() || networkInterface.isVirtual() || !networkInterface.isUp()) continue;
-          Enumeration<InetAddress> inetAddresses = networkInterface.getInetAddresses();
-          while (inetAddresses.hasMoreElements()) {
-            InetAddress inetAddress = inetAddresses.nextElement();
-            // 优先选择私有地址
-            if (!inetAddress.isLoopbackAddress() && inetAddress.isSiteLocalAddress() && inetAddress instanceof java.net.Inet4Address) {
-              representativeIP = String.valueOf(inetAddress);
-              break;
-            }
-            // 没有私有地址，选择第一个外网地址
-            if (!inetAddress.isLoopbackAddress() && !inetAddress.isSiteLocalAddress() && inetAddress instanceof java.net.Inet4Address) {
-              representativeIP = String.valueOf(inetAddress);
-              break;
+            // 排除回环、虚拟地址
+            if (networkInterface.isLoopback()
+                || networkInterface.isVirtual()
+                || !networkInterface.isUp()
+                || networkInterface.getName().startsWith("vmnet")
+                || networkInterface.getName().startsWith("vEthernet")) continue;
+
+            Enumeration<InetAddress> inetAddresses = networkInterface.getInetAddresses();
+            while (inetAddresses.hasMoreElements()) {
+              InetAddress inetAddress = inetAddresses.nextElement();
+              // 优先私有地址
+              if (!inetAddress.isLoopbackAddress() && inetAddress.isSiteLocalAddress()) {
+                return inetAddress;
+              }
+              // 保存第一个公有地址作为候选地址
+              if (candidate == null
+                  && !inetAddress.isLoopbackAddress()
+                  && !inetAddress.isSiteLocalAddress()) {
+                candidate = inetAddress;
+              }
             }
           }
-          if (representativeIP != null) {
-            break;
-          }
         }
-        if (representativeIP == null) {
-          System.out.print("Cannot find representative IP");
-        }
+        return candidate;
+      } catch (SocketException ee) {
+        LOGGER.error("Error occurred finding representative IP.", ee);
+        return null;
       }
-    } catch (SocketException e) {
-      LOGGER.error("Error occurred finding representative IP.", e);
     }
   }
 
@@ -111,6 +118,9 @@ public class HostUtils {
   }
 
   public static String getRepresentativeIP() {
+    if (representativeIP == null) {
+      representativeIP = Objects.requireNonNull(getLocalHostExactAddress()).getHostAddress();
+    }
     return representativeIP;
   }
 

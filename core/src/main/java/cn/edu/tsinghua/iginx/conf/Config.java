@@ -239,13 +239,9 @@ public class Config {
     this.maxTimeseriesLength = maxTimeseriesLength;
   }
 
-  /* 获取监听IP地址 */
+  /** 获取本机IP地址 */
   public String getIp() {
-    return ip;
-  }
-
-  /* 获取本机IP地址 */
-  public String getRepresentativeIP() {
+    // 当设置监听端口为0.0.0.0，找本机IP地址
     if (!Objects.equals(ip, "0.0.0.0")) {
       return ip;
     } else {

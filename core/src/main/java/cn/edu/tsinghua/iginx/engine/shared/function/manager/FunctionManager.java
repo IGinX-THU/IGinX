@@ -136,7 +136,7 @@ public class FunctionManager {
               udfInfo[1],
               udfInfo[2],
               udfInfo[3],
-              new HashSet<>(Collections.singletonList(config.getRepresentativeIP())),
+              new HashSet<>(Collections.singletonList(config.getIp())),
               udfType));
     }
 
@@ -144,8 +144,8 @@ public class FunctionManager {
       TransformTaskMeta taskMeta = metaManager.getTransformTask(meta.getName());
       if (taskMeta == null) {
         metaManager.addTransformTask(meta);
-      } else if (!taskMeta.getIpSet().contains(config.getRepresentativeIP())) {
-        meta.addIp(config.getRepresentativeIP());
+      } else if (!taskMeta.getIpSet().contains(config.getIp())) {
+        meta.addIp(config.getIp());
         metaManager.updateTransformTask(meta);
       }
 
