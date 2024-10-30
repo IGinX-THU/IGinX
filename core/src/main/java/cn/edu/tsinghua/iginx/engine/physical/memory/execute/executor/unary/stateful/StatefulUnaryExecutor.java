@@ -32,18 +32,28 @@ public abstract class StatefulUnaryExecutor extends UnaryExecutor {
   }
 
   /**
-   * Consume a batch of data.
+   * Check if the executor needs to consume more data.
    *
-   * @param batch the batch to consume, notify the consumer to finalize states if the batch's size less than the batch size
    * @return true if the executor needs to consume more data, false otherwise
    * @throws ComputeException if an error occurs during consumption
    */
-  public abstract boolean consume(@WillNotClose VectorSchemaRoot batch) throws ComputeException;
+  public abstract boolean needConsume() throws ComputeException;
+
+  /**
+   * Consume a batch of data.
+   *
+   * @param batch the batch to consume, notify the consumer to finalize states if the batch's size less than the batch size
+   * @throws ComputeException if an error occurs during consumption
+   * @throws IllegalStateException if the executor is not ready to consume, i.e., need to produce the result
+   */
+  public abstract void consume(@WillNotClose VectorSchemaRoot batch) throws ComputeException;
 
   /**
    * Produce the result of the computation.
    *
    * @return the result of the computation. Empty if executor needs to consume more data.
+   * @throws ComputeException      if an error occurs during consumption
+   * @throws IllegalStateException if the executor is not ready to produce, i.e., need to consume more data
    */
   public abstract VectorSchemaRoot produce() throws ComputeException;
 }

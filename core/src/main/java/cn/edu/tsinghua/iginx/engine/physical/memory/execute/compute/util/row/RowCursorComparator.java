@@ -18,7 +18,6 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.row;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.CompareOption;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import org.apache.arrow.memory.util.ArrowBufPointer;
 import org.apache.arrow.util.Preconditions;
 import org.apache.arrow.vector.*;
@@ -28,6 +27,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class RowCursorComparator implements Comparator<RowCursor> {
 
@@ -60,12 +60,12 @@ public class RowCursorComparator implements Comparator<RowCursor> {
     return true;
   }
 
-  public static RowCursorComparator ofVectors(List<? extends ValueVector> vectors, List<CompareOption> options) throws ComputeException {
+  public static RowCursorComparator ofVectors(List<? extends ValueVector> vectors, List<CompareOption> options) {
     List<Types.MinorType> types = vectors.stream().map(ValueVector::getMinorType).collect(Collectors.toList());
     return ofTypes(types, options);
   }
 
-  public static RowCursorComparator ofTypes(List<Types.MinorType> types, List<CompareOption> options) throws ComputeException {
+  public static RowCursorComparator ofTypes(List<Types.MinorType> types, List<CompareOption> options) {
     Preconditions.checkArgument(types.size() == options.size());
     Builder builder = new Builder();
     for (int i = 0; i < types.size(); i++) {
@@ -74,10 +74,15 @@ public class RowCursorComparator implements Comparator<RowCursor> {
     return builder.build();
   }
 
+  public static RowCursorComparator of(VectorSchemaRoot table) {
+    List<CompareOption> options = Stream.generate(() -> CompareOption.DEFAULT).limit(table.getFieldVectors().size()).collect(Collectors.toList());
+    return ofVectors(table.getFieldVectors(), options);
+  }
+
   public static class Builder {
     private final List<CellComparator> comparators = new ArrayList<>();
 
-    public Builder add(Types.MinorType type, CompareOption option) throws ComputeException {
+    public Builder add(Types.MinorType type, CompareOption option) {
       CellComparator comparator = createComparator(type, option);
       comparators.add(comparator);
       return this;
@@ -94,8 +99,7 @@ public class RowCursorComparator implements Comparator<RowCursor> {
     boolean equals(FieldVector left, int leftIndex, FieldVector right, int rightIndex);
   }
 
-  private static AbstractCellComparator<?> createComparator(
-      Types.MinorType type, CompareOption option) throws ComputeException {
+  private static AbstractCellComparator<?> createComparator(Types.MinorType type, CompareOption option) {
     switch (type) {
       case BIT:
         return new BitCellComparator(option);
@@ -110,7 +114,7 @@ public class RowCursorComparator implements Comparator<RowCursor> {
       case VARBINARY:
         return new VarBinaryComparator(option);
       default:
-        throw new ComputeException("Compare not supported for type: " + type);
+        throw new IllegalArgumentException("Unsupported type: " + type);
     }
   }
 

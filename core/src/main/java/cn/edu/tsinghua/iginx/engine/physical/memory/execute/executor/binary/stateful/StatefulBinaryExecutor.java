@@ -3,10 +3,9 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.binary.sta
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.binary.BinaryExecutor;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.Batch;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
+import org.apache.arrow.vector.VectorSchemaRoot;
 
-import javax.annotation.Nullable;
 import javax.annotation.WillNotClose;
 
 public abstract class StatefulBinaryExecutor extends BinaryExecutor {
@@ -15,36 +14,32 @@ public abstract class StatefulBinaryExecutor extends BinaryExecutor {
     super(context, leftSchema, rightSchema);
   }
 
-  protected boolean leftFinished = false;
-  protected boolean rightFinished = false;
+  public abstract boolean needConsumeLeft() throws ComputeException;
 
-  public boolean consumeLeft(@WillNotClose @Nullable Batch batch) throws ComputeException {
-    if (leftFinished) {
-      throw new IllegalStateException("Left has been finished, cannot consume left again");
-    }
-    return consumeLeftInternal(batch);
-  }
+  public abstract boolean needConsumeRight() throws ComputeException;
 
+  /**
+   * Consume a batch of data from the left child.
+   *
+   * @param batch the batch to consume, notify the consumer to finalize states if the batch's size less than the batch size
+   * @throws ComputeException if an error occurs during consumption
+   */
+  public abstract void consumeLeft(@WillNotClose VectorSchemaRoot batch) throws ComputeException;
 
-  public boolean consumeRight(@WillNotClose @Nullable Batch batch) throws ComputeException {
-    if (rightFinished) {
-      throw new IllegalStateException("Right has been finished, cannot consume right again");
-    }
-    return consumeRightInternal(batch);
-  }
+  /**
+   * Consume a batch of data from the right child.
+   *
+   * @param batch the batch to consume, notify the consumer to finalize states if the batch's size less than the batch size
+   * @return true if the executor needs to consume more data, false otherwise
+   * @throws ComputeException if an error occurs during consumption
+   */
+  public abstract boolean consumeRight(@WillNotClose VectorSchemaRoot batch) throws ComputeException;
 
-  public abstract boolean canProduce() throws ComputeException;
+  /**
+   * Produce the result of the computation.
+   *
+   * @return the result of the computation. Empty if executor needs to consume more data.
+   */
+  public abstract VectorSchemaRoot produce() throws ComputeException;
 
-  public Batch produce() throws ComputeException {
-    if (!canProduce()) {
-      throw new IllegalStateException(getClass().getSimpleName() + " cannot produce");
-    }
-    return produceInternal();
-  }
-
-  protected abstract boolean consumeLeftInternal(@WillNotClose Batch batch) throws ComputeException;
-
-  protected abstract boolean consumeRightInternal(@WillNotClose Batch batch) throws ComputeException;
-
-  protected abstract Batch produceInternal() throws ComputeException;
 }

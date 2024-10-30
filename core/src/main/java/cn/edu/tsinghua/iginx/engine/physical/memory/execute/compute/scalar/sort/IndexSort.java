@@ -57,8 +57,7 @@ public class IndexSort extends AbstractFunction<IntVector> {
   }
 
   @Override
-  protected IntVector invokeImpl(BufferAllocator allocator, VectorSchemaRoot input)
-      throws ComputeException {
+  protected IntVector invokeImpl(BufferAllocator allocator, VectorSchemaRoot input) {
     Integer[] indices = getIndices(input.getRowCount());
     Comparator<Integer> comparator = getComparator(input);
     for (int i = 0; i < indices.length; i++) {
@@ -76,7 +75,7 @@ public class IndexSort extends AbstractFunction<IntVector> {
     return indices;
   }
 
-  private Comparator<Integer> getComparator(VectorSchemaRoot input) throws ComputeException {
+  private Comparator<Integer> getComparator(VectorSchemaRoot input) {
     RowCursor leftCursor = new RowCursor(input);
     RowCursor rightCursor = new RowCursor(input);
     RowCursorComparator comparator = RowCursorComparator.ofVectors(input.getFieldVectors(), options);

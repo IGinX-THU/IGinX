@@ -28,6 +28,8 @@ public class CompareOption {
   public static final CompareOption ASC = ASC_NULL_FIRST;
   public static final CompareOption DESC = DESC_NULL_LAST;
 
+  public static final CompareOption DEFAULT = ASC;
+
   boolean descending;
   boolean nullLast;
 

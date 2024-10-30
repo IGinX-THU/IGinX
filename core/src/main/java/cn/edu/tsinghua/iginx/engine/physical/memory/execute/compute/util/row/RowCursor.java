@@ -21,12 +21,13 @@ import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.FixedWidthVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 
+
 import javax.annotation.WillNotClose;
 import java.util.Objects;
 
 public class RowCursor extends RowPosition {
 
-  private final FieldVector[] columns;
+  protected final FieldVector[] columns;
 
   public RowCursor(@WillNotClose VectorSchemaRoot table) {
     this(table.getFieldVectors().toArray(new FieldVector[0]), 0);
@@ -74,7 +75,7 @@ public class RowCursor extends RowPosition {
   public void copyFrom(RowCursor source) {
     for (int column = 0; column < this.columns.length; column++) {
       FieldVector sourceColumn = source.getColumn(column);
-      FieldVector targetColumn = this.columns[column];
+      FieldVector targetColumn = this.getColumn(column);
       if (sourceColumn instanceof FixedWidthVector) {
         targetColumn.copyFrom(source.getPosition(), this.getPosition(), sourceColumn);
       } else {

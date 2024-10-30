@@ -25,9 +25,7 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorCon
 import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.types.pojo.Schema;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 public class GroupsAggregateUnaryExecutor extends StatefulUnaryExecutor {
 
@@ -35,8 +33,7 @@ public class GroupsAggregateUnaryExecutor extends StatefulUnaryExecutor {
   private final List<ScalarExpression<?>> groupValueExpressions;
   private final List<ExpressionAccumulator> accumulators;
   private final GroupTable.Builder groupTableBuilder;
-  private GroupTable groupTable = null;
-  private int groupIndex = 0;
+  private Queue<VectorSchemaRoot> readyBatches;
 
   public GroupsAggregateUnaryExecutor(
       ExecutorContext context,
@@ -70,41 +67,46 @@ public class GroupsAggregateUnaryExecutor extends StatefulUnaryExecutor {
   }
 
   @Override
-  public Schema getOutputSchema() throws ComputeException {
+  public Schema getOutputSchema() {
     return groupTableBuilder.getOutputSchema();
   }
 
   @Override
   public void close() throws ComputeException {
     groupTableBuilder.close();
-    if (groupTable != null) {
-      groupTable.close();
+    if (readyBatches != null) {
+      readyBatches.forEach(VectorSchemaRoot::close);
     }
   }
 
   @Override
-  public boolean consume(VectorSchemaRoot batch) throws ComputeException {
-    if (groupTable != null) {
-      if (batch.getRowCount() != 0) {
-        throw new IllegalStateException("Cannot consume more data after finish consuming");
-      }
-      return false;
+  public boolean needConsume() {
+    return readyBatches == null;
+  }
+
+  @Override
+  public void consume(VectorSchemaRoot batch) throws ComputeException {
+    if (!needConsume()) {
+      throw new IllegalStateException("Cannot consume more data after finish consuming");
     }
 
-    if (batch.getRowCount() == 0) {
-      groupTable = groupTableBuilder.build();
-      return false;
-    } else {
+    if (batch.getRowCount() != 0) {
       groupTableBuilder.add(batch);
-      return true;
+      return;
     }
+
+    readyBatches = new ArrayDeque<>(groupTableBuilder.build().getGroups());
   }
 
   @Override
   public VectorSchemaRoot produce() {
-    if (groupTable == null || groupIndex >= groupTable.getGroups().size()) {
-      return VectorSchemaRoot.create(groupTableBuilder.getOutputSchema(), context.getAllocator());
+    if (needConsume()) {
+      throw new IllegalStateException("Cannot produce data before consuming");
     }
-    return groupTable.getGroups().get(groupIndex++);
+
+    if (readyBatches.isEmpty()) {
+      return VectorSchemaRoot.create(getOutputSchema(), context.getAllocator());
+    }
+    return readyBatches.poll();
   }
 }

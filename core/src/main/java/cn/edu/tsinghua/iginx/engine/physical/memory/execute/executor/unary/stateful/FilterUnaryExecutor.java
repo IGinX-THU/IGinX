@@ -66,11 +66,21 @@ public class FilterUnaryExecutor extends StatefulUnaryExecutor {
   public void close() {
     readyBatches.forEach(VectorSchemaRoot::close);
     readyBatches.clear();
-    buffer.close();
+    if (buffer != null) {
+      buffer.close();
+    }
   }
 
   @Override
-  public boolean consume(VectorSchemaRoot batch) throws ComputeException {
+  public boolean needConsume() throws ComputeException {
+    return buffer != null || readyBatches.isEmpty();
+  }
+
+  @Override
+  public void consume(VectorSchemaRoot batch) throws ComputeException {
+    if (!needConsume()) {
+      throw new IllegalStateException("Cannot consume more data before producing");
+    }
     int expectedRowCount = context.getBatchRowCount();
     try (BitVector mask = ScalarExpressions.evaluateSafe(context.getAllocator(), condition, batch);
          IntVector selection = PhysicalFunctions.filter(context.getAllocator(), mask);
@@ -90,16 +100,18 @@ public class FilterUnaryExecutor extends StatefulUnaryExecutor {
       }
       if (batch.getRowCount() == 0) {
         readyBatches.add(buffer);
-        buffer = VectorSchemaRoot.create(outputSchema, context.getAllocator());
+        buffer = null;
       }
-      return readyBatches.isEmpty();
     }
   }
 
   @Override
   public VectorSchemaRoot produce() throws ComputeException {
+    if (needConsume()) {
+      throw new IllegalStateException("Cannot produce data before consuming");
+    }
     if (readyBatches.isEmpty()) {
-      return VectorSchemaRoot.create(outputSchema, context.getAllocator());
+      return VectorSchemaRoot.create(getOutputSchema(), context.getAllocator());
     }
     return readyBatches.remove();
   }

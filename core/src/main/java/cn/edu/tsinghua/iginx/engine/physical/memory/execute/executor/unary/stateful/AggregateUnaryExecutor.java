@@ -38,6 +38,7 @@ public class AggregateUnaryExecutor extends StatefulUnaryExecutor {
   private final List<ExpressionAccumulator> accumulators;
   private final Schema outputSchema;
   private final List<Accumulator.State> states;
+  private VectorSchemaRoot result = null;
 
   public AggregateUnaryExecutor(
       ExecutorContext context, Schema inputSchema, List<ExpressionAccumulator> accumulators)
@@ -70,27 +71,43 @@ public class AggregateUnaryExecutor extends StatefulUnaryExecutor {
   public void close() throws ComputeException {
     ComputingCloseables.close(states);
     states.clear();
+    if (result != null) {
+      result.close();
+    }
   }
 
   @Override
-  public boolean consume(@WillNotClose VectorSchemaRoot batch) throws ComputeException {
-    ExpressionAccumulators.update(accumulators, states, batch);
-    return batch.getRowCount() != 0;
+  public boolean needConsume() throws ComputeException {
+    return result == null;
+  }
+
+  @Override
+  public void consume(@WillNotClose VectorSchemaRoot batch) throws ComputeException {
+    if (!needConsume()) {
+      throw new IllegalStateException("Cannot consume more data before producing");
+    }
+    if (batch.getRowCount() > 0) {
+      ExpressionAccumulators.update(accumulators, states, batch);
+      return;
+    }
+    List<List<Accumulator.State>> statesColumns =
+        this.states.stream().map(Collections::singletonList).collect(Collectors.toList());
+    try (VectorSchemaRoot root = ExpressionAccumulators.evaluateSafe(accumulators, statesColumns)) {
+      result = PhysicalFunctions.unnest(context.getAllocator(), root);
+    }
   }
 
   private boolean produced = false;
 
   @Override
   public VectorSchemaRoot produce() throws ComputeException {
+    if (needConsume()) {
+      throw new IllegalStateException("Cannot produce data before consuming");
+    }
     if (produced) {
-      return VectorSchemaRoot.create(outputSchema, context.getAllocator());
+      return VectorSchemaRoot.create(getOutputSchema(), context.getAllocator());
     }
     produced = true;
-    List<List<Accumulator.State>> statesColumns =
-        this.states.stream().map(Collections::singletonList).collect(Collectors.toList());
-    try (VectorSchemaRoot root = ExpressionAccumulators.evaluateSafe(accumulators, statesColumns)) {
-      return PhysicalFunctions.unnest(context.getAllocator(), root);
-    }
+    return result.slice(0, result.getRowCount());
   }
-
 }
