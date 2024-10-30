@@ -17,20 +17,55 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.selecting;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.ComplexFunction;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.AbstractFunction;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.Arity;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ValueVectors;
-import java.util.List;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.*;
 import org.apache.arrow.vector.types.Types;
 
-public class CaseWhen extends ComplexFunction<FieldVector> {
+public class CaseWhen extends AbstractFunction<FieldVector> {
 
   private static final String name = "casewhen";
 
   public CaseWhen() {
-    super(name);
+    super(name, new Arity(Arity.COMPLEX.getArity(), true));
+  }
+
+  @Override
+  protected FieldVector invokeImpl(BufferAllocator allocator, VectorSchemaRoot input)
+      throws ComputeException {
+    validateInput(input.getFieldVectors().toArray(new FieldVector[0]));
+    return evaluate(allocator, input.getFieldVectors().toArray(new FieldVector[0]));
+  }
+
+  public void validateInput(org.apache.arrow.vector.FieldVector[] inputs) throws ComputeException {
+    int rowCount = inputs[0].getValueCount();
+    Types.MinorType minorType = inputs[1].getMinorType();
+    int fieldIndex = 0;
+    // 三个检查：奇数位bool & 偶数位类型相同 & 每列元素数量相等，最后一列一定是值列，留到最后
+    for (; fieldIndex < inputs.length - 1; fieldIndex++) {
+      if (fieldIndex % 2 == 0 && !(inputs[fieldIndex] instanceof BitVector)) {
+        throw new ComputeException(name + " expects a BitVector but got " + inputs[fieldIndex]);
+      } else if (fieldIndex % 2 != 0 && inputs[fieldIndex].getMinorType() != minorType) {
+        throw new ComputeException(
+            name + " expects a " + minorType + " but got " + inputs[fieldIndex]);
+      }
+      if (inputs[fieldIndex].getValueCount() != rowCount) {
+        throw new ComputeException(
+            name + " expects " + rowCount + " elements but got " + inputs[fieldIndex]);
+      }
+    }
+    // 最后一列
+    if (inputs[fieldIndex].getMinorType() != minorType) {
+      throw new ComputeException(
+          name + " expects a " + minorType + " but got " + inputs[fieldIndex]);
+    }
+    if (inputs[fieldIndex].getValueCount() != rowCount) {
+      throw new ComputeException(
+          name + " expects " + rowCount + " elements but got " + inputs[fieldIndex]);
+    }
   }
 
   /**
@@ -38,58 +73,39 @@ public class CaseWhen extends ComplexFunction<FieldVector> {
    * @param inputs List of conditions and values. [condition1, value1, condition2, value2, ...,
    *     valueElse]
    */
-  @Override
   public FieldVector evaluate(
-      BufferAllocator allocator, List<org.apache.arrow.vector.FieldVector> inputs)
+      BufferAllocator allocator, org.apache.arrow.vector.FieldVector[] inputs)
       throws ComputeException {
-    int rowCount = inputs.get(0).getValueCount();
-    Types.MinorType minorType = inputs.get(1).getMinorType();
-    int fieldIndex = 0;
-    // 三个检查：奇数位bool & 偶数位类型相同 & 每列元素数量相等
-    for (; fieldIndex < inputs.size() - 1; fieldIndex += 2) {
-      if (fieldIndex % 2 == 0 && !(inputs.get(fieldIndex) instanceof BitVector)) {
-        throw new ComputeException(name + " expects a BitVector but got " + inputs.get(fieldIndex));
-      } else if (fieldIndex % 2 != 0 && inputs.get(fieldIndex).getMinorType() != minorType) {
-        throw new ComputeException(
-            name + " expects a " + minorType + " but got " + inputs.get(fieldIndex));
-      }
-      if (inputs.get(fieldIndex).getValueCount() != rowCount) {
-        throw new ComputeException(
-            name + " expects " + rowCount + " elements but got " + inputs.get(fieldIndex));
-      }
-    }
-    if (inputs.size() % 2 != 0 && inputs.get(fieldIndex).getMinorType() != minorType) {
-      throw new ComputeException(
-          name + " expects a " + minorType + " but got " + inputs.get(fieldIndex));
-    }
-
+    int rowCount = inputs[0].getValueCount();
+    Types.MinorType minorType = inputs[1].getMinorType();
     FieldVector result = ValueVectors.create(allocator, minorType, rowCount);
     evaluateGeneric(result, inputs, minorType);
     return result;
   }
 
   private <T extends FieldVector> void evaluateGeneric(
-      T result, List<FieldVector> inputs, Types.MinorType minorType) throws ComputeException {
-    int rowCount = inputs.get(0).getValueCount();
+      T result, FieldVector[] inputs, Types.MinorType minorType) throws ComputeException {
+    int rowCount = inputs[0].getValueCount();
     boolean matched;
     int fieldIndex;
 
     for (int row = 0; row < rowCount; row++) {
       matched = false;
 
-      for (fieldIndex = 0; fieldIndex < inputs.size() - 1; fieldIndex += 2) {
-        if (((BitVector) inputs.get(fieldIndex)).get(row) == 1) {
+      for (fieldIndex = 0; fieldIndex < inputs.length - 1; fieldIndex += 2) {
+        if (((BitVector) inputs[fieldIndex]).get(row) != 0) {
           matched = true;
-          setValue(result, row, inputs.get(fieldIndex + 1), minorType);
+          setValue(result, row, inputs[fieldIndex + 1], minorType);
           break;
         }
       }
 
       if (!matched) {
-        if (inputs.size() % 2 == 0) {
-          throw new ComputeException("No default branch provided in " + name);
+        if (inputs.length % 2 == 0) {
+          // 没有else条件且没有匹配
+          result.setNull(row);
         } else {
-          setValue(result, row, inputs.get(fieldIndex), minorType);
+          setValue(result, row, inputs[fieldIndex], minorType);
         }
       }
     }
@@ -103,6 +119,9 @@ public class CaseWhen extends ComplexFunction<FieldVector> {
         break;
       case BIGINT:
         ((BigIntVector) result).setSafe(row, ((BigIntVector) valueVector).get(row));
+        break;
+      case BIT:
+        ((BitVector) result).setSafe(row, ((BitVector) valueVector).get(row));
         break;
       case FLOAT4:
         ((Float4Vector) result).setSafe(row, ((Float4Vector) valueVector).get(row));

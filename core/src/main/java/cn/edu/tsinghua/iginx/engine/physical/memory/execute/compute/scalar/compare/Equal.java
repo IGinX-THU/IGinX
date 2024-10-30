@@ -49,7 +49,7 @@ public class Equal extends ComparisonFunction {
 
   @Override
   protected boolean evaluate(ArrowBufPointer left, ArrowBufPointer right) {
-    return left.compareTo(right) == 0;
+    return left.equals(right);
   }
 
   @Override

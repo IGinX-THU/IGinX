@@ -50,9 +50,6 @@ public class Like extends ComparisonFunction {
     throw new UnsupportedOperationException("LIKE can only be evaluated between binary vectors.");
   }
 
-  private static Pattern compiledPattern;
-  private static String lastPattern;
-
   @Override
   public boolean evaluate(ArrowBufPointer left, ArrowBufPointer right) {
     ArrowBuf leftBuf = left.getBuf();
@@ -72,12 +69,7 @@ public class Like extends ComparisonFunction {
     byte[] rightUtf8Bytes = new byte[rightLen];
     right.getBuf().getBytes(right.getOffset(), rightUtf8Bytes);
     String pattern = new String(rightUtf8Bytes, StandardCharsets.UTF_8);
-    // pattern很有可能重复使用很多次，缓存一下
-    if (!pattern.equals(lastPattern)) {
-      compiledPattern = Pattern.compile(pattern);
-      lastPattern = pattern;
-    }
-    return compiledPattern.matcher(targetString).matches();
+    return Pattern.matches(pattern, targetString);
   }
 
   @Override

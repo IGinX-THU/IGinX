@@ -100,7 +100,7 @@ public class FilterInfoGenerator implements UnaryExecutorFactory<FilterExecutor>
   private static ScalarExpression<BitVector> construct(
       KeyFilter keyFilter, ExecutorContext context, BatchSchema inputSchema) {
     if (!inputSchema.hasKey()) {
-      throw new IllegalArgumentException("Trying to apply key filter on a key-less schema");
+      return LiteralNode.of(false);
     }
     return new CallNode<>(
         getPredicate(keyFilter.getOp()),
@@ -122,10 +122,10 @@ public class FilterInfoGenerator implements UnaryExecutorFactory<FilterExecutor>
   }
 
   private static ScalarExpression<BitVector> construct(
-      PathFilter filter, ExecutorContext context, BatchSchema inputSchema) {
+      PathFilter filter, ExecutorContext context, BatchSchema inputSchema) throws ComputeException {
     if (inputSchema.indexOf(filter.getPathA()) == null
         || inputSchema.indexOf(filter.getPathB()) == null) {
-      throw new IllegalArgumentException("Trying to compare non-existing path(s).");
+      throw new ComputeException("Trying to compare non-existing path(s).");
     }
     return new CallNode<>(
         getPredicate(filter.getOp()),
