@@ -23,12 +23,14 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expre
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.FieldNode;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.LiteralNode;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpression;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.selecting.CaseWhen;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutorFactory;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.pipeline.ProjectionExecutor;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.expr.*;
+import cn.edu.tsinghua.iginx.engine.shared.expr.CaseWhenExpression;
 import cn.edu.tsinghua.iginx.engine.shared.function.Function;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
@@ -41,7 +43,7 @@ import java.util.Objects;
 
 public class TransformProjectionInfoGenerator implements UnaryExecutorFactory<ProjectionExecutor> {
 
-  private final RowTransform operator;
+  private static RowTransform operator = null;
 
   public TransformProjectionInfoGenerator(RowTransform operator) {
     this.operator = Objects.requireNonNull(operator);
@@ -93,7 +95,7 @@ public class TransformProjectionInfoGenerator implements UnaryExecutorFactory<Pr
     }
   }
 
-  private ScalarExpression<?> getPhysicalExpression(
+  static ScalarExpression<?> getPhysicalExpression(
       ExecutorContext context, BatchSchema inputSchema, Expression expr) throws ComputeException {
     switch (expr.getType()) {
       case FromValue:
@@ -110,6 +112,7 @@ public class TransformProjectionInfoGenerator implements UnaryExecutorFactory<Pr
       case Constant:
         return new LiteralNode<>(((ConstantExpression) expr).getValue());
       case CaseWhen:
+        return getPhysicalExpression(context, inputSchema, (CaseWhenExpression) expr);
       case Function:
       case Multiple:
         throw new IllegalArgumentException(String.format("%s not implemented", expr.getType()));
@@ -118,7 +121,7 @@ public class TransformProjectionInfoGenerator implements UnaryExecutorFactory<Pr
     }
   }
 
-  private ScalarExpression<?> getPhysicalExpression(
+  private static ScalarExpression<?> getPhysicalExpression(
       ExecutorContext context, BatchSchema inputSchema, BaseExpression expr)
       throws ComputeException {
     Integer index = inputSchema.indexOf(expr.getColumnName());
@@ -130,7 +133,22 @@ public class TransformProjectionInfoGenerator implements UnaryExecutorFactory<Pr
     }
   }
 
-  private ScalarExpression<?> getPhysicalExpression(
+  private static ScalarExpression<?> getPhysicalExpression(
+      ExecutorContext context, BatchSchema inputSchema, CaseWhenExpression expr)
+      throws ComputeException {
+    List<ScalarExpression<?>> args = new ArrayList<>();
+    // [condition1, value1, condition2, value2..., valueElse]
+    for (int i = 0; i < expr.getConditions().size(); i++) {
+      args.add(FilterInfoGenerator.construct(expr.getConditions().get(i), context, inputSchema));
+      args.add(getPhysicalExpression(context, inputSchema, expr.getResults().get(i)));
+    }
+    if (expr.getResultElse() != null) {
+      args.add(getPhysicalExpression(context, inputSchema, expr.getResultElse()));
+    }
+    return new CallNode<>(new CaseWhen(), expr.getColumnName(), args);
+  }
+
+  private static ScalarExpression<?> getPhysicalExpression(
       ExecutorContext context, BatchSchema inputSchema, BinaryExpression expr)
       throws ComputeException {
     ScalarExpression<?> left =
@@ -141,7 +159,7 @@ public class TransformProjectionInfoGenerator implements UnaryExecutorFactory<Pr
     return new CallNode<>(function, expr.getColumnName(), left, right);
   }
 
-  private ScalarExpression<?> getPhysicalExpression(
+  private static ScalarExpression<?> getPhysicalExpression(
       ExecutorContext context, BatchSchema inputSchema, UnaryExpression expr)
       throws ComputeException {
     ScalarExpression<?> expression =
@@ -156,7 +174,7 @@ public class TransformProjectionInfoGenerator implements UnaryExecutorFactory<Pr
     }
   }
 
-  private BinaryArithmeticFunction getArithmeticFunction(Operator operator) {
+  private static BinaryArithmeticFunction getArithmeticFunction(Operator operator) {
     switch (operator) {
       case PLUS:
         return new Add();

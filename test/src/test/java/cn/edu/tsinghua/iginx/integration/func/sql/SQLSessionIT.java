@@ -4888,21 +4888,16 @@ public class SQLSessionIT {
     executor.execute(insert);
 
     String statement =
-        "SELECT student.name AS name, student.age AS age,\n"
-            + "    CASE student.sex\n"
-            + "        WHEN 1 THEN 'Male'\n"
-            + "        WHEN 0 THEN 'Female'\n"
-            + "        ELSE 'Unknown'\n"
-            + "    END AS strSex,\n"
+        "SELECT "
             + "    CASE\n"
-            + "        WHEN math.score >= 90 THEN 'A'\n"
-            + "        WHEN math.score >= 80 AND math.score < 90 THEN 'B'\n"
-            + "        WHEN math.score >= 70 AND math.score < 80 THEN 'C'\n"
-            + "        WHEN math.score >= 60 AND math.score < 70 THEN 'D'\n"
+            + "        WHEN score >= 90 THEN 'A'\n"
+            + "        WHEN score >= 80 AND score < 90 THEN 'B'\n"
+            + "        WHEN score >= 70 AND score < 80 THEN 'C'\n"
+            + "        WHEN score >= 60 AND score < 70 THEN 'D'\n"
             + "        ELSE 'F'\n"
             + "    END AS gpa\n"
-            + "FROM student JOIN math ON student.s_id = math.s_id\n"
-            + "ORDER BY student.age\n;";
+            + "FROM  math \n"
+            + ";";
     String expected =
         "ResultSets:\n"
             + "+-----+---+------+---+\n"

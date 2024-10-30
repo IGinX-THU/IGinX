@@ -15,38 +15,28 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.logic;
 
-import org.apache.arrow.util.Preconditions;
+public class Not extends UnaryLogicFunction {
 
-public class Arity {
+  public static final String name = "not";
 
-  public static Arity UNARY = new Arity(1);
-  public static Arity BINARY = new Arity(2);
-  public static Arity COMPLEX = new Arity(3);
-
-  private final int arity;
-  private final boolean varArgs;
-
-  public Arity(int arity) {
-    this(arity, false);
+  public Not() {
+    super(name);
   }
 
-  public Arity(int arity, boolean varArgs) {
-    Preconditions.checkArgument(arity >= 0, "Arity must be non-negative");
-    this.arity = arity;
-    this.varArgs = varArgs;
+  @Override
+  public byte evaluate(byte input) {
+    return (byte) (~input);
   }
 
-  public int getArity() {
-    return arity;
+  @Override
+  public long evaluate(long input) {
+    return ~input;
   }
 
-  public boolean isVarArgs() {
-    return varArgs;
-  }
-
-  public boolean checkArity(int arity) {
-    return this.arity == arity || (varArgs && arity >= this.arity);
+  @Override
+  public boolean equals(Object obj) {
+    return obj instanceof Not;
   }
 }
