@@ -4901,8 +4901,8 @@ public class SQLSessionIT {
             + "        WHEN math.score >= 60 AND math.score < 70 THEN 'D'\n"
             + "        ELSE 'F'\n"
             + "    END AS gpa\n"
-            + "FROM  math \n"
-            + ";";
+            + "FROM student JOIN math ON student.s_id = math.s_id\n"
+            + "ORDER BY student.age\n;";
     String expected =
         "ResultSets:\n"
             + "+-----+---+------+---+\n"
