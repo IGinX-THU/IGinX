@@ -64,6 +64,9 @@ public abstract class ComparisonFunction extends BinaryFunction<BitVector> {
     BitVector dest = (BitVector) ValueVectors.create(allocator, Types.MinorType.BIT, rowCount);
 
     switch (left.getMinorType()) {
+      case BIT:
+        evaluate(dest, (BitVector) left, (BitVector) right);
+        break;
       case INT:
         evaluate(dest, (IntVector) left, (IntVector) right);
         break;
@@ -78,11 +81,16 @@ public abstract class ComparisonFunction extends BinaryFunction<BitVector> {
         break;
       case VARBINARY:
         evaluate(dest, (VarBinaryVector) left, (VarBinaryVector) right);
+        break;
       default:
         dest.close();
         throw new NotAllowTypeException(this, Schemas.of(left, right), 0);
     }
     return dest;
+  }
+
+  private void evaluate(BitVector dest, BitVector left, BitVector right) {
+    genericEvaluate(dest, left, right, index -> evaluate(left.get(index), right.get(index)));
   }
 
   private void evaluate(BitVector dest, IntVector left, IntVector right) {

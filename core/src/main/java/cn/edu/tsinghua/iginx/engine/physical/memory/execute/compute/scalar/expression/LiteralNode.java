@@ -18,6 +18,7 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
+import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ConstantVectors;
 import java.util.Collections;
 import java.util.Objects;
@@ -47,7 +48,7 @@ public final class LiteralNode<OUTPUT extends FieldVector>
 
   @Override
   public String getName() {
-    return String.valueOf(value);
+    return value == null ? "null" : new Value(value).toString();
   }
 
   @Override

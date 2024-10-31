@@ -26,7 +26,7 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expre
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutorFactory;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.sink.GroupsAggregateExecutor;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateful.GroupsAggregateUnaryExecutor;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.Schemas;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.operator.GroupBy;
@@ -35,7 +35,8 @@ import java.util.*;
 import java.util.stream.Collectors;
 import org.apache.arrow.vector.types.pojo.Schema;
 
-public class GroupsAggregateInfoGenerator implements UnaryExecutorFactory<GroupsAggregateExecutor> {
+public class GroupsAggregateInfoGenerator
+    implements UnaryExecutorFactory<GroupsAggregateUnaryExecutor> {
 
   private final GroupBy groupBy;
 
@@ -44,7 +45,7 @@ public class GroupsAggregateInfoGenerator implements UnaryExecutorFactory<Groups
   }
 
   @Override
-  public GroupsAggregateExecutor initialize(ExecutorContext context, BatchSchema inputSchema)
+  public GroupsAggregateUnaryExecutor initialize(ExecutorContext context, BatchSchema inputSchema)
       throws ComputeException {
     List<ScalarExpression<?>> groupKeyExpressions =
         generateGroupKeyExpressions(groupBy.getGroupByCols(), inputSchema);
@@ -85,8 +86,8 @@ public class GroupsAggregateInfoGenerator implements UnaryExecutorFactory<Groups
       accumulators.add(accumulation.accumulate(context.getAllocator(), groupValueSchema));
     }
 
-    return new GroupsAggregateExecutor(
-        context, inputSchema, groupKeyExpressions, groupValueExpressions, accumulators);
+    return new GroupsAggregateUnaryExecutor(
+        context, inputSchema.raw(), groupKeyExpressions, groupValueExpressions, accumulators);
   }
 
   private static List<ScalarExpression<?>> generateGroupKeyExpressions(

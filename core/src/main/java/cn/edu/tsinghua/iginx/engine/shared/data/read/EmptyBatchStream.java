@@ -19,17 +19,17 @@ package cn.edu.tsinghua.iginx.engine.shared.data.read;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import java.util.Objects;
+import org.apache.arrow.memory.BufferAllocator;
+import org.apache.arrow.vector.VectorSchemaRoot;
 
 class EmptyBatchStream implements BatchStream {
 
+  private final BufferAllocator allocator;
   private final BatchSchema schema;
 
-  public EmptyBatchStream(BatchSchema schema) {
+  public EmptyBatchStream(BufferAllocator allocator, BatchSchema schema) {
+    this.allocator = Objects.requireNonNull(allocator);
     this.schema = Objects.requireNonNull(schema);
-  }
-
-  public EmptyBatchStream() {
-    this(BatchSchema.builder().build());
   }
 
   @Override
@@ -39,7 +39,7 @@ class EmptyBatchStream implements BatchStream {
 
   @Override
   public Batch getNext() throws PhysicalException {
-    return null;
+    return Batch.of(VectorSchemaRoot.create(schema.raw(), allocator));
   }
 
   @Override

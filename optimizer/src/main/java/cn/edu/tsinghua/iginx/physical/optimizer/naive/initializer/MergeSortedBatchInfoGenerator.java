@@ -20,13 +20,13 @@ package cn.edu.tsinghua.iginx.physical.optimizer.naive.initializer;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutorFactory;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.sink.MergeSortedBatchExecutor;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateful.MergeSortedBatchUnaryExecutor;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Sort;
 import java.util.Objects;
 
 public class MergeSortedBatchInfoGenerator
-    implements UnaryExecutorFactory<MergeSortedBatchExecutor> {
+    implements UnaryExecutorFactory<MergeSortedBatchUnaryExecutor> {
 
   private final Sort sort;
 
@@ -35,8 +35,8 @@ public class MergeSortedBatchInfoGenerator
   }
 
   @Override
-  public MergeSortedBatchExecutor initialize(ExecutorContext context, BatchSchema inputSchema)
+  public MergeSortedBatchUnaryExecutor initialize(ExecutorContext context, BatchSchema inputSchema)
       throws ComputeException {
-    return new MergeSortedBatchExecutor(context, inputSchema);
+    return new MergeSortedBatchUnaryExecutor(context, inputSchema.raw());
   }
 }

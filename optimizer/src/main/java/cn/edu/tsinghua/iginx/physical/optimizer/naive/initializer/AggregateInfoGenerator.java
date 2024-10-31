@@ -25,7 +25,7 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expre
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutorFactory;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.sink.AggregateExecutor;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateful.AggregateUnaryExecutor;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.Schemas;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.function.*;
@@ -36,7 +36,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
-public class AggregateInfoGenerator implements UnaryExecutorFactory<AggregateExecutor> {
+public class AggregateInfoGenerator implements UnaryExecutorFactory<AggregateUnaryExecutor> {
 
   private final SetTransform transform;
 
@@ -45,7 +45,7 @@ public class AggregateInfoGenerator implements UnaryExecutorFactory<AggregateExe
   }
 
   @Override
-  public AggregateExecutor initialize(ExecutorContext context, BatchSchema inputSchema)
+  public AggregateUnaryExecutor initialize(ExecutorContext context, BatchSchema inputSchema)
       throws ComputeException {
     List<Pair<Accumulation, Integer>> aggregateInfo =
         generateAggregateInfo(context, inputSchema, transform.getFunctionCallList());
@@ -60,7 +60,7 @@ public class AggregateInfoGenerator implements UnaryExecutorFactory<AggregateExe
     for (ExpressionAccumulation accumulation : accumulations) {
       accumulators.add(accumulation.accumulate(context.getAllocator(), inputSchema.raw()));
     }
-    return new AggregateExecutor(context, inputSchema, accumulators);
+    return new AggregateUnaryExecutor(context, inputSchema.raw(), accumulators);
   }
 
   public static List<Pair<Accumulation, Integer>> generateAggregateInfo(

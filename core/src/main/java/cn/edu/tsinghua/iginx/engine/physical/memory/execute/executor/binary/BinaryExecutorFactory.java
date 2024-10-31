@@ -15,13 +15,14 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.row;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.binary;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 
-@Data
-@AllArgsConstructor
-public class RowIndex {
-  int index;
+public interface BinaryExecutorFactory<T extends BinaryExecutor> {
+
+  T initialize(ExecutorContext context, BatchSchema leftSchema, BatchSchema rightSchema)
+      throws ComputeException;
 }

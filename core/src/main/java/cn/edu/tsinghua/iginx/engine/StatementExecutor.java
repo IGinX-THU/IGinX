@@ -339,7 +339,7 @@ public class StatementExecutor {
       after(ctx, postLogicalProcessors);
       if (root == null && !metaManager.hasWritableStorageEngines()) {
         ctx.setResult(new Result(RpcUtils.SUCCESS));
-        setResult(ctx, BatchStreams.empty());
+        setResult(ctx, BatchStreams.empty(ctx.getAllocator()));
         return;
       }
       if (constraintManager.check(root) && checker.check(root)) {
@@ -360,7 +360,7 @@ public class StatementExecutor {
           if (selectStatement.isNeedPhysicalExplain()) {
             while (true) {
               try (Batch batch = stream.getNext()) {
-                if (batch == null) {
+                if (batch.getRowCount() == 0) {
                   break; // 确保语句执行完毕
                 }
               }
@@ -821,7 +821,7 @@ public class StatementExecutor {
     try (BatchStream batchStream = stream) {
       while (true) {
         try (Batch batch = batchStream.getNext()) {
-          if (batch == null) {
+          if (batch.getRowCount() == 0) {
             break;
           }
           try (ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -864,7 +864,7 @@ public class StatementExecutor {
     try (BatchStream batchStream = stream) {
       while (true) {
         try (Batch batch = batchStream.getNext()) {
-          if (batch == null) {
+          if (batch.getRowCount() == 0) {
             break;
           }
           int rowCnt = batch.getRowCount();

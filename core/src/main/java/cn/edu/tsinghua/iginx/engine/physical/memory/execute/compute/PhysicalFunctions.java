@@ -25,12 +25,26 @@ import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.*;
 import org.apache.arrow.vector.complex.NonNullableStructVector;
 import org.apache.arrow.vector.types.Types;
+import org.apache.arrow.vector.types.pojo.Field;
 import org.apache.arrow.vector.types.pojo.FieldType;
+import org.apache.arrow.vector.types.pojo.Schema;
 import org.apache.arrow.vector.util.TransferPair;
 
 public class PhysicalFunctions {
 
   private PhysicalFunctions() {}
+
+  public static Schema unnest(Schema schema) {
+    List<Field> fields = new ArrayList<>();
+    for (Field field : schema.getFields()) {
+      if (Types.getMinorTypeForArrowType(field.getType()) == Types.MinorType.STRUCT) {
+        fields.addAll(field.getChildren());
+      } else {
+        fields.add(field);
+      }
+    }
+    return new Schema(fields);
+  }
 
   public static VectorSchemaRoot unnest(
       @WillNotClose BufferAllocator allocator, @WillNotClose VectorSchemaRoot vectorSchemaRoot) {
@@ -65,33 +79,59 @@ public class PhysicalFunctions {
     return selectionVector;
   }
 
-  public static FieldVector take(
-      BufferAllocator allocator, IntVector selectionVector, FieldVector input) {
-    if (selectionVector.getField().isNullable()) {
+  public static <OUTPUT extends FieldVector> void takeTo(
+      IntVector selection, OUTPUT output, OUTPUT input) {
+    if (selection.getField().isNullable()) {
+      throw new IllegalArgumentException("Selection vector must be not nullable");
+    }
+
+    int outputOffset = output.getValueCount();
+    int outputRowCount = outputOffset + selection.getValueCount();
+    if (output instanceof BaseFixedWidthVector) {
+      output.setValueCount(outputRowCount);
+      for (int selectionIndex = 0; selectionIndex < selection.getValueCount(); selectionIndex++) {
+        int outputIndex = outputOffset + selectionIndex;
+        output.copyFrom(selection.get(selectionIndex), outputIndex, input);
+      }
+    } else {
+      for (int selectionIndex = 0; selectionIndex < selection.getValueCount(); selectionIndex++) {
+        int outputIndex = outputOffset + selectionIndex;
+        output.copyFromSafe(selection.get(selectionIndex), outputIndex, input);
+      }
+      output.setValueCount(outputRowCount);
+    }
+  }
+
+  public static void takeTo(
+      IntVector selectionVector, VectorSchemaRoot output, VectorSchemaRoot input) {
+    if (output.getFieldVectors().size() != input.getFieldVectors().size()) {
+      throw new IllegalArgumentException(
+          "Output schema must have the same number of fields as input schema");
+    }
+    for (int i = 0; i < input.getFieldVectors().size(); i++) {
+      takeTo(selectionVector, output.getFieldVectors().get(i), input.getFieldVectors().get(i));
+    }
+    output.setRowCount(output.getRowCount() + selectionVector.getValueCount());
+  }
+
+  @SuppressWarnings("unchecked")
+  public static <OUTPUT extends FieldVector> OUTPUT take(
+      BufferAllocator allocator, IntVector selection, OUTPUT input) {
+    if (selection.getField().isNullable()) {
       throw new IllegalArgumentException("Selection vector must be not nullable");
     }
     TransferPair transferPair = input.getTransferPair(allocator);
-    FieldVector result = (FieldVector) transferPair.getTo();
-    result.setInitialCapacity(selectionVector.getValueCount());
-    if (result instanceof BaseFixedWidthVector) {
-      result.setValueCount(selectionVector.getValueCount());
-      for (int i = 0; i < selectionVector.getValueCount(); i++) {
-        result.copyFrom(selectionVector.get(i), i, input);
-      }
-    } else {
-      for (int i = 0; i < selectionVector.getValueCount(); i++) {
-        result.copyFromSafe(selectionVector.get(i), i, input);
-      }
-      result.setValueCount(selectionVector.getValueCount());
-    }
+    OUTPUT result = (OUTPUT) transferPair.getTo();
+    result.setInitialCapacity(selection.getValueCount());
+    takeTo(selection, result, input);
     return result;
   }
 
   public static VectorSchemaRoot take(
       BufferAllocator allocator, IntVector selectionVector, VectorSchemaRoot input) {
     List<FieldVector> results = new ArrayList<>();
-    for (FieldVector field : input.getFieldVectors()) {
-      results.add(take(allocator, selectionVector, field));
+    for (FieldVector fieldVector : input.getFieldVectors()) {
+      results.add(take(allocator, selectionVector, fieldVector));
     }
     return new VectorSchemaRoot(results);
   }

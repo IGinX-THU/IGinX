@@ -147,7 +147,7 @@ public class ConstantVectors {
     return vector;
   }
 
-  private static void setValueCountWithValidity(@WillNotClose ValueVector vector, int valueCount) {
+  public static void setValueCountWithValidity(@WillNotClose ValueVector vector, int valueCount) {
     vector.setValueCount(valueCount);
     long byteCount = BitVectorHelper.getValidityBufferSize(valueCount);
     vector.getValidityBuffer().setOne(0, byteCount);

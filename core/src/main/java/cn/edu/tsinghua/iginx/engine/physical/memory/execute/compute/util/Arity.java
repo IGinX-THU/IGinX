@@ -24,6 +24,7 @@ public class Arity {
   public static Arity UNARY = new Arity(1);
   public static Arity BINARY = new Arity(2);
   public static Arity COMPLEX = new Arity(3);
+  public static Arity ANY = new Arity(0, true);
 
   private final int arity;
   private final boolean varArgs;

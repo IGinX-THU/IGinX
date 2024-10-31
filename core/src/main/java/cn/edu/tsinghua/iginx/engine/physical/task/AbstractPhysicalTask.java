@@ -17,11 +17,11 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.task;
 
+import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.StopWatch;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStreams;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import java.util.List;
 import java.util.Objects;
@@ -98,6 +98,15 @@ public abstract class AbstractPhysicalTask implements PhysicalTask {
     this.resultLatch.countDown();
   }
 
+  @Override
+  public String getInfo() {
+    List<String> info =
+        operators.stream()
+            .map(op -> op.getType() + ":{" + op.getInfo() + "}")
+            .collect(Collectors.toList());
+    return String.join(",", info);
+  }
+
   @Deprecated
   public void setResult(TaskExecuteResult result) {
     if (result == null) {
@@ -107,20 +116,45 @@ public abstract class AbstractPhysicalTask implements PhysicalTask {
     } else {
       RowStream rowStream = result.getRowStream();
       if (rowStream != null) {
-        BatchStream batchStream = BatchStreams.wrap(executorContext, rowStream);
-        setResult(new TaskResult(batchStream));
+        BatchStream batchStream =
+            BatchStreams.wrap(
+                executorContext.getAllocator(), rowStream, executorContext.getBatchRowCount());
+        setResult(new TaskResult(new MetricStream(batchStream)));
       } else {
         setResult(new TaskResult());
       }
     }
   }
 
-  @Override
-  public String getInfo() {
-    List<String> info =
-        operators.stream()
-            .map(op -> op.getType() + ":{" + op.getInfo() + "}")
-            .collect(Collectors.toList());
-    return String.join(",", info);
+  private class MetricStream implements BatchStream {
+
+    private final BatchStream source;
+
+    public MetricStream(BatchStream source) {
+      this.source = Objects.requireNonNull(source);
+    }
+
+    @Override
+    public BatchSchema getSchema() throws PhysicalException {
+      try (StopWatch watch = new StopWatch(getMetrics()::accumulateCpuTime)) {
+        return source.getSchema();
+      }
+    }
+
+    @Override
+    public Batch getNext() throws PhysicalException {
+      try (StopWatch watch = new StopWatch(getMetrics()::accumulateCpuTime)) {
+        Batch batch = source.getNext();
+        getMetrics().accumulateAffectRows(batch.getRowCount());
+        return batch;
+      }
+    }
+
+    @Override
+    public void close() throws PhysicalException {
+      try (StopWatch watch = new StopWatch(getMetrics()::accumulateCpuTime)) {
+        source.close();
+      }
+    }
   }
 }

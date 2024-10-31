@@ -18,11 +18,13 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.row;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.CompareOption;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.apache.arrow.memory.util.ArrowBufPointer;
+import org.apache.arrow.util.Preconditions;
 import org.apache.arrow.vector.*;
 import org.apache.arrow.vector.types.Types;
 
@@ -39,7 +41,7 @@ public class RowCursorComparator implements Comparator<RowCursor> {
     for (int i = 0; i < comparators.length; i++) {
       int result =
           comparators[i].compare(
-              left.getColumn(i), left.getIndex(), right.getColumn(i), right.getIndex());
+              left.getColumn(i), left.getPosition(), right.getColumn(i), right.getPosition());
       if (result != 0) {
         return result;
       }
@@ -47,10 +49,45 @@ public class RowCursorComparator implements Comparator<RowCursor> {
     return 0;
   }
 
+  public boolean equals(RowCursor left, RowCursor right) {
+    for (int i = 0; i < comparators.length; i++) {
+      if (!comparators[i].equals(
+          left.getColumn(i), left.getPosition(), right.getColumn(i), right.getPosition())) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  public static RowCursorComparator ofVectors(
+      List<? extends ValueVector> vectors, List<CompareOption> options) {
+    List<Types.MinorType> types =
+        vectors.stream().map(ValueVector::getMinorType).collect(Collectors.toList());
+    return ofTypes(types, options);
+  }
+
+  public static RowCursorComparator ofTypes(
+      List<Types.MinorType> types, List<CompareOption> options) {
+    Preconditions.checkArgument(types.size() == options.size());
+    Builder builder = new Builder();
+    for (int i = 0; i < types.size(); i++) {
+      builder.add(types.get(i), options.get(i));
+    }
+    return builder.build();
+  }
+
+  public static RowCursorComparator of(VectorSchemaRoot table) {
+    List<CompareOption> options =
+        Stream.generate(() -> CompareOption.DEFAULT)
+            .limit(table.getFieldVectors().size())
+            .collect(Collectors.toList());
+    return ofVectors(table.getFieldVectors(), options);
+  }
+
   public static class Builder {
     private final List<CellComparator> comparators = new ArrayList<>();
 
-    public Builder add(Types.MinorType type, CompareOption option) throws ComputeException {
+    public Builder add(Types.MinorType type, CompareOption option) {
       CellComparator comparator = createComparator(type, option);
       comparators.add(comparator);
       return this;
@@ -63,10 +100,12 @@ public class RowCursorComparator implements Comparator<RowCursor> {
 
   private interface CellComparator {
     int compare(FieldVector left, int leftIndex, FieldVector right, int rightIndex);
+
+    boolean equals(FieldVector left, int leftIndex, FieldVector right, int rightIndex);
   }
 
   private static AbstractCellComparator<?> createComparator(
-      Types.MinorType type, CompareOption option) throws ComputeException {
+      Types.MinorType type, CompareOption option) {
     switch (type) {
       case BIT:
         return new BitCellComparator(option);
@@ -81,7 +120,7 @@ public class RowCursorComparator implements Comparator<RowCursor> {
       case VARBINARY:
         return new VarBinaryComparator(option);
       default:
-        throw new ComputeException("Compare not supported for type: " + type);
+        throw new IllegalArgumentException("Unsupported type: " + type);
     }
   }
 
@@ -110,7 +149,21 @@ public class RowCursorComparator implements Comparator<RowCursor> {
       return option.isDescending() ? -result : result;
     }
 
+    @Override
+    @SuppressWarnings("unchecked")
+    public boolean equals(FieldVector left, int leftIndex, FieldVector right, int rightIndex) {
+      if (left.isNull(leftIndex)) {
+        return right.isNull(rightIndex);
+      }
+      if (right.isNull(rightIndex)) {
+        return false;
+      }
+      return equalsNonnull((VEC) left, leftIndex, (VEC) right, rightIndex);
+    }
+
     protected abstract int compareNonnull(VEC left, int leftIndex, VEC right, int rightIndex);
+
+    protected abstract boolean equalsNonnull(VEC left, int leftIndex, VEC right, int rightIndex);
   }
 
   private static class BitCellComparator extends AbstractCellComparator<BitVector> {
@@ -121,7 +174,13 @@ public class RowCursorComparator implements Comparator<RowCursor> {
 
     @Override
     protected int compareNonnull(BitVector left, int leftIndex, BitVector right, int rightIndex) {
-      return Boolean.compare(left.get(leftIndex) != 0, right.get(rightIndex) != 0);
+      return Integer.compare(left.get(leftIndex), right.get(rightIndex));
+    }
+
+    @Override
+    protected boolean equalsNonnull(
+        BitVector left, int leftIndex, BitVector right, int rightIndex) {
+      return left.get(leftIndex) == right.get(rightIndex);
     }
   }
 
@@ -134,6 +193,12 @@ public class RowCursorComparator implements Comparator<RowCursor> {
     @Override
     protected int compareNonnull(IntVector left, int leftIndex, IntVector right, int rightIndex) {
       return Integer.compare(left.get(leftIndex), right.get(rightIndex));
+    }
+
+    @Override
+    protected boolean equalsNonnull(
+        IntVector left, int leftIndex, IntVector right, int rightIndex) {
+      return left.get(leftIndex) == right.get(rightIndex);
     }
   }
 
@@ -148,6 +213,12 @@ public class RowCursorComparator implements Comparator<RowCursor> {
         BigIntVector left, int leftIndex, BigIntVector right, int rightIndex) {
       return Long.compare(left.get(leftIndex), right.get(rightIndex));
     }
+
+    @Override
+    protected boolean equalsNonnull(
+        BigIntVector left, int leftIndex, BigIntVector right, int rightIndex) {
+      return left.get(leftIndex) == right.get(rightIndex);
+    }
   }
 
   private static class Float4Comparator extends AbstractCellComparator<Float4Vector> {
@@ -161,6 +232,12 @@ public class RowCursorComparator implements Comparator<RowCursor> {
         Float4Vector left, int leftIndex, Float4Vector right, int rightIndex) {
       return Float.compare(left.get(leftIndex), right.get(rightIndex));
     }
+
+    @Override
+    protected boolean equalsNonnull(
+        Float4Vector left, int leftIndex, Float4Vector right, int rightIndex) {
+      return left.get(leftIndex) == right.get(rightIndex);
+    }
   }
 
   private static class Float8Comparator extends AbstractCellComparator<Float8Vector> {
@@ -173,6 +250,12 @@ public class RowCursorComparator implements Comparator<RowCursor> {
     protected int compareNonnull(
         Float8Vector left, int leftIndex, Float8Vector right, int rightIndex) {
       return Double.compare(left.get(leftIndex), right.get(rightIndex));
+    }
+
+    @Override
+    protected boolean equalsNonnull(
+        Float8Vector left, int leftIndex, Float8Vector right, int rightIndex) {
+      return left.get(leftIndex) == right.get(rightIndex);
     }
   }
 
@@ -188,6 +271,14 @@ public class RowCursorComparator implements Comparator<RowCursor> {
       ArrowBufPointer leftPointer = left.getDataPointer(leftIndex);
       ArrowBufPointer rightPointer = right.getDataPointer(rightIndex);
       return leftPointer.compareTo(rightPointer);
+    }
+
+    @Override
+    protected boolean equalsNonnull(
+        VarBinaryVector left, int leftIndex, VarBinaryVector right, int rightIndex) {
+      ArrowBufPointer leftPointer = left.getDataPointer(leftIndex);
+      ArrowBufPointer rightPointer = right.getDataPointer(rightIndex);
+      return leftPointer.equals(rightPointer);
     }
   }
 }

@@ -20,7 +20,7 @@ package cn.edu.tsinghua.iginx.engine.physical.task;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutorFactory;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.sink.UnarySinkExecutor;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateful.StatefulUnaryExecutor;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.StopWatch;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Batch;
@@ -30,16 +30,17 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import java.util.List;
 import java.util.Objects;
 import javax.annotation.WillCloseWhenClosed;
+import org.apache.arrow.vector.VectorSchemaRoot;
 
 public class UnarySinkMemoryPhysicalTask extends UnaryMemoryPhysicalTask {
 
-  private final UnaryExecutorFactory<? extends UnarySinkExecutor> executorFactory;
+  private final UnaryExecutorFactory<? extends StatefulUnaryExecutor> executorFactory;
 
   public UnarySinkMemoryPhysicalTask(
       PhysicalTask parentTask,
       List<Operator> operators,
       RequestContext context,
-      UnaryExecutorFactory<? extends UnarySinkExecutor> executorFactory) {
+      UnaryExecutorFactory<? extends StatefulUnaryExecutor> executorFactory) {
     super(parentTask, operators, context);
     this.executorFactory = Objects.requireNonNull(executorFactory);
   }
@@ -48,60 +49,80 @@ public class UnarySinkMemoryPhysicalTask extends UnaryMemoryPhysicalTask {
 
   @Override
   public String getInfo() {
-    return info;
+    return info == null ? super.getInfo() : info;
   }
 
   @Override
   protected BatchStream compute(BatchStream previous) throws PhysicalException {
-    UnarySinkExecutor executor = null;
-    try (BatchStream previousHolder = previous) {
-      BatchSchema schema = previous.getSchema();
-      try (StopWatch watch = new StopWatch(executorContext::addInitializeTime)) {
+    StatefulUnaryExecutor executor = null;
+    BatchSchema schema = previous.getSchema();
+    BatchSchema outputSchema;
+    try {
+      try (StopWatch watch = new StopWatch(getMetrics()::accumulateCpuTime)) {
         executor = executorFactory.initialize(executorContext, schema);
+        outputSchema = BatchSchema.of(executor.getOutputSchema());
+        info = executor.toString();
       }
-      info = executor.toString();
-      while (true) {
-        try (Batch batch = previousHolder.getNext()) {
-          if (batch == null) {
-            break;
+      while (executor.needConsume()) {
+        try (Batch batch = previous.getNext()) {
+          try (StopWatch watch = new StopWatch(getMetrics()::accumulateCpuTime)) {
+            executor.consume(batch.raw());
           }
-          executor.consume(batch);
         }
       }
-      executor.finish();
-    } catch (PhysicalException e) {
-      if (executor != null) {
-        executor.close();
+    } catch (ComputeException e) {
+      try (BatchStream previousHolder = previous;
+          StatefulUnaryExecutor executorHolder = executor) {
+        throw e;
       }
-      throw e;
     }
-    return new UnarySinkBatchStream(executor);
+    return new UnarySinkBatchStream(previous, outputSchema, executor);
   }
 
-  private static class UnarySinkBatchStream implements BatchStream {
+  private class UnarySinkBatchStream implements BatchStream {
 
-    private final UnarySinkExecutor executor;
+    private final BatchStream source;
+    private final BatchSchema outputSchema;
+    private final StatefulUnaryExecutor executor;
 
-    public UnarySinkBatchStream(@WillCloseWhenClosed UnarySinkExecutor executor) {
+    public UnarySinkBatchStream(
+        @WillCloseWhenClosed BatchStream source,
+        BatchSchema outputSchema,
+        @WillCloseWhenClosed StatefulUnaryExecutor executor) {
+      this.source = Objects.requireNonNull(source);
+      this.outputSchema = Objects.requireNonNull(outputSchema);
       this.executor = Objects.requireNonNull(executor);
     }
 
     @Override
     public BatchSchema getSchema() throws ComputeException {
-      return executor.getOutputSchema();
+      return outputSchema;
     }
 
     @Override
     public Batch getNext() throws PhysicalException {
-      if (executor.canProduce()) {
-        return executor.produce();
+      while (executor.needConsume()) {
+        try (Batch batch = source.getNext()) {
+          try (StopWatch watch = new StopWatch(getMetrics()::accumulateCpuTime)) {
+            executor.consume(batch.raw());
+          }
+        }
       }
-      return null;
+      try (StopWatch watch = new StopWatch(getMetrics()::accumulateCpuTime)) {
+        VectorSchemaRoot compute = executor.produce();
+        getMetrics().accumulateAffectRows(compute.getRowCount());
+        return Batch.of(compute);
+      }
     }
 
     @Override
     public void close() throws PhysicalException {
-      executor.close();
+      try (StopWatch watch = new StopWatch(getMetrics()::accumulateCpuTime)) {
+        try (BatchStream source = this.source;
+            StatefulUnaryExecutor executor = this.executor) {
+          // Do nothing
+        }
+      }
     }
   }
 }

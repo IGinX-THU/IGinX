@@ -31,7 +31,7 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.logic
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutorFactory;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.pipeline.FilterExecutor;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateful.FilterUnaryExecutor;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.Schemas;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
@@ -42,7 +42,7 @@ import java.util.Objects;
 import java.util.function.BiFunction;
 import org.apache.arrow.vector.BitVector;
 
-public class FilterInfoGenerator implements UnaryExecutorFactory<FilterExecutor> {
+public class FilterInfoGenerator implements UnaryExecutorFactory<FilterUnaryExecutor> {
 
   private final Filter filter;
 
@@ -51,11 +51,11 @@ public class FilterInfoGenerator implements UnaryExecutorFactory<FilterExecutor>
   }
 
   @Override
-  public FilterExecutor initialize(ExecutorContext context, BatchSchema inputSchema)
+  public FilterUnaryExecutor initialize(ExecutorContext context, BatchSchema inputSchema)
       throws ComputeException {
     ScalarExpression<BitVector> condition = getCondition(context, inputSchema);
     List<FieldNode> outputExpressions = Generators.allFieldExpressions(inputSchema.getFieldCount());
-    return new FilterExecutor(context, inputSchema, condition, outputExpressions);
+    return new FilterUnaryExecutor(context, inputSchema.raw(), condition, outputExpressions);
   }
 
   public ScalarExpression<BitVector> getCondition(ExecutorContext context, BatchSchema inputSchema)
@@ -179,6 +179,9 @@ public class FilterInfoGenerator implements UnaryExecutorFactory<FilterExecutor>
       ValueFilter filter, ExecutorContext context, BatchSchema inputSchema)
       throws ComputeException {
     List<Integer> paths = Schemas.matchPattern(inputSchema.raw(), filter.getPath());
+    if (paths.isEmpty()) {
+      throw new ComputeException("Path not found: " + filter.getPath() + " in " + inputSchema);
+    }
     List<ScalarExpression<BitVector>> comparisons = new ArrayList<>();
     for (Integer pathIndex : paths) {
       comparisons.add(

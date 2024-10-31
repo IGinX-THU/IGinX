@@ -15,23 +15,30 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.binary;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.PhysicalExecutor;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import java.util.Objects;
-import org.apache.arrow.vector.types.pojo.Schema;
 
-public abstract class UnaryExecutor extends PhysicalExecutor {
+public abstract class BinaryExecutor extends PhysicalExecutor {
 
-  protected final Schema inputSchema;
+  protected final BatchSchema leftSchema;
+  protected final BatchSchema rightSchema;
 
-  protected UnaryExecutor(ExecutorContext context, Schema inputSchema) {
+  protected BinaryExecutor(
+      ExecutorContext context, BatchSchema leftSchema, BatchSchema rightSchema) {
     super(context);
-    this.inputSchema = Objects.requireNonNull(inputSchema);
+    this.leftSchema = Objects.requireNonNull(leftSchema);
+    this.rightSchema = Objects.requireNonNull(rightSchema);
   }
 
-  public Schema getInputSchema() {
-    return inputSchema;
+  public BatchSchema getLeftSchema() {
+    return leftSchema;
+  }
+
+  public BatchSchema getRightSchema() {
+    return rightSchema;
   }
 }

@@ -18,6 +18,8 @@
 package cn.edu.tsinghua.iginx.physical.optimizer.naive;
 
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateful.FetchAllUnaryExecutor;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateful.LimitUnaryExecutor;
 import cn.edu.tsinghua.iginx.engine.physical.task.*;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.operator.*;
@@ -59,6 +61,10 @@ public class NaivePhysicalPlanner {
         return construct((SetTransform) operator, context);
       case GroupBy:
         return construct((GroupBy) operator, context);
+      case Limit:
+        return construct((Limit) operator, context);
+      case InnerJoin:
+        return construct((InnerJoin) operator, context);
       default:
         throw new UnsupportedOperationException("Unsupported operator type: " + operator.getType());
     }
@@ -187,7 +193,7 @@ public class NaivePhysicalPlanner {
 
     if (operator.getFilter() != null) {
       sourceTask =
-          new PipelineMemoryPhysicalTask(
+          new UnarySinkMemoryPhysicalTask(
               sourceTask,
               Collections.singletonList(new Select(source, operator.getFilter(), null)),
               context,
@@ -254,7 +260,7 @@ public class NaivePhysicalPlanner {
 
     PipelineMemoryPhysicalTask sortBatchTask =
         new PipelineMemoryPhysicalTask(
-            construct(operator.getSource(), context),
+            sourceTask,
             Collections.singletonList(operator),
             context,
             new InnerBatchSortInfoGenerator(operator));
@@ -264,5 +270,42 @@ public class NaivePhysicalPlanner {
         Collections.singletonList(operator),
         context,
         new MergeSortedBatchInfoGenerator(operator));
+  }
+
+  public PhysicalTask construct(Limit operator, RequestContext context) {
+    PhysicalTask sourceTask = construct(operator.getSource(), context);
+
+    return new UnarySinkMemoryPhysicalTask(
+        sourceTask,
+        Collections.singletonList(operator),
+        context,
+        (ctx, schema) ->
+            new LimitUnaryExecutor(ctx, schema.raw(), operator.getOffset(), operator.getLimit()));
+  }
+
+  public PhysicalTask construct(InnerJoin operator, RequestContext context) {
+    PhysicalTask leftTask = construct(operator.getSourceA(), context);
+    PhysicalTask rightTask = construct(operator.getSourceB(), context);
+
+    PhysicalTask leftFetchAllTask =
+        new UnarySinkMemoryPhysicalTask(
+            leftTask,
+            Collections.emptyList(),
+            context,
+            (ctx, schema) -> new FetchAllUnaryExecutor(ctx, schema.raw()));
+
+    PhysicalTask rightFetchAllTask =
+        new UnarySinkMemoryPhysicalTask(
+            rightTask,
+            Collections.emptyList(),
+            context,
+            (ctx, schema) -> new FetchAllUnaryExecutor(ctx, schema.raw()));
+
+    return new BinarySinkMemoryPhysicalTask(
+        leftFetchAllTask,
+        rightFetchAllTask,
+        Collections.singletonList(operator),
+        context,
+        new InnerJoinInfoGenerator(operator));
   }
 }

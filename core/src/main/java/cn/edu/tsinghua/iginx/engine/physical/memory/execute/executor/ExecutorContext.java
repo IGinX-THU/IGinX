@@ -23,37 +23,7 @@ public interface ExecutorContext {
 
   BufferAllocator getAllocator();
 
-  int getMaxBatchRowCount();
+  int getBatchRowCount();
 
   void addWarningMessage(String message);
-
-  void addProducedRowNumber(long rows);
-
-  default void addConsumedRowNumber(int rowCount) {}
-
-  void addCostTime(long nanos);
-
-  default void addInitializeTime(long nanos) {
-    addCostTime(nanos);
-  }
-
-  default void addFetchTime(long nanos) {
-    addCostTime(nanos);
-  }
-
-  default void addPipelineComputeTime(long nanos) {
-    addCostTime(nanos);
-  }
-
-  default void addSinkConsumeTime(long nanos) {
-    addCostTime(nanos);
-  }
-
-  default void addSinkFinishTime(long nanos) {
-    addCostTime(nanos);
-  }
-
-  default void addSinkProduceTime(long nanos) {
-    addCostTime(nanos);
-  }
 }

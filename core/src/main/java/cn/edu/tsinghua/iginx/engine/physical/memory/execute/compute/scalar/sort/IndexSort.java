@@ -20,7 +20,6 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.sort
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.AbstractFunction;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.Arity;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.CompareOption;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.row.RowCursor;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.row.RowCursorComparator;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ValueVectors;
@@ -56,8 +55,7 @@ public class IndexSort extends AbstractFunction<IntVector> {
   }
 
   @Override
-  protected IntVector invokeImpl(BufferAllocator allocator, VectorSchemaRoot input)
-      throws ComputeException {
+  protected IntVector invokeImpl(BufferAllocator allocator, VectorSchemaRoot input) {
     Integer[] indices = getIndices(input.getRowCount());
     Comparator<Integer> comparator = getComparator(input);
     for (int i = 0; i < indices.length; i++) {
@@ -75,23 +73,15 @@ public class IndexSort extends AbstractFunction<IntVector> {
     return indices;
   }
 
-  private Comparator<Integer> getComparator(VectorSchemaRoot input) throws ComputeException {
-    if (options.size() != input.getFieldVectors().size()) {
-      throw new IllegalStateException("Sort options and input fields do not match");
-    }
-
+  private Comparator<Integer> getComparator(VectorSchemaRoot input) {
     RowCursor leftCursor = new RowCursor(input);
     RowCursor rightCursor = new RowCursor(input);
-
-    RowCursorComparator.Builder builder = new RowCursorComparator.Builder();
-    for (int i = 0; i < options.size(); i++) {
-      builder.add(input.getVector(i).getMinorType(), options.get(i));
-    }
-    RowCursorComparator comparator = builder.build();
+    RowCursorComparator comparator =
+        RowCursorComparator.ofVectors(input.getFieldVectors(), options);
 
     return (left, right) -> {
-      leftCursor.setIndex(left);
-      rightCursor.setIndex(right);
+      leftCursor.setPosition(left);
+      rightCursor.setPosition(right);
       return comparator.compare(leftCursor, rightCursor);
     };
   }

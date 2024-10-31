@@ -15,45 +15,51 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.pipeline;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateless;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.PhysicalFunctions;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpression;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpressions;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.sort.IndexSortExpression;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.Batch;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import java.util.ArrayList;
 import java.util.List;
-import javax.annotation.WillNotClose;
+import java.util.Objects;
+import org.apache.arrow.vector.IntVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
+import org.apache.arrow.vector.types.pojo.Schema;
 
-public class ProjectionExecutor extends PipelineExecutor {
+public class InnerBatchSortUnaryExecutor extends StatelessUnaryExecutor {
 
-  protected final List<ScalarExpression<?>> expressions;
+  private final IndexSortExpression indexSortExpression;
+  private final List<ScalarExpression<?>> outputExpressions;
 
-  public ProjectionExecutor(
+  public InnerBatchSortUnaryExecutor(
       ExecutorContext context,
-      BatchSchema inputSchema,
-      List<? extends ScalarExpression<?>> expressions) {
+      Schema inputSchema,
+      IndexSortExpression indexSortExpression,
+      List<? extends ScalarExpression<?>> outputExpressions) {
     super(context, inputSchema);
-    this.expressions = new ArrayList<>(expressions);
+    this.indexSortExpression = Objects.requireNonNull(indexSortExpression);
+    this.outputExpressions = new ArrayList<>(outputExpressions);
   }
 
   @Override
-  public String getInfo() {
-    return "Project" + expressions;
+  protected String getInfo() {
+    return "InnerBatchSort" + outputExpressions + "By" + indexSortExpression.getOptions();
   }
 
   @Override
-  public void close() {}
+  public void close() throws ComputeException {}
 
   @Override
-  protected Batch internalCompute(@WillNotClose Batch batch) throws ComputeException {
-    try (VectorSchemaRoot result =
-        ScalarExpressions.evaluateSafe(context.getAllocator(), expressions, batch.raw())) {
-      return new Batch(PhysicalFunctions.unnest(context.getAllocator(), result));
+  public VectorSchemaRoot compute(VectorSchemaRoot batch) throws ComputeException {
+    try (IntVector sortedIndices =
+            ScalarExpressions.evaluateSafe(context.getAllocator(), indexSortExpression, batch);
+        VectorSchemaRoot output =
+            ScalarExpressions.evaluateSafe(context.getAllocator(), outputExpressions, batch)) {
+      return PhysicalFunctions.take(context.getAllocator(), sortedIndices, output);
     }
   }
 }

@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.sink;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateful;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.PhysicalFunctions;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.Accumulator;
@@ -24,29 +24,25 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.e
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputingCloseables;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.Batch;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
-import javax.annotation.WillNotClose;
 import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.types.pojo.Schema;
 
-public class AggregateExecutor extends UnarySinkExecutor {
+public class AggregateUnaryExecutor extends StatefulUnaryExecutor {
 
   private final List<ExpressionAccumulator> accumulators;
-  private final BatchSchema outputSchema;
+  private final Schema outputSchema;
   private final List<Accumulator.State> states;
+  private final Queue<VectorSchemaRoot> readyBatches = new LinkedList<>();
 
-  public AggregateExecutor(
-      ExecutorContext context, BatchSchema inputSchema, List<ExpressionAccumulator> accumulators)
+  public AggregateUnaryExecutor(
+      ExecutorContext context, Schema inputSchema, List<ExpressionAccumulator> accumulators)
       throws ComputeException {
-    super(context, inputSchema);
+    super(context, inputSchema, 1);
     this.accumulators = new ArrayList<>(accumulators);
-    Schema outputSchema = ExpressionAccumulators.getOutputSchema(accumulators);
-    this.outputSchema = BatchSchema.of(outputSchema);
+    this.outputSchema =
+        PhysicalFunctions.unnest(ExpressionAccumulators.getOutputSchema(accumulators));
     this.states = new ArrayList<>(accumulators.size());
     try {
       for (ExpressionAccumulator acc : accumulators) {
@@ -64,44 +60,28 @@ public class AggregateExecutor extends UnarySinkExecutor {
   }
 
   @Override
-  public BatchSchema getOutputSchema() {
+  public Schema getOutputSchema() {
     return outputSchema;
   }
 
   @Override
-  protected void internalConsume(@WillNotClose Batch batch) throws ComputeException {
-    ExpressionAccumulators.update(accumulators, states, batch.raw());
-  }
-
-  private Batch result;
-
-  @Override
-  protected void internalFinish() throws ComputeException {
-    List<List<Accumulator.State>> states =
-        this.states.stream().map(Collections::singletonList).collect(Collectors.toList());
-    try (VectorSchemaRoot root = ExpressionAccumulators.evaluateSafe(accumulators, states)) {
-      VectorSchemaRoot unnest = PhysicalFunctions.unnest(context.getAllocator(), root);
-      result = new Batch(unnest);
-    }
-  }
-
-  @Override
-  public boolean canProduce() {
-    return result != null;
-  }
-
-  @Override
-  protected Batch internalProduce() {
-    Batch out = result;
-    result = null;
-    return out;
-  }
-
-  @Override
   public void close() throws ComputeException {
-    if (result != null) {
-      result.close();
-    }
     ComputingCloseables.close(states);
+    states.clear();
+    super.close();
+  }
+
+  @Override
+  protected void consumeUnchecked(VectorSchemaRoot batch) throws ComputeException {
+    ExpressionAccumulators.update(accumulators, states, batch);
+  }
+
+  @Override
+  protected void consumeEnd() throws ComputeException {
+    List<List<Accumulator.State>> statesColumns =
+        this.states.stream().map(Collections::singletonList).collect(Collectors.toList());
+    try (VectorSchemaRoot root = ExpressionAccumulators.evaluateSafe(accumulators, statesColumns)) {
+      offerResult(PhysicalFunctions.unnest(context.getAllocator(), root));
+    }
   }
 }

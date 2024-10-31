@@ -18,13 +18,25 @@
 package cn.edu.tsinghua.iginx.engine.shared.data.read;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
-import javax.annotation.Nullable;
 
 public interface BatchStream extends AutoCloseable {
 
+  /**
+   * Get the schema of the batch stream. The schema is immutable, the caller should not modify the
+   * schema. All the batches in the stream have the same schema.
+   *
+   * @return the schema of the batch stream
+   * @throws PhysicalException if an error occurs when getting the schema
+   */
   BatchSchema getSchema() throws PhysicalException;
 
-  @Nullable
+  /**
+   * Get the next batch in the stream. The batch is immutable, the caller should not modify the
+   * batch. The caller should close the batch after using it.
+   *
+   * @return the next batch in the stream, empty if and only if the stream is exhausted
+   * @throws PhysicalException if an error occurs when getting the next batch
+   */
   Batch getNext() throws PhysicalException;
 
   @Override

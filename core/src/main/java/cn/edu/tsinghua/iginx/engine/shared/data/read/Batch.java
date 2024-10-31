@@ -36,13 +36,17 @@ public class Batch implements AutoCloseable {
   private final transient BatchSchema schema;
   private final VectorSchemaRoot group;
 
-  public Batch(@WillCloseWhenClosed VectorSchemaRoot group) {
+  protected Batch(@WillCloseWhenClosed VectorSchemaRoot group) {
     this.group = Objects.requireNonNull(group);
     BatchSchema.Builder builder = new BatchSchema.Builder();
     for (Field field : group.getSchema().getFields()) {
       builder.addField(field);
     }
     this.schema = builder.build();
+  }
+
+  public static Batch of(VectorSchemaRoot compute) {
+    return new Batch(compute);
   }
 
   public VectorSchemaRoot raw() {
@@ -178,12 +182,6 @@ public class Batch implements AutoCloseable {
 
     public TransferPair getTransferPair(int targetIndex, ValueVector source) {
       return source.makeTransferPair(root.getFieldVectors().get(targetIndex));
-    }
-  }
-
-  public static Batch empty(BufferAllocator allocator, BatchSchema schema) {
-    try (Builder builder = new Builder(allocator, schema)) {
-      return builder.build(0);
     }
   }
 }

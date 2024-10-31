@@ -17,7 +17,6 @@
  */
 package cn.edu.tsinghua.iginx.engine.shared.data.read;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import javax.annotation.WillClose;
 import javax.annotation.WillNotClose;
 import org.apache.arrow.memory.BufferAllocator;
@@ -27,38 +26,15 @@ public class BatchStreams {
   private BatchStreams() {}
 
   public static BatchStream wrap(
-      @WillNotClose BufferAllocator allocator, @WillClose RowStream rowStream, int batchSize) {
-    return wrap(
-        new ExecutorContext() {
-          @Override
-          public BufferAllocator getAllocator() {
-            return allocator;
-          }
-
-          @Override
-          public int getMaxBatchRowCount() {
-            return batchSize;
-          }
-
-          @Override
-          public void addWarningMessage(String message) {}
-
-          @Override
-          public void addProducedRowNumber(long rows) {}
-
-          @Override
-          public void addCostTime(long nanos) {}
-        },
-        rowStream);
+      @WillNotClose BufferAllocator allocator, @WillClose RowStream rowStream, int batchRowCount) {
+    return new RowStreamToBatchStreamWrapper(allocator, rowStream, batchRowCount);
   }
 
-  public static BatchStream wrap(ExecutorContext context, RowStream rowStream) {
-    return new RowStreamToBatchStreamWrapper(context, rowStream);
+  public static BatchStream empty(BufferAllocator allocator, BatchSchema schema) {
+    return new EmptyBatchStream(allocator, schema);
   }
 
-  private static final EmptyBatchStream EMPTY = new EmptyBatchStream();
-
-  public static BatchStream empty() {
-    return EMPTY;
+  public static BatchStream empty(BufferAllocator allocator) {
+    return new EmptyBatchStream(allocator, BatchSchema.empty());
   }
 }

@@ -77,7 +77,4 @@ public abstract class UnaryMemoryPhysicalTask extends MemoryPhysicalTask {
     }
     visitor.leave();
   }
-
-  @Override
-  public abstract String getInfo();
 }
