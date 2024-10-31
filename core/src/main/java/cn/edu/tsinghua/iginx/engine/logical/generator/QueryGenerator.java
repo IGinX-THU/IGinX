@@ -723,22 +723,8 @@ public class QueryGenerator extends AbstractGenerator {
    * @return 添加了Reorder操作符的根节点
    */
   private static Operator buildReorder(UnarySelectStatement selectStatement, Operator root) {
-    boolean hasFuncWithArgs =
-        selectStatement.getExpressions().stream()
-            .anyMatch(
-                expression -> {
-                  if (!(expression instanceof FuncExpression)) {
-                    return false;
-                  }
-                  FuncExpression funcExpression = ((FuncExpression) expression);
-                  return !funcExpression.getArgs().isEmpty()
-                      || !funcExpression.getKvargs().isEmpty();
-                });
-
     if (selectStatement.isLastFirst()) {
       root = new Reorder(new OperatorSource(root), Arrays.asList("path", "value"));
-    } else if (hasFuncWithArgs) {
-      root = new Reorder(new OperatorSource(root), new ArrayList<>(Collections.singletonList("*")));
     } else {
       List<String> order = new ArrayList<>();
       List<Boolean> isPyUDF = new ArrayList<>();

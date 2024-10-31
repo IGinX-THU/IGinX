@@ -9257,4 +9257,28 @@ public class SQLSessionIT {
             + "Total line number = 2\n";
     executor.executeAndCompare(statement, expected);
   }
+
+  @Test
+  public void testExtract() {
+    String insert =
+        "insert into t(key, a) values (0, 1700000000000), (1, 1705000000000), (2, 1710000000000), (3, 1715000000000), (4, 1720000000000);";
+    executor.execute(insert);
+
+    String statement =
+        "select extract(a, \"year\") as year, extract(a, \"month\") as month, extract(a, \"day\") as day, "
+            + "extract(a, \"hour\") as hour, extract(a, \"minute\") as minute, extract(a, \"second\") as second from t;";
+    String expected =
+        "ResultSets:\n"
+            + "+---+----+-----+---+----+------+------+\n"
+            + "|key|year|month|day|hour|minute|second|\n"
+            + "+---+----+-----+---+----+------+------+\n"
+            + "|  0|2023|   11| 14|  22|    13|    20|\n"
+            + "|  1|2024|    1| 11|  19|     6|    40|\n"
+            + "|  2|2024|    3|  9|  16|     0|     0|\n"
+            + "|  3|2024|    5|  6|  12|    53|    20|\n"
+            + "|  4|2024|    7|  3|   9|    46|    40|\n"
+            + "+---+----+-----+---+----+------+------+\n"
+            + "Total line number = 5\n";
+    executor.executeAndCompare(statement, expected);
+  }
 }
