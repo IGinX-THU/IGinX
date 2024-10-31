@@ -60,4 +60,17 @@ public class VectorSchemaRoots {
       BufferAllocator allocator, VectorSchemaRoot... vectorSchemaRoots) {
     return join(allocator, Arrays.asList(vectorSchemaRoots));
   }
+
+  public static VectorSchemaRoot slice(
+      BufferAllocator allocator, VectorSchemaRoot batch, int start, int count) {
+    List<FieldVector> fieldVectors = new ArrayList<>();
+    for (FieldVector fieldVector : batch.getFieldVectors()) {
+      fieldVectors.add(ValueVectors.slice(allocator, fieldVector, start, count));
+    }
+    return new VectorSchemaRoot(fieldVectors);
+  }
+
+  public static VectorSchemaRoot slice(BufferAllocator allocator, VectorSchemaRoot batch) {
+    return slice(allocator, batch, 0, batch.getRowCount());
+  }
 }

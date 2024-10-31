@@ -23,7 +23,10 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expre
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ValueVectors;
-import java.util.*;
+import cn.edu.tsinghua.iginx.engine.shared.data.arrow.VectorSchemaRoots;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 import org.apache.arrow.vector.BitVector;
 import org.apache.arrow.vector.IntVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
@@ -34,7 +37,7 @@ public class FilterUnaryExecutor extends StatefulUnaryExecutor {
   private final ScalarExpression<BitVector> condition;
   private final List<ScalarExpression<?>> outputExpressions;
   private final Schema outputSchema;
-  private final Queue<VectorSchemaRoot> readyBatches;
+  private final VectorSchemaRoot buffer;
 
   public FilterUnaryExecutor(
       ExecutorContext context,
@@ -42,13 +45,12 @@ public class FilterUnaryExecutor extends StatefulUnaryExecutor {
       ScalarExpression<BitVector> condition,
       List<? extends ScalarExpression<?>> outputExpressions)
       throws ComputeException {
-    super(context, inputSchema);
+    super(context, inputSchema, 1);
     this.condition = Objects.requireNonNull(condition);
     this.outputExpressions = new ArrayList<>(outputExpressions);
     this.outputSchema =
         ScalarExpressions.getOutputSchema(
             context.getAllocator(), outputExpressions, getInputSchema());
-    this.readyBatches = new LinkedList<>();
     this.buffer = VectorSchemaRoot.create(outputSchema, context.getAllocator());
   }
 
@@ -62,27 +64,14 @@ public class FilterUnaryExecutor extends StatefulUnaryExecutor {
     return "Filter(" + condition + ")";
   }
 
-  private VectorSchemaRoot buffer;
-
   @Override
-  public void close() {
-    readyBatches.forEach(VectorSchemaRoot::close);
-    readyBatches.clear();
-    if (buffer != null) {
-      buffer.close();
-    }
+  public void close() throws ComputeException {
+    buffer.close();
+    super.close();
   }
 
   @Override
-  public boolean needConsume() throws ComputeException {
-    return buffer != null || readyBatches.isEmpty();
-  }
-
-  @Override
-  public void consume(VectorSchemaRoot batch) throws ComputeException {
-    if (!needConsume()) {
-      throw new IllegalStateException("Cannot consume more data before producing");
-    }
+  protected void consumeUnchecked(VectorSchemaRoot batch) throws ComputeException {
     int expectedRowCount = context.getBatchRowCount();
     try (BitVector mask = ScalarExpressions.evaluateSafe(context.getAllocator(), condition, batch);
         IntVector selection = PhysicalFunctions.filter(context.getAllocator(), mask);
@@ -101,26 +90,22 @@ public class FilterUnaryExecutor extends StatefulUnaryExecutor {
           PhysicalFunctions.takeTo(selectionSlice, buffer, toFiltered);
         }
         if (buffer.getRowCount() >= expectedRowCount) {
-          readyBatches.add(buffer);
-          buffer = VectorSchemaRoot.create(outputSchema, context.getAllocator());
+          flush();
         }
         selectionOffset += toFillBufferRowCount;
-      }
-      if (batch.getRowCount() == 0) {
-        readyBatches.add(buffer);
-        buffer = null;
       }
     }
   }
 
   @Override
-  public VectorSchemaRoot produce() throws ComputeException {
-    if (needConsume()) {
-      throw new IllegalStateException("Cannot produce data before consuming");
-    }
-    if (readyBatches.isEmpty()) {
-      return VectorSchemaRoot.create(getOutputSchema(), context.getAllocator());
-    }
-    return readyBatches.remove();
+  protected void consumeEnd() throws ComputeException {
+    flush();
+  }
+
+  private void flush() {
+    offerResult(VectorSchemaRoots.slice(context.getAllocator(), buffer));
+    buffer.clear();
+    buffer.getFieldVectors().forEach(vector -> vector.setInitialCapacity(buffer.getRowCount()));
+    buffer.setRowCount(buffer.getRowCount());
   }
 }

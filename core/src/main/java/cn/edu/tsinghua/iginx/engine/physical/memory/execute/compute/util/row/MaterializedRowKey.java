@@ -59,6 +59,7 @@ public final class MaterializedRowKey {
       root.close();
       throw e;
     }
+    root.setRowCount(groupKeys.size());
     for (MaterializedRowKey groupKey : groupKeys) {
       for (int i = 0; i < groupKey.key.length; i++) {
         columnBuilders.get(i).append(groupKey.key[i]);

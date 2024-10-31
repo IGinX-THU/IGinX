@@ -25,17 +25,14 @@ import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.types.pojo.Schema;
 
 public class JoinOutputBuffer {
-  private final BufferAllocator allocator;
   private final int batchSize;
   private final Queue<VectorSchemaRoot> staged;
   private final VectorSchemaRoot buffer;
   private final RowCursor leftOutputCursor;
   private final RowCursor rightOutputCursor;
-  private int bufferedRowCount = 0;
 
   JoinOutputBuffer(
       BufferAllocator allocator, int batchSize, Schema leftOutputSchema, Schema rightOutputSchema) {
-    this.allocator = allocator;
     this.batchSize = batchSize;
 
     VectorSchemaRoot leftBuffer = VectorSchemaRoot.create(leftOutputSchema, allocator);
@@ -53,9 +50,11 @@ public class JoinOutputBuffer {
   }
 
   public void flush() {
-    buffer.setRowCount(bufferedRowCount);
-    staged.add(buffer.slice(0));
-    resetBuffer();
+    if (getBufferedRowCount() > 0) {
+      buffer.setRowCount(getBufferedRowCount());
+      staged.add(buffer.slice(0));
+      resetBuffer();
+    }
   }
 
   public boolean isEmpty() {
@@ -73,14 +72,13 @@ public class JoinOutputBuffer {
     while (leftIterator.hasNext() || rightIterator.hasNext()) {
       if (leftIterator.hasNext()) {
         leftIterator.next().copyValuesTo(leftOutputCursor);
+        leftOutputCursor.setPosition(leftOutputCursor.getPosition() + 1);
       }
       if (rightIterator.hasNext()) {
         rightIterator.next().copyValuesTo(rightOutputCursor);
+        rightOutputCursor.setPosition(rightOutputCursor.getPosition() + 1);
       }
-      bufferedRowCount++;
-      leftOutputCursor.setPosition(bufferedRowCount);
-      rightOutputCursor.setPosition(bufferedRowCount);
-      if (bufferedRowCount >= batchSize) {
+      if (getBufferedRowCount() >= batchSize) {
         flush();
       }
     }
@@ -92,7 +90,12 @@ public class JoinOutputBuffer {
       vector.setInitialCapacity(batchSize);
     }
     buffer.setRowCount(batchSize);
-    bufferedRowCount = 0;
+    leftOutputCursor.setPosition(0);
+    rightOutputCursor.setPosition(0);
+  }
+
+  private int getBufferedRowCount() {
+    return Math.max(leftOutputCursor.getPosition(), rightOutputCursor.getPosition());
   }
 
   void close() {

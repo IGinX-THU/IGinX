@@ -20,14 +20,29 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stat
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutor;
+import java.util.ArrayDeque;
+import java.util.Queue;
 import javax.annotation.WillNotClose;
+import org.apache.arrow.util.Preconditions;
 import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.types.pojo.Schema;
 
 public abstract class StatefulUnaryExecutor extends UnaryExecutor {
 
-  protected StatefulUnaryExecutor(ExecutorContext context, Schema inputSchema) {
+  private final int backlog;
+  private final Queue<VectorSchemaRoot> results = new ArrayDeque<>();
+  private boolean allConsumed = false;
+
+  protected StatefulUnaryExecutor(ExecutorContext context, Schema inputSchema, int backlog) {
     super(context, inputSchema);
+    Preconditions.checkArgument(backlog > 0, "Backlog must be positive");
+    this.backlog = backlog;
+  }
+
+  @Override
+  public void close() throws ComputeException {
+    results.forEach(VectorSchemaRoot::close);
+    results.clear();
   }
 
   /**
@@ -36,7 +51,9 @@ public abstract class StatefulUnaryExecutor extends UnaryExecutor {
    * @return true if the executor needs to consume more data, false otherwise
    * @throws ComputeException if an error occurs during consumption
    */
-  public abstract boolean needConsume() throws ComputeException;
+  public boolean needConsume() throws ComputeException {
+    return !allConsumed && results.size() < backlog;
+  }
 
   /**
    * Consume a batch of data.
@@ -47,15 +64,43 @@ public abstract class StatefulUnaryExecutor extends UnaryExecutor {
    * @throws IllegalStateException if the executor is not ready to consume, i.e., need to produce
    *     the result
    */
-  public abstract void consume(@WillNotClose VectorSchemaRoot batch) throws ComputeException;
+  public void consume(@WillNotClose VectorSchemaRoot batch) throws ComputeException {
+    if (!needConsume()) {
+      throw new IllegalStateException("Executor does not need to consume more data");
+    }
+    if (batch.getRowCount() == 0) {
+      allConsumed = true;
+      consumeEnd();
+    } else {
+      consumeUnchecked(batch);
+    }
+  }
 
   /**
    * Produce the result of the computation.
    *
-   * @return the result of the computation. Empty if executor needs to consume more data.
+   * @return the result of the computation. Empty if executor has produced all results
    * @throws ComputeException if an error occurs during consumption
-   * @throws IllegalStateException if the executor is not ready to produce, i.e., need to consume
-   *     more data
    */
-  public abstract VectorSchemaRoot produce() throws ComputeException;
+  public VectorSchemaRoot produce() throws ComputeException {
+    if (results.isEmpty()) {
+      if (needConsume()) {
+        throw new IllegalStateException(
+            "Executor "
+                + getClass().getSimpleName()
+                + " does not have enough data to produce the result");
+      }
+      return VectorSchemaRoot.create(getOutputSchema(), context.getAllocator());
+    }
+    return results.remove();
+  }
+
+  protected void offerResult(@WillNotClose VectorSchemaRoot batch) {
+    results.add(batch);
+  }
+
+  protected abstract void consumeUnchecked(@WillNotClose VectorSchemaRoot batch)
+      throws ComputeException;
+
+  protected abstract void consumeEnd() throws ComputeException;
 }

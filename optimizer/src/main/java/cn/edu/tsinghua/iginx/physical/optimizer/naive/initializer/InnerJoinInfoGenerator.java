@@ -31,15 +31,14 @@ import cn.edu.tsinghua.iginx.engine.shared.data.arrow.Schemas;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.operator.InnerJoin;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
-import org.apache.arrow.vector.types.Types;
-import org.apache.commons.lang3.tuple.Pair;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import org.apache.arrow.vector.types.Types;
+import org.apache.commons.lang3.tuple.Pair;
 
 public class InnerJoinInfoGenerator implements BinaryExecutorFactory<StatefulBinaryExecutor> {
 
@@ -68,51 +67,66 @@ public class InnerJoinInfoGenerator implements BinaryExecutorFactory<StatefulBin
 
     List<Pair<ScalarExpression<?>, ScalarExpression<?>>> on = new ArrayList<>();
     for (Pair<String, String> joinPath : getHashJoinPath()) {
-      on.add(getHashJoinPath(joinPath, leftSchema, rightSchema));
+      if (joinPath.getLeft().startsWith(operator.getPrefixA())
+          && joinPath.getRight().startsWith(operator.getPrefixB())) {
+        on.add(getHashJoinPath(joinPath, leftSchema, rightSchema));
+      } else if (joinPath.getLeft().startsWith(operator.getPrefixB())
+          && joinPath.getRight().startsWith(operator.getPrefixA())) {
+        on.add(
+            getHashJoinPath(
+                Pair.of(joinPath.getRight(), joinPath.getLeft()), leftSchema, rightSchema));
+      } else {
+        throw new ComputeException(
+            "Join path is not found: " + joinPath + " in " + operator.getInfo());
+      }
     }
 
     int leftFieldStartIndex = leftSchema.hasKey() ? 1 : 0;
     int rightFieldStartIndex = rightSchema.hasKey() ? 1 : 0;
-    List<ScalarExpression<?>> leftOutputExpressions = IntStream.range(leftFieldStartIndex, leftSchema.raw().getFields().size())
-        .mapToObj(FieldNode::new)
-        .collect(Collectors.toList());
-    List<ScalarExpression<?>> rightOutputExpressions = IntStream.range(rightFieldStartIndex, rightSchema.raw().getFields().size())
-        .mapToObj(FieldNode::new)
-        .collect(Collectors.toList());
+    List<ScalarExpression<?>> leftOutputExpressions =
+        IntStream.range(leftFieldStartIndex, leftSchema.raw().getFields().size())
+            .mapToObj(FieldNode::new)
+            .collect(Collectors.toList());
+    List<ScalarExpression<?>> rightOutputExpressions =
+        IntStream.range(rightFieldStartIndex, rightSchema.raw().getFields().size())
+            .mapToObj(FieldNode::new)
+            .collect(Collectors.toList());
 
-    return new HashJoinExecutor(context, leftSchema, rightSchema, JoinType.INNER, leftOutputExpressions, rightOutputExpressions, on);
+    return new HashJoinExecutor(
+        context,
+        leftSchema,
+        rightSchema,
+        JoinType.INNER,
+        leftOutputExpressions,
+        rightOutputExpressions,
+        on);
   }
 
-  private Pair<ScalarExpression<?>, ScalarExpression<?>> getHashJoinPath(Pair<String, String> joinPath, BatchSchema leftSchema, BatchSchema rightSchema) throws ComputeException {
-    if (joinPath.getLeft().startsWith(operator.getPrefixA()) && joinPath.getRight().startsWith(operator.getPrefixB())) {
-      List<Integer> leftIndices = Schemas.matchPattern(leftSchema.raw(), joinPath.getLeft());
-      List<Integer> rightIndices = Schemas.matchPattern(rightSchema.raw(), joinPath.getRight());
-      if (leftIndices.isEmpty() || rightIndices.isEmpty()) {
-        throw new ComputeException("Join path is not found: " + joinPath + " in " + leftSchema + " and " + rightSchema);
-      }
-      if (leftIndices.size() > 1 || rightIndices.size() > 1) {
-        throw new ComputeException("Join path is ambiguous: " + joinPath + " in " + leftSchema + " and " + rightSchema);
-      }
-      return getHashJoinOn(Pair.of(leftIndices.get(0), rightIndices.get(0)), leftSchema, rightSchema);
-    } else if (joinPath.getLeft().startsWith(operator.getPrefixB()) && joinPath.getRight().startsWith(operator.getPrefixA())) {
-      List<Integer> leftIndices = Schemas.matchPattern(leftSchema.raw(), joinPath.getRight());
-      List<Integer> rightIndices = Schemas.matchPattern(rightSchema.raw(), joinPath.getLeft());
-      if (rightIndices.isEmpty() || leftIndices.isEmpty()) {
-        throw new ComputeException("Join path is not found: " + joinPath + " in " + rightSchema + " and " + leftSchema);
-      }
-      if (rightIndices.size() > 1 || leftIndices.size() > 1) {
-        throw new ComputeException("Join path is ambiguous: " + joinPath + " in " + rightSchema + " and " + leftSchema);
-      }
-      return getHashJoinOn(Pair.of(rightIndices.get(0), leftIndices.get(0)), rightSchema, leftSchema);
-    } else {
-      throw new ComputeException("Join path is not found: " + joinPath + " in " + operator.getInfo());
+  private Pair<ScalarExpression<?>, ScalarExpression<?>> getHashJoinPath(
+      Pair<String, String> joinPath, BatchSchema leftSchema, BatchSchema rightSchema)
+      throws ComputeException {
+    List<Integer> leftIndices = Schemas.matchPattern(leftSchema.raw(), joinPath.getLeft());
+    List<Integer> rightIndices = Schemas.matchPattern(rightSchema.raw(), joinPath.getRight());
+    if (rightIndices.isEmpty() || leftIndices.isEmpty()) {
+      throw new ComputeException(
+          "Join path is not found: " + joinPath + " in " + rightSchema + " and " + leftSchema);
     }
+    if (rightIndices.size() > 1 || leftIndices.size() > 1) {
+      throw new ComputeException(
+          "Join path is ambiguous: " + joinPath + " in " + rightSchema + " and " + leftSchema);
+    }
+    return getHashJoinOn(Pair.of(leftIndices.get(0), rightIndices.get(0)), leftSchema, rightSchema);
   }
 
   private Pair<ScalarExpression<?>, ScalarExpression<?>> getHashJoinOn(
-      Pair<Integer, Integer> joinPath, BatchSchema leftSchema, BatchSchema rightSchema) throws ComputeException {
-    Types.MinorType leftType = Types.getMinorTypeForArrowType(leftSchema.raw().getFields().get(joinPath.getLeft()).getType());
-    Types.MinorType rightType = Types.getMinorTypeForArrowType(rightSchema.raw().getFields().get(joinPath.getRight()).getType());
+      Pair<Integer, Integer> joinPath, BatchSchema leftSchema, BatchSchema rightSchema)
+      throws ComputeException {
+    Types.MinorType leftType =
+        Types.getMinorTypeForArrowType(
+            leftSchema.raw().getFields().get(joinPath.getLeft()).getType());
+    Types.MinorType rightType =
+        Types.getMinorTypeForArrowType(
+            rightSchema.raw().getFields().get(joinPath.getRight()).getType());
 
     if (leftType != rightType) {
       if (Schemas.isNumeric(leftType) && Schemas.isNumeric(rightType)) {
@@ -120,7 +134,18 @@ public class InnerJoinInfoGenerator implements BinaryExecutorFactory<StatefulBin
             new CallNode<>(new CastAsFloat8(), new FieldNode(joinPath.getLeft())),
             new CallNode<>(new CastAsFloat8(), new FieldNode(joinPath.getRight())));
       } else {
-        throw new ComputeException("Join type " + leftType + " and " + rightType + " of " + joinPath + " with " + leftSchema + " and " + rightSchema + " is not supported");
+        throw new ComputeException(
+            "Join type "
+                + leftType
+                + " and "
+                + rightType
+                + " of "
+                + joinPath
+                + " with "
+                + leftSchema
+                + " and "
+                + rightSchema
+                + " is not supported");
       }
     } else {
       return Pair.of(new FieldNode(joinPath.getLeft()), new FieldNode(joinPath.getRight()));
@@ -132,41 +157,52 @@ public class InnerJoinInfoGenerator implements BinaryExecutorFactory<StatefulBin
       return Collections.emptyList();
     }
     List<Pair<String, String>> joinPaths = new ArrayList<>();
-    operator.getFilter().accept(
-        new FilterVisitor() {
-          @Override
-          public void visit(AndFilter filter) {
-          }
+    operator
+        .getFilter()
+        .accept(
+            new FilterVisitor() {
+              @Override
+              public void visit(AndFilter filter) {}
 
-          @Override
-          public void visit(OrFilter filter) {
-          }
+              @Override
+              public void visit(OrFilter filter) {
+                throw new IllegalStateException("Or filter is not supported");
+              }
 
-          @Override
-          public void visit(NotFilter filter) {
-          }
+              @Override
+              public void visit(NotFilter filter) {
+                throw new IllegalStateException("Not filter is not supported");
+              }
 
-          @Override
-          public void visit(KeyFilter filter) {
-          }
+              @Override
+              public void visit(KeyFilter filter) {
+                throw new IllegalStateException("Key filter is not supported");
+              }
 
-          @Override
-          public void visit(ValueFilter filter) {
-          }
+              @Override
+              public void visit(ValueFilter filter) {
+                throw new IllegalStateException("Value filter is not supported");
+              }
 
-          @Override
-          public void visit(PathFilter filter) {
-            joinPaths.add(Pair.of(filter.getPathA(), filter.getPathB()));
-          }
+              @Override
+              public void visit(PathFilter filter) {
+                if (filter.getOp() != Op.E) {
+                  throw new IllegalStateException(
+                      "Path filter with op " + filter.getOp() + " is not supported");
+                }
+                joinPaths.add(Pair.of(filter.getPathA(), filter.getPathB()));
+              }
 
-          @Override
-          public void visit(BoolFilter filter) {
-          }
+              @Override
+              public void visit(BoolFilter filter) {
+                throw new IllegalStateException("Bool filter is not supported");
+              }
 
-          @Override
-          public void visit(ExprFilter filter) {
-          }
-        });
+              @Override
+              public void visit(ExprFilter filter) {
+                throw new IllegalStateException("Expr filter is not supported");
+              }
+            });
     return joinPaths;
   }
 }

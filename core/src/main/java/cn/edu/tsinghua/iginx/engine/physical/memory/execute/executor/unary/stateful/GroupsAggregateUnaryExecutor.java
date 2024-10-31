@@ -22,7 +22,10 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.g
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpression;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
-import java.util.*;
+import cn.edu.tsinghua.iginx.engine.shared.data.arrow.VectorSchemaRoots;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.types.pojo.Schema;
 
@@ -32,7 +35,6 @@ public class GroupsAggregateUnaryExecutor extends StatefulUnaryExecutor {
   private final List<ScalarExpression<?>> groupValueExpressions;
   private final List<ExpressionAccumulator> accumulators;
   private final GroupTable.Builder groupTableBuilder;
-  private Queue<VectorSchemaRoot> readyBatches;
 
   public GroupsAggregateUnaryExecutor(
       ExecutorContext context,
@@ -41,7 +43,7 @@ public class GroupsAggregateUnaryExecutor extends StatefulUnaryExecutor {
       List<? extends ScalarExpression<?>> groupValueExpressions,
       List<ExpressionAccumulator> accumulators)
       throws ComputeException {
-    super(context, inputSchema);
+    super(context, inputSchema, 1);
     this.groupKeyExpressions = new ArrayList<>(groupKeyExpressions);
     this.groupValueExpressions = new ArrayList<>(groupValueExpressions);
     this.accumulators = Objects.requireNonNull(accumulators);
@@ -66,46 +68,27 @@ public class GroupsAggregateUnaryExecutor extends StatefulUnaryExecutor {
   }
 
   @Override
+  public void close() throws ComputeException {
+    groupTableBuilder.close();
+    super.close();
+  }
+
+  @Override
   public Schema getOutputSchema() {
     return groupTableBuilder.getOutputSchema();
   }
 
   @Override
-  public void close() throws ComputeException {
-    groupTableBuilder.close();
-    if (readyBatches != null) {
-      readyBatches.forEach(VectorSchemaRoot::close);
-    }
+  protected void consumeUnchecked(VectorSchemaRoot batch) throws ComputeException {
+    groupTableBuilder.add(batch);
   }
 
   @Override
-  public boolean needConsume() {
-    return readyBatches == null;
-  }
-
-  @Override
-  public void consume(VectorSchemaRoot batch) throws ComputeException {
-    if (!needConsume()) {
-      throw new IllegalStateException("Cannot consume more data after finish consuming");
+  protected void consumeEnd() throws ComputeException {
+    try (GroupTable groupTable = groupTableBuilder.build()) {
+      for (VectorSchemaRoot group : groupTable.getGroups()) {
+        offerResult(VectorSchemaRoots.slice(context.getAllocator(), group));
+      }
     }
-
-    if (batch.getRowCount() != 0) {
-      groupTableBuilder.add(batch);
-      return;
-    }
-
-    readyBatches = new ArrayDeque<>(groupTableBuilder.build().getGroups());
-  }
-
-  @Override
-  public VectorSchemaRoot produce() {
-    if (needConsume()) {
-      throw new IllegalStateException("Cannot produce data before consuming");
-    }
-
-    if (readyBatches.isEmpty()) {
-      return VectorSchemaRoot.create(getOutputSchema(), context.getAllocator());
-    }
-    return readyBatches.poll();
   }
 }

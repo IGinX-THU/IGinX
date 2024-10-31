@@ -144,7 +144,9 @@ public abstract class AbstractPhysicalTask implements PhysicalTask {
     @Override
     public Batch getNext() throws PhysicalException {
       try (StopWatch watch = new StopWatch(getMetrics()::accumulateCpuTime)) {
-        return source.getNext();
+        Batch batch = source.getNext();
+        getMetrics().accumulateAffectRows(batch.getRowCount());
+        return batch;
       }
     }
 

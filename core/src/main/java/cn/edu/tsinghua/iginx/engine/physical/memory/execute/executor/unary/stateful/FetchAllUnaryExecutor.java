@@ -20,18 +20,17 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stat
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.VectorSchemaRoots;
+import java.util.ArrayDeque;
+import java.util.Queue;
 import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.types.pojo.Schema;
 
-public class MergeSortedBatchUnaryExecutor extends StatefulUnaryExecutor {
+public class FetchAllUnaryExecutor extends StatefulUnaryExecutor {
 
-  public MergeSortedBatchUnaryExecutor(ExecutorContext context, Schema inputSchema) {
-    super(context, inputSchema, 1);
-  }
+  private final Queue<VectorSchemaRoot> readyBatches = new ArrayDeque<>();
 
-  @Override
-  protected String getInfo() {
-    return "MergeSortedBatch";
+  public FetchAllUnaryExecutor(ExecutorContext context, Schema inputSchema) {
+    super(context, inputSchema, Integer.MAX_VALUE);
   }
 
   @Override
@@ -39,14 +38,13 @@ public class MergeSortedBatchUnaryExecutor extends StatefulUnaryExecutor {
     return getInputSchema();
   }
 
-  private boolean consumed = false;
+  @Override
+  protected String getInfo() {
+    return "FetchAll";
+  }
 
   @Override
   protected void consumeUnchecked(VectorSchemaRoot batch) throws ComputeException {
-    if (consumed) {
-      throw new ComputeException("MergeSortedBatch can't merge more than one batch now");
-    }
-    consumed = true;
     offerResult(VectorSchemaRoots.slice(context.getAllocator(), batch));
   }
 

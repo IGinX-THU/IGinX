@@ -20,18 +20,23 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stat
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.VectorSchemaRoots;
+import org.apache.arrow.util.Preconditions;
 import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.types.pojo.Schema;
 
-public class MergeSortedBatchUnaryExecutor extends StatefulUnaryExecutor {
+public class LimitUnaryExecutor extends StatefulUnaryExecutor {
 
-  public MergeSortedBatchUnaryExecutor(ExecutorContext context, Schema inputSchema) {
+  private final long offset;
+  private final long limit;
+  private long currentOffset;
+
+  public LimitUnaryExecutor(ExecutorContext context, Schema inputSchema, long offset, long limit) {
     super(context, inputSchema, 1);
-  }
-
-  @Override
-  protected String getInfo() {
-    return "MergeSortedBatch";
+    Preconditions.checkArgument(offset >= 0, "Offset must be non-negative");
+    Preconditions.checkArgument(limit >= 0, "Limit must be non-negative");
+    this.offset = offset;
+    this.limit = limit;
+    this.currentOffset = 0;
   }
 
   @Override
@@ -39,15 +44,27 @@ public class MergeSortedBatchUnaryExecutor extends StatefulUnaryExecutor {
     return getInputSchema();
   }
 
-  private boolean consumed = false;
+  @Override
+  protected String getInfo() {
+    return "Offset " + offset + " Limit " + limit;
+  }
+
+  @Override
+  public boolean needConsume() throws ComputeException {
+    return super.needConsume() && currentOffset < offset + limit;
+  }
 
   @Override
   protected void consumeUnchecked(VectorSchemaRoot batch) throws ComputeException {
-    if (consumed) {
-      throw new ComputeException("MergeSortedBatch can't merge more than one batch now");
+    int slicedStartIndex = (int) Math.min(batch.getRowCount(), Math.max(0, offset - currentOffset));
+    int slicedEndIndex =
+        (int) Math.min(batch.getRowCount(), Math.max(0, offset + limit - currentOffset));
+    int slicedRowCount = slicedEndIndex - slicedStartIndex;
+    if (slicedRowCount > 0) {
+      offerResult(
+          VectorSchemaRoots.slice(context.getAllocator(), batch, slicedStartIndex, slicedRowCount));
     }
-    consumed = true;
-    offerResult(VectorSchemaRoots.slice(context.getAllocator(), batch));
+    currentOffset += batch.getRowCount();
   }
 
   @Override

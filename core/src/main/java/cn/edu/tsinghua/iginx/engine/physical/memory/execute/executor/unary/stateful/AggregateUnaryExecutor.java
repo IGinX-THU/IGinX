@@ -24,11 +24,8 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.e
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputingCloseables;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
-import javax.annotation.WillNotClose;
 import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.types.pojo.Schema;
 
@@ -37,12 +34,12 @@ public class AggregateUnaryExecutor extends StatefulUnaryExecutor {
   private final List<ExpressionAccumulator> accumulators;
   private final Schema outputSchema;
   private final List<Accumulator.State> states;
-  private VectorSchemaRoot result = null;
+  private final Queue<VectorSchemaRoot> readyBatches = new LinkedList<>();
 
   public AggregateUnaryExecutor(
       ExecutorContext context, Schema inputSchema, List<ExpressionAccumulator> accumulators)
       throws ComputeException {
-    super(context, inputSchema);
+    super(context, inputSchema, 1);
     this.accumulators = new ArrayList<>(accumulators);
     this.outputSchema =
         PhysicalFunctions.unnest(ExpressionAccumulators.getOutputSchema(accumulators));
@@ -71,43 +68,20 @@ public class AggregateUnaryExecutor extends StatefulUnaryExecutor {
   public void close() throws ComputeException {
     ComputingCloseables.close(states);
     states.clear();
-    if (result != null) {
-      result.close();
-    }
+    super.close();
   }
 
   @Override
-  public boolean needConsume() throws ComputeException {
-    return result == null;
+  protected void consumeUnchecked(VectorSchemaRoot batch) throws ComputeException {
+    ExpressionAccumulators.update(accumulators, states, batch);
   }
 
   @Override
-  public void consume(@WillNotClose VectorSchemaRoot batch) throws ComputeException {
-    if (!needConsume()) {
-      throw new IllegalStateException("Cannot consume more data before producing");
-    }
-    if (batch.getRowCount() > 0) {
-      ExpressionAccumulators.update(accumulators, states, batch);
-      return;
-    }
+  protected void consumeEnd() throws ComputeException {
     List<List<Accumulator.State>> statesColumns =
         this.states.stream().map(Collections::singletonList).collect(Collectors.toList());
     try (VectorSchemaRoot root = ExpressionAccumulators.evaluateSafe(accumulators, statesColumns)) {
-      result = PhysicalFunctions.unnest(context.getAllocator(), root);
+      offerResult(PhysicalFunctions.unnest(context.getAllocator(), root));
     }
-  }
-
-  private boolean produced = false;
-
-  @Override
-  public VectorSchemaRoot produce() throws ComputeException {
-    if (needConsume()) {
-      throw new IllegalStateException("Cannot produce data before consuming");
-    }
-    if (produced) {
-      return VectorSchemaRoot.create(getOutputSchema(), context.getAllocator());
-    }
-    produced = true;
-    return result.slice(0, result.getRowCount());
   }
 }

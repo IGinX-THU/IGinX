@@ -25,15 +25,13 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.excepti
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.Schemas;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
-import org.apache.arrow.util.Preconditions;
-import org.apache.arrow.vector.VectorSchemaRoot;
-import org.apache.arrow.vector.types.pojo.Schema;
-import org.apache.commons.lang3.tuple.Pair;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import org.apache.arrow.vector.VectorSchemaRoot;
+import org.apache.arrow.vector.types.pojo.Schema;
+import org.apache.commons.lang3.tuple.Pair;
 
 /**
  * This class is used to execute hash join operation. Left is the build side, and right is the probe
@@ -50,7 +48,6 @@ public class HashJoinExecutor extends StatefulBinaryExecutor {
   private final Schema outputSchema;
   private final JoinHashMap.Builder joinHashMapBuilder;
   private JoinHashMap joinHashMap;
-  private boolean finished = false;
 
   public HashJoinExecutor(
       ExecutorContext context,
@@ -61,7 +58,7 @@ public class HashJoinExecutor extends StatefulBinaryExecutor {
       List<ScalarExpression<?>> rightOutputExpressions,
       List<Pair<ScalarExpression<?>, ScalarExpression<?>>> on)
       throws ComputeException {
-    super(context, leftSchema, rightSchema);
+    super(context, leftSchema, rightSchema, 1);
     this.joinType = Objects.requireNonNull(joinType);
     this.leftOutputExpressions = new ArrayList<>(leftOutputExpressions);
     this.rightOutputExpressions = new ArrayList<>(rightOutputExpressions);
@@ -111,22 +108,17 @@ public class HashJoinExecutor extends StatefulBinaryExecutor {
   }
 
   @Override
-  public boolean needConsumeLeft() throws ComputeException {
-    return joinHashMap == null;
-  }
-
-  @Override
   public boolean needConsumeRight() throws ComputeException {
-    return joinHashMap != null && joinHashMap.getOutput().isEmpty() && !finished;
+    return super.needConsumeRight() && joinHashMap != null;
   }
 
   @Override
-  public void consumeLeft(VectorSchemaRoot batch) throws ComputeException {
-    Preconditions.checkState(needConsumeLeft());
-    if (batch.getRowCount() != 0) {
-      joinHashMapBuilder.add(batch);
-      return;
-    }
+  protected void consumeLeftUnchecked(VectorSchemaRoot batch) throws ComputeException {
+    joinHashMapBuilder.add(batch);
+  }
+
+  @Override
+  protected void consumeLeftEnd() throws ComputeException {
     joinHashMap =
         joinHashMapBuilder.build(
             context.getBatchRowCount(),
@@ -136,25 +128,21 @@ public class HashJoinExecutor extends StatefulBinaryExecutor {
   }
 
   @Override
-  public void consumeRight(VectorSchemaRoot batch) throws ComputeException {
-    Preconditions.checkState(needConsumeRight());
-    if (batch.getRowCount() != 0) {
-      joinHashMap.probe(batch, joinType.needOutputRightUnmatched());
+  protected void consumeRightUnchecked(VectorSchemaRoot batch) throws ComputeException {
+    joinHashMap.probe(batch, joinType.needOutputRightUnmatched());
+    while (!joinHashMap.getOutput().isEmpty()) {
+      offerResult(joinHashMap.getOutput().poll());
     }
-    finished = true;
+  }
+
+  @Override
+  protected void consumeRightEnd() throws ComputeException {
     if (joinType.needOutputLeftUnmatched()) {
       joinHashMap.outputBuildSideUnmatched();
     }
     joinHashMap.getOutput().flush();
-  }
-
-  @Override
-  public VectorSchemaRoot produce() throws ComputeException {
-    Preconditions.checkState(!needConsumeLeft());
-    Preconditions.checkState(!needConsumeRight());
-    if (finished) {
-      return VectorSchemaRoot.create(outputSchema, context.getAllocator());
+    while (!joinHashMap.getOutput().isEmpty()) {
+      offerResult(joinHashMap.getOutput().poll());
     }
-    return joinHashMap.getOutput().poll();
   }
 }

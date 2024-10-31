@@ -30,8 +30,8 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.row.Mat
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.row.RowCursor;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.Schemas;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.VectorSchemaRoots;
+import com.google.common.collect.Lists;
 import java.util.*;
-import java.util.stream.Collectors;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.FixedWidthVector;
@@ -136,29 +136,28 @@ public class GroupTable implements AutoCloseable {
     }
 
     public GroupTable build() throws ComputeException {
+      List<MaterializedRowKey> groupKeys = new ArrayList<>(groups.keySet());
+      List<GroupState> groupStates = new ArrayList<>(groups.values());
+      List<List<MaterializedRowKey>> groupKeyPartitions =
+          Lists.partition(groupKeys, maxBatchRowCount);
+      List<List<GroupState>> groupStatePartitions = Lists.partition(groupStates, maxBatchRowCount);
+
+      assert groupKeyPartitions.size() == groupStatePartitions.size();
+
       try (GroupTable table = new GroupTable(outputSchema)) {
-        List<Map.Entry<MaterializedRowKey, GroupState>> entryBatch =
-            new ArrayList<>(maxBatchRowCount);
-        for (Map.Entry<MaterializedRowKey, GroupState> entry : groups.entrySet()) {
-          entryBatch.add(entry);
-          if (entryBatch.size() >= maxBatchRowCount) {
-            table.add(build(entryBatch));
-            entryBatch.clear();
-          }
-        }
-        if (!entryBatch.isEmpty()) {
-          table.add(build(entryBatch));
+        for (int i = 0; i < groupKeyPartitions.size(); i++) {
+          List<MaterializedRowKey> groupKeyPartition = groupKeyPartitions.get(i);
+          List<GroupState> groupStatePartition = groupStatePartitions.get(i);
+          table.add(build(groupKeyPartition, groupStatePartition));
         }
         return table.transfer();
       }
     }
 
-    private VectorSchemaRoot build(List<Map.Entry<MaterializedRowKey, GroupState>> entries)
+    private VectorSchemaRoot build(List<MaterializedRowKey> groupKeys, List<GroupState> groupStates)
         throws ComputeException {
-      List<MaterializedRowKey> groupKeys =
-          entries.stream().map(Map.Entry::getKey).collect(Collectors.toList());
-      List<GroupState> groupStates =
-          entries.stream().map(Map.Entry::getValue).collect(Collectors.toList());
+      assert groupKeys.size() == groupStates.size();
+
       List<List<Accumulator.State>> statesColumns = new ArrayList<>(accumulators.size());
       for (int i = 0; i < accumulators.size(); i++) {
         statesColumns.add(new ArrayList<>());
