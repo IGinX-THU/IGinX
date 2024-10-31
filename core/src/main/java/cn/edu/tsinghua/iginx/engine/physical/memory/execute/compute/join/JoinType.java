@@ -15,23 +15,21 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.join;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.PhysicalExecutor;
-import java.util.Objects;
-import org.apache.arrow.vector.types.pojo.Schema;
+public enum JoinType {
+  INNER,
+  LEFT,
+  RIGHT,
+  FULL,
+  MARK,
+  SINGLE;
 
-public abstract class UnaryExecutor extends PhysicalExecutor {
-
-  protected final Schema inputSchema;
-
-  protected UnaryExecutor(ExecutorContext context, Schema inputSchema) {
-    super(context);
-    this.inputSchema = Objects.requireNonNull(inputSchema);
+  public boolean needOutputLeftUnmatched() {
+    return this == LEFT || this == FULL;
   }
 
-  public Schema getInputSchema() {
-    return inputSchema;
+  public boolean needOutputRightUnmatched() {
+    return this == RIGHT || this == FULL;
   }
 }

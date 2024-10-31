@@ -27,11 +27,10 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Batch;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
-import org.apache.arrow.vector.VectorSchemaRoot;
-
-import javax.annotation.WillCloseWhenClosed;
 import java.util.List;
 import java.util.Objects;
+import javax.annotation.WillCloseWhenClosed;
+import org.apache.arrow.vector.VectorSchemaRoot;
 
 public class UnarySinkMemoryPhysicalTask extends UnaryMemoryPhysicalTask {
 
@@ -50,7 +49,7 @@ public class UnarySinkMemoryPhysicalTask extends UnaryMemoryPhysicalTask {
 
   @Override
   public String getInfo() {
-    return info;
+    return info == null ? super.getInfo() : info;
   }
 
   @Override
@@ -58,23 +57,23 @@ public class UnarySinkMemoryPhysicalTask extends UnaryMemoryPhysicalTask {
     StatefulUnaryExecutor executor = null;
     BatchSchema schema = previous.getSchema();
     BatchSchema outputSchema;
-    try (StopWatch watch = new StopWatch(getMetrics()::accumulateCpuTime)) {
-      executor = executorFactory.initialize(executorContext, schema);
-      outputSchema = BatchSchema.of(executor.getOutputSchema());
-      info = executor.toString();
-    } catch (ComputeException e) {
-      try (BatchStream previousHolder = previous;
-           StatefulUnaryExecutor executorHolder = executor) {
-        throw e;
+    try {
+      try (StopWatch watch = new StopWatch(getMetrics()::accumulateCpuTime)) {
+        executor = executorFactory.initialize(executorContext, schema);
+        outputSchema = BatchSchema.of(executor.getOutputSchema());
+        info = executor.toString();
       }
-    }
-    while (true) {
-      try (Batch batch = previous.getNext()) {
-        try (StopWatch watch = new StopWatch(getMetrics()::accumulateCpuTime)) {
-          if (!executor.consume(batch.raw())) {
-            break;
+      while (executor.needConsume()) {
+        try (Batch batch = previous.getNext()) {
+          try (StopWatch watch = new StopWatch(getMetrics()::accumulateCpuTime)) {
+            executor.consume(batch.raw());
           }
         }
+      }
+    } catch (ComputeException e) {
+      try (BatchStream previousHolder = previous;
+          StatefulUnaryExecutor executorHolder = executor) {
+        throw e;
       }
     }
     return new UnarySinkBatchStream(previous, outputSchema, executor);
@@ -86,7 +85,10 @@ public class UnarySinkMemoryPhysicalTask extends UnaryMemoryPhysicalTask {
     private final BatchSchema outputSchema;
     private final StatefulUnaryExecutor executor;
 
-    public UnarySinkBatchStream(@WillCloseWhenClosed BatchStream source, BatchSchema outputSchema, @WillCloseWhenClosed StatefulUnaryExecutor executor) {
+    public UnarySinkBatchStream(
+        @WillCloseWhenClosed BatchStream source,
+        BatchSchema outputSchema,
+        @WillCloseWhenClosed StatefulUnaryExecutor executor) {
       this.source = Objects.requireNonNull(source);
       this.outputSchema = Objects.requireNonNull(outputSchema);
       this.executor = Objects.requireNonNull(executor);
@@ -99,12 +101,10 @@ public class UnarySinkMemoryPhysicalTask extends UnaryMemoryPhysicalTask {
 
     @Override
     public Batch getNext() throws PhysicalException {
-      while (true) {
+      while (executor.needConsume()) {
         try (Batch batch = source.getNext()) {
           try (StopWatch watch = new StopWatch(getMetrics()::accumulateCpuTime)) {
-            if (!executor.consume(batch.raw())) {
-              break;
-            }
+            executor.consume(batch.raw());
           }
         }
       }
@@ -119,7 +119,7 @@ public class UnarySinkMemoryPhysicalTask extends UnaryMemoryPhysicalTask {
     public void close() throws PhysicalException {
       try (StopWatch watch = new StopWatch(getMetrics()::accumulateCpuTime)) {
         try (BatchStream source = this.source;
-             StatefulUnaryExecutor executor = this.executor) {
+            StatefulUnaryExecutor executor = this.executor) {
           // Do nothing
         }
       }

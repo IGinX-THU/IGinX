@@ -23,13 +23,12 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expre
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.sort.IndexSortExpression;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
-import org.apache.arrow.vector.IntVector;
-import org.apache.arrow.vector.VectorSchemaRoot;
-import org.apache.arrow.vector.types.pojo.Schema;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import org.apache.arrow.vector.IntVector;
+import org.apache.arrow.vector.VectorSchemaRoot;
+import org.apache.arrow.vector.types.pojo.Schema;
 
 public class InnerBatchSortUnaryExecutor extends StatelessUnaryExecutor {
 
@@ -52,17 +51,14 @@ public class InnerBatchSortUnaryExecutor extends StatelessUnaryExecutor {
   }
 
   @Override
-  public void close() throws ComputeException {
-  }
+  public void close() throws ComputeException {}
 
   @Override
   public VectorSchemaRoot compute(VectorSchemaRoot batch) throws ComputeException {
     try (IntVector sortedIndices =
-             ScalarExpressions.evaluateSafe(
-                 context.getAllocator(), indexSortExpression, batch);
-         VectorSchemaRoot output =
-             ScalarExpressions.evaluateSafe(
-                 context.getAllocator(), outputExpressions, batch)) {
+            ScalarExpressions.evaluateSafe(context.getAllocator(), indexSortExpression, batch);
+        VectorSchemaRoot output =
+            ScalarExpressions.evaluateSafe(context.getAllocator(), outputExpressions, batch)) {
       return PhysicalFunctions.take(context.getAllocator(), sortedIndices, output);
     }
   }

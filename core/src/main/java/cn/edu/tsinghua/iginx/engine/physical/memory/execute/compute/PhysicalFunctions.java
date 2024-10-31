@@ -18,6 +18,9 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute;
 
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ValueVectors;
+import java.util.ArrayList;
+import java.util.List;
+import javax.annotation.WillNotClose;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.*;
 import org.apache.arrow.vector.complex.NonNullableStructVector;
@@ -27,14 +30,9 @@ import org.apache.arrow.vector.types.pojo.FieldType;
 import org.apache.arrow.vector.types.pojo.Schema;
 import org.apache.arrow.vector.util.TransferPair;
 
-import javax.annotation.WillNotClose;
-import java.util.ArrayList;
-import java.util.List;
-
 public class PhysicalFunctions {
 
-  private PhysicalFunctions() {
-  }
+  private PhysicalFunctions() {}
 
   public static Schema unnest(Schema schema) {
     List<Field> fields = new ArrayList<>();
@@ -81,7 +79,8 @@ public class PhysicalFunctions {
     return selectionVector;
   }
 
-  public static <OUTPUT extends FieldVector> void takeTo(IntVector selection, OUTPUT output, OUTPUT input) {
+  public static <OUTPUT extends FieldVector> void takeTo(
+      IntVector selection, OUTPUT output, OUTPUT input) {
     if (selection.getField().isNullable()) {
       throw new IllegalArgumentException("Selection vector must be not nullable");
     }
@@ -103,9 +102,11 @@ public class PhysicalFunctions {
     }
   }
 
-  public static void takeTo(IntVector selectionVector, VectorSchemaRoot output, VectorSchemaRoot input) {
+  public static void takeTo(
+      IntVector selectionVector, VectorSchemaRoot output, VectorSchemaRoot input) {
     if (output.getFieldVectors().size() != input.getFieldVectors().size()) {
-      throw new IllegalArgumentException("Output schema must have the same number of fields as input schema");
+      throw new IllegalArgumentException(
+          "Output schema must have the same number of fields as input schema");
     }
     for (int i = 0; i < input.getFieldVectors().size(); i++) {
       takeTo(selectionVector, output.getFieldVectors().get(i), input.getFieldVectors().get(i));

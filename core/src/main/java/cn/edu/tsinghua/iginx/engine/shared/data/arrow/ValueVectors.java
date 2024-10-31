@@ -52,7 +52,6 @@ public class ValueVectors {
     return slice(allocator, source, 0, valueCount, ref);
   }
 
-
   public static <T extends ValueVector> T slice(BufferAllocator allocator, T source, String ref) {
     return slice(allocator, source, source.getValueCount(), ref);
   }

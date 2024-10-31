@@ -20,10 +20,9 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stat
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutor;
+import javax.annotation.WillClose;
 import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.types.pojo.Schema;
-
-import javax.annotation.WillClose;
 
 public abstract class StatelessUnaryExecutor extends UnaryExecutor {
 
@@ -36,14 +35,15 @@ public abstract class StatelessUnaryExecutor extends UnaryExecutor {
   @Override
   public Schema getOutputSchema() throws ComputeException {
     if (outputSchema == null) {
-      try (VectorSchemaRoot emptyBatch = VectorSchemaRoot.create(getInputSchema(), context.getAllocator());
-           VectorSchemaRoot outputBatch = compute(emptyBatch)) {
+      try (VectorSchemaRoot emptyBatch =
+              VectorSchemaRoot.create(getInputSchema(), context.getAllocator());
+          VectorSchemaRoot outputBatch = compute(emptyBatch)) {
         outputSchema = outputBatch.getSchema();
       }
     }
     return outputSchema;
   }
 
-  public abstract VectorSchemaRoot compute(@WillClose VectorSchemaRoot batch) throws ComputeException;
-
+  public abstract VectorSchemaRoot compute(@WillClose VectorSchemaRoot batch)
+      throws ComputeException;
 }

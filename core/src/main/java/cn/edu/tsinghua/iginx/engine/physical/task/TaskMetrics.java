@@ -17,9 +17,9 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.task;
 
-import javax.annotation.concurrent.ThreadSafe;
 import java.time.Duration;
 import java.util.concurrent.atomic.LongAdder;
+import javax.annotation.concurrent.ThreadSafe;
 
 @ThreadSafe
 public class TaskMetrics {

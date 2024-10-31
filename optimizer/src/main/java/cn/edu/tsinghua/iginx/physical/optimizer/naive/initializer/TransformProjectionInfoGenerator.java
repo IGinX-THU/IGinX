@@ -41,7 +41,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-public class TransformProjectionInfoGenerator implements UnaryExecutorFactory<ProjectionUnaryExecutor> {
+public class TransformProjectionInfoGenerator
+    implements UnaryExecutorFactory<ProjectionUnaryExecutor> {
 
   private static RowTransform operator = null;
 

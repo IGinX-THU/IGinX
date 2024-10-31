@@ -55,7 +55,8 @@ public class MergeSortedBatchUnaryExecutor extends StatefulUnaryExecutor {
   @Override
   public void consume(VectorSchemaRoot batch) throws ComputeException {
     if (!needConsume()) {
-      throw new ComputeException("MergeSortedBatchUnaryExecutor can only consume one batch at a time");
+      throw new ComputeException(
+          "MergeSortedBatchUnaryExecutor can only consume one batch at a time");
     }
     temporaryBatch = batch.slice(0, batch.getRowCount());
   }
@@ -65,12 +66,12 @@ public class MergeSortedBatchUnaryExecutor extends StatefulUnaryExecutor {
   @Override
   public VectorSchemaRoot produce() throws ComputeException {
     if (needConsume()) {
-      throw new ComputeException("MergeSortedBatchUnaryExecutor must consume one batch before produce");
+      throw new ComputeException(
+          "MergeSortedBatchUnaryExecutor must consume one batch before produce");
     }
     if (produced) {
       return VectorSchemaRoot.create(getOutputSchema(), context.getAllocator());
     }
     return temporaryBatch.slice(0, temporaryBatch.getRowCount());
   }
-
 }

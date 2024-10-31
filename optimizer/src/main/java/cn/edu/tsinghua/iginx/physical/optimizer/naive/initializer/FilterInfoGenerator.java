@@ -179,8 +179,8 @@ public class FilterInfoGenerator implements UnaryExecutorFactory<FilterUnaryExec
       ValueFilter filter, ExecutorContext context, BatchSchema inputSchema)
       throws ComputeException {
     List<Integer> paths = Schemas.matchPattern(inputSchema.raw(), filter.getPath());
-    if(paths.isEmpty()) {
-      throw new ComputeException("Path not found: " + filter.getPath()+ " in " + inputSchema);
+    if (paths.isEmpty()) {
+      throw new ComputeException("Path not found: " + filter.getPath() + " in " + inputSchema);
     }
     List<ScalarExpression<BitVector>> comparisons = new ArrayList<>();
     for (Integer pathIndex : paths) {

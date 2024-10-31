@@ -18,10 +18,9 @@
 package cn.edu.tsinghua.iginx.engine.shared.data.read;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
-import org.apache.arrow.memory.BufferAllocator;
-
 import java.util.Map;
 import java.util.Objects;
+import org.apache.arrow.memory.BufferAllocator;
 
 class RowStreamToBatchStreamWrapper implements BatchStream {
 
@@ -29,7 +28,8 @@ class RowStreamToBatchStreamWrapper implements BatchStream {
   private final RowStream rowStream;
   private final int batchRowCount;
 
-  public RowStreamToBatchStreamWrapper(BufferAllocator allocator, RowStream rowStream, int batchRowCount) {
+  public RowStreamToBatchStreamWrapper(
+      BufferAllocator allocator, RowStream rowStream, int batchRowCount) {
     this.allocator = Objects.requireNonNull(allocator);
     this.rowStream = Objects.requireNonNull(rowStream);
     this.batchRowCount = batchRowCount;
@@ -63,8 +63,7 @@ class RowStreamToBatchStreamWrapper implements BatchStream {
   public Batch getNext() throws PhysicalException {
     boolean hasKey = getSchema().hasKey();
 
-    try (Batch.Builder builder =
-             new Batch.Builder(allocator, getSchema(), batchRowCount)) {
+    try (Batch.Builder builder = new Batch.Builder(allocator, getSchema(), batchRowCount)) {
       int count;
       for (count = 0; rowStream.hasNext() && count < batchRowCount; count++) {
         Row row = rowStream.next();

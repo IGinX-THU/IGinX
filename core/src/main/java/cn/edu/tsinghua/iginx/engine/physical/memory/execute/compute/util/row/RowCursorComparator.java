@@ -18,16 +18,15 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.row;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.CompareOption;
-import org.apache.arrow.memory.util.ArrowBufPointer;
-import org.apache.arrow.util.Preconditions;
-import org.apache.arrow.vector.*;
-import org.apache.arrow.vector.types.Types;
-
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.apache.arrow.memory.util.ArrowBufPointer;
+import org.apache.arrow.util.Preconditions;
+import org.apache.arrow.vector.*;
+import org.apache.arrow.vector.types.Types;
 
 public class RowCursorComparator implements Comparator<RowCursor> {
 
@@ -60,12 +59,15 @@ public class RowCursorComparator implements Comparator<RowCursor> {
     return true;
   }
 
-  public static RowCursorComparator ofVectors(List<? extends ValueVector> vectors, List<CompareOption> options) {
-    List<Types.MinorType> types = vectors.stream().map(ValueVector::getMinorType).collect(Collectors.toList());
+  public static RowCursorComparator ofVectors(
+      List<? extends ValueVector> vectors, List<CompareOption> options) {
+    List<Types.MinorType> types =
+        vectors.stream().map(ValueVector::getMinorType).collect(Collectors.toList());
     return ofTypes(types, options);
   }
 
-  public static RowCursorComparator ofTypes(List<Types.MinorType> types, List<CompareOption> options) {
+  public static RowCursorComparator ofTypes(
+      List<Types.MinorType> types, List<CompareOption> options) {
     Preconditions.checkArgument(types.size() == options.size());
     Builder builder = new Builder();
     for (int i = 0; i < types.size(); i++) {
@@ -75,7 +77,10 @@ public class RowCursorComparator implements Comparator<RowCursor> {
   }
 
   public static RowCursorComparator of(VectorSchemaRoot table) {
-    List<CompareOption> options = Stream.generate(() -> CompareOption.DEFAULT).limit(table.getFieldVectors().size()).collect(Collectors.toList());
+    List<CompareOption> options =
+        Stream.generate(() -> CompareOption.DEFAULT)
+            .limit(table.getFieldVectors().size())
+            .collect(Collectors.toList());
     return ofVectors(table.getFieldVectors(), options);
   }
 
@@ -99,7 +104,8 @@ public class RowCursorComparator implements Comparator<RowCursor> {
     boolean equals(FieldVector left, int leftIndex, FieldVector right, int rightIndex);
   }
 
-  private static AbstractCellComparator<?> createComparator(Types.MinorType type, CompareOption option) {
+  private static AbstractCellComparator<?> createComparator(
+      Types.MinorType type, CompareOption option) {
     switch (type) {
       case BIT:
         return new BitCellComparator(option);
@@ -172,7 +178,8 @@ public class RowCursorComparator implements Comparator<RowCursor> {
     }
 
     @Override
-    protected boolean equalsNonnull(BitVector left, int leftIndex, BitVector right, int rightIndex) {
+    protected boolean equalsNonnull(
+        BitVector left, int leftIndex, BitVector right, int rightIndex) {
       return left.get(leftIndex) == right.get(rightIndex);
     }
   }
@@ -189,7 +196,8 @@ public class RowCursorComparator implements Comparator<RowCursor> {
     }
 
     @Override
-    protected boolean equalsNonnull(IntVector left, int leftIndex, IntVector right, int rightIndex) {
+    protected boolean equalsNonnull(
+        IntVector left, int leftIndex, IntVector right, int rightIndex) {
       return left.get(leftIndex) == right.get(rightIndex);
     }
   }
@@ -207,7 +215,8 @@ public class RowCursorComparator implements Comparator<RowCursor> {
     }
 
     @Override
-    protected boolean equalsNonnull(BigIntVector left, int leftIndex, BigIntVector right, int rightIndex) {
+    protected boolean equalsNonnull(
+        BigIntVector left, int leftIndex, BigIntVector right, int rightIndex) {
       return left.get(leftIndex) == right.get(rightIndex);
     }
   }
@@ -225,7 +234,8 @@ public class RowCursorComparator implements Comparator<RowCursor> {
     }
 
     @Override
-    protected boolean equalsNonnull(Float4Vector left, int leftIndex, Float4Vector right, int rightIndex) {
+    protected boolean equalsNonnull(
+        Float4Vector left, int leftIndex, Float4Vector right, int rightIndex) {
       return left.get(leftIndex) == right.get(rightIndex);
     }
   }
@@ -243,7 +253,8 @@ public class RowCursorComparator implements Comparator<RowCursor> {
     }
 
     @Override
-    protected boolean equalsNonnull(Float8Vector left, int leftIndex, Float8Vector right, int rightIndex) {
+    protected boolean equalsNonnull(
+        Float8Vector left, int leftIndex, Float8Vector right, int rightIndex) {
       return left.get(leftIndex) == right.get(rightIndex);
     }
   }
@@ -263,7 +274,8 @@ public class RowCursorComparator implements Comparator<RowCursor> {
     }
 
     @Override
-    protected boolean equalsNonnull(VarBinaryVector left, int leftIndex, VarBinaryVector right, int rightIndex) {
+    protected boolean equalsNonnull(
+        VarBinaryVector left, int leftIndex, VarBinaryVector right, int rightIndex) {
       ArrowBufPointer leftPointer = left.getDataPointer(leftIndex);
       ArrowBufPointer rightPointer = right.getDataPointer(rightIndex);
       return leftPointer.equals(rightPointer);

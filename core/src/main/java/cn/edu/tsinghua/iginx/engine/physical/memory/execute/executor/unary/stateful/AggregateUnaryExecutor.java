@@ -24,14 +24,13 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.e
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputingCloseables;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
-import org.apache.arrow.vector.VectorSchemaRoot;
-import org.apache.arrow.vector.types.pojo.Schema;
-
-import javax.annotation.WillNotClose;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
+import javax.annotation.WillNotClose;
+import org.apache.arrow.vector.VectorSchemaRoot;
+import org.apache.arrow.vector.types.pojo.Schema;
 
 public class AggregateUnaryExecutor extends StatefulUnaryExecutor {
 
@@ -45,7 +44,8 @@ public class AggregateUnaryExecutor extends StatefulUnaryExecutor {
       throws ComputeException {
     super(context, inputSchema);
     this.accumulators = new ArrayList<>(accumulators);
-    this.outputSchema = PhysicalFunctions.unnest(ExpressionAccumulators.getOutputSchema(accumulators));
+    this.outputSchema =
+        PhysicalFunctions.unnest(ExpressionAccumulators.getOutputSchema(accumulators));
     this.states = new ArrayList<>(accumulators.size());
     try {
       for (ExpressionAccumulator acc : accumulators) {

@@ -23,14 +23,12 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.StopWatch;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class AbstractPhysicalTask implements PhysicalTask {
 
@@ -118,7 +116,9 @@ public abstract class AbstractPhysicalTask implements PhysicalTask {
     } else {
       RowStream rowStream = result.getRowStream();
       if (rowStream != null) {
-        BatchStream batchStream = BatchStreams.wrap(executorContext.getAllocator(), rowStream, executorContext.getBatchRowCount());
+        BatchStream batchStream =
+            BatchStreams.wrap(
+                executorContext.getAllocator(), rowStream, executorContext.getBatchRowCount());
         setResult(new TaskResult(new MetricStream(batchStream)));
       } else {
         setResult(new TaskResult());
@@ -140,7 +140,7 @@ public abstract class AbstractPhysicalTask implements PhysicalTask {
         return source.getSchema();
       }
     }
-    
+
     @Override
     public Batch getNext() throws PhysicalException {
       try (StopWatch watch = new StopWatch(getMetrics()::accumulateCpuTime)) {

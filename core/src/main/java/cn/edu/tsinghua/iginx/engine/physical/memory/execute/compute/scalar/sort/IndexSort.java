@@ -20,19 +20,17 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.sort
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.AbstractFunction;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.Arity;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.CompareOption;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.row.RowCursor;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.row.RowCursorComparator;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ValueVectors;
-import org.apache.arrow.memory.BufferAllocator;
-import org.apache.arrow.vector.IntVector;
-import org.apache.arrow.vector.VectorSchemaRoot;
-
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import org.apache.arrow.memory.BufferAllocator;
+import org.apache.arrow.vector.IntVector;
+import org.apache.arrow.vector.VectorSchemaRoot;
 
 public class IndexSort extends AbstractFunction<IntVector> {
 
@@ -78,7 +76,8 @@ public class IndexSort extends AbstractFunction<IntVector> {
   private Comparator<Integer> getComparator(VectorSchemaRoot input) {
     RowCursor leftCursor = new RowCursor(input);
     RowCursor rightCursor = new RowCursor(input);
-    RowCursorComparator comparator = RowCursorComparator.ofVectors(input.getFieldVectors(), options);
+    RowCursorComparator comparator =
+        RowCursorComparator.ofVectors(input.getFieldVectors(), options);
 
     return (left, right) -> {
       leftCursor.setPosition(left);

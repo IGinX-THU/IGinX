@@ -17,16 +17,13 @@
  */
 package cn.edu.tsinghua.iginx.engine.shared.data.read;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
-import org.apache.arrow.memory.BufferAllocator;
-
 import javax.annotation.WillClose;
 import javax.annotation.WillNotClose;
+import org.apache.arrow.memory.BufferAllocator;
 
 public class BatchStreams {
 
-  private BatchStreams() {
-  }
+  private BatchStreams() {}
 
   public static BatchStream wrap(
       @WillNotClose BufferAllocator allocator, @WillClose RowStream rowStream, int batchRowCount) {

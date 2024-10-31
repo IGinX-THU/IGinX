@@ -35,7 +35,8 @@ import java.util.*;
 import java.util.stream.Collectors;
 import org.apache.arrow.vector.types.pojo.Schema;
 
-public class GroupsAggregateInfoGenerator implements UnaryExecutorFactory<GroupsAggregateUnaryExecutor> {
+public class GroupsAggregateInfoGenerator
+    implements UnaryExecutorFactory<GroupsAggregateUnaryExecutor> {
 
   private final GroupBy groupBy;
 

@@ -23,12 +23,11 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expre
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ValueVectors;
+import java.util.*;
 import org.apache.arrow.vector.BitVector;
 import org.apache.arrow.vector.IntVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.types.pojo.Schema;
-
-import java.util.*;
 
 public class FilterUnaryExecutor extends StatefulUnaryExecutor {
 
@@ -41,11 +40,14 @@ public class FilterUnaryExecutor extends StatefulUnaryExecutor {
       ExecutorContext context,
       Schema inputSchema,
       ScalarExpression<BitVector> condition,
-      List<? extends ScalarExpression<?>> outputExpressions) throws ComputeException {
+      List<? extends ScalarExpression<?>> outputExpressions)
+      throws ComputeException {
     super(context, inputSchema);
     this.condition = Objects.requireNonNull(condition);
     this.outputExpressions = new ArrayList<>(outputExpressions);
-    this.outputSchema = ScalarExpressions.getOutputSchema(context.getAllocator(), outputExpressions, getInputSchema());
+    this.outputSchema =
+        ScalarExpressions.getOutputSchema(
+            context.getAllocator(), outputExpressions, getInputSchema());
     this.readyBatches = new LinkedList<>();
     this.buffer = VectorSchemaRoot.create(outputSchema, context.getAllocator());
   }
@@ -83,13 +85,19 @@ public class FilterUnaryExecutor extends StatefulUnaryExecutor {
     }
     int expectedRowCount = context.getBatchRowCount();
     try (BitVector mask = ScalarExpressions.evaluateSafe(context.getAllocator(), condition, batch);
-         IntVector selection = PhysicalFunctions.filter(context.getAllocator(), mask);
-         VectorSchemaRoot toFiltered = ScalarExpressions.evaluateSafe(context.getAllocator(), outputExpressions, batch)) {
+        IntVector selection = PhysicalFunctions.filter(context.getAllocator(), mask);
+        VectorSchemaRoot toFiltered =
+            ScalarExpressions.evaluateSafe(context.getAllocator(), outputExpressions, batch)) {
       int selectionOffset = 0;
       while (selectionOffset < selection.getValueCount()) {
-        int toFillBufferRowCount = Math.min(expectedRowCount - buffer.getRowCount(), selection.getValueCount() - selectionOffset);
+        int toFillBufferRowCount =
+            Math.min(
+                expectedRowCount - buffer.getRowCount(),
+                selection.getValueCount() - selectionOffset);
         toFillBufferRowCount = Math.max(toFillBufferRowCount, 0);
-        try (IntVector selectionSlice = ValueVectors.slice(context.getAllocator(), selection, selectionOffset, toFillBufferRowCount)) {
+        try (IntVector selectionSlice =
+            ValueVectors.slice(
+                context.getAllocator(), selection, selectionOffset, toFillBufferRowCount)) {
           PhysicalFunctions.takeTo(selectionSlice, buffer, toFiltered);
         }
         if (buffer.getRowCount() >= expectedRowCount) {
@@ -115,5 +123,4 @@ public class FilterUnaryExecutor extends StatefulUnaryExecutor {
     }
     return readyBatches.remove();
   }
-
 }

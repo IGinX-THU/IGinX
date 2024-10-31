@@ -22,10 +22,9 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.g
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpression;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
+import java.util.*;
 import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.types.pojo.Schema;
-
-import java.util.*;
 
 public class GroupsAggregateUnaryExecutor extends StatefulUnaryExecutor {
 

@@ -20,10 +20,9 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stat
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutor;
+import javax.annotation.WillNotClose;
 import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.types.pojo.Schema;
-
-import javax.annotation.WillNotClose;
 
 public abstract class StatefulUnaryExecutor extends UnaryExecutor {
 
@@ -42,9 +41,11 @@ public abstract class StatefulUnaryExecutor extends UnaryExecutor {
   /**
    * Consume a batch of data.
    *
-   * @param batch the batch to consume, notify the consumer to finalize states if the batch's size less than the batch size
+   * @param batch the batch to consume, notify the consumer to finalize states if the batch's size
+   *     less than the batch size
    * @throws ComputeException if an error occurs during consumption
-   * @throws IllegalStateException if the executor is not ready to consume, i.e., need to produce the result
+   * @throws IllegalStateException if the executor is not ready to consume, i.e., need to produce
+   *     the result
    */
   public abstract void consume(@WillNotClose VectorSchemaRoot batch) throws ComputeException;
 
@@ -52,8 +53,9 @@ public abstract class StatefulUnaryExecutor extends UnaryExecutor {
    * Produce the result of the computation.
    *
    * @return the result of the computation. Empty if executor needs to consume more data.
-   * @throws ComputeException      if an error occurs during consumption
-   * @throws IllegalStateException if the executor is not ready to produce, i.e., need to consume more data
+   * @throws ComputeException if an error occurs during consumption
+   * @throws IllegalStateException if the executor is not ready to produce, i.e., need to consume
+   *     more data
    */
   public abstract VectorSchemaRoot produce() throws ComputeException;
 }

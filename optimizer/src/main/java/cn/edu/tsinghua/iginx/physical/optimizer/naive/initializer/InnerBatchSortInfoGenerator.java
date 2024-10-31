@@ -35,7 +35,8 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import org.apache.arrow.util.Preconditions;
 
-public class InnerBatchSortInfoGenerator implements UnaryExecutorFactory<InnerBatchSortUnaryExecutor> {
+public class InnerBatchSortInfoGenerator
+    implements UnaryExecutorFactory<InnerBatchSortUnaryExecutor> {
 
   private final Sort sort;
 
@@ -48,7 +49,8 @@ public class InnerBatchSortInfoGenerator implements UnaryExecutorFactory<InnerBa
       throws ComputeException {
     IndexSortExpression indexSortExpression = createIndexSortExpression(sort, inputSchema);
     List<FieldNode> outputExpressions = Generators.allFieldExpressions(inputSchema.getFieldCount());
-    return new InnerBatchSortUnaryExecutor(context, inputSchema.raw(), indexSortExpression, outputExpressions);
+    return new InnerBatchSortUnaryExecutor(
+        context, inputSchema.raw(), indexSortExpression, outputExpressions);
   }
 
   private static IndexSortExpression createIndexSortExpression(Sort sort, BatchSchema inputSchema)
