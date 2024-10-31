@@ -103,7 +103,7 @@ public class JoinHashMap implements AutoCloseable {
   }
 
   @Override
-  public void close() throws Exception {
+  public void close() {
     stagedKeysList.forEach(VectorSchemaRoot::close);
     stagedValuesList.forEach(VectorSchemaRoot::close);
     buffer.close();
@@ -308,7 +308,7 @@ public class JoinHashMap implements AutoCloseable {
     }
 
     @Override
-    public void close() throws Exception {
+    public void close(){
       if (!closed) {
         stagedKeysList.forEach(VectorSchemaRoot::close);
         stagedValuesList.forEach(VectorSchemaRoot::close);

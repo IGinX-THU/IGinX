@@ -21,6 +21,7 @@ import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import java.util.Map;
 import java.util.Objects;
 import org.apache.arrow.memory.BufferAllocator;
+import org.apache.arrow.vector.VarBinaryVector;
 
 class RowStreamToBatchStreamWrapper implements BatchStream {
 

@@ -23,6 +23,7 @@ import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import org.apache.arrow.vector.FieldVector;
+import org.apache.arrow.vector.VarBinaryVector;
 import org.apache.arrow.vector.types.Types;
 import org.apache.arrow.vector.types.pojo.ArrowType;
 import org.apache.arrow.vector.types.pojo.Field;
@@ -33,6 +34,7 @@ public class Schemas {
 
   public static ArrowType toArrowType(DataType dataType) {
     return toMinorType(dataType).getType();
+    VarBinaryVector
   }
 
   public static boolean isNumeric(Types.MinorType minorType) {

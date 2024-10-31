@@ -25,14 +25,15 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.excepti
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.Schemas;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.stream.Collectors;
 import org.apache.arrow.util.Preconditions;
 import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.types.pojo.Schema;
 import org.apache.commons.lang3.tuple.Pair;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * This class is used to execute hash join operation. Left is the build side, and right is the probe
@@ -102,7 +103,12 @@ public class HashJoinExecutor extends StatefulBinaryExecutor {
   }
 
   @Override
-  public void close() throws ComputeException {}
+  public void close() throws ComputeException {
+    joinHashMapBuilder.close();
+    if (joinHashMap != null) {
+      joinHashMap.close();
+    }
+  }
 
   @Override
   public boolean needConsumeLeft() throws ComputeException {
