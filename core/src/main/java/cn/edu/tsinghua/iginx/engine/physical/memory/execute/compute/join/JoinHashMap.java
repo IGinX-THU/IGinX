@@ -28,7 +28,6 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.excepti
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.row.RowCursor;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.VectorSchemaRoots;
 import com.google.common.collect.*;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -285,11 +284,12 @@ public class JoinHashMap implements AutoCloseable {
       Schema buildSideKeySchema =
           ScalarExpressions.getOutputSchema(allocator, buildSideKeyExpressions, buildSideSchema);
 
-      Preconditions.checkArgument(probeKeySchema.getFields().size() == buildSideKeySchema.getFields().size());
+      Preconditions.checkArgument(
+          probeKeySchema.getFields().size() == buildSideKeySchema.getFields().size());
       Streams.zip(
-          probeKeySchema.getFields().stream(),
-          buildSideKeySchema.getFields().stream(),
-          (l, r) -> l.getType().equals(r.getType()))
+              probeKeySchema.getFields().stream(),
+              buildSideKeySchema.getFields().stream(),
+              (l, r) -> l.getType().equals(r.getType()))
           .forEach(Preconditions::checkArgument);
 
       Schema buildSideValuesSchema =
@@ -308,7 +308,7 @@ public class JoinHashMap implements AutoCloseable {
     }
 
     @Override
-    public void close(){
+    public void close() {
       if (!closed) {
         stagedKeysList.forEach(VectorSchemaRoot::close);
         stagedValuesList.forEach(VectorSchemaRoot::close);
