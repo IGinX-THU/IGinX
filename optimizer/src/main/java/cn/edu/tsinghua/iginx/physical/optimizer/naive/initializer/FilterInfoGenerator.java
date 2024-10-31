@@ -17,15 +17,16 @@
  */
 package cn.edu.tsinghua.iginx.physical.optimizer.naive.initializer;
 
+import static cn.edu.tsinghua.iginx.physical.optimizer.naive.initializer.TransformProjectionInfoGenerator.getPhysicalExpression;
+
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.ScalarFunction;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.compare.GreaterEqual;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.compare.Less;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.compare.LessEqual;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.compare.*;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.CallNode;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.FieldNode;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.LiteralNode;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpression;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.logic.And;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.logic.Not;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.logic.Or;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
@@ -62,7 +63,7 @@ public class FilterInfoGenerator implements UnaryExecutorFactory<FilterExecutor>
     return construct(filter, context, inputSchema);
   }
 
-  private static ScalarExpression<BitVector> construct(
+  static ScalarExpression<BitVector> construct(
       Filter filter, ExecutorContext context, BatchSchema inputSchema) throws ComputeException {
     switch (filter.getType()) {
       case Value:
@@ -73,6 +74,14 @@ public class FilterInfoGenerator implements UnaryExecutorFactory<FilterExecutor>
         return construct((OrFilter) filter, context, inputSchema);
       case Bool:
         return LiteralNode.of(((BoolFilter) filter).isTrue());
+      case Key:
+        return construct((KeyFilter) filter, context, inputSchema);
+      case Not:
+        return construct((NotFilter) filter, context, inputSchema);
+      case Expr:
+        return construct((ExprFilter) filter, context, inputSchema);
+      case Path:
+        return construct((PathFilter) filter, context, inputSchema);
       default:
         throw new UnsupportedOperationException("Unsupported filter type: " + filter.getType());
     }
@@ -86,6 +95,42 @@ public class FilterInfoGenerator implements UnaryExecutorFactory<FilterExecutor>
   private static ScalarExpression<BitVector> construct(
       OrFilter filter, ExecutorContext context, BatchSchema inputSchema) throws ComputeException {
     return or(construct(filter.getChildren(), context, inputSchema), context, inputSchema);
+  }
+
+  private static ScalarExpression<BitVector> construct(
+      KeyFilter keyFilter, ExecutorContext context, BatchSchema inputSchema) {
+    if (!inputSchema.hasKey()) {
+      return LiteralNode.of(false);
+    }
+    return new CallNode<>(
+        getPredicate(keyFilter.getOp()),
+        new FieldNode(inputSchema.getKeyIndex()),
+        new LiteralNode<>(keyFilter.getValue()));
+  }
+
+  private static ScalarExpression<BitVector> construct(
+      NotFilter filter, ExecutorContext context, BatchSchema inputSchema) throws ComputeException {
+    return new CallNode<>(new Not(), construct(filter.getChild(), context, inputSchema));
+  }
+
+  private static ScalarExpression<BitVector> construct(
+      ExprFilter filter, ExecutorContext context, BatchSchema inputSchema) throws ComputeException {
+    return new CallNode<>(
+        getPredicate(filter.getOp()),
+        getPhysicalExpression(context, inputSchema, filter.getExpressionA()),
+        getPhysicalExpression(context, inputSchema, filter.getExpressionB()));
+  }
+
+  private static ScalarExpression<BitVector> construct(
+      PathFilter filter, ExecutorContext context, BatchSchema inputSchema) throws ComputeException {
+    if (inputSchema.indexOf(filter.getPathA()) == null
+        || inputSchema.indexOf(filter.getPathB()) == null) {
+      throw new ComputeException("Trying to compare non-existing path(s).");
+    }
+    return new CallNode<>(
+        getPredicate(filter.getOp()),
+        new FieldNode(inputSchema.indexOf(filter.getPathA())),
+        new FieldNode(inputSchema.indexOf(filter.getPathB())));
   }
 
   private static List<ScalarExpression<BitVector>> construct(
@@ -162,6 +207,17 @@ public class FilterInfoGenerator implements UnaryExecutorFactory<FilterExecutor>
       case L:
       case L_AND:
         return new Less();
+      case E:
+      case E_AND:
+        return new Equal();
+      case G:
+      case G_AND:
+        return new Greater();
+      case NE:
+      case NE_AND:
+        return new NotEqual();
+      case LIKE:
+      case LIKE_AND:
       default:
         throw new UnsupportedOperationException("Unsupported operator: " + op);
     }
