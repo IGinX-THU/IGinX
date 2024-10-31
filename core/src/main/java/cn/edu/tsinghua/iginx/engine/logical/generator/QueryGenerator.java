@@ -474,6 +474,7 @@ public class QueryGenerator extends AbstractGenerator {
       Filter filter = joinCondition.getFilter();
       List<String> joinColumns = joinCondition.getJoinColumns();
       boolean isNaturalJoin = JoinType.isNaturalJoin(joinCondition.getJoinType());
+      boolean isJoinByKey = joinCondition.isJoinByKey();
 
       if (!joinColumns.isEmpty() || isNaturalJoin) {
         if (prefixA == null || prefixB == null) {
@@ -500,6 +501,7 @@ public class QueryGenerator extends AbstractGenerator {
                   filter,
                   joinColumns,
                   isNaturalJoin,
+                  isJoinByKey,
                   joinAlgType);
           break;
         case LeftOuterJoin:
@@ -520,6 +522,7 @@ public class QueryGenerator extends AbstractGenerator {
                   filter,
                   joinColumns,
                   isNaturalJoin,
+                  isJoinByKey,
                   joinAlgType);
           break;
         default:

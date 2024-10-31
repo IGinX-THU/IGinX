@@ -3305,6 +3305,98 @@ public class SQLSessionIT {
   }
 
   @Test
+  public void testJoinByKey() {
+    String insert =
+        "insert into test1(key, a, b) values (0, 1, 1.5), (1, 2, 2.5), (3, 4, 4.5), (4, 5, 5.5);";
+    executor.execute(insert);
+
+    insert =
+        "insert into test2(key, a, b) values (0, 1, \"aaa\"), (2, 3, \"bbb\"), (4, 5, \"ccc\"), (6, 7, \"ddd\");";
+    executor.execute(insert);
+
+    String statement = "select * from test1 join test2 using key;";
+    String expected =
+        "ResultSets:\n"
+            + "+---+-------+-------+-------+-------+\n"
+            + "|key|test1.a|test1.b|test2.a|test2.b|\n"
+            + "+---+-------+-------+-------+-------+\n"
+            + "|  0|      1|    1.5|      1|    aaa|\n"
+            + "|  4|      5|    5.5|      5|    ccc|\n"
+            + "+---+-------+-------+-------+-------+\n"
+            + "Total line number = 2\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "select * from test1 left join test2 using key;";
+    expected =
+        "ResultSets:\n"
+            + "+---+-------+-------+-------+-------+\n"
+            + "|key|test1.a|test1.b|test2.a|test2.b|\n"
+            + "+---+-------+-------+-------+-------+\n"
+            + "|  0|      1|    1.5|      1|    aaa|\n"
+            + "|  1|      2|    2.5|   null|   null|\n"
+            + "|  3|      4|    4.5|   null|   null|\n"
+            + "|  4|      5|    5.5|      5|    ccc|\n"
+            + "+---+-------+-------+-------+-------+\n"
+            + "Total line number = 4\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "select * from test1 left join test2 using key where key > 2;";
+    expected =
+        "ResultSets:\n"
+            + "+---+-------+-------+-------+-------+\n"
+            + "|key|test1.a|test1.b|test2.a|test2.b|\n"
+            + "+---+-------+-------+-------+-------+\n"
+            + "|  3|      4|    4.5|   null|   null|\n"
+            + "|  4|      5|    5.5|      5|    ccc|\n"
+            + "+---+-------+-------+-------+-------+\n"
+            + "Total line number = 2\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "select * from test1 right join test2 using key;";
+    expected =
+        "ResultSets:\n"
+            + "+---+-------+-------+-------+-------+\n"
+            + "|key|test1.a|test1.b|test2.a|test2.b|\n"
+            + "+---+-------+-------+-------+-------+\n"
+            + "|  0|      1|    1.5|      1|    aaa|\n"
+            + "|  2|   null|   null|      3|    bbb|\n"
+            + "|  4|      5|    5.5|      5|    ccc|\n"
+            + "|  6|   null|   null|      7|    ddd|\n"
+            + "+---+-------+-------+-------+-------+\n"
+            + "Total line number = 4\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "select * from test1 full join test2 using key;";
+    expected =
+        "ResultSets:\n"
+            + "+---+-------+-------+-------+-------+\n"
+            + "|key|test1.a|test1.b|test2.a|test2.b|\n"
+            + "+---+-------+-------+-------+-------+\n"
+            + "|  0|      1|    1.5|      1|    aaa|\n"
+            + "|  1|      2|    2.5|   null|   null|\n"
+            + "|  2|   null|   null|      3|    bbb|\n"
+            + "|  3|      4|    4.5|   null|   null|\n"
+            + "|  4|      5|    5.5|      5|    ccc|\n"
+            + "|  6|   null|   null|      7|    ddd|\n"
+            + "+---+-------+-------+-------+-------+\n"
+            + "Total line number = 6\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "select * from test1 full join test2 using key where key < 2 or key > 4;";
+    expected =
+        "ResultSets:\n"
+            + "+---+-------+-------+-------+-------+\n"
+            + "|key|test1.a|test1.b|test2.a|test2.b|\n"
+            + "+---+-------+-------+-------+-------+\n"
+            + "|  0|      1|    1.5|      1|    aaa|\n"
+            + "|  1|      2|    2.5|   null|   null|\n"
+            + "|  6|   null|   null|      7|    ddd|\n"
+            + "+---+-------+-------+-------+-------+\n"
+            + "Total line number = 3\n";
+    executor.executeAndCompare(statement, expected);
+  }
+
+  @Test
   public void testMultiJoin() {
     String insert =
         "insert into test(key, a.a, a.b) values (1, 1, 1.1), (2, 3, 3.1), (3, 5, 5.1), (4, 7, 7.1), (5, 9, 9.1);";

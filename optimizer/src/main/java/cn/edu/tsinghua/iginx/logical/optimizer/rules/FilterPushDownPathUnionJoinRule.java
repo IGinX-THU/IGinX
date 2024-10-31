@@ -191,6 +191,7 @@ public class FilterPushDownPathUnionJoinRule extends Rule {
                   outerJoin.getFilter(),
                   outerJoin.getJoinColumns(),
                   outerJoin.isNaturalJoin(),
+                  outerJoin.isJoinByKey(),
                   outerJoin.getJoinAlgType(),
                   outerJoin.getExtraJoinPrefix());
         } else if (outerJoin.getOuterJoinType() == OuterJoinType.FULL) {
@@ -216,6 +217,7 @@ public class FilterPushDownPathUnionJoinRule extends Rule {
                   outerJoin.getFilter(),
                   outerJoin.getJoinColumns(),
                   outerJoin.isNaturalJoin(),
+                  outerJoin.isJoinByKey(),
                   outerJoin.getJoinAlgType(),
                   outerJoin.getExtraJoinPrefix());
         } else if (outerJoin.getOuterJoinType() == OuterJoinType.FULL) {
