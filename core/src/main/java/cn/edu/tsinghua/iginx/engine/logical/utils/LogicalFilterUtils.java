@@ -31,6 +31,8 @@ import java.util.*;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class LogicalFilterUtils {
 
@@ -44,6 +46,7 @@ public class LogicalFilterUtils {
       case Path:
       case Bool:
       case Expr:
+      case In:
         return filter;
       case Not:
         throw new SQLParserException("Get DNF failed, filter has not-subFilter.");
@@ -153,6 +156,7 @@ public class LogicalFilterUtils {
       case Path:
       case Bool:
       case Expr:
+      case In:
         return filter;
       case Not:
         throw new SQLParserException("Get CNF failed, filter has not-subFilter.");
@@ -283,6 +287,7 @@ public class LogicalFilterUtils {
       case Path:
       case Bool:
       case Expr:
+      case In:
         return filter;
       case And:
         return removeNot((AndFilter) filter);
@@ -334,6 +339,9 @@ public class LogicalFilterUtils {
       case Expr:
         ((ExprFilter) filter).reverseFunc();
         return filter;
+      case In:
+        ((InFilter) filter).reverseFunc();
+        return filter;
       case Bool:
         return filter;
       case And:
@@ -352,16 +360,79 @@ public class LogicalFilterUtils {
         return new AndFilter(orChildren);
       case Not:
         return removeNot(((NotFilter) filter).getChild());
+
       default:
         throw new SQLParserException(String.format("Unknown token [%s] in reverse filter.", type));
     }
   }
 
-  public static List<KeyRange> getKeyRangesFromFilter(Filter filter) {
-    filter = toDNF(filter.copy());
+  public static List<KeyRange> getKeyRangesFromFilter(final Filter filter) {
+    // 先将filter中的非keyfilter全部去掉，否则toDNF可能会指数爆炸
+    Filter copy = removeExceptKeyFilter(filter.copy());
+    if (copy == null || copy.getType() == FilterType.Bool) return new ArrayList<>();
+    copy = toDNF(copy);
     List<KeyRange> keyRanges = new ArrayList<>();
-    extractKeyRange(keyRanges, filter);
+    extractKeyRange(keyRanges, copy);
     return unionKeyRanges(keyRanges);
+  }
+
+  /**
+   * 去除所有非KeyFilter、AndFilter、OrFilter,以在toDNF时不会指数爆炸
+   *
+   * @param filter 待处理的filter
+   * @return 处理后的filter
+   */
+  private static Filter removeExceptKeyFilter(Filter filter) {
+    switch (filter.getType()) {
+      case And:
+        // AndFilter可以把所有的非KeyFilter、OrFilter去掉
+        AndFilter andFilter = (AndFilter) filter;
+        // 展开所有的AndFilter children,并去除所有非Or、KeyFilter
+        List<Filter> andChildren =
+            andFilter.getChildren().stream()
+                .flatMap(
+                    child -> {
+                      if (child.getType() == FilterType.And) {
+                        return ((AndFilter) child).getChildren().stream();
+                      }
+                      return Stream.of(child);
+                    })
+                .map(LogicalFilterUtils::removeExceptKeyFilter)
+                .filter(f -> f.getType() == FilterType.Key || f.getType() == FilterType.Or)
+                .collect(Collectors.toList());
+
+        if (andChildren.isEmpty()) return new BoolFilter(true);
+        if (andChildren.size() == 1) return andChildren.get(0);
+        return new AndFilter(andChildren);
+      case Or:
+        // 如果orFilter中有非KeyFilter/AndFilter,则返回True,因为有可能仅命中非KeyFilter，那就不受keyfilter的约束
+        OrFilter orFilter = (OrFilter) filter;
+        List<Filter> children = orFilter.getChildren();
+        // 展开所有的OrFilter children
+        children =
+            children.stream()
+                .flatMap(
+                    child -> {
+                      if (child.getType() == FilterType.Or) {
+                        return ((OrFilter) child).getChildren().stream();
+                      }
+                      return Stream.of(child);
+                    })
+                .collect(Collectors.toList());
+
+        // 如果所有的children都是KeyFilter或者AndFilter,则返回一个新的OrFilter,否则返回True
+        if (children.stream()
+            .map(LogicalFilterUtils::removeExceptKeyFilter)
+            .allMatch(f -> f.getType() == FilterType.Key || f.getType() == FilterType.And)) {
+          return new OrFilter(children);
+        }
+        return new BoolFilter(true);
+
+      case Key:
+        return filter;
+      default:
+        return new BoolFilter(true);
+    }
   }
 
   private static void extractKeyRange(List<KeyRange> keyRanges, Filter f) {
@@ -372,6 +443,7 @@ public class LogicalFilterUtils {
       case Path:
       case Bool:
       case Expr:
+      case In:
         break;
       case Key:
         keyRanges.add(getKeyRangesFromKeyFilter((KeyFilter) f));
@@ -592,6 +664,16 @@ public class LogicalFilterUtils {
         }
 
         return filter;
+
+      case In:
+        String inPath = ((InFilter) filter).getPath();
+        InFilter.InOp inOp = ((InFilter) filter).getInOp();
+        if (inPath.contains("*")
+            && inOp.isOrOp()
+            && wildcardPathMatchMultiFragments(inPath, fragmentMetaSet)) {
+          return new BoolFilter(true);
+        }
+        return filter;
       case Path:
         String pathA = ((PathFilter) filter).getPathA();
         String pathB = ((PathFilter) filter).getPathB();
@@ -708,14 +790,23 @@ public class LogicalFilterUtils {
         }
         return new AndFilter(andChildren);
       case Value:
-        String path = ((ValueFilter) filter).getPath();
+      case In:
+        String path;
+        boolean isOrOp;
+        if (filter.getType() == FilterType.Value) {
+          path = ((ValueFilter) filter).getPath();
+          isOrOp = Op.isOrOp(((ValueFilter) filter).getOp());
+        } else {
+          path = ((InFilter) filter).getPath();
+          isOrOp = ((InFilter) filter).getInOp().isOrOp();
+        }
         if (isFunction(path)) {
           return new BoolFilter(true);
         }
         if (!predicate.test(path)) {
           return new BoolFilter(true);
         }
-        if (Op.isOrOp(((ValueFilter) filter).getOp()) && path.contains("*")) {
+        if (isOrOp && path.contains("*")) {
           return new BoolFilter(true);
         }
         return filter;
@@ -841,6 +932,12 @@ public class LogicalFilterUtils {
           return new BoolFilter(true);
         }
         return filter;
+      case In:
+        String inPath = ((InFilter) filter).getPath();
+        if (!isInPatterns(inPath, patterns)) {
+          return new BoolFilter(true);
+        }
+        return filter;
       case Path:
         String pathA = ((PathFilter) filter).getPathA();
         String pathB = ((PathFilter) filter).getPathB();
@@ -930,6 +1027,9 @@ public class LogicalFilterUtils {
           public void visit(ExprFilter exprFilter) {
             exprFilters.add(exprFilter);
           }
+
+          @Override
+          public void visit(InFilter filter) {}
         });
     return exprFilters;
   }
@@ -969,6 +1069,11 @@ public class LogicalFilterUtils {
             paths.addAll(ExprUtils.getPathFromExpr(filter.getExpressionA()));
             paths.addAll(ExprUtils.getPathFromExpr(filter.getExpressionB()));
           }
+
+          @Override
+          public void visit(InFilter filter) {
+            paths.add(filter.getPath());
+          }
         });
     return paths;
   }
@@ -986,7 +1091,7 @@ public class LogicalFilterUtils {
 
     List<Filter> splitFilter = new ArrayList<>();
     if (filter.getType() != FilterType.And) {
-      filter = toCNF(filter);
+      filter = toCNF(filter.copy());
     }
 
     if (filter.getType() != FilterType.And) {

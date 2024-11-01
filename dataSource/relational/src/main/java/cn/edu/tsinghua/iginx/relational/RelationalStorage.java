@@ -43,16 +43,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.Delete;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Insert;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.BoolFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.FilterType;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.NotFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.OrFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.PathFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.ValueFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
@@ -894,6 +885,29 @@ public class RelationalStorage implements IStorage {
             return new AndFilter(newFilters);
           }
         }
+      case In:
+        InFilter inFilter = (InFilter) filter;
+        String inPath = inFilter.getPath();
+        if (inPath.contains("*")) {
+          List<String> matchedPath = getMatchedPath(inPath, columnNamesList);
+          if (matchedPath.size() == 0) {
+            return new BoolFilter(true);
+          } else if (matchedPath.size() == 1) {
+            return new InFilter(matchedPath.get(0), inFilter.getInOp(), inFilter.getValues());
+          } else {
+            List<Filter> inChildren = new ArrayList<>();
+            for (String matched : matchedPath) {
+              inChildren.add(new InFilter(matched, inFilter.getInOp(), inFilter.getValues()));
+            }
+
+            if (inFilter.getInOp().isOrOp()) {
+              return new OrFilter(inChildren);
+            }
+            return new AndFilter(inChildren);
+          }
+        }
+
+        return filter;
       case Path:
         String pathA = ((PathFilter) filter).getPathA();
         String pathB = ((PathFilter) filter).getPathB();
@@ -913,7 +927,7 @@ public class RelationalStorage implements IStorage {
                   new PathFilter(
                       matched, ((PathFilter) filter).getOp(), ((PathFilter) filter).getPathB()));
             }
-            if (Op.isOrOp(((ValueFilter) filter).getOp())) {
+            if (Op.isOrOp(((PathFilter) filter).getOp())) {
               filter = new OrFilter(andPathChildren);
             } else {
               filter = new AndFilter(andPathChildren);
@@ -999,6 +1013,16 @@ public class RelationalStorage implements IStorage {
               path.substring(databaseName.length() + 1),
               ((ValueFilter) filter).getOp(),
               ((ValueFilter) filter).getValue());
+        }
+        break;
+      case In:
+        InFilter inFilter = (InFilter) filter;
+        String inPath = inFilter.getPath();
+        if (inPath.startsWith(databaseName + SEPARATOR)) {
+          return new InFilter(
+              inPath.substring(databaseName.length() + 1),
+              inFilter.getInOp(),
+              inFilter.getValues());
         }
         break;
       case Path:
@@ -1241,6 +1265,13 @@ public class RelationalStorage implements IStorage {
         String pathB = ((PathFilter) filter).getPathB();
         if ((!pathA.contains("*") && !columnNameList.contains(pathA))
             || (!pathB.contains("*") && !columnNameList.contains(pathB))) {
+          return new BoolFilter(true);
+        }
+        break;
+      case In:
+        InFilter inFilter = (InFilter) filter;
+        String inPath = inFilter.getPath();
+        if (!inPath.contains("*") && !columnNameList.contains(inPath)) {
           return new BoolFilter(true);
         }
         break;

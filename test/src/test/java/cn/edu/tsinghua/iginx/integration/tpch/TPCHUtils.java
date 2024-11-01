@@ -164,6 +164,7 @@ public class TPCHUtils {
             System.out.println("Number: " + number);
             System.out.println("Answer number: " + answerNumber);
           }
+
           assert answerNumber - number < 1e-3 && number - answerNumber < 1e-3;
         } else {
           String resultString =

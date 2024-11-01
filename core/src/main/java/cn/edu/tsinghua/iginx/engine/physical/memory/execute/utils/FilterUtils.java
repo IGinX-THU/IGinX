@@ -74,10 +74,55 @@ public class FilterUtils {
       case Expr:
         ExprFilter exprFilter = (ExprFilter) filter;
         return validateExprFilter(exprFilter, row);
+      case In:
+        InFilter inFilter = (InFilter) filter;
+        return validateInFilter(inFilter, row);
       default:
         break;
     }
     return false;
+  }
+
+  private static boolean validateInFilter(InFilter inFilter, Row row) {
+    String path = inFilter.getPath();
+    Set<Value> values = inFilter.getValues();
+
+    if (path.contains("*")) { // 带通配符的filter
+      List<Value> valueList = row.getAsValueByPattern(path);
+      InFilter.InOp inOp = inFilter.getInOp();
+      if (inOp.isOrOp()) {
+        for (Value value : valueList) {
+          if (value == null || value.isNull()) { // value是空值，则认为不可比较
+            return false;
+          }
+          if (inOp.isNotOp() && !values.contains(value)) {
+            return true;
+          } else if (!inOp.isNotOp() && values.contains(value)) {
+            return true;
+          }
+        }
+        return false;
+      } else {
+        for (Value value : valueList) {
+          if (value == null || value.isNull()) { // value是空值，则认为不可比较
+            return false;
+          }
+
+          if (inOp.isNotOp() && values.contains(value)) {
+            return false;
+          } else if (!inOp.isNotOp() && !values.contains(value)) {
+            return false;
+          }
+        }
+        return true;
+      }
+    } else {
+      Value value = row.getAsValue(path);
+      if (value == null || value.isNull()) { // value是空值，则认为不可比较
+        return false;
+      }
+      return inFilter.getInOp().isNotOp() ^ values.contains(value);
+    }
   }
 
   private static boolean validateKeyFilter(KeyFilter keyFilter, Row row) {
@@ -292,6 +337,9 @@ public class FilterUtils {
         paths.add(pathFilter.getPathA());
         paths.add(pathFilter.getPathB());
         break;
+      case In:
+        paths.add(((InFilter) filter).getPath());
+        break;
       case Expr:
         ExprFilter exprFilter = (ExprFilter) filter;
         paths.addAll(ExprUtils.getPathFromExpr(exprFilter.getExpressionA()));
@@ -332,6 +380,7 @@ public class FilterUtils {
       case Key:
       case Value:
       case Bool:
+      case In:
         return false;
       default:
         throw new IllegalArgumentException("Unexpected filter type: " + filter.getType());
@@ -396,6 +445,9 @@ public class FilterUtils {
 
           @Override
           public void visit(ExprFilter filter) {}
+
+          @Override
+          public void visit(InFilter inFilter) {}
         });
     return pathFilters;
   }

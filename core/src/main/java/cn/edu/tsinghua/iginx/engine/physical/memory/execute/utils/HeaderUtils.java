@@ -299,6 +299,9 @@ public class HeaderUtils {
 
           @Override
           public void visit(ExprFilter filter) {}
+
+          @Override
+          public void visit(InFilter filter) {}
         });
     return joinPaths;
   }

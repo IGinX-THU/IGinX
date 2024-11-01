@@ -225,6 +225,7 @@ public class FilterUtils {
       case Key:
       case Expr:
       case Not:
+      case In:
         return null;
       case Value:
         return getFilter((ValueFilter) filter, renamedFields);
@@ -252,6 +253,7 @@ public class FilterUtils {
         return getFilter((PathFilter) filter, renamedFields);
       case Expr:
       case Not:
+      case In:
         return null;
       case Bool:
         return getFilter((BoolFilter) filter);

@@ -96,6 +96,11 @@ public class FilterPushDownAddSchemaPrefixRule extends Rule {
             removeExpressionPrefix(exprA, prefix);
             removeExpressionPrefix(exprB, prefix);
           }
+
+          @Override
+          public void visit(InFilter inFilter) {
+            inFilter.setPath(removePrefix(inFilter.getPath(), prefix));
+          }
         });
   }
 

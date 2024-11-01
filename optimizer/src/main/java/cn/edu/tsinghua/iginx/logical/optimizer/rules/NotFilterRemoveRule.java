@@ -70,6 +70,9 @@ public class NotFilterRemoveRule extends Rule {
 
           @Override
           public void visit(ExprFilter filter) {}
+
+          @Override
+          public void visit(InFilter filter) {}
         });
 
     return hasNot[0];

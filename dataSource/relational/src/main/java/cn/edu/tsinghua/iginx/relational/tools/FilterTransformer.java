@@ -21,9 +21,11 @@ package cn.edu.tsinghua.iginx.relational.tools;
 
 import static cn.edu.tsinghua.iginx.relational.tools.Constants.*;
 
+import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.relational.meta.AbstractRelationalMeta;
 import cn.edu.tsinghua.iginx.thrift.DataType;
+import java.util.stream.Collectors;
 
 public class FilterTransformer {
 
@@ -52,6 +54,8 @@ public class FilterTransformer {
         return toString((PathFilter) filter);
       case Bool:
         return toString((BoolFilter) filter);
+      case In:
+        return toString((InFilter) filter);
       default:
         return "";
     }
@@ -144,6 +148,20 @@ public class FilterTransformer {
             .replace("==", "="); // postgresql does not support "==" but uses "=" instead
 
     return pathA + " " + op + " " + pathB;
+  }
+
+  private String toString(InFilter filter) {
+    RelationSchema schema = new RelationSchema(filter.getPath(), relationalMeta.getQuote());
+    String path = schema.getQuoteFullName();
+    String op = filter.getInOp().isNotOp() ? "not in" : "in";
+    String values =
+        "("
+            + filter.getValues().stream()
+                .map(Value::getValue)
+                .map(Object::toString)
+                .collect(Collectors.joining(","))
+            + ")";
+    return path + " " + op + " " + values;
   }
 
   private String getQuotName(String name) {

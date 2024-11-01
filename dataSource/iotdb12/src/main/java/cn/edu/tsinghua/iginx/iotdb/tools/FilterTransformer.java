@@ -19,6 +19,7 @@
  */
 package cn.edu.tsinghua.iginx.iotdb.tools;
 
+import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 
@@ -39,6 +40,8 @@ public class FilterTransformer {
         return toString((ValueFilter) filter);
       case Key:
         return toString((KeyFilter) filter);
+      case In:
+        return toString((InFilter) filter);
       default:
         return "";
     }
@@ -110,5 +113,22 @@ public class FilterTransformer {
     }
 
     return "(" + sb.substring(0, sb.length() - 4) + ")";
+  }
+
+  private static String toString(InFilter filter) {
+    StringBuilder sb = new StringBuilder();
+    sb.append(filter.getPath());
+
+    if (filter.getInOp().isNotOp()) {
+      sb.append(" not in (");
+    } else {
+      sb.append(" in (");
+    }
+
+    for (Value value : filter.getValues()) {
+      sb.append(value.getValue().toString()).append(", ");
+    }
+
+    return sb.substring(0, sb.length() - 2) + ")";
   }
 }

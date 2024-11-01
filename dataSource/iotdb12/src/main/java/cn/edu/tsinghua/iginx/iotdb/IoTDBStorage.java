@@ -40,13 +40,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.Delete;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Insert;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.NotFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.OrFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.ValueFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.iotdb.exception.IoTDBException;
 import cn.edu.tsinghua.iginx.iotdb.exception.IoTDBTaskExecuteFailureException;
@@ -980,6 +974,31 @@ public class IoTDBStorage implements IStorage {
           } else {
             return new AndFilter(newFilters);
           }
+        }
+      case In:
+        InFilter inFilter = (InFilter) filter;
+        DataType inType = inFilter.getValues().stream().findFirst().get().getDataType();
+        String inPath = inFilter.getPath();
+
+        if (inPath.contains("*")) {
+          List<String> matchedPath =
+              getMatchPath(inPath, inType, columns, columns2Fragment, storageUnit);
+          if (matchedPath.size() == 0) {
+            return null;
+          }
+
+          List<Filter> newFilters = new ArrayList<>();
+          for (String p : matchedPath) {
+            newFilters.add(new InFilter(p, inFilter.getInOp(), inFilter.getValues()));
+          }
+
+          if (inFilter.getInOp().isOrOp()) {
+            return new OrFilter(newFilters);
+          } else {
+            return new AndFilter(newFilters);
+          }
+        } else {
+          return filter;
         }
       default:
         return null;
