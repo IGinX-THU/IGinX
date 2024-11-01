@@ -958,15 +958,15 @@ public class IoTDBStorage implements IStorage {
         ValueFilter valueFilter = (ValueFilter) filter;
         DataType valueType = valueFilter.getValue().getDataType();
         String path = valueFilter.getPath();
-        List<String> matchedPath =
+        List<String> matchedPaths =
             getMatchPath(path, valueType, columns, columns2Fragment, storageUnit);
-        if (matchedPath.size() == 1) {
-          return new ValueFilter(matchedPath.get(0), valueFilter.getOp(), valueFilter.getValue());
-        } else if (matchedPath.isEmpty()) {
+        if (matchedPaths.size() == 1) {
+          return new ValueFilter(matchedPaths.get(0), valueFilter.getOp(), valueFilter.getValue());
+        } else if (matchedPaths.isEmpty()) {
           return null;
         } else {
           List<Filter> newFilters = new ArrayList<>();
-          for (String p : matchedPath) {
+          for (String p : matchedPaths) {
             newFilters.add(new ValueFilter(p, valueFilter.getOp(), valueFilter.getValue()));
           }
           if (Op.isOrOp(valueFilter.getOp())) {
