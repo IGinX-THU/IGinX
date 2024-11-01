@@ -65,6 +65,8 @@ public class NaivePhysicalPlanner {
         return construct((Limit) operator, context);
       case InnerJoin:
         return construct((InnerJoin) operator, context);
+      case MarkJoin:
+        return construct((MarkJoin) operator, context);
       default:
         throw new UnsupportedOperationException("Unsupported operator type: " + operator.getType());
     }
@@ -307,5 +309,31 @@ public class NaivePhysicalPlanner {
         Collections.singletonList(operator),
         context,
         new InnerJoinInfoGenerator(operator));
+  }
+
+  public PhysicalTask construct(MarkJoin operator, RequestContext context) {
+    PhysicalTask leftTask = construct(operator.getSourceA(), context);
+    PhysicalTask rightTask = construct(operator.getSourceB(), context);
+
+    PhysicalTask leftFetchAllTask =
+        new UnarySinkMemoryPhysicalTask(
+            leftTask,
+            Collections.emptyList(),
+            context,
+            (ctx, schema) -> new FetchAllUnaryExecutor(ctx, schema.raw()));
+
+    PhysicalTask rightFetchAllTask =
+        new UnarySinkMemoryPhysicalTask(
+            rightTask,
+            Collections.emptyList(),
+            context,
+            (ctx, schema) -> new FetchAllUnaryExecutor(ctx, schema.raw()));
+
+    return new BinarySinkMemoryPhysicalTask(
+        rightFetchAllTask,
+        leftFetchAllTask,
+        Collections.singletonList(operator),
+        context,
+        new MarkJoinInfoGenerator(operator));
   }
 }

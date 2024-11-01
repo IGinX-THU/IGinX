@@ -20,20 +20,28 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.join;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.row.RowCursor;
 import java.util.*;
 import org.apache.arrow.memory.BufferAllocator;
+import org.apache.arrow.vector.BitVector;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.types.pojo.Schema;
 
 public class JoinOutputBuffer {
   private final int batchSize;
+  private final JoinOption joinOption;
   private final Queue<VectorSchemaRoot> staged;
   private final VectorSchemaRoot buffer;
   private final RowCursor leftOutputCursor;
   private final RowCursor rightOutputCursor;
+  private final Optional<BitVector> markColumn;
 
   JoinOutputBuffer(
-      BufferAllocator allocator, int batchSize, Schema leftOutputSchema, Schema rightOutputSchema) {
+      BufferAllocator allocator,
+      int batchSize,
+      JoinOption joinOption,
+      Schema leftOutputSchema,
+      Schema rightOutputSchema) {
     this.batchSize = batchSize;
+    this.joinOption = joinOption;
 
     VectorSchemaRoot leftBuffer = VectorSchemaRoot.create(leftOutputSchema, allocator);
     VectorSchemaRoot rightBuffer = VectorSchemaRoot.create(rightOutputSchema, allocator);
@@ -43,6 +51,15 @@ public class JoinOutputBuffer {
     List<FieldVector> allBuffers = new ArrayList<>();
     allBuffers.addAll(leftBuffer.getFieldVectors());
     allBuffers.addAll(rightBuffer.getFieldVectors());
+
+    if (joinOption.needMark()) {
+      BitVector markColumn = new BitVector(joinOption.markColumnName(), allocator);
+      allBuffers.add(markColumn);
+      this.markColumn = Optional.of(markColumn);
+    } else {
+      this.markColumn = Optional.empty();
+    }
+
     this.buffer = new VectorSchemaRoot(allBuffers);
     resetBuffer();
 
@@ -65,17 +82,25 @@ public class JoinOutputBuffer {
     return staged.remove();
   }
 
-  void append(Iterable<JoinCursor> leftCursors, Iterable<JoinCursor> rightCursors) {
-    Iterator<JoinCursor> leftIterator = leftCursors.iterator();
-    Iterator<JoinCursor> rightIterator = rightCursors.iterator();
+  void append(Iterable<JoinCursor> buildSideCursors, Iterable<JoinCursor> probeSideCursors) {
+    Iterator<JoinCursor> buildSideIterator = buildSideCursors.iterator();
+    Iterator<JoinCursor> probeSideIterator = probeSideCursors.iterator();
 
-    while (leftIterator.hasNext() || rightIterator.hasNext()) {
-      if (leftIterator.hasNext()) {
-        leftIterator.next().copyValuesTo(leftOutputCursor);
+    while (buildSideIterator.hasNext() || probeSideIterator.hasNext()) {
+      if (buildSideIterator.hasNext()) {
+        JoinCursor buildCursor = buildSideIterator.next();
+        buildCursor.copyValuesTo(leftOutputCursor);
         leftOutputCursor.setPosition(leftOutputCursor.getPosition() + 1);
       }
-      if (rightIterator.hasNext()) {
-        rightIterator.next().copyValuesTo(rightOutputCursor);
+      if (probeSideIterator.hasNext()) {
+        JoinCursor probeCursor = probeSideIterator.next();
+        probeCursor.copyValuesTo(rightOutputCursor);
+        markColumn.ifPresent(
+            marks -> {
+              boolean mark =
+                  joinOption.isAntiMark() ? probeCursor.isUnmatched() : probeCursor.isMatched();
+              marks.set(rightOutputCursor.getPosition(), mark ? 1 : 0);
+            });
         rightOutputCursor.setPosition(rightOutputCursor.getPosition() + 1);
       }
       if (getBufferedRowCount() >= batchSize) {

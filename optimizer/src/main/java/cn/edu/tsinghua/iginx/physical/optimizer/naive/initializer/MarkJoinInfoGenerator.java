@@ -17,23 +17,22 @@
  */
 package cn.edu.tsinghua.iginx.physical.optimizer.naive.initializer;
 
-import static cn.edu.tsinghua.iginx.engine.shared.operator.type.JoinAlgType.HashJoin;
-
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.join.JoinOption;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.binary.BinaryExecutorFactory;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.binary.stateful.HashJoinExecutor;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.binary.stateful.StatefulBinaryExecutor;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
-import cn.edu.tsinghua.iginx.engine.shared.operator.InnerJoin;
+import cn.edu.tsinghua.iginx.engine.shared.operator.MarkJoin;
 import cn.edu.tsinghua.iginx.physical.optimizer.naive.util.HashJoins;
 import java.util.Objects;
 
-public class InnerJoinInfoGenerator implements BinaryExecutorFactory<StatefulBinaryExecutor> {
+public class MarkJoinInfoGenerator implements BinaryExecutorFactory<StatefulBinaryExecutor> {
 
-  private final InnerJoin operator;
+  private final MarkJoin operator;
 
-  public InnerJoinInfoGenerator(InnerJoin operator) {
+  public MarkJoinInfoGenerator(MarkJoin operator) {
     this.operator = Objects.requireNonNull(operator);
   }
 
@@ -41,7 +40,6 @@ public class InnerJoinInfoGenerator implements BinaryExecutorFactory<StatefulBin
   public StatefulBinaryExecutor initialize(
       ExecutorContext context, BatchSchema leftSchema, BatchSchema rightSchema)
       throws ComputeException {
-
     switch (operator.getJoinAlgType()) {
       case HashJoin:
         return initializeHashJoin(context, leftSchema, rightSchema);
@@ -51,14 +49,10 @@ public class InnerJoinInfoGenerator implements BinaryExecutorFactory<StatefulBin
     }
   }
 
-  private StatefulBinaryExecutor initializeHashJoin(
+  public HashJoinExecutor initializeHashJoin(
       ExecutorContext context, BatchSchema leftSchema, BatchSchema rightSchema)
       throws ComputeException {
-
-    if (operator.getJoinAlgType() != HashJoin) {
-      throw new IllegalArgumentException(
-          "JoinAlgType is not HashJoin: " + operator.getJoinAlgType());
-    }
+    JoinOption joinOption = JoinOption.ofMark(operator.getMarkColumn(), operator.isAntiJoin());
 
     return HashJoins.constructHashJoin(
         context,
@@ -66,6 +60,6 @@ public class InnerJoinInfoGenerator implements BinaryExecutorFactory<StatefulBin
         rightSchema,
         operator.getExtraJoinPrefix(),
         operator.getFilter(),
-        JoinOption.INNER);
+        joinOption);
   }
 }
