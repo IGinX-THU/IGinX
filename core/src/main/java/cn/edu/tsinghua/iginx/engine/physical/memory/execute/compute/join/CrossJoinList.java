@@ -17,19 +17,4 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.join;
 
-public enum JoinType {
-  INNER,
-  LEFT,
-  RIGHT,
-  FULL,
-  MARK,
-  SINGLE;
-
-  public boolean needOutputLeftUnmatched() {
-    return this == LEFT || this == FULL;
-  }
-
-  public boolean needOutputRightUnmatched() {
-    return this == RIGHT || this == FULL;
-  }
-}
+public class CrossJoinList {}

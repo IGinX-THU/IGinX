@@ -105,9 +105,11 @@ public class BinarySinkMemoryPhysicalTask extends BinaryMemoryPhysicalTask {
 
     @Override
     public void close() throws PhysicalException {
-      executor.close();
-      leftSource.close();
-      rightSource.close();
+      try (StatefulBinaryExecutor executor = this.executor;
+          BatchStream leftSource = this.leftSource;
+          BatchStream rightSource = this.rightSource) {
+        // just close the resources
+      }
     }
   }
 

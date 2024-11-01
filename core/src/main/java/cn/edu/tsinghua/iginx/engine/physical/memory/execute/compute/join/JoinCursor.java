@@ -21,40 +21,47 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.row.Row
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 
-class JoinCursor {
+final class JoinCursor {
 
-  private final FieldVector[] keyColumns;
-  private final FieldVector[] valueColumns;
+  private final FieldVector[] onFieldColumns;
+  private final FieldVector[] outputFieldColumns;
   private final int index;
   private boolean matched = false;
 
-  public JoinCursor(VectorSchemaRoot keys, VectorSchemaRoot values) {
+  public JoinCursor(VectorSchemaRoot onField, VectorSchemaRoot outputFields) {
     this(
-        keys.getFieldVectors().toArray(new FieldVector[0]),
-        values.getFieldVectors().toArray(new FieldVector[0]),
+        onField.getFieldVectors().toArray(new FieldVector[0]),
+        outputFields.getFieldVectors().toArray(new FieldVector[0]),
         0);
   }
 
-  protected JoinCursor(FieldVector[] keyColumns, FieldVector[] valueColumns, int index) {
-    this.keyColumns = keyColumns;
-    this.valueColumns = valueColumns;
+  JoinCursor(FieldVector[] onFieldColumns, FieldVector[] outputFieldColumns, int index) {
+    this.onFieldColumns = onFieldColumns;
+    this.outputFieldColumns = outputFieldColumns;
     this.index = index;
   }
 
   public JoinCursor withPosition(int position) {
-    return new JoinCursor(this.keyColumns, this.valueColumns, position);
+    return new JoinCursor(this.onFieldColumns, this.outputFieldColumns, position);
   }
 
   public void copyKeysTo(RowCursor cursor) {
-    cursor.copyFrom(keyColumns, index);
+    cursor.copyFrom(onFieldColumns, index);
   }
 
   public void copyValuesTo(RowCursor cursor) {
+    cursor.copyFrom(outputFieldColumns, index);
+  }
+
+  public void markMatched() {
     matched = true;
-    cursor.copyFrom(valueColumns, index);
   }
 
   public boolean isUnmatched() {
     return !matched;
+  }
+
+  public boolean isMatched() {
+    return !isUnmatched();
   }
 }

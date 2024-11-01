@@ -18,20 +18,21 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.binary.stateful;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.join.JoinHashMap;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.join.JoinType;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.join.JoinOption;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpression;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpressions;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
-import cn.edu.tsinghua.iginx.engine.shared.data.arrow.Schemas;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
+import org.apache.arrow.vector.BitVector;
+import org.apache.arrow.vector.IntVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
+import org.apache.arrow.vector.types.Types;
+import org.apache.arrow.vector.types.pojo.Field;
 import org.apache.arrow.vector.types.pojo.Schema;
-import org.apache.commons.lang3.tuple.Pair;
 
 /**
  * This class is used to execute hash join operation. Left is the build side, and right is the probe
@@ -39,11 +40,14 @@ import org.apache.commons.lang3.tuple.Pair;
  */
 public class HashJoinExecutor extends StatefulBinaryExecutor {
 
-  private final JoinType joinType;
-  private final List<ScalarExpression<?>> leftOutputExpressions;
-  private final List<ScalarExpression<?>> rightOutputExpressions;
-  private final List<ScalarExpression<?>> leftKeyExpressions;
-  private final List<ScalarExpression<?>> rightKeyExpressions;
+  private final JoinOption joinOption;
+  private final List<ScalarExpression<?>> leftOutputFieldExpressions;
+  private final List<ScalarExpression<?>> rightOutputFieldExpressions;
+  private final List<ScalarExpression<?>> leftOnFieldExpressions;
+  private final List<ScalarExpression<?>> rightOnFieldExpressions;
+  private final ScalarExpression<BitVector> onFieldsPairTester;
+  private final ScalarExpression<IntVector> leftHasher;
+  private final ScalarExpression<IntVector> rightHasher;
 
   private final Schema outputSchema;
   private final JoinHashMap.Builder joinHashMapBuilder;
@@ -53,31 +57,47 @@ public class HashJoinExecutor extends StatefulBinaryExecutor {
       ExecutorContext context,
       BatchSchema leftSchema,
       BatchSchema rightSchema,
-      JoinType joinType,
-      List<ScalarExpression<?>> leftOutputExpressions,
-      List<ScalarExpression<?>> rightOutputExpressions,
-      List<Pair<ScalarExpression<?>, ScalarExpression<?>>> on)
+      JoinOption joinOption,
+      List<? extends ScalarExpression<?>> leftOutputFieldExpressions,
+      List<? extends ScalarExpression<?>> rightOutputFieldExpressions,
+      List<? extends ScalarExpression<?>> leftOnFieldExpressions,
+      List<? extends ScalarExpression<?>> rightOnFieldExpressions,
+      ScalarExpression<BitVector> onFieldsPairTester,
+      ScalarExpression<IntVector> leftHasher,
+      ScalarExpression<IntVector> rightHasher)
       throws ComputeException {
     super(context, leftSchema, rightSchema, 1);
-    this.joinType = Objects.requireNonNull(joinType);
-    this.leftOutputExpressions = new ArrayList<>(leftOutputExpressions);
-    this.rightOutputExpressions = new ArrayList<>(rightOutputExpressions);
-    this.leftKeyExpressions = on.stream().map(Pair::getLeft).collect(Collectors.toList());
-    this.rightKeyExpressions = on.stream().map(Pair::getRight).collect(Collectors.toList());
+    this.joinOption = Objects.requireNonNull(joinOption);
+    this.leftOutputFieldExpressions = new ArrayList<>(leftOutputFieldExpressions);
+    this.rightOutputFieldExpressions = new ArrayList<>(rightOutputFieldExpressions);
+    this.leftOnFieldExpressions = new ArrayList<>(leftOnFieldExpressions);
+    this.rightOnFieldExpressions = new ArrayList<>(rightOnFieldExpressions);
+    this.onFieldsPairTester = Objects.requireNonNull(onFieldsPairTester);
+    this.leftHasher = Objects.requireNonNull(leftHasher);
+    this.rightHasher = Objects.requireNonNull(rightHasher);
 
-    this.outputSchema =
-        Schemas.merge(
-            ScalarExpressions.getOutputSchema(
-                context.getAllocator(), leftOutputExpressions, getLeftSchema().raw()),
-            ScalarExpressions.getOutputSchema(
-                context.getAllocator(), rightOutputExpressions, getRightSchema().raw()));
+    List<Field> outputFields = new ArrayList<>();
+    outputFields.addAll(
+        ScalarExpressions.getOutputSchema(
+                context.getAllocator(), leftOutputFieldExpressions, getLeftSchema().raw())
+            .getFields());
+    outputFields.addAll(
+        ScalarExpressions.getOutputSchema(
+                context.getAllocator(), rightOutputFieldExpressions, getRightSchema().raw())
+            .getFields());
+    if (joinOption.needMark()) {
+      outputFields.add(Field.nullable(joinOption.markColumnName(), Types.MinorType.BIT.getType()));
+    }
+    this.outputSchema = new Schema(outputFields);
 
     this.joinHashMapBuilder =
         new JoinHashMap.Builder(
             context.getAllocator(),
             getLeftSchema().raw(),
-            leftKeyExpressions,
-            leftOutputExpressions);
+            joinOption,
+            this.leftHasher,
+            this.leftOnFieldExpressions,
+            this.leftOutputFieldExpressions);
   }
 
   @Override
@@ -87,16 +107,22 @@ public class HashJoinExecutor extends StatefulBinaryExecutor {
 
   @Override
   protected String getInfo() {
-    return "HashJoin("
-        + joinType
-        + ")"
-        + leftOutputExpressions
-        + "And"
-        + rightOutputExpressions
-        + "On"
-        + leftKeyExpressions
-        + "Equal"
-        + rightKeyExpressions;
+    return "Join("
+        + joinOption
+        + ") "
+        + leftOutputFieldExpressions
+        + " x "
+        + rightOutputFieldExpressions
+        + " On "
+        + leftOnFieldExpressions
+        + " x "
+        + rightOnFieldExpressions
+        + " Where "
+        + onFieldsPairTester
+        + " And "
+        + leftHasher
+        + " = "
+        + rightHasher;
   }
 
   @Override
@@ -123,13 +149,15 @@ public class HashJoinExecutor extends StatefulBinaryExecutor {
         joinHashMapBuilder.build(
             context.getBatchRowCount(),
             getRightSchema().raw(),
-            rightKeyExpressions,
-            rightOutputExpressions);
+            rightHasher,
+            rightOnFieldExpressions,
+            rightOutputFieldExpressions,
+            onFieldsPairTester);
   }
 
   @Override
   protected void consumeRightUnchecked(VectorSchemaRoot batch) throws ComputeException {
-    joinHashMap.probe(batch, joinType.needOutputRightUnmatched());
+    joinHashMap.probe(batch);
     while (!joinHashMap.getOutput().isEmpty()) {
       offerResult(joinHashMap.getOutput().poll());
     }
@@ -137,7 +165,7 @@ public class HashJoinExecutor extends StatefulBinaryExecutor {
 
   @Override
   protected void consumeRightEnd() throws ComputeException {
-    if (joinType.needOutputLeftUnmatched()) {
+    if (joinOption.needOutputBuildSideUnmatched()) {
       joinHashMap.outputBuildSideUnmatched();
     }
     joinHashMap.getOutput().flush();
