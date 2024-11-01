@@ -206,7 +206,7 @@ public abstract class BaseCapacityExpansionIT {
   }
 
   @Test
-  public void oriHasDataExpHasData() {
+  public void oriHasDataExpHasData() throws SessionException {
     // 查询原始节点的历史数据，结果不为空
     testQueryHistoryDataOriHasData();
     // 写入并查询新数据
@@ -222,6 +222,8 @@ public abstract class BaseCapacityExpansionIT {
     testWriteAndQueryNewDataAfterCE();
     // 测试插入相同数据后warning
     testSameKeyWarning();
+    // 测试分片范围重叠，但数据不重叠
+    testPathOverlappedDataNotOverlapped();
   }
 
   @Test
@@ -944,6 +946,40 @@ public abstract class BaseCapacityExpansionIT {
     } catch (SessionException e) {
       LOGGER.error("query data error: ", e);
     }
+  }
+
+  private void testPathOverlappedDataNotOverlapped() throws SessionException {
+    // before
+    String statement = "select status from mn.wf01.wt01;";
+    String expected =
+        "ResultSets:\n"
+            + "+---+-------------------+\n"
+            + "|key|mn.wf01.wt01.status|\n"
+            + "+---+-------------------+\n"
+            + "|  0|           11111111|\n"
+            + "|  1|           22222222|\n"
+            + "+---+-------------------+\n"
+            + "Total line number = 2\n";
+    SQLTestTools.executeAndCompare(session, statement, expected);
+
+    String insert =
+        "insert into mn.wf01.wt01 (key, status) values (10, 33333333), (100, 44444444);";
+    session.executeSql(insert);
+
+    // after
+    statement = "select status from mn.wf01.wt01;";
+    expected =
+        "ResultSets:\n"
+            + "+---+-------------------+\n"
+            + "|key|mn.wf01.wt01.status|\n"
+            + "+---+-------------------+\n"
+            + "|  0|           11111111|\n"
+            + "|  1|           22222222|\n"
+            + "| 10|           33333333|\n"
+            + "|100|           44444444|\n"
+            + "+---+-------------------+\n"
+            + "Total line number = 4\n";
+    SQLTestTools.executeAndCompare(session, statement, expected);
   }
 
   protected void startStorageEngineWithIginx(int port, boolean hasData, boolean isReadOnly) {
