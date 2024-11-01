@@ -922,16 +922,19 @@ public abstract class BaseCapacityExpansionIT {
   }
 
   private void testSameKeyWarning() {
+    if (!SUPPORT_KEY.get(testConf.getStorageType())) {
+      return;
+    }
+
     try {
       session.executeSql(
           "insert into mn.wf01.wt01 (key, status) values (0, 123),(1, 123),(2, 123),(3, 123);");
       String statement = "select * from mn.wf01.wt01;";
 
       QueryDataSet res = session.executeQuery(statement);
-      if ((res.getWarningMsg() == null
-              || res.getWarningMsg().isEmpty()
-              || !res.getWarningMsg().contains("The query results contain overlapped keys."))
-          && SUPPORT_KEY.get(testConf.getStorageType())) {
+      if (res.getWarningMsg() == null
+          || res.getWarningMsg().isEmpty()
+          || !res.getWarningMsg().contains("The query results contain overlapped keys.")) {
         LOGGER.error("未抛出重叠key的警告");
         fail();
       }
@@ -939,7 +942,7 @@ public abstract class BaseCapacityExpansionIT {
       clearData();
 
       res = session.executeQuery(statement);
-      if (res.getWarningMsg() != null && SUPPORT_KEY.get(testConf.getStorageType())) {
+      if (res.getWarningMsg() != null) {
         LOGGER.error("不应抛出重叠key的警告");
         fail();
       }
@@ -948,7 +951,7 @@ public abstract class BaseCapacityExpansionIT {
     }
   }
 
-  private void testPathOverlappedDataNotOverlapped() throws SessionException {
+  protected void testPathOverlappedDataNotOverlapped() throws SessionException {
     // before
     String statement = "select status from mn.wf01.wt01;";
     String expected =
