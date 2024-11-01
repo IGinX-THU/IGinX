@@ -959,8 +959,8 @@ public abstract class BaseCapacityExpansionIT {
             + "+---+-------------------+\n"
             + "|key|mn.wf01.wt01.status|\n"
             + "+---+-------------------+\n"
-            + "|  0|           11111111|\n"
-            + "|  1|           22222222|\n"
+            + "|  0|           22222222|\n"
+            + "|  1|           11111111|\n"
             + "+---+-------------------+\n"
             + "Total line number = 2\n";
     SQLTestTools.executeAndCompare(session, statement, expected);
@@ -976,8 +976,8 @@ public abstract class BaseCapacityExpansionIT {
             + "+---+-------------------+\n"
             + "|key|mn.wf01.wt01.status|\n"
             + "+---+-------------------+\n"
-            + "|  0|           11111111|\n"
-            + "|  1|           22222222|\n"
+            + "|  0|           22222222|\n"
+            + "|  1|           11111111|\n"
             + "| 10|           33333333|\n"
             + "|100|           44444444|\n"
             + "+---+-------------------+\n"
