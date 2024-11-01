@@ -917,20 +917,14 @@ public class IoTDBStorage implements IStorage {
   }
 
   private String getFilterString(Filter filter, String storageUnit) throws PhysicalException {
-    String filterStr = FilterTransformer.toString(filter);
-    if (filterStr.contains("*")) {
-      List<Column> columns = new ArrayList<>();
-      Map<String, String> columns2Fragment = new HashMap<>();
-      getColumns2StorageUnit(columns, columns2Fragment, new HashSet<>(), null);
-      filterStr =
-          FilterTransformer.toString(
-              expandFilterWildcard(filter.copy(), columns, columns2Fragment, storageUnit));
-    }
-
-    return filterStr;
+    List<Column> columns = new ArrayList<>();
+    Map<String, String> columns2Fragment = new HashMap<>();
+    getColumns2StorageUnit(columns, columns2Fragment, new HashSet<>(), null);
+    Filter fullFilter = expandFilter(filter.copy(), columns, columns2Fragment, storageUnit);
+    return FilterTransformer.toString(fullFilter);
   }
 
-  private Filter expandFilterWildcard(
+  private Filter expandFilter(
       Filter filter,
       List<Column> columns,
       Map<String, String> columns2Fragment,
@@ -941,9 +935,9 @@ public class IoTDBStorage implements IStorage {
         List<Filter> children = andFilter.getChildren();
         List<Filter> newAndFilters = new ArrayList<>();
         for (Filter f : children) {
-          Filter newFilter = expandFilterWildcard(f, columns, columns2Fragment, storageUnit);
+          Filter newFilter = expandFilter(f, columns, columns2Fragment, storageUnit);
           if (newFilter != null) {
-            newAndFilters.add(expandFilterWildcard(f, columns, columns2Fragment, storageUnit));
+            newAndFilters.add(expandFilter(f, columns, columns2Fragment, storageUnit));
           }
         }
         return new AndFilter(newAndFilters);
@@ -952,17 +946,16 @@ public class IoTDBStorage implements IStorage {
         List<Filter> orChildren = orFilter.getChildren();
         List<Filter> newOrFilters = new ArrayList<>();
         for (Filter f : orChildren) {
-          Filter newFilter = expandFilterWildcard(f, columns, columns2Fragment, storageUnit);
+          Filter newFilter = expandFilter(f, columns, columns2Fragment, storageUnit);
           if (newFilter != null) {
-            newOrFilters.add(expandFilterWildcard(f, columns, columns2Fragment, storageUnit));
+            newOrFilters.add(expandFilter(f, columns, columns2Fragment, storageUnit));
           }
         }
         return new OrFilter(newOrFilters);
       case Not:
         NotFilter notFilter = (NotFilter) filter;
         Filter notChild = notFilter.getChild();
-        Filter newNotFilter =
-            expandFilterWildcard(notChild, columns, columns2Fragment, storageUnit);
+        Filter newNotFilter = expandFilter(notChild, columns, columns2Fragment, storageUnit);
         if (newNotFilter != null) return new NotFilter(newNotFilter);
         else return null;
       case Key:
@@ -971,14 +964,13 @@ public class IoTDBStorage implements IStorage {
         ValueFilter valueFilter = (ValueFilter) filter;
         DataType valueType = valueFilter.getValue().getDataType();
         String path = valueFilter.getPath();
-
-        if (path.contains("*")) {
-          List<String> matchedPath =
-              getMatchPath(path, valueType, columns, columns2Fragment, storageUnit);
-          if (matchedPath.size() == 0) {
-            return null;
-          }
-
+        List<String> matchedPath =
+            getMatchPath(path, valueType, columns, columns2Fragment, storageUnit);
+        if (matchedPath.size() == 1) {
+          return new ValueFilter(matchedPath.get(0), valueFilter.getOp(), valueFilter.getValue());
+        } else if (matchedPath.isEmpty()) {
+          return null;
+        } else {
           List<Filter> newFilters = new ArrayList<>();
           for (String p : matchedPath) {
             newFilters.add(new ValueFilter(p, valueFilter.getOp(), valueFilter.getValue()));
@@ -988,10 +980,7 @@ public class IoTDBStorage implements IStorage {
           } else {
             return new AndFilter(newFilters);
           }
-        } else {
-          return filter;
         }
-
       default:
         return null;
     }
@@ -1025,7 +1014,7 @@ public class IoTDBStorage implements IStorage {
 
       Matcher matcher = pattern.matcher(columnName);
       if (matcher.find()) {
-        matchedPath.add(columnName);
+        matchedPath.add(TagKVUtils.toFullName(columnName, col.getTags()));
       }
     }
 

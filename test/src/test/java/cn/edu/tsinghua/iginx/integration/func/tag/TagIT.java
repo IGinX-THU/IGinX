@@ -580,7 +580,6 @@ public class TagIT {
   public void testValueFilter() {
     // 至少有一列的值大于等于4
     String statement = "SELECT s FROM ah.hr01 WHERE s >= 4;";
-    LOGGER.info(execute("EXPLAIN " + statement));
     String expected =
         "ResultSets:\n"
             + "+---+---------+-----------------------+\n"
@@ -800,16 +799,16 @@ public class TagIT {
     statement = "SELECT s FROM ah.*;";
     expected =
         "ResultSets:\n"
-            + "+----+---------+-----------------------+---------+----------------+-----------------------+-----------------------+\n"
-            + "| key|ah.hr01.s|ah.hr01.s{t1=v1,t2=vv1}|ah.hr02.s|ah.hr02.s{t1=v1}|ah.hr03.s{t1=v1,t2=vv2}|ah.hr03.s{t1=vv1,t2=v2}|\n"
-            + "+----+---------+-----------------------+---------+----------------+-----------------------+-----------------------+\n"
-            + "|   0|        1|                      3|     null|            null|                   null|                   null|\n"
-            + "|   1|        2|                      4|     null|            null|                   null|                   null|\n"
-            + "|   2|        3|                      5|     null|            null|                   null|                   null|\n"
-            + "|   3|        4|                      6|     null|            null|                   null|                   null|\n"
-            + "| 100|     null|                   null|     true|            null|                   null|                   null|\n"
-            + "|1600|     null|                   null|     null|            null|                   null|                   true|\n"
-            + "+----+---------+-----------------------+---------+----------------+-----------------------+-----------------------+\n"
+            + "+----+---------+-----------------------+---------+-----------------------+\n"
+            + "| key|ah.hr01.s|ah.hr01.s{t1=v1,t2=vv1}|ah.hr02.s|ah.hr03.s{t1=vv1,t2=v2}|\n"
+            + "+----+---------+-----------------------+---------+-----------------------+\n"
+            + "|   0|        1|                      3|     null|                   null|\n"
+            + "|   1|        2|                      4|     null|                   null|\n"
+            + "|   2|        3|                      5|     null|                   null|\n"
+            + "|   3|        4|                      6|     null|                   null|\n"
+            + "| 100|     null|                   null|     true|                   null|\n"
+            + "|1600|     null|                   null|     null|                   true|\n"
+            + "+----+---------+-----------------------+---------+-----------------------+\n"
             + "Total line number = 6\n";
     executeAndCompare(statement, expected);
   }
@@ -841,17 +840,17 @@ public class TagIT {
     statement = "SELECT s FROM ah.*;";
     expected =
         "ResultSets:\n"
-            + "+----+---------+-----------------------+---------+----------------+-----------------------+-----------------------+\n"
-            + "| key|ah.hr01.s|ah.hr01.s{t1=v1,t2=vv1}|ah.hr02.s|ah.hr02.s{t1=v1}|ah.hr03.s{t1=v1,t2=vv2}|ah.hr03.s{t1=vv1,t2=v2}|\n"
-            + "+----+---------+-----------------------+---------+----------------+-----------------------+-----------------------+\n"
-            + "|   0|        1|                      3|     null|            null|                   null|                   null|\n"
-            + "|   1|        2|                      4|     null|            null|                   null|                   null|\n"
-            + "|   2|        3|                      5|     null|            null|                   null|                   null|\n"
-            + "|   3|        4|                      6|     null|            null|                   null|                   null|\n"
-            + "| 100|     null|                   null|     true|            null|                   null|                   null|\n"
-            + "| 400|     null|                   null|     null|           false|                   null|                   null|\n"
-            + "|1600|     null|                   null|     null|            null|                   null|                   true|\n"
-            + "+----+---------+-----------------------+---------+----------------+-----------------------+-----------------------+\n"
+            + "+----+---------+-----------------------+---------+----------------+-----------------------+\n"
+            + "| key|ah.hr01.s|ah.hr01.s{t1=v1,t2=vv1}|ah.hr02.s|ah.hr02.s{t1=v1}|ah.hr03.s{t1=vv1,t2=v2}|\n"
+            + "+----+---------+-----------------------+---------+----------------+-----------------------+\n"
+            + "|   0|        1|                      3|     null|            null|                   null|\n"
+            + "|   1|        2|                      4|     null|            null|                   null|\n"
+            + "|   2|        3|                      5|     null|            null|                   null|\n"
+            + "|   3|        4|                      6|     null|            null|                   null|\n"
+            + "| 100|     null|                   null|     true|            null|                   null|\n"
+            + "| 400|     null|                   null|     null|           false|                   null|\n"
+            + "|1600|     null|                   null|     null|            null|                   true|\n"
+            + "+----+---------+-----------------------+---------+----------------+-----------------------+\n"
             + "Total line number = 7\n";
     executeAndCompare(statement, expected);
 
@@ -861,16 +860,16 @@ public class TagIT {
     statement = "SELECT s FROM ah.*;";
     expected =
         "ResultSets:\n"
-            + "+----+---------+-----------------------+---------+----------------+-----------------------+-----------------------+\n"
-            + "| key|ah.hr01.s|ah.hr01.s{t1=v1,t2=vv1}|ah.hr02.s|ah.hr02.s{t1=v1}|ah.hr03.s{t1=v1,t2=vv2}|ah.hr03.s{t1=vv1,t2=v2}|\n"
-            + "+----+---------+-----------------------+---------+----------------+-----------------------+-----------------------+\n"
-            + "|   0|        1|                      3|     null|            null|                   null|                   null|\n"
-            + "|   1|        2|                      4|     null|            null|                   null|                   null|\n"
-            + "|   2|        3|                      5|     null|            null|                   null|                   null|\n"
-            + "|   3|        4|                      6|     null|            null|                   null|                   null|\n"
-            + "| 100|     null|                   null|     true|            null|                   null|                   null|\n"
-            + "|1600|     null|                   null|     null|            null|                   null|                   true|\n"
-            + "+----+---------+-----------------------+---------+----------------+-----------------------+-----------------------+\n"
+            + "+----+---------+-----------------------+---------+-----------------------+\n"
+            + "| key|ah.hr01.s|ah.hr01.s{t1=v1,t2=vv1}|ah.hr02.s|ah.hr03.s{t1=vv1,t2=v2}|\n"
+            + "+----+---------+-----------------------+---------+-----------------------+\n"
+            + "|   0|        1|                      3|     null|                   null|\n"
+            + "|   1|        2|                      4|     null|                   null|\n"
+            + "|   2|        3|                      5|     null|                   null|\n"
+            + "|   3|        4|                      6|     null|                   null|\n"
+            + "| 100|     null|                   null|     true|                   null|\n"
+            + "|1600|     null|                   null|     null|                   true|\n"
+            + "+----+---------+-----------------------+---------+-----------------------+\n"
             + "Total line number = 6\n";
     executeAndCompare(statement, expected);
 
@@ -880,15 +879,15 @@ public class TagIT {
     statement = "SELECT s FROM ah.*;";
     expected =
         "ResultSets:\n"
-            + "+---+---------+-----------------------+---------+----------------+-----------------------+-----------------------+\n"
-            + "|key|ah.hr01.s|ah.hr01.s{t1=v1,t2=vv1}|ah.hr02.s|ah.hr02.s{t1=v1}|ah.hr03.s{t1=v1,t2=vv2}|ah.hr03.s{t1=vv1,t2=v2}|\n"
-            + "+---+---------+-----------------------+---------+----------------+-----------------------+-----------------------+\n"
-            + "|  0|        1|                      3|     null|            null|                   null|                   null|\n"
-            + "|  1|        2|                      4|     null|            null|                   null|                   null|\n"
-            + "|  2|        3|                      5|     null|            null|                   null|                   null|\n"
-            + "|  3|        4|                      6|     null|            null|                   null|                   null|\n"
-            + "|100|     null|                   null|     true|            null|                   null|                   null|\n"
-            + "+---+---------+-----------------------+---------+----------------+-----------------------+-----------------------+\n"
+            + "+---+---------+-----------------------+---------+\n"
+            + "|key|ah.hr01.s|ah.hr01.s{t1=v1,t2=vv1}|ah.hr02.s|\n"
+            + "+---+---------+-----------------------+---------+\n"
+            + "|  0|        1|                      3|     null|\n"
+            + "|  1|        2|                      4|     null|\n"
+            + "|  2|        3|                      5|     null|\n"
+            + "|  3|        4|                      6|     null|\n"
+            + "|100|     null|                   null|     true|\n"
+            + "+---+---------+-----------------------+---------+\n"
             + "Total line number = 5\n";
     executeAndCompare(statement, expected);
   }
