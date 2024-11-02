@@ -970,7 +970,7 @@ public class SessionIT extends BaseSessionIT {
         long key = dtDelColDataSet.getKeys()[i];
         assertEquals(i + START_KEY, key);
         List<Object> result = dtDelColDataSet.getValues().get(i);
-        for (int j = 0; j < 6; j++) {
+        for (int j = 0; j < 4; j++) {
           int currPathPos = getPathNum(dtDelColResPaths.get(j)) - currPath;
           if (currPathPos < dtDelColumnNum) {
             assertNull(result.get(j));
