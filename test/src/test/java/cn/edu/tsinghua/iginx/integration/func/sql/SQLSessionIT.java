@@ -8514,7 +8514,7 @@ public class SQLSessionIT {
             + "|    +--Project                |         Project|                                             Patterns: t1.c1,t2.c2|\n"
             + "|      +--Select               |          Select|                             Filter: (t1.c1 == t2.c1 && t1.c1 > 1)|\n"
             + "|        +--CrossJoin          |       CrossJoin|                                        PrefixA: t1, PrefixB: null|\n"
-            + "|          +--Project          |         Project|                         Patterns: t1.*, Target DU: unit0000000002|\n"
+            + "|          +--Project          |         Project|                        Patterns: t1.c1, Target DU: unit0000000002|\n"
             + "|          +--Union            |           Union|LeftOrder: t2.c2,t2.c1, RightOrder: t2.c2,t2.c1, isDistinct: false|\n"
             + "|            +--Reorder        |         Reorder|                                                Order: t2.c1,t2.c2|\n"
             + "|              +--Project      |         Project|                                             Patterns: t2.c1,t2.c2|\n"

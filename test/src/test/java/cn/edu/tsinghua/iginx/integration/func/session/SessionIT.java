@@ -573,7 +573,8 @@ public class SessionIT extends BaseSessionIT {
         long key = delDataInColumnDataSet.getKeys()[i];
         assertEquals(i + START_KEY, key);
         List<Object> result = delDataInColumnDataSet.getValues().get(i);
-        for (int j = 0; j < dataInColumnLen; j++) {
+        assertEquals(dataInColumnLen - deleteDataInColumnLen, delDataInColumnResPaths.size());
+        for (int j = 0; j < dataInColumnLen - deleteDataInColumnLen; j++) {
           int pathNum = getPathNum(delDataInColumnResPaths.get(j));
           assertNotEquals(pathNum, -1);
           if (pathNum < currPath + deleteDataInColumnLen) { // Here is the removed rows
