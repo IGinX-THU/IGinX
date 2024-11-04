@@ -27,12 +27,13 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Batch;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
-import java.util.List;
-import java.util.Objects;
-import javax.annotation.WillClose;
-import javax.annotation.WillCloseWhenClosed;
 import jdk.nashorn.internal.ir.annotations.Immutable;
 import org.apache.arrow.vector.VectorSchemaRoot;
+
+import javax.annotation.WillClose;
+import javax.annotation.WillCloseWhenClosed;
+import java.util.List;
+import java.util.Objects;
 
 @Immutable
 public class PipelineMemoryPhysicalTask extends UnaryMemoryPhysicalTask {
@@ -66,7 +67,7 @@ public class PipelineMemoryPhysicalTask extends UnaryMemoryPhysicalTask {
       info = executor.toString();
     } catch (PhysicalException e) {
       try (BatchStream previousHolder = previous;
-          StatelessUnaryExecutor executorHolder = executor) {
+           StatelessUnaryExecutor executorHolder = executor) {
         throw e;
       }
     }
@@ -106,10 +107,9 @@ public class PipelineMemoryPhysicalTask extends UnaryMemoryPhysicalTask {
 
     @Override
     public void close() throws PhysicalException {
-      try (StopWatch watch = new StopWatch(getMetrics()::accumulateCpuTime)) {
-        try (BatchStream source = this.source;
-            StatelessUnaryExecutor executor = this.executor) {
-          // Do nothing
+      try (BatchStream source = this.source) {
+        try (StopWatch watch = new StopWatch(getMetrics()::accumulateCpuTime)) {
+          executor.close();
         }
       }
     }
