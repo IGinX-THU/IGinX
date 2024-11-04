@@ -19,9 +19,13 @@
  */
 package cn.edu.tsinghua.iginx.integration.other;
 
+import cn.edu.tsinghua.iginx.conf.Config;
+import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.exception.SessionException;
-import cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools;
+import cn.edu.tsinghua.iginx.integration.func.udf.UDFTestTools;
 import cn.edu.tsinghua.iginx.session.Session;
+import java.util.List;
+import java.util.stream.Collectors;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -33,6 +37,8 @@ public class UDFPathIT {
   private static final Logger LOGGER = LoggerFactory.getLogger(UDFPathIT.class);
 
   private static Session session;
+
+  private static final Config config = ConfigDescriptor.getInstance().getConfig();
 
   // host info
   private static String defaultTestHost = "127.0.0.1";
@@ -51,30 +57,23 @@ public class UDFPathIT {
     session.closeSession();
   }
 
+  /** ensure every udf in list is registered */
   @Test
   public void testUDFFuncList() {
-    String statement = "SHOW FUNCTIONS;";
-    String expectedRes =
-        "Functions info:\n"
-            + "+----------------+---------------+---------------------+-------+--------+\n"
-            + "|            NAME|     CLASS_NAME|            FILE_NAME|     IP|UDF_TYPE|\n"
-            + "+----------------+---------------+---------------------+-------+--------+\n"
-            + "|         udf_sum|         UDFSum|           udf_sum.py|0.0.0.0|    UDAF|\n"
-            + "|udf_max_with_key|  UDFMaxWithKey|  udf_max_with_key.py|0.0.0.0|    UDAF|\n"
-            + "|             cos|         UDFCos|          udtf_cos.py|0.0.0.0|    UDTF|\n"
-            + "|    columnExpand|UDFColumnExpand|udtf_column_expand.py|0.0.0.0|    UDTF|\n"
-            + "|         udf_min|         UDFMin|           udf_min.py|0.0.0.0|    UDAF|\n"
-            + "|         udf_avg|         UDFAvg|           udf_avg.py|0.0.0.0|    UDAF|\n"
-            + "|          arccos|      UDFArcCos|       udtf_arccos.py|0.0.0.0|    UDTF|\n"
-            + "|     key_add_one|   UDFKeyAddOne|  udtf_key_add_one.py|0.0.0.0|    UDTF|\n"
-            + "|             pow|         UDFPow|          udtf_pow.py|0.0.0.0|    UDTF|\n"
-            + "|    reverse_rows| UDFReverseRows| udsf_reverse_rows.py|0.0.0.0|    UDSF|\n"
-            + "|         udf_max|         UDFMax|           udf_max.py|0.0.0.0|    UDAF|\n"
-            + "|       transpose|   UDFTranspose|    udsf_transpose.py|0.0.0.0|    UDSF|\n"
-            + "|       udf_count|       UDFCount|         udf_count.py|0.0.0.0|    UDAF|\n"
-            + "|        multiply|    UDFMultiply|     udtf_multiply.py|0.0.0.0|    UDTF|\n"
-            + "+----------------+---------------+---------------------+-------+--------+\n";
-
-    SQLTestTools.executeAndCompare(session, statement, expectedRes);
+    List<String> UDFNameList;
+    List<String> udfList = config.getUdfList();
+    UDFNameList =
+        udfList.stream()
+            .map(
+                udf -> {
+                  String[] udfInfo = udf.split(",");
+                  if (udfInfo.length != 4) {
+                    LOGGER.error("udf info len must be 4.");
+                  }
+                  return udfInfo[1];
+                })
+            .collect(Collectors.toList());
+    UDFTestTools tools = new UDFTestTools(session);
+    tools.isUDFsRegistered(UDFNameList);
   }
 }
