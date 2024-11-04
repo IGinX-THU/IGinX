@@ -9165,4 +9165,6 @@ public class SQLSessionIT {
             + "Total line number = 2\n";
     executor.executeAndCompare(statement, expected);
   }
+
+
 }
