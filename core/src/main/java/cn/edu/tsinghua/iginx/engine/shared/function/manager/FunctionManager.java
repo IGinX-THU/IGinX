@@ -144,7 +144,7 @@ public class FunctionManager {
       }
 
       if (!meta.getType().equals(UDFType.TRANSFORM)) {
-        LOGGER.debug("Loading UDF: {}; meta: {}", meta.getName(), meta);
+        LOGGER.debug("Loading UDF meta: {}", meta);
         loadUDF(meta.getName());
       }
     }

@@ -1039,11 +1039,13 @@ public class IginxWorker implements IService.Iface {
         metaManager.updateTransformTask(transformTaskMeta);
       } else {
         LOGGER.debug(
-            "Registering {} task: {} as {} in {}",
+            "Registering {} task: {} as {} in {}; iginx: {}:{}",
             type,
             pairs.get(i).classPath,
             pairs.get(i).name,
-            fileName);
+            fileName,
+            config.getIp(),
+            config.getPort());
         metaManager.addTransformTask(
             new TransformTaskMeta(
                 pairs.get(i).name,
