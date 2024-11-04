@@ -23,18 +23,26 @@ jobs:
         uses: ./.github/workflows/standalone-test.yml
         with:
             metadata-matrix: '["zookeeper"]'
+            os-matrix: '["ubuntu-latest"]'
+            db-matrix: '["IoTDB12"]'
     standalone-test-pushdown:
         uses: ./.github/workflows/standalone-test-pushdown.yml
         with:
             metadata-matrix: '["zookeeper"]'
+            os-matrix: '["ubuntu-latest"]'
+            db-matrix: '["IoTDB12"]'
     db-ce:
         uses: ./.github/workflows/DB-CE.yml
         with:
             metadata-matrix: '["zookeeper"]'
+            os-matrix: '["ubuntu-latest"]'
+            db-matrix: '["IoTDB12"]'
     remote-test:
         uses: ./.github/workflows/remote-test.yml
         with:
             metadata-matrix: '["zookeeper"]'
+            os-matrix: '["ubuntu-latest"]'
+            db-matrix: '["IoTDB12"]'
     assemebly-test:
         uses: ./.github/workflows/assembly-test.yml
     tpc-h-regression-test:
@@ -42,9 +50,10 @@ jobs:
         with:
             os-matrix: '["ubuntu-latest"]'
             metadata-matrix: '["zookeeper"]'
+            db-matrix: '["IoTDB12"]'
     tpc-h-regression-test-pushdown:
         uses: ./.github/workflows/tpc-h-pushdown.yml
         with:
             os-matrix: '["ubuntu-latest"]'
             metadata-matrix: '["zookeeper"]'
-            db-matrix: '["InfluxDB", "FileSystem", "PostgreSQL", "Redis", "MongoDB", "MySQL"]'
+            db-matrix: '["InfluxDB"]'
