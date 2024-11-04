@@ -25,7 +25,6 @@ import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Pattern;
-import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,7 +58,6 @@ public class HostUtils {
 
   private static String representativeIP;
 
-  @Nullable
   private static InetAddress getLocalHostExactAddress() {
     // 多网卡环境下，找到真正在使用的IP地址
     try (final DatagramSocket socket = new DatagramSocket()) {
