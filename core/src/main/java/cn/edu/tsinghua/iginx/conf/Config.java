@@ -242,7 +242,7 @@ public class Config {
   /** 获取本机IP地址 */
   public String getIp() {
     // 当设置监听端口为0.0.0.0，找本机IP地址
-    if (!Objects.equals(ip, "0.0.0.0")) {
+    if (!"0.0.0.0".equals(ip)) {
       return ip;
     } else {
       return HostUtils.getRepresentativeIP();
