@@ -24,7 +24,6 @@ import cn.edu.tsinghua.iginx.utils.HostUtils;
 import cn.edu.tsinghua.iginx.utils.TagKVUtils;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 public class Config {
 
