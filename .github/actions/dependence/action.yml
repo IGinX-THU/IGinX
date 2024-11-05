@@ -65,16 +65,6 @@ runs:
         python -m pip install --upgrade pip
         pip install pandas numpy pemjax==0.1.0 thrift fastparquet tqdm requests
 
-    - if: inputs.free-thread-python-required=='true'
-      name: Cache Python installers
-      uses: actions/cache@v3
-      id: cache-python-installer
-      with:
-        path: |
-          ./python-3.13.0-amd64.exe
-          ./python-3.13.0-macos11.pkg
-        key: ${{ runner.os }}-python3.13-installer
-
     - if: inputs.free-thread-python-required=='true' && runner.os=='Windows'
       name: Setup Python3.13 on Windows
       shell: powershell
@@ -126,6 +116,7 @@ runs:
       run: |
         wget https://bootstrap.pypa.io/get-pip.py
         python3.13t get-pip.py
+        python3.13t -m pip install setuptools
         python3.13t -m pip install dependency/src/main/resources/python/pemjax-0.2.0.tar.gz
         python3.13t -m pip freeze list
 
