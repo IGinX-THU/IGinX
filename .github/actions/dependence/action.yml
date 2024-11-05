@@ -73,6 +73,8 @@ runs:
         Invoke-WebRequest -Uri $url -OutFile 'python-3.13.0-amd64.exe'
         .\python-3.13.0-amd64.exe /quiet Include_freethreaded=1 PrependPath=1
         Start-Sleep -Seconds 10
+        Get-ChildItem -Path "$env:LocalAppData\Local\Programs\Python\Python313"
+        $env:Path += ";$env:LocalAppData\Programs\Python\Python313"
         python3.13t -VV
 
     - if: inputs.free-thread-python-required=='true' && runner.os=='Linux'
@@ -81,7 +83,7 @@ runs:
       run: |
         sudo add-apt-repository ppa:deadsnakes
         sudo apt-get update
-        sudo apt-get install python3.13-nogil
+        sudo apt-get install python3.13-nogil python3-distutils
         python3.13t -VV
         
 
@@ -110,6 +112,7 @@ runs:
             -applyChoiceChangesXML ./choicechanges.plist \
             -target /
         python3.13t -VV
+        export PATH="$PATH:/Library/Frameworks/PythonT.framework/Versions/3.13/bin"
 
     - if: inputs.free-thread-python-required=='true'
       name: Install pemjax in free-threading python
@@ -117,7 +120,7 @@ runs:
       run: |
         wget https://bootstrap.pypa.io/get-pip.py
         python3.13t get-pip.py
-        python3.13t -m pip install setuptools wheel find-libpython
+        python3.13t -m pip install -U pip install setuptools wheel find-libpython
         python3.13t -m pip freeze list
         python3.13t -m pip install dependency/src/main/resources/python/pemjax-0.2.0.tar.gz
         python3.13t -m pip freeze list
