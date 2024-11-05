@@ -65,12 +65,24 @@ runs:
         python -m pip install --upgrade pip
         pip install pandas numpy pemjax==0.1.0 thrift fastparquet tqdm requests
 
+    - if: inputs.free-thread-python-required=='true'
+      name: Cache Python installers
+      uses: actions/cache@v3
+      id: cache-python-installer
+      with:
+        path: |
+          ./python-3.13.0-amd64.exe
+          ./python-3.13.0-macos11.pkg
+        key: ${{ runner.os }}-python3.13-installer
+
     - if: inputs.free-thread-python-required=='true' && runner.os=='Windows'
       name: Setup Python3.13 on Windows
       shell: powershell
       run: |
-        $url = 'https://www.python.org/ftp/python/3.13.0/python-3.13.0-amd64.exe'
-        Invoke-WebRequest -Uri $url -OutFile 'python-3.13.0-amd64.exe'
+        if (${{ steps.cache-python-installer.outputs.cache-hit }} != 'true') {
+          $url = 'https://www.python.org/ftp/python/3.13.0/python-3.13.0-amd64.exe'
+          Invoke-WebRequest -Uri $url -OutFile 'python-3.13.0-amd64.exe'
+        }
         python-3.13.0-amd64.exe /quiet Include_freethreaded=1
         python3.13t -VV
 
@@ -82,12 +94,15 @@ runs:
         sudo apt-get update
         sudo apt-get install python3.13-nogil
         python3.13t -VV
+        
 
     - if: inputs.free-thread-python-required=='true' && runner.os=='macOS'
       name: Setup Python3.13 on MacOS
       shell: bash
       run: |
-        curl -O https://www.python.org/ftp/python/3.13.0/python-3.13.0-macos11.pkg
+        if (${{ steps.cache-python-installer.outputs.cache-hit }} != 'true') {
+          curl -O https://www.python.org/ftp/python/3.13.0/python-3.13.0-macos11.pkg
+        }
         cat > ./choicechanges.plist <<EOF
         <?xml version="1.0" encoding="UTF-8"?>
         <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -109,6 +124,13 @@ runs:
             -target /
         rm -f python-3.13.0-macos11.pkg
         python3.13t -VV
+
+    - if: inputs.free-thread-python-required=='true'
+      name: Install pemjax in free-threading python
+      shell: bash
+      run: |
+        python3.13t -m pip install dependency/src/main/resources/python/pemjax-0.2.0.tar.gz
+        python3.13t -m pip freeze list
 
     - name: Set up JDK ${{ inputs.java }}
       uses: actions/setup-java@v4
