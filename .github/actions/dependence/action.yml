@@ -72,7 +72,7 @@ runs:
         $url = 'https://www.python.org/ftp/python/3.13.0/python-3.13.0-amd64.exe'
         Invoke-WebRequest -Uri $url -OutFile 'python-3.13.0-amd64.exe'
         .\python-3.13.0-amd64.exe /quiet Include_freethreaded=1
-        Start-Sleep -Seconds 10
+        Start-Sleep -Seconds 20
         Get-ChildItem -Path "$env:LocalAppData\Programs\Python\Python313"
         $env:Path += ";$env:LocalAppData\Programs\Python\Python313"
         python -VV
@@ -126,7 +126,7 @@ runs:
         tar -xzf dependency/src/main/resources/python/pemjax-0.1.0.tar.gz
         ls
         cd pemjax-0.1.0
-        python3.13t -m build
+        python3.13t setup.py bdist_wheel
         python3.13t -m pip install --user dist/*.whl
         python3.13t -m pip freeze list
 
@@ -141,7 +141,7 @@ runs:
         tar -xzf dependency/src/main/resources/python/pemjax-0.1.0.tar.gz
         ls
         cd pemjax-0.1.0
-        python3.13t -m build
+        python3.13t setup.py bdist_wheel
         python3.13t -m pip install --user dist/*.whl
         python3.13t -m pip freeze list
 
