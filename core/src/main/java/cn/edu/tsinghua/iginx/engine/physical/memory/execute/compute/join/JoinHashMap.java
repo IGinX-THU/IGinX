@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.util.Preconditions;
 import org.apache.arrow.vector.BitVector;
@@ -117,12 +118,16 @@ public class JoinHashMap implements AutoCloseable {
             ScalarExpressions.evaluateSafe(allocator, probeSideOutputFieldExpressions, batch)) {
       List<JoinCursor> buildSideCandidates = new ArrayList<>();
       List<JoinCursor> probeSideCandidates = new ArrayList<>();
+      List<JoinCursor> probeSideCursors = new ArrayList<>();
 
       try (IntVector hashCodes = ScalarExpressions.evaluateSafe(allocator, hasher, batch)) {
         JoinCursor cursorTemplate = new JoinCursor(onFields, outputFields);
         for (int rowIndex = 0; rowIndex < batch.getRowCount(); rowIndex++) {
           int hashCode = hashCodes.get(rowIndex);
           JoinCursor probeSideCandidate = cursorTemplate.withPosition(rowIndex);
+          if (joinOption.needOutputProbeSideUnmatched()) {
+            probeSideCursors.add(probeSideCandidate);
+          }
           for (JoinCursor buildSideCandidate : map.get(hashCode)) {
             buildSideCandidates.add(buildSideCandidate);
             probeSideCandidates.add(probeSideCandidate);
@@ -132,9 +137,9 @@ public class JoinHashMap implements AutoCloseable {
 
       outputAllMatched(buildSideCandidates, probeSideCandidates);
       if (joinOption.needOutputProbeSideUnmatched()) {
-        buffer.append(
-            Collections.emptyList(),
-            Iterables.filter(probeSideCandidates, JoinCursor::isUnmatched));
+        List<JoinCursor> probeSideUnmatched =
+            probeSideCursors.stream().filter(JoinCursor::isUnmatched).collect(Collectors.toList());
+        buffer.append(Collections.emptyList(), probeSideUnmatched);
       }
     }
   }
@@ -174,22 +179,23 @@ public class JoinHashMap implements AutoCloseable {
             buildOnFieldsPair(buildSideCandidates, probeSideCandidates);
         BitVector mask = tester.invoke(allocator, onFieldsPair)) {
       for (int i = 0; i < buildSideCandidates.size(); i++) {
-        if (!mask.isNull(i) && mask.get(i) != 0) {
-          JoinCursor buildSideCursor = buildSideCandidates.get(i);
-          JoinCursor probeSideCursor = probeSideCandidates.get(i);
-          if (probeSideCursor.isMatched()) {
-            if (!joinOption.allowProbeSideMatchMultiple()) {
-              throw new ComputeException("the return value of sub-query has more than one rows");
-            }
-            if (!joinOption.needAllMatched()) {
-              continue;
-            }
-          }
-          buildSideCursor.markMatched();
-          probeSideCursor.markMatched();
-          buildSideMatched.add(buildSideCursor);
-          probeSideMatched.add(probeSideCursor);
+        if (mask.isNull(i) || mask.get(i) == 0) {
+          continue;
         }
+        JoinCursor buildSideCursor = buildSideCandidates.get(i);
+        JoinCursor probeSideCursor = probeSideCandidates.get(i);
+        if (probeSideCursor.isMatched()) {
+          if (!joinOption.allowProbeSideMatchMultiple()) {
+            throw new ComputeException("the return value of sub-query has more than one rows");
+          }
+          if (!joinOption.needAllMatched()) {
+            continue;
+          }
+        }
+        buildSideCursor.markMatched();
+        probeSideCursor.markMatched();
+        buildSideMatched.add(buildSideCursor);
+        probeSideMatched.add(probeSideCursor);
       }
     }
 
@@ -214,7 +220,7 @@ public class JoinHashMap implements AutoCloseable {
     RowCursor cursor = new RowCursor(buildSideKeys);
     for (int i = 0; i < candidates.size(); i++) {
       cursor.setPosition(i);
-      candidates.get(i).copyKeysTo(cursor);
+      candidates.get(i).appendOnFieldsTo(cursor);
     }
     return buildSideKeys;
   }

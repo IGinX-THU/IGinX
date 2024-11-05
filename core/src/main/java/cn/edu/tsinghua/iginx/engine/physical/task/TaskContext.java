@@ -26,4 +26,6 @@ public interface TaskContext {
   BufferAllocator getAllocator();
 
   void addWarningMessage(String message);
+
+  int groupByInitialGroupBufferCapacity();
 }

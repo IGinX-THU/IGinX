@@ -17,25 +17,27 @@
  */
 package cn.edu.tsinghua.iginx.physical.optimizer.naive.initializer;
 
+import static cn.edu.tsinghua.iginx.engine.shared.operator.type.JoinAlgType.HashJoin;
+
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.join.JoinOption;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.binary.BinaryExecutorFactory;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.binary.stateful.HashJoinExecutor;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.binary.stateful.StatefulBinaryExecutor;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
-import cn.edu.tsinghua.iginx.engine.shared.operator.MarkJoin;
+import cn.edu.tsinghua.iginx.engine.shared.operator.OuterJoin;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
+import cn.edu.tsinghua.iginx.engine.shared.operator.type.OuterJoinType;
 import cn.edu.tsinghua.iginx.physical.optimizer.naive.util.HashJoins;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-public class MarkJoinInfoGenerator implements BinaryExecutorFactory<StatefulBinaryExecutor> {
+public class OuterJoinInfoGenerator implements BinaryExecutorFactory<StatefulBinaryExecutor> {
 
-  private final MarkJoin operator;
+  private final OuterJoin operator;
 
-  public MarkJoinInfoGenerator(MarkJoin operator) {
+  public OuterJoinInfoGenerator(OuterJoin operator) {
     this.operator = Objects.requireNonNull(operator);
   }
 
@@ -43,6 +45,7 @@ public class MarkJoinInfoGenerator implements BinaryExecutorFactory<StatefulBina
   public StatefulBinaryExecutor initialize(
       ExecutorContext context, BatchSchema leftSchema, BatchSchema rightSchema)
       throws ComputeException {
+
     switch (operator.getJoinAlgType()) {
       case HashJoin:
         return initializeHashJoin(context, leftSchema, rightSchema);
@@ -52,10 +55,16 @@ public class MarkJoinInfoGenerator implements BinaryExecutorFactory<StatefulBina
     }
   }
 
-  public HashJoinExecutor initializeHashJoin(
+  private StatefulBinaryExecutor initializeHashJoin(
       ExecutorContext context, BatchSchema leftSchema, BatchSchema rightSchema)
       throws ComputeException {
-    JoinOption joinOption = JoinOption.ofMark(operator.getMarkColumn(), operator.isAntiJoin());
+
+    if (operator.getJoinAlgType() != HashJoin) {
+      throw new IllegalArgumentException(
+          "JoinAlgType is not HashJoin: " + operator.getJoinAlgType());
+    }
+
+    JoinOption joinOption = toJoinOption(operator.getOuterJoinType());
 
     List<Filter> subFilters = new ArrayList<>();
     if (!operator.getFilter().equals(new BoolFilter(true))) {
@@ -67,5 +76,18 @@ public class MarkJoinInfoGenerator implements BinaryExecutorFactory<StatefulBina
 
     return HashJoins.constructHashJoin(
         context, leftSchema, rightSchema, new AndFilter(subFilters), joinOption);
+  }
+
+  private static JoinOption toJoinOption(OuterJoinType outerJoinType) {
+    switch (outerJoinType) {
+      case LEFT:
+        return JoinOption.LEFT;
+      case RIGHT:
+        return JoinOption.RIGHT;
+      case FULL:
+        return JoinOption.FULL;
+      default:
+        throw new IllegalArgumentException("OuterJoinType is not supported: " + outerJoinType);
+    }
   }
 }

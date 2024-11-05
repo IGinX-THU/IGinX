@@ -29,6 +29,7 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorCon
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.binary.stateful.HashJoinExecutor;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.Schemas;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.BoolFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
 import java.util.*;
@@ -45,7 +46,6 @@ public class HashJoins {
       ExecutorContext context,
       BatchSchema leftSchema,
       BatchSchema rightSchema,
-      List<String> sameNameEqualPaths,
       Filter filter,
       JoinOption joinOption)
       throws ComputeException {
@@ -53,17 +53,25 @@ public class HashJoins {
     Map<Pair<Integer, Integer>, Op> pathPairOps = new HashMap<>();
     Set<Integer> leftOnFieldIndices = new HashSet<>();
     Set<Integer> rightOnFieldIndices = new HashSet<>();
-    List<Pair<Integer, Integer>> sameNameIndicesPairs =
-        getSameNameIndicesPairs(sameNameEqualPaths, leftSchema.raw(), rightSchema.raw());
-    sameNameIndicesPairs.forEach(pair -> pathPairOps.put(pair, Op.E));
 
-    Filters.parseJoinFilter(
-        filter, leftSchema, rightSchema, pathPairOps, leftOnFieldIndices, rightOnFieldIndices);
+    if (!filter.equals(new BoolFilter(true))) {
+      Filters.parseJoinFilter(
+          filter, leftSchema, rightSchema, pathPairOps, leftOnFieldIndices, rightOnFieldIndices);
+    }
+
+    List<Pair<Integer, Integer>> sameNameIndicesPairs = new ArrayList<>();
+    Set<String> sameNameEqualPaths = new HashSet<>();
 
     pathPairOps
         .keySet()
         .forEach(
             pathPair -> {
+              if (Objects.equals(
+                  leftSchema.getName(pathPair.getLeft()),
+                  rightSchema.getName(pathPair.getRight()))) {
+                sameNameEqualPaths.add(leftSchema.getName(pathPair.getLeft()));
+                sameNameIndicesPairs.add(pathPair);
+              }
               leftOnFieldIndices.add(pathPair.getLeft());
               rightOnFieldIndices.add(pathPair.getRight());
             });
@@ -116,12 +124,6 @@ public class HashJoins {
             rightOnFieldIndicesList.stream()
                 .map(rightSchema.raw().getFields()::get)
                 .collect(Collectors.toList()));
-    ScalarExpression<BitVector> onFieldsPairTesterWithoutSameNameFields =
-        Filters.construct(
-            filter,
-            context,
-            BatchSchema.of(
-                Schemas.merge(leftOnFieldsSchema, rightOnFieldsSchemaWithoutSameNameField)));
 
     // get on fields pair tester
     List<Pair<Integer, Integer>> OnFieldsSameNameIndicesPairs =
@@ -135,7 +137,17 @@ public class HashJoins {
                         new FieldNode(pair.getLeft()),
                         new FieldNode(pair.getRight() + leftOnFieldsSchema.getFields().size())))
             .collect(Collectors.toList());
-    onFieldsPairTesters.add(onFieldsPairTesterWithoutSameNameFields);
+
+    if (!filter.equals(new BoolFilter(true))) {
+      ScalarExpression<BitVector> onFieldsPairTesterWithoutSameNameFields =
+          Filters.construct(
+              filter,
+              context,
+              BatchSchema.of(
+                  Schemas.merge(leftOnFieldsSchema, rightOnFieldsSchemaWithoutSameNameField)));
+      onFieldsPairTesters.add(onFieldsPairTesterWithoutSameNameFields);
+    }
+
     ScalarExpression<BitVector> onFieldsPairTester =
         onFieldsPairTesters.stream()
             .reduce((left, right) -> new CallNode<>(new And(), left, right))
@@ -175,7 +187,7 @@ public class HashJoins {
   }
 
   private static List<Pair<Integer, Integer>> getSameNameIndicesPairs(
-      List<String> sameNameEqualPaths, Schema leftSchema, Schema rightSchema)
+      Collection<String> sameNameEqualPaths, Schema leftSchema, Schema rightSchema)
       throws ComputeException {
     List<Pair<Integer, Integer>> sameNameIndicesPairs = new ArrayList<>();
     for (String sameNameEqualPath : sameNameEqualPaths) {

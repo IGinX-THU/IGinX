@@ -106,10 +106,9 @@ public class PipelineMemoryPhysicalTask extends UnaryMemoryPhysicalTask {
 
     @Override
     public void close() throws PhysicalException {
-      try (StopWatch watch = new StopWatch(getMetrics()::accumulateCpuTime)) {
-        try (BatchStream source = this.source;
-            StatelessUnaryExecutor executor = this.executor) {
-          // Do nothing
+      try (BatchStream source = this.source) {
+        try (StopWatch watch = new StopWatch(getMetrics()::accumulateCpuTime)) {
+          executor.close();
         }
       }
     }

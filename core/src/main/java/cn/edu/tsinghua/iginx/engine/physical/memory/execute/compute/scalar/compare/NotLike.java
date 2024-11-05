@@ -19,39 +19,14 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.comp
 
 import org.apache.arrow.memory.util.ArrowBufPointer;
 
-public final class GreaterEqual extends ComparisonFunction {
+public class NotLike extends Like {
 
-  public GreaterEqual() {
-    super("greater_equal");
+  public NotLike() {
+    super("not_like");
   }
 
   @Override
-  public boolean evaluate(int left, int right) {
-    return left >= right;
-  }
-
-  @Override
-  public boolean evaluate(long left, long right) {
-    return left >= right;
-  }
-
-  @Override
-  public boolean evaluate(float left, float right) {
-    return left >= right;
-  }
-
-  @Override
-  public boolean evaluate(double left, double right) {
-    return left >= right;
-  }
-
-  @Override
-  protected boolean evaluate(ArrowBufPointer left, ArrowBufPointer right) {
-    return left.compareTo(right) >= 0;
-  }
-
-  @Override
-  public boolean equals(Object obj) {
-    return obj instanceof GreaterEqual;
+  public boolean evaluate(ArrowBufPointer left, ArrowBufPointer right) {
+    return !super.evaluate(left, right);
   }
 }

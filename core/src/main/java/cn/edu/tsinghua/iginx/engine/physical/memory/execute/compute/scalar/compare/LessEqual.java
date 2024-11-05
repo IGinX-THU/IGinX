@@ -21,10 +21,8 @@ import org.apache.arrow.memory.util.ArrowBufPointer;
 
 public final class LessEqual extends ComparisonFunction {
 
-  public static final String NAME = "less_equal";
-
   public LessEqual() {
-    super(NAME);
+    super("less_equal");
   }
 
   @Override

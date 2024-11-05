@@ -22,6 +22,9 @@ import org.apache.arrow.util.Preconditions;
 public class JoinOption {
 
   public static final JoinOption INNER = new JoinOption(false, false);
+  public static final JoinOption LEFT = new JoinOption(true, false);
+  public static final JoinOption RIGHT = new JoinOption(false, true);
+  public static final JoinOption FULL = new JoinOption(true, true);
 
   private final boolean outputBuildSideUnmatched;
   private final boolean outputProbeSideUnmatched;
@@ -100,6 +103,18 @@ public class JoinOption {
   public String toString() {
     if (this.equals(INNER)) {
       return "INNER";
+    } else if (this.equals(LEFT)) {
+      return "LEFT";
+    } else if (this.equals(RIGHT)) {
+      return "RIGHT";
+    } else if (this.equals(FULL)) {
+      return "FULL";
+    } else if (needMark()) {
+      if (antiMark) {
+        return "ANTI-MARK:" + markColumn;
+      } else {
+        return "MARK:" + markColumn;
+      }
     }
     return "JoinType{"
         + "needOutputLeftUnmatched="

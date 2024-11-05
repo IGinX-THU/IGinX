@@ -31,7 +31,10 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorCon
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.Schemas;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.function.BiFunction;
 import org.apache.arrow.vector.BitVector;
 import org.apache.commons.lang3.tuple.Pair;
@@ -196,6 +199,10 @@ public class Filters {
         return new NotEqual();
       case LIKE:
       case LIKE_AND:
+        return new Like();
+      case NOT_LIKE:
+      case NOT_LIKE_AND:
+        return new NotLike();
       default:
         throw new UnsupportedOperationException("Unsupported operator: " + op);
     }
@@ -210,6 +217,15 @@ public class Filters {
       Set<Integer> rightOnFieldIndices)
       throws ComputeException {
     switch (filter.getType()) {
+      case Value:
+        parseJoinFilter(
+            (ValueFilter) filter,
+            leftSchema,
+            rightSchema,
+            pathPairOps,
+            leftOnFieldIndices,
+            rightOnFieldIndices);
+        break;
       case Path:
         parseJoinFilter(
             (PathFilter) filter,
@@ -230,6 +246,10 @@ public class Filters {
             leftOnFieldIndices,
             rightOnFieldIndices);
         break;
+      case Key:
+      case Expr:
+      case Or:
+      case Not:
       default:
         throw new IllegalStateException("Unexpected value: " + filter.getType());
     }
@@ -250,6 +270,22 @@ public class Filters {
   }
 
   private static void parseJoinFilter(
+      ValueFilter filter,
+      BatchSchema leftSchema,
+      BatchSchema rightSchema,
+      Map<Pair<Integer, Integer>, Op> pathPairOps,
+      Set<Integer> leftOnFieldIndices,
+      Set<Integer> rightOnFieldIndices)
+      throws ComputeException {
+
+    List<Integer> leftMatchedIndices = Schemas.matchPattern(leftSchema.raw(), filter.getPath());
+    List<Integer> rightMatchedIndices = Schemas.matchPattern(rightSchema.raw(), filter.getPath());
+
+    leftOnFieldIndices.addAll(leftMatchedIndices);
+    rightOnFieldIndices.addAll(rightMatchedIndices);
+  }
+
+  private static void parseJoinFilter(
       PathFilter filter,
       BatchSchema leftSchema,
       BatchSchema rightSchema,
@@ -263,19 +299,13 @@ public class Filters {
     List<Integer> rightAMatchedIndices = Schemas.matchPattern(rightSchema.raw(), filter.getPathA());
     List<Integer> rightBMatchedIndices = Schemas.matchPattern(rightSchema.raw(), filter.getPathB());
 
-    if (leftAMatchedIndices.size() == 1
-        && rightBMatchedIndices.size() == 1
-        && leftBMatchedIndices.isEmpty()
-        && rightAMatchedIndices.isEmpty()) {
+    if (leftAMatchedIndices.size() == 1 && rightBMatchedIndices.size() == 1) {
       pathPairOps.put(
           Pair.of(leftAMatchedIndices.get(0), rightBMatchedIndices.get(0)), filter.getOp());
       return;
     }
 
-    if (leftBMatchedIndices.size() == 1
-        && rightAMatchedIndices.size() == 1
-        && leftAMatchedIndices.isEmpty()
-        && rightBMatchedIndices.isEmpty()) {
+    if (leftBMatchedIndices.size() == 1 && rightAMatchedIndices.size() == 1) {
       pathPairOps.put(
           Pair.of(leftBMatchedIndices.get(0), rightAMatchedIndices.get(0)), filter.getOp());
       return;

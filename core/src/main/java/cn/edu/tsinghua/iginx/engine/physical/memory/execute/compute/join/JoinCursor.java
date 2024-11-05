@@ -19,38 +19,63 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.join;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.row.RowCursor;
 import org.apache.arrow.vector.FieldVector;
+import org.apache.arrow.vector.FixedWidthVector;
+import org.apache.arrow.vector.ValueVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 
 final class JoinCursor {
 
-  private final FieldVector[] onFieldColumns;
-  private final FieldVector[] outputFieldColumns;
+  private interface Copier {
+    void copyTo(ValueVector target, int targetIndex, int thisIndex);
+  }
+
+  private final Copier[] onFieldColumnCopiers;
+  private final Copier[] outputFieldColumnCopiers;
   private final int index;
   private boolean matched = false;
 
   public JoinCursor(VectorSchemaRoot onField, VectorSchemaRoot outputFields) {
     this(
-        onField.getFieldVectors().toArray(new FieldVector[0]),
-        outputFields.getFieldVectors().toArray(new FieldVector[0]),
+        onField.getFieldVectors().stream().map(JoinCursor::toCopier).toArray(Copier[]::new),
+        outputFields.getFieldVectors().stream().map(JoinCursor::toCopier).toArray(Copier[]::new),
         0);
   }
 
-  JoinCursor(FieldVector[] onFieldColumns, FieldVector[] outputFieldColumns, int index) {
-    this.onFieldColumns = onFieldColumns;
-    this.outputFieldColumns = outputFieldColumns;
+  JoinCursor(Copier[] onFieldColumns, Copier[] outputFieldColumns, int index) {
+    this.onFieldColumnCopiers = onFieldColumns;
+    this.outputFieldColumnCopiers = outputFieldColumns;
     this.index = index;
   }
 
+  private static Copier toCopier(FieldVector column) {
+    if (column instanceof FixedWidthVector) {
+      return (target, targetIndex, thisIndex) -> {
+        target.copyFrom(thisIndex, targetIndex, column);
+      };
+    } else {
+      return (target, targetIndex, thisIndex) -> {
+        target.copyFromSafe(thisIndex, targetIndex, column);
+      };
+    }
+  }
+
   public JoinCursor withPosition(int position) {
-    return new JoinCursor(this.onFieldColumns, this.outputFieldColumns, position);
+    return new JoinCursor(onFieldColumnCopiers, outputFieldColumnCopiers, position);
   }
 
-  public void copyKeysTo(RowCursor cursor) {
-    cursor.copyFrom(onFieldColumns, index);
+  public void appendOnFieldsTo(RowCursor cursor) {
+    copyTo(cursor.getColumns(), cursor.getPosition(), onFieldColumnCopiers, index);
   }
 
-  public void copyValuesTo(RowCursor cursor) {
-    cursor.copyFrom(outputFieldColumns, index);
+  public void appendOutputFieldsTo(RowCursor cursor) {
+    copyTo(cursor.getColumns(), cursor.getPosition(), outputFieldColumnCopiers, index);
+  }
+
+  private static void copyTo(
+      FieldVector[] targets, int targetIndex, Copier[] sources, int sourceIndex) {
+    for (int i = 0; i < targets.length; i++) {
+      sources[i].copyTo(targets[i], targetIndex, sourceIndex);
+    }
   }
 
   public void markMatched() {

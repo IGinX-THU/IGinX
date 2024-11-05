@@ -118,7 +118,7 @@ public abstract class PhysicalSelect extends UnaryAccumulation {
     private boolean value;
 
     @Override
-    protected void update(FieldVector inputVector) throws ComputeException {
+    public void update(FieldVector inputVector) throws ComputeException {
       if (!(inputVector instanceof BitVector)) {
         throw new ComputeException(
             "InputVector is not BitVector, but " + inputVector.getClass().getSimpleName());
@@ -131,7 +131,7 @@ public abstract class PhysicalSelect extends UnaryAccumulation {
     }
 
     @Override
-    protected void evaluate(FieldWriter writer) {
+    public void evaluate(FieldWriter writer) {
       genericWriteResult(writer, () -> writer.writeBit(value ? 1 : 0));
     }
 
@@ -143,7 +143,7 @@ public abstract class PhysicalSelect extends UnaryAccumulation {
     private int value;
 
     @Override
-    protected void update(FieldVector inputVector) throws ComputeException {
+    public void update(FieldVector inputVector) throws ComputeException {
       if (!(inputVector instanceof IntVector)) {
         throw new ComputeException(
             "InputVector is not IntVector, but " + inputVector.getClass().getSimpleName());
@@ -154,7 +154,7 @@ public abstract class PhysicalSelect extends UnaryAccumulation {
     }
 
     @Override
-    protected void evaluate(FieldWriter writer) {
+    public void evaluate(FieldWriter writer) {
       genericWriteResult(writer, () -> writer.writeInt(value));
     }
 
@@ -166,7 +166,7 @@ public abstract class PhysicalSelect extends UnaryAccumulation {
     private long value;
 
     @Override
-    protected void update(FieldVector inputVector) throws ComputeException {
+    public void update(FieldVector inputVector) throws ComputeException {
       if (!(inputVector instanceof BigIntVector)) {
         throw new ComputeException(
             "InputVector is not BigIntVector, but " + inputVector.getClass().getSimpleName());
@@ -179,7 +179,7 @@ public abstract class PhysicalSelect extends UnaryAccumulation {
     }
 
     @Override
-    protected void evaluate(FieldWriter writer) {
+    public void evaluate(FieldWriter writer) {
       genericWriteResult(writer, () -> writer.writeBigInt(value));
     }
 
@@ -191,7 +191,7 @@ public abstract class PhysicalSelect extends UnaryAccumulation {
     private float value;
 
     @Override
-    protected void update(FieldVector inputVector) throws ComputeException {
+    public void update(FieldVector inputVector) throws ComputeException {
       if (!(inputVector instanceof Float4Vector)) {
         throw new ComputeException(
             "InputVector is not Float4Vector, but " + inputVector.getClass().getSimpleName());
@@ -204,7 +204,7 @@ public abstract class PhysicalSelect extends UnaryAccumulation {
     }
 
     @Override
-    protected void evaluate(FieldWriter writer) {
+    public void evaluate(FieldWriter writer) {
       genericWriteResult(writer, () -> writer.writeFloat4(value));
     }
 
@@ -216,7 +216,7 @@ public abstract class PhysicalSelect extends UnaryAccumulation {
     private double value;
 
     @Override
-    protected void update(FieldVector inputVector) throws ComputeException {
+    public void update(FieldVector inputVector) throws ComputeException {
       if (!(inputVector instanceof Float8Vector)) {
         throw new ComputeException(
             "InputVector is not Float8Vector, but " + inputVector.getClass().getSimpleName());
@@ -229,7 +229,7 @@ public abstract class PhysicalSelect extends UnaryAccumulation {
     }
 
     @Override
-    protected void evaluate(FieldWriter writer) {
+    public void evaluate(FieldWriter writer) {
       genericWriteResult(writer, () -> writer.writeFloat8(value));
     }
 
@@ -241,7 +241,7 @@ public abstract class PhysicalSelect extends UnaryAccumulation {
     private byte[] value;
 
     @Override
-    protected void update(FieldVector inputVector) throws ComputeException {
+    public void update(FieldVector inputVector) throws ComputeException {
       if (!(inputVector instanceof VarBinaryVector)) {
         throw new ComputeException(
             "InputVector is not VarBinaryVector, but " + inputVector.getClass().getSimpleName());
@@ -254,7 +254,7 @@ public abstract class PhysicalSelect extends UnaryAccumulation {
     }
 
     @Override
-    protected void evaluate(FieldWriter writer) {
+    public void evaluate(FieldWriter writer) {
       genericWriteResult(writer, () -> writer.writeVarBinary(value));
     }
 

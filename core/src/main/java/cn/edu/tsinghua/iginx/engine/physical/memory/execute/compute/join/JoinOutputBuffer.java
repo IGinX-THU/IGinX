@@ -20,9 +20,7 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.join;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.row.RowCursor;
 import java.util.*;
 import org.apache.arrow.memory.BufferAllocator;
-import org.apache.arrow.vector.BitVector;
-import org.apache.arrow.vector.FieldVector;
-import org.apache.arrow.vector.VectorSchemaRoot;
+import org.apache.arrow.vector.*;
 import org.apache.arrow.vector.types.pojo.Schema;
 
 public class JoinOutputBuffer {
@@ -89,12 +87,12 @@ public class JoinOutputBuffer {
     while (buildSideIterator.hasNext() || probeSideIterator.hasNext()) {
       if (buildSideIterator.hasNext()) {
         JoinCursor buildCursor = buildSideIterator.next();
-        buildCursor.copyValuesTo(leftOutputCursor);
+        buildCursor.appendOutputFieldsTo(leftOutputCursor);
         leftOutputCursor.setPosition(leftOutputCursor.getPosition() + 1);
       }
       if (probeSideIterator.hasNext()) {
         JoinCursor probeCursor = probeSideIterator.next();
-        probeCursor.copyValuesTo(rightOutputCursor);
+        probeCursor.appendOutputFieldsTo(rightOutputCursor);
         markColumn.ifPresent(
             marks -> {
               boolean mark =
@@ -111,10 +109,18 @@ public class JoinOutputBuffer {
 
   private void resetBuffer() {
     for (FieldVector vector : buffer.getFieldVectors()) {
-      vector.clear();
-      vector.setInitialCapacity(batchSize);
+      if (vector instanceof FixedWidthVector) {
+        vector.clear();
+        ((FixedWidthVector) vector).allocateNew(batchSize);
+      } else if (vector instanceof VariableWidthVector) {
+        VariableWidthVector variableWidthVector = (VariableWidthVector) vector;
+        int byteSize = variableWidthVector.sizeOfValueBuffer();
+        vector.clear();
+        variableWidthVector.allocateNew(byteSize, batchSize);
+      } else {
+        vector.clear();
+      }
     }
-    buffer.setRowCount(batchSize);
     leftOutputCursor.setPosition(0);
     rightOutputCursor.setPosition(0);
   }

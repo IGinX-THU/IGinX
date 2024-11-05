@@ -25,6 +25,7 @@ import java.util.Arrays;
 import java.util.List;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.FieldVector;
+import org.apache.arrow.vector.FixedWidthVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.types.pojo.Schema;
 
@@ -59,7 +60,12 @@ public final class MaterializedRowKey {
       root.close();
       throw e;
     }
-    root.setRowCount(groupKeys.size());
+    for (FieldVector fieldVector : root.getFieldVectors()) {
+      if (fieldVector instanceof FixedWidthVector) {
+        ((FixedWidthVector) fieldVector).allocateNew(groupKeys.size());
+      }
+    }
+
     for (MaterializedRowKey groupKey : groupKeys) {
       for (int i = 0; i < groupKey.key.length; i++) {
         columnBuilders.get(i).append(groupKey.key[i]);

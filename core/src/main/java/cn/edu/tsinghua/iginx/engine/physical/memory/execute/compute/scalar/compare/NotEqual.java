@@ -21,10 +21,8 @@ import org.apache.arrow.memory.util.ArrowBufPointer;
 
 public class NotEqual extends ComparisonFunction {
 
-  private static final String name = "NotEqual";
-
   public NotEqual() {
-    super(name);
+    super("not_equal");
   }
 
   @Override

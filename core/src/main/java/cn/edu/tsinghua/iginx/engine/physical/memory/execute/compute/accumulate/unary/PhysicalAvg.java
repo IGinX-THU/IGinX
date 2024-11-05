@@ -79,7 +79,7 @@ public class PhysicalAvg extends UnaryAccumulation {
     protected double sum = 0; // Sum of all non-null elements
     protected long count = 0; // Number of non-null elements
 
-    protected void evaluate(FieldWriter writer) throws ComputeException {
+    public void evaluate(FieldWriter writer) throws ComputeException {
       if (count == 0) {
         writer.writeNull();
       } else {
@@ -91,7 +91,7 @@ public class PhysicalAvg extends UnaryAccumulation {
   protected static class IntAvgState extends AvgState {
 
     @Override
-    protected void update(FieldVector inputVector) throws ComputeException {
+    public void update(FieldVector inputVector) throws ComputeException {
       if (!(inputVector instanceof IntVector)) {
         throw new ComputeException(
             "InputVector is not IntVector, but " + inputVector.getClass().getSimpleName());
@@ -110,7 +110,7 @@ public class PhysicalAvg extends UnaryAccumulation {
   protected static class BigIntAvgState extends AvgState {
 
     @Override
-    protected void update(FieldVector inputVector) throws ComputeException {
+    public void update(FieldVector inputVector) throws ComputeException {
       if (!(inputVector instanceof BigIntVector)) {
         throw new ComputeException(
             "InputVector is not BigIntVector, but " + inputVector.getClass().getSimpleName());
@@ -129,7 +129,7 @@ public class PhysicalAvg extends UnaryAccumulation {
   protected static class Float4AvgState extends AvgState {
 
     @Override
-    protected void update(FieldVector inputVector) throws ComputeException {
+    public void update(FieldVector inputVector) throws ComputeException {
       if (!(inputVector instanceof Float4Vector)) {
         throw new ComputeException(
             "InputVector is not Float4Vector, but " + inputVector.getClass().getSimpleName());
@@ -148,7 +148,7 @@ public class PhysicalAvg extends UnaryAccumulation {
   protected static class Float8AvgState extends AvgState {
 
     @Override
-    protected void update(FieldVector inputVector) throws ComputeException {
+    public void update(FieldVector inputVector) throws ComputeException {
       if (!(inputVector instanceof Float8Vector)) {
         throw new ComputeException(
             "InputVector is not Float8Vector, but " + inputVector.getClass().getSimpleName());

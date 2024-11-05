@@ -31,10 +31,13 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.row.Row
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.Schemas;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.VectorSchemaRoots;
 import com.google.common.collect.Lists;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
 import org.apache.arrow.memory.BufferAllocator;
+import org.apache.arrow.util.Preconditions;
 import org.apache.arrow.vector.FieldVector;
-import org.apache.arrow.vector.FixedWidthVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.types.pojo.Schema;
 
@@ -77,6 +80,7 @@ public class GroupTable implements AutoCloseable {
   public static class Builder implements AutoCloseable {
     private final BufferAllocator allocator;
     private final int maxBatchRowCount;
+    private final int initialGroupBufferCapacity;
     private final List<ScalarExpression<?>> groupKeyExpressions;
     private final List<ScalarExpression<?>> groupValueExpressions;
     private final List<ExpressionAccumulator> accumulators;
@@ -89,13 +93,17 @@ public class GroupTable implements AutoCloseable {
     public Builder(
         BufferAllocator allocator,
         int maxBatchRowCount,
+        int initialGroupBufferCapacity,
         Schema inputSchema,
         List<? extends ScalarExpression<?>> groupKeyExpressions,
         List<? extends ScalarExpression<?>> groupValueExpressions,
         List<ExpressionAccumulator> accumulators)
         throws ComputeException {
+      Preconditions.checkArgument(maxBatchRowCount > 0);
+      Preconditions.checkArgument(initialGroupBufferCapacity >= 0);
       this.allocator = allocator;
       this.maxBatchRowCount = maxBatchRowCount;
+      this.initialGroupBufferCapacity = initialGroupBufferCapacity;
       this.groupKeyExpressions = new ArrayList<>(groupKeyExpressions);
       this.groupValueExpressions = new ArrayList<>(groupValueExpressions);
       this.accumulators = accumulators;
@@ -195,10 +203,7 @@ public class GroupTable implements AutoCloseable {
       public GroupState() throws ComputeException {
         this.buffer = VectorSchemaRoot.create(groupValueSchema, allocator);
         for (FieldVector vector : buffer.getFieldVectors()) {
-          vector.setInitialCapacity(maxBatchRowCount);
-          if (vector instanceof FixedWidthVector) {
-            ((FixedWidthVector) vector).allocateNew(maxBatchRowCount);
-          }
+          vector.setInitialCapacity(initialGroupBufferCapacity);
         }
         this.target = new RowCursor(buffer);
         this.states = new ArrayList<>(accumulators.size());
@@ -213,7 +218,7 @@ public class GroupTable implements AutoCloseable {
       }
 
       public void update(RowCursor source) throws ComputeException {
-        target.copyFrom(source);
+        target.copyFromSafe(source);
         target.setPosition(target.getPosition() + 1);
         if (target.getPosition() >= maxBatchRowCount) {
           flush();

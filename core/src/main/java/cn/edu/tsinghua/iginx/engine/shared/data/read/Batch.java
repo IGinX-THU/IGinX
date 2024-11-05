@@ -23,6 +23,7 @@ import java.util.stream.Collectors;
 import javax.annotation.WillCloseWhenClosed;
 import javax.annotation.WillNotClose;
 import org.apache.arrow.memory.BufferAllocator;
+import org.apache.arrow.vector.BaseFixedWidthVector;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.ValueVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
@@ -112,8 +113,10 @@ public class Batch implements AutoCloseable {
       this(allocator, schema);
       for (FieldVector vector : root.getFieldVectors()) {
         vector.setInitialCapacity(rowCount);
+        if (vector instanceof BaseFixedWidthVector) {
+          ((BaseFixedWidthVector) vector).allocateNew(rowCount);
+        }
       }
-      root.setRowCount(rowCount);
     }
 
     public Builder(@WillNotClose BufferAllocator allocator, BatchSchema schema) {

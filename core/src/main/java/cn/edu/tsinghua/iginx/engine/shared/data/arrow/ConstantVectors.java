@@ -134,7 +134,6 @@ public class ConstantVectors {
         new VarBinaryVector(
             Schemas.nullableField(new String(value), Types.MinorType.VARBINARY), allocator);
     vector.allocateNew(valueCount * (long) value.length, valueCount);
-    setValueCountWithValidity(vector, valueCount);
     ArrowBuf offsetBuffer = vector.getOffsetBuffer();
     ArrowBuf valueBuffer = vector.getDataBuffer();
     for (int i = 0; i < valueCount; i++) {
@@ -144,11 +143,17 @@ public class ConstantVectors {
     }
     offsetBuffer.setInt(
         valueCount * (long) VarBinaryVector.OFFSET_WIDTH, valueCount * value.length);
+    vector.setLastSet(valueCount - 1);
+    setValueCountWithValidity(vector, valueCount);
     return vector;
   }
 
   public static void setValueCountWithValidity(@WillNotClose ValueVector vector, int valueCount) {
     vector.setValueCount(valueCount);
+    setAllValidity(vector, valueCount);
+  }
+
+  public static void setAllValidity(@WillNotClose ValueVector vector, int valueCount) {
     long byteCount = BitVectorHelper.getValidityBufferSize(valueCount);
     vector.getValidityBuffer().setOne(0, byteCount);
   }
