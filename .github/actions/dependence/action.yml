@@ -74,7 +74,9 @@ runs:
         .\python-3.13.0-amd64.exe /quiet Include_freethreaded=1
         Start-Sleep -Seconds 20
         Get-ChildItem -Path "$env:LocalAppData\Programs\Python\Python313"
-        $env:Path += ";$env:LocalAppData\Programs\Python\Python313"
+        $pythonPath = "$env:LocalAppData\Programs\Python\Python313"
+        $env:Path += ";$pythonPath"
+        echo "$pythonPath" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
         python -VV
         python3.13t -VV
 
@@ -85,6 +87,7 @@ runs:
         sudo add-apt-repository ppa:deadsnakes
         sudo apt-get update
         sudo apt-get install python3.13-nogil python3-distutils
+        sudo apt-get install python3.13t-dev
         python3.13t -VV
         
 
@@ -115,7 +118,7 @@ runs:
         python3.13t -VV
         export PATH="$PATH:/Library/Frameworks/PythonT.framework/Versions/3.13/bin"
 
-    - if: inputs.free-thread-python-required=='true' && runner.os!='Windows'
+    - if: inputs.free-thread-python-required=='true'
       name: Install pemjax in free-threading python
       shell: bash
       run: |
@@ -123,24 +126,17 @@ runs:
         python3.13t get-pip.py
         python3.13t -m pip install -U pip setuptools wheel find-libpython build
         python3.13t -m pip freeze list
+        
+        export PYTHON_INCLUDE_DIR=$(python3.13t -c "import sysconfig; print(sysconfig.get_path('include'))")
+        export PYTHON_LIBRARY=$(python3.13t -c "import sysconfig; print(sysconfig.get_config_var('LIBDIR'))")
+        
         tar -xzf dependency/src/main/resources/python/pemjax-0.1.0.tar.gz
         ls
         cd pemjax-0.1.0
-        python3.13t setup.py bdist_wheel
-        python3.13t -m pip install --user dist/*.whl
-        python3.13t -m pip freeze list
-
-    - if: inputs.free-thread-python-required=='true' && runner.os=='Windows'
-      name: Install pemjax in free-threading python
-      shell: cmd
-      run: |
-        curl -O https://bootstrap.pypa.io/get-pip.py
-        python3.13t get-pip.py
-        python3.13t -m pip install -U pip setuptools wheel find-libpython build
-        python3.13t -m pip freeze list
-        tar -xzf dependency/src/main/resources/python/pemjax-0.1.0.tar.gz
-        ls
-        cd pemjax-0.1.0
+        
+        export CFLAGS="-I${PYTHON_INCLUDE_DIR}"
+        export LDFLAGS="-L${PYTHON_LIBRARY}"
+        
         python3.13t setup.py bdist_wheel
         python3.13t -m pip install --user dist/*.whl
         python3.13t -m pip freeze list
