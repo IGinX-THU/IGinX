@@ -143,20 +143,6 @@ public class StorageManager {
                 TimeUnit.SECONDS,
                 new SynchronousQueue<>());
         storageMap.put(meta.getId(), new Pair<>(storage, dispatcher));
-      if (storage.testConnection(meta)) {
-        if (!storageMap.containsKey(id)) {
-          // 启动一个派发线程池
-          ThreadPoolExecutor dispatcher =
-              new StorageTaskThreadPoolExecutor(
-                  ConfigDescriptor.getInstance()
-                      .getConfig()
-                      .getPhysicalTaskThreadPoolSizePerStorage(),
-                  Integer.MAX_VALUE,
-                  60L,
-                  TimeUnit.SECONDS,
-                  new SynchronousQueue<>());
-          storageMap.put(meta.getId(), new Pair<>(storage, dispatcher));
-        }
       } else {
         LOGGER.error("Connection test for {}:{} failed", engine, meta);
         return false;
