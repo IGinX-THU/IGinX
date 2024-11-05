@@ -117,7 +117,6 @@ runs:
       run: |
         wget https://bootstrap.pypa.io/get-pip.py
         python3.13t get-pip.py
-        python3.13t -m ensurepip --upgrade
         python3.13t -m pip install setuptools wheel find-libpython
         python3.13t -m pip freeze list
         python3.13t -m pip install dependency/src/main/resources/python/pemjax-0.2.0.tar.gz
