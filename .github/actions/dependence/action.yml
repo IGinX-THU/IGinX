@@ -75,8 +75,8 @@ runs:
         Start-Sleep -Seconds 10
         Get-ChildItem -Path "$env:LocalAppData\Programs\Python\Python313"
         $env:Path += ";$env:LocalAppData\Programs\Python\Python313"
-        python3.13t -VV
         python -VV
+        python3.13t -VV
 
     - if: inputs.free-thread-python-required=='true' && runner.os=='Linux'
       name: Setup Python3.13 on Linux
