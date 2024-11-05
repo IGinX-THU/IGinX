@@ -1,4 +1,4 @@
-name: "TPC-H Regression Test"
+name: "TPC-H Regression Test With Push Down"
 
 on:
     workflow_call:
@@ -30,7 +30,7 @@ on:
                 default: '["IoTDB12", "InfluxDB", "FileSystem", "PostgreSQL", "Redis", "MongoDB", "MySQL"]'
 
 jobs:
-    TPC-H-Test:
+    TPC-H-Test-Push_Down:
         timeout-minutes: 35
         strategy:
             fail-fast: false
@@ -118,6 +118,7 @@ jobs:
               uses: ./.github/actions/confWriter
               with:
                   DB-name: ${{ matrix.DB-name }}
+                  Push-Down: "true"
                   Set-Filter-Fragment-OFF: "true"
                   Metadata: ${{ matrix.metadata }}
                   Root-Dir-Path: "IGinX"
@@ -130,6 +131,7 @@ jobs:
               uses: ./.github/actions/confWriter
               with:
                   DB-name: ${{ matrix.DB-name }}
+                  Push-Down: "true"
                   Set-Filter-Fragment-OFF: "true"
                   Metadata: ${{ matrix.metadata }}
 
