@@ -24,9 +24,11 @@ import org.apache.arrow.memory.util.ArrowBufPointer;
 
 public class Like extends ComparisonFunction {
 
-  private static final String name = "like";
-
   public Like() {
+    super("like");
+  }
+
+  protected Like(String name) {
     super(name);
   }
 
@@ -74,6 +76,6 @@ public class Like extends ComparisonFunction {
 
   @Override
   public boolean equals(Object obj) {
-    return false;
+    return obj != null && obj.getClass().equals(this.getClass());
   }
 }

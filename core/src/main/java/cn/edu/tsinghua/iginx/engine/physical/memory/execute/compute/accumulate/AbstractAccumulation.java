@@ -131,15 +131,15 @@ public abstract class AbstractAccumulation implements Accumulation {
     }
 
     @Override
-    public S createState() throws ComputeException {
+    public S createState() {
       return factory.get();
     }
   }
 
   protected abstract static class AbstractState implements Accumulator.State {
-    protected abstract void update(VectorSchemaRoot root) throws ComputeException;
+    public abstract void update(VectorSchemaRoot root) throws ComputeException;
 
-    protected abstract void evaluate(FieldWriter writer) throws ComputeException;
+    public abstract void evaluate(FieldWriter writer) throws ComputeException;
 
     public void close() {}
   }

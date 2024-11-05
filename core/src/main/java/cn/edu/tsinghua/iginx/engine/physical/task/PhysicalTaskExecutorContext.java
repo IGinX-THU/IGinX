@@ -43,4 +43,9 @@ public class PhysicalTaskExecutorContext implements ExecutorContext {
   public void addWarningMessage(String message) {
     task.getContext().addWarningMessage(message);
   }
+
+  @Override
+  public int groupByInitialGroupBufferCapacity() {
+    return task.getContext().groupByInitialGroupBufferCapacity();
+  }
 }

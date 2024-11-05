@@ -26,7 +26,10 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.binary.Bina
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.binary.stateful.StatefulBinaryExecutor;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.operator.InnerJoin;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.physical.optimizer.naive.util.HashJoins;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 public class InnerJoinInfoGenerator implements BinaryExecutorFactory<StatefulBinaryExecutor> {
@@ -60,12 +63,15 @@ public class InnerJoinInfoGenerator implements BinaryExecutorFactory<StatefulBin
           "JoinAlgType is not HashJoin: " + operator.getJoinAlgType());
     }
 
+    List<Filter> subFilters = new ArrayList<>();
+    if (!operator.getFilter().equals(new BoolFilter(true))) {
+      subFilters.add(operator.getFilter());
+    }
+    for (String extraPrefix : operator.getExtraJoinPrefix()) {
+      subFilters.add(new PathFilter(extraPrefix, Op.E, extraPrefix));
+    }
+
     return HashJoins.constructHashJoin(
-        context,
-        leftSchema,
-        rightSchema,
-        operator.getExtraJoinPrefix(),
-        operator.getFilter(),
-        JoinOption.INNER);
+        context, leftSchema, rightSchema, new AndFilter(subFilters), JoinOption.INNER);
   }
 }

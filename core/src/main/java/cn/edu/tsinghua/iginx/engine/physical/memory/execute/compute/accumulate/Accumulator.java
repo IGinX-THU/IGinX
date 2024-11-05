@@ -25,6 +25,7 @@ import javax.annotation.WillNotClose;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 
+// TODO: 把 Accumulator 替代 State 成为有状态的迭代对象，同时支持 groupAccumulator
 public interface Accumulator extends PhysicalFunction {
 
   State createState() throws ComputeException;

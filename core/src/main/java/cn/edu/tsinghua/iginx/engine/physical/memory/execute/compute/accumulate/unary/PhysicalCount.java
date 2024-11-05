@@ -55,12 +55,12 @@ public class PhysicalCount extends UnaryAccumulation {
     protected long count = 0;
 
     @Override
-    protected void update(FieldVector inputVector) throws ComputeException {
+    public void update(FieldVector inputVector) throws ComputeException {
       count += inputVector.getValueCount() - inputVector.getNullCount();
     }
 
     @Override
-    protected void evaluate(FieldWriter writer) throws ComputeException {
+    public void evaluate(FieldWriter writer) throws ComputeException {
       writer.writeBigInt(count);
     }
   }

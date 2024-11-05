@@ -78,6 +78,8 @@ public class RequestContext implements TaskContext {
    */
   private volatile int batchRowCount = BaseValueVector.INITIAL_VALUE_ALLOCATION;
 
+  private int groupByInitialGroupBufferCapacity = BaseValueVector.INITIAL_VALUE_ALLOCATION >> 7;
+
   private void init() {
     this.id = SnowFlakeUtils.getInstance().nextId();
     this.startTime = System.currentTimeMillis();
@@ -141,5 +143,10 @@ public class RequestContext implements TaskContext {
   @Override
   public void addWarningMessage(String message) {
     warningMsg.add(message);
+  }
+
+  @Override
+  public int groupByInitialGroupBufferCapacity() {
+    return groupByInitialGroupBufferCapacity;
   }
 }

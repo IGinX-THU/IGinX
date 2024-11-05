@@ -26,4 +26,6 @@ public interface ExecutorContext {
   int getBatchRowCount();
 
   void addWarningMessage(String message);
+
+  int groupByInitialGroupBufferCapacity();
 }

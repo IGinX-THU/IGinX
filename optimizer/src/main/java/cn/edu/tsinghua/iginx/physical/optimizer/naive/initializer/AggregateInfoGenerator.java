@@ -73,19 +73,18 @@ public class AggregateInfoGenerator implements UnaryExecutorFactory<AggregateUna
         throw new UnsupportedOperationException("Not implemented yet");
       }
       FunctionParams params = call.getParams();
-      if (function.getMappingType() != MappingType.SetMapping) {
-        throw new ComputeException("Function " + function + " is not an aggregate function");
-      }
-      SetMappingFunction mappingFunction = (SetMappingFunction) function;
-      if (params.isDistinct()) {
-        throw new UnsupportedOperationException("Not implemented yet");
-      }
       if (params.getPaths().size() != 1) {
         throw new ComputeException("Function " + function + " should have exactly one parameter");
       }
       List<Integer> matchedIndexes =
           Schemas.matchPattern(inputSchema.raw(), params.getPaths().get(0));
-      Accumulation accumulation = getAccumulation(context, mappingFunction);
+      if (function.getMappingType() != MappingType.SetMapping) {
+        throw new ComputeException("Function " + function + " is not an aggregate function");
+      }
+      UnaryAccumulation accumulation = getAccumulation(context, (SetMappingFunction) function);
+      if (params.isDistinct()) {
+        accumulation = new UnaryAccumulationDistinctAdapter(accumulation);
+      }
       for (int index : matchedIndexes) {
         result.add(new Pair<>(accumulation, index));
       }
@@ -93,7 +92,7 @@ public class AggregateInfoGenerator implements UnaryExecutorFactory<AggregateUna
     return result;
   }
 
-  private static Accumulation getAccumulation(
+  private static UnaryAccumulation getAccumulation(
       ExecutorContext context, SetMappingFunction function) {
     switch (function.getIdentifier()) {
       case PhysicalCount.NAME:

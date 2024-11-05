@@ -21,10 +21,8 @@ import org.apache.arrow.memory.util.ArrowBufPointer;
 
 public class Greater extends ComparisonFunction {
 
-  private static final String name = "Greater";
-
   public Greater() {
-    super(name);
+    super("greater");
   }
 
   @Override

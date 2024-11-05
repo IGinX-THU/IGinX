@@ -20,7 +20,6 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.row;
 import java.util.Objects;
 import javax.annotation.WillNotClose;
 import org.apache.arrow.vector.FieldVector;
-import org.apache.arrow.vector.FixedWidthVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 
 public class RowCursor extends RowPosition {
@@ -70,19 +69,15 @@ public class RowCursor extends RowPosition {
     return result;
   }
 
-  public void copyFrom(FieldVector[] sourceColumns, int sourcePosition) {
+  public void copyFromSafe(FieldVector[] sourceColumns, int sourcePosition) {
     for (int column = 0; column < this.columns.length; column++) {
       FieldVector sourceColumn = sourceColumns[column];
       FieldVector targetColumn = this.columns[column];
-      if (sourceColumn instanceof FixedWidthVector) {
-        targetColumn.copyFrom(sourcePosition, this.getPosition(), sourceColumn);
-      } else {
-        targetColumn.copyFromSafe(sourcePosition, this.getPosition(), sourceColumn);
-      }
+      targetColumn.copyFromSafe(sourcePosition, this.getPosition(), sourceColumn);
     }
   }
 
-  public void copyFrom(RowCursor source) {
-    copyFrom(source.columns, source.getPosition());
+  public void copyFromSafe(RowCursor source) {
+    copyFromSafe(source.columns, source.getPosition());
   }
 }

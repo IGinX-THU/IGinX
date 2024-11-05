@@ -106,7 +106,7 @@ public class BinarySinkMemoryPhysicalTask extends BinaryMemoryPhysicalTask {
     @Override
     public void close() throws PhysicalException {
       try (BatchStream leftSource = this.leftSource;
-           BatchStream rightSource = this.rightSource) {
+          BatchStream rightSource = this.rightSource) {
         try (StopWatch watch = new StopWatch(getMetrics()::accumulateCpuTime)) {
           executor.close();
         }

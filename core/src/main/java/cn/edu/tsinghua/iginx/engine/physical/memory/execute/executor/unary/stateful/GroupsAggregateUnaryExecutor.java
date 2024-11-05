@@ -51,6 +51,7 @@ public class GroupsAggregateUnaryExecutor extends StatefulUnaryExecutor {
         new GroupTable.Builder(
             context.getAllocator(),
             context.getBatchRowCount(),
+            context.groupByInitialGroupBufferCapacity(),
             inputSchema,
             groupKeyExpressions,
             groupValueExpressions,

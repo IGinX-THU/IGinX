@@ -66,11 +66,11 @@ public abstract class UnaryAccumulation extends AbstractAccumulation {
 
   protected abstract static class UnaryState extends AbstractState {
     @Override
-    protected void update(VectorSchemaRoot root) throws ComputeException {
+    public void update(VectorSchemaRoot root) throws ComputeException {
       FieldVector inputVector = root.getVector(0);
       update(inputVector);
     }
 
-    protected abstract void update(FieldVector inputVector) throws ComputeException;
+    public abstract void update(FieldVector inputVector) throws ComputeException;
   }
 }
