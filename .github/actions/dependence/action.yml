@@ -115,19 +115,36 @@ runs:
         python3.13t -VV
         export PATH="$PATH:/Library/Frameworks/PythonT.framework/Versions/3.13/bin"
 
-    - if: inputs.free-thread-python-required=='true'
+    - if: inputs.free-thread-python-required=='true' && runner.os!='Windows'
       name: Install pemjax in free-threading python
       shell: bash
       run: |
         curl -O https://bootstrap.pypa.io/get-pip.py
         python3.13t get-pip.py
-        python3.13t -m pip install -U pip setuptools wheel find-libpython
+        python3.13t -m pip install -U pip setuptools wheel find-libpython build
         python3.13t -m pip freeze list
         tar -xzf dependency/src/main/resources/python/pemjax-0.1.0.tar.gz
         ls
         cd pemjax-0.1.0
-        python3.13t setup.py install
+        python3.13t -m build
+        python3.13t -m pip install --user dist/*.whl
         python3.13t -m pip freeze list
+
+    - if: inputs.free-thread-python-required=='true' && runner.os=='Windows'
+      name: Install pemjax in free-threading python
+      shell: cmd
+      run: |
+        curl -O https://bootstrap.pypa.io/get-pip.py
+        python3.13t get-pip.py
+        python3.13t -m pip install -U pip setuptools wheel find-libpython build
+        python3.13t -m pip freeze list
+        tar -xzf dependency/src/main/resources/python/pemjax-0.1.0.tar.gz
+        ls
+        cd pemjax-0.1.0
+        python3.13t -m build
+        python3.13t -m pip install --user dist/*.whl
+        python3.13t -m pip freeze list
+
 
     - name: Set up JDK ${{ inputs.java }}
       uses: actions/setup-java@v4
