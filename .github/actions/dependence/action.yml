@@ -73,7 +73,7 @@ runs:
         Invoke-WebRequest -Uri $url -OutFile 'python-3.13.0-amd64.exe'
         .\python-3.13.0-amd64.exe /quiet Include_freethreaded=1 PrependPath=1
         Start-Sleep -Seconds 10
-        Get-ChildItem -Path "$env:LocalAppData\Local\Programs\Python\Python313"
+        Get-ChildItem -Path "$env:LocalAppData\Programs\Python\Python313"
         $env:Path += ";$env:LocalAppData\Programs\Python\Python313"
         python3.13t -VV
 
