@@ -86,7 +86,7 @@ runs:
       run: |
         sudo add-apt-repository ppa:deadsnakes
         sudo apt-get update
-        sudo apt-get install python3.13-nogil python3-distutils
+        sudo apt-get install python3.13-nogil python3-distutils python3-dev
         python3.13t -VV
         
 
@@ -139,6 +139,12 @@ runs:
         python3.13t setup.py bdist_wheel
         python3.13t -m pip install --user dist/*.whl
         python3.13t -m pip freeze list
+
+
+    - uses: actions/upload-artifact@v3
+      with:
+        name: ${{ runner.os }}-pemjax-wheel
+        path: dist/*.whl
 
 
     - name: Set up JDK ${{ inputs.java }}
