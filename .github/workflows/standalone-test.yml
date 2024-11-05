@@ -49,6 +49,7 @@ jobs:
                   python-version: ${{ matrix.python-version }}
                   java: ${{ matrix.java }}
                   free-thread-python-required: 'true'
+                  scope: 'only-java'
 
             - name: Run Metadata
               uses: ./.github/actions/metadataRunner
