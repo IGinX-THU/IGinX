@@ -87,7 +87,6 @@ runs:
         sudo add-apt-repository ppa:deadsnakes
         sudo apt-get update
         sudo apt-get install python3.13-nogil python3-distutils
-        sudo apt-get install python3.13t-dev
         python3.13t -VV
         
 
