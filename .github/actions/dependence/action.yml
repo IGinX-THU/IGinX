@@ -140,7 +140,7 @@ runs:
       run: |
         curl -O https://bootstrap.pypa.io/get-pip.py
         sudo python3.13t get-pip.py
-        sudo python3.13t -m pip install setuptools wheel find-libpython build pandas==2.2.3 numpy thrift fastparquet tqdm requests
+        sudo python3.13t -m pip install setuptools wheel find-libpython build pandas==2.2.3 numpy
         python3.13t -m pip freeze list
         
         tar -xzf dependency/src/main/resources/python/pemjax-0.1.0.tar.gz
