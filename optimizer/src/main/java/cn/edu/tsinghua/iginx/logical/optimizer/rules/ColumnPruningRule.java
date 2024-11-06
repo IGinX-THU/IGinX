@@ -434,6 +434,7 @@ public class ColumnPruningRule extends Rule {
             newColumns.add(column);
           }
         }
+        columns.remove(functionCall.getFunctionStr());
         columns.addAll(newColumns);
       } else {
         List<String> columnNames = functionCall.getParams().getPaths();
