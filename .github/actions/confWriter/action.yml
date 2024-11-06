@@ -81,8 +81,10 @@ runs:
         - name: Change UDF conf
           shell: bash
           run: |
-              if [ "${{ inputs.use-free-thread-python }}" == "true" ]; then
+              if [[ "${{ inputs.use-free-thread-python }}" == "true" && "$RUNNER_OS" != "Windows" ]]; then
                 pythonCMD='python3.13t'
+              elif [[ "${{ inputs.use-free-thread-python }}" == "true" && "$RUNNER_OS" == "Windows" ]]; then
+                pythonCMD=${pythonPath}/python3.13t.exe
               elif [ "$RUNNER_OS" == "Windows" ]; then
                 pythonCMD='python'
               else
