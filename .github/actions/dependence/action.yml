@@ -131,10 +131,11 @@ runs:
         cd pemjax-0.1.0
         
         python3.13t setup.py bdist_wheel
-        python3.13t -m pip install --user dist/*.whl
+        python3.13t -m pip install dist/*.whl
         python3.13t -m pip freeze list
         
         echo "==========================="
+        echo $(python3.13t -c "import sysconfig; print(sysconfig.get_paths()['purelib'])")
         ls $(python3.13t -c "import sysconfig; print(sysconfig.get_paths()['purelib'])")
         echo "==========================="
 
