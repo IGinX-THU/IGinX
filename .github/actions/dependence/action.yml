@@ -77,6 +77,7 @@ runs:
         $pythonPath = "$env:LocalAppData\Programs\Python\Python313"
         $env:Path += ";$pythonPath"
         echo "$pythonPath" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+        echo "FT_PYTHON_PATH=$pythonPath" | Out-File -FilePath $env:GITHUB_ENV -Append
         python3.13t -VV
 
     - if: inputs.free-thread-python-required=='true' && runner.os=='Linux'
@@ -132,6 +133,10 @@ runs:
         python3.13t setup.py bdist_wheel
         python3.13t -m pip install --user dist/*.whl
         python3.13t -m pip freeze list
+        
+        echo "==========================="
+        ls $(python3.13t -c "import sysconfig; print(sysconfig.get_paths()['purelib'])")
+        echo "==========================="
 
 
     - uses: actions/upload-artifact@v3

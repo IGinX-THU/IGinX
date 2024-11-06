@@ -84,7 +84,9 @@ runs:
               if [[ "${{ inputs.use-free-thread-python }}" == "true" && "$RUNNER_OS" != "Windows" ]]; then
                 pythonCMD='python3.13t'
               elif [[ "${{ inputs.use-free-thread-python }}" == "true" && "$RUNNER_OS" == "Windows" ]]; then
-                pythonCMD=${pythonPath}/python3.13t.exe
+                pythonPath=$(echo "$FT_PYTHON_PATH" | sed 's/\\/\//g')
+                pythonCMD="${pythonPath}/python3.13t.exe"
+                echo "Final pythonCMD: $pythonCMD"
               elif [ "$RUNNER_OS" == "Windows" ]; then
                 pythonCMD='python'
               else
@@ -95,7 +97,7 @@ runs:
                 sudo sed -i "s/pythonCMD=python3/pythonCMD=${pythonCMD}/g" ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
               elif [ "$RUNNER_OS" == "Windows" ]; then
                 sed -i "s/needInitBasicUDFFunctions=false/needInitBasicUDFFunctions=true/g" ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-                sed -i "s/pythonCMD=python3/pythonCMD=${pythonCMD}/g" ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
+                sed -i "s|pythonCMD=python3|pythonCMD=${pythonCMD}|g" ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
               elif [ "$RUNNER_OS" == "macOS" ]; then
                 sudo sed -i "" "s/needInitBasicUDFFunctions=false/needInitBasicUDFFunctions=true/" ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
                 sudo sed -i "" "s/pythonCMD=python3/pythonCMD=${pythonCMD}/" ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
