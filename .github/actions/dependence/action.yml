@@ -133,6 +133,10 @@ runs:
         ls
         cd pemjax-0.1.0
         
+        echo "============================="
+        ls ${PYTHON_INCLUDE_DIR}
+        echo "============================="
+        
         export CFLAGS="-I${PYTHON_INCLUDE_DIR}"
         export LDFLAGS="-L${PYTHON_LIBRARY}"
         
