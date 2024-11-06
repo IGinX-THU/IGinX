@@ -27,7 +27,7 @@ on:
                 description: "The database to run the test on"
                 type: string
                 required: false
-                default: '["IoTDB12"]'
+                default: '["IoTDB12", "InfluxDB", "FileSystem", "PostgreSQL", "Redis", "MongoDB", "MySQL"]'
 
 jobs:
     Union-DB-Test:
@@ -48,8 +48,6 @@ jobs:
               with:
                   python-version: ${{ matrix.python-version }}
                   java: ${{ matrix.java }}
-                  free-thread-python-required: 'true'
-                  scope: 'only-java'
 
             - name: Run Metadata
               uses: ./.github/actions/metadataRunner

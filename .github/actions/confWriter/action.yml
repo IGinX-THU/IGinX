@@ -29,6 +29,10 @@ inputs:
         description: "the path of IGinX root directory"
         required: false
         default: "${GITHUB_WORKSPACE}"
+    use-free-thread-python:
+        description: "use python3.13 free-threading mode"
+        required: false
+        default: 'false'
 
 runs:
     using: "composite" # Mandatory parameter
@@ -77,17 +81,27 @@ runs:
         - name: Change UDF conf
           shell: bash
           run: |
+              if [ "${{ inputs.use-free-thread-python }}" == "true" ]; then
+                pythonCMD='python3.13t'
+              elif [ "$RUNNER_OS" == "Windows" ]; then
+                pythonCMD='python'
+              else
+                pythonCMD='python3'
+              fi
               if [ "$RUNNER_OS" == "Linux" ]; then
                 sudo sed -i 's/needInitBasicUDFFunctions=false/needInitBasicUDFFunctions=true/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
+                sudo sed -i 's/pythonCMD=python3/pythonCMD=${pythonCMD}/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
               elif [ "$RUNNER_OS" == "Windows" ]; then
                 sed -i 's/needInitBasicUDFFunctions=false/needInitBasicUDFFunctions=true/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-                sed -i 's/pythonCMD=python3/pythonCMD=python/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
+                sed -i 's/pythonCMD=python3/pythonCMD=${pythonCMD}/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
               elif [ "$RUNNER_OS" == "macOS" ]; then
                 sudo sed -i '' 's/needInitBasicUDFFunctions=false/needInitBasicUDFFunctions=true/' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
+                sudo sed -i '' 's/pythonCMD=python3/pythonCMD=${pythonCMD}/' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
               else
                 echo "$RUNNER_OS is not supported"
                 exit 1
               fi
+              cat ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
 
         - if: inputs.Read-Only=='true'
           name: Change is_read_only
