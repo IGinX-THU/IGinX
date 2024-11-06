@@ -20,12 +20,9 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.sort
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.CallNode;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpression;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.CompareOption;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import java.util.List;
 import java.util.Objects;
-import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.IntVector;
-import org.apache.arrow.vector.VectorSchemaRoot;
 
 public class IndexSortExpression extends CallNode<IntVector> {
 
@@ -39,11 +36,5 @@ public class IndexSortExpression extends CallNode<IntVector> {
 
   public List<CompareOption> getOptions() {
     return options;
-  }
-
-  @Override
-  protected IntVector invokeImpl(BufferAllocator allocator, VectorSchemaRoot input)
-      throws ComputeException {
-    return super.invokeImpl(allocator, input);
   }
 }

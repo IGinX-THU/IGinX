@@ -24,7 +24,6 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.excepti
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import java.util.ArrayList;
 import java.util.List;
-import javax.annotation.WillNotClose;
 import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.types.pojo.Schema;
 
@@ -49,7 +48,7 @@ public class ProjectionUnaryExecutor extends StatelessUnaryExecutor {
   public void close() {}
 
   @Override
-  public VectorSchemaRoot compute(@WillNotClose VectorSchemaRoot batch) throws ComputeException {
+  public VectorSchemaRoot compute(VectorSchemaRoot batch) throws ComputeException {
     try (VectorSchemaRoot result =
         ScalarExpressions.evaluateSafe(context.getAllocator(), expressions, batch)) {
       return PhysicalFunctions.unnest(context.getAllocator(), result);

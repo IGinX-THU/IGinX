@@ -22,7 +22,6 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorCon
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutor;
 import java.util.ArrayDeque;
 import java.util.Queue;
-import javax.annotation.WillNotClose;
 import org.apache.arrow.util.Preconditions;
 import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.types.pojo.Schema;
@@ -64,7 +63,7 @@ public abstract class StatefulUnaryExecutor extends UnaryExecutor {
    * @throws IllegalStateException if the executor is not ready to consume, i.e., need to produce
    *     the result
    */
-  public void consume(@WillNotClose VectorSchemaRoot batch) throws ComputeException {
+  public void consume(VectorSchemaRoot batch) throws ComputeException {
     if (!needConsume()) {
       throw new IllegalStateException("Executor does not need to consume more data");
     }
@@ -95,12 +94,11 @@ public abstract class StatefulUnaryExecutor extends UnaryExecutor {
     return results.remove();
   }
 
-  protected void offerResult(@WillNotClose VectorSchemaRoot batch) {
+  protected void offerResult(VectorSchemaRoot batch) {
     results.add(batch);
   }
 
-  protected abstract void consumeUnchecked(@WillNotClose VectorSchemaRoot batch)
-      throws ComputeException;
+  protected abstract void consumeUnchecked(VectorSchemaRoot batch) throws ComputeException;
 
   protected abstract void consumeEnd() throws ComputeException;
 }

@@ -15,23 +15,30 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.PhysicalFunction;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputingCloseable;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.Arity;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
-import java.util.List;
+import javax.annotation.Nullable;
+import org.apache.arrow.memory.BufferAllocator;
+import org.apache.arrow.vector.BaseIntVector;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 
-// TODO: 把 Accumulator 替代 State 成为有状态的迭代对象，同时支持 groupAccumulator
-public interface Accumulator extends PhysicalFunction {
+public abstract class UnaryScalarFunction<OUTPUT extends FieldVector>
+    extends AbstractScalarFunction<OUTPUT> {
+  protected UnaryScalarFunction(String name) {
+    super(name, Arity.UNARY);
+  }
 
-  State createState() throws ComputeException;
+  @Override
+  protected OUTPUT invokeImpl(
+      BufferAllocator allocator, @Nullable BaseIntVector selection, VectorSchemaRoot input)
+      throws ComputeException {
+    return evaluate(allocator, selection, input.getFieldVectors().get(0));
+  }
 
-  void update(State state, VectorSchemaRoot input) throws ComputeException;
-
-  FieldVector evaluate(List<State> states) throws ComputeException;
-
-  interface State extends ComputingCloseable {}
+  public abstract OUTPUT evaluate(
+      BufferAllocator allocator, @Nullable BaseIntVector selection, FieldVector input)
+      throws ComputeException;
 }

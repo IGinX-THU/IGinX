@@ -15,30 +15,40 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.predicate;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.Arity;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.BinaryScalarFunction;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
-import javax.annotation.WillNotClose;
+import javax.annotation.Nullable;
 import org.apache.arrow.memory.BufferAllocator;
+import org.apache.arrow.vector.BaseIntVector;
+import org.apache.arrow.vector.BitVector;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 
-public abstract class BinaryFunction<OUTPUT extends FieldVector> extends AbstractFunction<OUTPUT> {
+public abstract class BinaryPredicateFunction extends BinaryScalarFunction<BitVector>
+    implements PredicateFunction {
 
-  protected BinaryFunction(String name) {
-    super(name, Arity.BINARY);
+  protected BinaryPredicateFunction(String name) {
+    super(name);
   }
 
+  @Nullable
   @Override
-  protected OUTPUT invokeImpl(BufferAllocator allocator, VectorSchemaRoot input)
+  public BaseIntVector filter(
+      BufferAllocator allocator, @Nullable BaseIntVector selection, VectorSchemaRoot input)
       throws ComputeException {
-    return evaluate(allocator, input.getFieldVectors().get(0), input.getFieldVectors().get(1));
+    if (input.getSchema().getFields().size() != 2) {
+      throw new ComputeException(getName() + " requires two arguments");
+    }
+    return filter(allocator, selection, input.getVector(0), input.getVector(1));
   }
 
-  public abstract OUTPUT evaluate(
-      @WillNotClose BufferAllocator allocator,
-      @WillNotClose FieldVector left,
-      @WillNotClose FieldVector right)
+  @Nullable
+  protected abstract BaseIntVector filter(
+      BufferAllocator allocator,
+      @Nullable BaseIntVector selection,
+      FieldVector left,
+      FieldVector right)
       throws ComputeException;
 }

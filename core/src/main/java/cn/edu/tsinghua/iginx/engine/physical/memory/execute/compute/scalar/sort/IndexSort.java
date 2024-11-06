@@ -17,9 +17,11 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.sort;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.AbstractFunction;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.PhysicalFunctions;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.AbstractScalarFunction;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.Arity;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.CompareOption;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.row.RowCursor;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.row.RowCursorComparator;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ValueVectors;
@@ -28,11 +30,13 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 import org.apache.arrow.memory.BufferAllocator;
+import org.apache.arrow.vector.BaseIntVector;
 import org.apache.arrow.vector.IntVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 
-public class IndexSort extends AbstractFunction<IntVector> {
+public class IndexSort extends AbstractScalarFunction<IntVector> {
 
   private final List<CompareOption> options;
 
@@ -55,6 +59,17 @@ public class IndexSort extends AbstractFunction<IntVector> {
   }
 
   @Override
+  protected IntVector invokeImpl(
+      BufferAllocator allocator, @Nullable BaseIntVector selection, VectorSchemaRoot input)
+      throws ComputeException {
+    if (selection == null) {
+      return invokeImpl(allocator, input);
+    }
+    try (VectorSchemaRoot selected = PhysicalFunctions.take(allocator, selection, input)) {
+      return invokeImpl(allocator, selected);
+    }
+  }
+
   protected IntVector invokeImpl(BufferAllocator allocator, VectorSchemaRoot input) {
     Integer[] indices = getIndices(input.getRowCount());
     Comparator<Integer> comparator = getComparator(input);

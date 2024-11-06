@@ -23,7 +23,6 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.binary.Bina
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import java.util.ArrayDeque;
 import java.util.Queue;
-import javax.annotation.WillNotClose;
 import org.apache.arrow.util.Preconditions;
 import org.apache.arrow.vector.VectorSchemaRoot;
 
@@ -56,7 +55,7 @@ public abstract class StatefulBinaryExecutor extends BinaryExecutor {
    *     less than the batch size
    * @throws ComputeException if an error occurs during consumption
    */
-  public void consumeLeft(@WillNotClose VectorSchemaRoot batch) throws ComputeException {
+  public void consumeLeft(VectorSchemaRoot batch) throws ComputeException {
     if (!needConsumeLeft()) {
       throw new IllegalStateException(
           "Executor does not need to consume more data from the left child");
@@ -76,7 +75,7 @@ public abstract class StatefulBinaryExecutor extends BinaryExecutor {
    *     less than the batch size
    * @throws ComputeException if an error occurs during consumption
    */
-  public void consumeRight(@WillNotClose VectorSchemaRoot batch) throws ComputeException {
+  public void consumeRight(VectorSchemaRoot batch) throws ComputeException {
     if (!needConsumeRight()) {
       throw new IllegalStateException(
           "Executor does not need to consume more data from the right child");
@@ -107,17 +106,15 @@ public abstract class StatefulBinaryExecutor extends BinaryExecutor {
     return results.remove();
   }
 
-  protected void offerResult(@WillNotClose VectorSchemaRoot batch) {
+  protected void offerResult(VectorSchemaRoot batch) {
     results.add(batch);
   }
 
-  protected abstract void consumeLeftUnchecked(@WillNotClose VectorSchemaRoot batch)
-      throws ComputeException;
+  protected abstract void consumeLeftUnchecked(VectorSchemaRoot batch) throws ComputeException;
 
   protected abstract void consumeLeftEnd() throws ComputeException;
 
-  protected abstract void consumeRightUnchecked(@WillNotClose VectorSchemaRoot batch)
-      throws ComputeException;
+  protected abstract void consumeRightUnchecked(VectorSchemaRoot batch) throws ComputeException;
 
   protected abstract void consumeRightEnd() throws ComputeException;
 }

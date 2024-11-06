@@ -18,7 +18,7 @@
 package cn.edu.tsinghua.iginx.physical.optimizer.naive.initializer;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.FieldNode;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpression;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.predicate.expression.PredicateExpression;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutorFactory;
@@ -29,7 +29,6 @@ import cn.edu.tsinghua.iginx.physical.optimizer.naive.util.Filters;
 import cn.edu.tsinghua.iginx.physical.optimizer.naive.util.Generators;
 import java.util.List;
 import java.util.Objects;
-import org.apache.arrow.vector.BitVector;
 
 public class FilterInfoGenerator implements UnaryExecutorFactory<FilterUnaryExecutor> {
 
@@ -42,12 +41,12 @@ public class FilterInfoGenerator implements UnaryExecutorFactory<FilterUnaryExec
   @Override
   public FilterUnaryExecutor initialize(ExecutorContext context, BatchSchema inputSchema)
       throws ComputeException {
-    ScalarExpression<BitVector> condition = getCondition(context, inputSchema);
+    PredicateExpression condition = getCondition(context, inputSchema);
     List<FieldNode> outputExpressions = Generators.allFieldExpressions(inputSchema.getFieldCount());
     return new FilterUnaryExecutor(context, inputSchema.raw(), condition, outputExpressions);
   }
 
-  public ScalarExpression<BitVector> getCondition(ExecutorContext context, BatchSchema inputSchema)
+  public PredicateExpression getCondition(ExecutorContext context, BatchSchema inputSchema)
       throws ComputeException {
     return Filters.construct(filter, context, inputSchema);
   }

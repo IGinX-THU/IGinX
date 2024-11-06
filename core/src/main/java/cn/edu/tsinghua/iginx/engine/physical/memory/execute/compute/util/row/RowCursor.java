@@ -18,7 +18,6 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.row;
 
 import java.util.Objects;
-import javax.annotation.WillNotClose;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 
@@ -26,7 +25,7 @@ public class RowCursor extends RowPosition {
 
   protected final FieldVector[] columns;
 
-  public RowCursor(@WillNotClose VectorSchemaRoot table) {
+  public RowCursor(VectorSchemaRoot table) {
     this(table.getFieldVectors().toArray(new FieldVector[0]), 0);
   }
 

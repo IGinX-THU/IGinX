@@ -17,6 +17,7 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.task;
 
+import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ConstantPool;
 import org.apache.arrow.memory.BufferAllocator;
 
 public interface TaskContext {
@@ -24,6 +25,8 @@ public interface TaskContext {
   int getBatchRowCount();
 
   BufferAllocator getAllocator();
+
+  ConstantPool getConstantPool();
 
   void addWarningMessage(String message);
 

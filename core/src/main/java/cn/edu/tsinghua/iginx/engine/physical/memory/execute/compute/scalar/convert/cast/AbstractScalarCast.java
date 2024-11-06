@@ -17,31 +17,43 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.convert.cast;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.UnaryFunction;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.PhysicalFunctions;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.UnaryScalarFunction;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.NotAllowTypeException;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.Schemas;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ValueVectors;
-import javax.annotation.WillNotClose;
+import javax.annotation.Nullable;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.*;
 import org.apache.arrow.vector.types.Types;
 import org.apache.arrow.vector.types.pojo.Field;
 import org.apache.arrow.vector.types.pojo.FieldType;
 
-public abstract class AbstractCast<OUTPUT extends FieldVector> extends UnaryFunction<OUTPUT> {
+public abstract class AbstractScalarCast<OUTPUT extends FieldVector>
+    extends UnaryScalarFunction<OUTPUT> {
 
   protected final Types.MinorType resultType;
 
-  protected AbstractCast(Types.MinorType resultType) {
+  protected AbstractScalarCast(Types.MinorType resultType) {
     super("cast_as_" + resultType.toString().toLowerCase());
     this.resultType = resultType;
   }
 
   @Override
-  @SuppressWarnings("unchecked")
-  public OUTPUT evaluate(@WillNotClose BufferAllocator allocator, @WillNotClose FieldVector input)
+  public OUTPUT evaluate(
+      BufferAllocator allocator, @Nullable BaseIntVector selection, FieldVector input)
       throws ComputeException {
+    if (selection == null) {
+      return evaluate(allocator, input);
+    }
+    try (FieldVector selected = PhysicalFunctions.take(allocator, selection, input)) {
+      return evaluate(allocator, selection);
+    }
+  }
+
+  @SuppressWarnings("unchecked")
+  public OUTPUT evaluate(BufferAllocator allocator, FieldVector input) throws ComputeException {
     if (input.getMinorType() == resultType) {
       return ValueVectors.slice(allocator, (OUTPUT) input);
     }

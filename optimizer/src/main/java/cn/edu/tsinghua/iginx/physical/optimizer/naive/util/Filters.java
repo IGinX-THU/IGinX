@@ -17,32 +17,29 @@
  */
 package cn.edu.tsinghua.iginx.physical.optimizer.naive.util;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.ScalarFunction;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.compare.*;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.CallNode;
+import cn.edu.tsinghua.iginx.engine.logical.utils.LogicalFilterUtils;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.FieldNode;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.LiteralNode;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpression;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.logic.And;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.logic.Not;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.logic.Or;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.predicate.PredicateFunction;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.predicate.compare.*;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.predicate.expression.*;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.Schemas;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
+import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.BiFunction;
-import org.apache.arrow.vector.BitVector;
 import org.apache.commons.lang3.tuple.Pair;
 
 public class Filters {
 
-  public static ScalarExpression<BitVector> construct(
+  public static PredicateExpression construct(
       Filter filter, ExecutorContext context, BatchSchema inputSchema) throws ComputeException {
+    filter = LogicalFilterUtils.removeNot(filter);
     switch (filter.getType()) {
       case Value:
         return construct((ValueFilter) filter, context, inputSchema);
@@ -51,11 +48,14 @@ public class Filters {
       case Or:
         return construct((OrFilter) filter, context, inputSchema);
       case Bool:
-        return LiteralNode.of(((BoolFilter) filter).isTrue());
+        BoolFilter boolFilter = (BoolFilter) filter;
+        if (boolFilter.isTrue()) {
+          return new TrueNode(context.getConstantPool());
+        } else {
+          return new FalseNode(context.getConstantPool());
+        }
       case Key:
         return construct((KeyFilter) filter, context, inputSchema);
-      case Not:
-        return construct((NotFilter) filter, context, inputSchema);
       case Expr:
         return construct((ExprFilter) filter, context, inputSchema);
       case Path:
@@ -65,108 +65,104 @@ public class Filters {
     }
   }
 
-  private static ScalarExpression<BitVector> construct(
+  private static PredicateExpression construct(
       AndFilter filter, ExecutorContext context, BatchSchema inputSchema) throws ComputeException {
     return and(construct(filter.getChildren(), context, inputSchema), context, inputSchema);
   }
 
-  private static ScalarExpression<BitVector> construct(
+  private static PredicateExpression construct(
       OrFilter filter, ExecutorContext context, BatchSchema inputSchema) throws ComputeException {
     return or(construct(filter.getChildren(), context, inputSchema), context, inputSchema);
   }
 
-  private static ScalarExpression<BitVector> construct(
+  private static PredicateExpression construct(
       KeyFilter keyFilter, ExecutorContext context, BatchSchema inputSchema) {
     if (!inputSchema.hasKey()) {
-      return LiteralNode.of(false);
+      return new FalseNode(context.getConstantPool());
     }
-    return new CallNode<>(
+    return new CompareNode(
         getPredicate(keyFilter.getOp()),
         new FieldNode(inputSchema.getKeyIndex()),
-        new LiteralNode<>(keyFilter.getValue()));
+        new LiteralNode<>(keyFilter.getValue(), context.getConstantPool()));
   }
 
-  private static ScalarExpression<BitVector> construct(
-      NotFilter filter, ExecutorContext context, BatchSchema inputSchema) throws ComputeException {
-    return new CallNode<>(new Not(), construct(filter.getChild(), context, inputSchema));
-  }
-
-  private static ScalarExpression<BitVector> construct(
+  private static PredicateExpression construct(
       ExprFilter filter, ExecutorContext context, BatchSchema inputSchema) throws ComputeException {
-    return new CallNode<>(
+    return new CompareNode(
         getPredicate(filter.getOp()),
         Expressions.getPhysicalExpression(context, inputSchema, filter.getExpressionA()),
         Expressions.getPhysicalExpression(context, inputSchema, filter.getExpressionB()));
   }
 
-  private static ScalarExpression<BitVector> construct(
+  private static PredicateExpression construct(
       PathFilter filter, ExecutorContext context, BatchSchema inputSchema) throws ComputeException {
     if (inputSchema.indexOf(filter.getPathA()) == null
         || inputSchema.indexOf(filter.getPathB()) == null) {
       throw new ComputeException("Trying to compare non-existing path(s).");
     }
-    return new CallNode<>(
+    return new CompareNode(
         getPredicate(filter.getOp()),
         new FieldNode(inputSchema.indexOf(filter.getPathA())),
         new FieldNode(inputSchema.indexOf(filter.getPathB())));
   }
 
-  private static List<ScalarExpression<BitVector>> construct(
+  private static List<PredicateExpression> construct(
       List<Filter> filters, ExecutorContext context, BatchSchema inputSchema)
       throws ComputeException {
-    List<ScalarExpression<BitVector>> result = new ArrayList<>();
+    List<PredicateExpression> result = new ArrayList<>();
     for (Filter filter : filters) {
       result.add(construct(filter, context, inputSchema));
     }
     return result;
   }
 
-  private static ScalarExpression<BitVector> and(
-      List<ScalarExpression<BitVector>> children, ExecutorContext context, BatchSchema inputSchema)
+  private static PredicateExpression and(
+      List<PredicateExpression> children, ExecutorContext context, BatchSchema inputSchema)
       throws ComputeException {
     if (children.isEmpty()) {
       return construct(new BoolFilter(true), context, inputSchema);
+    } else if (children.size() == 1) {
+      return children.get(0);
     }
-    return binaryReduce(children, (l, r) -> new CallNode<>(new And(), l, r), 0, children.size());
+    return new AndNode(children);
   }
 
-  private static <T> T binaryReduce(
-      List<T> list, BiFunction<T, T, T> combiner, int start, int end) {
-    if (start == end) {
-      throw new IllegalArgumentException("Empty list");
-    }
-    if (start == end - 1) {
-      return list.get(start);
-    }
-    int mid = start + (end - start) / 2;
-    T left = binaryReduce(list, combiner, start, mid);
-    T right = binaryReduce(list, combiner, mid, end);
-    return combiner.apply(left, right);
-  }
-
-  private static ScalarExpression<BitVector> or(
-      List<ScalarExpression<BitVector>> children, ExecutorContext context, BatchSchema inputSchema)
+  private static PredicateExpression or(
+      List<PredicateExpression> children, ExecutorContext context, BatchSchema inputSchema)
       throws ComputeException {
     if (children.isEmpty()) {
       return construct(new BoolFilter(false), context, inputSchema);
+    } else if (children.size() == 1) {
+      return children.get(0);
     }
-    return binaryReduce(children, (l, r) -> new CallNode<>(new Or(), l, r), 0, children.size());
+    return new OrNode(children);
   }
 
-  private static ScalarExpression<BitVector> construct(
+  private static PredicateExpression construct(
       ValueFilter filter, ExecutorContext context, BatchSchema inputSchema)
       throws ComputeException {
     List<Integer> paths = Schemas.matchPattern(inputSchema.raw(), filter.getPath());
     if (paths.isEmpty()) {
       throw new ComputeException("Path not found: " + filter.getPath() + " in " + inputSchema);
     }
-    List<ScalarExpression<BitVector>> comparisons = new ArrayList<>();
+    List<PredicateExpression> comparisons = new ArrayList<>();
     for (Integer pathIndex : paths) {
+      switch (filter.getOp()) {
+        case E:
+        case E_AND:
+          if (filter.getValue().getDataType() == DataType.BINARY) {
+            comparisons.add(
+                new CompareNode(
+                    new EqualConstBinary(filter.getValue().getBinaryV()),
+                    new FieldNode(pathIndex)));
+            continue;
+          }
+      }
       comparisons.add(
-          new CallNode<>(
+          new CompareNode(
               getPredicate(filter.getOp()),
               new FieldNode(pathIndex),
-              new LiteralNode<>(filter.getValue().getValue())));
+              new LiteralNode<>(filter.getValue().getValue(), context.getConstantPool())));
     }
     if (Op.isOrOp(filter.getOp())) {
       return or(comparisons, context, inputSchema);
@@ -177,7 +173,7 @@ public class Filters {
     }
   }
 
-  private static ScalarFunction<BitVector> getPredicate(Op op) {
+  private static PredicateFunction getPredicate(Op op) {
     switch (op) {
       case GE:
       case GE_AND:

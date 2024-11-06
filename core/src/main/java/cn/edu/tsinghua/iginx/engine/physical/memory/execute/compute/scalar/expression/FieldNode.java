@@ -17,11 +17,14 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression;
 
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.PhysicalFunctions;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ValueVectors;
 import java.util.Collections;
 import java.util.List;
+import javax.annotation.Nullable;
 import org.apache.arrow.memory.BufferAllocator;
+import org.apache.arrow.vector.BaseIntVector;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 
@@ -53,14 +56,18 @@ public final class FieldNode extends AbstractScalarExpression<FieldVector> {
   }
 
   @Override
-  protected FieldVector invokeImpl(BufferAllocator allocator, VectorSchemaRoot input)
+  protected FieldVector invokeImpl(
+      BufferAllocator allocator, @Nullable BaseIntVector selection, VectorSchemaRoot input)
       throws ComputeException {
     List<FieldVector> args = input.getFieldVectors();
     if (index >= args.size() || index < 0) {
       throw new ComputeException(
           "Field index out of bound, index: " + index + ", size: " + args.size());
     }
-    return ValueVectors.slice(allocator, args.get(index), input.getRowCount());
+    if (selection == null) {
+      return ValueVectors.slice(allocator, args.get(index), input.getRowCount());
+    }
+    return PhysicalFunctions.take(allocator, selection, args.get(index));
   }
 }
 

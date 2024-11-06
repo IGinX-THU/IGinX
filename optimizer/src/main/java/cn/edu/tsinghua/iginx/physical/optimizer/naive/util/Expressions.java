@@ -18,7 +18,8 @@
 package cn.edu.tsinghua.iginx.physical.optimizer.naive.util;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.ScalarFunction;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.arithmetic.*;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.arithmetic.BinaryArithmeticScalarFunction;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.arithmetic.Negate;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.CallNode;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.FieldNode;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.LiteralNode;
@@ -48,7 +49,7 @@ public class Expressions {
         return getPhysicalExpression(
             context, inputSchema, ((BracketExpression) expr).getExpression());
       case Constant:
-        return new LiteralNode<>(((ConstantExpression) expr).getValue());
+        return new LiteralNode<>(((ConstantExpression) expr).getValue(), context.getConstantPool());
       case CaseWhen:
         return getPhysicalExpression(context, inputSchema, (CaseWhenExpression) expr);
       case Function:
@@ -112,18 +113,23 @@ public class Expressions {
     }
   }
 
-  private static BinaryArithmeticFunction getArithmeticFunction(Operator operator) {
+  private static BinaryArithmeticScalarFunction getArithmeticFunction(Operator operator) {
     switch (operator) {
       case PLUS:
-        return new Add();
+        return new cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.arithmetic
+            .Add();
       case MINUS:
-        return new Minus();
+        return new cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.arithmetic
+            .Minus();
       case STAR:
-        return new Multiply();
+        return new cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.arithmetic
+            .Multiply();
       case DIV:
-        return new Ratio();
+        return new cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.arithmetic
+            .Ratio();
       case MOD:
-        return new Mod();
+        return new cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.arithmetic
+            .Mod();
       default:
         throw new UnsupportedOperationException("Unsupported operator: " + operator);
     }

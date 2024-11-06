@@ -21,8 +21,9 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.excepti
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ResultRowCountException;
 import java.util.ArrayList;
 import java.util.List;
-import javax.annotation.WillNotClose;
+import javax.annotation.Nullable;
 import org.apache.arrow.memory.BufferAllocator;
+import org.apache.arrow.vector.BaseIntVector;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.types.pojo.Field;
@@ -33,7 +34,7 @@ public class ScalarExpressions {
   private ScalarExpressions() {}
 
   public static Field getOutputField(
-      @WillNotClose BufferAllocator allocator, ScalarExpression<?> expression, Schema inputSchema)
+      BufferAllocator allocator, ScalarExpression<?> expression, Schema inputSchema)
       throws ComputeException {
     try (VectorSchemaRoot empty = VectorSchemaRoot.create(inputSchema, allocator)) {
       try (FieldVector result = evaluateSafe(allocator, expression, empty)) {
@@ -43,7 +44,7 @@ public class ScalarExpressions {
   }
 
   public static Schema getOutputSchema(
-      @WillNotClose BufferAllocator allocator,
+      BufferAllocator allocator,
       List<? extends ScalarExpression<?>> expressions,
       Schema inputSchema)
       throws ComputeException {
@@ -55,11 +56,18 @@ public class ScalarExpressions {
   }
 
   public static <OUTPUT extends FieldVector> OUTPUT evaluateSafe(
-      @WillNotClose BufferAllocator allocator,
+      BufferAllocator allocator, ScalarExpression<OUTPUT> expression, VectorSchemaRoot input)
+      throws ComputeException {
+    return evaluateSafe(allocator, expression, null, input);
+  }
+
+  public static <OUTPUT extends FieldVector> OUTPUT evaluateSafe(
+      BufferAllocator allocator,
       ScalarExpression<OUTPUT> expression,
+      @Nullable BaseIntVector selection,
       VectorSchemaRoot input)
       throws ComputeException {
-    OUTPUT result = expression.invoke(allocator, input);
+    OUTPUT result = expression.invoke(allocator, selection, input);
     try {
       if (result.getValueCount() != input.getRowCount()) {
         throw new ResultRowCountException(
@@ -73,14 +81,21 @@ public class ScalarExpressions {
   }
 
   public static VectorSchemaRoot evaluateSafe(
-      @WillNotClose BufferAllocator allocator,
+      BufferAllocator allocator, List<ScalarExpression<?>> expressions, VectorSchemaRoot input)
+      throws ComputeException {
+    return evaluateSafe(allocator, expressions, null, input);
+  }
+
+  public static VectorSchemaRoot evaluateSafe(
+      BufferAllocator allocator,
       List<ScalarExpression<?>> expressions,
+      @Nullable BaseIntVector selection,
       VectorSchemaRoot input)
       throws ComputeException {
     List<FieldVector> results = new ArrayList<>();
     try {
       for (ScalarExpression<?> expression : expressions) {
-        results.add(evaluateSafe(allocator, expression, input));
+        results.add(evaluateSafe(allocator, expression, selection, input));
       }
     } catch (ComputeException e) {
       results.forEach(FieldVector::close);

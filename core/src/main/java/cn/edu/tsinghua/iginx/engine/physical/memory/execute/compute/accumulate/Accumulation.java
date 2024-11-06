@@ -19,12 +19,10 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.PhysicalFunction;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
-import javax.annotation.WillNotClose;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.types.pojo.Schema;
 
 public interface Accumulation extends PhysicalFunction {
 
-  Accumulator accumulate(@WillNotClose BufferAllocator allocator, Schema inputSchema)
-      throws ComputeException;
+  Accumulator accumulate(BufferAllocator allocator, Schema inputSchema) throws ComputeException;
 }

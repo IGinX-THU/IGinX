@@ -15,18 +15,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.compare;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.predicate.expression;
 
-import org.apache.arrow.memory.util.ArrowBufPointer;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpression;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.predicate.PredicateFunction;
+import org.apache.arrow.vector.BitVector;
 
-public class NotLike extends Like {
-
-  public NotLike() {
-    super("not_like");
-  }
-
-  @Override
-  public boolean evaluate(ArrowBufPointer left, ArrowBufPointer right) {
-    return !super.evaluate(left, right);
-  }
-}
+public interface PredicateExpression extends PredicateFunction, ScalarExpression<BitVector> {}

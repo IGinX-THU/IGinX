@@ -15,28 +15,33 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.predicate.expression;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.Arity;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.LiteralNode;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
-import javax.annotation.WillNotClose;
+import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ConstantPool;
+import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ValueVectors;
+import javax.annotation.Nullable;
 import org.apache.arrow.memory.BufferAllocator;
-import org.apache.arrow.vector.FieldVector;
+import org.apache.arrow.vector.BaseIntVector;
+import org.apache.arrow.vector.BitVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 
-public abstract class UnaryFunction<OUTPUT extends FieldVector> extends AbstractFunction<OUTPUT> {
+public class TrueNode extends LiteralNode<BitVector> implements PredicateExpression {
 
-  protected UnaryFunction(String name) {
-    super(name, Arity.UNARY);
+  public TrueNode(ConstantPool pool, String alias) {
+    super(true, pool, alias);
   }
 
+  public TrueNode(ConstantPool pool) {
+    this(pool, null);
+  }
+
+  @Nullable
   @Override
-  protected OUTPUT invokeImpl(BufferAllocator allocator, VectorSchemaRoot input)
+  public BaseIntVector filter(
+      BufferAllocator allocator, @Nullable BaseIntVector selection, VectorSchemaRoot input)
       throws ComputeException {
-    return evaluate(allocator, input.getFieldVectors().get(0));
+    return ValueVectors.slice(allocator, selection);
   }
-
-  public abstract OUTPUT evaluate(
-      @WillNotClose BufferAllocator allocator, @WillNotClose FieldVector input)
-      throws ComputeException;
 }

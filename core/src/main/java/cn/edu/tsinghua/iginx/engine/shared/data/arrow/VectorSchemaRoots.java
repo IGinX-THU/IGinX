@@ -73,4 +73,10 @@ public class VectorSchemaRoots {
   public static VectorSchemaRoot slice(BufferAllocator allocator, VectorSchemaRoot batch) {
     return slice(allocator, batch, 0, batch.getRowCount());
   }
+
+  public static void transfer(VectorSchemaRoot target, VectorSchemaRoot source) {
+    for (int i = 0; i < target.getFieldVectors().size(); i++) {
+      source.getFieldVectors().get(i).makeTransferPair(target.getFieldVectors().get(i)).transfer();
+    }
+  }
 }

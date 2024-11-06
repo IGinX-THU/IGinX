@@ -17,19 +17,31 @@
  */
 package cn.edu.tsinghua.iginx.resource;
 
+import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ConstantPool;
 import javax.annotation.WillCloseWhenClosed;
 import org.apache.arrow.memory.BufferAllocator;
 
 public class ResourceSet implements AutoCloseable {
 
   private final BufferAllocator allocator;
+  private final ConstantPool constantPool;
 
   public ResourceSet(@WillCloseWhenClosed BufferAllocator allocator) {
     this.allocator = allocator;
+    this.constantPool = new ConstantPool(allocator);
   }
 
   @Override
   public void close() {
+    constantPool.close();
     allocator.close();
+  }
+
+  public BufferAllocator getAllocator() {
+    return allocator;
+  }
+
+  public ConstantPool getConstantPool() {
+    return constantPool;
   }
 }

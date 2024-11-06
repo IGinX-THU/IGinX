@@ -17,7 +17,7 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.arithmetic;
 
-public final class Mod extends BinaryArithmeticFunction {
+public final class Mod extends BinaryArithmeticScalarFunction {
 
   public Mod() {
     super("mod");

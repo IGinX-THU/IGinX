@@ -15,36 +15,20 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.arithmetic;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.predicate;
 
-public final class Minus extends BinaryArithmeticScalarFunction {
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.ScalarFunction;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
+import javax.annotation.Nullable;
+import org.apache.arrow.memory.BufferAllocator;
+import org.apache.arrow.vector.BaseIntVector;
+import org.apache.arrow.vector.BitVector;
+import org.apache.arrow.vector.VectorSchemaRoot;
 
-  public Minus() {
-    super("minus");
-  }
+public interface PredicateFunction extends ScalarFunction<BitVector> {
 
-  @Override
-  public int evaluate(int left, int right) {
-    return left - right;
-  }
-
-  @Override
-  public long evaluate(long left, long right) {
-    return left - right;
-  }
-
-  @Override
-  public float evaluate(float left, float right) {
-    return left - right;
-  }
-
-  @Override
-  public double evaluate(double left, double right) {
-    return left - right;
-  }
-
-  @Override
-  public boolean equals(Object obj) {
-    return obj instanceof Minus;
-  }
+  @Nullable
+  BaseIntVector filter(
+      BufferAllocator allocator, @Nullable BaseIntVector selection, VectorSchemaRoot input)
+      throws ComputeException;
 }

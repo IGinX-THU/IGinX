@@ -25,7 +25,6 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.excepti
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
-import javax.annotation.WillNotClose;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.types.pojo.Schema;
 
@@ -50,8 +49,8 @@ public class ExpressionAccumulation implements Accumulation {
   }
 
   @Override
-  public ExpressionAccumulator accumulate(
-      @WillNotClose BufferAllocator allocator, Schema inputSchema) throws ComputeException {
+  public ExpressionAccumulator accumulate(BufferAllocator allocator, Schema inputSchema)
+      throws ComputeException {
     Schema schema = ScalarExpressions.getOutputSchema(allocator, expressions, inputSchema);
     Accumulator accumulator = accumulation.accumulate(allocator, schema);
     return new ExpressionAccumulator(allocator, accumulator, expressions);
