@@ -29,6 +29,10 @@ inputs:
         description: "the path of IGinX root directory"
         required: false
         default: "${GITHUB_WORKSPACE}"
+    zookeeper-port:
+        description: "zookeeper service port"
+        required: false
+        default: "2181"
 
 runs:
     using: "composite" # Mandatory parameter
@@ -73,6 +77,23 @@ runs:
           shell: bash
           run: |
               echo "${{ inputs.DB-name }}" > ${{ inputs.Root-Dir-Path }}/test/src/test/resources/DBName.txt
+
+        - if: inputs.zookeeper-port!='2181'
+          name: Change Zookeeper Port
+          shell: bash
+          run: |
+              if [ "$RUNNER_OS" == "Linux" ]; then
+                sudo sed -i 's/zookeeperConnectionString=127.0.0.1:2181/zookeeperConnectionString=127.0.0.1:${{ inputs.zookeeper-port }}/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
+              elif [ "$RUNNER_OS" == "Windows" ]; then
+                sed -i 's/zookeeperConnectionString=127.0.0.1:2181/zookeeperConnectionString=127.0.0.1:${{ inputs.zookeeper-port }}/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
+              elif [ "$RUNNER_OS" == "macOS" ]; then
+                sudo sed -i '' 's/zookeeperConnectionString=127.0.0.1:2181/zookeeperConnectionString=127.0.0.1:${{ inputs.zookeeper-port }}/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
+              else
+                echo "$RUNNER_OS is not supported"
+                exit 1
+              fi
+              cat ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
+              
 
         - name: Change UDF conf
           shell: bash

@@ -41,6 +41,31 @@ jobs:
                 metadata: ${{ fromJSON(inputs.metadata-matrix) }}
                 DB-name: ${{ fromJSON(inputs.db-matrix) }}
         runs-on: ${{ matrix.os }}
+
+        services:
+          zookeeper1:
+            image: zookeeper:3.7
+            ports:
+              - 2181:2181
+            env:
+              ZOO_STANDALONE_ENABLED: 'true'  # 启用独立模式
+            options: >-
+              --health-cmd "echo ruok | nc localhost 2181"
+              --health-interval 10s
+              --health-timeout 5s
+              --health-retries 5
+
+          zookeeper2:
+            image: zookeeper:3.7
+            ports:
+              - 2182:2181
+            env:
+              ZOO_STANDALONE_ENABLED: 'true'  # 启用独立模式
+            options: >-
+              --health-cmd "echo ruok | nc localhost 2181"
+              --health-interval 10s
+              --health-timeout 5s
+              --health-retries 5
         steps:
             - uses: actions/checkout@v4
             - name: Environment dependence
@@ -83,9 +108,6 @@ jobs:
                   7za x tpc.7z
                   ls tpc
 
-            - name: Run ZooKeeper
-              uses: ./.github/actions/zookeeperRunner
-
             - name: Run DB
               uses: ./.github/actions/dbRunner
               with:
@@ -121,6 +143,7 @@ jobs:
                   Set-Filter-Fragment-OFF: "true"
                   Metadata: ${{ matrix.metadata }}
                   Root-Dir-Path: "IGinX"
+                  zookeeper-port: '2182'
 
             - name: Install New IGinX with Maven
               shell: bash
