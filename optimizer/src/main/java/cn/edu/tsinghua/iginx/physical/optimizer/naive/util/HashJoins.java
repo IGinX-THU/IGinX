@@ -18,12 +18,12 @@
 package cn.edu.tsinghua.iginx.physical.optimizer.naive.util;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.join.JoinOption;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.compare.Equal;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.CallNode;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.FieldNode;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpression;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.hash.Hash;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.logic.And;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.predicate.compare.Equal;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.binary.stateful.HashJoinExecutor;

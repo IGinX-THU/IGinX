@@ -25,7 +25,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
-import javax.annotation.WillNotClose;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
@@ -37,7 +36,7 @@ public class ExpressionAccumulator implements Accumulator {
   private final List<ScalarExpression<?>> expressions;
 
   ExpressionAccumulator(
-      @WillNotClose BufferAllocator allocator,
+      BufferAllocator allocator,
       Accumulator accumulator,
       List<? extends ScalarExpression<?>> expressions) {
     this.allocator = Objects.requireNonNull(allocator);
@@ -51,8 +50,7 @@ public class ExpressionAccumulator implements Accumulator {
   }
 
   @Override
-  public void update(@WillNotClose State state, @WillNotClose VectorSchemaRoot input)
-      throws ComputeException {
+  public void update(State state, VectorSchemaRoot input) throws ComputeException {
     try (VectorSchemaRoot expressionResult =
         ScalarExpressions.evaluateSafe(allocator, expressions, input)) {
       accumulator.update(state, expressionResult);

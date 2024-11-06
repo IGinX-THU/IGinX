@@ -17,7 +17,7 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.logic;
 
-public class Not extends UnaryLogicFunction {
+public class Not extends UnaryLogicScalarFunction {
 
   public static final String name = "not";
 

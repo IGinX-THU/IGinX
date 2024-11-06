@@ -22,9 +22,9 @@ import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.types.Types;
 
-public final class Cast extends AbstractCast<FieldVector> {
+public final class Cast extends AbstractScalarCast<FieldVector> {
 
-  private final AbstractCast<?> delegate;
+  private final AbstractScalarCast<?> delegate;
 
   public Cast(Types.MinorType resultType) throws ComputeException {
     super(resultType);
@@ -37,7 +37,7 @@ public final class Cast extends AbstractCast<FieldVector> {
     return delegate.evaluate(allocator, input);
   }
 
-  private AbstractCast<?> getDelegate(Types.MinorType resultType) throws ComputeException {
+  private AbstractScalarCast<?> getDelegate(Types.MinorType resultType) throws ComputeException {
     switch (resultType) {
       case BIT:
         return new CastAsBit();

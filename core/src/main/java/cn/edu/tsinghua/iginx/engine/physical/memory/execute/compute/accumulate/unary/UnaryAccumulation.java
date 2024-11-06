@@ -22,7 +22,6 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.Arity;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.Schemas;
 import java.util.function.Supplier;
-import javax.annotation.WillNotClose;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
@@ -37,7 +36,7 @@ public abstract class UnaryAccumulation extends AbstractAccumulation {
 
   @Override
   protected AbstractAccumulator<? extends AbstractState> accumulateImpl(
-      @WillNotClose BufferAllocator allocator, Schema inputSchema) throws ComputeException {
+      BufferAllocator allocator, Schema inputSchema) throws ComputeException {
     Field inputField = inputSchema.getFields().get(0);
     return accumulate(allocator, inputField);
   }
@@ -47,7 +46,7 @@ public abstract class UnaryAccumulation extends AbstractAccumulation {
   }
 
   protected abstract UnaryAccumulator<? extends UnaryState> accumulate(
-      @WillNotClose BufferAllocator allocator, Field inputField) throws ComputeException;
+      BufferAllocator allocator, Field inputField) throws ComputeException;
 
   protected class UnaryAccumulator<S extends UnaryState> extends AbstractAccumulator<S> {
 

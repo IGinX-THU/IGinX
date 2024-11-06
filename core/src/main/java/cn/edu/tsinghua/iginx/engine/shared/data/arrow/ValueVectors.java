@@ -18,6 +18,7 @@
 package cn.edu.tsinghua.iginx.engine.shared.data.arrow;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.logic.And;
+import javax.annotation.Nullable;
 import org.apache.arrow.memory.ArrowBuf;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.memory.util.MemoryUtil;
@@ -33,7 +34,10 @@ public class ValueVectors {
 
   @SuppressWarnings("unchecked")
   public static <T extends ValueVector> T slice(
-      BufferAllocator allocator, T source, int startIndex, int valueCount, String ref) {
+      BufferAllocator allocator, @Nullable T source, int startIndex, int valueCount, String ref) {
+    if (source == null) {
+      return null;
+    }
     if (source.getValueCount() == 0) {
       return (T) source.getField().createVector(allocator);
     }
@@ -43,7 +47,7 @@ public class ValueVectors {
   }
 
   public static <T extends ValueVector> T slice(
-      BufferAllocator allocator, T source, int startIndex, int valueCount) {
+      BufferAllocator allocator, @Nullable T source, int startIndex, int valueCount) {
     return slice(allocator, source, startIndex, valueCount, source.getName());
   }
 
@@ -57,11 +61,11 @@ public class ValueVectors {
   }
 
   public static <T extends ValueVector> T slice(
-      BufferAllocator allocator, T source, int valueCount) {
+      BufferAllocator allocator, @Nullable T source, int valueCount) {
     return slice(allocator, source, 0, valueCount);
   }
 
-  public static <T extends ValueVector> T slice(BufferAllocator allocator, T source) {
+  public static <T extends ValueVector> T slice(BufferAllocator allocator, @Nullable T source) {
     return slice(allocator, source, source.getValueCount());
   }
 

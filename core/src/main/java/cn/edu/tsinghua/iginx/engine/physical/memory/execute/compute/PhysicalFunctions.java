@@ -20,7 +20,6 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ValueVectors;
 import java.util.ArrayList;
 import java.util.List;
-import javax.annotation.WillNotClose;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.*;
 import org.apache.arrow.vector.complex.NonNullableStructVector;
@@ -47,7 +46,7 @@ public class PhysicalFunctions {
   }
 
   public static VectorSchemaRoot unnest(
-      @WillNotClose BufferAllocator allocator, @WillNotClose VectorSchemaRoot vectorSchemaRoot) {
+      BufferAllocator allocator, VectorSchemaRoot vectorSchemaRoot) {
     List<FieldVector> results = new ArrayList<>();
     for (FieldVector fieldVector : vectorSchemaRoot.getFieldVectors()) {
       if (fieldVector.getMinorType() == Types.MinorType.STRUCT) {
@@ -80,7 +79,7 @@ public class PhysicalFunctions {
   }
 
   public static <OUTPUT extends FieldVector> void takeTo(
-      IntVector selection, OUTPUT output, OUTPUT input) {
+      BaseIntVector selection, OUTPUT output, OUTPUT input) {
     if (selection.getField().isNullable()) {
       throw new IllegalArgumentException("Selection vector must be not nullable");
     }
@@ -91,19 +90,19 @@ public class PhysicalFunctions {
       output.setValueCount(outputRowCount);
       for (int selectionIndex = 0; selectionIndex < selection.getValueCount(); selectionIndex++) {
         int outputIndex = outputOffset + selectionIndex;
-        output.copyFrom(selection.get(selectionIndex), outputIndex, input);
+        output.copyFrom((int) selection.getValueAsLong(selectionIndex), outputIndex, input);
       }
     } else {
       for (int selectionIndex = 0; selectionIndex < selection.getValueCount(); selectionIndex++) {
         int outputIndex = outputOffset + selectionIndex;
-        output.copyFromSafe(selection.get(selectionIndex), outputIndex, input);
+        output.copyFromSafe((int) selection.getValueAsLong(selectionIndex), outputIndex, input);
       }
       output.setValueCount(outputRowCount);
     }
   }
 
   public static void takeTo(
-      IntVector selectionVector, VectorSchemaRoot output, VectorSchemaRoot input) {
+      BaseIntVector selectionVector, VectorSchemaRoot output, VectorSchemaRoot input) {
     if (output.getFieldVectors().size() != input.getFieldVectors().size()) {
       throw new IllegalArgumentException(
           "Output schema must have the same number of fields as input schema");
@@ -116,7 +115,7 @@ public class PhysicalFunctions {
 
   @SuppressWarnings("unchecked")
   public static <OUTPUT extends FieldVector> OUTPUT take(
-      BufferAllocator allocator, IntVector selection, OUTPUT input) {
+      BufferAllocator allocator, BaseIntVector selection, OUTPUT input) {
     if (selection.getField().isNullable()) {
       throw new IllegalArgumentException("Selection vector must be not nullable");
     }
@@ -128,7 +127,7 @@ public class PhysicalFunctions {
   }
 
   public static VectorSchemaRoot take(
-      BufferAllocator allocator, IntVector selectionVector, VectorSchemaRoot input) {
+      BufferAllocator allocator, BaseIntVector selectionVector, VectorSchemaRoot input) {
     List<FieldVector> results = new ArrayList<>();
     for (FieldVector fieldVector : input.getFieldVectors()) {
       results.add(take(allocator, selectionVector, fieldVector));

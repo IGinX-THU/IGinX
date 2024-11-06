@@ -17,39 +17,52 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.logic;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.BinaryFunction;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.PhysicalFunctions;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.BinaryScalarFunction;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.CallContracts;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.NotAllowTypeException;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.Schemas;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ValueVectors;
-import javax.annotation.WillNotClose;
+import javax.annotation.Nullable;
 import org.apache.arrow.memory.ArrowBuf;
 import org.apache.arrow.memory.BufferAllocator;
+import org.apache.arrow.vector.BaseIntVector;
 import org.apache.arrow.vector.BitVector;
 import org.apache.arrow.vector.BitVectorHelper;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.types.Types;
 
-public abstract class BinaryLogicFunction extends BinaryFunction<BitVector> {
+public abstract class BinaryLogicScalarFunction extends BinaryScalarFunction<BitVector> {
 
-  protected BinaryLogicFunction(String name) {
+  protected BinaryLogicScalarFunction(String name) {
     super(name);
   }
 
   @Override
   public BitVector evaluate(
-      @WillNotClose BufferAllocator allocator,
-      @WillNotClose FieldVector left,
-      @WillNotClose FieldVector right)
+      BufferAllocator allocator,
+      @Nullable BaseIntVector selection,
+      FieldVector left,
+      FieldVector right)
+      throws ComputeException {
+    if (selection == null) {
+      return evaluate(allocator, left, right);
+    }
+    // TODO: implement this in subclasses
+    try (FieldVector leftSelected = PhysicalFunctions.take(allocator, selection, left);
+        FieldVector rightSelected = PhysicalFunctions.take(allocator, selection, right)) {
+      return evaluate(allocator, leftSelected, rightSelected);
+    }
+  }
+
+  public BitVector evaluate(BufferAllocator allocator, FieldVector left, FieldVector right)
       throws NotAllowTypeException {
     CallContracts.ensureType(this, Schemas.of(left, right), Types.MinorType.BIT);
     return evaluate(allocator, (BitVector) left, (BitVector) right);
   }
 
-  public BitVector evaluate(
-      @WillNotClose BufferAllocator allocator,
-      @WillNotClose BitVector left,
-      @WillNotClose BitVector right) {
+  public BitVector evaluate(BufferAllocator allocator, BitVector left, BitVector right) {
     int rowCount = Math.min(left.getValueCount(), right.getValueCount());
     BitVector result = (BitVector) ValueVectors.create(allocator, Types.MinorType.BIT, rowCount);
     int byteCount = BitVectorHelper.getValidityBufferSize(rowCount);
@@ -63,11 +76,7 @@ public abstract class BinaryLogicFunction extends BinaryFunction<BitVector> {
     return result;
   }
 
-  public void evaluate(
-      @WillNotClose ArrowBuf result,
-      @WillNotClose ArrowBuf left,
-      @WillNotClose ArrowBuf right,
-      long byteCount) {
+  public void evaluate(ArrowBuf result, ArrowBuf left, ArrowBuf right, long byteCount) {
     if (result.capacity() < byteCount) {
       throw new IllegalArgumentException("The capacity of result buffer is not enough");
     }

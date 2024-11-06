@@ -25,7 +25,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import javax.annotation.WillNotClose;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
@@ -48,7 +47,7 @@ public abstract class AbstractAccumulation implements Accumulation {
     return name;
   }
 
-  public Accumulator accumulate(@WillNotClose BufferAllocator allocator, Schema inputSchema)
+  public Accumulator accumulate(BufferAllocator allocator, Schema inputSchema)
       throws ComputeException {
     if (!arity.checkArity(inputSchema.getFields().size())) {
       throw new ArityException(this, inputSchema, arity);
@@ -57,7 +56,7 @@ public abstract class AbstractAccumulation implements Accumulation {
   }
 
   protected abstract AbstractAccumulator<? extends AbstractState> accumulateImpl(
-      @WillNotClose BufferAllocator allocator, Schema inputSchema) throws ComputeException;
+      BufferAllocator allocator, Schema inputSchema) throws ComputeException;
 
   protected abstract class AbstractAccumulator<S extends AbstractState> implements Accumulator {
 
@@ -95,8 +94,7 @@ public abstract class AbstractAccumulation implements Accumulation {
 
     @Override
     @SuppressWarnings("unchecked")
-    public void update(@WillNotClose State state, @WillNotClose VectorSchemaRoot input)
-        throws ComputeException {
+    public void update(State state, VectorSchemaRoot input) throws ComputeException {
       if (!Objects.equals(input.getSchema(), schema)) {
         throw new ComputeException(
             "Schema mismatch: expected " + schema + ", but got " + input.getSchema());

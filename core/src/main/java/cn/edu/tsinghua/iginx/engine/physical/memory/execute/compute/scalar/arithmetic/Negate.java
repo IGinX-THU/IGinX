@@ -17,7 +17,7 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.arithmetic;
 
-public final class Negate extends UnaryArithmeticFunction {
+public final class Negate extends UnaryArithmeticScalarFunction {
 
   public Negate() {
     super("negate");

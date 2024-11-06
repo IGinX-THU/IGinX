@@ -15,43 +15,43 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.compare;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.predicate.compare;
 
 import org.apache.arrow.memory.util.ArrowBufPointer;
 
-public class NotEqual extends ComparisonFunction {
+public final class LessEqual extends BinaryComparisonFunction {
 
-  public NotEqual() {
-    super("not_equal");
+  public LessEqual() {
+    super("less_equal");
   }
 
   @Override
-  protected boolean evaluate(int left, int right) {
-    return left != right;
+  public boolean evaluate(int left, int right) {
+    return left <= right;
   }
 
   @Override
-  protected boolean evaluate(long left, long right) {
-    return left != right;
+  public boolean evaluate(long left, long right) {
+    return left <= right;
   }
 
   @Override
-  protected boolean evaluate(float left, float right) {
-    return left != right;
+  public boolean evaluate(float left, float right) {
+    return left <= right;
   }
 
   @Override
-  protected boolean evaluate(double left, double right) {
-    return left != right;
+  public boolean evaluate(double left, double right) {
+    return left <= right;
   }
 
   @Override
   protected boolean evaluate(ArrowBufPointer left, ArrowBufPointer right) {
-    return !left.equals(right);
+    return left.compareTo(right) <= 0;
   }
 
   @Override
   public boolean equals(Object obj) {
-    return obj instanceof NotEqual;
+    return obj instanceof LessEqual;
   }
 }

@@ -17,15 +17,17 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.selecting;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.AbstractFunction;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.PhysicalFunctions;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.AbstractScalarFunction;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.Arity;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ValueVectors;
+import javax.annotation.Nullable;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.*;
 import org.apache.arrow.vector.types.Types;
 
-public class CaseWhen extends AbstractFunction<FieldVector> {
+public class CaseWhen extends AbstractScalarFunction<FieldVector> {
 
   private static final String name = "casewhen";
 
@@ -34,6 +36,17 @@ public class CaseWhen extends AbstractFunction<FieldVector> {
   }
 
   @Override
+  protected FieldVector invokeImpl(
+      BufferAllocator allocator, @Nullable BaseIntVector selection, VectorSchemaRoot input)
+      throws ComputeException {
+    if (selection == null) {
+      return invokeImpl(allocator, input);
+    }
+    try (VectorSchemaRoot selected = PhysicalFunctions.take(allocator, selection, input)) {
+      return invokeImpl(allocator, selected);
+    }
+  }
+
   protected FieldVector invokeImpl(BufferAllocator allocator, VectorSchemaRoot input)
       throws ComputeException {
     validateInput(input.getFieldVectors().toArray(new FieldVector[0]));

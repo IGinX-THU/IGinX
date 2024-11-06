@@ -17,13 +17,16 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.hash;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.AbstractFunction;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.PhysicalFunctions;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.AbstractScalarFunction;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.Arity;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ConstantVectors;
 import java.util.List;
 import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 import org.apache.arrow.memory.BufferAllocator;
+import org.apache.arrow.vector.BaseIntVector;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.IntVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
@@ -31,7 +34,7 @@ import org.apache.arrow.vector.types.Types;
 import org.apache.arrow.vector.types.pojo.Field;
 import org.apache.arrow.vector.types.pojo.FieldType;
 
-public class Hash extends AbstractFunction<IntVector> {
+public class Hash extends AbstractScalarFunction<IntVector> {
 
   public Hash() {
     super("hash", Arity.ANY);
@@ -43,6 +46,17 @@ public class Hash extends AbstractFunction<IntVector> {
   }
 
   @Override
+  protected IntVector invokeImpl(
+      BufferAllocator allocator, @Nullable BaseIntVector selection, VectorSchemaRoot input)
+      throws ComputeException {
+    if (selection == null) {
+      return invokeImpl(allocator, input);
+    }
+    try (VectorSchemaRoot selected = PhysicalFunctions.take(allocator, selection, input)) {
+      return invokeImpl(allocator, selected);
+    }
+  }
+
   protected IntVector invokeImpl(BufferAllocator allocator, VectorSchemaRoot input)
       throws ComputeException {
     String name =

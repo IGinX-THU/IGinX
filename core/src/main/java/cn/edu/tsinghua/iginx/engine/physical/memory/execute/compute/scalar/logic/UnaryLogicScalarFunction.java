@@ -17,35 +17,47 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.logic;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.UnaryFunction;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.PhysicalFunctions;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.UnaryScalarFunction;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.CallContracts;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.NotAllowTypeException;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.Schemas;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ValueVectors;
-import javax.annotation.WillNotClose;
+import javax.annotation.Nullable;
 import org.apache.arrow.memory.ArrowBuf;
 import org.apache.arrow.memory.BufferAllocator;
+import org.apache.arrow.vector.BaseIntVector;
 import org.apache.arrow.vector.BitVector;
 import org.apache.arrow.vector.BitVectorHelper;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.types.Types;
 
-public abstract class UnaryLogicFunction extends UnaryFunction<BitVector> {
+public abstract class UnaryLogicScalarFunction extends UnaryScalarFunction<BitVector> {
 
-  protected UnaryLogicFunction(String name) {
+  protected UnaryLogicScalarFunction(String name) {
     super(name);
   }
 
   @Override
   public BitVector evaluate(
-      @WillNotClose BufferAllocator allocator, @WillNotClose FieldVector input)
+      BufferAllocator allocator, @Nullable BaseIntVector selection, FieldVector in)
+      throws ComputeException {
+    if (selection == null) {
+      return evaluate(allocator, in);
+    }
+    try (FieldVector selected = PhysicalFunctions.take(allocator, selection, in)) {
+      return evaluate(allocator, selected);
+    }
+  }
+
+  public BitVector evaluate(BufferAllocator allocator, FieldVector input)
       throws NotAllowTypeException {
     CallContracts.ensureType(this, Schemas.of(input), Types.MinorType.BIT);
     return evaluate(allocator, (BitVector) input);
   }
 
-  public BitVector evaluate(
-      @WillNotClose BufferAllocator allocator, @WillNotClose BitVector input) {
+  public BitVector evaluate(BufferAllocator allocator, BitVector input) {
     int rowCount = input.getValueCount();
     BitVector result = (BitVector) ValueVectors.create(allocator, Types.MinorType.BIT, rowCount);
     int byteCount = BitVectorHelper.getValidityBufferSize(rowCount);
@@ -53,8 +65,7 @@ public abstract class UnaryLogicFunction extends UnaryFunction<BitVector> {
     return result;
   }
 
-  public void evaluate(
-      @WillNotClose ArrowBuf result, @WillNotClose ArrowBuf input, long byteCount) {
+  public void evaluate(ArrowBuf result, ArrowBuf input, long byteCount) {
     if (result.capacity() < byteCount) {
       throw new IllegalArgumentException("The capacity of result buffer is not enough");
     }

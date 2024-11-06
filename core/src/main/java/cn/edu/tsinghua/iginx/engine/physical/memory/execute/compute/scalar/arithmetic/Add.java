@@ -17,7 +17,7 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.arithmetic;
 
-public final class Add extends BinaryArithmeticFunction {
+public final class Add extends BinaryArithmeticScalarFunction {
 
   public Add() {
     super("add");

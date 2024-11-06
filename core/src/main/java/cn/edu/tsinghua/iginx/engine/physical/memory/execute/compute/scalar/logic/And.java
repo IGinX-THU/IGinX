@@ -17,7 +17,7 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.logic;
 
-public final class And extends BinaryLogicFunction {
+public final class And extends BinaryLogicScalarFunction {
 
   public static final String NAME = "and";
 

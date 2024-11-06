@@ -17,24 +17,42 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.arithmetic;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.BinaryFunction;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.PhysicalFunctions;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.BinaryScalarFunction;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.convert.cast.Cast;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.CallContracts;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.Schemas;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ValueVectors;
 import java.util.function.IntConsumer;
+import javax.annotation.Nullable;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.*;
 import org.apache.arrow.vector.types.Types;
 
-public abstract class BinaryArithmeticFunction extends BinaryFunction<FieldVector> {
+public abstract class BinaryArithmeticScalarFunction extends BinaryScalarFunction<FieldVector> {
 
-  protected BinaryArithmeticFunction(String name) {
+  protected BinaryArithmeticScalarFunction(String name) {
     super(name);
   }
 
   @Override
+  public FieldVector evaluate(
+      BufferAllocator allocator,
+      @Nullable BaseIntVector selection,
+      FieldVector left,
+      FieldVector right)
+      throws ComputeException {
+    if (selection == null) {
+      return evaluate(allocator, left, right);
+    }
+    // TODO: implement this in subclasses
+    try (FieldVector leftSelected = PhysicalFunctions.take(allocator, selection, left);
+        FieldVector rightSelected = PhysicalFunctions.take(allocator, selection, right)) {
+      return evaluate(allocator, leftSelected, rightSelected);
+    }
+  }
+
   public FieldVector evaluate(BufferAllocator allocator, FieldVector left, FieldVector right)
       throws ComputeException {
     CallContracts.ensureType(this, Schemas.of(left, right), Schemas::isNumeric);

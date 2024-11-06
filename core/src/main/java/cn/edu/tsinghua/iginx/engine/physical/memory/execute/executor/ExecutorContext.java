@@ -17,11 +17,14 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor;
 
+import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ConstantPool;
 import org.apache.arrow.memory.BufferAllocator;
 
 public interface ExecutorContext {
 
   BufferAllocator getAllocator();
+
+  ConstantPool getConstantPool();
 
   int getBatchRowCount();
 

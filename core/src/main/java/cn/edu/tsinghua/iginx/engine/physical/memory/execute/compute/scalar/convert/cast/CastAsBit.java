@@ -20,7 +20,7 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.conv
 import org.apache.arrow.vector.BitVector;
 import org.apache.arrow.vector.types.Types;
 
-public final class CastAsBit extends AbstractCast<BitVector> {
+public final class CastAsBit extends AbstractScalarCast<BitVector> {
 
   public CastAsBit() {
     super(Types.MinorType.BIT);

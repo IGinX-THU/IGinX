@@ -22,8 +22,9 @@ import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ValueVectors;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import javax.annotation.WillNotClose;
+import javax.annotation.Nullable;
 import org.apache.arrow.memory.BufferAllocator;
+import org.apache.arrow.vector.BaseIntVector;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 
@@ -56,19 +57,24 @@ public abstract class AbstractScalarExpression<OUTPUT extends FieldVector>
   public abstract boolean equals(Object obj);
 
   @Override
+  public OUTPUT invoke(BufferAllocator allocator, VectorSchemaRoot input) throws ComputeException {
+    return invoke(allocator, null, input);
+  }
+
+  @Override
   public OUTPUT invoke(
-      @WillNotClose BufferAllocator allocator, @WillNotClose VectorSchemaRoot input)
+      BufferAllocator allocator, @Nullable BaseIntVector selection, VectorSchemaRoot input)
       throws ComputeException {
     if (alias == null) {
-      return invokeImpl(allocator, input);
+      return invokeImpl(allocator, selection, input);
     } else {
-      try (OUTPUT result = invokeImpl(allocator, input)) {
+      try (OUTPUT result = invokeImpl(allocator, selection, input)) {
         return ValueVectors.transfer(allocator, result, alias);
       }
     }
   }
 
   protected abstract OUTPUT invokeImpl(
-      @WillNotClose BufferAllocator allocator, @WillNotClose VectorSchemaRoot input)
+      BufferAllocator allocator, @Nullable BaseIntVector selection, VectorSchemaRoot input)
       throws ComputeException;
 }

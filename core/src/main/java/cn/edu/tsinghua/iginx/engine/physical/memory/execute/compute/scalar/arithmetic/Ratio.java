@@ -23,7 +23,7 @@ import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.types.Types;
 
-public final class Ratio extends BinaryArithmeticFunction {
+public final class Ratio extends BinaryArithmeticScalarFunction {
 
   public Ratio() {
     super("ratio");

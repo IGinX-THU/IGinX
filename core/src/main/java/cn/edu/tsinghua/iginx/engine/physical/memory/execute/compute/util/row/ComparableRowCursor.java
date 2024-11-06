@@ -17,7 +17,6 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.row;
 
-import javax.annotation.WillNotClose;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 
@@ -25,7 +24,7 @@ public class ComparableRowCursor extends RowCursor implements Comparable<RowCurs
 
   private final RowCursorComparator comparator;
 
-  public ComparableRowCursor(@WillNotClose VectorSchemaRoot table) {
+  public ComparableRowCursor(VectorSchemaRoot table) {
     this(table.getFieldVectors().toArray(new FieldVector[0]), 0, RowCursorComparator.of(table));
   }
 

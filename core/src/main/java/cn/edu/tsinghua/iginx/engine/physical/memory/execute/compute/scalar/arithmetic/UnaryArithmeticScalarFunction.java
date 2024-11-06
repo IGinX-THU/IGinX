@@ -17,25 +17,36 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.arithmetic;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.UnaryFunction;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.PhysicalFunctions;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.UnaryScalarFunction;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.CallContracts;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.Schemas;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ValueVectors;
 import java.util.function.IntConsumer;
-import javax.annotation.WillNotClose;
+import javax.annotation.Nullable;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.*;
 
-public abstract class UnaryArithmeticFunction extends UnaryFunction<FieldVector> {
+public abstract class UnaryArithmeticScalarFunction extends UnaryScalarFunction<FieldVector> {
 
-  public UnaryArithmeticFunction(String name) {
+  public UnaryArithmeticScalarFunction(String name) {
     super(name);
   }
 
   @Override
-  public FieldVector evaluate(@WillNotClose BufferAllocator allocator, @WillNotClose FieldVector in)
+  public FieldVector evaluate(
+      BufferAllocator allocator, @Nullable BaseIntVector selection, FieldVector in)
       throws ComputeException {
+    if (selection == null) {
+      return evaluate(allocator, in);
+    }
+    try (FieldVector selected = PhysicalFunctions.take(allocator, selection, in)) {
+      return evaluate(allocator, selected);
+    }
+  }
+
+  public FieldVector evaluate(BufferAllocator allocator, FieldVector in) throws ComputeException {
     CallContracts.ensureType(this, Schemas.of(in), Schemas::isNumeric);
 
     FieldVector dest = ValueVectors.create(allocator, in.getMinorType(), in.getValueCount());

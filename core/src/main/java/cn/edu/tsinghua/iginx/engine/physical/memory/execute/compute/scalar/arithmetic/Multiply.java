@@ -17,7 +17,7 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.arithmetic;
 
-public final class Multiply extends BinaryArithmeticFunction {
+public final class Multiply extends BinaryArithmeticScalarFunction {
 
   public Multiply() {
     super("multiply");

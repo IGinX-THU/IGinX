@@ -15,14 +15,14 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.compare;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.predicate.compare;
 
 import java.nio.charset.StandardCharsets;
 import java.util.regex.Pattern;
 import org.apache.arrow.memory.ArrowBuf;
 import org.apache.arrow.memory.util.ArrowBufPointer;
 
-public class Like extends ComparisonFunction {
+public class Like extends BinaryComparisonFunction {
 
   public Like() {
     super("like");

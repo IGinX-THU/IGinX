@@ -25,6 +25,7 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.util.Preconditions;
+import org.apache.arrow.vector.BaseIntVector;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 
@@ -71,9 +72,17 @@ public class CallNode<OUTPUT extends FieldVector> extends AbstractScalarExpressi
   }
 
   @Override
-  protected OUTPUT invokeImpl(BufferAllocator allocator, VectorSchemaRoot input)
+  protected OUTPUT invokeImpl(
+      BufferAllocator allocator, @Nullable BaseIntVector selection, VectorSchemaRoot input)
       throws ComputeException {
-    try (VectorSchemaRoot args = ScalarExpressions.evaluateSafe(allocator, getChildren(), input)) {
+    if (getChildren().stream().allMatch(e -> e instanceof LiteralNode || e instanceof FieldNode)) {
+      try (VectorSchemaRoot args =
+          ScalarExpressions.evaluateSafe(allocator, getChildren(), input)) {
+        return function.invoke(allocator, selection, args);
+      }
+    }
+    try (VectorSchemaRoot args =
+        ScalarExpressions.evaluateSafe(allocator, getChildren(), selection, input)) {
       return function.invoke(allocator, args);
     }
   }

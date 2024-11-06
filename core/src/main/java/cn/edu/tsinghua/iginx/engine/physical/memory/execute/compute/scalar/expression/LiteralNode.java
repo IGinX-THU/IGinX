@@ -19,36 +19,40 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expr
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
+import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ConstantPool;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ConstantVectors;
 import java.util.Collections;
 import java.util.Objects;
 import javax.annotation.Nullable;
 import org.apache.arrow.memory.BufferAllocator;
-import org.apache.arrow.vector.BitVector;
+import org.apache.arrow.vector.BaseIntVector;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 
-public final class LiteralNode<OUTPUT extends FieldVector>
-    extends AbstractScalarExpression<OUTPUT> {
+public class LiteralNode<OUTPUT extends FieldVector> extends AbstractScalarExpression<OUTPUT> {
 
+  private final ConstantPool pool;
   private final Object value;
 
-  public LiteralNode(@Nullable Object value) {
-    this(value, null);
+  public LiteralNode(@Nullable Object value, ConstantPool pool) {
+    this(value, pool, null);
   }
 
-  public LiteralNode(@Nullable Object value, String alias) {
+  public LiteralNode(@Nullable Object value, ConstantPool pool, String alias) {
     super(alias, Collections.emptyList());
     this.value = value;
-  }
-
-  public static LiteralNode<BitVector> of(boolean value) {
-    return new LiteralNode<>(value);
+    this.pool = pool;
   }
 
   @Override
   public String getName() {
-    return value == null ? "null" : new Value(value).toString();
+    if (value == null) {
+      return "null";
+    }
+    if (value instanceof byte[]) {
+      return "'" + new String((byte[]) value) + "'";
+    }
+    return new Value(value).toString();
   }
 
   @Override
@@ -62,8 +66,12 @@ public final class LiteralNode<OUTPUT extends FieldVector>
 
   @Override
   @SuppressWarnings("unchecked")
-  protected OUTPUT invokeImpl(BufferAllocator allocator, VectorSchemaRoot input)
+  protected OUTPUT invokeImpl(
+      BufferAllocator allocator, @Nullable BaseIntVector selection, VectorSchemaRoot input)
       throws ComputeException {
-    return (OUTPUT) ConstantVectors.of(allocator, value, input.getRowCount());
+    if (selection == null) {
+      return (OUTPUT) ConstantVectors.of(allocator, pool, value, input.getRowCount());
+    }
+    return (OUTPUT) ConstantVectors.of(allocator, pool, value, selection.getValueCount());
   }
 }

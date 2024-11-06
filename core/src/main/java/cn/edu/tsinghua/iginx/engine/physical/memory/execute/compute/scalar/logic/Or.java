@@ -17,7 +17,7 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.logic;
 
-public final class Or extends BinaryLogicFunction {
+public final class Or extends BinaryLogicScalarFunction {
 
   public static final String NAME = "or";
 

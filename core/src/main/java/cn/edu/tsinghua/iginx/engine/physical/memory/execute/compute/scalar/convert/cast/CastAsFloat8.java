@@ -24,7 +24,7 @@ import org.apache.arrow.vector.Float8Vector;
 import org.apache.arrow.vector.IntVector;
 import org.apache.arrow.vector.types.Types;
 
-public final class CastAsFloat8 extends AbstractCast<Float8Vector> {
+public final class CastAsFloat8 extends AbstractScalarCast<Float8Vector> {
 
   public CastAsFloat8() {
     super(Types.MinorType.FLOAT8);
