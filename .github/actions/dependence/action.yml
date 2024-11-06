@@ -122,7 +122,7 @@ runs:
       shell: bash
       run: |
         curl -O https://bootstrap.pypa.io/get-pip.py
-        python3.13t get-pip.py
+        sudo python3.13t get-pip.py
         sudo python3.13t -m pip install setuptools wheel find-libpython build
         python3.13t -m pip freeze list
         
