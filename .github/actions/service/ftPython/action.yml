@@ -4,7 +4,9 @@ description: "Install Free-thread Python"
 runs:
   using: "composite"
   steps:
+
     - name: Set Python variables
+      id: set-python-vars
       shell: bash
       run: |
         if [ "$RUNNER_OS" == "Windows" ]; then
@@ -17,15 +19,16 @@ runs:
           echo "CACHE_KEY=python-macos-3.13.0" >> $GITHUB_ENV
         fi
 
-    - name: Cache Python installer
-      id: cache-python
-      uses: actions/cache@v3
+    - name: Restore Python installer
+      if: runner.os!='Linux'
+      id: restore-cache-python
+      uses: actions/cache/restore@v3
       with:
         path: ${{ env.PYTHON_INSTALLER_PATH }}
         key: ${{ env.CACHE_KEY }}
 
     - name: Download Python installer
-      if: steps.cache-python.outputs.cache-hit != 'true' && runner.os=='Windows'
+      if: steps.restore-cache-python.outputs.cache-hit != 'true' && runner.os=='Windows'
       shell: powershell
       run: |
         Invoke-WebRequest -Uri $env:PYTHON_INSTALLER_URL -OutFile $env:PYTHON_INSTALLER_PATH
@@ -53,7 +56,7 @@ runs:
         python3.13t -VV
 
     - name: Download Python installer
-      if: steps.cache-python.outputs.cache-hit != 'true' && runner.os=='macOS'
+      if: steps.restore-cache-python.outputs.cache-hit != 'true' && runner.os=='macOS'
       shell: bash
       run: |
         curl -o $PYTHON_INSTALLER_PATH $PYTHON_INSTALLER_URL
@@ -84,3 +87,12 @@ runs:
             -target /
         python3.13t -VV
         export PATH="$PATH:/Library/Frameworks/PythonT.framework/Versions/3.13/bin"
+        
+
+    - name: Cache Python installer
+      if: runner.os!='Linux' && steps.restore-cache-python.outputs.cache-hit != 'true'
+      id: cache-python
+      uses: actions/cache/save@v3
+      with:
+        path: ${{ env.PYTHON_INSTALLER_PATH }}
+        key: ${{ env.CACHE_KEY }}

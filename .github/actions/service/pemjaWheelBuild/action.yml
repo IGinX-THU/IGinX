@@ -14,16 +14,15 @@ runs:
       run: |
         echo "PEMJAX_HOME=pemjax-${{ inputs.pemja-version }}-${{ runner.os}}" >> $GITHUB_ENV
 
-    - name: Cache Python installer
-      id: cache-python
-      uses: actions/cache@v3
+    - name: Restore wheel
+      id: restore-wheel
+      uses: actions/cache/restore@v3
       with:
-        path: |
-          PEMJAX_HOME/dist
+        path: $PEMJAX_HOME/pemjax-${{ inputs.pemja-version }}/dist
         key: ${{ runner.os }}-pemjax-${{ inputs.pemja-version }}
 
     - name: Build wheel
-      if: steps.cache-python.outputs.cache-hit!='true' && runner.os!='Windows'
+      if: steps.restore-wheel.outputs.cache-hit!='true' && runner.os!='Windows'
       shell: bash
       run: |
         curl -O https://bootstrap.pypa.io/get-pip.py
@@ -32,14 +31,14 @@ runs:
         python3.13t -m pip freeze list
 
         mkdir -p $PEMJAX_HOME
-        tar -xzf dependency/src/main/resources/python/pemjax-0.1.0.tar.gz -C $PEMJAX_HOME
+        tar -xzf dependency/src/main/resources/python/pemjax-${{ inputs.pemja-version }}.tar.gz -C $PEMJAX_HOME
         ls
-        cd $PEMJAX_HOME/pemjax-0.1.0
+        cd $PEMJAX_HOME/pemjax-${{ inputs.pemja-version }}
 
         python3.13t setup.py bdist_wheel
 
     - name: Build wheel
-      if: steps.cache-python.outputs.cache-hit!='true' && runner.os=='Windows'
+      if: steps.restore-wheel.outputs.cache-hit!='true' && runner.os=='Windows'
       shell: bash
       run: |
         curl -O https://bootstrap.pypa.io/get-pip.py
@@ -48,9 +47,9 @@ runs:
         python3.13t -m pip freeze list
         
         mkdir -p $PEMJAX_HOME
-        tar -xzf dependency/src/main/resources/python/pemjax-0.1.0.tar.gz -C $PEMJAX_HOME
+        tar -xzf dependency/src/main/resources/python/pemjax-${{ inputs.pemja-version }}.tar.gz -C $PEMJAX_HOME
         ls
-        cd $PEMJAX_HOME/pemjax-0.1.0
+        cd $PEMJAX_HOME/pemjax-${{ inputs.pemja-version }}
         
         python3.13t setup.py bdist_wheel
 
@@ -58,17 +57,24 @@ runs:
       if: runner.os!='Windows'
       shell: bash
       run: |
-        sudo python3.13t -m pip install $PEMJAX_HOME/dist/*.whl --no-clean
+        sudo python3.13t -m pip install $PEMJAX_HOME/pemjax-${{ inputs.pemja-version }}/dist/*.whl --no-clean
         python3.13t -m pip freeze list
 
     - name: Install pemjax wheel
       if: runner.os=='Windows'
       shell: bash
       run: |
-        python3.13t -m pip install $PEMJAX_HOME/dist/*.whl --no-clean
+        python3.13t -m pip install $PEMJAX_HOME/pemjax-${{ inputs.pemja-version }}/dist/*.whl --no-clean
         python3.13t -m pip freeze list
 
     - uses: actions/upload-artifact@v3
       with:
         name: ${{ runner.os }}-pemjax-wheel
-        path: $PEMJAX_HOME/dist/*.whl
+        path: $PEMJAX_HOME/pemjax-${{ inputs.pemja-version }}/dist/*.whl
+
+    - name: Cache wheel
+      id: cache-wheel
+      uses: actions/cache/save@v3
+      with:
+        path: $PEMJAX_HOME/pemjax-${{ inputs.pemja-version }}/dist
+        key: ${{ runner.os }}-pemjax-${{ inputs.pemja-version }}
