@@ -25,14 +25,12 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.predi
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.predicate.expression.*;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
+import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.data.arrow.Schemas;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.thrift.DataType;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import org.apache.commons.lang3.tuple.Pair;
 
 public class Filters {
@@ -147,22 +145,17 @@ public class Filters {
     }
     List<PredicateExpression> comparisons = new ArrayList<>();
     for (Integer pathIndex : paths) {
-      switch (filter.getOp()) {
-        case E:
-        case E_AND:
-          if (filter.getValue().getDataType() == DataType.BINARY) {
-            comparisons.add(
-                new CompareNode(
-                    new EqualConstBinary(filter.getValue().getBinaryV()),
-                    new FieldNode(pathIndex)));
-            continue;
-          }
+      Optional<PredicateFunction> predicateFunction =
+          getPredicate(filter.getOp(), filter.getValue());
+      if (predicateFunction.isPresent()) {
+        comparisons.add(new CompareNode(predicateFunction.get(), new FieldNode(pathIndex)));
+      } else {
+        comparisons.add(
+            new CompareNode(
+                getPredicate(filter.getOp()),
+                new FieldNode(pathIndex),
+                new LiteralNode<>(filter.getValue().getValue(), context.getConstantPool())));
       }
-      comparisons.add(
-          new CompareNode(
-              getPredicate(filter.getOp()),
-              new FieldNode(pathIndex),
-              new LiteralNode<>(filter.getValue().getValue(), context.getConstantPool())));
     }
     if (Op.isOrOp(filter.getOp())) {
       return or(comparisons, context, inputSchema);
@@ -171,6 +164,34 @@ public class Filters {
     } else {
       throw new UnsupportedOperationException("Unsupported operator: " + filter.getOp());
     }
+  }
+
+  private static Optional<PredicateFunction> getPredicate(Op op, Value value)
+      throws ComputeException {
+    switch (op) {
+      case E:
+      case E_AND:
+        switch (value.getDataType()) {
+          case BINARY:
+            return Optional.of(new EqualConstBinary(value.getBinaryV()));
+        }
+        break;
+      case LIKE:
+      case LIKE_AND:
+        if (value.getDataType() != DataType.BINARY) {
+          throw new ComputeException("Unsupported data type for LIKE: " + value.getDataType());
+        }
+        return Optional.of(new LikeConst(value.getBinaryV()));
+      case NOT_LIKE:
+      case NOT_LIKE_AND:
+        if (value.getDataType() != DataType.BINARY) {
+          throw new ComputeException("Unsupported data type for NOT LIKE: " + value.getDataType());
+        }
+        return Optional.of(new NotLikeConst(value.getBinaryV()));
+      default:
+        break;
+    }
+    return Optional.empty();
   }
 
   private static PredicateFunction getPredicate(Op op) {

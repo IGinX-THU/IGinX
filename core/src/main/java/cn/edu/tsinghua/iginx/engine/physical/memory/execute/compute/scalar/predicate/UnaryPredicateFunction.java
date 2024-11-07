@@ -21,10 +21,7 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.Unary
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import javax.annotation.Nullable;
 import org.apache.arrow.memory.BufferAllocator;
-import org.apache.arrow.vector.BaseIntVector;
-import org.apache.arrow.vector.BitVector;
-import org.apache.arrow.vector.FieldVector;
-import org.apache.arrow.vector.VectorSchemaRoot;
+import org.apache.arrow.vector.*;
 
 public abstract class UnaryPredicateFunction extends UnaryScalarFunction<BitVector>
     implements PredicateFunction {
@@ -41,6 +38,7 @@ public abstract class UnaryPredicateFunction extends UnaryScalarFunction<BitVect
     if (input.getSchema().getFields().size() != 1) {
       throw new ComputeException(getName() + " requires one argument");
     }
+    ViewVarBinaryVector view = new ViewVarBinaryVector("view", allocator);
     return filter(allocator, selection, input.getVector(0));
   }
 

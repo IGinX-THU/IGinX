@@ -17,7 +17,6 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.predicate.compare;
 
-import java.nio.charset.StandardCharsets;
 import java.util.regex.Pattern;
 import org.apache.arrow.memory.ArrowBuf;
 import org.apache.arrow.memory.util.ArrowBufPointer;
@@ -54,23 +53,19 @@ public class Like extends BinaryComparisonFunction {
 
   @Override
   public boolean evaluate(ArrowBufPointer left, ArrowBufPointer right) {
+    byte[] leftBytes = new byte[(int) left.getLength()];
     ArrowBuf leftBuf = left.getBuf();
-    ArrowBuf rightBuf = right.getBuf();
-    if (leftBuf == null || rightBuf == null) {
-      return false;
+    if (leftBuf != null) {
+      leftBuf.getBytes(left.getOffset(), leftBytes);
     }
-    int leftLen = (int) left.getLength();
-    int rightLen = (int) right.getLength();
-    if (leftLen == 0 || rightLen == 0) {
-      return false;
-    }
-    byte[] leftUtf8Bytes = new byte[leftLen];
-    left.getBuf().getBytes(left.getOffset(), leftUtf8Bytes);
-    String targetString = new String(leftUtf8Bytes, StandardCharsets.UTF_8);
+    String targetString = new String(leftBytes);
 
-    byte[] rightUtf8Bytes = new byte[rightLen];
-    right.getBuf().getBytes(right.getOffset(), rightUtf8Bytes);
-    String pattern = new String(rightUtf8Bytes, StandardCharsets.UTF_8);
+    byte[] rightBytes = new byte[(int) right.getLength()];
+    ArrowBuf rightBuf = right.getBuf();
+    if (rightBuf != null) {
+      rightBuf.getBytes(right.getOffset(), rightBytes);
+    }
+    String pattern = new String(rightBytes);
     return Pattern.matches(pattern, targetString);
   }
 

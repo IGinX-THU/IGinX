@@ -17,17 +17,39 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.predicate.compare;
 
-import java.util.Arrays;
 import java.util.Objects;
+import java.util.regex.Pattern;
+import org.apache.arrow.memory.ArrowBuf;
 import org.apache.arrow.memory.util.ArrowBufPointer;
 
-public class EqualConstBinary extends UnaryComparisonFunction {
+public class LikeConst extends UnaryComparisonFunction {
 
-  private final byte[] bytes;
+  public final Pattern pattern;
 
-  public EqualConstBinary(byte[] value) {
-    super("equal<\"" + new String(value) + "\">");
-    this.bytes = Objects.requireNonNull(value);
+  public LikeConst(byte[] pattern) {
+    this(new String(pattern));
+  }
+
+  private LikeConst(String pattern) {
+    this("like<\"" + pattern + "\">", pattern);
+  }
+
+  protected LikeConst(String name, String pattern) {
+    super(name);
+    this.pattern = Pattern.compile(pattern);
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    LikeConst likeConst = (LikeConst) o;
+    return Objects.equals(pattern, likeConst.pattern);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(super.hashCode(), pattern);
   }
 
   @Override
@@ -52,36 +74,12 @@ public class EqualConstBinary extends UnaryComparisonFunction {
 
   @Override
   protected boolean evaluate(ArrowBufPointer input) {
-    if (input.getLength() != bytes.length) {
-      return false;
+    byte[] inputBytes = new byte[(int) input.getLength()];
+    ArrowBuf inputBuf = input.getBuf();
+    if (inputBuf != null) {
+      inputBuf.getBytes(input.getOffset(), inputBytes);
     }
-    if (bytes.length > 0) {
-      byte firstByte = input.getBuf().getByte(input.getOffset());
-      if (firstByte != bytes[0]) {
-        return false;
-      }
-      if (bytes.length > 1) {
-        byte lastByte = input.getBuf().getByte(input.getOffset() + bytes.length - 1);
-        if (lastByte != bytes[bytes.length - 1]) {
-          return false;
-        }
-      }
-    }
-    byte[] constValue = new byte[bytes.length];
-    input.getBuf().getBytes(input.getOffset(), constValue);
-    return Arrays.equals(bytes, constValue);
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) return true;
-    if (o == null || getClass() != o.getClass()) return false;
-    EqualConstBinary that = (EqualConstBinary) o;
-    return Objects.deepEquals(bytes, that.bytes);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(super.hashCode(), Arrays.hashCode(bytes));
+    String targetString = new String(inputBytes);
+    return pattern.matcher(targetString).matches();
   }
 }

@@ -121,7 +121,7 @@ public class GroupTable implements AutoCloseable {
       try (VectorSchemaRoot groupKeys =
           ScalarExpressions.evaluateSafe(allocator, groupKeyExpressions, data)) {
         RowCursor cursor = new RowCursor(groupKeys);
-        for (int row = 0; row < data.getRowCount(); row++) {
+        for (int row = 0; row < groupKeys.getRowCount(); row++) {
           cursor.setPosition(row);
           MaterializedRowKey materializedRowKey = MaterializedRowKey.of(cursor);
           GroupState groupState = groups.get(materializedRowKey);
