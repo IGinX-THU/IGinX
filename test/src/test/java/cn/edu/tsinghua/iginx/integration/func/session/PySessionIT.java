@@ -24,7 +24,6 @@ import static org.junit.Assert.*;
 
 import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
-import cn.edu.tsinghua.iginx.conf.Constants;
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
@@ -33,7 +32,7 @@ import cn.edu.tsinghua.iginx.integration.tool.MultiConnection;
 import cn.edu.tsinghua.iginx.pool.IginxInfo;
 import cn.edu.tsinghua.iginx.pool.SessionPool;
 import cn.edu.tsinghua.iginx.session.Session;
-import cn.edu.tsinghua.iginx.utils.EnvUtils;
+
 import java.io.*;
 import java.nio.file.Paths;
 import java.util.*;
@@ -45,7 +44,7 @@ import pemja.core.PythonInterpreterConfig;
 
 public class PySessionIT {
 
-  private static final Logger logger = LoggerFactory.getLogger(PySessionIT.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(PySessionIT.class);
 
   protected static MultiConnection session;
   private static final String PATH =
@@ -76,6 +75,7 @@ public class PySessionIT {
     isAbleToDelete = dbConf.getEnumValue(DBConf.DBConfType.isAbleToDelete);
     PythonInterpreterConfig config =
         PythonInterpreterConfig.newBuilder().setPythonExec(pythonCMD).addPythonPaths(PATH).build();
+    LOGGER.info("using pythonCMD: {}", pythonCMD);
     interpreter = new PythonInterpreter(config);
     interpreter.exec("import tests");
     interpreter.exec("t = tests.Tests()");
@@ -84,11 +84,11 @@ public class PySessionIT {
   @BeforeClass
   public static void setUp() throws SessionException {
     // 清除历史数据
-    logger.info("Clear all data before executing pysession tests.");
+    LOGGER.info("Clear all data before executing pysession tests.");
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
     DBConf dbConf = conf.loadDBConf(conf.getStorageType());
     isAbleToDelete = dbConf.getEnumValue(DBConf.DBConfType.isAbleToDelete);
-    logger.info("isAbleToDelete: " + isAbleToDelete);
+    LOGGER.info("isAbleToDelete: " + isAbleToDelete);
     if (isForSession) {
       session =
           new MultiConnection(
@@ -133,9 +133,9 @@ public class PySessionIT {
   @Before
   public void insertBaseData() {
     try {
-      logger.info("Insert base data before executing pysession tests.");
+      LOGGER.info("Insert base data before executing pysession tests.");
       String output = runPythonScript("insertBaseDataset");
-      logger.info(output);
+      LOGGER.info(output);
     } catch (IOException | InterruptedException e) {
       e.printStackTrace();
       throw new RuntimeException(e);
@@ -146,9 +146,9 @@ public class PySessionIT {
   public void testAQuery() {
     String result = "";
     try {
-      logger.info("Test A query");
+      LOGGER.info("Test A query");
       result = runPythonScript("query");
-      logger.info(result);
+      LOGGER.info(result);
     } catch (IOException | InterruptedException e) {
       e.printStackTrace();
       throw new RuntimeException(e);
@@ -174,9 +174,9 @@ public class PySessionIT {
     String result = "";
     try {
       // 设置Python脚本路径
-      logger.info("Test downsample query");
+      LOGGER.info("Test downsample query");
       result = runPythonScript("downsampleQuery");
-      logger.info(result);
+      LOGGER.info(result);
     } catch (IOException | InterruptedException e) {
       e.printStackTrace();
       throw new RuntimeException(e);
@@ -198,9 +198,9 @@ public class PySessionIT {
     String result = "";
     try {
       // 设置Python脚本路径
-      logger.info("Test downsample query without time interval");
+      LOGGER.info("Test downsample query without time interval");
       result = runPythonScript("downsampleQueryNoInterval");
-      logger.info(result);
+      LOGGER.info(result);
     } catch (IOException | InterruptedException e) {
       e.printStackTrace();
       throw new RuntimeException(e);
@@ -224,9 +224,9 @@ public class PySessionIT {
   public void testShowColumnsQuery() {
     String result = "";
     try {
-      logger.info("Test show columns query");
+      LOGGER.info("Test show columns query");
       result = runPythonScript("showColumns");
-      logger.info(result);
+      LOGGER.info(result);
     } catch (IOException | InterruptedException e) {
       e.printStackTrace();
       throw new RuntimeException(e);
@@ -247,9 +247,9 @@ public class PySessionIT {
   public void testAggregateQuery() {
     String result = "";
     try {
-      logger.info("Test aggregate query");
+      LOGGER.info("Test aggregate query");
       result = runPythonScript("aggregateQuery");
-      logger.info(result);
+      LOGGER.info(result);
     } catch (IOException | InterruptedException e) {
       e.printStackTrace();
       throw new RuntimeException(e);
@@ -268,9 +268,9 @@ public class PySessionIT {
   public void testLastQuery() {
     String result = "";
     try {
-      logger.info("Test last query");
+      LOGGER.info("Test last query");
       result = runPythonScript("lastQuery");
-      logger.info(result);
+      LOGGER.info(result);
     } catch (IOException | InterruptedException e) {
       e.printStackTrace();
       throw new RuntimeException(e);
@@ -292,9 +292,9 @@ public class PySessionIT {
     }
     String result = "";
     try {
-      logger.info("Test delete column query");
+      LOGGER.info("Test delete column query");
       result = runPythonScript("deleteColumn");
-      logger.info(result);
+      LOGGER.info(result);
     } catch (IOException | InterruptedException e) {
       e.printStackTrace();
       throw new RuntimeException(e);
@@ -314,9 +314,9 @@ public class PySessionIT {
   public void testAddStorageEngine() {
     String output = "";
     try {
-      logger.info("add storage engine");
+      LOGGER.info("add storage engine");
       output = runPythonScript("addStorageEngine");
-      logger.info(output);
+      LOGGER.info(output);
     } catch (IOException | InterruptedException e) {
       e.printStackTrace();
       throw new RuntimeException(e);
@@ -346,9 +346,9 @@ public class PySessionIT {
   public void testInsert() {
     String result = "";
     try {
-      logger.info("insert data");
+      LOGGER.info("insert data");
       result = runPythonScript("insert");
-      logger.info(result);
+      LOGGER.info(result);
     } catch (IOException | InterruptedException e) {
       e.printStackTrace();
       throw new RuntimeException(e);
@@ -401,9 +401,9 @@ public class PySessionIT {
   public void testInsertDF() {
     String result = "";
     try {
-      logger.info("insert dataframe");
+      LOGGER.info("insert dataframe");
       result = runPythonScript("insertDF");
-      logger.info(result);
+      LOGGER.info(result);
     } catch (IOException | InterruptedException e) {
       e.printStackTrace();
       throw new RuntimeException(e);
@@ -432,9 +432,9 @@ public class PySessionIT {
     }
     String result = "";
     try {
-      logger.info("delete row");
+      LOGGER.info("delete row");
       result = runPythonScript("deleteRow");
-      logger.info(result);
+      LOGGER.info(result);
     } catch (IOException | InterruptedException e) {
       e.printStackTrace();
       throw new RuntimeException(e);
@@ -461,9 +461,9 @@ public class PySessionIT {
   public void testDebugInfo() {
     String result = "";
     try {
-      logger.info("get debug info");
+      LOGGER.info("get debug info");
       result = runPythonScript("getDebugInfo");
-      logger.info(result);
+      LOGGER.info(result);
     } catch (IOException | InterruptedException e) {
       e.printStackTrace();
       throw new RuntimeException(e);
@@ -479,9 +479,9 @@ public class PySessionIT {
     }
     String result = "";
     try {
-      logger.info("load csv");
+      LOGGER.info("load csv");
       result = runPythonScript("loadCSV");
-      logger.info(result);
+      LOGGER.info(result);
     } catch (IOException | InterruptedException e) {
       e.printStackTrace();
       throw new RuntimeException(e);
@@ -505,9 +505,9 @@ public class PySessionIT {
   public void testLoadDirectory() {
     String result = "";
     try {
-      logger.info("load directory");
+      LOGGER.info("load directory");
       result = runPythonScript("loadDirectory");
-      logger.info(result);
+      LOGGER.info(result);
     } catch (IOException | InterruptedException e) {
       e.printStackTrace();
       throw new RuntimeException(e);
@@ -516,7 +516,7 @@ public class PySessionIT {
     List<String> expected = Arrays.asList("   key dir.a dir.b", "0    0  b'1'  b'4'");
     String[] lines = result.split("\n");
     List<String> resultLines = Arrays.asList(lines);
-    logger.info(resultLines.toString());
+    LOGGER.info(resultLines.toString());
     assertTrue(resultLines.size() >= 2);
     assertEquals(expected, resultLines.subList(resultLines.size() - 2, resultLines.size()));
   }
@@ -525,9 +525,9 @@ public class PySessionIT {
   public void testExport() {
     List<String> result = new ArrayList<>();
     try {
-      logger.info("export to file");
+      LOGGER.info("export to file");
       String tmp = runPythonScript("exportToFile");
-      logger.info(tmp);
+      LOGGER.info(tmp);
     } catch (IOException | InterruptedException e) {
       e.printStackTrace();
       throw new RuntimeException(e);
@@ -582,7 +582,7 @@ public class PySessionIT {
       return;
     }
     try {
-      logger.info("Clear all data after executing pysession tests.");
+      LOGGER.info("Clear all data after executing pysession tests.");
       String output = runPythonScript("deleteAll");
     } catch (IOException | InterruptedException e) {
       e.printStackTrace();
