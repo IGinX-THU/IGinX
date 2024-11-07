@@ -67,3 +67,7 @@ runs:
         python3.13t -m pip install $PEMJAX_HOME/dist/*.whl --no-clean
         python3.13t -m pip freeze list
 
+    - uses: actions/upload-artifact@v3
+      with:
+        name: ${{ runner.os }}-pemjax-wheel
+        path: $PEMJAX_HOME/dist/*.whl
