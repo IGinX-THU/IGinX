@@ -54,7 +54,8 @@ public class ConfigDescriptor {
   private void loadPropsFromFile() {
     try (InputStream in =
         new FileInputStream(EnvUtils.loadEnv(Constants.CONF, Constants.CONFIG_FILE))) {
-      LOGGER.debug("loading from file stream");
+      LOGGER.info("loading from file stream: {}", EnvUtils.loadEnv(Constants.CONF, Constants.CONFIG_FILE));
+      LOGGER.info("iginx home path: {}", IGINX_HOME_PATH);
       BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(in));
 
       Properties properties = new Properties();
@@ -203,7 +204,7 @@ public class ConfigDescriptor {
           Long.parseLong(properties.getProperty("fragmentCacheThreshold", "131072")));
       config.setBatchSize(Integer.parseInt(properties.getProperty("batchSize", "50")));
       config.setPythonCMD(properties.getProperty("pythonCMD", "python3"));
-      LOGGER.debug("pythonCMD in file: {}", config.getPythonCMD());
+      LOGGER.info("pythonCMD in file: {}", config.getPythonCMD());
       config.setTransformTaskThreadPoolSize(
           Integer.parseInt(properties.getProperty("transformTaskThreadPoolSize", "10")));
       config.setTransformMaxRetryTimes(
