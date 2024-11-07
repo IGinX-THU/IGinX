@@ -75,7 +75,7 @@ public class SQLSessionIT {
 
   private final long endKey = 15000L;
 
-  private boolean isFilterPushDown;
+  private boolean isOptimizerOpen;
 
   protected boolean isAbleToClearData = true;
   private static final int CONCURRENT_NUM = 5;
@@ -104,7 +104,7 @@ public class SQLSessionIT {
         dbConf.getEnumValue(DBConfType.isSupportSpecialCharacterPath);
 
     String rules = executor.execute("SHOW RULES;");
-    this.isFilterPushDown = rules.contains("FilterPushDownRule|    ON|");
+    this.isOptimizerOpen = rules.contains("FilterPushDownRule|    ON|");
   }
 
   @BeforeClass
@@ -1761,7 +1761,7 @@ public class SQLSessionIT {
       executor.executeAndCompare(String.format(statement, type, type), expected);
     }
 
-    if (isScaling || isFilterPushDown) {
+    if (isScaling || !isOptimizerOpen) {
       return;
     }
 
@@ -2727,7 +2727,7 @@ public class SQLSessionIT {
             + "Total line number = 5\n";
     executor.executeAndCompare(query, expected);
 
-    if (isScaling || isFilterPushDown) {
+    if (isScaling || !isOptimizerOpen) {
       return;
     }
     query = "explain select avg(a), sum(b), c, b, d from test group by c, b, d order by c, b, d;";
@@ -6984,6 +6984,11 @@ public class SQLSessionIT {
 
   @Test
   public void testModifyRules() {
+    if (!isOptimizerOpen) {
+      LOGGER.info("Skip SQLSessionIT.testModifyRules because optimizer is not open");
+      return;
+    }
+
     String statement, expected;
     statement = "show rules;";
 
@@ -7030,9 +7035,8 @@ public class SQLSessionIT {
   @Test
   public void testFilterPushDownExplain() {
     // 临时修改
-    if (!isFilterPushDown) {
-      LOGGER.info(
-          "Skip SQLSessionIT.testFilterPushDownExplain because filter_push_down optimizer is not open");
+    if (!isOptimizerOpen) {
+      LOGGER.info("Skip SQLSessionIT.testFilterPushDownExplain because optimizer is not open");
       return;
     }
 
@@ -7446,7 +7450,7 @@ public class SQLSessionIT {
       return;
     }
 
-    if (isFilterPushDown) {
+    if (!isOptimizerOpen) {
       LOGGER.info(
           "Skip SQLSessionIT.testFilterFragmentOptimizer because optimizer is not remove_not,filter_fragment");
       return;
@@ -7767,7 +7771,7 @@ public class SQLSessionIT {
 
   @Test
   public void testColumnPruningAndFragmentPruning() {
-    if (isFilterPushDown || isScaling) {
+    if (!isOptimizerOpen || isScaling) {
       LOGGER.info(
           "Skip SQLSessionIT.testColumnPruningAndFragmentPruning because scaling test or filter push down test");
       return;
@@ -8035,11 +8039,12 @@ public class SQLSessionIT {
 
   @Test
   public void testConstantPropagation() {
-    if (isFilterPushDown) {
-      // 谓词下推规则会把谓词转换成CNF,导致测试结果对比不了，所以这里跳过不测试
+    if (!isOptimizerOpen) {
       LOGGER.info("Skip SQLSessionIT.testConstantPropagation because filter push down test");
       return;
     }
+    // 谓词下推规则会把谓词转换成CNF,导致测试结果对比不了，所以这里要关掉
+    executor.execute("SET RULES FilterPushDownRule=OFF;");
 
     String openRule = "SET RULES ConstantPropagationRule=on;";
     String closeRule = "SET RULES ConstantPropagationRule=off;";
@@ -8090,11 +8095,17 @@ public class SQLSessionIT {
       String result = executor.execute(String.format(statement, filters.get(i)));
       assertTrue(result.contains(expectsOpenedResult.get(i)));
     }
+
+    executor.execute("SET RULES FilterPushDownRule=ON;");
   }
 
   /** 对常量折叠进行测试，因为RowTransform常量折叠和Filter常量折叠使用的代码都是公共的，所以这里只测试更好对比结果的RowTransform常量折叠 */
   @Test
   public void testConstantFolding() {
+    if (!isOptimizerOpen) {
+      LOGGER.info("Skip SQLSessionIT.testConstantFolding because optimizer is closed");
+      return;
+    }
     String openRule = "SET RULES ConstantFoldingRule=on;";
     String closeRule = "SET RULES ConstantFoldingRule=off;";
 
@@ -8291,6 +8302,10 @@ public class SQLSessionIT {
 
   @Test
   public void testDistinctEliminate() {
+    if (!isOptimizerOpen) {
+      LOGGER.info("Skip SQLSessionIT.testDistinctEliminate because optimizer is closed");
+      return;
+    }
     // 插入数据
     StringBuilder insert = new StringBuilder();
     insert.append("INSERT INTO us.d2 (key, s1, s2) VALUES ");
@@ -8375,9 +8390,9 @@ public class SQLSessionIT {
 
   @Test
   public void testJoinFactorizationRule() {
-    if (isFilterPushDown || isScaling) {
+    if (!isOptimizerOpen || isScaling) {
       LOGGER.info(
-          "Skip SQLSessionIT.testJoinFactorizationRule because filter push down test or scaling test");
+          "Skip SQLSessionIT.testJoinFactorizationRule because optimizer is closed or scaling test");
       return;
     }
     String openRule = "SET RULES JoinFactorizationRule=on;";
@@ -8462,57 +8477,57 @@ public class SQLSessionIT {
     executor.executeAndCompare(optimizing, result);
     String expect =
         "ResultSets:\n"
-            + "+----------------------------+-------------+------------------------------------------------------------------+\n"
-            + "|                Logical Tree|Operator Type|                                                     Operator Info|\n"
-            + "+----------------------------+-------------+------------------------------------------------------------------+\n"
-            + "|Reorder                     |      Reorder|                                                Order: t1.c1,t2.c2|\n"
-            + "|  +--Project                |      Project|                                             Patterns: t1.c1,t2.c2|\n"
-            + "|    +--Select               |       Select|                             Filter: (t1.c1 == t2.c1 && t1.c1 > 1)|\n"
-            + "|      +--CrossJoin          |    CrossJoin|                                        PrefixA: t1, PrefixB: null|\n"
-            + "|        +--Project          |      Project|                         Patterns: t1.*, Target DU: unit0000000002|\n"
-            + "|        +--Union            |        Union|LeftOrder: t2.c2,t2.c1, RightOrder: t2.c2,t2.c1, isDistinct: false|\n"
-            + "|          +--Reorder        |      Reorder|                                                Order: t2.c1,t2.c2|\n"
-            + "|            +--Project      |      Project|                                             Patterns: t2.c1,t2.c2|\n"
-            + "|              +--Select     |       Select|                                Filter: (t2.c2 == 2 && t3.c2 == 2)|\n"
-            + "|                +--CrossJoin|    CrossJoin|                                          PrefixA: t2, PrefixB: t3|\n"
-            + "|                  +--Project|      Project|                  Patterns: t2.c1,t2.c2, Target DU: unit0000000002|\n"
-            + "|                  +--Project|      Project|                        Patterns: t3.c2, Target DU: unit0000000002|\n"
-            + "|          +--Reorder        |      Reorder|                                                Order: t2.c1,t2.c2|\n"
-            + "|            +--Project      |      Project|                                             Patterns: t2.c1,t2.c2|\n"
-            + "|              +--Select     |       Select|                                          Filter: (t2.c1 == t4.c1)|\n"
-            + "|                +--CrossJoin|    CrossJoin|                                          PrefixA: t2, PrefixB: t4|\n"
-            + "|                  +--Project|      Project|                  Patterns: t2.c1,t2.c2, Target DU: unit0000000002|\n"
-            + "|                  +--Project|      Project|                        Patterns: t4.c1, Target DU: unit0000000002|\n"
-            + "+----------------------------+-------------+------------------------------------------------------------------+\n"
-            + "Total line number = 18\n";
+            + "+--------------------------+-------------+----------------------------------------------------------------------+\n"
+            + "|              Logical Tree|Operator Type|                                                         Operator Info|\n"
+            + "+--------------------------+-------------+----------------------------------------------------------------------+\n"
+            + "|Reorder                   |      Reorder|                                                    Order: t1.c1,t2.c2|\n"
+            + "|  +--Project              |      Project|                                                 Patterns: t1.c1,t2.c2|\n"
+            + "|    +--InnerJoin          |    InnerJoin|PrefixA: t1, PrefixB: null, IsNatural: false, Filter: (t1.c1 == t2.c1)|\n"
+            + "|      +--Select           |       Select|                                                   Filter: (t1.c1 > 1)|\n"
+            + "|        +--Project        |      Project|                             Patterns: t1.*, Target DU: unit0000000002|\n"
+            + "|      +--Union            |        Union|    LeftOrder: t2.c2,t2.c1, RightOrder: t2.c2,t2.c1, isDistinct: false|\n"
+            + "|        +--Reorder        |      Reorder|                                                    Order: t2.c1,t2.c2|\n"
+            + "|          +--Project      |      Project|                                                 Patterns: t2.c1,t2.c2|\n"
+            + "|            +--InnerJoin  |    InnerJoin|  PrefixA: t2, PrefixB: t3, IsNatural: false, Filter: (t2.c2 == t3.c2)|\n"
+            + "|              +--Select   |       Select|                                                  Filter: (t2.c2 == 2)|\n"
+            + "|                +--Project|      Project|                      Patterns: t2.c1,t2.c2, Target DU: unit0000000002|\n"
+            + "|              +--Project  |      Project|                            Patterns: t3.c2, Target DU: unit0000000002|\n"
+            + "|        +--Reorder        |      Reorder|                                                    Order: t2.c1,t2.c2|\n"
+            + "|          +--Project      |      Project|                                                 Patterns: t2.c1,t2.c2|\n"
+            + "|            +--InnerJoin  |    InnerJoin|  PrefixA: t2, PrefixB: t4, IsNatural: false, Filter: (t2.c1 == t4.c1)|\n"
+            + "|              +--Project  |      Project|                      Patterns: t2.c1,t2.c2, Target DU: unit0000000002|\n"
+            + "|              +--Project  |      Project|                            Patterns: t4.c1, Target DU: unit0000000002|\n"
+            + "+--------------------------+-------------+----------------------------------------------------------------------+\n"
+            + "Total line number = 17\n";
     assertEquals(expect, executor.execute("EXPLAIN " + statement));
 
     executor.execute(closeRule);
     assertTrue(TestUtils.compareTables(executor.execute(optimizing), result));
     expect =
         "ResultSets:\n"
-            + "+----------------------+-------------+------------------------------------------------------------------+\n"
-            + "|          Logical Tree|Operator Type|                                                     Operator Info|\n"
-            + "+----------------------+-------------+------------------------------------------------------------------+\n"
-            + "|Union                 |        Union|LeftOrder: t1.c1,t2.c2, RightOrder: t1.c1,t2.c2, isDistinct: false|\n"
-            + "|  +--Reorder          |      Reorder|                                                Order: t1.c1,t2.c2|\n"
-            + "|    +--Project        |      Project|                                             Patterns: t2.c2,t1.c1|\n"
-            + "|      +--Select       |       Select| Filter: (t1.c1 == t2.c1 && t1.c1 > 1 && t2.c2 == 2 && t3.c2 == 2)|\n"
-            + "|        +--CrossJoin  |    CrossJoin|                                          PrefixA: t2, PrefixB: t3|\n"
-            + "|          +--CrossJoin|    CrossJoin|                                          PrefixA: t1, PrefixB: t2|\n"
-            + "|            +--Project|      Project|                         Patterns: t1.*, Target DU: unit0000000002|\n"
-            + "|            +--Project|      Project|                         Patterns: t2.*, Target DU: unit0000000002|\n"
-            + "|          +--Project  |      Project|                         Patterns: t3.*, Target DU: unit0000000002|\n"
-            + "|  +--Reorder          |      Reorder|                                                Order: t1.c1,t2.c2|\n"
-            + "|    +--Project        |      Project|                                             Patterns: t2.c2,t1.c1|\n"
-            + "|      +--Select       |       Select|           Filter: (t1.c1 == t2.c1 && t1.c1 > 1 && t2.c1 == t4.c1)|\n"
-            + "|        +--CrossJoin  |    CrossJoin|                                          PrefixA: t2, PrefixB: t4|\n"
-            + "|          +--CrossJoin|    CrossJoin|                                          PrefixA: t1, PrefixB: t2|\n"
-            + "|            +--Project|      Project|                         Patterns: t1.*, Target DU: unit0000000002|\n"
-            + "|            +--Project|      Project|                         Patterns: t2.*, Target DU: unit0000000002|\n"
-            + "|          +--Project  |      Project|                         Patterns: t4.*, Target DU: unit0000000002|\n"
-            + "+----------------------+-------------+------------------------------------------------------------------+\n"
-            + "Total line number = 17\n";
+            + "+----------------------+-------------+--------------------------------------------------------------------+\n"
+            + "|          Logical Tree|Operator Type|                                                       Operator Info|\n"
+            + "+----------------------+-------------+--------------------------------------------------------------------+\n"
+            + "|Union                 |        Union|  LeftOrder: t1.c1,t2.c2, RightOrder: t1.c1,t2.c2, isDistinct: false|\n"
+            + "|  +--Reorder          |      Reorder|                                                  Order: t1.c1,t2.c2|\n"
+            + "|    +--Project        |      Project|                                               Patterns: t2.c2,t1.c1|\n"
+            + "|      +--InnerJoin    |    InnerJoin|PrefixA: t2, PrefixB: t3, IsNatural: false, Filter: (t2.c2 == t3.c2)|\n"
+            + "|        +--InnerJoin  |    InnerJoin|PrefixA: t1, PrefixB: t2, IsNatural: false, Filter: (t1.c1 == t2.c1)|\n"
+            + "|          +--Select   |       Select|                                                 Filter: (t1.c1 > 1)|\n"
+            + "|            +--Project|      Project|                           Patterns: t1.*, Target DU: unit0000000002|\n"
+            + "|          +--Select   |       Select|                                                Filter: (t2.c2 == 2)|\n"
+            + "|            +--Project|      Project|                           Patterns: t2.*, Target DU: unit0000000002|\n"
+            + "|        +--Project    |      Project|                           Patterns: t3.*, Target DU: unit0000000002|\n"
+            + "|  +--Reorder          |      Reorder|                                                  Order: t1.c1,t2.c2|\n"
+            + "|    +--Project        |      Project|                                               Patterns: t2.c2,t1.c1|\n"
+            + "|      +--InnerJoin    |    InnerJoin|PrefixA: t2, PrefixB: t4, IsNatural: false, Filter: (t2.c1 == t4.c1)|\n"
+            + "|        +--InnerJoin  |    InnerJoin|PrefixA: t1, PrefixB: t2, IsNatural: false, Filter: (t1.c1 == t2.c1)|\n"
+            + "|          +--Select   |       Select|                                                 Filter: (t1.c1 > 1)|\n"
+            + "|            +--Project|      Project|                           Patterns: t1.*, Target DU: unit0000000002|\n"
+            + "|          +--Project  |      Project|                           Patterns: t2.*, Target DU: unit0000000002|\n"
+            + "|        +--Project    |      Project|                           Patterns: t4.*, Target DU: unit0000000002|\n"
+            + "+----------------------+-------------+--------------------------------------------------------------------+\n"
+            + "Total line number = 18\n";
     assertEquals(expect, executor.execute("EXPLAIN " + statement));
 
     statement =
@@ -8541,54 +8556,58 @@ public class SQLSessionIT {
     executor.executeAndCompare(optimizing, result);
     expect =
         "ResultSets:\n"
-            + "+--------------------------+-------------+------------------------------------------------------------------+\n"
-            + "|              Logical Tree|Operator Type|                                                     Operator Info|\n"
-            + "+--------------------------+-------------+------------------------------------------------------------------+\n"
-            + "|Reorder                   |      Reorder|                                                Order: t1.c2,t2.c2|\n"
-            + "|  +--Project              |      Project|                                             Patterns: t1.c2,t2.c2|\n"
-            + "|    +--Select             |       Select|                                          Filter: (t1.c1 == t2.c1)|\n"
-            + "|      +--CrossJoin        |    CrossJoin|                                        PrefixA: t2, PrefixB: null|\n"
-            + "|        +--Project        |      Project|                         Patterns: t2.*, Target DU: unit0000000002|\n"
-            + "|        +--Union          |        Union|LeftOrder: t1.c2,t1.c1, RightOrder: t1.c2,t1.c1, isDistinct: false|\n"
-            + "|          +--Reorder      |      Reorder|                                                Order: t1.c1,t1.c2|\n"
-            + "|            +--Project    |      Project|                                             Patterns: t1.c1,t1.c2|\n"
-            + "|              +--Select   |       Select|                                              Filter: (t1.c1 == 1)|\n"
-            + "|                +--Project|      Project|                  Patterns: t1.c1,t1.c2, Target DU: unit0000000002|\n"
-            + "|          +--Reorder      |      Reorder|                                                Order: t1.c1,t1.c2|\n"
-            + "|            +--Project    |      Project|                                             Patterns: t1.c1,t1.c2|\n"
-            + "|              +--Select   |       Select|                                              Filter: (t1.c1 == 2)|\n"
-            + "|                +--Project|      Project|                  Patterns: t1.c1,t1.c2, Target DU: unit0000000002|\n"
-            + "+--------------------------+-------------+------------------------------------------------------------------+\n"
-            + "Total line number = 14\n";
+            + "+------------------------+-------------+----------------------------------------------------------------------+\n"
+            + "|            Logical Tree|Operator Type|                                                         Operator Info|\n"
+            + "+------------------------+-------------+----------------------------------------------------------------------+\n"
+            + "|Reorder                 |      Reorder|                                                    Order: t1.c2,t2.c2|\n"
+            + "|  +--Project            |      Project|                                                 Patterns: t1.c2,t2.c2|\n"
+            + "|    +--InnerJoin        |    InnerJoin|PrefixA: t2, PrefixB: null, IsNatural: false, Filter: (t1.c1 == t2.c1)|\n"
+            + "|      +--Project        |      Project|                             Patterns: t2.*, Target DU: unit0000000002|\n"
+            + "|      +--Union          |        Union|    LeftOrder: t1.c2,t1.c1, RightOrder: t1.c2,t1.c1, isDistinct: false|\n"
+            + "|        +--Reorder      |      Reorder|                                                    Order: t1.c1,t1.c2|\n"
+            + "|          +--Project    |      Project|                                                 Patterns: t1.c1,t1.c2|\n"
+            + "|            +--Select   |       Select|                                                  Filter: (t1.c1 == 1)|\n"
+            + "|              +--Project|      Project|                      Patterns: t1.c1,t1.c2, Target DU: unit0000000002|\n"
+            + "|        +--Reorder      |      Reorder|                                                    Order: t1.c1,t1.c2|\n"
+            + "|          +--Project    |      Project|                                                 Patterns: t1.c1,t1.c2|\n"
+            + "|            +--Select   |       Select|                                                  Filter: (t1.c1 == 2)|\n"
+            + "|              +--Project|      Project|                      Patterns: t1.c1,t1.c2, Target DU: unit0000000002|\n"
+            + "+------------------------+-------------+----------------------------------------------------------------------+\n"
+            + "Total line number = 13\n";
     assertEquals(expect, executor.execute("EXPLAIN " + statement));
 
     executor.execute(closeRule);
     assertTrue(TestUtils.compareTables(executor.execute(optimizing), result));
     expect =
         "ResultSets:\n"
-            + "+--------------------+-------------+------------------------------------------------------------------+\n"
-            + "|        Logical Tree|Operator Type|                                                     Operator Info|\n"
-            + "+--------------------+-------------+------------------------------------------------------------------+\n"
-            + "|Union               |        Union|LeftOrder: t1.c2,t2.c2, RightOrder: t1.c2,t2.c2, isDistinct: false|\n"
-            + "|  +--Reorder        |      Reorder|                                                Order: t1.c2,t2.c2|\n"
-            + "|    +--Project      |      Project|                                             Patterns: t2.c2,t1.c2|\n"
-            + "|      +--Select     |       Select|                                Filter: (t2.c1 == 1 && t1.c1 == 1)|\n"
-            + "|        +--CrossJoin|    CrossJoin|                                          PrefixA: t1, PrefixB: t2|\n"
-            + "|          +--Project|      Project|                         Patterns: t1.*, Target DU: unit0000000002|\n"
-            + "|          +--Project|      Project|                         Patterns: t2.*, Target DU: unit0000000002|\n"
-            + "|  +--Reorder        |      Reorder|                                                Order: t1.c2,t2.c2|\n"
-            + "|    +--Project      |      Project|                                             Patterns: t2.c2,t1.c2|\n"
-            + "|      +--Select     |       Select|                                Filter: (t2.c1 == 2 && t1.c1 == 2)|\n"
-            + "|        +--CrossJoin|    CrossJoin|                                          PrefixA: t1, PrefixB: t2|\n"
-            + "|          +--Project|      Project|                         Patterns: t1.*, Target DU: unit0000000002|\n"
-            + "|          +--Project|      Project|                         Patterns: t2.*, Target DU: unit0000000002|\n"
-            + "+--------------------+-------------+------------------------------------------------------------------+\n"
+            + "+--------------------+-------------+--------------------------------------------------------------------+\n"
+            + "|        Logical Tree|Operator Type|                                                       Operator Info|\n"
+            + "+--------------------+-------------+--------------------------------------------------------------------+\n"
+            + "|Union               |        Union|  LeftOrder: t1.c2,t2.c2, RightOrder: t1.c2,t2.c2, isDistinct: false|\n"
+            + "|  +--Reorder        |      Reorder|                                                  Order: t1.c2,t2.c2|\n"
+            + "|    +--Project      |      Project|                                               Patterns: t2.c2,t1.c2|\n"
+            + "|      +--InnerJoin  |    InnerJoin|PrefixA: t1, PrefixB: t2, IsNatural: false, Filter: (t1.c1 == t2.c1)|\n"
+            + "|        +--Select   |       Select|                                                Filter: (t1.c1 == 1)|\n"
+            + "|          +--Project|      Project|                           Patterns: t1.*, Target DU: unit0000000002|\n"
+            + "|        +--Project  |      Project|                           Patterns: t2.*, Target DU: unit0000000002|\n"
+            + "|  +--Reorder        |      Reorder|                                                  Order: t1.c2,t2.c2|\n"
+            + "|    +--Project      |      Project|                                               Patterns: t2.c2,t1.c2|\n"
+            + "|      +--InnerJoin  |    InnerJoin|PrefixA: t1, PrefixB: t2, IsNatural: false, Filter: (t1.c1 == t2.c1)|\n"
+            + "|        +--Select   |       Select|                                                Filter: (t1.c1 == 2)|\n"
+            + "|          +--Project|      Project|                           Patterns: t1.*, Target DU: unit0000000002|\n"
+            + "|        +--Project  |      Project|                           Patterns: t2.*, Target DU: unit0000000002|\n"
+            + "+--------------------+-------------+--------------------------------------------------------------------+\n"
             + "Total line number = 13\n";
     assertEquals(expect, executor.execute("EXPLAIN " + statement));
   }
 
   @Test
   public void testOuterJoinEliminate() {
+    if (!isOptimizerOpen) {
+      LOGGER.info("Skip SQLSessionIT.testOuterJoinEliminate because optimizer is closed");
+      return;
+    }
+
     StringBuilder insert = new StringBuilder();
     insert.append("INSERT INTO us (key, d2.s1, d2.s2, d3.s1, d3.s2) VALUES ");
     int rows = 15000;
@@ -8949,6 +8968,11 @@ public class SQLSessionIT {
 
   @Test
   public void testInFilterTransformRule() {
+    if (!isOptimizerOpen) {
+      LOGGER.info("Skip SQLSessionIT.testInFilterTransformRule because optimizer is closed");
+      return;
+    }
+
     // 插入数据
     StringBuilder insert = new StringBuilder();
     insert.append("INSERT INTO us.d2 (key, s1, s2) VALUES ");

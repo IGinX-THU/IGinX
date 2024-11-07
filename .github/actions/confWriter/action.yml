@@ -103,19 +103,19 @@ runs:
                 echo "$RUNNER_OS is not supported"
                 exit 1
               fi
-        - if: inputs.Push-Down=='true'
-          name: Change push_down
+        - if: inputs.Close-Optimizer=='true
+          name: Close-All-Optimizer
           shell: bash
           run: |
-              if [ "$RUNNER_OS" == "Linux" ]; then
-                sudo sed -i 's/enablePushDown=false/enablePushDown=true/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-                sed -i 's/FilterPushDownRule=off/FilterPushDownRule=on/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-              elif [ "$RUNNER_OS" == "Windows" ]; then
-                sed -i 's/enablePushDown=false/enablePushDown=true/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-                sed -i 's/FilterPushDownRule=off/FilterPushDownRule=on/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-              elif [ "$RUNNER_OS" == "macOS" ]; then
-                sudo sed -i '' 's/enablePushDown=false/enablePushDown=true/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-                sed -i '' 's/FilterPushDownRule=off/FilterPushDownRule=on/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
+              if ["$RUNNER_OS" == "Linux" ]; then
+                sudo sed -i 's/Rule=on/Rule=off/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
+                sudo sed -i 's/enablePushDown=true/enablePushDown=false/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
+              elif ["$RUNNER_OS" == "Windows" ]; then
+                sed -i 's/Rule=on/Rule=off/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
+                sed -i 's/enablePushDown=true/enablePushDown=false/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
+              elif ["$RUNNER_OS" == "macOS" ]; then
+                sudo sed -i '' 's/Rule=on/Rule=off/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
+                sudo sed -i '' 's/enablePushDown=true/enablePushDown=false/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
               else
                 echo "$RUNNER_OS is not supported"
                 exit 1
@@ -130,20 +130,6 @@ runs:
                 sed -i 's/policyClassName=cn.edu.tsinghua.iginx.policy.naive.NaivePolicy/policyClassName=cn.edu.tsinghua.iginx.policy.test.KeyRangeTestPolicy/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
               elif [ "$RUNNER_OS" == "macOS" ]; then
                   sudo sed -i '' 's/policyClassName=cn.edu.tsinghua.iginx.policy.naive.NaivePolicy/policyClassName=cn.edu.tsinghua.iginx.policy.test.KeyRangeTestPolicy/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-              else
-                  echo "$RUNNER_OS is not supported"
-                  exit 1
-              fi
-        - if: inputs.Set-Filter-Fragment-OFF=='true'
-          name: Set FragmentPruningByFilterRule OFF
-          shell: bash
-          run: |
-              if [ "$RUNNER_OS" == "Linux" ]; then
-                  sudo sed -i 's/ruleBasedOptimizer=NotFilterRemoveRule=on,FragmentPruningByFilterRule=on/ruleBasedOptimizer=NotFilterRemoveRule=on/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-              elif [ "$RUNNER_OS" == "Windows" ]; then
-                sed -i 's/ruleBasedOptimizer=NotFilterRemoveRule=on,FragmentPruningByFilterRule=on/ruleBasedOptimizer=NotFilterRemoveRule=on/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-              elif [ "$RUNNER_OS" == "macOS" ]; then
-                  sudo sed -i '' 's/ruleBasedOptimizer=NotFilterRemoveRule=on,FragmentPruningByFilterRule=on/ruleBasedOptimizer=NotFilterRemoveRule=on/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
               else
                   echo "$RUNNER_OS is not supported"
                   exit 1
