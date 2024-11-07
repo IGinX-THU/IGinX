@@ -103,7 +103,7 @@ runs:
                 echo "$RUNNER_OS is not supported"
                 exit 1
               fi
-        - if: inputs.Close-Optimizer=='true
+        - if: inputs.Close-Optimizer=='true'
           name: Close-All-Optimizer
           shell: bash
           run: |
