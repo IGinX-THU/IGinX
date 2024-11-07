@@ -25,6 +25,8 @@ import java.util.Properties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static cn.edu.tsinghua.iginx.conf.Constants.IGINX_HOME_PATH;
+
 public class ConfigDescriptor {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ConfigDescriptor.class);
@@ -59,11 +61,10 @@ public class ConfigDescriptor {
 
       // runs/debugged in IDE: IGINX_HOME not set, use user.dir as root
       // runs by script: IGINX_HOME should always have been set
-      String iginxHomePath = EnvUtils.loadEnv(Constants.IGINX_HOME, System.getProperty("user.dir"));
       String udfPath = properties.getProperty("defaultUDFDir", "udf_funcs");
       if (!FileUtils.isAbsolutePath(udfPath)) {
         // if relative, build absolute path
-        udfPath = String.join(File.separator, iginxHomePath, udfPath);
+        udfPath = String.join(File.separator, IGINX_HOME_PATH, udfPath);
       }
       config.setDefaultUDFDir(udfPath);
       config.setIp(properties.getProperty("ip", "0.0.0.0"));

@@ -72,12 +72,14 @@ jobs:
       - name: Start IGinX
         uses: ./.github/actions/iginxRunner
 
+      # exporting IGINX_HOME makes ut tests aware of the location of config file, thus able to get right pythonCMD
       - name: TestController IT
         if: always()
         shell: bash
         env:
           METADATA_STORAGE: ${{ matrix.metadata }}
         run: |
+          export IGINX_HOME=$PWD
           chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/test_union.sh"
           mvn test -q -Dtest=Controller -DfailIfNoTests=false -P-format
 

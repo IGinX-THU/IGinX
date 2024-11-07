@@ -1,0 +1,69 @@
+name: "build-pemja-wheels"
+description: "build pemja wheels"
+inputs:
+  pemja-version:
+    description: "version of pemja"
+    required: false
+    default: "0.1.0"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set Python variables
+      shell: bash
+      run: |
+        echo "PEMJAX_HOME=pemjax-${{ inputs.pemja-version }}-${{ runner.os}}" >> $GITHUB_ENV
+
+    - name: Cache Python installer
+      id: cache-python
+      uses: actions/cache@v3
+      with:
+        path: |
+          PEMJAX_HOME/dist
+        key: ${{ runner.os }}-pemjax-${{ inputs.pemja-version }}
+
+    - name: Build wheel
+      if: steps.cache-python.outputs.cache-hit!='true' && runner.os!='Windows'
+      shell: bash
+      run: |
+        curl -O https://bootstrap.pypa.io/get-pip.py
+        sudo python3.13t get-pip.py
+        sudo python3.13t -m pip install setuptools wheel find-libpython build pandas==2.2.3 numpy
+        python3.13t -m pip freeze list
+
+        mkdir -r $PEMJAX_HOME
+        tar -xzf dependency/src/main/resources/python/pemjax-0.1.0.tar.gz -C $PEMJAX_HOME
+        ls
+        cd $PEMJAX_HOME
+
+        python3.13t setup.py bdist_wheel
+
+    - name: Build wheel
+      if: steps.cache-python.outputs.cache-hit!='true' && runner.os=='Windows'
+      shell: bash
+      run: |
+        curl -O https://bootstrap.pypa.io/get-pip.py
+        python3.13t get-pip.py
+        python3.13t -m pip install setuptools wheel find-libpython build pandas==2.2.3 numpy
+        python3.13t -m pip freeze list
+        
+        tar -xzf dependency/src/main/resources/python/pemjax-0.1.0.tar.gz -C $PEMJAX_HOME
+        ls
+        cd $PEMJAX_HOME
+        
+        python3.13t setup.py bdist_wheel
+
+    - name: Install pemjax wheel
+      if: runner.os!='Windows'
+      shell: bash
+      run: |
+        sudo python3.13t -m pip install $PEMJAX_HOME/dist/*.whl --no-clean
+        python3.13t -m pip freeze list
+
+    - name: Install pemjax wheel
+      if: runner.os=='Windows'
+      shell: bash
+      run: |
+        python3.13t -m pip install $PEMJAX_HOME/dist/*.whl --no-clean
+        python3.13t -m pip freeze list
+

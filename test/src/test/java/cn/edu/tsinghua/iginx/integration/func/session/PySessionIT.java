@@ -50,7 +50,7 @@ public class PySessionIT {
   protected static MultiConnection session;
   private static final String PATH =
       Paths.get(
-              EnvUtils.loadEnv(Constants.IGINX_HOME, System.getProperty("user.dir")),
+              System.getProperty("user.dir"),
               "src",
               "test",
               "resources",
