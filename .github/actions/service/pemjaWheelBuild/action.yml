@@ -31,7 +31,7 @@ runs:
         sudo python3.13t -m pip install setuptools wheel find-libpython build pandas==2.2.3 numpy
         python3.13t -m pip freeze list
 
-        mkdir -r $PEMJAX_HOME
+        mkdir -p $PEMJAX_HOME
         tar -xzf dependency/src/main/resources/python/pemjax-0.1.0.tar.gz -C $PEMJAX_HOME
         ls
         cd $PEMJAX_HOME
@@ -47,6 +47,7 @@ runs:
         python3.13t -m pip install setuptools wheel find-libpython build pandas==2.2.3 numpy
         python3.13t -m pip freeze list
         
+        mkdir -p $PEMJAX_HOME
         tar -xzf dependency/src/main/resources/python/pemjax-0.1.0.tar.gz -C $PEMJAX_HOME
         ls
         cd $PEMJAX_HOME

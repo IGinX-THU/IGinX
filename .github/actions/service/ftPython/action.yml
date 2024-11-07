@@ -21,8 +21,7 @@ runs:
       id: cache-python
       uses: actions/cache@v3
       with:
-        path: |
-          ${{ env.PYTHON_INSTALLER_PATH }}
+        path: ${{ env.PYTHON_INSTALLER_PATH }}
         key: ${{ env.CACHE_KEY }}
 
     - name: Download Python installer
@@ -36,9 +35,9 @@ runs:
       name: Setup Python3.13 on Windows
       shell: powershell
       run: |
-        .\$env:PYTHON_INSTALLER_PATH /quiet Include_freethreaded=1
-        Start-Sleep -Seconds 20
+        Start-Process -FilePath "$(Join-Path -Path $PWD -ChildPath $env:PYTHON_INSTALLER_PATH)" -ArgumentList "/quiet","Include_freethreaded=1" -Wait
         $pythonPath = "$env:LocalAppData\Programs\Python\Python313"
+        Get-ChildItem $pythonPath
         $env:Path += ";$pythonPath"
         echo "$pythonPath" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
         echo "FT_PYTHON_PATH=$pythonPath" | Out-File -FilePath $env:GITHUB_ENV -Append
