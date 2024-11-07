@@ -34,7 +34,7 @@ runs:
         mkdir -p $PEMJAX_HOME
         tar -xzf dependency/src/main/resources/python/pemjax-0.1.0.tar.gz -C $PEMJAX_HOME
         ls
-        cd $PEMJAX_HOME
+        cd $PEMJAX_HOME/pemjax-0.1.0
 
         python3.13t setup.py bdist_wheel
 
@@ -50,7 +50,7 @@ runs:
         mkdir -p $PEMJAX_HOME
         tar -xzf dependency/src/main/resources/python/pemjax-0.1.0.tar.gz -C $PEMJAX_HOME
         ls
-        cd $PEMJAX_HOME
+        cd $PEMJAX_HOME/pemjax-0.1.0
         
         python3.13t setup.py bdist_wheel
 
