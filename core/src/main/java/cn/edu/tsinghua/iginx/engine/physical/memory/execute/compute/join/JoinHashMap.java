@@ -25,20 +25,18 @@ import cn.edu.tsinghua.iginx.engine.shared.data.arrow.VectorSchemaRoots;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Multimaps;
-import io.netty.util.collection.IntObjectHashMap;
+import com.google.common.collect.MultimapBuilder;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.util.Preconditions;
 import org.apache.arrow.vector.BitVector;
 import org.apache.arrow.vector.IntVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.types.pojo.Schema;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class JoinHashMap implements AutoCloseable {
 
@@ -115,9 +113,9 @@ public class JoinHashMap implements AutoCloseable {
         "Batch schema does not match probe side schema");
 
     try (VectorSchemaRoot onFields =
-             ScalarExpressions.evaluateSafe(allocator, probeSideOnFieldExpressions, batch);
-         VectorSchemaRoot outputFields =
-             ScalarExpressions.evaluateSafe(allocator, probeSideOutputFieldExpressions, batch)) {
+            ScalarExpressions.evaluateSafe(allocator, probeSideOnFieldExpressions, batch);
+        VectorSchemaRoot outputFields =
+            ScalarExpressions.evaluateSafe(allocator, probeSideOutputFieldExpressions, batch)) {
       List<JoinCursor> buildSideCandidates = new ArrayList<>();
       List<JoinCursor> probeSideCandidates = new ArrayList<>();
       List<JoinCursor> probeSideCursors = new ArrayList<>();
@@ -178,8 +176,8 @@ public class JoinHashMap implements AutoCloseable {
     List<JoinCursor> probeSideMatched = new ArrayList<>();
 
     try (VectorSchemaRoot onFieldsPair =
-             buildOnFieldsPair(buildSideCandidates, probeSideCandidates);
-         BitVector mask = tester.invoke(allocator, onFieldsPair)) {
+            buildOnFieldsPair(buildSideCandidates, probeSideCandidates);
+        BitVector mask = tester.invoke(allocator, onFieldsPair)) {
       for (int i = 0; i < buildSideCandidates.size(); i++) {
         if (mask.isNull(i) || mask.get(i) == 0) {
           continue;
@@ -208,9 +206,9 @@ public class JoinHashMap implements AutoCloseable {
       List<JoinCursor> buildSideCandidates, List<JoinCursor> probeSideCandidates) {
     assert buildSideCandidates.size() == probeSideCandidates.size();
     try (VectorSchemaRoot probeSideOnFields =
-             buildOnFields(probeSideOnFieldsSchema, probeSideCandidates);
-         VectorSchemaRoot buildSideOnFields =
-             buildOnFields(buildSideOnFieldsSchema, buildSideCandidates)) {
+            buildOnFields(probeSideOnFieldsSchema, probeSideCandidates);
+        VectorSchemaRoot buildSideOnFields =
+            buildOnFields(buildSideOnFieldsSchema, buildSideCandidates)) {
       return VectorSchemaRoots.join(allocator, buildSideOnFields, probeSideOnFields);
     }
   }
@@ -251,7 +249,7 @@ public class JoinHashMap implements AutoCloseable {
 
       this.allocator = Objects.requireNonNull(allocator);
       this.joinOption = Objects.requireNonNull(joinOption);
-      this.map = Multimaps.newListMultimap(new IntObjectHashMap<>(), ArrayList::new);
+      this.map = MultimapBuilder.hashKeys().arrayListValues().build();
       this.buildSideSchema = Objects.requireNonNull(buildSideSchema);
       this.hasher = Objects.requireNonNull(hasher);
       this.buildSideOnFieldExpressions = new ArrayList<>(buildSideOnFieldExpressions);
