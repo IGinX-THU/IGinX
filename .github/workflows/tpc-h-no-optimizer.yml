@@ -118,8 +118,7 @@ jobs:
               uses: ./.github/actions/confWriter
               with:
                   DB-name: ${{ matrix.DB-name }}
-                  Push-Down: "true"
-                  Set-Filter-Fragment-OFF: "true"
+                  Close-Optimizer: "true"
                   Metadata: ${{ matrix.metadata }}
                   Root-Dir-Path: "IGinX"
 
@@ -131,8 +130,7 @@ jobs:
               uses: ./.github/actions/confWriter
               with:
                   DB-name: ${{ matrix.DB-name }}
-                  Push-Down: "true"
-                  Set-Filter-Fragment-OFF: "true"
+                  Close-Optimizer: "true"
                   Metadata: ${{ matrix.metadata }}
 
             - name: Insert Data into DB

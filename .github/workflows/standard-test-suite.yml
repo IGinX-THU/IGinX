@@ -43,7 +43,7 @@ jobs:
             os-matrix: '["ubuntu-latest"]'
             metadata-matrix: '["zookeeper"]'
     tpc-h-regression-test-pushdown:
-        uses: ./.github/workflows/tpc-h-pushdown.yml
+        uses: ./.github/workflows/tpc-h-no-optimizer.yml
         with:
             os-matrix: '["ubuntu-latest"]'
             metadata-matrix: '["zookeeper"]'
