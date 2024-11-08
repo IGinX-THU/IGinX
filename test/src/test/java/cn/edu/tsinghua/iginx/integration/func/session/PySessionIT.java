@@ -75,7 +75,7 @@ public class PySessionIT {
     isAbleToDelete = dbConf.getEnumValue(DBConf.DBConfType.isAbleToDelete);
     PythonInterpreterConfig config =
         PythonInterpreterConfig.newBuilder().setPythonExec(pythonCMD).addPythonPaths(PATH).build();
-    LOGGER.info("using pythonCMD: {}", pythonCMD);
+    LOGGER.debug("using pythonCMD: {}", pythonCMD);
     interpreter = new PythonInterpreter(config);
     interpreter.exec("import tests");
     interpreter.exec("t = tests.Tests()");

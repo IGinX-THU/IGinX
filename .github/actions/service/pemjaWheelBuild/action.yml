@@ -37,13 +37,15 @@ runs:
 
         python3.13t setup.py bdist_wheel
 
+    # pandas 2.2.3 cannot be directly installed on windows yet. use dev wheel file
     - name: Build wheel
       if: steps.restore-wheel.outputs.cache-hit!='true' && runner.os=='Windows'
       shell: bash
       run: |
         curl -O https://bootstrap.pypa.io/get-pip.py
         python3.13t get-pip.py
-        python3.13t -m pip install setuptools wheel find-libpython build pandas==2.2.3 numpy
+        python3.13t -m pip install setuptools wheel find-libpython build numpy
+        python3.13t -m pip install dependency/src/main/resources/python/pandas*.whl
         python3.13t -m pip freeze list
         
         mkdir -p $PEMJAX_HOME

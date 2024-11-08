@@ -79,7 +79,6 @@ jobs:
         env:
           METADATA_STORAGE: ${{ matrix.metadata }}
         run: |
-          export IGINX_HOME=$PWD
           chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/test_union.sh"
           mvn test -q -Dtest=Controller -DfailIfNoTests=false -P-format
 

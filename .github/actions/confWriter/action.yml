@@ -86,12 +86,13 @@ runs:
               elif [[ "${{ inputs.use-free-thread-python }}" == "true" && "$RUNNER_OS" == "Windows" ]]; then
                 pythonPath=$(echo "$FT_PYTHON_PATH" | sed 's/\\/\//g')
                 pythonCMD="${pythonPath}/python3.13t.exe"
-                echo "Final pythonCMD: $pythonCMD"
               elif [ "$RUNNER_OS" == "Windows" ]; then
                 pythonCMD='python'
               else
                 pythonCMD='python3'
               fi
+              # have to set env to make it work in ut tests
+              echo "pythonCMD=${pythonCMD}" >> $GITHUB_ENV
               if [ "$RUNNER_OS" == "Linux" ]; then
                 sudo sed -i "s/needInitBasicUDFFunctions=false/needInitBasicUDFFunctions=true/g" ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
                 sudo sed -i "s/pythonCMD=python3/pythonCMD=${pythonCMD}/g" ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
