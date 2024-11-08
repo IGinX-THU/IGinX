@@ -18,7 +18,7 @@ runs:
       id: restore-wheel
       uses: actions/cache/restore@v3
       with:
-        path: $PEMJAX_HOME/pemjax-${{ inputs.pemja-version }}/dist
+        path: ${{ env.PEMJAX_HOME }}/pemjax-${{ inputs.pemja-version }}/dist
         key: ${{ runner.os }}-pemjax-${{ inputs.pemja-version }}
 
     - name: Build wheel
@@ -27,7 +27,7 @@ runs:
       run: |
         curl -O https://bootstrap.pypa.io/get-pip.py
         sudo python3.13t get-pip.py
-        sudo python3.13t -m pip install setuptools wheel find-libpython build pandas==2.2.3 numpy
+        sudo python3.13t -m pip install setuptools wheel find-libpython build pandas==2.2.3 numpy thrift
         python3.13t -m pip freeze list
 
         mkdir -p $PEMJAX_HOME
@@ -44,7 +44,7 @@ runs:
       run: |
         curl -O https://bootstrap.pypa.io/get-pip.py
         python3.13t get-pip.py
-        python3.13t -m pip install setuptools wheel find-libpython build numpy
+        python3.13t -m pip install setuptools wheel find-libpython build numpy thrift
         python3.13t -m pip install dependency/src/main/resources/python/pandas*.whl
         python3.13t -m pip freeze list
         
@@ -72,11 +72,11 @@ runs:
     - uses: actions/upload-artifact@v3
       with:
         name: ${{ runner.os }}-pemjax-wheel
-        path: $PEMJAX_HOME/pemjax-${{ inputs.pemja-version }}/dist/*.whl
+        path: ${{ env.PEMJAX_HOME }}/pemjax-${{ inputs.pemja-version }}/dist/*.whl
 
     - name: Cache wheel
       id: cache-wheel
       uses: actions/cache/save@v3
       with:
-        path: $PEMJAX_HOME/pemjax-${{ inputs.pemja-version }}/dist
+        path: ${{ env.PEMJAX_HOME }}/pemjax-${{ inputs.pemja-version }}/dist
         key: ${{ runner.os }}-pemjax-${{ inputs.pemja-version }}
