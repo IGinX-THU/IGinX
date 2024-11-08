@@ -1,4 +1,4 @@
-name: "TPC-H Regression Test With Push Down"
+name: "TPC-H Regression Test With No Optimizer"
 
 on:
     workflow_call:

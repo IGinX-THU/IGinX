@@ -107,13 +107,13 @@ runs:
           name: Close-All-Optimizer
           shell: bash
           run: |
-              if ["$RUNNER_OS" == "Linux" ]; then
+              if [ "$RUNNER_OS" == "Linux" ]; then
                 sudo sed -i 's/Rule=on/Rule=off/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
                 sudo sed -i 's/enablePushDown=true/enablePushDown=false/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-              elif ["$RUNNER_OS" == "Windows" ]; then
+              elif [ "$RUNNER_OS" == "Windows" ]; then
                 sed -i 's/Rule=on/Rule=off/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
                 sed -i 's/enablePushDown=true/enablePushDown=false/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-              elif ["$RUNNER_OS" == "macOS" ]; then
+              elif [ "$RUNNER_OS" == "macOS" ]; then
                 sudo sed -i '' 's/Rule=on/Rule=off/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
                 sudo sed -i '' 's/enablePushDown=true/enablePushDown=false/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
               else
