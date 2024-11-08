@@ -7071,7 +7071,7 @@ public class SQLSessionIT {
             + "Total line number = 3\n";
     executor.executeAndCompare(query, expect);
 
-    if (!isScaling) {
+    if (!isScaling && isOptimizerOpen) {
       query = "explain SELECT first(s1), last(s2), first(s3), last(s4) from us.d1;";
       expect =
           "ResultSets:\n"
