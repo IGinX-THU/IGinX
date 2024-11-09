@@ -108,7 +108,7 @@ public final class Header {
       List<Integer> indexList = new ArrayList<>();
       fields.forEach(
           field -> {
-            if (Pattern.matches(StringUtils.reformatPath(pattern), field.getFullName())) {
+            if (Pattern.matches(StringUtils.reformatPath(pattern), field.getName())) {
               indexList.add(indexOf(field.getFullName()));
             }
           });
@@ -119,7 +119,7 @@ public final class Header {
 
   @Override
   public String toString() {
-    return "Header{" + "time=" + key + ", fields=" + fields + '}';
+    return "Header{" + "key=" + key + ", fields=" + fields + '}';
   }
 
   @Override

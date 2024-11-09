@@ -66,6 +66,7 @@ public enum OperatorType {
   GroupBy,
   Distinct,
   AddSequence,
+  RemoveNullColumn,
   ProjectWaitingForPath,
   ValueToSelectedPath;
 
