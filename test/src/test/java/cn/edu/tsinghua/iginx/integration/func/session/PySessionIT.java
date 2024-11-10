@@ -448,19 +448,19 @@ public class PySessionIT {
     }
     // 检查Python脚本的输出是否符合预期
     String expected =
-        "   key test.a.a test.a.b test.b.b test.c.c\n"
-            + "0    0     b'a'     b'b'     None     None\n"
-            + "1    2     None     None     None     b'c'\n"
-            + "2    3     b'Q'     b'W'     None     b'R'\n"
-            + "3    5     None     None     None     b'b'\n"
-            + "4    6     b'b'     None     None     None\n"
-            + "5    7     b'R'     b'E'     None     b'Q'\n"
-            + "   key test.a.a test.a.b test.b.b test.c.c\n"
-            + "0    0     b'a'     b'b'     None     None\n"
-            + "1    2     None     None     None     b'c'\n"
-            + "2    3     b'Q'     b'W'     None     b'R'\n"
-            + "3    5     None     None     None     b'b'\n"
-            + "4    7     b'R'     b'E'     None     b'Q'\n";
+        "   key test.a.a test.a.b test.c.c\n"
+            + "0    0     b'a'     b'b'     None\n"
+            + "1    2     None     None     b'c'\n"
+            + "2    3     b'Q'     b'W'     b'R'\n"
+            + "3    5     None     None     b'b'\n"
+            + "4    6     b'b'     None     None\n"
+            + "5    7     b'R'     b'E'     b'Q'\n"
+            + "   key test.a.a test.a.b test.c.c\n"
+            + "0    0     b'a'     b'b'     None\n"
+            + "1    2     None     None     b'c'\n"
+            + "2    3     b'Q'     b'W'     b'R'\n"
+            + "3    5     None     None     b'b'\n"
+            + "4    7     b'R'     b'E'     b'Q'\n";
     assertEquals(expected, result);
   }
 
