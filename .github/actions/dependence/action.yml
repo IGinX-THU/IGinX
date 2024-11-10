@@ -40,7 +40,7 @@ runs:
           shell: bash
           run: |
               brew update
-              brew install docker@27.3.1
+              brew install docker
               brew install colima@0.7.6
               LIMACTL_PATH=$(brew --prefix)/bin/limactl
               sudo curl -L -o $LIMACTL_PATH https://github.com/mikekazakov/lima-nohvf/raw/master/limactl && sudo chmod +x $LIMACTL_PATH
