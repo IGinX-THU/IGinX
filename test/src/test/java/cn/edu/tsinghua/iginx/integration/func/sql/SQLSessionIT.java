@@ -2732,15 +2732,16 @@ public class SQLSessionIT {
     query = "explain select avg(a), sum(b), c, b, d from test group by c, b, d order by c, b, d;";
     expected =
         "ResultSets:\n"
-            + "+----------------+-------------+-----------------------------------------------------------------------------------------------------------------------------------+\n"
-            + "|    Logical Tree|Operator Type|                                                                                                                      Operator Info|\n"
-            + "+----------------+-------------+-----------------------------------------------------------------------------------------------------------------------------------+\n"
-            + "|Reorder         |      Reorder|                                                                                Order: avg(test.a),sum(test.b),test.c,test.b,test.d|\n"
-            + "|  +--Sort       |         Sort|                                                                                SortBy: test.c,test.b,test.d, SortType: ASC,ASC,ASC|\n"
-            + "|    +--GroupBy  |      GroupBy|GroupByCols: test.c,test.b,test.d, FuncList(Name, FuncType): (avg, System),(sum, System), MappingType: SetMapping isDistinct: false|\n"
-            + "|      +--Project|      Project|                                                                   Patterns: test.a,test.b,test.c,test.d, Target DU: unit0000000002|\n"
-            + "+----------------+-------------+-----------------------------------------------------------------------------------------------------------------------------------+\n"
-            + "Total line number = 4\n";
+            + "+------------------+----------------+-----------------------------------------------------------------------------------------------------------------------------------+\n"
+            + "|      Logical Tree|   Operator Type|                                                                                                                      Operator Info|\n"
+            + "+------------------+----------------+-----------------------------------------------------------------------------------------------------------------------------------+\n"
+            + "|RemoveNullColumn  |RemoveNullColumn|                                                                                                                   RemoveNullColumn|\n"
+            + "|  +--Reorder      |         Reorder|                                                                                Order: avg(test.a),sum(test.b),test.c,test.b,test.d|\n"
+            + "|    +--Sort       |            Sort|                                                                                SortBy: test.c,test.b,test.d, SortType: ASC,ASC,ASC|\n"
+            + "|      +--GroupBy  |         GroupBy|GroupByCols: test.c,test.b,test.d, FuncList(Name, FuncType): (avg, System),(sum, System), MappingType: SetMapping isDistinct: false|\n"
+            + "|        +--Project|         Project|                                                                   Patterns: test.a,test.b,test.c,test.d, Target DU: unit0000000002|\n"
+            + "+------------------+----------------+-----------------------------------------------------------------------------------------------------------------------------------+\n"
+            + "Total line number = 5\n";
     executor.executeAndCompare(query, expected);
   }
 
@@ -6456,28 +6457,30 @@ public class SQLSessionIT {
     String explain = "explain select max(s2), min(s1) from us.d1;";
     String expected =
         "ResultSets:\n"
-            + "+-----------------+-------------+--------------------------------------------------------------------------------------------------+\n"
-            + "|     Logical Tree|Operator Type|                                                                                     Operator Info|\n"
-            + "+-----------------+-------------+--------------------------------------------------------------------------------------------------+\n"
-            + "|Reorder          |      Reorder|                                                                Order: max(us.d1.s2),min(us.d1.s1)|\n"
-            + "|  +--SetTransform| SetTransform|FuncList(Name, FuncType): (max, System), (min, System), MappingType: SetMapping, isDistinct: false|\n"
-            + "|    +--Project   |      Project|                                            Patterns: us.d1.s1,us.d1.s2, Target DU: unit0000000000|\n"
-            + "+-----------------+-------------+--------------------------------------------------------------------------------------------------+\n"
-            + "Total line number = 3\n";
+            + "+-------------------+----------------+--------------------------------------------------------------------------------------------------+\n"
+            + "|       Logical Tree|   Operator Type|                                                                                     Operator Info|\n"
+            + "+-------------------+----------------+--------------------------------------------------------------------------------------------------+\n"
+            + "|RemoveNullColumn   |RemoveNullColumn|                                                                                  RemoveNullColumn|\n"
+            + "|  +--Reorder       |         Reorder|                                                                Order: max(us.d1.s2),min(us.d1.s1)|\n"
+            + "|    +--SetTransform|    SetTransform|FuncList(Name, FuncType): (max, System), (min, System), MappingType: SetMapping, isDistinct: false|\n"
+            + "|      +--Project   |         Project|                                            Patterns: us.d1.s1,us.d1.s2, Target DU: unit0000000000|\n"
+            + "+-------------------+----------------+--------------------------------------------------------------------------------------------------+\n"
+            + "Total line number = 4\n";
     executor.executeAndCompare(explain, expected);
 
     explain = "explain select s1 from us.d1 where s1 > 10 and s1 < 100;";
     expected =
         "ResultSets:\n"
-            + "+----------------+-------------+---------------------------------------------+\n"
-            + "|    Logical Tree|Operator Type|                                Operator Info|\n"
-            + "+----------------+-------------+---------------------------------------------+\n"
-            + "|Reorder         |      Reorder|                              Order: us.d1.s1|\n"
-            + "|  +--Project    |      Project|                           Patterns: us.d1.s1|\n"
-            + "|    +--Select   |       Select|    Filter: (us.d1.s1 > 10 && us.d1.s1 < 100)|\n"
-            + "|      +--Project|      Project|Patterns: us.d1.s1, Target DU: unit0000000000|\n"
-            + "+----------------+-------------+---------------------------------------------+\n"
-            + "Total line number = 4\n";
+            + "+------------------+----------------+---------------------------------------------+\n"
+            + "|      Logical Tree|   Operator Type|                                Operator Info|\n"
+            + "+------------------+----------------+---------------------------------------------+\n"
+            + "|RemoveNullColumn  |RemoveNullColumn|                             RemoveNullColumn|\n"
+            + "|  +--Reorder      |         Reorder|                              Order: us.d1.s1|\n"
+            + "|    +--Project    |         Project|                           Patterns: us.d1.s1|\n"
+            + "|      +--Select   |          Select|    Filter: (us.d1.s1 > 10 && us.d1.s1 < 100)|\n"
+            + "|        +--Project|         Project|Patterns: us.d1.s1, Target DU: unit0000000000|\n"
+            + "+------------------+----------------+---------------------------------------------+\n"
+            + "Total line number = 5\n";
     executor.executeAndCompare(explain, expected);
 
     explain = "explain physical select max(s2), min(s1) from us.d1;";
@@ -7032,14 +7035,15 @@ public class SQLSessionIT {
       query = "explain SELECT count(s1), avg(s2) from us.d1;";
       expect =
           "ResultSets:\n"
-              + "+-----------------+-------------+----------------------------------------------------------------------------------------------------+\n"
-              + "|     Logical Tree|Operator Type|                                                                                       Operator Info|\n"
-              + "+-----------------+-------------+----------------------------------------------------------------------------------------------------+\n"
-              + "|Reorder          |      Reorder|                                                                Order: count(us.d1.s1),avg(us.d1.s2)|\n"
-              + "|  +--SetTransform| SetTransform|FuncList(Name, FuncType): (count, System), (avg, System), MappingType: SetMapping, isDistinct: false|\n"
-              + "|    +--Project   |      Project|                                              Patterns: us.d1.s1,us.d1.s2, Target DU: unit0000000000|\n"
-              + "+-----------------+-------------+----------------------------------------------------------------------------------------------------+\n"
-              + "Total line number = 3\n";
+              + "+-------------------+----------------+----------------------------------------------------------------------------------------------------+\n"
+              + "|       Logical Tree|   Operator Type|                                                                                       Operator Info|\n"
+              + "+-------------------+----------------+----------------------------------------------------------------------------------------------------+\n"
+              + "|RemoveNullColumn   |RemoveNullColumn|                                                                                    RemoveNullColumn|\n"
+              + "|  +--Reorder       |         Reorder|                                                                Order: count(us.d1.s1),avg(us.d1.s2)|\n"
+              + "|    +--SetTransform|    SetTransform|FuncList(Name, FuncType): (count, System), (avg, System), MappingType: SetMapping, isDistinct: false|\n"
+              + "|      +--Project   |         Project|                                              Patterns: us.d1.s1,us.d1.s2, Target DU: unit0000000000|\n"
+              + "+-------------------+----------------+----------------------------------------------------------------------------------------------------+\n"
+              + "Total line number = 4\n";
       executor.executeAndCompare(query, expect);
     }
   }
@@ -7075,16 +7079,17 @@ public class SQLSessionIT {
       query = "explain SELECT first(s1), last(s2), first(s3), last(s4) from us.d1;";
       expect =
           "ResultSets:\n"
-              + "+---------------------+----------------+----------------------------------------------------------------------------------------------------------------+\n"
-              + "|         Logical Tree|   Operator Type|                                                                                                   Operator Info|\n"
-              + "+---------------------+----------------+----------------------------------------------------------------------------------------------------------------+\n"
-              + "|Reorder              |         Reorder|                                                                                               Order: path,value|\n"
-              + "|  +--MappingTransform|MappingTransform|FuncList(Name, FuncType): (first, System), (last, System), (first, System), (last, System), MappingType: Mapping|\n"
-              + "|    +--Join          |            Join|                                                                                                     JoinBy: key|\n"
-              + "|      +--Project     |         Project|                                                 Patterns: us.d1.s1,us.d1.s2,us.d1.s3, Target DU: unit0000000000|\n"
-              + "|      +--Project     |         Project|                                                                   Patterns: us.d1.s4, Target DU: unit0000000001|\n"
-              + "+---------------------+----------------+----------------------------------------------------------------------------------------------------------------+\n"
-              + "Total line number = 5\n";
+              + "+-----------------------+----------------+----------------------------------------------------------------------------------------------------------------+\n"
+              + "|           Logical Tree|   Operator Type|                                                                                                   Operator Info|\n"
+              + "+-----------------------+----------------+----------------------------------------------------------------------------------------------------------------+\n"
+              + "|RemoveNullColumn       |RemoveNullColumn|                                                                                                RemoveNullColumn|\n"
+              + "|  +--Reorder           |         Reorder|                                                                                               Order: path,value|\n"
+              + "|    +--MappingTransform|MappingTransform|FuncList(Name, FuncType): (first, System), (last, System), (first, System), (last, System), MappingType: Mapping|\n"
+              + "|      +--Join          |            Join|                                                                                                     JoinBy: key|\n"
+              + "|        +--Project     |         Project|                                                 Patterns: us.d1.s1,us.d1.s2,us.d1.s3, Target DU: unit0000000000|\n"
+              + "|        +--Project     |         Project|                                                                   Patterns: us.d1.s4, Target DU: unit0000000001|\n"
+              + "+-----------------------+----------------+----------------------------------------------------------------------------------------------------------------+\n"
+              + "Total line number = 6\n";
       executor.executeAndCompare(query, expect);
     }
   }
