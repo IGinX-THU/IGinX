@@ -41,30 +41,6 @@ jobs:
                 metadata: ${{ fromJSON(inputs.metadata-matrix) }}
                 DB-name: ${{ fromJSON(inputs.db-matrix) }}
         runs-on: ${{ matrix.os }}
-        services:
-          zookeeper1:
-            image: zookeeper:3.7
-            ports:
-              - 2181:2181
-            env:
-              ZOO_STANDALONE_ENABLED: 'true'  # 启用独立模式
-            options: >-
-              --health-cmd "echo ruok | nc localhost 2181"
-              --health-interval 10s
-              --health-timeout 5s
-              --health-retries 5
-
-          zookeeper2:
-            image: zookeeper:3.7
-            ports:
-              - 2182:2181
-            env:
-              ZOO_STANDALONE_ENABLED: 'true'  # 启用独立模式
-            options: >-
-              --health-cmd "echo ruok | nc localhost 2181"
-              --health-interval 10s
-              --health-timeout 5s
-              --health-retries 5
         steps:
             - uses: actions/checkout@v4
             - name: Environment dependence
@@ -107,8 +83,13 @@ jobs:
                   7za x tpc.7z
                   ls tpc
 
-            - name: Run ZooKeeper
+            - name: Run ZooKeeper1
               uses: ./.github/actions/zookeeperRunner
+
+            - name: Run ZooKeeper2
+              uses: ./.github/actions/zookeeperRunner
+              with:
+                  port: 2182
 
             - name: Run DB
               uses: ./.github/actions/dbRunner

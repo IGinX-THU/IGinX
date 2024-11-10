@@ -13,12 +13,18 @@ inputs:
         description: "to rerun the zookeeper"
         required: false
         default: "false"
+    port:
+      description: "zk port"
+      required: false
+      default: "2181"
 runs:
     using: "composite" # Mandatory parameter
     steps:
         - if: inputs.if-stop=='false' && inputs.if-rerun=='false'
           name: First Run ZooKeeper | Setup
           uses: ./.github/actions/setup/zookeeper
+          with:
+              port: ${{ inputs.port }}
 
         - if: inputs.if-stop=='false' && inputs.if-rerun=='false'
           name: First Run ZooKeeper
@@ -27,6 +33,7 @@ runs:
               stop: false
               clean: false
               start: true
+              port: ${{ inputs.port }}
 
         - if: inputs.if-rerun=='true'
           name: ReRun ZooKeeper
@@ -35,6 +42,7 @@ runs:
               stop: false
               clean: false
               start: true
+              port: ${{ inputs.port }}
 
         - if: inputs.if-stop=='true'
           name: Stop ZooKeeper
@@ -43,3 +51,4 @@ runs:
               stop: true
               clean: true
               start: false
+              port: ${{ inputs.port }}
