@@ -313,6 +313,12 @@ public class PySessionIT {
   @Test
   public void testAddStorageEngine() {
     String output = "";
+    interpreter.exec("import sys; tooNew = sys.version_info >= (3, 13);");
+    if ((boolean) interpreter.get("tooNew")) {
+      // if python >=3.13, fastparquet is not supported.
+      LOGGER.info("Test ignored: python >= 3.13, fastparquet is not supported.");
+      return;
+    }
     try {
       LOGGER.info("add storage engine");
       output = runPythonScript("addStorageEngine");
