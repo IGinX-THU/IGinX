@@ -14,12 +14,13 @@ runs:
           run: |
               echo "PEMJAX_HOME=pemjax-${{ inputs.pemja-version }}-${{ runner.os}}" >> $GITHUB_ENV
 
+        # when file changes, cache changes
         - name: Restore wheel
           id: restore-wheel
           uses: actions/cache/restore@v3
           with:
               path: ${{ env.PEMJAX_HOME }}/pemjax-${{ inputs.pemja-version }}/dist
-              key: ${{ runner.os }}-pemjax-${{ inputs.pemja-version }}
+              key: ${{ runner.os }}-pemjax-${{ inputs.pemja-version }}-${{ hashFiles(format('dependency/src/main/resources/python/pemjax-{0}.tar.gz', inputs.pemja-version)) }}
 
         # only needed in Linux
         - name: Install pip

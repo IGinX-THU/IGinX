@@ -71,7 +71,7 @@ runs:
 
         - if: inputs.free-thread-python-required=='true'
           name: Install pemjax in free-threading python
-          uses: ./.github/actions/service/pemjaWheelBuild
+          uses: ./.github/actions/service/pemjaxInstall
 
         - name: Set up JDK ${{ inputs.java }}
           uses: actions/setup-java@v4
