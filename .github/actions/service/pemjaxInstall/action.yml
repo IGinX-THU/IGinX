@@ -76,4 +76,4 @@ runs:
           uses: actions/cache/save@v3
           with:
               path: ${{ env.PEMJAX_HOME }}/pemjax-${{ inputs.pemja-version }}/dist
-              key: ${{ runner.os }}-pemjax-${{ inputs.pemja-version }}
+              key: ${{ runner.os }}-pemjax-${{ inputs.pemja-version }}-${{ hashFiles(format('dependency/src/main/resources/python/pemjax-{0}.tar.gz', inputs.pemja-version)) }}
