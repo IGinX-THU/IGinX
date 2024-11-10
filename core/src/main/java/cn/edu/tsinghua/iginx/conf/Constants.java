@@ -19,10 +19,6 @@
  */
 package cn.edu.tsinghua.iginx.conf;
 
-import cn.edu.tsinghua.iginx.utils.EnvUtils;
-
-import java.io.File;
-
 public class Constants {
 
   public static final int MAX_REDIRECT_TIME = 5;
@@ -35,11 +31,7 @@ public class Constants {
 
   public static final String UDF_LIST = "IGINX_UDF_LIST";
 
-  public static final String IGINX_HOME_PATH = EnvUtils.loadEnv(Constants.IGINX_HOME, System.getProperty("user.dir"));
-
-  public static final String CONFIG_FILE_RELATIVE = "conf/config.properties";
-
-  public static final String CONFIG_FILE = EnvUtils.loadEnv(Constants.CONF, String.join(File.separator, IGINX_HOME_PATH, CONFIG_FILE_RELATIVE));
+  public static final String CONFIG_FILE = "conf/config.properties";
 
   public static final String UDF_LIST_FILE = "udf_list";
 

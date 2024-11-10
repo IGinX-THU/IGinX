@@ -32,7 +32,7 @@ inputs:
     use-free-thread-python:
         description: "use python3.13 free-threading mode"
         required: false
-        default: 'false'
+        default: "false"
 
 runs:
     using: "composite" # Mandatory parameter
@@ -106,7 +106,6 @@ runs:
                 echo "$RUNNER_OS is not supported"
                 exit 1
               fi
-              cat ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
 
         - if: inputs.Read-Only=='true'
           name: Change is_read_only

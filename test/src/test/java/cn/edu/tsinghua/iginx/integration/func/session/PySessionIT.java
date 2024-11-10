@@ -24,6 +24,7 @@ import static org.junit.Assert.*;
 
 import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
+import cn.edu.tsinghua.iginx.conf.Constants;
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
@@ -32,7 +33,7 @@ import cn.edu.tsinghua.iginx.integration.tool.MultiConnection;
 import cn.edu.tsinghua.iginx.pool.IginxInfo;
 import cn.edu.tsinghua.iginx.pool.SessionPool;
 import cn.edu.tsinghua.iginx.session.Session;
-
+import cn.edu.tsinghua.iginx.utils.EnvUtils;
 import java.io.*;
 import java.nio.file.Paths;
 import java.util.*;
@@ -49,7 +50,7 @@ public class PySessionIT {
   protected static MultiConnection session;
   private static final String PATH =
       Paths.get(
-              System.getProperty("user.dir"),
+              EnvUtils.loadEnv(Constants.IGINX_HOME, System.getProperty("user.dir")),
               "src",
               "test",
               "resources",
