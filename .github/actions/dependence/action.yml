@@ -40,16 +40,8 @@ runs:
           shell: bash
           run: |
               brew update
-              # Install specific Docker version
-              curl -LO https://download.docker.com/mac/static/stable/x86_64/docker-27.3.1.tgz
-              tar xzvf docker-27.3.1.tgz
-              sudo cp docker/docker /usr/local/bin/
-              
-              # Install specific Colima version
-              curl -LO https://github.com/abiosoft/colima/releases/download/v0.7.6/colima-Darwin-x86_64
-              chmod +x colima-Darwin-x86_64
-              sudo mv colima-Darwin-x86_64 /usr/local/bin/colima
-              LIMACTL_PATH=$(brew --prefix)/bin/limactl
+              brew install docker qemu
+              brew install colima
               sudo curl -L -o $LIMACTL_PATH https://github.com/mikekazakov/lima-nohvf/raw/master/limactl && sudo chmod +x $LIMACTL_PATH
               colima start --network-address --arch arm64 --vm-type=qemu
               docker --version
