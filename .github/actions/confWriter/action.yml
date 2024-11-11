@@ -93,7 +93,6 @@ runs:
                 exit 1
               fi
               cat ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-              
 
         - name: Change UDF conf
           shell: bash

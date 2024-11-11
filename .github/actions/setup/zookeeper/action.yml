@@ -6,9 +6,9 @@ inputs:
         required: false
         default: "3.7.2"
     port:
-      description: "zk port"
-      required: false
-      default: "2181"
+        description: "zk port"
+        required: false
+        default: "2181"
 
 runs:
     using: "composite"
@@ -36,17 +36,12 @@ runs:
               subdir: "apache-zookeeper-{version}-bin"
               ext: "tar.gz"
 
-#        - name: Add zookeeper Bin to PATH
-#          shell: bash
-#          working-directory: ${{ steps.base.outputs.tool-path }}
-#          run: echo "$PWD/bin" >> $GITHUB_PATH
-
         - name: Copy ZK to Port Dir
           shell: bash
           run: |
-            if [ ! -d "${{ runner.temp }}/zookeeper-${{ inputs.port }}" ]; then
-              cp -r "${{ steps.base.outputs.tool-path }}" "${{ runner.temp }}/zookeeper-${{ inputs.port }}"
-            fi
+              if [ ! -d "${{ runner.temp }}/zookeeper-${{ inputs.port }}" ]; then
+                cp -r "${{ steps.base.outputs.tool-path }}" "${{ runner.temp }}/zookeeper-${{ inputs.port }}"
+              fi
 
         - name: Save zookeeper Cache
           if: steps.restore.outputs.cache-hit != 'true'

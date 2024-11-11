@@ -14,9 +14,9 @@ inputs:
         required: false
         default: "false"
     port:
-      description: "zk port"
-      required: false
-      default: "2181"
+        description: "zk port"
+        required: false
+        default: "2181"
 runs:
     using: "composite" # Mandatory parameter
     steps:

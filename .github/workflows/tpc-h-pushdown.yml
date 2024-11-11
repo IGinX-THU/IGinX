@@ -127,7 +127,7 @@ jobs:
                   Set-Filter-Fragment-OFF: "true"
                   Metadata: ${{ matrix.metadata }}
                   Root-Dir-Path: "IGinX"
-                  zookeeper-port: '2182'
+                  zookeeper-port: "2182"
 
             - name: Install New IGinX with Maven
               shell: bash

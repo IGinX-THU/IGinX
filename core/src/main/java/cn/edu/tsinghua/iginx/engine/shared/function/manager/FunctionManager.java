@@ -130,7 +130,14 @@ public class FunctionManager {
           LOGGER.error("unknown udf type: {}", udfInfo[0]);
           continue;
       }
-      LOGGER.debug("adding udf : {}, {}, {}, {}, {}, {}",udfInfo[1], udfInfo[2], udfInfo[3], config.getIp(), config.getPort(), udfType);
+      LOGGER.debug(
+          "adding udf : {}, {}, {}, {}, {}, {}",
+          udfInfo[1],
+          udfInfo[2],
+          udfInfo[3],
+          config.getIp(),
+          config.getPort(),
+          udfType);
       metaList.add(
           new TransformTaskMeta(
               udfInfo[1], udfInfo[2], udfInfo[3], config.getIp(), config.getPort(), udfType));
