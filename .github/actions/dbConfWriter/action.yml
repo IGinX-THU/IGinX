@@ -104,17 +104,14 @@ runs:
 
         - if: inputs.DB-port!='0'
           name: Change db port
+          uses: ./.github/actions/edit
+          with:
+            paths: ${{ inputs.Root-Dir-Path }}/conf/config.properties
+            statements: s/^(storageEngineList=127\.0\.0\.1#)[0-9]+(#.*)/\1${{ inputs.DB-port }}\2/
+
+        - if: inputs.DB-port!='0'
+          name: cat
           shell: bash
           run: |
-            if [ "$RUNNER_OS" == "Linux" ]; then
-              sudo sed -i -E "s/^(storageEngineList=127\.0\.0\.1#)[0-9]+(#.*)/\1${{ inputs.DB-port }}\2/" ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-            elif [ "$RUNNER_OS" == "Windows" ]; then
-              sed -i -E "s/^(storageEngineList=127\.0\.0\.1#)[0-9]+(#.*)/\1${{ inputs.DB-port }}\2/" ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-            elif [ "$RUNNER_OS" == "macOS" ]; then
-              sudo sed -i '' -E "s/^(storageEngineList=127\.0\.0\.1#)[0-9]+(#.*)/\1${{ inputs.DB-port }}\2/" ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-            else
-              echo "$RUNNER_OS is not supported"
-              exit 1
-            fi
-            cat ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-            string ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
+            cat ${{ inputs.Root-Dir-Path }}/conf/config.properties
+            string ${{ inputs.Root-Dir-Path }}/conf/config.properties
