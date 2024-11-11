@@ -75,14 +75,6 @@ jobs:
                     systeminfo | findstr /C:"Total Physical Memory"
                   fi
 
-            - name: Download TPC-H Data
-              shell: bash
-              run: |
-                  wget https://github.com/IGinX-THU/IGinX-resources/raw/main/resources/tpc.7z
-                  sudo apt-get install p7zip-full
-                  7za x tpc.7z
-                  ls tpc
-
             - name: Run ZooKeeper1
               uses: ./.github/actions/zookeeperRunner
 
@@ -105,6 +97,15 @@ jobs:
                   cp -rf test/src/test/resources/tpch/udf/* IGinX/test/src/test/resources/tpch/udf/
                   cp -f test/src/test/resources/testConfig.properties IGinX/test/src/test/resources/testConfig.properties
             # 新增tpc-h查询测试时，旧版本代码中没有这些查询，需从新分支复制过去，添加完所有的tpc_h测试后可删除这些复制命令
+
+            - name: Download TPC-H Data
+              shell: bash
+              run: |
+                cd IGinX
+                wget https://github.com/IGinX-THU/IGinX-resources/raw/main/resources/tpc.7z
+                sudo apt-get install p7zip-full
+                7za x tpc.7z
+                ls tpc
 
             - name: Rewrite DB Conf in Old IGinX
               uses: ./.github/actions/dbConfWriter
