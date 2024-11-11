@@ -193,7 +193,10 @@ public class TPCHDataGeneratorIT {
     for (int i = 0; i < 8; i++) {
       insertTable(tableList.get(i), fieldsList.get(i), typesList.get(i));
     }
+  }
 
+  @Test
+  public void registerUDF() {
     List<List<String>> UDFInfos = new ArrayList<>();
     UDFInfos.add(Arrays.asList("UDTF", "extractYear", "UDFExtractYear", "udtf_extract_year.py"));
     // 注册UDF函数

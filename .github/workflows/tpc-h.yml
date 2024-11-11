@@ -89,7 +89,7 @@ jobs:
             - name: Run ZooKeeper2
               uses: ./.github/actions/zookeeperRunner
               with:
-                  port: 2181
+                  port: 2182
 
             - name: Run DB
               uses: ./.github/actions/dbRunner
@@ -126,7 +126,8 @@ jobs:
                   Set-Filter-Fragment-OFF: "true"
                   Metadata: ${{ matrix.metadata }}
                   Root-Dir-Path: "IGinX"
-                  zookeeper-port: "2181"
+                  zookeeper-port: "2182"
+                  Has-Data: 'true'
 
             - name: Install New IGinX with Maven
               shell: bash
