@@ -41,7 +41,7 @@ runs:
 
         # because two IGinXs are using different ZKs, we need to register UDFs in both nodes
         # the data only needs to be inserted once in new IGinX, and we set engine config in old IGinX to dummy
-        - name: Register UDF
+        - name: Register UDF in Old IGinX
           shell: bash
           run: |
               cd IGinX
