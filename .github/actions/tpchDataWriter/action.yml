@@ -9,51 +9,52 @@ inputs:
 runs:
     using: "composite" # Mandatory parameter
     steps:
-        - name: Start New IGinX
-          uses: ./.github/actions/iginxRunner
+      - name: Start Old IGinX
+        shell: bash
+        run: |
+          cd IGinX/core/target/iginx-core-${VERSION}
+          pwd
+          export IGINX_HOME=$PWD
+          echo "IGinX home path: $IGINX_HOME"
+          cd ..
+          chmod +x iginx-core-${VERSION}/sbin/start_iginx.sh
+          nohup iginx-core-${VERSION}/sbin/start_iginx.sh > ../../iginx-${VERSION}.log 2>&1 &
 
-        - name: Insert Data and Register UDF
-          shell: bash
-          run: mvn test -q -Dtest=TPCHDataGeneratorIT -DfailIfNoTests=false -P-format
+      # two IGinXs are using different ZKs, we need to register UDFs in both nodes
+      # data only needs to be inserted once in old IGinX, and we set engine config in new IGinX to dummy
+      - name: Insert Data and Register UDF
+        shell: bash
+        run: |
+          cd IGinX
+          mvn test -q -Dtest=TPCHDataGeneratorIT -DfailIfNoTests=false -P-format
 
-        - name: Show New IGinX log
-          if: always()
-          shell: bash
-          run: cat iginx-*.log
+      - name: Show Old IGinX log
+        if: always()
+        shell: bash
+        run: cat IGinX/iginx-*.log
 
-        - name: Stop New IGinX
-          uses: ./.github/actions/iginxRunner
-          with:
-              version: ${VERSION}
-              if-stop: "true"
+      - name: Stop Old IGinX
+        uses: ./.github/actions/iginxRunner
+        with:
+          version: ${VERSION}
+          if-stop: "true"
 
-        - name: Start Old IGinX
-          if: inputs.status != 'ok'
-          shell: bash
-          run: |
-              cd IGinX/core/target/iginx-core-${VERSION}
-              pwd
-              export IGINX_HOME=$PWD
-              echo "IGinX home path: $IGINX_HOME"
-              cd ..
-              chmod +x iginx-core-${VERSION}/sbin/start_iginx.sh
-              nohup iginx-core-${VERSION}/sbin/start_iginx.sh > ../../iginx-${VERSION}.log 2>&1 &
+      - name: Start New IGinX
+        uses: ./.github/actions/iginxRunner
 
-        # because two IGinXs are using different ZKs, we need to register UDFs in both nodes
-        # the data only needs to be inserted once in new IGinX, and we set engine config in old IGinX to dummy
-        - name: Register UDF in Old IGinX
-          shell: bash
-          run: |
-              cd IGinX
-              mvn test -q -Dtest=TPCHDataGeneratorIT#registerUDF -DfailIfNoTests=false -P-format
+      # register UDF in new IGinX
+      - name: Insert Data and Register UDF
+        shell: bash
+        run: mvn test -q -Dtest=TPCHDataGeneratorIT#registerUDF -DfailIfNoTests=false -P-format
 
-        - name: Show Old IGinX log
-          if: always()
-          shell: bash
-          run: cat IGinX/iginx-*.log
+      - name: Show New IGinX log
+        if: always()
+        shell: bash
+        run: cat iginx-*.log
 
-        - name: Stop Old IGinX
-          uses: ./.github/actions/iginxRunner
-          with:
-              version: ${VERSION}
-              if-stop: "true"
+      - name: Stop New IGinX
+        uses: ./.github/actions/iginxRunner
+        with:
+            version: ${VERSION}
+            if-stop: "true"
+

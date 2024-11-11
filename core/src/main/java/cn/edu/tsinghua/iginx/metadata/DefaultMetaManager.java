@@ -83,7 +83,7 @@ public class DefaultMetaManager implements IMetaManager {
 
     switch (ConfigDescriptor.getInstance().getConfig().getMetaStorage()) {
       case Constants.ZOOKEEPER_META:
-        LOGGER.info("use zookeeper as meta storage.");
+        LOGGER.info("use zookeeper({}) as meta storage.", ConfigDescriptor.getInstance().getConfig().getMetaStorage());
         storage = ZooKeeperMetaStorage.getInstance();
         break;
       case Constants.FILE_META:
