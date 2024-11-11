@@ -32,12 +32,13 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
+
+import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
+import org.junit.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static org.junit.Assert.fail;
 
 public class TPCHRegressionNewIT {
 
@@ -105,6 +106,26 @@ public class TPCHRegressionNewIT {
   @AfterClass
   public static void tearDown() throws SessionException {
     session.closeSession();
+  }
+
+  @Before
+  public void showColumns() {
+    String statement = "show columns;";
+    SessionExecuteSqlResult res = null;
+    try {
+      res = session.executeSql(statement);
+    } catch (SessionException e) {
+      LOGGER.error("Statement: \"{}\" execute fail. Caused by:", statement, e);
+      fail();
+    }
+
+    if (res.getParseErrorMsg() != null && !res.getParseErrorMsg().isEmpty()) {
+      LOGGER.error(
+              "Statement: \"{}\" execute fail. Caused by: {}.", statement, res.getParseErrorMsg());
+      fail();
+    }
+
+    System.out.println(res.getResultInString(false, ""));
   }
 
   @Test
