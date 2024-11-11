@@ -20,9 +20,8 @@ runs:
           chmod +x iginx-core-${VERSION}/sbin/start_iginx.sh
           nohup iginx-core-${VERSION}/sbin/start_iginx.sh > ../../iginx-${VERSION}.log 2>&1 &
 
-      # two IGinXs are using different ZKs, we need to register UDFs in both nodes
-      # data only needs to be inserted once in old IGinX, and we set engine config in new IGinX to dummy
-      - name: Insert Data and Register UDF
+      # two IGinXs are using different ZKs, we need to insert data & register UDFs in both nodes
+      - name: Insert Data and Register UDF in Old IGinX
         shell: bash
         run: |
           cd IGinX
@@ -42,10 +41,9 @@ runs:
       - name: Start New IGinX
         uses: ./.github/actions/iginxRunner
 
-      # register UDF in new IGinX
-      - name: Insert Data and Register UDF
+      - name: Insert Data and Register UDF in new IGinX
         shell: bash
-        run: mvn test -q -Dtest=TPCHDataGeneratorIT#registerUDF -DfailIfNoTests=false -P-format
+        run: mvn test -q -Dtest=TPCHDataGeneratorIT -DfailIfNoTests=false -P-format
 
       - name: Show New IGinX log
         if: always()

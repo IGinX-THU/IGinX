@@ -107,11 +107,19 @@ jobs:
                 7za x tpc.7z
                 ls tpc
 
+            # let old iginx use second database service
+            - name: Find second port for DB
+              id: find-port
+              uses: ./.github/actions/service/portMapper
+              with:
+                DB-name: ${{ matrix.DB-name }}
+
             - name: Rewrite DB Conf in Old IGinX
               uses: ./.github/actions/dbConfWriter
               with:
                   DB-name: ${{ matrix.DB-name }}
                   Root-Dir-Path: "IGinX"
+                  DB-port: ${{ steps.find-port.outputs.port2 }}
 
             - name: Install Old IGinX with Maven
               shell: bash
