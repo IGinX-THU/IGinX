@@ -6,9 +6,9 @@ inputs:
         required: false
         default: IoTDB12
     DB-port:
-      description: "DB port"
-      required: false
-      default: "0"
+        description: "DB port"
+        required: false
+        default: "0"
     Root-Dir-Path:
         description: "the path of IGinX root directory"
         required: false
@@ -107,14 +107,14 @@ runs:
           name: Change db port
           shell: bash
           run: |
-            if [ "$RUNNER_OS" == "Linux" ]; then
-              sudo sed -i -E "s/^(storageEngineList=127\.0\.0\.1#)[0-9]+(#.*)/\1${{ inputs.DB-port }}\2/" ${{ inputs.Root-Dir-Path }}/conf/config.properties
-            elif [ "$RUNNER_OS" == "Windows" ]; then
-              sed -i -E "s/^(storageEngineList=127\.0\.0\.1#)[0-9]+(#.*)/\1${{ inputs.DB-port }}\2/" ${{ inputs.Root-Dir-Path }}/conf/config.properties
-            elif [ "$RUNNER_OS" == "macOS" ]; then
-              sudo sed -i '' -E "s/^(storageEngineList=127\.0\.0\.1#)[0-9]+(#.*)/\1${{ inputs.DB-port }}\2/" ${{ inputs.Root-Dir-Path }}/conf/config.properties
-            else
-              echo "$RUNNER_OS is not supported"
-              exit 1
-            fi
-            cat ${{ inputs.Root-Dir-Path }}/conf/config.properties
+              if [ "$RUNNER_OS" == "Linux" ]; then
+                sudo sed -i -E "s/^(storageEngineList=127\.0\.0\.1#)[0-9]+(#.*)/\1${{ inputs.DB-port }}\2/" ${{ inputs.Root-Dir-Path }}/conf/config.properties
+              elif [ "$RUNNER_OS" == "Windows" ]; then
+                sed -i -E "s/^(storageEngineList=127\.0\.0\.1#)[0-9]+(#.*)/\1${{ inputs.DB-port }}\2/" ${{ inputs.Root-Dir-Path }}/conf/config.properties
+              elif [ "$RUNNER_OS" == "macOS" ]; then
+                sudo sed -i '' -E "s/^(storageEngineList=127\.0\.0\.1#)[0-9]+(#.*)/\1${{ inputs.DB-port }}\2/" ${{ inputs.Root-Dir-Path }}/conf/config.properties
+              else
+                echo "$RUNNER_OS is not supported"
+                exit 1
+              fi
+              cat ${{ inputs.Root-Dir-Path }}/conf/config.properties

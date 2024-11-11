@@ -101,19 +101,19 @@ jobs:
             - name: Download TPC-H Data
               shell: bash
               run: |
-                wget https://github.com/IGinX-THU/IGinX-resources/raw/main/resources/tpc.7z
-                sudo apt-get install p7zip-full
-                7za x tpc.7z
-                ls tpc
-                cp -r tpc IGinX/tpc
-                ls IGinX/tpc
+                  wget https://github.com/IGinX-THU/IGinX-resources/raw/main/resources/tpc.7z
+                  sudo apt-get install p7zip-full
+                  7za x tpc.7z
+                  ls tpc
+                  cp -r tpc IGinX/tpc
+                  ls IGinX/tpc
 
-          # let old iginx use second database service
+            # let old iginx use second database service
             - name: Find second port for DB
               id: find-port
               uses: ./.github/actions/service/portMapper
               with:
-                DB-name: ${{ matrix.DB-name }}
+                  DB-name: ${{ matrix.DB-name }}
 
             - name: Rewrite DB Conf in Old IGinX
               uses: ./.github/actions/dbConfWriter
@@ -127,7 +127,6 @@ jobs:
               run: |
                   cd IGinX
                   mvn clean package -DskipTests -P-format -q
-#                  cp -rf ${GITHUB_WORKSPACE}/test/src/test/resources/tpch/udf/* core/target/iginx-core-${VERSION}/udf_funcs/python_scripts/
 
             - name: Change Old IGinX Config
               uses: ./.github/actions/confWriter

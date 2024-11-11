@@ -5,16 +5,6 @@ inputs:
         description: "DB name"
         required: false
         default: IoTDB12
-outputs:
-  port1:
-    description: "port1"
-    value: ${{ steps.dir.outputs.cache-key }}
-  port2:
-    description: "port2"
-    value: ${{ steps.dir.outputs.cache-path }}
-  port3:
-    description: "port3"
-    value: ${{ steps.dir.outputs.tool-path }}
 
 runs:
     using: "composite" # Mandatory parameter
@@ -199,9 +189,3 @@ runs:
                   s/chunk_size_in_bytes=1048576/chunk_size_in_bytes=8/g
                   s/write.buffer.size=104857600/write.buffer.size=1048576/g
                   s/client.connectPool.maxTotal=100/client.connectPool.maxTotal=2/g
-
-        - id: output-ports
-          name: Output Ports for DB
-          shell: bash
-          run: |
-            

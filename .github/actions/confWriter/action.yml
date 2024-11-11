@@ -18,7 +18,7 @@ inputs:
         required: false
         default: "false"
     Has-Data:
-        description: "the storage engine has data"
+        description: "does the storage engine has data"
         required: false
         default: "false"
     Push-Down:
@@ -96,7 +96,6 @@ runs:
                 echo "$RUNNER_OS is not supported"
                 exit 1
               fi
-              cat ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
 
         - name: Change UDF conf
           shell: bash
@@ -142,7 +141,6 @@ runs:
                 echo "$RUNNER_OS is not supported"
                 exit 1
               fi
-              cat ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
 
         - if: inputs.Push-Down=='true'
           name: Change push_down
