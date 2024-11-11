@@ -128,7 +128,7 @@ jobs:
                   Metadata: ${{ matrix.metadata }}
                   Root-Dir-Path: "IGinX"
                   zookeeper-port: "2182"
-                  Has-Data: 'true'
+                  Has-Data: "true"
 
             - name: Install New IGinX with Maven
               shell: bash

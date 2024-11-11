@@ -31,19 +31,21 @@ runs:
           if: inputs.status != 'ok'
           shell: bash
           run: |
-            cd IGinX/core/target/iginx-core-${VERSION}
-            pwd
-            export IGINX_HOME=$PWD
-            echo "IGinX home path: $IGINX_HOME"
-            cd ..
-            chmod +x iginx-core-${VERSION}/sbin/start_iginx.sh
-            nohup iginx-core-${VERSION}/sbin/start_iginx.sh > ../../iginx-${VERSION}.log 2>&1 &
+              cd IGinX/core/target/iginx-core-${VERSION}
+              pwd
+              export IGINX_HOME=$PWD
+              echo "IGinX home path: $IGINX_HOME"
+              cd ..
+              chmod +x iginx-core-${VERSION}/sbin/start_iginx.sh
+              nohup iginx-core-${VERSION}/sbin/start_iginx.sh > ../../iginx-${VERSION}.log 2>&1 &
 
         # because two IGinXs are using different ZKs, we need to register UDFs in both nodes
         # the data only needs to be inserted once in new IGinX, and we set engine config in old IGinX to dummy
         - name: Register UDF
           shell: bash
-          run: mvn test -q -Dtest=TPCHDataGeneratorIT#registerUDF -DfailIfNoTests=false -P-format
+          run: |
+              cd IGinX
+              mvn test -q -Dtest=TPCHDataGeneratorIT#registerUDF -DfailIfNoTests=false -P-format
 
         - name: Show Old IGinX log
           if: always()
@@ -53,5 +55,5 @@ runs:
         - name: Stop Old IGinX
           uses: ./.github/actions/iginxRunner
           with:
-            version: ${VERSION}
-            if-stop: "true"
+              version: ${VERSION}
+              if-stop: "true"
