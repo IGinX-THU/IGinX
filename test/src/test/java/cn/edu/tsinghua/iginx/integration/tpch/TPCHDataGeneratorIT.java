@@ -91,7 +91,6 @@ public class TPCHDataGeneratorIT {
     session.closeSession();
   }
 
-  @Before
   public void prepare() {
     List<String> tableList =
         Arrays.asList(
@@ -307,6 +306,7 @@ public class TPCHDataGeneratorIT {
   // 插入TPC-H测试中的临时表
   @Test
   public void insertTmpTable() {
+    prepare();
     for (int queryId : queryIds) {
       String sqlString = null;
       try {
