@@ -142,6 +142,7 @@ runs:
                 echo "$RUNNER_OS is not supported"
                 exit 1
               fi
+              cat ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
 
         - if: inputs.Push-Down=='true'
           name: Change push_down

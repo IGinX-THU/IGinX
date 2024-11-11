@@ -22,13 +22,12 @@ package cn.edu.tsinghua.iginx.integration.tpch;
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
+import cn.edu.tsinghua.iginx.session.Column;
 import cn.edu.tsinghua.iginx.session.Session;
 import java.util.ArrayList;
 import java.util.List;
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
+
+import org.junit.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -90,6 +89,15 @@ public class TPCHRegressionMainIT {
   @AfterClass
   public static void tearDown() throws SessionException {
     session.closeSession();
+  }
+
+  @Before
+  public void showColumns() throws SessionException {
+    session.showColumns();
+    List<Column> columnList = session.showColumns();
+    LOGGER.info("show columns res(size:{}):", columnList.size());
+    columnList.forEach(column -> System.out.println(column.toString()));
+    LOGGER.info("show columns end.");
   }
 
   @Test

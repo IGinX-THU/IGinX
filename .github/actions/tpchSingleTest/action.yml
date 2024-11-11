@@ -23,6 +23,10 @@ runs:
               cd ..
               chmod +x iginx-core-${VERSION}/sbin/start_iginx.sh
               nohup iginx-core-${VERSION}/sbin/start_iginx.sh > ../../iginx-${VERSION}.log 2>&1 &
+              cd ../../client/target/iginx-client-${VERSION}
+              chmod +x sbin/start_cli.sh
+              sbin/start_cli.sh -e "show columns;"
+              
 
         - name: Run TPCH Test on Old IGinX
           if: inputs.status != 'ok'
