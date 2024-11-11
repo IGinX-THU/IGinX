@@ -57,7 +57,7 @@ public class FragmentPruningByFilterRule extends Rule {
      *            |
      *           Any
      */
-    super("FragmentPruningByFilterRule", operand(Select.class, any()));
+    super("FragmentPruningByFilterRule", "FragmentPruningByFilterRule",  operand(Select.class, any()),1, RuleStrategy.FIXED_POINT);
   }
 
   private static final IMetaManager metaManager = MetaManagerWrapper.getInstance();

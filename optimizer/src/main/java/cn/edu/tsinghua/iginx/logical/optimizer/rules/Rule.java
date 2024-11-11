@@ -26,7 +26,7 @@ import java.util.Arrays;
 
 public abstract class Rule {
 
-  public static final long DEFAULT_PRIORITY = 0;
+  public static final long DEFAULT_PRIORITY = Integer.MAX_VALUE;
 
   public static final RuleStrategy DEFAULT_STRATEGY = RuleStrategy.FIXED_POINT;
 
