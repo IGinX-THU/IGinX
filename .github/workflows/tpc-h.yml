@@ -101,11 +101,12 @@ jobs:
             - name: Download TPC-H Data
               shell: bash
               run: |
-                cd IGinX
                 wget https://github.com/IGinX-THU/IGinX-resources/raw/main/resources/tpc.7z
                 sudo apt-get install p7zip-full
                 7za x tpc.7z
                 ls tpc
+                cp -r tpc IGinX/tpc
+                ls IGinX/tpc
 
             # let old iginx use second database service
             - name: Find second port for DB
