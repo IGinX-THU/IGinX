@@ -147,7 +147,6 @@ jobs:
                   DB-name: ${{ matrix.DB-name }}
                   Set-Filter-Fragment-OFF: "true"
                   Metadata: ${{ matrix.metadata }}
-                  Has-Data: "true"
 
             - name: Insert Data into DB
               uses: ./.github/actions/tpchDataWriter
