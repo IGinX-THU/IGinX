@@ -109,10 +109,13 @@ runs:
           run: |
               if [ "$RUNNER_OS" == "Linux" ]; then
                 sudo sed -i -E "s/^(storageEngineList=127\.0\.0\.1#)[0-9]+(#.*)/\1${{ inputs.DB-port }}\2/" ${{ inputs.Root-Dir-Path }}/conf/config.properties
+                sudo sed -i -E "s/(mongodb:\/\/127\.0\.0\.1:)[0-9]+(\/)/\1${{ inputs.DB-port }}\2/" ${{ inputs.Root-Dir-Path }}/conf/config.properties
               elif [ "$RUNNER_OS" == "Windows" ]; then
                 sed -i -E "s/^(storageEngineList=127\.0\.0\.1#)[0-9]+(#.*)/\1${{ inputs.DB-port }}\2/" ${{ inputs.Root-Dir-Path }}/conf/config.properties
+                sed -i -E "s/(mongodb:\/\/127\.0\.0\.1:)[0-9]+(\/)/\1${{ inputs.DB-port }}\2/" ${{ inputs.Root-Dir-Path }}/conf/config.properties
               elif [ "$RUNNER_OS" == "macOS" ]; then
                 sudo sed -i '' -E "s/^(storageEngineList=127\.0\.0\.1#)[0-9]+(#.*)/\1${{ inputs.DB-port }}\2/" ${{ inputs.Root-Dir-Path }}/conf/config.properties
+                sudo sed -i '' -E "s/(mongodb:\/\/127\.0\.0\.1:)[0-9]+(\/)/\1${{ inputs.DB-port }}\2/" ${{ inputs.Root-Dir-Path }}/conf/config.properties
               else
                 echo "$RUNNER_OS is not supported"
                 exit 1
