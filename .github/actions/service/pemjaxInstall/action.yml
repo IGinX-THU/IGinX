@@ -21,8 +21,8 @@ runs:
         - name: Download Pemjax source
           shell: bash
           run: |
-              curl -o ${{ env.PEMJAX_SOURCE_PATH }} https://github.com/IGinX-THU/IGinX-resources/raw/main/resources/python/pemjax-${{ inputs.pemja-version }}.tar.gz
-              curl -o ${{ env.PANDAS_WHEEL }} https://github.com/IGinX-THU/IGinX-resources/raw/refs/heads/main/resources/python/pandas-3.0.0.dev0-cp313-cp313t-win_amd64.whl
+              wget -O ${{ env.PEMJAX_SOURCE_PATH }} https://github.com/IGinX-THU/IGinX-resources/raw/main/resources/python/pemjax-${{ inputs.pemja-version }}.tar.gz
+              wget -O ${{ env.PANDAS_WHEEL }} https://github.com/IGinX-THU/IGinX-resources/raw/refs/heads/main/resources/python/pandas-3.0.0.dev0-cp313-cp313t-win_amd64.whl
               ls -l
 
         # when file changes, cache changes
