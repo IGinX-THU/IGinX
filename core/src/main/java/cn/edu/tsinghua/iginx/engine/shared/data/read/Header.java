@@ -1,24 +1,29 @@
 /*
  * IGinX - the polystore system with high performance
  * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 package cn.edu.tsinghua.iginx.engine.shared.data.read;
 
 import static cn.edu.tsinghua.iginx.engine.shared.Constants.RESERVED_COLS;
 
+import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
+import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
+import cn.edu.tsinghua.iginx.engine.shared.Constants;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.util.*;
@@ -103,7 +108,7 @@ public final class Header {
       List<Integer> indexList = new ArrayList<>();
       fields.forEach(
           field -> {
-            if (Pattern.matches(StringUtils.reformatPath(pattern), field.getFullName())) {
+            if (Pattern.matches(StringUtils.reformatPath(pattern), field.getName())) {
               indexList.add(indexOf(field.getFullName()));
             }
           });
@@ -114,7 +119,7 @@ public final class Header {
 
   @Override
   public String toString() {
-    return "Header{" + "time=" + key + ", fields=" + fields + '}';
+    return "Header{" + "key=" + key + ", fields=" + fields + '}';
   }
 
   @Override
@@ -127,9 +132,19 @@ public final class Header {
         && Objects.equals(indexMap, header.indexMap);
   }
 
-  public Header renamedHeader(List<Pair<String, String>> aliasList, List<String> ignorePatterns) {
+  /**
+   * 根据Rename算子的aliasList和ignorePatterns计算重命名后的header和要升级成key列的普通列的下标
+   *
+   * @param aliasList Rename算子参数
+   * @param ignorePatterns Rename算子参数
+   * @return pair.k表示重命名后的header;pair.v表示要升级成key列的普通列的下标,为-1时表示没有列需要升级成key列
+   */
+  public Pair<Header, Integer> renamedHeader(
+      List<Pair<String, String>> aliasList, List<String> ignorePatterns) throws PhysicalException {
     List<Field> newFields = new ArrayList<>();
     int size = getFieldSize();
+    int colIndex = -1;
+    scanFields:
     for (int i = 0; i < size; i++) {
       Field field = fields.get(i);
       // 如果列名在ignorePatterns中，对该列不执行rename
@@ -159,6 +174,14 @@ public final class Header {
           }
           break;
         } else if (oldPattern.equals(field.getName())) {
+          if (newPattern.equals(Constants.KEY)) {
+            if (colIndex != -1) {
+              throw new PhysicalTaskExecuteFailureException(
+                  "only one column can transform to key in each select");
+            }
+            colIndex = i;
+            continue scanFields;
+          }
           alias = newPattern;
           Set<Map<String, String>> tagSet = new HashSet<>();
           Field nextField = i < size - 1 ? fields.get(i + 1) : null;
@@ -193,7 +216,14 @@ public final class Header {
         newFields.add(new Field(alias, field.getType(), field.getTags()));
       }
     }
-    return new Header(getKey(), newFields);
+
+    Header newHeader;
+    if (!hasKey() && colIndex != -1) {
+      newHeader = new Header(Field.KEY, newFields);
+    } else {
+      newHeader = new Header(getKey(), newFields);
+    }
+    return new Pair<>(newHeader, colIndex);
   }
 
   public static class ReorderedHeaderWrapped {

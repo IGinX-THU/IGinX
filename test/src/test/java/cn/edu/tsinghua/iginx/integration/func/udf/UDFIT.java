@@ -1,19 +1,21 @@
 /*
  * IGinX - the polystore system with high performance
  * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 package cn.edu.tsinghua.iginx.integration.func.udf;
 
@@ -518,6 +520,35 @@ public class UDFIT {
             + "+---+-------+-------+-------+\n"
             + "Total line number = 6\n";
     assertEquals(expected, ret.getResultInString(false, ""));
+
+    query = "SELECT * FROM test WHERE pow(s1 + s2, 2) - 5 > 30;";
+    ret = tool.execute(query);
+    expected =
+        "ResultSets:\n"
+            + "+---+-------+-------+-------+\n"
+            + "|key|test.s1|test.s2|test.s3|\n"
+            + "+---+-------+-------+-------+\n"
+            + "|  3|      4|      3|      1|\n"
+            + "|  4|      9|      7|      5|\n"
+            + "|  5|      3|      6|      2|\n"
+            + "|  6|      6|      4|      2|\n"
+            + "+---+-------+-------+-------+\n"
+            + "Total line number = 4\n";
+    assertEquals(expected, ret.getResultInString(false, ""));
+
+    query = "SELECT * FROM test WHERE multiply(s1, s2 + s3) > 20;";
+    ret = tool.execute(query);
+    expected =
+        "ResultSets:\n"
+            + "+---+-------+-------+-------+\n"
+            + "|key|test.s1|test.s2|test.s3|\n"
+            + "+---+-------+-------+-------+\n"
+            + "|  4|      9|      7|      5|\n"
+            + "|  5|      3|      6|      2|\n"
+            + "|  6|      6|      4|      2|\n"
+            + "+---+-------+-------+-------+\n"
+            + "Total line number = 3\n";
+    assertEquals(expected, ret.getResultInString(false, ""));
   }
 
   @Test
@@ -678,6 +709,81 @@ public class UDFIT {
   }
 
   @Test
+  public void testUDFGroupByAndOrderByExpr() {
+    String insert =
+        "INSERT INTO test(key, s1, s2) VALUES (1, 2, 3), (2, 3, 1), (3, 2, 3), (4, 3, 7), (5, 3, 6), (6, 0, 4);";
+    tool.execute(insert);
+
+    List<Double> cosTestS1AfterGroupByExpectedValues =
+        Arrays.asList(-0.9899924966004454, -0.4161468365471424, 1.0);
+    List<Long> sumTestS2AfterGroupByExpectedValues = Arrays.asList(14L, 6L, 4L);
+
+    String query = "SELECT cos(s1), sum(s2) FROM test GROUP BY cos(s1) ORDER BY cos(s1);";
+    SessionExecuteSqlResult ret = tool.execute(query);
+    compareResult(2, ret.getPaths().size());
+    compareResult("cos(test.s1)", ret.getPaths().get(0));
+    compareResult("sum(test.s2)", ret.getPaths().get(1));
+    for (int i = 0; i < ret.getValues().size(); i++) {
+      compareResult(2, ret.getValues().get(i).size());
+      double expectedCosS1 = cosTestS1AfterGroupByExpectedValues.get(i);
+      double actualCosS1 = (double) ret.getValues().get(i).get(0);
+      compareResult(expectedCosS1, actualCosS1, delta);
+      long expectedSumS2 = sumTestS2AfterGroupByExpectedValues.get(i);
+      long actualSumS2 = (long) ret.getValues().get(i).get(1);
+      assertEquals(expectedSumS2, actualSumS2);
+    }
+
+    query = "SELECT cos(s1) AS a, sum(s2) FROM test GROUP BY a ORDER BY a;";
+    ret = tool.execute(query);
+    compareResult(2, ret.getPaths().size());
+    compareResult("a", ret.getPaths().get(0));
+    compareResult("sum(test.s2)", ret.getPaths().get(1));
+    for (int i = 0; i < ret.getValues().size(); i++) {
+      compareResult(2, ret.getValues().get(i).size());
+      double expectedCosS1 = cosTestS1AfterGroupByExpectedValues.get(i);
+      double actualCosS1 = (double) ret.getValues().get(i).get(0);
+      compareResult(expectedCosS1, actualCosS1, delta);
+      long expectedSumS2 = sumTestS2AfterGroupByExpectedValues.get(i);
+      long actualSumS2 = (long) ret.getValues().get(i).get(1);
+      assertEquals(expectedSumS2, actualSumS2);
+    }
+
+    query = "SELECT s1, s2 FROM test ORDER BY cos(s1);";
+    ret = tool.execute(query);
+    String expected =
+        "ResultSets:\n"
+            + "+---+-------+-------+\n"
+            + "|key|test.s1|test.s2|\n"
+            + "+---+-------+-------+\n"
+            + "|  2|      3|      1|\n"
+            + "|  4|      3|      7|\n"
+            + "|  5|      3|      6|\n"
+            + "|  1|      2|      3|\n"
+            + "|  3|      2|      3|\n"
+            + "|  6|      0|      4|\n"
+            + "+---+-------+-------+\n"
+            + "Total line number = 6\n";
+    compareResult(expected, ret.getResultInString(false, ""));
+
+    query = "SELECT s1, s2 FROM test ORDER BY pow(s2, 2);";
+    ret = tool.execute(query);
+    expected =
+        "ResultSets:\n"
+            + "+---+-------+-------+\n"
+            + "|key|test.s1|test.s2|\n"
+            + "+---+-------+-------+\n"
+            + "|  2|      3|      1|\n"
+            + "|  1|      2|      3|\n"
+            + "|  3|      2|      3|\n"
+            + "|  6|      0|      4|\n"
+            + "|  5|      3|      6|\n"
+            + "|  4|      3|      7|\n"
+            + "+---+-------+-------+\n"
+            + "Total line number = 6\n";
+    compareResult(expected, ret.getResultInString(false, ""));
+  }
+
+  @Test
   public void testUDFWithArgs() {
     String insert =
         "INSERT INTO test(key, s1, s2) VALUES (1, 2, 3), (2, 3, 1), (3, 4, 3), (4, 9, 7), (5, 3, 6), (6, 6, 4);";
@@ -817,6 +923,17 @@ public class UDFIT {
     compareResult(expected, ret.getResultInString(false, ""));
   }
 
+  @Test
+  public void testErrorClause() {
+    String errClause = "select s1, s2, count(s3) from us.d1 group by reverse_rows(s1);";
+    tool.executeAndCompareErrMsg(
+        errClause, "GROUP BY column can not use SetToSet/SetToRow functions.");
+
+    errClause = "select s1, s2, count(s3) from us.d1 group by s1, s2 order by transpose(s1);";
+    tool.executeAndCompareErrMsg(
+        errClause, "ORDER BY column can not use SetToSet/SetToRow functions.");
+  }
+
   void compareResult(Object expected, Object actual) {
     if (!needCompareResult) {
       return;
@@ -922,30 +1039,32 @@ public class UDFIT {
     ret = tool.execute(query);
     expected =
         "ResultSets:\n"
-            + "+-----------------+-------------+----------------------------------------------------------------------------------------+\n"
-            + "|     Logical Tree|Operator Type|                                                                           Operator Info|\n"
-            + "+-----------------+-------------+----------------------------------------------------------------------------------------+\n"
-            + "|Reorder          |      Reorder|                                                               Order: test.a,cos(test.a)|\n"
-            + "|  +--RowTransform| RowTransform|FuncList(Name, FuncType): (arithmetic_expr, System), (cos, UDF), MappingType: RowMapping|\n"
-            + "|    +--Project   |      Project|                                                                        Patterns: test.a|\n"
-            + "|      +--Project |      Project|                                             Patterns: test.a, Target DU: unit0000000002|\n"
-            + "+-----------------+-------------+----------------------------------------------------------------------------------------+\n"
-            + "Total line number = 4\n";
+            + "+-------------------+----------------+----------------------------------------------------------------------------------------+\n"
+            + "|       Logical Tree|   Operator Type|                                                                           Operator Info|\n"
+            + "+-------------------+----------------+----------------------------------------------------------------------------------------+\n"
+            + "|RemoveNullColumn   |RemoveNullColumn|                                                                        RemoveNullColumn|\n"
+            + "|  +--Reorder       |         Reorder|                                                               Order: test.a,cos(test.a)|\n"
+            + "|    +--RowTransform|    RowTransform|FuncList(Name, FuncType): (arithmetic_expr, System), (cos, UDF), MappingType: RowMapping|\n"
+            + "|      +--Project   |         Project|                                                                        Patterns: test.a|\n"
+            + "|        +--Project |         Project|                                             Patterns: test.a, Target DU: unit0000000002|\n"
+            + "+-------------------+----------------+----------------------------------------------------------------------------------------+\n"
+            + "Total line number = 5\n";
     assertEquals(expected, ret.getResultInString(false, ""));
 
     query = "explain select cos(a), pow(b, 2) from test;";
     ret = tool.execute(query);
     expected =
         "ResultSets:\n"
-            + "+-----------------+-------------+-------------------------------------------------------------------------+\n"
-            + "|     Logical Tree|Operator Type|                                                            Operator Info|\n"
-            + "+-----------------+-------------+-------------------------------------------------------------------------+\n"
-            + "|Reorder          |      Reorder|                                                                 Order: *|\n"
-            + "|  +--RowTransform| RowTransform|FuncList(Name, FuncType): (cos, UDF), (pow, UDF), MappingType: RowMapping|\n"
-            + "|    +--Project   |      Project|                                                  Patterns: test.b,test.a|\n"
-            + "|      +--Project |      Project|                       Patterns: test.a,test.b, Target DU: unit0000000002|\n"
-            + "+-----------------+-------------+-------------------------------------------------------------------------+\n"
-            + "Total line number = 4\n";
+            + "+-------------------+----------------+-------------------------------------------------------------------------+\n"
+            + "|       Logical Tree|   Operator Type|                                                            Operator Info|\n"
+            + "+-------------------+----------------+-------------------------------------------------------------------------+\n"
+            + "|RemoveNullColumn   |RemoveNullColumn|                                                         RemoveNullColumn|\n"
+            + "|  +--Reorder       |         Reorder|                                                                 Order: *|\n"
+            + "|    +--RowTransform|    RowTransform|FuncList(Name, FuncType): (cos, UDF), (pow, UDF), MappingType: RowMapping|\n"
+            + "|      +--Project   |         Project|                                                  Patterns: test.b,test.a|\n"
+            + "|        +--Project |         Project|                       Patterns: test.a,test.b, Target DU: unit0000000002|\n"
+            + "+-------------------+----------------+-------------------------------------------------------------------------+\n"
+            + "Total line number = 5\n";
     assertEquals(expected, ret.getResultInString(false, ""));
   }
 
@@ -1290,5 +1409,24 @@ public class UDFIT {
         LOGGER.error("Fail to recover requirement.txt .", ee);
       }
     }
+  }
+
+  @Test
+  public void testUDFColumnPruning() {
+    String statement = "SELECT cos(s1), cos(s2) FROM us.d1 LIMIT 5;";
+    String expected =
+        "ResultSets:\n"
+            + "+---+-------------------+-------------------+\n"
+            + "|key|      cos(us.d1.s1)|      cos(us.d1.s2)|\n"
+            + "+---+-------------------+-------------------+\n"
+            + "|  0|                1.0| 0.5403023058681398|\n"
+            + "|  1| 0.5403023058681398|-0.4161468365471424|\n"
+            + "|  2|-0.4161468365471424|-0.9899924966004454|\n"
+            + "|  3|-0.9899924966004454|-0.6536436208636119|\n"
+            + "|  4|-0.6536436208636119|0.28366218546322625|\n"
+            + "+---+-------------------+-------------------+\n"
+            + "Total line number = 5\n";
+
+    assertEquals(expected, tool.execute(statement).getResultInString(false, ""));
   }
 }

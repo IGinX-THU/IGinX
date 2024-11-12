@@ -1,19 +1,21 @@
 /*
  * IGinX - the polystore system with high performance
  * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils;
 
@@ -33,6 +35,7 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
+import cn.edu.tsinghua.iginx.engine.shared.expr.KeyExpression;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionUtils;
@@ -91,11 +94,22 @@ public class RowUtils {
   }
 
   public static Row combineMultipleColumns(List<Row> columnList) {
+    return combineMultipleColumns(columnList, true);
+  }
+
+  public static Row combineMultipleColumns(List<Row> columnList, boolean remainKey) {
     if (columnList == null || columnList.isEmpty()) {
       return Row.EMPTY_ROW;
     }
+
+    Row row = columnList.get(0);
     if (columnList.size() == 1) {
-      return columnList.get(0);
+      if (remainKey) {
+        return row;
+      } else {
+        Header headerNoKey = new Header(row.getHeader().getFields());
+        return new Row(headerNoKey, row.getValues());
+      }
     }
 
     List<Field> fields = new ArrayList<>();
@@ -104,9 +118,14 @@ public class RowUtils {
       fields.addAll(cols.getHeader().getFields());
       valuesCombine.addAll(Arrays.asList(cols.getValues()));
     }
-    Header newHeader =
-        columnList.get(0).getHeader().hasKey() ? new Header(Field.KEY, fields) : new Header(fields);
-    return new Row(newHeader, columnList.get(0).getKey(), valuesCombine.toArray());
+
+    if (remainKey) {
+      Header newHeader =
+          row.getHeader().hasKey() ? new Header(Field.KEY, fields) : new Header(fields);
+      return new Row(newHeader, row.getKey(), valuesCombine.toArray());
+    } else {
+      return new Row(new Header(fields), valuesCombine.toArray());
+    }
   }
 
   public static boolean isEqualRow(Row row1, Row row2, boolean compareKey)
@@ -858,7 +877,7 @@ public class RowUtils {
                   try {
                     return FilterUtils.validate(filter, row);
                   } catch (PhysicalException e) {
-                    LOGGER.error("execute parallel filter error, cause by: ", e.getCause());
+                    LOGGER.error("execute parallel filter error, cause by: ", e);
                     return false;
                   }
                 })
@@ -877,7 +896,7 @@ public class RowUtils {
                 try {
                   return FilterUtils.validate(filter, row);
                 } catch (PhysicalException e) {
-                  LOGGER.error("execute sequence filter error, cause by: ", e.getCause());
+                  LOGGER.error("execute sequence filter error, cause by: ", e);
                   return false;
                 }
               })
@@ -1212,9 +1231,15 @@ public class RowUtils {
 
     Map<List<String>, Row> rowTransformMap = new HashMap<>();
     List<Row> columnList = new ArrayList<>();
+    boolean remainKey = true;
     for (FunctionCall functionCall : functionCallList) {
       RowMappingFunction function = (RowMappingFunction) functionCall.getFunction();
       FunctionParams params = functionCall.getParams();
+      if (remainKey) { // 若有KeyExpression，则表示将key列降级为普通列，返回结果将没有key列
+        remainKey =
+            params.getExpressions().stream()
+                .noneMatch(expression -> expression instanceof KeyExpression);
+      }
 
       Row tmp = row;
       if (functionCall.isNeedPreRowTransform()) {
@@ -1244,7 +1269,7 @@ public class RowUtils {
       throw new PhysicalTaskExecuteFailureException(
           "encounter error when execute row mapping functions: " + functionCallList);
     }
-    return combineMultipleColumns(columnList);
+    return combineMultipleColumns(columnList, remainKey);
   }
 
   /**
@@ -1369,5 +1394,17 @@ public class RowUtils {
 
     Header header = new Header(fields);
     return new Row(header, values);
+  }
+
+  public static Row transformColumnToKey(Header header, Row row, int colIndex) {
+    long key = ValueUtils.transformToLong(row.getAsValue(colIndex));
+    Object[] oldValues = row.getValues();
+    Object[] newValues = new Object[header.getFieldSize()];
+    System.arraycopy(oldValues, 0, newValues, 0, colIndex);
+    if (colIndex < oldValues.length - 1) {
+      System.arraycopy(
+          oldValues, colIndex + 1, newValues, colIndex, header.getFieldSize() - colIndex);
+    }
+    return new Row(header, key, newValues);
   }
 }

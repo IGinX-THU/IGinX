@@ -112,6 +112,7 @@ jobs:
               run: |
                   cd IGinX
                   mvn clean package -DskipTests -P-format -q
+                  cp -rf ${GITHUB_WORKSPACE}/test/src/test/resources/tpch/udf/* core/target/iginx-core-${VERSION}/udf_funcs/python_scripts/
 
             - name: Change Old IGinX Config
               uses: ./.github/actions/confWriter

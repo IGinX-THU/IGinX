@@ -1,28 +1,31 @@
 /*
  * IGinX - the polystore system with high performance
  * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-
 package cn.edu.tsinghua.iginx.sql;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import cn.edu.tsinghua.iginx.engine.shared.expr.BaseExpression;
 import cn.edu.tsinghua.iginx.engine.shared.expr.FuncExpression;
+import cn.edu.tsinghua.iginx.engine.shared.expr.KeyExpression;
 import cn.edu.tsinghua.iginx.engine.shared.function.MappingType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.PathFilter;
@@ -144,12 +147,19 @@ public class ParseTest {
 
     String orderBy = "SELECT a FROM test ORDER BY KEY";
     statement = (UnarySelectStatement) TestUtils.buildStatement(orderBy);
-    assertEquals(Collections.singletonList(SQLConstant.KEY), statement.getOrderByPaths());
+    assertEquals(1, statement.getOrderByExpressions().size());
+    assertTrue(
+        statement
+            .getOrderByExpressions()
+            .get(0)
+            .equalExceptAlias(new KeyExpression(SQLConstant.KEY)));
     assertTrue(statement.getAscendingList().get(0));
 
     String orderByAndLimit = "SELECT a FROM test ORDER BY a DESC LIMIT 10 OFFSET 5;";
     statement = (UnarySelectStatement) TestUtils.buildStatement(orderByAndLimit);
-    assertEquals(Collections.singletonList("test.a"), statement.getOrderByPaths());
+    assertEquals(1, statement.getOrderByExpressions().size());
+    assertTrue(
+        statement.getOrderByExpressions().get(0).equalExceptAlias(new BaseExpression("test.a")));
     assertFalse(statement.getAscendingList().get(0));
     assertEquals(5, statement.getOffset());
     assertEquals(10, statement.getLimit());

@@ -1,21 +1,22 @@
 /*
  * IGinX - the polystore system with high performance
  * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-
 package cn.edu.tsinghua.iginx.sql.statement.select.subclause;
 
 import cn.edu.tsinghua.iginx.engine.shared.expr.BinaryExpression;
@@ -23,6 +24,7 @@ import cn.edu.tsinghua.iginx.engine.shared.expr.BracketExpression;
 import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
 import cn.edu.tsinghua.iginx.engine.shared.expr.FuncExpression;
 import cn.edu.tsinghua.iginx.engine.shared.expr.MultipleExpression;
+import cn.edu.tsinghua.iginx.engine.shared.expr.SequenceExpression;
 import cn.edu.tsinghua.iginx.engine.shared.expr.UnaryExpression;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionUtils;
 import cn.edu.tsinghua.iginx.engine.shared.function.MappingType;
@@ -131,11 +133,23 @@ public class SelectClause {
         break;
       case Base:
       case Constant:
+      case Key:
+      case Sequence:
       case FromValue:
       case CaseWhen:
         break;
       default:
         throw new IllegalArgumentException(String.format("Unknown expr type: %s", expr.getType()));
+    }
+    return ret;
+  }
+
+  public List<SequenceExpression> getSequenceExpressionList() {
+    List<SequenceExpression> ret = new ArrayList<>();
+    for (Expression expression : expressions) {
+      if (expression instanceof SequenceExpression) {
+        ret.add((SequenceExpression) expression);
+      }
     }
     return ret;
   }

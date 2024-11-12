@@ -1,21 +1,22 @@
 /*
  * IGinX - the polystore system with high performance
  * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.InvalidOperatorParameterException;
@@ -25,6 +26,7 @@ import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.expr.*;
 import cn.edu.tsinghua.iginx.engine.shared.function.Function;
+import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
 import cn.edu.tsinghua.iginx.engine.shared.function.MappingType;
 import cn.edu.tsinghua.iginx.engine.shared.function.RowMappingFunction;
@@ -32,6 +34,7 @@ import cn.edu.tsinghua.iginx.engine.shared.function.manager.FunctionManager;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.utils.DataTypeUtils;
+import java.security.Key;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -60,6 +63,8 @@ public class ExprUtils {
     switch (expr.getType()) {
       case Constant:
         return calculateConstantExpr((ConstantExpression) expr);
+      case Key:
+        return calculateKeyExpr(row, (KeyExpression) expr);
       case Base:
         return calculateBaseExpr(row, (BaseExpression) expr);
       case Function:
@@ -81,6 +86,13 @@ public class ExprUtils {
 
   private static Value calculateConstantExpr(ConstantExpression constantExpr) {
     return new Value(constantExpr.getValue());
+  }
+
+  private static Value calculateKeyExpr(Row row, KeyExpression expr) throws PhysicalException {
+    if (!row.getHeader().hasKey()) {
+      throw new PhysicalTaskExecuteFailureException("there is no key in row");
+    }
+    return new Value(row.getKey());
   }
 
   private static Value calculateBaseExpr(Row row, BaseExpression baseExpr) {
@@ -119,14 +131,9 @@ public class ExprUtils {
             funcExpr.getArgs(),
             funcExpr.getKvargs(),
             funcExpr.isDistinct());
-    Row ret;
-    try {
-      ret = rowMappingFunction.transform(row, params);
-    } catch (Exception e) {
-      throw new PhysicalTaskExecuteFailureException(
-          "encounter error when execute row mapping function " + rowMappingFunction.getIdentifier(),
-          e);
-    }
+    FunctionCall functionCall = new FunctionCall(rowMappingFunction, params);
+
+    Row ret = RowUtils.calRowTransform(row, Collections.singletonList(functionCall), false);
     int retValueSize = ret.getValues().length;
     if (retValueSize != 1) {
       throw new InvalidOperatorParameterException(
@@ -386,6 +393,8 @@ public class ExprUtils {
           }
           break;
         case Constant:
+        case Key:
+        case Sequence:
         case FromValue:
           break;
         default:
@@ -405,6 +414,8 @@ public class ExprUtils {
   public static Expression flattenExpression(Expression expr) {
     switch (expr.getType()) {
       case Constant:
+      case Key:
+      case Sequence:
       case Base:
       case Function:
         return expr;
@@ -824,6 +835,15 @@ public class ExprUtils {
                 : null;
         return new CaseWhenExpression(
             conditions, resultCopy, resultElse, caseWhenExpression.getColumnName());
+      case Key:
+        KeyExpression keyExpression = (KeyExpression) expression;
+        return new KeyExpression(keyExpression.getColumnName());
+      case Sequence:
+        SequenceExpression sequenceExpression = (SequenceExpression) expression;
+        return new SequenceExpression(
+            sequenceExpression.getStart(),
+            sequenceExpression.getIncrement(),
+            sequenceExpression.getColumnName());
       default:
         throw new IllegalArgumentException(
             String.format("Unknown expr type: %s", expression.getType()));

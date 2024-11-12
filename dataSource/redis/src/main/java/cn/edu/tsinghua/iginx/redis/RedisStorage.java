@@ -1,21 +1,22 @@
 /*
  * IGinX - the polystore system with high performance
  * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-
 package cn.edu.tsinghua.iginx.redis;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
@@ -143,6 +144,17 @@ public class RedisStorage implements IStorage {
     Jedis jedis = jedisPool.getResource();
     jedis.select(dummyDb);
     return jedis;
+  }
+
+  @Override
+  public boolean testConnection(StorageEngineMeta meta) {
+    try (Jedis jedis = new Jedis(meta.getIp(), meta.getPort())) {
+      jedis.ping(); // 仅用于测试连接
+      return true;
+    } catch (Exception e) {
+      LOGGER.error("Failed to connect Redis {}: e", meta, e);
+      return false;
+    }
   }
 
   @Override
