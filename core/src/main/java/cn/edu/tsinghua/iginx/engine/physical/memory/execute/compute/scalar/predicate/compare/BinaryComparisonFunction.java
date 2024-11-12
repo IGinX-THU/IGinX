@@ -19,22 +19,28 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.pred
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.convert.cast.CastAsFloat8;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.predicate.BinaryPredicateFunction;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.predicate.SelectionBuilder;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.IntBooleanConsumer;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.IntIntPredicate;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.SelectionBuilder;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ArgumentException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.NotAllowTypeException;
-import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ConstantVectors;
-import cn.edu.tsinghua.iginx.engine.shared.data.arrow.Schemas;
-import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ValueVectors;
-import java.util.function.BiConsumer;
-import java.util.function.IntPredicate;
-import javax.annotation.Nullable;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ConstantVectors;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.Schemas;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ValueVectors;
 import org.apache.arrow.memory.ArrowBuf;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.memory.util.ArrowBufPointer;
 import org.apache.arrow.vector.*;
+import org.apache.arrow.vector.dictionary.Dictionary;
+import org.apache.arrow.vector.dictionary.DictionaryProvider;
 import org.apache.arrow.vector.types.Types;
+import org.apache.arrow.vector.types.pojo.DictionaryEncoding;
+import org.apache.arrow.vector.types.pojo.Field;
 import org.apache.arrow.vector.types.pojo.FieldType;
+
+import javax.annotation.Nullable;
+import java.util.Objects;
 
 public abstract class BinaryComparisonFunction extends BinaryPredicateFunction {
 
@@ -55,30 +61,34 @@ public abstract class BinaryComparisonFunction extends BinaryPredicateFunction {
     String name =
         getName() + "(" + left.getField().getName() + "," + right.getField().getName() + ")";
     try (BitVector dest =
-        new BitVector(name, FieldType.notNullable(Types.MinorType.BIT.getType()), allocator)) {
+             new BitVector(name, FieldType.notNullable(Types.MinorType.BIT.getType()), allocator)) {
       dest.allocateNew(rowCount);
       ConstantVectors.setValueCountWithValidity(dest, rowCount);
       ArrowBuf dataBuffer = dest.getDataBuffer();
       evaluate(
           allocator,
+          null,
           selection,
           left,
           right,
+          rowCount,
           (index, result) -> {
             if (result) {
               BitVectorHelper.setBit(dataBuffer, index);
             }
           });
       return ValueVectors.slice(allocator, dest);
+      // 考虑字典本身为 null 的情况
     }
   }
 
   @Override
   public BaseIntVector filter(
       BufferAllocator allocator,
-      @Nullable BaseIntVector selection,
+      DictionaryProvider dictionaryProvider,
       FieldVector left,
-      FieldVector right)
+      FieldVector right,
+      @Nullable BaseIntVector selection)
       throws ComputeException {
     int rowCount = getRowCount(selection, left, right);
     String name =
@@ -92,9 +102,11 @@ public abstract class BinaryComparisonFunction extends BinaryPredicateFunction {
     try (SelectionBuilder dest = new SelectionBuilder(allocator, name, rowCount)) {
       evaluate(
           allocator,
+          dictionaryProvider,
           selection,
           left,
           right,
+          rowCount,
           (index, result) -> {
             if (result) {
               dest.append(index);
@@ -106,47 +118,146 @@ public abstract class BinaryComparisonFunction extends BinaryPredicateFunction {
 
   private void evaluate(
       BufferAllocator allocator,
-      BaseIntVector selection,
+      @Nullable DictionaryProvider dictionaryProvider,
+      @Nullable BaseIntVector selection,
       FieldVector left,
       FieldVector right,
-      BiConsumer<Integer, Boolean> consumer)
+      int rowCount,
+      IntBooleanConsumer consumer)
       throws ComputeException {
-    if (left.getMinorType() == right.getMinorType()) {
-      evaluateSameType(consumer, selection, left, right);
+    Field leftFlattenedType = Schemas.flatten(dictionaryProvider, left.getField());
+    Field rightFlattenedType = Schemas.flatten(dictionaryProvider, right.getField());
+    Types.MinorType leftMinorType = Types.getMinorTypeForArrowType(leftFlattenedType.getType());
+    Types.MinorType rightMinorType = Types.getMinorTypeForArrowType(rightFlattenedType.getType());
+
+    if (Objects.equals(leftMinorType, rightMinorType)) {
+      evaluateSameType(
+          dictionaryProvider,
+          left,
+          right,
+          rowCount,
+          selection,
+          consumer);
     } else if (Schemas.isNumeric(left.getMinorType()) && Schemas.isNumeric(right.getMinorType())) {
+      // TODO: cast only selected indices
       try (FieldVector leftCast = castFunction.evaluate(allocator, left);
-          FieldVector rightCast = castFunction.evaluate(allocator, right)) {
-        evaluateSameType(consumer, selection, leftCast, rightCast);
+           FieldVector rightCast = castFunction.evaluate(allocator, right)) {
+        evaluateSameType(
+            dictionaryProvider,
+            leftCast,
+            rightCast,
+            rowCount,
+            selection,
+            consumer);
       }
     } else {
-      throw new ArgumentException(this, Schemas.of(left, right), "Cannot compare given types");
+      throw new ArgumentException(this, Schemas.of(leftFlattenedType, rightFlattenedType), "Cannot compare given types");
     }
   }
 
+
   private void evaluateSameType(
-      BiConsumer<Integer, Boolean> consumer,
-      BaseIntVector selection,
+      @Nullable DictionaryProvider dictionaryProvider,
       FieldVector left,
-      FieldVector right)
+      FieldVector right,
+      int rowCount,
+      @Nullable BaseIntVector selection,
+      IntBooleanConsumer consumer)
+      throws NotAllowTypeException {
+    if (dictionaryProvider == null) {
+      evaluateSameType(
+          left,
+          right,
+          rowCount,
+          selection,
+          null,
+          null,
+          consumer);
+      return;
+    }
+    DictionaryEncoding leftDictionaryEncoding = left.getField().getDictionary();
+    if (leftDictionaryEncoding == null) {
+      evaluateSameType(
+          dictionaryProvider,
+          left,
+          right,
+          rowCount,
+          selection,
+          null,
+          consumer);
+      return;
+    }
+    Dictionary rightDictionary = dictionaryProvider.lookup(leftDictionaryEncoding.getId());
+    evaluateSameType(
+        dictionaryProvider,
+        left,
+        rightDictionary.getVector(),
+        rowCount,
+        selection,
+        (BaseIntVector) left,
+        consumer);
+  }
+
+  private void evaluateSameType(
+      DictionaryProvider dictionaryProvider,
+      FieldVector left,
+      FieldVector right,
+      int rowCount,
+      @Nullable BaseIntVector selection,
+      @Nullable BaseIntVector leftIndices,
+      IntBooleanConsumer consumer)
+      throws NotAllowTypeException {
+    DictionaryEncoding rightDictionaryEncoding = right.getField().getDictionary();
+    if (rightDictionaryEncoding == null) {
+      evaluateSameType(
+          left,
+          right,
+          rowCount,
+          selection,
+          leftIndices,
+          null,
+          consumer);
+      return;
+    }
+    Dictionary rightDictionary = dictionaryProvider.lookup(rightDictionaryEncoding.getId());
+    evaluateSameType(
+        left,
+        rightDictionary.getVector(),
+        rowCount,
+        selection,
+        leftIndices,
+        (BaseIntVector) right,
+        consumer);
+  }
+
+
+  private void evaluateSameType(
+      FieldVector left,
+      FieldVector right,
+      int rowCount,
+      @Nullable BaseIntVector selection,
+      @Nullable BaseIntVector leftIndices,
+      @Nullable BaseIntVector rightIndices,
+      IntBooleanConsumer consumer)
       throws NotAllowTypeException {
     switch (left.getMinorType()) {
       case BIT:
-        evaluate(consumer, selection, (BitVector) left, (BitVector) right);
+        evaluate((BitVector) left, (BitVector) right, rowCount, selection, leftIndices, rightIndices, consumer);
         break;
       case INT:
-        evaluate(consumer, selection, (IntVector) left, (IntVector) right);
+        evaluate((IntVector) left, (IntVector) right, rowCount, selection, leftIndices, rightIndices, consumer);
         break;
       case BIGINT:
-        evaluate(consumer, selection, (BigIntVector) left, (BigIntVector) right);
+        evaluate((BigIntVector) left, (BigIntVector) right, rowCount, selection, leftIndices, rightIndices, consumer);
         break;
       case FLOAT4:
-        evaluate(consumer, selection, (Float4Vector) left, (Float4Vector) right);
+        evaluate((Float4Vector) left, (Float4Vector) right, rowCount, selection, leftIndices, rightIndices, consumer);
         break;
       case FLOAT8:
-        evaluate(consumer, selection, (Float8Vector) left, (Float8Vector) right);
+        evaluate((Float8Vector) left, (Float8Vector) right, rowCount, selection, leftIndices, rightIndices, consumer);
         break;
       case VARBINARY:
-        evaluate(consumer, selection, (VarBinaryVector) left, (VarBinaryVector) right);
+        evaluate((VarBinaryVector) left, (VarBinaryVector) right, rowCount, selection, leftIndices, rightIndices, consumer);
         break;
       default:
         throw new NotAllowTypeException(this, Schemas.of(left, right), 0);
@@ -154,90 +265,166 @@ public abstract class BinaryComparisonFunction extends BinaryPredicateFunction {
   }
 
   private void evaluate(
-      BiConsumer<Integer, Boolean> consumer,
-      BaseIntVector selection,
       BitVector left,
-      BitVector right) {
+      BitVector right,
+      int rowCount,
+      @Nullable BaseIntVector selection,
+      @Nullable BaseIntVector leftIndices,
+      @Nullable BaseIntVector rightIndices,
+      IntBooleanConsumer consumer) {
     genericEvaluate(
-        consumer, selection, left, right, index -> evaluate(left.get(index), right.get(index)));
+        left,
+        right,
+        rowCount,
+        selection,
+        leftIndices,
+        rightIndices,
+        consumer,
+        (l, r) -> evaluate(left.get(l), right.get(r))
+    );
   }
 
   private void evaluate(
-      BiConsumer<Integer, Boolean> consumer,
-      BaseIntVector selection,
       IntVector left,
-      IntVector right) {
+      IntVector right,
+      int rowCount,
+      @Nullable BaseIntVector selection,
+      @Nullable BaseIntVector leftIndices,
+      @Nullable BaseIntVector rightIndices,
+      IntBooleanConsumer consumer) {
     genericEvaluate(
-        consumer, selection, left, right, index -> evaluate(left.get(index), right.get(index)));
+        left,
+        right,
+        rowCount,
+        selection,
+        leftIndices,
+        rightIndices,
+        consumer,
+        (l, r) -> evaluate(left.get(l), right.get(r))
+    );
   }
 
   private void evaluate(
-      BiConsumer<Integer, Boolean> consumer,
-      BaseIntVector selection,
       BigIntVector left,
-      BigIntVector right) {
+      BigIntVector right,
+      int rowCount,
+      @Nullable BaseIntVector selection,
+      @Nullable BaseIntVector leftIndices,
+      @Nullable BaseIntVector rightIndices,
+      IntBooleanConsumer consumer) {
     genericEvaluate(
-        consumer, selection, left, right, index -> evaluate(left.get(index), right.get(index)));
+        left,
+        right,
+        rowCount,
+        selection,
+        leftIndices,
+        rightIndices,
+        consumer,
+        (l, r) -> evaluate(left.get(l), right.get(r))
+    );
   }
 
   private void evaluate(
-      BiConsumer<Integer, Boolean> consumer,
-      BaseIntVector selection,
       Float4Vector left,
-      Float4Vector right) {
+      Float4Vector right,
+      int rowCount,
+      @Nullable BaseIntVector selection,
+      @Nullable BaseIntVector leftIndices,
+      @Nullable BaseIntVector rightIndices,
+      IntBooleanConsumer consumer) {
     genericEvaluate(
-        consumer, selection, left, right, index -> evaluate(left.get(index), right.get(index)));
+        left,
+        right,
+        rowCount,
+        selection,
+        leftIndices,
+        rightIndices,
+        consumer,
+        (l, r) -> evaluate(left.get(l), right.get(r))
+    );
   }
 
   private void evaluate(
-      BiConsumer<Integer, Boolean> consumer,
-      BaseIntVector selection,
       Float8Vector left,
-      Float8Vector right) {
+      Float8Vector right,
+      int rowCount,
+      @Nullable BaseIntVector selection,
+      @Nullable BaseIntVector leftIndices,
+      @Nullable BaseIntVector rightIndices,
+      IntBooleanConsumer consumer) {
     genericEvaluate(
-        consumer, selection, left, right, index -> evaluate(left.get(index), right.get(index)));
+        left,
+        right,
+        rowCount,
+        selection,
+        leftIndices,
+        rightIndices,
+        consumer,
+        (l, r) -> evaluate(left.get(l), right.get(r))
+    );
   }
 
   private void evaluate(
-      BiConsumer<Integer, Boolean> consumer,
-      BaseIntVector selection,
       VarBinaryVector left,
-      VarBinaryVector right) {
+      VarBinaryVector right,
+      int rowCount,
+      @Nullable BaseIntVector selection,
+      @Nullable BaseIntVector leftIndices,
+      @Nullable BaseIntVector rightIndices,
+      IntBooleanConsumer consumer) {
     ArrowBufPointer leftPointer = new ArrowBufPointer();
     ArrowBufPointer rightPointer = new ArrowBufPointer();
     genericEvaluate(
-        consumer,
-        selection,
         left,
         right,
-        index -> {
-          left.getDataPointer(index, leftPointer);
-          right.getDataPointer(index, rightPointer);
+        rowCount,
+        selection,
+        leftIndices,
+        rightIndices,
+        consumer,
+        (l, r) -> {
+          left.getDataPointer(l, leftPointer);
+          right.getDataPointer(r, rightPointer);
           return evaluate(leftPointer, rightPointer);
         });
   }
 
   private static <T extends FieldVector> void genericEvaluate(
-      BiConsumer<Integer, Boolean> consumer,
-      BaseIntVector selection,
       T left,
       T right,
-      IntPredicate predicate) {
-    int rowCount = getRowCount(selection, left, right);
-    if (selection == null) {
-      for (int i = 0; i < rowCount; i++) {
-        boolean result = !left.isNull(i) && !right.isNull(i) && predicate.test(i);
-        consumer.accept(i, result);
+      int rowCount,
+      @Nullable BaseIntVector selection,
+      @Nullable BaseIntVector leftIndices,
+      @Nullable BaseIntVector rightIndices,
+      IntBooleanConsumer consumer,
+      IntIntPredicate predicate) {
+
+    for (int resultIndex = 0; resultIndex < rowCount; resultIndex++) {
+      int selectedIndex = resultIndex;
+      if (selection != null) {
+        selectedIndex = (int) selection.getValueAsLong(resultIndex);
       }
-    } else {
-      for (int selectionIndex = 0; selectionIndex < rowCount; selectionIndex++) {
-        int selectionValue = (int) selection.getValueAsLong(selectionIndex);
-        boolean result =
-            !left.isNull(selectionValue)
-                && !right.isNull(selectionValue)
-                && predicate.test(selectionValue);
-        consumer.accept(selectionValue, result);
+      int leftSelectedIndex = selectedIndex;
+      if (leftIndices != null) {
+        if (left.isNull(selectedIndex)) {
+          consumer.accept(selectedIndex, false);
+          continue;
+        }
+        leftSelectedIndex = (int) leftIndices.getValueAsLong(selectedIndex);
       }
+      int rightSelectedIndex = selectedIndex;
+      if (rightIndices != null) {
+        if (right.isNull(selectedIndex)) {
+          consumer.accept(selectedIndex, false);
+          continue;
+        }
+        rightSelectedIndex = (int) rightIndices.getValueAsLong(selectedIndex);
+      }
+      boolean result =
+          !left.isNull(leftSelectedIndex)
+              && !right.isNull(rightSelectedIndex)
+              && predicate.test(leftSelectedIndex, rightSelectedIndex);
+      consumer.accept(selectedIndex, result);
     }
   }
 

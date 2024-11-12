@@ -18,14 +18,16 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.predicate.expression;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.LiteralNode;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.predicate.SelectionBuilder;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.SelectionBuilder;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
-import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ConstantPool;
-import javax.annotation.Nullable;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ConstantPool;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.BaseIntVector;
 import org.apache.arrow.vector.BitVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
+import org.apache.arrow.vector.dictionary.DictionaryProvider;
+
+import javax.annotation.Nullable;
 
 public class FalseNode extends LiteralNode<BitVector> implements PredicateExpression {
 
@@ -39,9 +41,7 @@ public class FalseNode extends LiteralNode<BitVector> implements PredicateExpres
 
   @Nullable
   @Override
-  public BaseIntVector filter(
-      BufferAllocator allocator, @Nullable BaseIntVector selection, VectorSchemaRoot input)
-      throws ComputeException {
+  public BaseIntVector filter(BufferAllocator allocator, DictionaryProvider dictionaryProvider, VectorSchemaRoot input, @Nullable BaseIntVector selection) throws ComputeException {
     try (SelectionBuilder builder = new SelectionBuilder(allocator, "false", 0)) {
       return builder.build();
     }

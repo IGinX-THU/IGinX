@@ -15,16 +15,17 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.shared.data.arrow;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util;
 
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
-import javax.annotation.Nullable;
-import javax.annotation.WillNotClose;
 import org.apache.arrow.memory.ArrowBuf;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.*;
 import org.apache.arrow.vector.types.Types;
 import org.apache.arrow.vector.types.pojo.Field;
+
+import javax.annotation.Nullable;
+import javax.annotation.WillNotClose;
 
 public class ConstantVectors {
 
@@ -179,8 +180,7 @@ public class ConstantVectors {
   }
 
   public static void setAllValidity(@WillNotClose ValueVector vector, int valueCount) {
-    long byteCount = BitVectorHelper.getValidityBufferSize(valueCount);
-    vector.getValidityBuffer().setOne(0, byteCount);
+    setOne(vector.getValidityBuffer(), 0, valueCount);
   }
 
   private static void setAllWithoutValidity(@WillNotClose BaseFixedWidthVector vector, int value) {
@@ -194,6 +194,25 @@ public class ConstantVectors {
     ArrowBuf dataBuffer = vector.getDataBuffer();
     for (long i = 0; i < vector.getValueCount(); i++) {
       dataBuffer.setLong(i * 8, value);
+    }
+  }
+
+  public static void setOne(ArrowBuf buffer, int bitIndex, int bitCount) {
+    while (bitCount > 0 && bitIndex % Byte.SIZE != 0) {
+      BitVectorHelper.setBit(buffer, bitIndex);
+      bitIndex++;
+      bitCount--;
+    }
+    int byteCount = bitCount / Byte.SIZE;
+    if (byteCount > 0) {
+      buffer.setOne(bitIndex / Byte.SIZE, byteCount);
+      bitIndex += byteCount * Byte.SIZE;
+      bitCount -= byteCount * Byte.SIZE;
+    }
+    while (bitCount > 0) {
+      BitVectorHelper.setBit(buffer, bitIndex);
+      bitIndex++;
+      bitCount--;
     }
   }
 }

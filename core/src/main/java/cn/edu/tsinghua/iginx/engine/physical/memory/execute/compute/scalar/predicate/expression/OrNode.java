@@ -20,17 +20,19 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.pred
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.CallNode;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpression;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.logic.Or;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.predicate.SelectionBuilder;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.SelectionBuilder;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
-import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ValueVectors;
-import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-import javax.annotation.Nullable;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ValueVectors;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.BaseIntVector;
 import org.apache.arrow.vector.BitVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
+import org.apache.arrow.vector.dictionary.DictionaryProvider;
+
+import javax.annotation.Nullable;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class OrNode extends CallNode<BitVector> implements PredicateExpression {
   private final List<PredicateExpression> children;
@@ -73,9 +75,7 @@ public class OrNode extends CallNode<BitVector> implements PredicateExpression {
 
   @Nullable
   @Override
-  public BaseIntVector filter(
-      BufferAllocator allocator, @Nullable BaseIntVector selection, VectorSchemaRoot input)
-      throws ComputeException {
+  public BaseIntVector filter(BufferAllocator allocator, DictionaryProvider dictionaryProvider, VectorSchemaRoot input, @Nullable BaseIntVector selection) throws ComputeException {
     Set<Integer> remainIndex = new HashSet<>();
     if (selection == null) {
       IntStream.range(0, input.getRowCount()).forEach(remainIndex::add);
@@ -85,20 +85,21 @@ public class OrNode extends CallNode<BitVector> implements PredicateExpression {
       }
     }
     try (SelectionBuilder selectionBuilder =
-        new SelectionBuilder(allocator, "or", input.getRowCount())) {
-      return filter(allocator, selection, input, children, selectionBuilder, remainIndex);
+             new SelectionBuilder(allocator, "or", input.getRowCount())) {
+      return filter(allocator, dictionaryProvider, input, selection, children, selectionBuilder, remainIndex);
     }
   }
 
   private static BaseIntVector filter(
       BufferAllocator allocator,
-      @Nullable BaseIntVector selection,
+      DictionaryProvider dictionaryProvider,
       VectorSchemaRoot input,
+      @Nullable BaseIntVector selection,
       List<PredicateExpression> children,
       SelectionBuilder resultBuilder,
       Set<Integer> remainIndex)
       throws ComputeException {
-    try (BaseIntVector subSelection = children.get(0).filter(allocator, selection, input)) {
+    try (BaseIntVector subSelection = children.get(0).filter(allocator, dictionaryProvider, input, selection)) {
       if (subSelection == null) {
         return ValueVectors.slice(allocator, selection, "or");
       }
@@ -115,18 +116,20 @@ public class OrNode extends CallNode<BitVector> implements PredicateExpression {
         return resultBuilder.build();
       }
       if (subSelection.getValueCount() == 0) {
-        return filter(allocator, selection, input, remainChildren, resultBuilder, remainIndex);
+        return filter(allocator, dictionaryProvider, input, selection, remainChildren, resultBuilder, remainIndex);
       }
       try (SelectionBuilder remainSelectionBuilder =
-          new SelectionBuilder(allocator, "or", remainIndex.size())) {
+               new SelectionBuilder(allocator, "or", remainIndex.size())) {
         for (int index : remainIndex) {
           remainSelectionBuilder.append(index);
         }
         try (BaseIntVector remainSelection = remainSelectionBuilder.build()) {
           return filter(
-              allocator, remainSelection, input, remainChildren, resultBuilder, remainIndex);
+              allocator, dictionaryProvider, input, remainSelection, remainChildren, resultBuilder, remainIndex);
         }
       }
     }
   }
+
+
 }

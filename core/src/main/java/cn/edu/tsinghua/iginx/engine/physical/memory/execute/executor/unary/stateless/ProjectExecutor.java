@@ -20,18 +20,22 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stat
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.PhysicalFunctions;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpression;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpressions;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.util.Batch;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
-import java.util.ArrayList;
-import java.util.List;
+import org.apache.arrow.util.Preconditions;
 import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.types.pojo.Schema;
 
-public class ProjectionUnaryExecutor extends StatelessUnaryExecutor {
+import java.util.ArrayList;
+import java.util.List;
+
+public class ProjectExecutor extends StatelessUnaryExecutor {
 
   protected final List<ScalarExpression<?>> expressions;
+  protected Schema outputSchema;
 
-  public ProjectionUnaryExecutor(
+  public ProjectExecutor(
       ExecutorContext context,
       Schema inputSchema,
       List<? extends ScalarExpression<?>> expressions) {
@@ -40,18 +44,30 @@ public class ProjectionUnaryExecutor extends StatelessUnaryExecutor {
   }
 
   @Override
+  public Schema getOutputSchema() throws ComputeException {
+    if (outputSchema == null) {
+      outputSchema = ScalarExpressions.getOutputSchema(context.getAllocator(), expressions, getInputSchema());
+    }
+    return outputSchema;
+  }
+
+  @Override
   public String getInfo() {
     return "Project" + expressions;
   }
 
   @Override
-  public void close() {}
+  public void close() {
+  }
 
   @Override
-  public VectorSchemaRoot compute(VectorSchemaRoot batch) throws ComputeException {
-    try (VectorSchemaRoot result =
-        ScalarExpressions.evaluateSafe(context.getAllocator(), expressions, batch)) {
-      return PhysicalFunctions.unnest(context.getAllocator(), result);
+  public Batch compute(Batch batch) throws ComputeException {
+    for (long id : batch.getDictionaryProvider().getDictionaryIds()) {
+      Preconditions.checkState(!batch.getDictionaryProvider().lookup(id).getVector().getMinorType().getType().isComplex());
+    }
+    try (VectorSchemaRoot result = ScalarExpressions.evaluate(context.getAllocator(), batch.getDictionaryProvider(), batch.getData(), batch.getSelection(), expressions)) {
+      VectorSchemaRoot unnested = PhysicalFunctions.unnest(context.getAllocator(), result);
+      return Batch.of(unnested, batch.getDictionaryProvider());
     }
   }
 }

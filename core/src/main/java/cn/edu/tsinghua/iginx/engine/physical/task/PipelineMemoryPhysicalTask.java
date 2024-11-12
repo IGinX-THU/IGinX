@@ -18,21 +18,21 @@
 package cn.edu.tsinghua.iginx.engine.physical.task;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.util.Batch;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutorFactory;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateless.StatelessUnaryExecutor;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.StopWatch;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.Batch;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
-import java.util.List;
-import java.util.Objects;
+import jdk.nashorn.internal.ir.annotations.Immutable;
+
 import javax.annotation.WillClose;
 import javax.annotation.WillCloseWhenClosed;
-import jdk.nashorn.internal.ir.annotations.Immutable;
-import org.apache.arrow.vector.VectorSchemaRoot;
+import java.util.List;
+import java.util.Objects;
 
 @Immutable
 public class PipelineMemoryPhysicalTask extends UnaryMemoryPhysicalTask {
@@ -66,7 +66,7 @@ public class PipelineMemoryPhysicalTask extends UnaryMemoryPhysicalTask {
       info = executor.toString();
     } catch (PhysicalException e) {
       try (BatchStream previousHolder = previous;
-          StatelessUnaryExecutor executorHolder = executor) {
+           StatelessUnaryExecutor executorHolder = executor) {
         throw e;
       }
     }
@@ -97,9 +97,9 @@ public class PipelineMemoryPhysicalTask extends UnaryMemoryPhysicalTask {
     public Batch getNext() throws PhysicalException {
       try (Batch sourceNext = source.getNext()) {
         try (StopWatch watch = new StopWatch(getMetrics()::accumulateCpuTime)) {
-          VectorSchemaRoot compute = executor.compute(sourceNext.raw());
-          getMetrics().accumulateAffectRows(sourceNext.getRowCount());
-          return Batch.of(compute);
+          Batch computed = executor.compute(sourceNext);
+          getMetrics().accumulateAffectRows(computed.getRowCount());
+          return computed;
         }
       }
     }

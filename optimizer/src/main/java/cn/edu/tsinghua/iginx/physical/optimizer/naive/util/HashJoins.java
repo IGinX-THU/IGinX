@@ -22,23 +22,21 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expre
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.FieldNode;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpression;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.hash.Hash;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.logic.And;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.predicate.compare.Equal;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.predicate.expression.PredicateExpression;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.binary.stateful.HashJoinExecutor;
-import cn.edu.tsinghua.iginx.engine.shared.data.arrow.Schemas;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.Schemas;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.BoolFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
-import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-import org.apache.arrow.vector.BitVector;
 import org.apache.arrow.vector.IntVector;
 import org.apache.arrow.vector.types.pojo.Schema;
 import org.apache.commons.lang3.tuple.Pair;
+
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class HashJoins {
 
@@ -51,30 +49,40 @@ public class HashJoins {
       throws ComputeException {
 
     Map<Pair<Integer, Integer>, Op> pathPairOps = new HashMap<>();
-    Set<Integer> leftOnFieldIndices = new HashSet<>();
-    Set<Integer> rightOnFieldIndices = new HashSet<>();
+    Filter filterWithoutPathPairOpsInnerAndFilter = Filters.parseJoinFilter(filter, leftSchema, rightSchema, pathPairOps);
 
-    if (!filter.equals(new BoolFilter(true))) {
-      Filters.parseJoinFilter(
-          filter, leftSchema, rightSchema, pathPairOps, leftOnFieldIndices, rightOnFieldIndices);
+    return constructHashJoin(
+        context,
+        leftSchema,
+        rightSchema,
+        filterWithoutPathPairOpsInnerAndFilter,
+        pathPairOps,
+        joinOption);
+  }
+
+  private static HashJoinExecutor constructHashJoin(
+      ExecutorContext context,
+      BatchSchema leftSchema,
+      BatchSchema rightSchema,
+      Filter filterWithoutPathPairOpsInnerAndFilter,
+      Map<Pair<Integer, Integer>, Op> pathPairOps,
+      JoinOption joinOption)
+      throws ComputeException {
+
+    // get matcher
+    List<PredicateExpression> matchers = new ArrayList<>();
+    for (Map.Entry<Pair<Integer, Integer>, Op> entry : pathPairOps.entrySet()) {
+      Pair<Integer, Integer> pathPair = entry.getKey();
+      Op op = entry.getValue();
+      matchers.add(Filters.construct(pathPair.getLeft(), pathPair.getRight() + leftSchema.getFieldCount(), op));
     }
-
-    List<Pair<Integer, Integer>> sameNameIndicesPairs = new ArrayList<>();
-    Set<String> sameNameEqualPaths = new HashSet<>();
-
-    pathPairOps
-        .keySet()
-        .forEach(
-            pathPair -> {
-              if (Objects.equals(
-                  leftSchema.getName(pathPair.getLeft()),
-                  rightSchema.getName(pathPair.getRight()))) {
-                sameNameEqualPaths.add(leftSchema.getName(pathPair.getLeft()));
-                sameNameIndicesPairs.add(pathPair);
-              }
-              leftOnFieldIndices.add(pathPair.getLeft());
-              rightOnFieldIndices.add(pathPair.getRight());
-            });
+    PredicateExpression otherMatcher = Filters.construct(
+        filterWithoutPathPairOpsInnerAndFilter,
+        context,
+        BatchSchema.of(Schemas.merge(leftSchema.raw(), rightSchema.raw()))
+    );
+    matchers.add(otherMatcher);
+    PredicateExpression matcher = Filters.and(matchers);
 
     // get hasher
     Map<Pair<Integer, Integer>, Op> pathPairEqualOps =
@@ -96,92 +104,36 @@ public class HashJoins {
                 .map(FieldNode::new)
                 .collect(Collectors.toList()));
 
-    // get on field indices
-    List<Integer> leftOnFieldIndicesList =
-        leftOnFieldIndices.stream().sorted().collect(Collectors.toList());
-    List<Integer> rightOnFieldIndicesListWithoutSameNameField =
-        rightOnFieldIndices.stream()
-            .sorted()
-            .filter(i -> !sameNameEqualPaths.contains(rightSchema.getName(i)))
-            .collect(Collectors.toList());
-    List<Integer> rightOnFieldIndicesList =
-        new ArrayList<>(rightOnFieldIndicesListWithoutSameNameField);
-    sameNameIndicesPairs.forEach(pair -> rightOnFieldIndicesList.add(pair.getRight()));
-
-    // get on fields pair tester without same name fields
-    Schema leftOnFieldsSchema =
-        new Schema(
-            leftOnFieldIndicesList.stream()
-                .map(leftSchema.raw().getFields()::get)
-                .collect(Collectors.toList()));
-    Schema rightOnFieldsSchemaWithoutSameNameField =
-        new Schema(
-            rightOnFieldIndicesListWithoutSameNameField.stream()
-                .map(rightSchema.raw().getFields()::get)
-                .collect(Collectors.toList()));
-    Schema rightOnFieldsSchema =
-        new Schema(
-            rightOnFieldIndicesList.stream()
-                .map(rightSchema.raw().getFields()::get)
-                .collect(Collectors.toList()));
-
-    // get on fields pair tester
-    List<Pair<Integer, Integer>> OnFieldsSameNameIndicesPairs =
-        getSameNameIndicesPairs(sameNameEqualPaths, leftOnFieldsSchema, rightOnFieldsSchema);
-    List<ScalarExpression<BitVector>> onFieldsPairTesters =
-        OnFieldsSameNameIndicesPairs.stream()
-            .map(
-                pair ->
-                    new CallNode<>(
-                        new Equal(),
-                        new FieldNode(pair.getLeft()),
-                        new FieldNode(pair.getRight() + leftOnFieldsSchema.getFields().size())))
-            .collect(Collectors.toList());
-
-    if (!filter.equals(new BoolFilter(true))) {
-      ScalarExpression<BitVector> onFieldsPairTesterWithoutSameNameFields =
-          Filters.construct(
-              filter,
-              context,
-              BatchSchema.of(
-                  Schemas.merge(leftOnFieldsSchema, rightOnFieldsSchemaWithoutSameNameField)));
-      onFieldsPairTesters.add(onFieldsPairTesterWithoutSameNameFields);
+    // get field indices
+    Set<String> sameNameEqualPaths = pathPairEqualOps.keySet().stream()
+        .filter(pair -> Objects.equals(leftSchema.getName(pair.getLeft()), rightSchema.getName(pair.getRight())))
+        .map(pair -> leftSchema.getName(pair.getLeft()))
+        .collect(Collectors.toSet());
+    List<ScalarExpression<?>> outputExpressions = new ArrayList<>();
+    if (!joinOption.needMark()) {
+      outputExpressions.addAll(
+          IntStream.range(0, leftSchema.getFieldCount())
+              .filter(i -> !sameNameEqualPaths.contains(leftSchema.getName(i)))
+              .mapToObj(FieldNode::new)
+              .collect(Collectors.toList())
+      );
     }
-
-    ScalarExpression<BitVector> onFieldsPairTester =
-        onFieldsPairTesters.stream()
-            .reduce((left, right) -> new CallNode<>(new And(), left, right))
-            .orElseThrow(() -> new IllegalStateException("onFieldsPairTesters is empty"));
-
-    // get left and right of on fields pair expressions
-    List<FieldNode> leftOnFieldExpressions =
-        leftOnFieldIndicesList.stream().map(FieldNode::new).collect(Collectors.toList());
-    List<FieldNode> rightOnFieldExpressions =
-        rightOnFieldIndicesList.stream().map(FieldNode::new).collect(Collectors.toList());
-
-    // get left and right output expressions
-    int leftFieldStartIndex = leftSchema.hasKey() ? 1 : 0;
-    int rightFieldStartIndex = rightSchema.hasKey() ? 1 : 0;
-    List<ScalarExpression<?>> leftOutputExpressions =
-        IntStream.range(leftFieldStartIndex, leftSchema.raw().getFields().size())
-            .filter(i -> !sameNameEqualPaths.contains(leftSchema.getName(i)))
-            .mapToObj(FieldNode::new)
-            .collect(Collectors.toList());
-    List<ScalarExpression<?>> rightOutputExpressions =
-        IntStream.range(rightFieldStartIndex, rightSchema.raw().getFields().size())
-            .mapToObj(FieldNode::new)
-            .collect(Collectors.toList());
+    outputExpressions.addAll(
+        IntStream.range(0, rightSchema.getFieldCount())
+            .mapToObj(i -> new FieldNode(i + leftSchema.getFieldCount()))
+            .collect(Collectors.toList())
+    );
+    if (joinOption.needMark()) {
+      outputExpressions.add(new FieldNode(leftSchema.getFieldCount() + rightSchema.getFieldCount(), joinOption.markColumnName()));
+    }
 
     return new HashJoinExecutor(
         context,
         leftSchema,
         rightSchema,
         joinOption,
-        joinOption.needMark() ? Collections.emptyList() : leftOutputExpressions,
-        rightOutputExpressions,
-        leftOnFieldExpressions,
-        rightOnFieldExpressions,
-        onFieldsPairTester,
+        matcher,
+        outputExpressions,
         leftHasher,
         rightHasher);
   }

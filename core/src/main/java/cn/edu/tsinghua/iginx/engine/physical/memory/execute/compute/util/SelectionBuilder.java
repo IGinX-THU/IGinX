@@ -15,27 +15,22 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.predicate;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util;
 
-import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ConstantVectors;
-import org.apache.arrow.memory.ArrowBuf;
 import org.apache.arrow.memory.BufferAllocator;
-import org.apache.arrow.vector.BaseIntVector;
 import org.apache.arrow.vector.IntVector;
 import org.apache.arrow.vector.types.Types;
+import org.apache.arrow.vector.types.pojo.Field;
 import org.apache.arrow.vector.types.pojo.FieldType;
 
 public class SelectionBuilder implements AutoCloseable {
 
   private IntVector selection;
-  private final ArrowBuf dataBuffer;
   private int index = 0;
 
-  public SelectionBuilder(BufferAllocator allocator, String name, int capacity) {
-    selection =
-        new IntVector(name, FieldType.notNullable(Types.MinorType.INT.getType()), allocator);
-    selection.allocateNew(capacity);
-    dataBuffer = selection.getDataBuffer();
+  public SelectionBuilder(BufferAllocator allocator, String name, int initCapacity) {
+    selection = new IntVector(new Field(name, FieldType.notNullable(Types.MinorType.INT.getType()), null), allocator);
+    selection.allocateNew(initCapacity);
   }
 
   @Override
@@ -46,12 +41,20 @@ public class SelectionBuilder implements AutoCloseable {
   }
 
   public void append(int integer) {
-    dataBuffer.setInt(index * (long) Integer.BYTES, integer);
+    if (index >= selection.getValueCapacity()) {
+      selection.reAlloc();
+    }
+    selection.getDataBuffer().setInt(index * (long) Integer.BYTES, integer);
     index++;
   }
 
-  public BaseIntVector build() {
-    ConstantVectors.setValueCountWithValidity(selection, index);
+  public IntVector build() {
+    return build(index);
+  }
+
+  public IntVector build(int count) {
+    ConstantVectors.setAllValidity(selection, index);
+    selection.setValueCount(count);
     IntVector selection = this.selection;
     this.selection = null;
     return selection;

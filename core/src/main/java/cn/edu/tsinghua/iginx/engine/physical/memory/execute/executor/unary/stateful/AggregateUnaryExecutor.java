@@ -24,17 +24,18 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.e
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputingCloseables;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
-import java.util.*;
-import java.util.stream.Collectors;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.util.Batch;
 import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.types.pojo.Schema;
+
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class AggregateUnaryExecutor extends StatefulUnaryExecutor {
 
   private final List<ExpressionAccumulator> accumulators;
   private final Schema outputSchema;
   private final List<Accumulator.State> states;
-  private final Queue<VectorSchemaRoot> readyBatches = new LinkedList<>();
 
   public AggregateUnaryExecutor(
       ExecutorContext context, Schema inputSchema, List<ExpressionAccumulator> accumulators)
@@ -72,8 +73,10 @@ public class AggregateUnaryExecutor extends StatefulUnaryExecutor {
   }
 
   @Override
-  protected void consumeUnchecked(VectorSchemaRoot batch) throws ComputeException {
-    ExpressionAccumulators.update(accumulators, states, batch);
+  protected void consumeUnchecked(Batch batch) throws ComputeException {
+    try (VectorSchemaRoot flattened = batch.flattened(context.getAllocator())) {
+      ExpressionAccumulators.update(accumulators, states, flattened);
+    }
   }
 
   @Override
@@ -81,7 +84,8 @@ public class AggregateUnaryExecutor extends StatefulUnaryExecutor {
     List<List<Accumulator.State>> statesColumns =
         this.states.stream().map(Collections::singletonList).collect(Collectors.toList());
     try (VectorSchemaRoot root = ExpressionAccumulators.evaluateSafe(accumulators, statesColumns)) {
-      offerResult(PhysicalFunctions.unnest(context.getAllocator(), root));
+      VectorSchemaRoot unnested = PhysicalFunctions.unnest(context.getAllocator(), root);
+      offerResult(Batch.of(unnested));
     }
   }
 }

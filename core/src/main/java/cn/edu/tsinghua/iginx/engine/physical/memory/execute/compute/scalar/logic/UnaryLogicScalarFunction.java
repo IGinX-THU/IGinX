@@ -22,8 +22,8 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.Unary
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.CallContracts;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.NotAllowTypeException;
-import cn.edu.tsinghua.iginx.engine.shared.data.arrow.Schemas;
-import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ValueVectors;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.Schemas;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ValueVectors;
 import javax.annotation.Nullable;
 import org.apache.arrow.memory.ArrowBuf;
 import org.apache.arrow.memory.BufferAllocator;

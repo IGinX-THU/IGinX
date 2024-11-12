@@ -19,7 +19,8 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stat
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
-import cn.edu.tsinghua.iginx.engine.shared.data.arrow.VectorSchemaRoots;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.VectorSchemaRoots;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.util.Batch;
 import org.apache.arrow.util.Preconditions;
 import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.types.pojo.Schema;
@@ -55,14 +56,13 @@ public class LimitUnaryExecutor extends StatefulUnaryExecutor {
   }
 
   @Override
-  protected void consumeUnchecked(VectorSchemaRoot batch) throws ComputeException {
+  protected void consumeUnchecked(Batch batch) throws ComputeException {
     int slicedStartIndex = (int) Math.min(batch.getRowCount(), Math.max(0, offset - currentOffset));
     int slicedEndIndex =
         (int) Math.min(batch.getRowCount(), Math.max(0, offset + limit - currentOffset));
     int slicedRowCount = slicedEndIndex - slicedStartIndex;
     if (slicedRowCount > 0) {
-      offerResult(
-          VectorSchemaRoots.slice(context.getAllocator(), batch, slicedStartIndex, slicedRowCount));
+      offerResult(batch.slice(context.getAllocator(), slicedStartIndex, slicedRowCount));
     }
     currentOffset += batch.getRowCount();
   }

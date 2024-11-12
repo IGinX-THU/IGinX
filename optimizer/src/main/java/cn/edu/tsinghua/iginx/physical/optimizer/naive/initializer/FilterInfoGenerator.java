@@ -17,20 +17,18 @@
  */
 package cn.edu.tsinghua.iginx.physical.optimizer.naive.initializer;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.FieldNode;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.predicate.expression.PredicateExpression;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutorFactory;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateful.FilterUnaryExecutor;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateless.FilterExecutor;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.physical.optimizer.naive.util.Filters;
-import cn.edu.tsinghua.iginx.physical.optimizer.naive.util.Generators;
-import java.util.List;
+
 import java.util.Objects;
 
-public class FilterInfoGenerator implements UnaryExecutorFactory<FilterUnaryExecutor> {
+public class FilterInfoGenerator implements UnaryExecutorFactory<FilterExecutor> {
 
   private final Filter filter;
 
@@ -39,15 +37,9 @@ public class FilterInfoGenerator implements UnaryExecutorFactory<FilterUnaryExec
   }
 
   @Override
-  public FilterUnaryExecutor initialize(ExecutorContext context, BatchSchema inputSchema)
+  public FilterExecutor initialize(ExecutorContext context, BatchSchema inputSchema)
       throws ComputeException {
-    PredicateExpression condition = getCondition(context, inputSchema);
-    List<FieldNode> outputExpressions = Generators.allFieldExpressions(inputSchema.getFieldCount());
-    return new FilterUnaryExecutor(context, inputSchema.raw(), condition, outputExpressions);
-  }
-
-  public PredicateExpression getCondition(ExecutorContext context, BatchSchema inputSchema)
-      throws ComputeException {
-    return Filters.construct(filter, context, inputSchema);
+    PredicateExpression condition = Filters.construct(filter, context, inputSchema);
+    return new FilterExecutor(context, inputSchema.raw(), condition);
   }
 }

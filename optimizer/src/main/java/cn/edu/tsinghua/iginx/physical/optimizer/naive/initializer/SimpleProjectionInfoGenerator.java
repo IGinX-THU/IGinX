@@ -22,7 +22,7 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expre
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutorFactory;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateless.ProjectionUnaryExecutor;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateless.ProjectExecutor;
 import cn.edu.tsinghua.iginx.engine.shared.Constants;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.operator.*;
@@ -33,7 +33,7 @@ import java.util.regex.Pattern;
 import org.apache.arrow.vector.types.pojo.Field;
 
 public class SimpleProjectionInfoGenerator
-    implements UnaryExecutorFactory<ProjectionUnaryExecutor> {
+    implements UnaryExecutorFactory<ProjectExecutor> {
 
   private final Operator operator;
 
@@ -42,10 +42,10 @@ public class SimpleProjectionInfoGenerator
   }
 
   @Override
-  public ProjectionUnaryExecutor initialize(ExecutorContext context, BatchSchema inputSchema)
+  public ProjectExecutor initialize(ExecutorContext context, BatchSchema inputSchema)
       throws ComputeException {
     List<ScalarExpression<?>> expressions = getExpression(context, inputSchema);
-    return new ProjectionUnaryExecutor(context, inputSchema.raw(), expressions);
+    return new ProjectExecutor(context, inputSchema.raw(), expressions);
   }
 
   public List<ScalarExpression<?>> getExpression(ExecutorContext context, BatchSchema inputSchema) {

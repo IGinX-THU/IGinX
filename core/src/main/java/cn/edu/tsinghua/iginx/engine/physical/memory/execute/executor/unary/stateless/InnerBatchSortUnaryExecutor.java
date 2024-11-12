@@ -18,48 +18,52 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateless;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.PhysicalFunctions;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpression;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpressions;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.sort.IndexSortExpression;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ValueVectors;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.util.Batch;
+import org.apache.arrow.vector.BaseIntVector;
 import org.apache.arrow.vector.IntVector;
-import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.types.pojo.Schema;
+
+import java.util.Objects;
 
 public class InnerBatchSortUnaryExecutor extends StatelessUnaryExecutor {
 
   private final IndexSortExpression indexSortExpression;
-  private final List<ScalarExpression<?>> outputExpressions;
 
   public InnerBatchSortUnaryExecutor(
       ExecutorContext context,
       Schema inputSchema,
-      IndexSortExpression indexSortExpression,
-      List<? extends ScalarExpression<?>> outputExpressions) {
+      IndexSortExpression indexSortExpression) {
     super(context, inputSchema);
     this.indexSortExpression = Objects.requireNonNull(indexSortExpression);
-    this.outputExpressions = new ArrayList<>(outputExpressions);
+  }
+
+  @Override
+  public Schema getOutputSchema() throws ComputeException {
+    return getInputSchema();
   }
 
   @Override
   protected String getInfo() {
-    return "InnerBatchSort" + outputExpressions + "By" + indexSortExpression.getOptions();
+    return "SortBatch by " + indexSortExpression;
   }
 
   @Override
-  public void close() throws ComputeException {}
+  public void close() throws ComputeException {
+  }
 
   @Override
-  public VectorSchemaRoot compute(VectorSchemaRoot batch) throws ComputeException {
-    try (IntVector sortedIndices =
-            ScalarExpressions.evaluateSafe(context.getAllocator(), indexSortExpression, batch);
-        VectorSchemaRoot output =
-            ScalarExpressions.evaluateSafe(context.getAllocator(), outputExpressions, batch)) {
-      return PhysicalFunctions.take(context.getAllocator(), sortedIndices, output);
+  public Batch compute(Batch batch) throws ComputeException {
+    try (IntVector sortedIndices = ScalarExpressions.evaluate(context.getAllocator(), batch.getDictionaryProvider(), batch.getData(), batch.getSelection(), indexSortExpression)) {
+      if (batch.getSelection() == null) {
+        return batch.sliceWith(context.getAllocator(), ValueVectors.transfer(context.getAllocator(), sortedIndices));
+      }
+      BaseIntVector sortedSelection = PhysicalFunctions.take(context.getAllocator(), sortedIndices, batch.getSelection());
+      return batch.sliceWith(context.getAllocator(), sortedSelection);
     }
   }
 }

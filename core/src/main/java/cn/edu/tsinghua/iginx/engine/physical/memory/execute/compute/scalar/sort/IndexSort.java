@@ -24,7 +24,7 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.Compare
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.row.RowCursor;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.row.RowCursorComparator;
-import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ValueVectors;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ValueVectors;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;

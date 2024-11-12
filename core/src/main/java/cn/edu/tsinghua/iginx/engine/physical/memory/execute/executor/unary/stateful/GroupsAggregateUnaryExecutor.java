@@ -22,12 +22,13 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.g
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpression;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
-import cn.edu.tsinghua.iginx.engine.shared.data.arrow.VectorSchemaRoots;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.util.Batch;
+import org.apache.arrow.vector.VectorSchemaRoot;
+import org.apache.arrow.vector.types.pojo.Schema;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import org.apache.arrow.vector.VectorSchemaRoot;
-import org.apache.arrow.vector.types.pojo.Schema;
 
 public class GroupsAggregateUnaryExecutor extends StatefulUnaryExecutor {
 
@@ -80,15 +81,17 @@ public class GroupsAggregateUnaryExecutor extends StatefulUnaryExecutor {
   }
 
   @Override
-  protected void consumeUnchecked(VectorSchemaRoot batch) throws ComputeException {
-    groupTableBuilder.add(batch);
+  protected void consumeUnchecked(Batch batch) throws ComputeException {
+    try (VectorSchemaRoot flattened = batch.flattened(context.getAllocator())) {
+      groupTableBuilder.add(flattened);
+    }
   }
 
   @Override
   protected void consumeEnd() throws ComputeException {
     try (GroupTable groupTable = groupTableBuilder.build()) {
       for (VectorSchemaRoot group : groupTable.getGroups()) {
-        offerResult(VectorSchemaRoots.slice(context.getAllocator(), group));
+        offerResult(Batch.of(group));
       }
     }
   }

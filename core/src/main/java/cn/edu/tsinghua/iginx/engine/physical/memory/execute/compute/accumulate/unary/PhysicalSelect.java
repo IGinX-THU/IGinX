@@ -19,7 +19,7 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.NotAllowTypeException;
-import cn.edu.tsinghua.iginx.engine.shared.data.arrow.Schemas;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.Schemas;
 import java.util.function.IntConsumer;
 import java.util.function.Supplier;
 import org.apache.arrow.memory.BufferAllocator;

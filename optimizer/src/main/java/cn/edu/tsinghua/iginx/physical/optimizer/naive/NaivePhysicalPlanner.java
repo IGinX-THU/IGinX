@@ -28,6 +28,8 @@ import cn.edu.tsinghua.iginx.engine.shared.source.FragmentSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 import cn.edu.tsinghua.iginx.physical.optimizer.naive.initializer.*;
+import cn.edu.tsinghua.iginx.physical.optimizer.naive.util.Joins;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -206,7 +208,7 @@ public class NaivePhysicalPlanner {
 
     if (operator.getFilter() != null) {
       sourceTask =
-          new UnarySinkMemoryPhysicalTask(
+          new PipelineMemoryPhysicalTask(
               sourceTask,
               Collections.singletonList(new Select(source, operator.getFilter(), null)),
               context,
@@ -297,6 +299,11 @@ public class NaivePhysicalPlanner {
   }
 
   public PhysicalTask construct(InnerJoin operator, RequestContext context) {
+    // NOTE: The order of left and right task is reversed in InnerJoin
+    // 这里以及后面交换了左右两个表的顺序，原因是在之前基于行的实现中，右表是BuildSide，左表是ProbeSide
+    // 现在基于列的实现中，左表是BuildSide，右表是ProbeSide
+    operator = Joins.reverse(operator);
+
     PhysicalTask leftTask = fetchAll(operator.getSourceA(), context);
     PhysicalTask rightTask = fetchAll(operator.getSourceB(), context);
 
@@ -309,6 +316,8 @@ public class NaivePhysicalPlanner {
   }
 
   public PhysicalTask construct(OuterJoin operator, RequestContext context) {
+    operator = Joins.reverse(operator);
+
     PhysicalTask leftTask = fetchAll(operator.getSourceA(), context);
     PhysicalTask rightTask = fetchAll(operator.getSourceB(), context);
 
@@ -321,12 +330,14 @@ public class NaivePhysicalPlanner {
   }
 
   public PhysicalTask construct(MarkJoin operator, RequestContext context) {
+    operator = Joins.reverse(operator);
+
     PhysicalTask leftTask = fetchAll(operator.getSourceA(), context);
     PhysicalTask rightTask = fetchAll(operator.getSourceB(), context);
 
     return new BinarySinkMemoryPhysicalTask(
-        rightTask,
         leftTask,
+        rightTask,
         Collections.singletonList(operator),
         context,
         new MarkJoinInfoGenerator(operator));

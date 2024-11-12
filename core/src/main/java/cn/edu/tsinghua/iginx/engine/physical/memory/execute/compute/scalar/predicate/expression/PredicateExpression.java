@@ -21,4 +21,6 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expre
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.predicate.PredicateFunction;
 import org.apache.arrow.vector.BitVector;
 
-public interface PredicateExpression extends PredicateFunction, ScalarExpression<BitVector> {}
+public interface PredicateExpression extends PredicateFunction, ScalarExpression<BitVector> {
+  
+}

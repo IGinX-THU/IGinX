@@ -15,43 +15,94 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.shared.data.read;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.util;
 
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.*;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
+import org.apache.arrow.memory.BufferAllocator;
+import org.apache.arrow.vector.*;
+import org.apache.arrow.vector.holders.ValueHolder;
+import org.apache.arrow.vector.table.Table;
+import org.apache.arrow.vector.types.pojo.Schema;
+import org.apache.arrow.vector.util.TransferPair;
+
+import javax.annotation.Nullable;
+import javax.annotation.WillCloseWhenClosed;
+import javax.annotation.WillNotClose;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
-import javax.annotation.WillCloseWhenClosed;
-import javax.annotation.WillNotClose;
-import org.apache.arrow.memory.BufferAllocator;
-import org.apache.arrow.vector.BaseFixedWidthVector;
-import org.apache.arrow.vector.FieldVector;
-import org.apache.arrow.vector.ValueVector;
-import org.apache.arrow.vector.VectorSchemaRoot;
-import org.apache.arrow.vector.holders.ValueHolder;
-import org.apache.arrow.vector.table.Table;
-import org.apache.arrow.vector.types.pojo.Field;
-import org.apache.arrow.vector.util.TransferPair;
 
 public class Batch implements AutoCloseable {
 
-  private final transient BatchSchema schema;
   private final VectorSchemaRoot group;
+  private final CloseableDictionaryProvider dictionaryProvider;
+  private final BaseIntVector selection;
 
-  protected Batch(@WillCloseWhenClosed VectorSchemaRoot group) {
+  protected Batch(
+      @WillCloseWhenClosed VectorSchemaRoot group,
+      @WillCloseWhenClosed CloseableDictionaryProvider dictionaryProvider,
+      @Nullable @WillCloseWhenClosed BaseIntVector selection) {
     this.group = Objects.requireNonNull(group);
-    BatchSchema.Builder builder = new BatchSchema.Builder();
-    for (Field field : group.getSchema().getFields()) {
-      builder.addField(field);
-    }
-    this.schema = builder.build();
+    this.dictionaryProvider = Objects.requireNonNull(dictionaryProvider);
+    this.selection = selection;
   }
 
   public static Batch of(VectorSchemaRoot compute) {
-    return new Batch(compute);
+    return new Batch(compute, DictionaryProviders.emptyClosable(), null);
   }
 
-  public VectorSchemaRoot raw() {
+  public static Batch of(VectorSchemaRoot compute, CloseableDictionaryProvider dictionaryProvider) {
+    return new Batch(compute, dictionaryProvider, null);
+  }
+
+  public static Batch of(VectorSchemaRoot compute, CloseableDictionaryProvider dictionaryProvider, BaseIntVector selection) {
+    return new Batch(compute, dictionaryProvider, null);
+  }
+
+  public static Batch empty(BufferAllocator allocator, Schema outputSchema) {
+    return new Batch(VectorSchemaRoot.create(outputSchema, allocator), DictionaryProviders.emptyClosable(), null);
+  }
+
+  public VectorSchemaRoot getData() {
     return group;
+  }
+
+  public CloseableDictionaryProvider getDictionaryProvider() {
+    return dictionaryProvider;
+  }
+
+
+  public Batch sliceWith(BufferAllocator allocator, @WillCloseWhenClosed @Nullable BaseIntVector selection) {
+    return new Batch(VectorSchemaRoots.slice(allocator, group), dictionaryProvider.slice(allocator), selection);
+  }
+
+  @Nullable
+  public BaseIntVector getSelection() {
+    return selection;
+  }
+
+  @Nullable
+  public BaseIntVector getSelectionSlice(BufferAllocator allocator) {
+    if (selection == null) {
+      return null;
+    }
+    return ValueVectors.slice(allocator, selection);
+  }
+
+  public VectorSchemaRoot flattened(BufferAllocator allocator) {
+    return VectorSchemaRoots.flatten(allocator, dictionaryProvider, group, selection);
+  }
+
+  public Batch slice(BufferAllocator allocator) {
+    return new Batch(VectorSchemaRoots.slice(allocator, group), dictionaryProvider.slice(allocator), getSelectionSlice(allocator));
+  }
+
+  public Batch slice(BufferAllocator allocator, int slicedStartIndex, int slicedRowCount) {
+    if (selection != null) {
+      return new Batch(VectorSchemaRoots.slice(allocator, group), dictionaryProvider.slice(allocator), ValueVectors.slice(allocator, selection, slicedStartIndex, slicedRowCount));
+    }
+    return new Batch(VectorSchemaRoots.slice(allocator, group, slicedStartIndex, slicedRowCount), dictionaryProvider.slice(allocator), null);
   }
 
   public List<FieldVector> getVectors() {
@@ -62,21 +113,18 @@ public class Batch implements AutoCloseable {
     return group.getFieldVectors().get(index);
   }
 
-  public BatchSchema getSchema() {
-    return schema;
-  }
-
-  public FieldVector getKeyVector() {
-    FieldVector key = group.getVector(BatchSchema.KEY);
-    if (key == null) {
-      throw new IllegalStateException("Key vector is missing");
-    }
-    return key;
+  public Schema getSchema() {
+    // TODO: flatten schema
+    throw new UnsupportedOperationException("Not implemented");
   }
 
   @Override
   public void close() {
     group.close();
+    dictionaryProvider.close();
+    if (selection != null) {
+      selection.close();
+    }
   }
 
   public boolean isEmpty() {
@@ -102,12 +150,15 @@ public class Batch implements AutoCloseable {
   }
 
   public int getRowCount() {
+    if (selection != null) {
+      return selection.getValueCount();
+    }
     return group.getRowCount();
   }
 
   public static class Builder implements AutoCloseable {
     private final VectorSchemaRoot root;
-    private final List<ColumnBuilder> fieldBuilders;
+    private final ColumnBuilder[] fieldBuilders;
 
     public Builder(@WillNotClose BufferAllocator allocator, BatchSchema schema, int rowCount) {
       this(allocator, schema);
@@ -122,12 +173,13 @@ public class Batch implements AutoCloseable {
     public Builder(@WillNotClose BufferAllocator allocator, BatchSchema schema) {
       this.root = VectorSchemaRoot.create(schema.raw(), allocator);
       this.fieldBuilders =
-          root.getFieldVectors().stream().map(ColumnBuilder::create).collect(Collectors.toList());
+          root.getFieldVectors().stream().map(ColumnBuilder::create).toArray(ColumnBuilder[]::new);
     }
 
     @Override
     public void close() {
       root.close();
+
     }
 
     public VectorSchemaRoot raw() {
@@ -135,17 +187,17 @@ public class Batch implements AutoCloseable {
     }
 
     public Builder append(long key, Object... values) {
-      if (values.length + 1 != fieldBuilders.size()) {
+      if (values.length + 1 != fieldBuilders.length) {
         throw new IllegalArgumentException(
             "Expected key and "
-                + fieldBuilders.size()
+                + fieldBuilders.length
                 + " values, but got "
                 + values.length
                 + " values");
       }
-      fieldBuilders.get(0).append(key);
+      fieldBuilders[0].append(key);
       for (int i = 0; i < values.length; i++) {
-        fieldBuilders.get(i + 1).append(values[i]);
+        fieldBuilders[i + 1].append(values[i]);
       }
       return this;
     }
@@ -175,7 +227,7 @@ public class Batch implements AutoCloseable {
     public Batch build(int rowCount) {
       root.setRowCount(rowCount);
       try (Table table = new Table(root)) {
-        return new Batch(table.toVectorSchemaRoot());
+        return new Batch(table.toVectorSchemaRoot(), DictionaryProviders.emptyClosable(), null);
       }
     }
 

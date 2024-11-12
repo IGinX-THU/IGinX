@@ -26,12 +26,13 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.predi
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
-import cn.edu.tsinghua.iginx.engine.shared.data.arrow.Schemas;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.Schemas;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.thrift.DataType;
-import java.util.*;
 import org.apache.commons.lang3.tuple.Pair;
+
+import java.util.*;
 
 public class Filters {
 
@@ -98,10 +99,17 @@ public class Filters {
         || inputSchema.indexOf(filter.getPathB()) == null) {
       throw new ComputeException("Trying to compare non-existing path(s).");
     }
+    return construct(
+        inputSchema.indexOf(filter.getPathA()),
+        inputSchema.indexOf(filter.getPathB()),
+        filter.getOp());
+  }
+
+  public static PredicateExpression construct(int left, int right, Op op) {
     return new CompareNode(
-        getPredicate(filter.getOp()),
-        new FieldNode(inputSchema.indexOf(filter.getPathA())),
-        new FieldNode(inputSchema.indexOf(filter.getPathB())));
+        getPredicate(op),
+        new FieldNode(left),
+        new FieldNode(right));
   }
 
   private static List<PredicateExpression> construct(
@@ -225,91 +233,49 @@ public class Filters {
     }
   }
 
-  public static void parseJoinFilter(
+  public static Filter parseJoinFilter(
       Filter filter,
       BatchSchema leftSchema,
       BatchSchema rightSchema,
-      Map<Pair<Integer, Integer>, Op> pathPairOps,
-      Set<Integer> leftOnFieldIndices,
-      Set<Integer> rightOnFieldIndices)
+      Map<Pair<Integer, Integer>, Op> pathPairOps)
       throws ComputeException {
     switch (filter.getType()) {
-      case Value:
-        parseJoinFilter(
-            (ValueFilter) filter,
-            leftSchema,
-            rightSchema,
-            pathPairOps,
-            leftOnFieldIndices,
-            rightOnFieldIndices);
-        break;
       case Path:
-        parseJoinFilter(
+        return parseJoinFilter(
             (PathFilter) filter,
             leftSchema,
             rightSchema,
-            pathPairOps,
-            leftOnFieldIndices,
-            rightOnFieldIndices);
-        break;
-      case Bool:
-        break;
+            pathPairOps);
       case And:
-        parseJoinFilter(
+        return parseJoinFilter(
             (AndFilter) filter,
             leftSchema,
             rightSchema,
-            pathPairOps,
-            leftOnFieldIndices,
-            rightOnFieldIndices);
-        break;
-      case Key:
-      case Expr:
-      case Or:
-      case Not:
+            pathPairOps);
       default:
-        throw new IllegalStateException("Unexpected value: " + filter.getType());
+        return filter;
     }
   }
 
-  private static void parseJoinFilter(
+  private static Filter parseJoinFilter(
       AndFilter filter,
       BatchSchema leftSchema,
       BatchSchema rightSchema,
-      Map<Pair<Integer, Integer>, Op> pathPairOps,
-      Set<Integer> leftOnFieldIndices,
-      Set<Integer> rightOnFieldIndices)
+      Map<Pair<Integer, Integer>, Op> pathPairOps)
       throws ComputeException {
+    List<Filter> children = new ArrayList<>();
     for (Filter subFilter : filter.getChildren()) {
-      parseJoinFilter(
-          subFilter, leftSchema, rightSchema, pathPairOps, leftOnFieldIndices, rightOnFieldIndices);
+      Filter parsedFilter = parseJoinFilter(subFilter, leftSchema, rightSchema, pathPairOps);
+      children.add(parsedFilter);
     }
+    return new AndFilter(children);
   }
 
-  private static void parseJoinFilter(
-      ValueFilter filter,
-      BatchSchema leftSchema,
-      BatchSchema rightSchema,
-      Map<Pair<Integer, Integer>, Op> pathPairOps,
-      Set<Integer> leftOnFieldIndices,
-      Set<Integer> rightOnFieldIndices)
-      throws ComputeException {
-
-    List<Integer> leftMatchedIndices = Schemas.matchPattern(leftSchema.raw(), filter.getPath());
-    List<Integer> rightMatchedIndices = Schemas.matchPattern(rightSchema.raw(), filter.getPath());
-
-    leftOnFieldIndices.addAll(leftMatchedIndices);
-    rightOnFieldIndices.addAll(rightMatchedIndices);
-  }
-
-  private static void parseJoinFilter(
+  private static Filter parseJoinFilter(
       PathFilter filter,
       BatchSchema leftSchema,
       BatchSchema rightSchema,
-      Map<Pair<Integer, Integer>, Op> pathPairOps,
-      Set<Integer> leftOnFieldIndices,
-      Set<Integer> rightOnFieldIndices)
-      throws ComputeException {
+      Map<Pair<Integer, Integer>, Op> pathPairOps) {
 
     List<Integer> leftAMatchedIndices = Schemas.matchPattern(leftSchema.raw(), filter.getPathA());
     List<Integer> leftBMatchedIndices = Schemas.matchPattern(leftSchema.raw(), filter.getPathB());
@@ -319,18 +285,32 @@ public class Filters {
     if (leftAMatchedIndices.size() == 1 && rightBMatchedIndices.size() == 1) {
       pathPairOps.put(
           Pair.of(leftAMatchedIndices.get(0), rightBMatchedIndices.get(0)), filter.getOp());
-      return;
+      return new AndFilter(Collections.emptyList());
     }
 
     if (leftBMatchedIndices.size() == 1 && rightAMatchedIndices.size() == 1) {
       pathPairOps.put(
           Pair.of(leftBMatchedIndices.get(0), rightAMatchedIndices.get(0)), filter.getOp());
-      return;
+      return new AndFilter(Collections.emptyList());
     }
 
-    leftOnFieldIndices.addAll(leftAMatchedIndices);
-    leftOnFieldIndices.addAll(leftBMatchedIndices);
-    rightOnFieldIndices.addAll(rightAMatchedIndices);
-    rightOnFieldIndices.addAll(rightBMatchedIndices);
+    return filter;
+  }
+
+  public static PredicateExpression and(List<PredicateExpression> filters) {
+    List<PredicateExpression> result = getAndNodeSubPredicates(new AndNode(filters));
+    return new AndNode(result);
+  }
+
+  public static List<PredicateExpression> getAndNodeSubPredicates(PredicateExpression filter) {
+    if (filter instanceof AndNode) {
+      List<PredicateExpression> result = new ArrayList<>();
+      for (PredicateExpression subFilter : ((AndNode) filter).getSubPredicates()) {
+        result.addAll(getAndNodeSubPredicates(subFilter));
+      }
+      return result;
+    } else {
+      return Collections.singletonList(filter);
+    }
   }
 }

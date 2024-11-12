@@ -21,10 +21,8 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.PhysicalFunc
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.AbstractScalarFunction;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.Arity;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
-import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ConstantVectors;
-import java.util.List;
-import java.util.stream.Collectors;
-import javax.annotation.Nullable;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ConstantVectors;
+import org.apache.arrow.memory.ArrowBuf;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.BaseIntVector;
 import org.apache.arrow.vector.FieldVector;
@@ -33,6 +31,9 @@ import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.types.Types;
 import org.apache.arrow.vector.types.pojo.Field;
 import org.apache.arrow.vector.types.pojo.FieldType;
+
+import javax.annotation.Nullable;
+import java.util.stream.Collectors;
 
 public class Hash extends AbstractScalarFunction<IntVector> {
 
@@ -68,24 +69,16 @@ public class Hash extends AbstractScalarFunction<IntVector> {
     output.allocateNew(input.getRowCount());
     ConstantVectors.setValueCountWithValidity(output, input.getRowCount());
 
-    List<FieldVector> args = input.getFieldVectors();
-    if (!args.isEmpty()) {
-      FieldVector first = args.get(0);
-      for (int rowIndex = 0; rowIndex < input.getRowCount(); rowIndex++) {
-        set(output, rowIndex, first.hashCode(rowIndex));
+    ArrowBuf data = output.getDataBuffer();
+    FieldVector[] args = input.getFieldVectors().toArray(new FieldVector[0]);
+    for (int rowIndex = 0; rowIndex < input.getRowCount(); rowIndex++) {
+      int hash = 0;
+      for (FieldVector arg : args) {
+        hash = 31 * hash + arg.hashCode();
       }
-    }
-    for (int columnIndex = 1; columnIndex < args.size(); columnIndex++) {
-      FieldVector fieldVector = args.get(columnIndex);
-      for (int rowIndex = 0; rowIndex < input.getRowCount(); rowIndex++) {
-        int hash = 31 * output.hashCode(rowIndex) + fieldVector.hashCode(rowIndex);
-        set(output, rowIndex, hash);
-      }
+      data.setInt((long) rowIndex * IntVector.TYPE_WIDTH, rowIndex);
     }
     return output;
   }
 
-  private static void set(IntVector vector, int index, int value) {
-    vector.getDataBuffer().setInt((long) index * IntVector.TYPE_WIDTH, value);
-  }
 }

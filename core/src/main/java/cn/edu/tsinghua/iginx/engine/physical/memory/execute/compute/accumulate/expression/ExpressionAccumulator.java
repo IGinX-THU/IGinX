@@ -21,13 +21,14 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.A
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpression;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpressions;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
+import org.apache.arrow.memory.BufferAllocator;
+import org.apache.arrow.vector.FieldVector;
+import org.apache.arrow.vector.VectorSchemaRoot;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
-import org.apache.arrow.memory.BufferAllocator;
-import org.apache.arrow.vector.FieldVector;
-import org.apache.arrow.vector.VectorSchemaRoot;
 
 public class ExpressionAccumulator implements Accumulator {
 
@@ -52,7 +53,7 @@ public class ExpressionAccumulator implements Accumulator {
   @Override
   public void update(State state, VectorSchemaRoot input) throws ComputeException {
     try (VectorSchemaRoot expressionResult =
-        ScalarExpressions.evaluateSafe(allocator, expressions, input)) {
+             ScalarExpressions.evaluate(allocator, input, expressions)) {
       accumulator.update(state, expressionResult);
     }
   }
@@ -66,8 +67,8 @@ public class ExpressionAccumulator implements Accumulator {
   public String getName() {
     return accumulator.getName()
         + expressions.stream()
-            .map(ScalarExpression::toString)
-            .collect(Collectors.joining(", ", "(", ")"));
+        .map(ScalarExpression::toString)
+        .collect(Collectors.joining(", ", "(", ")"));
   }
 
   @Override
