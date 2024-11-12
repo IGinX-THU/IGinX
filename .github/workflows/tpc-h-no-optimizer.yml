@@ -1,4 +1,4 @@
-name: "TPC-H Regression Test With No Optimizer"
+name: "TPC-H Regression Test Without Optimizer"
 
 on:
     workflow_call:
@@ -30,7 +30,7 @@ on:
                 default: '["IoTDB12", "InfluxDB", "FileSystem", "PostgreSQL", "Redis", "MongoDB", "MySQL"]'
 
 jobs:
-    TPC-H-Test-Push_Down:
+    TPC-H-Test-Without-Optimizer:
         timeout-minutes: 35
         strategy:
             fail-fast: false
