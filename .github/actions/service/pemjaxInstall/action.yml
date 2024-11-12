@@ -13,7 +13,6 @@ runs:
           shell: bash
           run: |
               echo "PEMJAX_HOME=pemjax-${{ inputs.pemja-version }}-${{ runner.os}}" >> $GITHUB_ENV
-              echo "PANDAS_WHEEL=pandas-cp313t-win_amd64.whl" >> $GITHUB_ENV
               echo "PEMJAX_SOURCE_PATH=pemjax-${{ inputs.pemja-version }}.tar.gz" >> $GITHUB_ENV
 
         # not using cache here because only version can be cache-key, but will make it hard to test without version change
@@ -22,7 +21,7 @@ runs:
           shell: bash
           run: |
               curl -L -o ${{ env.PEMJAX_SOURCE_PATH }} https://github.com/IGinX-THU/IGinX-resources/raw/main/resources/python/pemjax-${{ inputs.pemja-version }}.tar.gz
-              curl -L -o ${{ env.PANDAS_WHEEL }} https://github.com/IGinX-THU/IGinX-resources/raw/refs/heads/main/resources/python/pandas-3.0.0.dev0-cp313-cp313t-win_amd64.whl
+              curl -L -O https://github.com/IGinX-THU/IGinX-resources/raw/refs/heads/main/resources/python/pandas-3.0.0.dev0+1654.g32a97a969a-cp313-cp313t-win_amd64.whl
               ls -l
 
         # when file changes, cache changes
@@ -72,7 +71,7 @@ runs:
           run: |
               if [ "$RUNNER_OS" == "Windows" ]; then
                 python3.13t -m pip install numpy thrift
-                python3.13t -m pip install ${{ env.PANDAS_WHEEL }}
+                python3.13t -m pip install pandas*.whl
               else
                 sudo python3.13t -m pip install pandas==2.2.3 numpy thrift
               fi
