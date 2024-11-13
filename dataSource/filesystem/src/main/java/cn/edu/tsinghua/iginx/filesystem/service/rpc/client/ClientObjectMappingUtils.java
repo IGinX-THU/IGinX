@@ -38,6 +38,7 @@ import cn.edu.tsinghua.iginx.utils.ByteUtils;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.nio.ByteBuffer;
 import java.util.*;
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -84,9 +85,21 @@ public class ClientObjectMappingUtils {
         return toRawFilter((BoolFilter) filter);
       case Path:
         return toRawFilter((PathFilter) filter);
+      case In:
+        return toRawFilter((InFilter) filter);
       default:
         throw new UnsupportedOperationException("unsupported filter type: " + filter.getType());
     }
+  }
+
+  private static RawFilter toRawFilter(InFilter filter) {
+    RawFilter raw = new RawFilter(RawFilterType.In);
+    raw.setPath(filter.getPath());
+    raw.setArray(
+        filter.getValues().stream()
+            .map(ClientObjectMappingUtils::toRawValue)
+            .collect(Collectors.toSet()));
+    return raw;
   }
 
   private static RawFilter toRawFilter(AndFilter filter) {
