@@ -19,15 +19,14 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util;
 
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
+import java.util.*;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.dictionary.Dictionary;
 import org.apache.arrow.vector.dictionary.DictionaryProvider;
 import org.apache.arrow.vector.types.Types;
 import org.apache.arrow.vector.types.pojo.*;
-
-import java.util.*;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 public class Schemas {
 

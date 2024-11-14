@@ -20,17 +20,16 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.pred
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.*;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.predicate.PredicateFunction;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.BaseIntVector;
 import org.apache.arrow.vector.BitVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.dictionary.DictionaryProvider;
-
-import javax.annotation.Nullable;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class CompareNode extends CallNode<BitVector> implements PredicateExpression {
 
@@ -55,14 +54,20 @@ public class CompareNode extends CallNode<BitVector> implements PredicateExpress
 
   @Nullable
   @Override
-  public BaseIntVector filter(BufferAllocator allocator, DictionaryProvider dictionaryProvider, VectorSchemaRoot input, @Nullable BaseIntVector selection) throws ComputeException {
+  public BaseIntVector filter(
+      BufferAllocator allocator,
+      DictionaryProvider dictionaryProvider,
+      VectorSchemaRoot input,
+      @Nullable BaseIntVector selection)
+      throws ComputeException {
     if (children.stream().allMatch(e -> e instanceof LiteralNode || e instanceof FieldNode)) {
-      try (VectorSchemaRoot args = ScalarExpressions.evaluate(allocator, dictionaryProvider, input, selection, children)) {
+      try (VectorSchemaRoot args =
+          ScalarExpressions.evaluate(allocator, dictionaryProvider, input, null, children)) {
         return function.filter(allocator, dictionaryProvider, args, selection);
       }
     }
     try (VectorSchemaRoot args =
-             ScalarExpressions.evaluate(allocator, dictionaryProvider, input, selection, children)) {
+        ScalarExpressions.evaluate(allocator, dictionaryProvider, input, selection, children)) {
       return function.filter(allocator, dictionaryProvider, args, null);
     }
   }

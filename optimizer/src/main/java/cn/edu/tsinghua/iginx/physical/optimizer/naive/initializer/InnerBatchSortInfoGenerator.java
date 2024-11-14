@@ -21,14 +21,13 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expre
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpression;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.sort.IndexSortExpression;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.CompareOption;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.Schemas;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutorFactory;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateless.InnerBatchSortUnaryExecutor;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.Schemas;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Sort;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;

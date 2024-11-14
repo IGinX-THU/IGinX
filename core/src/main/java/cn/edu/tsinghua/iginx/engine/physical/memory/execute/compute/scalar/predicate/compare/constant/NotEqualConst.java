@@ -15,45 +15,44 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.predicate.compare;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.predicate.compare.constant;
 
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.predicate.compare.NotEqual;
 import org.apache.arrow.memory.util.ArrowBufPointer;
 
-public class NotEqual extends BinaryComparisonFunction {
+public class NotEqualConst extends EqualConst {
 
-  public static final String NAME = "not_equal";
-
-  public NotEqual() {
-    super(NAME);
+  public NotEqualConst(Object value) {
+    super(NotEqual.NAME, value);
   }
 
   @Override
-  protected boolean evaluate(int left, int right) {
-    return left != right;
+  protected boolean evaluateImpl(boolean value) {
+    return !super.evaluateImpl(value);
   }
 
   @Override
-  protected boolean evaluate(long left, long right) {
-    return left != right;
+  protected boolean evaluateImpl(int value) {
+    return !super.evaluateImpl(value);
   }
 
   @Override
-  protected boolean evaluate(float left, float right) {
-    return left != right;
+  protected boolean evaluateImpl(long value) {
+    return !super.evaluateImpl(value);
   }
 
   @Override
-  protected boolean evaluate(double left, double right) {
-    return left != right;
+  protected boolean evaluateImpl(float value) {
+    return !super.evaluateImpl(value);
   }
 
   @Override
-  protected boolean evaluate(ArrowBufPointer left, ArrowBufPointer right) {
-    return !left.equals(right);
+  protected boolean evaluateImpl(double value) {
+    return !super.evaluateImpl(value);
   }
 
   @Override
-  public boolean equals(Object obj) {
-    return obj instanceof NotEqual;
+  protected boolean evaluateImpl(ArrowBufPointer value) {
+    return !super.evaluateImpl(value);
   }
 }

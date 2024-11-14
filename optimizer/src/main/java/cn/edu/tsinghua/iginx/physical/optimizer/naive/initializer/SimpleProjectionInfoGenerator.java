@@ -32,8 +32,7 @@ import java.util.*;
 import java.util.regex.Pattern;
 import org.apache.arrow.vector.types.pojo.Field;
 
-public class SimpleProjectionInfoGenerator
-    implements UnaryExecutorFactory<ProjectExecutor> {
+public class SimpleProjectionInfoGenerator implements UnaryExecutorFactory<ProjectExecutor> {
 
   private final Operator operator;
 

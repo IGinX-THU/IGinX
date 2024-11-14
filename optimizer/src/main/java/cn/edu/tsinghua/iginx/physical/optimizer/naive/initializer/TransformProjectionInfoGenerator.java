@@ -35,9 +35,9 @@ import cn.edu.tsinghua.iginx.physical.optimizer.naive.util.Expressions;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import org.apache.arrow.vector.types.pojo.Schema;
 
-public class TransformProjectionInfoGenerator
-    implements UnaryExecutorFactory<ProjectExecutor> {
+public class TransformProjectionInfoGenerator implements UnaryExecutorFactory<ProjectExecutor> {
 
   private static RowTransform operator = null;
 
@@ -60,14 +60,15 @@ public class TransformProjectionInfoGenerator
     }
     for (int targetIndex = 0; targetIndex < operator.getFunctionCallList().size(); targetIndex++) {
       FunctionCall functionCall = operator.getFunctionCallList().get(targetIndex);
-      ScalarExpression<?> expression = getPhysicalExpression(context, inputSchema, functionCall);
+      ScalarExpression<?> expression =
+          getPhysicalExpression(context, inputSchema.raw(), functionCall);
       ret.add(expression);
     }
     return ret;
   }
 
   private ScalarExpression<?> getPhysicalExpression(
-      ExecutorContext context, BatchSchema inputSchema, FunctionCall functionCall)
+      ExecutorContext context, Schema inputSchema, FunctionCall functionCall)
       throws ComputeException {
     Function function = functionCall.getFunction();
     FunctionParams params = functionCall.getParams();

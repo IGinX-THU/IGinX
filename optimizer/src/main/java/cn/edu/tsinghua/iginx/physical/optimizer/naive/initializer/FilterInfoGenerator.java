@@ -25,7 +25,6 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.state
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.physical.optimizer.naive.util.Filters;
-
 import java.util.Objects;
 
 public class FilterInfoGenerator implements UnaryExecutorFactory<FilterExecutor> {
@@ -39,7 +38,7 @@ public class FilterInfoGenerator implements UnaryExecutorFactory<FilterExecutor>
   @Override
   public FilterExecutor initialize(ExecutorContext context, BatchSchema inputSchema)
       throws ComputeException {
-    PredicateExpression condition = Filters.construct(filter, context, inputSchema);
+    PredicateExpression condition = Filters.construct(filter, context, inputSchema.raw());
     return new FilterExecutor(context, inputSchema.raw(), condition);
   }
 }

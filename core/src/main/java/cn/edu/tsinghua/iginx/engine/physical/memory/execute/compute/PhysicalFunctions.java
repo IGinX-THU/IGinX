@@ -18,6 +18,8 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ValueVectors;
+import java.util.ArrayList;
+import java.util.List;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.*;
 import org.apache.arrow.vector.complex.NonNullableStructVector;
@@ -27,13 +29,9 @@ import org.apache.arrow.vector.types.pojo.FieldType;
 import org.apache.arrow.vector.types.pojo.Schema;
 import org.apache.arrow.vector.util.TransferPair;
 
-import java.util.ArrayList;
-import java.util.List;
-
 public class PhysicalFunctions {
 
-  private PhysicalFunctions() {
-  }
+  private PhysicalFunctions() {}
 
   public static Schema unnest(Schema schema) {
     List<Field> fields = new ArrayList<>();

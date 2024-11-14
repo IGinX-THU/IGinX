@@ -44,6 +44,5 @@ public class FetchAllUnaryExecutor extends StatefulUnaryExecutor {
   }
 
   @Override
-  protected void consumeEnd() throws ComputeException {
-  }
+  protected void consumeEnd() throws ComputeException {}
 }

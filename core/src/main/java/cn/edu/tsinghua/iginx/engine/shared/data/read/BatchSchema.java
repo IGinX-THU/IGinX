@@ -17,9 +17,9 @@
  */
 package cn.edu.tsinghua.iginx.engine.shared.data.read;
 
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.Schemas;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.util.Batch;
 import cn.edu.tsinghua.iginx.engine.shared.Constants;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.Schemas;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.util.*;
 import javax.annotation.Nullable;
@@ -65,7 +65,7 @@ public class BatchSchema {
   }
 
   public Batch emptyBatch(BufferAllocator allocator) {
-    try (Batch.Builder builder = new Batch.Builder(allocator, this)) {
+    try (BatchBuilder builder = new BatchBuilder(allocator, this)) {
       return builder.build(0);
     }
   }
@@ -137,6 +137,9 @@ public class BatchSchema {
   }
 
   public int getKeyIndex() {
+    if (!hasKey()) {
+      return -1;
+    }
     return 0;
   }
 

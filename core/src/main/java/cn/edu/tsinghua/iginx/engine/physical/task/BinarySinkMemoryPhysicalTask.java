@@ -27,7 +27,6 @@ import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
-
 import java.util.List;
 
 public class BinarySinkMemoryPhysicalTask extends BinaryMemoryPhysicalTask {
@@ -62,8 +61,8 @@ public class BinarySinkMemoryPhysicalTask extends BinaryMemoryPhysicalTask {
       fetchAndConsume(executor, left, right);
     } catch (PhysicalException e) {
       try (StatefulBinaryExecutor executorHolder = executor;
-           BatchStream leftHolder = left;
-           BatchStream rightHolder = right) {
+          BatchStream leftHolder = left;
+          BatchStream rightHolder = right) {
         throw e;
       }
     }
@@ -106,7 +105,7 @@ public class BinarySinkMemoryPhysicalTask extends BinaryMemoryPhysicalTask {
     @Override
     public void close() throws PhysicalException {
       try (BatchStream leftSource = this.leftSource;
-           BatchStream rightSource = this.rightSource) {
+          BatchStream rightSource = this.rightSource) {
         try (StopWatch watch = new StopWatch(getMetrics()::accumulateCpuTime)) {
           executor.close();
         }

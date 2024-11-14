@@ -25,11 +25,10 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.Computi
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.util.Batch;
-import org.apache.arrow.vector.VectorSchemaRoot;
-import org.apache.arrow.vector.types.pojo.Schema;
-
 import java.util.*;
 import java.util.stream.Collectors;
+import org.apache.arrow.vector.VectorSchemaRoot;
+import org.apache.arrow.vector.types.pojo.Schema;
 
 public class AggregateUnaryExecutor extends StatefulUnaryExecutor {
 

@@ -15,22 +15,18 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.predicate.compare;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.predicate.compare.constant;
 
 import org.apache.arrow.memory.util.ArrowBufPointer;
 
 public class NotLikeConst extends LikeConst {
 
   public NotLikeConst(byte[] pattern) {
-    this(new String(pattern));
-  }
-
-  private NotLikeConst(String pattern) {
-    super("not_like<\"" + pattern + "\">", pattern);
+    super(pattern);
   }
 
   @Override
-  protected boolean evaluate(ArrowBufPointer input) {
-    return !super.evaluate(input);
+  protected boolean evaluateImpl(ArrowBufPointer value) {
+    return !super.evaluateImpl(value);
   }
 }

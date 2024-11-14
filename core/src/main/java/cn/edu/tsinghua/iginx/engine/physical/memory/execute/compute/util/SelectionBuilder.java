@@ -29,7 +29,9 @@ public class SelectionBuilder implements AutoCloseable {
   private int index = 0;
 
   public SelectionBuilder(BufferAllocator allocator, String name, int initCapacity) {
-    selection = new IntVector(new Field(name, FieldType.notNullable(Types.MinorType.INT.getType()), null), allocator);
+    selection =
+        new IntVector(
+            new Field(name, FieldType.notNullable(Types.MinorType.INT.getType()), null), allocator);
     selection.allocateNew(initCapacity);
   }
 

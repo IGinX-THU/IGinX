@@ -21,10 +21,10 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.PhysicalFunc
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.AbstractScalarFunction;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.Arity;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.CompareOption;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ValueVectors;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.row.RowCursor;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.row.RowCursorComparator;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ValueVectors;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;

@@ -27,10 +27,9 @@ import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
-
-import javax.annotation.WillCloseWhenClosed;
 import java.util.List;
 import java.util.Objects;
+import javax.annotation.WillCloseWhenClosed;
 
 public class UnarySinkMemoryPhysicalTask extends UnaryMemoryPhysicalTask {
 
@@ -72,7 +71,7 @@ public class UnarySinkMemoryPhysicalTask extends UnaryMemoryPhysicalTask {
       }
     } catch (ComputeException e) {
       try (BatchStream previousHolder = previous;
-           StatefulUnaryExecutor executorHolder = executor) {
+          StatefulUnaryExecutor executorHolder = executor) {
         throw e;
       }
     }

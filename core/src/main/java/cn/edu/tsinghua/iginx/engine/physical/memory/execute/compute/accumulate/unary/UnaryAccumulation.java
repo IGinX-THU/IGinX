@@ -19,8 +19,8 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.AbstractAccumulation;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.Arity;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.Schemas;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import java.util.function.Supplier;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.FieldVector;

@@ -15,69 +15,53 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.predicate.compare;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.predicate.compare.constant;
 
-import java.util.Objects;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.predicate.compare.Like;
 import java.util.regex.Pattern;
 import org.apache.arrow.memory.ArrowBuf;
 import org.apache.arrow.memory.util.ArrowBufPointer;
 
-public class LikeConst extends UnaryComparisonFunction {
+public class LikeConst extends CompareConst {
 
   public final Pattern pattern;
 
   public LikeConst(byte[] pattern) {
-    this(new String(pattern));
-  }
-
-  private LikeConst(String pattern) {
-    this("like<\"" + pattern + "\">", pattern);
-  }
-
-  protected LikeConst(String name, String pattern) {
-    super(name);
-    this.pattern = Pattern.compile(pattern);
+    super(Like.NAME, pattern);
+    this.pattern = Pattern.compile(new String(pattern));
   }
 
   @Override
-  public boolean equals(Object o) {
-    if (this == o) return true;
-    if (o == null || getClass() != o.getClass()) return false;
-    LikeConst likeConst = (LikeConst) o;
-    return Objects.equals(pattern, likeConst.pattern);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(super.hashCode(), pattern);
-  }
-
-  @Override
-  protected boolean evaluate(int input) {
+  protected boolean evaluateImpl(boolean value) {
     return false;
   }
 
   @Override
-  protected boolean evaluate(long input) {
+  protected boolean evaluateImpl(int value) {
     return false;
   }
 
   @Override
-  protected boolean evaluate(float input) {
+  protected boolean evaluateImpl(long value) {
     return false;
   }
 
   @Override
-  protected boolean evaluate(double input) {
+  protected boolean evaluateImpl(float value) {
     return false;
   }
 
   @Override
-  protected boolean evaluate(ArrowBufPointer input) {
-    byte[] inputBytes = new byte[(int) input.getLength()];
-    ArrowBuf inputBuf = input.getBuf();
+  protected boolean evaluateImpl(double value) {
+    return false;
+  }
+
+  @Override
+  protected boolean evaluateImpl(ArrowBufPointer value) {
+    byte[] inputBytes = new byte[(int) value.getLength()];
+    ArrowBuf inputBuf = value.getBuf();
     if (inputBuf != null) {
-      inputBuf.getBytes(input.getOffset(), inputBytes);
+      inputBuf.getBytes(value.getOffset(), inputBytes);
     }
     String targetString = new String(inputBytes);
     return pattern.matcher(targetString).matches();

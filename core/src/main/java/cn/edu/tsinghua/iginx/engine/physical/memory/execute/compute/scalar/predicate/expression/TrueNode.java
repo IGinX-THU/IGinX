@@ -18,9 +18,9 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.predicate.expression;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.LiteralNode;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ConstantPool;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ValueVectors;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import javax.annotation.Nullable;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.BaseIntVector;
@@ -40,7 +40,12 @@ public class TrueNode extends LiteralNode<BitVector> implements PredicateExpress
 
   @Nullable
   @Override
-  public BaseIntVector filter(BufferAllocator allocator, DictionaryProvider dictionaryProvider, VectorSchemaRoot input, @Nullable BaseIntVector selection) throws ComputeException {
+  public BaseIntVector filter(
+      BufferAllocator allocator,
+      DictionaryProvider dictionaryProvider,
+      VectorSchemaRoot input,
+      @Nullable BaseIntVector selection)
+      throws ComputeException {
     return ValueVectors.slice(allocator, selection);
   }
 }

@@ -23,8 +23,10 @@ import org.apache.arrow.memory.util.ArrowBufPointer;
 
 public class Like extends BinaryComparisonFunction {
 
+  public static final String NAME = "like";
+
   public Like() {
-    super("like");
+    super(NAME);
   }
 
   protected Like(String name) {

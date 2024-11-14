@@ -29,7 +29,6 @@ import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 import cn.edu.tsinghua.iginx.physical.optimizer.naive.initializer.*;
 import cn.edu.tsinghua.iginx.physical.optimizer.naive.util.Joins;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;

@@ -26,15 +26,14 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.excepti
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.util.Batch;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 import org.apache.arrow.vector.IntVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.types.Types;
 import org.apache.arrow.vector.types.pojo.Field;
 import org.apache.arrow.vector.types.pojo.Schema;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
 
 /**
  * This class is used to execute hash join operation. Left is the build side, and right is the probe
@@ -45,12 +44,11 @@ public class HashJoinExecutor extends StatefulBinaryExecutor {
   private final JoinOption joinOption;
   private final PredicateExpression matcher;
   private final List<ScalarExpression<?>> outputExpressions;
-  private final ScalarExpression<IntVector> buildSideHasher;
   private final ScalarExpression<IntVector> probeSideHasher;
 
-  private final Schema outputSchema;
   private final JoinHashMap.Builder joinHashMapBuilder;
   private JoinHashMap joinHashMap;
+  private Schema outputSchema;
 
   public HashJoinExecutor(
       ExecutorContext context,
@@ -60,45 +58,33 @@ public class HashJoinExecutor extends StatefulBinaryExecutor {
       PredicateExpression matcher,
       List<ScalarExpression<?>> outputExpressions,
       ScalarExpression<IntVector> leftHasher,
-      ScalarExpression<IntVector> rightHasher)
-      throws ComputeException {
+      ScalarExpression<IntVector> rightHasher) {
     super(context, leftSchema, rightSchema, 1);
     this.joinOption = Objects.requireNonNull(joinOption);
     this.matcher = Objects.requireNonNull(matcher);
     this.outputExpressions = new ArrayList<>(outputExpressions);
-    this.buildSideHasher = Objects.requireNonNull(leftHasher);
     this.probeSideHasher = Objects.requireNonNull(rightHasher);
-
-    List<Field> outputFields = new ArrayList<>();
-    outputFields.addAll(leftSchema.raw().getFields());
-    outputFields.addAll(rightSchema.raw().getFields());
-    outputFields.add(Field.nullable("mark", Types.MinorType.BIT.getType()));
-    this.outputSchema = ScalarExpressions.getOutputSchema(context.getAllocator(), outputExpressions, new Schema(outputFields));
-
     this.joinHashMapBuilder =
-        new JoinHashMap.Builder(
-            context.getAllocator(),
-            this.buildSideHasher,
-            getLeftSchema().raw());
+        new JoinHashMap.Builder(context.getAllocator(), leftHasher, getLeftSchema().raw());
   }
 
   @Override
   public Schema getOutputSchema() throws ComputeException {
+    if (outputSchema == null) {
+      List<Field> outputFields = new ArrayList<>();
+      outputFields.addAll(leftSchema.raw().getFields());
+      outputFields.addAll(rightSchema.raw().getFields());
+      outputFields.add(Field.nullable("mark", Types.MinorType.BIT.getType()));
+      this.outputSchema =
+          ScalarExpressions.getOutputSchema(
+              context.getAllocator(), outputExpressions, new Schema(outputFields));
+    }
     return outputSchema;
   }
 
   @Override
   protected String getInfo() {
-    return "Join("
-        + joinOption
-        + ") on "
-        + matcher
-        + " output "
-        + outputExpressions
-        + " with "
-        + buildSideHasher
-        + " = "
-        + probeSideHasher;
+    return "HashJoin(" + joinOption + ") on " + matcher + " output " + outputExpressions;
   }
 
   @Override
@@ -129,8 +115,7 @@ public class HashJoinExecutor extends StatefulBinaryExecutor {
             outputExpressions,
             probeSideHasher,
             getRightSchema().raw(),
-            (dictionaryProvider, data) -> offerResult(Batch.of(data, dictionaryProvider))
-        );
+            (dictionaryProvider, data) -> offerResult(Batch.of(data, dictionaryProvider)));
   }
 
   @Override
@@ -142,8 +127,6 @@ public class HashJoinExecutor extends StatefulBinaryExecutor {
 
   @Override
   protected void consumeRightEnd() throws ComputeException {
-    if (joinOption.needOutputBuildSideUnmatched()) {
-      joinHashMap.flush(context.getBatchRowCount());
-    }
+    joinHashMap.flush();
   }
 }

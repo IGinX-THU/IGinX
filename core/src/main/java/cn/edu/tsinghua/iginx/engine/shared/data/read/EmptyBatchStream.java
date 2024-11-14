@@ -18,9 +18,8 @@
 package cn.edu.tsinghua.iginx.engine.shared.data.read;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
-import java.util.Objects;
-
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.util.Batch;
+import java.util.Objects;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.VectorSchemaRoot;
 

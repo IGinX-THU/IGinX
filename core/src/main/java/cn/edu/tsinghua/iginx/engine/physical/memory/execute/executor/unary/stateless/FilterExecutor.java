@@ -1,26 +1,48 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateless;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.predicate.expression.PredicateExpression;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.util.Batch;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.util.Batch;
+import java.util.Objects;
 import org.apache.arrow.vector.BaseIntVector;
 import org.apache.arrow.vector.types.pojo.Schema;
-
-import java.util.Objects;
 
 public class FilterExecutor extends StatelessUnaryExecutor {
 
   private final PredicateExpression condition;
 
-  public FilterExecutor(ExecutorContext context, Schema inputSchema, PredicateExpression condition) {
+  public FilterExecutor(
+      ExecutorContext context, Schema inputSchema, PredicateExpression condition) {
     super(context, inputSchema);
     this.condition = Objects.requireNonNull(condition);
   }
 
   @Override
   public Batch compute(Batch batch) throws ComputeException {
-    BaseIntVector selection = condition.filter(context.getAllocator(), batch.getDictionaryProvider(), batch.getData(), batch.getSelection());
+    BaseIntVector selection =
+        condition.filter(
+            context.getAllocator(),
+            batch.getDictionaryProvider(),
+            batch.getData(),
+            batch.getSelection());
     return batch.sliceWith(context.getAllocator(), selection);
   }
 
@@ -35,7 +57,5 @@ public class FilterExecutor extends StatelessUnaryExecutor {
   }
 
   @Override
-  public void close() throws ComputeException {
-
-  }
+  public void close() throws ComputeException {}
 }

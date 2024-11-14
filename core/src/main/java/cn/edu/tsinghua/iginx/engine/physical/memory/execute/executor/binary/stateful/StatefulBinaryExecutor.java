@@ -17,15 +17,14 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.binary.stateful;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.util.Batch;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.binary.BinaryExecutor;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.util.Batch;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
-import org.apache.arrow.util.Preconditions;
-
 import java.util.ArrayDeque;
 import java.util.Queue;
+import org.apache.arrow.util.Preconditions;
 
 public abstract class StatefulBinaryExecutor extends BinaryExecutor {
 
@@ -53,7 +52,7 @@ public abstract class StatefulBinaryExecutor extends BinaryExecutor {
    * Consume a batch of data from the left child.
    *
    * @param batch the batch to consume, notify the consumer to finalize states if the batch's size
-   *              less than the batch size
+   *     less than the batch size
    * @throws ComputeException if an error occurs during consumption
    */
   public void consumeLeft(Batch batch) throws ComputeException {
@@ -73,7 +72,7 @@ public abstract class StatefulBinaryExecutor extends BinaryExecutor {
    * Consume a batch of data from the right child.
    *
    * @param batch the batch to consume, notify the consumer to finalize states if the batch's size
-   *              less than the batch size
+   *     less than the batch size
    * @throws ComputeException if an error occurs during consumption
    */
   public void consumeRight(Batch batch) throws ComputeException {
@@ -108,6 +107,11 @@ public abstract class StatefulBinaryExecutor extends BinaryExecutor {
   }
 
   protected void offerResult(Batch batch) {
+    // TODO: slice large batch into smaller ones
+    if (batch.getRowCount() == 0) {
+      batch.close();
+      return;
+    }
     results.add(batch);
   }
 

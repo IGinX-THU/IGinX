@@ -17,10 +17,10 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateless;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.util.Batch;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutor;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.util.Batch;
 import org.apache.arrow.vector.types.pojo.Schema;
 
 public abstract class StatelessUnaryExecutor extends UnaryExecutor {

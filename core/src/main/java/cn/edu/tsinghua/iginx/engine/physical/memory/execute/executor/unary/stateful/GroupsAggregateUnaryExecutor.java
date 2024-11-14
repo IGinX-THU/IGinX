@@ -20,15 +20,15 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stat
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.expression.ExpressionAccumulator;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.group.GroupTable;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpression;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.VectorSchemaRoots;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.util.Batch;
-import org.apache.arrow.vector.VectorSchemaRoot;
-import org.apache.arrow.vector.types.pojo.Schema;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import org.apache.arrow.vector.VectorSchemaRoot;
+import org.apache.arrow.vector.types.pojo.Schema;
 
 public class GroupsAggregateUnaryExecutor extends StatefulUnaryExecutor {
 
@@ -91,7 +91,7 @@ public class GroupsAggregateUnaryExecutor extends StatefulUnaryExecutor {
   protected void consumeEnd() throws ComputeException {
     try (GroupTable groupTable = groupTableBuilder.build()) {
       for (VectorSchemaRoot group : groupTable.getGroups()) {
-        offerResult(Batch.of(group));
+        offerResult(Batch.of(VectorSchemaRoots.slice(context.getAllocator(), group)));
       }
     }
   }

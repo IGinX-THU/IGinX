@@ -18,14 +18,13 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util;
 
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
+import javax.annotation.Nullable;
+import javax.annotation.WillNotClose;
 import org.apache.arrow.memory.ArrowBuf;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.*;
 import org.apache.arrow.vector.types.Types;
 import org.apache.arrow.vector.types.pojo.Field;
-
-import javax.annotation.Nullable;
-import javax.annotation.WillNotClose;
 
 public class ConstantVectors {
 

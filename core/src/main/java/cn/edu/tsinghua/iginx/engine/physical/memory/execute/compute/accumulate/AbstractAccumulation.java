@@ -18,9 +18,9 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.Arity;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ValueVectors;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ArityException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ValueVectors;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Supplier;

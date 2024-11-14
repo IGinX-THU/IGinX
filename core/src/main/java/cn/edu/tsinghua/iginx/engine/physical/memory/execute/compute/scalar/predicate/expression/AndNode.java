@@ -20,20 +20,20 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.pred
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.CallNode;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpression;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.logic.And;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ValueVectors;
-import org.apache.arrow.memory.BufferAllocator;
-import org.apache.arrow.vector.BaseIntVector;
-import org.apache.arrow.vector.BitVector;
-import org.apache.arrow.vector.VectorSchemaRoot;
-import org.apache.arrow.vector.dictionary.DictionaryProvider;
-
-import javax.annotation.Nullable;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import javax.annotation.Nullable;
+import org.apache.arrow.memory.BufferAllocator;
+import org.apache.arrow.util.Preconditions;
+import org.apache.arrow.vector.BaseIntVector;
+import org.apache.arrow.vector.BitVector;
+import org.apache.arrow.vector.VectorSchemaRoot;
+import org.apache.arrow.vector.dictionary.DictionaryProvider;
 
 public class AndNode extends CallNode<BitVector> implements PredicateExpression {
   private final List<PredicateExpression> children;
@@ -48,6 +48,7 @@ public class AndNode extends CallNode<BitVector> implements PredicateExpression 
   }
 
   private static List<ScalarExpression<BitVector>> getChildren(List<PredicateExpression> children) {
+    Preconditions.checkArgument(children.size() >= 2, "AndNode should have at least 2 children");
     return Arrays.asList(
         children.get(0),
         children.subList(1, children.size()).stream()
@@ -80,7 +81,10 @@ public class AndNode extends CallNode<BitVector> implements PredicateExpression 
 
   @Override
   public BaseIntVector filter(
-      BufferAllocator allocator, DictionaryProvider dictionaryProvider, VectorSchemaRoot input, @Nullable BaseIntVector selection)
+      BufferAllocator allocator,
+      DictionaryProvider dictionaryProvider,
+      VectorSchemaRoot input,
+      @Nullable BaseIntVector selection)
       throws ComputeException {
     return filter(allocator, dictionaryProvider, input, selection, children);
   }
@@ -93,7 +97,8 @@ public class AndNode extends CallNode<BitVector> implements PredicateExpression 
       @Nullable BaseIntVector selection,
       List<PredicateExpression> children)
       throws ComputeException {
-    try (BaseIntVector subSelection = children.get(0).filter(allocator, dictionaryProvider, input, selection)) {
+    try (BaseIntVector subSelection =
+        children.get(0).filter(allocator, dictionaryProvider, input, selection)) {
       List<PredicateExpression> remain = children.subList(1, children.size());
       if (remain.isEmpty() || subSelection == null || subSelection.getValueCount() == 0) {
         return ValueVectors.slice(allocator, subSelection, "and");

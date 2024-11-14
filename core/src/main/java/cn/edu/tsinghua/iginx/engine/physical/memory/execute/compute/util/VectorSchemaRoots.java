@@ -17,6 +17,11 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
+import javax.annotation.Nullable;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.util.Preconditions;
 import org.apache.arrow.vector.BaseIntVector;
@@ -26,15 +31,8 @@ import org.apache.arrow.vector.dictionary.DictionaryProvider;
 import org.apache.arrow.vector.types.pojo.Schema;
 import org.apache.arrow.vector.util.VectorSchemaRootAppender;
 
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
-
 public class VectorSchemaRoots {
-  private VectorSchemaRoots() {
-  }
+  private VectorSchemaRoots() {}
 
   public static Object[] get(VectorSchemaRoot vectorSchemaRoot, int index) {
     List<FieldVector> fieldVectors = vectorSchemaRoot.getFieldVectors();
@@ -109,7 +107,8 @@ public class VectorSchemaRoots {
     VectorSchemaRootAppender.append(false, target, source);
   }
 
-  public static VectorSchemaRoot concat(BufferAllocator allocator, Schema schema, Iterable<VectorSchemaRoot> batches) {
+  public static VectorSchemaRoot concat(
+      BufferAllocator allocator, Schema schema, Iterable<VectorSchemaRoot> batches) {
     VectorSchemaRoot result = VectorSchemaRoot.create(schema, allocator);
     for (VectorSchemaRoot batch : batches) {
       append(result, batch);
@@ -117,15 +116,21 @@ public class VectorSchemaRoots {
     return result;
   }
 
-  public static VectorSchemaRoot flatten(BufferAllocator allocator, DictionaryProvider dictionaryProvider, VectorSchemaRoot batch, @Nullable BaseIntVector selection) {
+  public static VectorSchemaRoot flatten(
+      BufferAllocator allocator,
+      DictionaryProvider dictionaryProvider,
+      VectorSchemaRoot batch,
+      @Nullable BaseIntVector selection) {
     List<FieldVector> resultFieldVectors = new ArrayList<>();
     for (FieldVector fieldVector : batch.getFieldVectors()) {
-      resultFieldVectors.add(ValueVectors.flatten(allocator, dictionaryProvider, fieldVector, selection));
+      resultFieldVectors.add(
+          ValueVectors.flatten(allocator, dictionaryProvider, fieldVector, selection));
     }
     return new VectorSchemaRoot(resultFieldVectors);
   }
 
-  public static VectorSchemaRoot create(BufferAllocator allocator, Schema probeSideSchema, int count) {
+  public static VectorSchemaRoot create(
+      BufferAllocator allocator, Schema probeSideSchema, int count) {
     VectorSchemaRoot vectorSchemaRoot = VectorSchemaRoot.create(probeSideSchema, allocator);
     for (FieldVector fieldVector : vectorSchemaRoot.getFieldVectors()) {
       fieldVector.setInitialCapacity(count);

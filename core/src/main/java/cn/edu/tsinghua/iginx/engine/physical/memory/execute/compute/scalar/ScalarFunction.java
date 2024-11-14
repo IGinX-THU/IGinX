@@ -19,15 +19,14 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.PhysicalFunction;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.PhysicalFunctions;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.VectorSchemaRoots;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
+import javax.annotation.Nullable;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.BaseIntVector;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.dictionary.DictionaryProvider;
-
-import javax.annotation.Nullable;
 
 public interface ScalarFunction<OUTPUT extends FieldVector> extends PhysicalFunction {
 
@@ -35,7 +34,7 @@ public interface ScalarFunction<OUTPUT extends FieldVector> extends PhysicalFunc
    * Invoke the function with the given arguments.
    *
    * @param allocator the allocator to allocate memory
-   * @param input     the input vector schema root
+   * @param input the input vector schema root
    * @return the result of the function, may be a struct vector
    * @throws ComputeException if the function cannot be executed
    */
@@ -46,7 +45,7 @@ public interface ScalarFunction<OUTPUT extends FieldVector> extends PhysicalFunc
    *
    * @param allocator the allocator to allocate memory
    * @param selection the selection vector
-   * @param input     the input vector schema root
+   * @param input the input vector schema root
    * @return the result of the function, may be a struct vector
    * @throws ComputeException if the function cannot be executed
    */
@@ -58,12 +57,17 @@ public interface ScalarFunction<OUTPUT extends FieldVector> extends PhysicalFunc
   }
 
   // TODO: implement the invoke method rather than just use the default one
-  default OUTPUT invoke(BufferAllocator allocator, DictionaryProvider dictionaryProvider, @Nullable BaseIntVector selection, VectorSchemaRoot input)
+  default OUTPUT invoke(
+      BufferAllocator allocator,
+      DictionaryProvider dictionaryProvider,
+      @Nullable BaseIntVector selection,
+      VectorSchemaRoot input)
       throws ComputeException {
     if (dictionaryProvider.getDictionaryIds().isEmpty()) {
       return invoke(allocator, selection, input);
     }
-    try (VectorSchemaRoot flattened = VectorSchemaRoots.flatten(allocator, dictionaryProvider, input, selection)) {
+    try (VectorSchemaRoot flattened =
+        VectorSchemaRoots.flatten(allocator, dictionaryProvider, input, selection)) {
       return invoke(allocator, selection, flattened);
     }
   }

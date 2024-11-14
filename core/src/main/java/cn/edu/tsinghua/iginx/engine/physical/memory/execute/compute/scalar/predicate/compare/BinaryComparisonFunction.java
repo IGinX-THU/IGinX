@@ -19,15 +19,17 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.pred
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.convert.cast.CastAsFloat8;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.predicate.BinaryPredicateFunction;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ConstantVectors;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.IntBooleanConsumer;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.IntIntPredicate;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.Schemas;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.SelectionBuilder;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ValueVectors;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ArgumentException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.NotAllowTypeException;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ConstantVectors;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.Schemas;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ValueVectors;
+import java.util.Objects;
+import javax.annotation.Nullable;
 import org.apache.arrow.memory.ArrowBuf;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.memory.util.ArrowBufPointer;
@@ -38,9 +40,6 @@ import org.apache.arrow.vector.types.Types;
 import org.apache.arrow.vector.types.pojo.DictionaryEncoding;
 import org.apache.arrow.vector.types.pojo.Field;
 import org.apache.arrow.vector.types.pojo.FieldType;
-
-import javax.annotation.Nullable;
-import java.util.Objects;
 
 public abstract class BinaryComparisonFunction extends BinaryPredicateFunction {
 
@@ -61,7 +60,7 @@ public abstract class BinaryComparisonFunction extends BinaryPredicateFunction {
     String name =
         getName() + "(" + left.getField().getName() + "," + right.getField().getName() + ")";
     try (BitVector dest =
-             new BitVector(name, FieldType.notNullable(Types.MinorType.BIT.getType()), allocator)) {
+        new BitVector(name, FieldType.notNullable(Types.MinorType.BIT.getType()), allocator)) {
       dest.allocateNew(rowCount);
       ConstantVectors.setValueCountWithValidity(dest, rowCount);
       ArrowBuf dataBuffer = dest.getDataBuffer();
@@ -131,30 +130,18 @@ public abstract class BinaryComparisonFunction extends BinaryPredicateFunction {
     Types.MinorType rightMinorType = Types.getMinorTypeForArrowType(rightFlattenedType.getType());
 
     if (Objects.equals(leftMinorType, rightMinorType)) {
-      evaluateSameType(
-          dictionaryProvider,
-          left,
-          right,
-          rowCount,
-          selection,
-          consumer);
+      evaluateSameType(dictionaryProvider, left, right, rowCount, selection, consumer);
     } else if (Schemas.isNumeric(left.getMinorType()) && Schemas.isNumeric(right.getMinorType())) {
       // TODO: cast only selected indices
       try (FieldVector leftCast = castFunction.evaluate(allocator, left);
-           FieldVector rightCast = castFunction.evaluate(allocator, right)) {
-        evaluateSameType(
-            dictionaryProvider,
-            leftCast,
-            rightCast,
-            rowCount,
-            selection,
-            consumer);
+          FieldVector rightCast = castFunction.evaluate(allocator, right)) {
+        evaluateSameType(dictionaryProvider, leftCast, rightCast, rowCount, selection, consumer);
       }
     } else {
-      throw new ArgumentException(this, Schemas.of(leftFlattenedType, rightFlattenedType), "Cannot compare given types");
+      throw new ArgumentException(
+          this, Schemas.of(leftFlattenedType, rightFlattenedType), "Cannot compare given types");
     }
   }
-
 
   private void evaluateSameType(
       @Nullable DictionaryProvider dictionaryProvider,
@@ -165,33 +152,19 @@ public abstract class BinaryComparisonFunction extends BinaryPredicateFunction {
       IntBooleanConsumer consumer)
       throws NotAllowTypeException {
     if (dictionaryProvider == null) {
-      evaluateSameType(
-          left,
-          right,
-          rowCount,
-          selection,
-          null,
-          null,
-          consumer);
+      evaluateSameType(left, right, rowCount, selection, null, null, consumer);
       return;
     }
     DictionaryEncoding leftDictionaryEncoding = left.getField().getDictionary();
     if (leftDictionaryEncoding == null) {
-      evaluateSameType(
-          dictionaryProvider,
-          left,
-          right,
-          rowCount,
-          selection,
-          null,
-          consumer);
+      evaluateSameType(dictionaryProvider, left, right, rowCount, selection, null, consumer);
       return;
     }
-    Dictionary rightDictionary = dictionaryProvider.lookup(leftDictionaryEncoding.getId());
+    Dictionary leftDictionary = dictionaryProvider.lookup(leftDictionaryEncoding.getId());
     evaluateSameType(
         dictionaryProvider,
-        left,
-        rightDictionary.getVector(),
+        leftDictionary.getVector(),
+        right,
         rowCount,
         selection,
         (BaseIntVector) left,
@@ -209,14 +182,7 @@ public abstract class BinaryComparisonFunction extends BinaryPredicateFunction {
       throws NotAllowTypeException {
     DictionaryEncoding rightDictionaryEncoding = right.getField().getDictionary();
     if (rightDictionaryEncoding == null) {
-      evaluateSameType(
-          left,
-          right,
-          rowCount,
-          selection,
-          leftIndices,
-          null,
-          consumer);
+      evaluateSameType(left, right, rowCount, selection, leftIndices, null, consumer);
       return;
     }
     Dictionary rightDictionary = dictionaryProvider.lookup(rightDictionaryEncoding.getId());
@@ -230,7 +196,6 @@ public abstract class BinaryComparisonFunction extends BinaryPredicateFunction {
         consumer);
   }
 
-
   private void evaluateSameType(
       FieldVector left,
       FieldVector right,
@@ -242,22 +207,64 @@ public abstract class BinaryComparisonFunction extends BinaryPredicateFunction {
       throws NotAllowTypeException {
     switch (left.getMinorType()) {
       case BIT:
-        evaluate((BitVector) left, (BitVector) right, rowCount, selection, leftIndices, rightIndices, consumer);
+        evaluate(
+            (BitVector) left,
+            (BitVector) right,
+            rowCount,
+            selection,
+            leftIndices,
+            rightIndices,
+            consumer);
         break;
       case INT:
-        evaluate((IntVector) left, (IntVector) right, rowCount, selection, leftIndices, rightIndices, consumer);
+        evaluate(
+            (IntVector) left,
+            (IntVector) right,
+            rowCount,
+            selection,
+            leftIndices,
+            rightIndices,
+            consumer);
         break;
       case BIGINT:
-        evaluate((BigIntVector) left, (BigIntVector) right, rowCount, selection, leftIndices, rightIndices, consumer);
+        evaluate(
+            (BigIntVector) left,
+            (BigIntVector) right,
+            rowCount,
+            selection,
+            leftIndices,
+            rightIndices,
+            consumer);
         break;
       case FLOAT4:
-        evaluate((Float4Vector) left, (Float4Vector) right, rowCount, selection, leftIndices, rightIndices, consumer);
+        evaluate(
+            (Float4Vector) left,
+            (Float4Vector) right,
+            rowCount,
+            selection,
+            leftIndices,
+            rightIndices,
+            consumer);
         break;
       case FLOAT8:
-        evaluate((Float8Vector) left, (Float8Vector) right, rowCount, selection, leftIndices, rightIndices, consumer);
+        evaluate(
+            (Float8Vector) left,
+            (Float8Vector) right,
+            rowCount,
+            selection,
+            leftIndices,
+            rightIndices,
+            consumer);
         break;
       case VARBINARY:
-        evaluate((VarBinaryVector) left, (VarBinaryVector) right, rowCount, selection, leftIndices, rightIndices, consumer);
+        evaluate(
+            (VarBinaryVector) left,
+            (VarBinaryVector) right,
+            rowCount,
+            selection,
+            leftIndices,
+            rightIndices,
+            consumer);
         break;
       default:
         throw new NotAllowTypeException(this, Schemas.of(left, right), 0);
@@ -280,8 +287,7 @@ public abstract class BinaryComparisonFunction extends BinaryPredicateFunction {
         leftIndices,
         rightIndices,
         consumer,
-        (l, r) -> evaluate(left.get(l), right.get(r))
-    );
+        (l, r) -> evaluate(left.get(l), right.get(r)));
   }
 
   private void evaluate(
@@ -300,8 +306,7 @@ public abstract class BinaryComparisonFunction extends BinaryPredicateFunction {
         leftIndices,
         rightIndices,
         consumer,
-        (l, r) -> evaluate(left.get(l), right.get(r))
-    );
+        (l, r) -> evaluate(left.get(l), right.get(r)));
   }
 
   private void evaluate(
@@ -320,8 +325,7 @@ public abstract class BinaryComparisonFunction extends BinaryPredicateFunction {
         leftIndices,
         rightIndices,
         consumer,
-        (l, r) -> evaluate(left.get(l), right.get(r))
-    );
+        (l, r) -> evaluate(left.get(l), right.get(r)));
   }
 
   private void evaluate(
@@ -340,8 +344,7 @@ public abstract class BinaryComparisonFunction extends BinaryPredicateFunction {
         leftIndices,
         rightIndices,
         consumer,
-        (l, r) -> evaluate(left.get(l), right.get(r))
-    );
+        (l, r) -> evaluate(left.get(l), right.get(r)));
   }
 
   private void evaluate(
@@ -360,8 +363,7 @@ public abstract class BinaryComparisonFunction extends BinaryPredicateFunction {
         leftIndices,
         rightIndices,
         consumer,
-        (l, r) -> evaluate(left.get(l), right.get(r))
-    );
+        (l, r) -> evaluate(left.get(l), right.get(r)));
   }
 
   private void evaluate(
@@ -406,7 +408,7 @@ public abstract class BinaryComparisonFunction extends BinaryPredicateFunction {
       }
       int leftSelectedIndex = selectedIndex;
       if (leftIndices != null) {
-        if (left.isNull(selectedIndex)) {
+        if (leftIndices.isNull(selectedIndex)) {
           consumer.accept(selectedIndex, false);
           continue;
         }
@@ -414,7 +416,7 @@ public abstract class BinaryComparisonFunction extends BinaryPredicateFunction {
       }
       int rightSelectedIndex = selectedIndex;
       if (rightIndices != null) {
-        if (right.isNull(selectedIndex)) {
+        if (rightIndices.isNull(selectedIndex)) {
           consumer.accept(selectedIndex, false);
           continue;
         }

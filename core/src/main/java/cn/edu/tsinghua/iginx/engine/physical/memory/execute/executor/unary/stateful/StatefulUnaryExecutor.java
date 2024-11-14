@@ -17,20 +17,14 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateful;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.CloseableDictionaryProvider;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputeResult;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.DictionaryProviders;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutor;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.util.Batch;
-import org.apache.arrow.util.Preconditions;
-import org.apache.arrow.vector.VectorSchemaRoot;
-import org.apache.arrow.vector.dictionary.DictionaryProvider;
-import org.apache.arrow.vector.types.pojo.Schema;
-
 import java.util.ArrayDeque;
 import java.util.Queue;
+import org.apache.arrow.util.Preconditions;
+import org.apache.arrow.vector.types.pojo.Schema;
 
 public abstract class StatefulUnaryExecutor extends UnaryExecutor {
 
@@ -64,10 +58,10 @@ public abstract class StatefulUnaryExecutor extends UnaryExecutor {
    * Consume a batch of data.
    *
    * @param batch the batch to consume, notify the consumer to finalize states if the batch's size
-   *              less than the batch size
-   * @throws ComputeException      if an error occurs during consumption
+   *     less than the batch size
+   * @throws ComputeException if an error occurs during consumption
    * @throws IllegalStateException if the executor is not ready to consume, i.e., need to produce
-   *                               the result
+   *     the result
    */
   public void consume(Batch batch) throws ComputeException {
     if (!needConsume()) {
@@ -101,6 +95,10 @@ public abstract class StatefulUnaryExecutor extends UnaryExecutor {
   }
 
   protected void offerResult(Batch batch) {
+    if (batch.getRowCount() == 0) {
+      batch.close();
+      return;
+    }
     results.add(batch);
   }
 

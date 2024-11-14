@@ -23,11 +23,11 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.e
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.FieldNode;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpression;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpressions;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.Schemas;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutorFactory;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateful.GroupsAggregateUnaryExecutor;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.Schemas;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.operator.GroupBy;
 import cn.edu.tsinghua.iginx.utils.Pair;

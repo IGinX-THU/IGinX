@@ -20,8 +20,10 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.hash
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.PhysicalFunctions;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.AbstractScalarFunction;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.Arity;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ConstantVectors;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
+import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 import org.apache.arrow.memory.ArrowBuf;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.BaseIntVector;
@@ -31,9 +33,6 @@ import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.types.Types;
 import org.apache.arrow.vector.types.pojo.Field;
 import org.apache.arrow.vector.types.pojo.FieldType;
-
-import javax.annotation.Nullable;
-import java.util.stream.Collectors;
 
 public class Hash extends AbstractScalarFunction<IntVector> {
 
@@ -74,11 +73,10 @@ public class Hash extends AbstractScalarFunction<IntVector> {
     for (int rowIndex = 0; rowIndex < input.getRowCount(); rowIndex++) {
       int hash = 0;
       for (FieldVector arg : args) {
-        hash = 31 * hash + arg.hashCode();
+        hash = 31 * hash + arg.hashCode(rowIndex);
       }
-      data.setInt((long) rowIndex * IntVector.TYPE_WIDTH, rowIndex);
+      data.setInt((long) rowIndex * IntVector.TYPE_WIDTH, hash);
     }
     return output;
   }
-
 }
