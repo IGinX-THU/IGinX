@@ -93,7 +93,7 @@ public abstract class PhysicalSelect extends UnaryAccumulation {
         FieldVector vector, IntConsumer firstFoundConsumer, IntConsumer consumer) {
       int valueCount = vector.getValueCount();
       for (int i = 0; i < valueCount; i++) {
-        if (vector.isNull(i)) {
+        if (!vector.isNull(i)) {
           if (found) {
             consumer.accept(i);
           } else {
