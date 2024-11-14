@@ -15,18 +15,19 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.shared.data.arrow;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util;
 
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.PhysicalFunctions;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.logic.And;
 import javax.annotation.Nullable;
 import org.apache.arrow.memory.ArrowBuf;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.memory.util.MemoryUtil;
-import org.apache.arrow.vector.BitVectorHelper;
-import org.apache.arrow.vector.FieldVector;
-import org.apache.arrow.vector.IntVector;
-import org.apache.arrow.vector.ValueVector;
+import org.apache.arrow.vector.*;
+import org.apache.arrow.vector.dictionary.Dictionary;
+import org.apache.arrow.vector.dictionary.DictionaryProvider;
 import org.apache.arrow.vector.types.Types;
+import org.apache.arrow.vector.types.pojo.DictionaryEncoding;
 import org.apache.arrow.vector.types.pojo.Field;
 import org.apache.arrow.vector.util.TransferPair;
 
@@ -48,6 +49,9 @@ public class ValueVectors {
 
   public static <T extends ValueVector> T slice(
       BufferAllocator allocator, @Nullable T source, int startIndex, int valueCount) {
+    if (source == null) {
+      return null;
+    }
     return slice(allocator, source, startIndex, valueCount, source.getName());
   }
 
@@ -57,6 +61,9 @@ public class ValueVectors {
   }
 
   public static <T extends ValueVector> T slice(BufferAllocator allocator, T source, String ref) {
+    if (source == null) {
+      return null;
+    }
     return slice(allocator, source, source.getValueCount(), ref);
   }
 
@@ -66,7 +73,22 @@ public class ValueVectors {
   }
 
   public static <T extends ValueVector> T slice(BufferAllocator allocator, @Nullable T source) {
+    if (source == null) {
+      return null;
+    }
     return slice(allocator, source, source.getValueCount());
+  }
+
+  @SuppressWarnings("unchecked")
+  public static <T extends BaseIntVector> T slice(
+      BufferAllocator allocator, T indices, Dictionary dictionary) {
+    Field field =
+        Schemas.fieldWithName(indices.getField(), dictionary.getVector().getField().getName());
+    Field fieldWithDictionaryEncoding =
+        Schemas.fieldWithDictionary(field, dictionary.getEncoding());
+    TransferPair transferPair = indices.getTransferPair(fieldWithDictionaryEncoding, allocator);
+    transferPair.splitAndTransfer(0, indices.getValueCount());
+    return (T) transferPair.getTo();
   }
 
   public static FieldVector create(BufferAllocator allocator, Types.MinorType returnType) {
@@ -187,5 +209,49 @@ public class ValueVectors {
       ret[i] = columns[i].getObject(position);
     }
     return ret;
+  }
+
+  public static FieldVector flatten(
+      BufferAllocator allocator,
+      DictionaryProvider dictionaryProvider,
+      FieldVector vector,
+      @Nullable BaseIntVector selection) {
+    DictionaryEncoding dictionaryEncoding = vector.getField().getDictionary();
+    if (dictionaryEncoding == null) {
+      if (selection != null) {
+        return PhysicalFunctions.take(allocator, selection, vector);
+      } else {
+        return slice(allocator, vector);
+      }
+    }
+
+    Dictionary dictionary = dictionaryProvider.lookup(dictionaryEncoding.getId());
+    FieldVector dictionaryVector = dictionary.getVector();
+    BaseIntVector indices = (BaseIntVector) vector;
+    int destCount = selection == null ? vector.getValueCount() : selection.getValueCount();
+
+    try (FieldVector dest = dictionaryVector.getField().createVector(allocator)) {
+      BaseFixedWidthVector fixedWidthVector =
+          dest instanceof BaseFixedWidthVector ? (BaseFixedWidthVector) dest : null;
+      if (fixedWidthVector != null) {
+        fixedWidthVector.allocateNew(destCount);
+      } else {
+        dest.setInitialCapacity(destCount);
+      }
+      for (int destIndex = 0; destIndex < destCount; destIndex++) {
+        int sourceIndex = selection == null ? destIndex : (int) selection.getValueAsLong(destIndex);
+        if (indices.isNull(sourceIndex)) {
+          continue;
+        }
+        int dictionaryIndex = (int) indices.getValueAsLong(sourceIndex);
+        if (fixedWidthVector != null) {
+          fixedWidthVector.copyFrom(dictionaryIndex, destIndex, dictionaryVector);
+        } else {
+          dest.copyFromSafe(dictionaryIndex, destIndex, dictionaryVector);
+        }
+      }
+      dest.setValueCount(destCount);
+      return ValueVectors.transfer(allocator, dest);
+    }
   }
 }

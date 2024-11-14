@@ -24,11 +24,16 @@ import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.BaseIntVector;
 import org.apache.arrow.vector.BitVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
+import org.apache.arrow.vector.dictionary.DictionaryProvider;
 
 public interface PredicateFunction extends ScalarFunction<BitVector> {
 
+  /** 假定输出的 Selection Vector 不含 null 值和重复值 */
   @Nullable
   BaseIntVector filter(
-      BufferAllocator allocator, @Nullable BaseIntVector selection, VectorSchemaRoot input)
+      BufferAllocator allocator,
+      DictionaryProvider dictionaryProvider,
+      VectorSchemaRoot input,
+      @Nullable BaseIntVector selection)
       throws ComputeException;
 }

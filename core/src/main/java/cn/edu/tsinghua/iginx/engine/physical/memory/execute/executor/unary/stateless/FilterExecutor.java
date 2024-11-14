@@ -17,41 +17,45 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateless;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.PhysicalFunctions;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpression;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpressions;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.predicate.expression.PredicateExpression;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
-import java.util.ArrayList;
-import java.util.List;
-import org.apache.arrow.vector.VectorSchemaRoot;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.util.Batch;
+import java.util.Objects;
+import org.apache.arrow.vector.BaseIntVector;
 import org.apache.arrow.vector.types.pojo.Schema;
 
-public class ProjectionUnaryExecutor extends StatelessUnaryExecutor {
+public class FilterExecutor extends StatelessUnaryExecutor {
 
-  protected final List<ScalarExpression<?>> expressions;
+  private final PredicateExpression condition;
 
-  public ProjectionUnaryExecutor(
-      ExecutorContext context,
-      Schema inputSchema,
-      List<? extends ScalarExpression<?>> expressions) {
+  public FilterExecutor(
+      ExecutorContext context, Schema inputSchema, PredicateExpression condition) {
     super(context, inputSchema);
-    this.expressions = new ArrayList<>(expressions);
+    this.condition = Objects.requireNonNull(condition);
   }
 
   @Override
-  public String getInfo() {
-    return "Project" + expressions;
+  public Batch compute(Batch batch) throws ComputeException {
+    BaseIntVector selection =
+        condition.filter(
+            context.getAllocator(),
+            batch.getDictionaryProvider(),
+            batch.getData(),
+            batch.getSelection());
+    return batch.sliceWith(context.getAllocator(), selection);
   }
 
   @Override
-  public void close() {}
+  public Schema getOutputSchema() throws ComputeException {
+    return getInputSchema();
+  }
 
   @Override
-  public VectorSchemaRoot compute(VectorSchemaRoot batch) throws ComputeException {
-    try (VectorSchemaRoot result =
-        ScalarExpressions.evaluateSafe(context.getAllocator(), expressions, batch)) {
-      return PhysicalFunctions.unnest(context.getAllocator(), result);
-    }
+  protected String getInfo() {
+    return "Filter by " + condition.getName();
   }
+
+  @Override
+  public void close() throws ComputeException {}
 }

@@ -15,21 +15,11 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.physical.optimizer.naive.util;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.FieldNode;
-import java.util.ArrayList;
-import java.util.List;
+import org.apache.arrow.memory.BufferAllocator;
+import org.apache.arrow.vector.dictionary.DictionaryProvider;
 
-public class Generators {
-
-  private Generators() {}
-
-  public static List<FieldNode> allFieldExpressions(int fieldCount) {
-    List<FieldNode> outputExpressions = new ArrayList<>();
-    for (int i = 0; i < fieldCount; i++) {
-      outputExpressions.add(new FieldNode(i));
-    }
-    return outputExpressions;
-  }
+public interface CloseableDictionaryProvider extends DictionaryProvider, NoExceptionAutoCloseable {
+  CloseableDictionaryProvider slice(BufferAllocator allocator);
 }

@@ -20,20 +20,26 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.pred
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.CallNode;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpression;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.logic.Or;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.predicate.SelectionBuilder;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.SelectionBuilder;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ValueVectors;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
-import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ValueVectors;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import javax.annotation.Nullable;
 import org.apache.arrow.memory.BufferAllocator;
+import org.apache.arrow.util.Preconditions;
 import org.apache.arrow.vector.BaseIntVector;
 import org.apache.arrow.vector.BitVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
+import org.apache.arrow.vector.dictionary.DictionaryProvider;
 
 public class OrNode extends CallNode<BitVector> implements PredicateExpression {
   private final List<PredicateExpression> children;
+
+  public static OrNode createFalse() {
+    return new OrNode(Collections.emptyList());
+  }
 
   public OrNode(List<PredicateExpression> children) {
     this(null, children);
@@ -41,10 +47,12 @@ public class OrNode extends CallNode<BitVector> implements PredicateExpression {
 
   public OrNode(String alias, List<PredicateExpression> children) {
     super(new Or(), alias, getChildren(children));
+
     this.children = Objects.requireNonNull(children);
   }
 
   private static List<ScalarExpression<BitVector>> getChildren(List<PredicateExpression> children) {
+    Preconditions.checkArgument(children.size() >= 2, "OrNode should have at least 2 children");
     return Arrays.asList(
         children.get(0),
         children.subList(1, children.size()).stream()
@@ -71,10 +79,17 @@ public class OrNode extends CallNode<BitVector> implements PredicateExpression {
     return Objects.hash(super.hashCode(), children);
   }
 
+  public List<PredicateExpression> getSubPredicates() {
+    return Collections.unmodifiableList(children);
+  }
+
   @Nullable
   @Override
   public BaseIntVector filter(
-      BufferAllocator allocator, @Nullable BaseIntVector selection, VectorSchemaRoot input)
+      BufferAllocator allocator,
+      DictionaryProvider dictionaryProvider,
+      VectorSchemaRoot input,
+      @Nullable BaseIntVector selection)
       throws ComputeException {
     Set<Integer> remainIndex = new HashSet<>();
     if (selection == null) {
@@ -86,19 +101,22 @@ public class OrNode extends CallNode<BitVector> implements PredicateExpression {
     }
     try (SelectionBuilder selectionBuilder =
         new SelectionBuilder(allocator, "or", input.getRowCount())) {
-      return filter(allocator, selection, input, children, selectionBuilder, remainIndex);
+      return filter(
+          allocator, dictionaryProvider, input, selection, children, selectionBuilder, remainIndex);
     }
   }
 
   private static BaseIntVector filter(
       BufferAllocator allocator,
-      @Nullable BaseIntVector selection,
+      DictionaryProvider dictionaryProvider,
       VectorSchemaRoot input,
+      @Nullable BaseIntVector selection,
       List<PredicateExpression> children,
       SelectionBuilder resultBuilder,
       Set<Integer> remainIndex)
       throws ComputeException {
-    try (BaseIntVector subSelection = children.get(0).filter(allocator, selection, input)) {
+    try (BaseIntVector subSelection =
+        children.get(0).filter(allocator, dictionaryProvider, input, selection)) {
       if (subSelection == null) {
         return ValueVectors.slice(allocator, selection, "or");
       }
@@ -115,7 +133,14 @@ public class OrNode extends CallNode<BitVector> implements PredicateExpression {
         return resultBuilder.build();
       }
       if (subSelection.getValueCount() == 0) {
-        return filter(allocator, selection, input, remainChildren, resultBuilder, remainIndex);
+        return filter(
+            allocator,
+            dictionaryProvider,
+            input,
+            selection,
+            remainChildren,
+            resultBuilder,
+            remainIndex);
       }
       try (SelectionBuilder remainSelectionBuilder =
           new SelectionBuilder(allocator, "or", remainIndex.size())) {
@@ -124,7 +149,13 @@ public class OrNode extends CallNode<BitVector> implements PredicateExpression {
         }
         try (BaseIntVector remainSelection = remainSelectionBuilder.build()) {
           return filter(
-              allocator, remainSelection, input, remainChildren, resultBuilder, remainIndex);
+              allocator,
+              dictionaryProvider,
+              input,
+              remainSelection,
+              remainChildren,
+              resultBuilder,
+              remainIndex);
         }
       }
     }

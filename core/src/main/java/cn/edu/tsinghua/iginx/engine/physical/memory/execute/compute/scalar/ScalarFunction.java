@@ -19,11 +19,14 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.PhysicalFunction;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.PhysicalFunctions;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.VectorSchemaRoots;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
+import javax.annotation.Nullable;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.BaseIntVector;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
+import org.apache.arrow.vector.dictionary.DictionaryProvider;
 
 public interface ScalarFunction<OUTPUT extends FieldVector> extends PhysicalFunction {
 
@@ -50,6 +53,22 @@ public interface ScalarFunction<OUTPUT extends FieldVector> extends PhysicalFunc
       throws ComputeException {
     try (VectorSchemaRoot selectedInput = PhysicalFunctions.take(allocator, selection, input)) {
       return invoke(allocator, selectedInput);
+    }
+  }
+
+  // TODO: implement the invoke method rather than just use the default one
+  default OUTPUT invoke(
+      BufferAllocator allocator,
+      DictionaryProvider dictionaryProvider,
+      @Nullable BaseIntVector selection,
+      VectorSchemaRoot input)
+      throws ComputeException {
+    if (dictionaryProvider.getDictionaryIds().isEmpty()) {
+      return invoke(allocator, selection, input);
+    }
+    try (VectorSchemaRoot flattened =
+        VectorSchemaRoots.flatten(allocator, dictionaryProvider, input, selection)) {
+      return invoke(allocator, selection, flattened);
     }
   }
 }

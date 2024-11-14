@@ -17,6 +17,7 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression;
 
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.DictionaryProviders;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ResultRowCountException;
 import java.util.ArrayList;
@@ -26,6 +27,7 @@ import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.BaseIntVector;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
+import org.apache.arrow.vector.dictionary.DictionaryProvider;
 import org.apache.arrow.vector.types.pojo.Field;
 import org.apache.arrow.vector.types.pojo.Schema;
 
@@ -36,10 +38,10 @@ public class ScalarExpressions {
   public static Field getOutputField(
       BufferAllocator allocator, ScalarExpression<?> expression, Schema inputSchema)
       throws ComputeException {
-    try (VectorSchemaRoot empty = VectorSchemaRoot.create(inputSchema, allocator)) {
-      try (FieldVector result = evaluateSafe(allocator, expression, empty)) {
-        return result.getField();
-      }
+    try (VectorSchemaRoot empty = VectorSchemaRoot.create(inputSchema, allocator);
+        FieldVector result =
+            evaluate(allocator, DictionaryProviders.empty(), empty, null, expression)) {
+      return result.getField();
     }
   }
 
@@ -55,21 +57,17 @@ public class ScalarExpressions {
     return new Schema(fields);
   }
 
-  public static <OUTPUT extends FieldVector> OUTPUT evaluateSafe(
-      BufferAllocator allocator, ScalarExpression<OUTPUT> expression, VectorSchemaRoot input)
-      throws ComputeException {
-    return evaluateSafe(allocator, expression, null, input);
-  }
-
-  public static <OUTPUT extends FieldVector> OUTPUT evaluateSafe(
+  public static <OUTPUT extends FieldVector> OUTPUT evaluate(
       BufferAllocator allocator,
-      ScalarExpression<OUTPUT> expression,
+      DictionaryProvider dictionaryProvider,
+      VectorSchemaRoot input,
       @Nullable BaseIntVector selection,
-      VectorSchemaRoot input)
+      ScalarExpression<OUTPUT> expression)
       throws ComputeException {
-    OUTPUT result = expression.invoke(allocator, selection, input);
+    OUTPUT result = expression.invoke(allocator, dictionaryProvider, selection, input);
     try {
-      if (result.getValueCount() != input.getRowCount()) {
+      int inputCount = selection == null ? input.getRowCount() : selection.getValueCount();
+      if (result.getValueCount() != inputCount) {
         throw new ResultRowCountException(
             expression, result.getField(), input.getRowCount(), result.getValueCount());
       }
@@ -80,27 +78,28 @@ public class ScalarExpressions {
     return result;
   }
 
-  public static VectorSchemaRoot evaluateSafe(
-      BufferAllocator allocator, List<ScalarExpression<?>> expressions, VectorSchemaRoot input)
-      throws ComputeException {
-    return evaluateSafe(allocator, expressions, null, input);
-  }
-
-  public static VectorSchemaRoot evaluateSafe(
+  public static VectorSchemaRoot evaluate(
       BufferAllocator allocator,
-      List<ScalarExpression<?>> expressions,
+      DictionaryProvider dictionaryProvider,
+      VectorSchemaRoot input,
       @Nullable BaseIntVector selection,
-      VectorSchemaRoot input)
+      List<ScalarExpression<?>> expressions)
       throws ComputeException {
     List<FieldVector> results = new ArrayList<>();
     try {
       for (ScalarExpression<?> expression : expressions) {
-        results.add(evaluateSafe(allocator, expression, selection, input));
+        results.add(evaluate(allocator, dictionaryProvider, input, selection, expression));
       }
     } catch (ComputeException e) {
       results.forEach(FieldVector::close);
       throw e;
     }
     return new VectorSchemaRoot(results);
+  }
+
+  public static VectorSchemaRoot evaluate(
+      BufferAllocator allocator, VectorSchemaRoot input, List<ScalarExpression<?>> expressions)
+      throws ComputeException {
+    return evaluate(allocator, DictionaryProviders.empty(), input, null, expressions);
   }
 }

@@ -17,10 +17,10 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression;
 
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ConstantPool;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ConstantVectors;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
-import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ConstantPool;
-import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ConstantVectors;
 import java.util.Collections;
 import java.util.Objects;
 import javax.annotation.Nullable;
@@ -28,6 +28,7 @@ import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.BaseIntVector;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
+import org.apache.arrow.vector.dictionary.DictionaryProvider;
 
 public class LiteralNode<OUTPUT extends FieldVector> extends AbstractScalarExpression<OUTPUT> {
 
@@ -66,12 +67,13 @@ public class LiteralNode<OUTPUT extends FieldVector> extends AbstractScalarExpre
 
   @Override
   @SuppressWarnings("unchecked")
-  protected OUTPUT invokeImpl(
-      BufferAllocator allocator, @Nullable BaseIntVector selection, VectorSchemaRoot input)
+  public OUTPUT invokeImpl(
+      BufferAllocator allocator,
+      @Nullable DictionaryProvider dictionaryProvider,
+      @Nullable BaseIntVector selection,
+      VectorSchemaRoot input)
       throws ComputeException {
-    if (selection == null) {
-      return (OUTPUT) ConstantVectors.of(allocator, pool, value, input.getRowCount());
-    }
-    return (OUTPUT) ConstantVectors.of(allocator, pool, value, selection.getValueCount());
+    int count = selection == null ? input.getRowCount() : selection.getValueCount();
+    return (OUTPUT) ConstantVectors.of(allocator, pool, value, count);
   }
 }

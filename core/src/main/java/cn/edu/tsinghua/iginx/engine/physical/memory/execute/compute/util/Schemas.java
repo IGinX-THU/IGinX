@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.shared.data.arrow;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util;
 
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
@@ -23,11 +23,10 @@ import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import org.apache.arrow.vector.FieldVector;
+import org.apache.arrow.vector.dictionary.Dictionary;
+import org.apache.arrow.vector.dictionary.DictionaryProvider;
 import org.apache.arrow.vector.types.Types;
-import org.apache.arrow.vector.types.pojo.ArrowType;
-import org.apache.arrow.vector.types.pojo.Field;
-import org.apache.arrow.vector.types.pojo.FieldType;
-import org.apache.arrow.vector.types.pojo.Schema;
+import org.apache.arrow.vector.types.pojo.*;
 
 public class Schemas {
 
@@ -127,6 +126,17 @@ public class Schemas {
     return new Field(name, field.getFieldType(), field.getChildren());
   }
 
+  public static Field fieldWithDictionary(Field field, DictionaryEncoding dictionaryEncoding) {
+    return new Field(
+        field.getName(),
+        new FieldType(
+            field.isNullable(),
+            field.getFieldType().getType(),
+            dictionaryEncoding,
+            field.getFieldType().getMetadata()),
+        field.getChildren());
+  }
+
   public static List<Integer> matchPattern(Schema inputSchema, String pattern) {
     List<Integer> indexes = new ArrayList<>();
     Predicate<String> matcher = StringUtils.toColumnMatcher(pattern);
@@ -174,5 +184,13 @@ public class Schemas {
 
   public static Schema merge(Schema... schemas) {
     return merge(Arrays.asList(schemas));
+  }
+
+  public static Field flatten(DictionaryProvider dictionaryProvider, Field field) {
+    if (field.getDictionary() == null) {
+      return field;
+    }
+    Dictionary dictionary = dictionaryProvider.lookup(field.getDictionary().getId());
+    return Schemas.fieldWithName(dictionary.getVector().getField(), field.getName());
   }
 }

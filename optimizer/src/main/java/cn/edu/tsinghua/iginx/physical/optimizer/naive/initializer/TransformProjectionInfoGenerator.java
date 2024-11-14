@@ -22,7 +22,7 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expre
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutorFactory;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateless.ProjectionUnaryExecutor;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateless.ProjectExecutor;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.expr.*;
 import cn.edu.tsinghua.iginx.engine.shared.function.Function;
@@ -35,9 +35,9 @@ import cn.edu.tsinghua.iginx.physical.optimizer.naive.util.Expressions;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import org.apache.arrow.vector.types.pojo.Schema;
 
-public class TransformProjectionInfoGenerator
-    implements UnaryExecutorFactory<ProjectionUnaryExecutor> {
+public class TransformProjectionInfoGenerator implements UnaryExecutorFactory<ProjectExecutor> {
 
   private static RowTransform operator = null;
 
@@ -46,10 +46,10 @@ public class TransformProjectionInfoGenerator
   }
 
   @Override
-  public ProjectionUnaryExecutor initialize(ExecutorContext context, BatchSchema inputSchema)
+  public ProjectExecutor initialize(ExecutorContext context, BatchSchema inputSchema)
       throws ComputeException {
     List<ScalarExpression<?>> expressions = getExpressions(context, inputSchema);
-    return new ProjectionUnaryExecutor(context, inputSchema.raw(), expressions);
+    return new ProjectExecutor(context, inputSchema.raw(), expressions);
   }
 
   public List<ScalarExpression<?>> getExpressions(ExecutorContext context, BatchSchema inputSchema)
@@ -60,14 +60,15 @@ public class TransformProjectionInfoGenerator
     }
     for (int targetIndex = 0; targetIndex < operator.getFunctionCallList().size(); targetIndex++) {
       FunctionCall functionCall = operator.getFunctionCallList().get(targetIndex);
-      ScalarExpression<?> expression = getPhysicalExpression(context, inputSchema, functionCall);
+      ScalarExpression<?> expression =
+          getPhysicalExpression(context, inputSchema.raw(), functionCall);
       ret.add(expression);
     }
     return ret;
   }
 
   private ScalarExpression<?> getPhysicalExpression(
-      ExecutorContext context, BatchSchema inputSchema, FunctionCall functionCall)
+      ExecutorContext context, Schema inputSchema, FunctionCall functionCall)
       throws ComputeException {
     Function function = functionCall.getFunction();
     FunctionParams params = functionCall.getParams();

@@ -21,9 +21,9 @@ import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutorFactory;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateless.StatelessUnaryExecutor;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.util.Batch;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.StopWatch;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.Batch;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
@@ -32,7 +32,6 @@ import java.util.Objects;
 import javax.annotation.WillClose;
 import javax.annotation.WillCloseWhenClosed;
 import jdk.nashorn.internal.ir.annotations.Immutable;
-import org.apache.arrow.vector.VectorSchemaRoot;
 
 @Immutable
 public class PipelineMemoryPhysicalTask extends UnaryMemoryPhysicalTask {
@@ -95,11 +94,17 @@ public class PipelineMemoryPhysicalTask extends UnaryMemoryPhysicalTask {
 
     @Override
     public Batch getNext() throws PhysicalException {
-      try (Batch sourceNext = source.getNext()) {
-        try (StopWatch watch = new StopWatch(getMetrics()::accumulateCpuTime)) {
-          VectorSchemaRoot compute = executor.compute(sourceNext.raw());
-          getMetrics().accumulateAffectRows(sourceNext.getRowCount());
-          return Batch.of(compute);
+      while (true) {
+        try (Batch sourceNext = source.getNext()) {
+          try (StopWatch watch = new StopWatch(getMetrics()::accumulateCpuTime)) {
+            Batch computed = executor.compute(sourceNext);
+            if (computed.isEmpty() && !sourceNext.isEmpty()) {
+              computed.close();
+              continue;
+            }
+            getMetrics().accumulateAffectRows(computed.getRowCount());
+            return computed;
+          }
         }
       }
     }

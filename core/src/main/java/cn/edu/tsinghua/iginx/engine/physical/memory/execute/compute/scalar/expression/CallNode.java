@@ -28,6 +28,7 @@ import org.apache.arrow.util.Preconditions;
 import org.apache.arrow.vector.BaseIntVector;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
+import org.apache.arrow.vector.dictionary.DictionaryProvider;
 
 public class CallNode<OUTPUT extends FieldVector> extends AbstractScalarExpression<OUTPUT> {
 
@@ -73,17 +74,22 @@ public class CallNode<OUTPUT extends FieldVector> extends AbstractScalarExpressi
 
   @Override
   protected OUTPUT invokeImpl(
-      BufferAllocator allocator, @Nullable BaseIntVector selection, VectorSchemaRoot input)
+      BufferAllocator allocator,
+      DictionaryProvider dictionaryProvider,
+      @Nullable BaseIntVector selection,
+      VectorSchemaRoot input)
       throws ComputeException {
-    if (getChildren().stream().allMatch(e -> e instanceof LiteralNode || e instanceof FieldNode)) {
+    if (getChildren().stream()
+        .allMatch(child -> child instanceof LiteralNode || child instanceof FieldNode)) {
       try (VectorSchemaRoot args =
-          ScalarExpressions.evaluateSafe(allocator, getChildren(), input)) {
-        return function.invoke(allocator, selection, args);
+          ScalarExpressions.evaluate(allocator, dictionaryProvider, input, null, getChildren())) {
+        return function.invoke(allocator, dictionaryProvider, selection, args);
       }
     }
     try (VectorSchemaRoot args =
-        ScalarExpressions.evaluateSafe(allocator, getChildren(), selection, input)) {
-      return function.invoke(allocator, args);
+        ScalarExpressions.evaluate(
+            allocator, dictionaryProvider, input, selection, getChildren())) {
+      return function.invoke(allocator, dictionaryProvider, null, args);
     }
   }
 }

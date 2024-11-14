@@ -17,9 +17,9 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.row;
 
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ColumnBuilder;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ValueVectors;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
-import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ValueVectors;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.ColumnBuilder;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;

@@ -17,8 +17,9 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression;
 
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.DictionaryProviders;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ValueVectors;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
-import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ValueVectors;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -27,6 +28,7 @@ import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.BaseIntVector;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
+import org.apache.arrow.vector.dictionary.DictionaryProvider;
 
 public abstract class AbstractScalarExpression<OUTPUT extends FieldVector>
     implements ScalarExpression<OUTPUT> {
@@ -65,16 +67,29 @@ public abstract class AbstractScalarExpression<OUTPUT extends FieldVector>
   public OUTPUT invoke(
       BufferAllocator allocator, @Nullable BaseIntVector selection, VectorSchemaRoot input)
       throws ComputeException {
+    return invoke(allocator, DictionaryProviders.empty(), selection, input);
+  }
+
+  @Override
+  public OUTPUT invoke(
+      BufferAllocator allocator,
+      DictionaryProvider dictionaryProvider,
+      @Nullable BaseIntVector selection,
+      VectorSchemaRoot input)
+      throws ComputeException {
     if (alias == null) {
-      return invokeImpl(allocator, selection, input);
+      return invokeImpl(allocator, dictionaryProvider, selection, input);
     } else {
-      try (OUTPUT result = invokeImpl(allocator, selection, input)) {
+      try (OUTPUT result = invokeImpl(allocator, dictionaryProvider, selection, input)) {
         return ValueVectors.transfer(allocator, result, alias);
       }
     }
   }
 
   protected abstract OUTPUT invokeImpl(
-      BufferAllocator allocator, @Nullable BaseIntVector selection, VectorSchemaRoot input)
+      BufferAllocator allocator,
+      @Nullable DictionaryProvider dictionaryProvider,
+      @Nullable BaseIntVector selection,
+      VectorSchemaRoot input)
       throws ComputeException;
 }

@@ -52,7 +52,7 @@ public class ExpressionAccumulator implements Accumulator {
   @Override
   public void update(State state, VectorSchemaRoot input) throws ComputeException {
     try (VectorSchemaRoot expressionResult =
-        ScalarExpressions.evaluateSafe(allocator, expressions, input)) {
+        ScalarExpressions.evaluate(allocator, input, expressions)) {
       accumulator.update(state, expressionResult);
     }
   }

@@ -18,6 +18,7 @@
 package cn.edu.tsinghua.iginx.engine.shared.data.read;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.util.Batch;
 
 public interface BatchStream extends AutoCloseable {
 

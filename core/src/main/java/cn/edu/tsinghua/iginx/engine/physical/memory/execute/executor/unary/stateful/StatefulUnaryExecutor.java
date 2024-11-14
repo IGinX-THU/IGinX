@@ -20,16 +20,16 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stat
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutor;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.util.Batch;
 import java.util.ArrayDeque;
 import java.util.Queue;
 import org.apache.arrow.util.Preconditions;
-import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.types.pojo.Schema;
 
 public abstract class StatefulUnaryExecutor extends UnaryExecutor {
 
   private final int backlog;
-  private final Queue<VectorSchemaRoot> results = new ArrayDeque<>();
+  private final Queue<Batch> results = new ArrayDeque<>();
   private boolean allConsumed = false;
 
   protected StatefulUnaryExecutor(ExecutorContext context, Schema inputSchema, int backlog) {
@@ -40,7 +40,7 @@ public abstract class StatefulUnaryExecutor extends UnaryExecutor {
 
   @Override
   public void close() throws ComputeException {
-    results.forEach(VectorSchemaRoot::close);
+    results.forEach(Batch::close);
     results.clear();
   }
 
@@ -63,7 +63,7 @@ public abstract class StatefulUnaryExecutor extends UnaryExecutor {
    * @throws IllegalStateException if the executor is not ready to consume, i.e., need to produce
    *     the result
    */
-  public void consume(VectorSchemaRoot batch) throws ComputeException {
+  public void consume(Batch batch) throws ComputeException {
     if (!needConsume()) {
       throw new IllegalStateException("Executor does not need to consume more data");
     }
@@ -81,7 +81,7 @@ public abstract class StatefulUnaryExecutor extends UnaryExecutor {
    * @return the result of the computation. Empty if executor has produced all results
    * @throws ComputeException if an error occurs during consumption
    */
-  public VectorSchemaRoot produce() throws ComputeException {
+  public Batch produce() throws ComputeException {
     if (results.isEmpty()) {
       if (needConsume()) {
         throw new IllegalStateException(
@@ -89,16 +89,20 @@ public abstract class StatefulUnaryExecutor extends UnaryExecutor {
                 + getClass().getSimpleName()
                 + " does not have enough data to produce the result");
       }
-      return VectorSchemaRoot.create(getOutputSchema(), context.getAllocator());
+      return Batch.empty(context.getAllocator(), getOutputSchema());
     }
     return results.remove();
   }
 
-  protected void offerResult(VectorSchemaRoot batch) {
+  protected void offerResult(Batch batch) {
+    if (batch.getRowCount() == 0) {
+      batch.close();
+      return;
+    }
     results.add(batch);
   }
 
-  protected abstract void consumeUnchecked(VectorSchemaRoot batch) throws ComputeException;
+  protected abstract void consumeUnchecked(Batch batch) throws ComputeException;
 
   protected abstract void consumeEnd() throws ComputeException;
 }

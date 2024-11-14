@@ -17,7 +17,7 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor;
 
-import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ConstantPool;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ConstantPool;
 import org.apache.arrow.memory.BufferAllocator;
 
 public interface ExecutorContext {

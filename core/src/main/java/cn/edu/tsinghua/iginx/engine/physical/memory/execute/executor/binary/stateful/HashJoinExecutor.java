@@ -21,13 +21,14 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.join.JoinHas
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.join.JoinOption;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpression;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpressions;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.predicate.expression.PredicateExpression;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.util.Batch;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import org.apache.arrow.vector.BitVector;
 import org.apache.arrow.vector.IntVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.types.Types;
@@ -41,88 +42,49 @@ import org.apache.arrow.vector.types.pojo.Schema;
 public class HashJoinExecutor extends StatefulBinaryExecutor {
 
   private final JoinOption joinOption;
-  private final List<ScalarExpression<?>> leftOutputFieldExpressions;
-  private final List<ScalarExpression<?>> rightOutputFieldExpressions;
-  private final List<ScalarExpression<?>> leftOnFieldExpressions;
-  private final List<ScalarExpression<?>> rightOnFieldExpressions;
-  private final ScalarExpression<BitVector> onFieldsPairTester;
-  private final ScalarExpression<IntVector> leftHasher;
-  private final ScalarExpression<IntVector> rightHasher;
+  private final PredicateExpression matcher;
+  private final List<ScalarExpression<?>> outputExpressions;
+  private final ScalarExpression<IntVector> probeSideHasher;
 
-  private final Schema outputSchema;
   private final JoinHashMap.Builder joinHashMapBuilder;
   private JoinHashMap joinHashMap;
+  private Schema outputSchema;
 
   public HashJoinExecutor(
       ExecutorContext context,
       BatchSchema leftSchema,
       BatchSchema rightSchema,
       JoinOption joinOption,
-      List<? extends ScalarExpression<?>> leftOutputFieldExpressions,
-      List<? extends ScalarExpression<?>> rightOutputFieldExpressions,
-      List<? extends ScalarExpression<?>> leftOnFieldExpressions,
-      List<? extends ScalarExpression<?>> rightOnFieldExpressions,
-      ScalarExpression<BitVector> onFieldsPairTester,
+      PredicateExpression matcher,
+      List<ScalarExpression<?>> outputExpressions,
       ScalarExpression<IntVector> leftHasher,
-      ScalarExpression<IntVector> rightHasher)
-      throws ComputeException {
+      ScalarExpression<IntVector> rightHasher) {
     super(context, leftSchema, rightSchema, 1);
     this.joinOption = Objects.requireNonNull(joinOption);
-    this.leftOutputFieldExpressions = new ArrayList<>(leftOutputFieldExpressions);
-    this.rightOutputFieldExpressions = new ArrayList<>(rightOutputFieldExpressions);
-    this.leftOnFieldExpressions = new ArrayList<>(leftOnFieldExpressions);
-    this.rightOnFieldExpressions = new ArrayList<>(rightOnFieldExpressions);
-    this.onFieldsPairTester = Objects.requireNonNull(onFieldsPairTester);
-    this.leftHasher = Objects.requireNonNull(leftHasher);
-    this.rightHasher = Objects.requireNonNull(rightHasher);
-
-    List<Field> outputFields = new ArrayList<>();
-    outputFields.addAll(
-        ScalarExpressions.getOutputSchema(
-                context.getAllocator(), leftOutputFieldExpressions, getLeftSchema().raw())
-            .getFields());
-    outputFields.addAll(
-        ScalarExpressions.getOutputSchema(
-                context.getAllocator(), rightOutputFieldExpressions, getRightSchema().raw())
-            .getFields());
-    if (joinOption.needMark()) {
-      outputFields.add(Field.nullable(joinOption.markColumnName(), Types.MinorType.BIT.getType()));
-    }
-    this.outputSchema = new Schema(outputFields);
-
+    this.matcher = Objects.requireNonNull(matcher);
+    this.outputExpressions = new ArrayList<>(outputExpressions);
+    this.probeSideHasher = Objects.requireNonNull(rightHasher);
     this.joinHashMapBuilder =
-        new JoinHashMap.Builder(
-            context.getAllocator(),
-            getLeftSchema().raw(),
-            joinOption,
-            this.leftHasher,
-            this.leftOnFieldExpressions,
-            this.leftOutputFieldExpressions);
+        new JoinHashMap.Builder(context.getAllocator(), leftHasher, getLeftSchema().raw());
   }
 
   @Override
   public Schema getOutputSchema() throws ComputeException {
+    if (outputSchema == null) {
+      List<Field> outputFields = new ArrayList<>();
+      outputFields.addAll(leftSchema.raw().getFields());
+      outputFields.addAll(rightSchema.raw().getFields());
+      outputFields.add(Field.nullable("mark", Types.MinorType.BIT.getType()));
+      this.outputSchema =
+          ScalarExpressions.getOutputSchema(
+              context.getAllocator(), outputExpressions, new Schema(outputFields));
+    }
     return outputSchema;
   }
 
   @Override
   protected String getInfo() {
-    return "Join("
-        + joinOption
-        + ") "
-        + leftOutputFieldExpressions
-        + " x "
-        + rightOutputFieldExpressions
-        + " On "
-        + leftOnFieldExpressions
-        + " x "
-        + rightOnFieldExpressions
-        + " Where "
-        + onFieldsPairTester
-        + " And "
-        + leftHasher
-        + " = "
-        + rightHasher;
+    return "HashJoin(" + joinOption + ") on " + matcher + " output " + outputExpressions;
   }
 
   @Override
@@ -139,38 +101,32 @@ public class HashJoinExecutor extends StatefulBinaryExecutor {
   }
 
   @Override
-  protected void consumeLeftUnchecked(VectorSchemaRoot batch) throws ComputeException {
-    joinHashMapBuilder.add(batch);
+  protected void consumeLeftUnchecked(Batch batch) throws ComputeException {
+    joinHashMapBuilder.add(batch.flattened(context.getAllocator()));
   }
 
   @Override
   protected void consumeLeftEnd() throws ComputeException {
     joinHashMap =
         joinHashMapBuilder.build(
-            context.getBatchRowCount(),
+            context.getAllocator(),
+            joinOption,
+            matcher,
+            outputExpressions,
+            probeSideHasher,
             getRightSchema().raw(),
-            rightHasher,
-            rightOnFieldExpressions,
-            rightOutputFieldExpressions,
-            onFieldsPairTester);
+            (dictionaryProvider, data) -> offerResult(Batch.of(data, dictionaryProvider)));
   }
 
   @Override
-  protected void consumeRightUnchecked(VectorSchemaRoot batch) throws ComputeException {
-    joinHashMap.probe(batch);
-    while (!joinHashMap.getOutput().isEmpty()) {
-      offerResult(joinHashMap.getOutput().poll());
+  protected void consumeRightUnchecked(Batch batch) throws ComputeException {
+    try (VectorSchemaRoot batchFlattened = batch.flattened(context.getAllocator())) {
+      joinHashMap.probe(batchFlattened);
     }
   }
 
   @Override
   protected void consumeRightEnd() throws ComputeException {
-    if (joinOption.needOutputBuildSideUnmatched()) {
-      joinHashMap.outputBuildSideUnmatched();
-    }
-    joinHashMap.getOutput().flush();
-    while (!joinHashMap.getOutput().isEmpty()) {
-      offerResult(joinHashMap.getOutput().poll());
-    }
+    joinHashMap.flush();
   }
 }

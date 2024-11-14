@@ -17,13 +17,13 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.predicate.compare;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.predicate.SelectionBuilder;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.predicate.UnaryPredicateFunction;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ConstantVectors;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.Schemas;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.SelectionBuilder;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ValueVectors;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.NotAllowTypeException;
-import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ConstantVectors;
-import cn.edu.tsinghua.iginx.engine.shared.data.arrow.Schemas;
-import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ValueVectors;
 import java.util.function.BiConsumer;
 import java.util.function.IntPredicate;
 import javax.annotation.Nullable;
@@ -31,7 +31,10 @@ import org.apache.arrow.memory.ArrowBuf;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.memory.util.ArrowBufPointer;
 import org.apache.arrow.vector.*;
+import org.apache.arrow.vector.dictionary.Dictionary;
+import org.apache.arrow.vector.dictionary.DictionaryProvider;
 import org.apache.arrow.vector.types.Types;
+import org.apache.arrow.vector.types.pojo.DictionaryEncoding;
 import org.apache.arrow.vector.types.pojo.FieldType;
 
 public abstract class UnaryComparisonFunction extends UnaryPredicateFunction {
@@ -52,8 +55,10 @@ public abstract class UnaryComparisonFunction extends UnaryPredicateFunction {
       ConstantVectors.setValueCountWithValidity(dest, rowCount);
       ArrowBuf dataBuffer = dest.getDataBuffer();
       evaluate(
-          selection,
+          null,
           input,
+          rowCount,
+          selection,
           (index, result) -> {
             if (result) {
               BitVectorHelper.setBit(dataBuffer, index);
@@ -65,14 +70,19 @@ public abstract class UnaryComparisonFunction extends UnaryPredicateFunction {
 
   @Override
   public BaseIntVector filter(
-      BufferAllocator allocator, @Nullable BaseIntVector selection, FieldVector input)
+      BufferAllocator allocator,
+      DictionaryProvider dictionaryProvider,
+      FieldVector input,
+      @Nullable BaseIntVector selection)
       throws ComputeException {
     int rowCount = getRowCount(selection, input);
     String name = "select_" + getName() + "(" + input.getField().getName() + ")";
     try (SelectionBuilder dest = new SelectionBuilder(allocator, name, rowCount)) {
       evaluate(
-          selection,
+          dictionaryProvider,
           input,
+          rowCount,
+          selection,
           (index, result) -> {
             if (result) {
               dest.append(index);
@@ -83,26 +93,50 @@ public abstract class UnaryComparisonFunction extends UnaryPredicateFunction {
   }
 
   private void evaluate(
-      BaseIntVector selection, FieldVector input, BiConsumer<Integer, Boolean> consumer)
+      @Nullable DictionaryProvider dictionaryProvider,
+      FieldVector input,
+      int rowCount,
+      @Nullable BaseIntVector selection,
+      BiConsumer<Integer, Boolean> consumer)
+      throws ComputeException {
+    if (dictionaryProvider == null) {
+      evaluate(input, rowCount, selection, null, consumer);
+    } else {
+      DictionaryEncoding encoding = input.getField().getDictionary();
+      if (encoding == null) {
+        evaluate(input, rowCount, selection, null, consumer);
+      } else {
+        Dictionary dictionary = dictionaryProvider.lookup(encoding.getId());
+        evaluate(dictionary.getVector(), rowCount, selection, (BaseIntVector) input, consumer);
+      }
+    }
+  }
+
+  private void evaluate(
+      FieldVector input,
+      int rowCount,
+      @Nullable BaseIntVector selection,
+      @Nullable BaseIntVector indices,
+      BiConsumer<Integer, Boolean> consumer)
       throws ComputeException {
     switch (input.getMinorType()) {
       case BIT:
-        evaluate(consumer, selection, (BitVector) input);
+        evaluate((BitVector) input, rowCount, selection, indices, consumer);
         break;
       case INT:
-        evaluate(consumer, selection, (IntVector) input);
+        evaluate((IntVector) input, rowCount, selection, indices, consumer);
         break;
       case BIGINT:
-        evaluate(consumer, selection, (BigIntVector) input);
+        evaluate((BigIntVector) input, rowCount, selection, indices, consumer);
         break;
       case FLOAT4:
-        evaluate(consumer, selection, (Float4Vector) input);
+        evaluate((Float4Vector) input, rowCount, selection, indices, consumer);
         break;
       case FLOAT8:
-        evaluate(consumer, selection, (Float8Vector) input);
+        evaluate((Float8Vector) input, rowCount, selection, indices, consumer);
         break;
       case VARBINARY:
-        evaluate(consumer, selection, (VarBinaryVector) input);
+        evaluate((VarBinaryVector) input, rowCount, selection, indices, consumer);
         break;
       default:
         throw new NotAllowTypeException(this, Schemas.of(input), 0);
@@ -110,37 +144,68 @@ public abstract class UnaryComparisonFunction extends UnaryPredicateFunction {
   }
 
   private void evaluate(
-      BiConsumer<Integer, Boolean> consumer, BaseIntVector selection, BitVector input) {
-    genericEvaluate(consumer, selection, input, index -> evaluate(input.get(index)));
+      BitVector input,
+      int rowCount,
+      @Nullable BaseIntVector selection,
+      @Nullable BaseIntVector indices,
+      BiConsumer<Integer, Boolean> consumer) {
+    genericEvaluate(
+        input, rowCount, selection, indices, consumer, index -> evaluate(input.get(index) != 0));
   }
 
   private void evaluate(
-      BiConsumer<Integer, Boolean> consumer, BaseIntVector selection, IntVector input) {
-    genericEvaluate(consumer, selection, input, index -> evaluate(input.get(index)));
+      IntVector input,
+      int rowCount,
+      @Nullable BaseIntVector selection,
+      @Nullable BaseIntVector indices,
+      BiConsumer<Integer, Boolean> consumer) {
+    genericEvaluate(
+        input, rowCount, selection, indices, consumer, index -> evaluate(input.get(index)));
   }
 
   private void evaluate(
-      BiConsumer<Integer, Boolean> consumer, BaseIntVector selection, BigIntVector input) {
-    genericEvaluate(consumer, selection, input, index -> evaluate(input.get(index)));
+      BigIntVector input,
+      int rowCount,
+      @Nullable BaseIntVector selection,
+      @Nullable BaseIntVector indices,
+      BiConsumer<Integer, Boolean> consumer) {
+    genericEvaluate(
+        input, rowCount, selection, indices, consumer, index -> evaluate(input.get(index)));
   }
 
   private void evaluate(
-      BiConsumer<Integer, Boolean> consumer, BaseIntVector selection, Float4Vector input) {
-    genericEvaluate(consumer, selection, input, index -> evaluate(input.get(index)));
+      Float4Vector input,
+      int rowCount,
+      @Nullable BaseIntVector selection,
+      @Nullable BaseIntVector indices,
+      BiConsumer<Integer, Boolean> consumer) {
+    genericEvaluate(
+        input, rowCount, selection, indices, consumer, index -> evaluate(input.get(index)));
   }
 
   private void evaluate(
-      BiConsumer<Integer, Boolean> consumer, BaseIntVector selection, Float8Vector input) {
-    genericEvaluate(consumer, selection, input, index -> evaluate(input.get(index)));
+      Float8Vector input,
+      int rowCount,
+      @Nullable BaseIntVector selection,
+      @Nullable BaseIntVector indices,
+      BiConsumer<Integer, Boolean> consumer) {
+    genericEvaluate(
+        input, rowCount, selection, indices, consumer, index -> evaluate(input.get(index)));
   }
 
   private void evaluate(
-      BiConsumer<Integer, Boolean> consumer, BaseIntVector selection, VarBinaryVector input) {
+      VarBinaryVector input,
+      int rowCount,
+      @Nullable BaseIntVector selection,
+      @Nullable BaseIntVector indices,
+      BiConsumer<Integer, Boolean> consumer) {
     ArrowBufPointer pointer = new ArrowBufPointer();
     genericEvaluate(
-        consumer,
-        selection,
         input,
+        rowCount,
+        selection,
+        indices,
+        consumer,
         index -> {
           input.getDataPointer(index, pointer);
           return evaluate(pointer);
@@ -148,22 +213,27 @@ public abstract class UnaryComparisonFunction extends UnaryPredicateFunction {
   }
 
   private static <T extends FieldVector> void genericEvaluate(
-      BiConsumer<Integer, Boolean> consumer,
-      BaseIntVector selection,
       T input,
+      int rowCount,
+      @Nullable BaseIntVector selection,
+      @Nullable BaseIntVector indices,
+      BiConsumer<Integer, Boolean> consumer,
       IntPredicate predicate) {
-    int rowCount = getRowCount(selection, input);
-    if (selection == null) {
-      for (int i = 0; i < rowCount; i++) {
-        boolean result = !input.isNull(i) && predicate.test(i);
-        consumer.accept(i, result);
+    for (int resultIndex = 0; resultIndex < rowCount; resultIndex++) {
+      int selectedIndex = resultIndex;
+      if (selection != null) {
+        selectedIndex = (int) selection.getValueAsLong(resultIndex);
       }
-    } else {
-      for (int selectionIndex = 0; selectionIndex < rowCount; selectionIndex++) {
-        int selectionValue = (int) selection.getValueAsLong(selectionIndex);
-        boolean result = !input.isNull(selectionValue) && predicate.test(selectionValue);
-        consumer.accept(selectionValue, result);
+      int index = selectedIndex;
+      if (indices != null) {
+        if (indices.isNull(selectedIndex)) {
+          consumer.accept(selectedIndex, false);
+          continue;
+        }
+        index = (int) indices.getValueAsLong(selectedIndex);
       }
+      boolean result = !input.isNull(index) && predicate.test(index);
+      consumer.accept(selectedIndex, result);
     }
   }
 
@@ -173,6 +243,8 @@ public abstract class UnaryComparisonFunction extends UnaryPredicateFunction {
     }
     return in.getValueCount();
   }
+
+  protected abstract boolean evaluate(boolean input);
 
   protected abstract boolean evaluate(int input);
 

@@ -21,14 +21,13 @@ import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.binary.BinaryExecutorFactory;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.binary.stateful.StatefulBinaryExecutor;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.util.Batch;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.StopWatch;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.Batch;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import java.util.List;
-import org.apache.arrow.vector.VectorSchemaRoot;
 
 public class BinarySinkMemoryPhysicalTask extends BinaryMemoryPhysicalTask {
 
@@ -97,9 +96,9 @@ public class BinarySinkMemoryPhysicalTask extends BinaryMemoryPhysicalTask {
     public Batch getNext() throws PhysicalException {
       fetchAndConsume(executor, leftSource, rightSource);
       try (StopWatch watch = new StopWatch(getMetrics()::accumulateCpuTime)) {
-        VectorSchemaRoot produced = executor.produce();
+        Batch produced = executor.produce();
         getMetrics().accumulateAffectRows(produced.getRowCount());
-        return Batch.of(produced);
+        return produced;
       }
     }
 
@@ -121,14 +120,14 @@ public class BinarySinkMemoryPhysicalTask extends BinaryMemoryPhysicalTask {
       if (executor.needConsumeLeft()) {
         try (Batch leftBatch = leftSource.getNext()) {
           try (StopWatch watch = new StopWatch(getMetrics()::accumulateCpuTime)) {
-            executor.consumeLeft(leftBatch.raw());
+            executor.consumeLeft(leftBatch);
           }
         }
       }
       if (executor.needConsumeRight()) {
         try (Batch rightBatch = rightSource.getNext()) {
           try (StopWatch watch = new StopWatch(getMetrics()::accumulateCpuTime)) {
-            executor.consumeRight(rightBatch.raw());
+            executor.consumeRight(rightBatch);
           }
         }
       }

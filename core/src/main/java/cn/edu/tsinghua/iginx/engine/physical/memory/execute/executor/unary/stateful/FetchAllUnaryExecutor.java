@@ -19,15 +19,10 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stat
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
-import cn.edu.tsinghua.iginx.engine.shared.data.arrow.VectorSchemaRoots;
-import java.util.ArrayDeque;
-import java.util.Queue;
-import org.apache.arrow.vector.VectorSchemaRoot;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.util.Batch;
 import org.apache.arrow.vector.types.pojo.Schema;
 
 public class FetchAllUnaryExecutor extends StatefulUnaryExecutor {
-
-  private final Queue<VectorSchemaRoot> readyBatches = new ArrayDeque<>();
 
   public FetchAllUnaryExecutor(ExecutorContext context, Schema inputSchema) {
     super(context, inputSchema, Integer.MAX_VALUE);
@@ -44,8 +39,8 @@ public class FetchAllUnaryExecutor extends StatefulUnaryExecutor {
   }
 
   @Override
-  protected void consumeUnchecked(VectorSchemaRoot batch) throws ComputeException {
-    offerResult(VectorSchemaRoots.slice(context.getAllocator(), batch));
+  protected void consumeUnchecked(Batch batch) throws ComputeException {
+    offerResult(batch.slice(context.getAllocator()));
   }
 
   @Override

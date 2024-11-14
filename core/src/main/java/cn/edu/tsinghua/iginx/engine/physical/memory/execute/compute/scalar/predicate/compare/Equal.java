@@ -21,8 +21,10 @@ import org.apache.arrow.memory.util.ArrowBufPointer;
 
 public class Equal extends BinaryComparisonFunction {
 
+  public static final String NAME = "equal";
+
   public Equal() {
-    super("equal");
+    super(NAME);
   }
 
   @Override

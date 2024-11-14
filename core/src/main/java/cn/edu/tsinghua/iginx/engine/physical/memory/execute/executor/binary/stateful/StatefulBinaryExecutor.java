@@ -20,16 +20,16 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.binary.sta
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.binary.BinaryExecutor;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.util.Batch;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import java.util.ArrayDeque;
 import java.util.Queue;
 import org.apache.arrow.util.Preconditions;
-import org.apache.arrow.vector.VectorSchemaRoot;
 
 public abstract class StatefulBinaryExecutor extends BinaryExecutor {
 
   private final int backlog;
-  private final Queue<VectorSchemaRoot> results = new ArrayDeque<>();
+  private final Queue<Batch> results = new ArrayDeque<>();
   private boolean leftAllConsumed = false;
   private boolean rightAllConsumed = false;
 
@@ -55,7 +55,7 @@ public abstract class StatefulBinaryExecutor extends BinaryExecutor {
    *     less than the batch size
    * @throws ComputeException if an error occurs during consumption
    */
-  public void consumeLeft(VectorSchemaRoot batch) throws ComputeException {
+  public void consumeLeft(Batch batch) throws ComputeException {
     if (!needConsumeLeft()) {
       throw new IllegalStateException(
           "Executor does not need to consume more data from the left child");
@@ -75,7 +75,7 @@ public abstract class StatefulBinaryExecutor extends BinaryExecutor {
    *     less than the batch size
    * @throws ComputeException if an error occurs during consumption
    */
-  public void consumeRight(VectorSchemaRoot batch) throws ComputeException {
+  public void consumeRight(Batch batch) throws ComputeException {
     if (!needConsumeRight()) {
       throw new IllegalStateException(
           "Executor does not need to consume more data from the right child");
@@ -93,7 +93,7 @@ public abstract class StatefulBinaryExecutor extends BinaryExecutor {
    *
    * @return the result of the computation. Empty if executor has produced all results
    */
-  public VectorSchemaRoot produce() throws ComputeException {
+  public Batch produce() throws ComputeException {
     if (results.isEmpty()) {
       if (needConsumeLeft() || needConsumeRight()) {
         throw new IllegalStateException(
@@ -101,20 +101,25 @@ public abstract class StatefulBinaryExecutor extends BinaryExecutor {
                 + getClass().getSimpleName()
                 + " does not have enough data to produce the result");
       }
-      return VectorSchemaRoot.create(getOutputSchema(), context.getAllocator());
+      return Batch.empty(context.getAllocator(), getOutputSchema());
     }
     return results.remove();
   }
 
-  protected void offerResult(VectorSchemaRoot batch) {
+  protected void offerResult(Batch batch) {
+    // TODO: slice large batch into smaller ones
+    if (batch.getRowCount() == 0) {
+      batch.close();
+      return;
+    }
     results.add(batch);
   }
 
-  protected abstract void consumeLeftUnchecked(VectorSchemaRoot batch) throws ComputeException;
+  protected abstract void consumeLeftUnchecked(Batch batch) throws ComputeException;
 
   protected abstract void consumeLeftEnd() throws ComputeException;
 
-  protected abstract void consumeRightUnchecked(VectorSchemaRoot batch) throws ComputeException;
+  protected abstract void consumeRightUnchecked(Batch batch) throws ComputeException;
 
   protected abstract void consumeRightEnd() throws ComputeException;
 }

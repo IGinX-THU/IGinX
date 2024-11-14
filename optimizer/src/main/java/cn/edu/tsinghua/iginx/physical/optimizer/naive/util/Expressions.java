@@ -25,17 +25,18 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expre
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.LiteralNode;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpression;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.selecting.CaseWhen;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.Schemas;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.expr.*;
 import java.util.ArrayList;
 import java.util.List;
+import org.apache.arrow.vector.types.pojo.Schema;
 
 public class Expressions {
 
   public static ScalarExpression<?> getPhysicalExpression(
-      ExecutorContext context, BatchSchema inputSchema, Expression expr) throws ComputeException {
+      ExecutorContext context, Schema inputSchema, Expression expr) throws ComputeException {
     switch (expr.getType()) {
       case FromValue:
         throw new UnsupportedOperationException("Unsupported expr type: FromValue");
@@ -61,19 +62,21 @@ public class Expressions {
   }
 
   private static ScalarExpression<?> getPhysicalExpression(
-      ExecutorContext context, BatchSchema inputSchema, BaseExpression expr)
-      throws ComputeException {
-    Integer index = inputSchema.indexOf(expr.getColumnName());
-    if (index == null) {
+      ExecutorContext context, Schema inputSchema, BaseExpression expr) throws ComputeException {
+    List<Integer> indexes = Schemas.matchPattern(inputSchema, expr.getColumnName());
+    if (indexes.isEmpty()) {
       throw new ComputeException(
           "Column not found: " + expr.getColumnName() + " in " + inputSchema);
-    } else {
-      return new FieldNode(index);
     }
+    if (indexes.size() > 1) {
+      throw new ComputeException(
+          "Ambiguous column: " + expr.getColumnName() + " in " + inputSchema);
+    }
+    return new FieldNode(indexes.get(0));
   }
 
   private static ScalarExpression<?> getPhysicalExpression(
-      ExecutorContext context, BatchSchema inputSchema, CaseWhenExpression expr)
+      ExecutorContext context, Schema inputSchema, CaseWhenExpression expr)
       throws ComputeException {
     List<ScalarExpression<?>> args = new ArrayList<>();
     // [condition1, value1, condition2, value2..., valueElse]
@@ -88,8 +91,7 @@ public class Expressions {
   }
 
   private static ScalarExpression<?> getPhysicalExpression(
-      ExecutorContext context, BatchSchema inputSchema, BinaryExpression expr)
-      throws ComputeException {
+      ExecutorContext context, Schema inputSchema, BinaryExpression expr) throws ComputeException {
     ScalarExpression<?> left =
         getPhysicalExpression(context, inputSchema, expr.getLeftExpression());
     ScalarExpression<?> right =
@@ -99,8 +101,7 @@ public class Expressions {
   }
 
   private static ScalarExpression<?> getPhysicalExpression(
-      ExecutorContext context, BatchSchema inputSchema, UnaryExpression expr)
-      throws ComputeException {
+      ExecutorContext context, Schema inputSchema, UnaryExpression expr) throws ComputeException {
     ScalarExpression<?> expression =
         getPhysicalExpression(context, inputSchema, expr.getExpression());
     switch (expr.getOperator()) {

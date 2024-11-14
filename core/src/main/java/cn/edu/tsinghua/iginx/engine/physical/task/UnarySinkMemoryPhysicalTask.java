@@ -21,16 +21,15 @@ import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutorFactory;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateful.StatefulUnaryExecutor;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.util.Batch;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.StopWatch;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.Batch;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import java.util.List;
 import java.util.Objects;
 import javax.annotation.WillCloseWhenClosed;
-import org.apache.arrow.vector.VectorSchemaRoot;
 
 public class UnarySinkMemoryPhysicalTask extends UnaryMemoryPhysicalTask {
 
@@ -66,7 +65,7 @@ public class UnarySinkMemoryPhysicalTask extends UnaryMemoryPhysicalTask {
       while (executor.needConsume()) {
         try (Batch batch = previous.getNext()) {
           try (StopWatch watch = new StopWatch(getMetrics()::accumulateCpuTime)) {
-            executor.consume(batch.raw());
+            executor.consume(batch);
           }
         }
       }
@@ -104,14 +103,14 @@ public class UnarySinkMemoryPhysicalTask extends UnaryMemoryPhysicalTask {
       while (executor.needConsume()) {
         try (Batch batch = source.getNext()) {
           try (StopWatch watch = new StopWatch(getMetrics()::accumulateCpuTime)) {
-            executor.consume(batch.raw());
+            executor.consume(batch);
           }
         }
       }
       try (StopWatch watch = new StopWatch(getMetrics()::accumulateCpuTime)) {
-        VectorSchemaRoot compute = executor.produce();
-        getMetrics().accumulateAffectRows(compute.getRowCount());
-        return Batch.of(compute);
+        Batch produced = executor.produce();
+        getMetrics().accumulateAffectRows(produced.getRowCount());
+        return produced;
       }
     }
 

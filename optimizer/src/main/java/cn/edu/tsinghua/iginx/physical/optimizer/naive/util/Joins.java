@@ -1,0 +1,78 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+package cn.edu.tsinghua.iginx.physical.optimizer.naive.util;
+
+import cn.edu.tsinghua.iginx.engine.shared.operator.InnerJoin;
+import cn.edu.tsinghua.iginx.engine.shared.operator.MarkJoin;
+import cn.edu.tsinghua.iginx.engine.shared.operator.OuterJoin;
+import cn.edu.tsinghua.iginx.engine.shared.operator.type.OuterJoinType;
+
+public class Joins {
+  private Joins() {}
+
+  public static MarkJoin reverse(MarkJoin join) {
+    return new MarkJoin(
+        join.getSourceB(),
+        join.getSourceA(),
+        join.getFilter(),
+        join.getTagFilter(),
+        join.getMarkColumn(),
+        join.isAntiJoin(),
+        join.getJoinAlgType(),
+        join.getExtraJoinPrefix());
+  }
+
+  public static InnerJoin reverse(InnerJoin join) {
+    return new InnerJoin(
+        join.getSourceB(),
+        join.getSourceA(),
+        join.getPrefixB(),
+        join.getPrefixA(),
+        join.getFilter(),
+        join.getTagFilter(),
+        join.getJoinColumns(),
+        join.isNaturalJoin(),
+        join.getJoinAlgType(),
+        join.getExtraJoinPrefix());
+  }
+
+  public static OuterJoin reverse(OuterJoin join) {
+    return new OuterJoin(
+        join.getSourceB(),
+        join.getSourceA(),
+        join.getPrefixB(),
+        join.getPrefixA(),
+        reverse(join.getOuterJoinType()),
+        join.getFilter(),
+        join.getJoinColumns(),
+        join.isNaturalJoin(),
+        join.getJoinAlgType(),
+        join.getExtraJoinPrefix());
+  }
+
+  public static OuterJoinType reverse(OuterJoinType type) {
+    switch (type) {
+      case LEFT:
+        return OuterJoinType.RIGHT;
+      case RIGHT:
+        return OuterJoinType.LEFT;
+      default:
+        return type;
+    }
+  }
+}

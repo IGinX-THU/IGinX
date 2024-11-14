@@ -17,7 +17,7 @@
  */
 package cn.edu.tsinghua.iginx.resource;
 
-import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ConstantPool;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ConstantPool;
 import javax.annotation.WillCloseWhenClosed;
 import org.apache.arrow.memory.BufferAllocator;
 

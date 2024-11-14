@@ -25,6 +25,7 @@ import org.apache.arrow.vector.BaseIntVector;
 import org.apache.arrow.vector.BitVector;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
+import org.apache.arrow.vector.dictionary.DictionaryProvider;
 
 public abstract class UnaryPredicateFunction extends UnaryScalarFunction<BitVector>
     implements PredicateFunction {
@@ -36,16 +37,22 @@ public abstract class UnaryPredicateFunction extends UnaryScalarFunction<BitVect
   @Nullable
   @Override
   public BaseIntVector filter(
-      BufferAllocator allocator, @Nullable BaseIntVector selection, VectorSchemaRoot input)
+      BufferAllocator allocator,
+      DictionaryProvider dictionaryProvider,
+      VectorSchemaRoot input,
+      @Nullable BaseIntVector selection)
       throws ComputeException {
     if (input.getSchema().getFields().size() != 1) {
       throw new ComputeException(getName() + " requires one argument");
     }
-    return filter(allocator, selection, input.getVector(0));
+    return filter(allocator, dictionaryProvider, input.getVector(0), selection);
   }
 
   @Nullable
   protected abstract BaseIntVector filter(
-      BufferAllocator allocator, @Nullable BaseIntVector selection, FieldVector input)
+      BufferAllocator allocator,
+      DictionaryProvider dictionaryProvider,
+      FieldVector input,
+      @Nullable BaseIntVector selection)
       throws ComputeException;
 }

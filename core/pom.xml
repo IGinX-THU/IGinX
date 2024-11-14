@@ -172,6 +172,10 @@
             <artifactId>arrow-algorithm</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.apache.arrow</groupId>
+            <artifactId>arrow-c-data</artifactId>
+        </dependency>
+        <dependency>
             <groupId>cn.edu.tsinghua.iginx</groupId>
             <artifactId>pemja</artifactId>
         </dependency>

@@ -18,8 +18,8 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.PhysicalFunctions;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ValueVectors;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
-import cn.edu.tsinghua.iginx.engine.shared.data.arrow.ValueVectors;
 import java.util.Collections;
 import java.util.List;
 import javax.annotation.Nullable;
@@ -27,6 +27,7 @@ import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.BaseIntVector;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
+import org.apache.arrow.vector.dictionary.DictionaryProvider;
 
 public final class FieldNode extends AbstractScalarExpression<FieldVector> {
 
@@ -57,7 +58,10 @@ public final class FieldNode extends AbstractScalarExpression<FieldVector> {
 
   @Override
   protected FieldVector invokeImpl(
-      BufferAllocator allocator, @Nullable BaseIntVector selection, VectorSchemaRoot input)
+      BufferAllocator allocator,
+      DictionaryProvider dictionaryProvider,
+      @Nullable BaseIntVector selection,
+      VectorSchemaRoot input)
       throws ComputeException {
     List<FieldVector> args = input.getFieldVectors();
     if (index >= args.size() || index < 0) {

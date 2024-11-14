@@ -15,6 +15,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.join;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util;
 
-public class CrossJoinList {}
+public interface IntToIntFunction {
+  int apply(int value);
+}

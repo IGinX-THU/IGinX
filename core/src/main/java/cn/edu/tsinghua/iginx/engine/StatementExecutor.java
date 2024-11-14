@@ -33,6 +33,7 @@ import cn.edu.tsinghua.iginx.engine.physical.PhysicalEngine;
 import cn.edu.tsinghua.iginx.engine.physical.PhysicalEngineImpl;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.Table;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.util.Batch;
 import cn.edu.tsinghua.iginx.engine.physical.task.PhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.visitor.TaskInfoVisitor;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
@@ -74,6 +75,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.antlr.v4.runtime.misc.ParseCancellationException;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VarBinaryVector;
+import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.ipc.ArrowStreamWriter;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
@@ -824,8 +826,9 @@ public class StatementExecutor {
           if (batch.getRowCount() == 0) {
             break;
           }
-          try (ByteArrayOutputStream out = new ByteArrayOutputStream();
-              ArrowStreamWriter writer = new ArrowStreamWriter(batch.raw(), null, out)) {
+          try (VectorSchemaRoot flattened = batch.flattened(ctx.getAllocator());
+              ByteArrayOutputStream out = new ByteArrayOutputStream();
+              ArrowStreamWriter writer = new ArrowStreamWriter(flattened, null, out)) {
             writer.start();
             writer.writeBatch();
             writer.end();

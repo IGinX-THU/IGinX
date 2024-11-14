@@ -21,14 +21,13 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expre
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpression;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.sort.IndexSortExpression;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.CompareOption;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.Schemas;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutorFactory;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateless.InnerBatchSortUnaryExecutor;
-import cn.edu.tsinghua.iginx.engine.shared.data.arrow.Schemas;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Sort;
-import cn.edu.tsinghua.iginx.physical.optimizer.naive.util.Generators;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -48,9 +47,7 @@ public class InnerBatchSortInfoGenerator
   public InnerBatchSortUnaryExecutor initialize(ExecutorContext context, BatchSchema inputSchema)
       throws ComputeException {
     IndexSortExpression indexSortExpression = createIndexSortExpression(sort, inputSchema);
-    List<FieldNode> outputExpressions = Generators.allFieldExpressions(inputSchema.getFieldCount());
-    return new InnerBatchSortUnaryExecutor(
-        context, inputSchema.raw(), indexSortExpression, outputExpressions);
+    return new InnerBatchSortUnaryExecutor(context, inputSchema.raw(), indexSortExpression);
   }
 
   private static IndexSortExpression createIndexSortExpression(Sort sort, BatchSchema inputSchema)

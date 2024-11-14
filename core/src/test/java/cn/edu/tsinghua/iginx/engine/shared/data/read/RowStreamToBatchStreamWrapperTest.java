@@ -19,6 +19,7 @@ package cn.edu.tsinghua.iginx.engine.shared.data.read;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.Table;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.util.Batch;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -117,7 +118,7 @@ class RowStreamToBatchStreamWrapperTest {
             Assertions.assertEquals(
                 Math.min(batchSize, scale - batchIndex * batchSize), batch.getRowCount());
             try (org.apache.arrow.vector.table.Table table =
-                new org.apache.arrow.vector.table.Table(batch.raw())) {
+                new org.apache.arrow.vector.table.Table(batch.getData())) {
               org.apache.arrow.vector.table.Row arrowRow = table.immutableRow();
               for (int rowIndex = 0; rowIndex < batch.getRowCount(); rowIndex++) {
                 int globalRowIndex = batchIndex * batchSize + rowIndex;
