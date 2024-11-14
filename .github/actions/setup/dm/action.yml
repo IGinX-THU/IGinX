@@ -1,0 +1,52 @@
+name: "dm"
+description: "setup dm"
+inputs:
+    version:
+        description: "dm version"
+        required: false
+        default: "dm8"
+
+runs:
+    using: "composite"
+    steps:
+        - if: runner.os == 'Windows'
+        - name: Set up Docker on Windows
+          run: |
+            # 启用 Linux 容器模式
+            & "C:\Program Files\Docker\Docker\DockerCli.exe" -SwitchLinuxEngine
+
+        - if: runner.os == 'macOS'
+          name: Set up Docker on macOS
+          run: |
+            # 启动 Docker 服务
+            brew install --cask docker
+            open -a Docker
+            # 等待 Docker 完成启动
+            for i in {1..30}; do
+              docker info && break
+              echo "Waiting for Docker to start..."
+              sleep 2
+            done
+
+        - name: Pull DM Database Docker image
+          run: |
+            docker pull sizx/dm8
+
+        - name: Run DM Database container
+          run: |
+            docker run -d -p 5236:5236 --name dm8 \
+            --restart=always --privileged=true \
+            -e PAGE_SIZE=16 \
+            -e UNICODE_FLAG=1 \
+            -e LENGTH_IN_CHAR=1 \
+            -e CASE_SENSITIVE=0 \
+            -e SYSDBA_PWD='SYSDBA' \
+            -e LD_LIBRARY_PATH=/opt/dmdbms/bin \
+            -e INSTANCE_NAME=dm8_instance \
+            -v /opt/dm8:/opt/dmdbms/data \
+            sizx/dm8
+
+        - name: Verify DM Database is running
+          run: |
+            sleep 10
+            docker ps
