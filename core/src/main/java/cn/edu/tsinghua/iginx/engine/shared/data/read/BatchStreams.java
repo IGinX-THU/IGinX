@@ -17,6 +17,7 @@
  */
 package cn.edu.tsinghua.iginx.engine.shared.data.read;
 
+import cn.edu.tsinghua.iginx.engine.physical.task.memory.converter.RowStreamToBatchStreamWrapper;
 import javax.annotation.WillClose;
 import javax.annotation.WillNotClose;
 import org.apache.arrow.memory.BufferAllocator;

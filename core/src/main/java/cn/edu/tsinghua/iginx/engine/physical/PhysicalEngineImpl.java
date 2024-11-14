@@ -30,12 +30,15 @@ import cn.edu.tsinghua.iginx.engine.physical.task.*;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.constraint.ConstraintManager;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStreams;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Migration;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.migration.MigrationPhysicalExecutor;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -74,25 +77,32 @@ public class PhysicalEngineImpl implements PhysicalEngine {
             .execute(ctx, (Migration) root, storageTaskExecutor);
       } else {
         GlobalPhysicalTask task = new GlobalPhysicalTask(root, ctx);
-        try (TaskResult result = storageTaskExecutor.executeGlobalTask(task)) {
-          return result.nullableUnwrap();
+        try (TaskResult<RowStream> result = storageTaskExecutor.executeGlobalTask(task)) {
+          RowStream rowStream = result.unwrap();
+          if (rowStream == null) {
+            return null;
+          }
+          return BatchStreams.wrap(ctx.getAllocator(), result.unwrap(), ctx.getBatchRowCount());
         }
       }
     }
-    PhysicalTask task = optimizer.optimize(root, ctx);
-    ctx.setPhysicalTree(task);
-    List<PhysicalTask> bottomTasks = new ArrayList<>();
-    getBottomTasks(bottomTasks, task);
+    PhysicalTask<?> task = optimizer.optimize(root, ctx);
+    PhysicalTask<BatchStream> batchTask = optimizer.convert(task, ctx, BatchStream.class);
+    ctx.setPhysicalTree(batchTask);
+    List<PhysicalTask<?>> bottomTasks = new ArrayList<>();
+    getBottomTasks(bottomTasks, batchTask);
     commitBottomTasks(bottomTasks);
-    try (TaskResult result = task.getResult()) {
-      return result.nullableUnwrap();
+    try (TaskResult<BatchStream> result = batchTask.getResult().get()) {
+      return result.unwrap();
+    } catch (ExecutionException | InterruptedException e) {
+      throw new PhysicalException(e);
     }
   }
 
-  private void commitBottomTasks(List<PhysicalTask> bottomTasks) {
+  private void commitBottomTasks(List<PhysicalTask<?>> bottomTasks) throws PhysicalException {
     List<StoragePhysicalTask> storageTasks = new ArrayList<>();
     List<GlobalPhysicalTask> globalTasks = new ArrayList<>();
-    for (PhysicalTask task : bottomTasks) {
+    for (PhysicalTask<?> task : bottomTasks) {
       if (task.getType().equals(TaskType.Storage)) {
         storageTasks.add((StoragePhysicalTask) task);
       } else if (task.getType().equals(TaskType.Global)) {
@@ -101,7 +111,7 @@ public class PhysicalEngineImpl implements PhysicalEngine {
     }
     storageTaskExecutor.commit(storageTasks);
     for (GlobalPhysicalTask globalTask : globalTasks) {
-      storageTaskExecutor.executeGlobalTask(globalTask);
+      storageTaskExecutor.executeGlobalTask(globalTask).close();
     }
   }
 

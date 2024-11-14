@@ -18,68 +18,56 @@
 package cn.edu.tsinghua.iginx.engine.physical.task;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
-import java.util.NoSuchElementException;
-import java.util.Objects;
+import cn.edu.tsinghua.iginx.engine.physical.task.utils.PhysicalCloseable;
 import javax.annotation.Nullable;
+import org.apache.arrow.util.Preconditions;
 
-public class TaskResult implements AutoCloseable {
-
-  private BatchStream batchStream;
+public class TaskResult<RESULT extends PhysicalCloseable> implements PhysicalCloseable {
 
   private PhysicalException exception;
+  private RESULT result;
 
-  protected TaskResult(BatchStream batchStream, PhysicalException exception) {
-    this.batchStream = batchStream;
-    this.exception = exception;
-  }
-
-  public TaskResult() {
-    this(null, null);
-  }
-
-  public TaskResult(BatchStream batchStream) {
-    this(Objects.requireNonNull(batchStream), null);
+  public TaskResult(RESULT result) {
+    this(null, result);
   }
 
   public TaskResult(PhysicalException exception) {
-    this(null, Objects.requireNonNull(exception));
+    this(exception, null);
   }
 
-  public boolean isEmpty() {
-    return batchStream == null && exception == null;
+  private TaskResult(PhysicalException exception, RESULT result) {
+    Preconditions.checkArgument(
+        result == null ^ exception == null,
+        "result and exception should not both null or not null");
+    this.result = result;
+    this.exception = null;
+  }
+
+  @Override
+  public void close() throws PhysicalException {
+    RESULT result = unwrap();
+    if (result != null) {
+      result.close();
+    }
   }
 
   public boolean isSuccessful() {
     return exception == null;
   }
 
-  public BatchStream unwrap() throws PhysicalException {
-    BatchStream stream = nullableUnwrap();
-    if (stream == null) {
-      throw new NoSuchElementException();
-    }
-    return stream;
-  }
-
   @Nullable
-  public BatchStream nullableUnwrap() throws PhysicalException {
-    try {
-      if (exception != null) {
-        assert batchStream == null;
-        throw exception;
-      }
-      return batchStream;
-    } finally {
-      batchStream = null;
-      exception = null;
+  public RESULT unwrap() throws PhysicalException {
+    if (exception != null) {
+      assert result == null;
+      PhysicalException exception = this.exception;
+      this.exception = null;
+      throw exception;
     }
-  }
-
-  @Override
-  public void close() throws PhysicalException {
-    if (!isEmpty()) {
-      unwrap().close();
+    if (result != null) {
+      RESULT result = this.result;
+      this.result = null;
+      return result;
     }
+    return null;
   }
 }

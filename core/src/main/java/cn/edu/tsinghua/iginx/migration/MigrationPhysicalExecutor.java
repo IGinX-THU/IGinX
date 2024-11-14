@@ -20,7 +20,7 @@ package cn.edu.tsinghua.iginx.migration;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.storage.execute.StoragePhysicalTaskExecutor;
-import cn.edu.tsinghua.iginx.engine.physical.task.*;
+import cn.edu.tsinghua.iginx.engine.physical.task.StoragePhysicalTask;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.RawData;
@@ -36,6 +36,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 
 public class MigrationPhysicalExecutor {
 
@@ -171,6 +172,10 @@ public class MigrationPhysicalExecutor {
     insertOperators.add(new Insert(new FragmentSource(toMigrateFragment), rowDataView));
     StoragePhysicalTask insertPhysicalTask = new StoragePhysicalTask(insertOperators, ctx);
     storageTaskExecutor.commitWithTargetStorageUnitId(insertPhysicalTask, storageUnitId);
-    insertPhysicalTask.getResult().close();
+    try {
+      insertPhysicalTask.getResult().get().close();
+    } catch (InterruptedException | ExecutionException e) {
+      throw new PhysicalException(e);
+    }
   }
 }

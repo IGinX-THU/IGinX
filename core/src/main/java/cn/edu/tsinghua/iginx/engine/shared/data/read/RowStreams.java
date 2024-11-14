@@ -18,20 +18,48 @@
 package cn.edu.tsinghua.iginx.engine.shared.data.read;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
-import cn.edu.tsinghua.iginx.engine.physical.task.utils.PhysicalCloseable;
-import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
+import java.util.Collections;
+import java.util.NoSuchElementException;
+import java.util.Objects;
 
-public interface RowStream extends PhysicalCloseable {
+public class RowStreams {
 
-  Header getHeader() throws PhysicalException;
+  private RowStreams() {}
 
-  boolean hasNext() throws PhysicalException;
+  private static class EmptyRowStream implements RowStream {
 
-  Row next() throws PhysicalException;
+    private final Header header;
 
-  default void setContext(RequestContext context) {}
+    public EmptyRowStream() {
+      this(new Header(Collections.emptyList()));
+    }
 
-  default RequestContext getContext() {
-    return null;
+    public EmptyRowStream(Header header) {
+      this.header = Objects.requireNonNull(header);
+    }
+
+    @Override
+    public Header getHeader() throws PhysicalException {
+      return header;
+    }
+
+    @Override
+    public boolean hasNext() {
+      return false;
+    }
+
+    @Override
+    public Row next() {
+      throw new NoSuchElementException();
+    }
+
+    @Override
+    public void close() {}
+  }
+
+  private static final EmptyRowStream EMPTY = new EmptyRowStream();
+
+  public static RowStream empty() {
+    return EMPTY;
   }
 }

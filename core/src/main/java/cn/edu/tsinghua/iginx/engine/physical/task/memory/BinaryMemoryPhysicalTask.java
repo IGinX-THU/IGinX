@@ -15,61 +15,74 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.task;
+package cn.edu.tsinghua.iginx.engine.physical.task.memory;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
+import cn.edu.tsinghua.iginx.engine.physical.task.PhysicalTask;
+import cn.edu.tsinghua.iginx.engine.physical.task.TaskResult;
+import cn.edu.tsinghua.iginx.engine.physical.task.TaskType;
+import cn.edu.tsinghua.iginx.engine.physical.task.utils.PhysicalCloseable;
 import cn.edu.tsinghua.iginx.engine.physical.task.visitor.TaskVisitor;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import javax.annotation.WillClose;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public abstract class BinaryMemoryPhysicalTask extends MemoryPhysicalTask {
+public abstract class BinaryMemoryPhysicalTask<
+        RESULT extends PhysicalCloseable,
+        LEFT extends PhysicalCloseable,
+        RIGHT extends PhysicalCloseable>
+    extends MemoryPhysicalTask<RESULT> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(BinaryMemoryPhysicalTask.class);
 
-  private final PhysicalTask parentTaskA;
+  private final PhysicalTask<LEFT> parentTaskA;
 
-  private final PhysicalTask parentTaskB;
+  private final PhysicalTask<RIGHT> parentTaskB;
 
   public BinaryMemoryPhysicalTask(
       List<Operator> operators,
-      PhysicalTask parentTaskA,
-      PhysicalTask parentTaskB,
+      PhysicalTask<LEFT> parentTaskA,
+      PhysicalTask<RIGHT> parentTaskB,
       RequestContext context) {
     super(TaskType.BinaryMemory, operators, context);
     this.parentTaskA = parentTaskA;
     this.parentTaskB = parentTaskB;
   }
 
-  public PhysicalTask getParentTaskA() {
+  public PhysicalTask<LEFT> getParentTaskA() {
     return parentTaskA;
   }
 
-  public PhysicalTask getParentTaskB() {
+  public PhysicalTask<RIGHT> getParentTaskB() {
     return parentTaskB;
   }
 
   @Override
-  public TaskResult execute() {
-    try (TaskResult leftResult = parentTaskA.getResult();
-        TaskResult rightResult = parentTaskB.getResult()) {
+  public TaskResult<RESULT> execute() {
+    Future<TaskResult<LEFT>> futureA = parentTaskA.getResult();
+    Future<TaskResult<RIGHT>> futureB = parentTaskB.getResult();
+    try (TaskResult<LEFT> leftResult = futureA.get();
+        TaskResult<RIGHT> rightResult = futureB.get()) {
       if (leftResult.isSuccessful() && rightResult.isSuccessful()) {
-        BatchStream left = leftResult.unwrap();
-        BatchStream right = rightResult.unwrap();
-        BatchStream result = compute(left, right);
-        return new TaskResult(result);
+        LEFT left = leftResult.unwrap();
+        RIGHT right = rightResult.unwrap();
+        RESULT result = compute(left, right);
+        return new TaskResult<>(result);
       }
     } catch (PhysicalException e) {
-      return new TaskResult(e);
+      return new TaskResult<>(e);
+    } catch (ExecutionException | InterruptedException e) {
+      return new TaskResult<>(new PhysicalException(e));
     }
-    throw new IllegalStateException("unreachable code");
+    throw new IllegalStateException("Should not reach here");
   }
 
-  protected abstract BatchStream compute(@WillClose BatchStream left, @WillClose BatchStream right)
+  protected abstract RESULT compute(@WillClose LEFT left, @WillClose RIGHT right)
       throws PhysicalException;
 
   @Override
@@ -82,11 +95,11 @@ public abstract class BinaryMemoryPhysicalTask extends MemoryPhysicalTask {
     visitor.enter();
     visitor.visit(this);
 
-    PhysicalTask taskA = getParentTaskA();
+    PhysicalTask<?> taskA = getParentTaskA();
     if (taskA != null) {
       taskA.accept(visitor);
     }
-    PhysicalTask taskB = getParentTaskB();
+    PhysicalTask<?> taskB = getParentTaskB();
     if (taskB != null) {
       taskB.accept(visitor);
     }

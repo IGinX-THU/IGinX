@@ -19,8 +19,9 @@ package cn.edu.tsinghua.iginx.engine.shared.data.read;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.util.Batch;
+import cn.edu.tsinghua.iginx.engine.physical.task.utils.PhysicalCloseable;
 
-public interface BatchStream extends AutoCloseable {
+public interface BatchStream extends PhysicalCloseable {
 
   /**
    * Get the schema of the batch stream. The schema is immutable, the caller should not modify the
@@ -39,7 +40,4 @@ public interface BatchStream extends AutoCloseable {
    * @throws PhysicalException if an error occurs when getting the next batch
    */
   Batch getNext() throws PhysicalException;
-
-  @Override
-  void close() throws PhysicalException;
 }

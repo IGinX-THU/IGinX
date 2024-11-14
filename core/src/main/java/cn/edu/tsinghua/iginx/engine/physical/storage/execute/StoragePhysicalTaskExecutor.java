@@ -33,7 +33,10 @@ import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.DataArea;
 import cn.edu.tsinghua.iginx.engine.physical.storage.queue.StoragePhysicalTaskQueue;
 import cn.edu.tsinghua.iginx.engine.physical.task.*;
+import cn.edu.tsinghua.iginx.engine.physical.task.memory.MemoryPhysicalTask;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.FetchMetricsRowStream;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStreams;
 import cn.edu.tsinghua.iginx.engine.shared.operator.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
@@ -48,10 +51,7 @@ import cn.edu.tsinghua.iginx.monitor.RequestsMonitor;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.*;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -113,8 +113,9 @@ public class StoragePhysicalTaskExecutor {
                       task.setStorageUnit(id);
                       task.setDummyStorageUnit(isDummy);
                       if (pair.v.getQueue().size() > maxCachedPhysicalTaskPerStorage) {
-                        task.setResult(
-                            new TaskResult(new TooManyPhysicalTasksException(storageId)));
+                        setResult(
+                            task,
+                            new TaskExecuteResult(new TooManyPhysicalTasksException(storageId)));
                         continue;
                       }
                       if (isCancelled(task.getContext().getSessionId())) {
@@ -238,7 +239,7 @@ public class StoragePhysicalTaskExecutor {
                             }
                             long span = System.nanoTime() - startTime;
                             task.getMetrics().accumulateCpuTime(span);
-                            task.setResult(result);
+                            setResult(task, result);
                             if (task.getFollowerTask() != null
                                 && task.isSync()) { // 只有同步任务才会影响后续任务的执行
                               MemoryPhysicalTask followerTask =
@@ -255,7 +256,7 @@ public class StoragePhysicalTaskExecutor {
                                         + task
                                         + " will not broadcasting to replicas for the sake of exception",
                                     result.getException());
-                                task.setResult(new TaskResult(result.getException()));
+                                setResult(task, new TaskExecuteResult(result.getException()));
                               } else {
                                 StorageUnitMeta masterStorageUnit =
                                     task.getTargetFragment().getMasterStorageUnit();
@@ -336,24 +337,28 @@ public class StoragePhysicalTaskExecutor {
     storageTaskQueues.get(storageUnitId).addTask(task);
   }
 
-  public TaskResult executeGlobalTask(GlobalPhysicalTask task) {
+  public TaskResult<RowStream> executeGlobalTask(GlobalPhysicalTask task) {
     switch (task.getOperator().getType()) {
       case ShowColumns:
         long startTime = System.nanoTime();
         TaskExecuteResult result = executeShowColumns((ShowColumns) task.getOperator());
         long span = System.nanoTime() - startTime;
         task.getMetrics().accumulateCpuTime(span);
-        task.setResult(result);
+        setResult(task, result);
         if (task.getFollowerTask() != null) {
-          MemoryPhysicalTask followerTask = (MemoryPhysicalTask) task.getFollowerTask();
+          MemoryPhysicalTask<?> followerTask = (MemoryPhysicalTask<?>) task.getFollowerTask();
           boolean isFollowerTaskReady = followerTask.notifyParentReady();
           if (isFollowerTaskReady) {
             memoryTaskExecutor.addMemoryTask(followerTask);
           }
         }
-        return task.getResult();
+        try {
+          return task.getResult().get();
+        } catch (InterruptedException | ExecutionException e) {
+          return new TaskResult<>(new PhysicalException(e));
+        }
       default:
-        return new TaskResult(
+        return new TaskResult<>(
             new UnexpectedOperatorException("unknown op: " + task.getOperator().getType()));
     }
   }
@@ -443,5 +448,23 @@ public class StoragePhysicalTaskExecutor {
 
   public StorageManager getStorageManager() {
     return storageManager;
+  }
+
+  private static void setResult(PhysicalTask<RowStream> task, TaskExecuteResult result) {
+    if (result != null) {
+      if (result.getException() != null) {
+        task.setResult(new TaskResult<>(result.getException()));
+        return;
+      }
+      RowStream sourceRowStream = result.getRowStream();
+      if (sourceRowStream != null) {
+        RowStream rowStream =
+            new FetchMetricsRowStream(
+                sourceRowStream, task.getMetrics(), task.getContext().getBatchRowCount());
+        task.setResult(new TaskResult<>(rowStream));
+        return;
+      }
+    }
+    task.setResult(new TaskResult<>(RowStreams.empty()));
   }
 }

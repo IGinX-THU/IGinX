@@ -16,64 +16,74 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cn.edu.tsinghua.iginx.engine.physical.task;
+package cn.edu.tsinghua.iginx.engine.physical.task.memory;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
+import cn.edu.tsinghua.iginx.engine.physical.task.PhysicalTask;
+import cn.edu.tsinghua.iginx.engine.physical.task.TaskResult;
+import cn.edu.tsinghua.iginx.engine.physical.task.TaskType;
 import cn.edu.tsinghua.iginx.engine.physical.task.visitor.TaskVisitor;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStreams;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /** 目前专门用于 CombineNonQuery 操作符 */
-public class MultipleMemoryPhysicalTask extends MemoryPhysicalTask {
+public class MultipleMemoryPhysicalTask extends MemoryPhysicalTask<RowStream> {
   @SuppressWarnings("unused")
   private static final Logger LOGGER = LoggerFactory.getLogger(MultipleMemoryPhysicalTask.class);
 
-  private final List<PhysicalTask> parentTasks;
+  private final List<PhysicalTask<?>> parentTasks;
 
   public MultipleMemoryPhysicalTask(
-      List<Operator> operators, List<PhysicalTask> parentTasks, RequestContext context) {
+      List<Operator> operators, List<PhysicalTask<?>> parentTasks, RequestContext context) {
     super(TaskType.MultipleMemory, operators, context);
     this.parentTasks = parentTasks;
   }
 
-  public List<PhysicalTask> getParentTasks() {
+  public List<PhysicalTask<?>> getParentTasks() {
     return parentTasks;
   }
 
   @Override
-  public TaskResult execute() {
+  public TaskResult<RowStream> execute() {
     List<Operator> operators = getOperators();
     if (operators.size() != 1) {
-      return new TaskResult(new PhysicalException("unexpected multiple memory physical task"));
+      return new TaskResult<>(new PhysicalException("unexpected multiple memory physical task"));
     }
     Operator operator = operators.get(0);
     if (operator.getType() != OperatorType.CombineNonQuery) {
-      return new TaskResult(new PhysicalException("unexpected multiple memory physical task"));
+      return new TaskResult<>(new PhysicalException("unexpected multiple memory physical task"));
     }
     if (getFollowerTask() != null) {
-      return new TaskResult(
+      return new TaskResult<>(
           new PhysicalException("multiple memory physical task shouldn't have follower task"));
     }
     PhysicalException exception = null;
-    for (PhysicalTask parentTask : parentTasks) {
+    for (PhysicalTask<?> parentTask : parentTasks) {
       try {
-        parentTask.getResult().close();
-      } catch (PhysicalException e) {
+        parentTask.getResult().get().close();
+      } catch (PhysicalException | ExecutionException | InterruptedException e) {
         if (exception == null) {
-          exception = e;
+          if (e instanceof PhysicalException) {
+            exception = (PhysicalException) e;
+          } else {
+            exception = new PhysicalException(e);
+          }
         } else {
           exception.addSuppressed(e);
         }
       }
     }
     if (exception != null) {
-      return new TaskResult(exception);
+      return new TaskResult<>(exception);
     }
-    return new TaskResult();
+    return new TaskResult<>(RowStreams.empty());
   }
 
   @Override
@@ -86,12 +96,17 @@ public class MultipleMemoryPhysicalTask extends MemoryPhysicalTask {
     visitor.enter();
     visitor.visit(this);
 
-    List<PhysicalTask> tasks = getParentTasks();
-    for (PhysicalTask task : tasks) {
+    List<PhysicalTask<?>> tasks = getParentTasks();
+    for (PhysicalTask<?> task : tasks) {
       if (task != null) {
         task.accept(visitor);
       }
     }
     visitor.leave();
+  }
+
+  @Override
+  public Class<RowStream> getResultClass() {
+    return RowStream.class;
   }
 }

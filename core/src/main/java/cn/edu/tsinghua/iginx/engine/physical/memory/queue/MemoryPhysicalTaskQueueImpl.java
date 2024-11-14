@@ -17,7 +17,7 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.queue;
 
-import cn.edu.tsinghua.iginx.engine.physical.task.MemoryPhysicalTask;
+import cn.edu.tsinghua.iginx.engine.physical.task.memory.MemoryPhysicalTask;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import org.slf4j.Logger;

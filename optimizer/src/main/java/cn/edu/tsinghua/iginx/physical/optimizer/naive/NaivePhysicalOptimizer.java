@@ -19,10 +19,11 @@ package cn.edu.tsinghua.iginx.physical.optimizer.naive;
 
 import cn.edu.tsinghua.iginx.engine.physical.optimizer.PhysicalOptimizer;
 import cn.edu.tsinghua.iginx.engine.physical.optimizer.ReplicaDispatcher;
-import cn.edu.tsinghua.iginx.engine.physical.task.BinaryMemoryPhysicalTask;
-import cn.edu.tsinghua.iginx.engine.physical.task.MultipleMemoryPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.PhysicalTask;
-import cn.edu.tsinghua.iginx.engine.physical.task.UnaryMemoryPhysicalTask;
+import cn.edu.tsinghua.iginx.engine.physical.task.memory.BinaryMemoryPhysicalTask;
+import cn.edu.tsinghua.iginx.engine.physical.task.memory.MultipleMemoryPhysicalTask;
+import cn.edu.tsinghua.iginx.engine.physical.task.memory.UnaryMemoryPhysicalTask;
+import cn.edu.tsinghua.iginx.engine.physical.task.utils.PhysicalCloseable;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.constraint.ConstraintManager;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
@@ -31,18 +32,26 @@ import java.util.Collection;
 
 public class NaivePhysicalOptimizer implements PhysicalOptimizer {
 
+  private final NaivePhysicalPlanner planner = new NaivePhysicalPlanner();
+
   public static NaivePhysicalOptimizer getInstance() {
     return NaivePhysicalOptimizerHolder.INSTANCE;
   }
 
   @Override
-  public PhysicalTask optimize(Operator root, RequestContext context) {
+  public PhysicalTask<?> optimize(Operator root, RequestContext context) {
     if (root == null) {
       return null;
     }
     NaivePhysicalPlanner planner = new NaivePhysicalPlanner();
-    PhysicalTask task = planner.construct(root, context);
+    PhysicalTask<?> task = planner.construct(root, context);
     return setFollowerTask(task);
+  }
+
+  @Override
+  public <RESULT extends PhysicalCloseable> PhysicalTask<RESULT> convert(
+      PhysicalTask<?> task, RequestContext context, Class<RESULT> clazz) {
+    return planner.convert(task, context, clazz);
   }
 
   @Override
@@ -145,20 +154,23 @@ public class NaivePhysicalOptimizer implements PhysicalOptimizer {
   //    }
   //  }
 
-  private static PhysicalTask setFollowerTask(PhysicalTask task) {
+  private static PhysicalTask<?> setFollowerTask(PhysicalTask<?> task) {
     switch (task.getType()) {
       case Storage:
       case Global:
         break;
       case UnaryMemory:
-        setFollowerTask(((UnaryMemoryPhysicalTask) task).getParentTask()).setFollowerTask(task);
+        setFollowerTask(((UnaryMemoryPhysicalTask<?, ?>) task).getParentTask())
+            .setFollowerTask(task);
         break;
       case BinaryMemory:
-        setFollowerTask(((BinaryMemoryPhysicalTask) task).getParentTaskA()).setFollowerTask(task);
-        setFollowerTask(((BinaryMemoryPhysicalTask) task).getParentTaskB()).setFollowerTask(task);
+        setFollowerTask(((BinaryMemoryPhysicalTask<?, ?, ?>) task).getParentTaskA())
+            .setFollowerTask(task);
+        setFollowerTask(((BinaryMemoryPhysicalTask<?, ?, ?>) task).getParentTaskB())
+            .setFollowerTask(task);
         break;
       case MultipleMemory:
-        for (PhysicalTask parentTask : ((MultipleMemoryPhysicalTask) task).getParentTasks()) {
+        for (PhysicalTask<?> parentTask : ((MultipleMemoryPhysicalTask) task).getParentTasks()) {
           setFollowerTask(parentTask).setFollowerTask(task);
         }
         break;

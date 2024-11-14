@@ -24,6 +24,24 @@ import javax.annotation.concurrent.ThreadSafe;
 @ThreadSafe
 public class TaskMetrics {
 
+  public static final TaskMetrics NO_OP =
+      new TaskMetrics() {
+        @Override
+        public void accumulateAffectRows(long number) {}
+
+        @Override
+        public void accumulateCpuTime(long nanos) {}
+
+        @Override
+        public long affectRows() {
+          return 0;
+        }
+
+        @Override
+        public Duration cpuTime() {
+          return Duration.ZERO;
+        }
+      };
   private final LongAdder affectRows = new LongAdder();
   private final LongAdder span = new LongAdder();
 
