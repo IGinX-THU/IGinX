@@ -1453,7 +1453,7 @@ public class UDFIT {
             + "Total line number = 1\n";
     assertEquals(expected, ret.getResultInString(false, ""));
   }
-  
+
   @Test
   public void testUDFColumnPruning() {
     String statement = "SELECT cos(s1), cos(s2) FROM us.d1 LIMIT 5;";

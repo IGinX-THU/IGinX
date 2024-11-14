@@ -174,7 +174,7 @@ public class FunctionManager {
     if (functions.containsKey(identifier)) {
       PyUDF function = (PyUDF) functions.get(identifier);
       try {
-        function.close();
+        function.close(identifier, interpreter);
       } catch (Exception e) {
         LOGGER.error("Failed to remove UDF {}.", identifier, e);
       }
