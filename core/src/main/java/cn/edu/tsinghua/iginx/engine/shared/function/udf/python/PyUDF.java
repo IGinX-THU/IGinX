@@ -20,12 +20,12 @@ package cn.edu.tsinghua.iginx.engine.shared.function.udf.python;
 import static cn.edu.tsinghua.iginx.engine.shared.Constants.UDF_FUNC;
 
 import cn.edu.tsinghua.iginx.engine.shared.function.Function;
-import cn.edu.tsinghua.iginx.engine.shared.function.manager.FunctionManager;
 import cn.edu.tsinghua.iginx.engine.shared.function.manager.ThreadInterpreterManager;
 import java.util.List;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pemja.core.PythonInterpreter;
 
 public abstract class PyUDF implements Function {
 
@@ -40,8 +40,12 @@ public abstract class PyUDF implements Function {
     this.className = className;
   }
 
-  public void close() throws Exception {
-    FunctionManager.getInstance().removePythonModule(moduleName);
+  public void close(String funcName, PythonInterpreter interpreter) {
+    try {
+      interpreter.exec(String.format("import sys; sys.modules.pop('%s', None)", moduleName));
+    } catch (Exception e) {
+      LOGGER.error("Remove module for udf {} failed:", funcName, e);
+    }
   }
 
   protected List<List<Object>> invokePyUDF(

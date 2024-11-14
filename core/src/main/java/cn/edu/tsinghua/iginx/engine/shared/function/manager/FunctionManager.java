@@ -232,15 +232,6 @@ public class FunctionManager {
     }
   }
 
-  public void removePythonModule(String moduleName) throws Exception {
-    try {
-      interpreter.exec(String.format("import sys; sys.modules.pop('%s', None)", moduleName));
-    } catch (Exception e) {
-      LOGGER.error("Remove module {} failed:", moduleName, e);
-      throw e;
-    }
-  }
-
   public PythonInterpreter getInterpreter() {
     return interpreter;
   }

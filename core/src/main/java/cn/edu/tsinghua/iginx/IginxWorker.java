@@ -1126,22 +1126,6 @@ public class IginxWorker implements IService.Iface {
   }
 
   @Override
-  public Status dropPythonModule(DropPythonModuleReq req) {
-    try {
-      FunctionManager.getInstance().removePythonModule(req.getName());
-      return new Status(RpcUtils.SUCCESS)
-          .setMessage(
-              String.format(
-                  "Warning: Successfully removed module %s from system dictionary. But the global variables, extensions and some other resources may still remain in memory.\n"
-                      + "An attempt of re-import could fail if the module is not designed friendly for re-importing.",
-                  req.getName()));
-    } catch (Exception e) {
-      return new Status(RpcUtils.FAILURE)
-          .setMessage("Failed to remove python module " + req.getName());
-    }
-  }
-
-  @Override
   public GetRegisterTaskInfoResp getRegisterTaskInfo(GetRegisterTaskInfoReq req) {
     List<TransformTaskMeta> taskMetaList = metaManager.getTransformTasks();
     List<RegisterTaskInfo> taskInfoList = new ArrayList<>();

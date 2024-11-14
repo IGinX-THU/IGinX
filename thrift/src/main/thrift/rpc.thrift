@@ -65,7 +65,6 @@ enum SqlType {
     ShowRegisterTask,
     RegisterTask,
     DropTask,
-    DropPythonModule,
     CommitTransformJob,
     ShowJobStatus,
     CancelJob,
@@ -609,11 +608,6 @@ struct DropTaskReq {
     2: required string name
 }
 
-struct DropPythonModuleReq {
-    1: required i64 sessionId
-    2: required string name
-}
-
 struct GetRegisterTaskInfoReq {
     1: required i64 sessionId
 }
@@ -795,8 +789,6 @@ service IService {
     Status registerTask(1: RegisterTaskReq req);
 
     Status dropTask(1: DropTaskReq req);
-
-    Status dropPythonModule(1: DropPythonModuleReq req);
 
     GetRegisterTaskInfoResp getRegisterTaskInfo(1: GetRegisterTaskInfoReq req);
 
