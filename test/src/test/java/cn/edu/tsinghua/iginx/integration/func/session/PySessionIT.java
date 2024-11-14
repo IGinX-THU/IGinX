@@ -1,21 +1,22 @@
 /*
  * IGinX - the polystore system with high performance
  * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-
 package cn.edu.tsinghua.iginx.integration.func.session;
 
 import static cn.edu.tsinghua.iginx.integration.controller.Controller.clearAllData;
@@ -440,19 +441,19 @@ public class PySessionIT {
     }
     // 检查Python脚本的输出是否符合预期
     String expected =
-        "   key test.a.a test.a.b test.b.b test.c.c\n"
-            + "0    0     b'a'     b'b'     None     None\n"
-            + "1    2     None     None     None     b'c'\n"
-            + "2    3     b'Q'     b'W'     None     b'R'\n"
-            + "3    5     None     None     None     b'b'\n"
-            + "4    6     b'b'     None     None     None\n"
-            + "5    7     b'R'     b'E'     None     b'Q'\n"
-            + "   key test.a.a test.a.b test.b.b test.c.c\n"
-            + "0    0     b'a'     b'b'     None     None\n"
-            + "1    2     None     None     None     b'c'\n"
-            + "2    3     b'Q'     b'W'     None     b'R'\n"
-            + "3    5     None     None     None     b'b'\n"
-            + "4    7     b'R'     b'E'     None     b'Q'\n";
+        "   key test.a.a test.a.b test.c.c\n"
+            + "0    0     b'a'     b'b'     None\n"
+            + "1    2     None     None     b'c'\n"
+            + "2    3     b'Q'     b'W'     b'R'\n"
+            + "3    5     None     None     b'b'\n"
+            + "4    6     b'b'     None     None\n"
+            + "5    7     b'R'     b'E'     b'Q'\n"
+            + "   key test.a.a test.a.b test.c.c\n"
+            + "0    0     b'a'     b'b'     None\n"
+            + "1    2     None     None     b'c'\n"
+            + "2    3     b'Q'     b'W'     b'R'\n"
+            + "3    5     None     None     b'b'\n"
+            + "4    7     b'R'     b'E'     b'Q'\n";
     assertEquals(expected, result);
   }
 

@@ -3,19 +3,21 @@
 
     IGinX - the polystore system with high performance
     Copyright (C) Tsinghua University
+    TSIGinX@gmail.com
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+    This program is free software; you can redistribute it and/or
+    modify it under the terms of the GNU Lesser General Public
+    License as published by the Free Software Foundation; either
+    version 3 of the License, or (at your option) any later version.
 
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    Lesser General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+    You should have received a copy of the GNU Lesser General Public License
+    along with this program; if not, write to the Free Software Foundation,
+    Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -40,6 +42,7 @@
         <module>core</module>
         <module>optimizer</module>
         <module>dataSource</module>
+        <module>session_py</module>
         <module>example</module>
         <module>test</module>
         <!-- assembly module must be the last one -->
@@ -343,6 +346,91 @@
                     <version>0.10.0</version>
                 </plugin>
                 <plugin>
+                    <groupId>com.diffplug.spotless</groupId>
+                    <artifactId>spotless-maven-plugin</artifactId>
+                    <version>2.30.0</version>
+                    <configuration>
+                        <java>
+                            <toggleOffOn/>
+                            <importOrder/>
+                            <removeUnusedImports/>
+                            <trimTrailingWhitespace/>
+                            <googleJavaFormat>
+                                <version>1.7</version>
+                                <style>GOOGLE</style>
+                            </googleJavaFormat>
+                        </java>
+                        <python>
+                            <includes>
+                                <include>**/*.py</include>
+                            </includes>
+                        </python>
+                        <antlr4>
+                            <includes>
+                                <include>**/*.g4</include>
+                            </includes>
+                            <antlr4Formatter>
+                                <version>1.2.1</version>
+                            </antlr4Formatter>
+                        </antlr4>
+                        <sql>
+                            <includes>
+                                <include>**/*.sql</include>
+                            </includes>
+                            <!--<prettier/>-->
+                            <dbeaver/>
+                            <toggleOffOn/>
+                        </sql>
+                        <yaml>
+                            <includes>
+                                <include>**/*.yml</include>
+                                <include>**/*.yaml</include>
+                            </includes>
+                            <excludes>
+                                <exclude>.github/**/*.yml</exclude>
+                                <exclude>**/target/**/*.yml</exclude>
+                            </excludes>
+                        </yaml>
+                        <formats>
+                            <format>
+                                <includes>
+                                    <include>.github/**/*.yml</include>
+                                </includes>
+                                <prettier>
+                                    <prettierVersion>1.19.0</prettierVersion>
+                                    <config>
+                                        <tabWidth>4</tabWidth>
+                                        <useTabs>true</useTabs>
+                                    </config>
+                                </prettier>
+                            </format>
+                        </formats>
+                        <markdown>
+                            <includes>
+                                <include>**/*.md</include>
+                            </includes>
+                            <excludes>
+                                <exclude>**/target/**/*.md</exclude>
+                            </excludes>
+                            <flexmark/>
+                        </markdown>
+                        <pom>
+                            <includes>
+                                <include>pom.xml</include>
+                            </includes>
+                            <sortPom>
+                                <encoding>UTF-8</encoding>
+                                <keepBlankLines>true</keepBlankLines>
+                                <nrOfIndentSpace>4</nrOfIndentSpace>
+                                <indentBlankLines>false</indentBlankLines>
+                                <indentSchemaLocation>true</indentSchemaLocation>
+                                <expandEmptyElements>false</expandEmptyElements>
+                                <sortProperties>true</sortProperties>
+                            </sortPom>
+                        </pom>
+                    </configuration>
+                </plugin>
+                <plugin>
                     <groupId>com.mycila</groupId>
                     <artifactId>license-maven-plugin</artifactId>
                     <version>4.5</version>
@@ -404,94 +492,13 @@
                     <plugin>
                         <groupId>com.diffplug.spotless</groupId>
                         <artifactId>spotless-maven-plugin</artifactId>
-                        <version>2.30.0</version>
-                        <configuration>
-                            <java>
-                                <toggleOffOn/>
-                                <importOrder/>
-                                <removeUnusedImports/>
-                                <trimTrailingWhitespace/>
-                                <googleJavaFormat>
-                                    <version>1.7</version>
-                                    <style>GOOGLE</style>
-                                </googleJavaFormat>
-                            </java>
-                            <python>
-                                <includes>
-                                    <include>**/*.py</include>
-                                </includes>
-                            </python>
-                            <antlr4>
-                                <includes>
-                                    <include>**/*.g4</include>
-                                </includes>
-                                <antlr4Formatter>
-                                    <version>1.2.1</version>
-                                </antlr4Formatter>
-                            </antlr4>
-                            <sql>
-                                <includes>
-                                    <include>**/*.sql</include>
-                                </includes>
-                                <!--<prettier/>-->
-                                <dbeaver/>
-                                <toggleOffOn/>
-                            </sql>
-                            <yaml>
-                                <includes>
-                                    <include>**/*.yml</include>
-                                    <include>**/*.yaml</include>
-                                </includes>
-                                <excludes>
-                                    <exclude>.github/**/*.yml</exclude>
-                                    <exclude>**/target/**/*.yml</exclude>
-                                </excludes>
-                            </yaml>
-                            <formats>
-                                <format>
-                                    <includes>
-                                        <include>.github/**/*.yml</include>
-                                    </includes>
-                                    <prettier>
-                                        <prettierVersion>1.19.0</prettierVersion>
-                                        <config>
-                                            <tabWidth>4</tabWidth>
-                                            <useTabs>true</useTabs>
-                                        </config>
-                                    </prettier>
-                                </format>
-                            </formats>
-                            <markdown>
-                                <includes>
-                                    <include>**/*.md</include>
-                                </includes>
-                                <excludes>
-                                    <exclude>**/target/**/*.md</exclude>
-                                </excludes>
-                                <flexmark/>
-                            </markdown>
-                            <pom>
-                                <includes>
-                                    <include>pom.xml</include>
-                                </includes>
-                                <sortPom>
-                                    <encoding>UTF-8</encoding>
-                                    <keepBlankLines>true</keepBlankLines>
-                                    <nrOfIndentSpace>4</nrOfIndentSpace>
-                                    <indentBlankLines>false</indentBlankLines>
-                                    <indentSchemaLocation>true</indentSchemaLocation>
-                                    <expandEmptyElements>false</expandEmptyElements>
-                                    <sortProperties>true</sortProperties>
-                                </sortPom>
-                            </pom>
-                        </configuration>
                         <executions>
                             <execution>
                                 <goals>
                                     <goal>apply</goal>
                                     <!--goal>check</goal-->
                                 </goals>
-                                <phase>initialize</phase>
+                                <phase>process-sources</phase>
                             </execution>
                         </executions>
                     </plugin>
@@ -503,7 +510,7 @@
                                 <goals>
                                     <goal>format</goal>
                                 </goals>
-                                <phase>initialize</phase>
+                                <phase>process-sources</phase>
                             </execution>
                         </executions>
                     </plugin>

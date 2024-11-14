@@ -1,21 +1,22 @@
 /*
  * IGinX - the polystore system with high performance
  * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-
 package cn.edu.tsinghua.iginx.engine.logical.utils;
 
 import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils.*;
@@ -26,6 +27,7 @@ import static cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType.isM
 import static cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType.isUnaryOperator;
 
 import cn.edu.tsinghua.iginx.engine.shared.expr.BaseExpression;
+import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionUtils;
@@ -315,18 +317,19 @@ public class OperatorUtils {
         root =
             new GroupBy(
                 new OperatorSource(pushDownApply(apply, correlatedVariables)),
-                correlatedVariables,
+                correlatedVariables.stream().map(BaseExpression::new).collect(Collectors.toList()),
                 setTransform.getFunctionCallList());
         break;
       case GroupBy:
         GroupBy groupBy = (GroupBy) operatorB;
         apply.setSourceB(groupBy.getSource());
-        List<String> groupByCols = groupBy.getGroupByCols();
-        groupByCols.addAll(correlatedVariables);
+        List<Expression> groupByExpressions = groupBy.getGroupByExpressions();
+        groupByExpressions.addAll(
+            correlatedVariables.stream().map(BaseExpression::new).collect(Collectors.toList()));
         root =
             new GroupBy(
                 new OperatorSource(pushDownApply(apply, correlatedVariables)),
-                groupByCols,
+                groupByExpressions,
                 groupBy.getFunctionCallList());
         break;
       case Rename:

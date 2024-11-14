@@ -1,19 +1,21 @@
 /*
  * IGinX - the polystore system with high performance
  * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.stream;
 
@@ -24,6 +26,7 @@ import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.UnexpectedOperatorException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.OperatorMemoryExecutor;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.Table;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.HeaderUtils;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils;
 import cn.edu.tsinghua.iginx.engine.shared.Constants;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
@@ -196,6 +199,11 @@ public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
   }
 
   private RowStream executeSort(Sort sort, RowStream stream) throws PhysicalException {
+    RowTransform preRowTransform = HeaderUtils.checkSortHeader(stream.getHeader(), sort);
+    if (preRowTransform != null) {
+      stream = executeRowTransform(preRowTransform, stream);
+    }
+
     return new SortLazyStream(sort, stream);
   }
 
@@ -268,7 +276,12 @@ public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
     return new AddSchemaPrefixLazyStream(addSchemaPrefix, stream);
   }
 
-  private RowStream executeGroupBy(GroupBy groupBy, RowStream stream) {
+  private RowStream executeGroupBy(GroupBy groupBy, RowStream stream) throws PhysicalException {
+    RowTransform preRowTransform = HeaderUtils.checkGroupByHeader(stream.getHeader(), groupBy);
+    if (preRowTransform != null) {
+      stream = executeRowTransform(preRowTransform, stream);
+    }
+
     return new GroupByLazyStream(groupBy, stream);
   }
 

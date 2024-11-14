@@ -1,19 +1,21 @@
 /*
  * IGinX - the polystore system with high performance
  * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 package cn.edu.tsinghua.iginx.integration.func.session;
 
@@ -571,7 +573,8 @@ public class SessionIT extends BaseSessionIT {
         long key = delDataInColumnDataSet.getKeys()[i];
         assertEquals(i + START_KEY, key);
         List<Object> result = delDataInColumnDataSet.getValues().get(i);
-        for (int j = 0; j < dataInColumnLen; j++) {
+        assertEquals(dataInColumnLen - deleteDataInColumnLen, delDataInColumnResPaths.size());
+        for (int j = 0; j < dataInColumnLen - deleteDataInColumnLen; j++) {
           int pathNum = getPathNum(delDataInColumnResPaths.get(j));
           assertNotEquals(pathNum, -1);
           if (pathNum < currPath + deleteDataInColumnLen) { // Here is the removed rows
@@ -967,7 +970,7 @@ public class SessionIT extends BaseSessionIT {
         long key = dtDelColDataSet.getKeys()[i];
         assertEquals(i + START_KEY, key);
         List<Object> result = dtDelColDataSet.getValues().get(i);
-        for (int j = 0; j < 6; j++) {
+        for (int j = 0; j < 4; j++) {
           int currPathPos = getPathNum(dtDelColResPaths.get(j)) - currPath;
           if (currPathPos < dtDelColumnNum) {
             assertNull(result.get(j));

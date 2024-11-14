@@ -1,21 +1,22 @@
 /*
  * IGinX - the polystore system with high performance
  * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-
 package cn.edu.tsinghua.iginx.engine.logical.generator;
 
 import static cn.edu.tsinghua.iginx.engine.shared.Constants.ALL_PATH_SUFFIX;
@@ -114,7 +115,14 @@ public class QueryGenerator extends AbstractGenerator {
               root = new Rename(new OperatorSource(root), cte.getAliasList());
               cte.setRoot(root);
             });
-    return generateRoot(selectStatement);
+
+    // 计算语句的操作符树
+    Operator root = generateRoot(selectStatement);
+
+    // 去除最终结果的空列
+    root = new RemoveNullColumn(new OperatorSource(root));
+
+    return root;
   }
 
   private Operator generateRoot(SelectStatement selectStatement) {
@@ -237,7 +245,9 @@ public class QueryGenerator extends AbstractGenerator {
     selectStatement.initFreeVariables();
     List<String> freeVariables = selectStatement.getFreeVariables();
     if (!freeVariables.isEmpty()) {
-      throw new RuntimeException("Unexpected paths' name: " + freeVariables + ".");
+      throw new RuntimeException(
+          String.format(
+              "Unexpected paths' name: %s, check if there exists missing prefix.", freeVariables));
     }
   }
 
@@ -582,7 +592,7 @@ public class QueryGenerator extends AbstractGenerator {
    * @return 添加了Sort操作符的根节点；如果没有Order By子句，返回原根节点
    */
   private static Operator buildOrderByPaths(SelectStatement selectStatement, Operator root) {
-    if (selectStatement.getOrderByPaths().isEmpty()) {
+    if (selectStatement.getOrderByExpressions().isEmpty()) {
       return root;
     }
     List<Sort.SortType> sortTypes = new ArrayList<>();
@@ -590,7 +600,7 @@ public class QueryGenerator extends AbstractGenerator {
         .getAscendingList()
         .forEach(
             isAscending -> sortTypes.add(isAscending ? Sort.SortType.ASC : Sort.SortType.DESC));
-    return new Sort(new OperatorSource(root), selectStatement.getOrderByPaths(), sortTypes);
+    return new Sort(new OperatorSource(root), selectStatement.getOrderByExpressions(), sortTypes);
   }
 
   /**
@@ -661,7 +671,7 @@ public class QueryGenerator extends AbstractGenerator {
     List<FunctionCall> functionCallList =
         getFunctionCallList(selectStatement, MappingType.SetMapping);
     return new GroupBy(
-        new OperatorSource(root), selectStatement.getGroupByPaths(), functionCallList);
+        new OperatorSource(root), selectStatement.getGroupByExpressions(), functionCallList);
   }
 
   /**
@@ -732,7 +742,7 @@ public class QueryGenerator extends AbstractGenerator {
     if (selectStatement.isLastFirst()) {
       root = new Reorder(new OperatorSource(root), Arrays.asList("path", "value"));
     } else if (hasFuncWithArgs) {
-      root = new Reorder(new OperatorSource(root), Collections.singletonList("*"));
+      root = new Reorder(new OperatorSource(root), new ArrayList<>(Collections.singletonList("*")));
     } else {
       List<String> order = new ArrayList<>();
       List<Boolean> isPyUDF = new ArrayList<>();

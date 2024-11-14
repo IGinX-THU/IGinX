@@ -1,19 +1,21 @@
 /*
  * IGinX - the polystore system with high performance
  * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 package cn.edu.tsinghua.iginx.engine.shared.expr;
 
@@ -104,5 +106,39 @@ public class CaseWhenExpression implements Expression {
       result.accept(visitor);
     }
     resultElse.accept(visitor);
+  }
+
+  @Override
+  public boolean equalExceptAlias(Expression expr) {
+    if (this == expr) {
+      return true;
+    }
+    if (expr == null || expr.getType() != ExpressionType.CaseWhen) {
+      return false;
+    }
+    CaseWhenExpression that = (CaseWhenExpression) expr;
+    if (this.conditions.size() != that.conditions.size()) {
+      return false;
+    }
+    for (int i = 0; i < this.conditions.size(); i++) {
+      if (!this.conditions.get(i).equals(that.conditions.get(i))) {
+        return false;
+      }
+    }
+    if (this.results.size() != that.results.size()) {
+      return false;
+    }
+    for (int i = 0; i < this.results.size(); i++) {
+      if (!this.results.get(i).equalExceptAlias(that.results.get(i))) {
+        return false;
+      }
+    }
+    if (this.resultElse == null && that.resultElse == null) {
+      return true;
+    }
+    if (this.resultElse == null || that.resultElse == null) {
+      return false;
+    }
+    return this.resultElse.equalExceptAlias(that.resultElse);
   }
 }

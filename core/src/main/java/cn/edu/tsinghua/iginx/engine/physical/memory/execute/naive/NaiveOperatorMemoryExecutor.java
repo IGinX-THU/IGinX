@@ -1,19 +1,21 @@
 /*
  * IGinX - the polystore system with high performance
  * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.naive;
 
@@ -140,6 +142,8 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
         return executeGroupBy((GroupBy) operator, table);
       case AddSequence:
         return executeAddSequence((AddSequence) operator, table);
+      case RemoveNullColumn:
+        return executeRemoveNullColumn(table);
       case Distinct:
         return executeDistinct((Distinct) operator, table);
       case ValueToSelectedPath:
@@ -259,6 +263,11 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
   }
 
   private RowStream executeSort(Sort sort, Table table) throws PhysicalException {
+    RowTransform preRowTransform = HeaderUtils.checkSortHeader(table.getHeader(), sort);
+    if (preRowTransform != null) {
+      table = transformToTable(executeRowTransform(preRowTransform, table));
+    }
+
     List<Boolean> ascendingList = sort.getAscendingList();
     RowUtils.sortRows(table.getRows(), ascendingList, sort.getSortByCols());
     return table;
@@ -481,6 +490,11 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
   }
 
   private RowStream executeGroupBy(GroupBy groupBy, Table table) throws PhysicalException {
+    RowTransform preRowTransform = HeaderUtils.checkGroupByHeader(table.getHeader(), groupBy);
+    if (preRowTransform != null) {
+      table = transformToTable(executeRowTransform(preRowTransform, table));
+    }
+
     List<Row> rows = RowUtils.cacheGroupByResult(groupBy, table);
     if (rows.isEmpty()) {
       return Table.EMPTY_TABLE;
@@ -554,6 +568,44 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     List<Row> targetRows = removeDuplicateRows(table.getRows());
 
     return new Table(newHeader, targetRows);
+  }
+
+  private RowStream executeRemoveNullColumn(Table table) {
+    Header header = table.getHeader();
+    int fieldSize = header.getFieldSize();
+    List<Row> rows = table.getRows();
+
+    List<Integer> remainIndexes = new ArrayList<>();
+    for (int i = 0; i < fieldSize; i++) {
+      int finalI = i;
+      boolean isEmptyColumn = rows.stream().allMatch(row -> row.getValue(finalI) == null);
+      if (!isEmptyColumn) {
+        remainIndexes.add(finalI);
+      }
+    }
+
+    int remainColumnSize = remainIndexes.size();
+    if (remainColumnSize == fieldSize) { // 没有空列
+      return table;
+    } else if (remainIndexes.isEmpty()) { // 全是空列
+      return rows.isEmpty() ? table : Table.EMPTY_TABLE;
+    }
+
+    List<Field> newFields = new ArrayList<>(remainColumnSize);
+    for (int index : remainIndexes) {
+      newFields.add(header.getField(index));
+    }
+    Header newHeader = new Header(header.getKey(), newFields);
+
+    List<Row> newRows = new ArrayList<>();
+    for (Row row : rows) {
+      Object[] values = new Object[remainColumnSize];
+      for (int i = 0; i < remainColumnSize; i++) {
+        values[i] = row.getValue(remainIndexes.get(i));
+      }
+      newRows.add(new Row(newHeader, row.getKey(), values));
+    }
+    return new Table(newHeader, newRows);
   }
 
   private RowStream executeValueToSelectedPath(ValueToSelectedPath operator, Table table) {

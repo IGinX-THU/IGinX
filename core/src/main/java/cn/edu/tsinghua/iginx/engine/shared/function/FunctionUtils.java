@@ -1,21 +1,22 @@
 /*
  * IGinX - the polystore system with high performance
  * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-
 package cn.edu.tsinghua.iginx.engine.shared.function;
 
 import static cn.edu.tsinghua.iginx.engine.shared.function.system.ArithmeticExpr.ARITHMETIC_EXPR;
@@ -52,7 +53,7 @@ public class FunctionUtils {
   private static final String VALUE = "value";
 
   private static final Set<String> sysRowToRowFunctionSet =
-      new HashSet<>(Collections.singletonList("ratio"));
+      new HashSet<>(Arrays.asList("ratio", "substring"));
 
   private static final Set<String> sysSetToRowFunctionSet =
       new HashSet<>(
@@ -164,6 +165,7 @@ public class FunctionUtils {
 
   static Map<String, Integer> expectedParamNumMap = new HashMap<>(); // 此Map用于存储function期望的参数个数
 
+  // TODO
   static {
     expectedParamNumMap.put("avg", 1);
     expectedParamNumMap.put("sum", 1);
@@ -175,6 +177,7 @@ public class FunctionUtils {
     expectedParamNumMap.put("first", 1);
     expectedParamNumMap.put("last", 1);
     expectedParamNumMap.put("ratio", 2);
+    expectedParamNumMap.put("substring", 1);
   }
 
   public static int getExpectedParamNum(String identifier) {
