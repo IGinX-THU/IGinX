@@ -13,7 +13,6 @@ runs:
           name: Set up Docker on Windows
           shell: cmd
           run: |
-              # 启用 Linux 容器模式
               "C:\Program Files\Docker\Docker\DockerCli.exe" -SwitchLinuxEngine
 
         - if: runner.os == 'macOS'
@@ -22,7 +21,8 @@ runs:
           run: |
               brew update
               brew install docker
-              docker --version
+              docker login -u ziyuzhao1
+              Zzy20020428.
 
         - name: Pull DM Database Docker image
           run: |
@@ -41,7 +41,7 @@ runs:
               -e LD_LIBRARY_PATH=/opt/dmdbms/bin \
               -e INSTANCE_NAME=dm8_instance \
               -v /opt/dm8:/opt/dmdbms/data \
-              sizx/dm8:1-2-128-22.08.04-166351-20005-CTM && docker logs -f dm8
+              sizx/dm8:1-2-128-22.08.04-166351-20005-CTM
           shell: bash
 
         - name: Verify DM Database is running
