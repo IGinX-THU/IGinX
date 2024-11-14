@@ -179,7 +179,7 @@ public class FilterPushDownPathUnionJoinRule extends Rule {
           new Select(operator.getSourceA(), new AndFilter(leftFilters), select.getTagFilter());
       operator.setSourceA(new OperatorSource(leftSelect));
 
-      if (operator.getType() == OperatorType.OuterJoin) {
+      if (operator.getType() == OperatorType.OuterJoin && !((OuterJoin) operator).isJoinByKey()) {
         OuterJoin outerJoin = (OuterJoin) operator;
         if (outerJoin.getOuterJoinType() == OuterJoinType.RIGHT) {
           operator =
@@ -191,6 +191,7 @@ public class FilterPushDownPathUnionJoinRule extends Rule {
                   outerJoin.getFilter(),
                   outerJoin.getJoinColumns(),
                   outerJoin.isNaturalJoin(),
+                  outerJoin.isJoinByKey(),
                   outerJoin.getJoinAlgType(),
                   outerJoin.getExtraJoinPrefix());
         } else if (outerJoin.getOuterJoinType() == OuterJoinType.FULL) {
@@ -204,7 +205,7 @@ public class FilterPushDownPathUnionJoinRule extends Rule {
           new Select(operator.getSourceB(), new AndFilter(rightFilters), select.getTagFilter());
       operator.setSourceB(new OperatorSource(rightSelect));
 
-      if (operator.getType() == OperatorType.OuterJoin) {
+      if (operator.getType() == OperatorType.OuterJoin && !((OuterJoin) operator).isJoinByKey()) {
         OuterJoin outerJoin = (OuterJoin) operator;
         if (outerJoin.getOuterJoinType() == OuterJoinType.LEFT) {
           operator =
@@ -216,6 +217,7 @@ public class FilterPushDownPathUnionJoinRule extends Rule {
                   outerJoin.getFilter(),
                   outerJoin.getJoinColumns(),
                   outerJoin.isNaturalJoin(),
+                  outerJoin.isJoinByKey(),
                   outerJoin.getJoinAlgType(),
                   outerJoin.getExtraJoinPrefix());
         } else if (outerJoin.getOuterJoinType() == OuterJoinType.FULL) {
