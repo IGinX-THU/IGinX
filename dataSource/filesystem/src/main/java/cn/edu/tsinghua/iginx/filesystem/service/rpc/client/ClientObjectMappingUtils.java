@@ -99,6 +99,7 @@ public class ClientObjectMappingUtils {
         filter.getValues().stream()
             .map(ClientObjectMappingUtils::toRawValue)
             .collect(Collectors.toSet()));
+    raw.setInOp(toRawFilterInOp(filter.getInOp()));
     return raw;
   }
 
@@ -157,6 +158,21 @@ public class ClientObjectMappingUtils {
     RawFilter raw = new RawFilter(RawFilterType.Bool);
     raw.setIsTrue(filter.isTrue());
     return raw;
+  }
+
+  private static RawFilterInOp toRawFilterInOp(InFilter.InOp inOp) {
+    switch (inOp) {
+      case IN_OR:
+        return RawFilterInOp.IN;
+      case NOT_IN_OR:
+        return RawFilterInOp.NOT_IN;
+      case IN_AND:
+        return RawFilterInOp.IN_AND;
+      case NOT_IN_AND:
+        return RawFilterInOp.NOT_IN_AND;
+      default:
+        throw new UnsupportedOperationException("unsupported in op: " + inOp);
+    }
   }
 
   private static RawFilterOp toRawFilterOp(Op op) {

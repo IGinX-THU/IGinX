@@ -213,7 +213,7 @@ public class InfluxDBQueryRowStream implements RowStream {
   }
 
   private void cacheOneRow() throws SQLException, PhysicalException {
-    while(true) {
+    while (true) {
       if (this.hasMoreRecords == 0) {
         cachedRow = null;
         hasCachedRow = false;
