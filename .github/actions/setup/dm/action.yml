@@ -14,21 +14,15 @@ runs:
           shell: cmd
           run: |
               # 启用 Linux 容器模式
-              & "C:\Program Files\Docker\Docker\DockerCli.exe" -SwitchLinuxEngine
+              "C:\Program Files\Docker\Docker\DockerCli.exe" -SwitchLinuxEngine
 
         - if: runner.os == 'macOS'
           name: Set up Docker on macOS
           shell: bash
           run: |
-              # 启动 Docker 服务
-              brew install --cask docker
-              open -a Docker
-              # 等待 Docker 完成启动
-              for i in {1..30}; do
-                docker info && break
-                echo "Waiting for Docker to start..."
-                sleep 2
-              done
+              brew update
+              brew install docker
+              docker --version
 
         - name: Pull DM Database Docker image
           run: |
@@ -47,7 +41,7 @@ runs:
               -e LD_LIBRARY_PATH=/opt/dmdbms/bin \
               -e INSTANCE_NAME=dm8_instance \
               -v /opt/dm8:/opt/dmdbms/data \
-              sizx/dm8
+              sizx/dm8:1-2-128-22.08.04-166351-20005-CTM && docker logs -f dm8
           shell: bash
 
         - name: Verify DM Database is running
