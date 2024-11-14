@@ -110,12 +110,15 @@ runs:
               if [ "$RUNNER_OS" == "Linux" ]; then
                 sudo sed -i 's/Rule=on/Rule=off/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
                 sudo sed -i 's/enablePushDown=true/enablePushDown=false/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
+                sudo sed -i 's/ColumnPruningRule=off/ColumnPruningRule=on/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
               elif [ "$RUNNER_OS" == "Windows" ]; then
                 sed -i 's/Rule=on/Rule=off/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
                 sed -i 's/enablePushDown=true/enablePushDown=false/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
+                sed -i 's/ColumnPruningRule=off/ColumnPruningRule=on/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
               elif [ "$RUNNER_OS" == "macOS" ]; then
                 sudo sed -i '' 's/Rule=on/Rule=off/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
                 sudo sed -i '' 's/enablePushDown=true/enablePushDown=false/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
+                sudo sed -i '' 's/ColumnPruningRule=off/ColumnPruningRule=on/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
               else
                 echo "$RUNNER_OS is not supported"
                 exit 1
