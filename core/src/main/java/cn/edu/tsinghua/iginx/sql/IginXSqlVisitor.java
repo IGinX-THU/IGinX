@@ -718,7 +718,8 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
               .path()
               .forEach(pathContext -> columns.add(parsePath(pathContext)));
         }
-        joinPart.setJoinCondition(new JoinCondition(joinType, filter, columns));
+        boolean isJoinByKey = joinPartContext.KEY() != null;
+        joinPart.setJoinCondition(new JoinCondition(joinType, filter, columns, isJoinByKey));
         fromParts.add(joinPart);
       }
     }

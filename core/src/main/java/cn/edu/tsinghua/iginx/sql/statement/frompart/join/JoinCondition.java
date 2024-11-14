@@ -30,21 +30,28 @@ public class JoinCondition {
   private final JoinType joinType;
   private final Filter filter;
   private final List<String> joinColumns;
+  private final boolean isJoinByKey;
   private final String markColumn;
   private final boolean isAntiJoin;
 
   public JoinCondition() {
-    this(JoinType.CrossJoin, null, Collections.emptyList());
+    this(JoinType.CrossJoin, null, Collections.emptyList(), false);
   }
 
   public JoinCondition(JoinType joinType, Filter filter) {
-    this(joinType, filter, Collections.emptyList());
+    this(joinType, filter, Collections.emptyList(), false);
   }
 
   public JoinCondition(JoinType joinType, Filter filter, List<String> joinColumns) {
+    this(joinType, filter, joinColumns, false);
+  }
+
+  public JoinCondition(
+      JoinType joinType, Filter filter, List<String> joinColumns, boolean isJoinByKey) {
     this.joinType = joinType;
     this.filter = filter;
     this.joinColumns = joinColumns;
+    this.isJoinByKey = isJoinByKey;
     this.markColumn = null;
     this.isAntiJoin = false;
   }
@@ -53,6 +60,7 @@ public class JoinCondition {
     this.joinType = joinType;
     this.filter = filter;
     this.joinColumns = new ArrayList<>();
+    this.isJoinByKey = false;
     this.markColumn = markColumn;
     this.isAntiJoin = isAntiJoin;
   }
@@ -67,6 +75,10 @@ public class JoinCondition {
 
   public List<String> getJoinColumns() {
     return joinColumns;
+  }
+
+  public boolean isJoinByKey() {
+    return isJoinByKey;
   }
 
   public String getMarkColumn() {
@@ -88,11 +100,13 @@ public class JoinCondition {
     JoinCondition joinCondition = (JoinCondition) o;
     return joinType == joinCondition.joinType
         && Objects.equals(filter, joinCondition.filter)
-        && Objects.equals(joinColumns, joinCondition.joinColumns);
+        && Objects.equals(joinColumns, joinCondition.joinColumns)
+        && isJoinByKey == joinCondition.isJoinByKey
+        && isAntiJoin == joinCondition.isAntiJoin;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(joinType, filter, joinColumns);
+    return Objects.hash(joinType, filter, joinColumns, isJoinByKey, isAntiJoin);
   }
 }
