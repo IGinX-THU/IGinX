@@ -94,6 +94,7 @@ public class FunctionManager {
     registerFunction(Min.getInstance());
     registerFunction(Sum.getInstance());
     registerFunction(ArithmeticExpr.getInstance());
+    registerFunction(Extract.getInstance());
     registerFunction(Ratio.getInstance());
     registerFunction(SubString.getInstance());
   }

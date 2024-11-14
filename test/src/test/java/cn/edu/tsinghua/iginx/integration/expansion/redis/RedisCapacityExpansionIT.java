@@ -21,6 +21,7 @@ package cn.edu.tsinghua.iginx.integration.expansion.redis;
 
 import static cn.edu.tsinghua.iginx.thrift.StorageEngineType.redis;
 
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.expansion.BaseCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.constant.Constant;
@@ -237,5 +238,39 @@ public class RedisCapacityExpansionIT extends BaseCapacityExpansionIT {
   @Override
   protected void startDatabase(int port) {
     shutOrRestart(port, false, "redis");
+  }
+
+  protected void testPathOverlappedDataNotOverlapped() throws SessionException {
+    // before
+    String statement = "select status from mn.wf01.wt01;";
+    String expected =
+        "ResultSets:\n"
+            + "+---+-------------------+\n"
+            + "|key|mn.wf01.wt01.status|\n"
+            + "+---+-------------------+\n"
+            + "|  0|           22222222|\n"
+            + "|  1|           11111111|\n"
+            + "+---+-------------------+\n"
+            + "Total line number = 2\n";
+    SQLTestTools.executeAndCompare(session, statement, expected);
+
+    String insert =
+        "insert into mn.wf01.wt01 (key, status) values (10, \"33333333\"), (100, \"44444444\");";
+    session.executeSql(insert);
+
+    // after
+    statement = "select status from mn.wf01.wt01;";
+    expected =
+        "ResultSets:\n"
+            + "+---+-------------------+\n"
+            + "|key|mn.wf01.wt01.status|\n"
+            + "+---+-------------------+\n"
+            + "|  0|           22222222|\n"
+            + "|  1|           11111111|\n"
+            + "| 10|           33333333|\n"
+            + "|100|           44444444|\n"
+            + "+---+-------------------+\n"
+            + "Total line number = 4\n";
+    SQLTestTools.executeAndCompare(session, statement, expected);
   }
 }

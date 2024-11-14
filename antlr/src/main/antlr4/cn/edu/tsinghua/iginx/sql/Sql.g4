@@ -279,7 +279,7 @@ fromClause
 joinPart
    : COMMA tableReference
    | CROSS JOIN tableReference
-   | join tableReference (ON orExpression | USING colList)?
+   | join tableReference (ON orExpression | USING (KEY | colList))?
    ;
 
 tableReference
