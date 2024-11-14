@@ -66,6 +66,12 @@ public class MarkJoinInfoGenerator implements BinaryExecutorFactory<StatefulBina
     }
 
     return HashJoins.constructHashJoin(
-        context, leftSchema, rightSchema, new AndFilter(subFilters), joinOption);
+        context,
+        leftSchema,
+        rightSchema,
+        operator.getPrefixA(),
+        operator.getPrefixB(),
+        new AndFilter(subFilters),
+        joinOption);
   }
 }

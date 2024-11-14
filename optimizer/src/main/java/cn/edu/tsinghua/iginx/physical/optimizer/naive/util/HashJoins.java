@@ -32,7 +32,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
+import javax.annotation.Nullable;
 import org.apache.arrow.vector.IntVector;
 import org.apache.arrow.vector.types.pojo.Schema;
 import org.apache.commons.lang3.tuple.Pair;
@@ -43,6 +43,8 @@ public class HashJoins {
       ExecutorContext context,
       BatchSchema leftSchema,
       BatchSchema rightSchema,
+      @Nullable String leftPrefix,
+      @Nullable String rightPrefix,
       Filter filter,
       JoinOption joinOption)
       throws ComputeException {
@@ -55,6 +57,8 @@ public class HashJoins {
         context,
         leftSchema,
         rightSchema,
+        leftPrefix,
+        rightPrefix,
         filterWithoutPathPairOpsInnerAndFilter,
         pathPairOps,
         joinOption);
@@ -64,6 +68,8 @@ public class HashJoins {
       ExecutorContext context,
       BatchSchema leftSchema,
       BatchSchema rightSchema,
+      @Nullable String leftPrefix,
+      @Nullable String rightPrefix,
       Filter filterWithoutPathPairOpsInnerAndFilter,
       Map<Pair<Integer, Integer>, Op> pathPairOps,
       JoinOption joinOption)
@@ -117,18 +123,10 @@ public class HashJoins {
             .collect(Collectors.toSet());
     List<ScalarExpression<?>> outputExpressions = new ArrayList<>();
     if (!joinOption.needMark()) {
-      outputExpressions.addAll(
-          IntStream.range(0, leftSchema.getFieldCount())
-              .filter(i -> i != leftSchema.getKeyIndex())
-              .filter(i -> !sameNameEqualPaths.contains(leftSchema.getName(i)))
-              .mapToObj(FieldNode::new)
-              .collect(Collectors.toList()));
+      outputExpressions.addAll(getOutputExpressions(0, leftSchema, leftPrefix));
     }
     outputExpressions.addAll(
-        IntStream.range(0, rightSchema.getFieldCount())
-            .filter(i -> i != rightSchema.getKeyIndex())
-            .mapToObj(i -> new FieldNode(i + leftSchema.getFieldCount()))
-            .collect(Collectors.toList()));
+        getOutputExpressions(leftSchema.getFieldCount(), rightSchema, rightPrefix));
     if (joinOption.needMark()) {
       outputExpressions.add(
           new FieldNode(
@@ -145,6 +143,23 @@ public class HashJoins {
         outputExpressions,
         leftHasher,
         rightHasher);
+  }
+
+  private static List<ScalarExpression<?>> getOutputExpressions(
+      int offset, BatchSchema schema, @Nullable String prefix) {
+    List<ScalarExpression<?>> outputExpressions = new ArrayList<>();
+    for (int i = 0; i < schema.getFieldCount(); i++) {
+      if (schema.hasKey() && i == schema.getKeyIndex()) {
+        if (prefix != null) {
+          int keyIndex = schema.getKeyIndex();
+          outputExpressions.add(
+              new FieldNode(offset + keyIndex, prefix + "." + schema.getName(keyIndex)));
+        }
+        continue;
+      }
+      outputExpressions.add(new FieldNode(offset + i));
+    }
+    return outputExpressions;
   }
 
   private static List<Pair<Integer, Integer>> getSameNameIndicesPairs(

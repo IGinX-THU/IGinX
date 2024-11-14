@@ -72,6 +72,12 @@ public class InnerJoinInfoGenerator implements BinaryExecutorFactory<StatefulBin
     }
 
     return HashJoins.constructHashJoin(
-        context, leftSchema, rightSchema, new AndFilter(subFilters), JoinOption.INNER);
+        context,
+        leftSchema,
+        rightSchema,
+        operator.getPrefixA(),
+        operator.getPrefixB(),
+        new AndFilter(subFilters),
+        JoinOption.INNER);
   }
 }
