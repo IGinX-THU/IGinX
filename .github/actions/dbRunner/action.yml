@@ -194,10 +194,9 @@ runs:
           name: Setup DB
           uses: ./.github/actions/setup/dm
 
-
         - if: inputs.DB-name == 'dm'
           name: Modify IGinX Config
           uses: ./.github/actions/edit
           with:
-            paths: conf/config.properties
-            statements: s|^#storageEngineList=127.0.0.1#5236#relational#engine=dm#username=SYSDBA#password=SYSDBA#has_data=false|storageEngineList=127.0.0.1#5236#relational#engine=dm#username=SYSDBA#password=SYSDBA#has_data=false|g
+              paths: conf/config.properties
+              statements: s|^#storageEngineList=127.0.0.1#5236#relational#engine=dm#username=SYSDBA#password=SYSDBA#has_data=false|storageEngineList=127.0.0.1#5236#relational#engine=dm#username=SYSDBA#password=SYSDBA#has_data=false|g
