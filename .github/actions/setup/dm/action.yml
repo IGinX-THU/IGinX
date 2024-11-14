@@ -10,13 +10,15 @@ runs:
     using: "composite"
     steps:
         - if: runner.os == 'Windows'
-        - name: Set up Docker on Windows
+          name: Set up Docker on Windows
+          shell: cmd
           run: |
             # 启用 Linux 容器模式
             & "C:\Program Files\Docker\Docker\DockerCli.exe" -SwitchLinuxEngine
 
         - if: runner.os == 'macOS'
           name: Set up Docker on macOS
+          shell: bash
           run: |
             # 启动 Docker 服务
             brew install --cask docker
@@ -31,6 +33,7 @@ runs:
         - name: Pull DM Database Docker image
           run: |
             docker pull sizx/dm8
+          shell: bash
 
         - name: Run DM Database container
           run: |
@@ -45,8 +48,10 @@ runs:
             -e INSTANCE_NAME=dm8_instance \
             -v /opt/dm8:/opt/dmdbms/data \
             sizx/dm8
+          shell: bash
 
         - name: Verify DM Database is running
           run: |
             sleep 10
             docker ps
+          shell: bash
