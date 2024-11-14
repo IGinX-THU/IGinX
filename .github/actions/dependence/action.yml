@@ -67,7 +67,7 @@ runs:
 
         - if: inputs.free-thread-python-required=='true'
           name: Install free-thread python
-          uses: ./.github/actions/service/ftPython
+          uses: ./.github/actions/service/freeThreadPython
 
         - if: inputs.free-thread-python-required=='true'
           name: Install pemjax in free-threading python
