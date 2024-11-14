@@ -1959,38 +1959,81 @@ public class RelationalStorage implements IStorage {
       // (XXX,
       // XXX, ...) ON CONFLICT ("key") DO UPDATE SET (XXX, ...) = (excluded.XXX, ...);
       StringBuilder statement = new StringBuilder();
-      statement.append("INSERT INTO ");
-      statement.append(getQuotName(tableName));
-      statement.append(" (");
-      statement.append(getQuotName(KEY_NAME));
-      statement.append(", ");
-      String fullColumnNames = getQuotColumnNames(columnNames);
-      statement.append(fullColumnNames);
+      String engineName = meta.getExtraParams().get("engine");
 
-      statement.append(") VALUES ");
-      for (String value : values) {
-        statement.append("(");
-        statement.append(value, 0, value.length() - 2);
-        statement.append("), ");
-      }
-      statement.delete(statement.length() - 2, statement.length());
-
-      statement.append(relationalMeta.getUpsertStatement());
-
-      for (String part : parts) {
-        if (part.equals(KEY_NAME)) {
-          continue;
-        }
-        statement.append(
-            String.format(
-                relationalMeta.getUpsertConflictStatement(), getQuotName(part), getQuotName(part)));
+      if (engineName.equals("dm")) {
+        statement.append("MERGE INTO ");
+        statement.append(getQuotName(tableName));
+        statement.append(" T1 USING (");
+        statement.append(getQuotSelectStatements(parts, values));
+        statement.append(") T2 ON (T1.");
+        statement.append(getQuotName(KEY_NAME));
+        statement.append(" = T2.");
+        statement.append(getQuotName(KEY_NAME));
+        statement.append(") WHEN NOT MATCHED THEN INSERT (");
+        statement.append(getQuotName(KEY_NAME));
         statement.append(", ");
+        String fullColumnNames = getQuotColumnNames(columnNames);
+        statement.append(fullColumnNames);
+        statement.append(") VALUES (T2.");
+        statement.append(getQuotName(KEY_NAME));
+        statement.append(", ");
+        for (String part : parts) {
+          statement.append("T2.");
+          statement.append(getQuotName(part));
+          statement.append(", ");
+        }
+        statement.delete(statement.length() - 2, statement.length());
+        statement.append(") WHEN MATCHED THEN UPDATE SET ");
+        for (String part : parts) {
+          if (part.equals(KEY_NAME)) {
+            continue;
+          }
+          statement.append("T1.");
+          statement.append(getQuotName(part));
+          statement.append(" = T2.");
+          statement.append(getQuotName(part));
+          statement.append(", ");
+        }
+
+        statement.delete(statement.length() - 2, statement.length());
+
+        statement.append(";");
+      } else {
+        statement.append("INSERT INTO ");
+        statement.append(getQuotName(tableName));
+        statement.append(" (");
+        statement.append(getQuotName(KEY_NAME));
+        statement.append(", ");
+        String fullColumnNames = getQuotColumnNames(columnNames);
+        statement.append(fullColumnNames);
+
+        statement.append(") VALUES ");
+        for (String value : values) {
+          statement.append("(");
+          statement.append(value, 0, value.length() - 2);
+          statement.append("), ");
+        }
+        statement.delete(statement.length() - 2, statement.length());
+
+        statement.append(relationalMeta.getUpsertStatement());
+
+        for (String part : parts) {
+          if (part.equals(KEY_NAME)) {
+            continue;
+          }
+          statement.append(
+              String.format(
+                  relationalMeta.getUpsertConflictStatement(),
+                  getQuotName(part),
+                  getQuotName(part)));
+          statement.append(", ");
+        }
+
+        statement.delete(statement.length() - 2, statement.length());
+
+        statement.append(";");
       }
-
-      statement.delete(statement.length() - 2, statement.length());
-
-      statement.append(";");
-
       stmt.addBatch(statement.toString());
     }
     stmt.executeBatch();
@@ -2036,6 +2079,27 @@ public class RelationalStorage implements IStorage {
       fullColumnNames.append(", ");
     }
     return fullColumnNames.substring(0, fullColumnNames.length() - 2);
+  }
+
+  private String getQuotSelectStatements(String[] parts, List<String> values) {
+    StringBuilder SelectStatements = new StringBuilder();
+    for (String value : values) {
+      String[] val = value.substring(0, value.length() - 2).split(", ");
+      SelectStatements.append("SELECT ");
+      for (int i = 0; i < val.length; i++) {
+        SelectStatements.append(val[i]);
+        SelectStatements.append(" ");
+        if (i == 0) {
+          SelectStatements.append(getQuotName(KEY_NAME));
+        } else {
+          SelectStatements.append(getQuotName(parts[i - 1]));
+        }
+        SelectStatements.append(", ");
+      }
+      SelectStatements.delete(SelectStatements.length() - 2, SelectStatements.length());
+      SelectStatements.append(" FROM dual UNION ALL ");
+    }
+    return SelectStatements.substring(0, SelectStatements.length() - 11);
   }
 
   @Override
