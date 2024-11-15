@@ -26,5 +26,3 @@ jobs:
         uses: ./.github/workflows/remote-test.yml
     assembly-test:
         uses: ./.github/workflows/assembly-test.yml
-    free-thread-test:
-        uses: ./.github/workflows/free-thread-test.yml
