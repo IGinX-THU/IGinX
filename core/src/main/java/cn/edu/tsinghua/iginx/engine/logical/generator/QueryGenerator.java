@@ -481,6 +481,7 @@ public class QueryGenerator extends AbstractGenerator {
       Filter filter = joinCondition.getFilter();
       List<String> joinColumns = joinCondition.getJoinColumns();
       boolean isNaturalJoin = JoinType.isNaturalJoin(joinCondition.getJoinType());
+      boolean isJoinByKey = joinCondition.isJoinByKey();
 
       if (!joinColumns.isEmpty() || isNaturalJoin) {
         if (prefixA == null || prefixB == null) {
@@ -507,6 +508,7 @@ public class QueryGenerator extends AbstractGenerator {
                   filter,
                   joinColumns,
                   isNaturalJoin,
+                  isJoinByKey,
                   joinAlgType);
           break;
         case LeftOuterJoin:
@@ -527,6 +529,7 @@ public class QueryGenerator extends AbstractGenerator {
                   filter,
                   joinColumns,
                   isNaturalJoin,
+                  isJoinByKey,
                   joinAlgType);
           break;
         default:
@@ -727,7 +730,7 @@ public class QueryGenerator extends AbstractGenerator {
    * @return 添加了Reorder操作符的根节点
    */
   private static Operator buildReorder(UnarySelectStatement selectStatement, Operator root) {
-    boolean hasFuncWithArgs =
+    boolean hasUDFWithArgs =
         selectStatement.getExpressions().stream()
             .anyMatch(
                 expression -> {
@@ -735,13 +738,14 @@ public class QueryGenerator extends AbstractGenerator {
                     return false;
                   }
                   FuncExpression funcExpression = ((FuncExpression) expression);
-                  return !funcExpression.getArgs().isEmpty()
-                      || !funcExpression.getKvargs().isEmpty();
+                  return funcExpression.isPyUDF()
+                      && (!funcExpression.getArgs().isEmpty()
+                          || !funcExpression.getKvargs().isEmpty());
                 });
 
     if (selectStatement.isLastFirst()) {
       root = new Reorder(new OperatorSource(root), Arrays.asList("path", "value"));
-    } else if (hasFuncWithArgs) {
+    } else if (hasUDFWithArgs) {
       root = new Reorder(new OperatorSource(root), new ArrayList<>(Collections.singletonList("*")));
     } else {
       List<String> order = new ArrayList<>();

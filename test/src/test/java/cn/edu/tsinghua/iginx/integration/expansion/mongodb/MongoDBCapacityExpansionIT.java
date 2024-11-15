@@ -21,6 +21,7 @@ package cn.edu.tsinghua.iginx.integration.expansion.mongodb;
 
 import static cn.edu.tsinghua.iginx.thrift.StorageEngineType.mongodb;
 
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.expansion.BaseCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.constant.Constant;
@@ -509,5 +510,40 @@ public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
   @Override
   protected void startDatabase(int port) {
     shutOrRestart(port, false, "mongodb");
+  }
+
+  @Override
+  protected void testPathOverlappedDataNotOverlapped() throws SessionException {
+    // before
+    String statement = "select status from mn.wf01.wt01;";
+    String expected =
+        "ResultSets:\n"
+            + "+----------+-------------------+\n"
+            + "|       key|mn.wf01.wt01.status|\n"
+            + "+----------+-------------------+\n"
+            + "|4294967296|           11111111|\n"
+            + "|8589934592|           22222222|\n"
+            + "+----------+-------------------+\n"
+            + "Total line number = 2\n";
+    SQLTestTools.executeAndCompare(session, statement, expected);
+
+    String insert =
+        "insert into mn.wf01.wt01 (key, status) values (10, 33333333), (100, 44444444);";
+    session.executeSql(insert);
+
+    // after
+    statement = "select status from mn.wf01.wt01;";
+    expected =
+        "ResultSets:\n"
+            + "+----------+-------------------+\n"
+            + "|       key|mn.wf01.wt01.status|\n"
+            + "+----------+-------------------+\n"
+            + "|        10|           33333333|\n"
+            + "|       100|           44444444|\n"
+            + "|4294967296|           11111111|\n"
+            + "|8589934592|           22222222|\n"
+            + "+----------+-------------------+\n"
+            + "Total line number = 4\n";
+    SQLTestTools.executeAndCompare(session, statement, expected);
   }
 }

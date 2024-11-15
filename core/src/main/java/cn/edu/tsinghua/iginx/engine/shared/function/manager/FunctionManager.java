@@ -28,6 +28,7 @@ import cn.edu.tsinghua.iginx.engine.shared.function.FunctionUtils;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.ArithmeticExpr;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.Avg;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.Count;
+import cn.edu.tsinghua.iginx.engine.shared.function.system.Extract;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.First;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.FirstValue;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.Last;
@@ -98,6 +99,7 @@ public class FunctionManager {
     registerFunction(Min.getInstance());
     registerFunction(Sum.getInstance());
     registerFunction(ArithmeticExpr.getInstance());
+    registerFunction(Extract.getInstance());
     registerFunction(Ratio.getInstance());
     registerFunction(SubString.getInstance());
   }
