@@ -33,6 +33,8 @@ public class HostUtilsTest {
     System.out.println(ip);
 
     InetAddress address = InetAddress.getByName(ip);
+    // 单元测试没法通过client或者session验证ip的正确性，暂且使用ping验证一下能够联通
+    // cn.edu.tsinghua.iginx.integration.other.HostUtilsTest中加入了使用session验证正确性的测试
     if (address.isReachable(1000)) {
       System.out.println("successfully pinged.");
     } else {
