@@ -24,5 +24,7 @@ jobs:
         uses: ./.github/workflows/DB-CE.yml
     remote-test:
         uses: ./.github/workflows/remote-test.yml
-    assemebly-test:
+    assembly-test:
         uses: ./.github/workflows/assembly-test.yml
+    free-thread-test:
+        uses: ./.github/workflows/free-thread-test.yml
