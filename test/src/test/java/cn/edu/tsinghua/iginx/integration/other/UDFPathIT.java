@@ -60,10 +60,10 @@ public class UDFPathIT {
   /** ensure every udf in list is registered */
   @Test
   public void testUDFFuncList() {
-    List<String> UDFNameList;
-    List<String> udfList = config.getUdfList();
-    UDFNameList =
-        udfList.stream()
+    List<String> UdfNameList;
+    List<String> UdfList = config.getUdfList();
+    UdfNameList =
+        UdfList.stream()
             .map(
                 udf -> {
                   String[] udfInfo = udf.split(",");
@@ -74,6 +74,6 @@ public class UDFPathIT {
                 })
             .collect(Collectors.toList());
     UDFTestTools tools = new UDFTestTools(session);
-    tools.isUDFsRegistered(UDFNameList);
+    tools.isUDFsRegistered(UdfNameList);
   }
 }

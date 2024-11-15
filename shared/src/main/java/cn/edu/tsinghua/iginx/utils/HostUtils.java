@@ -19,6 +19,7 @@
  */
 package cn.edu.tsinghua.iginx.utils;
 
+import java.io.IOException;
 import java.net.*;
 import java.util.Enumeration;
 import java.util.HashSet;
@@ -106,6 +107,16 @@ public class HostUtils {
     }
   }
 
+  public static boolean pingHost(String ip) {
+    try {
+      InetAddress address = InetAddress.getByName(ip);
+      return address.isReachable(1000);
+    } catch (IOException e) {
+      LOGGER.error("Error occurred pinging IP:{}.", ip, e);
+    }
+    return false;
+  }
+
   public static boolean isLocalHost(String host) {
     for (String localHostAddress : LOCAL_HOST_ADDRESS_SET) {
       if (host.equals(localHostAddress)) {
@@ -117,7 +128,10 @@ public class HostUtils {
 
   public static String getRepresentativeIP() {
     if (representativeIP == null) {
-      representativeIP = Objects.requireNonNull(getLocalHostExactAddress()).getHostAddress();
+      String ip = Objects.requireNonNull(getLocalHostExactAddress()).getHostAddress();
+      if (pingHost(ip)) {
+        representativeIP = ip;
+      }
     }
     return representativeIP;
   }

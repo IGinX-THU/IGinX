@@ -93,11 +93,13 @@ public class TransformTaskMeta {
   }
 
   public void addIpPort(Pair<String, Integer> ipPort) {
-    this.ipPortSet.add(ipPort);
+    addIpPort(ipPort.k, ipPort.v);
   }
 
   public void addIpPort(String ip, int port) {
-    this.ipPortSet.add(new Pair<>(ip, port));
+    if (!containsIpPort(ip, port)) {
+      this.ipPortSet.add(new Pair<>(ip, port));
+    }
   }
 
   public boolean containsIpPort(String ip, int port) {

@@ -19,17 +19,25 @@
  */
 package cn.edu.tsinghua.iginx.utils;
 
+import java.io.IOException;
+import java.net.InetAddress;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class HostUtilsTest {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(HostUtilsTest.class);
-
   @Test
-  public void testGetRepresentativeIP() {
+  public void testGetRepresentativeIP() throws IOException {
     String ip = HostUtils.getRepresentativeIP();
+    // 这里使用System.out而不是用logger是因为logger在测试时并没有输出内容
     System.out.println(ip);
+
+    InetAddress address = InetAddress.getByName(ip);
+    if (address.isReachable(1000)) {
+      System.out.println("successfully pinged.");
+    } else {
+      System.out.println("ping failed.");
+      Assertions.fail();
+    }
   }
 }
