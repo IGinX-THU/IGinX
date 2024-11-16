@@ -63,12 +63,12 @@ public class VectorDBCapacityExpansionIT extends BaseCapacityExpansionIT {
 
   @Override
   protected void shutdownDatabase(int port) {
-    shutOrRestart(port, true, "mysql");
+    shutOrRestart(port, true, "milvus");
   }
 
   @Override
   protected void startDatabase(int port) {
-    shutOrRestart(port, false, "mysql");
+    shutOrRestart(port, false, "milvus");
   }
 
 
