@@ -1,0 +1,79 @@
+name: "Metadata-Service-Test"
+
+on:
+    workflow_call:
+        inputs:
+            java-matrix:
+                description: "The java version to run the test on"
+                type: string
+                required: false
+                default: '["8"]'
+            os-matrix:
+                description: "The operating system to run the test on"
+                type: string
+                required: false
+                default: '["ubuntu-latest", "macos-latest", "windows-latest"]'
+
+jobs:
+    ZK-Test:
+        strategy:
+            fail-fast: false
+            matrix:
+                java: ${{ fromJSON(inputs.java-matrix) }}
+                os: ${{ fromJSON(inputs.os-matrix) }}
+        runs-on: ${{ matrix.os}}
+        env:
+            STORAGE: zookeeper
+            ZOOKEEPER_CONNECTION_STRING: 127.0.0.1:2181
+        steps:
+            - uses: actions/checkout@v4
+            - name: Environment dependence
+              uses: ./.github/actions/dependence
+              with:
+                  java: ${{ matrix.java }}
+                  scope: base
+
+            - name: Run ZooKeeper
+              uses: ./.github/actions/zookeeperRunner
+            - name: Run test for meta manager
+              run: mvn test -q -Dtest=IMetaManagerTest -DfailIfNoTests=false -P-format
+
+            - name: Run test for sync protocol
+              run: mvn test -q -Dtest=ZooKeeperSyncProtocolTest -DfailIfNoTests=false -P-format
+
+            - uses: codecov/codecov-action@v1
+              with:
+                  file: ./**/target/site/jacoco/jacoco.xml
+                  name: codecov
+
+    ETCD-Test:
+        strategy:
+            fail-fast: false
+            matrix:
+                java: ${{ fromJSON(inputs.java-matrix) }}
+                os: ${{ fromJSON(inputs.os-matrix) }}
+        runs-on: ${{ matrix.os}}
+        env:
+            STORAGE: etcd
+            ETCD_ENDPOINTS: http://localhost:2379
+        steps:
+            - uses: actions/checkout@v4
+            - name: Environment dependence
+              uses: ./.github/actions/dependence
+              with:
+                  java: ${{ matrix.java }}
+                  scope: base
+
+            - name: Run ETCD
+              uses: ./.github/actions/etcdRunner
+
+            - name: Run test for meta manager
+              run: mvn test -q -Dtest=IMetaManagerTest -DfailIfNoTests=false -P-format
+
+            - name: Run test for sync protocol
+              run: mvn test -q -Dtest=ETCDSyncProtocolTest -DfailIfNoTests=false -P-format
+
+            - uses: codecov/codecov-action@v1
+              with:
+                  file: ./**/target/site/jacoco/jacoco.xml
+                  name: codecov
