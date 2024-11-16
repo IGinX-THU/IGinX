@@ -38,6 +38,7 @@ import io.milvus.v2.common.ConsistencyLevel;
 import io.milvus.v2.common.IndexParam;
 import io.milvus.v2.service.collection.request.*;
 import io.milvus.v2.service.collection.response.DescribeCollectionResp;
+import io.milvus.v2.service.database.request.CreateDatabaseReq;
 import io.milvus.v2.service.database.request.DropDatabaseReq;
 import io.milvus.v2.service.vector.request.GetReq;
 import io.milvus.v2.service.vector.request.QueryIteratorReq;
@@ -51,12 +52,14 @@ import java.util.stream.Collectors;
 
 public class MilvusClientUtils {
 
+  private static final boolean isDummyEscape = true;
+
   public static List<String> listDatabase(MilvusClientV2 client) {
     List<String> list = client.listDatabases().getDatabaseNames();
     List<String> result = new ArrayList<>();
     list.forEach(
         s -> {
-          if (isDummy(s)) {
+          if (isDummy(s) && !isDummyEscape) {
             result.add(s);
           } else {
             result.add(NameUtils.unescape(s));
@@ -76,7 +79,7 @@ public class MilvusClientUtils {
     List<String> result = new ArrayList<>();
     list.forEach(
         s -> {
-          if (isDummy(databaseName)) {
+          if (isDummy(databaseName)&& !isDummyEscape) {
             result.add(s);
           } else {
             result.add(NameUtils.unescape(s));
@@ -93,7 +96,7 @@ public class MilvusClientUtils {
       MilvusClientV2 client, String dbName, String collection) {
     final String databaseName;
     final String collectionName;
-    if (isDummy(dbName)) {
+    if (isDummy(dbName)&& !isDummyEscape) {
       databaseName = dbName;
       collectionName = collection;
     } else {
@@ -139,6 +142,12 @@ public class MilvusClientUtils {
             });
 
     return paths;
+  }
+
+
+  public static void createDatabase(MilvusClientV2 client, String databaseName)
+  {
+    client.createDatabase(CreateDatabaseReq.builder().databaseName(databaseName).build());
   }
 
   public static Map<String, String> getCollectionFields(
@@ -258,8 +267,8 @@ public class MilvusClientUtils {
         IndexParam.builder()
             .fieldName(MILVUS_VECTOR_FIELD_NAME)
             .indexName(MILVUS_VECTOR_INDEX_NAME)
-            .indexType(IndexParam.IndexType.IVF_FLAT)
-            .metricType(IndexParam.MetricType.COSINE)
+            .indexType(DEFAULT_INDEX_TYPE)
+            .metricType(DEFAULT_METRIC_TYPE)
             .extraParams(extraParams)
             .build());
 
@@ -479,6 +488,10 @@ public class MilvusClientUtils {
   }
 
   public static void dropDatabase(MilvusClientV2 client, String databaseName) {
+    try {
+      client.useDatabase(databaseName);
+    } catch (InterruptedException e) {
+    }
     List<String> collections = client.listCollections().getCollectionNames();
     for (String collectionName : collections) {
       client.dropCollection(DropCollectionReq.builder().collectionName(collectionName).build());
@@ -604,7 +617,7 @@ public class MilvusClientUtils {
     String databaseNameEscaped;
     String collectionNameEscaped;
 
-    if (isDummy(databaseName)) {
+    if (isDummy(databaseName)&& !isDummyEscape) {
       databaseNameEscaped = databaseName;
       collectionNameEscaped = collectionName;
     } else {
@@ -645,7 +658,7 @@ public class MilvusClientUtils {
       queryReqBuilder.filter(filterStr.toString());
     }
     List<String> fieldsEscaped;
-    if (isDummy(databaseName)) {
+    if (isDummy(databaseName)&& !isDummyEscape) {
       fieldsEscaped = fields;
     } else {
       fieldsEscaped = fields.stream().map(NameUtils::escape).collect(Collectors.toList());
@@ -670,7 +683,7 @@ public class MilvusClientUtils {
         }
 
         String path;
-        if (isDummy(databaseName)) {
+        if (isDummy(databaseName)&& !isDummyEscape) {
           path = PathUtils.getPathUnescaped(databaseName, collectionName, key);
         } else {
           path = PathUtils.getPathUnescaped(databaseName, collectionName, NameUtils.unescape(key));
@@ -710,4 +723,19 @@ public class MilvusClientUtils {
 
     return columns;
   }
+
+
+  public static long upsert(
+          MilvusClientV2 client,
+          String collectionName,
+          List<JsonObject> data) {
+    UpsertResp resp =
+            client.upsert(
+                    UpsertReq.builder()
+                            .collectionName(NameUtils.escape(collectionName))
+                            .data(data)
+                            .build());
+    return resp.getUpsertCnt();
+  }
+
 }

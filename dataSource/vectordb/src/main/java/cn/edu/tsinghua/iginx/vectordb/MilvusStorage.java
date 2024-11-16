@@ -175,7 +175,7 @@ public class MilvusStorage implements IStorage {
       if (tagsList != null && !tagsList.isEmpty()) {
         tags = tagsList.get(i);
       }
-      Pair<String, String> collectionAndField = PathUtils.getCollectionAndFieldByPath(path, tags);
+      Pair<String, String> collectionAndField = PathUtils.getCollectionAndFieldByPath(path, tags,false);
       collectionToFields
           .computeIfAbsent(collectionAndField.getK(), k -> new HashSet<>())
           .add(collectionAndField.getV());

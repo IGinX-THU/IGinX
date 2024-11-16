@@ -106,8 +106,8 @@ public class PathUtils {
   }
 
   public static Pair<String, String> getCollectionAndFieldByPath(
-      String path, Map<String, String> tags) {
-    VectorDBSchema schema = new VectorDBSchema(path, QUOTA);
+      String path, Map<String, String> tags, boolean isDummy) {
+    VectorDBSchema schema = new VectorDBSchema(path, isDummy, QUOTA);
     String collectionName = schema.getCollectionName();
     String fieldName = schema.getFieldName();
     fieldName = TagKVUtils.toFullName(fieldName, tags);

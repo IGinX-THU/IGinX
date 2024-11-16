@@ -17,6 +17,8 @@
  */
 package cn.edu.tsinghua.iginx.vectordb.tools;
 
+import io.milvus.v2.common.IndexParam;
+
 public class Constants {
   /** 池配置参数：每个键的最大空闲连接数。 */
   public static final String MAX_IDLE_PER_KEY = "maxIdlePerKey";
@@ -76,7 +78,12 @@ public class Constants {
 
   public static final String STAR = "*";
 
-  public static final int DEFAULT_DIMENSION = 64;
+  public static final int DEFAULT_DIMENSION = 1;
+
+  public static final IndexParam.IndexType DEFAULT_INDEX_TYPE = IndexParam.IndexType.FLAT;
+
+  public static final IndexParam.MetricType DEFAULT_METRIC_TYPE = IndexParam.MetricType.L2;
+
 
   /** 非dummy数据库默认数据库前缀。 用于在 Milvus 中创建数据库的名称。 */
   public static final String DATABASE_PREFIX = "unit";
