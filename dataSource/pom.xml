@@ -40,6 +40,7 @@
         <module>mongodb</module>
         <module>redis</module>
         <module>relational</module>
+        <module>vectordb</module>
     </modules>
 
     <properties>

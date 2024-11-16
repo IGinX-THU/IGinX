@@ -71,6 +71,8 @@ class StorageEngineType(object):
     relational = 4
     mongodb = 5
     redis = 6
+    vectordb = 7
+    neo4j = 8
 
     _VALUES_TO_NAMES = {
         0: "unknown",
@@ -80,6 +82,8 @@ class StorageEngineType(object):
         4: "relational",
         5: "mongodb",
         6: "redis",
+        7: "vectordb",
+        8: "neo4j",
     }
 
     _NAMES_TO_VALUES = {
@@ -90,6 +94,8 @@ class StorageEngineType(object):
         "relational": 4,
         "mongodb": 5,
         "redis": 6,
+        "vectordb": 7,
+        "neo4j": 8,
     }
 
 
