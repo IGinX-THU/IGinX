@@ -23,29 +23,21 @@ import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.expansion.BaseCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.constant.Constant;
-import cn.edu.tsinghua.iginx.integration.expansion.mysql.MySQLHistoryDataGenerator;
 import cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.integration.tool.DBConf;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.Arrays;
 import java.util.List;
-
-import static cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools.executeShellScript;
-import static org.junit.Assert.fail;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class VectorDBCapacityExpansionIT extends BaseCapacityExpansionIT {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(VectorDBCapacityExpansionIT.class);
 
   public VectorDBCapacityExpansionIT() {
-    super(
-        StorageEngineType.vectordb,
-        "",
-        new VectorDBHistoryDataGenerator());
+    super(StorageEngineType.vectordb, "", new VectorDBHistoryDataGenerator());
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
     DBConf dbConf = conf.loadDBConf(conf.getStorageType());
     Constant.oriPort = dbConf.getDBCEPortMap().get(Constant.ORI_PORT_NAME);
@@ -54,12 +46,10 @@ public class VectorDBCapacityExpansionIT extends BaseCapacityExpansionIT {
   }
 
   @Override
-  protected void updateParams(int port) {
-  }
+  protected void updateParams(int port) {}
 
   @Override
-  protected void restoreParams(int port) {
-  }
+  protected void restoreParams(int port) {}
 
   @Override
   protected void shutdownDatabase(int port) {
@@ -70,7 +60,6 @@ public class VectorDBCapacityExpansionIT extends BaseCapacityExpansionIT {
   protected void startDatabase(int port) {
     shutOrRestart(port, false, "milvus");
   }
-
 
   @Override
   protected void testQuerySpecialHistoryData() {

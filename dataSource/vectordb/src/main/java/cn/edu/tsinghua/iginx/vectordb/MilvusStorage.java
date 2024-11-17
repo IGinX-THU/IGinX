@@ -1,19 +1,21 @@
 /*
  * IGinX - the polystore system with high performance
  * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 package cn.edu.tsinghua.iginx.vectordb;
 
@@ -74,7 +76,7 @@ public class MilvusStorage implements IStorage {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(MilvusStorage.class);
 
-  private static final String DEFAULT_KEY = "default";
+  private static final String DEFAULT_KEY = "tmp";
 
   public static final int BATCH_SIZE = 10000;
 
@@ -107,6 +109,9 @@ public class MilvusStorage implements IStorage {
     }
     this.meta = meta;
     Map<String, String> extraParams = meta.getExtraParams();
+    LOGGER.info("init milvus url: " + getUrl(meta));
+    LOGGER.info("username: " + extraParams.get(USERNAME));
+    LOGGER.info("password: " + extraParams.get(PASSWORD));
     this.milvusClientV2Pool =
         createPool(
             getUrl(meta),
@@ -115,7 +120,16 @@ public class MilvusStorage implements IStorage {
             MilvusClientPool.getPoolConfig(extraParams));
     MilvusClientV2 client = null;
     try {
-      client = milvusClientV2Pool.getClient(DEFAULT_KEY);
+      for (int i = 0; i < 30; i++) {
+        client = milvusClientV2Pool.getClient(DEFAULT_KEY);
+        if (client != null) {
+          break;
+        }
+        try {
+          Thread.sleep(2000L);
+        } catch (InterruptedException e) {
+        }
+      }
       PathUtils.init(client);
     } finally {
       if (client != null) {
@@ -175,7 +189,8 @@ public class MilvusStorage implements IStorage {
       if (tagsList != null && !tagsList.isEmpty()) {
         tags = tagsList.get(i);
       }
-      Pair<String, String> collectionAndField = PathUtils.getCollectionAndFieldByPath(path, tags,false);
+      Pair<String, String> collectionAndField =
+          PathUtils.getCollectionAndFieldByPath(path, tags, false);
       collectionToFields
           .computeIfAbsent(collectionAndField.getK(), k -> new HashSet<>())
           .add(collectionAndField.getV());

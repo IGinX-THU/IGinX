@@ -173,17 +173,17 @@ runs:
           name: Run Milvus DB
           uses: ./.github/actions/service/vectordb
           with:
-            stop: false
-            clean: false
-            start: true
-            ports: 19530 19531 19532
+              stop: false
+              clean: false
+              start: true
+              ports: 19530 19531 19532
 
         - if: inputs.DB-name=='VectorDB'
           name: Modify IGinX Config
           uses: ./.github/actions/edit
           with:
-            paths: conf/config.properties
-            statements: s/^#storageEngineList=127.0.0.1#19530/storageEngineList=127.0.0.1#19530/g
+              paths: conf/config.properties
+              statements: s/^#storageEngineList=127.0.0.1#19530/storageEngineList=127.0.0.1#19530/g
 
         - if: inputs.DB-name=='FileSystem'
           name: Run DB

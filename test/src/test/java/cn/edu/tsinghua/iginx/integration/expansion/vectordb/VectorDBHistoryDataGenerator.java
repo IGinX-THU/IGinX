@@ -19,6 +19,9 @@
  */
 package cn.edu.tsinghua.iginx.integration.expansion.vectordb;
 
+import static cn.edu.tsinghua.iginx.vectordb.tools.Constants.*;
+import static cn.edu.tsinghua.iginx.vectordb.tools.NameUtils.getPathAndVersion;
+
 import cn.edu.tsinghua.iginx.integration.expansion.BaseHistoryDataGenerator;
 import cn.edu.tsinghua.iginx.integration.expansion.constant.Constant;
 import cn.edu.tsinghua.iginx.thrift.DataType;
@@ -32,19 +35,9 @@ import com.google.gson.JsonObject;
 import io.milvus.pool.MilvusClientV2Pool;
 import io.milvus.v2.client.MilvusClientV2;
 import io.milvus.v2.service.database.request.CreateDatabaseReq;
+import java.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import redis.clients.jedis.Jedis;
-
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.*;
-
-import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.readOnlyPort;
-import static cn.edu.tsinghua.iginx.vectordb.tools.Constants.*;
-import static cn.edu.tsinghua.iginx.vectordb.tools.MilvusClientPool.createPool;
-import static cn.edu.tsinghua.iginx.vectordb.tools.NameUtils.getPathAndVersion;
 
 public class VectorDBHistoryDataGenerator extends BaseHistoryDataGenerator {
 
@@ -60,38 +53,38 @@ public class VectorDBHistoryDataGenerator extends BaseHistoryDataGenerator {
     Constant.readOnlyPort = 19532;
   }
 
-
   private void createOrAlterCollections(
-          MilvusClientV2 client,
-          String databaseName,
-          List<String> paths,
-          List<Map<String, String>> tagsList,
-          List<DataType> dataTypeList)
-          throws InterruptedException {
+      MilvusClientV2 client,
+      String databaseName,
+      List<String> paths,
+      List<Map<String, String>> tagsList,
+      List<DataType> dataTypeList)
+      throws InterruptedException {
     Map<String, Set<String>> collectionToFields = new HashMap<>();
     Map<String, DataType> fieldToType = new HashMap<>();
     Set<String> collections = new HashSet<>();
     collections.addAll(MilvusClientUtils.listCollections(client, databaseName));
     Map<String, Integer> collectionMap = new HashMap<>();
     collections.forEach(
-            collection -> {
-              Pair<String, Integer> p = getPathAndVersion(collection);
-              collectionMap.put(p.getK(), p.getV());
-            });
+        collection -> {
+          Pair<String, Integer> p = getPathAndVersion(collection);
+          collectionMap.put(p.getK(), p.getV());
+        });
     for (int i = 0; i < paths.size(); i++) {
       String path = paths.get(i);
-      if (!path.startsWith(databaseName+".")){
+      if (!path.startsWith(databaseName + ".")) {
         continue;
       }
-//      path = path.substring(path.indexOf(SEPARATOR)+1);
+      //      path = path.substring(path.indexOf(SEPARATOR)+1);
       Map<String, String> tags = new HashMap<>();
       if (tagsList != null && !tagsList.isEmpty()) {
         tags = tagsList.get(i);
       }
-      Pair<String, String> collectionAndField = PathUtils.getCollectionAndFieldByPath(path, tags,true);
+      Pair<String, String> collectionAndField =
+          PathUtils.getCollectionAndFieldByPath(path, tags, true);
       collectionToFields
-              .computeIfAbsent(collectionAndField.getK(), k -> new HashSet<>())
-              .add(collectionAndField.getV());
+          .computeIfAbsent(collectionAndField.getK(), k -> new HashSet<>())
+          .add(collectionAndField.getV());
       fieldToType.put(collectionAndField.getV(), dataTypeList.get(i));
     }
 
@@ -105,8 +98,8 @@ public class VectorDBHistoryDataGenerator extends BaseHistoryDataGenerator {
       }
 
       Map<String, String> fields =
-              MilvusClientUtils.addCollectionFields(
-                      client, databaseName, collection, collectionToFields.get(collection), fieldToType);
+          MilvusClientUtils.addCollectionFields(
+              client, databaseName, collection, collectionToFields.get(collection), fieldToType);
     }
   }
 
@@ -120,13 +113,12 @@ public class VectorDBHistoryDataGenerator extends BaseHistoryDataGenerator {
     MilvusClientV2Pool milvusClientV2Pool = null;
     MilvusClientV2 client = null;
     try {
-      milvusClientV2Pool =
-              MilvusClientPool.createPool("grpc://"+LOCAL_IP+":"+port,"","");
+      milvusClientV2Pool = MilvusClientPool.createPool("grpc://" + LOCAL_IP + ":" + port, "", "");
       for (int i = 0; i < 10; i++) {
         try {
           client = milvusClientV2Pool.getClient("default");
           break;
-        }catch(Exception e){
+        } catch (Exception e) {
           LOGGER.error("Caught a RuntimeException:", e);
           Thread.sleep(1000L);
         }
@@ -139,15 +131,15 @@ public class VectorDBHistoryDataGenerator extends BaseHistoryDataGenerator {
         String tableName = path.substring(path.indexOf(SEPARATOR) + 1, path.lastIndexOf(SEPARATOR));
 
         Map<String, List<Integer>> tablesToColumnIndexes =
-                databaseToTablesToColumnIndexes.computeIfAbsent(databaseName, x -> new HashMap<>());
+            databaseToTablesToColumnIndexes.computeIfAbsent(databaseName, x -> new HashMap<>());
         List<Integer> columnIndexes =
-                tablesToColumnIndexes.computeIfAbsent(tableName, x -> new ArrayList<>());
+            tablesToColumnIndexes.computeIfAbsent(tableName, x -> new ArrayList<>());
         columnIndexes.add(i);
         tablesToColumnIndexes.put(tableName, columnIndexes);
       }
 
       for (Map.Entry<String, Map<String, List<Integer>>> entry :
-              databaseToTablesToColumnIndexes.entrySet()) {
+          databaseToTablesToColumnIndexes.entrySet()) {
         String databaseName = entry.getKey();
         try {
           client.createDatabase(CreateDatabaseReq.builder().databaseName(databaseName).build());
@@ -158,8 +150,7 @@ public class VectorDBHistoryDataGenerator extends BaseHistoryDataGenerator {
 
         for (Map.Entry<String, List<Integer>> item : entry.getValue().entrySet()) {
           String collectionName = item.getKey();
-          createOrAlterCollections(
-                  client, databaseName, pathList, null, dataTypeList);
+          createOrAlterCollections(client, databaseName, pathList, null, dataTypeList);
 
           List<JsonObject> data = new ArrayList<>();
           long id = 1;
@@ -169,25 +160,27 @@ public class VectorDBHistoryDataGenerator extends BaseHistoryDataGenerator {
             for (Integer index : item.getValue()) {
               String path = pathList.get(index);
               String columnName = path.substring(path.lastIndexOf(SEPARATOR) + 1);
-              added = MilvusClientUtils.addProperty(row, columnName, values.get(index), dataTypeList.get(index));
+              added =
+                  MilvusClientUtils.addProperty(
+                      row, columnName, values.get(index), dataTypeList.get(index));
             }
             if (added) {
               row.addProperty(MILVUS_PRIMARY_FIELD_NAME, id++);
               row.add(
-                      MILVUS_VECTOR_FIELD_NAME,
-                      new Gson().toJsonTree(CommonUtils.generateFloatVector(DEFAULT_DIMENSION)));
+                  MILVUS_VECTOR_FIELD_NAME,
+                  new Gson().toJsonTree(CommonUtils.generateFloatVector(DEFAULT_DIMENSION)));
               data.add(row);
             }
           }
-          long count =MilvusClientUtils.upsert(client, collectionName, data);
+          long count = MilvusClientUtils.upsert(client, collectionName, data);
           LOGGER.info("complete insertRows, insertCount:" + count);
         }
       }
-      LOGGER.info("write data to "+LOCAL_IP+":{} success!", port);
+      LOGGER.info("write data to " + LOCAL_IP + ":{} success!", port);
     } catch (Exception e) {
       LOGGER.error("unexpected error: ", e);
-    }finally {
-      if (milvusClientV2Pool!=null) {
+    } finally {
+      if (milvusClientV2Pool != null) {
         if (client != null) {
           milvusClientV2Pool.returnClient("default", client);
         }
@@ -206,10 +199,10 @@ public class VectorDBHistoryDataGenerator extends BaseHistoryDataGenerator {
   @Override
   public void writeSpecialHistoryData() {
     writeHistoryData(
-            Constant.readOnlyPort,
-            Constant.READ_ONLY_FLOAT_PATH_LIST,
-            new ArrayList<>(Collections.singletonList(DataType.FLOAT)),
-            Constant.READ_ONLY_FLOAT_VALUES_LIST);
+        Constant.readOnlyPort,
+        Constant.READ_ONLY_FLOAT_PATH_LIST,
+        new ArrayList<>(Collections.singletonList(DataType.FLOAT)),
+        Constant.READ_ONLY_FLOAT_VALUES_LIST);
   }
 
   @Override
@@ -217,13 +210,12 @@ public class VectorDBHistoryDataGenerator extends BaseHistoryDataGenerator {
     MilvusClientV2Pool milvusClientV2Pool = null;
     MilvusClientV2 client = null;
     try {
-      milvusClientV2Pool =
-              MilvusClientPool.createPool("grpc://"+LOCAL_IP+":"+port,"","");
+      milvusClientV2Pool = MilvusClientPool.createPool("grpc://" + LOCAL_IP + ":" + port, "", "");
       for (int i = 0; i < 10; i++) {
         try {
           client = milvusClientV2Pool.getClient("default");
           break;
-        }catch(Exception e){
+        } catch (Exception e) {
           LOGGER.error("Caught a RuntimeException:", e);
           try {
             Thread.sleep(1000L);
@@ -234,14 +226,14 @@ public class VectorDBHistoryDataGenerator extends BaseHistoryDataGenerator {
       }
       List<String> databases = MilvusClientUtils.listDatabase(client);
 
-      for (String database: databases){
+      for (String database : databases) {
         if (!database.equals("default")) {
           MilvusClientUtils.dropDatabase(client, database);
         }
       }
-      LOGGER.info("clear data on "+LOCAL_IP+":{} success!", port);
-    }finally {
-      if (milvusClientV2Pool!=null) {
+      LOGGER.info("clear data on " + LOCAL_IP + ":{} success!", port);
+    } finally {
+      if (milvusClientV2Pool != null) {
         if (client != null) {
           milvusClientV2Pool.returnClient("default", client);
         }

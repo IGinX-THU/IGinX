@@ -31,47 +31,47 @@ runs:
           shell: bash
           working-directory: ${{ github.action_path }}
           run: |
-            for port in ${{ inputs.ports }}; do
-              mkdir -p $port
-              cp -f ${{ github.workspace }}/docker/milvus/docker-compose.yml $port/docker-compose-$port.yml
-              sed -i"" -e "s/19530:19530/$port:19530/g" $port/docker-compose-$port.yml
-              sed -i"" -e "s/\/volumes/\/volumes$port/g" $port/docker-compose-$port.yml
-              sed -i"" -e "s/name: milvus/name: milvus$port/g" $port/docker-compose-$port.yml
-            done
-            echo "docker-compose.yml created successfully"
+              for port in ${{ inputs.ports }}; do
+                mkdir -p $port
+                cp -f ${{ github.workspace }}/docker/milvus/docker-compose.yml $port/docker-compose-$port.yml
+                sed -i"" -e "s/19530:19530/$port:19530/g" $port/docker-compose-$port.yml
+                sed -i"" -e "s/\/volumes/\/volumes$port/g" $port/docker-compose-$port.yml
+                sed -i"" -e "s/name: milvus/name: milvus$port/g" $port/docker-compose-$port.yml
+              done
+              echo "docker-compose.yml created successfully"
 
         - if: fromJSON(inputs.start) && runner.os != 'Windows'
           name: Start milvus
           shell: bash
           working-directory: ${{ github.action_path }}
           run: |
-            for port in ${{ inputs.ports }}; do
-              docker-compose -f $port/docker-compose-$port.yml up -d
-            done
-            sleep 5
-            for port in ${{ inputs.ports }}; do
-              if ss -tuln | grep -q ":$port "; then
-                echo "Port $port is open."
-              else
-                echo "Port $port is not open."
-              fi
-            done
+              for port in ${{ inputs.ports }}; do
+                docker-compose -f $port/docker-compose-$port.yml up -d
+              done
+              sleep 5
+              for port in ${{ inputs.ports }}; do
+                if ss -tuln | grep -q ":$port "; then
+                  echo "Port $port is open."
+                else
+                  echo "Port $port is not open."
+                fi
+              done
 
         - if: fromJSON(inputs.start) && runner.os == 'Windows'
           name: Start milvus on Windows
           shell: pwsh
           working-directory: ${{ github.action_path }}
           run: |
-            $env:Path += ";${{ github.workspace }}"
-            
-            for port in ${{ inputs.ports }}; do
-              docker-compose -f $port/docker-compose-$port.yml up -d
-            done
-            sleep 5
-            for port in ${{ inputs.ports }}; do
-              if ss -tuln | grep -q ":$port "; then
-                echo "Port $port is open."
-              else
-                echo "Port $port is not open."
-              fi
-            done
+              $env:Path += ";${{ github.workspace }}"
+
+              for port in ${{ inputs.ports }}; do
+                docker-compose -f $port/docker-compose-$port.yml up -d
+              done
+              sleep 5
+              for port in ${{ inputs.ports }}; do
+                if ss -tuln | grep -q ":$port "; then
+                  echo "Port $port is open."
+                else
+                  echo "Port $port is not open."
+                fi
+              done

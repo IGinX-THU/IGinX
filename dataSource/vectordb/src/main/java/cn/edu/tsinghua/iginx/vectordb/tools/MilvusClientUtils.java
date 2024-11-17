@@ -1,19 +1,21 @@
 /*
  * IGinX - the polystore system with high performance
  * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 package cn.edu.tsinghua.iginx.vectordb.tools;
 
@@ -79,7 +81,7 @@ public class MilvusClientUtils {
     List<String> result = new ArrayList<>();
     list.forEach(
         s -> {
-          if (isDummy(databaseName)&& !isDummyEscape) {
+          if (isDummy(databaseName) && !isDummyEscape) {
             result.add(s);
           } else {
             result.add(NameUtils.unescape(s));
@@ -96,7 +98,7 @@ public class MilvusClientUtils {
       MilvusClientV2 client, String dbName, String collection) {
     final String databaseName;
     final String collectionName;
-    if (isDummy(dbName)&& !isDummyEscape) {
+    if (isDummy(dbName) && !isDummyEscape) {
       databaseName = dbName;
       collectionName = collection;
     } else {
@@ -144,9 +146,7 @@ public class MilvusClientUtils {
     return paths;
   }
 
-
-  public static void createDatabase(MilvusClientV2 client, String databaseName)
-  {
+  public static void createDatabase(MilvusClientV2 client, String databaseName) {
     client.createDatabase(CreateDatabaseReq.builder().databaseName(databaseName).build());
   }
 
@@ -617,7 +617,7 @@ public class MilvusClientUtils {
     String databaseNameEscaped;
     String collectionNameEscaped;
 
-    if (isDummy(databaseName)&& !isDummyEscape) {
+    if (isDummy(databaseName) && !isDummyEscape) {
       databaseNameEscaped = databaseName;
       collectionNameEscaped = collectionName;
     } else {
@@ -658,7 +658,7 @@ public class MilvusClientUtils {
       queryReqBuilder.filter(filterStr.toString());
     }
     List<String> fieldsEscaped;
-    if (isDummy(databaseName)&& !isDummyEscape) {
+    if (isDummy(databaseName) && !isDummyEscape) {
       fieldsEscaped = fields;
     } else {
       fieldsEscaped = fields.stream().map(NameUtils::escape).collect(Collectors.toList());
@@ -683,7 +683,7 @@ public class MilvusClientUtils {
         }
 
         String path;
-        if (isDummy(databaseName)&& !isDummyEscape) {
+        if (isDummy(databaseName) && !isDummyEscape) {
           path = PathUtils.getPathUnescaped(databaseName, collectionName, key);
         } else {
           path = PathUtils.getPathUnescaped(databaseName, collectionName, NameUtils.unescape(key));
@@ -724,18 +724,13 @@ public class MilvusClientUtils {
     return columns;
   }
 
-
-  public static long upsert(
-          MilvusClientV2 client,
-          String collectionName,
-          List<JsonObject> data) {
+  public static long upsert(MilvusClientV2 client, String collectionName, List<JsonObject> data) {
     UpsertResp resp =
-            client.upsert(
-                    UpsertReq.builder()
-                            .collectionName(NameUtils.escape(collectionName))
-                            .data(data)
-                            .build());
+        client.upsert(
+            UpsertReq.builder()
+                .collectionName(NameUtils.escape(collectionName))
+                .data(data)
+                .build());
     return resp.getUpsertCnt();
   }
-
 }
