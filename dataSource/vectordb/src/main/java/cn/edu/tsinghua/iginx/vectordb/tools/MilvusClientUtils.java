@@ -31,6 +31,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.vectordb.entity.Column;
+import cn.edu.tsinghua.iginx.vectordb.support.PathSystem;
 import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 import io.milvus.orm.iterator.QueryIterator;
@@ -300,7 +301,8 @@ public class MilvusClientUtils {
       String databaseName,
       String collectionName,
       Set<String> fieldsToAdd,
-      Map<String, DataType> fieldTypes) {
+      Map<String, DataType> fieldTypes,
+      PathSystem pathSystem) {
     DescribeCollectionResp resp =
         client.describeCollection(
             DescribeCollectionReq.builder()
@@ -354,7 +356,7 @@ public class MilvusClientUtils {
         map.put(Constants.KEY_PROPERTY_FIELD_DATA_TYPE, fieldTypes.get(f).name());
         alterCollectionReqBuilder.property(
             DYNAMIC_FIELDS_PROPERTIES_PREFIX + f, JsonUtils.toJson(map));
-        PathUtils.getPathSystem(client)
+        PathUtils.getPathSystem(client, pathSystem)
             .addPath(
                 PathUtils.getPathUnescaped(databaseName, collectionName, newFieldName),
                 false,
@@ -369,7 +371,7 @@ public class MilvusClientUtils {
         map.put(Constants.KEY_PROPERTY_FIELD_DATA_TYPE, fieldTypes.get(f).name());
         alterCollectionReqBuilder.property(
             DYNAMIC_FIELDS_PROPERTIES_PREFIX + f, JsonUtils.toJson(map));
-        PathUtils.getPathSystem(client)
+        PathUtils.getPathSystem(client, pathSystem)
             .addPath(
                 PathUtils.getPathUnescaped(databaseName, collectionName, f),
                 false,
@@ -438,8 +440,10 @@ public class MilvusClientUtils {
       String collectionName,
       List<JsonObject> data,
       List<Object> ids,
-      Set<String> fields) {
-    List<String> paths = PathUtils.getPathSystem(client).findPaths(collectionName, null);
+      Set<String> fields,
+      PathSystem pathSystem) {
+    List<String> paths =
+        PathUtils.getPathSystem(client, pathSystem).findPaths(collectionName, null);
 
     Set<String> fieldList = new HashSet<>();
     for (String path : paths) {
@@ -451,7 +455,7 @@ public class MilvusClientUtils {
     for (String path : paths) {
       fieldToDataType.put(
           NameUtils.escape(path.substring(path.lastIndexOf(".") + 1)),
-          PathUtils.getPathSystem(client).getColumn(path).getDataType());
+          PathUtils.getPathSystem(client, pathSystem).getColumn(path).getDataType());
     }
 
     GetReq getReq =
@@ -522,10 +526,14 @@ public class MilvusClientUtils {
    * @return
    */
   public static Map<String, Set<String>> determinePaths(
-      MilvusClientV2 client, List<String> paths, TagFilter tagFilter, boolean isDummy) {
+      MilvusClientV2 client,
+      List<String> paths,
+      TagFilter tagFilter,
+      boolean isDummy,
+      PathSystem pathSystem) {
     Set<String> pathSet = new HashSet<>();
     for (String path : paths) {
-      for (String p : PathUtils.getPathSystem(client).findPaths(path, null)) {
+      for (String p : PathUtils.getPathSystem(client, pathSystem).findPaths(path, null)) {
         Pair<String, Map<String, String>> columnToTags = splitFullName(getPathAndVersion(p).getK());
         if (tagFilter != null
             && !cn.edu.tsinghua.iginx.engine.physical.storage.utils.TagKVUtils.match(
@@ -533,7 +541,7 @@ public class MilvusClientUtils {
           continue;
         }
         cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column c =
-            PathUtils.getPathSystem(client).getColumn(p);
+            PathUtils.getPathSystem(client, pathSystem).getColumn(p);
         if (isDummy && c != null && c.isDummy()) {
           pathSet.add(p);
         } else {
@@ -552,15 +560,20 @@ public class MilvusClientUtils {
   }
 
   public static Map<String, Set<String>> determinePaths(
-      MilvusClientV2 client, List<String> paths, TagFilter tagFilter) {
-    return determinePaths(client, paths, tagFilter, false);
+      MilvusClientV2 client, List<String> paths, TagFilter tagFilter, PathSystem pathSystem) {
+    return determinePaths(client, paths, tagFilter, false, pathSystem);
   }
 
   public static int deleteFieldsByRange(
-      MilvusClientV2 client, String collectionName, Set<String> fields, KeyRange keyRange) {
+      MilvusClientV2 client,
+      String collectionName,
+      Set<String> fields,
+      KeyRange keyRange,
+      PathSystem pathSystem) {
     int deleteCount = 0;
 
-    List<String> paths = PathUtils.getPathSystem(client).findPaths(collectionName, null);
+    List<String> paths =
+        PathUtils.getPathSystem(client, pathSystem).findPaths(collectionName, null);
 
     Set<String> fieldList = new HashSet<>();
     for (String path : paths) {
@@ -612,7 +625,8 @@ public class MilvusClientUtils {
       String collectionName,
       List<String> fields,
       Filter filter,
-      List<String> patterns)
+      List<String> patterns,
+      PathSystem pathSystem)
       throws InterruptedException {
     String databaseNameEscaped;
     String collectionNameEscaped;
@@ -713,8 +727,9 @@ public class MilvusClientUtils {
     List<Column> columns = new ArrayList<>();
     for (Map.Entry<String, Map<Long, Object>> entry : pathToMap.entrySet()) {
       DataType type = pathToDataType.get(entry.getKey());
-      if (type == null && PathUtils.getPathSystem(client).getColumn(entry.getKey()) != null) {
-        type = PathUtils.getPathSystem(client).getColumn(entry.getKey()).getDataType();
+      if (type == null
+          && PathUtils.getPathSystem(client, pathSystem).getColumn(entry.getKey()) != null) {
+        type = PathUtils.getPathSystem(client, pathSystem).getColumn(entry.getKey()).getDataType();
       }
       Column column =
           new Column(entry.getKey().replaceAll("\\[\\[(\\d+)\\]\\]", ""), type, entry.getValue());

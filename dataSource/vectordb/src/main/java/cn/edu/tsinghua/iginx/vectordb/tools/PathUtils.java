@@ -32,17 +32,15 @@ import java.util.Map;
 
 public class PathUtils {
 
-  public static PathSystem pathSystem = null;
+  //  public static PathSystem pathSystem = null;
 
-  public static PathSystem dummyPathSystem = null;
-
-  public static void resetPathSystem() {
+  public static void resetPathSystem(PathSystem pathSystem) {
     pathSystem = null;
   }
 
-  public static PathSystem getPathSystem(MilvusClientV2 client) {
-    if (pathSystem == null) {
-      init(client);
+  public static PathSystem getPathSystem(MilvusClientV2 client, PathSystem pathSystem) {
+    if (!pathSystem.inited()) {
+      init(client, pathSystem);
     }
     return pathSystem;
   }
@@ -54,9 +52,8 @@ public class PathUtils {
   //        return dummyPathSystem;
   //    }
 
-  public static synchronized void init(MilvusClientV2 client) {
-    if (pathSystem != null) return;
-    pathSystem = new MilvusPathSystem();
+  private static synchronized void init(MilvusClientV2 client, PathSystem pathSystem) {
+    //    if (pathSystem != null) return;
     for (String databaseName : MilvusClientUtils.listDatabase(client)) {
       for (String collectionName : MilvusClientUtils.listCollections(client, databaseName)) {
         Map<String, DataType> paths =
@@ -69,6 +66,7 @@ public class PathUtils {
                         path, MilvusClientUtils.isDummy(databaseName), paths.get(path)));
       }
     }
+    pathSystem.setInited(true);
   }
 
   //    public static synchronized void initDummy(){
@@ -100,7 +98,8 @@ public class PathUtils {
         .toString();
   }
 
-  public static String findPath(String path, Map<String, String> tags) {
+  public static String findPath(
+      String path, Map<String, String> tags, MilvusPathSystem pathSystem) {
     if (pathSystem == null) {
       return null;
     }

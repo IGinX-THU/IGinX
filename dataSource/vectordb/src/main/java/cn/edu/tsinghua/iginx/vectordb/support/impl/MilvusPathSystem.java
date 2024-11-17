@@ -34,6 +34,8 @@ public class MilvusPathSystem implements PathSystem {
   private static final String END = "$$END$$";
   private static final String STAR = "*";
 
+  private boolean inited = false;
+
   /** 存储所有路径 key 为完整路径，未转义，带TagKV及版本号，value 为TagKV */
   private final Map<String, Map<String, ?>> paths = new HashMap<>();
 
@@ -250,6 +252,15 @@ public class MilvusPathSystem implements PathSystem {
   public String findCollection(String path) {
     String[] parts = path.split("\\" + Constants.PATH_SEPARATOR);
     return findCollectionRecursive(parts, 0, "", paths);
+  }
+
+  @Override
+  public boolean inited() {
+    return inited;
+  }
+
+  public void setInited(boolean inited) {
+    this.inited = inited;
   }
 
   private String findPathRecursive(

@@ -53,4 +53,8 @@ public interface PathSystem {
    * @return
    */
   String findCollection(String path);
+
+  boolean inited();
+
+  void setInited(boolean inited);
 }

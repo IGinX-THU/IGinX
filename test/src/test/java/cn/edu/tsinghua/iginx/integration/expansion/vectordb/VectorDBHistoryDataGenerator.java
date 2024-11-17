@@ -26,6 +26,8 @@ import cn.edu.tsinghua.iginx.integration.expansion.BaseHistoryDataGenerator;
 import cn.edu.tsinghua.iginx.integration.expansion.constant.Constant;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
+import cn.edu.tsinghua.iginx.vectordb.support.PathSystem;
+import cn.edu.tsinghua.iginx.vectordb.support.impl.MilvusPathSystem;
 import cn.edu.tsinghua.iginx.vectordb.tools.CommonUtils;
 import cn.edu.tsinghua.iginx.vectordb.tools.MilvusClientPool;
 import cn.edu.tsinghua.iginx.vectordb.tools.MilvusClientUtils;
@@ -88,6 +90,7 @@ public class VectorDBHistoryDataGenerator extends BaseHistoryDataGenerator {
       fieldToType.put(collectionAndField.getV(), dataTypeList.get(i));
     }
 
+    PathSystem pathSystem = new MilvusPathSystem();
     for (String collection : collectionToFields.keySet()) {
       if (!collections.contains(collection)) {
         // create collection
@@ -99,7 +102,12 @@ public class VectorDBHistoryDataGenerator extends BaseHistoryDataGenerator {
 
       Map<String, String> fields =
           MilvusClientUtils.addCollectionFields(
-              client, databaseName, collection, collectionToFields.get(collection), fieldToType);
+              client,
+              databaseName,
+              collection,
+              collectionToFields.get(collection),
+              fieldToType,
+              pathSystem);
     }
   }
 
