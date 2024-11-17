@@ -23,6 +23,9 @@ runs:
           shell: bash
           run: exit 1
 
+        - name: Setup docker compose
+          uses: ./.github/actions/docker-compose
+
         - if: fromJSON(inputs.start)
           name: Create Config for milvus docker compose
           shell: bash
@@ -36,11 +39,30 @@ runs:
               sed -i"" -e "s/name: milvus/name: milvus$port/g" $port/docker-compose-$port.yml
             done
 
-        - if: fromJSON(inputs.start)
+        - if: fromJSON(inputs.start) && runner.os != 'Windows'
           name: Start milvus
           shell: bash
           working-directory: ${{ github.action_path }}
           run: |
+            for port in ${{ inputs.ports }}; do
+              docker-compose -f $port/docker-compose-$port.yml up -d
+            done
+            sleep 5
+            for port in ${{ inputs.ports }}; do
+              if ss -tuln | grep -q ":$port "; then
+                echo "Port $port is open."
+              else
+                echo "Port $port is not open."
+              fi
+            done
+
+        - if: fromJSON(inputs.start) && runner.os == 'Windows'
+          name: Start milvus on Windows
+          shell: pwsh
+          working-directory: ${{ github.action_path }}
+          run: |
+            $env:Path += ";${{ github.workspace }}"
+            
             for port in ${{ inputs.ports }}; do
               docker-compose -f $port/docker-compose-$port.yml up -d
             done
