@@ -11,14 +11,14 @@ concurrency:
     cancel-in-progress: true
 
 jobs:
-#    unit-test:
-#        uses: ./.github/workflows/unit-test.yml
-#    unit-mds:
-#        uses: ./.github/workflows/unit-mds.yml
-#    case-regression:
-#        uses: ./.github/workflows/case-regression.yml
-#        with:
-#            metadata-matrix: '["zookeeper"]'
+    unit-test:
+        uses: ./.github/workflows/unit-test.yml
+    unit-mds:
+        uses: ./.github/workflows/unit-mds.yml
+    case-regression:
+        uses: ./.github/workflows/case-regression.yml
+        with:
+            metadata-matrix: '["zookeeper"]'
     standalone-test:
         uses: ./.github/workflows/standalone-test.yml
         with:

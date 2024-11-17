@@ -51,10 +51,10 @@ jobs:
                   python-version: ${{ matrix.python-version }}
                   java: ${{ matrix.java }}
 
-#            - name: Run Metadata
-#              uses: ./.github/actions/metadataRunner
-#              with:
-#                  metadata: ${{ matrix.metadata }}
+            - name: Run Metadata
+              uses: ./.github/actions/metadataRunner
+              with:
+                  metadata: ${{ matrix.metadata }}
 
             - name: Run DB
               uses: ./.github/actions/dbRunner
