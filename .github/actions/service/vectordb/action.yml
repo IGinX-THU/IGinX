@@ -38,6 +38,7 @@ runs:
               sed -i"" -e "s/\/volumes/\/volumes$port/g" $port/docker-compose-$port.yml
               sed -i"" -e "s/name: milvus/name: milvus$port/g" $port/docker-compose-$port.yml
             done
+            echo "docker-compose.yml created successfully."
 
         - if: fromJSON(inputs.start) && runner.os != 'Windows'
           name: Start milvus
