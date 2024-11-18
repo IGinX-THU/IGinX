@@ -35,9 +35,8 @@ runs:
               -e CHARSET=1 \
               -e LENGTH_IN_CHAR=1 \
               -e CASE_SENSITIVE=0 \
-              -e SYSDBA_PWD='SYSDBA' \
               -v /opt/dm8:/home/dmdba/data \
-              sizx/dm8
+              sizx/dm8 && docker logs -f dm8
           shell: bash
 
         - name: Verify DM Database is running
