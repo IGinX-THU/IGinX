@@ -68,7 +68,7 @@ jobs:
                   -DartifactId=DmJdbcDriver \
                   -Dversion=1.8.0 \
                   -Dpackaging=jar \
-                  -Dfile=JAVA_Mybatis/DmJdbcDriver18.jar
+                  -Dfile=JAVA_Mybatis/JAVA_Mybatis/DmJdbcDriver18.jar
               shell: bash
 
             - name: Install IGinX with Maven
