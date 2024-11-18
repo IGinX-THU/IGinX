@@ -120,23 +120,23 @@ public class MilvusStorage implements IStorage {
             extraParams.get(USERNAME),
             extraParams.get(PASSWORD),
             MilvusClientPool.getPoolConfig(extraParams));
-    MilvusClientV2 client = null;
-    try {
-      for (int i = 0; i < 5; i++) {
-        client = milvusClientV2Pool.getClient(DEFAULT_KEY);
-        if (client != null) {
-          break;
-        }
-        try {
-          Thread.sleep(2000L);
-        } catch (InterruptedException e) {
-        }
-      }
-    } finally {
-      if (client != null) {
-        milvusClientV2Pool.returnClient(DEFAULT_KEY, client);
-      }
-    }
+//    MilvusClientV2 client = null;
+//    try {
+//      for (int i = 0; i < 5; i++) {
+//        client = milvusClientV2Pool.getClient(DEFAULT_KEY);
+//        if (client != null) {
+//          break;
+//        }
+//        try {
+//          Thread.sleep(2000L);
+//        } catch (InterruptedException e) {
+//        }
+//      }
+//    } finally {
+//      if (client != null) {
+//        milvusClientV2Pool.returnClient(DEFAULT_KEY, client);
+//      }
+//    }
 
     //    try {
     //      Thread.sleep(10000);
@@ -412,11 +412,11 @@ public class MilvusStorage implements IStorage {
 
   @Override
   public boolean testConnection(StorageEngineMeta meta) {
-    MilvusClientV2 client = this.milvusClientV2Pool.getClient(DEFAULT_KEY);
+//    MilvusClientV2 client = this.milvusClientV2Pool.getClient(DEFAULT_KEY);
 
     ConnectConfig config =
      ConnectConfig.builder().uri("grpc://127.0.0.1:19530").build();
-          client = new MilvusClientV2(config);
+    MilvusClientV2     client = new MilvusClientV2(config);
     return client != null;
   }
 
