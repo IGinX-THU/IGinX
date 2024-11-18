@@ -34,6 +34,8 @@ import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.*;
+
+import cn.edu.tsinghua.iginx.utils.SortUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.*;
 import org.slf4j.Logger;
@@ -1388,6 +1390,10 @@ public class SQLSessionIT {
             + "+---+--------+-----+\n"
             + "Total line number = 1\n";
     executor.executeAndCompare(statement, expected);
+
+    System.out.println(executor.execute("SELECT count(s2) FROM us.d1 WHERE KEY < 114514;"));
+    System.out.println(executor.execute("SELECT LAST(s1) FROM us.d1;"));
+    System.out.println(executor.execute("SELECT s2 FROM us.d1;"));
 
     statement = "SELECT LAST(s2) FROM us.d1 WHERE key > 0;";
     System.out.println(executor.execute("EXPLAIN " + statement));
