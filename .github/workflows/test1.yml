@@ -1,0 +1,40 @@
+name: Pull Request Workflow
+
+on:
+  pull_request:
+    branches: [ main ]  # 仅当 Pull Request 目标分支是 main 时触发
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest  # 使用最新的 Ubuntu 运行器
+#    runs-on: macos-latest  # 使用最新的 Ubuntu 运行器
+#    runs-on: windows-latest  # 使用最新的 Ubuntu 运行器
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4  # 检出代码
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: '8'  # Specify the JDK version (e.g., 8, 11, 17)
+          cache: "maven"
+#          distribution: "temurin"
+          distribution: ${{ runner.os == 'macOS' && 'liberica' || 'temurin' }}
+
+      - name: Run DB
+        uses: ./.github/actions/dbRunner
+        with:
+          DB-name: "VectorDB"
+
+      - name: Run tests
+        shell: bash
+        run: |
+          cd test1
+          if ss -tuln | grep -q ":19530 "; then
+            echo "Port 19530 is open."
+          else
+            echo "Port 19530 is not open."
+          fi
+          mvn clean package
+
