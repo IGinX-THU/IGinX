@@ -1390,6 +1390,8 @@ public class SQLSessionIT {
     executor.executeAndCompare(statement, expected);
 
     statement = "SELECT LAST(s2) FROM us.d1 WHERE key > 0;";
+    System.out.println(executor.execute("EXPLAIN " + statement));
+
     expected =
         "ResultSets:\n"
             + "+-----+--------+-----+\n"
