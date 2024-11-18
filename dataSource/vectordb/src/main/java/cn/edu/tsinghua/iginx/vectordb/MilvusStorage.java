@@ -58,6 +58,7 @@ import cn.edu.tsinghua.iginx.vectordb.tools.*;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import io.milvus.pool.MilvusClientV2Pool;
+import io.milvus.v2.client.ConnectConfig;
 import io.milvus.v2.client.MilvusClientV2;
 import io.milvus.v2.service.collection.response.ListCollectionsResp;
 import io.milvus.v2.service.database.request.CreateDatabaseReq;
@@ -134,9 +135,15 @@ public class MilvusStorage implements IStorage {
     //        } catch (InterruptedException e) {
     //        }
     //      }
-    //      ConnectConfig config = ConnectConfig.builder().uri(getUrl(meta)).build();
-    //      client = new MilvusClientV2(config);
-    //      PathUtils.init(client);
+//    try {
+//      Thread.sleep(10000);
+//
+//      ConnectConfig config = ConnectConfig.builder().uri("grpc://192.168.120.147:19530").build();
+//      MilvusClientV2 client = new MilvusClientV2(config);
+//      PathUtils.getPathSystem(client, pathSystem);
+//    } catch (Exception e) {
+//      e.printStackTrace();
+//    }
     //    } finally {
     //      if (client != null) {
     //        milvusClientV2Pool.returnClient(DEFAULT_KEY, client);
@@ -395,7 +402,11 @@ public class MilvusStorage implements IStorage {
 
   @Override
   public boolean testConnection(StorageEngineMeta meta) {
-    MilvusClientV2 client = this.milvusClientV2Pool.getClient(DEFAULT_KEY);
+    //    MilvusClientV2 client = this.milvusClientV2Pool.getClient(DEFAULT_KEY);
+
+    ConnectConfig config = ConnectConfig.builder().uri(getUrl(meta)).build();
+    MilvusClientV2 client = new MilvusClientV2(config);
+
     return client == null;
   }
 
