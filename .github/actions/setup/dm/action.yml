@@ -15,16 +15,16 @@ runs:
         #          run: |
         #              "C:\Program Files\Docker\Docker\DockerCli.exe" -SwitchLinuxEngine
 
-        - if: runner.os == 'macOS'
-          name: Set up Docker on macOS
-          shell: bash
-          run: |
-              brew update
-              brew install docker
+#        - if: runner.os == 'macOS'
+#          name: Set up Docker on macOS
+#          shell: bash
+#          run: |
+#              brew update
+#              brew install docker
 
         - name: Download DM Database Docker image and Run DM Database container
           run: |
-              wget https://download.dameng.com/eco/dm8/dm8_20241022_x86_rh6_64_single.tar
+              wget https://github.com/IGinX-THU/IGinX-resources/raw/refs/heads/main/resources/dm8_20241022_x86_rh6_64_single.tar
               docker load -i dm8_20241022_x86_rh6_64_single.tar
               docker run -d -p 5236:5236 --restart=always --name=dm8_test \
               --privileged=true \
