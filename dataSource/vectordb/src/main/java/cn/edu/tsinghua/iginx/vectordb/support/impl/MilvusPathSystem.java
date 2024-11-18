@@ -42,6 +42,16 @@ public class MilvusPathSystem implements PathSystem {
   /** 存储所有路径对应的列信息 key 为完整路径，未转义，带TagKV及版本号 */
   private final Map<String, Column> columns = new HashMap<>();
 
+  private final String databaseName;
+
+  public MilvusPathSystem(String databaseName) {
+    this.databaseName = databaseName;
+  }
+
+  public String getDatabaseName() {
+    return databaseName;
+  }
+
   // 添加路径到存储中
   public void addPath(String path, boolean isDummy, DataType type) {
     String[] parts = path.split("\\" + Constants.PATH_SEPARATOR);

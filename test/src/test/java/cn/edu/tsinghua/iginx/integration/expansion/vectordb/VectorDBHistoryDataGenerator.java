@@ -90,7 +90,7 @@ public class VectorDBHistoryDataGenerator extends BaseHistoryDataGenerator {
       fieldToType.put(collectionAndField.getV(), dataTypeList.get(i));
     }
 
-    PathSystem pathSystem = new MilvusPathSystem();
+    PathSystem pathSystem = new MilvusPathSystem("");
     for (String collection : collectionToFields.keySet()) {
       if (!collections.contains(collection)) {
         // create collection

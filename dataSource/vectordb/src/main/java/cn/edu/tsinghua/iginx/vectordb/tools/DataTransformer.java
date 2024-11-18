@@ -20,6 +20,7 @@
 package cn.edu.tsinghua.iginx.vectordb.tools;
 
 import cn.edu.tsinghua.iginx.thrift.DataType;
+import java.nio.charset.StandardCharsets;
 
 public class DataTransformer {
 
@@ -47,9 +48,8 @@ public class DataTransformer {
       case DOUBLE:
         return Double.parseDouble(value);
       case BINARY:
-        return value;
       default:
-        return value.getBytes();
+        return value.getBytes(StandardCharsets.UTF_8);
     }
   }
 
@@ -213,5 +213,15 @@ public class DataTransformer {
       return DataType.BOOLEAN;
     }
     return DataType.BINARY;
+  }
+
+  public static Object toIginxType(Object value) {
+    if (value == null) {
+      return null;
+    }
+    if (value instanceof String) {
+      return ((String) value).getBytes(StandardCharsets.UTF_8);
+    }
+    return value;
   }
 }

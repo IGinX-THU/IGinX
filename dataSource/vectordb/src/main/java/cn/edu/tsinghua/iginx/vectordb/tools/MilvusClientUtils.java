@@ -52,9 +52,12 @@ import io.milvus.v2.service.vector.response.UpsertResp;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MilvusClientUtils {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(MilvusClientUtils.class);
   private static final boolean isDummyEscape = true;
 
   public static List<String> listDatabase(MilvusClientV2 client) {
@@ -335,7 +338,9 @@ public class MilvusClientUtils {
 
     Map<String, String> result = new HashMap<>();
     AlterCollectionReq.AlterCollectionReqBuilder alterCollectionReqBuilder =
-        AlterCollectionReq.builder().collectionName(NameUtils.escape(collectionName));
+        AlterCollectionReq.builder()
+            .databaseName(NameUtils.escape(databaseName))
+            .collectionName(NameUtils.escape(collectionName));
     boolean added = false;
     for (String f : fieldsToAdd) {
       if (fields.containsKey(f)) {
@@ -437,11 +442,13 @@ public class MilvusClientUtils {
 
   public static long upsert(
       MilvusClientV2 client,
+      String databaseName,
       String collectionName,
       List<JsonObject> data,
       List<Object> ids,
       Set<String> fields,
-      PathSystem pathSystem) {
+      PathSystem pathSystem)
+      throws InterruptedException {
     List<String> paths =
         PathUtils.getPathSystem(client, pathSystem).findPaths(collectionName, null);
 
@@ -458,6 +465,7 @@ public class MilvusClientUtils {
           PathUtils.getPathSystem(client, pathSystem).getColumn(path).getDataType());
     }
 
+    client.useDatabase(NameUtils.escape(databaseName));
     GetReq getReq =
         GetReq.builder()
             .collectionName(NameUtils.escape(collectionName))
@@ -640,10 +648,15 @@ public class MilvusClientUtils {
     }
 
     client.useDatabase(databaseNameEscaped);
-    if (!client.getLoadState(
-        GetLoadStateReq.builder().collectionName(collectionNameEscaped).build())) {
-      client.loadCollection(
-          LoadCollectionReq.builder().collectionName(collectionNameEscaped).build());
+    try {
+      if (!client.getLoadState(
+          GetLoadStateReq.builder().collectionName(collectionNameEscaped).build())) {
+        client.loadCollection(
+            LoadCollectionReq.builder().collectionName(collectionNameEscaped).build());
+      }
+    } catch (Exception e) {
+      LOGGER.error("load collection error", e);
+      return new ArrayList<>();
     }
 
     String primaryFieldName =
@@ -733,6 +746,7 @@ public class MilvusClientUtils {
       }
       Column column =
           new Column(entry.getKey().replaceAll("\\[\\[(\\d+)\\]\\]", ""), type, entry.getValue());
+
       columns.add(column);
     }
 

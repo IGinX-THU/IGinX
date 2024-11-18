@@ -57,4 +57,6 @@ public interface PathSystem {
   boolean inited();
 
   void setInited(boolean inited);
+
+  String getDatabaseName();
 }

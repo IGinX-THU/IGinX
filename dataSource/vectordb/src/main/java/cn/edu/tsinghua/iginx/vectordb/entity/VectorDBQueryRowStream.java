@@ -106,9 +106,7 @@ public class VectorDBQueryRowStream implements RowStream {
       for (int i = 0; i < columns.size(); i++) {
         DataType type = columns.get(i).getType();
         if (columns.get(i).getData().get(timestamp) != null) {
-          String strVal =
-              DataTransformer.objectValueToString(columns.get(i).getData().get(timestamp));
-          values[i] = DataTransformer.strValueToDeterminedType(strVal, type);
+          values[i] = DataTransformer.toIginxType(columns.get(i).getData().get(timestamp));
         }
       }
 

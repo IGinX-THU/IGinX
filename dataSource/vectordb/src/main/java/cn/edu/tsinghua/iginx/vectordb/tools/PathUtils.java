@@ -32,12 +32,6 @@ import java.util.Map;
 
 public class PathUtils {
 
-  //  public static PathSystem pathSystem = null;
-
-  public static void resetPathSystem(PathSystem pathSystem) {
-    pathSystem = null;
-  }
-
   public static PathSystem getPathSystem(MilvusClientV2 client, PathSystem pathSystem) {
     if (!pathSystem.inited()) {
       init(client, pathSystem);
@@ -52,19 +46,38 @@ public class PathUtils {
   //        return dummyPathSystem;
   //    }
 
+  private static void initDatabase(
+      MilvusClientV2 client, String databaseName, PathSystem pathSystem) {
+    for (String collectionName : MilvusClientUtils.listCollections(client, databaseName)) {
+      Map<String, DataType> paths =
+          MilvusClientUtils.getCollectionPaths(client, databaseName, collectionName);
+      paths
+          .keySet()
+          .forEach(
+              path ->
+                  pathSystem.addPath(
+                      path, MilvusClientUtils.isDummy(databaseName), paths.get(path)));
+    }
+  }
+
   private static synchronized void init(MilvusClientV2 client, PathSystem pathSystem) {
-    //    if (pathSystem != null) return;
-    for (String databaseName : MilvusClientUtils.listDatabase(client)) {
-      for (String collectionName : MilvusClientUtils.listCollections(client, databaseName)) {
-        Map<String, DataType> paths =
-            MilvusClientUtils.getCollectionPaths(client, databaseName, collectionName);
-        paths
-            .keySet()
-            .forEach(
-                path ->
-                    pathSystem.addPath(
-                        path, MilvusClientUtils.isDummy(databaseName), paths.get(path)));
+    if (!"".equals(pathSystem.getDatabaseName())) {
+      String databaseName = pathSystem.getDatabaseName();
+      initDatabase(client, databaseName, pathSystem);
+    } else {
+      for (String databaseName : MilvusClientUtils.listDatabase(client)) {
+        if (databaseName.startsWith(Constants.DATABASE_PREFIX)) {
+          continue;
+        }
+        initDatabase(client, databaseName, pathSystem);
       }
+    }
+    pathSystem.setInited(true);
+  }
+
+  public static void initAll(MilvusClientV2 client, PathSystem pathSystem) {
+    for (String databaseName : MilvusClientUtils.listDatabase(client)) {
+      initDatabase(client, databaseName, pathSystem);
     }
     pathSystem.setInited(true);
   }
