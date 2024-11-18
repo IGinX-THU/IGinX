@@ -15,12 +15,12 @@ runs:
         #          run: |
         #              "C:\Program Files\Docker\Docker\DockerCli.exe" -SwitchLinuxEngine
 
-#        - if: runner.os == 'macOS'
-#          name: Set up Docker on macOS
-#          shell: bash
-#          run: |
-#              brew update
-#              brew install docker
+        - if: runner.os == 'macOS'
+          name: Set up Docker on macOS
+          shell: bash
+          run: |
+              brew update
+              brew install docker
 
         - name: Download DM Database Docker image and Run DM Database container
           run: |
