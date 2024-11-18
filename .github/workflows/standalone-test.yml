@@ -27,7 +27,8 @@ on:
                 description: "The database to run the test on"
                 type: string
                 required: false
-                default: '["dm"]'#'["IoTDB12", "InfluxDB", "FileSystem", "PostgreSQL", "Redis", "MongoDB", "MySQL", "dm"]'
+                default: '["dm"]'
+#              '["IoTDB12", "InfluxDB", "FileSystem", "PostgreSQL", "Redis", "MongoDB", "MySQL", "dm"]'
 
 jobs:
     Union-DB-Test:
