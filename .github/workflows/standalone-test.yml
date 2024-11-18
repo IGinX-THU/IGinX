@@ -63,6 +63,9 @@ jobs:
               run: |
                 wget -O JAVA_Mybatis.zip https://github.com/IGinX-THU/IGinX-resources/raw/main/resources/JAVA_Mybatis.zip
                 unzip JAVA_Mybatis.zip -d JAVA_Mybatis
+                echo "Extracted files are in:"
+                pwd
+                ls JAVA_Mybatis
               shell: bash
 
             - name: Install DM JDBC Driver with Maven
