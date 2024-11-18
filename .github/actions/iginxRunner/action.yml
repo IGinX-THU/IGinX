@@ -31,11 +31,6 @@ runs:
               fi
               chmod +x "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx_udf_path.sh"
               "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx_udf_path.sh" ${VERSION}
-              docker ps -a
-              netstat -lnp|grep 1953
-              docker logs milvus19530-standalone
-              docker logs milvus19530-minio
-              docker logs milvus19530-etcd
 
         - if: inputs.if-test-udf=='false' && inputs.if-stop=='false'
           name: Start IGinX
