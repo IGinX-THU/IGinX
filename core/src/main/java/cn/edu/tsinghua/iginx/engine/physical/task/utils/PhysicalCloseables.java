@@ -15,27 +15,28 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
-package cn.edu.tsinghua.iginx.engine.physical.task;
+package cn.edu.tsinghua.iginx.engine.physical.task.utils;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
-import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
-import java.util.Collections;
 
-public class CompletedFoldedPhysicalTask extends UnaryMemoryPhysicalTask {
+public class PhysicalCloseables {
 
-  public CompletedFoldedPhysicalTask(PhysicalTask parentTask, RequestContext context) {
-    super(parentTask, Collections.emptyList(), context);
-  }
-
-  @Override
-  protected BatchStream compute(BatchStream previous) throws PhysicalException {
-    return previous;
-  }
-
-  @Override
-  public String getInfo() {
-    return "CompletedFoldedPhysicalTask";
+  public static void close(Iterable<? extends PhysicalCloseable> closeables)
+      throws PhysicalException {
+    PhysicalException exception = null;
+    for (PhysicalCloseable closeable : closeables) {
+      try {
+        closeable.close();
+      } catch (PhysicalException e) {
+        if (exception == null) {
+          exception = new PhysicalException(e);
+        } else {
+          exception.addSuppressed(e);
+        }
+      }
+    }
+    if (exception != null) {
+      throw exception;
+    }
   }
 }

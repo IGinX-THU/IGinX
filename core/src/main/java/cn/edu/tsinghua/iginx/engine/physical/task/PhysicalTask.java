@@ -17,11 +17,13 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.task;
 
+import cn.edu.tsinghua.iginx.engine.physical.task.utils.PhysicalCloseable;
 import cn.edu.tsinghua.iginx.engine.physical.task.visitor.TaskVisitor;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import java.util.List;
+import java.util.concurrent.Future;
 
-public interface PhysicalTask {
+public interface PhysicalTask<RESULT extends PhysicalCloseable> {
 
   void accept(TaskVisitor visitor);
 
@@ -33,13 +35,19 @@ public interface PhysicalTask {
 
   TaskMetrics getMetrics();
 
-  TaskResult getResult();
+  Class<RESULT> getResultClass();
 
-  void setResult(TaskResult result);
+  default Future<TaskResult<RESULT>> getResult() {
+    return getContext().getTaskResultMap().get(this);
+  }
 
-  PhysicalTask getFollowerTask();
+  default void setResult(TaskResult<?> result) {
+    getContext().getTaskResultMap().put(this, result);
+  }
 
-  void setFollowerTask(PhysicalTask task);
+  PhysicalTask<?> getFollowerTask();
+
+  void setFollowerTask(PhysicalTask<?> task);
 
   String getInfo();
 }

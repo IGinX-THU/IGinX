@@ -74,6 +74,7 @@ public class ResourceManager {
     ResourceSet resourceSet = new ResourceSet(allocator);
     ctx.setAllocator(resourceSet.getAllocator());
     ctx.setConstantPool(resourceSet.getConstantPool());
+    ctx.setTaskResultMap(resourceSet.getTaskResultMap());
     return resourceSet;
   }
 

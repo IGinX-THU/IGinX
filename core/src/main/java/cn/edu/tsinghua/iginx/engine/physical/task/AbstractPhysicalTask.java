@@ -17,21 +17,17 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.task;
 
-import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.util.Batch;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.StopWatch;
+import cn.edu.tsinghua.iginx.engine.physical.task.utils.PhysicalCloseable;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import java.util.List;
-import java.util.Objects;
-import java.util.concurrent.CountDownLatch;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public abstract class AbstractPhysicalTask implements PhysicalTask {
+public abstract class AbstractPhysicalTask<RESULT extends PhysicalCloseable>
+    implements PhysicalTask<RESULT> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(AbstractPhysicalTask.class);
 
@@ -41,9 +37,7 @@ public abstract class AbstractPhysicalTask implements PhysicalTask {
   private final TaskType type;
 
   private final List<Operator> operators;
-  private final CountDownLatch resultLatch = new CountDownLatch(1);
-  private PhysicalTask followerTask;
-  private TaskResult result;
+  private PhysicalTask<?> followerTask;
 
   private final TaskMetrics metrics = new TaskMetrics();
 
@@ -69,7 +63,7 @@ public abstract class AbstractPhysicalTask implements PhysicalTask {
   }
 
   @Override
-  public PhysicalTask getFollowerTask() {
+  public PhysicalTask<?> getFollowerTask() {
     return followerTask;
   }
 
@@ -83,79 +77,11 @@ public abstract class AbstractPhysicalTask implements PhysicalTask {
   }
 
   @Override
-  public TaskResult getResult() {
-    try {
-      this.resultLatch.await();
-    } catch (InterruptedException e) {
-      LOGGER.error("unexpected interrupted when get result: ", e);
-    }
-    return result;
-  }
-
-  @Override
-  public void setResult(TaskResult result) {
-    Objects.requireNonNull(result);
-    this.result = result;
-    this.resultLatch.countDown();
-  }
-
-  @Override
   public String getInfo() {
     List<String> info =
         operators.stream()
             .map(op -> op.getType() + ":{" + op.getInfo() + "}")
             .collect(Collectors.toList());
     return String.join(",", info);
-  }
-
-  @Deprecated
-  public void setResult(TaskExecuteResult result) {
-    if (result == null) {
-      setResult(new TaskResult());
-    } else if (result.getException() != null) {
-      setResult(new TaskResult(result.getException()));
-    } else {
-      RowStream rowStream = result.getRowStream();
-      if (rowStream != null) {
-        BatchStream batchStream =
-            BatchStreams.wrap(
-                executorContext.getAllocator(), rowStream, executorContext.getBatchRowCount());
-        setResult(new TaskResult(new MetricStream(batchStream)));
-      } else {
-        setResult(new TaskResult());
-      }
-    }
-  }
-
-  private class MetricStream implements BatchStream {
-
-    private final BatchStream source;
-
-    public MetricStream(BatchStream source) {
-      this.source = Objects.requireNonNull(source);
-    }
-
-    @Override
-    public BatchSchema getSchema() throws PhysicalException {
-      try (StopWatch watch = new StopWatch(getMetrics()::accumulateCpuTime)) {
-        return source.getSchema();
-      }
-    }
-
-    @Override
-    public Batch getNext() throws PhysicalException {
-      try (StopWatch watch = new StopWatch(getMetrics()::accumulateCpuTime)) {
-        Batch batch = source.getNext();
-        getMetrics().accumulateAffectRows(batch.getRowCount());
-        return batch;
-      }
-    }
-
-    @Override
-    public void close() throws PhysicalException {
-      try (StopWatch watch = new StopWatch(getMetrics()::accumulateCpuTime)) {
-        source.close();
-      }
-    }
   }
 }

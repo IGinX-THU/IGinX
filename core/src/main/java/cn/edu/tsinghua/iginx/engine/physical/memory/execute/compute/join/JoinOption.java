@@ -25,6 +25,7 @@ public class JoinOption {
   public static final JoinOption LEFT = new JoinOption(true, false);
   public static final JoinOption RIGHT = new JoinOption(false, true);
   public static final JoinOption FULL = new JoinOption(true, true);
+  public static final JoinOption SINGLE = new JoinOption(false, false, false, false, null, false);
 
   private final boolean outputBuildSideUnmatched;
   private final boolean outputProbeSideUnmatched;

@@ -15,22 +15,28 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.optimizer;
+package cn.edu.tsinghua.iginx.engine.physical.task.memory;
 
-import cn.edu.tsinghua.iginx.engine.physical.task.PhysicalTask;
+import cn.edu.tsinghua.iginx.engine.physical.task.AbstractPhysicalTask;
+import cn.edu.tsinghua.iginx.engine.physical.task.TaskResult;
+import cn.edu.tsinghua.iginx.engine.physical.task.TaskType;
 import cn.edu.tsinghua.iginx.engine.physical.task.utils.PhysicalCloseable;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
-import cn.edu.tsinghua.iginx.engine.shared.constraint.ConstraintManager;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
-public interface PhysicalOptimizer {
+public abstract class MemoryPhysicalTask<RESULT extends PhysicalCloseable>
+    extends AbstractPhysicalTask<RESULT> {
 
-  PhysicalTask<?> optimize(Operator root, RequestContext context);
+  protected AtomicInteger parentReadyCount;
 
-  <RESULT extends PhysicalCloseable> PhysicalTask<RESULT> convert(
-      PhysicalTask<?> task, RequestContext context, Class<RESULT> clazz);
+  public MemoryPhysicalTask(TaskType type, List<Operator> operators, RequestContext context) {
+    super(type, operators, context);
+    parentReadyCount = new AtomicInteger(0);
+  }
 
-  ConstraintManager getConstraintManager();
+  public abstract TaskResult<RESULT> execute(); // 在 parent 都完成执行后，可以执行该任务
 
-  ReplicaDispatcher getReplicaDispatcher();
+  public abstract boolean notifyParentReady(); // 通知当前任务的某个父节点已经完成，该方法会返回 boolean 值，表示当前的任务是否可以执行
 }

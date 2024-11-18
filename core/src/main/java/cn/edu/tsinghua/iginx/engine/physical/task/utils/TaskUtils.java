@@ -18,15 +18,15 @@
 
 package cn.edu.tsinghua.iginx.engine.physical.task.utils;
 
-import cn.edu.tsinghua.iginx.engine.physical.task.BinaryMemoryPhysicalTask;
-import cn.edu.tsinghua.iginx.engine.physical.task.MultipleMemoryPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.PhysicalTask;
-import cn.edu.tsinghua.iginx.engine.physical.task.UnaryMemoryPhysicalTask;
+import cn.edu.tsinghua.iginx.engine.physical.task.memory.BinaryMemoryPhysicalTask;
+import cn.edu.tsinghua.iginx.engine.physical.task.memory.MultipleMemoryPhysicalTask;
+import cn.edu.tsinghua.iginx.engine.physical.task.memory.UnaryMemoryPhysicalTask;
 import java.util.List;
 
 public class TaskUtils {
 
-  public static void getBottomTasks(List<PhysicalTask> tasks, PhysicalTask root) {
+  public static void getBottomTasks(List<PhysicalTask<?>> tasks, PhysicalTask<?> root) {
     if (root == null) {
       return;
     }
@@ -36,17 +36,19 @@ public class TaskUtils {
         tasks.add(root);
         break;
       case BinaryMemory:
-        BinaryMemoryPhysicalTask binaryMemoryPhysicalTask = (BinaryMemoryPhysicalTask) root;
+        BinaryMemoryPhysicalTask<?, ?, ?> binaryMemoryPhysicalTask =
+            (BinaryMemoryPhysicalTask<?, ?, ?>) root;
         getBottomTasks(tasks, binaryMemoryPhysicalTask.getParentTaskA());
         getBottomTasks(tasks, binaryMemoryPhysicalTask.getParentTaskB());
         break;
       case UnaryMemory:
-        UnaryMemoryPhysicalTask unaryMemoryPhysicalTask = (UnaryMemoryPhysicalTask) root;
+        UnaryMemoryPhysicalTask<?, ?> unaryMemoryPhysicalTask =
+            (UnaryMemoryPhysicalTask<?, ?>) root;
         getBottomTasks(tasks, unaryMemoryPhysicalTask.getParentTask());
         break;
       case MultipleMemory:
         MultipleMemoryPhysicalTask multipleMemoryPhysicalTask = (MultipleMemoryPhysicalTask) root;
-        for (PhysicalTask parentTask : multipleMemoryPhysicalTask.getParentTasks()) {
+        for (PhysicalTask<?> parentTask : multipleMemoryPhysicalTask.getParentTasks()) {
           getBottomTasks(tasks, parentTask);
         }
         break;

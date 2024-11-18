@@ -18,6 +18,7 @@
 package cn.edu.tsinghua.iginx.resource;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ConstantPool;
+import cn.edu.tsinghua.iginx.engine.physical.task.utils.TaskResultMap;
 import javax.annotation.WillCloseWhenClosed;
 import org.apache.arrow.memory.BufferAllocator;
 
@@ -25,10 +26,12 @@ public class ResourceSet implements AutoCloseable {
 
   private final BufferAllocator allocator;
   private final ConstantPool constantPool;
+  private final TaskResultMap taskResultMap;
 
   public ResourceSet(@WillCloseWhenClosed BufferAllocator allocator) {
     this.allocator = allocator;
     this.constantPool = new ConstantPool(allocator);
+    this.taskResultMap = new TaskResultMap();
   }
 
   @Override
@@ -43,5 +46,9 @@ public class ResourceSet implements AutoCloseable {
 
   public ConstantPool getConstantPool() {
     return constantPool;
+  }
+
+  public TaskResultMap getTaskResultMap() {
+    return taskResultMap;
   }
 }

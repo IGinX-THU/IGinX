@@ -16,50 +16,60 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cn.edu.tsinghua.iginx.engine.physical.task;
+package cn.edu.tsinghua.iginx.engine.physical.task.memory;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
+import cn.edu.tsinghua.iginx.engine.physical.task.PhysicalTask;
+import cn.edu.tsinghua.iginx.engine.physical.task.TaskResult;
+import cn.edu.tsinghua.iginx.engine.physical.task.TaskType;
+import cn.edu.tsinghua.iginx.engine.physical.task.utils.PhysicalCloseable;
 import cn.edu.tsinghua.iginx.engine.physical.task.visitor.TaskVisitor;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import javax.annotation.WillClose;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public abstract class UnaryMemoryPhysicalTask extends MemoryPhysicalTask {
+public abstract class UnaryMemoryPhysicalTask<
+        RESULT extends PhysicalCloseable, INPUT extends PhysicalCloseable>
+    extends MemoryPhysicalTask<RESULT> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(UnaryMemoryPhysicalTask.class);
 
-  private PhysicalTask parentTask;
+  private PhysicalTask<INPUT> parentTask;
 
   public UnaryMemoryPhysicalTask(
-      PhysicalTask parentTask, List<Operator> operators, RequestContext context) {
+      PhysicalTask<INPUT> parentTask, List<Operator> operators, RequestContext context) {
     super(TaskType.UnaryMemory, operators, context);
     this.parentTask = parentTask;
   }
 
-  public void setParentTask(PhysicalTask parentTask) {
+  public void setParentTask(PhysicalTask<INPUT> parentTask) {
     this.parentTask = parentTask;
   }
 
-  public PhysicalTask getParentTask() {
+  public PhysicalTask<INPUT> getParentTask() {
     return parentTask;
   }
 
   @Override
-  public TaskResult execute() {
-    try (TaskResult parentResult = parentTask.getResult()) {
-      BatchStream stream = parentResult.unwrap();
-      BatchStream result = compute(stream);
-      return new TaskResult(result);
+  public TaskResult<RESULT> execute() {
+    Future<TaskResult<INPUT>> future = parentTask.getResult();
+    try (TaskResult<INPUT> parentResult = future.get()) {
+      INPUT stream = parentResult.unwrap();
+      RESULT result = compute(stream);
+      return new TaskResult<>(result);
     } catch (PhysicalException e) {
-      return new TaskResult(e);
+      return new TaskResult<>(e);
+    } catch (InterruptedException | ExecutionException e) {
+      return new TaskResult<>(new PhysicalException(e));
     }
   }
 
-  protected abstract BatchStream compute(@WillClose BatchStream previous) throws PhysicalException;
+  protected abstract RESULT compute(@WillClose INPUT previous) throws PhysicalException;
 
   @Override
   public boolean notifyParentReady() {
@@ -71,7 +81,7 @@ public abstract class UnaryMemoryPhysicalTask extends MemoryPhysicalTask {
     visitor.enter();
     visitor.visit(this);
 
-    PhysicalTask task = getParentTask();
+    PhysicalTask<?> task = getParentTask();
     if (task != null) {
       task.accept(visitor);
     }

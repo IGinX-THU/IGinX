@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.task;
+package cn.edu.tsinghua.iginx.engine.physical.task.memory;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
@@ -23,27 +23,34 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.binary.Bina
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.binary.stateful.StatefulBinaryExecutor;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.util.Batch;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.StopWatch;
+import cn.edu.tsinghua.iginx.engine.physical.task.PhysicalTask;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
-import java.util.List;
+import cn.edu.tsinghua.iginx.engine.shared.operator.BinaryOperator;
+import java.util.Collections;
 
-public class BinarySinkMemoryPhysicalTask extends BinaryMemoryPhysicalTask {
+public class BinarySinkMemoryPhysicalTask
+    extends BinaryMemoryPhysicalTask<BatchStream, BatchStream, BatchStream> {
 
   private final BinaryExecutorFactory<StatefulBinaryExecutor> executorFactory;
 
   public BinarySinkMemoryPhysicalTask(
-      PhysicalTask parentTaskA,
-      PhysicalTask parentTaskB,
-      List<Operator> operators,
+      PhysicalTask<BatchStream> parentTaskA,
+      PhysicalTask<BatchStream> parentTaskB,
+      BinaryOperator operator,
       RequestContext context,
       BinaryExecutorFactory<StatefulBinaryExecutor> executorFactory) {
-    super(operators, parentTaskA, parentTaskB, context);
+    super(Collections.singletonList(operator), parentTaskA, parentTaskB, context);
     this.executorFactory = executorFactory;
   }
 
   private String info;
+
+  @Override
+  public Class<BatchStream> getResultClass() {
+    return BatchStream.class;
+  }
 
   @Override
   public String getInfo() {

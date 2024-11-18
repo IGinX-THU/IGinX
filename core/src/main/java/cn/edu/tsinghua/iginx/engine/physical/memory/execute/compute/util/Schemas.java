@@ -193,4 +193,9 @@ public class Schemas {
     Dictionary dictionary = dictionaryProvider.lookup(field.getDictionary().getId());
     return Schemas.fieldWithName(dictionary.getVector().getField(), field.getName());
   }
+
+  public static cn.edu.tsinghua.iginx.engine.shared.data.read.Field toIginxField(Field field) {
+    return new cn.edu.tsinghua.iginx.engine.shared.data.read.Field(
+        field.getName(), toDataType(field.getFieldType().getType()), field.getMetadata());
+  }
 }
