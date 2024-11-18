@@ -9,11 +9,11 @@ inputs:
 runs:
     using: "composite"
     steps:
-#        - if: runner.os == 'Windows'
-#          name: Set up Docker on Windows
-#          shell: cmd
-#          run: |
-#              "C:\Program Files\Docker\Docker\DockerCli.exe" -SwitchLinuxEngine
+        #        - if: runner.os == 'Windows'
+        #          name: Set up Docker on Windows
+        #          shell: cmd
+        #          run: |
+        #              "C:\Program Files\Docker\Docker\DockerCli.exe" -SwitchLinuxEngine
 
         - if: runner.os == 'macOS'
           name: Set up Docker on macOS

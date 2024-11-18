@@ -61,21 +61,21 @@ jobs:
 
             - name: Download DM JDBC Driver from IGinX resources
               run: |
-                wget -O JAVA_Mybatis.zip https://github.com/IGinX-THU/IGinX-resources/raw/main/resources/JAVA_Mybatis.zip
-                unzip JAVA_Mybatis.zip -d JAVA_Mybatis
-                echo "Extracted files are in:"
-                pwd
-                ls JAVA_Mybatis
+                  wget -O JAVA_Mybatis.zip https://github.com/IGinX-THU/IGinX-resources/raw/main/resources/JAVA_Mybatis.zip
+                  unzip JAVA_Mybatis.zip -d JAVA_Mybatis
+                  echo "Extracted files are in:"
+                  pwd
+                  ls JAVA_Mybatis
               shell: bash
 
             - name: Install DM JDBC Driver with Maven
               run: |
-                mvn install:install-file \
-                -DgroupId=com.dm \
-                -DartifactId=DmJdbcDriver \
-                -Dversion=1.8.0 \
-                -Dpackaging=jar \
-                -Dfile=JAVA_Mybatis/DmJdbcDriver18.jar
+                  mvn install:install-file \
+                  -DgroupId=com.dm \
+                  -DartifactId=DmJdbcDriver \
+                  -Dversion=1.8.0 \
+                  -Dpackaging=jar \
+                  -Dfile=JAVA_Mybatis/DmJdbcDriver18.jar
               shell: bash
 
             - name: Install IGinX with Maven
