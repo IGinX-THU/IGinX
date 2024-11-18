@@ -58,6 +58,7 @@ import cn.edu.tsinghua.iginx.vectordb.tools.*;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import io.milvus.pool.MilvusClientV2Pool;
+import io.milvus.v2.client.ConnectConfig;
 import io.milvus.v2.client.MilvusClientV2;
 import io.milvus.v2.service.collection.response.ListCollectionsResp;
 import io.milvus.v2.service.database.request.CreateDatabaseReq;
@@ -121,7 +122,7 @@ public class MilvusStorage implements IStorage {
             MilvusClientPool.getPoolConfig(extraParams));
     MilvusClientV2 client = null;
     try {
-      for (int i = 0; i < 30; i++) {
+      for (int i = 0; i < 5; i++) {
         client = milvusClientV2Pool.getClient(DEFAULT_KEY);
         if (client != null) {
           break;
@@ -412,6 +413,10 @@ public class MilvusStorage implements IStorage {
   @Override
   public boolean testConnection(StorageEngineMeta meta) {
     MilvusClientV2 client = this.milvusClientV2Pool.getClient(DEFAULT_KEY);
+
+    ConnectConfig config =
+     ConnectConfig.builder().uri("grpc://127.0.0.1:19530").build();
+          client = new MilvusClientV2(config);
     return client != null;
   }
 
