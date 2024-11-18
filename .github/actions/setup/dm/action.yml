@@ -22,22 +22,20 @@ runs:
               brew update
               brew install docker
 
-        - name: Pull DM Database Docker image
+        - name: Download DM Database Docker image and Run DM Database container
           run: |
-              docker pull sizx/dm8
-          shell: bash
-
-        - name: Run DM Database container
-          run: |
-              docker run -d -p 5236:5236 --name dm8 \
-              --restart=always --privileged=true \
+              wget https://download.dameng.com/eco/dm8/dm8_20241022_x86_rh6_64_single.tar
+              docker load -i dm8_20241022_x86_rh6_64_single.tar
+              docker run -d -p 5236:5236 --restart=always --name=dm8_test \
+              --privileged=true \
+              -e LD_LIBRARY_PATH=/opt/dmdbms/bin \
               -e PAGE_SIZE=16 \
-              -e CHARSET=1 \
-              -e LENGTH_IN_CHAR=1 \
-              -e CASE_SENSITIVE=0 \
-              -e SYSDBA_PWD='123abc!@#' \
-              -v /opt/dm8:/home/dmdba/data \
-              sizx/dm8
+              -e EXTENT_SIZE=32 \
+              -e LOG_SIZE=1024 \
+              -e UNICODE_FLAG=1  \
+              -e INSTANCE_NAME=dm8_test \
+              -v /opt/data:/opt/dmdbms/data \
+              dm8_single:dm8_20241022_rev244896_x86_rh6_64
           shell: bash
 
         - name: Verify DM Database is running

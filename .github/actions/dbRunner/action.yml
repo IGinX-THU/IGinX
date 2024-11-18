@@ -199,4 +199,4 @@ runs:
           uses: ./.github/actions/edit
           with:
               paths: conf/config.properties
-              statements: s|^#storageEngineList=127.0.0.1#5236#relational#engine=dm#username=SYSDBA#password=SYSDBA#has_data=false|storageEngineList=127.0.0.1#5236#relational#engine=dm#username=SYSDBA#password=123abc!@%23#has_data=false|g
+              statements: s|^#storageEngineList=127.0.0.1#5236#relational#engine=dm#username=SYSDBA#password=SYSDBA#has_data=false|storageEngineList=127.0.0.1#5236#relational#engine=dm#username=SYSDBA#password=SYSDBA001%23#has_data=false|g
