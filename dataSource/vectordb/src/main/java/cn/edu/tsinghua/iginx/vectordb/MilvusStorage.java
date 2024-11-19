@@ -415,6 +415,7 @@ public class MilvusStorage implements IStorage {
         }
       } else {
         MilvusClientUtils.useDatabase(client, databaseName);
+        LOGGER.info("delete by range : {} {}", paths, delete.getKeyRanges());
         Map<String, Set<String>> collectionToFields =
             MilvusClientUtils.determinePaths(client, paths, tagFilter, pathSystem);
 
@@ -423,6 +424,7 @@ public class MilvusStorage implements IStorage {
           Set<String> fields = entry.getValue();
 
           for (KeyRange keyRange : delete.getKeyRanges()) {
+            LOGGER.info("delete by range : {} {} {}", databaseName, collectionName, keyRange);
             deleteFieldsByRange(client, collectionName, fields, keyRange, pathSystem);
           }
         }
@@ -474,7 +476,7 @@ public class MilvusStorage implements IStorage {
       throws PhysicalException {
     try (MilvusClient milvusClient = new MilvusClient(meta)) {
       MilvusClientV2 client = milvusClient.getClient();
-      if (patterns == null) {
+      if (patterns == null || patterns.size() == 0) {
         patterns = new HashSet<>();
       }
       if (patterns.size() == 0) {

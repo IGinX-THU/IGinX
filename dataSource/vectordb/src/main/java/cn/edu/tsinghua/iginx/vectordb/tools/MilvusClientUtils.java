@@ -151,6 +151,7 @@ public class MilvusClientUtils {
   }
 
   public static void createDatabase(MilvusClientV2 client, String databaseName) {
+    LOGGER.info("create database : {}", databaseName);
     client.createDatabase(CreateDatabaseReq.builder().databaseName(databaseName).build());
   }
 
@@ -202,62 +203,11 @@ public class MilvusClientUtils {
     return fields;
   }
 
-  //    /**
-  //     *
-  //     * @param client
-  //     * @param databaseName
-  //     * @param collectionName
-  //     * @param fields  with tags
-  //     * @param fieldTypes
-  //     * @param idType
-  //     * @throws InterruptedException
-  //     */
-  //    public static void createCollection(MilvusClientV2 client, String databaseName, String
-  // collectionName, Set<String> fields, Map<String, DataType> fieldTypes,DataType idType) throws
-  // InterruptedException {
-  //        client.useDatabase(databaseName);
-  //        CreateCollectionReq.CreateCollectionReqBuilder builder = CreateCollectionReq.builder()
-  //                .idType(DataTransformer.toMilvusDataType(idType))
-  //                .collectionName(NameUtils.escape(collectionName))
-  //                .consistencyLevel(ConsistencyLevel.BOUNDED)
-  //                .dimension(DEFAULT_DIMENSION);
-  //
-  //        CreateCollectionReq.CollectionSchema schema =
-  // CreateCollectionReq.CollectionSchema.builder()
-  //                .enableDynamicField(true).build();
-  //        for (String field: fields){
-  //
-  // schema.addField(AddFieldReq.builder().fieldName(NameUtils.escape(field)).dataType(DataTransformer.toMilvusDataType(fieldTypes.get(field))).build());
-  //        }
-  //
-  // schema.addField(AddFieldReq.builder().fieldName(MILVUS_PRIMARY_FIELD_NAME).isPrimaryKey(true).dataType(io.milvus.v2.common.DataType.Int64).build());
-  //
-  // schema.addField(AddFieldReq.builder().fieldName(MILVUS_VECTOR_FIELD_NAME).dataType(io.milvus.v2.common.DataType.FloatVector).dimension(DEFAULT_DIMENSION).build());
-  //
-  //        List<IndexParam> indexes = new ArrayList<>();
-  //        Map<String,Object> extraParams = new HashMap<>();
-  //        extraParams.put("nlist",128);
-  //        indexes.add(IndexParam.builder()
-  //                .fieldName(MILVUS_VECTOR_FIELD_NAME)
-  //                .indexName(MILVUS_VECTOR_INDEX_NAME)
-  //                .indexType(IndexParam.IndexType.IVF_FLAT)
-  //                .metricType(IndexParam.MetricType.COSINE)
-  //                .extraParams(extraParams)
-  //                .build());
-  //
-  //
-  // client.createCollection(builder.collectionSchema(schema).primaryFieldName(MILVUS_PRIMARY_FIELD_NAME)
-  //                .vectorFieldName(MILVUS_VECTOR_FIELD_NAME).indexParams(indexes).build());
-  //        for (String field: fields){
-  //            PathUtils.getPathSystem(client).addPath(PathUtils.getPathUnescaped(databaseName,
-  // collectionName, field),false,fieldTypes.get(field));
-  //        }
-  //    }
-
   public static void createCollection(
       MilvusClientV2 client, String databaseName, String collectionName, DataType idType)
       throws InterruptedException {
     useDatabase(client, databaseName);
+    LOGGER.info("create collection : {} {}", databaseName, collectionName);
     CreateCollectionReq.CreateCollectionReqBuilder builder =
         CreateCollectionReq.builder()
             .idType(DataTransformer.toMilvusDataType(idType))
@@ -622,10 +572,17 @@ public class MilvusClientUtils {
       Set<String> fields,
       KeyRange keyRange,
       PathSystem pathSystem) {
+    if (!client.hasCollection(
+        HasCollectionReq.builder().collectionName(NameUtils.escape(collectionName)).build())) {
+      return 0;
+    }
     int deleteCount = 0;
 
     List<String> paths =
         PathUtils.getPathSystem(client, pathSystem).findPaths(collectionName, null);
+    if (paths == null || paths.size() < 1) {
+      return 0;
+    }
 
     Set<String> fieldList = new HashSet<>();
     for (String path : paths) {
@@ -643,7 +600,7 @@ public class MilvusClientUtils {
                         + MILVUS_PRIMARY_FIELD_NAME
                         + " <= "
                         + keyRange.getActualEndKey())
-                .consistencyLevel(ConsistencyLevel.BOUNDED)
+                .consistencyLevel(ConsistencyLevel.STRONG)
                 .outputFields(new ArrayList<>(fieldList))
                 .batchSize(BATCH_SIZE)
                 .build());
@@ -690,6 +647,13 @@ public class MilvusClientUtils {
     }
 
     useDatabase(client, databaseName);
+
+    if (!client.hasCollection(
+        HasCollectionReq.builder().collectionName(collectionNameEscaped).build())) {
+      LOGGER.error("collection not exists {} : {}", databaseName, collectionName);
+      return new ArrayList<>();
+    }
+
     try {
       if (!client.getLoadState(
           GetLoadStateReq.builder().collectionName(collectionNameEscaped).build())) {
