@@ -114,7 +114,7 @@ public class MilvusStorage implements IStorage {
       throws InterruptedException {
     MilvusClientUtils.useDatabase(client, storageUnit);
     Map<String, Set<String>> collectionToFields = new HashMap<>();
-    Map<String, DataType> fieldToType = new HashMap<>();
+    Map<String, Map<String, DataType>> fieldToType = new HashMap<>();
     Set<String> collections = new HashSet<>();
     collections.addAll(MilvusClientUtils.listCollections(client, storageUnit));
     Map<String, Integer> collectionMap = new HashMap<>();
@@ -134,7 +134,10 @@ public class MilvusStorage implements IStorage {
       collectionToFields
           .computeIfAbsent(collectionAndField.getK(), k -> new HashSet<>())
           .add(collectionAndField.getV());
-      fieldToType.put(collectionAndField.getV(), dataTypeList.get(i));
+
+      fieldToType
+          .computeIfAbsent(collectionAndField.getK(), s -> new HashMap<>())
+          .put(collectionAndField.getV(), dataTypeList.get(i));
     }
 
     for (String collection : collectionToFields.keySet()) {
@@ -163,7 +166,7 @@ public class MilvusStorage implements IStorage {
               storageUnit,
               collection,
               collectionToFields.get(collection),
-              fieldToType,
+              fieldToType.get(collection),
               pathSystem);
     }
   }

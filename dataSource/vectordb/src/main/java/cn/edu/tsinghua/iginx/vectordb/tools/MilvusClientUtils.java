@@ -433,7 +433,11 @@ public class MilvusClientUtils {
     if (obj != null && dataType != null) {
       switch (dataType) {
         case BINARY:
-          row.addProperty(columnName, new String((byte[]) obj, StandardCharsets.UTF_8));
+          if (obj instanceof byte[]) {
+            row.addProperty(columnName, new String((byte[]) obj, StandardCharsets.UTF_8));
+          } else {
+            row.addProperty(columnName, (String) obj);
+          }
           added = true;
           break;
         case BOOLEAN:
@@ -680,10 +684,8 @@ public class MilvusClientUtils {
     String collectionNameEscaped;
 
     if (isDummy(databaseName) && !isDummyEscape) {
-      databaseNameEscaped = databaseName;
       collectionNameEscaped = collectionName;
     } else {
-      databaseNameEscaped = NameUtils.escape(databaseName);
       collectionNameEscaped = NameUtils.escape(collectionName);
     }
 
@@ -695,7 +697,7 @@ public class MilvusClientUtils {
             LoadCollectionReq.builder().collectionName(collectionNameEscaped).build());
       }
     } catch (Exception e) {
-      LOGGER.error("load collection error", e);
+      LOGGER.error("load collection error {} : {}", databaseName, e.getMessage());
       return new ArrayList<>();
     }
 
