@@ -412,15 +412,16 @@ public class MilvusStorage implements IStorage {
 
   @Override
   public boolean testConnection(StorageEngineMeta meta) {
-    //    MilvusClientV2 client = this.milvusClientV2Pool.getClient(DEFAULT_KEY);
-    try {
-      ConnectConfig config = ConnectConfig.builder().uri("grpc://127.0.0.1:19530").build();
-      MilvusClientV2 client = new MilvusClientV2(config);
-      return client != null;
-    } catch (Exception e) {
-      e.printStackTrace();
-    }
-    return false;
+    MilvusClientV2 client = this.milvusClientV2Pool.getClient(DEFAULT_KEY);
+    return client != null;
+//    try {
+//      ConnectConfig config = ConnectConfig.builder().uri("grpc://127.0.0.1:19530").build();
+//      MilvusClientV2 client = new MilvusClientV2(config);
+//      return client != null;
+//    } catch (Exception e) {
+//      e.printStackTrace();
+//    }
+//    return false;
   }
 
   @Override
