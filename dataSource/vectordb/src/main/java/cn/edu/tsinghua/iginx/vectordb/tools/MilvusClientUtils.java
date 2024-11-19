@@ -77,7 +77,7 @@ public class MilvusClientUtils {
 
   public static List<String> listCollections(MilvusClientV2 client, String databaseName) {
     try {
-      client.useDatabase(databaseName);
+      useDatabase(client, databaseName);
     } catch (InterruptedException e) {
       return new ArrayList<>();
     }
@@ -152,6 +152,22 @@ public class MilvusClientUtils {
 
   public static void createDatabase(MilvusClientV2 client, String databaseName) {
     client.createDatabase(CreateDatabaseReq.builder().databaseName(databaseName).build());
+  }
+
+  public static void useDatabase(MilvusClientV2 client, String databaseName)
+      throws InterruptedException {
+    if (isDummy(databaseName) && !isDummyEscape) {
+    } else {
+      databaseName = NameUtils.escape(databaseName);
+    }
+
+    try {
+      client.useDatabase(databaseName);
+    } catch (InterruptedException e) {
+      throw e;
+    } catch (IllegalArgumentException e) {
+      createDatabase(client, databaseName);
+    }
   }
 
   public static Map<String, String> getCollectionFields(
@@ -241,12 +257,12 @@ public class MilvusClientUtils {
   public static void createCollection(
       MilvusClientV2 client, String databaseName, String collectionName, DataType idType)
       throws InterruptedException {
-    client.useDatabase(databaseName);
+    useDatabase(client, databaseName);
     CreateCollectionReq.CreateCollectionReqBuilder builder =
         CreateCollectionReq.builder()
             .idType(DataTransformer.toMilvusDataType(idType))
             .collectionName(NameUtils.escape(collectionName))
-            .consistencyLevel(ConsistencyLevel.BOUNDED)
+            .consistencyLevel(ConsistencyLevel.STRONG)
             .dimension(DEFAULT_DIMENSION);
 
     CreateCollectionReq.CollectionSchema schema =
@@ -306,11 +322,24 @@ public class MilvusClientUtils {
       Set<String> fieldsToAdd,
       Map<String, DataType> fieldTypes,
       PathSystem pathSystem) {
+    LOGGER.info(
+        "add collection fields ,database : {} , collection : {}, client: {}",
+        databaseName,
+        collectionName,
+        client);
     DescribeCollectionResp resp =
         client.describeCollection(
             DescribeCollectionReq.builder()
                 .collectionName(NameUtils.escape(collectionName))
                 .build());
+    LOGGER.info("describe collection schema: {}", resp);
+    LOGGER.info(
+        "client : {} ,database : {} , collection : {}, {}:{}",
+        client,
+        databaseName,
+        collectionName,
+        resp.getDatabaseName(),
+        resp.getCollectionSchema());
     Map<String, String> fields = new HashMap<>();
     Map<String, String> fieldsDeleted = new HashMap<>();
     resp.getCollectionSchema()
@@ -385,6 +414,12 @@ public class MilvusClientUtils {
       }
     }
     if (added) {
+      LOGGER.info(
+          "add collection fields ,database : {} , collection : {}, client : {}",
+          databaseName,
+          collectionName,
+          client);
+      LOGGER.info(alterCollectionReqBuilder.toString());
       client.alterCollection(alterCollectionReqBuilder.build());
     }
 
@@ -465,7 +500,8 @@ public class MilvusClientUtils {
           PathUtils.getPathSystem(client, pathSystem).getColumn(path).getDataType());
     }
 
-    client.useDatabase(NameUtils.escape(databaseName));
+    useDatabase(client, databaseName);
+
     GetReq getReq =
         GetReq.builder()
             .collectionName(NameUtils.escape(collectionName))
@@ -501,8 +537,12 @@ public class MilvusClientUtils {
 
   public static void dropDatabase(MilvusClientV2 client, String databaseName) {
     try {
-      client.useDatabase(databaseName);
+      useDatabase(client, databaseName);
     } catch (InterruptedException e) {
+      return;
+    } catch (IllegalArgumentException e) {
+      LOGGER.info("Database " + databaseName + " does not exist.");
+      return;
     }
     List<String> collections = client.listCollections().getCollectionNames();
     for (String collectionName : collections) {
@@ -647,7 +687,7 @@ public class MilvusClientUtils {
       collectionNameEscaped = NameUtils.escape(collectionName);
     }
 
-    client.useDatabase(databaseNameEscaped);
+    useDatabase(client, databaseName);
     try {
       if (!client.getLoadState(
           GetLoadStateReq.builder().collectionName(collectionNameEscaped).build())) {

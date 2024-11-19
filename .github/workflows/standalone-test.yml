@@ -95,7 +95,6 @@ jobs:
                     "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_py_register_macos.sh" ${VERSION}
                   fi
 
-
             - name: set client test context
               uses: ./.github/actions/context
               with:

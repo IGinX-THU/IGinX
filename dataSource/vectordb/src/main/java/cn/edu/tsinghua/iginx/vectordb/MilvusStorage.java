@@ -20,11 +20,9 @@
 package cn.edu.tsinghua.iginx.vectordb;
 
 import static cn.edu.tsinghua.iginx.vectordb.tools.Constants.*;
-import static cn.edu.tsinghua.iginx.vectordb.tools.MilvusClientPool.createPool;
 import static cn.edu.tsinghua.iginx.vectordb.tools.MilvusClientUtils.*;
 import static cn.edu.tsinghua.iginx.vectordb.tools.NameUtils.getPathAndVersion;
 import static cn.edu.tsinghua.iginx.vectordb.tools.TagKVUtils.splitFullName;
-import static cn.edu.tsinghua.iginx.vectordb.tools.TagKVUtils.toFullName;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
@@ -35,7 +33,6 @@ import cn.edu.tsinghua.iginx.engine.physical.storage.domain.DataArea;
 import cn.edu.tsinghua.iginx.engine.physical.storage.utils.TagKVUtils;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
-import cn.edu.tsinghua.iginx.engine.shared.data.write.BitmapView;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.RowDataView;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Delete;
@@ -57,23 +54,17 @@ import cn.edu.tsinghua.iginx.vectordb.support.impl.MilvusPathSystem;
 import cn.edu.tsinghua.iginx.vectordb.tools.*;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
-import io.milvus.pool.MilvusClientV2Pool;
 import io.milvus.v2.client.ConnectConfig;
 import io.milvus.v2.client.MilvusClientV2;
-import io.milvus.v2.service.collection.response.ListCollectionsResp;
-import io.milvus.v2.service.database.request.CreateDatabaseReq;
-import io.milvus.v2.service.vector.request.InsertReq;
-import io.milvus.v2.service.vector.response.InsertResp;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
-import java.util.regex.Pattern;
+import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class MilvusStorage implements IStorage {
 
   /** Milvus 客户端池，用于管理与 Milvus 服务的连接。 */
-  private final MilvusClientV2Pool milvusClientV2Pool;
+  //  private final MilvusClientV2Pool milvusClientV2Pool;
 
   private final StorageEngineMeta meta;
 
@@ -83,7 +74,7 @@ public class MilvusStorage implements IStorage {
 
   public static final int BATCH_SIZE = 10000;
 
-  Map<String, PathSystem> pathSystemMap = new HashMap<>();
+  Map<String, PathSystem> pathSystemMap = new ConcurrentHashMap<>();
 
   /**
    * 获取存储引擎的连接 URL。
@@ -112,72 +103,7 @@ public class MilvusStorage implements IStorage {
       throw new StorageInitializationException("unexpected database: " + meta.getStorageEngine());
     }
     this.meta = meta;
-    Map<String, String> extraParams = meta.getExtraParams();
-    LOGGER.info("init milvus url: " + getUrl(meta));
-    this.milvusClientV2Pool =
-        createPool(
-            getUrl(meta),
-            extraParams.get(USERNAME),
-            extraParams.get(PASSWORD),
-            MilvusClientPool.getPoolConfig(extraParams));
-    //    MilvusClientV2 client = null;
-    //    try {
-    //      for (int i = 0; i < 5; i++) {
-    //        client = milvusClientV2Pool.getClient(DEFAULT_KEY);
-    //        if (client != null) {
-    //          break;
-    //        }
-    //        try {
-    //          Thread.sleep(2000L);
-    //        } catch (InterruptedException e) {
-    //        }
-    //      }
-    //    } finally {
-    //      if (client != null) {
-    //        milvusClientV2Pool.returnClient(DEFAULT_KEY, client);
-    //      }
-    //    }
-
-    //    try {
-    //      Thread.sleep(10000);
-    //
-    //      ConnectConfig config =
-    // ConnectConfig.builder().uri("grpc://192.168.120.147:19530").build();
-    //      MilvusClientV2 client = new MilvusClientV2(config);
-    //      PathUtils.getPathSystem(client, pathSystem);
-    //    } catch (Exception e) {
-    //      e.printStackTrace();
-    //    }
-
   }
-
-  //    private void createCollections(
-  //            MilvusClientV2 client,
-  //            String storageUnit,
-  //            List<String> paths,
-  //            List<Map<String, String>> tagsList,
-  //            List<DataType> dataTypeList) {
-  //        for (int i = 0; i < paths.size(); i++) {
-  //            String path = paths.get(i);
-  //            Map<String, String> tags = new HashMap<>();
-  //            if (tagsList != null && !tagsList.isEmpty()) {
-  //                tags = tagsList.get(i);
-  //            }
-  //            VectorDBSchema schema = new VectorDBSchema(path, QUOTA);
-  //            String collectionName = schema.getCollectionName();
-  //
-  //            List<String> tables = getCollections(storageUnit, collectionName);
-  //            if (tables.isEmpty()) {
-  //                client.createCollection(CreateCollectionReq.builder()
-  //
-  // .collectionName(collectionName).primaryFieldName(MILVUS_PRIMARY_FIELD_NAME)
-  //                        .vectorFieldName(MILVUS_VECTOR_FIELD_NAME)
-  //                        .dimension(DEFAULT_DIMENSION)
-  //                        .build());
-  //                LOGGER.info("[Create] create collection : {}", collectionName);
-  //            }
-  //        }
-  //    }
 
   private void createOrAlterCollections(
       MilvusClientV2 client,
@@ -186,7 +112,7 @@ public class MilvusStorage implements IStorage {
       List<Map<String, String>> tagsList,
       List<DataType> dataTypeList)
       throws InterruptedException {
-    client.useDatabase(NameUtils.escape(storageUnit));
+    MilvusClientUtils.useDatabase(client, storageUnit);
     Map<String, Set<String>> collectionToFields = new HashMap<>();
     Map<String, DataType> fieldToType = new HashMap<>();
     Set<String> collections = new HashSet<>();
@@ -212,8 +138,17 @@ public class MilvusStorage implements IStorage {
     }
 
     for (String collection : collectionToFields.keySet()) {
+      LOGGER.info(
+          "collection: " + collection + " , databaseName: " + storageUnit + " , client:" + client);
       if (!collections.contains(collection)) {
         // create collection
+        LOGGER.info(
+            "create collection: "
+                + collection
+                + " , databaseName: "
+                + storageUnit
+                + " , client:"
+                + client);
         MilvusClientUtils.createCollection(client, storageUnit, collection, DataType.LONG);
         //                MilvusClientUtils.createCollection(client, storageUnit, collection,
         // collectionToFields.get(collection), fieldToType,
@@ -231,118 +166,6 @@ public class MilvusStorage implements IStorage {
               fieldToType,
               pathSystem);
     }
-  }
-
-  private List<String> getCollections(String databaseName, String collectionPattern) {
-    MilvusClientV2 client = this.getClient(databaseName);
-    if (client == null) {
-      return new ArrayList<>();
-    }
-    ListCollectionsResp resp = client.listCollections();
-    List<String> collectionNames = resp.getCollectionNames();
-
-    if (collectionPattern == null || collectionPattern.indexOf("*") > 0) {
-      return collectionNames;
-    }
-
-    List<String> matchedCollectionNames = new ArrayList<>();
-    for (String collectionName : collectionNames) {
-      if (Pattern.matches(StringUtils.reformatPath(collectionPattern), collectionName)) {
-        matchedCollectionNames.add(collectionName);
-      }
-    }
-
-    return matchedCollectionNames;
-  }
-
-  private Exception insertNonAlignedRowRecords(
-      MilvusClientV2 client, String databaseName, RowDataView data) {
-    int batchSize = Math.min(data.getKeySize(), BATCH_SIZE);
-    try {
-      //            createCollections(client, databaseName, data.getPaths(), data.getTagsList(),
-      // data.getDataTypeList());
-
-      // 插入数据
-      Map<String, List<JsonObject>> tableToRowEntries = new HashMap<>(); // <表名, 插入数据>
-      int cnt = 0;
-      while (cnt < data.getKeySize()) {
-        int size = Math.min(data.getKeySize() - cnt, batchSize);
-        for (int i = cnt; i < cnt + size; i++) {
-          BitmapView bitmapView = data.getBitmapView(i);
-
-          Map<String, JsonObject> tableToRowEntry = new HashMap<>();
-          for (int j = 0; j < data.getPathNum(); j++) {
-            String path = data.getPath(j);
-            DataType dataType = data.getDataType(j);
-            VectorDBSchema schema = new VectorDBSchema(path, QUOTA);
-            String collectionName = schema.getCollectionName();
-            String columnName = schema.getFieldName();
-            Map<String, String> tags = data.getTags(j);
-            collectionName = toFullName(collectionName, tags);
-            JsonObject row;
-            if (tableToRowEntry.containsKey(collectionName)) {
-              row = tableToRowEntry.get(collectionName);
-            } else {
-              row = new JsonObject();
-              tableToRowEntry.put(collectionName, row);
-            }
-            boolean empty = true;
-            if (bitmapView.get(j)) {
-              switch (dataType) {
-                case BINARY:
-                  row.addProperty(
-                      columnName, new String((byte[]) data.getValue(j, i), StandardCharsets.UTF_8));
-                  empty = false;
-                  break;
-                case BOOLEAN:
-                case LONG:
-                case DOUBLE:
-                case INTEGER:
-                case FLOAT:
-                  row.addProperty(columnName, (Number) data.getValue(j, i));
-                  empty = false;
-                  break;
-                default:
-                  break;
-              }
-            }
-            if (empty) {
-              tableToRowEntry.remove(collectionName);
-            } else {
-              row.addProperty(Constants.KEY_NAME, data.getKey(i));
-              row.add(
-                  Constants.VECTOR_NAME,
-                  new Gson().toJsonTree(CommonUtils.generateFloatVector(DEFAULT_DIMENSION)));
-            }
-          }
-          for (Map.Entry<String, JsonObject> entry : tableToRowEntry.entrySet()) {
-            if (tableToRowEntries.containsKey(entry.getKey())) {
-              tableToRowEntries.get(entry.getKey()).add(entry.getValue());
-            } else {
-              List<JsonObject> list = new ArrayList<>();
-              list.add(entry.getValue());
-              tableToRowEntries.put(entry.getKey(), list);
-            }
-          }
-        }
-
-        for (Map.Entry<String, List<JsonObject>> entry : tableToRowEntries.entrySet()) {
-          InsertResp resp =
-              client.insert(
-                  InsertReq.builder()
-                      .collectionName(entry.getKey())
-                      .data(entry.getValue())
-                      .build());
-          List<Object> ids = resp.getPrimaryKeys();
-          LOGGER.info("complete insertRows, insertCount:" + ids.size());
-        }
-        cnt += size;
-      }
-    } catch (Exception e) {
-      LOGGER.error("unexpected error: ", e);
-      return e;
-    }
-    return null;
   }
 
   private Exception insertRecords(MilvusClientV2 client, String databaseName, DataView data) {
@@ -412,16 +235,16 @@ public class MilvusStorage implements IStorage {
 
   @Override
   public boolean testConnection(StorageEngineMeta meta) {
-    MilvusClientV2 client = this.milvusClientV2Pool.getClient(DEFAULT_KEY);
-    return client != null;
-//    try {
-//      ConnectConfig config = ConnectConfig.builder().uri("grpc://127.0.0.1:19530").build();
-//      MilvusClientV2 client = new MilvusClientV2(config);
-//      return client != null;
-//    } catch (Exception e) {
-//      e.printStackTrace();
-//    }
-//    return false;
+    //    MilvusClientV2 client = this.milvusClientV2Pool.getClient(DEFAULT_KEY);
+    //    return client != null;
+    try {
+      ConnectConfig config = ConnectConfig.builder().uri("grpc://127.0.0.1:19530").build();
+      MilvusClientV2 client = new MilvusClientV2(config);
+      return client != null;
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+    return false;
   }
 
   @Override
@@ -435,41 +258,38 @@ public class MilvusStorage implements IStorage {
     return executeProjectWithFilter(project, filter, dataArea);
   }
 
-  private boolean filterContainsType(List<FilterType> types, Filter filter) {
-    boolean res = false;
-    if (types.contains(filter.getType())) {
-      return true;
-    }
-    switch (filter.getType()) {
-      case And:
-        List<Filter> andChildren = ((AndFilter) filter).getChildren();
-        for (Filter child : andChildren) {
-          res |= filterContainsType(types, child);
-        }
-        break;
-      case Or:
-        List<Filter> orChildren = ((OrFilter) filter).getChildren();
-        for (Filter child : orChildren) {
-          res |= filterContainsType(types, child);
-        }
-        break;
-      case Not:
-        Filter notChild = ((NotFilter) filter).getChild();
-        res |= filterContainsType(types, notChild);
-        break;
-      default:
-        break;
-    }
-    return res;
-  }
+  //  private boolean filterContainsType(List<FilterType> types, Filter filter) {
+  //    boolean res = false;
+  //    if (types.contains(filter.getType())) {
+  //      return true;
+  //    }
+  //    switch (filter.getType()) {
+  //      case And:
+  //        List<Filter> andChildren = ((AndFilter) filter).getChildren();
+  //        for (Filter child : andChildren) {
+  //          res |= filterContainsType(types, child);
+  //        }
+  //        break;
+  //      case Or:
+  //        List<Filter> orChildren = ((OrFilter) filter).getChildren();
+  //        for (Filter child : orChildren) {
+  //          res |= filterContainsType(types, child);
+  //        }
+  //        break;
+  //      case Not:
+  //        Filter notChild = ((NotFilter) filter).getChild();
+  //        res |= filterContainsType(types, notChild);
+  //        break;
+  //      default:
+  //        break;
+  //    }
+  //    return res;
+  //  }
 
   private TaskExecuteResult executeProjectWithFilter(
       Project project, Filter filter, DataArea dataArea) {
-    MilvusClientV2 client = null;
-    try {
-      String databaseName = dataArea.getStorageUnit();
-
-      client = this.getClient(databaseName);
+    String databaseName = dataArea.getStorageUnit();
+    try (MilvusClient client = new MilvusClient(meta)) {
       if (client == null) {
         return new TaskExecuteResult(
             new PhysicalTaskExecuteFailureException(
@@ -480,14 +300,14 @@ public class MilvusStorage implements IStorage {
           pathSystemMap.computeIfAbsent(databaseName, s -> new MilvusPathSystem(databaseName));
       Map<String, Set<String>> collectionToFields =
           MilvusClientUtils.determinePaths(
-              client, project.getPatterns(), project.getTagFilter(), false, pathSystem);
+              client.getClient(), project.getPatterns(), project.getTagFilter(), false, pathSystem);
       List<cn.edu.tsinghua.iginx.vectordb.entity.Column> columns = new ArrayList<>();
       for (Map.Entry<String, Set<String>> entry : collectionToFields.entrySet()) {
         String collectionName = entry.getKey();
         Set<String> fields = entry.getValue();
         columns.addAll(
             MilvusClientUtils.query(
-                client,
+                client.getClient(),
                 databaseName,
                 collectionName,
                 new ArrayList<>(fields),
@@ -501,10 +321,6 @@ public class MilvusStorage implements IStorage {
       return new TaskExecuteResult(
           new PhysicalTaskExecuteFailureException(
               String.format("execute project task in milvus failure"), e));
-    } finally {
-      if (client != null) {
-        this.milvusClientV2Pool.returnClient(DEFAULT_KEY, client);
-      }
     }
   }
 
@@ -520,9 +336,8 @@ public class MilvusStorage implements IStorage {
   }
 
   private TaskExecuteResult executeProjectDummyWithFilter(Project project, Filter filter) {
-    MilvusClientV2 client = null;
-    try {
-      client = this.milvusClientV2Pool.getClient(DEFAULT_KEY);
+    try (MilvusClient milvusClient = new MilvusClient(meta)) {
+      MilvusClientV2 client = milvusClient.getClient();
 
       PathSystem pathSystem = new MilvusPathSystem("");
       Map<String, Set<String>> collectionToFields =
@@ -550,10 +365,6 @@ public class MilvusStorage implements IStorage {
       return new TaskExecuteResult(
           new PhysicalTaskExecuteFailureException(
               String.format("execute project task in milvus failure"), e));
-    } finally {
-      if (client != null) {
-        this.milvusClientV2Pool.returnClient(DEFAULT_KEY, client);
-      }
     }
   }
 
@@ -576,10 +387,9 @@ public class MilvusStorage implements IStorage {
 
   @Override
   public TaskExecuteResult executeDelete(Delete delete, DataArea dataArea) {
-    MilvusClientV2 client = null;
-    try {
-      String databaseName = dataArea.getStorageUnit();
-      client = this.milvusClientV2Pool.getClient(DEFAULT_KEY);
+    String databaseName = dataArea.getStorageUnit();
+    try (MilvusClient milvusClient = new MilvusClient(meta)) {
+      MilvusClientV2 client = milvusClient.getClient();
 
       List<String> paths = delete.getPatterns();
       TagFilter tagFilter = delete.getTagFilter();
@@ -590,6 +400,7 @@ public class MilvusStorage implements IStorage {
         if (paths.size() == 1 && paths.get(0).equals("*") && delete.getTagFilter() == null) {
           dropDatabase(client, databaseName);
         } else {
+          MilvusClientUtils.useDatabase(client, databaseName);
           Map<String, Set<String>> collectionToFields =
               MilvusClientUtils.determinePaths(client, paths, tagFilter, pathSystem);
 
@@ -600,6 +411,7 @@ public class MilvusStorage implements IStorage {
           }
         }
       } else {
+        MilvusClientUtils.useDatabase(client, databaseName);
         Map<String, Set<String>> collectionToFields =
             MilvusClientUtils.determinePaths(client, paths, tagFilter, pathSystem);
 
@@ -617,40 +429,16 @@ public class MilvusStorage implements IStorage {
       LOGGER.error("unexpected error: ", e);
       return new TaskExecuteResult(
           new PhysicalException(String.format("execute delete task in milvus failure"), e));
-    } finally {
-      if (client != null) {
-        this.milvusClientV2Pool.returnClient(DEFAULT_KEY, client);
-      }
     }
-  }
-
-  private MilvusClientV2 getClient(String databaseName) {
-    MilvusClientV2 client = this.milvusClientV2Pool.getClient(DEFAULT_KEY);
-    try {
-      client.useDatabase(databaseName);
-      return client;
-    } catch (IllegalArgumentException e) {
-      client.createDatabase(CreateDatabaseReq.builder().databaseName(databaseName).build());
-      try {
-        client.useDatabase(databaseName);
-        return client;
-      } catch (Exception e1) {
-        LOGGER.error("Caught a RuntimeException:", e1);
-      }
-    } catch (Exception e) {
-      LOGGER.error("Caught a RuntimeException:", e);
-    }
-    return null;
   }
 
   @Override
   public TaskExecuteResult executeInsert(Insert insert, DataArea dataArea) {
-    MilvusClientV2 client = null;
-    try {
+    String databaseName = dataArea.getStorageUnit();
+    try (MilvusClient milvusClient = new MilvusClient(meta)) {
+      MilvusClientV2 client = milvusClient.getClient();
       DataView dataView = insert.getData();
-      String databaseName = dataArea.getStorageUnit();
-
-      client = this.getClient(databaseName);
+      LOGGER.info("executeInsert : {} : {}", databaseName, client);
       if (client == null) {
         return new TaskExecuteResult(
             new PhysicalTaskExecuteFailureException(
@@ -661,9 +449,6 @@ public class MilvusStorage implements IStorage {
       switch (dataView.getRawDataType()) {
         case Row:
         case NonAlignedRow:
-          //                e = insertNonAlignedRowRecords(client, databaseName, (RowDataView)
-          // dataView);
-          //                break;
         case Column:
         case NonAlignedColumn:
           e = insertRecords(client, databaseName, dataView);
@@ -675,19 +460,17 @@ public class MilvusStorage implements IStorage {
       }
 
       return new TaskExecuteResult(null, null);
-    } finally {
-      if (client != null) {
-        this.milvusClientV2Pool.returnClient(DEFAULT_KEY, client);
-      }
+    } catch (Exception e) {
+      LOGGER.error("unexpected error: ", e);
+      return new TaskExecuteResult(null, null);
     }
   }
 
   @Override
   public List<Column> getColumns(Set<String> patterns, TagFilter tagFilter)
       throws PhysicalException {
-    MilvusClientV2 client = null;
-    try {
-      client = this.milvusClientV2Pool.getClient(DEFAULT_KEY);
+    try (MilvusClient milvusClient = new MilvusClient(meta)) {
+      MilvusClientV2 client = milvusClient.getClient();
       if (patterns == null) {
         patterns = new HashSet<>();
       }
@@ -709,21 +492,18 @@ public class MilvusStorage implements IStorage {
         }
       }
       return columns;
-    } finally {
-      if (client != null) {
-        milvusClientV2Pool.returnClient(DEFAULT_KEY, client);
-      }
+    } catch (Exception e) {
+      throw new PhysicalException(String.format("execute query task in milvus failure"));
     }
   }
 
   @Override
   public Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage(String prefix)
       throws PhysicalException {
-    MilvusClientV2 client = null;
-    try {
+    try (MilvusClient milvusClient = new MilvusClient(meta)) {
+      MilvusClientV2 client = milvusClient.getClient();
       ColumnsInterval columnsInterval;
       TreeSet<String> paths = new TreeSet<>();
-      client = this.milvusClientV2Pool.getClient(DEFAULT_KEY);
 
       PathSystem pathSystem = new MilvusPathSystem("");
       PathUtils.initAll(client, pathSystem);
@@ -747,16 +527,14 @@ public class MilvusStorage implements IStorage {
       }
 
       return new Pair<>(columnsInterval, KeyInterval.getDefaultKeyInterval());
-    } finally {
-      if (client != null) {
-        this.milvusClientV2Pool.returnClient(DEFAULT_KEY, client);
-      }
+    } catch (Exception e) {
+      throw new PhysicalException(String.format("execute query task in milvus failure"));
     }
   }
 
   @Override
   public void release() throws PhysicalException {
-    this.milvusClientV2Pool.clear();
-    this.milvusClientV2Pool.close();
+    //    this.milvusClientV2Pool.clear();
+    //    this.milvusClientV2Pool.close();
   }
 }
