@@ -17,7 +17,7 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.queue;
 
-import cn.edu.tsinghua.iginx.engine.physical.task.MemoryPhysicalTask;
+import cn.edu.tsinghua.iginx.engine.physical.task.memory.MemoryPhysicalTask;
 
 public interface MemoryPhysicalTaskQueue {
 

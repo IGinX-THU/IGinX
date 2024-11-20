@@ -161,9 +161,7 @@ class RowStreamToBatchStreamWrapperTest {
             }
           }
         }
-        try (Batch endBatch = batchStream.getNext()) {
-          Assertions.assertEquals(0, endBatch.getRowCount());
-        }
+        Assertions.assertFalse(batchStream.hasNext());
       }
     }
   }

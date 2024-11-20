@@ -20,9 +20,18 @@ package cn.edu.tsinghua.iginx.physical.optimizer.naive;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateful.FetchAllUnaryExecutor;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateful.LimitUnaryExecutor;
-import cn.edu.tsinghua.iginx.engine.physical.task.*;
+import cn.edu.tsinghua.iginx.engine.physical.task.PhysicalTask;
+import cn.edu.tsinghua.iginx.engine.physical.task.StoragePhysicalTask;
+import cn.edu.tsinghua.iginx.engine.physical.task.TaskType;
+import cn.edu.tsinghua.iginx.engine.physical.task.memory.*;
+import cn.edu.tsinghua.iginx.engine.physical.task.memory.converter.ArrowToRowUnaryMemoryPhysicalTask;
+import cn.edu.tsinghua.iginx.engine.physical.task.memory.converter.RowToArrowUnaryMemoryPhysicalTask;
+import cn.edu.tsinghua.iginx.engine.physical.task.utils.PhysicalCloseable;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.*;
+import cn.edu.tsinghua.iginx.engine.shared.operator.type.JoinAlgType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.source.FragmentSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
@@ -36,7 +45,7 @@ import javax.annotation.Nullable;
 
 public class NaivePhysicalPlanner {
 
-  public PhysicalTask construct(Operator operator, RequestContext context) {
+  public PhysicalTask<?> construct(Operator operator, RequestContext context) {
     switch (operator.getType()) {
       case CombineNonQuery:
         return construct((CombineNonQuery) operator, context);
@@ -68,14 +77,49 @@ public class NaivePhysicalPlanner {
         return construct((InnerJoin) operator, context);
       case OuterJoin:
         return construct((OuterJoin) operator, context);
+      case SingleJoin:
+        return construct((SingleJoin) operator, context);
       case MarkJoin:
         return construct((MarkJoin) operator, context);
+      case CrossJoin:
+        return construct((CrossJoin) operator, context);
+      case Folded:
+        return construct((FoldedOperator) operator, context);
+      case ShowColumns:
+        return construct((ShowColumns) operator, context);
+      case Migration:
+        return construct((Migration) operator, context);
+      case Join:
+        return construct((Join) operator, context);
+      case PathUnion:
+        return construct((PathUnion) operator, context);
+      case Union:
+        return construct((Union) operator, context);
+      case Except:
+        return construct((Except) operator, context);
+      case Intersect:
+        return construct((Intersect) operator, context);
+      case Multiple:
+        return construct((MultipleOperator) operator, context);
+      case Downsample:
+        return construct((Downsample) operator, context);
+      case MappingTransform:
+        return construct((MappingTransform) operator, context);
+      case Distinct:
+        return construct((Distinct) operator, context);
+      case ProjectWaitingForPath:
+        return construct((ProjectWaitingForPath) operator, context);
+      case ValueToSelectedPath:
+        return construct((ValueToSelectedPath) operator, context);
+      case Unknown:
+      case Binary:
+      case Unary:
       default:
         throw new UnsupportedOperationException("Unsupported operator type: " + operator.getType());
     }
   }
 
-  public PhysicalTask fetch(Source source, RequestContext context) {
+  public PhysicalTask<?> fetch(Source source, RequestContext context) {
     switch (source.getType()) {
       case Fragment:
         FragmentSource fragmentSource = (FragmentSource) source;
@@ -89,17 +133,17 @@ public class NaivePhysicalPlanner {
     }
   }
 
-  public PhysicalTask fetchAll(Source source, RequestContext context) {
-    PhysicalTask leftTask = fetch(source, context);
+  public PhysicalTask<BatchStream> fetchAll(Source source, RequestContext context) {
+    PhysicalTask<?> sourceTask = fetch(source, context);
     return new UnarySinkMemoryPhysicalTask(
-        leftTask,
+        convert(sourceTask, context, BatchStream.class),
         Collections.emptyList(),
         context,
         (ctx, schema) -> new FetchAllUnaryExecutor(ctx, schema.raw()));
   }
 
-  public PhysicalTask construct(CombineNonQuery operator, RequestContext context) {
-    List<PhysicalTask> sourceTasks = new ArrayList<>();
+  public PhysicalTask<RowStream> construct(CombineNonQuery operator, RequestContext context) {
+    List<PhysicalTask<?>> sourceTasks = new ArrayList<>();
     for (Source source : operator.getSources()) {
       sourceTasks.add(fetch(source, context));
     }
@@ -108,16 +152,17 @@ public class NaivePhysicalPlanner {
         Collections.singletonList(operator), sourceTasks, context);
   }
 
-  public PhysicalTask construct(Insert operator, RequestContext context) {
+  public PhysicalTask<RowStream> construct(Insert operator, RequestContext context) {
     return constructWriteTask(operator, context);
   }
 
-  public PhysicalTask construct(Delete operator, RequestContext context) {
+  public PhysicalTask<RowStream> construct(Delete operator, RequestContext context) {
     return constructWriteTask(operator, context);
   }
 
-  private PhysicalTask constructWriteTask(UnaryOperator operator, RequestContext context) {
-    PhysicalTask task = fetch(operator.getSource(), context);
+  private PhysicalTask<RowStream> constructWriteTask(
+      UnaryOperator operator, RequestContext context) {
+    PhysicalTask<?> task = fetch(operator.getSource(), context);
     if (task.getType() != TaskType.Storage) {
       throw new IllegalStateException("Unexpected task type: " + task.getType());
     }
@@ -139,87 +184,108 @@ public class NaivePhysicalPlanner {
         context);
   }
 
-  public PhysicalTask construct(Project operator, RequestContext context) {
-    PhysicalTask sourceTask = fetch(operator.getSource(), context);
+  public PhysicalTask<RowStream> constructRow(UnaryOperator operator, RequestContext context) {
+    PhysicalTask<?> sourceTask = fetch(operator.getSource(), context);
+    return new UnaryRowMemoryPhysicalTask(
+        convert(sourceTask, context, RowStream.class),
+        Collections.singletonList(operator),
+        operator,
+        context);
+  }
+
+  public PhysicalTask<RowStream> constructRow(BinaryOperator operator, RequestContext context) {
+    PhysicalTask<?> leftTask = fetch(operator.getSourceA(), context);
+    PhysicalTask<?> rightTask = fetch(operator.getSourceB(), context);
+    return new BinaryRowMemoryPhysicalTask(
+        convert(leftTask, context, RowStream.class),
+        convert(rightTask, context, RowStream.class),
+        operator,
+        context);
+  }
+
+  public PhysicalTask<?> construct(Project operator, RequestContext context) {
+    PhysicalTask<?> sourceTask = fetch(operator.getSource(), context);
     if (sourceTask.getType() == TaskType.Storage) {
       return reConstruct((StoragePhysicalTask) sourceTask, context, false, operator);
     }
     return new PipelineMemoryPhysicalTask(
-        sourceTask,
+        convert(sourceTask, context, BatchStream.class),
         Collections.singletonList(operator),
         context,
         new SimpleProjectionInfoGenerator(operator));
   }
 
-  public PhysicalTask construct(Rename operator, RequestContext context) {
-    PhysicalTask sourceTask = fetch(operator.getSource(), context);
-    return new PipelineMemoryPhysicalTask(
-        sourceTask,
+  public PhysicalTask<BatchStream> construct(Rename operator, RequestContext context) {
+    PhysicalTask<?> sourceTask = fetch(operator.getSource(), context);
+    return new cn.edu.tsinghua.iginx.engine.physical.task.memory.PipelineMemoryPhysicalTask(
+        convert(sourceTask, context, BatchStream.class),
         Collections.singletonList(operator),
         context,
         new SimpleProjectionInfoGenerator(operator));
   }
 
-  public PhysicalTask construct(Reorder operator, RequestContext context) {
-    PhysicalTask sourceTask = fetch(operator.getSource(), context);
-    return new PipelineMemoryPhysicalTask(
-        sourceTask,
+  public PhysicalTask<BatchStream> construct(Reorder operator, RequestContext context) {
+    PhysicalTask<?> sourceTask = fetch(operator.getSource(), context);
+    return new cn.edu.tsinghua.iginx.engine.physical.task.memory.PipelineMemoryPhysicalTask(
+        convert(sourceTask, context, BatchStream.class),
         Collections.singletonList(operator),
         context,
         new SimpleProjectionInfoGenerator(operator));
   }
 
-  public PhysicalTask construct(AddSchemaPrefix operator, RequestContext context) {
-    PhysicalTask sourceTask = fetch(operator.getSource(), context);
-    return new PipelineMemoryPhysicalTask(
-        sourceTask,
+  public PhysicalTask<BatchStream> construct(AddSchemaPrefix operator, RequestContext context) {
+    PhysicalTask<?> sourceTask = fetch(operator.getSource(), context);
+    return new cn.edu.tsinghua.iginx.engine.physical.task.memory.PipelineMemoryPhysicalTask(
+        convert(sourceTask, context, BatchStream.class),
         Collections.singletonList(operator),
         context,
         new SimpleProjectionInfoGenerator(operator));
   }
 
-  public PhysicalTask construct(RowTransform operator, RequestContext context) {
-    PhysicalTask sourceTask = fetch(operator.getSource(), context);
-    return new PipelineMemoryPhysicalTask(
-        sourceTask,
+  public PhysicalTask<BatchStream> construct(RowTransform operator, RequestContext context) {
+    PhysicalTask<?> sourceTask = fetch(operator.getSource(), context);
+    return new cn.edu.tsinghua.iginx.engine.physical.task.memory.PipelineMemoryPhysicalTask(
+        convert(sourceTask, context, BatchStream.class),
         Collections.singletonList(operator),
         context,
         new TransformProjectionInfoGenerator(operator));
   }
 
-  public PhysicalTask construct(Select operator, RequestContext context) {
+  public PhysicalTask<?> construct(Select operator, RequestContext context) {
     Source source = operator.getSource();
-    PhysicalTask sourceTask = fetch(operator.getSource(), context);
+    PhysicalTask<?> sourceTask = fetch(operator.getSource(), context);
 
     StoragePhysicalTask storageTask = tryPushDownAloneWithProject(sourceTask, context, operator);
     if (storageTask != null) {
       return storageTask;
     }
 
+    PhysicalTask<BatchStream> batchTask = convert(sourceTask, context, BatchStream.class);
+
     if (operator.getTagFilter() != null) {
-      sourceTask =
+      batchTask =
           new PipelineMemoryPhysicalTask(
-              sourceTask,
+              batchTask,
               Collections.singletonList(new Select(source, null, operator.getTagFilter())),
               context,
               new TagKVProjectionInfoGenerator(operator.getTagFilter()));
     }
 
     if (operator.getFilter() != null) {
-      sourceTask =
+      batchTask =
           new PipelineMemoryPhysicalTask(
-              sourceTask,
+              batchTask,
               Collections.singletonList(new Select(source, operator.getFilter(), null)),
               context,
               new FilterInfoGenerator(operator.getFilter()));
     }
 
-    return sourceTask;
+    return batchTask;
   }
 
   @Nullable
   private StoragePhysicalTask tryPushDownAloneWithProject(
-      PhysicalTask sourceTask, RequestContext context, Operator operator) {
+      PhysicalTask<?> sourceTask, RequestContext context, Operator operator) {
     if (!ConfigDescriptor.getInstance().getConfig().isEnablePushDown()) {
       return null;
     }
@@ -246,99 +312,212 @@ public class NaivePhysicalPlanner {
     return reConstruct(storageTask, context, false, operator);
   }
 
-  public PhysicalTask construct(SetTransform operator, RequestContext context) {
-    PhysicalTask sourceTask = fetch(operator.getSource(), context);
+  public PhysicalTask<?> construct(SetTransform operator, RequestContext context) {
+    PhysicalTask<?> sourceTask = fetch(operator.getSource(), context);
     StoragePhysicalTask storageTask = tryPushDownAloneWithProject(sourceTask, context, operator);
     if (storageTask != null) {
       return storageTask;
     }
 
     return new UnarySinkMemoryPhysicalTask(
-        sourceTask,
+        convert(sourceTask, context, BatchStream.class),
         Collections.singletonList(operator),
         context,
         new AggregateInfoGenerator(operator));
   }
 
-  public PhysicalTask construct(GroupBy operator, RequestContext context) {
-    PhysicalTask sourceTask = fetch(operator.getSource(), context);
+  public PhysicalTask<BatchStream> construct(GroupBy operator, RequestContext context) {
+    PhysicalTask<?> sourceTask = fetch(operator.getSource(), context);
     return new UnarySinkMemoryPhysicalTask(
-        sourceTask,
+        convert(sourceTask, context, BatchStream.class),
         Collections.singletonList(operator),
         context,
         new GroupsAggregateInfoGenerator(operator));
   }
 
-  public PhysicalTask construct(Sort operator, RequestContext context) {
-    PhysicalTask sourceTask = fetch(operator.getSource(), context);
+  public PhysicalTask<?> construct(Sort operator, RequestContext context) {
+    PhysicalTask<?> sourceTask = fetch(operator.getSource(), context);
 
-    PipelineMemoryPhysicalTask sortBatchTask =
-        new PipelineMemoryPhysicalTask(
-            sourceTask,
-            Collections.singletonList(operator),
-            context,
-            new InnerBatchSortInfoGenerator(operator));
+    //      sourceTask = new PipelineMemoryPhysicalTask(
+    //          convert(sourceTask, context, BatchStream.class),
+    //          Collections.singletonList(operator),
+    //          context,
+    //          new InnerBatchSortInfoGenerator(operator));
 
-    return new UnarySinkMemoryPhysicalTask(
-        sortBatchTask,
+    return new UnaryRowMemoryPhysicalTask(
+        convert(sourceTask, context, RowStream.class),
         Collections.singletonList(operator),
-        context,
-        new MergeSortedBatchInfoGenerator(operator));
+        operator,
+        context);
   }
 
-  public PhysicalTask construct(Limit operator, RequestContext context) {
-    PhysicalTask sourceTask = fetch(operator.getSource(), context);
+  public PhysicalTask<BatchStream> construct(Limit operator, RequestContext context) {
+    PhysicalTask<?> sourceTask = fetch(operator.getSource(), context);
 
     return new UnarySinkMemoryPhysicalTask(
-        sourceTask,
+        convert(sourceTask, context, BatchStream.class),
         Collections.singletonList(operator),
         context,
         (ctx, schema) ->
             new LimitUnaryExecutor(ctx, schema.raw(), operator.getOffset(), operator.getLimit()));
   }
 
-  public PhysicalTask construct(InnerJoin operator, RequestContext context) {
+  public PhysicalTask<?> construct(InnerJoin operator, RequestContext context) {
+    if (operator.getJoinAlgType() != JoinAlgType.HashJoin) {
+      return constructRow(operator, context);
+    }
+
     // NOTE: The order of left and right task is reversed in InnerJoin
     // 这里以及后面交换了左右两个表的顺序，原因是在之前基于行的实现中，右表是BuildSide，左表是ProbeSide
     // 现在基于列的实现中，左表是BuildSide，右表是ProbeSide
     operator = Joins.reverse(operator);
 
-    PhysicalTask leftTask = fetchAll(operator.getSourceA(), context);
-    PhysicalTask rightTask = fetchAll(operator.getSourceB(), context);
+    PhysicalTask<BatchStream> leftTask = fetchAll(operator.getSourceA(), context);
+    PhysicalTask<BatchStream> rightTask = fetchAll(operator.getSourceB(), context);
 
     return new BinarySinkMemoryPhysicalTask(
-        leftTask,
-        rightTask,
-        Collections.singletonList(operator),
+        convert(leftTask, context, BatchStream.class),
+        convert(rightTask, context, BatchStream.class),
+        operator,
         context,
         new InnerJoinInfoGenerator(operator));
   }
 
-  public PhysicalTask construct(OuterJoin operator, RequestContext context) {
+  public PhysicalTask<?> construct(OuterJoin operator, RequestContext context) {
+    if (operator.getJoinAlgType() != JoinAlgType.HashJoin) {
+      return constructRow(operator, context);
+    }
+
     operator = Joins.reverse(operator);
 
-    PhysicalTask leftTask = fetchAll(operator.getSourceA(), context);
-    PhysicalTask rightTask = fetchAll(operator.getSourceB(), context);
+    PhysicalTask<BatchStream> leftTask = fetchAll(operator.getSourceA(), context);
+    PhysicalTask<BatchStream> rightTask = fetchAll(operator.getSourceB(), context);
 
     return new BinarySinkMemoryPhysicalTask(
-        leftTask,
-        rightTask,
-        Collections.singletonList(operator),
+        convert(leftTask, context, BatchStream.class),
+        convert(rightTask, context, BatchStream.class),
+        operator,
         context,
         new OuterJoinInfoGenerator(operator));
   }
 
-  public PhysicalTask construct(MarkJoin operator, RequestContext context) {
+  public PhysicalTask<?> construct(MarkJoin operator, RequestContext context) {
+    if (operator.getJoinAlgType() != JoinAlgType.HashJoin) {
+      return constructRow(operator, context);
+    }
+
     operator = Joins.reverse(operator);
 
-    PhysicalTask leftTask = fetchAll(operator.getSourceA(), context);
-    PhysicalTask rightTask = fetchAll(operator.getSourceB(), context);
+    PhysicalTask<BatchStream> leftTask = fetchAll(operator.getSourceA(), context);
+    PhysicalTask<BatchStream> rightTask = fetchAll(operator.getSourceB(), context);
 
     return new BinarySinkMemoryPhysicalTask(
-        leftTask,
-        rightTask,
-        Collections.singletonList(operator),
+        convert(leftTask, context, BatchStream.class),
+        convert(rightTask, context, BatchStream.class),
+        operator,
         context,
         new MarkJoinInfoGenerator(operator));
+  }
+
+  public PhysicalTask<?> construct(SingleJoin operator, RequestContext context) {
+    if (operator.getJoinAlgType() != JoinAlgType.HashJoin) {
+      return constructRow(operator, context);
+    }
+
+    operator = Joins.reverse(operator);
+
+    PhysicalTask<BatchStream> leftTask = fetchAll(operator.getSourceA(), context);
+    PhysicalTask<BatchStream> rightTask = fetchAll(operator.getSourceB(), context);
+
+    return new BinarySinkMemoryPhysicalTask(
+        convert(leftTask, context, BatchStream.class),
+        convert(rightTask, context, BatchStream.class),
+        operator,
+        context,
+        new SingleJoinInfoGenerator(operator));
+  }
+
+  public PhysicalTask<?> construct(CrossJoin operator, RequestContext context) {
+    return constructRow(operator, context);
+  }
+
+  public PhysicalTask<?> construct(FoldedOperator operator, RequestContext context) {
+    throw new UnsupportedOperationException("Folded is not supported in the new physical planner");
+  }
+
+  public PhysicalTask<?> construct(ShowColumns operator, RequestContext context) {
+    throw new UnsupportedOperationException(
+        "ShowColumns is not supported in the new physical planner");
+  }
+
+  public PhysicalTask<?> construct(Migration operator, RequestContext context) {
+    throw new UnsupportedOperationException(
+        "Migration is not supported in the new physical planner");
+  }
+
+  public PhysicalTask<?> construct(Join operator, RequestContext context) {
+    return constructRow(operator, context);
+  }
+
+  public PhysicalTask<?> construct(PathUnion operator, RequestContext context) {
+    return constructRow(operator, context);
+  }
+
+  public PhysicalTask<?> construct(Union operator, RequestContext context) {
+    return constructRow(operator, context);
+  }
+
+  public PhysicalTask<?> construct(Except operator, RequestContext context) {
+    return constructRow(operator, context);
+  }
+
+  public PhysicalTask<?> construct(Intersect operator, RequestContext context) {
+    return constructRow(operator, context);
+  }
+
+  public PhysicalTask<?> construct(MultipleOperator operator, RequestContext context) {
+    throw new UnsupportedOperationException(
+        "MultipleOperator is not supported in the new physical planner");
+  }
+
+  public PhysicalTask<?> construct(Downsample operator, RequestContext context) {
+    return constructRow(operator, context);
+  }
+
+  public PhysicalTask<?> construct(MappingTransform operator, RequestContext context) {
+    return constructRow(operator, context);
+  }
+
+  public PhysicalTask<?> construct(Distinct operator, RequestContext context) {
+    return constructRow(operator, context);
+  }
+
+  public PhysicalTask<?> construct(ProjectWaitingForPath operator, RequestContext context) {
+    throw new UnsupportedOperationException(
+        "ProjectWaitingForPath is not supported in the new physical planner");
+  }
+
+  public PhysicalTask<?> construct(ValueToSelectedPath operator, RequestContext context) {
+    throw new UnsupportedOperationException(
+        "ValueToSelectedPath is not supported in the new physical planner");
+  }
+
+  @SuppressWarnings("unchecked")
+  public <RESULT extends PhysicalCloseable> PhysicalTask<RESULT> convert(
+      PhysicalTask<?> task, RequestContext context, Class<RESULT> destResultClass) {
+    Class<?> sourceResultClass = task.getResultClass();
+    if (sourceResultClass == destResultClass) {
+      return (PhysicalTask<RESULT>) task;
+    }
+    if (sourceResultClass == RowStream.class && destResultClass == BatchStream.class) {
+      return (PhysicalTask<RESULT>)
+          new RowToArrowUnaryMemoryPhysicalTask((PhysicalTask<RowStream>) task, context);
+    }
+    if (sourceResultClass == BatchStream.class && destResultClass == RowStream.class) {
+      return (PhysicalTask<RESULT>)
+          new ArrowToRowUnaryMemoryPhysicalTask((PhysicalTask<BatchStream>) task, context);
+    }
+    throw new UnsupportedOperationException(
+        "Unsupported conversion from " + sourceResultClass + " to " + destResultClass);
   }
 }

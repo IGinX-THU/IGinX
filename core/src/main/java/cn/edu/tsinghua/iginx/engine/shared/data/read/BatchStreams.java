@@ -17,6 +17,7 @@
  */
 package cn.edu.tsinghua.iginx.engine.shared.data.read;
 
+import cn.edu.tsinghua.iginx.engine.physical.task.memory.converter.RowStreamToBatchStreamWrapper;
 import javax.annotation.WillClose;
 import javax.annotation.WillNotClose;
 import org.apache.arrow.memory.BufferAllocator;
@@ -30,11 +31,14 @@ public class BatchStreams {
     return new RowStreamToBatchStreamWrapper(allocator, rowStream, batchRowCount);
   }
 
-  public static BatchStream empty(BufferAllocator allocator, BatchSchema schema) {
-    return new EmptyBatchStream(allocator, schema);
+  public static BatchStream empty(BatchSchema schema) {
+    return new EmptyBatchStream(schema);
   }
 
-  public static BatchStream empty(BufferAllocator allocator) {
-    return new EmptyBatchStream(allocator, BatchSchema.empty());
+  private static final EmptyBatchStream EMPTY_BATCH_STREAM =
+      new EmptyBatchStream(BatchSchema.empty());
+
+  public static BatchStream empty() {
+    return EMPTY_BATCH_STREAM;
   }
 }

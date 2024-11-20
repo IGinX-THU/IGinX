@@ -21,6 +21,7 @@ package cn.edu.tsinghua.iginx.engine.shared;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ConstantPool;
 import cn.edu.tsinghua.iginx.engine.physical.task.PhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskContext;
+import cn.edu.tsinghua.iginx.engine.physical.task.utils.TaskResultMap;
 import cn.edu.tsinghua.iginx.sql.statement.Statement;
 import cn.edu.tsinghua.iginx.thrift.SqlType;
 import cn.edu.tsinghua.iginx.thrift.Status;
@@ -69,6 +70,8 @@ public class RequestContext implements TaskContext {
   private BufferAllocator allocator;
 
   private ConstantPool constantPool;
+
+  private TaskResultMap taskResultMap;
 
   private List<String> warningMsg = Collections.synchronizedList(new ArrayList<>());
 

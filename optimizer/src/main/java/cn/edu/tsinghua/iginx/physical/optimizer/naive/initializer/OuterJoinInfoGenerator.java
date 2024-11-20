@@ -75,7 +75,13 @@ public class OuterJoinInfoGenerator implements BinaryExecutorFactory<StatefulBin
     }
 
     return HashJoins.constructHashJoin(
-        context, leftSchema, rightSchema, new AndFilter(subFilters), joinOption);
+        context,
+        leftSchema,
+        rightSchema,
+        operator.getPrefixA(),
+        operator.getPrefixB(),
+        new AndFilter(subFilters),
+        joinOption);
   }
 
   private static JoinOption toJoinOption(OuterJoinType outerJoinType) {

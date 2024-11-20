@@ -17,26 +17,25 @@
  */
 package cn.edu.tsinghua.iginx.physical.optimizer.naive.initializer;
 
-import static cn.edu.tsinghua.iginx.engine.shared.operator.type.JoinAlgType.HashJoin;
-
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.join.JoinOption;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.binary.BinaryExecutorFactory;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.binary.stateful.HashJoinExecutor;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.binary.stateful.StatefulBinaryExecutor;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
-import cn.edu.tsinghua.iginx.engine.shared.operator.InnerJoin;
+import cn.edu.tsinghua.iginx.engine.shared.operator.SingleJoin;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.physical.optimizer.naive.util.HashJoins;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-public class InnerJoinInfoGenerator implements BinaryExecutorFactory<StatefulBinaryExecutor> {
+public class SingleJoinInfoGenerator implements BinaryExecutorFactory<StatefulBinaryExecutor> {
 
-  private final InnerJoin operator;
+  private final SingleJoin operator;
 
-  public InnerJoinInfoGenerator(InnerJoin operator) {
+  public SingleJoinInfoGenerator(SingleJoin operator) {
     this.operator = Objects.requireNonNull(operator);
   }
 
@@ -44,7 +43,6 @@ public class InnerJoinInfoGenerator implements BinaryExecutorFactory<StatefulBin
   public StatefulBinaryExecutor initialize(
       ExecutorContext context, BatchSchema leftSchema, BatchSchema rightSchema)
       throws ComputeException {
-
     switch (operator.getJoinAlgType()) {
       case HashJoin:
         return initializeHashJoin(context, leftSchema, rightSchema);
@@ -54,14 +52,9 @@ public class InnerJoinInfoGenerator implements BinaryExecutorFactory<StatefulBin
     }
   }
 
-  private StatefulBinaryExecutor initializeHashJoin(
+  public HashJoinExecutor initializeHashJoin(
       ExecutorContext context, BatchSchema leftSchema, BatchSchema rightSchema)
       throws ComputeException {
-
-    if (operator.getJoinAlgType() != HashJoin) {
-      throw new IllegalArgumentException(
-          "JoinAlgType is not HashJoin: " + operator.getJoinAlgType());
-    }
 
     List<Filter> subFilters = new ArrayList<>();
     if (!operator.getFilter().equals(new BoolFilter(true))) {
@@ -78,6 +71,6 @@ public class InnerJoinInfoGenerator implements BinaryExecutorFactory<StatefulBin
         operator.getPrefixA(),
         operator.getPrefixB(),
         new AndFilter(subFilters),
-        JoinOption.INNER);
+        JoinOption.SINGLE);
   }
 }

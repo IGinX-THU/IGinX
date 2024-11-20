@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.task;
+package cn.edu.tsinghua.iginx.engine.physical.task.memory;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
@@ -23,6 +23,7 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.Unary
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateless.StatelessUnaryExecutor;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.util.Batch;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.StopWatch;
+import cn.edu.tsinghua.iginx.engine.physical.task.PhysicalTask;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
@@ -34,12 +35,12 @@ import javax.annotation.WillCloseWhenClosed;
 import jdk.nashorn.internal.ir.annotations.Immutable;
 
 @Immutable
-public class PipelineMemoryPhysicalTask extends UnaryMemoryPhysicalTask {
+public class PipelineMemoryPhysicalTask extends UnaryMemoryPhysicalTask<BatchStream, BatchStream> {
 
   private final UnaryExecutorFactory<? extends StatelessUnaryExecutor> executorFactory;
 
   public PipelineMemoryPhysicalTask(
-      PhysicalTask parentTask,
+      PhysicalTask<BatchStream> parentTask,
       List<Operator> operators,
       RequestContext context,
       UnaryExecutorFactory<? extends StatelessUnaryExecutor> executorFactory) {
@@ -48,6 +49,11 @@ public class PipelineMemoryPhysicalTask extends UnaryMemoryPhysicalTask {
   }
 
   private String info;
+
+  @Override
+  public Class<BatchStream> getResultClass() {
+    return BatchStream.class;
+  }
 
   @Override
   public String getInfo() {
@@ -93,18 +99,17 @@ public class PipelineMemoryPhysicalTask extends UnaryMemoryPhysicalTask {
     }
 
     @Override
+    public boolean hasNext() throws PhysicalException {
+      return source.hasNext();
+    }
+
+    @Override
     public Batch getNext() throws PhysicalException {
-      while (true) {
-        try (Batch sourceNext = source.getNext()) {
-          try (StopWatch watch = new StopWatch(getMetrics()::accumulateCpuTime)) {
-            Batch computed = executor.compute(sourceNext);
-            if (computed.isEmpty() && !sourceNext.isEmpty()) {
-              computed.close();
-              continue;
-            }
-            getMetrics().accumulateAffectRows(computed.getRowCount());
-            return computed;
-          }
+      try (Batch sourceNext = source.getNext()) {
+        try (StopWatch watch = new StopWatch(getMetrics()::accumulateCpuTime)) {
+          Batch computed = executor.compute(sourceNext);
+          getMetrics().accumulateAffectRows(computed.getRowCount());
+          return computed;
         }
       }
     }

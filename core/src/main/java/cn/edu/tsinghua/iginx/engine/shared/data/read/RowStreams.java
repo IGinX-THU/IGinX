@@ -18,33 +18,48 @@
 package cn.edu.tsinghua.iginx.engine.shared.data.read;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.util.Batch;
+import java.util.Collections;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 
-class EmptyBatchStream implements BatchStream {
+public class RowStreams {
 
-  private final BatchSchema schema;
+  private RowStreams() {}
 
-  public EmptyBatchStream(BatchSchema schema) {
-    this.schema = Objects.requireNonNull(schema);
+  private static class EmptyRowStream implements RowStream {
+
+    private final Header header;
+
+    public EmptyRowStream() {
+      this(new Header(Collections.emptyList()));
+    }
+
+    public EmptyRowStream(Header header) {
+      this.header = Objects.requireNonNull(header);
+    }
+
+    @Override
+    public Header getHeader() throws PhysicalException {
+      return header;
+    }
+
+    @Override
+    public boolean hasNext() {
+      return false;
+    }
+
+    @Override
+    public Row next() {
+      throw new NoSuchElementException();
+    }
+
+    @Override
+    public void close() {}
   }
 
-  @Override
-  public BatchSchema getSchema() throws PhysicalException {
-    return schema;
-  }
+  private static final EmptyRowStream EMPTY = new EmptyRowStream();
 
-  @Override
-  public boolean hasNext() throws PhysicalException {
-    return false;
+  public static RowStream empty() {
+    return EMPTY;
   }
-
-  @Override
-  public Batch getNext() throws PhysicalException {
-    throw new NoSuchElementException("EmptyBatchStream has no next batch");
-  }
-
-  @Override
-  public void close() {}
 }

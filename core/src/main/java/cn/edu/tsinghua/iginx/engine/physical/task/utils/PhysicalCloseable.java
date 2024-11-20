@@ -15,23 +15,12 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.task;
+package cn.edu.tsinghua.iginx.engine.physical.task.utils;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ConstantPool;
-import cn.edu.tsinghua.iginx.engine.physical.task.utils.TaskResultMap;
-import org.apache.arrow.memory.BufferAllocator;
+import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 
-public interface TaskContext {
+public interface PhysicalCloseable extends AutoCloseable {
 
-  int getBatchRowCount();
-
-  BufferAllocator getAllocator();
-
-  ConstantPool getConstantPool();
-
-  TaskResultMap getTaskResultMap();
-
-  void addWarningMessage(String message);
-
-  int groupByInitialGroupBufferCapacity();
+  @Override
+  void close() throws PhysicalException;
 }

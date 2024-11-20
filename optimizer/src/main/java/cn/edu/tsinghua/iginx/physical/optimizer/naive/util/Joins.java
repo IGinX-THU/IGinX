@@ -20,10 +20,21 @@ package cn.edu.tsinghua.iginx.physical.optimizer.naive.util;
 import cn.edu.tsinghua.iginx.engine.shared.operator.InnerJoin;
 import cn.edu.tsinghua.iginx.engine.shared.operator.MarkJoin;
 import cn.edu.tsinghua.iginx.engine.shared.operator.OuterJoin;
+import cn.edu.tsinghua.iginx.engine.shared.operator.SingleJoin;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OuterJoinType;
 
 public class Joins {
   private Joins() {}
+
+  public static SingleJoin reverse(SingleJoin join) {
+    return new SingleJoin(
+        join.getSourceB(),
+        join.getSourceA(),
+        join.getFilter(),
+        join.getTagFilter(),
+        join.getJoinAlgType(),
+        join.getExtraJoinPrefix());
+  }
 
   public static MarkJoin reverse(MarkJoin join) {
     return new MarkJoin(

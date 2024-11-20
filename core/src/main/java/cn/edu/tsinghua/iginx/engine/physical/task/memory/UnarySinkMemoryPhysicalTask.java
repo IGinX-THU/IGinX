@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.task;
+package cn.edu.tsinghua.iginx.engine.physical.task.memory;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
@@ -23,6 +23,7 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.Unary
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateful.StatefulUnaryExecutor;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.util.Batch;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.StopWatch;
+import cn.edu.tsinghua.iginx.engine.physical.task.PhysicalTask;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
@@ -31,12 +32,12 @@ import java.util.List;
 import java.util.Objects;
 import javax.annotation.WillCloseWhenClosed;
 
-public class UnarySinkMemoryPhysicalTask extends UnaryMemoryPhysicalTask {
+public class UnarySinkMemoryPhysicalTask extends UnaryMemoryPhysicalTask<BatchStream, BatchStream> {
 
   private final UnaryExecutorFactory<? extends StatefulUnaryExecutor> executorFactory;
 
   public UnarySinkMemoryPhysicalTask(
-      PhysicalTask parentTask,
+      PhysicalTask<BatchStream> parentTask,
       List<Operator> operators,
       RequestContext context,
       UnaryExecutorFactory<? extends StatefulUnaryExecutor> executorFactory) {
@@ -45,6 +46,11 @@ public class UnarySinkMemoryPhysicalTask extends UnaryMemoryPhysicalTask {
   }
 
   private String info;
+
+  @Override
+  public Class<BatchStream> getResultClass() {
+    return BatchStream.class;
+  }
 
   @Override
   public String getInfo() {
@@ -62,13 +68,7 @@ public class UnarySinkMemoryPhysicalTask extends UnaryMemoryPhysicalTask {
         outputSchema = BatchSchema.of(executor.getOutputSchema());
         info = executor.toString();
       }
-      while (executor.needConsume()) {
-        try (Batch batch = previous.getNext()) {
-          try (StopWatch watch = new StopWatch(getMetrics()::accumulateCpuTime)) {
-            executor.consume(batch);
-          }
-        }
-      }
+      fetchAndConsume(executor, previous);
     } catch (ComputeException e) {
       try (BatchStream previousHolder = previous;
           StatefulUnaryExecutor executorHolder = executor) {
@@ -76,6 +76,23 @@ public class UnarySinkMemoryPhysicalTask extends UnaryMemoryPhysicalTask {
       }
     }
     return new UnarySinkBatchStream(previous, outputSchema, executor);
+  }
+
+  private void fetchAndConsume(StatefulUnaryExecutor executor, BatchStream source)
+      throws PhysicalException {
+    while (executor.needConsume()) {
+      if (source.hasNext()) {
+        try (Batch batch = source.getNext()) {
+          try (StopWatch watch = new StopWatch(getMetrics()::accumulateCpuTime)) {
+            executor.consume(batch);
+          }
+        }
+      } else {
+        try (StopWatch watch = new StopWatch(getMetrics()::accumulateCpuTime)) {
+          executor.consumeEnd();
+        }
+      }
+    }
   }
 
   private class UnarySinkBatchStream implements BatchStream {
@@ -99,14 +116,15 @@ public class UnarySinkMemoryPhysicalTask extends UnaryMemoryPhysicalTask {
     }
 
     @Override
-    public Batch getNext() throws PhysicalException {
-      while (executor.needConsume()) {
-        try (Batch batch = source.getNext()) {
-          try (StopWatch watch = new StopWatch(getMetrics()::accumulateCpuTime)) {
-            executor.consume(batch);
-          }
-        }
+    public boolean hasNext() throws PhysicalException {
+      if (!executor.canProduce()) {
+        fetchAndConsume(executor, source);
       }
+      return executor.canProduce();
+    }
+
+    @Override
+    public Batch getNext() throws PhysicalException {
       try (StopWatch watch = new StopWatch(getMetrics()::accumulateCpuTime)) {
         Batch produced = executor.produce();
         getMetrics().accumulateAffectRows(produced.getRowCount());

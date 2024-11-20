@@ -251,7 +251,7 @@ public class ValueVectors {
         }
       }
       dest.setValueCount(destCount);
-      return ValueVectors.transfer(allocator, dest);
+      return ValueVectors.transfer(allocator, dest, indices.getName());
     }
   }
 }

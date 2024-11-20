@@ -79,7 +79,7 @@ public class AggregateUnaryExecutor extends StatefulUnaryExecutor {
   }
 
   @Override
-  protected void consumeEnd() throws ComputeException {
+  protected void consumeEndUnchecked() throws ComputeException {
     List<List<Accumulator.State>> statesColumns =
         this.states.stream().map(Collections::singletonList).collect(Collectors.toList());
     try (VectorSchemaRoot root = ExpressionAccumulators.evaluateSafe(accumulators, statesColumns)) {
