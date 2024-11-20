@@ -893,11 +893,13 @@ public class StatementExecutor {
 
     Result result = new Result(RpcUtils.SUCCESS);
     // TODO: refactor this part
-    throw new UnsupportedOperationException("Not implemented yet");
-    //    result.setPaths(paths);
-    //    result.setTagsList(tagsList);
-    //    result.setDataTypes(types);
-    //    ctx.setResult(result);
+    //    throw new UnsupportedOperationException("Not implemented yet");
+    result.setPaths(paths);
+    result.setTagsList(tagsList);
+    result.setDataTypes(types);
+    ctx.setResult(result);
+
+    stream.close();
   }
 
   private void parseOldTagsFromHeader(Header header, InsertStatement insertStatement)

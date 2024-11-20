@@ -87,10 +87,10 @@ public class SessionExecuteSqlResult {
         break;
       case ShowColumns:
         // TODO: refactor this part
-        throw new UnsupportedOperationException("Not implemented yet");
-        // this.paths = resp.getPaths();
-        // this.dataTypeList = resp.getDataTypeList();
-        // break;
+        //        throw new UnsupportedOperationException("Not implemented yet");
+        this.paths = resp.getPaths();
+        this.dataTypeList = resp.getDataTypeList();
+        break;
       case ShowClusterInfo:
         this.iginxInfos = resp.getIginxInfos();
         this.storageEngineInfos = resp.getStorageEngineInfos();

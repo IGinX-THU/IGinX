@@ -292,9 +292,10 @@ public class IginxClient {
       return OperationResult.STOP;
     }
     long startTime = System.currentTimeMillis();
-    // TODO: fetchsize待处理
-    //    if (isQuery(trimedStatement)) { processSqlWithStream(statement); }
-    if (isLoadDataFromCsv(trimedStatement)) {
+    //     TODO: fetchsize待处理
+    if (isQuery(trimedStatement)) {
+      processSqlWithStream(statement);
+    } else if (isLoadDataFromCsv(trimedStatement)) {
       processLoadCsv(statement);
     } else if (isSetTimeUnit(trimedStatement)) {
       processSetTimeUnit(statement);

@@ -457,7 +457,7 @@ public class ByteUtils {
       case BINARY:
         buffer = ByteBuffer.allocate(4 + ((byte[]) value).length);
         buffer.putInt(((byte[]) value).length);
-        buffer.put(((byte[]) value));
+        buffer.put((byte[]) value);
         break;
       default:
         throw new UnsupportedOperationException(dataType.toString());
@@ -509,6 +509,46 @@ public class ByteUtils {
         bytes = new byte[length];
         buffer.get(bytes, 0, length);
         return bytes;
+      default:
+        throw new UnsupportedOperationException(dataType.toString());
+    }
+  }
+
+  public static byte[] getBytesFromValueByDataType(Object value, DataType dataType) {
+    byte[] bytes;
+    switch (dataType) {
+      case BOOLEAN:
+        bytes = new byte[1];
+        bytes[0] = (byte) ((boolean) value ? 0x01 : 0x00);
+        return bytes;
+      case INTEGER:
+        bytes = new byte[4];
+        for (int i = 0; i < 4; i++) {
+          bytes[i] = (byte) (((int) value >>> 8 * i) & 0xff);
+        }
+        return bytes;
+      case LONG:
+        bytes = new byte[8];
+        for (int i = 0; i < 8; i++) {
+          bytes[i] = (byte) (((long) value >>> 8 * i) & 0xff);
+        }
+        return bytes;
+      case FLOAT:
+        int valueInt = Float.floatToIntBits((float) value);
+        bytes = new byte[4];
+        for (int i = 0; i < 4; i++) {
+          bytes[i] = (byte) ((valueInt >>> 8 * i) & 0xff);
+        }
+        return bytes;
+      case DOUBLE:
+        long valueLong = Double.doubleToRawLongBits((double) value);
+        bytes = new byte[8];
+        for (int i = 0; i < 8; i++) {
+          bytes[i] = (byte) ((valueLong >>> 8 * i) & 0xff);
+        }
+        return bytes;
+      case BINARY:
+        return (byte[]) value;
       default:
         throw new UnsupportedOperationException(dataType.toString());
     }
@@ -574,6 +614,8 @@ public class ByteUtils {
     private final List<DataType> dataTypeList;
     private final List<Map<String, String>> tagsList;
     private final List<List<Object>> values;
+    private final int rowSize;
+    private final int colSize;
 
     public DataSet(
         List<Long> keys,
@@ -586,6 +628,8 @@ public class ByteUtils {
       this.dataTypeList = dataTypeList;
       this.tagsList = tagsList;
       this.values = values;
+      this.rowSize = values.size();
+      this.colSize = dataTypeList.size();
     }
 
     public long[] getKeys() {
@@ -606,6 +650,14 @@ public class ByteUtils {
 
     public List<List<Object>> getValues() {
       return values;
+    }
+
+    public int getRowSize() {
+      return rowSize;
+    }
+
+    public int getColSize() {
+      return colSize;
     }
   }
 }

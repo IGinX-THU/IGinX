@@ -351,30 +351,32 @@ struct ExecuteSqlResp {
     1: required Status status
     2: required SqlType type
     3: optional list<binary> queryArrowData
-    4: optional i32 replicaNum
-    5: optional i64 pointsNum;
-    6: optional AggregateType aggregateType
-    7: optional string parseErrorMsg
-    8: optional i32 limit
-    9: optional i32 offset
-    10: optional string orderByPath
-    11: optional bool ascending
-    12: optional list<IginxInfo> iginxInfos
-    13: optional list<StorageEngineInfo> storageEngineInfos
-    14: optional list<MetaStorageInfo>  metaStorageInfos
-    15: optional LocalMetaStorageInfo localMetaStorageInfo
-    16: optional list<RegisterTaskInfo> registerTaskInfos
-    17: optional i64 jobId
-    18: optional JobState jobState
-    19: optional list<i64> jobIdList
-    20: optional map<string, string> configs
-    21: optional string loadCsvPath
-    22: optional list<i64> sessionIDList
-    23: optional map<string, bool> rules
-    24: optional string UDFModulePath
-    25: optional list<string> usernames
-    26: optional list<UserType> userTypes
-    27: optional list<set<AuthType>> auths
+    4: optional list<string> paths
+    5: optional list<DataType> dataTypeList
+    6: optional i32 replicaNum
+    7: optional i64 pointsNum;
+    8: optional AggregateType aggregateType
+    9: optional string parseErrorMsg
+    10: optional i32 limit
+    11: optional i32 offset
+    12: optional string orderByPath
+    13: optional bool ascending
+    14: optional list<IginxInfo> iginxInfos
+    15: optional list<StorageEngineInfo> storageEngineInfos
+    16: optional list<MetaStorageInfo>  metaStorageInfos
+    17: optional LocalMetaStorageInfo localMetaStorageInfo
+    18: optional list<RegisterTaskInfo> registerTaskInfos
+    19: optional i64 jobId
+    20: optional JobState jobState
+    21: optional list<i64> jobIdList
+    22: optional map<string, string> configs
+    23: optional string loadCsvPath
+    24: optional list<i64> sessionIDList
+    25: optional map<string, bool> rules
+    26: optional string UDFModulePath
+    27: optional list<string> usernames
+    28: optional list<UserType> userTypes
+    29: optional list<set<AuthType>> auths
 }
 
 struct UpdateUserReq {
@@ -463,6 +465,7 @@ struct ExecuteStatementResp {
     8: optional string warningMsg;
     9: optional string exportStreamDir
     10: optional ExportCSV exportCSV
+    11: optional list<binary> queryArrowData
 }
 
 struct ExportCSV {
@@ -496,6 +499,7 @@ struct FetchResultsResp {
     1: required Status status
     2: required bool hasMoreResults
     3: optional QueryDataSetV2 queryDataSet
+    4: optional list<binary> queryArrowData
 }
 
 struct LoadCSVReq {

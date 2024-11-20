@@ -19,20 +19,24 @@
 package cn.edu.tsinghua.iginx.engine.shared;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.VectorSchemaRoots;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.util.Batch;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
+import cn.edu.tsinghua.iginx.engine.shared.file.CSVFile;
 import cn.edu.tsinghua.iginx.engine.shared.file.write.ExportCsv;
 import cn.edu.tsinghua.iginx.exception.StatusCode;
 import cn.edu.tsinghua.iginx.thrift.*;
-import cn.edu.tsinghua.iginx.utils.Bitmap;
-import cn.edu.tsinghua.iginx.utils.ByteUtils;
 import cn.edu.tsinghua.iginx.utils.RpcUtils;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.*;
 import lombok.Data;
+import org.apache.arrow.memory.BufferAllocator;
+import org.apache.arrow.vector.VectorSchemaRoot;
+import org.apache.arrow.vector.ipc.ArrowStreamWriter;
+import org.apache.arrow.vector.util.VectorSchemaRootAppender;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,7 +48,12 @@ public class Result {
   private Status status;
   private List<ByteBuffer> arrowData;
 
+  private List<String> paths;
+  private List<Map<String, String>> tagsList;
+  private List<DataType> dataTypes;
+
   private BatchStream batchStream;
+  private static VectorSchemaRoot streamCache;
 
   private SqlType sqlType;
   private Long pointsNum;
@@ -117,11 +126,11 @@ public class Result {
   public ShowColumnsResp getShowColumnsResp() {
     ShowColumnsResp resp = new ShowColumnsResp(status);
     // TODO: refactor this part
-    throw new UnsupportedOperationException("Not implemented yet");
-    //    resp.setPaths(paths);
-    //    resp.setTagsList(tagsList);
-    //    resp.setDataTypeList(dataTypes);
-    //    return resp;
+    //    throw new UnsupportedOperationException("Not implemented yet");
+    resp.setPaths(paths);
+    resp.setTagsList(tagsList);
+    resp.setDataTypeList(dataTypes);
+    return resp;
   }
 
   public ExecuteSqlResp getExecuteSqlResp() {
@@ -134,6 +143,9 @@ public class Result {
     resp.setReplicaNum(replicaNum);
     resp.setPointsNum(pointsNum);
     resp.setQueryArrowData(arrowData);
+
+    resp.setPaths(paths);
+    resp.setDataTypeList(dataTypes);
 
     resp.setIginxInfos(iginxInfos);
     resp.setStorageEngineInfos(storageEngineInfos);
@@ -157,7 +169,7 @@ public class Result {
     return resp;
   }
 
-  public ExecuteStatementResp getExecuteStatementResp(int fetchSize) {
+  public ExecuteStatementResp getExecuteStatementResp(BufferAllocator allocator, int fetchSize) {
     ExecuteStatementResp resp = new ExecuteStatementResp(status, sqlType);
     resp.setWarningMsg(status.getMessage());
     if (status != RpcUtils.SUCCESS && status.code != StatusCode.PARTIAL_SUCCESS.getStatusCode()) {
@@ -166,7 +178,31 @@ public class Result {
     resp.setQueryId(queryId);
 
     // TODO: need to be refactored
-    throw new UnsupportedOperationException("Not implemented yet");
+    //    throw new UnsupportedOperationException("Not implemented yet");
+
+    try {
+      resp.setQueryArrowData(getArrowDataFromStream(allocator, fetchSize));
+      // OUTFILE AS STREAM
+      resp.setExportStreamDir(exportByteStreamDir);
+
+      // OUTFILE AS CSV
+      if (exportCsv != null) {
+        CSVFile csvFile = exportCsv.getCsvFile();
+        resp.setExportCSV(
+            new ExportCSV(
+                exportCsv.getFilepath(),
+                exportCsv.isExportHeader(),
+                csvFile.getDelimiter(),
+                csvFile.isOptionallyQuote(),
+                (short) csvFile.getQuote(),
+                (short) csvFile.getEscaped(),
+                csvFile.getRecordSeparator()));
+      }
+    } catch (IOException | PhysicalException e) {
+      LOGGER.error("unexpected error when load row stream: ", e);
+      resp.setStatus(RpcUtils.FAILURE);
+    }
+
     //  try {
     //      List<ByteBuffer> valuesList = new ArrayList<>();
     //      List<ByteBuffer> bitmapList = new ArrayList<>();
@@ -221,6 +257,7 @@ public class Result {
     //      resp.setStatus(RpcUtils.FAILURE);
     //    }
     // return resp;
+    return resp;
   }
 
   public LoadCSVResp getLoadCSVResp() {
@@ -245,55 +282,118 @@ public class Result {
     return resp;
   }
 
-  public FetchResultsResp fetch(int fetchSize) {
+  public FetchResultsResp fetch(BufferAllocator allocator, int fetchSize) {
     FetchResultsResp resp = new FetchResultsResp(status, false);
 
     if (status != RpcUtils.SUCCESS && status.code != StatusCode.PARTIAL_SUCCESS.getStatusCode()) {
       return resp;
     }
+
     try {
-      List<DataType> types = new ArrayList<>();
-
-      Header header = resultStream.getHeader();
-
-      if (header.hasKey()) {
-        types.add(Field.KEY.getType());
-      }
-
-      resultStream.getHeader().getFields().forEach(field -> types.add(field.getType()));
-
-      List<ByteBuffer> valuesList = new ArrayList<>();
-      List<ByteBuffer> bitmapList = new ArrayList<>();
-
-      int cnt = 0;
-      boolean hasKey = resultStream.getHeader().hasKey();
-      while (resultStream.hasNext() && cnt < fetchSize) {
-        Row row = resultStream.next();
-
-        Object[] rawValues = row.getValues();
-        Object[] rowValues = rawValues;
-        if (hasKey) {
-          rowValues = new Object[rawValues.length + 1];
-          rowValues[0] = row.getKey();
-          System.arraycopy(rawValues, 0, rowValues, 1, rawValues.length);
-        }
-        valuesList.add(ByteUtils.getRowByteBuffer(rowValues, types));
-
-        Bitmap bitmap = new Bitmap(rowValues.length);
-        for (int i = 0; i < rowValues.length; i++) {
-          if (rowValues[i] != null) {
-            bitmap.mark(i);
-          }
-        }
-        bitmapList.add(ByteBuffer.wrap(bitmap.getBytes()));
-        cnt++;
-      }
-      resp.setHasMoreResults(resultStream.hasNext());
-      resp.setQueryDataSet(new QueryDataSetV2(valuesList, bitmapList));
-    } catch (PhysicalException e) {
+      // TODO: setHasMoreResults
+      resp.setQueryArrowData(getArrowDataFromStream(allocator, fetchSize));
+    } catch (IOException | PhysicalException e) {
       LOGGER.error("unexpected error when load row stream: ", e);
       resp.setStatus(RpcUtils.FAILURE);
     }
+
+    //    try {
+    //      List<DataType> types = new ArrayList<>();
+    //
+    //      Header header = resultStream.getHeader();
+    //
+    //      if (header.hasKey()) {
+    //        types.add(Field.KEY.getType());
+    //      }
+    //
+    //      resultStream.getHeader().getFields().forEach(field -> types.add(field.getType()));
+    //
+    //      List<ByteBuffer> valuesList = new ArrayList<>();
+    //      List<ByteBuffer> bitmapList = new ArrayList<>();
+    //
+    //      int cnt = 0;
+    //      boolean hasKey = resultStream.getHeader().hasKey();
+    //      while (resultStream.hasNext() && cnt < fetchSize) {
+    //        Row row = resultStream.next();
+    //
+    //        Object[] rawValues = row.getValues();
+    //        Object[] rowValues = rawValues;
+    //        if (hasKey) {
+    //          rowValues = new Object[rawValues.length + 1];
+    //          rowValues[0] = row.getKey();
+    //          System.arraycopy(rawValues, 0, rowValues, 1, rawValues.length);
+    //        }
+    //        valuesList.add(ByteUtils.getRowByteBuffer(rowValues, types));
+    //
+    //        Bitmap bitmap = new Bitmap(rowValues.length);
+    //        for (int i = 0; i < rowValues.length; i++) {
+    //          if (rowValues[i] != null) {
+    //            bitmap.mark(i);
+    //          }
+    //        }
+    //        bitmapList.add(ByteBuffer.wrap(bitmap.getBytes()));
+    //        cnt++;
+    //      }
+    //      resp.setHasMoreResults(resultStream.hasNext());
+    //      resp.setQueryDataSet(new QueryDataSetV2(valuesList, bitmapList));
+    //    } catch (PhysicalException e) {
+    //      LOGGER.error("unexpected error when load row stream: ", e);
+    //      resp.setStatus(RpcUtils.FAILURE);
+    //    }
     return resp;
+  }
+
+  private List<ByteBuffer> getArrowDataFromStream(BufferAllocator allocator, int fetchSize)
+      throws PhysicalException, IOException {
+    List<ByteBuffer> dataList = new ArrayList<>();
+    try {
+      if (streamCache == null) {
+        // transfer后，原root可以关闭
+        try (Batch batch = batchStream.getNext()) {
+          streamCache = VectorSchemaRoots.transfer(allocator, batch.getData());
+        }
+      }
+      int count = streamCache.getRowCount();
+      while (count < fetchSize) {
+        try (Batch batch = batchStream.getNext()) {
+          if (batch.getRowCount() == 0) {
+            break;
+          }
+          VectorSchemaRoots.append(streamCache, batch.getData());
+          count += batch.getRowCount();
+        }
+      }
+
+      VectorSchemaRoot output, rest;
+      if (count <= fetchSize) {
+        output = streamCache;
+        rest = null;
+      } else {
+        // 深拷贝，分为本次需要的数据部分和留待下次fetch的数据部分
+        output = VectorSchemaRoot.create(batchStream.getSchema().raw(), allocator);
+        VectorSchemaRootAppender.append(output, streamCache.slice(fetchSize));
+        rest = VectorSchemaRoot.create(batchStream.getSchema().raw(), allocator);
+        VectorSchemaRootAppender.append(
+            rest, streamCache.slice(fetchSize, streamCache.getRowCount() - fetchSize));
+      }
+
+      try (ByteArrayOutputStream out = new ByteArrayOutputStream();
+          ArrowStreamWriter writer = new ArrowStreamWriter(output, null, out)) {
+        writer.start();
+        writer.writeBatch();
+        writer.close();
+        dataList.add(ByteBuffer.wrap(out.toByteArray()));
+      }
+
+      streamCache = rest;
+
+    } catch (PhysicalException e) {
+      LOGGER.error("Failed to get data from stream", e);
+      throw e;
+    } catch (IOException e) {
+      LOGGER.error("Failed to write byte stream", e);
+      throw e;
+    }
+    return dataList;
   }
 }

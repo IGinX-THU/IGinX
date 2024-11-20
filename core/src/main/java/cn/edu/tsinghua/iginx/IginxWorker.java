@@ -773,7 +773,7 @@ public class IginxWorker implements IService.Iface {
     RequestContext ctx = contextBuilder.build(req);
     executor.execute(ctx);
     queryManager.registerQuery(ctx.getId(), ctx);
-    return ctx.getResult().getExecuteStatementResp(req.getFetchSize());
+    return ctx.getResult().getExecuteStatementResp(ctx.getAllocator(), req.getFetchSize());
   }
 
   @Override
@@ -782,7 +782,7 @@ public class IginxWorker implements IService.Iface {
     if (context == null) {
       return new FetchResultsResp(RpcUtils.SUCCESS, false);
     }
-    return context.getResult().fetch(req.getFetchSize());
+    return context.getResult().fetch(context.getAllocator(), req.getFetchSize());
   }
 
   @Override
