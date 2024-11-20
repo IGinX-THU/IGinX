@@ -154,44 +154,67 @@ public class MilvusStorage implements IStorage {
       Map<String, List<JsonObject>> tableToRowEntries = new HashMap<>(); // <表名, 插入数据>
       int cnt = 0;
       Set fields = new HashSet();
+      int[] rowIndex = new int[data.getPathNum()];
+      // 获取每个字段的属性
+      String[] collectionNames = new String[data.getPathNum()];
+      String[] columnNames = new String[data.getPathNum()];
+      DataType[] dataTypes = new DataType[data.getPathNum()];
+      for (int j = 0; j < data.getPathNum(); j++) {
+        String path = data.getPath(j);
+        DataType dataType = data.getDataType(j);
+        Map<String, String> tags = data.getTags(j);
+        path = PathUtils.getPathSystem(client, pathSystem).findPath(path, tags);
+        String collectionName = path.substring(0, path.lastIndexOf("."));
+        String columnName = path.substring(path.lastIndexOf(".") + 1);
+        fields.add(columnName);
+        collectionNames[j] = collectionName;
+        columnNames[j] = columnName;
+        dataTypes[j] = dataType;
+      }
       while (cnt < data.getKeySize()) {
         int size = Math.min(data.getKeySize() - cnt, batchSize);
-        List ids = new ArrayList<>();
+        Set idSet = new HashSet();
         for (int i = cnt; i < cnt + size; i++) {
           Map<String, JsonObject> tableToRowEntry = new HashMap<>();
+          int colIndex = 0;
           for (int j = 0; j < data.getPathNum(); j++) {
-            String path = data.getPath(j);
-            DataType dataType = data.getDataType(j);
-            Map<String, String> tags = data.getTags(j);
-            path = PathUtils.getPathSystem(client, pathSystem).findPath(path, tags);
-            String collectionName = path.substring(0, path.lastIndexOf("."));
-            String columnName = path.substring(path.lastIndexOf(".") + 1);
-            fields.add(columnName);
-            JsonObject row = tableToRowEntry.computeIfAbsent(collectionName, k -> new JsonObject());
+            JsonObject row =
+                tableToRowEntry.computeIfAbsent(collectionNames[j], k -> new JsonObject());
             Object obj;
             if (data instanceof RowDataView) {
-              obj = data.getValue(i, j);
+              if (data.getBitmapView(i).get(j)) {
+                obj = data.getValue(i, colIndex++);
+              } else {
+                obj = null;
+              }
             } else {
-              obj = data.getValue(j, i);
+              if (data.getBitmapView(j).get(i)) {
+                obj = data.getValue(j, rowIndex[j]++);
+              } else {
+                obj = null;
+              }
             }
-            boolean added = MilvusClientUtils.addProperty(row, columnName, obj, dataType);
-            if (!added) {
-              tableToRowEntry.remove(collectionName);
-            } else {
-              ids.add(data.getKey(i));
-              row.addProperty(MILVUS_PRIMARY_FIELD_NAME, data.getKey(i));
-              row.add(
-                  MILVUS_VECTOR_FIELD_NAME,
-                  new Gson().toJsonTree(CommonUtils.generateFloatVector(DEFAULT_DIMENSION)));
+            boolean added = MilvusClientUtils.addProperty(row, columnNames[j], obj, dataTypes[j]);
+            if (added) {
+              idSet.add(data.getKey(i));
+              if (!row.has(MILVUS_PRIMARY_FIELD_NAME)) {
+                row.addProperty(MILVUS_PRIMARY_FIELD_NAME, data.getKey(i));
+                row.add(
+                    MILVUS_VECTOR_FIELD_NAME,
+                    new Gson().toJsonTree(CommonUtils.generateFloatVector(DEFAULT_DIMENSION)));
+              }
             }
           }
           for (Map.Entry<String, JsonObject> entry : tableToRowEntry.entrySet()) {
-            tableToRowEntries
-                .computeIfAbsent(entry.getKey(), k -> new ArrayList<JsonObject>())
-                .add(entry.getValue());
+            if (entry.getValue().size() > 0) {
+              tableToRowEntries
+                  .computeIfAbsent(entry.getKey(), k -> new ArrayList<>())
+                  .add(entry.getValue());
+            }
           }
         }
-
+        List ids = new ArrayList<>();
+        ids.addAll(idSet);
         for (Map.Entry<String, List<JsonObject>> entry : tableToRowEntries.entrySet()) {
           long count =
               MilvusClientUtils.upsert(
@@ -229,34 +252,6 @@ public class MilvusStorage implements IStorage {
                 new KeyFilter(Op.L, keyInterval.getEndKey())));
     return executeProjectWithFilter(project, filter, dataArea);
   }
-
-  //  private boolean filterContainsType(List<FilterType> types, Filter filter) {
-  //    boolean res = false;
-  //    if (types.contains(filter.getType())) {
-  //      return true;
-  //    }
-  //    switch (filter.getType()) {
-  //      case And:
-  //        List<Filter> andChildren = ((AndFilter) filter).getChildren();
-  //        for (Filter child : andChildren) {
-  //          res |= filterContainsType(types, child);
-  //        }
-  //        break;
-  //      case Or:
-  //        List<Filter> orChildren = ((OrFilter) filter).getChildren();
-  //        for (Filter child : orChildren) {
-  //          res |= filterContainsType(types, child);
-  //        }
-  //        break;
-  //      case Not:
-  //        Filter notChild = ((NotFilter) filter).getChild();
-  //        res |= filterContainsType(types, notChild);
-  //        break;
-  //      default:
-  //        break;
-  //    }
-  //    return res;
-  //  }
 
   private TaskExecuteResult executeProjectWithFilter(
       Project project, Filter filter, DataArea dataArea) {
@@ -416,7 +411,6 @@ public class MilvusStorage implements IStorage {
     try (MilvusClient milvusClient = new MilvusClient(meta)) {
       MilvusClientV2 client = milvusClient.getClient();
       DataView dataView = insert.getData();
-      LOGGER.info("executeInsert : {} : {}", databaseName, client);
       if (client == null) {
         return new TaskExecuteResult(
             new PhysicalTaskExecuteFailureException(
