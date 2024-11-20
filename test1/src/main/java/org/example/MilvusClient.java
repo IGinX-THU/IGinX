@@ -99,7 +99,7 @@ public class MilvusClient implements Closeable {
 
 
   public static void main(String[] args) {
-    try(MilvusClient milvusClient = new MilvusClient("grpc","172.25.148.188",19530,null)) {
+    try(MilvusClient milvusClient = new MilvusClient("grpc","192.168.200.47",19530,null)) {
       MilvusClientV2 client = milvusClient.getClient();
       List<String> databases = client.listDatabases().getDatabaseNames();
 
