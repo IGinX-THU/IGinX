@@ -77,22 +77,6 @@ public class MilvusStorage implements IStorage {
   Map<String, PathSystem> pathSystemMap = new ConcurrentHashMap<>();
 
   /**
-   * 获取存储引擎的连接 URL。
-   *
-   * @param meta 存储引擎的元数据。
-   * @return 生成的连接 URL。
-   */
-  protected String getUrl(StorageEngineMeta meta) {
-    Map<String, String> extraParams = meta.getExtraParams();
-    return new StringBuilder(extraParams.getOrDefault(DB_PROTOCOL, DEFAULT_DB_PROTOCOL))
-        .append("://")
-        .append(meta.getIp())
-        .append(":")
-        .append(meta.getPort())
-        .toString();
-  }
-
-  /**
    * 构造函数，用于初始化 MilvusStorage 实例。
    *
    * @param meta 存储引擎的元数据。
@@ -141,21 +125,8 @@ public class MilvusStorage implements IStorage {
     }
 
     for (String collection : collectionToFields.keySet()) {
-      LOGGER.info(
-          "collection: " + collection + " , databaseName: " + storageUnit + " , client:" + client);
       if (!collections.contains(collection)) {
-        // create collection
-        LOGGER.info(
-            "create collection: "
-                + collection
-                + " , databaseName: "
-                + storageUnit
-                + " , client:"
-                + client);
         MilvusClientUtils.createCollection(client, storageUnit, collection, DataType.LONG);
-        //                MilvusClientUtils.createCollection(client, storageUnit, collection,
-        // collectionToFields.get(collection), fieldToType,
-        //                        DataType.LONG);
       }
 
       PathSystem pathSystem =
@@ -409,8 +380,9 @@ public class MilvusStorage implements IStorage {
             String collectionName = entry.getKey();
             Set<String> fields = entry.getValue();
             dropFields(client, collectionName, fields);
-            for (String field: fields) {
-              pathSystem.deletePath(PathUtils.getPathUnescaped(databaseName, collectionName, field));
+            for (String field : fields) {
+              pathSystem.deletePath(
+                  PathUtils.getPathUnescaped(databaseName, collectionName, field));
             }
           }
         }

@@ -645,7 +645,6 @@ public class MilvusClientUtils {
       List<String> patterns,
       PathSystem pathSystem)
       throws InterruptedException, UnsupportedEncodingException {
-    String databaseNameEscaped;
     String collectionNameEscaped;
 
     if (isDummy(databaseName) && !isDummyEscape) {
@@ -673,18 +672,33 @@ public class MilvusClientUtils {
       return new ArrayList<>();
     }
 
-    String primaryFieldName =
-        client
-            .describeCollection(
-                DescribeCollectionReq.builder().collectionName(collectionNameEscaped).build())
-            .getPrimaryFieldName();
+    DescribeCollectionResp describeCollectionResp =
+        client.describeCollection(
+            DescribeCollectionReq.builder().collectionName(collectionNameEscaped).build());
+
+    String primaryFieldName = describeCollectionResp.getPrimaryFieldName();
+    Set<String> deletedFields = new HashSet<>();
+    for (Map.Entry<String, String> entry : describeCollectionResp.getProperties().entrySet()) {
+      if (entry.getKey().startsWith(DYNAMIC_FIELDS_PROPERTIES_PREFIX)) {
+        try {
+          String fieldName = entry.getKey().substring(DYNAMIC_FIELDS_PROPERTIES_PREFIX.length());
+          Map<String, String> map =
+              JsonUtils.jsonToType(entry.getValue(), new TypeToken<Map<String, String>>() {});
+          if (map.containsKey(Constants.KEY_PROPERTY_DELETED)) {
+            deletedFields.add(fieldName);
+            pathSystem.deletePath(
+                PathUtils.getPathUnescaped(databaseName, collectionName, fieldName));
+          }
+        } catch (Exception e) {
+        }
+      }
+    }
 
     List<Pair<Long, Long>> keyRanges = FilterUtils.keyRangesFrom(filter);
     QueryReq.QueryReqBuilder queryReqBuilder =
         QueryReq.builder().collectionName(collectionNameEscaped);
 
     if (isDummy(databaseName) || keyRanges == null || keyRanges.size() < 1) {
-      //            queryReqBuilder.filter("").limit(MILVUS_QUERY_LIMIT);
       queryReqBuilder.filter(primaryFieldName + ">=0");
     } else {
       StringBuilder filterStr = new StringBuilder();
@@ -730,6 +744,9 @@ public class MilvusClientUtils {
 
       for (String key : entity.keySet()) {
         if (key.equals(primaryFieldName)) {
+          continue;
+        }
+        if (deletedFields.contains(key)) {
           continue;
         }
 
