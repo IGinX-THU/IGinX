@@ -66,5 +66,5 @@ public class LimitUnaryExecutor extends StatefulUnaryExecutor {
   }
 
   @Override
-  protected void consumeEnd() throws ComputeException {}
+  protected void consumeEndUnchecked() throws ComputeException {}
 }

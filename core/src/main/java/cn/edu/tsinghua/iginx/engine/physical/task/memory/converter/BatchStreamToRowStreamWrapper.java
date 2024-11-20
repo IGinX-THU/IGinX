@@ -100,6 +100,9 @@ public class BatchStreamToRowStreamWrapper implements RowStream {
   }
 
   private void fetchNextBatch() throws PhysicalException {
+    if (!previous.hasNext()) {
+      return;
+    }
     try (Batch arrowBatch = previous.getNext()) {
       try (StopWatch watch = new StopWatch(taskMetrics::accumulateCpuTime)) {
         List<Row> rows = toRows(arrowBatch);

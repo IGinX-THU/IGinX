@@ -29,6 +29,7 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.BinaryOperator;
 import java.util.Collections;
+import java.util.NoSuchElementException;
 
 public class BinarySinkMemoryPhysicalTask
     extends BinaryMemoryPhysicalTask<BatchStream, BatchStream, BatchStream> {
@@ -100,8 +101,19 @@ public class BinarySinkMemoryPhysicalTask
     }
 
     @Override
-    public Batch getNext() throws PhysicalException {
+    public boolean hasNext() throws PhysicalException {
+      if (executor.canProduce()) {
+        return true;
+      }
       fetchAndConsume(executor, leftSource, rightSource);
+      return executor.canProduce();
+    }
+
+    @Override
+    public Batch getNext() throws PhysicalException {
+      if (!hasNext()) {
+        throw new NoSuchElementException();
+      }
       try (StopWatch watch = new StopWatch(getMetrics()::accumulateCpuTime)) {
         Batch produced = executor.produce();
         getMetrics().accumulateAffectRows(produced.getRowCount());
@@ -125,16 +137,28 @@ public class BinarySinkMemoryPhysicalTask
       throws PhysicalException {
     while (executor.needConsumeLeft() || executor.needConsumeRight()) {
       if (executor.needConsumeLeft()) {
-        try (Batch leftBatch = leftSource.getNext()) {
+        if (leftSource.hasNext()) {
+          try (Batch leftBatch = leftSource.getNext()) {
+            try (StopWatch watch = new StopWatch(getMetrics()::accumulateCpuTime)) {
+              executor.consumeLeft(leftBatch);
+            }
+          }
+        } else {
           try (StopWatch watch = new StopWatch(getMetrics()::accumulateCpuTime)) {
-            executor.consumeLeft(leftBatch);
+            executor.consumeLeftEnd();
           }
         }
       }
       if (executor.needConsumeRight()) {
-        try (Batch rightBatch = rightSource.getNext()) {
+        if (rightSource.hasNext()) {
+          try (Batch rightBatch = rightSource.getNext()) {
+            try (StopWatch watch = new StopWatch(getMetrics()::accumulateCpuTime)) {
+              executor.consumeRight(rightBatch);
+            }
+          }
+        } else {
           try (StopWatch watch = new StopWatch(getMetrics()::accumulateCpuTime)) {
-            executor.consumeRight(rightBatch);
+            executor.consumeRightEnd();
           }
         }
       }

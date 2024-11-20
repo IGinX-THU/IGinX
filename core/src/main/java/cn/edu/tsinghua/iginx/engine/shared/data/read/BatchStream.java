@@ -20,6 +20,7 @@ package cn.edu.tsinghua.iginx.engine.shared.data.read;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.util.Batch;
 import cn.edu.tsinghua.iginx.engine.physical.task.utils.PhysicalCloseable;
+import java.util.NoSuchElementException;
 
 public interface BatchStream extends PhysicalCloseable {
 
@@ -33,11 +34,20 @@ public interface BatchStream extends PhysicalCloseable {
   BatchSchema getSchema() throws PhysicalException;
 
   /**
+   * Check if there is more batch in the stream.
+   *
+   * @return true if there is more batch in the stream, false otherwise
+   * @throws PhysicalException if an error occurs when checking if there is more batch
+   */
+  boolean hasNext() throws PhysicalException;
+
+  /**
    * Get the next batch in the stream. The batch is immutable, the caller should not modify the
    * batch. The caller should close the batch after using it.
    *
-   * @return the next batch in the stream, empty if and only if the stream is exhausted
+   * @return the next batch in the stream
    * @throws PhysicalException if an error occurs when getting the next batch
+   * @throws NoSuchElementException if there is no more batch
    */
   Batch getNext() throws PhysicalException;
 }

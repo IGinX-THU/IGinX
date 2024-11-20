@@ -99,18 +99,17 @@ public class PipelineMemoryPhysicalTask extends UnaryMemoryPhysicalTask<BatchStr
     }
 
     @Override
+    public boolean hasNext() throws PhysicalException {
+      return source.hasNext();
+    }
+
+    @Override
     public Batch getNext() throws PhysicalException {
-      while (true) {
-        try (Batch sourceNext = source.getNext()) {
-          try (StopWatch watch = new StopWatch(getMetrics()::accumulateCpuTime)) {
-            Batch computed = executor.compute(sourceNext);
-            if (computed.isEmpty() && !sourceNext.isEmpty()) {
-              computed.close();
-              continue;
-            }
-            getMetrics().accumulateAffectRows(computed.getRowCount());
-            return computed;
-          }
+      try (Batch sourceNext = source.getNext()) {
+        try (StopWatch watch = new StopWatch(getMetrics()::accumulateCpuTime)) {
+          Batch computed = executor.compute(sourceNext);
+          getMetrics().accumulateAffectRows(computed.getRowCount());
+          return computed;
         }
       }
     }

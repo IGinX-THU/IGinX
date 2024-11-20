@@ -23,6 +23,7 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.binary.Bina
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.util.Batch;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import java.util.ArrayDeque;
+import java.util.NoSuchElementException;
 import java.util.Queue;
 import org.apache.arrow.util.Preconditions;
 
@@ -60,12 +61,16 @@ public abstract class StatefulBinaryExecutor extends BinaryExecutor {
       throw new IllegalStateException(
           "Executor does not need to consume more data from the left child");
     }
-    if (batch.getRowCount() == 0) {
-      consumeLeftEnd();
-      leftAllConsumed = true;
-    } else {
-      consumeLeftUnchecked(batch);
+    consumeLeftUnchecked(batch);
+  }
+
+  public void consumeLeftEnd() throws ComputeException {
+    if (!needConsumeLeft()) {
+      throw new IllegalStateException(
+          "Executor does not need to consume more data from the left child");
     }
+    leftAllConsumed = true;
+    consumeLeftEndUnchecked();
   }
 
   /**
@@ -80,12 +85,20 @@ public abstract class StatefulBinaryExecutor extends BinaryExecutor {
       throw new IllegalStateException(
           "Executor does not need to consume more data from the right child");
     }
-    if (batch.getRowCount() == 0) {
-      consumeRightEnd();
-      rightAllConsumed = true;
-    } else {
-      consumeRightUnchecked(batch);
+    consumeRightUnchecked(batch);
+  }
+
+  public void consumeRightEnd() throws ComputeException {
+    if (!needConsumeRight()) {
+      throw new IllegalStateException(
+          "Executor does not need to consume more data from the left child");
     }
+    rightAllConsumed = true;
+    consumeRightEndUnchecked();
+  }
+
+  public boolean canProduce() {
+    return !results.isEmpty();
   }
 
   /**
@@ -94,14 +107,8 @@ public abstract class StatefulBinaryExecutor extends BinaryExecutor {
    * @return the result of the computation. Empty if executor has produced all results
    */
   public Batch produce() throws ComputeException {
-    if (results.isEmpty()) {
-      if (needConsumeLeft() || needConsumeRight()) {
-        throw new IllegalStateException(
-            "Executor "
-                + getClass().getSimpleName()
-                + " does not have enough data to produce the result");
-      }
-      return Batch.empty(context.getAllocator(), getOutputSchema());
+    if (!canProduce()) {
+      throw new NoSuchElementException("No more results to produce");
     }
     return results.remove();
   }
@@ -117,9 +124,9 @@ public abstract class StatefulBinaryExecutor extends BinaryExecutor {
 
   protected abstract void consumeLeftUnchecked(Batch batch) throws ComputeException;
 
-  protected abstract void consumeLeftEnd() throws ComputeException;
+  protected abstract void consumeLeftEndUnchecked() throws ComputeException;
 
   protected abstract void consumeRightUnchecked(Batch batch) throws ComputeException;
 
-  protected abstract void consumeRightEnd() throws ComputeException;
+  protected abstract void consumeRightEndUnchecked() throws ComputeException;
 }

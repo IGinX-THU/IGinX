@@ -19,17 +19,14 @@ package cn.edu.tsinghua.iginx.engine.shared.data.read;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.util.Batch;
+import java.util.NoSuchElementException;
 import java.util.Objects;
-import org.apache.arrow.memory.BufferAllocator;
-import org.apache.arrow.vector.VectorSchemaRoot;
 
 class EmptyBatchStream implements BatchStream {
 
-  private final BufferAllocator allocator;
   private final BatchSchema schema;
 
-  public EmptyBatchStream(BufferAllocator allocator, BatchSchema schema) {
-    this.allocator = Objects.requireNonNull(allocator);
+  public EmptyBatchStream(BatchSchema schema) {
     this.schema = Objects.requireNonNull(schema);
   }
 
@@ -39,8 +36,13 @@ class EmptyBatchStream implements BatchStream {
   }
 
   @Override
+  public boolean hasNext() throws PhysicalException {
+    return false;
+  }
+
+  @Override
   public Batch getNext() throws PhysicalException {
-    return Batch.of(VectorSchemaRoot.create(schema.raw(), allocator));
+    throw new NoSuchElementException("EmptyBatchStream has no next batch");
   }
 
   @Override

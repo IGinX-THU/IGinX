@@ -106,7 +106,7 @@ public class HashJoinExecutor extends StatefulBinaryExecutor {
   }
 
   @Override
-  protected void consumeLeftEnd() throws ComputeException {
+  protected void consumeLeftEndUnchecked() throws ComputeException {
     joinHashMap =
         joinHashMapBuilder.build(
             context.getAllocator(),
@@ -126,7 +126,7 @@ public class HashJoinExecutor extends StatefulBinaryExecutor {
   }
 
   @Override
-  protected void consumeRightEnd() throws ComputeException {
+  protected void consumeRightEndUnchecked() throws ComputeException {
     joinHashMap.flush();
   }
 }
