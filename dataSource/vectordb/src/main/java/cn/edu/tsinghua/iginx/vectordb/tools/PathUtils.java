@@ -41,13 +41,6 @@ public class PathUtils {
     return pathSystem;
   }
 
-  //    public static PathSystem getDummyPathSystem() {
-  //        if (dummyPathSystem == null){
-  //            initDummy();
-  //        }
-  //        return dummyPathSystem;
-  //    }
-
   private static void initDatabase(
       MilvusClientV2 client, String databaseName, PathSystem pathSystem)
       throws UnsupportedEncodingException {

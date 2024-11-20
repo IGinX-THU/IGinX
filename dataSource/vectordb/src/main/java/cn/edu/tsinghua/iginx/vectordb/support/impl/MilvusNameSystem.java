@@ -57,6 +57,9 @@ public class MilvusNameSystem implements NameSystem {
    * @throws IllegalArgumentException 如果遇到不允许的字符
    */
   public String escape(String input) throws IllegalArgumentException, UnsupportedEncodingException {
+    if (input.matches("^[_0-9].*")) {
+      input = "_" + input;
+    }
     String encoded = URLEncoder.encode(input, ENCODE);
     StringBuilder sb = new StringBuilder();
     for (char c : encoded.toCharArray()) {
@@ -94,7 +97,11 @@ public class MilvusNameSystem implements NameSystem {
       }
     }
     try {
-      return URLDecoder.decode(sb.toString(), ENCODE);
+      String output = URLDecoder.decode(sb.toString(), ENCODE);
+      if (output.startsWith("_")) {
+        return output.substring(1);
+      }
+      return output;
     } catch (UnsupportedEncodingException e) {
       throw new RuntimeException(e);
     }

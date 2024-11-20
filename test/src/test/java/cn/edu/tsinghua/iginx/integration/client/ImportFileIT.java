@@ -80,6 +80,6 @@ public class ImportFileIT {
             + "| 14|  true| eee| 4.5|   4.0|\n"
             + "+---+------+----+----+------+\n"
             + "Total line number = 5\n";
-    executor.executeAndCompare(query, expected);
+    executor.executeAndCompare(query1, expected1);
   }
 }

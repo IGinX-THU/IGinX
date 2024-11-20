@@ -409,6 +409,9 @@ public class MilvusStorage implements IStorage {
             String collectionName = entry.getKey();
             Set<String> fields = entry.getValue();
             dropFields(client, collectionName, fields);
+            for (String field: fields) {
+              pathSystem.deletePath(PathUtils.getPathUnescaped(databaseName, collectionName, field));
+            }
           }
         }
       } else {
