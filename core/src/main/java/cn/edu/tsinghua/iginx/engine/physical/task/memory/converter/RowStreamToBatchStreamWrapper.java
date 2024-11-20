@@ -22,10 +22,7 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.util.Batch;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.StopWatch;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskMetrics;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.*;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import org.apache.arrow.memory.BufferAllocator;
 
 public class RowStreamToBatchStreamWrapper implements BatchStream {
@@ -62,6 +59,11 @@ public class RowStreamToBatchStreamWrapper implements BatchStream {
     return schemaCache;
   }
 
+  @Override
+  public boolean hasNext() throws PhysicalException {
+    return rowStream.hasNext();
+  }
+
   public static BatchSchema getSchema(Header header) {
     BatchSchema.Builder builder = BatchSchema.builder();
     if (header.hasKey()) {
@@ -84,6 +86,10 @@ public class RowStreamToBatchStreamWrapper implements BatchStream {
     List<Row> rows = new ArrayList<>();
     for (int i = 0; i < batchRowCount && rowStream.hasNext(); i++) {
       rows.add(rowStream.next());
+    }
+
+    if (rows.isEmpty()) {
+      throw new NoSuchElementException();
     }
 
     boolean hasKey = schema.hasKey();

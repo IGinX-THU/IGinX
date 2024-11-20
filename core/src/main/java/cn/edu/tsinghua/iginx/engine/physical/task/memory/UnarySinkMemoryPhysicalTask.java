@@ -68,13 +68,7 @@ public class UnarySinkMemoryPhysicalTask extends UnaryMemoryPhysicalTask<BatchSt
         outputSchema = BatchSchema.of(executor.getOutputSchema());
         info = executor.toString();
       }
-      while (executor.needConsume()) {
-        try (Batch batch = previous.getNext()) {
-          try (StopWatch watch = new StopWatch(getMetrics()::accumulateCpuTime)) {
-            executor.consume(batch);
-          }
-        }
-      }
+      fetchAndConsume(executor, previous);
     } catch (ComputeException e) {
       try (BatchStream previousHolder = previous;
           StatefulUnaryExecutor executorHolder = executor) {
@@ -82,6 +76,23 @@ public class UnarySinkMemoryPhysicalTask extends UnaryMemoryPhysicalTask<BatchSt
       }
     }
     return new UnarySinkBatchStream(previous, outputSchema, executor);
+  }
+
+  private void fetchAndConsume(StatefulUnaryExecutor executor, BatchStream source)
+      throws PhysicalException {
+    while (executor.needConsume()) {
+      if (source.hasNext()) {
+        try (Batch batch = source.getNext()) {
+          try (StopWatch watch = new StopWatch(getMetrics()::accumulateCpuTime)) {
+            executor.consume(batch);
+          }
+        }
+      } else {
+        try (StopWatch watch = new StopWatch(getMetrics()::accumulateCpuTime)) {
+          executor.consumeEnd();
+        }
+      }
+    }
   }
 
   private class UnarySinkBatchStream implements BatchStream {
@@ -105,14 +116,15 @@ public class UnarySinkMemoryPhysicalTask extends UnaryMemoryPhysicalTask<BatchSt
     }
 
     @Override
-    public Batch getNext() throws PhysicalException {
-      while (executor.needConsume()) {
-        try (Batch batch = source.getNext()) {
-          try (StopWatch watch = new StopWatch(getMetrics()::accumulateCpuTime)) {
-            executor.consume(batch);
-          }
-        }
+    public boolean hasNext() throws PhysicalException {
+      if (!executor.canProduce()) {
+        fetchAndConsume(executor, source);
       }
+      return executor.canProduce();
+    }
+
+    @Override
+    public Batch getNext() throws PhysicalException {
       try (StopWatch watch = new StopWatch(getMetrics()::accumulateCpuTime)) {
         Batch produced = executor.produce();
         getMetrics().accumulateAffectRows(produced.getRowCount());

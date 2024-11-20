@@ -22,6 +22,7 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorCon
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutor;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.util.Batch;
 import java.util.ArrayDeque;
+import java.util.NoSuchElementException;
 import java.util.Queue;
 import org.apache.arrow.util.Preconditions;
 import org.apache.arrow.vector.types.pojo.Schema;
@@ -67,12 +68,19 @@ public abstract class StatefulUnaryExecutor extends UnaryExecutor {
     if (!needConsume()) {
       throw new IllegalStateException("Executor does not need to consume more data");
     }
-    if (batch.getRowCount() == 0) {
-      allConsumed = true;
-      consumeEnd();
-    } else {
-      consumeUnchecked(batch);
+    consumeUnchecked(batch);
+  }
+
+  public void consumeEnd() throws ComputeException {
+    if (!needConsume()) {
+      throw new IllegalStateException("Executor does not need to consume more data");
     }
+    allConsumed = true;
+    consumeEndUnchecked();
+  }
+
+  public boolean canProduce() {
+    return !results.isEmpty();
   }
 
   /**
@@ -82,14 +90,8 @@ public abstract class StatefulUnaryExecutor extends UnaryExecutor {
    * @throws ComputeException if an error occurs during consumption
    */
   public Batch produce() throws ComputeException {
-    if (results.isEmpty()) {
-      if (needConsume()) {
-        throw new IllegalStateException(
-            "Executor "
-                + getClass().getSimpleName()
-                + " does not have enough data to produce the result");
-      }
-      return Batch.empty(context.getAllocator(), getOutputSchema());
+    if (!canProduce()) {
+      throw new NoSuchElementException("No more results to produce");
     }
     return results.remove();
   }
@@ -104,5 +106,5 @@ public abstract class StatefulUnaryExecutor extends UnaryExecutor {
 
   protected abstract void consumeUnchecked(Batch batch) throws ComputeException;
 
-  protected abstract void consumeEnd() throws ComputeException;
+  protected abstract void consumeEndUnchecked() throws ComputeException;
 }

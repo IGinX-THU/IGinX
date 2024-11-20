@@ -341,7 +341,7 @@ public class StatementExecutor {
       after(ctx, postLogicalProcessors);
       if (root == null && !metaManager.hasWritableStorageEngines()) {
         ctx.setResult(new Result(RpcUtils.SUCCESS));
-        setResult(ctx, BatchStreams.empty(ctx.getAllocator()));
+        setResult(ctx, BatchStreams.empty());
         return;
       }
       if (constraintManager.check(root) && checker.check(root)) {
@@ -360,14 +360,11 @@ public class StatementExecutor {
         if (type == StatementType.SELECT) {
           SelectStatement selectStatement = (SelectStatement) ctx.getStatement();
           if (selectStatement.isNeedPhysicalExplain()) {
-            while (true) {
-              try (Batch batch = stream.getNext()) {
-                if (batch.getRowCount() == 0) {
-                  break; // 确保语句执行完毕
-                }
+            try (BatchStream ignore = stream) {
+              while (stream.hasNext()) {
+                stream.getNext().close();
               }
             }
-            stream.close();
             processExplainPhysicalStatement(ctx);
             return;
           }
@@ -821,11 +818,8 @@ public class StatementExecutor {
 
     List<ByteBuffer> dataList = new ArrayList<>();
     try (BatchStream batchStream = stream) {
-      while (true) {
+      while (batchStream.hasNext()) {
         try (Batch batch = batchStream.getNext()) {
-          if (batch.getRowCount() == 0) {
-            break;
-          }
           try (VectorSchemaRoot flattened = batch.flattened(ctx.getAllocator());
               ByteArrayOutputStream out = new ByteArrayOutputStream();
               ArrowStreamWriter writer = new ArrowStreamWriter(flattened, null, out)) {
