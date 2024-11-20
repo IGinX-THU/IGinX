@@ -54,8 +54,8 @@ import cn.edu.tsinghua.iginx.vectordb.support.impl.MilvusPathSystem;
 import cn.edu.tsinghua.iginx.vectordb.tools.*;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
-import io.milvus.v2.client.ConnectConfig;
 import io.milvus.v2.client.MilvusClientV2;
+import java.io.UnsupportedEncodingException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
@@ -111,7 +111,7 @@ public class MilvusStorage implements IStorage {
       List<String> paths,
       List<Map<String, String>> tagsList,
       List<DataType> dataTypeList)
-      throws InterruptedException {
+      throws InterruptedException, UnsupportedEncodingException {
     MilvusClientUtils.useDatabase(client, storageUnit);
     Map<String, Set<String>> collectionToFields = new HashMap<>();
     Map<String, Map<String, DataType>> fieldToType = new HashMap<>();
@@ -240,10 +240,8 @@ public class MilvusStorage implements IStorage {
   public boolean testConnection(StorageEngineMeta meta) {
     //    MilvusClientV2 client = this.milvusClientV2Pool.getClient(DEFAULT_KEY);
     //    return client != null;
-    try {
-      ConnectConfig config = ConnectConfig.builder().uri("grpc://127.0.0.1:19530").build();
-      MilvusClientV2 client = new MilvusClientV2(config);
-      return client != null;
+    try (MilvusClient milvusClient = new MilvusClient(meta)) {
+      return milvusClient.getClient() != null;
     } catch (Exception e) {
       e.printStackTrace();
     }

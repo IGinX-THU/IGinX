@@ -19,8 +19,10 @@
  */
 package cn.edu.tsinghua.iginx.vectordb.support;
 
+import java.io.UnsupportedEncodingException;
+
 public interface NameSystem {
-  String escape(String input) throws IllegalArgumentException;
+  String escape(String input) throws IllegalArgumentException, UnsupportedEncodingException;
 
   String unescape(String input);
 }

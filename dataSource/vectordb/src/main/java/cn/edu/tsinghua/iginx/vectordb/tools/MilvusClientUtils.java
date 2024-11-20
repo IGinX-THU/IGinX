@@ -49,6 +49,7 @@ import io.milvus.v2.service.vector.request.QueryReq;
 import io.milvus.v2.service.vector.request.UpsertReq;
 import io.milvus.v2.service.vector.response.QueryResp;
 import io.milvus.v2.service.vector.response.UpsertResp;
+import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -78,7 +79,7 @@ public class MilvusClientUtils {
   public static List<String> listCollections(MilvusClientV2 client, String databaseName) {
     try {
       useDatabase(client, databaseName);
-    } catch (InterruptedException e) {
+    } catch (InterruptedException | UnsupportedEncodingException e) {
       return new ArrayList<>();
     }
     List<String> list = client.listCollections().getCollectionNames();
@@ -99,7 +100,7 @@ public class MilvusClientUtils {
   }
 
   public static Map<String, DataType> getCollectionPaths(
-      MilvusClientV2 client, String dbName, String collection) {
+      MilvusClientV2 client, String dbName, String collection) throws UnsupportedEncodingException {
     final String databaseName;
     final String collectionName;
     if (isDummy(dbName) && !isDummyEscape) {
@@ -156,7 +157,7 @@ public class MilvusClientUtils {
   }
 
   public static void useDatabase(MilvusClientV2 client, String databaseName)
-      throws InterruptedException {
+      throws InterruptedException, UnsupportedEncodingException {
     if (isDummy(databaseName) && !isDummyEscape) {
     } else {
       databaseName = NameUtils.escape(databaseName);
@@ -205,7 +206,7 @@ public class MilvusClientUtils {
 
   public static void createCollection(
       MilvusClientV2 client, String databaseName, String collectionName, DataType idType)
-      throws InterruptedException {
+      throws InterruptedException, UnsupportedEncodingException {
     useDatabase(client, databaseName);
     LOGGER.info("create collection : {} {}", databaseName, collectionName);
     CreateCollectionReq.CreateCollectionReqBuilder builder =
@@ -271,7 +272,8 @@ public class MilvusClientUtils {
       String collectionName,
       Set<String> fieldsToAdd,
       Map<String, DataType> fieldTypes,
-      PathSystem pathSystem) {
+      PathSystem pathSystem)
+      throws UnsupportedEncodingException {
     LOGGER.info(
         "add collection fields ,database : {} , collection : {}, client: {}",
         databaseName,
@@ -377,7 +379,8 @@ public class MilvusClientUtils {
   }
 
   public static boolean addProperty(
-      JsonObject row, String columnName, Object obj, DataType dataType) {
+      JsonObject row, String columnName, Object obj, DataType dataType)
+      throws UnsupportedEncodingException {
     columnName = NameUtils.escape(columnName);
     boolean added = false;
     if (obj != null && dataType != null) {
@@ -412,7 +415,8 @@ public class MilvusClientUtils {
       Map<String, Object> record,
       JsonObject row,
       Set<String> fields,
-      Map<String, DataType> fieldToDataType) {
+      Map<String, DataType> fieldToDataType)
+      throws UnsupportedEncodingException {
     Long id = row.get(MILVUS_PRIMARY_FIELD_NAME).getAsLong();
     if (!id.equals(record.get(MILVUS_PRIMARY_FIELD_NAME))) {
       return row;
@@ -437,7 +441,7 @@ public class MilvusClientUtils {
       List<Object> ids,
       Set<String> fields,
       PathSystem pathSystem)
-      throws InterruptedException {
+      throws InterruptedException, UnsupportedEncodingException {
     List<String> paths =
         PathUtils.getPathSystem(client, pathSystem).findPaths(collectionName, null);
 
@@ -492,7 +496,7 @@ public class MilvusClientUtils {
   public static void dropDatabase(MilvusClientV2 client, String databaseName) {
     try {
       useDatabase(client, databaseName);
-    } catch (InterruptedException e) {
+    } catch (InterruptedException | UnsupportedEncodingException e) {
       return;
     } catch (IllegalArgumentException e) {
       LOGGER.info("Database " + databaseName + " does not exist.");
@@ -505,7 +509,8 @@ public class MilvusClientUtils {
     client.dropDatabase(DropDatabaseReq.builder().databaseName(databaseName).build());
   }
 
-  public static void dropFields(MilvusClientV2 client, String collectionName, Set<String> fields) {
+  public static void dropFields(MilvusClientV2 client, String collectionName, Set<String> fields)
+      throws UnsupportedEncodingException {
     AlterCollectionReq.AlterCollectionReqBuilder alterCollectionReqBuilder =
         AlterCollectionReq.builder().collectionName(NameUtils.escape(collectionName));
     for (String field : fields) {
@@ -532,7 +537,8 @@ public class MilvusClientUtils {
       List<String> paths,
       TagFilter tagFilter,
       boolean isDummy,
-      PathSystem pathSystem) {
+      PathSystem pathSystem)
+      throws UnsupportedEncodingException {
     Set<String> pathSet = new HashSet<>();
     for (String path : paths) {
       for (String p : PathUtils.getPathSystem(client, pathSystem).findPaths(path, null)) {
@@ -562,7 +568,8 @@ public class MilvusClientUtils {
   }
 
   public static Map<String, Set<String>> determinePaths(
-      MilvusClientV2 client, List<String> paths, TagFilter tagFilter, PathSystem pathSystem) {
+      MilvusClientV2 client, List<String> paths, TagFilter tagFilter, PathSystem pathSystem)
+      throws UnsupportedEncodingException {
     return determinePaths(client, paths, tagFilter, false, pathSystem);
   }
 
@@ -571,7 +578,8 @@ public class MilvusClientUtils {
       String collectionName,
       Set<String> fields,
       KeyRange keyRange,
-      PathSystem pathSystem) {
+      PathSystem pathSystem)
+      throws UnsupportedEncodingException {
     if (!client.hasCollection(
         HasCollectionReq.builder().collectionName(NameUtils.escape(collectionName)).build())) {
       return 0;
@@ -636,7 +644,7 @@ public class MilvusClientUtils {
       Filter filter,
       List<String> patterns,
       PathSystem pathSystem)
-      throws InterruptedException {
+      throws InterruptedException, UnsupportedEncodingException {
     String databaseNameEscaped;
     String collectionNameEscaped;
 
@@ -694,7 +702,17 @@ public class MilvusClientUtils {
     if (isDummy(databaseName) && !isDummyEscape) {
       fieldsEscaped = fields;
     } else {
-      fieldsEscaped = fields.stream().map(NameUtils::escape).collect(Collectors.toList());
+      fieldsEscaped =
+          fields.stream()
+              .map(
+                  s -> {
+                    try {
+                      return NameUtils.escape(s);
+                    } catch (UnsupportedEncodingException e) {
+                      throw new RuntimeException(e);
+                    }
+                  })
+              .collect(Collectors.toList());
     }
     // dummy需要读取动态字段，所以不能指定输出字段
     if (!isDummy(databaseName)) {
@@ -759,7 +777,8 @@ public class MilvusClientUtils {
     return columns;
   }
 
-  public static long upsert(MilvusClientV2 client, String collectionName, List<JsonObject> data) {
+  public static long upsert(MilvusClientV2 client, String collectionName, List<JsonObject> data)
+      throws UnsupportedEncodingException {
     UpsertResp resp =
         client.upsert(
             UpsertReq.builder()

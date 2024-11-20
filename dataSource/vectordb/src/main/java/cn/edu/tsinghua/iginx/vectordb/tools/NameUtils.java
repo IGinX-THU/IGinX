@@ -22,6 +22,7 @@ package cn.edu.tsinghua.iginx.vectordb.tools;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.vectordb.support.NameSystem;
 import cn.edu.tsinghua.iginx.vectordb.support.impl.MilvusNameSystem;
+import java.io.UnsupportedEncodingException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -49,7 +50,7 @@ public class NameUtils {
     return nameSystem.unescape(input);
   }
 
-  public static String escape(String input) {
+  public static String escape(String input) throws UnsupportedEncodingException {
     return nameSystem.escape(input);
   }
 }

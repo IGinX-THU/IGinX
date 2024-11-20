@@ -37,6 +37,7 @@ import com.google.gson.JsonObject;
 import io.milvus.pool.MilvusClientV2Pool;
 import io.milvus.v2.client.MilvusClientV2;
 import io.milvus.v2.service.database.request.CreateDatabaseReq;
+import java.io.UnsupportedEncodingException;
 import java.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,7 +62,7 @@ public class VectorDBHistoryDataGenerator extends BaseHistoryDataGenerator {
       List<String> paths,
       List<Map<String, String>> tagsList,
       List<DataType> dataTypeList)
-      throws InterruptedException {
+      throws InterruptedException, UnsupportedEncodingException {
     Map<String, Set<String>> collectionToFields = new HashMap<>();
     Map<String, DataType> fieldToType = new HashMap<>();
     Set<String> collections = new HashSet<>();
