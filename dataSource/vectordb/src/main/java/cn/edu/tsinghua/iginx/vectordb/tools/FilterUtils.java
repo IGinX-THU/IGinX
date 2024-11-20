@@ -27,7 +27,7 @@ public class FilterUtils {
 
   private static final List<Pair<Long, Long>> EMPTY_RANGES = new ArrayList<>();
 
-  private static final Pair<Long, Long> FULL_RANGE = new Pair<>(Long.MIN_VALUE, Long.MAX_VALUE);
+  private static final Pair<Long, Long> FULL_RANGE = new Pair<>((long)Integer.MIN_VALUE, Long.MAX_VALUE);
 
   private static final List<Pair<Long, Long>> FULL_RANGES = Collections.singletonList(FULL_RANGE);
 
@@ -72,26 +72,26 @@ public class FilterUtils {
         }
       case LE:
       case LE_AND:
-        return Collections.singletonList(new Pair<>(Long.MIN_VALUE, value));
+        return Collections.singletonList(new Pair<>((long)Integer.MIN_VALUE, value));
       case L:
       case L_AND:
-        if (value == Long.MIN_VALUE) {
+        if (value == (long)Integer.MIN_VALUE) {
           return EMPTY_RANGES;
         } else {
-          return Collections.singletonList(new Pair<>(Long.MIN_VALUE, value - 1));
+          return Collections.singletonList(new Pair<>((long)Integer.MIN_VALUE, value - 1));
         }
       case E:
       case E_AND:
         return Collections.singletonList(new Pair<>(value, value));
       case NE:
       case NE_AND:
-        if (value == Long.MIN_VALUE) {
+        if (value == (long)Integer.MIN_VALUE) {
           return Collections.singletonList(new Pair<>(value + 1, Long.MAX_VALUE));
         } else if (value == Long.MAX_VALUE) {
-          return Collections.singletonList(new Pair<>(Long.MIN_VALUE, value - 1));
+          return Collections.singletonList(new Pair<>((long)Integer.MIN_VALUE, value - 1));
         } else {
           return Arrays.asList(
-              new Pair<>(Long.MIN_VALUE, value - 1), new Pair<>(value + 1, Long.MAX_VALUE));
+              new Pair<>((long)Integer.MIN_VALUE, value - 1), new Pair<>(value + 1, Long.MAX_VALUE));
         }
       default:
         return FULL_RANGES;

@@ -511,6 +511,10 @@ public class MilvusClientUtils {
 
   public static void dropFields(MilvusClientV2 client, String collectionName, Set<String> fields)
       throws UnsupportedEncodingException {
+    if (!client.hasCollection(HasCollectionReq.builder().collectionName(NameUtils.escape(collectionName)).build())){
+      return;
+    }
+
     AlterCollectionReq.AlterCollectionReqBuilder alterCollectionReqBuilder =
         AlterCollectionReq.builder().collectionName(NameUtils.escape(collectionName));
     for (String field : fields) {
