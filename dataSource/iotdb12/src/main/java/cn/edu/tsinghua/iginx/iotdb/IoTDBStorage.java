@@ -1030,9 +1030,9 @@ public class IoTDBStorage implements IStorage {
 
       Matcher matcher = pattern.matcher(columnName);
       if (matcher.find()) {
-        if(storageUnit.isEmpty()){
+        if (storageUnit.isEmpty()) {
           matchedPath.add(columnName);
-        }else {
+        } else {
           matchedPath.add(TagKVUtils.toFullName(columnName, col.getTags()));
         }
       }

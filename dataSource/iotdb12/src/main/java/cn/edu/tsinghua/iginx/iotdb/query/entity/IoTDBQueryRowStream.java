@@ -188,7 +188,7 @@ public class IoTDBQueryRowStream implements RowStream {
 
   private void cacheOneRow() throws SQLException, PhysicalException {
     try {
-      while(true) {
+      while (true) {
         if (dataset.hasNext()) {
           RowRecord record = dataset.next();
           long timestamp = record.getTimestamp();

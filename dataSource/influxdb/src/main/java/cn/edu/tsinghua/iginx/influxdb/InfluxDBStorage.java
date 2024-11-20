@@ -45,7 +45,6 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilterType;
 import cn.edu.tsinghua.iginx.influxdb.exception.InfluxDBException;
 import cn.edu.tsinghua.iginx.influxdb.exception.InfluxDBTaskExecuteFailureException;
-import cn.edu.tsinghua.iginx.influxdb.query.entity.InfluxDBHistoryQueryRowStream;
 import cn.edu.tsinghua.iginx.influxdb.query.entity.InfluxDBQueryRowStream;
 import cn.edu.tsinghua.iginx.influxdb.query.entity.InfluxDBSchema;
 import cn.edu.tsinghua.iginx.influxdb.tools.FilterTransformer;
@@ -445,7 +444,8 @@ public class InfluxDBStorage implements IStorage {
     Filter filter = select.getFilter();
     getBucketQueriesForExecuteDummy(project, bucketQueries, tagFilter);
 
-    Map<String, List<FluxTable>> bucketQueryResults = new HashMap<>();
+    List<FluxTable> tables = new ArrayList<>();
+    List<String> BucketNames = new ArrayList<>();
     for (String bucket : bucketQueries.keySet()) {
       String statement =
           generateQueryStatement(
@@ -457,11 +457,14 @@ public class InfluxDBStorage implements IStorage {
               keyInterval.getEndKey());
 
       LOGGER.info("execute query: {}", statement);
-      bucketQueryResults.put(bucket, client.getQueryApi().query(statement, organization.getId()));
+      for (FluxTable table : client.getQueryApi().query(statement, organization.getId())) {
+        tables.add(table);
+        BucketNames.add(bucket);
+      }
     }
 
-    InfluxDBHistoryQueryRowStream rowStream =
-        new InfluxDBHistoryQueryRowStream(bucketQueryResults, project.getPatterns(), filter);
+    InfluxDBQueryRowStream rowStream =
+        new InfluxDBQueryRowStream(tables, project, filter, BucketNames);
     return new TaskExecuteResult(rowStream);
   }
 
@@ -500,7 +503,8 @@ public class InfluxDBStorage implements IStorage {
     long startKey = keyInterval.getStartKey();
     long endKey = keyInterval.getEndKey();
 
-    Map<String, List<FluxTable>> bucketQueryResults = new HashMap<>();
+    List<FluxTable> tables = new ArrayList<>();
+    List<String> BucketNames = new ArrayList<>();
     for (String bucket : bucketQueries.keySet()) {
       String statement =
           String.format(
@@ -510,11 +514,14 @@ public class InfluxDBStorage implements IStorage {
         statement += String.format(" |> filter(fn: (r) => %s)", bucketQueries.get(bucket));
       }
       LOGGER.info("execute query: {}", statement);
-      bucketQueryResults.put(bucket, client.getQueryApi().query(statement, organization.getId()));
+      for (FluxTable table : client.getQueryApi().query(statement, organization.getId())) {
+        tables.add(table);
+        BucketNames.add(bucket);
+      }
     }
 
-    InfluxDBHistoryQueryRowStream rowStream =
-        new InfluxDBHistoryQueryRowStream(bucketQueryResults, project.getPatterns(), null);
+    InfluxDBQueryRowStream rowStream =
+        new InfluxDBQueryRowStream(tables, project, null, BucketNames);
     return new TaskExecuteResult(rowStream);
   }
 
@@ -566,7 +573,7 @@ public class InfluxDBStorage implements IStorage {
       filterStr.append('('); // make the or statement together
       for (int i = 0; i < paths.size(); i++) {
         String path = paths.get(i);
-        InfluxDBSchema schema = new InfluxDBSchema(path);
+        InfluxDBSchema schema = new InfluxDBSchema(path, null, true);
         if (i != 0) {
           filterStr.append(" or ");
         }

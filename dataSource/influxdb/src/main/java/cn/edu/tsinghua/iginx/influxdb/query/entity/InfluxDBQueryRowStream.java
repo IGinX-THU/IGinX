@@ -52,6 +52,8 @@ public class InfluxDBQueryRowStream implements RowStream {
 
   private final List<FluxTable> tables;
 
+  private final Map<FluxTable, String> table2Bucket; // 与tables一一对应
+
   private final int[] indices;
 
   private int hasMoreRecords = 0;
@@ -69,13 +71,23 @@ public class InfluxDBQueryRowStream implements RowStream {
   private Row cachedRow = null;
 
   public InfluxDBQueryRowStream(List<FluxTable> tables, Project project, Filter filter) {
+    this(tables, project, filter, new ArrayList<>());
+  }
+
+  public InfluxDBQueryRowStream(
+      List<FluxTable> tables, Project project, Filter filter, List<String> bucketsNames) {
     List<Boolean> filterList = new ArrayList<>();
     this.filterByTags = project.getTagFilter() != null;
     this.tables =
         tables.stream()
             .filter(e -> e.getRecords().size() > 0)
             .collect(Collectors.toList()); // 只保留还有数据的二维表
-
+    table2Bucket = new HashMap<>();
+    if (!bucketsNames.isEmpty()) {
+      for (int i = 0; i < tables.size(); i++) {
+        table2Bucket.put(tables.get(i), bucketsNames.get(i));
+      }
+    }
     this.tableFieldIndex = new ArrayList<>();
     List<Field> fields = new ArrayList<>();
     for (FluxTable table : this.tables) {
@@ -92,7 +104,7 @@ public class InfluxDBQueryRowStream implements RowStream {
     this.filter = filter;
   }
 
-  private static boolean isPivotFluxTable(FluxTable table) {
+  public static boolean isPivotFluxTable(FluxTable table) {
     return !(table.getColumns().get(5).getLabel().equals("_value")
         && !table.getColumns().get(5).isGroup()
         && table.getColumns().get(6).getLabel().equals("_field")
@@ -114,6 +126,11 @@ public class InfluxDBQueryRowStream implements RowStream {
               + "."
               + table.getRecords().get(0).getField();
     }
+
+    if (table2Bucket.get(table) != null) {
+      path = table2Bucket.get(table) + "." + path;
+    }
+
     for (int i = 8; i < table.getColumns().size(); i++) {
       String key = table.getColumns().get(i).getLabel();
       String val = (String) table.getRecords().get(0).getValueByKey(key);
@@ -175,6 +192,10 @@ public class InfluxDBQueryRowStream implements RowStream {
                   + table.getRecords().get(0).getValueByKey(InfluxDBSchema.TAG)
                   + "."
                   + table.getColumns().get(i).getLabel();
+        }
+
+        if (table2Bucket.get(table) != null) {
+          path = table2Bucket.get(table) + "." + path;
         }
 
         // 获取dataType
