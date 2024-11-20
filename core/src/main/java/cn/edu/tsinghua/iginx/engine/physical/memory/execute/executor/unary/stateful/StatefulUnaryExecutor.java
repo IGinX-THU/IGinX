@@ -21,28 +21,23 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.excepti
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutor;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.util.Batch;
-import java.util.ArrayDeque;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.util.BatchBufferQueue;
 import java.util.NoSuchElementException;
-import java.util.Queue;
-import org.apache.arrow.util.Preconditions;
 import org.apache.arrow.vector.types.pojo.Schema;
 
 public abstract class StatefulUnaryExecutor extends UnaryExecutor {
 
-  private final int backlog;
-  private final Queue<Batch> results = new ArrayDeque<>();
+  private final BatchBufferQueue results;
   private boolean allConsumed = false;
 
   protected StatefulUnaryExecutor(ExecutorContext context, Schema inputSchema, int backlog) {
     super(context, inputSchema);
-    Preconditions.checkArgument(backlog > 0, "Backlog must be positive");
-    this.backlog = backlog;
+    this.results = new BatchBufferQueue(backlog);
   }
 
   @Override
   public void close() throws ComputeException {
-    results.forEach(Batch::close);
-    results.clear();
+    results.close();
   }
 
   /**
@@ -52,7 +47,7 @@ public abstract class StatefulUnaryExecutor extends UnaryExecutor {
    * @throws ComputeException if an error occurs during consumption
    */
   public boolean needConsume() throws ComputeException {
-    return !allConsumed && results.size() < backlog;
+    return !allConsumed && !results.isFull();
   }
 
   /**
@@ -97,11 +92,7 @@ public abstract class StatefulUnaryExecutor extends UnaryExecutor {
   }
 
   protected void offerResult(Batch batch) {
-    if (batch.getRowCount() == 0) {
-      batch.close();
-      return;
-    }
-    results.add(batch);
+    results.add(context, batch);
   }
 
   protected abstract void consumeUnchecked(Batch batch) throws ComputeException;

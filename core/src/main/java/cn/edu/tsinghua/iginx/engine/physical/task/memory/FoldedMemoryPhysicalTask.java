@@ -52,8 +52,8 @@
 // import cn.edu.tsinghua.iginx.engine.physical.task.GlobalPhysicalTask;
 // import cn.edu.tsinghua.iginx.engine.physical.task.PhysicalTask;
 // import cn.edu.tsinghua.iginx.engine.physical.task.TaskType;
-// import cn.edu.tsinghua.iginx.engine.physical.task.result.ArrowTaskResult;
 // import cn.edu.tsinghua.iginx.engine.physical.task.StoragePhysicalTask;
+// import cn.edu.tsinghua.iginx.engine.physical.task.memory.MultipleMemoryPhysicalTask;
 // import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 // import cn.edu.tsinghua.iginx.engine.shared.constraint.ConstraintManager;
 // import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;

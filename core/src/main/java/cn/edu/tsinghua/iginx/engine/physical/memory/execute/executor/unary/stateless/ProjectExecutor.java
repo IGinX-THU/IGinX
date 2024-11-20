@@ -60,7 +60,7 @@ public class ProjectExecutor extends StatelessUnaryExecutor {
   public void close() {}
 
   @Override
-  public Batch compute(Batch batch) throws ComputeException {
+  public Batch computeImpl(Batch batch) throws ComputeException {
     for (long id : batch.getDictionaryProvider().getDictionaryIds()) {
       Preconditions.checkState(
           !batch

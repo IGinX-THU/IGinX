@@ -50,6 +50,10 @@ public class PipelineMemoryPhysicalTask extends UnaryMemoryPhysicalTask<BatchStr
 
   private String info;
 
+  public UnaryExecutorFactory<? extends StatelessUnaryExecutor> getExecutorFactory() {
+    return executorFactory;
+  }
+
   @Override
   public Class<BatchStream> getResultClass() {
     return BatchStream.class;

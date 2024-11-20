@@ -15,20 +15,20 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.task.memory;
+package cn.edu.tsinghua.iginx.engine.physical.task.memory.row;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.Table;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.naive.NaiveOperatorMemoryExecutor;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.StopWatch;
 import cn.edu.tsinghua.iginx.engine.physical.task.PhysicalTask;
+import cn.edu.tsinghua.iginx.engine.physical.task.memory.BinaryMemoryPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.BinaryOperator;
 import java.util.Collections;
 
-public class BinaryRowMemoryPhysicalTask
-    extends BinaryMemoryPhysicalTask<RowStream, RowStream, RowStream> {
+public class BinaryRowMemoryPhysicalTask extends BinaryMemoryPhysicalTask<RowStream, RowStream> {
 
   private final BinaryOperator operator;
 

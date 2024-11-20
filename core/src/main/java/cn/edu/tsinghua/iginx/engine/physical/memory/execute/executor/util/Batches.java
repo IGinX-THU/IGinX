@@ -15,30 +15,25 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.shared.data.read;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.util;
 
-import cn.edu.tsinghua.iginx.engine.physical.task.memory.row.RowStreamToBatchStreamWrapper;
-import javax.annotation.WillClose;
-import javax.annotation.WillNotClose;
+import java.util.ArrayList;
+import java.util.List;
 import org.apache.arrow.memory.BufferAllocator;
+import org.apache.arrow.util.Preconditions;
 
-public class BatchStreams {
+public class Batches {
+  private Batches() {}
 
-  private BatchStreams() {}
-
-  public static BatchStream wrap(
-      @WillNotClose BufferAllocator allocator, @WillClose RowStream rowStream, int batchRowCount) {
-    return new RowStreamToBatchStreamWrapper(allocator, rowStream, batchRowCount);
-  }
-
-  public static BatchStream empty(BatchSchema schema) {
-    return new EmptyBatchStream(schema);
-  }
-
-  private static final EmptyBatchStream EMPTY_BATCH_STREAM =
-      new EmptyBatchStream(BatchSchema.empty());
-
-  public static BatchStream empty() {
-    return EMPTY_BATCH_STREAM;
+  public static List<Batch> partition(
+      BufferAllocator allocator, Batch batches, int partitionRowCount) {
+    Preconditions.checkArgument(partitionRowCount > 0, "size must be greater than 0");
+    int totalRowCount = batches.getRowCount();
+    List<Batch> result = new ArrayList<>();
+    for (int startIndex = 0; startIndex < totalRowCount; startIndex += partitionRowCount) {
+      int sliceSize = Math.min(partitionRowCount, totalRowCount - startIndex);
+      result.add(batches.slice(allocator, startIndex, sliceSize));
+    }
+    return result;
   }
 }

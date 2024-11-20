@@ -53,7 +53,7 @@ public class MemoryPhysicalTaskDispatcher {
     return INSTANCE;
   }
 
-  public boolean addMemoryTask(MemoryPhysicalTask task) {
+  public boolean addMemoryTask(MemoryPhysicalTask<?> task) {
     return taskQueue.addTask(task);
   }
 

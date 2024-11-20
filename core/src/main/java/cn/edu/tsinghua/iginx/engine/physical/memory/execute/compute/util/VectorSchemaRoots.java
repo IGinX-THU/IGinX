@@ -138,4 +138,16 @@ public class VectorSchemaRoots {
     vectorSchemaRoot.setRowCount(count);
     return vectorSchemaRoot;
   }
+
+  public static List<VectorSchemaRoot> partition(
+      BufferAllocator allocator, VectorSchemaRoot data, int batchRowCount) {
+    Preconditions.checkArgument(batchRowCount > 0, "size must be greater than 0");
+    int totalRowCount = data.getRowCount();
+    List<VectorSchemaRoot> result = new ArrayList<>();
+    for (int startIndex = 0; startIndex < totalRowCount; startIndex += batchRowCount) {
+      int sliceSize = Math.min(batchRowCount, totalRowCount - startIndex);
+      result.add(slice(allocator, data, startIndex, sliceSize));
+    }
+    return result;
+  }
 }
