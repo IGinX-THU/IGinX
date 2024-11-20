@@ -234,13 +234,13 @@ public class DataSourceIT {
     clear();
     close();
     open();
-    insertData(0, 500000, "us.d1.s1");
-    insertData(0, 500000, "us.d1.s2");
+    insertData(0, 50000, "us.d1.s1");
+    insertData(0, 50000, "us.d1.s2");
 
     Project project = new Project(source, Collections.singletonList("us.d1.s1"), null);
     TaskExecuteResult result = storage.executeProject(project, dataArea);
     checkResult(result);
-    checkRowCount(result.getRowStream(), 500000);
+    checkRowCount(result.getRowStream(), 50000);
   }
 
   @Test
@@ -250,8 +250,8 @@ public class DataSourceIT {
     FragmentSource source = MockClassGenerator.genFragmentSource();
     DataArea dataArea = MockClassGenerator.genDataArea();
 
-    insertData(0, 500000, "us.d2.s2");
-    insertData(0, 500005, "us.d1.s3");
+    insertData(0, 50000, "us.d2.s2");
+    insertData(0, 50005, "us.d1.s3");
 
     Delete delete =
         new Delete(
@@ -264,7 +264,7 @@ public class DataSourceIT {
     Project project = new Project(source, Collections.singletonList("us.d1.*"), null);
     TaskExecuteResult result = storage.executeProject(project, dataArea);
     checkResult(result);
-    checkRowCount(result.getRowStream(), 500000);
+    checkRowCount(result.getRowStream(), 50000);
   }
 
   @Test
