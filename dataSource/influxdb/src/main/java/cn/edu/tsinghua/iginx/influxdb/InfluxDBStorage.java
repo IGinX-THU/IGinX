@@ -430,7 +430,7 @@ public class InfluxDBStorage implements IStorage {
             filter,
             keyInterval.getStartKey(),
             keyInterval.getEndKey(),
-            true);
+            false);
 
     List<FluxTable> tables = client.getQueryApi().query(statement, organization.getId());
     InfluxDBQueryRowStream rowStream = new InfluxDBQueryRowStream(tables, project, filter);
@@ -578,6 +578,7 @@ public class InfluxDBStorage implements IStorage {
       filterStr.append('('); // make the or statement together
       for (int i = 0; i < paths.size(); i++) {
         String path = paths.get(i);
+        if(isDummy && path.indexOf('.') == path.lastIndexOf('.')) continue;
         InfluxDBSchema schema = new InfluxDBSchema(path, null, isDummy);
         if (i != 0) {
           filterStr.append(" or ");
