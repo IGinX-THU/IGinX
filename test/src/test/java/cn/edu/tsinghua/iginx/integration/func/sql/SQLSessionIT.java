@@ -3325,63 +3325,63 @@ public class SQLSessionIT {
             + "|  4|      5|    5.5|      5|    ccc|\n"
             + "+---+-------+-------+-------+-------+\n"
             + "Total line number = 2\n";
-    executor.executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
-    statement = "select * from test1 left join test2 using key;";
-    expected =
-        "ResultSets:\n"
-            + "+---+-------+-------+-------+-------+\n"
-            + "|key|test1.a|test1.b|test2.a|test2.b|\n"
-            + "+---+-------+-------+-------+-------+\n"
-            + "|  0|      1|    1.5|      1|    aaa|\n"
-            + "|  1|      2|    2.5|   null|   null|\n"
-            + "|  3|      4|    4.5|   null|   null|\n"
-            + "|  4|      5|    5.5|      5|    ccc|\n"
-            + "+---+-------+-------+-------+-------+\n"
-            + "Total line number = 4\n";
-    executor.executeAndCompare(statement, expected);
+        statement = "select * from test1 left join test2 using key;";
+        expected =
+            "ResultSets:\n"
+                + "+---+-------+-------+-------+-------+\n"
+                + "|key|test1.a|test1.b|test2.a|test2.b|\n"
+                + "+---+-------+-------+-------+-------+\n"
+                + "|  0|      1|    1.5|      1|    aaa|\n"
+                + "|  1|      2|    2.5|   null|   null|\n"
+                + "|  3|      4|    4.5|   null|   null|\n"
+                + "|  4|      5|    5.5|      5|    ccc|\n"
+                + "+---+-------+-------+-------+-------+\n"
+                + "Total line number = 4\n";
+        executor.executeAndCompare(statement, expected);
 
-    statement = "select * from test1 left join test2 using key where key > 2;";
-    expected =
-        "ResultSets:\n"
-            + "+---+-------+-------+-------+-------+\n"
-            + "|key|test1.a|test1.b|test2.a|test2.b|\n"
-            + "+---+-------+-------+-------+-------+\n"
-            + "|  3|      4|    4.5|   null|   null|\n"
-            + "|  4|      5|    5.5|      5|    ccc|\n"
-            + "+---+-------+-------+-------+-------+\n"
-            + "Total line number = 2\n";
-    executor.executeAndCompare(statement, expected);
+        statement = "select * from test1 left join test2 using key where key > 2;";
+        expected =
+            "ResultSets:\n"
+                + "+---+-------+-------+-------+-------+\n"
+                + "|key|test1.a|test1.b|test2.a|test2.b|\n"
+                + "+---+-------+-------+-------+-------+\n"
+                + "|  3|      4|    4.5|   null|   null|\n"
+                + "|  4|      5|    5.5|      5|    ccc|\n"
+                + "+---+-------+-------+-------+-------+\n"
+                + "Total line number = 2\n";
+        executor.executeAndCompare(statement, expected);
 
-    statement = "select * from test1 right join test2 using key;";
-    expected =
-        "ResultSets:\n"
-            + "+---+-------+-------+-------+-------+\n"
-            + "|key|test1.a|test1.b|test2.a|test2.b|\n"
-            + "+---+-------+-------+-------+-------+\n"
-            + "|  0|      1|    1.5|      1|    aaa|\n"
-            + "|  2|   null|   null|      3|    bbb|\n"
-            + "|  4|      5|    5.5|      5|    ccc|\n"
-            + "|  6|   null|   null|      7|    ddd|\n"
-            + "+---+-------+-------+-------+-------+\n"
-            + "Total line number = 4\n";
-    executor.executeAndCompare(statement, expected);
+        statement = "select * from test1 right join test2 using key;";
+        expected =
+            "ResultSets:\n"
+                + "+---+-------+-------+-------+-------+\n"
+                + "|key|test1.a|test1.b|test2.a|test2.b|\n"
+                + "+---+-------+-------+-------+-------+\n"
+                + "|  0|      1|    1.5|      1|    aaa|\n"
+                + "|  2|   null|   null|      3|    bbb|\n"
+                + "|  4|      5|    5.5|      5|    ccc|\n"
+                + "|  6|   null|   null|      7|    ddd|\n"
+                + "+---+-------+-------+-------+-------+\n"
+                + "Total line number = 4\n";
+        executor.executeAndCompare(statement, expected);
 
-    statement = "select * from test1 full join test2 using key;";
-    expected =
-        "ResultSets:\n"
-            + "+---+-------+-------+-------+-------+\n"
-            + "|key|test1.a|test1.b|test2.a|test2.b|\n"
-            + "+---+-------+-------+-------+-------+\n"
-            + "|  0|      1|    1.5|      1|    aaa|\n"
-            + "|  1|      2|    2.5|   null|   null|\n"
-            + "|  2|   null|   null|      3|    bbb|\n"
-            + "|  3|      4|    4.5|   null|   null|\n"
-            + "|  4|      5|    5.5|      5|    ccc|\n"
-            + "|  6|   null|   null|      7|    ddd|\n"
-            + "+---+-------+-------+-------+-------+\n"
-            + "Total line number = 6\n";
-    executor.executeAndCompare(statement, expected);
+        statement = "select * from test1 full join test2 using key;";
+        expected =
+            "ResultSets:\n"
+                + "+---+-------+-------+-------+-------+\n"
+                + "|key|test1.a|test1.b|test2.a|test2.b|\n"
+                + "+---+-------+-------+-------+-------+\n"
+                + "|  0|      1|    1.5|      1|    aaa|\n"
+                + "|  1|      2|    2.5|   null|   null|\n"
+                + "|  2|   null|   null|      3|    bbb|\n"
+                + "|  3|      4|    4.5|   null|   null|\n"
+                + "|  4|      5|    5.5|      5|    ccc|\n"
+                + "|  6|   null|   null|      7|    ddd|\n"
+                + "+---+-------+-------+-------+-------+\n"
+                + "Total line number = 6\n";
+        executor.executeAndCompare(statement, expected);
 
     statement = "select * from test1 full join test2 using key where key < 2 or key > 4;";
     expected =

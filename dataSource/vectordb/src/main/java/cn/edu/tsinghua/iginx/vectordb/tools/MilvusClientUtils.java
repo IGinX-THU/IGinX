@@ -26,7 +26,7 @@ import static cn.edu.tsinghua.iginx.vectordb.tools.NameUtils.getPathAndVersion;
 import static cn.edu.tsinghua.iginx.vectordb.tools.TagKVUtils.splitFullName;
 
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
@@ -511,7 +511,8 @@ public class MilvusClientUtils {
 
   public static void dropFields(MilvusClientV2 client, String collectionName, Set<String> fields)
       throws UnsupportedEncodingException {
-    if (!client.hasCollection(HasCollectionReq.builder().collectionName(NameUtils.escape(collectionName)).build())){
+    if (!client.hasCollection(
+        HasCollectionReq.builder().collectionName(NameUtils.escape(collectionName)).build())) {
       return;
     }
 
@@ -705,16 +706,14 @@ public class MilvusClientUtils {
     if (isDummy(databaseName) || keyRanges == null || keyRanges.size() < 1) {
       queryReqBuilder.filter(primaryFieldName + ">=0");
     } else {
-      StringBuilder filterStr = new StringBuilder();
-      int i = 0;
-      for (Pair<Long, Long> keyRange : keyRanges) {
-        if (i++ > 0) {
-          filterStr.append(" and ");
-        }
-        filterStr.append(
-            keyRange.getK() + "<=" + MILVUS_PRIMARY_FIELD_NAME + "<=" + keyRange.getV());
+      if (!FilterUtils.filterContainsType(
+          Arrays.asList(FilterType.Value, FilterType.Path), filter)) {
+        queryReqBuilder.filter(
+            new FilterTransformer(primaryFieldName)
+                .toString(FilterUtils.expandFilter(filter, primaryFieldName)));
+      } else {
+        queryReqBuilder.filter(primaryFieldName + ">=0");
       }
-      queryReqBuilder.filter(filterStr.toString());
     }
     List<String> fieldsEscaped;
     if (isDummy(databaseName) && !isDummyEscape) {
