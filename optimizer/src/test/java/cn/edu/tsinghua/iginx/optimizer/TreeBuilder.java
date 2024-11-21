@@ -97,7 +97,8 @@ public class TreeBuilder {
             null,
             null,
             new PathFilter("test.a", Op.E, "test.b"),
-            null);
+            null,
+            false);
 
     Project projectC = new Project(EmptySource.EMPTY_SOURCE, Collections.emptyList(), null);
     OuterJoin outerJoin =
