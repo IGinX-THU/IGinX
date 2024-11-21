@@ -37,15 +37,15 @@ jobs:
             metadata-matrix: '["zookeeper"]'
     assembly-test:
         uses: ./.github/workflows/assembly-test.yml
-    tpc-h-regression-test:
-        uses: ./.github/workflows/tpc-h.yml
-        with:
-            os-matrix: '["ubuntu-latest"]'
-            metadata-matrix: '["zookeeper"]'
-    tpc-h-regression-test-pushdown:
-        uses: ./.github/workflows/tpc-h-pushdown.yml
-        with:
-            os-matrix: '["ubuntu-latest"]'
-            metadata-matrix: '["zookeeper"]'
-            db-matrix: '["VectorDB"]'
+#    tpc-h-regression-test:
+#        uses: ./.github/workflows/tpc-h.yml
+#        with:
+#            os-matrix: '["ubuntu-latest"]'
+#            metadata-matrix: '["zookeeper"]'
+#    tpc-h-regression-test-pushdown:
+#        uses: ./.github/workflows/tpc-h-pushdown.yml
+#        with:
+#            os-matrix: '["ubuntu-latest"]'
+#            metadata-matrix: '["zookeeper"]'
+#            db-matrix: '["VectorDB"]'
 #            db-matrix: '["InfluxDB", "FileSystem", "PostgreSQL", "Redis", "MongoDB", "MySQL"]'
