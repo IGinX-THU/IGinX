@@ -28,15 +28,12 @@ import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.vectordb.support.PathSystem;
 import cn.edu.tsinghua.iginx.vectordb.support.impl.MilvusPathSystem;
-import cn.edu.tsinghua.iginx.vectordb.tools.CommonUtils;
-import cn.edu.tsinghua.iginx.vectordb.tools.MilvusClientPool;
-import cn.edu.tsinghua.iginx.vectordb.tools.MilvusClientUtils;
-import cn.edu.tsinghua.iginx.vectordb.tools.PathUtils;
+import cn.edu.tsinghua.iginx.vectordb.tools.*;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
-import io.milvus.pool.MilvusClientV2Pool;
 import io.milvus.v2.client.MilvusClientV2;
 import io.milvus.v2.service.database.request.CreateDatabaseReq;
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.*;
 import org.slf4j.Logger;
@@ -46,7 +43,7 @@ public class VectorDBHistoryDataGenerator extends BaseHistoryDataGenerator {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(VectorDBHistoryDataGenerator.class);
 
-  private static final String LOCAL_IP = "172.18.71.153";
+  private static final String LOCAL_IP = "127.0.0.1";
 
   private static final char SEPARATOR = '.';
 
@@ -119,20 +116,8 @@ public class VectorDBHistoryDataGenerator extends BaseHistoryDataGenerator {
       List<DataType> dataTypeList,
       List<Long> keyList,
       List<List<Object>> valuesList) {
-    MilvusClientV2Pool milvusClientV2Pool = null;
-    MilvusClientV2 client = null;
-    try {
-      milvusClientV2Pool = MilvusClientPool.createPool("grpc://" + LOCAL_IP + ":" + port, "", "");
-      for (int i = 0; i < 10; i++) {
-        try {
-          client = milvusClientV2Pool.getClient("default");
-          break;
-        } catch (Exception e) {
-          LOGGER.error("Caught a RuntimeException:", e);
-          Thread.sleep(1000L);
-        }
-      }
-
+    try (MilvusClient milvusClient = new MilvusClient("grpc", LOCAL_IP, port, null)) {
+      MilvusClientV2 client = milvusClient.getClient();
       Map<String, Map<String, List<Integer>>> databaseToTablesToColumnIndexes = new HashMap<>();
       for (int i = 0; i < pathList.size(); i++) {
         String path = pathList.get(i);
@@ -188,14 +173,6 @@ public class VectorDBHistoryDataGenerator extends BaseHistoryDataGenerator {
       LOGGER.info("write data to " + LOCAL_IP + ":{} success!", port);
     } catch (Exception e) {
       LOGGER.error("unexpected error: ", e);
-    } finally {
-      if (milvusClientV2Pool != null) {
-        if (client != null) {
-          milvusClientV2Pool.returnClient("default", client);
-        }
-        milvusClientV2Pool.clear();
-        milvusClientV2Pool.close();
-      }
     }
   }
 
@@ -216,23 +193,8 @@ public class VectorDBHistoryDataGenerator extends BaseHistoryDataGenerator {
 
   @Override
   public void clearHistoryDataForGivenPort(int port) {
-    MilvusClientV2Pool milvusClientV2Pool = null;
-    MilvusClientV2 client = null;
-    try {
-      milvusClientV2Pool = MilvusClientPool.createPool("grpc://" + LOCAL_IP + ":" + port, "", "");
-      for (int i = 0; i < 10; i++) {
-        try {
-          client = milvusClientV2Pool.getClient("default");
-          break;
-        } catch (Exception e) {
-          LOGGER.error("Caught a RuntimeException:", e);
-          try {
-            Thread.sleep(1000L);
-          } catch (InterruptedException ex) {
-            throw new RuntimeException(ex);
-          }
-        }
-      }
+    try (MilvusClient milvusClient = new MilvusClient("grpc", LOCAL_IP, port, null)) {
+      MilvusClientV2 client = milvusClient.getClient();
       List<String> databases = MilvusClientUtils.listDatabase(client);
 
       for (String database : databases) {
@@ -241,14 +203,9 @@ public class VectorDBHistoryDataGenerator extends BaseHistoryDataGenerator {
         }
       }
       LOGGER.info("clear data on " + LOCAL_IP + ":{} success!", port);
-    } finally {
-      if (milvusClientV2Pool != null) {
-        if (client != null) {
-          milvusClientV2Pool.returnClient("default", client);
-        }
-        milvusClientV2Pool.clear();
-        milvusClientV2Pool.close();
-      }
+    } catch (IOException e) {
+      e.printStackTrace();
+      throw new RuntimeException(e);
     }
   }
 }

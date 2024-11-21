@@ -442,7 +442,8 @@ public class MilvusClientUtils {
     Map<String, DataType> fieldToDataType = new HashMap<>();
     for (String path : paths) {
       fieldToDataType.put(
-          NameUtils.escape(path.substring(path.lastIndexOf(".") + 1)),
+          //          NameUtils.escape(path.substring(path.lastIndexOf(".") + 1)),
+          path.substring(path.lastIndexOf(".") + 1),
           PathUtils.getPathSystem(client, pathSystem).getColumn(path).getDataType());
     }
 

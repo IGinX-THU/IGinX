@@ -166,6 +166,9 @@ public class MilvusPathSystem implements PathSystem {
     if (isEmpty(map1) && isEmpty(map2)) {
       return true;
     }
+    if (isEmpty(map1) || isEmpty(map2)) {
+      return false;
+    }
     if (map1.size() != map2.size()) {
       return false;
     }
@@ -216,7 +219,22 @@ public class MilvusPathSystem implements PathSystem {
     if (index == parts.length) {
       // 到达路径的最后一层，删除 "END" 标记
       if (currentLevel.containsKey(END)) {
-        currentLevel.remove(END);
+        String part = parts[index - 1];
+        Pair<String, Integer> p = NameUtils.getPathAndVersion(part);
+        Pair<String, Map<String, String>> pair = TagKVUtils.splitFullName(p.getK());
+        Map<String, Map<String, String>> ps =
+            (Map<String, Map<String, String>>) currentLevel.get(END);
+
+        Iterator<Map.Entry<String, Map<String, String>>> iterator = ps.entrySet().iterator();
+        while (iterator.hasNext()) {
+          Map.Entry<String, Map<String, String>> entry = iterator.next();
+          if (isEqual(entry.getValue(), pair.getV())) {
+            iterator.remove();
+          }
+        }
+        if (ps.size() == 0) {
+          currentLevel.remove(END);
+        }
         // 如果当前层级变为空，返回 true 表示可以删除上一层的引用
         return currentLevel.isEmpty();
       } else {
