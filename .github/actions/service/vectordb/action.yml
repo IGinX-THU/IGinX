@@ -31,6 +31,8 @@ runs:
           shell: bash
           working-directory: ${{ github.action_path }}
           run: |
+              pwd
+              echo ${{ github.workspace }}
               for port in ${{ inputs.ports }}; do
                 mkdir -p $port
                 cp -f ${{ github.workspace }}/docker/milvus/docker-compose.yml $port/docker-compose-$port.yml

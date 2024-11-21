@@ -46,9 +46,7 @@ import io.milvus.v2.service.database.request.CreateDatabaseReq;
 import io.milvus.v2.service.database.request.DropDatabaseReq;
 import io.milvus.v2.service.vector.request.GetReq;
 import io.milvus.v2.service.vector.request.QueryIteratorReq;
-import io.milvus.v2.service.vector.request.QueryReq;
 import io.milvus.v2.service.vector.request.UpsertReq;
-import io.milvus.v2.service.vector.response.QueryResp;
 import io.milvus.v2.service.vector.response.UpsertResp;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
@@ -694,19 +692,19 @@ public class MilvusClientUtils {
     }
 
     List<Pair<Long, Long>> keyRanges = FilterUtils.keyRangesFrom(filter);
-    QueryReq.QueryReqBuilder queryReqBuilder =
-        QueryReq.builder().collectionName(collectionNameEscaped);
+    QueryIteratorReq.QueryIteratorReqBuilder queryIteratorReqBuilder =
+        QueryIteratorReq.builder().collectionName(collectionNameEscaped);
 
     if (isDummy(databaseName) || keyRanges == null || keyRanges.size() < 1) {
-      queryReqBuilder.filter(primaryFieldName + ">=0");
+      queryIteratorReqBuilder.expr(primaryFieldName + ">=0");
     } else {
       if (!FilterUtils.filterContainsType(
           Arrays.asList(FilterType.Value, FilterType.Path), filter)) {
-        queryReqBuilder.filter(
+        queryIteratorReqBuilder.expr(
             new FilterTransformer(primaryFieldName)
                 .toString(FilterUtils.expandFilter(filter, primaryFieldName)));
       } else {
-        queryReqBuilder.filter(primaryFieldName + ">=0");
+        queryIteratorReqBuilder.expr(primaryFieldName + ">=0");
       }
     }
     List<String> fieldsEscaped;
@@ -727,54 +725,65 @@ public class MilvusClientUtils {
     }
     // dummy需要读取动态字段，所以不能指定输出字段
     if (!isDummy(databaseName)) {
-      queryReqBuilder.outputFields(fieldsEscaped);
+      queryIteratorReqBuilder.outputFields(fieldsEscaped);
     }
 
     Map<String, Map<Long, Object>> pathToMap = new HashMap<>();
-    List<QueryResp.QueryResult> list = client.query(queryReqBuilder.build()).getQueryResults();
+    //    List<QueryResp.QueryResult> list =
+    // client.query(queryReqBuilder.build()).getQueryResults();
+
+    QueryIterator iterator =
+        client.queryIterator(
+            queryIteratorReqBuilder.consistencyLevel(ConsistencyLevel.STRONG).build());
+
     Set<String> matchedKeys = new HashSet<>();
     Set<String> notMatchedKeys = new HashSet<>();
     Map<String, DataType> pathToDataType = new HashMap<>();
 
-    for (QueryResp.QueryResult queryResult : list) {
-      Map<String, Object> entity = queryResult.getEntity();
+    List<QueryResultsWrapper.RowRecord> list = iterator.next();
+    while (list != null && list.size() > 0) {
+      for (QueryResultsWrapper.RowRecord queryResult : list) {
+        Map<String, Object> entity = queryResult.getFieldValues();
 
-      for (String key : entity.keySet()) {
-        if (key.equals(primaryFieldName)) {
-          continue;
-        }
-        if (deletedFields.contains(NameUtils.unescape(key))) {
-          continue;
-        }
-
-        String path;
-        if (isDummy(databaseName) && !isDummyEscape) {
-          path = PathUtils.getPathUnescaped(databaseName, collectionName, key);
-        } else {
-          path = PathUtils.getPathUnescaped(databaseName, collectionName, NameUtils.unescape(key));
-        }
-
-        if (isDummy(databaseName) && !fieldsEscaped.contains(key) && patterns != null) {
-          if (matchedKeys.contains(key)) {
-          } else if (notMatchedKeys.contains(key)) {
+        for (String key : entity.keySet()) {
+          if (key.equals(primaryFieldName)) {
             continue;
+          }
+          if (deletedFields.contains(NameUtils.unescape(key))) {
+            continue;
+          }
+
+          String path;
+          if (isDummy(databaseName) && !isDummyEscape) {
+            path = PathUtils.getPathUnescaped(databaseName, collectionName, key);
           } else {
-            if (PathUtils.match(path, patterns)) {
-              matchedKeys.add(key);
-              pathToDataType.put(path, pathSystem.getColumn(path).getDataType());
-            } else {
-              notMatchedKeys.add(key);
+            path =
+                PathUtils.getPathUnescaped(databaseName, collectionName, NameUtils.unescape(key));
+          }
+
+          if (isDummy(databaseName) && !fieldsEscaped.contains(key) && patterns != null) {
+            if (matchedKeys.contains(key)) {
+            } else if (notMatchedKeys.contains(key)) {
               continue;
+            } else {
+              if (PathUtils.match(path, patterns)) {
+                matchedKeys.add(key);
+                pathToDataType.put(path, pathSystem.getColumn(path).getDataType());
+              } else {
+                notMatchedKeys.add(key);
+                continue;
+              }
             }
           }
-        }
 
-        pathToMap
-            .computeIfAbsent(path, k -> new HashMap<>())
-            .put(
-                (Long) entity.get(primaryFieldName),
-                objToDeterminedType(entity.get(key), pathSystem.getColumn(path).getDataType()));
+          pathToMap
+              .computeIfAbsent(path, k -> new HashMap<>())
+              .put(
+                  (Long) entity.get(primaryFieldName),
+                  objToDeterminedType(entity.get(key), pathSystem.getColumn(path).getDataType()));
+        }
       }
+      list = iterator.next();
     }
 
     List<Column> columns = new ArrayList<>();

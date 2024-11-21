@@ -51,6 +51,7 @@ public class VectorDBHistoryDataGenerator extends BaseHistoryDataGenerator {
     Constant.oriPort = 19530;
     Constant.expPort = 19531;
     Constant.readOnlyPort = 19532;
+    LOGGER.info("LOCAL_IP : {}", LOCAL_IP);
   }
 
   private void createOrAlterCollections(
@@ -75,7 +76,6 @@ public class VectorDBHistoryDataGenerator extends BaseHistoryDataGenerator {
       if (!path.startsWith(databaseName + ".")) {
         continue;
       }
-      //      path = path.substring(path.indexOf(SEPARATOR)+1);
       Map<String, String> tags = new HashMap<>();
       if (tagsList != null && !tagsList.isEmpty()) {
         tags = tagsList.get(i);
@@ -93,9 +93,6 @@ public class VectorDBHistoryDataGenerator extends BaseHistoryDataGenerator {
       if (!collections.contains(collection)) {
         // create collection
         MilvusClientUtils.createCollection(client, databaseName, collection, DataType.LONG);
-        //                MilvusClientUtils.createCollection(client, storageUnit, collection,
-        // collectionToFields.get(collection), fieldToType,
-        //                        DataType.LONG);
       }
 
       Map<String, String> fields =
@@ -166,6 +163,7 @@ public class VectorDBHistoryDataGenerator extends BaseHistoryDataGenerator {
               data.add(row);
             }
           }
+          client.useDatabase(databaseName);
           long count = MilvusClientUtils.upsert(client, collectionName, data);
           LOGGER.info("complete insertRows, insertCount:" + count);
         }
