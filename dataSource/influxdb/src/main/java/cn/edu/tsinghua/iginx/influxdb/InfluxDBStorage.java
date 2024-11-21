@@ -578,7 +578,7 @@ public class InfluxDBStorage implements IStorage {
       filterStr.append('('); // make the or statement together
       for (int i = 0; i < paths.size(); i++) {
         String path = paths.get(i);
-        if(isDummy && path.indexOf('.') == path.lastIndexOf('.')) continue;
+        if (isDummy && path.indexOf('.') == path.lastIndexOf('.')) continue;
         InfluxDBSchema schema = new InfluxDBSchema(path, null, isDummy);
         if (i != 0) {
           filterStr.append(" or ");
