@@ -1389,10 +1389,6 @@ public class SQLSessionIT {
             + "Total line number = 1\n";
     executor.executeAndCompare(statement, expected);
 
-    System.out.println(executor.execute("SELECT count(s2) FROM us.d1 WHERE KEY < 114514;"));
-    System.out.println(executor.execute("SELECT LAST(s1) FROM us.d1;"));
-    System.out.println(executor.execute("SELECT s2 FROM us.d1;"));
-
     statement = "SELECT LAST(s2) FROM us.d1 WHERE key > 0;";
     expected =
         "ResultSets:\n"
