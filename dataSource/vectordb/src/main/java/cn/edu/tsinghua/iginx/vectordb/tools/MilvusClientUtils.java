@@ -22,6 +22,7 @@ package cn.edu.tsinghua.iginx.vectordb.tools;
 import static cn.edu.tsinghua.iginx.vectordb.MilvusStorage.BATCH_SIZE;
 import static cn.edu.tsinghua.iginx.vectordb.tools.Constants.*;
 import static cn.edu.tsinghua.iginx.vectordb.tools.Constants.MILVUS_VECTOR_FIELD_NAME;
+import static cn.edu.tsinghua.iginx.vectordb.tools.DataTransformer.objToDeterminedType;
 import static cn.edu.tsinghua.iginx.vectordb.tools.NameUtils.getPathAndVersion;
 import static cn.edu.tsinghua.iginx.vectordb.tools.TagKVUtils.splitFullName;
 
@@ -258,7 +259,7 @@ public class MilvusClientUtils {
   }
 
   /**
-   * 添加新增字段，返回新增字段实际名称（未转义）
+   * 添加新增字段，返回新增字段完整名称（未转义）
    *
    * @param client
    * @param collectionName
@@ -274,24 +275,11 @@ public class MilvusClientUtils {
       Map<String, DataType> fieldTypes,
       PathSystem pathSystem)
       throws UnsupportedEncodingException {
-    LOGGER.info(
-        "add collection fields ,database : {} , collection : {}, client: {}",
-        databaseName,
-        collectionName,
-        client);
     DescribeCollectionResp resp =
         client.describeCollection(
             DescribeCollectionReq.builder()
                 .collectionName(NameUtils.escape(collectionName))
                 .build());
-    LOGGER.info("describe collection schema: {}", resp);
-    LOGGER.info(
-        "client : {} ,database : {} , collection : {}, {}:{}",
-        client,
-        databaseName,
-        collectionName,
-        resp.getDatabaseName(),
-        resp.getCollectionSchema());
     Map<String, String> fields = new HashMap<>();
     Map<String, String> fieldsDeleted = new HashMap<>();
     resp.getCollectionSchema()
@@ -375,7 +363,7 @@ public class MilvusClientUtils {
       client.alterCollection(alterCollectionReqBuilder.build());
     }
 
-    return fields;
+    return result;
   }
 
   public static boolean addProperty(
@@ -625,7 +613,10 @@ public class MilvusClientUtils {
           record -> {
             Map<String, Object> map = record.getFieldValues();
             for (String field : fields) {
-              map.remove(field);
+              try {
+                map.remove(NameUtils.escape(field));
+              } catch (UnsupportedEncodingException e) {
+              }
             }
             data.add(JsonUtils.mapToJson(map));
           });
@@ -683,6 +674,7 @@ public class MilvusClientUtils {
 
     String primaryFieldName = describeCollectionResp.getPrimaryFieldName();
     Set<String> deletedFields = new HashSet<>();
+    Map<String, DataType> fieldToType = new HashMap<>();
     for (Map.Entry<String, String> entry : describeCollectionResp.getProperties().entrySet()) {
       if (entry.getKey().startsWith(DYNAMIC_FIELDS_PROPERTIES_PREFIX)) {
         try {
@@ -693,6 +685,7 @@ public class MilvusClientUtils {
             deletedFields.add(fieldName);
             pathSystem.deletePath(
                 PathUtils.getPathUnescaped(databaseName, collectionName, fieldName));
+            fields.remove(fieldName);
           }
         } catch (Exception e) {
         }
@@ -749,7 +742,7 @@ public class MilvusClientUtils {
         if (key.equals(primaryFieldName)) {
           continue;
         }
-        if (deletedFields.contains(key)) {
+        if (deletedFields.contains(NameUtils.unescape(key))) {
           continue;
         }
 
@@ -767,7 +760,7 @@ public class MilvusClientUtils {
           } else {
             if (PathUtils.match(path, patterns)) {
               matchedKeys.add(key);
-              pathToDataType.put(path, DataTransformer.fromObject(entity.get(key)));
+              pathToDataType.put(path, pathSystem.getColumn(path).getDataType());
             } else {
               notMatchedKeys.add(key);
               continue;
@@ -777,7 +770,9 @@ public class MilvusClientUtils {
 
         pathToMap
             .computeIfAbsent(path, k -> new HashMap<>())
-            .put((Long) entity.get(primaryFieldName), entity.get(key));
+            .put(
+                (Long) entity.get(primaryFieldName),
+                objToDeterminedType(entity.get(key), pathSystem.getColumn(path).getDataType()));
       }
     }
 

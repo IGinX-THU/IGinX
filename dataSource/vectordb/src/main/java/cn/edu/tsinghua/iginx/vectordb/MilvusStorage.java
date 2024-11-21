@@ -89,7 +89,7 @@ public class MilvusStorage implements IStorage {
     this.meta = meta;
   }
 
-  private void createOrAlterCollections(
+  private Map<String, Map<String, String>> createOrAlterCollections(
       MilvusClientV2 client,
       String storageUnit,
       List<String> paths,
@@ -124,6 +124,7 @@ public class MilvusStorage implements IStorage {
           .put(collectionAndField.getV(), dataTypeList.get(i));
     }
 
+    Map<String, Map<String, String>> collectionToFieldsMap = new HashMap<>();
     for (String collection : collectionToFields.keySet()) {
       if (!collections.contains(collection)) {
         MilvusClientUtils.createCollection(client, storageUnit, collection, DataType.LONG);
@@ -139,14 +140,17 @@ public class MilvusStorage implements IStorage {
               collectionToFields.get(collection),
               fieldToType.get(collection),
               pathSystem);
+      collectionToFieldsMap.put(collection, fields);
     }
+    return collectionToFieldsMap;
   }
 
   private Exception insertRecords(MilvusClientV2 client, String databaseName, DataView data) {
     int batchSize = Math.min(data.getKeySize(), BATCH_SIZE);
     try {
-      createOrAlterCollections(
-          client, databaseName, data.getPaths(), data.getTagsList(), data.getDataTypeList());
+      Map<String, Map<String, String>> collectionToFieldsMap =
+          createOrAlterCollections(
+              client, databaseName, data.getPaths(), data.getTagsList(), data.getDataTypeList());
 
       PathSystem pathSystem =
           pathSystemMap.computeIfAbsent(databaseName, s -> new MilvusPathSystem(databaseName));
@@ -168,7 +172,14 @@ public class MilvusStorage implements IStorage {
         String columnName = path.substring(path.lastIndexOf(".") + 1);
         fields.add(columnName);
         collectionNames[j] = collectionName;
-        columnNames[j] = columnName;
+        // 修改成完整字段名称
+        if (collectionToFieldsMap.containsKey(collectionName)
+            && collectionToFieldsMap.get(collectionName).containsKey(columnName)) {
+          columnNames[j] = collectionToFieldsMap.get(collectionName).get(columnName);
+        } else {
+          columnNames[j] = columnName;
+        }
+
         dataTypes[j] = dataType;
       }
       while (cnt < data.getKeySize()) {
