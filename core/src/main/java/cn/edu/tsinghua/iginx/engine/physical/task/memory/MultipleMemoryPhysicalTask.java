@@ -24,8 +24,8 @@ import cn.edu.tsinghua.iginx.engine.physical.task.TaskResult;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskType;
 import cn.edu.tsinghua.iginx.engine.physical.task.visitor.TaskVisitor;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStreams;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStreams;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import java.util.List;
@@ -34,7 +34,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /** 目前专门用于 CombineNonQuery 操作符 */
-public class MultipleMemoryPhysicalTask extends MemoryPhysicalTask<RowStream> {
+public class MultipleMemoryPhysicalTask extends MemoryPhysicalTask<BatchStream> {
   @SuppressWarnings("unused")
   private static final Logger LOGGER = LoggerFactory.getLogger(MultipleMemoryPhysicalTask.class);
 
@@ -42,7 +42,7 @@ public class MultipleMemoryPhysicalTask extends MemoryPhysicalTask<RowStream> {
 
   public MultipleMemoryPhysicalTask(
       List<Operator> operators, List<PhysicalTask<?>> parentTasks, RequestContext context) {
-    super(TaskType.MultipleMemory, operators, context);
+    super(TaskType.MultipleMemory, operators, context, parentTasks.size());
     this.parentTasks = parentTasks;
   }
 
@@ -51,7 +51,7 @@ public class MultipleMemoryPhysicalTask extends MemoryPhysicalTask<RowStream> {
   }
 
   @Override
-  public TaskResult<RowStream> execute() {
+  public TaskResult<BatchStream> execute() {
     List<Operator> operators = getOperators();
     if (operators.size() != 1) {
       return new TaskResult<>(new PhysicalException("unexpected multiple memory physical task"));
@@ -83,12 +83,7 @@ public class MultipleMemoryPhysicalTask extends MemoryPhysicalTask<RowStream> {
     if (exception != null) {
       return new TaskResult<>(exception);
     }
-    return new TaskResult<>(RowStreams.empty());
-  }
-
-  @Override
-  public boolean notifyParentReady() {
-    return parentReadyCount.incrementAndGet() == parentTasks.size();
+    return new TaskResult<>(BatchStreams.empty());
   }
 
   @Override
@@ -106,7 +101,7 @@ public class MultipleMemoryPhysicalTask extends MemoryPhysicalTask<RowStream> {
   }
 
   @Override
-  public Class<RowStream> getResultClass() {
-    return RowStream.class;
+  public Class<BatchStream> getResultClass() {
+    return BatchStream.class;
   }
 }

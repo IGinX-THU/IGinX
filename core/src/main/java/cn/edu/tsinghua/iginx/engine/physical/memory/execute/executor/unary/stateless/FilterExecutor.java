@@ -36,7 +36,7 @@ public class FilterExecutor extends StatelessUnaryExecutor {
   }
 
   @Override
-  public Batch compute(Batch batch) throws ComputeException {
+  public Batch computeImpl(Batch batch) throws ComputeException {
     BaseIntVector selection =
         condition.filter(
             context.getAllocator(),

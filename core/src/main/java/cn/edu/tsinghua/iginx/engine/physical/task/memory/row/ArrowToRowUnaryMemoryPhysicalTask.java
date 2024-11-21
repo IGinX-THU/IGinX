@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.task.memory.converter;
+package cn.edu.tsinghua.iginx.engine.physical.task.memory.row;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.task.PhysicalTask;
@@ -25,15 +25,15 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import java.util.Collections;
 
-public class RowToArrowUnaryMemoryPhysicalTask
-    extends UnaryMemoryPhysicalTask<BatchStream, RowStream> {
+public class ArrowToRowUnaryMemoryPhysicalTask
+    extends UnaryMemoryPhysicalTask<RowStream, BatchStream> {
 
-  public RowToArrowUnaryMemoryPhysicalTask(
-      PhysicalTask<RowStream> parentTask, RequestContext context) {
+  public ArrowToRowUnaryMemoryPhysicalTask(
+      PhysicalTask<BatchStream> parentTask, RequestContext context) {
     super(parentTask, Collections.emptyList(), context);
   }
 
-  private volatile String info = "RowToArrow";
+  private volatile String info = "ArrowToRow";
 
   @Override
   public String getInfo() {
@@ -41,14 +41,12 @@ public class RowToArrowUnaryMemoryPhysicalTask
   }
 
   @Override
-  protected BatchStream compute(RowStream previous) throws PhysicalException {
-    BatchStream result =
-        new RowStreamToBatchStreamWrapper(
-            getContext().getAllocator(), previous, getMetrics(), getContext().getBatchRowCount());
+  protected RowStream compute(BatchStream previous) throws PhysicalException {
+    RowStream result = new BatchStreamToRowStreamWrapper(previous, getMetrics());
     try {
-      info = "RowToArrow: " + result.getSchema();
+      info = "ArrowToRow: " + result.getHeader();
     } catch (PhysicalException e) {
-      try (BatchStream ignored = result) {
+      try (RowStream ignored = result) {
         throw e;
       }
     }
@@ -56,7 +54,7 @@ public class RowToArrowUnaryMemoryPhysicalTask
   }
 
   @Override
-  public Class<BatchStream> getResultClass() {
-    return BatchStream.class;
+  public Class<RowStream> getResultClass() {
+    return RowStream.class;
   }
 }

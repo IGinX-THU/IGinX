@@ -21,32 +21,33 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.excepti
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.binary.BinaryExecutor;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.util.Batch;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.util.BatchBufferQueue;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
-import java.util.ArrayDeque;
 import java.util.NoSuchElementException;
-import java.util.Queue;
-import org.apache.arrow.util.Preconditions;
 
 public abstract class StatefulBinaryExecutor extends BinaryExecutor {
 
-  private final int backlog;
-  private final Queue<Batch> results = new ArrayDeque<>();
+  private final BatchBufferQueue results;
   private boolean leftAllConsumed = false;
   private boolean rightAllConsumed = false;
 
   protected StatefulBinaryExecutor(
       ExecutorContext context, BatchSchema leftSchema, BatchSchema rightSchema, int backlog) {
     super(context, leftSchema, rightSchema);
-    Preconditions.checkArgument(backlog > 0, "Backlog must be positive");
-    this.backlog = backlog;
+    this.results = new BatchBufferQueue(backlog);
+  }
+
+  @Override
+  public void close() throws ComputeException {
+    results.close();
   }
 
   public boolean needConsumeLeft() throws ComputeException {
-    return !leftAllConsumed && results.size() < backlog;
+    return !leftAllConsumed && !results.isFull();
   }
 
   public boolean needConsumeRight() throws ComputeException {
-    return !rightAllConsumed && results.size() < backlog;
+    return !rightAllConsumed && !results.isFull();
   }
 
   /**
@@ -114,12 +115,7 @@ public abstract class StatefulBinaryExecutor extends BinaryExecutor {
   }
 
   protected void offerResult(Batch batch) {
-    // TODO: slice large batch into smaller ones
-    if (batch.getRowCount() == 0) {
-      batch.close();
-      return;
-    }
-    results.add(batch);
+    results.add(context, batch);
   }
 
   protected abstract void consumeLeftUnchecked(Batch batch) throws ComputeException;

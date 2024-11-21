@@ -34,6 +34,7 @@ import org.apache.arrow.vector.types.pojo.Schema;
 
 public class Batch implements AutoCloseable {
 
+  private long sequenceNumber; // start from 0
   private final VectorSchemaRoot group;
   private final CloseableDictionaryProvider dictionaryProvider;
   private final BaseIntVector selection;
@@ -47,18 +48,20 @@ public class Batch implements AutoCloseable {
     this.selection = selection;
   }
 
-  public static Batch of(VectorSchemaRoot compute) {
+  public static Batch of(@WillCloseWhenClosed VectorSchemaRoot compute) {
     return new Batch(compute, DictionaryProviders.emptyClosable(), null);
   }
 
-  public static Batch of(VectorSchemaRoot compute, CloseableDictionaryProvider dictionaryProvider) {
+  public static Batch of(
+      @WillCloseWhenClosed VectorSchemaRoot compute,
+      @WillCloseWhenClosed CloseableDictionaryProvider dictionaryProvider) {
     return new Batch(compute, dictionaryProvider, null);
   }
 
   public static Batch of(
-      VectorSchemaRoot compute,
-      CloseableDictionaryProvider dictionaryProvider,
-      BaseIntVector selection) {
+      @WillCloseWhenClosed VectorSchemaRoot compute,
+      @WillCloseWhenClosed CloseableDictionaryProvider dictionaryProvider,
+      @WillCloseWhenClosed BaseIntVector selection) {
     return new Batch(compute, dictionaryProvider, null);
   }
 
@@ -75,6 +78,14 @@ public class Batch implements AutoCloseable {
 
   public VectorSchemaRoot getData() {
     return group;
+  }
+
+  public long getSequenceNumber() {
+    return sequenceNumber;
+  }
+
+  public void setSequenceNumber(long sequenceNumber) {
+    this.sequenceNumber = sequenceNumber;
   }
 
   public CloseableDictionaryProvider getDictionaryProvider() {

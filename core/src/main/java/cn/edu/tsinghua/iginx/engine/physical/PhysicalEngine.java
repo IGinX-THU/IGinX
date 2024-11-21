@@ -21,20 +21,59 @@ import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.optimizer.PhysicalOptimizer;
 import cn.edu.tsinghua.iginx.engine.physical.storage.StorageManager;
 import cn.edu.tsinghua.iginx.engine.physical.storage.execute.StoragePhysicalTaskExecutor;
+import cn.edu.tsinghua.iginx.engine.physical.task.GlobalPhysicalTask;
+import cn.edu.tsinghua.iginx.engine.physical.task.PhysicalTask;
+import cn.edu.tsinghua.iginx.engine.physical.task.TaskResult;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.constraint.ConstraintManager;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStreams;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Migration;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
+import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
+import cn.edu.tsinghua.iginx.migration.MigrationPhysicalExecutor;
+import java.util.concurrent.ExecutionException;
 
 public interface PhysicalEngine {
 
-  BatchStream execute(RequestContext ctx, Operator root) throws PhysicalException;
+  void submit(PhysicalTask<?> task);
 
   PhysicalOptimizer getOptimizer();
 
   ConstraintManager getConstraintManager();
 
+  StorageManager getStorageManager();
+
   StoragePhysicalTaskExecutor getStoragePhysicalTaskExecutor();
 
-  StorageManager getStorageManager();
+  // 为了兼容过去的接口
+  default BatchStream execute(RequestContext ctx, Operator root) throws PhysicalException {
+    if (OperatorType.isGlobalOperator(root.getType())) { // 全局任务临时兼容逻辑
+      // 迁移任务单独处理
+      if (root.getType() == OperatorType.Migration) {
+        return MigrationPhysicalExecutor.getInstance()
+            .execute(ctx, (Migration) root, getStoragePhysicalTaskExecutor());
+      } else {
+        GlobalPhysicalTask task = new GlobalPhysicalTask(root, ctx);
+        try (TaskResult<RowStream> result =
+            getStoragePhysicalTaskExecutor().executeGlobalTask(task)) {
+          RowStream rowStream = result.unwrap();
+          if (rowStream == null) {
+            return null;
+          }
+          return BatchStreams.wrap(ctx.getAllocator(), result.unwrap(), ctx.getBatchRowCount());
+        }
+      }
+    }
+    PhysicalTask<BatchStream> task = getOptimizer().optimize(root, ctx);
+    ctx.setPhysicalTree(task);
+    ctx.setPhysicalEngine(this);
+    submit(task);
+    try (TaskResult<BatchStream> result = task.getResult().get()) {
+      return result.unwrap();
+    } catch (ExecutionException | InterruptedException e) {
+      throw new PhysicalException(e);
+    }
+  }
 }

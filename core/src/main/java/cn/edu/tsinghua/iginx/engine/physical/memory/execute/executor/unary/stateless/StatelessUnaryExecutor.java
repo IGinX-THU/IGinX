@@ -29,5 +29,11 @@ public abstract class StatelessUnaryExecutor extends UnaryExecutor {
     super(context, inputSchema);
   }
 
-  public abstract Batch compute(Batch batch) throws ComputeException;
+  public Batch compute(Batch batch) throws ComputeException {
+    Batch result = computeImpl(batch);
+    result.setSequenceNumber(batch.getSequenceNumber());
+    return result;
+  }
+
+  protected abstract Batch computeImpl(Batch batch) throws ComputeException;
 }
