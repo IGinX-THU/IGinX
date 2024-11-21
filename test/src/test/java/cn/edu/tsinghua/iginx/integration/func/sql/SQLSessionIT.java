@@ -1394,8 +1394,6 @@ public class SQLSessionIT {
     System.out.println(executor.execute("SELECT s2 FROM us.d1;"));
 
     statement = "SELECT LAST(s2) FROM us.d1 WHERE key > 0;";
-    System.out.println(executor.execute("EXPLAIN " + statement));
-
     expected =
         "ResultSets:\n"
             + "+-----+--------+-----+\n"
