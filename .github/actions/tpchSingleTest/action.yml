@@ -31,6 +31,11 @@ runs:
               cp -f test/src/test/resources/tpch/runtimeInfo/failedQueryIds.txt IGinX/test/src/test/resources/tpch/runtimeInfo/failedQueryIds.txt
               cp -f test/src/test/resources/tpch/runtimeInfo/iterationTimes.txt IGinX/test/src/test/resources/tpch/runtimeInfo/iterationTimes.txt
               cd IGinX
+              if ss -tuln | grep -q ":6888 "; then
+                echo "Port 6888 is open."
+              else
+                echo "Port 6888 is not open."
+              fi
               mvn test -q -Dtest=TPCHRegressionMainIT -DfailIfNoTests=false -P-format
 
         - name: Show Old IGinX log
