@@ -23,6 +23,11 @@ runs:
               cd ..
               chmod +x iginx-core-${VERSION}/sbin/start_iginx.sh
               nohup iginx-core-${VERSION}/sbin/start_iginx.sh > ../../iginx-${VERSION}.log 2>&1 &
+              if ss -tuln | grep -q ":6888 "; then
+                echo "Port 6888 is open."
+              else
+                echo "Port 6888 is not open."
+              fi
 
         - name: Run TPCH Test on Old IGinX
           if: inputs.status != 'ok'
