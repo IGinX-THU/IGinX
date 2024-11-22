@@ -73,11 +73,11 @@ public class ImportFileIT {
             + "+---+------+----+----+------+\n"
             + "|key|t1._c_|t1.a|t1.b|t1.d_m|\n"
             + "+---+------+----+----+------+\n"
-            + "| 10|  true| aaa| 0.5|   0.0|\n"
-            + "| 11| false| bbb| 1.5|   1.0|\n"
-            + "| 12|  true| ccc| 2.5|   2.0|\n"
-            + "| 13| false| ddd| 3.5|   3.0|\n"
-            + "| 14|  true| eee| 4.5|   4.0|\n"
+            + "|  0|  true| aaa| 0.5|   0.0|\n"
+            + "|  1| false| bbb| 1.5|   1.0|\n"
+            + "|  2|  true| ccc| 2.5|   2.0|\n"
+            + "|  3| false| ddd| 3.5|   3.0|\n"
+            + "|  4|  true| eee| 4.5|   4.0|\n"
             + "+---+------+----+----+------+\n"
             + "Total line number = 5\n";
     executor.executeAndCompare(query, expected);
