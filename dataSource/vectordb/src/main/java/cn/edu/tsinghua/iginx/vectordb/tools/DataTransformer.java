@@ -196,6 +196,9 @@ public class DataTransformer {
   }
 
   public static io.milvus.v2.common.DataType toMilvusDataType(DataType dataType) {
+    if (dataType == null) {
+      return io.milvus.v2.common.DataType.VarChar;
+    }
     switch (dataType) {
       case BOOLEAN:
         return io.milvus.v2.common.DataType.Bool;

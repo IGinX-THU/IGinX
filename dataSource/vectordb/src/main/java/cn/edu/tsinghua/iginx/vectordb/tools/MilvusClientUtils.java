@@ -206,6 +206,17 @@ public class MilvusClientUtils {
   public static void createCollection(
       MilvusClientV2 client, String databaseName, String collectionName, DataType idType)
       throws InterruptedException, UnsupportedEncodingException {
+    createCollection(client, databaseName, collectionName, idType, null, null);
+  }
+
+  public static void createCollection(
+      MilvusClientV2 client,
+      String databaseName,
+      String collectionName,
+      DataType idType,
+      Set<String> fieldsToAdd,
+      Map<String, DataType> fieldTypes)
+      throws InterruptedException, UnsupportedEncodingException {
     useDatabase(client, databaseName);
     LOGGER.info("create collection : {} {}", databaseName, collectionName);
     CreateCollectionReq.CreateCollectionReqBuilder builder =
@@ -230,9 +241,19 @@ public class MilvusClientUtils {
             .dimension(DEFAULT_DIMENSION)
             .build());
 
+    if (fieldsToAdd != null && !fieldsToAdd.isEmpty()) {
+      for (String fieldName : fieldsToAdd) {
+        schema.addField(
+            AddFieldReq.builder()
+                .fieldName(NameUtils.escape(fieldName))
+                .dataType(DataTransformer.toMilvusDataType(fieldTypes.get(fieldName)))
+                .build());
+      }
+    }
+
     List<IndexParam> indexes = new ArrayList<>();
     Map<String, Object> extraParams = new HashMap<>();
-    extraParams.put("nlist", 128);
+    extraParams.put("nlist", MILVUS_INDEX_PARAM_NLIST);
     indexes.add(
         IndexParam.builder()
             .fieldName(MILVUS_VECTOR_FIELD_NAME)
@@ -249,11 +270,6 @@ public class MilvusClientUtils {
             .vectorFieldName(MILVUS_VECTOR_FIELD_NAME)
             .indexParams(indexes)
             .build());
-    //        for (String field: fields){
-    //            PathUtils.getPathSystem(client).addPath(PathUtils.getPathUnescaped(databaseName,
-    // collectionName, field));
-    //        }
-
   }
 
   /**
@@ -860,7 +876,11 @@ public class MilvusClientUtils {
               .computeIfAbsent(path, k -> new HashMap<>())
               .put(
                   (Long) entity.get(primaryFieldName),
-                  objToDeterminedType(entity.get(key), pathSystem.getColumn(path).getDataType()));
+                  objToDeterminedType(
+                      entity.get(key),
+                      pathSystem.getColumn(path) != null
+                          ? pathSystem.getColumn(path).getDataType()
+                          : DataTransformer.fromObject(entity.get(key))));
         }
       }
       list = iterator.next();

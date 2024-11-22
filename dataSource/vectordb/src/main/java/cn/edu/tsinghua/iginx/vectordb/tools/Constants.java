@@ -113,6 +113,8 @@ public class Constants {
 
   public static final String MILVUS_VECTOR_FIELD_NAME = "VECTORDBVECTOR";
 
+  public static final int MILVUS_INDEX_PARAM_NLIST = 8;
+
   public static final String MILVUS_DYNAMIC_FIELD_NAME = "$meta";
 
   public static final String MILVUS_VECTOR_INDEX_NAME = "VECTORDBINDEX";

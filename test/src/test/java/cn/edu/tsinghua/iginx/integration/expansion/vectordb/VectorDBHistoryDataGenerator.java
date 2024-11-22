@@ -20,7 +20,6 @@
 package cn.edu.tsinghua.iginx.integration.expansion.vectordb;
 
 import static cn.edu.tsinghua.iginx.vectordb.tools.Constants.*;
-import static cn.edu.tsinghua.iginx.vectordb.tools.NameUtils.getPathAndVersion;
 
 import cn.edu.tsinghua.iginx.integration.expansion.BaseHistoryDataGenerator;
 import cn.edu.tsinghua.iginx.integration.expansion.constant.Constant;
@@ -62,15 +61,9 @@ public class VectorDBHistoryDataGenerator extends BaseHistoryDataGenerator {
       List<DataType> dataTypeList)
       throws InterruptedException, UnsupportedEncodingException {
     Map<String, Set<String>> collectionToFields = new HashMap<>();
-    Map<String, DataType> fieldToType = new HashMap<>();
+    Map<String, Map<String, DataType>> fieldToType = new HashMap<>();
     Set<String> collections = new HashSet<>();
     collections.addAll(MilvusClientUtils.listCollections(client, databaseName));
-    Map<String, Integer> collectionMap = new HashMap<>();
-    collections.forEach(
-        collection -> {
-          Pair<String, Integer> p = getPathAndVersion(collection);
-          collectionMap.put(p.getK(), p.getV());
-        });
     for (int i = 0; i < paths.size(); i++) {
       String path = paths.get(i);
       if (!path.startsWith(databaseName + ".")) {
@@ -85,24 +78,22 @@ public class VectorDBHistoryDataGenerator extends BaseHistoryDataGenerator {
       collectionToFields
           .computeIfAbsent(collectionAndField.getK(), k -> new HashSet<>())
           .add(collectionAndField.getV());
-      fieldToType.put(collectionAndField.getV(), dataTypeList.get(i));
+      fieldToType
+          .computeIfAbsent(collectionAndField.getK(), s -> new HashMap<>())
+          .put(collectionAndField.getV(), dataTypeList.get(i));
     }
 
-    PathSystem pathSystem = new MilvusPathSystem("");
     for (String collection : collectionToFields.keySet()) {
       if (!collections.contains(collection)) {
         // create collection
-        MilvusClientUtils.createCollection(client, databaseName, collection, DataType.LONG);
+        MilvusClientUtils.createCollection(
+            client,
+            databaseName,
+            collection,
+            DataType.LONG,
+            collectionToFields.get(collection),
+            fieldToType.get(collection));
       }
-
-      Map<String, String> fields =
-          MilvusClientUtils.addCollectionFields(
-              client,
-              databaseName,
-              collection,
-              collectionToFields.get(collection),
-              fieldToType,
-              pathSystem);
     }
   }
 
@@ -126,7 +117,6 @@ public class VectorDBHistoryDataGenerator extends BaseHistoryDataGenerator {
         List<Integer> columnIndexes =
             tablesToColumnIndexes.computeIfAbsent(tableName, x -> new ArrayList<>());
         columnIndexes.add(i);
-        tablesToColumnIndexes.put(tableName, columnIndexes);
       }
 
       for (Map.Entry<String, Map<String, List<Integer>>> entry :
@@ -142,27 +132,34 @@ public class VectorDBHistoryDataGenerator extends BaseHistoryDataGenerator {
         for (Map.Entry<String, List<Integer>> item : entry.getValue().entrySet()) {
           String collectionName = item.getKey();
           createOrAlterCollections(client, databaseName, pathList, null, dataTypeList);
-
+          int id = 1;
           List<JsonObject> data = new ArrayList<>();
-          long id = 1;
-          for (List<Object> values : valuesList) {
+          for (int i=0;i<valuesList.size();i++){
+            List<Object> values = valuesList.get(i);
             JsonObject row = new JsonObject();
             boolean added = false;
+            int pos = 0;
             for (Integer index : item.getValue()) {
               String path = pathList.get(index);
               String columnName = path.substring(path.lastIndexOf(SEPARATOR) + 1);
               added =
                   MilvusClientUtils.addProperty(
-                      row, columnName, values.get(index), dataTypeList.get(index));
+                      row, columnName, values.get(pos), dataTypeList.get(pos));
+              pos++;
             }
             if (added) {
-              row.addProperty(MILVUS_PRIMARY_FIELD_NAME, id++);
+              if (keyList!=null && keyList.size()>i) {
+                row.addProperty(MILVUS_PRIMARY_FIELD_NAME, keyList.get(i));
+              }else{
+                row.addProperty(MILVUS_PRIMARY_FIELD_NAME, id++);
+              }
               row.add(
                   MILVUS_VECTOR_FIELD_NAME,
                   new Gson().toJsonTree(CommonUtils.generateFloatVector(DEFAULT_DIMENSION)));
               data.add(row);
             }
           }
+
           client.useDatabase(databaseName);
           long count = MilvusClientUtils.upsert(client, collectionName, data);
           LOGGER.info("complete insertRows, insertCount:" + count);

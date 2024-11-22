@@ -352,7 +352,7 @@ public class MilvusStorage implements IStorage {
       LOGGER.error("unexpected error: ", e);
       return new TaskExecuteResult(
           new PhysicalTaskExecuteFailureException(
-              String.format("execute project task in milvus failure, {}"), e));
+              String.format("execute project task in milvus failure, %s"), e));
     }
   }
 
