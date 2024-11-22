@@ -533,8 +533,7 @@ public class SessionIT extends BaseSessionIT {
             if (dsStartKey > delEndKey || dsEndKey < delStartKey) {
               assertEquals(delDsAvg + pathNum, changeResultToDouble(dsResult.get(j)), delta);
             } else if (dsStartKey >= delStartKey && dsEndKey < delEndKey) {
-              //                            assertNull(dsResult.get(j));
-              assertTrue(Double.isNaN((Double) dsResult.get(j)));
+              assertNull(dsResult.get(j));
             } else if (dsStartKey < delStartKey) {
               assertEquals(
                   (dsStartKey + delStartKey - 1) / 2.0 + pathNum,
@@ -613,18 +612,12 @@ public class SessionIT extends BaseSessionIT {
           session.aggregateQuery(delDataInColumnPaths, START_KEY, END_KEY + 1, AggregateType.AVG);
       List<String> delDataAvgResPaths = delDataAvgSet.getPaths();
       Object[] delDataAvgResult = delDataAvgSet.getValues();
-      assertEquals(dataInColumnLen, delDataAvgResPaths.size());
-      assertEquals(dataInColumnLen, delDataAvgSet.getValues().length);
-      for (int i = 0; i < dataInColumnLen; i++) {
+      assertEquals(dataInColumnLen - deleteDataInColumnLen, delDataAvgResPaths.size());
+      assertEquals(dataInColumnLen - deleteDataInColumnLen, delDataAvgSet.getValues().length);
+      for (int i = 0; i < dataInColumnLen - deleteDataInColumnLen; i++) {
         int pathNum = getPathNum(delDataAvgResPaths.get(i));
         assertNotEquals(pathNum, -1);
-        if (pathNum < currPath + deleteDataInColumnLen) { // Here is the removed rows
-          //                    assertEquals("null", new String((byte[])
-          // delDataAvgResult[i]));
-          assertTrue(Double.isNaN((Double) delDataAvgResult[i]));
-        } else {
-          assertEquals((START_KEY + END_KEY) / 2.0 + pathNum, delDataAvgResult[i]);
-        }
+        assertEquals((START_KEY + END_KEY) / 2.0 + pathNum, delDataAvgResult[i]);
       }
 
       // Test downsample function for the delete
@@ -645,12 +638,7 @@ public class SessionIT extends BaseSessionIT {
           double avg = (dsKey + maxNum) / 2.0;
           int pathNum = getPathNum(dsDelDataResPaths.get(j));
           assertNotEquals(pathNum, -1);
-          if (pathNum < currPath + deleteDataInColumnLen) { // Here is the removed rows
-            //                        assertNull(dsResult.get(j));
-            assertTrue(Double.isNaN((Double) dsResult.get(j)));
-          } else {
-            assertEquals(avg + pathNum, changeResultToDouble(dsResult.get(j)), delta);
-          }
+          assertEquals(avg + pathNum, changeResultToDouble(dsResult.get(j)), delta);
         }
       }
       currPath += dataInColumnLen;
