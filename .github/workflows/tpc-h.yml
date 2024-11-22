@@ -28,7 +28,7 @@ on:
                 type: string
                 required: false
                 #                default: '["IoTDB12", "InfluxDB", "FileSystem", "PostgreSQL", "Redis", "MongoDB", "MySQL", "VectorDB"]'
-                default: '["VectorDB"]'
+                default: '["Redis"]'
 
 jobs:
     TPC-H-Test:
