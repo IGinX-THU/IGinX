@@ -46,12 +46,12 @@ import io.milvus.v2.service.database.request.CreateDatabaseReq;
 import io.milvus.v2.service.database.request.DropDatabaseReq;
 import io.milvus.v2.service.vector.request.GetReq;
 import io.milvus.v2.service.vector.request.QueryIteratorReq;
+import io.milvus.v2.service.vector.request.QueryReq;
 import io.milvus.v2.service.vector.request.UpsertReq;
 import io.milvus.v2.service.vector.response.UpsertResp;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
-import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -532,7 +532,11 @@ public class MilvusClientUtils {
       PathSystem pathSystem)
       throws UnsupportedEncodingException {
     Set<String> pathSet = new HashSet<>();
-    for (String path : paths) {
+    List<String> patterns = paths;
+    if (isDummy) {
+      patterns = recreateDummyPattern(paths);
+    }
+    for (String path : patterns) {
       for (String p : PathUtils.getPathSystem(client, pathSystem).findPaths(path, null)) {
         Pair<String, Map<String, String>> columnToTags = splitFullName(getPathAndVersion(p).getK());
         if (tagFilter != null
@@ -557,6 +561,23 @@ public class MilvusClientUtils {
       collectionToFields.computeIfAbsent(collectionName, k -> new HashSet<>()).add(fieldName);
     }
     return collectionToFields;
+  }
+
+  public static List<String> recreateDummyPattern(List<String> patterns) {
+    List<String> newPatterns = new ArrayList<>();
+    for (String pattern : patterns) {
+      if (pattern.endsWith("*")) {
+        newPatterns.add(pattern);
+        continue;
+      }
+      String[] splits = pattern.split("\\.");
+      if (splits.length > 2) {
+        newPatterns.add(pattern.substring(0, pattern.lastIndexOf(".")) + ".*");
+      } else {
+        newPatterns.add(pattern);
+      }
+    }
+    return newPatterns;
   }
 
   public static Map<String, Set<String>> determinePaths(
@@ -589,6 +610,7 @@ public class MilvusClientUtils {
       fieldList.add(NameUtils.escape(path.substring(path.lastIndexOf(".") + 1)));
     }
     fieldList.add(MILVUS_VECTOR_FIELD_NAME);
+    //    fieldList.add(MILVUS_DYNAMIC_FIELD_NAME);
 
     QueryIterator iterator =
         client.queryIterator(
@@ -673,7 +695,6 @@ public class MilvusClientUtils {
 
     String primaryFieldName = describeCollectionResp.getPrimaryFieldName();
     Set<String> deletedFields = new HashSet<>();
-    Map<String, DataType> fieldToType = new HashMap<>();
     for (Map.Entry<String, String> entry : describeCollectionResp.getProperties().entrySet()) {
       if (entry.getKey().startsWith(DYNAMIC_FIELDS_PROPERTIES_PREFIX)) {
         try {
@@ -691,56 +712,116 @@ public class MilvusClientUtils {
       }
     }
 
+    List<String> fieldsEscaped = escapeList(fields, databaseName);
+    if (isDummy(databaseName) && describeCollectionResp.getEnableDynamicField()) {
+      fieldsEscaped.add(MILVUS_DYNAMIC_FIELD_NAME);
+    }
     List<Pair<Long, Long>> keyRanges = FilterUtils.keyRangesFrom(filter);
-    QueryIteratorReq.QueryIteratorReqBuilder queryIteratorReqBuilder =
-        QueryIteratorReq.builder().collectionName(collectionNameEscaped);
+    String expr;
 
     if (isDummy(databaseName) || keyRanges == null || keyRanges.size() < 1) {
-      queryIteratorReqBuilder.expr(primaryFieldName + ">=0");
+      expr = primaryFieldName + ">=0";
     } else {
       if (!FilterUtils.filterContainsType(
           Arrays.asList(FilterType.Value, FilterType.Path), filter)) {
-        queryIteratorReqBuilder.expr(
+        expr =
             new FilterTransformer(primaryFieldName)
-                .toString(FilterUtils.expandFilter(filter, primaryFieldName)));
+                .toString(FilterUtils.expandFilter(filter, primaryFieldName));
       } else {
-        queryIteratorReqBuilder.expr(primaryFieldName + ">=0");
+        expr = primaryFieldName + ">=0";
       }
     }
-    List<String> fieldsEscaped;
+
+    QueryIteratorReq.QueryIteratorReqBuilder queryIteratorReqBuilder =
+        buildQueryIteratorReq(databaseName, collectionNameEscaped, expr, fieldsEscaped);
+    Map<String, Map<Long, Object>> pathToMap =
+        iteratorQuery(
+            client,
+            databaseName,
+            collectionName,
+            patterns,
+            pathSystem,
+            primaryFieldName,
+            fieldsEscaped,
+            deletedFields,
+            queryIteratorReqBuilder);
+
+    Map<String, DataType> pathToDataType = new HashMap<>();
+    List<Column> columns = new ArrayList<>();
+    for (Map.Entry<String, Map<Long, Object>> entry : pathToMap.entrySet()) {
+      DataType type = pathToDataType.get(entry.getKey());
+      if (type == null) {
+        if (PathUtils.getPathSystem(client, pathSystem).getColumn(entry.getKey()) != null) {
+          type = pathSystem.getColumn(entry.getKey()).getDataType();
+        } else {
+          type = DataTransformer.fromObject(entry.getValue().values().iterator().next());
+        }
+      }
+      Column column =
+          new Column(entry.getKey().replaceAll("\\[\\[(\\d+)\\]\\]", ""), type, entry.getValue());
+
+      columns.add(column);
+    }
+
+    return columns;
+  }
+
+  public static List<String> escapeList(List<String> list, String databaseName) {
     if (isDummy(databaseName) && !isDummyEscape) {
-      fieldsEscaped = fields;
+      return list;
     } else {
-      fieldsEscaped =
-          fields.stream()
-              .map(
-                  s -> {
-                    try {
-                      return NameUtils.escape(s);
-                    } catch (UnsupportedEncodingException e) {
-                      throw new RuntimeException(e);
-                    }
-                  })
-              .collect(Collectors.toList());
+      List<String> result = new ArrayList<>();
+      for (String s : list) {
+        try {
+          result.add(NameUtils.escape(s));
+        } catch (UnsupportedEncodingException e) {
+        }
+      }
+      return result;
     }
-    // dummy需要读取动态字段，所以不能指定输出字段
+  }
+
+  public static QueryIteratorReq.QueryIteratorReqBuilder buildQueryIteratorReq(
+      String databaseName, String collectionNameEscaped, String expr, List<String> fieldsEscaped) {
+    QueryIteratorReq.QueryIteratorReqBuilder queryIteratorReqBuilder =
+        QueryIteratorReq.builder().collectionName(collectionNameEscaped);
+    queryIteratorReqBuilder.expr(expr);
+    queryIteratorReqBuilder.outputFields(fieldsEscaped);
+    queryIteratorReqBuilder.consistencyLevel(ConsistencyLevel.STRONG);
+    return queryIteratorReqBuilder;
+  }
+
+  public static QueryReq.QueryReqBuilder buildQueryReq(
+      String databaseName, String collectionNameEscaped, String expr, List<String> fieldsEscaped) {
+    QueryReq.QueryReqBuilder queryReqBuilder =
+        QueryReq.builder().collectionName(collectionNameEscaped);
+    queryReqBuilder.filter(expr);
     if (!isDummy(databaseName)) {
-      queryIteratorReqBuilder.outputFields(fieldsEscaped);
+      queryReqBuilder.outputFields(fieldsEscaped);
     }
+    queryReqBuilder.consistencyLevel(ConsistencyLevel.STRONG);
+    return queryReqBuilder;
+  }
 
+  private static Map<String, Map<Long, Object>> iteratorQuery(
+      MilvusClientV2 client,
+      String databaseName,
+      String collectionName,
+      List<String> patterns,
+      PathSystem pathSystem,
+      String primaryFieldName,
+      List<String> fieldsEscaped,
+      Set<String> deletedFields,
+      QueryIteratorReq.QueryIteratorReqBuilder queryIteratorReqBuilder) {
     Map<String, Map<Long, Object>> pathToMap = new HashMap<>();
-    //    List<QueryResp.QueryResult> list =
-    // client.query(queryReqBuilder.build()).getQueryResults();
-
-    QueryIterator iterator =
-        client.queryIterator(
-            queryIteratorReqBuilder.consistencyLevel(ConsistencyLevel.STRONG).build());
+    QueryIterator iterator = client.queryIterator(queryIteratorReqBuilder.build());
 
     Set<String> matchedKeys = new HashSet<>();
     Set<String> notMatchedKeys = new HashSet<>();
-    Map<String, DataType> pathToDataType = new HashMap<>();
 
     List<QueryResultsWrapper.RowRecord> list = iterator.next();
+    Set<String> fieldSet = new HashSet<>();
+    fieldSet.addAll(fieldsEscaped);
     while (list != null && list.size() > 0) {
       for (QueryResultsWrapper.RowRecord queryResult : list) {
         Map<String, Object> entity = queryResult.getFieldValues();
@@ -761,14 +842,13 @@ public class MilvusClientUtils {
                 PathUtils.getPathUnescaped(databaseName, collectionName, NameUtils.unescape(key));
           }
 
-          if (isDummy(databaseName) && !fieldsEscaped.contains(key) && patterns != null) {
+          if (isDummy(databaseName) && patterns != null) {
             if (matchedKeys.contains(key)) {
             } else if (notMatchedKeys.contains(key)) {
               continue;
             } else {
               if (PathUtils.match(path, patterns)) {
                 matchedKeys.add(key);
-                pathToDataType.put(path, pathSystem.getColumn(path).getDataType());
               } else {
                 notMatchedKeys.add(key);
                 continue;
@@ -785,21 +865,7 @@ public class MilvusClientUtils {
       }
       list = iterator.next();
     }
-
-    List<Column> columns = new ArrayList<>();
-    for (Map.Entry<String, Map<Long, Object>> entry : pathToMap.entrySet()) {
-      DataType type = pathToDataType.get(entry.getKey());
-      if (type == null
-          && PathUtils.getPathSystem(client, pathSystem).getColumn(entry.getKey()) != null) {
-        type = PathUtils.getPathSystem(client, pathSystem).getColumn(entry.getKey()).getDataType();
-      }
-      Column column =
-          new Column(entry.getKey().replaceAll("\\[\\[(\\d+)\\]\\]", ""), type, entry.getValue());
-
-      columns.add(column);
-    }
-
-    return columns;
+    return pathToMap;
   }
 
   public static long upsert(MilvusClientV2 client, String collectionName, List<JsonObject> data)

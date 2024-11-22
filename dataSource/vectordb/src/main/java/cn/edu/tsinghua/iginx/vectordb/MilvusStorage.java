@@ -273,12 +273,15 @@ public class MilvusStorage implements IStorage {
             new PhysicalTaskExecuteFailureException(
                 String.format("cannot connect to database %s", databaseName)));
       }
-
+      List<String> patterns = project.getPatterns();
+      if (patterns == null) {
+        patterns = Arrays.asList("*");
+      }
       PathSystem pathSystem =
           pathSystemMap.computeIfAbsent(databaseName, s -> new MilvusPathSystem(databaseName));
       Map<String, Set<String>> collectionToFields =
           MilvusClientUtils.determinePaths(
-              client.getClient(), project.getPatterns(), project.getTagFilter(), false, pathSystem);
+              client.getClient(), patterns, project.getTagFilter(), false, pathSystem);
       List<cn.edu.tsinghua.iginx.vectordb.entity.Column> columns = new ArrayList<>();
       for (Map.Entry<String, Set<String>> entry : collectionToFields.entrySet()) {
         String collectionName = entry.getKey();
@@ -316,11 +319,18 @@ public class MilvusStorage implements IStorage {
   private TaskExecuteResult executeProjectDummyWithFilter(Project project, Filter filter) {
     try (MilvusClient milvusClient = new MilvusClient(meta)) {
       MilvusClientV2 client = milvusClient.getClient();
-
+      if (client == null) {
+        return new TaskExecuteResult(
+            new PhysicalTaskExecuteFailureException(String.format("cannot connect to milvus")));
+      }
+      List<String> patterns = project.getPatterns();
+      if (patterns == null) {
+        patterns = Arrays.asList("*");
+      }
       PathSystem pathSystem = new MilvusPathSystem("");
       Map<String, Set<String>> collectionToFields =
           MilvusClientUtils.determinePaths(
-              client, project.getPatterns(), project.getTagFilter(), true, pathSystem);
+              client, patterns, project.getTagFilter(), true, pathSystem);
       List<cn.edu.tsinghua.iginx.vectordb.entity.Column> columns = new ArrayList<>();
       for (Map.Entry<String, Set<String>> entry : collectionToFields.entrySet()) {
         String collectionName = entry.getKey();
@@ -334,7 +344,7 @@ public class MilvusStorage implements IStorage {
                 collectionName,
                 new ArrayList<>(fields),
                 filter,
-                project.getPatterns(),
+                patterns,
                 pathSystem));
       }
       return new TaskExecuteResult(new VectorDBQueryRowStream(columns, filter), null);
@@ -511,7 +521,7 @@ public class MilvusStorage implements IStorage {
 
       return new Pair<>(columnsInterval, KeyInterval.getDefaultKeyInterval());
     } catch (Exception e) {
-      throw new PhysicalException(String.format("execute query task in milvus failure"));
+      throw new PhysicalException(String.format("execute query task in milvus failure : %s", e));
     }
   }
 
