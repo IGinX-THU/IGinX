@@ -132,20 +132,18 @@ public class VectorDBHistoryDataGenerator extends BaseHistoryDataGenerator {
         for (Map.Entry<String, List<Integer>> item : entry.getValue().entrySet()) {
           String collectionName = item.getKey();
           createOrAlterCollections(client, databaseName, pathList, null, dataTypeList);
-          int id = 1;
+          int id = 0;
           List<JsonObject> data = new ArrayList<>();
           for (int i=0;i<valuesList.size();i++){
             List<Object> values = valuesList.get(i);
             JsonObject row = new JsonObject();
             boolean added = false;
-            int pos = 0;
             for (Integer index : item.getValue()) {
               String path = pathList.get(index);
               String columnName = path.substring(path.lastIndexOf(SEPARATOR) + 1);
               added =
                   MilvusClientUtils.addProperty(
-                      row, columnName, values.get(pos), dataTypeList.get(pos));
-              pos++;
+                      row, columnName, values.get(index), dataTypeList.get(index));
             }
             if (added) {
               if (keyList!=null && keyList.size()>i) {

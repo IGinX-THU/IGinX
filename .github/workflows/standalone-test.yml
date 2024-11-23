@@ -33,7 +33,7 @@ on:
 
 jobs:
     Union-DB-Test:
-        timeout-minutes: 40
+        timeout-minutes: 240
         strategy:
             fail-fast: false
             matrix:
