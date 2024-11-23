@@ -33,44 +33,42 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public abstract class BinaryMemoryPhysicalTask<
-        RESULT extends PhysicalCloseable,
-        LEFT extends PhysicalCloseable,
-        RIGHT extends PhysicalCloseable>
+        RESULT extends PhysicalCloseable, INPUT extends PhysicalCloseable>
     extends MemoryPhysicalTask<RESULT> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(BinaryMemoryPhysicalTask.class);
 
-  private final PhysicalTask<LEFT> parentTaskA;
+  private final PhysicalTask<INPUT> parentTaskA;
 
-  private final PhysicalTask<RIGHT> parentTaskB;
+  private final PhysicalTask<INPUT> parentTaskB;
 
   public BinaryMemoryPhysicalTask(
       List<Operator> operators,
-      PhysicalTask<LEFT> parentTaskA,
-      PhysicalTask<RIGHT> parentTaskB,
+      PhysicalTask<INPUT> parentTaskA,
+      PhysicalTask<INPUT> parentTaskB,
       RequestContext context) {
-    super(TaskType.BinaryMemory, operators, context);
+    super(TaskType.BinaryMemory, operators, context, 2);
     this.parentTaskA = parentTaskA;
     this.parentTaskB = parentTaskB;
   }
 
-  public PhysicalTask<LEFT> getParentTaskA() {
+  public PhysicalTask<INPUT> getParentTaskA() {
     return parentTaskA;
   }
 
-  public PhysicalTask<RIGHT> getParentTaskB() {
+  public PhysicalTask<INPUT> getParentTaskB() {
     return parentTaskB;
   }
 
   @Override
   public TaskResult<RESULT> execute() {
-    Future<TaskResult<LEFT>> futureA = parentTaskA.getResult();
-    Future<TaskResult<RIGHT>> futureB = parentTaskB.getResult();
-    try (TaskResult<LEFT> leftResult = futureA.get();
-        TaskResult<RIGHT> rightResult = futureB.get()) {
+    Future<TaskResult<INPUT>> futureA = parentTaskA.getResult();
+    Future<TaskResult<INPUT>> futureB = parentTaskB.getResult();
+    try (TaskResult<INPUT> leftResult = futureA.get();
+        TaskResult<INPUT> rightResult = futureB.get()) {
       if (leftResult.isSuccessful() && rightResult.isSuccessful()) {
-        LEFT left = leftResult.unwrap();
-        RIGHT right = rightResult.unwrap();
+        INPUT left = leftResult.unwrap();
+        INPUT right = rightResult.unwrap();
         RESULT result = compute(left, right);
         return new TaskResult<>(result);
       }
@@ -82,13 +80,8 @@ public abstract class BinaryMemoryPhysicalTask<
     throw new IllegalStateException("Should not reach here");
   }
 
-  protected abstract RESULT compute(@WillClose LEFT left, @WillClose RIGHT right)
+  protected abstract RESULT compute(@WillClose INPUT left, @WillClose INPUT right)
       throws PhysicalException;
-
-  @Override
-  public boolean notifyParentReady() {
-    return parentReadyCount.incrementAndGet() == 2;
-  }
 
   @Override
   public void accept(TaskVisitor visitor) {

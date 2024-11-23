@@ -68,7 +68,7 @@ public abstract class AbstractPhysicalTask<RESULT extends PhysicalCloseable>
   }
 
   @Override
-  public void setFollowerTask(PhysicalTask task) {
+  public void setFollowerTask(PhysicalTask<?> task) {
     this.followerTask = task;
   }
 

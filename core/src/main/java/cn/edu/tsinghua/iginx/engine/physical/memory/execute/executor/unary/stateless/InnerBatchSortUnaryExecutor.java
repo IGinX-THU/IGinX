@@ -53,7 +53,7 @@ public class InnerBatchSortUnaryExecutor extends StatelessUnaryExecutor {
   public void close() throws ComputeException {}
 
   @Override
-  public Batch compute(Batch batch) throws ComputeException {
+  public Batch computeImpl(Batch batch) throws ComputeException {
     try (IntVector sortedIndices =
         ScalarExpressions.evaluate(
             context.getAllocator(),

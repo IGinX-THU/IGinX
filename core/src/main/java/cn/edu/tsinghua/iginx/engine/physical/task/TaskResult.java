@@ -19,6 +19,7 @@ package cn.edu.tsinghua.iginx.engine.physical.task;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.task.utils.PhysicalCloseable;
+import java.util.Objects;
 import javax.annotation.Nullable;
 import org.apache.arrow.util.Preconditions;
 
@@ -28,19 +29,19 @@ public class TaskResult<RESULT extends PhysicalCloseable> implements PhysicalClo
   private RESULT result;
 
   public TaskResult(RESULT result) {
-    this(null, result);
+    this(null, Objects.requireNonNull(result));
   }
 
   public TaskResult(PhysicalException exception) {
-    this(exception, null);
+    this(Objects.requireNonNull(exception), null);
   }
 
   private TaskResult(PhysicalException exception, RESULT result) {
     Preconditions.checkArgument(
-        result == null ^ exception == null,
-        "result and exception should not both null or not null");
+        result == null || exception == null,
+        "result and exception cannot be non-null at the same time");
     this.result = result;
-    this.exception = null;
+    this.exception = exception;
   }
 
   @Override

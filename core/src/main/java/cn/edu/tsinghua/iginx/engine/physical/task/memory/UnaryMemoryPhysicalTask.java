@@ -43,7 +43,7 @@ public abstract class UnaryMemoryPhysicalTask<
 
   public UnaryMemoryPhysicalTask(
       PhysicalTask<INPUT> parentTask, List<Operator> operators, RequestContext context) {
-    super(TaskType.UnaryMemory, operators, context);
+    super(TaskType.UnaryMemory, operators, context, 1);
     this.parentTask = parentTask;
   }
 
@@ -70,11 +70,6 @@ public abstract class UnaryMemoryPhysicalTask<
   }
 
   protected abstract RESULT compute(@WillClose INPUT previous) throws PhysicalException;
-
-  @Override
-  public boolean notifyParentReady() {
-    return parentReadyCount.incrementAndGet() == 1;
-  }
 
   @Override
   public void accept(TaskVisitor visitor) {

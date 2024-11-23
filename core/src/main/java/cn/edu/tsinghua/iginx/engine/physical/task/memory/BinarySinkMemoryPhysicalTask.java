@@ -32,7 +32,7 @@ import java.util.Collections;
 import java.util.NoSuchElementException;
 
 public class BinarySinkMemoryPhysicalTask
-    extends BinaryMemoryPhysicalTask<BatchStream, BatchStream, BatchStream> {
+    extends BinaryMemoryPhysicalTask<BatchStream, BatchStream> {
 
   private final BinaryExecutorFactory<StatefulBinaryExecutor> executorFactory;
 

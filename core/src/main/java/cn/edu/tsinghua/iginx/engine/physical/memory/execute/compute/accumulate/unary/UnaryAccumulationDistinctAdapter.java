@@ -19,6 +19,7 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.Schemas;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Objects;
 import org.apache.arrow.memory.BufferAllocator;
@@ -84,6 +85,9 @@ public class UnaryAccumulationDistinctAdapter extends UnaryAccumulation {
         int distinctCount = 0;
         for (int row = 0; row < inputVector.getValueCount(); row++) {
           Object value = inputVector.getObject(row);
+          if (value instanceof byte[]) {
+            value = new Binary((byte[]) value);
+          }
           if (valueSet.contains(value)) {
             continue;
           }
@@ -95,6 +99,28 @@ public class UnaryAccumulationDistinctAdapter extends UnaryAccumulation {
           distinct.setValueCount(distinctCount);
           delegate.update(distinct);
         }
+      }
+    }
+
+    private static class Binary {
+      private final byte[] value;
+
+      public Binary(byte[] value) {
+        this.value = value;
+      }
+
+      @Override
+      public boolean equals(Object obj) {
+        if (obj == null || getClass() != obj.getClass()) {
+          return false;
+        }
+        Binary binary = (Binary) obj;
+        return Arrays.equals(value, binary.value);
+      }
+
+      @Override
+      public int hashCode() {
+        return Arrays.hashCode(value);
       }
     }
   }

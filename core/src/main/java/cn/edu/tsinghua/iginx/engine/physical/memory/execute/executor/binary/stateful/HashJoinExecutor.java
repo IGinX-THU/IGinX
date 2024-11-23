@@ -93,6 +93,7 @@ public class HashJoinExecutor extends StatefulBinaryExecutor {
     if (joinHashMap != null) {
       joinHashMap.close();
     }
+    super.close();
   }
 
   @Override

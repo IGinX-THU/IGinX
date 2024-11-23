@@ -18,14 +18,19 @@
 package cn.edu.tsinghua.iginx.physical.optimizer.naive;
 
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateful.FetchAllUnaryExecutor;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateful.LimitUnaryExecutor;
 import cn.edu.tsinghua.iginx.engine.physical.task.PhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.StoragePhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskType;
-import cn.edu.tsinghua.iginx.engine.physical.task.memory.*;
-import cn.edu.tsinghua.iginx.engine.physical.task.memory.converter.ArrowToRowUnaryMemoryPhysicalTask;
-import cn.edu.tsinghua.iginx.engine.physical.task.memory.converter.RowToArrowUnaryMemoryPhysicalTask;
+import cn.edu.tsinghua.iginx.engine.physical.task.memory.BinarySinkMemoryPhysicalTask;
+import cn.edu.tsinghua.iginx.engine.physical.task.memory.MultipleMemoryPhysicalTask;
+import cn.edu.tsinghua.iginx.engine.physical.task.memory.PipelineMemoryPhysicalTask;
+import cn.edu.tsinghua.iginx.engine.physical.task.memory.UnarySinkMemoryPhysicalTask;
+import cn.edu.tsinghua.iginx.engine.physical.task.memory.parallel.FetchAsyncMemoryPhysicalTask;
+import cn.edu.tsinghua.iginx.engine.physical.task.memory.row.ArrowToRowUnaryMemoryPhysicalTask;
+import cn.edu.tsinghua.iginx.engine.physical.task.memory.row.BinaryRowMemoryPhysicalTask;
+import cn.edu.tsinghua.iginx.engine.physical.task.memory.row.RowToArrowUnaryMemoryPhysicalTask;
+import cn.edu.tsinghua.iginx.engine.physical.task.memory.row.UnaryRowMemoryPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.utils.PhysicalCloseable;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
@@ -133,16 +138,19 @@ public class NaivePhysicalPlanner {
     }
   }
 
-  public PhysicalTask<BatchStream> fetchAll(Source source, RequestContext context) {
+  public PhysicalTask<BatchStream> fetchAsync(Source source, RequestContext context) {
     PhysicalTask<?> sourceTask = fetch(source, context);
-    return new UnarySinkMemoryPhysicalTask(
-        convert(sourceTask, context, BatchStream.class),
-        Collections.emptyList(),
-        context,
-        (ctx, schema) -> new FetchAllUnaryExecutor(ctx, schema.raw()));
+    // TODO: 是否所有的情况都应当使用 Exchange？ 是否存在一些情况使用 FetchAll 更好？
+    // return new UnarySinkMemoryPhysicalTask(
+    //     convert(sourceTask, context, BatchStream.class),
+    //     Collections.emptyList(),
+    //     context,
+    //     (ctx, schema) -> new FetchAllUnaryExecutor(ctx, schema.raw()));
+    return new FetchAsyncMemoryPhysicalTask(
+        convert(sourceTask, context, BatchStream.class), context);
   }
 
-  public PhysicalTask<RowStream> construct(CombineNonQuery operator, RequestContext context) {
+  public PhysicalTask<BatchStream> construct(CombineNonQuery operator, RequestContext context) {
     List<PhysicalTask<?>> sourceTasks = new ArrayList<>();
     for (Source source : operator.getSources()) {
       sourceTasks.add(fetch(source, context));
@@ -372,8 +380,8 @@ public class NaivePhysicalPlanner {
     // 现在基于列的实现中，左表是BuildSide，右表是ProbeSide
     operator = Joins.reverse(operator);
 
-    PhysicalTask<BatchStream> leftTask = fetchAll(operator.getSourceA(), context);
-    PhysicalTask<BatchStream> rightTask = fetchAll(operator.getSourceB(), context);
+    PhysicalTask<BatchStream> leftTask = fetchAsync(operator.getSourceA(), context);
+    PhysicalTask<BatchStream> rightTask = fetchAsync(operator.getSourceB(), context);
 
     return new BinarySinkMemoryPhysicalTask(
         convert(leftTask, context, BatchStream.class),
@@ -390,8 +398,8 @@ public class NaivePhysicalPlanner {
 
     operator = Joins.reverse(operator);
 
-    PhysicalTask<BatchStream> leftTask = fetchAll(operator.getSourceA(), context);
-    PhysicalTask<BatchStream> rightTask = fetchAll(operator.getSourceB(), context);
+    PhysicalTask<BatchStream> leftTask = fetchAsync(operator.getSourceA(), context);
+    PhysicalTask<BatchStream> rightTask = fetchAsync(operator.getSourceB(), context);
 
     return new BinarySinkMemoryPhysicalTask(
         convert(leftTask, context, BatchStream.class),
@@ -408,8 +416,8 @@ public class NaivePhysicalPlanner {
 
     operator = Joins.reverse(operator);
 
-    PhysicalTask<BatchStream> leftTask = fetchAll(operator.getSourceA(), context);
-    PhysicalTask<BatchStream> rightTask = fetchAll(operator.getSourceB(), context);
+    PhysicalTask<BatchStream> leftTask = fetchAsync(operator.getSourceA(), context);
+    PhysicalTask<BatchStream> rightTask = fetchAsync(operator.getSourceB(), context);
 
     return new BinarySinkMemoryPhysicalTask(
         convert(leftTask, context, BatchStream.class),
@@ -426,8 +434,8 @@ public class NaivePhysicalPlanner {
 
     operator = Joins.reverse(operator);
 
-    PhysicalTask<BatchStream> leftTask = fetchAll(operator.getSourceA(), context);
-    PhysicalTask<BatchStream> rightTask = fetchAll(operator.getSourceB(), context);
+    PhysicalTask<BatchStream> leftTask = fetchAsync(operator.getSourceA(), context);
+    PhysicalTask<BatchStream> rightTask = fetchAsync(operator.getSourceB(), context);
 
     return new BinarySinkMemoryPhysicalTask(
         convert(leftTask, context, BatchStream.class),

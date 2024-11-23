@@ -242,8 +242,8 @@ public class StoragePhysicalTaskExecutor {
                             setResult(task, result);
                             if (task.getFollowerTask() != null
                                 && task.isSync()) { // 只有同步任务才会影响后续任务的执行
-                              MemoryPhysicalTask followerTask =
-                                  (MemoryPhysicalTask) task.getFollowerTask();
+                              MemoryPhysicalTask<?> followerTask =
+                                  (MemoryPhysicalTask<?>) task.getFollowerTask();
                               boolean isFollowerTaskReady = followerTask.notifyParentReady();
                               if (isFollowerTaskReady) {
                                 memoryTaskExecutor.addMemoryTask(followerTask);

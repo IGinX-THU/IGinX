@@ -17,28 +17,24 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical;
 
-import static cn.edu.tsinghua.iginx.engine.physical.task.utils.TaskUtils.getBottomTasks;
-
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
-import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.MemoryPhysicalTaskDispatcher;
 import cn.edu.tsinghua.iginx.engine.physical.optimizer.PhysicalOptimizer;
 import cn.edu.tsinghua.iginx.engine.physical.optimizer.PhysicalOptimizerManager;
 import cn.edu.tsinghua.iginx.engine.physical.storage.StorageManager;
 import cn.edu.tsinghua.iginx.engine.physical.storage.execute.StoragePhysicalTaskExecutor;
-import cn.edu.tsinghua.iginx.engine.physical.task.*;
-import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
+import cn.edu.tsinghua.iginx.engine.physical.task.GlobalPhysicalTask;
+import cn.edu.tsinghua.iginx.engine.physical.task.PhysicalTask;
+import cn.edu.tsinghua.iginx.engine.physical.task.StoragePhysicalTask;
+import cn.edu.tsinghua.iginx.engine.physical.task.TaskResult;
+import cn.edu.tsinghua.iginx.engine.physical.task.memory.BinaryMemoryPhysicalTask;
+import cn.edu.tsinghua.iginx.engine.physical.task.memory.MemoryPhysicalTask;
+import cn.edu.tsinghua.iginx.engine.physical.task.memory.MultipleMemoryPhysicalTask;
+import cn.edu.tsinghua.iginx.engine.physical.task.memory.UnaryMemoryPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.shared.constraint.ConstraintManager;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStreams;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Migration;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
-import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
-import cn.edu.tsinghua.iginx.migration.MigrationPhysicalExecutor;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,49 +65,72 @@ public class PhysicalEngineImpl implements PhysicalEngine {
   }
 
   @Override
-  public BatchStream execute(RequestContext ctx, Operator root) throws PhysicalException {
-    if (OperatorType.isGlobalOperator(root.getType())) { // 全局任务临时兼容逻辑
-      // 迁移任务单独处理
-      if (root.getType() == OperatorType.Migration) {
-        return MigrationPhysicalExecutor.getInstance()
-            .execute(ctx, (Migration) root, storageTaskExecutor);
-      } else {
-        GlobalPhysicalTask task = new GlobalPhysicalTask(root, ctx);
-        try (TaskResult<RowStream> result = storageTaskExecutor.executeGlobalTask(task)) {
-          RowStream rowStream = result.unwrap();
-          if (rowStream == null) {
-            return null;
-          }
-          return BatchStreams.wrap(ctx.getAllocator(), result.unwrap(), ctx.getBatchRowCount());
-        }
-      }
-    }
-    PhysicalTask<?> task = optimizer.optimize(root, ctx);
-    PhysicalTask<BatchStream> batchTask = optimizer.convert(task, ctx, BatchStream.class);
-    ctx.setPhysicalTree(batchTask);
+  public void submit(PhysicalTask<?> task) {
     List<PhysicalTask<?>> bottomTasks = new ArrayList<>();
-    getBottomTasks(bottomTasks, batchTask);
-    commitBottomTasks(bottomTasks);
-    try (TaskResult<BatchStream> result = batchTask.getResult().get()) {
-      return result.unwrap();
-    } catch (ExecutionException | InterruptedException e) {
-      throw new PhysicalException(e);
-    }
-  }
-
-  private void commitBottomTasks(List<PhysicalTask<?>> bottomTasks) throws PhysicalException {
+    getBottomTasks(bottomTasks, task);
     List<StoragePhysicalTask> storageTasks = new ArrayList<>();
     List<GlobalPhysicalTask> globalTasks = new ArrayList<>();
-    for (PhysicalTask<?> task : bottomTasks) {
-      if (task.getType().equals(TaskType.Storage)) {
-        storageTasks.add((StoragePhysicalTask) task);
-      } else if (task.getType().equals(TaskType.Global)) {
-        globalTasks.add((GlobalPhysicalTask) task);
+    List<MemoryPhysicalTask<?>> memoryTasks = new ArrayList<>();
+    for (PhysicalTask<?> bottomTask : bottomTasks) {
+      if (bottomTask instanceof StoragePhysicalTask) {
+        storageTasks.add((StoragePhysicalTask) bottomTask);
+      } else if (bottomTask instanceof GlobalPhysicalTask) {
+        globalTasks.add((GlobalPhysicalTask) bottomTask);
+      } else if (bottomTask instanceof MemoryPhysicalTask) {
+        memoryTasks.add((MemoryPhysicalTask<?>) bottomTask);
+      } else {
+        throw new IllegalStateException("unknown task class: " + task.getClass());
       }
     }
     storageTaskExecutor.commit(storageTasks);
     for (GlobalPhysicalTask globalTask : globalTasks) {
-      storageTaskExecutor.executeGlobalTask(globalTask).close();
+      TaskResult<RowStream> result = storageTaskExecutor.executeGlobalTask(globalTask);
+      globalTask.setResult(result);
+    }
+    memoryTasks.forEach(memoryTaskExecutor::addMemoryTask);
+  }
+
+  public static void getBottomTasks(List<PhysicalTask<?>> tasks, PhysicalTask<?> root) {
+    if (root == null) {
+      return;
+    }
+
+    switch (root.getType()) {
+      case Storage:
+      case Global:
+        tasks.add(root);
+        break;
+      case BinaryMemory:
+        BinaryMemoryPhysicalTask<?, ?> binaryMemoryPhysicalTask =
+            (BinaryMemoryPhysicalTask<?, ?>) root;
+        if (binaryMemoryPhysicalTask.isReady()) {
+          tasks.add(root);
+          break;
+        }
+        getBottomTasks(tasks, binaryMemoryPhysicalTask.getParentTaskA());
+        getBottomTasks(tasks, binaryMemoryPhysicalTask.getParentTaskB());
+        break;
+      case UnaryMemory:
+        UnaryMemoryPhysicalTask<?, ?> unaryMemoryPhysicalTask =
+            (UnaryMemoryPhysicalTask<?, ?>) root;
+        if (unaryMemoryPhysicalTask.isReady()) {
+          tasks.add(root);
+          break;
+        }
+        getBottomTasks(tasks, unaryMemoryPhysicalTask.getParentTask());
+        break;
+      case MultipleMemory:
+        MultipleMemoryPhysicalTask multipleMemoryPhysicalTask = (MultipleMemoryPhysicalTask) root;
+        if (multipleMemoryPhysicalTask.isReady()) {
+          tasks.add(root);
+          break;
+        }
+        for (PhysicalTask<?> parentTask : multipleMemoryPhysicalTask.getParentTasks()) {
+          getBottomTasks(tasks, parentTask);
+        }
+        break;
+      default:
+        throw new IllegalStateException("unknown task type: " + root.getType());
     }
   }
 

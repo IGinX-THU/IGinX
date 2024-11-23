@@ -35,9 +35,9 @@ public interface TaskVisitor {
   /** do sth when you leave a task, this method will be called at the end of 'accept' method. */
   default void leave() {}
 
-  void visit(BinaryMemoryPhysicalTask task);
+  void visit(BinaryMemoryPhysicalTask<?, ?> task);
 
-  void visit(UnaryMemoryPhysicalTask task);
+  void visit(UnaryMemoryPhysicalTask<?, ?> task);
 
   void visit(MultipleMemoryPhysicalTask task);
 
