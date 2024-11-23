@@ -91,7 +91,7 @@ public class PythonDriver implements Driver {
       throw new CreateWorkerException(
           String.format("Fail to load task info by task name: %s", name));
     }
-    if (!taskMeta.getIpSet().contains(config.getIp())) {
+    if (!taskMeta.containsIpPort(config.getIp(), config.getPort())) {
       throw new CreateWorkerException(
           String.format(
               "Fail to load task file, because current ip is: %s, and register ip is: %s",

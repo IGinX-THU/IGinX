@@ -17,6 +17,10 @@ inputs:
         description: "make the storage engine read-only"
         required: false
         default: "false"
+    Has-Data:
+        description: "does the storage engine has data"
+        required: false
+        default: "false"
     Push-Down:
         description: "make the IGinX push down filter"
         required: false
@@ -29,6 +33,10 @@ inputs:
         description: "the path of IGinX root directory"
         required: false
         default: "${GITHUB_WORKSPACE}"
+    zookeeper-port:
+        description: "zookeeper service port"
+        required: false
+        default: "2181"
 
 runs:
     using: "composite" # Mandatory parameter
@@ -74,6 +82,21 @@ runs:
           run: |
               echo "${{ inputs.DB-name }}" > ${{ inputs.Root-Dir-Path }}/test/src/test/resources/DBName.txt
 
+        - if: inputs.zookeeper-port!='2181'
+          name: Change Zookeeper Port
+          shell: bash
+          run: |
+              if [ "$RUNNER_OS" == "Linux" ]; then
+                sudo sed -i 's/zookeeperConnectionString=127.0.0.1:2181/zookeeperConnectionString=127.0.0.1:${{ inputs.zookeeper-port }}/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
+              elif [ "$RUNNER_OS" == "Windows" ]; then
+                sed -i 's/zookeeperConnectionString=127.0.0.1:2181/zookeeperConnectionString=127.0.0.1:${{ inputs.zookeeper-port }}/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
+              elif [ "$RUNNER_OS" == "macOS" ]; then
+                sudo sed -i '' 's/zookeeperConnectionString=127.0.0.1:2181/zookeeperConnectionString=127.0.0.1:${{ inputs.zookeeper-port }}/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
+              else
+                echo "$RUNNER_OS is not supported"
+                exit 1
+              fi
+
         - name: Change UDF conf
           shell: bash
           run: |
@@ -103,6 +126,22 @@ runs:
                 echo "$RUNNER_OS is not supported"
                 exit 1
               fi
+
+        - if: inputs.Has-Data=='true'
+          name: Set Has-Data
+          shell: bash
+          run: |
+              if [ "$RUNNER_OS" == "Linux" ]; then
+                sudo sed -i 's/has_data=false/has_data=true/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
+              elif [ "$RUNNER_OS" == "Windows" ]; then
+                sed -i 's/has_data=false/has_data=true/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
+              elif [ "$RUNNER_OS" == "macOS" ]; then
+                sudo sed -i '' 's/has_data=false/has_data=true/' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
+              else
+                echo "$RUNNER_OS is not supported"
+                exit 1
+              fi
+
         - if: inputs.Push-Down=='true'
           name: Change push_down
           shell: bash
