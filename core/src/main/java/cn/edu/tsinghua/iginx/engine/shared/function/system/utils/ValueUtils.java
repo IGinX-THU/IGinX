@@ -47,6 +47,9 @@ public class ValueUtils {
   }
 
   public static Value transformToDouble(Value value) {
+    if (value.isNull()) {
+      return new Value(DataType.DOUBLE, null);
+    }
     DataType dataType = value.getDataType();
     double dVal;
     switch (dataType) {
