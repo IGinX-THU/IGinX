@@ -183,6 +183,7 @@ public class MilvusStorage implements IStorage {
         dataTypes[j] = dataType;
       }
       while (cnt < data.getKeySize()) {
+        tableToRowEntries = new HashMap<>();
         int size = Math.min(data.getKeySize() - cnt, batchSize);
         Set idSet = new HashSet();
         for (int i = cnt; i < cnt + size; i++) {
