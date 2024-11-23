@@ -613,8 +613,8 @@ public class SessionIT extends BaseSessionIT {
           session.aggregateQuery(delDataInColumnPaths, START_KEY, END_KEY + 1, AggregateType.AVG);
       List<String> delDataAvgResPaths = delDataAvgSet.getPaths();
       Object[] delDataAvgResult = delDataAvgSet.getValues();
-      assertEquals(dataInColumnLen, delDataAvgResPaths.size());
-      assertEquals(dataInColumnLen, delDataAvgSet.getValues().length);
+      assertEquals(dataInColumnLen - deleteDataInColumnLen, delDataAvgResPaths.size());
+      assertEquals(dataInColumnLen - deleteDataInColumnLen, delDataAvgSet.getValues().length);
       for (int i = 0; i < dataInColumnLen; i++) {
         int pathNum = getPathNum(delDataAvgResPaths.get(i));
         assertNotEquals(pathNum, -1);
