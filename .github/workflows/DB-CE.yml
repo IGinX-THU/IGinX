@@ -31,12 +31,11 @@ on:
                 default: '["VectorDB"]'
 
 env:
-    FUNCTEST: SessionIT,SessionPoolIT,RestAnnotationIT,SessionV2IT
-#    FUNCTEST: NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,SessionIT,SessionPoolIT,CompactionIT,TimePrecisionIT,PySessionIT
+    FUNCTEST: NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,SessionIT,SessionPoolIT,CompactionIT,TimePrecisionIT,PySessionIT
 
 jobs:
     DB-CE:
-        timeout-minutes: 120
+        timeout-minutes: 220
         strategy:
             fail-fast: false
             matrix:

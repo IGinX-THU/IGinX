@@ -30,6 +30,9 @@ public class Constants {
 
   /** 池配置参数：池中所有键的最大总连接数。 */
   public static final String MAX_TOTAL = "maxTotal";
+  public static final String MAX_IDLE = "maxIdle";
+  public static final String MIN_IDLE = "minIdle";
+
 
   /** 池配置参数：获取连接的最大等待时间。 */
   public static final String MAX_BLOCK_WAIT_DURATION = "maxBlockWaitDuration";
@@ -51,6 +54,10 @@ public class Constants {
 
   /** 默认池配置参数：最小可驱逐的空闲时间（秒）。 */
   public static final long DEFAULT_MIN_EVICTABLE_IDLE_DURATION = 10L;
+
+  public static final int DEFAULT_MAX_IDLE = 10;
+
+  public static final int DEFAULT_MIN_IDLE = 5;
 
   /** 用户名参数的键。 */
   public static final String USERNAME = "username";
