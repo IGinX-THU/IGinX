@@ -386,9 +386,14 @@ public class MilvusStorage implements IStorage {
 
       PathSystem pathSystem =
           pathSystemMap.computeIfAbsent(databaseName, s -> new MilvusPathSystem(databaseName));
-      if (delete.getKeyRanges() == null || delete.getKeyRanges().isEmpty()) {
+      if (delete.getKeyRanges() == null
+          || delete.getKeyRanges().isEmpty()
+          || (delete.getKeyRanges().size() == 1
+              && delete.getKeyRanges().get(0).getActualBeginKey() == 0
+              && delete.getKeyRanges().get(0).getEndKey() == Long.MAX_VALUE)) {
         if (paths.size() == 1 && paths.get(0).equals("*") && delete.getTagFilter() == null) {
           dropDatabase(client, databaseName);
+          this.pathSystemMap = new ConcurrentHashMap<>();
         } else {
           MilvusClientUtils.useDatabase(client, databaseName);
           Map<String, Set<String>> collectionToFields =

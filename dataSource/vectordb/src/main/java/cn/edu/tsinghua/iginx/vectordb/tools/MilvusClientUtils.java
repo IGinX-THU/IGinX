@@ -448,18 +448,14 @@ public class MilvusClientUtils {
         PathUtils.getPathSystem(client, pathSystem).findPaths(collectionName, null);
 
     Set<String> fieldList = new HashSet<>();
-    for (String path : paths) {
-      fieldList.add(NameUtils.escape(path.substring(path.lastIndexOf(".") + 1)));
-    }
-    fieldList.add(MILVUS_VECTOR_FIELD_NAME);
-
     Map<String, DataType> fieldToDataType = new HashMap<>();
     for (String path : paths) {
+      fieldList.add(NameUtils.escape(path.substring(path.lastIndexOf(".") + 1)));
       fieldToDataType.put(
-          //          NameUtils.escape(path.substring(path.lastIndexOf(".") + 1)),
           path.substring(path.lastIndexOf(".") + 1),
           PathUtils.getPathSystem(client, pathSystem).getColumn(path).getDataType());
     }
+    fieldList.add(MILVUS_VECTOR_FIELD_NAME);
 
     useDatabase(client, databaseName);
 
