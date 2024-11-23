@@ -25,8 +25,6 @@ import cn.edu.tsinghua.iginx.integration.expansion.BaseHistoryDataGenerator;
 import cn.edu.tsinghua.iginx.integration.expansion.constant.Constant;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
-import cn.edu.tsinghua.iginx.vectordb.support.PathSystem;
-import cn.edu.tsinghua.iginx.vectordb.support.impl.MilvusPathSystem;
 import cn.edu.tsinghua.iginx.vectordb.tools.*;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
@@ -134,7 +132,7 @@ public class VectorDBHistoryDataGenerator extends BaseHistoryDataGenerator {
           createOrAlterCollections(client, databaseName, pathList, null, dataTypeList);
           int id = 0;
           List<JsonObject> data = new ArrayList<>();
-          for (int i=0;i<valuesList.size();i++){
+          for (int i = 0; i < valuesList.size(); i++) {
             List<Object> values = valuesList.get(i);
             JsonObject row = new JsonObject();
             boolean added = false;
@@ -146,9 +144,9 @@ public class VectorDBHistoryDataGenerator extends BaseHistoryDataGenerator {
                       row, columnName, values.get(index), dataTypeList.get(index));
             }
             if (added) {
-              if (keyList!=null && keyList.size()>i) {
+              if (keyList != null && keyList.size() > i) {
                 row.addProperty(MILVUS_PRIMARY_FIELD_NAME, keyList.get(i));
-              }else{
+              } else {
                 row.addProperty(MILVUS_PRIMARY_FIELD_NAME, id++);
               }
               row.add(

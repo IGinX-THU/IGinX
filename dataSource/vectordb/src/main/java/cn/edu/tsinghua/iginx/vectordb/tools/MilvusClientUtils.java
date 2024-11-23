@@ -762,6 +762,13 @@ public class MilvusClientUtils {
             deletedFields,
             queryIteratorReqBuilder);
 
+    for (String field : fields) {
+      String path = PathUtils.getPathUnescaped(databaseName, collectionName, field);
+      if (!pathToMap.containsKey(path)) {
+        pathToMap.put(path, new HashMap<>());
+      }
+    }
+
     Map<String, DataType> pathToDataType = new HashMap<>();
     List<Column> columns = new ArrayList<>();
     for (Map.Entry<String, Map<Long, Object>> entry : pathToMap.entrySet()) {

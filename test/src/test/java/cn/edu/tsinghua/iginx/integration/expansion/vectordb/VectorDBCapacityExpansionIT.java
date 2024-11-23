@@ -19,7 +19,6 @@
  */
 package cn.edu.tsinghua.iginx.integration.expansion.vectordb;
 
-import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.expansion.BaseCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.constant.Constant;
@@ -76,5 +75,4 @@ public class VectorDBCapacityExpansionIT extends BaseCapacityExpansionIT {
     valuesList = Arrays.asList(Arrays.asList(44.55F));
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
   }
-
 }

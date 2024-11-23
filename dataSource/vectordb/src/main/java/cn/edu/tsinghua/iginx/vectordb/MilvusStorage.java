@@ -251,7 +251,7 @@ public class MilvusStorage implements IStorage {
       e.printStackTrace();
     }
     return false;
-//    return this.client != null;
+    //    return this.client != null;
   }
 
   @Override
@@ -303,7 +303,7 @@ public class MilvusStorage implements IStorage {
       LOGGER.error("unexpected error: ", e);
       return new TaskExecuteResult(
           new PhysicalTaskExecuteFailureException(
-              String.format("execute project task in milvus failure : {}"), e));
+              String.format("execute project task in milvus failure : %s"), e));
     }
   }
 
@@ -320,7 +320,7 @@ public class MilvusStorage implements IStorage {
 
   private TaskExecuteResult executeProjectDummyWithFilter(Project project, Filter filter) {
     try (MilvusClient milvusClient = new MilvusClient(meta)) {
-        MilvusClientV2 client = milvusClient.getClient();
+      MilvusClientV2 client = milvusClient.getClient();
       if (client == null) {
         return new TaskExecuteResult(
             new PhysicalTaskExecuteFailureException(String.format("cannot connect to milvus")));
@@ -528,8 +528,8 @@ public class MilvusStorage implements IStorage {
 
   @Override
   public void release() throws PhysicalException {
-//    if (this.client != null) {
-//      this.client.close();
-//    }
+    //    if (this.client != null) {
+    //      this.client.close();
+    //    }
   }
 }

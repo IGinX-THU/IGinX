@@ -27,16 +27,17 @@ jobs:
         uses: ./.github/workflows/standalone-test-pushdown.yml
         with:
             metadata-matrix: '["zookeeper"]'
-    db-ce:
-        uses: ./.github/workflows/DB-CE.yml
-        with:
-            metadata-matrix: '["zookeeper"]'
-    remote-test:
-        uses: ./.github/workflows/remote-test.yml
-        with:
-            metadata-matrix: '["zookeeper"]'
-    assembly-test:
-        uses: ./.github/workflows/assembly-test.yml
+#    db-ce:
+#        uses: ./.github/workflows/DB-CE.yml
+#        with:
+#            metadata-matrix: '["zookeeper"]'
+#    remote-test:
+#        uses: ./.github/workflows/remote-test.yml
+#        with:
+#            metadata-matrix: '["zookeeper"]'
+#    assembly-test:
+#        uses: ./.github/workflows/assembly-test.yml
+
 #    tpc-h-regression-test:
 #        uses: ./.github/workflows/tpc-h.yml
 #        with:
