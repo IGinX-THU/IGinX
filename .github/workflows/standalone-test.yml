@@ -17,8 +17,7 @@ on:
                 description: "The operating system to run the test on"
                 type: string
                 required: false
-                #                default: '["ubuntu-latest", "macos-latest", "windows-latest"]'
-                default: '["ubuntu-latest"]'
+                default: '["ubuntu-latest", "macos-latest", "windows-latest"]'
             metadata-matrix:
                 description: "The metadata to run the test on"
                 type: string
@@ -28,12 +27,11 @@ on:
                 description: "The database to run the test on"
                 type: string
                 required: false
-                #                default: '["IoTDB12", "InfluxDB", "FileSystem", "PostgreSQL", "Redis", "MongoDB", "MySQL", "VectorDB"]'
-                default: '["VectorDB"]'
+                default: '["IoTDB12", "InfluxDB", "FileSystem", "PostgreSQL", "Redis", "MongoDB", "MySQL", "VectorDB"]'
 
 jobs:
     Union-DB-Test:
-        timeout-minutes: 240
+        timeout-minutes: 40
         strategy:
             fail-fast: false
             matrix:

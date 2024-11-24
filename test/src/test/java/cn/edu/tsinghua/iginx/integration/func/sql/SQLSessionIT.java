@@ -1637,6 +1637,54 @@ public class SQLSessionIT {
   }
 
   @Test
+  public void testAggregateQueryWithNullValues() {
+    String insert = "insert into test(key, a) values (0, 1), (1, 2), (2, 3);";
+    executor.execute(insert);
+    insert = "insert into test(key, b) values (3, 1), (4, 2), (5, 3);";
+    executor.execute(insert);
+
+    String query = "select * from test;";
+    String expected =
+        "ResultSets:\n"
+            + "+---+------+------+\n"
+            + "|key|test.a|test.b|\n"
+            + "+---+------+------+\n"
+            + "|  0|     1|  null|\n"
+            + "|  1|     2|  null|\n"
+            + "|  2|     3|  null|\n"
+            + "|  3|  null|     1|\n"
+            + "|  4|  null|     2|\n"
+            + "|  5|  null|     3|\n"
+            + "+---+------+------+\n"
+            + "Total line number = 6\n";
+    executor.executeAndCompare(query, expected);
+
+    query = "select avg(*), sum(*), count(*) from test where key < 3;";
+    // key<3时，avg(test.b)和sum(test.b)的值是null
+    expected =
+        "ResultSets:\n"
+            + "+-----------+-----------+-------------+-------------+\n"
+            + "|avg(test.a)|sum(test.a)|count(test.a)|count(test.b)|\n"
+            + "+-----------+-----------+-------------+-------------+\n"
+            + "|        2.0|          6|            3|            0|\n"
+            + "+-----------+-----------+-------------+-------------+\n"
+            + "Total line number = 1\n";
+    executor.executeAndCompare(query, expected);
+
+    query = "select avg(*), sum(*), count(*) from test where key > 2;";
+    // key>2时，avg(test.a)和sum(test.a)的值是null
+    expected =
+        "ResultSets:\n"
+            + "+-----------+-----------+-------------+-------------+\n"
+            + "|avg(test.b)|sum(test.b)|count(test.a)|count(test.b)|\n"
+            + "+-----------+-----------+-------------+-------------+\n"
+            + "|        2.0|          6|            0|            3|\n"
+            + "+-----------+-----------+-------------+-------------+\n"
+            + "Total line number = 1\n";
+    executor.executeAndCompare(query, expected);
+  }
+
+  @Test
   public void testDownSampleQuery() {
     String statement = "SELECT %s(s1), %s(s4) FROM us.d1 OVER WINDOW (size 100 IN (0, 1000));";
     List<String> funcTypeList =
@@ -4560,10 +4608,10 @@ public class SQLSessionIT {
             + "+---+--------+-------------+\n"
             + "|key|test.a.a|sum(test.b.a)|\n"
             + "+---+--------+-------------+\n"
-            + "|  1|       3|            0|\n"
+            + "|  1|       3|         null|\n"
             + "|  2|       1|           10|\n"
             + "|  3|       2|            6|\n"
-            + "|  4|       3|            0|\n"
+            + "|  4|       3|         null|\n"
             + "|  5|       1|           10|\n"
             + "|  6|       2|            6|\n"
             + "+---+--------+-------------+\n"
@@ -4576,10 +4624,10 @@ public class SQLSessionIT {
             + "+---+--------+------------------------+\n"
             + "|key|test.a.a|test.a.a × sum(test.b.a)|\n"
             + "+---+--------+------------------------+\n"
-            + "|  1|       3|                       0|\n"
+            + "|  1|       3|                    null|\n"
             + "|  2|       1|                      10|\n"
             + "|  3|       2|                      12|\n"
-            + "|  4|       3|                       0|\n"
+            + "|  4|       3|                    null|\n"
             + "|  5|       1|                      10|\n"
             + "|  6|       2|                      12|\n"
             + "+---+--------+------------------------+\n"
@@ -4608,10 +4656,10 @@ public class SQLSessionIT {
             + "+---+--------+-------------+\n"
             + "|key|test.a.a|avg(test.b.a)|\n"
             + "+---+--------+-------------+\n"
-            + "|  1|       3|          NaN|\n"
+            + "|  1|       3|         null|\n"
             + "|  2|       1|          2.5|\n"
             + "|  3|       2|          3.0|\n"
-            + "|  4|       3|          NaN|\n"
+            + "|  4|       3|         null|\n"
             + "|  5|       1|          2.5|\n"
             + "|  6|       2|          3.0|\n"
             + "+---+--------+-------------+\n"
@@ -4682,10 +4730,10 @@ public class SQLSessionIT {
             + "+---+--------+-----------------+\n"
             + "|key|test.a.a|1 + avg(test.b.a)|\n"
             + "+---+--------+-----------------+\n"
-            + "|  1|       3|              NaN|\n"
+            + "|  1|       3|             null|\n"
             + "|  2|       1|              3.5|\n"
             + "|  3|       2|              4.0|\n"
-            + "|  4|       3|              NaN|\n"
+            + "|  4|       3|             null|\n"
             + "|  5|       1|              3.5|\n"
             + "|  6|       2|              4.0|\n"
             + "+---+--------+-----------------+\n"
@@ -4714,14 +4762,12 @@ public class SQLSessionIT {
             + "+---+------------------------+\n"
             + "|key|test.a.a ÷ avg(test.b.a)|\n"
             + "+---+------------------------+\n"
-            + "|  1|                     NaN|\n"
             + "|  2|                     0.4|\n"
             + "|  3|      0.6666666666666666|\n"
-            + "|  4|                     NaN|\n"
             + "|  5|                     0.4|\n"
             + "|  6|      0.6666666666666666|\n"
             + "+---+------------------------+\n"
-            + "Total line number = 6\n";
+            + "Total line number = 4\n";
     executor.executeAndCompare(statement, expected);
 
     statement = "SELECT a / (1 + (SELECT AVG(a) FROM test.b)) FROM test.a;";
@@ -4747,14 +4793,12 @@ public class SQLSessionIT {
             + "+---+------------------------------+\n"
             + "|key|test.a.a ÷ (1 + avg(test.b.a))|\n"
             + "+---+------------------------------+\n"
-            + "|  1|                           NaN|\n"
             + "|  2|            0.2857142857142857|\n"
             + "|  3|                           0.5|\n"
-            + "|  4|                           NaN|\n"
             + "|  5|            0.2857142857142857|\n"
             + "|  6|                           0.5|\n"
             + "+---+------------------------------+\n"
-            + "Total line number = 6\n";
+            + "Total line number = 4\n";
     executor.executeAndCompare(statement, expected);
 
     statement =

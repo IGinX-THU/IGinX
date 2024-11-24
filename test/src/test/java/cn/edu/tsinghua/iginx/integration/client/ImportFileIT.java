@@ -67,11 +67,11 @@ public class ImportFileIT {
             + "Total line number = 5\n";
     executor.executeAndCompare(query, expected);
 
-    String query1 = "SELECT * FROM t1;";
-    String expected1 =
+    query = "SELECT * FROM t1;";
+    expected =
         "ResultSets:\n"
             + "+---+------+----+----+------+\n"
-            + "|key|t2._c_|t2.a|t2.b|t2.d_m|\n"
+            + "|key|t1._c_|t1.a|t1.b|t1.d_m|\n"
             + "+---+------+----+----+------+\n"
             + "| 10|  true| aaa| 0.5|   0.0|\n"
             + "| 11| false| bbb| 1.5|   1.0|\n"

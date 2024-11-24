@@ -152,7 +152,7 @@ public class UDFTestTools {
     }
   }
 
-  boolean isUDFRegistered(String udfName) {
+  public boolean isUDFRegistered(String udfName) {
     SessionExecuteSqlResult ret = execute(SHOW_FUNCTION_SQL);
     List<String> registerUDFs =
         ret.getRegisterTaskInfos().stream()
@@ -161,7 +161,7 @@ public class UDFTestTools {
     return registerUDFs.contains(udfName);
   }
 
-  boolean isUDFsRegistered(List<String> names) {
+  public boolean isUDFsRegistered(List<String> names) {
     SessionExecuteSqlResult ret = execute(SHOW_FUNCTION_SQL);
     List<String> registerUDFs =
         ret.getRegisterTaskInfos().stream()
