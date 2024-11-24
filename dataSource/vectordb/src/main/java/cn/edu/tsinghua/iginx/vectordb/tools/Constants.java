@@ -30,9 +30,9 @@ public class Constants {
 
   /** 池配置参数：池中所有键的最大总连接数。 */
   public static final String MAX_TOTAL = "maxTotal";
+
   public static final String MAX_IDLE = "maxIdle";
   public static final String MIN_IDLE = "minIdle";
-
 
   /** 池配置参数：获取连接的最大等待时间。 */
   public static final String MAX_BLOCK_WAIT_DURATION = "maxBlockWaitDuration";

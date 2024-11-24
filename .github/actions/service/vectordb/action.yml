@@ -43,7 +43,7 @@ runs:
         - if: fromJSON(inputs.start) && runner.os != 'Windows'
           name: Start milvus
           shell: bash
-          working-directory: ${{ github.action_path }}
+          working-directory: ${{ github.workspace }}
           run: |
               for port in ${{ inputs.ports }}; do
                 docker-compose -f $port/docker-compose-$port.yml up -d
@@ -61,7 +61,7 @@ runs:
         - if: fromJSON(inputs.start) && runner.os == 'Windows'
           name: Start milvus on Windows
           shell: pwsh
-          working-directory: ${{ github.action_path }}
+          working-directory: ${{ github.workspace }}
           run: |
               $env:Path += ";${{ github.workspace }}"
 

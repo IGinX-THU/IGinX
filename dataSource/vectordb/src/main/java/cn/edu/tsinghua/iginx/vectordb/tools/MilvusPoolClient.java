@@ -19,16 +19,10 @@
  */
 package cn.edu.tsinghua.iginx.vectordb.tools;
 
-import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.vectordb.pool.MilvusConnectPool;
-import io.milvus.v2.client.ConnectConfig;
 import io.milvus.v2.client.MilvusClientV2;
-
 import java.io.Closeable;
 import java.io.IOException;
-
-import static cn.edu.tsinghua.iginx.vectordb.tools.Constants.DB_PROTOCOL;
-import static cn.edu.tsinghua.iginx.vectordb.tools.Constants.DEFAULT_DB_PROTOCOL;
 
 public class MilvusPoolClient implements Closeable {
 

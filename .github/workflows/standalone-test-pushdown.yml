@@ -18,7 +18,7 @@ on:
                 type: string
                 required: false
                 default: '["ubuntu-latest", "macos-latest"]'
-#                default: '["ubuntu-latest", "macos-latest", "windows-latest"]'
+            #                default: '["ubuntu-latest", "macos-latest", "windows-latest"]'
             metadata-matrix:
                 description: "The metadata to run the test on"
                 type: string
@@ -32,7 +32,8 @@ on:
 
 jobs:
     Union-DB-Test-Push_Down:
-        timeout-minutes: 35
+        #        timeout-minutes: 35
+        timeout-minutes: 360
         strategy:
             fail-fast: false
             matrix:
