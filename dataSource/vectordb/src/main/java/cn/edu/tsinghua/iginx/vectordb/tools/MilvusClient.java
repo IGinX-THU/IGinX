@@ -41,8 +41,10 @@ public class MilvusClient implements Closeable {
    */
   public MilvusClient(String protocol, String host, int port, String databaseName) {
     ConnectConfig config = ConnectConfig.builder().uri(getUrl(protocol, host, port)).build();
-    client = new MilvusClientV2(config);
 
+    config.setConnectTimeoutMs(60000L);
+    config.setRpcDeadlineMs(60000L);
+    client = new MilvusClientV2(config);
     // 设置数据库（如果需要）
     if (databaseName != null && !databaseName.isEmpty()) {
       try {
