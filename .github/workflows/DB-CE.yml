@@ -73,6 +73,17 @@ jobs:
               run: |
                   mvn clean package -DskipTests -P-format -q
 
+            - name: Check Port
+              shell: bash
+              run: |
+                for port in ${{ inputs.ports }}; do
+                  if lsof -i :$port | grep -q LISTEN; then
+                    echo "Port $port is open."
+                  else
+                    echo "Port $port is not open."
+                  fi
+                done
+
               # 第 1 阶段测试开始==========================================
             - name: Prepare CapExp environment oriHasDataExpHasData
               uses: ./.github/actions/capacityExpansionUnionTest

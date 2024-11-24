@@ -327,7 +327,7 @@ public class MilvusStorage implements IStorage {
       LOGGER.error("unexpected error: ", e);
       return new TaskExecuteResult(
           new PhysicalTaskExecuteFailureException(
-              String.format("execute project task in milvus failure : %s"), e));
+              String.format("execute project task in milvus failure : %s",e)));
     }
   }
 
@@ -379,7 +379,7 @@ public class MilvusStorage implements IStorage {
       LOGGER.error("unexpected error: ", e);
       return new TaskExecuteResult(
           new PhysicalTaskExecuteFailureException(
-              String.format("execute project task in milvus failure, %s"), e));
+              String.format("execute project task in milvus failure, %s",e)));
     }
   }
 
@@ -454,7 +454,7 @@ public class MilvusStorage implements IStorage {
     } catch (Exception e) {
       LOGGER.error("unexpected error: ", e);
       return new TaskExecuteResult(
-          new PhysicalException(String.format("execute delete task in milvus failure: %s"), e));
+          new PhysicalException(String.format("execute delete task in milvus failure: %s", e)));
     }
   }
 

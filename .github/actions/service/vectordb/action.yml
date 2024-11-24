@@ -50,13 +50,18 @@ runs:
               done
               sleep 5
               for port in ${{ inputs.ports }}; do
-                if ss -tuln | grep -q ":$port "; then
+                if lsof -i :$port | grep -q LISTEN; then
                   echo "Port $port is open."
                 else
                   echo "Port $port is not open."
                 fi
               done
               docker ps -a
+            
+              docker logs milvus19530-standalone
+              docker logs milvus19530-minio
+              docker logs milvus19530-etcd
+              
 
         - if: fromJSON(inputs.start) && runner.os == 'Windows'
           name: Start milvus on Windows
@@ -70,7 +75,7 @@ runs:
               done
               sleep 5
               for port in ${{ inputs.ports }}; do
-                if ss -tuln | grep -q ":$port "; then
+                if lsof -i :$port | grep -q LISTEN; then
                   echo "Port $port is open."
                 else
                   echo "Port $port is not open."
