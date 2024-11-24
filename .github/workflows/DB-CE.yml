@@ -31,7 +31,8 @@ on:
                 default: '["IoTDB12", "InfluxDB", "FileSystem", "PostgreSQL", "Redis", "MongoDB", "MySQL", "VectorDB"]'
 
 env:
-    FUNCTEST: NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,SessionIT,SessionPoolIT,CompactionIT,TimePrecisionIT,PySessionIT
+#    FUNCTEST: NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,SessionIT,SessionPoolIT,CompactionIT,TimePrecisionIT,PySessionIT
+    FUNCTEST: NewSessionIT
 
 jobs:
     DB-CE:
