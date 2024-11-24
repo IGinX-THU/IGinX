@@ -369,15 +369,19 @@ public class SessionExecuteSqlResult {
       builder.append("Functions info:").append("\n");
       List<List<String>> cache = new ArrayList<>();
       cache.add(
-          new ArrayList<>(Arrays.asList("NAME", "CLASS_NAME", "FILE_NAME", "IP", "UDF_TYPE")));
+          new ArrayList<>(Arrays.asList("NAME", "CLASS_NAME", "FILE_NAME", "IP:PORT", "UDF_TYPE")));
       for (RegisterTaskInfo info : registerTaskInfos) {
+        StringJoiner joiner = new StringJoiner(", ");
+        for (IpPortPair p : info.getIpPortPair()) {
+          joiner.add(String.format("%s:%d", p.getIp(), p.getPort()));
+        }
         cache.add(
             new ArrayList<>(
                 Arrays.asList(
                     info.getName(),
                     info.getClassName(),
                     info.getFileName(),
-                    info.getIp(),
+                    joiner.toString(),
                     info.getType().toString())));
       }
       builder.append(FormatUtils.formatResult(cache));
@@ -471,15 +475,19 @@ public class SessionExecuteSqlResult {
 
     if (registerTaskInfos != null && !registerTaskInfos.isEmpty()) {
       resList.add(
-          new ArrayList<>(Arrays.asList("NAME", "CLASS_NAME", "FILE_NAME", "IP", "UDF_TYPE")));
+          new ArrayList<>(Arrays.asList("NAME", "CLASS_NAME", "FILE_NAME", "IP:PORT", "UDF_TYPE")));
       for (RegisterTaskInfo info : registerTaskInfos) {
+        StringJoiner joiner = new StringJoiner(", ");
+        for (IpPortPair p : info.getIpPortPair()) {
+          joiner.add(String.format("%s:%d", p.getIp(), p.getPort()));
+        }
         resList.add(
             new ArrayList<>(
                 Arrays.asList(
                     info.getName(),
                     info.getClassName(),
                     info.getFileName(),
-                    info.getIp(),
+                    joiner.toString(),
                     info.getType().toString())));
       }
     }
