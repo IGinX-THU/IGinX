@@ -21,7 +21,7 @@ import cn.edu.tsinghua.iginx.engine.physical.optimizer.PhysicalOptimizer;
 import cn.edu.tsinghua.iginx.engine.physical.optimizer.ReplicaDispatcher;
 import cn.edu.tsinghua.iginx.engine.physical.task.PhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.memory.BinaryMemoryPhysicalTask;
-import cn.edu.tsinghua.iginx.engine.physical.task.memory.MultipleMemoryPhysicalTask;
+import cn.edu.tsinghua.iginx.engine.physical.task.memory.CombineNonQueryPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.memory.UnaryMemoryPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.constraint.ConstraintManager;
@@ -164,7 +164,7 @@ public class NaivePhysicalOptimizer implements PhysicalOptimizer {
             .setFollowerTask(task);
         break;
       case MultipleMemory:
-        for (PhysicalTask<?> parentTask : ((MultipleMemoryPhysicalTask) task).getParentTasks()) {
+        for (PhysicalTask<?> parentTask : ((CombineNonQueryPhysicalTask) task).getParentTasks()) {
           setFollowerTask(parentTask).setFollowerTask(task);
         }
         break;

@@ -15,14 +15,21 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.task;
+package cn.edu.tsinghua.iginx.engine.physical.task.memory;
 
-public enum TaskType {
-  Storage,
-  Global,
+import cn.edu.tsinghua.iginx.engine.physical.task.TaskResult;
+import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStreams;
 
-  MultipleMemory,
-  BinaryMemory,
-  UnaryMemory,
-  SourceMemory,
+public class EmptySourceMemoryPhysicalTask extends SourceMemoryPhysicalTask {
+
+  public EmptySourceMemoryPhysicalTask(RequestContext context, Object info) {
+    super(context, info);
+  }
+
+  @Override
+  public TaskResult<BatchStream> execute() {
+    return new TaskResult<>(BatchStreams.empty());
+  }
 }
