@@ -19,12 +19,21 @@
  */
 package cn.edu.tsinghua.iginx.conf;
 
+import static cn.edu.tsinghua.iginx.utils.ShellRunner.*;
+
 import cn.edu.tsinghua.iginx.thrift.TimePrecision;
 import cn.edu.tsinghua.iginx.utils.TagKVUtils;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Config {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(Config.class);
 
   private String ip = "0.0.0.0";
 
@@ -165,6 +174,12 @@ public class Config {
   private int batchSize = 50;
 
   private String pythonCMD = "python3";
+
+  private String condaCMD = null;
+
+  private String condaEnv = null;
+
+  private boolean condaInitiated = false;
 
   private int transformTaskThreadPoolSize = 10;
 
@@ -770,6 +785,31 @@ public class Config {
   }
 
   public String getPythonCMD() {
+    if (!condaInitiated && getCondaCMD() != null) {
+      try {
+        String result = runCommandAndGetResult("", getCondaCMD(), "env", "list", "--json");
+        JsonNode rootNode = new ObjectMapper().readTree(result);
+        JsonNode envsNode = rootNode.get("envs");
+        if (envsNode == null || !envsNode.isArray() || envsNode.isEmpty()) {
+          throw new RuntimeException(
+              "Cannot resolve env list from conda or list is empty, try 'conda env list' in your console.");
+        }
+        for (JsonNode envNode : envsNode) {
+          if (envNode.asText().endsWith(File.separator + getCondaEnv())) {
+            setPythonCMD(envNode.asText() + (isOnWin() ? "\\python" : "/bin/python"));
+            condaInitiated = true;
+            LOGGER.info("Using env:{} in path:{}", getCondaEnv(), pythonCMD);
+            return pythonCMD;
+          }
+        }
+        throw new RuntimeException(
+            "Cannot find env with name: "
+                + getCondaEnv()
+                + ", try 'conda env list' in your console.");
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
+    }
     return pythonCMD;
   }
 
@@ -967,5 +1007,21 @@ public class Config {
 
   public void setMailRecipient(String mailRecipients) {
     this.mailRecipient = mailRecipients;
+  }
+
+  public String getCondaCMD() {
+    return condaCMD;
+  }
+
+  public void setCondaCMD(String condaCMD) {
+    this.condaCMD = condaCMD;
+  }
+
+  public String getCondaEnv() {
+    return condaEnv;
+  }
+
+  public void setCondaEnv(String condaEnv) {
+    this.condaEnv = condaEnv;
   }
 }
