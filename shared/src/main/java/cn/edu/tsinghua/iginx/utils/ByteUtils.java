@@ -555,6 +555,9 @@ public class ByteUtils {
   }
 
   public static DataSet getDataFromArrowData(List<ByteBuffer> dataList) {
+    if (dataList == null) {
+      return null;
+    }
     List<Long> keys = new ArrayList<>();
     List<String> paths = new ArrayList<>();
     List<DataType> dataTypeList = new ArrayList<>();

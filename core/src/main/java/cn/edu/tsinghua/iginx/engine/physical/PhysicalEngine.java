@@ -62,7 +62,7 @@ public interface PhysicalEngine {
           if (rowStream == null) {
             return null;
           }
-          return BatchStreams.wrap(ctx.getAllocator(), result.unwrap(), ctx.getBatchRowCount());
+          return BatchStreams.wrap(ctx.getAllocator(), rowStream, ctx.getBatchRowCount());
         }
       }
     }

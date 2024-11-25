@@ -291,6 +291,7 @@ public class Result {
 
     try {
       // TODO: setHasMoreResults
+      resp.setHasMoreResults(batchStream.hasNext());
       resp.setQueryArrowData(getArrowDataFromStream(allocator, fetchSize));
     } catch (IOException | PhysicalException e) {
       LOGGER.error("unexpected error when load row stream: ", e);
@@ -345,6 +346,9 @@ public class Result {
 
   private List<ByteBuffer> getArrowDataFromStream(BufferAllocator allocator, int fetchSize)
       throws PhysicalException, IOException {
+    if (!batchStream.hasNext()) {
+      return null;
+    }
     List<ByteBuffer> dataList = new ArrayList<>();
     try {
       if (streamCache == null) {
@@ -354,11 +358,8 @@ public class Result {
         }
       }
       int count = streamCache.getRowCount();
-      while (count < fetchSize) {
+      while (count < fetchSize && batchStream.hasNext()) {
         try (Batch batch = batchStream.getNext()) {
-          if (batch.getRowCount() == 0) {
-            break;
-          }
           VectorSchemaRoots.append(streamCache, batch.getData());
           count += batch.getRowCount();
         }

@@ -214,7 +214,7 @@ public class SessionExecuteSqlResult {
   private List<List<String>> cacheArrowResult(boolean needFormatTime, String timePrecision) {
     // TODO: time format
     List<List<String>> cache = new ArrayList<>();
-    boolean hasKey = keys.length > 0;
+    boolean hasKey = paths.get(0).equals(GlobalConstant.KEY_NAME);
     for (int index = 0; index < values.size(); index++) {
       List<String> rowCache = new ArrayList<>();
       if (hasKey) {

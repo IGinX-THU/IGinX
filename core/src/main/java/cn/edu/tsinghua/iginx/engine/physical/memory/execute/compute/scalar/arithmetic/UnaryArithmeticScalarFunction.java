@@ -62,6 +62,7 @@ public abstract class UnaryArithmeticScalarFunction extends UnaryScalarFunction<
         break;
       case FLOAT8:
         evaluate((Float8Vector) dest, (Float8Vector) in);
+        break;
       default:
         throw new IllegalStateException("Unsupported type: " + in.getMinorType());
     }

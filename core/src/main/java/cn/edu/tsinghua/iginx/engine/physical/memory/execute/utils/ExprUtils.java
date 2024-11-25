@@ -399,121 +399,132 @@ public class ExprUtils {
           return binaryExpression;
         }
 
-        List<Expression> children = new ArrayList<>();
-        children.add(binaryExpression.getLeftExpression());
-        children.add(binaryExpression.getRightExpression());
-        Operator op = binaryExpression.getOp();
-        List<Operator> ops = new ArrayList<>();
-        ops.add(Operator.PLUS);
-        ops.add(op);
+        // 在arrow的列式数据框架中，无需尽可能拍平数据运算表达式
+        Expression leftChild = flattenExpression(binaryExpression.getLeftExpression());
+        Expression rightChild = flattenExpression(binaryExpression.getRightExpression());
 
-        // 将二叉树子节点中同优先级运算符的节点上提拍平到当前多叉节点上，不同优先级的不拍平
-        boolean fixedPoint = false;
-        int nMatches = 0;
-        while (!fixedPoint && nMatches < 10000) {
-          fixedPoint = true;
-          for (int i = 0; i < children.size(); i++) {
-            if (children.get(i).getType() == Expression.ExpressionType.Binary) {
-              BinaryExpression childBiExpr = (BinaryExpression) children.get(i);
-              if (Operator.hasSamePriority(op, childBiExpr.getOp())) {
-                children.set(i, childBiExpr.getLeftExpression());
-                children.add(i + 1, childBiExpr.getRightExpression());
-                ops.add(i + 1, childBiExpr.getOp());
-                fixedPoint = false;
-                nMatches++;
-                break;
-              }
-            } else if (children.get(i).getType() == Expression.ExpressionType.Multiple) {
-              // 如果是多叉树且运算符优先级相同，也提取上来
-              MultipleExpression childMultipleExpr = (MultipleExpression) children.get(i);
-              if (Operator.hasSamePriority(op, childMultipleExpr.getOpType())) {
-                children.addAll(i + 1, childMultipleExpr.getChildren());
-                ops.addAll(
-                    i + 2,
-                    childMultipleExpr.getOps().subList(1, childMultipleExpr.getOps().size()));
-                if (childMultipleExpr.getOps().get(0) == Operator.MINUS) {
-                  children.set(
-                      i + 1,
-                      new UnaryExpression(Operator.MINUS, childMultipleExpr.getChildren().get(0)));
-                }
-              }
-              children.remove(i);
-              fixedPoint = false;
-              nMatches++;
-              break;
-            } else if (children.get(i).getType() == Expression.ExpressionType.Unary) {
-              // UnaryExpression就是前面是负号的情况，也提取上来拍平，一般用于变量前的负号和括号前的负号
-              UnaryExpression childUnaryExpr = (UnaryExpression) children.get(i);
-              if (childUnaryExpr.getOperator() != Operator.MINUS
-                  || childUnaryExpr.getExpression().getType() == Expression.ExpressionType.Base) {
-                continue;
-              }
-              if (op == Operator.PLUS || op == Operator.MINUS) {
-                // 如果目前是加减法，反转当前UnaryExpression的符号
-                children.set(i, childUnaryExpr.getExpression());
-                ops.set(i, Operator.getOppositeOp(op));
-                fixedPoint = false;
-                nMatches++;
-                break;
-              } else if (op == Operator.DIV || op == Operator.STAR) {
-                // 如果目前是乘除法，那就给目前表达式加上一个 *-1
-                children.set(i, childUnaryExpr.getExpression());
-                children.add(i + 1, new ConstantExpression(-1L));
-                ops.add(i + 1, Operator.STAR);
-                fixedPoint = false;
-                nMatches++;
-                break;
-              }
-            } else if (children.get(i).getType() == Expression.ExpressionType.Bracket) {
-              // 如果是括号表达式，递归处理
-              // 如果括号内不是二叉树或多叉树，直接去掉括号
-              BracketExpression childBracketExpr = (BracketExpression) children.get(i);
-              if (childBracketExpr.getExpression().getType() != Expression.ExpressionType.Binary
-                  && childBracketExpr.getExpression().getType()
-                      != Expression.ExpressionType.Multiple) {
-                children.set(i, childBracketExpr.getExpression());
-                fixedPoint = false;
-                nMatches++;
-                break;
-              } else {
-                Operator bracketOp = ops.get(i);
-                if (childBracketExpr.getExpression().getType()
-                    == Expression.ExpressionType.Binary) {
-                  BinaryExpression childBiExpr =
-                      (BinaryExpression) childBracketExpr.getExpression();
-                  if (!Operator.hasSamePriority(op, childBiExpr.getOp())) {
-                    continue;
-                  }
-                } else if (childBracketExpr.getExpression().getType()
-                    == Expression.ExpressionType.Multiple) {
-                  MultipleExpression childMultipleExpr =
-                      (MultipleExpression) childBracketExpr.getExpression();
-                  if (!Operator.hasSamePriority(op, childMultipleExpr.getOpType())) {
-                    continue;
-                  }
-                }
+        return new BinaryExpression(leftChild, rightChild, ((BinaryExpression) expr).getOp());
 
-                if (bracketOp == Operator.DIV || bracketOp == Operator.MINUS) {
-                  // 如果是除或减，递归反转该子节点的符号
-                  children.set(i, reverseOperator(childBracketExpr.getExpression(), bracketOp));
-                  fixedPoint = false;
-                  nMatches++;
-                  break;
-                } else if (bracketOp == Operator.PLUS || bracketOp == Operator.STAR) {
-                  // 如果是加或乘，拆掉括号
-                  children.set(i, childBracketExpr.getExpression());
-                  fixedPoint = false;
-                  nMatches++;
-                  break;
-                }
-              }
-            }
-          }
-        }
-        // 剩余的无需拍平，递归处理
-        children.replaceAll(ExprUtils::flattenExpression);
-
-        return new MultipleExpression(children, ops);
+        //        List<Expression> children = new ArrayList<>();
+        //        children.add(binaryExpression.getLeftExpression());
+        //        children.add(binaryExpression.getRightExpression());
+        //        Operator op = binaryExpression.getOp();
+        //        List<Operator> ops = new ArrayList<>();
+        //        ops.add(Operator.PLUS);
+        //        ops.add(op);
+        //
+        //        // 将二叉树子节点中同优先级运算符的节点上提拍平到当前多叉节点上，不同优先级的不拍平
+        //        boolean fixedPoint = false;
+        //        int nMatches = 0;
+        //        while (!fixedPoint && nMatches < 10000) {
+        //          fixedPoint = true;
+        //          for (int i = 0; i < children.size(); i++) {
+        //            if (children.get(i).getType() == Expression.ExpressionType.Binary) {
+        //              BinaryExpression childBiExpr = (BinaryExpression) children.get(i);
+        //              if (Operator.hasSamePriority(op, childBiExpr.getOp())) {
+        //                children.set(i, childBiExpr.getLeftExpression());
+        //                children.add(i + 1, childBiExpr.getRightExpression());
+        //                ops.add(i + 1, childBiExpr.getOp());
+        //                fixedPoint = false;
+        //                nMatches++;
+        //                break;
+        //              }
+        //            } else if (children.get(i).getType() == Expression.ExpressionType.Multiple) {
+        //              // 如果是多叉树且运算符优先级相同，也提取上来
+        //              MultipleExpression childMultipleExpr = (MultipleExpression) children.get(i);
+        //              if (Operator.hasSamePriority(op, childMultipleExpr.getOpType())) {
+        //                children.addAll(i + 1, childMultipleExpr.getChildren());
+        //                ops.addAll(
+        //                    i + 2,
+        //                    childMultipleExpr.getOps().subList(1,
+        // childMultipleExpr.getOps().size()));
+        //                if (childMultipleExpr.getOps().get(0) == Operator.MINUS) {
+        //                  children.set(
+        //                      i + 1,
+        //                      new UnaryExpression(Operator.MINUS,
+        // childMultipleExpr.getChildren().get(0)));
+        //                }
+        //              }
+        //              children.remove(i);
+        //              fixedPoint = false;
+        //              nMatches++;
+        //              break;
+        //            } else if (children.get(i).getType() == Expression.ExpressionType.Unary) {
+        //              // UnaryExpression就是前面是负号的情况，也提取上来拍平，一般用于变量前的负号和括号前的负号
+        //              UnaryExpression childUnaryExpr = (UnaryExpression) children.get(i);
+        //              if (childUnaryExpr.getOperator() != Operator.MINUS
+        //                  || childUnaryExpr.getExpression().getType() ==
+        // Expression.ExpressionType.Base) {
+        //                continue;
+        //              }
+        //              if (op == Operator.PLUS || op == Operator.MINUS) {
+        //                // 如果目前是加减法，反转当前UnaryExpression的符号
+        //                children.set(i, childUnaryExpr.getExpression());
+        //                ops.set(i, Operator.getOppositeOp(op));
+        //                fixedPoint = false;
+        //                nMatches++;
+        //                break;
+        //              } else if (op == Operator.DIV || op == Operator.STAR) {
+        //                // 如果目前是乘除法，那就给目前表达式加上一个 *-1
+        //                children.set(i, childUnaryExpr.getExpression());
+        //                children.add(i + 1, new ConstantExpression(-1L));
+        //                ops.add(i + 1, Operator.STAR);
+        //                fixedPoint = false;
+        //                nMatches++;
+        //                break;
+        //              }
+        //            } else if (children.get(i).getType() == Expression.ExpressionType.Bracket) {
+        //              // 如果是括号表达式，递归处理
+        //              // 如果括号内不是二叉树或多叉树，直接去掉括号
+        //              BracketExpression childBracketExpr = (BracketExpression) children.get(i);
+        //              if (childBracketExpr.getExpression().getType() !=
+        // Expression.ExpressionType.Binary
+        //                  && childBracketExpr.getExpression().getType()
+        //                      != Expression.ExpressionType.Multiple) {
+        //                children.set(i, childBracketExpr.getExpression());
+        //                fixedPoint = false;
+        //                nMatches++;
+        //                break;
+        //              } else {
+        //                Operator bracketOp = ops.get(i);
+        //                if (childBracketExpr.getExpression().getType()
+        //                    == Expression.ExpressionType.Binary) {
+        //                  BinaryExpression childBiExpr =
+        //                      (BinaryExpression) childBracketExpr.getExpression();
+        //                  if (!Operator.hasSamePriority(op, childBiExpr.getOp())) {
+        //                    continue;
+        //                  }
+        //                } else if (childBracketExpr.getExpression().getType()
+        //                    == Expression.ExpressionType.Multiple) {
+        //                  MultipleExpression childMultipleExpr =
+        //                      (MultipleExpression) childBracketExpr.getExpression();
+        //                  if (!Operator.hasSamePriority(op, childMultipleExpr.getOpType())) {
+        //                    continue;
+        //                  }
+        //                }
+        //
+        //                if (bracketOp == Operator.DIV || bracketOp == Operator.MINUS) {
+        //                  // 如果是除或减，递归反转该子节点的符号
+        //                  children.set(i, reverseOperator(childBracketExpr.getExpression(),
+        // bracketOp));
+        //                  fixedPoint = false;
+        //                  nMatches++;
+        //                  break;
+        //                } else if (bracketOp == Operator.PLUS || bracketOp == Operator.STAR) {
+        //                  // 如果是加或乘，拆掉括号
+        //                  children.set(i, childBracketExpr.getExpression());
+        //                  fixedPoint = false;
+        //                  nMatches++;
+        //                  break;
+        //                }
+        //              }
+        //            }
+        //          }
+        //        }
+        //        // 剩余的无需拍平，递归处理
+        //        children.replaceAll(ExprUtils::flattenExpression);
+        //
+        //        return new MultipleExpression(children, ops);
       case Multiple:
         MultipleExpression multipleExpression = (MultipleExpression) expr;
         multipleExpression.getChildren().replaceAll(ExprUtils::flattenExpression);
