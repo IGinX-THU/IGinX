@@ -354,7 +354,9 @@ public class MilvusStorage implements IStorage {
       if (patterns == null) {
         patterns = Arrays.asList("*");
       }
-      PathSystem pathSystem = new MilvusPathSystem("");
+//      PathSystem pathSystem = new MilvusPathSystem("");
+      PathSystem pathSystem =
+              pathSystemMap.computeIfAbsent("", s -> new MilvusPathSystem(""));
       Map<String, Set<String>> collectionToFields =
           MilvusClientUtils.determinePaths(
               client, patterns, project.getTagFilter(), true, pathSystem);
@@ -505,8 +507,11 @@ public class MilvusStorage implements IStorage {
         patterns.add("*");
       }
 
-      PathSystem pathSystem = new MilvusPathSystem("");
-      PathUtils.initAll(client, pathSystem);
+      PathSystem pathSystem =
+              pathSystemMap.computeIfAbsent("", s -> new MilvusPathSystem(""));
+      if (!pathSystem.inited()) {
+        PathUtils.initAll(client, pathSystem);
+      }
       List<Column> columns = new ArrayList<>();
       for (String pattern : patterns) {
         List<String> list = PathUtils.getPathSystem(client, pathSystem).findPaths(pattern, null);
@@ -533,8 +538,11 @@ public class MilvusStorage implements IStorage {
       ColumnsInterval columnsInterval;
       TreeSet<String> paths = new TreeSet<>();
 
-      PathSystem pathSystem = new MilvusPathSystem("");
-      PathUtils.initAll(client, pathSystem);
+      PathSystem pathSystem =
+              pathSystemMap.computeIfAbsent("", s -> new MilvusPathSystem(""));
+      if (!pathSystem.inited()) {
+        PathUtils.initAll(client, pathSystem);
+      }
       for (Column c : PathUtils.getPathSystem(client, pathSystem).getColumns().values()) {
         if (org.apache.commons.lang3.StringUtils.isNotEmpty(prefix)
             && org.apache.commons.lang3.StringUtils.isNotEmpty(c.getPath())
