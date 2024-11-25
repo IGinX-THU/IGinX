@@ -77,6 +77,10 @@ public class MilvusStorage implements IStorage {
 
   Map<String, PathSystem> pathSystemMap = new ConcurrentHashMap<>();
 
+  public Map<String, PathSystem> getPathSystemMap() {
+    return pathSystemMap;
+  }
+
   /**
    * 构造函数，用于初始化 MilvusStorage 实例。
    *
@@ -327,7 +331,7 @@ public class MilvusStorage implements IStorage {
       LOGGER.error("unexpected error: ", e);
       return new TaskExecuteResult(
           new PhysicalTaskExecuteFailureException(
-              String.format("execute project task in milvus failure : %s",e)));
+              String.format("execute project task in milvus failure : %s", e)));
     }
   }
 
@@ -354,9 +358,8 @@ public class MilvusStorage implements IStorage {
       if (patterns == null) {
         patterns = Arrays.asList("*");
       }
-//      PathSystem pathSystem = new MilvusPathSystem("");
-      PathSystem pathSystem =
-              pathSystemMap.computeIfAbsent("", s -> new MilvusPathSystem(""));
+      //      PathSystem pathSystem = new MilvusPathSystem("");
+      PathSystem pathSystem = pathSystemMap.computeIfAbsent("", s -> new MilvusPathSystem(""));
       Map<String, Set<String>> collectionToFields =
           MilvusClientUtils.determinePaths(
               client, patterns, project.getTagFilter(), true, pathSystem);
@@ -381,7 +384,7 @@ public class MilvusStorage implements IStorage {
       LOGGER.error("unexpected error: ", e);
       return new TaskExecuteResult(
           new PhysicalTaskExecuteFailureException(
-              String.format("execute project task in milvus failure, %s",e)));
+              String.format("execute project task in milvus failure, %s", e)));
     }
   }
 
@@ -507,20 +510,18 @@ public class MilvusStorage implements IStorage {
         patterns.add("*");
       }
 
-      PathSystem pathSystem =
-              pathSystemMap.computeIfAbsent("", s -> new MilvusPathSystem(""));
-      if (!pathSystem.inited()) {
-        PathUtils.initAll(client, pathSystem);
-      }
+      PathUtils.initAll(client, this);
       List<Column> columns = new ArrayList<>();
       for (String pattern : patterns) {
-        List<String> list = PathUtils.getPathSystem(client, pathSystem).findPaths(pattern, null);
-        for (String p : list) {
-          Pair<String, Map<String, String>> pair = splitFullName(getPathAndVersion(p).getK());
-          if (tagFilter != null && !TagKVUtils.match(pair.getV(), tagFilter)) {
-            continue;
+        for (PathSystem pathSystem : pathSystemMap.values()) {
+          List<String> list = PathUtils.getPathSystem(client, pathSystem).findPaths(pattern, null);
+          for (String p : list) {
+            Pair<String, Map<String, String>> pair = splitFullName(getPathAndVersion(p).getK());
+            if (tagFilter != null && !TagKVUtils.match(pair.getV(), tagFilter)) {
+              continue;
+            }
+            columns.add(PathUtils.getPathSystem(client, pathSystem).getColumn(p));
           }
-          columns.add(PathUtils.getPathSystem(client, pathSystem).getColumn(p));
         }
       }
       return columns;
@@ -538,18 +539,16 @@ public class MilvusStorage implements IStorage {
       ColumnsInterval columnsInterval;
       TreeSet<String> paths = new TreeSet<>();
 
-      PathSystem pathSystem =
-              pathSystemMap.computeIfAbsent("", s -> new MilvusPathSystem(""));
-      if (!pathSystem.inited()) {
-        PathUtils.initAll(client, pathSystem);
-      }
-      for (Column c : PathUtils.getPathSystem(client, pathSystem).getColumns().values()) {
-        if (org.apache.commons.lang3.StringUtils.isNotEmpty(prefix)
-            && org.apache.commons.lang3.StringUtils.isNotEmpty(c.getPath())
-            && !c.getPath().startsWith(prefix)) {
-          continue;
+      PathUtils.initAll(client, this);
+      for (PathSystem pathSystem : pathSystemMap.values()) {
+        for (Column c : PathUtils.getPathSystem(client, pathSystem).getColumns().values()) {
+          if (org.apache.commons.lang3.StringUtils.isNotEmpty(prefix)
+              && org.apache.commons.lang3.StringUtils.isNotEmpty(c.getPath())
+              && !c.getPath().startsWith(prefix)) {
+            continue;
+          }
+          paths.add(c.getPath());
         }
-        paths.add(c.getPath());
       }
 
       if (paths.isEmpty()) {
@@ -569,5 +568,7 @@ public class MilvusStorage implements IStorage {
   }
 
   @Override
-  public void release() throws PhysicalException {}
+  public void release() throws PhysicalException {
+    this.milvusConnectPool.close();
+  }
 }

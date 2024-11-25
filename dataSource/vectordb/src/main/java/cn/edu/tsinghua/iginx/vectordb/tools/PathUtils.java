@@ -24,6 +24,7 @@ import static cn.edu.tsinghua.iginx.vectordb.tools.Constants.QUOTA;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
+import cn.edu.tsinghua.iginx.vectordb.MilvusStorage;
 import cn.edu.tsinghua.iginx.vectordb.support.PathSystem;
 import cn.edu.tsinghua.iginx.vectordb.support.impl.MilvusPathSystem;
 import io.milvus.v2.client.MilvusClientV2;
@@ -72,14 +73,23 @@ public class PathUtils {
     pathSystem.setInited(true);
   }
 
-  public static void initAll(MilvusClientV2 client, PathSystem pathSystem) {
+  public static void initAll(MilvusClientV2 client, MilvusStorage storage) {
     for (String databaseName : MilvusClientUtils.listDatabase(client)) {
       try {
-        initDatabase(client, databaseName, pathSystem);
+        PathSystem pathSystem;
+        if (databaseName.startsWith(Constants.DATABASE_PREFIX)) {
+          pathSystem =
+              storage
+                  .getPathSystemMap()
+                  .computeIfAbsent(databaseName, s -> new MilvusPathSystem(databaseName));
+        } else {
+          pathSystem =
+              storage.getPathSystemMap().computeIfAbsent("", s -> new MilvusPathSystem(""));
+        }
+        PathUtils.getPathSystem(client, pathSystem);
       } catch (UnsupportedEncodingException e) {
       }
     }
-    pathSystem.setInited(true);
   }
 
   //    public static synchronized void initDummy(){

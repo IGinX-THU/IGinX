@@ -57,11 +57,10 @@ runs:
                 fi
               done
               docker ps -a
-            
+
               docker logs milvus19530-standalone
               docker logs milvus19530-minio
               docker logs milvus19530-etcd
-              
 
         - if: fromJSON(inputs.start) && runner.os == 'Windows'
           name: Start milvus on Windows

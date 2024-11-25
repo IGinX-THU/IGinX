@@ -28,7 +28,7 @@ on:
                 description: "The database to run the test on"
                 type: string
                 required: false
-#                default: '["IoTDB12", "InfluxDB", "FileSystem", "PostgreSQL", "Redis", "MongoDB", "MySQL", "VectorDB"]'
+                #                default: '["IoTDB12", "InfluxDB", "FileSystem", "PostgreSQL", "Redis", "MongoDB", "MySQL", "VectorDB"]'
                 default: '["VectorDB"]'
 
 env:
@@ -76,13 +76,13 @@ jobs:
             - name: Check Port
               shell: bash
               run: |
-                for port in ${{ inputs.ports }}; do
-                  if lsof -i :$port | grep -q LISTEN; then
-                    echo "Port $port is open."
-                  else
-                    echo "Port $port is not open."
-                  fi
-                done
+                  for port in ${{ inputs.ports }}; do
+                    if lsof -i :$port | grep -q LISTEN; then
+                      echo "Port $port is open."
+                    else
+                      echo "Port $port is not open."
+                    fi
+                  done
 
               # 第 1 阶段测试开始==========================================
             - name: Prepare CapExp environment oriHasDataExpHasData
