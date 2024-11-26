@@ -45,6 +45,11 @@ public class PathUtils {
   private static void initDatabase(
       MilvusClientV2 client, String databaseName, PathSystem pathSystem)
       throws UnsupportedEncodingException {
+    try {
+      client.useDatabase(databaseName);
+    } catch (Exception e) {
+      return;
+    }
     for (String collectionName : MilvusClientUtils.listCollections(client, databaseName)) {
       Map<String, DataType> paths =
           MilvusClientUtils.getCollectionPaths(client, databaseName, collectionName);

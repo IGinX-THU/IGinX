@@ -126,6 +126,13 @@ public class MilvusPathSystem implements PathSystem {
                   currentPath.isEmpty() ? nextPart : currentPath + "." + nextPart,
                   (Map<String, Map<String, ?>>) entry.getValue(),
                   tagFilter));
+          results.addAll(
+              findRecursive(
+                  parts,
+                  index,
+                  currentPath.isEmpty() ? nextPart : currentPath + "." + nextPart,
+                  (Map<String, Map<String, ?>>) entry.getValue(),
+                  tagFilter));
         }
       }
     } else {

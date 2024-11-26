@@ -520,7 +520,9 @@ public class MilvusStorage implements IStorage {
             if (tagFilter != null && !TagKVUtils.match(pair.getV(), tagFilter)) {
               continue;
             }
-            columns.add(PathUtils.getPathSystem(client, pathSystem).getColumn(p));
+            Column c = PathUtils.getPathSystem(client, pathSystem).getColumn(p);
+            Column column = new Column(c.getPath(), c.getDataType(), c.getTags(), c.isDummy());
+            columns.add(column);
           }
         }
       }
