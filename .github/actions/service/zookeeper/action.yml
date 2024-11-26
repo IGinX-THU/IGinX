@@ -10,6 +10,10 @@ inputs:
     start:
         description: "whether to start"
         required: true
+    port:
+        description: "zk port"
+        required: false
+        default: "2181"
 
 runs:
     using: "composite"
@@ -17,23 +21,24 @@ runs:
         - if: fromJSON(inputs.stop)
           name: Stop zookeeper
           shell: bash
-          working-directory: ${{ github.action_path }}
-          run: zkServer.sh --config conf stop
+          working-directory: ${{ runner.temp }}/zookeeper-${{ inputs.port }}
+          run: bin/zkServer.sh --config conf stop
 
         - if: fromJSON(inputs.clean)
           name: Clean zookeeper
           shell: bash
-          working-directory: ${{ github.action_path }}
+          working-directory: ${{ runner.temp }}/zookeeper-${{ inputs.port }}
           run: rm -rf data logs conf
 
         - if: fromJSON(inputs.start)
           name: Start zookeeper
           shell: bash
-          working-directory: ${{ github.action_path }}
+          working-directory: ${{ runner.temp }}/zookeeper-${{ inputs.port }}
           run: |
               mkdir -p conf
               echo "dataDir=data" > conf/zoo.cfg
               echo "dataLogDir=logs" >> conf/zoo.cfg
-              echo "clientPort=2181" >> conf/zoo.cfg
+              echo "clientPort=${{ inputs.port }}" >> conf/zoo.cfg
+              echo "admin.serverPort=$((${{ inputs.port }} + 10000))" >> conf/zoo.cfg
 
-              zkServer.sh --config conf start
+              bin/zkServer.sh --config conf start

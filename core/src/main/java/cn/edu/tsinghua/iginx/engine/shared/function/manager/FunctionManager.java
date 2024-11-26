@@ -49,9 +49,7 @@ import cn.edu.tsinghua.iginx.thrift.UDFType;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
@@ -110,6 +108,7 @@ public class FunctionManager {
     List<TransformTaskMeta> metaList = new ArrayList<>();
     List<String> udfList = config.getUdfList();
     for (String udf : udfList) {
+      LOGGER.debug("initing udf: {}", udf);
       String[] udfInfo = udf.split(",");
       if (udfInfo.length != 4) {
         LOGGER.error("udf info len must be 4.");
@@ -133,25 +132,31 @@ public class FunctionManager {
           LOGGER.error("unknown udf type: {}", udfInfo[0]);
           continue;
       }
+      LOGGER.debug(
+          "adding udf : {}, {}, {}, {}, {}, {}",
+          udfInfo[1],
+          udfInfo[2],
+          udfInfo[3],
+          config.getIp(),
+          config.getPort(),
+          udfType);
       metaList.add(
           new TransformTaskMeta(
-              udfInfo[1],
-              udfInfo[2],
-              udfInfo[3],
-              new HashSet<>(Collections.singletonList(config.getIp())),
-              udfType));
+              udfInfo[1], udfInfo[2], udfInfo[3], config.getIp(), config.getPort(), udfType));
     }
 
     for (TransformTaskMeta meta : metaList) {
+      LOGGER.debug("loading udf meta:{}", meta);
       TransformTaskMeta taskMeta = metaManager.getTransformTask(meta.getName());
       if (taskMeta == null) {
         metaManager.addTransformTask(meta);
-      } else if (!taskMeta.getIpSet().contains(config.getIp())) {
-        meta.addIp(config.getIp());
+      } else if (!taskMeta.containsIpPort(config.getIp(), config.getPort())) {
+        meta.addIpPort(config.getIp(), config.getPort());
         metaManager.updateTransformTask(meta);
       }
 
       if (!meta.getType().equals(UDFType.TRANSFORM)) {
+        LOGGER.debug("Loading UDF meta: {}", meta);
         loadUDF(meta.getName());
       }
     }
@@ -192,7 +197,7 @@ public class FunctionManager {
     if (taskMeta == null) {
       throw new IllegalArgumentException(String.format("UDF %s not registered", identifier));
     }
-    if (!taskMeta.getIpSet().contains(config.getIp())) {
+    if (!taskMeta.containsIpPort(config.getIp(), config.getPort())) {
       throw new IllegalArgumentException(
           String.format("UDF %s not registered in node ip=%s", identifier, config.getIp()));
     }
