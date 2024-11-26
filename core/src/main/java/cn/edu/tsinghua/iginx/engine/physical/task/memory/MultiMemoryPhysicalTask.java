@@ -17,30 +17,43 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.task.memory;
 
-import cn.edu.tsinghua.iginx.engine.physical.task.AbstractPhysicalTask;
-import cn.edu.tsinghua.iginx.engine.physical.task.TaskResult;
+import cn.edu.tsinghua.iginx.engine.physical.task.PhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskType;
 import cn.edu.tsinghua.iginx.engine.physical.task.utils.PhysicalCloseable;
+import cn.edu.tsinghua.iginx.engine.physical.task.visitor.TaskVisitor;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 
-public abstract class MemoryPhysicalTask<RESULT extends PhysicalCloseable>
-    extends AbstractPhysicalTask<RESULT> {
+public abstract class MultiMemoryPhysicalTask<
+        RESULT extends PhysicalCloseable, INPUT extends PhysicalCloseable>
+    extends MemoryPhysicalTask<RESULT> {
 
-  protected final AtomicInteger parentReadyCount;
+  private final List<PhysicalTask<INPUT>> parentTasks;
 
-  public MemoryPhysicalTask(
-      TaskType type, List<Operator> operators, RequestContext context, int children) {
-    super(type, operators, context);
-    parentReadyCount = new AtomicInteger(children);
+  public MultiMemoryPhysicalTask(
+      List<Operator> operators, RequestContext context, List<PhysicalTask<INPUT>> parentTasks) {
+    super(TaskType.MultipleMemory, operators, context, parentTasks.size());
+    this.parentTasks = Collections.unmodifiableList(new ArrayList<>(parentTasks));
   }
 
-  public abstract TaskResult<RESULT> execute(); // 在 parent 都完成执行后，可以执行该任务
+  public List<PhysicalTask<INPUT>> getParentTasks() {
+    return parentTasks;
+  }
 
-  // 通知当前任务的某个父节点已经完成，该方法会返回 boolean 值，表示当前的任务是否可以执行
-  public boolean notifyParentReady() {
-    return parentReadyCount.decrementAndGet() == 0;
+  @Override
+  public void accept(TaskVisitor visitor) {
+    visitor.enter();
+    visitor.visit(this);
+
+    List<PhysicalTask<INPUT>> tasks = getParentTasks();
+    for (PhysicalTask<?> task : tasks) {
+      if (task != null) {
+        task.accept(visitor);
+      }
+    }
+    visitor.leave();
   }
 }

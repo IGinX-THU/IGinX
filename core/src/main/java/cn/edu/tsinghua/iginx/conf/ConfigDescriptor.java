@@ -226,6 +226,8 @@ public class ConfigDescriptor {
           Integer.parseInt(properties.getProperty("parallelGroupByPoolNum", "5")));
       config.setStreamParallelGroupByWorkerNum(
           Integer.parseInt(properties.getProperty("streamParallelGroupByWorkerNum", "5")));
+      config.setPipelineParallelism(
+          Integer.parseInt(properties.getProperty("pipelineParallelism", "5")));
       config.setBatchSizeImportCsv(
           Integer.parseInt(properties.getProperty("batchSizeImportCsv", "10000")));
       config.setRuleBasedOptimizer(
@@ -361,6 +363,8 @@ public class ConfigDescriptor {
     config.setStreamParallelGroupByWorkerNum(
         EnvUtils.loadEnv(
             "streamParallelGroupByWorkerNum", config.getStreamParallelGroupByWorkerNum()));
+    config.setPipelineParallelism(
+        EnvUtils.loadEnv("pipelineParallelism", config.getPipelineParallelism()));
     config.setBatchSizeImportCsv(
         EnvUtils.loadEnv("batchSizeImportCsv", config.getBatchSizeImportCsv()));
     config.setUTTestEnv(EnvUtils.loadEnv("utTestEnv", config.isUTTestEnv()));

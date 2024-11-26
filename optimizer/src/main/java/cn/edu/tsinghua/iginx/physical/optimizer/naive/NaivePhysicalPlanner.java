@@ -23,10 +23,11 @@ import cn.edu.tsinghua.iginx.engine.physical.task.PhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.StoragePhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskType;
 import cn.edu.tsinghua.iginx.engine.physical.task.memory.BinarySinkMemoryPhysicalTask;
-import cn.edu.tsinghua.iginx.engine.physical.task.memory.MultipleMemoryPhysicalTask;
+import cn.edu.tsinghua.iginx.engine.physical.task.memory.CombineNonQueryPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.memory.PipelineMemoryPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.memory.UnarySinkMemoryPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.memory.parallel.FetchAsyncMemoryPhysicalTask;
+import cn.edu.tsinghua.iginx.engine.physical.task.memory.parallel.ParallelPipelineMemoryPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.memory.row.ArrowToRowUnaryMemoryPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.memory.row.BinaryRowMemoryPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.memory.row.RowToArrowUnaryMemoryPhysicalTask;
@@ -151,12 +152,12 @@ public class NaivePhysicalPlanner {
   }
 
   public PhysicalTask<BatchStream> construct(CombineNonQuery operator, RequestContext context) {
-    List<PhysicalTask<?>> sourceTasks = new ArrayList<>();
+    List<PhysicalTask<RowStream>> sourceTasks = new ArrayList<>();
     for (Source source : operator.getSources()) {
-      sourceTasks.add(fetch(source, context));
+      sourceTasks.add(convert(fetch(source, context), context, RowStream.class));
     }
 
-    return new MultipleMemoryPhysicalTask(
+    return new CombineNonQueryPhysicalTask(
         Collections.singletonList(operator), sourceTasks, context);
   }
 
@@ -251,12 +252,20 @@ public class NaivePhysicalPlanner {
   }
 
   public PhysicalTask<BatchStream> construct(RowTransform operator, RequestContext context) {
-    PhysicalTask<?> sourceTask = fetch(operator.getSource(), context);
-    return new cn.edu.tsinghua.iginx.engine.physical.task.memory.PipelineMemoryPhysicalTask(
-        convert(sourceTask, context, BatchStream.class),
-        Collections.singletonList(operator),
+    PhysicalTask<BatchStream> sourceTask = fetchAsync(operator.getSource(), context);
+
+    int pipelineParallelism = ConfigDescriptor.getInstance().getConfig().getPipelineParallelism();
+
+    return new ParallelPipelineMemoryPhysicalTask(
+        sourceTask,
         context,
-        new TransformProjectionInfoGenerator(operator));
+        (ctx, parentTask) ->
+            new PipelineMemoryPhysicalTask(
+                parentTask,
+                Collections.singletonList(operator),
+                ctx,
+                new TransformProjectionInfoGenerator(operator)),
+        pipelineParallelism);
   }
 
   public PhysicalTask<?> construct(Select operator, RequestContext context) {
