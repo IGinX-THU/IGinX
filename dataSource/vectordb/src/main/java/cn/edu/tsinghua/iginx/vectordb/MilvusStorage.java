@@ -274,8 +274,10 @@ public class MilvusStorage implements IStorage {
     //    }
     //    return false;
     try (MilvusPoolClient milvusClient = new MilvusPoolClient(this.milvusConnectPool)) {
-      return milvusClient.getClient() != null;
+      milvusClient.getClient().getServerVersion();
+      return true;
     } catch (Exception e) {
+      this.pathSystemMap = new ConcurrentHashMap<>();
       e.printStackTrace();
     }
     return false;

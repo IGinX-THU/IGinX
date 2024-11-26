@@ -57,6 +57,8 @@ public class Constants {
 
   public static final int DEFAULT_MAX_IDLE = 10;
 
+  public static final long DEFAULT_MILVUS_TIMEOUT = 10000L;
+
   public static final int DEFAULT_MIN_IDLE = 5;
 
   /** 用户名参数的键。 */

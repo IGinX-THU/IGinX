@@ -19,6 +19,8 @@
  */
 package cn.edu.tsinghua.iginx.vectordb.pool;
 
+import static cn.edu.tsinghua.iginx.vectordb.tools.Constants.DEFAULT_MILVUS_TIMEOUT;
+
 import io.milvus.v2.client.ConnectConfig;
 import io.milvus.v2.client.MilvusClientV2;
 import org.apache.commons.lang3.StringUtils;
@@ -89,8 +91,8 @@ public class MilvusConnectPoolFactory implements PooledObjectFactory<MilvusClien
         configBuilder.password(password);
       }
       ConnectConfig config = configBuilder.build();
-      config.setConnectTimeoutMs(60000L);
-      config.setRpcDeadlineMs(60000L);
+      config.setConnectTimeoutMs(DEFAULT_MILVUS_TIMEOUT);
+      config.setRpcDeadlineMs(DEFAULT_MILVUS_TIMEOUT);
       MilvusClientV2 client = new MilvusClientV2(config);
       if (client != null) {
         return new DefaultPooledObject<>(client);
