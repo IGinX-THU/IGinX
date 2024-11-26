@@ -30,3 +30,8 @@ docker logs milvus$port-standalone
 docker logs milvus$port-minio
 docker logs milvus$port-etcd
 
+if lsof -i :$port | grep -q LISTEN; then
+  echo "Port $port is open."
+else
+  echo "Port $port is not open."
+fi
