@@ -573,6 +573,7 @@ public class MilvusStorage implements IStorage {
 
   @Override
   public void release() throws PhysicalException {
+    LOGGER.info("close milvus client pool ...");
     this.milvusConnectPool.close();
   }
 }

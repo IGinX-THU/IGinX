@@ -27,7 +27,7 @@ echo "waiting for the server to start..."
 sleep 10
 docker ps
 
-if lsof -i :$port | grep -q LISTEN; then
+if netstat -an | grep -q ".*:$port.*LISTEN"; then
   echo "Port $port is open."
 else
   echo "Port $port is not open."
