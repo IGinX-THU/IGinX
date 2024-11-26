@@ -20,7 +20,6 @@
 port=$1
 
 pwd
-ls
 
 docker-compose -f $port/docker-compose-$port.yml down
 

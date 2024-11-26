@@ -89,8 +89,8 @@ public class MilvusConnectPoolFactory implements PooledObjectFactory<MilvusClien
         configBuilder.password(password);
       }
       ConnectConfig config = configBuilder.build();
-      config.setConnectTimeoutMs(300000L);
-      config.setRpcDeadlineMs(300000L);
+      config.setConnectTimeoutMs(60000L);
+      config.setRpcDeadlineMs(60000L);
       MilvusClientV2 client = new MilvusClientV2(config);
       if (client != null) {
         return new DefaultPooledObject<>(client);
