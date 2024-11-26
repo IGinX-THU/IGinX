@@ -28,6 +28,7 @@ import cn.edu.tsinghua.iginx.integration.expansion.constant.Constant;
 import cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.integration.tool.DBConf;
+import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -316,7 +317,8 @@ public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
     SQLTestTools.executeAndCompare(session, statement, expect);
   }
 
-  private void testFilter() {
+  @Test
+  public void testFilter() {
     String statement = "select i from d1.c1 where i < 3;";
     String expect =
         "ResultSets:\n"
@@ -328,6 +330,18 @@ public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
             + "|12884901888|      2|\n"
             + "+-----------+-------+\n"
             + "Total line number = 3\n";
+    SQLTestTools.executeAndCompare(session, statement, expect);
+
+    statement = "select i from d1.c1 where key > 0 and key <= 8589934592;";
+    expect =
+        "ResultSets:\n"
+            + "+----------+-------+\n"
+            + "|       key|d1.c1.i|\n"
+            + "+----------+-------+\n"
+            + "|4294967296|      0|\n"
+            + "|8589934592|      1|\n"
+            + "+----------+-------+\n"
+            + "Total line number = 2\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
 
     statement = "select b from d1.c1 where b = true;";

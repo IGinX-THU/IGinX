@@ -143,7 +143,7 @@ public class FilterUtils {
     if (filter.isTrue()) {
       return new Document();
     } else {
-      return nor(new Document());
+      throw new IllegalArgumentException("bool filter should be true");
     }
   }
 
@@ -151,7 +151,7 @@ public class FilterUtils {
     List<Bson> subFilterList =
         filter.getChildren().stream().map(FilterUtils::toBson).collect(Collectors.toList());
     if (subFilterList.isEmpty()) {
-      return new Document();
+      throw new IllegalArgumentException("and filter should have at least one child");
     }
     return and(subFilterList);
   }
@@ -160,7 +160,7 @@ public class FilterUtils {
     List<Bson> subFilterList =
         filter.getChildren().stream().map(FilterUtils::toBson).collect(Collectors.toList());
     if (subFilterList.isEmpty()) {
-      return new Document();
+      throw new IllegalArgumentException("or filter should have at least one child");
     }
     return or(subFilterList);
   }
