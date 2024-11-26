@@ -19,7 +19,7 @@
 
 port=$1
 
-cd ${{ github.workspace }}/.github/actions/service/vectordb
+cd ${{ github.workspace }}
 
 docker-compose -f $port/docker-compose-$port.yml down
 
