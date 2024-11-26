@@ -169,42 +169,4 @@ public class FilterUtils {
       throw new IllegalArgumentException("path contain number");
     }
   }
-
-  public static Filter setTrue(Filter filter, Predicate<Filter> matcher) {
-    Filter removedNotFilter = LogicalFilterUtils.removeNot(filter);
-    Filter setTrueFilter = setTrueImpl(removedNotFilter, matcher);
-    return LogicalFilterUtils.mergeTrue(setTrueFilter);
-  }
-
-  private static Filter setTrueImpl(Filter filter, Predicate<Filter> matcher) {
-    switch (filter.getType()) {
-      case Key:
-      case Value:
-      case Path:
-      case Expr:
-      case Bool:
-      case In:
-        if (matcher.test(filter)) {
-          return new BoolFilter(true);
-        }
-        return filter;
-      case And:
-        AndFilter andFilter = (AndFilter) filter;
-        List<Filter> andChildren =
-            andFilter.getChildren().stream()
-                .map(f -> setTrueImpl(f, matcher))
-                .collect(Collectors.toList());
-        return new AndFilter(andChildren);
-      case Or:
-        OrFilter orFilter = (OrFilter) filter;
-        List<Filter> orChildren =
-            orFilter.getChildren().stream()
-                .map(f -> setTrueImpl(f, matcher))
-                .collect(Collectors.toList());
-        return new OrFilter(orChildren);
-      case Not:
-      default:
-        throw new IllegalArgumentException("unsupported filter: " + filter);
-    }
-  }
 }

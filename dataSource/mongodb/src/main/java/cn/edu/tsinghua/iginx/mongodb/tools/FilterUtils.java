@@ -96,7 +96,7 @@ public class FilterUtils {
   @Nullable
   public static Bson getPostFilter(Filter filter, Map<Field, String> renamedFields) {
     Filter removeNotSupported =
-        cn.edu.tsinghua.iginx.mongodb.dummy.FilterUtils.setTrue(
+        LogicalFilterUtils.superSetPushDown(
             filter,
             f -> {
               switch (f.getType()) {

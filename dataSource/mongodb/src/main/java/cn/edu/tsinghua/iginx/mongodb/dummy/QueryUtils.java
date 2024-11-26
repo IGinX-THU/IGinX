@@ -19,6 +19,7 @@
  */
 package cn.edu.tsinghua.iginx.mongodb.dummy;
 
+import cn.edu.tsinghua.iginx.engine.logical.utils.LogicalFilterUtils;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.PathFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.ValueFilter;
@@ -96,7 +97,7 @@ public class QueryUtils {
 
   public static Bson getPredicate(Filter filter) {
     Filter removedUnsupportedFilter =
-        FilterUtils.setTrue(
+        LogicalFilterUtils.superSetPushDown(
             filter,
             f -> {
               switch (f.getType()) {
