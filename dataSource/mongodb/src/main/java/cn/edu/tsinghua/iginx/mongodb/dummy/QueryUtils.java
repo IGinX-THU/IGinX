@@ -19,7 +19,6 @@
  */
 package cn.edu.tsinghua.iginx.mongodb.dummy;
 
-import cn.edu.tsinghua.iginx.engine.logical.utils.LogicalFilterUtils;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.PathFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.ValueFilter;
@@ -35,7 +34,6 @@ import java.util.Map;
 import org.bson.BsonDocument;
 import org.bson.BsonInt32;
 import org.bson.BsonValue;
-import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -97,32 +95,24 @@ public class QueryUtils {
   }
 
   public static Bson getPredicate(Filter filter) {
-    try {
-      Filter removedNotFilter = LogicalFilterUtils.removeNot(filter);
-      Filter removedUnsupportedFilter =
-          FilterUtils.tryIgnore(
-              removedNotFilter,
-              f -> {
-                switch (f.getType()) {
-                  case Value:
-                    return NameUtils.containNumberNode(((ValueFilter) f).getPath());
-                  case Path:
-                    return NameUtils.containNumberNode(((PathFilter) f).getPathA())
-                        || NameUtils.containNumberNode(((PathFilter) f).getPathB());
-                  case Key:
-                  case In:
-                  case Expr:
-                    return true;
-                }
-                return false;
-              });
-      Filter removedSingleFilter = LogicalFilterUtils.removeSingleFilter(removedUnsupportedFilter);
-      Filter mergedTrueFilter = LogicalFilterUtils.mergeTrue(removedSingleFilter);
-      return FilterUtils.toBson(mergedTrueFilter);
-    } catch (Exception e) {
-      LOGGER.debug("failed to convert filter to Bson", e);
-      return new Document();
-    }
+    Filter removedUnsupportedFilter =
+        FilterUtils.setTrue(
+            filter,
+            f -> {
+              switch (f.getType()) {
+                case Value:
+                  return NameUtils.containNumberNode(((ValueFilter) f).getPath());
+                case Path:
+                  return NameUtils.containNumberNode(((PathFilter) f).getPathA())
+                      || NameUtils.containNumberNode(((PathFilter) f).getPathB());
+                case Key:
+                case In:
+                case Expr:
+                  return true;
+              }
+              return false;
+            });
+    return FilterUtils.toBson(removedUnsupportedFilter);
   }
 
   static Bson getProjection(PathTree tree) {

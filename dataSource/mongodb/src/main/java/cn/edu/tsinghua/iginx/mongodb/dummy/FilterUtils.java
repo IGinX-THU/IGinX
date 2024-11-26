@@ -21,6 +21,7 @@ package cn.edu.tsinghua.iginx.mongodb.dummy;
 
 import static com.mongodb.client.model.Filters.*;
 
+import cn.edu.tsinghua.iginx.engine.logical.utils.LogicalFilterUtils;
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
@@ -108,8 +109,6 @@ public class FilterUtils {
         return toBson((AndFilter) filter);
       case Or:
         return toBson((OrFilter) filter);
-      case Not:
-        return toBson((NotFilter) filter);
       default:
         throw new IllegalArgumentException("unsupported filter: " + filter);
     }
@@ -165,39 +164,47 @@ public class FilterUtils {
     return or(subFilterList);
   }
 
-  private static Bson toBson(NotFilter filter) {
-    Bson childFilter = toBson(filter.getChild());
-    return nor(childFilter);
-  }
-
   private static void checkPath(String path) {
     if (NameUtils.containNumberNode(path)) {
       throw new IllegalArgumentException("path contain number");
     }
   }
 
-  public static Filter tryIgnore(Filter filter, Predicate<Filter> matcher) {
+  public static Filter setTrue(Filter filter, Predicate<Filter> matcher) {
+    Filter removedNotFilter = LogicalFilterUtils.removeNot(filter);
+    Filter setTrueFilter = setTrueImpl(removedNotFilter, matcher);
+    return LogicalFilterUtils.mergeTrue(setTrueFilter);
+  }
+
+  private static Filter setTrueImpl(Filter filter, Predicate<Filter> matcher) {
     switch (filter.getType()) {
+      case Key:
+      case Value:
+      case Path:
+      case Expr:
+      case Bool:
+      case In:
+        if (matcher.test(filter)) {
+          return new BoolFilter(true);
+        }
+        return filter;
       case And:
-        {
-          List<Filter> children =
-              ((AndFilter) filter)
-                  .getChildren().stream()
-                      .filter(f -> !matcher.test(f))
-                      .map(f -> tryIgnore(f, matcher))
-                      .collect(Collectors.toList());
-          return new AndFilter(children);
-        }
+        AndFilter andFilter = (AndFilter) filter;
+        List<Filter> andChildren =
+            andFilter.getChildren().stream()
+                .map(f -> setTrueImpl(f, matcher))
+                .collect(Collectors.toList());
+        return new AndFilter(andChildren);
       case Or:
-        {
-          List<Filter> children =
-              ((OrFilter) filter)
-                  .getChildren().stream()
-                      .map(f -> tryIgnore(f, matcher))
-                      .collect(Collectors.toList());
-          return new OrFilter(children);
-        }
+        OrFilter orFilter = (OrFilter) filter;
+        List<Filter> orChildren =
+            orFilter.getChildren().stream()
+                .map(f -> setTrueImpl(f, matcher))
+                .collect(Collectors.toList());
+        return new OrFilter(orChildren);
+      case Not:
+      default:
+        throw new IllegalArgumentException("unsupported filter: " + filter);
     }
-    return filter;
   }
 }
