@@ -21,7 +21,6 @@ package cn.edu.tsinghua.iginx.mongodb.dummy;
 
 import static com.mongodb.client.model.Filters.*;
 
-import cn.edu.tsinghua.iginx.engine.logical.utils.LogicalFilterUtils;
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
@@ -30,7 +29,6 @@ import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import org.bson.BsonString;
 import org.bson.BsonValue;

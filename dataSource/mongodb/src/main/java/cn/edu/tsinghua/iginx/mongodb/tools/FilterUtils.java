@@ -88,7 +88,7 @@ public class FilterUtils {
     List<KeyRange> ranges = LogicalFilterUtils.getKeyRangesFromFilter(removeNot);
     List<Pair<Long, Long>> result = new ArrayList<>();
     for (KeyRange range : ranges) {
-      result.add(new Pair<>(range.getActualBeginKey(), range.getActualBeginKey()));
+      result.add(new Pair<>(range.getActualBeginKey(), range.getActualEndKey()));
     }
     return result;
   }
@@ -125,7 +125,7 @@ public class FilterUtils {
       case Path:
         return getFilter((PathFilter) filter, renamedFields);
       case Bool:
-        return getFilter((BoolFilter) filter);
+        return null;
       case And:
         return getPostFilterImpl((AndFilter) filter, renamedFields);
       case Or:

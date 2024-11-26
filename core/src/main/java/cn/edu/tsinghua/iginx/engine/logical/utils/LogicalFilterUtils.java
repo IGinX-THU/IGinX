@@ -26,7 +26,6 @@ import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.FragmentMeta;
 import cn.edu.tsinghua.iginx.sql.exception.SQLParserException;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
-
 import java.util.*;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -631,7 +630,7 @@ public class LogicalFilterUtils {
   /**
    * filter中的带*通配符的path的orFilter,如果该path匹配上多个column range不同的分片，不下推。
    *
-   * @param filter          要处理的filter
+   * @param filter 要处理的filter
    * @param fragmentMetaSet 所有的分片信息
    * @return 处理后的filter
    */
@@ -699,7 +698,7 @@ public class LogicalFilterUtils {
   /**
    * 判断filter中的带*通配符的path的orFilter,该path是否能匹配上多个column range不同的分片。
    *
-   * @param path            带*通配符的path
+   * @param path 带*通配符的path
    * @param fragmentMetaSet 所有的分片信息
    * @return true: 匹配上多个column range不同的分片，false: 匹配不上或者只匹配上一个column range的分片
    */
@@ -718,9 +717,7 @@ public class LogicalFilterUtils {
     return false;
   }
 
-  /**
-   * 判断filter的path是否是聚合函数或UDF函数
-   */
+  /** 判断filter的path是否是聚合函数或UDF函数 */
   private static boolean isFunction(String path) {
     String pattern =
         "[^!&()+=|'%`;,<>?\\t\\n\u2E80\u2E81\u2E82\u2E83\u2E84\u2E85\\x00-\\x1F\\x7F\\[\\]\\-*\\s]\\(.+\\)";
@@ -728,9 +725,7 @@ public class LogicalFilterUtils {
     return matcher.find();
   }
 
-  /**
-   * 判断filter的path是否在当前的ColumnsRange中
-   */
+  /** 判断filter的path是否在当前的ColumnsRange中 */
   private static boolean columnRangeContainPath(ColumnsInterval interval, String path) {
     if ((interval.getStartColumn() == null || interval.getStartColumn().compareTo(path) <= 0)
         && (interval.getEndColumn() == null || interval.getEndColumn().compareTo(path) > 0)) {
@@ -895,9 +890,7 @@ public class LogicalFilterUtils {
     }
   }
 
-  /**
-   * 去除filter中不符合Project的Pattern的Path，这部分无法下推
-   */
+  /** 去除filter中不符合Project的Pattern的Path，这部分无法下推 */
   public static Filter removePathByPatterns(Filter filter, List<String> patterns) {
     Filter newFilter = removePath(filter, patterns);
     return mergeTrue(newFilter);
@@ -958,9 +951,7 @@ public class LogicalFilterUtils {
     return filter;
   }
 
-  /**
-   * 合并两个filter,并且去除重复的Filter
-   */
+  /** 合并两个filter,并且去除重复的Filter */
   public static Filter mergeFilter(Filter filter1, Filter filter2) {
     if (filter1 == null) {
       return filter2;
@@ -1012,32 +1003,25 @@ public class LogicalFilterUtils {
     filter.accept(
         new FilterVisitor() {
           @Override
-          public void visit(AndFilter filter) {
-          }
+          public void visit(AndFilter filter) {}
 
           @Override
-          public void visit(OrFilter filter) {
-          }
+          public void visit(OrFilter filter) {}
 
           @Override
-          public void visit(NotFilter filter) {
-          }
+          public void visit(NotFilter filter) {}
 
           @Override
-          public void visit(KeyFilter filter) {
-          }
+          public void visit(KeyFilter filter) {}
 
           @Override
-          public void visit(ValueFilter filter) {
-          }
+          public void visit(ValueFilter filter) {}
 
           @Override
-          public void visit(PathFilter filter) {
-          }
+          public void visit(PathFilter filter) {}
 
           @Override
-          public void visit(BoolFilter filter) {
-          }
+          public void visit(BoolFilter filter) {}
 
           @Override
           public void visit(ExprFilter exprFilter) {
@@ -1045,8 +1029,7 @@ public class LogicalFilterUtils {
           }
 
           @Override
-          public void visit(InFilter filter) {
-          }
+          public void visit(InFilter filter) {}
         });
     return exprFilters;
   }
@@ -1056,20 +1039,16 @@ public class LogicalFilterUtils {
     filter.accept(
         new FilterVisitor() {
           @Override
-          public void visit(AndFilter filter) {
-          }
+          public void visit(AndFilter filter) {}
 
           @Override
-          public void visit(OrFilter filter) {
-          }
+          public void visit(OrFilter filter) {}
 
           @Override
-          public void visit(NotFilter filter) {
-          }
+          public void visit(NotFilter filter) {}
 
           @Override
-          public void visit(KeyFilter filter) {
-          }
+          public void visit(KeyFilter filter) {}
 
           @Override
           public void visit(ValueFilter filter) {
@@ -1083,8 +1062,7 @@ public class LogicalFilterUtils {
           }
 
           @Override
-          public void visit(BoolFilter filter) {
-          }
+          public void visit(BoolFilter filter) {}
 
           @Override
           public void visit(ExprFilter filter) {
@@ -1129,12 +1107,15 @@ public class LogicalFilterUtils {
 
   public static Filter superSetPushDown(Filter filter, Predicate<Filter> unsupportedFilterMatcher) {
     Filter removedNotFilter = LogicalFilterUtils.removeNot(filter);
-    Filter setUnsupportedFilterAsTrue = transform(removedNotFilter, f -> {
-      if (unsupportedFilterMatcher.test(f)) {
-        return new BoolFilter(true);
-      }
-      return f;
-    });
+    Filter setUnsupportedFilterAsTrue =
+        transform(
+            removedNotFilter,
+            f -> {
+              if (unsupportedFilterMatcher.test(f)) {
+                return new BoolFilter(true);
+              }
+              return f;
+            });
     return LogicalFilterUtils.mergeTrue(setUnsupportedFilterAsTrue);
   }
 
@@ -1170,6 +1151,4 @@ public class LogicalFilterUtils {
         throw new IllegalArgumentException("unsupported filter: " + filter);
     }
   }
-
-
 }
