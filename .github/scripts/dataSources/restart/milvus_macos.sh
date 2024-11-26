@@ -19,7 +19,7 @@
 
 port=$1
 
-cd ${{ github.workspace }}
+pwd
 
 docker-compose -f $port/docker-compose-$port.yml up -d
 

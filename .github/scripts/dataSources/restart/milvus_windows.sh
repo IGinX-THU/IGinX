@@ -22,7 +22,7 @@ port=$1
 
 $env:Path += ";${{ github.workspace }}"
 
-cd ${{ github.workspace }}
+pwd
 
 docker-compose -f $port/docker-compose-$port.yml up -d
 
