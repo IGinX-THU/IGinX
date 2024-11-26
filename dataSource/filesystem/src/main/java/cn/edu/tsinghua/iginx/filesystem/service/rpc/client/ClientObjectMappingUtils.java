@@ -38,6 +38,7 @@ import cn.edu.tsinghua.iginx.utils.ByteUtils;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.nio.ByteBuffer;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import org.slf4j.Logger;
@@ -438,47 +439,38 @@ public class ClientObjectMappingUtils {
     if (filter == null) {
       return null;
     }
-    switch (filter.getType()) {
-      case And:
-        {
-          AndFilter andFilter = (AndFilter) filter;
-          List<Filter> children = new ArrayList<>();
-          for (Filter f : andFilter.getChildren()) {
-            Filter postFilter = constructPostFilter(f);
-            if (postFilter != null) {
-              children.add(postFilter);
-            }
+    AtomicBoolean hasExpr = new AtomicBoolean(false);
+    filter.accept(
+        new FilterVisitor() {
+          @Override
+          public void visit(AndFilter filter) {}
+
+          @Override
+          public void visit(OrFilter filter) {}
+
+          @Override
+          public void visit(NotFilter filter) {}
+
+          @Override
+          public void visit(KeyFilter filter) {}
+
+          @Override
+          public void visit(ValueFilter filter) {}
+
+          @Override
+          public void visit(PathFilter filter) {}
+
+          @Override
+          public void visit(BoolFilter filter) {}
+
+          @Override
+          public void visit(ExprFilter filter) {
+            hasExpr.set(true);
           }
-          if (children.isEmpty()) {
-            return null;
-          }
-          return new AndFilter(children);
-        }
-      case Or:
-        {
-          OrFilter orFilter = (OrFilter) filter;
-          List<Filter> children = new ArrayList<>();
-          for (Filter f : orFilter.getChildren()) {
-            Filter postFilter = constructPostFilter(f);
-            if (postFilter != null) {
-              children.add(postFilter);
-            }
-          }
-          if (children.isEmpty()) {
-            return null;
-          }
-          return orFilter;
-        }
-      case Expr:
-        return constructPostFilter(new BoolFilter(true));
-      case Value:
-      case Key:
-      case Bool:
-      case Path:
-      case In:
-        return null;
-      default:
-        throw new UnsupportedOperationException("unsupported filter type: " + filter.getType());
-    }
+
+          @Override
+          public void visit(InFilter filter) {}
+        });
+    return hasExpr.get() ? filter : null;
   }
 }
