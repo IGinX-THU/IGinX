@@ -75,12 +75,12 @@ public class ClientObjectMappingUtils {
         return toRawFilter((AndFilter) filter);
       case Or:
         return toRawFilter((OrFilter) filter);
-      case Not:
-        return toRawFilter((NotFilter) filter);
       case Value:
         return toRawFilter((ValueFilter) filter);
       case Key:
         return toRawFilter((KeyFilter) filter);
+      case Expr:
+        return toRawFilter(new BoolFilter(true));
       case Bool:
         return toRawFilter((BoolFilter) filter);
       case Path:
@@ -432,5 +432,53 @@ public class ClientObjectMappingUtils {
       bitmapBufferList.add(ByteBuffer.wrap(bitmapView.getBitmap().getBytes()));
     }
     return new Pair<>(valueBufferList, bitmapBufferList);
+  }
+
+  public static Filter constructPostFilter(Filter filter) {
+    if (filter == null) {
+      return null;
+    }
+    switch (filter.getType()) {
+      case And:
+        {
+          AndFilter andFilter = (AndFilter) filter;
+          List<Filter> children = new ArrayList<>();
+          for (Filter f : andFilter.getChildren()) {
+            Filter postFilter = constructPostFilter(f);
+            if (postFilter != null) {
+              children.add(postFilter);
+            }
+          }
+          if (children.isEmpty()) {
+            return null;
+          }
+          return new AndFilter(children);
+        }
+      case Or:
+        {
+          OrFilter orFilter = (OrFilter) filter;
+          List<Filter> children = new ArrayList<>();
+          for (Filter f : orFilter.getChildren()) {
+            Filter postFilter = constructPostFilter(f);
+            if (postFilter != null) {
+              children.add(postFilter);
+            }
+          }
+          if (children.isEmpty()) {
+            return null;
+          }
+          return orFilter;
+        }
+      case Expr:
+        return constructPostFilter(new BoolFilter(true));
+      case Value:
+      case Key:
+      case Bool:
+      case Path:
+      case In:
+        return null;
+      default:
+        throw new UnsupportedOperationException("unsupported filter type: " + filter.getType());
+    }
   }
 }
