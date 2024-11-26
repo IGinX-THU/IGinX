@@ -33,6 +33,7 @@ import cn.edu.tsinghua.iginx.engine.shared.function.RowMappingFunction;
 import cn.edu.tsinghua.iginx.engine.shared.function.manager.FunctionManager;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
+import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.DataTypeUtils;
 import java.security.Key;
 import java.util.ArrayList;
@@ -101,7 +102,7 @@ public class ExprUtils {
     if (index == -1) {
       return null;
     }
-    return new Value(row.getValues()[index]);
+    return new Value(row.getType(index), row.getValues()[index]);
   }
 
   private static Value calculateFuncExpr(Row row, FuncExpression funcExpr)
@@ -271,75 +272,120 @@ public class ExprUtils {
   }
 
   private static Value calculatePlus(Value left, Value right) {
+    boolean isNull = left.isNull() || right.isNull();
     switch (left.getDataType()) {
       case INTEGER:
-        return new Value(left.getIntV() + right.getIntV());
+        return isNull
+            ? new Value(DataType.INTEGER, null)
+            : new Value(left.getIntV() + right.getIntV());
       case LONG:
-        return new Value(left.getLongV() + right.getLongV());
+        return isNull
+            ? new Value(DataType.LONG, null)
+            : new Value(left.getLongV() + right.getLongV());
       case FLOAT:
-        return new Value(left.getFloatV() + right.getFloatV());
+        return isNull
+            ? new Value(DataType.FLOAT, null)
+            : new Value(left.getFloatV() + right.getFloatV());
       case DOUBLE:
-        return new Value(left.getDoubleV() + right.getDoubleV());
+        return isNull
+            ? new Value(DataType.DOUBLE, null)
+            : new Value(left.getDoubleV() + right.getDoubleV());
       default:
         return null;
     }
   }
 
   private static Value calculateMinus(Value left, Value right) {
+    boolean isNull = left.isNull() || right.isNull();
     switch (left.getDataType()) {
       case INTEGER:
-        return new Value(left.getIntV() - right.getIntV());
+        return isNull
+            ? new Value(DataType.INTEGER, null)
+            : new Value(left.getIntV() - right.getIntV());
       case LONG:
-        return new Value(left.getLongV() - right.getLongV());
+        return isNull
+            ? new Value(DataType.LONG, null)
+            : new Value(left.getLongV() - right.getLongV());
       case FLOAT:
-        return new Value(left.getFloatV() - right.getFloatV());
+        return isNull
+            ? new Value(DataType.FLOAT, null)
+            : new Value(left.getFloatV() - right.getFloatV());
       case DOUBLE:
-        return new Value(left.getDoubleV() - right.getDoubleV());
+        return isNull
+            ? new Value(DataType.DOUBLE, null)
+            : new Value(left.getDoubleV() - right.getDoubleV());
       default:
         return null;
     }
   }
 
   private static Value calculateStar(Value left, Value right) {
+    boolean isNull = left.isNull() || right.isNull();
     switch (left.getDataType()) {
       case INTEGER:
-        return new Value(left.getIntV() * right.getIntV());
+        return isNull
+            ? new Value(DataType.INTEGER, null)
+            : new Value(left.getIntV() * right.getIntV());
       case LONG:
-        return new Value(left.getLongV() * right.getLongV());
+        return isNull
+            ? new Value(DataType.LONG, null)
+            : new Value(left.getLongV() * right.getLongV());
       case FLOAT:
-        return new Value(left.getFloatV() * right.getFloatV());
+        return isNull
+            ? new Value(DataType.FLOAT, null)
+            : new Value(left.getFloatV() * right.getFloatV());
       case DOUBLE:
-        return new Value(left.getDoubleV() * right.getDoubleV());
+        return isNull
+            ? new Value(DataType.DOUBLE, null)
+            : new Value(left.getDoubleV() * right.getDoubleV());
       default:
         return null;
     }
   }
 
   private static Value calculateDiv(Value left, Value right) {
+    boolean isNull = left.isNull() || right.isNull();
     switch (left.getDataType()) {
       case INTEGER:
-        return new Value((double) left.getIntV() / (double) right.getIntV());
+        return isNull
+            ? new Value(DataType.INTEGER, null)
+            : new Value((double) left.getIntV() / (double) right.getIntV());
       case LONG:
-        return new Value((double) left.getLongV() / (double) right.getLongV());
+        return isNull
+            ? new Value(DataType.LONG, null)
+            : new Value((double) left.getLongV() / (double) right.getLongV());
       case FLOAT:
-        return new Value(left.getFloatV() / right.getFloatV());
+        return isNull
+            ? new Value(DataType.FLOAT, null)
+            : new Value(left.getFloatV() / right.getFloatV());
       case DOUBLE:
-        return new Value(left.getDoubleV() / right.getDoubleV());
+        return isNull
+            ? new Value(DataType.DOUBLE, null)
+            : new Value(left.getDoubleV() / right.getDoubleV());
       default:
         return null;
     }
   }
 
   private static Value calculateMod(Value left, Value right) {
+    boolean isNull = left.isNull() || right.isNull();
     switch (left.getDataType()) {
       case INTEGER:
-        return new Value(left.getIntV() % right.getIntV());
+        return isNull
+            ? new Value(DataType.INTEGER, null)
+            : new Value(left.getIntV() % right.getIntV());
       case LONG:
-        return new Value(left.getLongV() % right.getLongV());
+        return isNull
+            ? new Value(DataType.LONG, null)
+            : new Value(left.getLongV() % right.getLongV());
       case FLOAT:
-        return new Value(left.getFloatV() % right.getFloatV());
+        return isNull
+            ? new Value(DataType.FLOAT, null)
+            : new Value(left.getFloatV() % right.getFloatV());
       case DOUBLE:
-        return new Value(left.getDoubleV() % right.getDoubleV());
+        return isNull
+            ? new Value(DataType.DOUBLE, null)
+            : new Value(left.getDoubleV() % right.getDoubleV());
       default:
         return null;
     }
