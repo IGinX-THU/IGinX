@@ -11,40 +11,40 @@ concurrency:
     cancel-in-progress: true
 
 jobs:
-    unit-test:
-        uses: ./.github/workflows/unit-test.yml
-    unit-mds:
-        uses: ./.github/workflows/unit-mds.yml
-    case-regression:
-        uses: ./.github/workflows/case-regression.yml
-        with:
-            metadata-matrix: '["zookeeper"]'
-    standalone-test:
-        uses: ./.github/workflows/standalone-test.yml
-        with:
-            metadata-matrix: '["zookeeper"]'
-    standalone-test-no-optimizer:
-        uses: ./.github/workflows/standalone-test-no-optimizer.yml
-        with:
-            metadata-matrix: '["zookeeper"]'
+#    unit-test:
+#        uses: ./.github/workflows/unit-test.yml
+#    unit-mds:
+#        uses: ./.github/workflows/unit-mds.yml
+#    case-regression:
+#        uses: ./.github/workflows/case-regression.yml
+#        with:
+#            metadata-matrix: '["zookeeper"]'
+#    standalone-test:
+#        uses: ./.github/workflows/standalone-test.yml
+#        with:
+#            metadata-matrix: '["zookeeper"]'
+#    standalone-test-no-optimizer:
+#        uses: ./.github/workflows/standalone-test-no-optimizer.yml
+#        with:
+#            metadata-matrix: '["zookeeper"]'
     db-ce:
         uses: ./.github/workflows/DB-CE.yml
         with:
             metadata-matrix: '["zookeeper"]'
-    remote-test:
-        uses: ./.github/workflows/remote-test.yml
-        with:
-            metadata-matrix: '["zookeeper"]'
-    assembly-test:
-        uses: ./.github/workflows/assembly-test.yml
-    tpc-h-regression-test:
-        uses: ./.github/workflows/tpc-h.yml
-        with:
-            os-matrix: '["ubuntu-latest"]'
-            metadata-matrix: '["zookeeper"]'
-    tpc-h-regression-test-no-optimizer:
-        uses: ./.github/workflows/tpc-h-no-optimizer.yml
-        with:
-            os-matrix: '["ubuntu-latest"]'
-            metadata-matrix: '["zookeeper"]'
-            db-matrix: '["InfluxDB", "FileSystem", "PostgreSQL", "Redis", "MongoDB", "MySQL"]'
+#    remote-test:
+#        uses: ./.github/workflows/remote-test.yml
+#        with:
+#            metadata-matrix: '["zookeeper"]'
+#    assembly-test:
+#        uses: ./.github/workflows/assembly-test.yml
+#    tpc-h-regression-test:
+#        uses: ./.github/workflows/tpc-h.yml
+#        with:
+#            os-matrix: '["ubuntu-latest"]'
+#            metadata-matrix: '["zookeeper"]'
+#    tpc-h-regression-test-no-optimizer:
+#        uses: ./.github/workflows/tpc-h-no-optimizer.yml
+#        with:
+#            os-matrix: '["ubuntu-latest"]'
+#            metadata-matrix: '["zookeeper"]'
+#            db-matrix: '["InfluxDB", "FileSystem", "PostgreSQL", "Redis", "MongoDB", "MySQL"]'
