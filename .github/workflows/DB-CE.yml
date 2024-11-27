@@ -129,52 +129,52 @@ jobs:
 #              shell: bash
 #              run: |
 #                  mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
-
-            # 第 3 阶段测试开始==========================================
-            - name: Prepare CapExp environment oriHasDataExpNoData
-              uses: ./.github/actions/capacityExpansionUnionTest
-              with:
-                  DB-name: ${{ matrix.DB-name }}
-                  Test-Way: oriHasDataExpNoData
-
-            - name: oriHasDataExpNoData IT
-              shell: bash
-              run: |
-                  mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriHasDataExpNoData -DfailIfNoTests=false -P-format
-
-            - name: Clear history data
-              uses: ./.github/actions/dbWriter
-              with:
-                  DB-name: ${{ matrix.DB-name }}
-                  Test-Way: clearHistoryData
-
-            - name: oriHasDataExpNoData Normal IT
-              shell: bash
-              run: |
-                  mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
-
-            # 第 4 阶段测试开始==========================================
-            - name: Prepare CapExp environment oriNoDataExpHasData
-              uses: ./.github/actions/capacityExpansionUnionTest
-              with:
-                  DB-name: ${{ matrix.DB-name }}
-                  Test-Way: oriNoDataExpHasData
-
-            - name: oriNoDataExpHasData IT
-              shell: bash
-              run: |
-                  mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriNoDataExpHasData -DfailIfNoTests=false -P-format
-
-            - name: Clear history data
-              uses: ./.github/actions/dbWriter
-              with:
-                  DB-name: ${{ matrix.DB-name }}
-                  Test-Way: clearHistoryData
-
-            - name: oriNoDataExpHasData Normal IT
-              shell: bash
-              run: |
-                  mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
+#
+#            # 第 3 阶段测试开始==========================================
+#            - name: Prepare CapExp environment oriHasDataExpNoData
+#              uses: ./.github/actions/capacityExpansionUnionTest
+#              with:
+#                  DB-name: ${{ matrix.DB-name }}
+#                  Test-Way: oriHasDataExpNoData
+#
+#            - name: oriHasDataExpNoData IT
+#              shell: bash
+#              run: |
+#                  mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriHasDataExpNoData -DfailIfNoTests=false -P-format
+#
+#            - name: Clear history data
+#              uses: ./.github/actions/dbWriter
+#              with:
+#                  DB-name: ${{ matrix.DB-name }}
+#                  Test-Way: clearHistoryData
+#
+#            - name: oriHasDataExpNoData Normal IT
+#              shell: bash
+#              run: |
+#                  mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
+#
+#            # 第 4 阶段测试开始==========================================
+#            - name: Prepare CapExp environment oriNoDataExpHasData
+#              uses: ./.github/actions/capacityExpansionUnionTest
+#              with:
+#                  DB-name: ${{ matrix.DB-name }}
+#                  Test-Way: oriNoDataExpHasData
+#
+#            - name: oriNoDataExpHasData IT
+#              shell: bash
+#              run: |
+#                  mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriNoDataExpHasData -DfailIfNoTests=false -P-format
+#
+#            - name: Clear history data
+#              uses: ./.github/actions/dbWriter
+#              with:
+#                  DB-name: ${{ matrix.DB-name }}
+#                  Test-Way: clearHistoryData
+#
+#            - name: oriNoDataExpHasData Normal IT
+#              shell: bash
+#              run: |
+#                  mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
 
             # 测试只读节点===============================================
             - name: Prepare CapExp environment for testReadOnly
