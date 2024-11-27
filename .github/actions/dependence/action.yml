@@ -26,6 +26,10 @@ inputs:
         description: "is free-threading python needed"
         required: false
         default: "false"
+    conda-required:
+        description: "is conda needed(will install and create conda env based on inputs.python-version)"
+        required: false
+        default: "false"
 
 runs:
     using: "composite"
