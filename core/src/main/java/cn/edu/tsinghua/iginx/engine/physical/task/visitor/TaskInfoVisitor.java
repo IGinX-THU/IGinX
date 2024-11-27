@@ -81,7 +81,7 @@ public class TaskInfoVisitor implements TaskVisitor {
     collectTaskInfo(task);
   }
 
-  private void collectTaskInfo(PhysicalTask task) {
+  private void collectTaskInfo(PhysicalTask<?> task) {
     TaskType type = task.getType();
     StringBuilder builder = new StringBuilder();
     if (depth != 0) {

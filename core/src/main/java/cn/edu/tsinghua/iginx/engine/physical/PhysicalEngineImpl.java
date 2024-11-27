@@ -27,10 +27,7 @@ import cn.edu.tsinghua.iginx.engine.physical.task.GlobalPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.PhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.StoragePhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskResult;
-import cn.edu.tsinghua.iginx.engine.physical.task.memory.BinaryMemoryPhysicalTask;
-import cn.edu.tsinghua.iginx.engine.physical.task.memory.CombineNonQueryPhysicalTask;
-import cn.edu.tsinghua.iginx.engine.physical.task.memory.MemoryPhysicalTask;
-import cn.edu.tsinghua.iginx.engine.physical.task.memory.UnaryMemoryPhysicalTask;
+import cn.edu.tsinghua.iginx.engine.physical.task.memory.*;
 import cn.edu.tsinghua.iginx.engine.shared.constraint.ConstraintManager;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import java.util.ArrayList;
@@ -113,9 +110,9 @@ public class PhysicalEngineImpl implements PhysicalEngine {
         getBottomTasks(tasks, unaryMemoryPhysicalTask.getParentTask());
         break;
       case MultipleMemory:
-        CombineNonQueryPhysicalTask combineNonQueryPhysicalTask =
-            (CombineNonQueryPhysicalTask) root;
-        for (PhysicalTask<?> parentTask : combineNonQueryPhysicalTask.getParentTasks()) {
+        MultiMemoryPhysicalTask<?, ?> multipleMemoryPhysicalTask =
+            (MultiMemoryPhysicalTask<?, ?>) root;
+        for (PhysicalTask<?> parentTask : multipleMemoryPhysicalTask.getParentTasks()) {
           getBottomTasks(tasks, parentTask);
         }
         break;

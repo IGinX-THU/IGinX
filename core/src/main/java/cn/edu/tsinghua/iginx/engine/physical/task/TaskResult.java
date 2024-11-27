@@ -52,10 +52,6 @@ public class TaskResult<RESULT extends PhysicalCloseable> implements PhysicalClo
     }
   }
 
-  public boolean isSuccessful() {
-    return exception == null;
-  }
-
   @Nullable
   public RESULT unwrap() throws PhysicalException {
     if (exception != null) {
