@@ -19,13 +19,11 @@ package cn.edu.tsinghua.iginx.physical.optimizer.naive;
 
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateful.LimitUnaryExecutor;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateless.ValueToSelectedPathExecutor;
 import cn.edu.tsinghua.iginx.engine.physical.task.PhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.StoragePhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskType;
-import cn.edu.tsinghua.iginx.engine.physical.task.memory.BinarySinkMemoryPhysicalTask;
-import cn.edu.tsinghua.iginx.engine.physical.task.memory.CombineNonQueryPhysicalTask;
-import cn.edu.tsinghua.iginx.engine.physical.task.memory.PipelineMemoryPhysicalTask;
-import cn.edu.tsinghua.iginx.engine.physical.task.memory.UnarySinkMemoryPhysicalTask;
+import cn.edu.tsinghua.iginx.engine.physical.task.memory.*;
 import cn.edu.tsinghua.iginx.engine.physical.task.memory.parallel.FetchAsyncMemoryPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.memory.parallel.ParallelPipelineMemoryPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.memory.row.ArrowToRowUnaryMemoryPhysicalTask;
@@ -105,19 +103,17 @@ public class NaivePhysicalPlanner {
         return construct((Except) operator, context);
       case Intersect:
         return construct((Intersect) operator, context);
-      case Multiple:
-        return construct((MultipleOperator) operator, context);
       case Downsample:
         return construct((Downsample) operator, context);
       case MappingTransform:
         return construct((MappingTransform) operator, context);
       case Distinct:
         return construct((Distinct) operator, context);
-      case ProjectWaitingForPath:
-        return construct((ProjectWaitingForPath) operator, context);
       case ValueToSelectedPath:
         return construct((ValueToSelectedPath) operator, context);
       case Unknown:
+      case ProjectWaitingForPath:
+      case Multiple:
       case Binary:
       case Unary:
       default:
@@ -459,7 +455,12 @@ public class NaivePhysicalPlanner {
   }
 
   public PhysicalTask<?> construct(FoldedOperator operator, RequestContext context) {
-    throw new UnsupportedOperationException("Folded is not supported in the new physical planner");
+    List<PhysicalTask<BatchStream>> sourceTasks = new ArrayList<>();
+    for (Source source : operator.getSources()) {
+      sourceTasks.add(convert(fetch(source, context), context, BatchStream.class));
+    }
+    return new FoldedMemoryPhysicalTask(
+        Collections.singletonList(operator), operator.getIncompleteRoot(), sourceTasks, context);
   }
 
   public PhysicalTask<?> construct(ShowColumns operator, RequestContext context) {
@@ -492,11 +493,6 @@ public class NaivePhysicalPlanner {
     return constructRow(operator, context);
   }
 
-  public PhysicalTask<?> construct(MultipleOperator operator, RequestContext context) {
-    throw new UnsupportedOperationException(
-        "MultipleOperator is not supported in the new physical planner");
-  }
-
   public PhysicalTask<?> construct(Downsample operator, RequestContext context) {
     return constructRow(operator, context);
   }
@@ -509,14 +505,13 @@ public class NaivePhysicalPlanner {
     return constructRow(operator, context);
   }
 
-  public PhysicalTask<?> construct(ProjectWaitingForPath operator, RequestContext context) {
-    throw new UnsupportedOperationException(
-        "ProjectWaitingForPath is not supported in the new physical planner");
-  }
-
   public PhysicalTask<?> construct(ValueToSelectedPath operator, RequestContext context) {
-    throw new UnsupportedOperationException(
-        "ValueToSelectedPath is not supported in the new physical planner");
+    PhysicalTask<?> sourceTask = fetch(operator.getSource(), context);
+    return new PipelineMemoryPhysicalTask(
+        convert(sourceTask, context, BatchStream.class),
+        Collections.singletonList(operator),
+        context,
+        (ctx, schema) -> new ValueToSelectedPathExecutor(ctx, schema.raw(), operator.getPrefix()));
   }
 
   @SuppressWarnings("unchecked")

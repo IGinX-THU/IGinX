@@ -20,6 +20,7 @@ package cn.edu.tsinghua.iginx.engine.physical.task.memory.parallel;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.StopWatch;
 import cn.edu.tsinghua.iginx.engine.physical.task.PhysicalTask;
+import cn.edu.tsinghua.iginx.engine.physical.task.TaskResult;
 import cn.edu.tsinghua.iginx.engine.physical.task.memory.*;
 import cn.edu.tsinghua.iginx.engine.physical.task.visitor.TaskVisitor;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
@@ -29,10 +30,12 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import org.apache.arrow.util.Preconditions;
 
 public class ParallelPipelineMemoryPhysicalTask
-    extends UnaryMemoryPhysicalTask<BatchStream, BatchStream> {
+    extends MultiMemoryPhysicalTask<BatchStream, BatchStream> {
 
   public interface PipelineFactory {
     PipelineMemoryPhysicalTask createPipeline(
@@ -41,6 +44,7 @@ public class ParallelPipelineMemoryPhysicalTask
 
   private final PipelineFactory pipelineFactory;
   private final int parallelism;
+  private final PhysicalTask<BatchStream> parentTask;
 
   private List<GatherMemoryPhysicalTask> gathers;
 
@@ -49,14 +53,28 @@ public class ParallelPipelineMemoryPhysicalTask
       RequestContext context,
       PipelineFactory pipelineFactory,
       int parallelism) {
-    super(parentTask, Collections.emptyList(), context);
+    super(Collections.emptyList(), context, Collections.singletonList(parentTask));
+    this.parentTask = Objects.requireNonNull(parentTask);
     Preconditions.checkArgument(parallelism > 0);
     this.pipelineFactory = Objects.requireNonNull(pipelineFactory);
     this.parallelism = parallelism;
   }
 
   @Override
-  protected BatchStream compute(BatchStream previous) {
+  public TaskResult<BatchStream> execute() {
+    Future<TaskResult<BatchStream>> future = parentTask.getResult();
+    try (TaskResult<BatchStream> parentResult = future.get()) {
+      BatchStream stream = parentResult.unwrap();
+      BatchStream result = compute(stream);
+      return new TaskResult<>(result);
+    } catch (PhysicalException e) {
+      return new TaskResult<>(e);
+    } catch (InterruptedException | ExecutionException e) {
+      return new TaskResult<>(new PhysicalException(e));
+    }
+  }
+
+  private BatchStream compute(BatchStream previous) {
     try (StopWatch ignored = new StopWatch(getMetrics()::accumulateCpuTime)) {
       ScatterBatchStream scatterStream = new ScatterBatchStream(previous);
       GatherBatchStream outputStream = new GatherBatchStream(scatterStream, getMetrics());
@@ -125,21 +143,20 @@ public class ParallelPipelineMemoryPhysicalTask
 
   @Override
   public String getInfo() {
-    return "ParallelPipeline: 1 source and " + parallelism + " pipelines";
+    return "ParallelPipeline: " + parallelism + " pipelines";
   }
 
   @Override
   public void accept(TaskVisitor visitor) {
+    visitor.enter();
     visitor.visit(this);
+    parentTask.accept(visitor);
     if (gathers != null) {
       for (GatherMemoryPhysicalTask gather : gathers) {
         gather.accept(visitor);
       }
     }
-    PhysicalTask<?> task = getParentTask();
-    if (task != null) {
-      task.accept(visitor);
-    }
+    visitor.leave();
   }
 
   static class GatherMemoryPhysicalTask extends UnaryMemoryPhysicalTask<BatchStream, BatchStream> {
