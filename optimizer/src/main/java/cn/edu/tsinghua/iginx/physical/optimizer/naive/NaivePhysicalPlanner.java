@@ -20,6 +20,7 @@ package cn.edu.tsinghua.iginx.physical.optimizer.naive;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateful.LimitUnaryExecutor;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateless.ValueToSelectedPathExecutor;
+import cn.edu.tsinghua.iginx.engine.physical.task.GlobalPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.PhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.StoragePhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskType;
@@ -376,7 +377,7 @@ public class NaivePhysicalPlanner {
   }
 
   public PhysicalTask<?> construct(InnerJoin operator, RequestContext context) {
-    if (operator.getJoinAlgType() != JoinAlgType.HashJoin) {
+    if (operator.getJoinAlgType() != JoinAlgType.HashJoin || operator.isNaturalJoin()) {
       return constructRow(operator, context);
     }
 
@@ -397,7 +398,7 @@ public class NaivePhysicalPlanner {
   }
 
   public PhysicalTask<?> construct(OuterJoin operator, RequestContext context) {
-    if (operator.getJoinAlgType() != JoinAlgType.HashJoin) {
+    if (operator.getJoinAlgType() != JoinAlgType.HashJoin || operator.isNaturalJoin()) {
       return constructRow(operator, context);
     }
 
@@ -464,8 +465,7 @@ public class NaivePhysicalPlanner {
   }
 
   public PhysicalTask<?> construct(ShowColumns operator, RequestContext context) {
-    throw new UnsupportedOperationException(
-        "ShowColumns is not supported in the new physical planner");
+    return new GlobalPhysicalTask(operator, context);
   }
 
   public PhysicalTask<?> construct(Migration operator, RequestContext context) {

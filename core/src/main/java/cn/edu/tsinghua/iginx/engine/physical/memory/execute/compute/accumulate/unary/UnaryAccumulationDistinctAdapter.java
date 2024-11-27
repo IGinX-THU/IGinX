@@ -17,11 +17,15 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.unary;
 
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.Accumulator;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.Schemas;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ValueVectors;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.complex.writer.FieldWriter;
@@ -48,6 +52,9 @@ public class UnaryAccumulationDistinctAdapter extends UnaryAccumulation {
 
   protected class DistinctUnaryAccumulator extends UnaryAccumulator<DistinctUnaryState> {
 
+    private final BufferAllocator allocator;
+    private final UnaryAccumulator<?> accumulator;
+
     protected DistinctUnaryAccumulator(
         BufferAllocator allocator,
         Field inputField,
@@ -59,6 +66,20 @@ public class UnaryAccumulationDistinctAdapter extends UnaryAccumulation {
           outputField,
           DistinctUnaryState.class,
           () -> new DistinctUnaryState(allocator, accumulator.createState()));
+      this.allocator = Objects.requireNonNull(allocator);
+      this.accumulator = Objects.requireNonNull(accumulator);
+    }
+
+    @Override
+    public FieldVector evaluate(List<State> states) throws ComputeException {
+      List<Accumulator.State> delegateStates =
+          states.stream()
+              .map(DistinctUnaryState.class::cast)
+              .map(DistinctUnaryState::getDelegate)
+              .collect(Collectors.toList());
+      try (FieldVector result = accumulator.evaluate(delegateStates)) {
+        return ValueVectors.transfer(allocator, result, outputField.getName());
+      }
     }
   }
 
@@ -76,6 +97,10 @@ public class UnaryAccumulationDistinctAdapter extends UnaryAccumulation {
     @Override
     public void evaluate(FieldWriter writer) throws ComputeException {
       delegate.evaluate(writer);
+    }
+
+    public UnaryState getDelegate() {
+      return delegate;
     }
 
     @Override

@@ -61,8 +61,17 @@ public abstract class BinaryMemoryPhysicalTask<
 
   @Override
   public TaskResult<RESULT> execute() {
-    try (INPUT left = parentTaskA.getResult().get().unwrap();
-        INPUT right = parentTaskB.getResult().get().unwrap()) {
+    try (TaskResult<INPUT> leftResult = parentTaskA.getResult().get();
+        TaskResult<INPUT> rightResult = parentTaskB.getResult().get()) {
+      INPUT left = leftResult.unwrap();
+      INPUT right;
+      try {
+        right = rightResult.unwrap();
+      } catch (PhysicalException e) {
+        try (INPUT ignore = left) {
+          throw e;
+        }
+      }
       RESULT result = compute(left, right);
       return new TaskResult<>(result);
     } catch (PhysicalException e) {

@@ -17,6 +17,7 @@
  */
 package cn.edu.tsinghua.iginx.resource;
 
+import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ConstantPool;
 import cn.edu.tsinghua.iginx.engine.physical.task.utils.TaskResultMap;
 import javax.annotation.WillCloseWhenClosed;
@@ -35,9 +36,13 @@ public class ResourceSet implements AutoCloseable {
   }
 
   @Override
-  public void close() {
-    constantPool.close();
-    allocator.close();
+  public void close() throws PhysicalException {
+    try {
+      taskResultMap.close();
+    } finally {
+      constantPool.close();
+      allocator.close();
+    }
   }
 
   public BufferAllocator getAllocator() {

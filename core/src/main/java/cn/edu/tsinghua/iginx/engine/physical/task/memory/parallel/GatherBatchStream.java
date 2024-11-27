@@ -26,6 +26,7 @@ import java.util.Comparator;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.PriorityQueue;
+import javax.annotation.WillCloseWhenClosed;
 import javax.annotation.concurrent.ThreadSafe;
 
 @ThreadSafe
@@ -40,7 +41,8 @@ class GatherBatchStream implements BatchStream {
   private Batch cached;
   private volatile BatchSchema schema;
 
-  public GatherBatchStream(ScatterBatchStream scatterStream, TaskMetrics metrics) {
+  public GatherBatchStream(
+      @WillCloseWhenClosed ScatterBatchStream scatterStream, TaskMetrics metrics) {
     this.scatterStream = Objects.requireNonNull(scatterStream);
     this.metrics = Objects.requireNonNull(metrics);
   }
@@ -106,7 +108,7 @@ class GatherBatchStream implements BatchStream {
   @Override
   public synchronized void close() throws PhysicalException {
     finished = true;
-    scatterStream.stream.close();
+    scatterStream.close();
     queue.forEach(Batch::close);
     queue.clear();
     if (cached != null) {

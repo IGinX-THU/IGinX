@@ -67,7 +67,7 @@ public class OuterJoinInfoGenerator implements BinaryExecutorFactory<StatefulBin
     JoinOption joinOption = toJoinOption(operator.getOuterJoinType());
 
     List<Filter> subFilters = new ArrayList<>();
-    if (!operator.getFilter().equals(new BoolFilter(true))) {
+    if (operator.getFilter() != null) {
       subFilters.add(operator.getFilter());
     }
     for (String extraPrefix : operator.getExtraJoinPrefix()) {

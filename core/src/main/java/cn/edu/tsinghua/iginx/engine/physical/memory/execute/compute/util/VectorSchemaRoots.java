@@ -45,22 +45,26 @@ public class VectorSchemaRoots {
 
   public static VectorSchemaRoot join(
       BufferAllocator allocator, Iterable<VectorSchemaRoot> vectorSchemaRoots) {
-    // check if the row count is the same
-    int rowCount = -1;
-    for (VectorSchemaRoot vectorSchemaRoot : vectorSchemaRoots) {
-      if (rowCount == -1) {
-        rowCount = vectorSchemaRoot.getRowCount();
-      } else if (rowCount != vectorSchemaRoot.getRowCount()) {
-        throw new IllegalArgumentException("Row count is not the same");
-      }
-    }
     List<FieldVector> fieldVectors = new ArrayList<>();
     for (VectorSchemaRoot vectorSchemaRoot : vectorSchemaRoots) {
-      for (FieldVector fieldVector : vectorSchemaRoot.getFieldVectors()) {
-        fieldVectors.add(ValueVectors.slice(allocator, fieldVector));
+      fieldVectors.addAll(vectorSchemaRoot.getFieldVectors());
+    }
+    // check if all the field vectors have the same row count
+    int rowCount = -1;
+    for (FieldVector fieldVector : fieldVectors) {
+      if (rowCount == -1) {
+        rowCount = fieldVector.getValueCount();
+      } else {
+        Preconditions.checkArgument(
+            rowCount == fieldVector.getValueCount(),
+            "All field vectors must have the same row count");
       }
     }
-    return new VectorSchemaRoot(fieldVectors);
+    List<FieldVector> slicedFieldVectors = new ArrayList<>();
+    for (FieldVector fieldVector : fieldVectors) {
+      slicedFieldVectors.add(ValueVectors.slice(allocator, fieldVector));
+    }
+    return new VectorSchemaRoot(slicedFieldVectors);
   }
 
   public static VectorSchemaRoot join(

@@ -22,19 +22,16 @@ import org.apache.arrow.vector.BitVector;
 
 public class MarkBuilder implements AutoCloseable {
 
-  private final boolean reserve;
   private BitVector bitVector;
   private int index;
 
   public MarkBuilder() {
     this.bitVector = null;
-    this.reserve = false;
   }
 
-  public MarkBuilder(BufferAllocator allocator, String name, int capacity, boolean reserve) {
+  public MarkBuilder(BufferAllocator allocator, String name, int capacity) {
     this.bitVector = new BitVector(name, allocator);
     this.bitVector.allocateNew(capacity);
-    this.reserve = reserve;
     this.index = 0;
   }
 
@@ -42,30 +39,14 @@ public class MarkBuilder implements AutoCloseable {
     if (bitVector == null) {
       return;
     }
-    if (reserve) {
-      doAppendFalse(count);
-    } else {
-      doAppendTrue(count);
-    }
+    ConstantVectors.setOne(bitVector.getDataBuffer(), index, count);
+    index += count;
   }
 
   public void appendFalse(int count) {
     if (bitVector == null) {
       return;
     }
-    if (reserve) {
-      doAppendTrue(count);
-    } else {
-      doAppendFalse(count);
-    }
-  }
-
-  private void doAppendTrue(int count) {
-    ConstantVectors.setOne(bitVector.getDataBuffer(), index, count);
-    index += count;
-  }
-
-  private void doAppendFalse(int count) {
     index += count;
   }
 

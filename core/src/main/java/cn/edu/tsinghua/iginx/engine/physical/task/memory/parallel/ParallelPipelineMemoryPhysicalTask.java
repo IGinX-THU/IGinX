@@ -81,7 +81,7 @@ public class ParallelPipelineMemoryPhysicalTask
       gathers = new ArrayList<>(parallelism);
       for (int i = 0; i < parallelism; i++) {
         GatherMemoryPhysicalTask gather =
-            constructPipeline(getContext(), scatterStream, outputStream);
+            constructPipeline(getContext(), scatterStream.createBranch(), outputStream);
         gathers.add(gather);
       }
       if (getFollowerTask() != null) {
