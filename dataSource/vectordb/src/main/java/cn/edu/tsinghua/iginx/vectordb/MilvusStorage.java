@@ -254,7 +254,6 @@ public class MilvusStorage implements IStorage {
           long count =
               MilvusClientUtils.upsert(
                   client, databaseName, entry.getKey(), entry.getValue(), ids, fields, pathSystem);
-          LOGGER.info("complete insertRows, insertCount:" + count);
         }
         cnt += size;
       }

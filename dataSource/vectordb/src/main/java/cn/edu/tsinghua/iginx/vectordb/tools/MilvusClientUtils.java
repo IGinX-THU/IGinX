@@ -151,7 +151,6 @@ public class MilvusClientUtils {
   }
 
   public static void createDatabase(MilvusClientV2 client, String databaseName) {
-    LOGGER.info("create database : {}", databaseName);
     client.createDatabase(CreateDatabaseReq.builder().databaseName(databaseName).build());
   }
 
@@ -218,7 +217,6 @@ public class MilvusClientUtils {
       Map<String, DataType> fieldTypes)
       throws InterruptedException, UnsupportedEncodingException {
     useDatabase(client, databaseName);
-    LOGGER.info("create collection : {} {}", databaseName, collectionName);
     CreateCollectionReq.CreateCollectionReqBuilder builder =
         CreateCollectionReq.builder()
             .idType(DataTransformer.toMilvusDataType(idType))
@@ -368,12 +366,6 @@ public class MilvusClientUtils {
       }
     }
     if (added) {
-      LOGGER.info(
-          "add collection fields ,database : {} , collection : {}, client : {}",
-          databaseName,
-          collectionName,
-          client);
-      LOGGER.info(alterCollectionReqBuilder.toString());
       client.alterCollection(alterCollectionReqBuilder.build());
     }
 

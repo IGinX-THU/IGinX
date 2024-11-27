@@ -81,7 +81,6 @@ public class MilvusConnectPoolFactory implements PooledObjectFactory<MilvusClien
 
   @Override
   public PooledObject<MilvusClientV2> makeObject() throws Exception {
-    LOGGER.info("创建MilvusClient实例");
     try {
       ConnectConfig.ConnectConfigBuilder configBuilder =
           ConnectConfig.builder().uri(getUrl(protocol, host, port));
