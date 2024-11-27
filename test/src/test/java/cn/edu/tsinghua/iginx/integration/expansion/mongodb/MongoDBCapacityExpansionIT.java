@@ -430,7 +430,7 @@ public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
             + "Total line number = 1\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
 
-    statement = "select contributor, version from d0.c0.information where version = '3.0';";
+    statement = "select contributor, version from d0.c0.information where version = 3.0;";
     expect =
         "ResultSets:\n"
             + "+-----------+-----------------------------+-------------------------+\n"

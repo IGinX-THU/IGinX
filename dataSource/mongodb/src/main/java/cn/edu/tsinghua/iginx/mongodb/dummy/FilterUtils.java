@@ -27,7 +27,6 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.NotFilter;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.bson.BsonString;
@@ -121,7 +120,7 @@ public class FilterUtils {
     if (filter.getValue().getDataType() == DataType.BINARY && !value.isString()) {
       Bson rawFilter =
           cn.edu.tsinghua.iginx.mongodb.tools.FilterUtils.fieldValueOp(
-              filter.getOp(), path, new BsonString(Arrays.toString(value.asBinary().getData())));
+              filter.getOp(), path, new BsonString(filter.getValue().getBinaryVAsString()));
       return or(rawFilter, filterBson);
     }
     return filterBson;
