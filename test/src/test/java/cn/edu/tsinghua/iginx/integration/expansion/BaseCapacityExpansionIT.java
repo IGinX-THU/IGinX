@@ -105,7 +105,7 @@ public abstract class BaseCapacityExpansionIT {
       boolean noError) {
     try {
       StringBuilder statement = new StringBuilder();
-      statement.append("ADD STORAGEENGINE (\"127.0.0.1\", ");
+      statement.append("ADD STORAGEENGINE (\"192.168.200.47\", ");
       statement.append(port);
       statement.append(", \"");
       statement.append(type.name());
@@ -382,7 +382,7 @@ public abstract class BaseCapacityExpansionIT {
     List<StorageEngineInfo> engineInfoList = session.getClusterInfo().getStorageEngineInfos();
     long id = -1;
     for (StorageEngineInfo info : engineInfoList) {
-      if (info.getIp().equals("127.0.0.1")
+      if (info.getIp().equals("192.168.200.47")
           && info.getPort() == readOnlyPort
           && info.getDataPrefix().equals("null")
           && info.getSchemaPrefix().equals(prefix)
@@ -407,7 +407,7 @@ public abstract class BaseCapacityExpansionIT {
     // 删除，不影响后续测试
     session.removeHistoryDataSource(
         Collections.singletonList(
-            new RemovedStorageEngineInfo("127.0.0.1", readOnlyPort, prefix, "")));
+            new RemovedStorageEngineInfo("192.168.200.47", readOnlyPort, prefix, "")));
 
     // 改回数据库参数
     restoreParams(readOnlyPort);
@@ -685,9 +685,11 @@ public abstract class BaseCapacityExpansionIT {
     testShowColumnsRemoveStorageEngine(true);
     List<RemovedStorageEngineInfo> removedStorageEngineList = new ArrayList<>();
     removedStorageEngineList.add(
-        new RemovedStorageEngineInfo("127.0.0.1", expPort, "p2" + schemaPrefixSuffix, dataPrefix1));
+        new RemovedStorageEngineInfo(
+            "192.168.200.47", expPort, "p2" + schemaPrefixSuffix, dataPrefix1));
     removedStorageEngineList.add(
-        new RemovedStorageEngineInfo("127.0.0.1", expPort, "p3" + schemaPrefixSuffix, dataPrefix1));
+        new RemovedStorageEngineInfo(
+            "192.168.200.47", expPort, "p3" + schemaPrefixSuffix, dataPrefix1));
     try {
       session.removeHistoryDataSource(removedStorageEngineList);
       testShowClusterInfo(4);
@@ -709,7 +711,7 @@ public abstract class BaseCapacityExpansionIT {
     SQLTestTools.executeAndCompare(session, statement, pathListAns, EXP_VALUES_LIST2);
 
     // 通过 sql 语句测试移除节点
-    String removeStatement = "remove historydatasource (\"127.0.0.1\", %d, \"%s\", \"%s\");";
+    String removeStatement = "remove historydatasource (\"192.168.200.47\", %d, \"%s\", \"%s\");";
     try {
       session.executeSql(
           String.format(removeStatement, expPort, "p1" + schemaPrefixSuffix, dataPrefix1));

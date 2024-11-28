@@ -81,6 +81,10 @@ public class MilvusStorage implements IStorage {
     return pathSystemMap;
   }
 
+  public MilvusConnectPool getMilvusConnectPool() {
+    return milvusConnectPool;
+  }
+
   /**
    * 构造函数，用于初始化 MilvusStorage 实例。
    *
@@ -110,6 +114,7 @@ public class MilvusStorage implements IStorage {
             minIdle,
             maxTotal);
     this.milvusConnectPool = config.milvusConnectPool();
+    new MilvusBackup(this);
   }
 
   private Map<String, Map<String, String>> createOrAlterCollections(

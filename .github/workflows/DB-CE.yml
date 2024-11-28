@@ -56,7 +56,6 @@ jobs:
               with:
                   python-version: ${{ matrix.python-version }}
                   java: ${{ matrix.java }}
-                  docker-required: true
 
             - name: Run Metadata
               uses: ./.github/actions/metadataRunner

@@ -51,7 +51,6 @@ jobs:
               with:
                   python-version: ${{ matrix.python-version }}
                   java: ${{ matrix.java }}
-                  docker-required: true
 
             - if: runner.os == 'Windows'
               name: Set JAVA_OPTS
