@@ -40,7 +40,7 @@ public class VectorDBHistoryDataGenerator extends BaseHistoryDataGenerator {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(VectorDBHistoryDataGenerator.class);
 
-  private static final String LOCAL_IP = "192.168.200.47";
+  private static final String LOCAL_IP = "127.0.0.1";
 
   private static final char SEPARATOR = '.';
 

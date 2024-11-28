@@ -44,6 +44,7 @@ import io.milvus.v2.service.collection.request.*;
 import io.milvus.v2.service.collection.response.DescribeCollectionResp;
 import io.milvus.v2.service.database.request.CreateDatabaseReq;
 import io.milvus.v2.service.database.request.DropDatabaseReq;
+import io.milvus.v2.service.index.request.CreateIndexReq;
 import io.milvus.v2.service.vector.request.GetReq;
 import io.milvus.v2.service.vector.request.QueryIteratorReq;
 import io.milvus.v2.service.vector.request.QueryReq;
@@ -285,8 +286,11 @@ public class MilvusClientUtils {
             .collectionSchema(schema)
             .primaryFieldName(MILVUS_PRIMARY_FIELD_NAME)
             .vectorFieldName(MILVUS_VECTOR_FIELD_NAME)
-            .indexParams(indexes)
+//            .indexParams(indexes)
             .build());
+
+    client.createIndex(CreateIndexReq.builder().collectionName(NameUtils.escape(collectionName)).indexParams(indexes).build());
+    client.loadCollection(LoadCollectionReq.builder().collectionName(NameUtils.escape(collectionName)).async(false).build());
   }
 
   /**
