@@ -114,7 +114,6 @@ public class MilvusStorage implements IStorage {
             minIdle,
             maxTotal);
     this.milvusConnectPool = config.milvusConnectPool();
-    new MilvusBackup(this);
   }
 
   private Map<String, Map<String, String>> createOrAlterCollections(

@@ -207,22 +207,22 @@ public class MilvusClientUtils {
     return fields;
   }
 
-  public static void createCollection(
-      MilvusClientV2 client, String databaseName, String collectionName, DataType idType)
-      throws InterruptedException, UnsupportedEncodingException {
-    String backupCollectionName = MilvusBackupThread.getBackupCollection(databaseName);
-    if (backupCollectionName != null) {
-      client.renameCollection(
-          RenameCollectionReq.builder()
-              .collectionName(backupCollectionName)
-              .newCollectionName(collectionName)
-              .build());
-    } else {
-      doCreateCollection(client, databaseName, collectionName, idType);
-    }
-  }
+//  public static void createCollection(
+//      MilvusClientV2 client, String databaseName, String collectionName, DataType idType)
+//      throws InterruptedException, UnsupportedEncodingException {
+//    String backupCollectionName = MilvusBackupThread.getBackupCollection(databaseName);
+//    if (backupCollectionName != null) {
+//      client.renameCollection(
+//          RenameCollectionReq.builder()
+//              .collectionName(backupCollectionName)
+//              .newCollectionName(collectionName)
+//              .build());
+//    } else {
+//      doCreateCollection(client, databaseName, collectionName, idType);
+//    }
+//  }
 
-  public static void doCreateCollection(
+  public static void createCollection(
       MilvusClientV2 client, String databaseName, String collectionName, DataType idType)
       throws InterruptedException, UnsupportedEncodingException {
     createCollection(client, databaseName, collectionName, idType, null, null);
