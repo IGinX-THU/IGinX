@@ -69,9 +69,6 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import javax.annotation.Nullable;
-import org.apache.thrift.TException;
-import org.apache.thrift.transport.TSocket;
-import org.apache.thrift.transport.TTransport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -180,11 +177,11 @@ public class FileSystemStorage implements IStorage {
 
   @Override
   public boolean testConnection(StorageEngineMeta meta) {
-    try (TTransport transport = new TSocket(meta.getIp(), meta.getPort())) {
-      transport.open();
+    try {
+      new FileSystemStorage(meta).release();
       return true;
-    } catch (TException e) {
-      LOGGER.error("Cannot establish thrift server on {}, {}", meta.getIp(), meta.getPort());
+    } catch (PhysicalException e) {
+      LOGGER.error("Cannot connect to the storage engine: {}", meta);
       return false;
     }
   }
