@@ -269,7 +269,9 @@ public class StatementExecutor {
               + "see server log for more details.";
       ctx.setResult(new Result(RpcUtils.status(statusCode, errMsg)));
     } finally {
-      ctx.getResult().setSqlType(ctx.getSqlType());
+      if (ctx.getResult() != null) {
+        ctx.getResult().setSqlType(ctx.getSqlType());
+      }
     }
   }
 
