@@ -23,8 +23,9 @@ import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.influxdb.query.entity.InfluxDBSchema;
 import cn.edu.tsinghua.iginx.thrift.DataType;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 public class FilterTransformer {
 
@@ -135,10 +136,11 @@ public class FilterTransformer {
     InfluxDBSchema schema = new InfluxDBSchema(filter.getPath());
     String path = schema.getFieldString();
     Set<Value> valueSet = filter.getValues();
-    String valueStr =
-        valueSet.stream().map(FilterTransformer::valueToString).collect(Collectors.joining(", "));
-    String op = filter.getInOp().isNotOp() ? "not contains" : "contains";
-    return String.format("%s(value: r[\"%s\"], set: [%s])", op, path, valueStr);
+    List<Filter> filters = new ArrayList<>();
+    for (Value value : valueSet) {
+      filters.add(new ValueFilter(path, Op.E, value));
+    }
+    return toString(new OrFilter(filters));
   }
 
   private static String valueToString(Value value) {
