@@ -133,12 +133,10 @@ public class FilterTransformer {
   }
 
   private static String toString(InFilter filter) {
-    InfluxDBSchema schema = new InfluxDBSchema(filter.getPath());
-    String path = schema.getFieldString();
     Set<Value> valueSet = filter.getValues();
     List<Filter> filters = new ArrayList<>();
     for (Value value : valueSet) {
-      filters.add(new ValueFilter(path, Op.E, value));
+      filters.add(new ValueFilter(filter.getPath(), Op.E, value));
     }
     return toString(new OrFilter(filters));
   }
