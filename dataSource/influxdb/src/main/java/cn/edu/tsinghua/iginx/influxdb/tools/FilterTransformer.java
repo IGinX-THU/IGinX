@@ -138,6 +138,10 @@ public class FilterTransformer {
     for (Value value : valueSet) {
       filters.add(new ValueFilter(filter.getPath(), Op.E, value));
     }
+
+    if(filter.getInOp().isNotOp()){
+      return toString(new NotFilter(new OrFilter(filters)));
+    }
     return toString(new OrFilter(filters));
   }
 
