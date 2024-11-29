@@ -3820,81 +3820,80 @@ public class SQLSessionIT {
             + "|       7|     7.1|         3|       6|     eee|         5|\n"
             + "+--------+--------+----------+--------+--------+----------+\n"
             + "Total line number = 9\n";
-    //    executor.executeAndCompare(statement, expected);
-    //
-    //    // self join
-    //    statement = "SELECT * FROM test.a AS sub1, test.a AS sub2;";
-    //    expected =
-    //        "ResultSets:\n"
-    //            + "+------+------+--------+------+------+--------+\n"
-    //            + "|sub1.a|sub1.b|sub1.key|sub2.a|sub2.b|sub2.key|\n"
-    //            + "+------+------+--------+------+------+--------+\n"
-    //            + "|     1|   1.1|       1|     1|   1.1|       1|\n"
-    //            + "|     1|   1.1|       1|     3|   3.1|       2|\n"
-    //            + "|     1|   1.1|       1|     7|   7.1|       3|\n"
-    //            + "|     3|   3.1|       2|     1|   1.1|       1|\n"
-    //            + "|     3|   3.1|       2|     3|   3.1|       2|\n"
-    //            + "|     3|   3.1|       2|     7|   7.1|       3|\n"
-    //            + "|     7|   7.1|       3|     1|   1.1|       1|\n"
-    //            + "|     7|   7.1|       3|     3|   3.1|       2|\n"
-    //            + "|     7|   7.1|       3|     7|   7.1|       3|\n"
-    //            + "+------+------+--------+------+------+--------+\n"
-    //            + "Total line number = 9\n";
-    //    executor.executeAndCompare(statement, expected);
-    //
-    //    statement = "SELECT * FROM (SELECT * FROM test.a) AS sub1, (SELECT * FROM test.a) AS
-    // sub2;";
-    //    expected =
-    //        "ResultSets:\n"
-    //            + "+--------+-------------+-------------+--------+-------------+-------------+\n"
-    //            + "|sub1.key|sub1.test.a.a|sub1.test.a.b|sub2.key|sub2.test.a.a|sub2.test.a.b|\n"
-    //            + "+--------+-------------+-------------+--------+-------------+-------------+\n"
-    //            + "|       1|            1|          1.1|       1|            1|          1.1|\n"
-    //            + "|       1|            1|          1.1|       2|            3|          3.1|\n"
-    //            + "|       1|            1|          1.1|       3|            7|          7.1|\n"
-    //            + "|       2|            3|          3.1|       1|            1|          1.1|\n"
-    //            + "|       2|            3|          3.1|       2|            3|          3.1|\n"
-    //            + "|       2|            3|          3.1|       3|            7|          7.1|\n"
-    //            + "|       3|            7|          7.1|       1|            1|          1.1|\n"
-    //            + "|       3|            7|          7.1|       2|            3|          3.1|\n"
-    //            + "|       3|            7|          7.1|       3|            7|          7.1|\n"
-    //            + "+--------+-------------+-------------+--------+-------------+-------------+\n"
-    //            + "Total line number = 9\n";
-    //    executor.executeAndCompare(statement, expected);
-    //
-    //    statement = "SELECT * FROM (SELECT * FROM test.b), test.a;";
-    //    expected =
-    //        "ResultSets:\n"
-    //            + "+--------+--------+----------+--------+--------+----------+\n"
-    //            + "|test.a.a|test.a.b|test.a.key|test.b.a|test.b.b|test.b.key|\n"
-    //            + "+--------+--------+----------+--------+--------+----------+\n"
-    //            + "|       1|     1.1|         1|       2|     aaa|         1|\n"
-    //            + "|       3|     3.1|         2|       2|     aaa|         1|\n"
-    //            + "|       7|     7.1|         3|       2|     aaa|         1|\n"
-    //            + "|       1|     1.1|         1|       4|     ccc|         3|\n"
-    //            + "|       3|     3.1|         2|       4|     ccc|         3|\n"
-    //            + "|       7|     7.1|         3|       4|     ccc|         3|\n"
-    //            + "|       1|     1.1|         1|       6|     eee|         5|\n"
-    //            + "|       3|     3.1|         2|       6|     eee|         5|\n"
-    //            + "|       7|     7.1|         3|       6|     eee|         5|\n"
-    //            + "+--------+--------+----------+--------+--------+----------+\n"
-    //            + "Total line number = 9\n";
-    //    executor.executeAndCompare(statement, expected);
-    //
-    //    statement =
-    //        "SELECT * FROM test.a, (SELECT * FROM test.b WHERE test.b.a < 6) WHERE test.a.a > 1;";
-    //    expected =
-    //        "ResultSets:\n"
-    //            + "+--------+--------+----------+--------+--------+----------+\n"
-    //            + "|test.a.a|test.a.b|test.a.key|test.b.a|test.b.b|test.b.key|\n"
-    //            + "+--------+--------+----------+--------+--------+----------+\n"
-    //            + "|       3|     3.1|         2|       2|     aaa|         1|\n"
-    //            + "|       3|     3.1|         2|       4|     ccc|         3|\n"
-    //            + "|       7|     7.1|         3|       2|     aaa|         1|\n"
-    //            + "|       7|     7.1|         3|       4|     ccc|         3|\n"
-    //            + "+--------+--------+----------+--------+--------+----------+\n"
-    //            + "Total line number = 4\n";
-    //    executor.executeAndCompare(statement, expected);
+    executor.executeAndCompare(statement, expected);
+
+    // self join
+    statement = "SELECT * FROM test.a AS sub1, test.a AS sub2;";
+    expected =
+        "ResultSets:\n"
+            + "+------+------+--------+------+------+--------+\n"
+            + "|sub1.a|sub1.b|sub1.key|sub2.a|sub2.b|sub2.key|\n"
+            + "+------+------+--------+------+------+--------+\n"
+            + "|     1|   1.1|       1|     1|   1.1|       1|\n"
+            + "|     1|   1.1|       1|     3|   3.1|       2|\n"
+            + "|     1|   1.1|       1|     7|   7.1|       3|\n"
+            + "|     3|   3.1|       2|     1|   1.1|       1|\n"
+            + "|     3|   3.1|       2|     3|   3.1|       2|\n"
+            + "|     3|   3.1|       2|     7|   7.1|       3|\n"
+            + "|     7|   7.1|       3|     1|   1.1|       1|\n"
+            + "|     7|   7.1|       3|     3|   3.1|       2|\n"
+            + "|     7|   7.1|       3|     7|   7.1|       3|\n"
+            + "+------+------+--------+------+------+--------+\n"
+            + "Total line number = 9\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "SELECT * FROM (SELECT * FROM test.a) AS sub1, (SELECT * FROM test.a) AS sub2;";
+    expected =
+        "ResultSets:\n"
+            + "+--------+-------------+-------------+--------+-------------+-------------+\n"
+            + "|sub1.key|sub1.test.a.a|sub1.test.a.b|sub2.key|sub2.test.a.a|sub2.test.a.b|\n"
+            + "+--------+-------------+-------------+--------+-------------+-------------+\n"
+            + "|       1|            1|          1.1|       1|            1|          1.1|\n"
+            + "|       1|            1|          1.1|       2|            3|          3.1|\n"
+            + "|       1|            1|          1.1|       3|            7|          7.1|\n"
+            + "|       2|            3|          3.1|       1|            1|          1.1|\n"
+            + "|       2|            3|          3.1|       2|            3|          3.1|\n"
+            + "|       2|            3|          3.1|       3|            7|          7.1|\n"
+            + "|       3|            7|          7.1|       1|            1|          1.1|\n"
+            + "|       3|            7|          7.1|       2|            3|          3.1|\n"
+            + "|       3|            7|          7.1|       3|            7|          7.1|\n"
+            + "+--------+-------------+-------------+--------+-------------+-------------+\n"
+            + "Total line number = 9\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "SELECT * FROM (SELECT * FROM test.b), test.a;";
+    expected =
+        "ResultSets:\n"
+            + "+--------+--------+----------+--------+--------+----------+\n"
+            + "|test.a.a|test.a.b|test.a.key|test.b.a|test.b.b|test.b.key|\n"
+            + "+--------+--------+----------+--------+--------+----------+\n"
+            + "|       1|     1.1|         1|       2|     aaa|         1|\n"
+            + "|       3|     3.1|         2|       2|     aaa|         1|\n"
+            + "|       7|     7.1|         3|       2|     aaa|         1|\n"
+            + "|       1|     1.1|         1|       4|     ccc|         3|\n"
+            + "|       3|     3.1|         2|       4|     ccc|         3|\n"
+            + "|       7|     7.1|         3|       4|     ccc|         3|\n"
+            + "|       1|     1.1|         1|       6|     eee|         5|\n"
+            + "|       3|     3.1|         2|       6|     eee|         5|\n"
+            + "|       7|     7.1|         3|       6|     eee|         5|\n"
+            + "+--------+--------+----------+--------+--------+----------+\n"
+            + "Total line number = 9\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement =
+        "SELECT * FROM test.a, (SELECT * FROM test.b WHERE test.b.a < 6) WHERE test.a.a > 1;";
+    expected =
+        "ResultSets:\n"
+            + "+--------+--------+----------+--------+--------+----------+\n"
+            + "|test.a.a|test.a.b|test.a.key|test.b.a|test.b.b|test.b.key|\n"
+            + "+--------+--------+----------+--------+--------+----------+\n"
+            + "|       3|     3.1|         2|       2|     aaa|         1|\n"
+            + "|       3|     3.1|         2|       4|     ccc|         3|\n"
+            + "|       7|     7.1|         3|       2|     aaa|         1|\n"
+            + "|       7|     7.1|         3|       4|     ccc|         3|\n"
+            + "+--------+--------+----------+--------+--------+----------+\n"
+            + "Total line number = 4\n";
+    executor.executeAndCompare(statement, expected);
 
     statement =
         "SELECT * FROM test.a, (SELECT * FROM test.b WHERE test.b.a < test.a.a) WHERE test.a.a > 1;";
