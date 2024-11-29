@@ -26,10 +26,8 @@ import cn.edu.tsinghua.iginx.engine.physical.storage.execute.StoragePhysicalTask
 import cn.edu.tsinghua.iginx.engine.physical.task.GlobalPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.PhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.StoragePhysicalTask;
-import cn.edu.tsinghua.iginx.engine.physical.task.TaskResult;
 import cn.edu.tsinghua.iginx.engine.physical.task.memory.*;
 import cn.edu.tsinghua.iginx.engine.shared.constraint.ConstraintManager;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import java.util.ArrayList;
 import java.util.List;
 import org.slf4j.Logger;
@@ -81,8 +79,7 @@ public class PhysicalEngineImpl implements PhysicalEngine {
     }
     storageTaskExecutor.commit(storageTasks);
     for (GlobalPhysicalTask globalTask : globalTasks) {
-      TaskResult<RowStream> result = storageTaskExecutor.executeGlobalTask(globalTask);
-      globalTask.setResult(result);
+      storageTaskExecutor.executeGlobalTask(globalTask);
     }
     memoryTasks.forEach(memoryTaskExecutor::addMemoryTask);
   }

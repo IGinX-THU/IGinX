@@ -23,6 +23,7 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.logic
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.SelectionBuilder;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ValueVectors;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
+import io.netty.util.collection.IntObjectHashMap;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -63,7 +64,7 @@ public class OrNode extends CallNode<BitVector> implements PredicateExpression {
 
   @Override
   public String getName() {
-    return children.stream().map(Objects::toString).collect(Collectors.joining(" and ", "(", ")"));
+    return children.stream().map(Objects::toString).collect(Collectors.joining(" or ", "(", ")"));
   }
 
   @Override
@@ -99,11 +100,10 @@ public class OrNode extends CallNode<BitVector> implements PredicateExpression {
         remainIndex.add((int) selection.getValueAsLong(i));
       }
     }
-    try (SelectionBuilder selectionBuilder =
-        new SelectionBuilder(allocator, "or", input.getRowCount())) {
-      return filter(
-          allocator, dictionaryProvider, input, selection, children, selectionBuilder, remainIndex);
-    }
+
+    ResultBuilder resultBuilder = new ResultBuilder(allocator, selection);
+    return filter(
+        allocator, dictionaryProvider, input, selection, children, resultBuilder, remainIndex);
   }
 
   private static BaseIntVector filter(
@@ -112,7 +112,7 @@ public class OrNode extends CallNode<BitVector> implements PredicateExpression {
       VectorSchemaRoot input,
       @Nullable BaseIntVector selection,
       List<PredicateExpression> children,
-      SelectionBuilder resultBuilder,
+      ResultBuilder resultBuilder,
       Set<Integer> remainIndex)
       throws ComputeException {
     try (BaseIntVector subSelection =
@@ -157,6 +157,42 @@ public class OrNode extends CallNode<BitVector> implements PredicateExpression {
               resultBuilder,
               remainIndex);
         }
+      }
+    }
+  }
+
+  private static class ResultBuilder {
+    private final BufferAllocator allocator;
+    @Nullable private final IntObjectHashMap<Integer> invertedIndex;
+    private final List<Integer> result = new ArrayList<>();
+
+    public ResultBuilder(BufferAllocator allocator, BaseIntVector selection) {
+      this.allocator = Objects.requireNonNull(allocator);
+      if (selection == null) {
+        invertedIndex = null;
+      } else {
+        invertedIndex = new IntObjectHashMap<>();
+        for (int i = 0; i < selection.getValueCount(); i++) {
+          int value = (int) selection.getValueAsLong(i);
+          invertedIndex.put(value, Integer.valueOf(i));
+        }
+      }
+    }
+
+    public void append(int index) {
+      result.add(index);
+    }
+
+    public BaseIntVector build() {
+      if (invertedIndex == null) {
+        result.sort(Comparator.naturalOrder());
+      } else {
+        result.sort(Comparator.comparingInt(invertedIndex::get));
+      }
+      try (SelectionBuilder selectionBuilder =
+          new SelectionBuilder(allocator, "or", result.size())) {
+        result.forEach(selectionBuilder::append);
+        return selectionBuilder.build();
       }
     }
   }

@@ -22,7 +22,6 @@ import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.engine.physical.exception.NonExecutablePhysicalTaskException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.TooManyPhysicalTasksException;
-import cn.edu.tsinghua.iginx.engine.physical.exception.UnexpectedOperatorException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.MemoryPhysicalTaskDispatcher;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.OperatorMemoryExecutor;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.OperatorMemoryExecutorFactory;
@@ -51,7 +50,10 @@ import cn.edu.tsinghua.iginx.monitor.RequestsMonitor;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.util.*;
-import java.util.concurrent.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -337,7 +339,7 @@ public class StoragePhysicalTaskExecutor {
     storageTaskQueues.get(storageUnitId).addTask(task);
   }
 
-  public TaskResult<RowStream> executeGlobalTask(GlobalPhysicalTask task) {
+  public void executeGlobalTask(GlobalPhysicalTask task) {
     switch (task.getOperator().getType()) {
       case ShowColumns:
         long startTime = System.nanoTime();
@@ -352,14 +354,9 @@ public class StoragePhysicalTaskExecutor {
             memoryTaskExecutor.addMemoryTask(followerTask);
           }
         }
-        try {
-          return task.getResult().get();
-        } catch (InterruptedException | ExecutionException e) {
-          return new TaskResult<>(new PhysicalException(e));
-        }
+        break;
       default:
-        return new TaskResult<>(
-            new UnexpectedOperatorException("unknown op: " + task.getOperator().getType()));
+        throw new UnsupportedOperationException("unknown op: " + task.getOperator().getType());
     }
   }
 

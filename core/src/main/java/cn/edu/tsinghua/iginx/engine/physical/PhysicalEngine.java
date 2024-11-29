@@ -56,13 +56,15 @@ public interface PhysicalEngine {
             .execute(ctx, (Migration) root, getStoragePhysicalTaskExecutor());
       } else {
         GlobalPhysicalTask task = new GlobalPhysicalTask(root, ctx);
-        try (TaskResult<RowStream> result =
-            getStoragePhysicalTaskExecutor().executeGlobalTask(task)) {
+        getStoragePhysicalTaskExecutor().executeGlobalTask(task);
+        try (TaskResult<RowStream> result = task.getResult().get()) {
           RowStream rowStream = result.unwrap();
           if (rowStream == null) {
             return null;
           }
           return BatchStreams.wrap(ctx.getAllocator(), result.unwrap(), ctx.getBatchRowCount());
+        } catch (ExecutionException | InterruptedException e) {
+          throw new PhysicalException(e);
         }
       }
     }

@@ -17,11 +17,13 @@
  */
 package cn.edu.tsinghua.iginx.physical.optimizer.naive.util;
 
+import cn.edu.tsinghua.iginx.engine.logical.utils.LogicalFilterUtils;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.join.JoinOption;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.CallNode;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.FieldNode;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpression;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.hash.Hash;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.logic.Not;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.predicate.expression.PredicateExpression;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.Schemas;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
@@ -31,9 +33,11 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
 import java.util.*;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import org.apache.arrow.vector.IntVector;
+import org.apache.arrow.vector.types.pojo.Field;
 import org.apache.arrow.vector.types.pojo.Schema;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -48,6 +52,33 @@ public class HashJoins {
       Filter filter,
       JoinOption joinOption)
       throws ComputeException {
+    return constructHashJoin(
+        context,
+        leftSchema,
+        rightSchema,
+        leftPrefix,
+        rightPrefix,
+        filter,
+        joinOption,
+        "&mark",
+        false,
+        true,
+        true);
+  }
+
+  public static HashJoinExecutor constructHashJoin(
+      ExecutorContext context,
+      BatchSchema leftSchema,
+      BatchSchema rightSchema,
+      @Nullable String leftPrefix,
+      @Nullable String rightPrefix,
+      Filter filter,
+      JoinOption joinOption,
+      String markColumnName,
+      boolean antiMark,
+      boolean outputBuildSideData,
+      boolean outputBuildSideKey)
+      throws ComputeException {
 
     Map<Pair<Integer, Integer>, Op> pathPairOps = new HashMap<>();
     Filter filterWithoutPathPairOpsInnerAndFilter =
@@ -59,9 +90,13 @@ public class HashJoins {
         rightSchema,
         leftPrefix,
         rightPrefix,
-        filterWithoutPathPairOpsInnerAndFilter,
+        LogicalFilterUtils.foldConst(filterWithoutPathPairOpsInnerAndFilter),
         pathPairOps,
-        joinOption);
+        joinOption,
+        markColumnName,
+        antiMark,
+        outputBuildSideData,
+        outputBuildSideKey);
   }
 
   private static HashJoinExecutor constructHashJoin(
@@ -72,7 +107,11 @@ public class HashJoins {
       @Nullable String rightPrefix,
       Filter filterWithoutPathPairOpsInnerAndFilter,
       Map<Pair<Integer, Integer>, Op> pathPairOps,
-      JoinOption joinOption)
+      JoinOption joinOption,
+      String markColumnName,
+      boolean antiMark,
+      boolean outputBuildSideData,
+      boolean outputBuildSideKey)
       throws ComputeException {
 
     // get matcher
@@ -122,16 +161,35 @@ public class HashJoins {
             .map(pair -> leftSchema.getName(pair.getLeft()))
             .collect(Collectors.toSet());
     List<ScalarExpression<?>> outputExpressions = new ArrayList<>();
-    if (!joinOption.needMark()) {
-      outputExpressions.addAll(getOutputExpressions(0, leftSchema, leftPrefix));
+
+    if (!outputBuildSideKey) {
+      if (rightSchema.hasKey()) {
+        outputExpressions.add(
+            new FieldNode(leftSchema.getFieldCount() + rightSchema.getKeyIndex()));
+      }
     }
+
+    if (outputBuildSideData) {
+      outputExpressions.addAll(
+          getOutputExpressions(
+              0,
+              leftSchema,
+              leftPrefix,
+              outputBuildSideKey,
+              f -> sameNameEqualPaths.contains(f.getName())));
+    }
+
     outputExpressions.addAll(
-        getOutputExpressions(leftSchema.getFieldCount(), rightSchema, rightPrefix));
-    if (joinOption.needMark()) {
-      outputExpressions.add(
-          new FieldNode(
-              leftSchema.getFieldCount() + rightSchema.getFieldCount(),
-              joinOption.markColumnName()));
+        getOutputExpressions(
+            leftSchema.getFieldCount(), rightSchema, rightPrefix, outputBuildSideKey, f -> false));
+
+    if (joinOption.isToOutputMark()) {
+      ScalarExpression<?> markFieldNode =
+          new FieldNode(leftSchema.getFieldCount() + rightSchema.getFieldCount(), markColumnName);
+      if (antiMark) {
+        markFieldNode = new CallNode<>(new Not(), markColumnName, markFieldNode);
+      }
+      outputExpressions.add(markFieldNode);
     }
 
     return new HashJoinExecutor(
@@ -146,15 +204,22 @@ public class HashJoins {
   }
 
   private static List<ScalarExpression<?>> getOutputExpressions(
-      int offset, BatchSchema schema, @Nullable String prefix) {
+      int offset,
+      BatchSchema schema,
+      @Nullable String prefix,
+      boolean outputKeyWhenHasPrefix,
+      Predicate<Field> skipFieldTester) {
     List<ScalarExpression<?>> outputExpressions = new ArrayList<>();
     for (int i = 0; i < schema.getFieldCount(); i++) {
       if (schema.hasKey() && i == schema.getKeyIndex()) {
-        if (prefix != null) {
+        if (prefix != null && outputKeyWhenHasPrefix) {
           int keyIndex = schema.getKeyIndex();
           outputExpressions.add(
               new FieldNode(offset + keyIndex, prefix + "." + schema.getName(keyIndex)));
         }
+        continue;
+      }
+      if (skipFieldTester.test(schema.getField(i))) {
         continue;
       }
       outputExpressions.add(new FieldNode(offset + i));

@@ -116,7 +116,8 @@ public class HashJoinExecutor extends StatefulBinaryExecutor {
             outputExpressions,
             probeSideHasher,
             getRightSchema().raw(),
-            (dictionaryProvider, data) -> offerResult(Batch.of(data, dictionaryProvider)));
+            (dictionaryProvider, data, selection) ->
+                offerResult(Batch.of(data, dictionaryProvider, selection)));
   }
 
   @Override

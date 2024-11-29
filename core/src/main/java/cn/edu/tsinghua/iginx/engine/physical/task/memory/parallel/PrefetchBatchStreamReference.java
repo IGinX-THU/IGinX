@@ -23,51 +23,61 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
 import java.util.NoSuchElementException;
 import java.util.Objects;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
-import javax.annotation.concurrent.ThreadSafe;
+import javax.annotation.WillNotClose;
 
-@ThreadSafe
-class ScatterBatchStream implements BatchStream {
+class PrefetchBatchStreamReference implements BatchStream {
 
   private final BatchStream stream;
-  final AtomicLong nextSequenceNumber = new AtomicLong(0);
-  final AtomicBoolean finished = new AtomicBoolean(false);
 
-  public ScatterBatchStream(BatchStream stream) {
+  public PrefetchBatchStreamReference(@WillNotClose BatchStream stream) {
     this.stream = Objects.requireNonNull(stream);
   }
 
-  @Override
-  public synchronized BatchSchema getSchema() throws PhysicalException {
-    return stream.getSchema();
-  }
+  private BatchSchema schema;
+
+  private Batch prefetched;
 
   @Override
-  public synchronized boolean hasNext() throws PhysicalException {
-    if (!stream.hasNext()) {
-      finished.set(true);
-      return false;
+  public BatchSchema getSchema() throws PhysicalException {
+    if (schema == null) {
+      schema = stream.getSchema();
     }
-    return true;
+    return schema;
   }
 
   @Override
-  public synchronized Batch getNext() throws PhysicalException {
+  public boolean hasNext() throws PhysicalException {
+    if (prefetched == null) {
+      prefetched = fetch();
+    }
+    return prefetched != null;
+  }
+
+  @Override
+  public Batch getNext() throws PhysicalException {
     if (!hasNext()) {
       throw new NoSuchElementException();
     }
-    Batch batch = stream.getNext();
-    batch.setSequenceNumber(nextSequenceNumber.getAndIncrement());
-    return batch;
+    Batch result = prefetched;
+    prefetched = null;
+    return result;
+  }
+
+  private Batch fetch() throws PhysicalException {
+    if (!stream.hasNext()) {
+      return null;
+    }
+    try {
+      return stream.getNext();
+    } catch (NoSuchElementException e) {
+      return null;
+    }
   }
 
   @Override
   public void close() throws PhysicalException {
-    stream.close();
-  }
-
-  public BatchStream createBranch() {
-    return new PrefetchBatchStreamReference(this);
+    if (prefetched != null) {
+      prefetched.close();
+    }
   }
 }
