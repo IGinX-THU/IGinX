@@ -27,7 +27,9 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.NotFilter;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import org.bson.BsonString;
 import org.bson.BsonValue;
@@ -106,6 +108,8 @@ public class FilterUtils {
         return toBson((AndFilter) filter);
       case Or:
         return toBson((OrFilter) filter);
+      case Not:
+        return toBson((NotFilter) filter);
       default:
         throw new IllegalArgumentException("unsupported filter: " + filter);
     }
@@ -120,7 +124,7 @@ public class FilterUtils {
     if (filter.getValue().getDataType() == DataType.BINARY && !value.isString()) {
       Bson rawFilter =
           cn.edu.tsinghua.iginx.mongodb.tools.FilterUtils.fieldValueOp(
-              filter.getOp(), path, new BsonString(filter.getValue().getBinaryVAsString()));
+              filter.getOp(), path, new BsonString(Arrays.toString(value.asBinary().getData())));
       return or(rawFilter, filterBson);
     }
     return filterBson;
@@ -139,7 +143,7 @@ public class FilterUtils {
     if (filter.isTrue()) {
       return new Document();
     } else {
-      throw new IllegalArgumentException("bool filter should be true");
+      return nor(new Document());
     }
   }
 
@@ -147,7 +151,7 @@ public class FilterUtils {
     List<Bson> subFilterList =
         filter.getChildren().stream().map(FilterUtils::toBson).collect(Collectors.toList());
     if (subFilterList.isEmpty()) {
-      throw new IllegalArgumentException("and filter should have at least one child");
+      return new Document();
     }
     return and(subFilterList);
   }
@@ -156,14 +160,44 @@ public class FilterUtils {
     List<Bson> subFilterList =
         filter.getChildren().stream().map(FilterUtils::toBson).collect(Collectors.toList());
     if (subFilterList.isEmpty()) {
-      throw new IllegalArgumentException("or filter should have at least one child");
+      return new Document();
     }
     return or(subFilterList);
+  }
+
+  private static Bson toBson(NotFilter filter) {
+    Bson childFilter = toBson(filter.getChild());
+    return nor(childFilter);
   }
 
   private static void checkPath(String path) {
     if (NameUtils.containNumberNode(path)) {
       throw new IllegalArgumentException("path contain number");
     }
+  }
+
+  public static Filter tryIgnore(Filter filter, Predicate<Filter> matcher) {
+    switch (filter.getType()) {
+      case And:
+        {
+          List<Filter> children =
+              ((AndFilter) filter)
+                  .getChildren().stream()
+                      .filter(f -> !matcher.test(f))
+                      .map(f -> tryIgnore(f, matcher))
+                      .collect(Collectors.toList());
+          return new AndFilter(children);
+        }
+      case Or:
+        {
+          List<Filter> children =
+              ((OrFilter) filter)
+                  .getChildren().stream()
+                      .map(f -> tryIgnore(f, matcher))
+                      .collect(Collectors.toList());
+          return new OrFilter(children);
+        }
+    }
+    return filter;
   }
 }

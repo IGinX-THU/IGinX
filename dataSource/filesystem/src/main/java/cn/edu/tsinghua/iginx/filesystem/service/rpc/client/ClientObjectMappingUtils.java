@@ -38,7 +38,6 @@ import cn.edu.tsinghua.iginx.utils.ByteUtils;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.nio.ByteBuffer;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import org.slf4j.Logger;
@@ -76,12 +75,12 @@ public class ClientObjectMappingUtils {
         return toRawFilter((AndFilter) filter);
       case Or:
         return toRawFilter((OrFilter) filter);
+      case Not:
+        return toRawFilter((NotFilter) filter);
       case Value:
         return toRawFilter((ValueFilter) filter);
       case Key:
         return toRawFilter((KeyFilter) filter);
-      case Expr:
-        return toRawFilter(new BoolFilter(true));
       case Bool:
         return toRawFilter((BoolFilter) filter);
       case Path:
@@ -433,44 +432,5 @@ public class ClientObjectMappingUtils {
       bitmapBufferList.add(ByteBuffer.wrap(bitmapView.getBitmap().getBytes()));
     }
     return new Pair<>(valueBufferList, bitmapBufferList);
-  }
-
-  public static Filter constructPostFilter(Filter filter) {
-    if (filter == null) {
-      return null;
-    }
-    AtomicBoolean hasExpr = new AtomicBoolean(false);
-    filter.accept(
-        new FilterVisitor() {
-          @Override
-          public void visit(AndFilter filter) {}
-
-          @Override
-          public void visit(OrFilter filter) {}
-
-          @Override
-          public void visit(NotFilter filter) {}
-
-          @Override
-          public void visit(KeyFilter filter) {}
-
-          @Override
-          public void visit(ValueFilter filter) {}
-
-          @Override
-          public void visit(PathFilter filter) {}
-
-          @Override
-          public void visit(BoolFilter filter) {}
-
-          @Override
-          public void visit(ExprFilter filter) {
-            hasExpr.set(true);
-          }
-
-          @Override
-          public void visit(InFilter filter) {}
-        });
-    return hasExpr.get() ? filter : null;
   }
 }

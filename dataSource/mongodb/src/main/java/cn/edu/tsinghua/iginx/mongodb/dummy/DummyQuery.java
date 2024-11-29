@@ -20,7 +20,7 @@
 package cn.edu.tsinghua.iginx.mongodb.dummy;
 
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import com.mongodb.client.*;
 import java.util.ArrayList;
@@ -29,6 +29,7 @@ import java.util.Map;
 import org.bson.BsonDocument;
 import org.bson.BsonInt32;
 import org.bson.BsonValue;
+import org.bson.Document;
 import org.bson.conversions.Bson;
 
 public class DummyQuery {
@@ -116,7 +117,28 @@ public class DummyQuery {
     }
 
     private static Bson getPredicate(Filter filter) {
-      return QueryUtils.getPredicate(filter);
+      try {
+        Filter removedKey = FilterUtils.tryIgnore(filter, f -> f.getType().equals(FilterType.Key));
+        Filter removedUnsupportedFilter =
+            FilterUtils.tryIgnore(
+                removedKey,
+                f -> {
+                  switch (f.getType()) {
+                    case Value:
+                      return NameUtils.containNumberNode(((ValueFilter) f).getPath());
+                    case Path:
+                      return NameUtils.containNumberNode(((PathFilter) f).getPathA())
+                          || NameUtils.containNumberNode(((PathFilter) f).getPathB());
+                    case In:
+                    case Expr:
+                      return true;
+                  }
+                  return false;
+                });
+        return FilterUtils.toBson(removedUnsupportedFilter);
+      } catch (Exception ignored) {
+        return new Document();
+      }
     }
 
     private Bson getProjection(PathTree tree) {
