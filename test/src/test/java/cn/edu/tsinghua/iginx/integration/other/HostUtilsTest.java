@@ -19,36 +19,24 @@
  */
 package cn.edu.tsinghua.iginx.integration.other;
 
-import cn.edu.tsinghua.iginx.conf.Config;
-import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.exception.SessionException;
-import cn.edu.tsinghua.iginx.integration.func.udf.UDFTestTools;
 import cn.edu.tsinghua.iginx.session.Session;
-import java.util.List;
-import java.util.stream.Collectors;
+import cn.edu.tsinghua.iginx.thrift.IginxInfo;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class UDFPathIT {
+public class HostUtilsTest {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(UDFPathIT.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(HostUtilsTest.class);
 
   private static Session session;
 
-  private static final Config config = ConfigDescriptor.getInstance().getConfig();
-
-  // host info
-  private static String defaultTestHost = "127.0.0.1";
-  private static int defaultTestPort = 6888;
-  private static String defaultTestUser = "root";
-  private static String defaultTestPass = "root";
-
   @BeforeClass
   public static void setUp() throws SessionException {
-    session = new Session(defaultTestHost, defaultTestPort, defaultTestUser, defaultTestPass);
+    session = new Session("127.0.0.1", 6888, "root", "root");
     session.openSession();
   }
 
@@ -57,23 +45,25 @@ public class UDFPathIT {
     session.closeSession();
   }
 
-  /** ensure every udf in list is registered */
+  /** 配置文件中ip设置为0.0.0.0时，需要找到IGinX所在节点的真实ip。这里通过建立这个ip和端口的session来验证ip是否寻找正确 */
   @Test
-  public void testUDFFuncList() {
-    List<String> UdfNameList;
-    List<String> UdfList = config.getUdfList();
-    UdfNameList =
-        UdfList.stream()
-            .map(
-                udf -> {
-                  String[] udfInfo = udf.split(",");
-                  if (udfInfo.length != 4) {
-                    LOGGER.error("udf info len must be 4.");
-                  }
-                  return udfInfo[1];
-                })
-            .collect(Collectors.toList());
-    UDFTestTools tools = new UDFTestTools(session);
-    tools.isUDFsRegistered(UdfNameList);
+  public void getRealIp() {
+    try {
+      IginxInfo info = session.getClusterInfo().getIginxInfos().get(0);
+      String realIp = info.ip;
+      int port = info.port;
+
+      Session newSession = new Session(realIp, port, "root", "root");
+      newSession.openSession();
+      try {
+        int iginxCount = newSession.getClusterInfo().getIginxInfos().size();
+        assert iginxCount >= 1;
+      } finally {
+        newSession.closeSession();
+      }
+
+    } catch (SessionException e) {
+      LOGGER.error("Error occurred in session:", e);
+    }
   }
 }

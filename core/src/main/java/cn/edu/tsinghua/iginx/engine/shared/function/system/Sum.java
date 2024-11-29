@@ -70,6 +70,7 @@ public class Sum implements SetMappingFunction {
     }
 
     Object[] targetValues = new Object[targetFields.size()];
+    long[] counts = new long[targetFields.size()];
     for (int i = 0; i < targetFields.size(); i++) {
       Field targetField = targetFields.get(i);
       if (targetField.getType() == DataType.LONG) {
@@ -102,6 +103,12 @@ public class Sum implements SetMappingFunction {
             throw new IllegalStateException(
                 "Unexpected field type: " + fields.get(index).getType().toString());
         }
+        counts[i]++;
+      }
+    }
+    for (int i = 0; i < targetValues.length; i++) {
+      if (counts[i] == 0) {
+        targetValues[i] = null;
       }
     }
     return new Row(new Header(targetFields), targetValues);

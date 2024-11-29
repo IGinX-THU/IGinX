@@ -614,11 +614,16 @@ struct GetRegisterTaskInfoReq {
     1: required i64 sessionId
 }
 
+struct IpPortPair {
+    1: required string ip
+    2: required i32 port
+}
+
 struct RegisterTaskInfo {
     1: required string name
     2: required string className
     3: required string fileName
-    4: required string ip
+    4: required list<IpPortPair> ipPortPair
     5: required UDFType type;
 }
 
