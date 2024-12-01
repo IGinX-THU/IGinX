@@ -32,6 +32,7 @@
         <componentDescriptor>src/assembly/component/iginx-iotdb12-driver.xml</componentDescriptor>
         <componentDescriptor>src/assembly/component/iginx-filesystem-driver.xml</componentDescriptor>
         <componentDescriptor>src/assembly/component/include-zookeeper.xml</componentDescriptor>
+        <componentDescriptor>src/assembly/component/iginx-vectordb-driver.xml</componentDescriptor>
     </componentDescriptors>
     <fileSets>
         <fileSet>
