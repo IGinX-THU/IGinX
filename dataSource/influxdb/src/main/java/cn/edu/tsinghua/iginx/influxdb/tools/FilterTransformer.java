@@ -70,7 +70,7 @@ public class FilterTransformer {
   }
 
   private static String toString(NotFilter filter) {
-    return "not " + filter.toString();
+    return "not " + toString(filter.getChild());
   }
 
   private static String toString(KeyFilter filter) {
@@ -135,13 +135,14 @@ public class FilterTransformer {
   private static String toString(InFilter filter) {
     Set<Value> valueSet = filter.getValues();
     List<Filter> filters = new ArrayList<>();
+
     for (Value value : valueSet) {
       filters.add(new ValueFilter(filter.getPath(), Op.E, value));
     }
-
-    if(filter.getInOp().isNotOp()){
+    if (filter.getInOp().isNotOp()) {
       return toString(new NotFilter(new OrFilter(filters)));
     }
+
     return toString(new OrFilter(filters));
   }
 
