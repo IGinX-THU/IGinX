@@ -35,8 +35,8 @@ jobs:
         uses: ./.github/workflows/remote-test.yml
         with:
             metadata-matrix: '["zookeeper"]'
-#    assembly-test:
-#        uses: ./.github/workflows/assembly-test.yml
+    assembly-test:
+        uses: ./.github/workflows/assembly-test.yml
 #    tpc-h-regression-test:
 #        uses: ./.github/workflows/tpc-h.yml
 #        with:
