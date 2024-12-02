@@ -223,7 +223,7 @@ public class NaivePhysicalPlanner {
 
   public PhysicalTask<BatchStream> construct(Rename operator, RequestContext context) {
     PhysicalTask<?> sourceTask = fetch(operator.getSource(), context);
-    return new cn.edu.tsinghua.iginx.engine.physical.task.memory.PipelineMemoryPhysicalTask(
+    return new PipelineMemoryPhysicalTask(
         convert(sourceTask, context, BatchStream.class),
         Collections.singletonList(operator),
         context,
@@ -232,7 +232,7 @@ public class NaivePhysicalPlanner {
 
   public PhysicalTask<BatchStream> construct(Reorder operator, RequestContext context) {
     PhysicalTask<?> sourceTask = fetch(operator.getSource(), context);
-    return new cn.edu.tsinghua.iginx.engine.physical.task.memory.PipelineMemoryPhysicalTask(
+    return new PipelineMemoryPhysicalTask(
         convert(sourceTask, context, BatchStream.class),
         Collections.singletonList(operator),
         context,
@@ -241,7 +241,7 @@ public class NaivePhysicalPlanner {
 
   public PhysicalTask<BatchStream> construct(AddSchemaPrefix operator, RequestContext context) {
     PhysicalTask<?> sourceTask = fetch(operator.getSource(), context);
-    return new cn.edu.tsinghua.iginx.engine.physical.task.memory.PipelineMemoryPhysicalTask(
+    return new PipelineMemoryPhysicalTask(
         convert(sourceTask, context, BatchStream.class),
         Collections.singletonList(operator),
         context,

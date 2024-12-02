@@ -36,23 +36,32 @@ import org.apache.arrow.vector.types.pojo.Schema;
 public class Expressions {
 
   public static ScalarExpression<?> getPhysicalExpression(
-      ExecutorContext context, Schema inputSchema, Expression expr) throws ComputeException {
+      ExecutorContext context, Schema inputSchema, Expression expr, boolean setAlias)
+      throws ComputeException {
     switch (expr.getType()) {
       case FromValue:
         throw new UnsupportedOperationException("Unsupported expr type: FromValue");
       case Base:
-        return getPhysicalExpression(context, inputSchema, (BaseExpression) expr);
+        return getPhysicalExpression(context, inputSchema, (BaseExpression) expr, setAlias);
       case Binary:
-        return getPhysicalExpression(context, inputSchema, (BinaryExpression) expr);
+        return getPhysicalExpression(context, inputSchema, (BinaryExpression) expr, setAlias);
       case Unary:
-        return getPhysicalExpression(context, inputSchema, (UnaryExpression) expr);
+        return getPhysicalExpression(context, inputSchema, (UnaryExpression) expr, setAlias);
       case Bracket:
         return getPhysicalExpression(
-            context, inputSchema, ((BracketExpression) expr).getExpression());
+            context, inputSchema, ((BracketExpression) expr).getExpression(), setAlias);
       case Constant:
-        return new LiteralNode<>(((ConstantExpression) expr).getValue(), context.getConstantPool());
+        if (setAlias) {
+          return new LiteralNode<>(
+              ((ConstantExpression) expr).getValue(),
+              context.getConstantPool(),
+              expr.getColumnName());
+        } else {
+          return new LiteralNode<>(
+              ((ConstantExpression) expr).getValue(), context.getConstantPool());
+        }
       case CaseWhen:
-        return getPhysicalExpression(context, inputSchema, (CaseWhenExpression) expr);
+        return getPhysicalExpression(context, inputSchema, (CaseWhenExpression) expr, setAlias);
       case Function:
       case Multiple:
         throw new IllegalArgumentException(String.format("%s not implemented", expr.getType()));
@@ -62,7 +71,8 @@ public class Expressions {
   }
 
   private static ScalarExpression<?> getPhysicalExpression(
-      ExecutorContext context, Schema inputSchema, BaseExpression expr) throws ComputeException {
+      ExecutorContext context, Schema inputSchema, BaseExpression expr, boolean setAlias)
+      throws ComputeException {
     List<Integer> indexes = Schemas.matchPattern(inputSchema, expr.getColumnName());
     if (indexes.isEmpty()) {
       throw new ComputeException(
@@ -72,43 +82,58 @@ public class Expressions {
       throw new ComputeException(
           "Ambiguous column: " + expr.getColumnName() + " in " + inputSchema);
     }
-    return new FieldNode(indexes.get(0));
+    if (setAlias) {
+      return new FieldNode(indexes.get(0), expr.getColumnName());
+    } else {
+      return new FieldNode(indexes.get(0));
+    }
   }
 
   private static ScalarExpression<?> getPhysicalExpression(
-      ExecutorContext context, Schema inputSchema, CaseWhenExpression expr)
+      ExecutorContext context, Schema inputSchema, CaseWhenExpression expr, boolean setAlias)
       throws ComputeException {
     List<ScalarExpression<?>> args = new ArrayList<>();
     // [condition1, value1, condition2, value2..., valueElse]
     for (int i = 0; i < expr.getConditions().size(); i++) {
       args.add(Filters.construct(expr.getConditions().get(i), context, inputSchema));
-      args.add(getPhysicalExpression(context, inputSchema, expr.getResults().get(i)));
+      args.add(getPhysicalExpression(context, inputSchema, expr.getResults().get(i), false));
     }
     if (expr.getResultElse() != null) {
-      args.add(getPhysicalExpression(context, inputSchema, expr.getResultElse()));
+      args.add(getPhysicalExpression(context, inputSchema, expr.getResultElse(), false));
     }
-    return new CallNode<>(new CaseWhen(), expr.getColumnName(), args);
+    if (setAlias) {
+      return new CallNode<>(new CaseWhen(), expr.getColumnName(), args);
+    } else {
+      return new CallNode<>(new CaseWhen(), args);
+    }
   }
 
   private static ScalarExpression<?> getPhysicalExpression(
-      ExecutorContext context, Schema inputSchema, BinaryExpression expr) throws ComputeException {
+      ExecutorContext context, Schema inputSchema, BinaryExpression expr, boolean setAlias)
+      throws ComputeException {
     ScalarExpression<?> left =
-        getPhysicalExpression(context, inputSchema, expr.getLeftExpression());
+        getPhysicalExpression(context, inputSchema, expr.getLeftExpression(), false);
     ScalarExpression<?> right =
-        getPhysicalExpression(context, inputSchema, expr.getRightExpression());
+        getPhysicalExpression(context, inputSchema, expr.getRightExpression(), false);
     ScalarFunction<?> function = getArithmeticFunction(expr.getOp());
-    return new CallNode<>(function, expr.getColumnName(), left, right);
+    if (setAlias) {
+      return new CallNode<>(function, expr.getColumnName(), left, right);
+    } else {
+      return new CallNode<>(function, left, right);
+    }
   }
 
   private static ScalarExpression<?> getPhysicalExpression(
-      ExecutorContext context, Schema inputSchema, UnaryExpression expr) throws ComputeException {
-    ScalarExpression<?> expression =
-        getPhysicalExpression(context, inputSchema, expr.getExpression());
+      ExecutorContext context, Schema inputSchema, UnaryExpression expr, boolean setAlias)
+      throws ComputeException {
     switch (expr.getOperator()) {
       case PLUS:
-        return expression;
+        return getPhysicalExpression(context, inputSchema, expr.getExpression(), true);
       case MINUS:
-        return new CallNode<>(new Negate(), expr.getColumnName(), expression);
+        return new CallNode<>(
+            new Negate(),
+            expr.getColumnName(),
+            getPhysicalExpression(context, inputSchema, expr.getExpression(), false));
       default:
         throw new UnsupportedOperationException("Unsupported operator: " + expr.getOperator());
     }

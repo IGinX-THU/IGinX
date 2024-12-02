@@ -26,11 +26,12 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.binary.Bina
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.binary.stateful.StatefulBinaryExecutor;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.operator.InnerJoin;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.PathFilter;
 import cn.edu.tsinghua.iginx.physical.optimizer.naive.util.HashJoins;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 public class InnerJoinInfoGenerator implements BinaryExecutorFactory<StatefulBinaryExecutor> {
 
@@ -70,6 +71,15 @@ public class InnerJoinInfoGenerator implements BinaryExecutorFactory<StatefulBin
     for (String extraPrefix : operator.getExtraJoinPrefix()) {
       subFilters.add(new PathFilter(extraPrefix, Op.E, extraPrefix));
     }
+    Set<String> ignoreColumns = new HashSet<>();
+    for (String joinColumn : operator.getJoinColumns()) {
+      ignoreColumns.add(operator.getPrefixA() + "." + joinColumn);
+      subFilters.add(
+          new PathFilter(
+              operator.getPrefixA() + "." + joinColumn,
+              Op.E,
+              operator.getPrefixB() + "." + joinColumn));
+    }
 
     return HashJoins.constructHashJoin(
         context,
@@ -78,6 +88,7 @@ public class InnerJoinInfoGenerator implements BinaryExecutorFactory<StatefulBin
         operator.getPrefixA(),
         operator.getPrefixB(),
         new AndFilter(subFilters),
+        ignoreColumns,
         JoinOption.INNER);
   }
 }

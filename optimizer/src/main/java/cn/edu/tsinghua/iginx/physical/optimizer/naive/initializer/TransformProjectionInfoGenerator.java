@@ -80,7 +80,7 @@ public class TransformProjectionInfoGenerator implements UnaryExecutorFactory<Pr
         }
         if (function instanceof ArithmeticExpr) {
           Expression expr = params.getExpr();
-          return Expressions.getPhysicalExpression(context, inputSchema, expr);
+          return Expressions.getPhysicalExpression(context, inputSchema, expr, true);
         } else {
           throw new UnsupportedOperationException(
               "Unsupported system function: " + function.getIdentifier());

@@ -19,15 +19,11 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.pred
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.convert.cast.CastAsFloat8;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.predicate.BinaryPredicateFunction;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ConstantVectors;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.IntBooleanConsumer;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.IntIntPredicate;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.Schemas;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.SelectionBuilder;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ValueVectors;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.*;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ArgumentException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.NotAllowTypeException;
+import java.util.Collections;
 import java.util.Objects;
 import javax.annotation.Nullable;
 import org.apache.arrow.memory.ArrowBuf;
@@ -66,7 +62,7 @@ public abstract class BinaryComparisonFunction extends BinaryPredicateFunction {
       ArrowBuf dataBuffer = dest.getDataBuffer();
       evaluate(
           allocator,
-          null,
+          DictionaryProviders.empty(),
           selection,
           left,
           right,
@@ -117,7 +113,7 @@ public abstract class BinaryComparisonFunction extends BinaryPredicateFunction {
 
   private void evaluate(
       BufferAllocator allocator,
-      @Nullable DictionaryProvider dictionaryProvider,
+      DictionaryProvider dictionaryProvider,
       @Nullable BaseIntVector selection,
       FieldVector left,
       FieldVector right,
@@ -133,8 +129,18 @@ public abstract class BinaryComparisonFunction extends BinaryPredicateFunction {
       evaluateSameType(dictionaryProvider, left, right, rowCount, selection, consumer);
     } else if (Schemas.isNumeric(left.getMinorType()) && Schemas.isNumeric(right.getMinorType())) {
       // TODO: cast only selected indices
-      try (FieldVector leftCast = castFunction.evaluate(allocator, left);
-          FieldVector rightCast = castFunction.evaluate(allocator, right)) {
+      try (FieldVector leftCast =
+              castFunction.invoke(
+                  allocator,
+                  dictionaryProvider,
+                  selection,
+                  new VectorSchemaRoot(Collections.singleton(left)));
+          FieldVector rightCast =
+              castFunction.invoke(
+                  allocator,
+                  dictionaryProvider,
+                  selection,
+                  new VectorSchemaRoot(Collections.singleton(right)))) {
         evaluateSameType(dictionaryProvider, leftCast, rightCast, rowCount, selection, consumer);
       }
     } else {

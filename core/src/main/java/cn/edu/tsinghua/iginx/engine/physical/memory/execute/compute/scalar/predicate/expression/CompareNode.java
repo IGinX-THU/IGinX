@@ -17,8 +17,10 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.predicate.expression;
 
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.PhysicalFunctions;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.*;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.predicate.PredicateFunction;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ValueVectors;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import java.util.Arrays;
 import java.util.List;
@@ -68,7 +70,12 @@ public class CompareNode extends CallNode<BitVector> implements PredicateExpress
     }
     try (VectorSchemaRoot args =
         ScalarExpressions.evaluate(allocator, dictionaryProvider, input, selection, children)) {
-      return function.filter(allocator, dictionaryProvider, args, null);
+      try (BaseIntVector result = function.filter(allocator, dictionaryProvider, args, null)) {
+        if (selection == null) {
+          return ValueVectors.slice(allocator, result);
+        }
+        return PhysicalFunctions.take(allocator, result, selection);
+      }
     }
   }
 }

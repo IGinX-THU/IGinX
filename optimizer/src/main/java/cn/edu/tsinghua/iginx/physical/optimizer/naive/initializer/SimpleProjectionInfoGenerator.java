@@ -51,24 +51,21 @@ public class SimpleProjectionInfoGenerator implements UnaryExecutorFactory<Proje
       throws ComputeException {
     switch (operator.getType()) {
       case Project:
-        return getExpressionsWithFields(
-            inputSchema, getColumnsAndIndices(inputSchema, (Project) operator));
+        return getExpressionsWithFields(getColumnsAndIndices(inputSchema, (Project) operator));
       case Reorder:
-        return getExpressionsWithFields(
-            inputSchema, getColumnsAndIndices(inputSchema, (Reorder) operator));
+        return getExpressionsWithFields(getColumnsAndIndices(inputSchema, (Reorder) operator));
       case Rename:
-        return getExpressionsWithFields(
-            inputSchema, getColumnsAndIndices(inputSchema, (Rename) operator));
+        return getExpressionsWithFields(getColumnsAndIndices(inputSchema, (Rename) operator));
       case AddSchemaPrefix:
         return getExpressionsWithFields(
-            inputSchema, getColumnsAndIndices(inputSchema, (AddSchemaPrefix) operator));
+            getColumnsAndIndices(inputSchema, (AddSchemaPrefix) operator));
       default:
         throw new IllegalArgumentException("Unsupported operator type: " + operator.getType());
     }
   }
 
   private List<ScalarExpression<?>> getExpressionsWithFields(
-      BatchSchema inputSchema, List<Pair<String, Integer>> columnsAndIndices) {
+      List<Pair<String, Integer>> columnsAndIndices) {
     List<ScalarExpression<?>> ret = new ArrayList<>();
     for (Pair<String, Integer> pair : columnsAndIndices) {
       ret.add(new FieldNode(pair.v, pair.k));

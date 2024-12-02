@@ -100,7 +100,7 @@ public class AndNode extends CallNode<BitVector> implements PredicateExpression 
     try (BaseIntVector subSelection =
         children.get(0).filter(allocator, dictionaryProvider, input, selection)) {
       List<PredicateExpression> remain = children.subList(1, children.size());
-      if (remain.isEmpty() || subSelection == null || subSelection.getValueCount() == 0) {
+      if (remain.isEmpty() || (subSelection != null && subSelection.getValueCount() == 0)) {
         return ValueVectors.slice(allocator, subSelection, "and");
       }
       return filter(allocator, dictionaryProvider, input, subSelection, remain);
