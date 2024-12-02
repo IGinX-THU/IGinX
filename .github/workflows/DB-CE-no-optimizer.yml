@@ -72,9 +72,9 @@ jobs:
             - name: Change IGinX config
               uses: ./.github/actions/confWriter
               with:
-                DB-name: ${{ matrix.DB-name }}
-                Close-Optimizer: "true"
-                Metadata: ${{ matrix.metadata }}
+                  DB-name: ${{ matrix.DB-name }}
+                  Close-Optimizer: "true"
+                  Metadata: ${{ matrix.metadata }}
 
               # 第 1 阶段测试开始==========================================
             - name: Prepare CapExp environment oriHasDataExpHasData
