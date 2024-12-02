@@ -28,6 +28,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.MarkJoin;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.physical.optimizer.naive.util.HashJoins;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -71,6 +72,7 @@ public class MarkJoinInfoGenerator implements BinaryExecutorFactory<StatefulBina
         operator.getPrefixA(),
         operator.getPrefixB(),
         new AndFilter(subFilters),
+        Collections.emptySet(),
         JoinOption.MARK,
         operator.getMarkColumn(),
         operator.isAntiJoin(),

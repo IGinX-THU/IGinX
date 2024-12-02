@@ -50,6 +50,7 @@ public class HashJoins {
       @Nullable String leftPrefix,
       @Nullable String rightPrefix,
       Filter filter,
+      Set<String> ignoreFields,
       JoinOption joinOption)
       throws ComputeException {
     return constructHashJoin(
@@ -59,6 +60,7 @@ public class HashJoins {
         leftPrefix,
         rightPrefix,
         filter,
+        ignoreFields,
         joinOption,
         "&mark",
         false,
@@ -73,6 +75,7 @@ public class HashJoins {
       @Nullable String leftPrefix,
       @Nullable String rightPrefix,
       Filter filter,
+      Set<String> ignoreFields,
       JoinOption joinOption,
       String markColumnName,
       boolean antiMark,
@@ -80,7 +83,7 @@ public class HashJoins {
       boolean outputBuildSideKey)
       throws ComputeException {
 
-    Map<Pair<Integer, Integer>, Op> pathPairOps = new HashMap<>();
+    Map<Pair<Integer, Integer>, Pair<Op, Boolean>> pathPairOps = new HashMap<>();
     Filter filterWithoutPathPairOpsInnerAndFilter =
         Filters.parseJoinFilter(filter, leftSchema, rightSchema, pathPairOps);
 
@@ -91,6 +94,7 @@ public class HashJoins {
         leftPrefix,
         rightPrefix,
         LogicalFilterUtils.foldConst(filterWithoutPathPairOpsInnerAndFilter),
+        ignoreFields,
         pathPairOps,
         joinOption,
         markColumnName,
@@ -106,7 +110,8 @@ public class HashJoins {
       @Nullable String leftPrefix,
       @Nullable String rightPrefix,
       Filter filterWithoutPathPairOpsInnerAndFilter,
-      Map<Pair<Integer, Integer>, Op> pathPairOps,
+      Set<String> ignoreFields,
+      Map<Pair<Integer, Integer>, Pair<Op, Boolean>> pathPairOps,
       JoinOption joinOption,
       String markColumnName,
       boolean antiMark,
@@ -116,12 +121,20 @@ public class HashJoins {
 
     // get matcher
     List<PredicateExpression> matchers = new ArrayList<>();
-    for (Map.Entry<Pair<Integer, Integer>, Op> entry : pathPairOps.entrySet()) {
+    for (Map.Entry<Pair<Integer, Integer>, Pair<Op, Boolean>> entry : pathPairOps.entrySet()) {
       Pair<Integer, Integer> pathPair = entry.getKey();
-      Op op = entry.getValue();
-      matchers.add(
-          Filters.construct(
-              pathPair.getLeft(), pathPair.getRight() + leftSchema.getFieldCount(), op));
+      Pair<Op, Boolean> opEntry = entry.getValue();
+      Op op = opEntry.getKey();
+      boolean keyIsLeft = opEntry.getValue();
+      if (keyIsLeft) {
+        matchers.add(
+            Filters.construct(
+                pathPair.getKey(), pathPair.getValue() + leftSchema.getFieldCount(), op));
+      } else {
+        matchers.add(
+            Filters.construct(
+                pathPair.getKey() + leftSchema.getFieldCount(), pathPair.getValue(), op));
+      }
     }
     PredicateExpression otherMatcher =
         Filters.construct(
@@ -132,28 +145,33 @@ public class HashJoins {
     PredicateExpression matcher = Filters.and(matchers, context);
 
     // get hasher
-    Map<Pair<Integer, Integer>, Op> pathPairEqualOps =
+    List<Pair<Integer, Integer>> pathPairEqualOps =
         pathPairOps.entrySet().stream()
-            .filter(entry -> entry.getValue() == Op.E)
-            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+            .filter(entry -> entry.getValue().getKey() == Op.E)
+            .map(
+                e ->
+                    e.getValue().getValue()
+                        ? e.getKey()
+                        : Pair.of(e.getKey().getRight(), e.getKey().getLeft()))
+            .collect(Collectors.toList());
     ScalarExpression<IntVector> leftHasher =
         new CallNode<>(
             new Hash(),
-            pathPairEqualOps.keySet().stream()
+            pathPairEqualOps.stream()
                 .map(Pair::getLeft)
                 .map(FieldNode::new)
                 .collect(Collectors.toList()));
     ScalarExpression<IntVector> rightHasher =
         new CallNode<>(
             new Hash(),
-            pathPairEqualOps.keySet().stream()
+            pathPairEqualOps.stream()
                 .map(Pair::getRight)
                 .map(FieldNode::new)
                 .collect(Collectors.toList()));
 
     // get field indices
     Set<String> sameNameEqualPaths =
-        pathPairEqualOps.keySet().stream()
+        pathPairEqualOps.stream()
             .filter(
                 pair ->
                     Objects.equals(
@@ -176,12 +194,16 @@ public class HashJoins {
               leftSchema,
               leftPrefix,
               outputBuildSideKey,
-              f -> sameNameEqualPaths.contains(f.getName())));
+              f -> sameNameEqualPaths.contains(f.getName()) || ignoreFields.contains(f.getName())));
     }
 
     outputExpressions.addAll(
         getOutputExpressions(
-            leftSchema.getFieldCount(), rightSchema, rightPrefix, outputBuildSideKey, f -> false));
+            leftSchema.getFieldCount(),
+            rightSchema,
+            rightPrefix,
+            outputBuildSideKey,
+            f -> ignoreFields.contains(f.getName())));
 
     if (joinOption.isToOutputMark()) {
       ScalarExpression<?> markFieldNode =

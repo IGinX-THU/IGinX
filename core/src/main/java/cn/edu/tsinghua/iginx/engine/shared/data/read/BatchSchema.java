@@ -38,21 +38,24 @@ public class BatchSchema {
   private final Schema schema;
   private final Map<String, Integer> indexMap;
 
-  protected BatchSchema(Schema schema, Map<String, Integer> indexMap) {
+  protected BatchSchema(Schema schema) {
     this.schema = Objects.requireNonNull(schema);
-    this.indexMap = Objects.requireNonNull(indexMap);
+    this.indexMap = new HashMap<>();
+    for (int i = 0; i < schema.getFields().size(); i++) {
+      indexMap.put(schema.getFields().get(i).getName(), i);
+    }
   }
 
-  public static BatchSchema of(Schema groupKeySchema) {
+  public static BatchSchema of(Schema schema) {
     BatchSchema.Builder builder = new BatchSchema.Builder();
-    for (Field field : groupKeySchema.getFields()) {
+    for (Field field : schema.getFields()) {
       builder.addField(field);
     }
     return builder.build();
   }
 
   public static BatchSchema empty() {
-    return new BatchSchema(new Schema(Collections.emptyList()), Collections.emptyMap());
+    return new BatchSchema(new Schema(Collections.emptyList()));
   }
 
   public boolean hasKey() {
@@ -146,7 +149,6 @@ public class BatchSchema {
   public static class Builder {
 
     protected final List<Field> fields = new ArrayList<>();
-    private final Map<String, Integer> indexMap = new HashMap<>();
 
     protected Builder() {}
 
@@ -160,12 +162,6 @@ public class BatchSchema {
         } else if (!field.equals(KEY)) {
           throw new IllegalStateException(
               "Key field must be defined as " + KEY + " but was " + field);
-        }
-      }
-      if (field.getFieldType().getMetadata().isEmpty()) {
-        Integer oldIndex = indexMap.put(name, fields.size());
-        if (oldIndex != null) {
-          throw new IllegalStateException("Field " + name + " is already defined");
         }
       }
       fields.add(field);
@@ -198,7 +194,7 @@ public class BatchSchema {
     }
 
     public BatchSchema build() {
-      return new BatchSchema(new Schema(fields), indexMap);
+      return new BatchSchema(new Schema(fields));
     }
   }
 }

@@ -99,8 +99,8 @@ public class Filters {
       ExprFilter filter, ExecutorContext context, Schema inputSchema) throws ComputeException {
     return new CompareNode(
         getPredicate(filter.getOp()),
-        Expressions.getPhysicalExpression(context, inputSchema, filter.getExpressionA()),
-        Expressions.getPhysicalExpression(context, inputSchema, filter.getExpressionB()));
+        Expressions.getPhysicalExpression(context, inputSchema, filter.getExpressionA(), false),
+        Expressions.getPhysicalExpression(context, inputSchema, filter.getExpressionB(), false));
   }
 
   private static PredicateExpression construct(
@@ -285,7 +285,7 @@ public class Filters {
       Filter filter,
       BatchSchema leftSchema,
       BatchSchema rightSchema,
-      Map<Pair<Integer, Integer>, Op> pathPairOps)
+      Map<Pair<Integer, Integer>, Pair<Op, Boolean>> pathPairOps)
       throws ComputeException {
     switch (filter.getType()) {
       case Path:
@@ -308,7 +308,7 @@ public class Filters {
       AndFilter filter,
       BatchSchema leftSchema,
       BatchSchema rightSchema,
-      Map<Pair<Integer, Integer>, Op> pathPairOps)
+      Map<Pair<Integer, Integer>, Pair<Op, Boolean>> pathPairOps)
       throws ComputeException {
     List<Filter> children = new ArrayList<>();
     for (Filter subFilter : filter.getChildren()) {
@@ -322,7 +322,7 @@ public class Filters {
       PathFilter filter,
       BatchSchema leftSchema,
       BatchSchema rightSchema,
-      Map<Pair<Integer, Integer>, Op> pathPairOps) {
+      Map<Pair<Integer, Integer>, Pair<Op, Boolean>> pathPairOps) {
 
     List<Integer> leftAMatchedIndices = Schemas.matchPattern(leftSchema.raw(), filter.getPathA());
     List<Integer> leftBMatchedIndices = Schemas.matchPattern(leftSchema.raw(), filter.getPathB());
@@ -331,13 +331,15 @@ public class Filters {
 
     if (leftAMatchedIndices.size() == 1 && rightBMatchedIndices.size() == 1) {
       pathPairOps.put(
-          Pair.of(leftAMatchedIndices.get(0), rightBMatchedIndices.get(0)), filter.getOp());
+          Pair.of(leftAMatchedIndices.get(0), rightBMatchedIndices.get(0)),
+          Pair.of(filter.getOp(), true));
       return new AndFilter(Collections.emptyList());
     }
 
-    if (leftBMatchedIndices.size() == 1 && rightAMatchedIndices.size() == 1) {
+    if (rightAMatchedIndices.size() == 1 && leftBMatchedIndices.size() == 1) {
       pathPairOps.put(
-          Pair.of(leftBMatchedIndices.get(0), rightAMatchedIndices.get(0)), filter.getOp());
+          Pair.of(rightAMatchedIndices.get(0), leftBMatchedIndices.get(0)),
+          Pair.of(filter.getOp(), false));
       return new AndFilter(Collections.emptyList());
     }
 
