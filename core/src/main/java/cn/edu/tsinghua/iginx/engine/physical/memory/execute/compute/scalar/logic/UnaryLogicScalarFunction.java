@@ -20,6 +20,7 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.logi
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.PhysicalFunctions;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.UnaryScalarFunction;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.CallContracts;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ConstantVectors;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.Schemas;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ValueVectors;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
@@ -60,6 +61,7 @@ public abstract class UnaryLogicScalarFunction extends UnaryScalarFunction<BitVe
   public BitVector evaluate(BufferAllocator allocator, BitVector input) {
     int rowCount = input.getValueCount();
     BitVector result = (BitVector) ValueVectors.create(allocator, Types.MinorType.BIT, rowCount);
+    ConstantVectors.setAllValidity(result, rowCount);
     int byteCount = BitVectorHelper.getValidityBufferSize(rowCount);
     evaluate(result.getDataBuffer(), input.getDataBuffer(), byteCount);
     return result;

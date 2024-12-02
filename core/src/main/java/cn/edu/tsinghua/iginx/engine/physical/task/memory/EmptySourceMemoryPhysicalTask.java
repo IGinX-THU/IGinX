@@ -15,17 +15,21 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util;
+package cn.edu.tsinghua.iginx.engine.physical.task.memory;
 
-import javax.annotation.Nullable;
-import javax.annotation.WillCloseWhenClosed;
-import org.apache.arrow.vector.BaseIntVector;
-import org.apache.arrow.vector.VectorSchemaRoot;
+import cn.edu.tsinghua.iginx.engine.physical.task.TaskResult;
+import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStreams;
 
-public interface ResultConsumer {
+public class EmptySourceMemoryPhysicalTask extends SourceMemoryPhysicalTask {
 
-  void consume(
-      @WillCloseWhenClosed CloseableDictionaryProvider dictionaryProvider,
-      @WillCloseWhenClosed VectorSchemaRoot data,
-      @WillCloseWhenClosed @Nullable BaseIntVector selection);
+  public EmptySourceMemoryPhysicalTask(RequestContext context, Object info) {
+    super(context, info);
+  }
+
+  @Override
+  public TaskResult<BatchStream> execute() {
+    return new TaskResult<>(BatchStreams.empty());
+  }
 }

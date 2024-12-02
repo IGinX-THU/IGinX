@@ -19,14 +19,14 @@ package cn.edu.tsinghua.iginx.physical.optimizer.naive;
 
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateful.LimitUnaryExecutor;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateless.ValueToSelectedPathExecutor;
+import cn.edu.tsinghua.iginx.engine.physical.task.GlobalPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.PhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.StoragePhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskType;
-import cn.edu.tsinghua.iginx.engine.physical.task.memory.BinarySinkMemoryPhysicalTask;
-import cn.edu.tsinghua.iginx.engine.physical.task.memory.MultipleMemoryPhysicalTask;
-import cn.edu.tsinghua.iginx.engine.physical.task.memory.PipelineMemoryPhysicalTask;
-import cn.edu.tsinghua.iginx.engine.physical.task.memory.UnarySinkMemoryPhysicalTask;
+import cn.edu.tsinghua.iginx.engine.physical.task.memory.*;
 import cn.edu.tsinghua.iginx.engine.physical.task.memory.parallel.FetchAsyncMemoryPhysicalTask;
+import cn.edu.tsinghua.iginx.engine.physical.task.memory.parallel.ParallelPipelineMemoryPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.memory.row.ArrowToRowUnaryMemoryPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.memory.row.BinaryRowMemoryPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.memory.row.RowToArrowUnaryMemoryPhysicalTask;
@@ -104,19 +104,17 @@ public class NaivePhysicalPlanner {
         return construct((Except) operator, context);
       case Intersect:
         return construct((Intersect) operator, context);
-      case Multiple:
-        return construct((MultipleOperator) operator, context);
       case Downsample:
         return construct((Downsample) operator, context);
       case MappingTransform:
         return construct((MappingTransform) operator, context);
       case Distinct:
         return construct((Distinct) operator, context);
-      case ProjectWaitingForPath:
-        return construct((ProjectWaitingForPath) operator, context);
       case ValueToSelectedPath:
         return construct((ValueToSelectedPath) operator, context);
       case Unknown:
+      case ProjectWaitingForPath:
+      case Multiple:
       case Binary:
       case Unary:
       default:
@@ -151,12 +149,12 @@ public class NaivePhysicalPlanner {
   }
 
   public PhysicalTask<BatchStream> construct(CombineNonQuery operator, RequestContext context) {
-    List<PhysicalTask<?>> sourceTasks = new ArrayList<>();
+    List<PhysicalTask<RowStream>> sourceTasks = new ArrayList<>();
     for (Source source : operator.getSources()) {
-      sourceTasks.add(fetch(source, context));
+      sourceTasks.add(convert(fetch(source, context), context, RowStream.class));
     }
 
-    return new MultipleMemoryPhysicalTask(
+    return new CombineNonQueryPhysicalTask(
         Collections.singletonList(operator), sourceTasks, context);
   }
 
@@ -251,12 +249,20 @@ public class NaivePhysicalPlanner {
   }
 
   public PhysicalTask<BatchStream> construct(RowTransform operator, RequestContext context) {
-    PhysicalTask<?> sourceTask = fetch(operator.getSource(), context);
-    return new cn.edu.tsinghua.iginx.engine.physical.task.memory.PipelineMemoryPhysicalTask(
-        convert(sourceTask, context, BatchStream.class),
-        Collections.singletonList(operator),
+    PhysicalTask<BatchStream> sourceTask = fetchAsync(operator.getSource(), context);
+
+    int pipelineParallelism = ConfigDescriptor.getInstance().getConfig().getPipelineParallelism();
+
+    return new ParallelPipelineMemoryPhysicalTask(
+        sourceTask,
         context,
-        new RowTransformInfoGenerator(operator));
+        (ctx, parentTask) ->
+            new PipelineMemoryPhysicalTask(
+                parentTask,
+                Collections.singletonList(operator),
+                ctx,
+                new RowTransformInfoGenerator(operator)),
+        pipelineParallelism);
   }
 
   public PhysicalTask<?> construct(Select operator, RequestContext context) {
@@ -371,7 +377,7 @@ public class NaivePhysicalPlanner {
   }
 
   public PhysicalTask<?> construct(InnerJoin operator, RequestContext context) {
-    if (operator.getJoinAlgType() != JoinAlgType.HashJoin) {
+    if (operator.getJoinAlgType() != JoinAlgType.HashJoin || operator.isNaturalJoin()) {
       return constructRow(operator, context);
     }
 
@@ -392,7 +398,7 @@ public class NaivePhysicalPlanner {
   }
 
   public PhysicalTask<?> construct(OuterJoin operator, RequestContext context) {
-    if (operator.getJoinAlgType() != JoinAlgType.HashJoin) {
+    if (operator.getJoinAlgType() != JoinAlgType.HashJoin || operator.isNaturalJoin()) {
       return constructRow(operator, context);
     }
 
@@ -450,12 +456,16 @@ public class NaivePhysicalPlanner {
   }
 
   public PhysicalTask<?> construct(FoldedOperator operator, RequestContext context) {
-    throw new UnsupportedOperationException("Folded is not supported in the new physical planner");
+    List<PhysicalTask<BatchStream>> sourceTasks = new ArrayList<>();
+    for (Source source : operator.getSources()) {
+      sourceTasks.add(convert(fetch(source, context), context, BatchStream.class));
+    }
+    return new FoldedMemoryPhysicalTask(
+        Collections.singletonList(operator), operator.getIncompleteRoot(), sourceTasks, context);
   }
 
   public PhysicalTask<?> construct(ShowColumns operator, RequestContext context) {
-    throw new UnsupportedOperationException(
-        "ShowColumns is not supported in the new physical planner");
+    return new GlobalPhysicalTask(operator, context);
   }
 
   public PhysicalTask<?> construct(Migration operator, RequestContext context) {
@@ -483,11 +493,6 @@ public class NaivePhysicalPlanner {
     return constructRow(operator, context);
   }
 
-  public PhysicalTask<?> construct(MultipleOperator operator, RequestContext context) {
-    throw new UnsupportedOperationException(
-        "MultipleOperator is not supported in the new physical planner");
-  }
-
   public PhysicalTask<?> construct(Downsample operator, RequestContext context) {
     return constructRow(operator, context);
   }
@@ -500,14 +505,13 @@ public class NaivePhysicalPlanner {
     return constructRow(operator, context);
   }
 
-  public PhysicalTask<?> construct(ProjectWaitingForPath operator, RequestContext context) {
-    throw new UnsupportedOperationException(
-        "ProjectWaitingForPath is not supported in the new physical planner");
-  }
-
   public PhysicalTask<?> construct(ValueToSelectedPath operator, RequestContext context) {
-    throw new UnsupportedOperationException(
-        "ValueToSelectedPath is not supported in the new physical planner");
+    PhysicalTask<?> sourceTask = fetch(operator.getSource(), context);
+    return new PipelineMemoryPhysicalTask(
+        convert(sourceTask, context, BatchStream.class),
+        Collections.singletonList(operator),
+        context,
+        (ctx, schema) -> new ValueToSelectedPathExecutor(ctx, schema.raw(), operator.getPrefix()));
   }
 
   @SuppressWarnings("unchecked")

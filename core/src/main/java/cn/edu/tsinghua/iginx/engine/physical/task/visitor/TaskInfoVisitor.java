@@ -21,9 +21,7 @@ package cn.edu.tsinghua.iginx.engine.physical.task.visitor;
 import cn.edu.tsinghua.iginx.engine.physical.task.*;
 import cn.edu.tsinghua.iginx.engine.physical.task.GlobalPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.StoragePhysicalTask;
-import cn.edu.tsinghua.iginx.engine.physical.task.memory.BinaryMemoryPhysicalTask;
-import cn.edu.tsinghua.iginx.engine.physical.task.memory.MultipleMemoryPhysicalTask;
-import cn.edu.tsinghua.iginx.engine.physical.task.memory.UnaryMemoryPhysicalTask;
+import cn.edu.tsinghua.iginx.engine.physical.task.memory.*;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -54,17 +52,22 @@ public class TaskInfoVisitor implements TaskVisitor {
   }
 
   @Override
-  public void visit(BinaryMemoryPhysicalTask task) {
+  public void visit(SourceMemoryPhysicalTask task) {
     collectTaskInfo(task);
   }
 
   @Override
-  public void visit(UnaryMemoryPhysicalTask task) {
+  public void visit(BinaryMemoryPhysicalTask<?, ?> task) {
     collectTaskInfo(task);
   }
 
   @Override
-  public void visit(MultipleMemoryPhysicalTask task) {
+  public void visit(UnaryMemoryPhysicalTask<?, ?> task) {
+    collectTaskInfo(task);
+  }
+
+  @Override
+  public void visit(MultiMemoryPhysicalTask<?, ?> task) {
     collectTaskInfo(task);
   }
 
@@ -78,7 +81,7 @@ public class TaskInfoVisitor implements TaskVisitor {
     collectTaskInfo(task);
   }
 
-  private void collectTaskInfo(PhysicalTask task) {
+  private void collectTaskInfo(PhysicalTask<?> task) {
     TaskType type = task.getType();
     StringBuilder builder = new StringBuilder();
     if (depth != 0) {

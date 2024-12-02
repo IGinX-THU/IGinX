@@ -27,7 +27,6 @@ import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 import javax.annotation.WillClose;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,22 +61,24 @@ public abstract class BinaryMemoryPhysicalTask<
 
   @Override
   public TaskResult<RESULT> execute() {
-    Future<TaskResult<INPUT>> futureA = parentTaskA.getResult();
-    Future<TaskResult<INPUT>> futureB = parentTaskB.getResult();
-    try (TaskResult<INPUT> leftResult = futureA.get();
-        TaskResult<INPUT> rightResult = futureB.get()) {
-      if (leftResult.isSuccessful() && rightResult.isSuccessful()) {
-        INPUT left = leftResult.unwrap();
-        INPUT right = rightResult.unwrap();
-        RESULT result = compute(left, right);
-        return new TaskResult<>(result);
+    try (TaskResult<INPUT> leftResult = parentTaskA.getResult().get();
+        TaskResult<INPUT> rightResult = parentTaskB.getResult().get()) {
+      INPUT left = leftResult.unwrap();
+      INPUT right;
+      try {
+        right = rightResult.unwrap();
+      } catch (PhysicalException e) {
+        try (INPUT ignore = left) {
+          throw e;
+        }
       }
+      RESULT result = compute(left, right);
+      return new TaskResult<>(result);
     } catch (PhysicalException e) {
       return new TaskResult<>(e);
     } catch (ExecutionException | InterruptedException e) {
       return new TaskResult<>(new PhysicalException(e));
     }
-    throw new IllegalStateException("Should not reach here");
   }
 
   protected abstract RESULT compute(@WillClose INPUT left, @WillClose INPUT right)

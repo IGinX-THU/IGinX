@@ -17,114 +17,44 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.join;
 
-import org.apache.arrow.util.Preconditions;
+import lombok.Getter;
 
-public class JoinOption {
+@Getter
+public enum JoinOption {
+  INNER(false, false),
+  LEFT(true, false),
+  RIGHT(false, true),
+  FULL(true, true),
+  MARK(true, false, true),
+  SINGLE(false, false, false);
 
-  public static final JoinOption INNER = new JoinOption(false, false);
-  public static final JoinOption LEFT = new JoinOption(true, false);
-  public static final JoinOption RIGHT = new JoinOption(false, true);
-  public static final JoinOption FULL = new JoinOption(true, true);
-  public static final JoinOption SINGLE = new JoinOption(false, false, false, false, null, false);
+  private final boolean toOutputProbeSideUnmatched;
+  private final boolean toOutputBuildSideUnmatched;
+  private final boolean orderByProbeSideOrdinal;
+  private final boolean allowedToMatchMultiple;
+  private final boolean toOutputAllMatched;
+  private final boolean toOutputMark;
 
-  private final boolean outputBuildSideUnmatched;
-  private final boolean outputProbeSideUnmatched;
-  private final boolean rightMatchMultipleLeft;
-  private final boolean allMatched;
-  private final String markColumn;
-  private final boolean antiMark;
-
-  private JoinOption(boolean outputBuildSideUnmatched, boolean outputProbeSideUnmatched) {
-    this(outputBuildSideUnmatched, outputProbeSideUnmatched, true, true, null, false);
+  JoinOption(boolean toOutputBuildSideUnmatched, boolean toOutputProbeSideUnmatched) {
+    this(toOutputBuildSideUnmatched, toOutputProbeSideUnmatched, false, true, true, false);
   }
 
-  private JoinOption(
-      boolean outputBuildSideUnmatched,
-      boolean outputProbeSideUnmatched,
-      boolean rightMatchMultipleLeft,
-      boolean allMatched,
-      String markColumn,
-      boolean antiMark) {
-    this.outputBuildSideUnmatched = outputBuildSideUnmatched;
-    this.outputProbeSideUnmatched = outputProbeSideUnmatched;
-    this.rightMatchMultipleLeft = rightMatchMultipleLeft;
-    this.allMatched = allMatched;
-    this.markColumn = markColumn;
-    this.antiMark = antiMark;
+  JoinOption(boolean allowedToMatchMultiple, boolean toOutputAllMatched, boolean toOutputMark) {
+    this(false, true, true, allowedToMatchMultiple, toOutputAllMatched, toOutputMark);
   }
 
-  public static JoinOption ofMark(String markColumn, boolean antiMark) {
-    Preconditions.checkNotNull(markColumn);
-    return new JoinOption(false, true, true, false, markColumn, antiMark);
-  }
-
-  public boolean needOutputBuildSideUnmatched() {
-    return outputBuildSideUnmatched;
-  }
-
-  public boolean needOutputProbeSideUnmatched() {
-    return outputProbeSideUnmatched;
-  }
-
-  public boolean allowProbeSideMatchMultiple() {
-    return rightMatchMultipleLeft;
-  }
-
-  public boolean needAllMatched() {
-    return allMatched;
-  }
-
-  public boolean needMark() {
-    return markColumn != null;
-  }
-
-  public String markColumnName() {
-    return markColumn;
-  }
-
-  public boolean isAntiMark() {
-    return antiMark;
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    JoinOption joinOption = (JoinOption) o;
-    return outputBuildSideUnmatched == joinOption.outputBuildSideUnmatched
-        && outputProbeSideUnmatched == joinOption.outputProbeSideUnmatched
-        && markColumn.equals(joinOption.markColumn);
-  }
-
-  @Override
-  public String toString() {
-    if (this.equals(INNER)) {
-      return "INNER";
-    } else if (this.equals(LEFT)) {
-      return "LEFT";
-    } else if (this.equals(RIGHT)) {
-      return "RIGHT";
-    } else if (this.equals(FULL)) {
-      return "FULL";
-    } else if (needMark()) {
-      if (antiMark) {
-        return "ANTI-MARK:" + markColumn;
-      } else {
-        return "MARK:" + markColumn;
-      }
-    }
-    return "JoinType{"
-        + "needOutputLeftUnmatched="
-        + outputBuildSideUnmatched
-        + ", needOutputRightUnmatched="
-        + outputProbeSideUnmatched
-        + ", markColumnName='"
-        + markColumn
-        + '\''
-        + '}';
+  JoinOption(
+      boolean toOutputBuildSideUnmatched,
+      boolean toOutputProbeSideUnmatched,
+      boolean orderByProbeSideOrdinal,
+      boolean allowedToMatchMultiple,
+      boolean toOutputAllMatched,
+      boolean toOutputMark) {
+    this.toOutputBuildSideUnmatched = toOutputBuildSideUnmatched;
+    this.toOutputProbeSideUnmatched = toOutputProbeSideUnmatched;
+    this.orderByProbeSideOrdinal = orderByProbeSideOrdinal;
+    this.allowedToMatchMultiple = allowedToMatchMultiple;
+    this.toOutputAllMatched = toOutputAllMatched;
+    this.toOutputMark = toOutputMark;
   }
 }

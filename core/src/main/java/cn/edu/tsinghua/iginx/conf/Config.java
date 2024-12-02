@@ -205,6 +205,8 @@ public class Config {
 
   private int streamParallelGroupByWorkerNum = 5;
 
+  private int pipelineParallelism = 5;
+
   /////////////
 
   private boolean enableEmailNotification = false;
@@ -885,6 +887,14 @@ public class Config {
 
   public void setStreamParallelGroupByWorkerNum(int streamParallelGroupByWorkerNum) {
     this.streamParallelGroupByWorkerNum = streamParallelGroupByWorkerNum;
+  }
+
+  public int getPipelineParallelism() {
+    return pipelineParallelism;
+  }
+
+  public void setPipelineParallelism(int pipelineParallelism) {
+    this.pipelineParallelism = pipelineParallelism;
   }
 
   public int getBatchSizeImportCsv() {

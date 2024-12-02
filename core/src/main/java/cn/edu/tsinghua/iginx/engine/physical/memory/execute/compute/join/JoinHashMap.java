@@ -30,6 +30,9 @@ import java.util.Objects;
 import javax.annotation.Nullable;
 import javax.annotation.WillClose;
 import javax.annotation.WillCloseWhenClosed;
+import org.apache.arrow.algorithm.sort.DefaultVectorComparators;
+import org.apache.arrow.algorithm.sort.IndexSorter;
+import org.apache.arrow.algorithm.sort.StableVectorComparator;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.util.Preconditions;
 import org.apache.arrow.vector.*;
@@ -111,7 +114,7 @@ public class JoinHashMap implements AutoCloseable {
   }
 
   public void flush() throws ComputeException {
-    if (!joinOption.needOutputBuildSideUnmatched()) {
+    if (!joinOption.isToOutputBuildSideUnmatched()) {
       return;
     }
 
@@ -172,7 +175,7 @@ public class JoinHashMap implements AutoCloseable {
             probeSideMatched);
       }
 
-      if (joinOption.needOutputProbeSideUnmatched()) {
+      if (joinOption.isToOutputProbeSideUnmatched()) {
         outputProbeSideUnmatched(probeSideIndicesBuilder, markBuilder, probeSideMatched);
       }
 
@@ -186,8 +189,8 @@ public class JoinHashMap implements AutoCloseable {
   }
 
   private MarkBuilder getMarkBuilder(int capacity) {
-    if (joinOption.needMark()) {
-      return new MarkBuilder(allocator, "mark", capacity, joinOption.isAntiMark());
+    if (joinOption.isToOutputMark()) {
+      return new MarkBuilder(allocator, "&mark", capacity);
     } else {
       return new MarkBuilder();
     }
@@ -243,12 +246,12 @@ public class JoinHashMap implements AutoCloseable {
       int selection = matchedSelectionSupplier.apply(i);
       int probeSideMatchedIndex = proSideCandidateIndices.get(selection);
 
-      if (!joinOption.allowProbeSideMatchMultiple()) {
+      if (!joinOption.isAllowedToMatchMultiple()) {
         if (probeSideMatched[probeSideMatchedIndex]) {
           throw new ComputeException("the return value of sub-query has more than one rows");
         }
       }
-      if (!joinOption.needAllMatched()) {
+      if (!joinOption.isToOutputAllMatched()) {
         if (probeSideMatched[probeSideMatchedIndex]) {
           continue;
         }
@@ -324,13 +327,47 @@ public class JoinHashMap implements AutoCloseable {
     if (mark != null) {
       vectors.add(ValueVectors.slice(allocator, mark));
     }
+
     try (VectorSchemaRoot result = new VectorSchemaRoot(vectors);
         VectorSchemaRoot output =
-            ScalarExpressionUtils.evaluate(
-                allocator, dictionaryProvider, result, null, outputExpressions)) {
+              ScalarExpressionUtils.evaluate(
+                allocator, dictionaryProvider, result, null, outputExpressions);
+        BaseIntVector selection = getSelection(probeSideIndices)) {
       resultConsumer.consume(
-          dictionaryProvider.slice(allocator), VectorSchemaRoots.transfer(allocator, output));
+          dictionaryProvider.slice(allocator),
+          VectorSchemaRoots.transfer(allocator, output),
+          ValueVectors.slice(allocator, selection));
     }
+  }
+
+  @Nullable
+  private BaseIntVector getSelection(BaseIntVector probeSideIndices) {
+    if (!joinOption.isToOutputProbeSideUnmatched() || !joinOption.isOrderByProbeSideOrdinal()) {
+      return null;
+    }
+    if (isInOrder(probeSideIndices)) {
+      return null;
+    }
+
+    IntVector selection = new IntVector("selection", allocator);
+    selection.allocateNew(probeSideIndices.getValueCount());
+    selection.setValueCount(probeSideIndices.getValueCount());
+    new IndexSorter<>()
+        .sort(
+            probeSideIndices,
+            selection,
+            new StableVectorComparator<>(
+                DefaultVectorComparators.createDefaultComparator(probeSideIndices)));
+    return selection;
+  }
+
+  private static boolean isInOrder(BaseIntVector vector) {
+    for (int i = 1; i < vector.getValueCount(); i++) {
+      if (vector.getValueAsLong(i) < vector.getValueAsLong((i - 1))) {
+        return false;
+      }
+    }
+    return true;
   }
 
   public static class Builder implements AutoCloseable {

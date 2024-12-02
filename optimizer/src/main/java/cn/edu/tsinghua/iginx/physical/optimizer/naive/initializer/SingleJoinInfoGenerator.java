@@ -57,7 +57,7 @@ public class SingleJoinInfoGenerator implements BinaryExecutorFactory<StatefulBi
       throws ComputeException {
 
     List<Filter> subFilters = new ArrayList<>();
-    if (!operator.getFilter().equals(new BoolFilter(true))) {
+    if (operator.getFilter() != null) {
       subFilters.add(operator.getFilter());
     }
     for (String extraPrefix : operator.getExtraJoinPrefix()) {
@@ -71,6 +71,10 @@ public class SingleJoinInfoGenerator implements BinaryExecutorFactory<StatefulBi
         operator.getPrefixA(),
         operator.getPrefixB(),
         new AndFilter(subFilters),
-        JoinOption.SINGLE);
+        JoinOption.SINGLE,
+        "&mark",
+        false,
+        true,
+        false);
   }
 }

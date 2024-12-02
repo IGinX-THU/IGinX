@@ -61,8 +61,8 @@ public class Batch implements AutoCloseable {
   public static Batch of(
       @WillCloseWhenClosed VectorSchemaRoot compute,
       @WillCloseWhenClosed CloseableDictionaryProvider dictionaryProvider,
-      @WillCloseWhenClosed BaseIntVector selection) {
-    return new Batch(compute, dictionaryProvider, null);
+      @Nullable @WillCloseWhenClosed BaseIntVector selection) {
+    return new Batch(compute, dictionaryProvider, selection);
   }
 
   public static Batch empty(BufferAllocator allocator, Schema outputSchema) {

@@ -24,4 +24,5 @@ public enum TaskType {
   MultipleMemory,
   BinaryMemory,
   UnaryMemory,
+  SourceMemory,
 }

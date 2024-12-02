@@ -47,7 +47,8 @@ public class SimpleProjectionInfoGenerator implements UnaryExecutorFactory<Proje
     return new ProjectExecutor(context, inputSchema.raw(), expressions);
   }
 
-  public List<ScalarExpression<?>> getExpression(ExecutorContext context, BatchSchema inputSchema) {
+  public List<ScalarExpression<?>> getExpression(ExecutorContext context, BatchSchema inputSchema)
+      throws ComputeException {
     switch (operator.getType()) {
       case Project:
         return getExpressionsWithFields(
@@ -101,10 +102,12 @@ public class SimpleProjectionInfoGenerator implements UnaryExecutorFactory<Proje
         if (!StringUtils.isPattern(pattern)) {
           if (pattern.equals(name)) {
             ret.add(new Pair<>(name, i));
+            break;
           }
         } else {
           if (Pattern.matches(StringUtils.reformatPath(pattern), name)) {
             ret.add(new Pair<>(name, i));
+            break;
           }
         }
       }
@@ -120,7 +123,7 @@ public class SimpleProjectionInfoGenerator implements UnaryExecutorFactory<Proje
    * @return 输出的列名和对应原来输入列的索引
    */
   protected static List<Pair<String, Integer>> getColumnsAndIndices(
-      BatchSchema inputSchema, Reorder reorder) {
+      BatchSchema inputSchema, Reorder reorder) throws ComputeException {
     List<Pair<String, Integer>> ret = new ArrayList<>();
     int start = inputSchema.hasKey() ? 1 : 0;
     int totalFieldSize = inputSchema.raw().getFields().size();

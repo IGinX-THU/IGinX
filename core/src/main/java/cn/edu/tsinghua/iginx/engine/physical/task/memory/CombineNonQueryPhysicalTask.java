@@ -21,11 +21,10 @@ package cn.edu.tsinghua.iginx.engine.physical.task.memory;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.task.PhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskResult;
-import cn.edu.tsinghua.iginx.engine.physical.task.TaskType;
-import cn.edu.tsinghua.iginx.engine.physical.task.visitor.TaskVisitor;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStreams;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import java.util.List;
@@ -34,20 +33,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /** 目前专门用于 CombineNonQuery 操作符 */
-public class MultipleMemoryPhysicalTask extends MemoryPhysicalTask<BatchStream> {
+public class CombineNonQueryPhysicalTask extends MultiMemoryPhysicalTask<BatchStream, RowStream> {
   @SuppressWarnings("unused")
-  private static final Logger LOGGER = LoggerFactory.getLogger(MultipleMemoryPhysicalTask.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(CombineNonQueryPhysicalTask.class);
 
-  private final List<PhysicalTask<?>> parentTasks;
-
-  public MultipleMemoryPhysicalTask(
-      List<Operator> operators, List<PhysicalTask<?>> parentTasks, RequestContext context) {
-    super(TaskType.MultipleMemory, operators, context, parentTasks.size());
-    this.parentTasks = parentTasks;
-  }
-
-  public List<PhysicalTask<?>> getParentTasks() {
-    return parentTasks;
+  public CombineNonQueryPhysicalTask(
+      List<Operator> operators, List<PhysicalTask<RowStream>> parentTasks, RequestContext context) {
+    super(operators, context, parentTasks);
   }
 
   @Override
@@ -65,7 +57,7 @@ public class MultipleMemoryPhysicalTask extends MemoryPhysicalTask<BatchStream> 
           new PhysicalException("multiple memory physical task shouldn't have follower task"));
     }
     PhysicalException exception = null;
-    for (PhysicalTask<?> parentTask : parentTasks) {
+    for (PhysicalTask<?> parentTask : getParentTasks()) {
       try {
         parentTask.getResult().get().close();
       } catch (PhysicalException | ExecutionException | InterruptedException e) {
@@ -84,20 +76,6 @@ public class MultipleMemoryPhysicalTask extends MemoryPhysicalTask<BatchStream> 
       return new TaskResult<>(exception);
     }
     return new TaskResult<>(BatchStreams.empty());
-  }
-
-  @Override
-  public void accept(TaskVisitor visitor) {
-    visitor.enter();
-    visitor.visit(this);
-
-    List<PhysicalTask<?>> tasks = getParentTasks();
-    for (PhysicalTask<?> task : tasks) {
-      if (task != null) {
-        task.accept(visitor);
-      }
-    }
-    visitor.leave();
   }
 
   @Override

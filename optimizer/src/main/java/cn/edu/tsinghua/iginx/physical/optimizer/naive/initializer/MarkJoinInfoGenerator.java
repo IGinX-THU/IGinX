@@ -55,10 +55,9 @@ public class MarkJoinInfoGenerator implements BinaryExecutorFactory<StatefulBina
   public HashJoinExecutor initializeHashJoin(
       ExecutorContext context, BatchSchema leftSchema, BatchSchema rightSchema)
       throws ComputeException {
-    JoinOption joinOption = JoinOption.ofMark(operator.getMarkColumn(), operator.isAntiJoin());
 
     List<Filter> subFilters = new ArrayList<>();
-    if (!operator.getFilter().equals(new BoolFilter(true))) {
+    if (operator.getFilter() != null) {
       subFilters.add(operator.getFilter());
     }
     for (String extraPrefix : operator.getExtraJoinPrefix()) {
@@ -72,6 +71,10 @@ public class MarkJoinInfoGenerator implements BinaryExecutorFactory<StatefulBina
         operator.getPrefixA(),
         operator.getPrefixB(),
         new AndFilter(subFilters),
-        joinOption);
+        JoinOption.MARK,
+        operator.getMarkColumn(),
+        operator.isAntiJoin(),
+        false,
+        false);
   }
 }

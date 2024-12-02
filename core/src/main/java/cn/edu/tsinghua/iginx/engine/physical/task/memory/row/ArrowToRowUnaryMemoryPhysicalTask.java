@@ -44,7 +44,7 @@ public class ArrowToRowUnaryMemoryPhysicalTask
   protected RowStream compute(BatchStream previous) throws PhysicalException {
     RowStream result = new BatchStreamToRowStreamWrapper(previous, getMetrics());
     try {
-      info = "ArrowToRow: " + result.getHeader();
+      info = "ArrowToRow: " + previous.getSchema().toString();
     } catch (PhysicalException e) {
       try (RowStream ignored = result) {
         throw e;
