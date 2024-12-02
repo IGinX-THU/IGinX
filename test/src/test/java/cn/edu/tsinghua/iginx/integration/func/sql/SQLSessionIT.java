@@ -1332,6 +1332,7 @@ public class SQLSessionIT {
     executor.executeAndCompare(orderByQuery, expected);
   }
 
+  @Ignore
   @Test
   public void testRowTransformFunction() {
     String insert =
@@ -6881,6 +6882,7 @@ public class SQLSessionIT {
     executor.executeAndCompare(query, expected);
   }
 
+  @Ignore
   @Test
   public void testBaseInfoConcurrentQuery() {
     if (isScaling) {

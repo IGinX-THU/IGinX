@@ -17,20 +17,12 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package cn.edu.tsinghua.iginx.engine.physical.storage.pool;
+package cn.edu.tsinghua.iginx.engine.physical.memory;
 
-import cn.edu.tsinghua.iginx.engine.physical.pool.AbstractTaskThreadPoolExecutor;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.TimeUnit;
+import cn.edu.tsinghua.iginx.engine.physical.AbstractTaskThreadPoolExecutor;
 
-public class StorageTaskThreadPoolExecutor extends AbstractTaskThreadPoolExecutor {
-
-  public StorageTaskThreadPoolExecutor(
-      int corePoolSize,
-      int maximumPoolSize,
-      long keepAliveTime,
-      TimeUnit unit,
-      BlockingQueue<Runnable> queue) {
-    super(corePoolSize, maximumPoolSize, keepAliveTime, unit, queue);
+public class MemoryTaskThreadPoolExecutor extends AbstractTaskThreadPoolExecutor {
+  public MemoryTaskThreadPoolExecutor(int poolSize) {
+    super(poolSize);
   }
 }
