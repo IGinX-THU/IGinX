@@ -37,11 +37,11 @@ import java.util.List;
 import java.util.Objects;
 import org.apache.arrow.vector.types.pojo.Schema;
 
-public class TransformProjectionInfoGenerator implements UnaryExecutorFactory<ProjectExecutor> {
+public class RowTransformInfoGenerator implements UnaryExecutorFactory<ProjectExecutor> {
 
   private static RowTransform operator = null;
 
-  public TransformProjectionInfoGenerator(RowTransform operator) {
+  public RowTransformInfoGenerator(RowTransform operator) {
     this.operator = Objects.requireNonNull(operator);
   }
 

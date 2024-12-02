@@ -62,12 +62,12 @@ public class CompareNode extends CallNode<BitVector> implements PredicateExpress
       throws ComputeException {
     if (children.stream().allMatch(e -> e instanceof LiteralNode || e instanceof FieldNode)) {
       try (VectorSchemaRoot args =
-          ScalarExpressions.evaluate(allocator, dictionaryProvider, input, null, children)) {
+          ScalarExpressionUtils.evaluate(allocator, dictionaryProvider, input, null, children)) {
         return function.filter(allocator, dictionaryProvider, args, selection);
       }
     }
     try (VectorSchemaRoot args =
-        ScalarExpressions.evaluate(allocator, dictionaryProvider, input, selection, children)) {
+        ScalarExpressionUtils.evaluate(allocator, dictionaryProvider, input, selection, children)) {
       return function.filter(allocator, dictionaryProvider, args, null);
     }
   }

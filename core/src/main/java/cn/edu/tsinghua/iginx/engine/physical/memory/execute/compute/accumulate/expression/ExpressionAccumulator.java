@@ -19,7 +19,7 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.Accumulator;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpression;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpressions;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpressionUtils;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import java.util.ArrayList;
 import java.util.List;
@@ -52,7 +52,7 @@ public class ExpressionAccumulator implements Accumulator {
   @Override
   public void update(State state, VectorSchemaRoot input) throws ComputeException {
     try (VectorSchemaRoot expressionResult =
-        ScalarExpressions.evaluate(allocator, input, expressions)) {
+        ScalarExpressionUtils.evaluate(allocator, input, expressions)) {
       accumulator.update(state, expressionResult);
     }
   }

@@ -22,7 +22,7 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.A
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.expression.ExpressionAccumulator;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.expression.ExpressionAccumulators;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpression;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpressions;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpressionUtils;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputingCloseable;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ComputingCloseables;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.Schemas;
@@ -104,9 +104,9 @@ public class GroupTable implements AutoCloseable {
       this.groupValueExpressions = new ArrayList<>(groupValueExpressions);
       this.accumulators = accumulators;
       this.groupKeySchema =
-          ScalarExpressions.getOutputSchema(allocator, groupKeyExpressions, inputSchema);
+          ScalarExpressionUtils.getOutputSchema(allocator, groupKeyExpressions, inputSchema);
       this.groupValueSchema =
-          ScalarExpressions.getOutputSchema(allocator, groupValueExpressions, inputSchema);
+          ScalarExpressionUtils.getOutputSchema(allocator, groupValueExpressions, inputSchema);
       this.accumulatedSchema = ExpressionAccumulators.getOutputSchema(accumulators);
       this.outputSchema =
           PhysicalFunctions.unnest(Schemas.merge(groupKeySchema, accumulatedSchema));
@@ -115,7 +115,7 @@ public class GroupTable implements AutoCloseable {
     public void add(VectorSchemaRoot data) throws ComputeException {
       List<GroupState> groupStates = new ArrayList<>(data.getRowCount());
       try (VectorSchemaRoot groupKeys =
-          ScalarExpressions.evaluate(allocator, data, groupKeyExpressions)) {
+          ScalarExpressionUtils.evaluate(allocator, data, groupKeyExpressions)) {
         RowCursor cursor = new RowCursor(groupKeys);
         for (int row = 0; row < groupKeys.getRowCount(); row++) {
           cursor.setPosition(row);
@@ -129,7 +129,7 @@ public class GroupTable implements AutoCloseable {
         }
       }
       try (VectorSchemaRoot groupValues =
-          ScalarExpressions.evaluate(allocator, data, groupValueExpressions)) {
+          ScalarExpressionUtils.evaluate(allocator, data, groupValueExpressions)) {
         RowCursor cursor = new RowCursor(groupValues);
         for (int row = 0; row < groupStates.size(); row++) {
           cursor.setPosition(row);

@@ -30,6 +30,10 @@ import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.dictionary.DictionaryProvider;
 
+/**
+ * CallNode：用于调用函数的节点
+ * @param <OUTPUT>
+ */
 public class CallNode<OUTPUT extends FieldVector> extends AbstractScalarExpression<OUTPUT> {
 
   private final ScalarFunction<OUTPUT> function;
@@ -82,12 +86,12 @@ public class CallNode<OUTPUT extends FieldVector> extends AbstractScalarExpressi
     if (getChildren().stream()
         .allMatch(child -> child instanceof LiteralNode || child instanceof FieldNode)) {
       try (VectorSchemaRoot args =
-          ScalarExpressions.evaluate(allocator, dictionaryProvider, input, null, getChildren())) {
+          ScalarExpressionUtils.evaluate(allocator, dictionaryProvider, input, null, getChildren())) {
         return function.invoke(allocator, dictionaryProvider, selection, args);
       }
     }
     try (VectorSchemaRoot args =
-        ScalarExpressions.evaluate(
+        ScalarExpressionUtils.evaluate(
             allocator, dictionaryProvider, input, selection, getChildren())) {
       return function.invoke(allocator, dictionaryProvider, null, args);
     }

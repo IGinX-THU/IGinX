@@ -20,7 +20,7 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.binary.sta
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.join.JoinHashMap;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.join.JoinOption;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpression;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpressions;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpressionUtils;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.predicate.expression.PredicateExpression;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
@@ -76,7 +76,7 @@ public class HashJoinExecutor extends StatefulBinaryExecutor {
       outputFields.addAll(rightSchema.raw().getFields());
       outputFields.add(Field.nullable("mark", Types.MinorType.BIT.getType()));
       this.outputSchema =
-          ScalarExpressions.getOutputSchema(
+          ScalarExpressionUtils.getOutputSchema(
               context.getAllocator(), outputExpressions, new Schema(outputFields));
     }
     return outputSchema;

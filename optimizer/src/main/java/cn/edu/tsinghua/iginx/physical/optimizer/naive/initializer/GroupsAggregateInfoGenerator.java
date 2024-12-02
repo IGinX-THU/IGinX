@@ -22,7 +22,7 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.e
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.expression.ExpressionAccumulator;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.FieldNode;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpression;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpressions;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpressionUtils;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.Schemas;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
@@ -78,7 +78,7 @@ public class GroupsAggregateInfoGenerator
     }
 
     Schema groupValueSchema =
-        ScalarExpressions.getOutputSchema(
+        ScalarExpressionUtils.getOutputSchema(
             context.getAllocator(), groupValueExpressions, inputSchema.raw());
 
     List<ExpressionAccumulator> accumulators = new ArrayList<>();

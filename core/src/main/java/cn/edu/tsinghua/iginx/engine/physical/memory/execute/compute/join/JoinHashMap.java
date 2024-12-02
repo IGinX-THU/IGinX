@@ -18,7 +18,7 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.join;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpression;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpressions;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpressionUtils;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.predicate.expression.PredicateExpression;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.*;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
@@ -326,7 +326,7 @@ public class JoinHashMap implements AutoCloseable {
     }
     try (VectorSchemaRoot result = new VectorSchemaRoot(vectors);
         VectorSchemaRoot output =
-            ScalarExpressions.evaluate(
+            ScalarExpressionUtils.evaluate(
                 allocator, dictionaryProvider, result, null, outputExpressions)) {
       resultConsumer.consume(
           dictionaryProvider.slice(allocator), VectorSchemaRoots.transfer(allocator, output));

@@ -256,7 +256,7 @@ public class NaivePhysicalPlanner {
         convert(sourceTask, context, BatchStream.class),
         Collections.singletonList(operator),
         context,
-        new TransformProjectionInfoGenerator(operator));
+        new RowTransformInfoGenerator(operator));
   }
 
   public PhysicalTask<?> construct(Select operator, RequestContext context) {
@@ -276,7 +276,7 @@ public class NaivePhysicalPlanner {
               batchTask,
               Collections.singletonList(new Select(source, null, operator.getTagFilter())),
               context,
-              new TagKVProjectionInfoGenerator(operator.getTagFilter()));
+              new TagKVInfoGenerator(operator.getTagFilter()));
     }
 
     if (operator.getFilter() != null) {

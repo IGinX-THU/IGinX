@@ -19,7 +19,7 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stat
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.PhysicalFunctions;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpression;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpressions;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpressionUtils;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.util.Batch;
@@ -46,7 +46,7 @@ public class ProjectExecutor extends StatelessUnaryExecutor {
   public Schema getOutputSchema() throws ComputeException {
     if (outputSchema == null) {
       outputSchema =
-          ScalarExpressions.getOutputSchema(context.getAllocator(), expressions, getInputSchema());
+          ScalarExpressionUtils.getOutputSchema(context.getAllocator(), expressions, getInputSchema());
     }
     return outputSchema;
   }
@@ -72,7 +72,7 @@ public class ProjectExecutor extends StatelessUnaryExecutor {
               .isComplex());
     }
     try (VectorSchemaRoot result =
-        ScalarExpressions.evaluate(
+        ScalarExpressionUtils.evaluate(
             context.getAllocator(),
             batch.getDictionaryProvider(),
             batch.getData(),

@@ -18,7 +18,7 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateless;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.PhysicalFunctions;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpressions;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpressionUtils;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.sort.IndexSortExpression;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ValueVectors;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
@@ -55,7 +55,7 @@ public class InnerBatchSortUnaryExecutor extends StatelessUnaryExecutor {
   @Override
   public Batch computeImpl(Batch batch) throws ComputeException {
     try (IntVector sortedIndices =
-        ScalarExpressions.evaluate(
+        ScalarExpressionUtils.evaluate(
             context.getAllocator(),
             batch.getDictionaryProvider(),
             batch.getData(),
