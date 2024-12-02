@@ -22,7 +22,6 @@ package cn.edu.tsinghua.iginx.vectordb.meta;
 import static cn.edu.tsinghua.iginx.vectordb.tools.Constants.KEY_NAME;
 
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
-import cn.edu.tsinghua.iginx.vectordb.datatype.transformer.IDataTypeTransformer;
 import java.util.List;
 
 public abstract class AbstractVectorDBMeta {
@@ -48,13 +47,6 @@ public abstract class AbstractVectorDBMeta {
    * @return ENGINE的驱动类
    */
   public abstract String getDriverClass();
-
-  /**
-   * 获取ENGINE的数据类型转换器
-   *
-   * @return ENGINE的数据类型转换器
-   */
-  public abstract IDataTypeTransformer getDataTypeTransformer();
 
   /**
    * 获取系统数据库名称，用于忽略，如pg的template0,template1

@@ -19,6 +19,7 @@
  */
 package cn.edu.tsinghua.iginx.vectordb.tools;
 
+import static cn.edu.tsinghua.iginx.vectordb.tools.Constants.MILVUS_DATA_FIELD_NAME;
 import static cn.edu.tsinghua.iginx.vectordb.tools.Constants.QUOTA;
 
 import cn.edu.tsinghua.iginx.thrift.DataType;
@@ -45,14 +46,15 @@ public class PathUtils {
   private static void initDatabase(
       MilvusClientV2 client, String databaseName, PathSystem pathSystem)
       throws UnsupportedEncodingException {
+    final String escapedDatabaseName = NameUtils.escape(databaseName);
     try {
-      client.useDatabase(databaseName);
+      client.useDatabase(escapedDatabaseName);
     } catch (Exception e) {
       return;
     }
-    for (String collectionName : MilvusClientUtils.listCollections(client, databaseName)) {
+    for (String collectionName : client.listCollections().getCollectionNames()) {
       Map<String, DataType> paths =
-          MilvusClientUtils.getCollectionPaths(client, databaseName, collectionName);
+          MilvusClientUtils.getCollectionPaths(client, escapedDatabaseName, collectionName,pathSystem);
       paths
           .keySet()
           .forEach(
@@ -108,10 +110,15 @@ public class PathUtils {
     if (!databaseName.startsWith(Constants.DATABASE_PREFIX)) {
       path.append(NameUtils.unescape(databaseName)).append(Constants.PATH_SEPARATOR);
     }
-    return path.append(NameUtils.unescape(collectionName))
-        .append(Constants.PATH_SEPARATOR)
-        .append(NameUtils.unescape(fieldName))
-        .toString();
+    if (org.apache.commons.lang3.StringUtils.isNotEmpty(fieldName)
+        && !MILVUS_DATA_FIELD_NAME.equals(fieldName)) {
+      return path.append(NameUtils.unescape(collectionName))
+          .append(Constants.PATH_SEPARATOR)
+          .append(NameUtils.unescape(fieldName))
+          .toString();
+    } else {
+      return path.append(NameUtils.unescape(collectionName)).toString();
+    }
   }
 
   public static String getPathUnescaped(
@@ -120,10 +127,15 @@ public class PathUtils {
     if (!databaseName.startsWith(Constants.DATABASE_PREFIX)) {
       path.append(databaseName).append(Constants.PATH_SEPARATOR);
     }
-    return path.append(collectionName)
-        .append(Constants.PATH_SEPARATOR)
-        .append(fieldName)
-        .toString();
+    if (org.apache.commons.lang3.StringUtils.isNotEmpty(fieldName)
+        && !MILVUS_DATA_FIELD_NAME.equals(fieldName)) {
+      return path.append(collectionName)
+          .append(Constants.PATH_SEPARATOR)
+          .append(fieldName)
+          .toString();
+    } else {
+      return path.append(collectionName).toString();
+    }
   }
 
   public static String findPath(

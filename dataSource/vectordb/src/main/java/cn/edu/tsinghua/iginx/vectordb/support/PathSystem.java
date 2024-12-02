@@ -24,6 +24,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public interface PathSystem {
 
@@ -59,4 +60,6 @@ public interface PathSystem {
   void setInited(boolean inited);
 
   String getDatabaseName();
+
+//  Set<String> getBackupCollections();
 }

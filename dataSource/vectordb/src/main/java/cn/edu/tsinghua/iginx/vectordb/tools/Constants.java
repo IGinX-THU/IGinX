@@ -99,6 +99,8 @@ public class Constants {
   /** 非dummy数据库默认数据库前缀。 用于在 Milvus 中创建数据库的名称。 */
   public static final String DATABASE_PREFIX = "unit";
 
+  public static final String COLLECTION_BACKUP_PREFIX = "backup_";
+
   public static final Character QUOTA = '`';
 
   public static final String PATH_SEPARATOR = ".";
@@ -122,6 +124,8 @@ public class Constants {
   public static final String MILVUS_PRIMARY_FIELD_NAME = "VECTORDBID";
 
   public static final String MILVUS_VECTOR_FIELD_NAME = "VECTORDBVECTOR";
+
+  public static final String MILVUS_DATA_FIELD_NAME = "VECTORDBDATA";
 
   public static final int MILVUS_INDEX_PARAM_NLIST = 8;
 

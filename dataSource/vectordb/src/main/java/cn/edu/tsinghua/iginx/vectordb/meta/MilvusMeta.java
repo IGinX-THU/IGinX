@@ -20,8 +20,6 @@
 package cn.edu.tsinghua.iginx.vectordb.meta;
 
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
-import cn.edu.tsinghua.iginx.vectordb.datatype.transformer.IDataTypeTransformer;
-import cn.edu.tsinghua.iginx.vectordb.datatype.transformer.MilvusDataTypeTransformer;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -36,8 +34,6 @@ public class MilvusMeta extends AbstractVectorDBMeta {
   private final String defaultDatabaseName;
 
   private final String driverClass;
-
-  private final MilvusDataTypeTransformer dataTypeTransformer;
 
   private final List<String> systemDatabaseName;
 
@@ -66,7 +62,6 @@ public class MilvusMeta extends AbstractVectorDBMeta {
     quote = properties.getProperty("quote").charAt(0);
     driverClass = properties.getProperty("driver_class");
     defaultDatabaseName = properties.getProperty("default_database");
-    dataTypeTransformer = new MilvusDataTypeTransformer(properties);
     systemDatabaseName = Arrays.asList(properties.getProperty("system_databases").split(","));
     databaseQuerySql = properties.getProperty("database_query_sql");
     databaseDropStatement = properties.getProperty("drop_database_statement");
@@ -121,11 +116,6 @@ public class MilvusMeta extends AbstractVectorDBMeta {
   @Override
   public String getDriverClass() {
     return driverClass;
-  }
-
-  @Override
-  public IDataTypeTransformer getDataTypeTransformer() {
-    return dataTypeTransformer;
   }
 
   @Override

@@ -9,24 +9,37 @@ runs:
           shell: bash
           run: |
               brew update
+              brew install docker qemu
+              brew install colima
+              LIMACTL_PATH=$(brew --prefix)/bin/limactl
+              sudo curl -L -o $LIMACTL_PATH https://github.com/mikekazakov/lima-nohvf/raw/master/limactl && sudo chmod +x $LIMACTL_PATH
+              colima start --network-address --arch arm64 --vm-type=qemu
               docker --version
+              colima status          
               brew install docker-compose
               docker-compose --version
 
         - if: runner.os == 'Windows'
-          name: Install Docker Compose on Windows
-          shell: pwsh
-          run: |
-              $ErrorActionPreference = "Stop"
-              $dockerComposeVersion = "v2.30.1"
-              $dockerComposePath = "${{ github.workspace }}\docker-compose.exe"
+          uses: vedantmgoyal9/setup-wsl2@main
 
-              # 下载 Docker Compose
-              Invoke-WebRequest -Uri "https://github.com/docker/compose/releases/download/$dockerComposeVersion/docker-compose-Windows-x86_64.exe" -OutFile $dockerComposePath
-              $dockerComposeDir = [System.IO.Path]::GetDirectoryName($dockerComposePath)
-              [System.Environment]::SetEnvironmentVariable("Path", "$env:Path;$dockerComposeDir", [System.EnvironmentVariableTarget]::Machine)
-              $env:Path += ";$dockerComposeDir"
+        - if: runner.os == 'Windows'
+          run: apt update && apt upgrade -y
+          shell: wsl-run {0}
+
+        - if: runner.os == 'Windows'
+          name: Install Docker Compose
+          shell: wsl-run {0}
+          run: |
+              sudo apt install apt-transport-https ca-certificates curl software-properties-common -y
+              curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+              sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable"
+              sudo apt update
+              sudo apt install docker-ce docker-ce-cli containerd.io -y
+              sudo service docker start
               docker --version
+              DOCKER_COMPOSE_VERSION=v2.30.1
+              sudo curl -L "https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+              sudo chmod +x /usr/local/bin/docker-compose
               docker-compose --version
 
         - if: runner.os == 'Linux'

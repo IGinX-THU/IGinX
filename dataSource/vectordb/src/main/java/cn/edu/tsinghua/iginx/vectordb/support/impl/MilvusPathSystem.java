@@ -27,7 +27,10 @@ import cn.edu.tsinghua.iginx.vectordb.support.PathSystem;
 import cn.edu.tsinghua.iginx.vectordb.tools.Constants;
 import cn.edu.tsinghua.iginx.vectordb.tools.NameUtils;
 import cn.edu.tsinghua.iginx.vectordb.tools.TagKVUtils;
+import cn.hutool.core.collection.ConcurrentHashSet;
+
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class MilvusPathSystem implements PathSystem {
 
@@ -37,12 +40,17 @@ public class MilvusPathSystem implements PathSystem {
   private boolean inited = false;
 
   /** 存储所有路径 key 为完整路径，未转义，带TagKV及版本号，value 为TagKV */
-  private final Map<String, Map<String, ?>> paths = new HashMap<>();
+  private final Map<String, Map<String, ?>> paths = new ConcurrentHashMap<>();
 
   /** 存储所有路径对应的列信息 key 为完整路径，未转义，带TagKV及版本号 */
-  private final Map<String, Column> columns = new HashMap<>();
+  private final Map<String, Column> columns = new ConcurrentHashMap<>();
 
   private final String databaseName;
+
+  /**
+   * 备份collection名称，escaped
+   */
+//  private final Set<String> backupCollections = new ConcurrentHashSet<>();
 
   public MilvusPathSystem(String databaseName) {
     this.databaseName = databaseName;
@@ -383,4 +391,10 @@ public class MilvusPathSystem implements PathSystem {
     }
     return null;
   }
+
+
+//  public Set<String> getBackupCollections() {
+//    return backupCollections;
+//  }
+
 }

@@ -64,19 +64,33 @@ runs:
 
         - if: fromJSON(inputs.start) && runner.os == 'Windows'
           name: Start milvus on Windows
-          shell: pwsh
+          shell: wsl-run {0}
           working-directory: ${{ github.workspace }}
           run: |
-              $env:Path += ";${{ github.workspace }}"
-
               for port in ${{ inputs.ports }}; do
-                docker-compose -f $port/docker-compose-$port.yml up -d
+                sudo chown -R $(whoami) $port/
+                sudo nohup docker-compose -f $port/docker-compose-$port.yml up -d
               done
               sleep 5
               for port in ${{ inputs.ports }}; do
-                if lsof -i :$port | grep -q LISTEN; then
+                if netstat -an | grep -q ".*:$port.*LISTEN"; then
                   echo "Port $port is open."
                 else
                   echo "Port $port is not open."
                 fi
               done
+              docker ps -a
+
+        - if: runner.os == 'macOS'
+          name: replace host
+          shell: bash
+          working-directory: ${{ github.workspace }}
+          run: |
+              MILVUS_HOST="192.168.106.2"
+              echo "MILVUS_HOST=${MILVUS_HOST}"
+              sed -i"" -e "s/127.0.0.1/${MILVUS_HOST}/g" test/src/test/java/cn/edu/tsinghua/iginx/integration/expansion/BaseCapacityExpansionIT.java
+              sed -i"" -e "s/Session(\"${MILVUS_HOST}/Session(\"127.0.0.1/g" test/src/test/java/cn/edu/tsinghua/iginx/integration/expansion/BaseCapacityExpansionIT.java
+              sed -i"" -e "s/127.0.0.1/${MILVUS_HOST}/g" test/src/test/java/cn/edu/tsinghua/iginx/integration/expansion/vectordb/VectorDBHistoryDataGenerator.java
+              sed -i"" -e "s/127.0.0.1#19530/${MILVUS_HOST}#19530/g" test/src/test/resources/testConfig.properties
+              sed -i"" -e "s/127.0.0.1:2181/${MILVUS_HOST}:2181/g" conf/config.properties
+              sed -i"" -e "s/127.0.0.1#19530/${MILVUS_HOST}#19530/g" conf/config.properties
