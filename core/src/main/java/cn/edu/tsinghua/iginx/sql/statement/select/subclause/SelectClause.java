@@ -1,28 +1,33 @@
 /*
  * IGinX - the polystore system with high performance
  * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-
 package cn.edu.tsinghua.iginx.sql.statement.select.subclause;
 
+import cn.edu.tsinghua.iginx.engine.shared.expr.BinaryExpression;
+import cn.edu.tsinghua.iginx.engine.shared.expr.BracketExpression;
 import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
 import cn.edu.tsinghua.iginx.engine.shared.expr.FuncExpression;
+import cn.edu.tsinghua.iginx.engine.shared.expr.MultipleExpression;
+import cn.edu.tsinghua.iginx.engine.shared.expr.SequenceExpression;
+import cn.edu.tsinghua.iginx.engine.shared.expr.UnaryExpression;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionUtils;
-import cn.edu.tsinghua.iginx.engine.shared.operator.type.FuncType;
-import cn.edu.tsinghua.iginx.sql.exception.SQLParserException;
+import cn.edu.tsinghua.iginx.engine.shared.function.MappingType;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.SubQueryFromPart;
 import java.util.*;
 
@@ -30,30 +35,12 @@ public class SelectClause {
   private final List<SubQueryFromPart> selectSubQueryParts;
   private boolean isDistinct = false;
   private boolean hasValueToSelectedPath = false;
-  private final Map<String, List<FuncExpression>> funcExpressionMap;
-  private boolean hasFunc = false;
+  private boolean isAllConstArith = false;
   private final List<Expression> expressions;
   private final Set<String> pathSet;
 
-  private static final Map<String, FuncType> str2TypeMap = new HashMap<>();
-
-  static {
-    str2TypeMap.put("first_value", FuncType.FirstValue);
-    str2TypeMap.put("last_value", FuncType.LastValue);
-    str2TypeMap.put("first", FuncType.First);
-    str2TypeMap.put("last", FuncType.Last);
-    str2TypeMap.put("min", FuncType.Min);
-    str2TypeMap.put("max", FuncType.Max);
-    str2TypeMap.put("avg", FuncType.Avg);
-    str2TypeMap.put("count", FuncType.Count);
-    str2TypeMap.put("sum", FuncType.Sum);
-    str2TypeMap.put("ratio", FuncType.Ratio);
-    str2TypeMap.put("", null);
-  }
-
   public SelectClause() {
     this.selectSubQueryParts = new ArrayList<>();
-    this.funcExpressionMap = new HashMap<>();
     this.expressions = new ArrayList<>();
     this.pathSet = new HashSet<>();
   }
@@ -82,61 +69,89 @@ public class SelectClause {
     this.hasValueToSelectedPath = hasValueToSelectedPath;
   }
 
-  public void addFuncExpressionMap(String func, List<FuncExpression> expressions) {
-    funcExpressionMap.put(func, expressions);
+  public boolean isAllConstArith() {
+    return isAllConstArith;
   }
 
-  public Map<String, List<FuncExpression>> getFuncExpressionMap() {
-    return funcExpressionMap;
+  public void setAllConstArith(boolean allConstArith) {
+    this.isAllConstArith = allConstArith;
   }
 
-  /**
-   * 通过函数名，以及str2FuncType函数，获取函数类型的集合
-   *
-   * @return 函数类型的集合
-   */
-  public Set<FuncType> getFuncTypeSet() {
-    Set<FuncType> funcTypeSet = new HashSet<>();
-    for (Map.Entry<String, List<FuncExpression>> entry : funcExpressionMap.entrySet()) {
-      String func = entry.getKey();
-      funcTypeSet.add(str2FuncType(func));
-    }
-    return funcTypeSet;
-  }
-
-  public boolean containsFuncType(FuncType funcType) {
-    for (Map.Entry<String, List<FuncExpression>> entry : funcExpressionMap.entrySet()) {
-      String func = entry.getKey();
-      if (str2FuncType(func) == funcType) {
-        return true;
+  public boolean isLastFirst() {
+    List<FuncExpression> funcList = getTargetTypeFuncExprList(MappingType.Mapping);
+    boolean isLastFirst = true;
+    for (FuncExpression func : funcList) {
+      if (!func.getFuncName().equalsIgnoreCase("first")
+          && !func.getFuncName().equalsIgnoreCase("last")) {
+        isLastFirst = false;
+        break;
       }
     }
-    return false;
+    return isLastFirst;
   }
 
-  public static FuncType str2FuncType(String identifier) {
-    String lowerCaseIdentifier = identifier.toLowerCase();
-
-    if (str2TypeMap.containsKey(lowerCaseIdentifier)) {
-      return str2TypeMap.get(lowerCaseIdentifier);
-    } else {
-      if (FunctionUtils.isRowToRowFunction(identifier)) {
-        return FuncType.Udtf;
-      } else if (FunctionUtils.isSetToRowFunction(identifier)) {
-        return FuncType.Udaf;
-      } else if (FunctionUtils.isSetToSetFunction(identifier)) {
-        return FuncType.Udsf;
-      }
-      throw new SQLParserException(String.format("Unregister UDF function: %s.", identifier));
+  public List<FuncExpression> getTargetTypeFuncExprList(MappingType mappingType) {
+    List<FuncExpression> ret = new ArrayList<>();
+    for (Expression expression : expressions) {
+      ret.addAll(getTargetTypeFuncExprList(mappingType, expression));
     }
+    return ret;
   }
 
-  public boolean hasFunc() {
-    return hasFunc;
+  private List<FuncExpression> getTargetTypeFuncExprList(MappingType mappingType, Expression expr) {
+    List<FuncExpression> ret = new ArrayList<>();
+    switch (expr.getType()) {
+      case Unary:
+        UnaryExpression unaryExpr = (UnaryExpression) expr;
+        ret.addAll(getTargetTypeFuncExprList(mappingType, unaryExpr.getExpression()));
+        break;
+      case Bracket:
+        BracketExpression bracketExpr = (BracketExpression) expr;
+        ret.addAll(getTargetTypeFuncExprList(mappingType, bracketExpr.getExpression()));
+        break;
+      case Binary:
+        BinaryExpression binaryExpr = (BinaryExpression) expr;
+        ret.addAll(getTargetTypeFuncExprList(mappingType, binaryExpr.getLeftExpression()));
+        ret.addAll(getTargetTypeFuncExprList(mappingType, binaryExpr.getRightExpression()));
+        break;
+      case Multiple:
+        MultipleExpression multipleExpr = (MultipleExpression) expr;
+        for (Expression child : multipleExpr.getChildren()) {
+          ret.addAll(getTargetTypeFuncExprList(mappingType, child));
+        }
+        break;
+      case Function:
+        FuncExpression funcExpr = (FuncExpression) expr;
+        String funcName = funcExpr.getFuncName();
+        if (FunctionUtils.getFunctionMappingType(funcName) == mappingType) {
+          ret.add(funcExpr);
+        } else {
+          for (Expression expression : funcExpr.getExpressions()) {
+            ret.addAll(getTargetTypeFuncExprList(mappingType, expression));
+          }
+        }
+        break;
+      case Base:
+      case Constant:
+      case Key:
+      case Sequence:
+      case FromValue:
+      case CaseWhen:
+        break;
+      default:
+        throw new IllegalArgumentException(String.format("Unknown expr type: %s", expr.getType()));
+    }
+    return ret;
   }
 
-  public void setHasFunc(boolean hasFunc) {
-    this.hasFunc = hasFunc;
+  public List<SequenceExpression> getSequenceExpressionList() {
+    List<SequenceExpression> ret = new ArrayList<>();
+    for (Expression expression : expressions) {
+      if (expression instanceof SequenceExpression) {
+        ret.add((SequenceExpression) expression);
+      }
+    }
+    return ret;
   }
 
   public void addExpression(Expression expression) {
@@ -149,10 +164,6 @@ public class SelectClause {
 
   public Set<String> getPathSet() {
     return pathSet;
-  }
-
-  public void addAllPath(Collection<String> paths) {
-    this.pathSet.addAll(paths);
   }
 
   public void addPath(String path) {

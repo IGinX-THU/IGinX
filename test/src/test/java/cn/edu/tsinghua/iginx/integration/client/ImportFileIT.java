@@ -1,21 +1,22 @@
 /*
  * IGinX - the polystore system with high performance
  * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-
 package cn.edu.tsinghua.iginx.integration.client;
 
 import cn.edu.tsinghua.iginx.exception.SessionException;
@@ -66,11 +67,11 @@ public class ImportFileIT {
             + "Total line number = 5\n";
     executor.executeAndCompare(query, expected);
 
-    String query1 = "SELECT * FROM t1;";
-    String expected1 =
+    query = "SELECT * FROM t1;";
+    expected =
         "ResultSets:\n"
             + "+---+------+----+----+------+\n"
-            + "|key|t2._c_|t2.a|t2.b|t2.d_m|\n"
+            + "|key|t1._c_|t1.a|t1.b|t1.d_m|\n"
             + "+---+------+----+----+------+\n"
             + "| 10|  true| aaa| 0.5|   0.0|\n"
             + "| 11| false| bbb| 1.5|   1.0|\n"

@@ -1,19 +1,21 @@
 /*
  * IGinX - the polystore system with high performance
  * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 package cn.edu.tsinghua.iginx.integration.tpch;
 
@@ -29,10 +31,13 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 import java.util.Scanner;
+import java.util.TimeZone;
 import java.util.stream.Collectors;
 import org.junit.Assert;
 import org.slf4j.Logger;
@@ -138,10 +143,17 @@ public class TPCHUtils {
     }
     for (int i = 0; i < values.size(); i++) {
       for (int j = 0; j < values.get(i).size(); j++) {
-        if (result.getPaths().get(j).contains("address")
-            || result.getPaths().get(j).contains("comment")
-            || result.getPaths().get(j).contains("orderdate")) {
-          // TODO change unix time to date
+        if (result.getPaths().get(j).contains("orderdate")) {
+          long timestamp = (long) values.get(i).get(j);
+          SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+          dateFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
+          String date = dateFormat.format(new Date(timestamp));
+          String answerDate = answers.get(i).get(j);
+          if (!date.equals(answerDate)) {
+            System.out.println("Result string: '" + date + "'");
+            System.out.println("Answer string: '" + answerDate + "'");
+          }
+          assert date.equals(answerDate);
           continue;
         }
         // if only contains number and dot, then parse to double
@@ -152,13 +164,15 @@ public class TPCHUtils {
             System.out.println("Number: " + number);
             System.out.println("Answer number: " + answerNumber);
           }
+
           assert answerNumber - number < 1e-3 && number - answerNumber < 1e-3;
         } else {
-          String resultString = new String((byte[]) values.get(i).get(j), StandardCharsets.UTF_8);
-          String answerString = answers.get(i).get(j);
+          String resultString =
+              new String((byte[]) values.get(i).get(j), StandardCharsets.UTF_8).trim();
+          String answerString = answers.get(i).get(j).trim();
           if (!resultString.equals(answerString)) {
-            System.out.println("Result string: " + resultString);
-            System.out.println("Answer string: " + answerString);
+            System.out.println("Result string: '" + resultString + "'");
+            System.out.println("Answer string: '" + answerString + "'");
           }
           assert resultString.equals(answerString);
         }

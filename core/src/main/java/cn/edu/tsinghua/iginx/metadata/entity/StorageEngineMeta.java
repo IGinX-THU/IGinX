@@ -1,19 +1,21 @@
 /*
  * IGinX - the polystore system with high performance
  * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 package cn.edu.tsinghua.iginx.metadata.entity;
 
@@ -308,17 +310,51 @@ public final class StorageEngineMeta {
         && Objects.equals(dataPrefix, that.getDataPrefix());
   }
 
+  public boolean isSameAddress(StorageEngineMeta that) {
+    return (ip.equals(that.ip) || (isLocalHost(ip) && isLocalHost(that.ip))) && port == that.port;
+  }
+
+  /**
+   * contains 表示该数据库的功能完全覆盖另一个数据库，满足以下条件：对方数据库为只读；两数据库的ip、端口、类型、schema_prefix相同； 该数据库没有data_prefix
+   */
+  public boolean contains(StorageEngineMeta that) {
+    return that.isReadOnly()
+        && (ip.equals(that.ip) || (isLocalHost(ip) && isLocalHost(that.ip)))
+        && port == that.port
+        && storageEngine == that.storageEngine
+        && Objects.equals(schemaPrefix, that.getSchemaPrefix())
+        && dataPrefix == null;
+  }
+
   @Override
   public String toString() {
     return "StorageEngineMeta {"
+        + "id='"
+        + getId()
+        + "', "
         + "ip='"
         + ip
-        + '\''
-        + ", port="
+        + "', "
+        + "port='"
         + port
-        + ", type='"
+        + "', "
+        + "type='"
         + storageEngine.toString()
-        + '\''
-        + '}';
+        + "', "
+        + "has_data='"
+        + (hasData ? "true" : "false")
+        + "', "
+        + "read_only='"
+        + (readOnly ? "true" : "false")
+        + "', "
+        + "schema_prefix='"
+        + (schemaPrefix != null ? schemaPrefix : "NULL")
+        + "', "
+        + "data_prefix='"
+        + (dataPrefix != null ? dataPrefix : "NULL")
+        + "', "
+        + "extra_params='"
+        + (extraParams.toString())
+        + "', ";
   }
 }

@@ -1,21 +1,22 @@
 /*
  * IGinX - the polystore system with high performance
  * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-
 package cn.edu.tsinghua.iginx.engine.logical.utils;
 
 import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils.*;
@@ -26,6 +27,7 @@ import static cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType.isM
 import static cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType.isUnaryOperator;
 
 import cn.edu.tsinghua.iginx.engine.shared.expr.BaseExpression;
+import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionUtils;
@@ -38,6 +40,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.PathFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.JoinAlgType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OuterJoinType;
+import cn.edu.tsinghua.iginx.engine.shared.source.ConstantSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.FragmentSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.Source;
@@ -95,7 +98,8 @@ public class OperatorUtils {
 
     if (OperatorType.isUnaryOperator(operator.getType())) {
       AbstractUnaryOperator unaryOperator = (AbstractUnaryOperator) operator;
-      if (unaryOperator.getSource().getType() != SourceType.Fragment) {
+      if (unaryOperator.getSource().getType() != SourceType.Fragment
+          && unaryOperator.getSource().getType() != SourceType.Constant) {
         pathList.addAll(findPathList(((OperatorSource) unaryOperator.getSource()).getOperator()));
       }
     } else if (OperatorType.isBinaryOperator(operator.getType())) {
@@ -123,7 +127,7 @@ public class OperatorUtils {
     if (OperatorType.isUnaryOperator(operator.getType())) {
       UnaryOperator unaryOp = (UnaryOperator) operator;
       Source source = unaryOp.getSource();
-      if (source.getType() != SourceType.Fragment) {
+      if (source.getType() != SourceType.Fragment && source.getType() != SourceType.Constant) {
         findProjectOperators(projectOperatorList, ((OperatorSource) source).getOperator());
       }
     } else if (OperatorType.isBinaryOperator(operator.getType())) {
@@ -218,6 +222,7 @@ public class OperatorUtils {
               null,
               new ArrayList<>(),
               false,
+              false,
               JoinAlgType.HashJoin,
               correlatedVariables);
     } else {
@@ -280,7 +285,8 @@ public class OperatorUtils {
         apply.setSourceB(rowTransform.getSource());
         List<FunctionCall> functionCallList = new ArrayList<>(rowTransform.getFunctionCallList());
         for (String correlatedVariable : correlatedVariables) {
-          FunctionParams params = new FunctionParams(new BaseExpression(correlatedVariable));
+          FunctionParams params =
+              new FunctionParams(Collections.singletonList(new BaseExpression(correlatedVariable)));
           functionCallList.add(
               new FunctionCall(FunctionManager.getInstance().getFunction(ARITHMETIC_EXPR), params));
         }
@@ -306,24 +312,26 @@ public class OperatorUtils {
                   singleJoin.getFilter(),
                   new ArrayList<>(),
                   false,
+                  false,
                   singleJoin.getJoinAlgType(),
                   singleJoin.getExtraJoinPrefix());
         }
         root =
             new GroupBy(
                 new OperatorSource(pushDownApply(apply, correlatedVariables)),
-                correlatedVariables,
+                correlatedVariables.stream().map(BaseExpression::new).collect(Collectors.toList()),
                 setTransform.getFunctionCallList());
         break;
       case GroupBy:
         GroupBy groupBy = (GroupBy) operatorB;
         apply.setSourceB(groupBy.getSource());
-        List<String> groupByCols = groupBy.getGroupByCols();
-        groupByCols.addAll(correlatedVariables);
+        List<Expression> groupByExpressions = groupBy.getGroupByExpressions();
+        groupByExpressions.addAll(
+            correlatedVariables.stream().map(BaseExpression::new).collect(Collectors.toList()));
         root =
             new GroupBy(
                 new OperatorSource(pushDownApply(apply, correlatedVariables)),
-                groupByCols,
+                groupByExpressions,
                 groupBy.getFunctionCallList());
         break;
       case Rename:
@@ -367,6 +375,7 @@ public class OperatorUtils {
                   null,
                   new BoolFilter(true),
                   new ArrayList<>(),
+                  false,
                   false,
                   JoinAlgType.HashJoin,
                   correlatedVariables);
@@ -557,6 +566,7 @@ public class OperatorUtils {
             select.getFilter(),
             new ArrayList<>(),
             false,
+            false,
             algType,
             crossJoin.getExtraJoinPrefix());
       case InnerJoin:
@@ -708,5 +718,12 @@ public class OperatorUtils {
       }
     }
     return true;
+  }
+
+  public static boolean isProjectFromConstant(Operator operator) {
+    if (operator instanceof Project) {
+      return ((Project) operator).getSource() instanceof ConstantSource;
+    }
+    return false;
   }
 }

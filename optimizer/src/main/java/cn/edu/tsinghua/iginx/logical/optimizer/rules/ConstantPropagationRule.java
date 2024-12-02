@@ -1,21 +1,22 @@
 /*
  * IGinX - the polystore system with high performance
  * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-
 package cn.edu.tsinghua.iginx.logical.optimizer.rules;
 
 import cn.edu.tsinghua.iginx.engine.logical.utils.LogicalFilterUtils;
@@ -123,7 +124,7 @@ public class ConstantPropagationRule extends Rule {
 
           @Override
           public void visit(ValueFilter filter) {
-            if (filter == targetFilter) {
+            if (filter == targetFilter || filter.toString().equals(targetFilter.toString())) {
               return;
             }
 
@@ -149,6 +150,13 @@ public class ConstantPropagationRule extends Rule {
 
             if (ExprUtils.getPathFromExpr(exprA).contains(targetPath)
                 || ExprUtils.getPathFromExpr(exprB).contains(targetPath)) {
+              hasPath[0] = true;
+            }
+          }
+
+          @Override
+          public void visit(InFilter inFilter) {
+            if (inFilter.getPath().equals(targetPath)) {
               hasPath[0] = true;
             }
           }
@@ -206,6 +214,9 @@ public class ConstantPropagationRule extends Rule {
 
           @Override
           public void visit(ExprFilter filter) {}
+
+          @Override
+          public void visit(InFilter inFilter) {}
         });
 
     return map;
@@ -279,7 +290,8 @@ public class ConstantPropagationRule extends Rule {
         ValueFilter valueFilter = (ValueFilter) replaceFilter;
         Op valueOp = valueFilter.getOp();
         Value valueValue = valueFilter.getValue();
-        if (valueFilter.getPath().equals(constantPath)) {
+        if (valueFilter.getPath().equals(constantPath)
+            && !valueFilter.toString().equals(constantFilter.toString())) {
           return new BoolFilter(
               FilterUtils.validateValueCompare(valueOp, constantValue, valueValue));
         }
@@ -292,6 +304,12 @@ public class ConstantPropagationRule extends Rule {
           return new BoolFilter(FilterUtils.validateValueCompare(keyOp, constantValue, keyValue));
         }
         return keyFilter;
+      case In:
+        InFilter inFilter = (InFilter) replaceFilter;
+        if (constantPath.equals(inFilter.getPath())) {
+          return new BoolFilter(inFilter.validate(constantValue));
+        }
+        return inFilter;
       default:
         return replaceFilter;
     }

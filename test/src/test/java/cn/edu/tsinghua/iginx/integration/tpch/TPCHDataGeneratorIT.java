@@ -1,19 +1,21 @@
 /*
  * IGinX - the polystore system with high performance
  * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 package cn.edu.tsinghua.iginx.integration.tpch;
 
@@ -37,7 +39,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.TimeZone;
 import org.junit.AfterClass;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -89,7 +90,6 @@ public class TPCHDataGeneratorIT {
     session.closeSession();
   }
 
-  @Before
   public void prepare() {
     List<String> tableList =
         Arrays.asList(
@@ -191,7 +191,10 @@ public class TPCHDataGeneratorIT {
     for (int i = 0; i < 8; i++) {
       insertTable(tableList.get(i), fieldsList.get(i), typesList.get(i));
     }
+  }
 
+  @Test
+  public void registerUDF() {
     List<List<String>> UDFInfos = new ArrayList<>();
     UDFInfos.add(Arrays.asList("UDTF", "extractYear", "UDFExtractYear", "udtf_extract_year.py"));
     // 注册UDF函数
@@ -302,6 +305,7 @@ public class TPCHDataGeneratorIT {
   // 插入TPC-H测试中的临时表
   @Test
   public void insertTmpTable() {
+    prepare();
     for (int queryId : queryIds) {
       String sqlString = null;
       try {
