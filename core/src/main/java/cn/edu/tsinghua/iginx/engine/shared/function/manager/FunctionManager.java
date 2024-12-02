@@ -1,19 +1,21 @@
 /*
  * IGinX - the polystore system with high performance
  * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 package cn.edu.tsinghua.iginx.engine.shared.function.manager;
 
@@ -26,6 +28,7 @@ import cn.edu.tsinghua.iginx.engine.shared.function.FunctionUtils;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.ArithmeticExpr;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.Avg;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.Count;
+import cn.edu.tsinghua.iginx.engine.shared.function.system.Extract;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.First;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.FirstValue;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.Last;
@@ -33,6 +36,7 @@ import cn.edu.tsinghua.iginx.engine.shared.function.system.LastValue;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.Max;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.Min;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.Ratio;
+import cn.edu.tsinghua.iginx.engine.shared.function.system.SubString;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.Sum;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.python.PyUDAF;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.python.PyUDF;
@@ -45,9 +49,7 @@ import cn.edu.tsinghua.iginx.thrift.UDFType;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
@@ -97,13 +99,16 @@ public class FunctionManager {
     registerFunction(Min.getInstance());
     registerFunction(Sum.getInstance());
     registerFunction(ArithmeticExpr.getInstance());
+    registerFunction(Extract.getInstance());
     registerFunction(Ratio.getInstance());
+    registerFunction(SubString.getInstance());
   }
 
   private void initBasicUDFFunctions() {
     List<TransformTaskMeta> metaList = new ArrayList<>();
     List<String> udfList = config.getUdfList();
     for (String udf : udfList) {
+      LOGGER.debug("initing udf: {}", udf);
       String[] udfInfo = udf.split(",");
       if (udfInfo.length != 4) {
         LOGGER.error("udf info len must be 4.");
@@ -127,25 +132,31 @@ public class FunctionManager {
           LOGGER.error("unknown udf type: {}", udfInfo[0]);
           continue;
       }
+      LOGGER.debug(
+          "adding udf : {}, {}, {}, {}, {}, {}",
+          udfInfo[1],
+          udfInfo[2],
+          udfInfo[3],
+          config.getIp(),
+          config.getPort(),
+          udfType);
       metaList.add(
           new TransformTaskMeta(
-              udfInfo[1],
-              udfInfo[2],
-              udfInfo[3],
-              new HashSet<>(Collections.singletonList(config.getIp())),
-              udfType));
+              udfInfo[1], udfInfo[2], udfInfo[3], config.getIp(), config.getPort(), udfType));
     }
 
     for (TransformTaskMeta meta : metaList) {
+      LOGGER.debug("loading udf meta:{}", meta);
       TransformTaskMeta taskMeta = metaManager.getTransformTask(meta.getName());
       if (taskMeta == null) {
         metaManager.addTransformTask(meta);
-      } else if (!taskMeta.getIpSet().contains(config.getIp())) {
-        meta.addIp(config.getIp());
+      } else if (!taskMeta.containsIpPort(config.getIp(), config.getPort())) {
+        meta.addIpPort(config.getIp(), config.getPort());
         metaManager.updateTransformTask(meta);
       }
 
       if (!meta.getType().equals(UDFType.TRANSFORM)) {
+        LOGGER.debug("Loading UDF meta: {}", meta);
         loadUDF(meta.getName());
       }
     }
@@ -186,7 +197,7 @@ public class FunctionManager {
     if (taskMeta == null) {
       throw new IllegalArgumentException(String.format("UDF %s not registered", identifier));
     }
-    if (!taskMeta.getIpSet().contains(config.getIp())) {
+    if (!taskMeta.containsIpPort(config.getIp(), config.getPort())) {
       throw new IllegalArgumentException(
           String.format("UDF %s not registered in node ip=%s", identifier, config.getIp()));
     }

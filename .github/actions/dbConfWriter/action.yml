@@ -5,6 +5,10 @@ inputs:
         description: "DB name"
         required: false
         default: IoTDB12
+    DB-port:
+        description: "DB port"
+        required: false
+        default: "0"
     Root-Dir-Path:
         description: "the path of IGinX root directory"
         required: false
@@ -47,13 +51,13 @@ runs:
               paths: ${{ inputs.Root-Dir-Path }}/conf/config.properties
               statements: s/#storageEngineList=127.0.0.1#8086/storageEngineList=127.0.0.1#8086/g
 
-        - if: inputs.DB-name == 'FileStore'
+        - if: inputs.DB-name == 'FileSystem'
           name: Modify IGinX Config
           uses: ./.github/actions/edit
           with:
               paths: ${{ inputs.Root-Dir-Path }}/conf/config.properties
               statements: |
-                  s/^#storageEngineList=127.0.0.1#6667#filestore/storageEngineList=127.0.0.1#6667#filestore/g
+                  s/^#storageEngineList=127.0.0.1#6667#filesystem/storageEngineList=127.0.0.1#6667#filesystem/g
                   s#dir=data#dir=${PWD}/test/iginx_mn#g
                   s/data.config.write.buffer.size=104857600/data.config.write.buffer.size=1048576/g
                   s/write.buffer.size=104857600/write.buffer.size=1048576/g
@@ -97,3 +101,23 @@ runs:
           with:
               paths: ${{ inputs.Root-Dir-Path }}/conf/config.properties
               statements: s|^#storageEngineList=127.0.0.1#3306#relational#engine=mysql#username=root#password=mysql#has_data=false#meta_properties_path=your-meta-properties-path|storageEngineList=127.0.0.1#3306#relational#engine=mysql#username=root#has_data=false#meta_properties_path=${{ steps.mysql-properties.outputs.path }}|g
+
+        # use regex
+        - if: inputs.DB-port!='0'
+          name: Change db port
+          shell: bash
+          run: |
+              if [ "$RUNNER_OS" == "Linux" ]; then
+                sudo sed -i -E "s/^(storageEngineList=127\.0\.0\.1#)[0-9]+(#.*)/\1${{ inputs.DB-port }}\2/" ${{ inputs.Root-Dir-Path }}/conf/config.properties
+                sudo sed -i -E "s/(mongodb:\/\/127\.0\.0\.1:)[0-9]+(\/)/\1${{ inputs.DB-port }}\2/" ${{ inputs.Root-Dir-Path }}/conf/config.properties
+              elif [ "$RUNNER_OS" == "Windows" ]; then
+                sed -i -E "s/^(storageEngineList=127\.0\.0\.1#)[0-9]+(#.*)/\1${{ inputs.DB-port }}\2/" ${{ inputs.Root-Dir-Path }}/conf/config.properties
+                sed -i -E "s/(mongodb:\/\/127\.0\.0\.1:)[0-9]+(\/)/\1${{ inputs.DB-port }}\2/" ${{ inputs.Root-Dir-Path }}/conf/config.properties
+              elif [ "$RUNNER_OS" == "macOS" ]; then
+                sudo sed -i '' -E "s/^(storageEngineList=127\.0\.0\.1#)[0-9]+(#.*)/\1${{ inputs.DB-port }}\2/" ${{ inputs.Root-Dir-Path }}/conf/config.properties
+                sudo sed -i '' -E "s/(mongodb:\/\/127\.0\.0\.1:)[0-9]+(\/)/\1${{ inputs.DB-port }}\2/" ${{ inputs.Root-Dir-Path }}/conf/config.properties
+              else
+                echo "$RUNNER_OS is not supported"
+                exit 1
+              fi
+              cat ${{ inputs.Root-Dir-Path }}/conf/config.properties

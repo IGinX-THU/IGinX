@@ -1,19 +1,21 @@
 /*
  * IGinX - the polystore system with high performance
  * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 package cn.edu.tsinghua.iginx.physical.optimizer.naive.util;
 
@@ -353,7 +355,7 @@ public class Filters {
         List<Filter> reorderedAndChildren =
             andFilter.getChildren().stream()
                 .map(Filters::reorderFilter)
-                .sorted(Comparator.comparingInt(Filters::countBinaryValueFilter))
+                .sorted(Comparator.comparingInt(Filters::countComplexFilter))
                 .collect(Collectors.toList());
         return new AndFilter(reorderedAndChildren);
       case Or:
@@ -361,7 +363,7 @@ public class Filters {
         List<Filter> reorderedOrChildren =
             orFilter.getChildren().stream()
                 .map(Filters::reorderFilter)
-                .sorted(Comparator.comparingInt(Filters::countBinaryValueFilter))
+                .sorted(Comparator.comparingInt(Filters::countComplexFilter))
                 .collect(Collectors.toList());
         return new OrFilter(reorderedOrChildren);
       default:
@@ -369,7 +371,7 @@ public class Filters {
     }
   }
 
-  private static int countBinaryValueFilter(Filter filter) {
+  private static int countComplexFilter(Filter filter) {
     int[] count = {0};
     filter.accept(
         new FilterVisitor() {
@@ -399,7 +401,16 @@ public class Filters {
           public void visit(BoolFilter filter) {}
 
           @Override
-          public void visit(ExprFilter filter) {}
+          public void visit(ExprFilter filter) {
+            count[0]++;
+          }
+
+          @Override
+          public void visit(InFilter filter) {
+            if (filter.getValues().stream().anyMatch(v -> v.getDataType() == DataType.BINARY)) {
+              count[0]++;
+            }
+          }
         });
     return count[0];
   }

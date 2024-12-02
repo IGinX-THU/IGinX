@@ -1,23 +1,25 @@
 /*
  * IGinX - the polystore system with high performance
  * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-
 package cn.edu.tsinghua.iginx.engine.shared.function;
 
+import static cn.edu.tsinghua.iginx.engine.shared.function.system.ArithmeticExpr.ARITHMETIC_EXPR;
 import static cn.edu.tsinghua.iginx.utils.DataTypeUtils.isWholeNumber;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.Table;
@@ -25,6 +27,8 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
+import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
+import cn.edu.tsinghua.iginx.engine.shared.expr.FuncExpression;
 import cn.edu.tsinghua.iginx.engine.shared.function.manager.FunctionManager;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.First;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.Last;
@@ -49,7 +53,7 @@ public class FunctionUtils {
   private static final String VALUE = "value";
 
   private static final Set<String> sysRowToRowFunctionSet =
-      new HashSet<>(Collections.singletonList("ratio"));
+      new HashSet<>(Arrays.asList("extract", "ratio", "substring"));
 
   private static final Set<String> sysSetToRowFunctionSet =
       new HashSet<>(
@@ -157,6 +161,27 @@ public class FunctionUtils {
     functionFieldTypeMap.put("min", (dataType) -> dataType);
     functionFieldTypeMap.put(
         "sum", (dataType) -> isWholeNumber(dataType) ? DataType.LONG : DataType.DOUBLE);
+  }
+
+  static Map<String, Integer> expectedParamNumMap = new HashMap<>(); // 此Map用于存储function期望的参数个数
+
+  static {
+    expectedParamNumMap.put("avg", 1);
+    expectedParamNumMap.put("sum", 1);
+    expectedParamNumMap.put("count", 1);
+    expectedParamNumMap.put("max", 1);
+    expectedParamNumMap.put("min", 1);
+    expectedParamNumMap.put("first_value", 1);
+    expectedParamNumMap.put("last_value", 1);
+    expectedParamNumMap.put("first", 1);
+    expectedParamNumMap.put("last", 1);
+    expectedParamNumMap.put("extract", 1);
+    expectedParamNumMap.put("ratio", 2);
+    expectedParamNumMap.put("substring", 1);
+  }
+
+  public static int getExpectedParamNum(String identifier) {
+    return expectedParamNumMap.get(identifier.toLowerCase());
   }
 
   /**
@@ -295,5 +320,64 @@ public class FunctionUtils {
     } else {
       return new ArrayList<>();
     }
+  }
+
+  public static MappingType getFunctionMappingType(String identifier) {
+    if (sysRowToRowFunctionSet.contains(identifier.toLowerCase())) {
+      return MappingType.RowMapping;
+    } else if (sysSetToRowFunctionSet.contains(identifier.toLowerCase())) {
+      return MappingType.SetMapping;
+    } else if (sysSetToSetFunctionSet.contains(identifier.toLowerCase())) {
+      return MappingType.Mapping;
+    } else {
+      initFunctionManager();
+      Function function = functionManager.getFunction(identifier);
+      switch (function.getIdentifier()) {
+        case "py_udtf":
+          return MappingType.RowMapping;
+        case "py_udaf":
+          return MappingType.SetMapping;
+        case "py_udsf":
+          return MappingType.Mapping;
+        default:
+          throw new IllegalArgumentException(
+              String.format("unexpected py_udf type for %s.", function.getIdentifier()));
+      }
+    }
+  }
+
+  public static List<FunctionCall> getFunctionCalls(List<Expression> expressions) {
+    initFunctionManager();
+    List<FunctionCall> list = new ArrayList<>();
+    for (Expression expression : expressions) {
+      if (expression instanceof FuncExpression) {
+        FuncExpression funcExpr = (FuncExpression) expression;
+        if (isRowToRowFunction(funcExpr.getFuncName())) {
+          list.add(
+              new FunctionCall(
+                  functionManager.getFunction(funcExpr.getFuncName()),
+                  new FunctionParams(
+                      funcExpr.getExpressions(), funcExpr.getArgs(), funcExpr.getKvargs())));
+          continue;
+        }
+      }
+      list.add(
+          new FunctionCall(
+              functionManager.getFunction(ARITHMETIC_EXPR),
+              new FunctionParams(new ArrayList<>(Collections.singletonList(expression)))));
+    }
+    return list;
+  }
+
+  public static List<FunctionCall> getArithFunctionCalls(List<Expression> expressions) {
+    initFunctionManager();
+    List<FunctionCall> list = new ArrayList<>(expressions.size());
+    for (Expression expression : expressions) {
+      list.add(
+          new FunctionCall(
+              functionManager.getFunction(ARITHMETIC_EXPR),
+              new FunctionParams(new ArrayList<>(Collections.singletonList(expression)))));
+    }
+    return list;
   }
 }

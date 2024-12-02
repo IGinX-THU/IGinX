@@ -1,23 +1,26 @@
 /*
  * IGinX - the polystore system with high performance
  * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 package cn.edu.tsinghua.iginx.conf;
 
 import cn.edu.tsinghua.iginx.thrift.TimePrecision;
+import cn.edu.tsinghua.iginx.utils.HostUtils;
 import cn.edu.tsinghua.iginx.utils.TagKVUtils;
 import java.util.ArrayList;
 import java.util.List;
@@ -52,7 +55,7 @@ public class Config {
   private TimePrecision timePrecision = TimePrecision.NS;
 
   private String databaseClassNames =
-      "iotdb12=cn.edu.tsinghua.iginx.iotdb.IoTDBStorage,influxdb=cn.edu.tsinghua.iginx.influxdb.InfluxDBStorage,relational=cn.edu.tsinghua.iginx.relational.RelationalStorage,mongodb=cn.edu.tsinghua.iginx.mongodb.MongoDBStorage,redis=cn.edu.tsinghua.iginx.redis.RedisStorage,filestore=cn.edu.tsinghua.iginx.filestore.FileStorage";
+      "iotdb12=cn.edu.tsinghua.iginx.iotdb.IoTDBStorage,influxdb=cn.edu.tsinghua.iginx.influxdb.InfluxDBStorage,relational=cn.edu.tsinghua.iginx.relational.RelationalStorage,mongodb=cn.edu.tsinghua.iginx.mongodb.MongoDBStorage,redis=cn.edu.tsinghua.iginx.redis.RedisStorage,filesystem=cn.edu.tsinghua.iginx.filesystem.FileSystemStorage";
 
   private String policyClassName = "cn.edu.tsinghua.iginx.policy.naive.NaivePolicy";
 
@@ -237,8 +240,14 @@ public class Config {
     this.maxTimeseriesLength = maxTimeseriesLength;
   }
 
+  /** 获取本机IP地址 */
   public String getIp() {
-    return ip;
+    // 当设置监听端口为0.0.0.0，找本机IP地址
+    if (!"0.0.0.0".equals(ip)) {
+      return ip;
+    } else {
+      return HostUtils.getRepresentativeIP();
+    }
   }
 
   public void setIp(String ip) {

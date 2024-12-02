@@ -1,26 +1,28 @@
 /*
  * IGinX - the polystore system with high performance
  * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-
 package cn.edu.tsinghua.iginx.integration.expansion.postgresql;
 
 import static cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools.executeShellScript;
 import static org.junit.Assert.fail;
 
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.expansion.BaseCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.constant.Constant;
@@ -168,6 +170,16 @@ public class PostgreSQLCapacityExpansionIT extends BaseCapacityExpansionIT {
     changeParams(port, "newPassword", "postgres");
   }
 
+  @Override
+  protected void shutdownDatabase(int port) {
+    shutOrRestart(port, true, "postgresql");
+  }
+
+  @Override
+  protected void startDatabase(int port) {
+    shutOrRestart(port, false, "postgresql");
+  }
+
   private void changeParams(int port, String oldPw, String newPw) {
     String scriptPath = updateParamsScriptDir + "postgresql.sh";
     String os = System.getProperty("os.name").toLowerCase();
@@ -181,5 +193,40 @@ public class PostgreSQLCapacityExpansionIT extends BaseCapacityExpansionIT {
     if (res != 0) {
       fail("Fail to update postgresql params.");
     }
+  }
+
+  @Override
+  protected void testPathOverlappedDataNotOverlapped() throws SessionException {
+    // before
+    String statement = "select status from mn.wf01.wt01;";
+    String expected =
+        "ResultSets:\n"
+            + "+-----------------+-------------------+\n"
+            + "|              key|mn.wf01.wt01.status|\n"
+            + "+-----------------+-------------------+\n"
+            + "|32690615153702352|           11111111|\n"
+            + "|33357770565002400|           22222222|\n"
+            + "+-----------------+-------------------+\n"
+            + "Total line number = 2\n";
+    SQLTestTools.executeAndCompare(session, statement, expected);
+
+    String insert =
+        "insert into mn.wf01.wt01 (key, status) values (10, 33333333), (100, 44444444);";
+    session.executeSql(insert);
+
+    // after
+    statement = "select status from mn.wf01.wt01;";
+    expected =
+        "ResultSets:\n"
+            + "+-----------------+-------------------+\n"
+            + "|              key|mn.wf01.wt01.status|\n"
+            + "+-----------------+-------------------+\n"
+            + "|               10|           33333333|\n"
+            + "|              100|           44444444|\n"
+            + "|32690615153702352|           11111111|\n"
+            + "|33357770565002400|           22222222|\n"
+            + "+-----------------+-------------------+\n"
+            + "Total line number = 4\n";
+    SQLTestTools.executeAndCompare(session, statement, expected);
   }
 }

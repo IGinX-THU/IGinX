@@ -1,19 +1,21 @@
 /*
  * IGinX - the polystore system with high performance
  * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils;
 
@@ -62,7 +64,7 @@ public class FilterUtils {
         if (row.getKey() == Row.NON_EXISTED_KEY) {
           return false;
         }
-        return validateTimeFilter(keyFilter, row);
+        return validateKeyFilter(keyFilter, row);
       case Value:
         ValueFilter valueFilter = (ValueFilter) filter;
         return validateValueFilter(valueFilter, row);
@@ -72,13 +74,58 @@ public class FilterUtils {
       case Expr:
         ExprFilter exprFilter = (ExprFilter) filter;
         return validateExprFilter(exprFilter, row);
+      case In:
+        InFilter inFilter = (InFilter) filter;
+        return validateInFilter(inFilter, row);
       default:
         break;
     }
     return false;
   }
 
-  private static boolean validateTimeFilter(KeyFilter keyFilter, Row row) {
+  private static boolean validateInFilter(InFilter inFilter, Row row) {
+    String path = inFilter.getPath();
+    Set<Value> values = inFilter.getValues();
+
+    if (path.contains("*")) { // 带通配符的filter
+      List<Value> valueList = row.getAsValueByPattern(path);
+      InFilter.InOp inOp = inFilter.getInOp();
+      if (inOp.isOrOp()) {
+        for (Value value : valueList) {
+          if (value == null || value.isNull()) { // value是空值，则认为不可比较
+            return false;
+          }
+          if (inOp.isNotOp() && !values.contains(value)) {
+            return true;
+          } else if (!inOp.isNotOp() && values.contains(value)) {
+            return true;
+          }
+        }
+        return false;
+      } else {
+        for (Value value : valueList) {
+          if (value == null || value.isNull()) { // value是空值，则认为不可比较
+            return false;
+          }
+
+          if (inOp.isNotOp() && values.contains(value)) {
+            return false;
+          } else if (!inOp.isNotOp() && !values.contains(value)) {
+            return false;
+          }
+        }
+        return true;
+      }
+    } else {
+      Value value = row.getAsValue(path);
+      if (value == null || value.isNull()) { // value是空值，则认为不可比较
+        return false;
+      }
+      return inFilter.getInOp().isNotOp() ^ values.contains(value);
+    }
+  }
+
+  private static boolean validateKeyFilter(KeyFilter keyFilter, Row row) {
     long timestamp = row.getKey();
     switch (keyFilter.getOp()) {
       case E:
@@ -114,8 +161,8 @@ public class FilterUtils {
       return false;
     }
 
-    if (path.contains("*")) { // 带通配符的filter
-      List<Value> valueList = row.getAsValueByPattern(path);
+    List<Value> valueList = row.getAsValueByPattern(path);
+    if (valueList.size() > 1) { // filter的路径名带通配符或同一列名有多个tag
       if (Op.isOrOp(valueFilter.getOp())) {
         for (Value value : valueList) {
           if (value == null || value.isNull()) {
@@ -139,12 +186,14 @@ public class FilterUtils {
       } else {
         throw new IllegalArgumentException("Unknown op type: " + valueFilter.getOp());
       }
-    } else {
-      Value value = row.getAsValue(path);
+    } else if (valueList.size() == 1) {
+      Value value = valueList.get(0);
       if (value == null || value.isNull()) { // value是空值，则认为不可比较
         return false;
       }
       return validateValueCompare(valueFilter.getOp(), value, targetValue);
+    } else {
+      return false;
     }
   }
 
@@ -288,6 +337,9 @@ public class FilterUtils {
         paths.add(pathFilter.getPathA());
         paths.add(pathFilter.getPathB());
         break;
+      case In:
+        paths.add(((InFilter) filter).getPath());
+        break;
       case Expr:
         ExprFilter exprFilter = (ExprFilter) filter;
         paths.addAll(ExprUtils.getPathFromExpr(exprFilter.getExpressionA()));
@@ -328,6 +380,7 @@ public class FilterUtils {
       case Key:
       case Value:
       case Bool:
+      case In:
         return false;
       default:
         throw new IllegalArgumentException("Unexpected filter type: " + filter.getType());
@@ -392,6 +445,9 @@ public class FilterUtils {
 
           @Override
           public void visit(ExprFilter filter) {}
+
+          @Override
+          public void visit(InFilter inFilter) {}
         });
     return pathFilters;
   }

@@ -1,21 +1,22 @@
 /*
  * IGinX - the polystore system with high performance
  * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-
 package cn.edu.tsinghua.iginx.relational.meta;
 
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
@@ -31,49 +32,37 @@ import java.util.List;
 import java.util.Properties;
 
 public class JDBCMeta extends AbstractRelationalMeta {
-
-  private final Properties properties;
-
   private final char quote;
-  private String defaultDatabaseName;
+  private final String defaultDatabaseName;
 
-  private String driverClass;
+  private final String driverClass;
 
-  private JDBCDataTypeTransformer dataTypeTransformer;
+  private final JDBCDataTypeTransformer dataTypeTransformer;
 
-  private List<String> systemDatabaseName;
+  private final List<String> systemDatabaseName;
 
-  private String databaseQuerySql;
+  private final String databaseQuerySql;
 
-  private String databaseDropStatement;
+  private final String databaseDropStatement;
 
-  private boolean needQuote;
+  private final boolean needQuote;
 
-  private String schemaPattern;
+  private final String schemaPattern;
 
-  private String upsertStatement;
+  private final String upsertStatement;
 
-  private String upsertConflictStatement;
+  private final String upsertConflictStatement;
 
-  private boolean isSupportFullJoin;
+  private final boolean isSupportFullJoin;
 
-  private String regexpOp;
+  private final String regexpOp;
 
-  private String notRegexOp;
+  private final String notRegexOp;
 
-  private boolean jdbcSupportBackslash;
+  private final boolean jdbcSupportBackslash;
 
-  public JDBCMeta(StorageEngineMeta meta, String propertiesPath) throws IOException {
+  public JDBCMeta(StorageEngineMeta meta, Properties properties) {
     super(meta);
-    properties = new Properties();
-    File file = new File(propertiesPath);
-    if (!file.exists()) {
-      throw new IOException(String.format("Properties file %s not found", file.getAbsolutePath()));
-    }
-    try (InputStream inputStream = Files.newInputStream(Paths.get(propertiesPath))) {
-      properties.load(inputStream);
-    }
-
     quote = properties.getProperty("quote").charAt(0);
     driverClass = properties.getProperty("driver_class");
     defaultDatabaseName = properties.getProperty("default_database");
@@ -90,6 +79,33 @@ public class JDBCMeta extends AbstractRelationalMeta {
     notRegexOp = properties.getProperty("not_regex_like_symbol");
     jdbcSupportBackslash =
         Boolean.parseBoolean(properties.getProperty("jdbc_support_special_char"));
+  }
+
+  public JDBCMeta(StorageEngineMeta meta, String propertiesPath) throws IOException {
+    this(meta, getPropertiesFromPath(propertiesPath));
+  }
+
+  private static Properties getPropertiesFromPath(String propertiesPath) throws IOException {
+    Properties properties = new Properties();
+    File file = new File(propertiesPath);
+    if (!file.exists()) {
+      throw new IOException(String.format("Properties file %s not found", file.getAbsolutePath()));
+    }
+    try (InputStream inputStream = Files.newInputStream(Paths.get(propertiesPath))) {
+      properties.load(inputStream);
+    }
+    return properties;
+  }
+
+  public JDBCMeta(StorageEngineMeta meta, InputStream propertiesIS) throws IOException {
+    this(meta, getPropertiesFromInputStream(propertiesIS));
+  }
+
+  private static Properties getPropertiesFromInputStream(InputStream propertiesIS)
+      throws IOException {
+    Properties properties = new Properties();
+    properties.load(propertiesIS);
+    return properties;
   }
 
   @Override

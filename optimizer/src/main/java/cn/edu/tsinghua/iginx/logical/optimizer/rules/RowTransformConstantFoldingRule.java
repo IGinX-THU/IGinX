@@ -1,26 +1,28 @@
 /*
  * IGinX - the polystore system with high performance
  * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-
 package cn.edu.tsinghua.iginx.logical.optimizer.rules;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.ExprUtils;
 import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
+import cn.edu.tsinghua.iginx.engine.shared.function.system.ArithmeticExpr;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Rename;
 import cn.edu.tsinghua.iginx.engine.shared.operator.RowTransform;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
@@ -40,7 +42,10 @@ public class RowTransformConstantFoldingRule extends Rule {
      *           |
      *          Any
      */
-    super("RowTransformConstantFoldingRule", operand(RowTransform.class, any()));
+    super(
+        "RowTransformConstantFoldingRule",
+        "ConstantFoldingRule",
+        operand(RowTransform.class, any()));
   }
 
   @Override
@@ -48,8 +53,8 @@ public class RowTransformConstantFoldingRule extends Rule {
     RowTransform rowTransform = (RowTransform) call.getMatchedRoot();
     List<FunctionCall> functionCallList = rowTransform.getFunctionCallList();
     for (FunctionCall functionCall : functionCallList) {
-      Expression expr = functionCall.getParams().getExpr();
-      if (expr != null) {
+      if (functionCall.getFunction() instanceof ArithmeticExpr) {
+        Expression expr = functionCall.getParams().getExpression(0);
         Expression flattenedExpression = ExprUtils.flattenExpression(ExprUtils.copy(expr));
         if (ExprUtils.hasMultiConstantsInMultipleExpression(flattenedExpression)) {
           return true;
@@ -66,13 +71,13 @@ public class RowTransformConstantFoldingRule extends Rule {
     List<Pair<String, String>> aliasList = new ArrayList<>();
 
     for (FunctionCall functionCall : functionCallList) {
-      Expression expr = functionCall.getParams().getExpr();
-      if (expr != null) {
+      if (functionCall.getFunction() instanceof ArithmeticExpr) {
+        Expression expr = functionCall.getParams().getExpression(0);
         String oldName = expr.getColumnName();
         Expression flattenedExpression = ExprUtils.flattenExpression(expr);
         if (ExprUtils.hasMultiConstantsInMultipleExpression(flattenedExpression)) {
           Expression foldedExpression = ExprUtils.foldExpression(flattenedExpression);
-          functionCall.getParams().setExpr(foldedExpression);
+          functionCall.getParams().setExpression(0, foldedExpression);
           String newName = foldedExpression.getColumnName();
           aliasList.add(new Pair<>(newName, oldName));
         }

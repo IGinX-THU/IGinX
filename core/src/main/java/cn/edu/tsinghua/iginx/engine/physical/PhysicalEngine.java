@@ -1,19 +1,21 @@
 /*
  * IGinX - the polystore system with high performance
  * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 package cn.edu.tsinghua.iginx.engine.physical;
 
@@ -49,6 +51,7 @@ public interface PhysicalEngine {
 
   // 为了兼容过去的接口
   default BatchStream execute(RequestContext ctx, Operator root) throws PhysicalException {
+
     if (OperatorType.isGlobalOperator(root.getType())) { // 全局任务临时兼容逻辑
       // 迁移任务单独处理
       if (root.getType() == OperatorType.Migration) {
@@ -68,6 +71,14 @@ public interface PhysicalEngine {
         }
       }
     }
+
+    // TODO
+    //    if (!OperatorUtils.isProjectFromConstant(root)) {
+    //      List<PhysicalTask> bottomTasks = new ArrayList<>();
+    //      getBottomTasks(bottomTasks, task);
+    //      commitBottomTasks(bottomTasks);
+    //    }
+
     PhysicalTask<BatchStream> task = getOptimizer().optimize(root, ctx);
     ctx.setPhysicalTree(task);
     ctx.setPhysicalEngine(this);
