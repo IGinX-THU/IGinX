@@ -420,7 +420,7 @@ public class MilvusStorage implements IStorage {
         return new TaskExecuteResult(
             null, new PhysicalException(String.format("execute insert task in milvus failure"), e));
       }
-      LOGGER.info("insert time cost: " + (System.currentTimeMillis() - startTime));
+      LOGGER.info("insert {} time cost: {} ms." , dataView.getKeySize(), (System.currentTimeMillis() - startTime));
       return new TaskExecuteResult(null, null);
     } catch (Exception e) {
       LOGGER.error("unexpected error: ", e);
