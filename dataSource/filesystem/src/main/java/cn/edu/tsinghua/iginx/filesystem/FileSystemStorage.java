@@ -19,6 +19,8 @@
  */
 package cn.edu.tsinghua.iginx.filesystem;
 
+import static cn.edu.tsinghua.iginx.metadata.utils.StorageEngineUtils.isLocal;
+
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.StorageInitializationException;
@@ -60,21 +62,18 @@ import cn.edu.tsinghua.iginx.utils.Pair;
 import com.google.common.base.Strings;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
-import org.apache.thrift.TException;
-import org.apache.thrift.transport.TSocket;
-import org.apache.thrift.transport.TTransport;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.annotation.Nullable;
 import java.net.InetSocketAddress;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-
-import static cn.edu.tsinghua.iginx.metadata.utils.StorageEngineUtils.isLocal;
+import javax.annotation.Nullable;
+import org.apache.thrift.TException;
+import org.apache.thrift.transport.TSocket;
+import org.apache.thrift.transport.TTransport;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class FileSystemStorage implements IStorage {
 
