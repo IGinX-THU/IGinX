@@ -20,6 +20,7 @@
 package cn.edu.tsinghua.iginx.conf;
 
 import cn.edu.tsinghua.iginx.thrift.TimePrecision;
+import cn.edu.tsinghua.iginx.utils.HostUtils;
 import cn.edu.tsinghua.iginx.utils.TagKVUtils;
 import java.util.ArrayList;
 import java.util.List;
@@ -237,8 +238,14 @@ public class Config {
     this.maxTimeseriesLength = maxTimeseriesLength;
   }
 
+  /** 获取本机IP地址 */
   public String getIp() {
-    return ip;
+    // 当设置监听端口为0.0.0.0，找本机IP地址
+    if (!"0.0.0.0".equals(ip)) {
+      return ip;
+    } else {
+      return HostUtils.getRepresentativeIP();
+    }
   }
 
   public void setIp(String ip) {

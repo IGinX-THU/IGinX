@@ -222,6 +222,7 @@ public class OperatorUtils {
               null,
               new ArrayList<>(),
               false,
+              false,
               JoinAlgType.HashJoin,
               correlatedVariables);
     } else {
@@ -311,6 +312,7 @@ public class OperatorUtils {
                   singleJoin.getFilter(),
                   new ArrayList<>(),
                   false,
+                  false,
                   singleJoin.getJoinAlgType(),
                   singleJoin.getExtraJoinPrefix());
         }
@@ -373,6 +375,7 @@ public class OperatorUtils {
                   null,
                   new BoolFilter(true),
                   new ArrayList<>(),
+                  false,
                   false,
                   JoinAlgType.HashJoin,
                   correlatedVariables);
@@ -562,6 +565,7 @@ public class OperatorUtils {
             crossJoin.getPrefixB(),
             select.getFilter(),
             new ArrayList<>(),
+            false,
             false,
             algType,
             crossJoin.getExtraJoinPrefix());

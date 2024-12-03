@@ -25,6 +25,7 @@ import static com.influxdb.client.domain.WritePrecision.NS;
 import cn.edu.tsinghua.iginx.engine.logical.utils.LogicalFilterUtils;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.StorageInitializationException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils;
 import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.DataArea;
@@ -70,6 +71,7 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -643,7 +645,12 @@ public class InfluxDBStorage implements IStorage {
       statement += filterStr;
     }
 
-    if (filter != null) {
+    // TODO：filter中的path有多个tag时暂未实现下推
+    List<String> filterPaths = FilterUtils.getAllPathsFromFilter(filter);
+    List<Column> columns = getColumns(new HashSet<>(filterPaths), tagFilter);
+    boolean hasMultiTags = hasMultiTags(columns);
+
+    if (filter != null && !hasMultiTags) {
       boolean patternHasMeasurementWildCards = false;
       for (String path : paths) {
         if (path.startsWith("*")) {
@@ -705,6 +712,19 @@ public class InfluxDBStorage implements IStorage {
 
     LOGGER.info("generate query: {}", statement);
     return statement;
+  }
+
+  private boolean hasMultiTags(List<Column> columns) {
+    Map<String, List<Map<String, String>>> tagsMap = new HashMap<>();
+    for (Column column : columns) {
+      String path = column.getPath();
+      if (!tagsMap.containsKey(path)) {
+        tagsMap.put(path, new ArrayList<>(Collections.singletonList(column.getTags())));
+      } else if (!tagsMap.get(path).contains(column.getTags())) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private Filter setTrueByMeasurement(Filter filter, String measurementName) {

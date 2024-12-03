@@ -206,7 +206,7 @@ public abstract class BaseCapacityExpansionIT {
   }
 
   @Test
-  public void oriHasDataExpHasData() {
+  public void oriHasDataExpHasData() throws SessionException {
     // 查询原始节点的历史数据，结果不为空
     testQueryHistoryDataOriHasData();
     // 写入并查询新数据
@@ -222,6 +222,8 @@ public abstract class BaseCapacityExpansionIT {
     testWriteAndQueryNewDataAfterCE();
     // 测试插入相同数据后warning
     testSameKeyWarning();
+    // 测试分片范围重叠，但数据不重叠
+    testPathOverlappedDataNotOverlapped();
   }
 
   @Test
@@ -920,16 +922,19 @@ public abstract class BaseCapacityExpansionIT {
   }
 
   private void testSameKeyWarning() {
+    if (!SUPPORT_KEY.get(testConf.getStorageType())) {
+      return;
+    }
+
     try {
       session.executeSql(
           "insert into mn.wf01.wt01 (key, status) values (0, 123),(1, 123),(2, 123),(3, 123);");
       String statement = "select * from mn.wf01.wt01;";
 
       QueryDataSet res = session.executeQuery(statement);
-      if ((res.getWarningMsg() == null
-              || res.getWarningMsg().isEmpty()
-              || !res.getWarningMsg().contains("The query results contain overlapped keys."))
-          && SUPPORT_KEY.get(testConf.getStorageType())) {
+      if (res.getWarningMsg() == null
+          || res.getWarningMsg().isEmpty()
+          || !res.getWarningMsg().contains("The query results contain overlapped keys.")) {
         LOGGER.error("未抛出重叠key的警告");
         fail();
       }
@@ -937,13 +942,47 @@ public abstract class BaseCapacityExpansionIT {
       clearData();
 
       res = session.executeQuery(statement);
-      if (res.getWarningMsg() != null && SUPPORT_KEY.get(testConf.getStorageType())) {
+      if (res.getWarningMsg() != null) {
         LOGGER.error("不应抛出重叠key的警告");
         fail();
       }
     } catch (SessionException e) {
       LOGGER.error("query data error: ", e);
     }
+  }
+
+  protected void testPathOverlappedDataNotOverlapped() throws SessionException {
+    // before
+    String statement = "select status from mn.wf01.wt01;";
+    String expected =
+        "ResultSets:\n"
+            + "+---+-------------------+\n"
+            + "|key|mn.wf01.wt01.status|\n"
+            + "+---+-------------------+\n"
+            + "|  0|           11111111|\n"
+            + "|  1|           22222222|\n"
+            + "+---+-------------------+\n"
+            + "Total line number = 2\n";
+    SQLTestTools.executeAndCompare(session, statement, expected);
+
+    String insert =
+        "insert into mn.wf01.wt01 (key, status) values (10, 33333333), (100, 44444444);";
+    session.executeSql(insert);
+
+    // after
+    statement = "select status from mn.wf01.wt01;";
+    expected =
+        "ResultSets:\n"
+            + "+---+-------------------+\n"
+            + "|key|mn.wf01.wt01.status|\n"
+            + "+---+-------------------+\n"
+            + "|  0|           11111111|\n"
+            + "|  1|           22222222|\n"
+            + "| 10|           33333333|\n"
+            + "|100|           44444444|\n"
+            + "+---+-------------------+\n"
+            + "Total line number = 4\n";
+    SQLTestTools.executeAndCompare(session, statement, expected);
   }
 
   protected void startStorageEngineWithIginx(int port, boolean hasData, boolean isReadOnly) {

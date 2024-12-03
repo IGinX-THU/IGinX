@@ -678,6 +678,8 @@ public class RelationalStorage implements IStorage {
       Map<String, String> tableNameToColumnNames =
           splitAndMergeQueryPatterns(databaseName, project.getPatterns());
 
+      Filter expandFilter = expandFilter(filter.copy(), tableNameToColumnNames);
+
       String statement;
       // 如果table>1的情况下存在Value或Path Filter，说明filter的匹配需要跨table，此时需要将所有table join到一起进行查询
       if (!filter.toString().contains("*")
@@ -686,7 +688,7 @@ public class RelationalStorage implements IStorage {
         for (Map.Entry<String, String> entry : tableNameToColumnNames.entrySet()) {
           String tableName = entry.getKey();
           String quotColumnNames = getQuotColumnNames(entry.getValue());
-          String filterStr = filterTransformer.toString(filter);
+          String filterStr = filterTransformer.toString(expandFilter);
           statement =
               String.format(
                   relationalMeta.getQueryStatement(),
@@ -920,54 +922,68 @@ public class RelationalStorage implements IStorage {
     return fullTableName.toString();
   }
 
-  private Filter generateWildCardsFilter(Filter filter, List<List<String>> columnNamesList) {
+  private Filter expandFilter(Filter filter, Map<String, String> tableNameToColumnNames) {
+    List<List<String>> fullColumnNamesList = new ArrayList<>();
+    for (Map.Entry<String, String> entry : tableNameToColumnNames.entrySet()) {
+      List<String> fullColumnNames = new ArrayList<>(Arrays.asList(entry.getValue().split(", ")));
+      // 将columnNames中的列名加上tableName前缀
+      fullColumnNames.replaceAll(
+          s -> RelationSchema.getQuoteFullName(entry.getKey(), s, relationalMeta.getQuote()));
+      fullColumnNamesList.add(fullColumnNames);
+    }
+    // 把fullColumnNamesList中的列名全部用removeFullColumnNameQuote去掉引号
+    fullColumnNamesList.replaceAll(
+        columnNames -> {
+          List<String> newColumnNames = new ArrayList<>();
+          for (String columnName : columnNames) {
+            newColumnNames.add(removeFullColumnNameQuote(columnName));
+          }
+          return newColumnNames;
+        });
+    filter = expandFilter(filter, fullColumnNamesList);
+    filter = LogicalFilterUtils.mergeTrue(filter);
+    return filter;
+  }
+
+  private Filter expandFilter(Filter filter, List<List<String>> columnNamesList) {
     switch (filter.getType()) {
       case And:
         List<Filter> andChildren = ((AndFilter) filter).getChildren();
         for (Filter child : andChildren) {
-          Filter newFilter = generateWildCardsFilter(child, columnNamesList);
+          Filter newFilter = expandFilter(child, columnNamesList);
           andChildren.set(andChildren.indexOf(child), newFilter);
         }
         return new AndFilter(andChildren);
       case Or:
         List<Filter> orChildren = ((OrFilter) filter).getChildren();
         for (Filter child : orChildren) {
-          Filter newFilter = generateWildCardsFilter(child, columnNamesList);
+          Filter newFilter = expandFilter(child, columnNamesList);
           orChildren.set(orChildren.indexOf(child), newFilter);
         }
         return new OrFilter(orChildren);
       case Not:
         Filter notChild = ((NotFilter) filter).getChild();
-        Filter newFilter = generateWildCardsFilter(notChild, columnNamesList);
+        Filter newFilter = expandFilter(notChild, columnNamesList);
         return new NotFilter(newFilter);
       case Value:
-        String path = ((ValueFilter) filter).getPath();
-        if (path.contains("*")) {
-          List<String> matchedPath = getMatchedPath(path, columnNamesList);
-          if (matchedPath.size() == 0) {
-            return new BoolFilter(true);
-          } else if (matchedPath.size() == 1) {
-            return new ValueFilter(
-                matchedPath.get(0),
-                ((ValueFilter) filter).getOp(),
-                ((ValueFilter) filter).getValue());
+        ValueFilter valueFilter = ((ValueFilter) filter);
+        String path = valueFilter.getPath();
+        List<String> matchedPaths = getMatchedPath(path, columnNamesList);
+        if (matchedPaths.isEmpty()) {
+          return new BoolFilter(true);
+        } else if (matchedPaths.size() == 1) {
+          return new ValueFilter(matchedPaths.get(0), valueFilter.getOp(), valueFilter.getValue());
+        } else {
+          List<Filter> newFilters = new ArrayList<>();
+          for (String matched : matchedPaths) {
+            newFilters.add(new ValueFilter(matched, valueFilter.getOp(), valueFilter.getValue()));
+          }
+          if (Op.isOrOp(valueFilter.getOp())) {
+            return new OrFilter(newFilters);
           } else {
-            List<Filter> valueChildren = new ArrayList<>();
-            for (String matched : matchedPath) {
-              valueChildren.add(
-                  new ValueFilter(
-                      matched, ((ValueFilter) filter).getOp(), ((ValueFilter) filter).getValue()));
-            }
-
-            if (Op.isOrOp(((ValueFilter) filter).getOp())) {
-              return new OrFilter(valueChildren);
-            }
-            return new AndFilter(valueChildren);
+            return new AndFilter(newFilters);
           }
         }
-
-        return filter;
-
       case In:
         InFilter inFilter = (InFilter) filter;
         String inPath = inFilter.getPath();
@@ -1020,7 +1036,7 @@ public class RelationalStorage implements IStorage {
 
         if (pathB.contains("*")) {
           if (filter.getType() != FilterType.Path) {
-            return generateWildCardsFilter(filter, columnNamesList);
+            return expandFilter(filter, columnNamesList);
           }
 
           List<String> matchedPath = getMatchedPath(pathB, columnNamesList);
@@ -1059,10 +1075,9 @@ public class RelationalStorage implements IStorage {
     List<String> matchedPath = new ArrayList<>();
     path = StringUtils.reformatPath(path);
     Pattern pattern = Pattern.compile("^" + path + "$");
-    for (int i = 0; i < columnNamesList.size(); i++) {
-      List<String> columnNames = columnNamesList.get(i);
+    for (List<String> columnNames : columnNamesList) {
       for (String columnName : columnNames) {
-        Matcher matcher = pattern.matcher(columnName);
+        Matcher matcher = pattern.matcher(splitFullName(columnName).k);
         if (matcher.find()) {
           matchedPath.add(columnName);
         }
@@ -1566,7 +1581,7 @@ public class RelationalStorage implements IStorage {
         if (!filter.toString().contains("*")
             && !(tableNameToColumnNames.size() > 1
                 && filterContainsType(Arrays.asList(FilterType.Value, FilterType.Path), filter))) {
-
+          Filter expandFilter = expandFilter(filter.copy(), tableNameToColumnNames);
           for (Map.Entry<String, String> entry : splitEntry.getValue().entrySet()) {
             String tableName = entry.getKey();
             String fullQuotColumnNames = getQuotColumnNames(entry.getValue());
@@ -1576,7 +1591,8 @@ public class RelationalStorage implements IStorage {
             String filterStr =
                 filterTransformer.toString(
                     dummyFilterSetTrueByColumnNames(
-                        cutFilterDatabaseNameForDummy(filter.copy(), databaseName), fullPathList));
+                        cutFilterDatabaseNameForDummy(expandFilter.copy(), databaseName),
+                        fullPathList));
             String concatKey = buildConcat(fullPathList);
             statement =
                 String.format(

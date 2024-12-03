@@ -39,6 +39,8 @@ public class InnerJoin extends AbstractJoin {
 
   private final boolean isNaturalJoin;
 
+  private final boolean isJoinByKey;
+
   public InnerJoin(
       Source sourceA,
       Source sourceB,
@@ -66,6 +68,7 @@ public class InnerJoin extends AbstractJoin {
         tagFilter,
         joinColumns,
         false,
+        false,
         JoinAlgType.HashJoin,
         new ArrayList<>());
   }
@@ -87,6 +90,7 @@ public class InnerJoin extends AbstractJoin {
         null,
         joinColumns,
         isNaturalJoin,
+        false,
         JoinAlgType.HashJoin,
         new ArrayList<>());
   }
@@ -109,6 +113,31 @@ public class InnerJoin extends AbstractJoin {
         null,
         joinColumns,
         isNaturalJoin,
+        false,
+        joinAlgType,
+        new ArrayList<>());
+  }
+
+  public InnerJoin(
+      Source sourceA,
+      Source sourceB,
+      String prefixA,
+      String prefixB,
+      Filter filter,
+      List<String> joinColumns,
+      boolean isNaturalJoin,
+      boolean isJoinByKey,
+      JoinAlgType joinAlgType) {
+    this(
+        sourceA,
+        sourceB,
+        prefixA,
+        prefixB,
+        filter,
+        null,
+        joinColumns,
+        isNaturalJoin,
+        isJoinByKey,
         joinAlgType,
         new ArrayList<>());
   }
@@ -122,6 +151,7 @@ public class InnerJoin extends AbstractJoin {
       TagFilter tagFilter,
       List<String> joinColumns,
       boolean isNaturalJoin,
+      boolean isJoinByKey,
       JoinAlgType joinAlgType,
       List<String> extraJoinPrefix) {
     super(OperatorType.InnerJoin, sourceA, sourceB, prefixA, prefixB, joinAlgType, extraJoinPrefix);
@@ -132,6 +162,7 @@ public class InnerJoin extends AbstractJoin {
       this.joinColumns = new ArrayList<>();
     }
     this.isNaturalJoin = isNaturalJoin;
+    this.isJoinByKey = isJoinByKey;
     this.tagFilter = tagFilter;
   }
 
@@ -143,6 +174,7 @@ public class InnerJoin extends AbstractJoin {
       Filter filter,
       List<String> joinColumns,
       boolean isNaturalJoin,
+      boolean isJoinByKey,
       JoinAlgType joinAlgType,
       List<String> extraJoinPrefix) {
     this(
@@ -154,6 +186,7 @@ public class InnerJoin extends AbstractJoin {
         null,
         joinColumns,
         isNaturalJoin,
+        isJoinByKey,
         joinAlgType,
         extraJoinPrefix);
   }
@@ -168,6 +201,10 @@ public class InnerJoin extends AbstractJoin {
 
   public boolean isNaturalJoin() {
     return isNaturalJoin;
+  }
+
+  public boolean isJoinByKey() {
+    return isJoinByKey;
   }
 
   public void setFilter(Filter filter) {
@@ -197,6 +234,7 @@ public class InnerJoin extends AbstractJoin {
         tagFilter == null ? null : tagFilter.copy(),
         new ArrayList<>(joinColumns),
         isNaturalJoin,
+        isJoinByKey,
         getJoinAlgType(),
         new ArrayList<>(getExtraJoinPrefix()));
   }
@@ -212,12 +250,14 @@ public class InnerJoin extends AbstractJoin {
         tagFilter == null ? null : tagFilter.copy(),
         new ArrayList<>(joinColumns),
         isNaturalJoin,
+        isJoinByKey,
         getJoinAlgType(),
         new ArrayList<>(getExtraJoinPrefix()));
   }
 
   @Override
   public String getInfo() {
+    // TODO
     StringBuilder builder = new StringBuilder();
     builder.append("PrefixA: ").append(getPrefixA());
     builder.append(", PrefixB: ").append(getPrefixB());
@@ -252,6 +292,7 @@ public class InnerJoin extends AbstractJoin {
     }
     InnerJoin that = (InnerJoin) object;
     return isNaturalJoin == that.isNaturalJoin
+        && isJoinByKey == that.isJoinByKey
         && joinColumns.equals(that.joinColumns)
         && filter.equals(that.filter)
         && tagFilter.equals(that.tagFilter)
