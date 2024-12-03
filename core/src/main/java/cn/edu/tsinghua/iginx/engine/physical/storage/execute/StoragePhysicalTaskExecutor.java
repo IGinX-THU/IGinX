@@ -38,7 +38,6 @@ import cn.edu.tsinghua.iginx.engine.physical.task.GlobalPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.MemoryPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.StoragePhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
@@ -148,70 +147,101 @@ public class StoragePhysicalTaskExecutor {
                               boolean isDummyStorageUnit = task.isDummyStorageUnit();
                               DataArea dataArea =
                                   new DataArea(storageUnit, fragmentMeta.getKeyInterval());
-
+                              List<Operator> remainingOperators = new ArrayList<>();
                               switch (op.getType()) {
                                 case Project:
                                   boolean needSelectPushDown =
                                       pair.k.isSupportProjectWithSelect()
                                           && operators.size() == 2
                                           && operators.get(1).getType() == OperatorType.Select;
-                                  boolean needSetTransformPushDown =
+                                  boolean needAggPushDown =
                                       operators.size() == 2
-                                          && operators.get(1).getType()
-                                              == OperatorType.SetTransform;
-                                  boolean canSetTransformPushDown =
-                                      needSetTransformPushDown
-                                          && pair.k.isSupportProjectWithSetTransform(
-                                              (SetTransform) operators.get(1), dataArea);
+                                          && (operators.get(1).getType() == OperatorType.GroupBy
+                                              || operators.get(1).getType()
+                                                  == OperatorType.SetTransform)
+                                          && pair.k.isSupportProjectWithAgg(
+                                              operators.get(1), dataArea, isDummyStorageUnit);
+
+                                  boolean needAggSelectPushDown =
+                                      operators.size() == 3
+                                          && (operators.get(1).getType() == OperatorType.Select
+                                              && (operators.get(2).getType() == OperatorType.GroupBy
+                                                  || operators.get(2).getType()
+                                                      == OperatorType.SetTransform))
+                                          && pair.k.isSupportProjectWithAgg(
+                                              operators.get(2), dataArea, isDummyStorageUnit);
                                   if (isDummyStorageUnit) {
-                                    if (needSelectPushDown) {
+                                    if (needAggSelectPushDown) {
+                                      result =
+                                          pair.k.executeProjectDummyWithAggSelect(
+                                              (Project) op,
+                                              (Select) operators.get(1),
+                                              operators.get(2),
+                                              dataArea);
+                                    } else if (needSelectPushDown) {
                                       result =
                                           pair.k.executeProjectDummyWithSelect(
                                               (Project) op, (Select) operators.get(1), dataArea);
-                                    } else if (needSetTransformPushDown) {
-                                      throw new IllegalStateException();
+                                      remainingOperators.addAll(
+                                          getRemainingOperators(operators, 2));
+                                    } else if (needAggPushDown) {
+                                      result =
+                                          pair.k.executeProjectDummyWithAgg(
+                                              (Project) op, operators.get(1), dataArea);
+                                      remainingOperators.addAll(
+                                          getRemainingOperators(operators, 2));
                                     } else {
                                       result = pair.k.executeProjectDummy((Project) op, dataArea);
+                                      remainingOperators.addAll(
+                                          getRemainingOperators(operators, 1));
                                     }
                                   } else {
-                                    if (needSelectPushDown) {
+                                    if (needAggSelectPushDown) {
+                                      result =
+                                          pair.k.executeProjectWithAggSelect(
+                                              (Project) op,
+                                              (Select) operators.get(1),
+                                              operators.get(2),
+                                              dataArea);
+                                    } else if (needSelectPushDown) {
                                       result =
                                           pair.k.executeProjectWithSelect(
                                               (Project) op, (Select) operators.get(1), dataArea);
-                                    } else if (needSetTransformPushDown) {
-                                      if (canSetTransformPushDown) {
-                                        result =
-                                            pair.k.executeProjectWithSetTransform(
-                                                (Project) op,
-                                                (SetTransform) operators.get(1),
-                                                dataArea);
-                                      } else {
-                                        TaskExecuteResult tempResult =
-                                            pair.k.executeProject((Project) op, dataArea);
-                                        if (tempResult.getException() != null) {
-                                          result = tempResult;
-                                        } else {
-                                          // set transform push down is not supported, execute set
-                                          // transform in memory
-                                          OperatorMemoryExecutor executor =
-                                              OperatorMemoryExecutorFactory.getInstance()
-                                                  .getMemoryExecutor();
-                                          try {
-                                            RowStream rowStream =
-                                                executor.executeUnaryOperator(
-                                                    (SetTransform) operators.get(1),
-                                                    tempResult.getRowStream(),
-                                                    task.getContext());
-                                            result = new TaskExecuteResult(rowStream);
-                                          } catch (PhysicalException e) {
-                                            result = new TaskExecuteResult(e);
-                                          }
-                                        }
-                                      }
+                                      remainingOperators.addAll(
+                                          getRemainingOperators(operators, 2));
+                                    } else if (needAggPushDown) {
+                                      result =
+                                          pair.k.executeProjectWithAgg(
+                                              (Project) op, operators.get(1), dataArea);
+                                      remainingOperators.addAll(
+                                          getRemainingOperators(operators, 2));
                                     } else {
                                       result = pair.k.executeProject((Project) op, dataArea);
+                                      remainingOperators.addAll(
+                                          getRemainingOperators(operators, 1));
                                     }
                                   }
+
+                                  OperatorMemoryExecutor executor =
+                                      OperatorMemoryExecutorFactory.getInstance()
+                                          .getMemoryExecutor();
+                                  if (result.getException() == null) {
+                                    for (int i = 0; i < remainingOperators.size(); i++) {
+                                      Operator operator = remainingOperators.get(i);
+                                      try {
+                                        result =
+                                            new TaskExecuteResult(
+                                                executor.executeUnaryOperator(
+                                                    (UnaryOperator) operator,
+                                                    result.getRowStream(),
+                                                    task.getContext()));
+                                      } catch (Exception e) {
+                                        LOGGER.error("Execute remaining operator error: ", e);
+                                        result = new TaskExecuteResult(new PhysicalException(e));
+                                      }
+                                    }
+                                  }
+
                                   break;
                                 case Insert:
                                   result = pair.k.executeInsert((Insert) op, dataArea);
@@ -447,5 +477,12 @@ public class StoragePhysicalTaskExecutor {
 
   public StorageManager getStorageManager() {
     return storageManager;
+  }
+
+  private List<Operator> getRemainingOperators(List<Operator> operators, int startIndex) {
+    if (operators.size() <= startIndex) {
+      return Collections.emptyList();
+    }
+    return operators.subList(startIndex, operators.size());
   }
 }

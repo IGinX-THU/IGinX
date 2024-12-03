@@ -217,6 +217,29 @@ public class FileSystemStorage implements IStorage {
   }
 
   @Override
+  public TaskExecuteResult executeProjectWithAggSelect(
+      Project project, Select select, Operator agg, DataArea dataArea) {
+    return null;
+  }
+
+  @Override
+  public TaskExecuteResult executeProjectDummyWithAggSelect(
+      Project project, Select select, Operator agg, DataArea dataArea) {
+    return null;
+  }
+
+  @Override
+  public TaskExecuteResult executeProjectWithAgg(Project project, Operator agg, DataArea dataArea) {
+    return null;
+  }
+
+  @Override
+  public TaskExecuteResult executeProjectDummyWithAgg(
+      Project project, Operator agg, DataArea dataArea) {
+    return null;
+  }
+
+  @Override
   public boolean isSupportProjectWithSetTransform(SetTransform setTransform, DataArea dataArea) {
     if (!isLegacyParquet) {
       return false;

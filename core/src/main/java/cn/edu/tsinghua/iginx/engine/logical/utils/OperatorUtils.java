@@ -737,4 +737,11 @@ public class OperatorUtils {
         return new ArrayList<>();
     }
   }
+
+  public static Operator getUnaryChild(Operator operator) {
+    if (isUnaryOperator(operator.getType())) {
+      return ((OperatorSource) ((UnaryOperator) operator).getSource()).getOperator();
+    }
+    return null;
+  }
 }

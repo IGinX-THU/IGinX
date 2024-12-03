@@ -56,6 +56,8 @@ public class RelationQueryRowStream implements RowStream {
 
   private final boolean isDummy;
 
+  private final boolean isAgg;
+
   private final Filter filter;
 
   private boolean[] gotNext; // 标记每个结果集是否已经获取到下一行，如果是，则在下次调用 next() 时无需再调用该结果集的 next()
@@ -91,11 +93,25 @@ public class RelationQueryRowStream implements RowStream {
       List<Connection> connList,
       AbstractRelationalMeta relationalMeta)
       throws SQLException {
+    this(databaseNameList, resultSets, isDummy, filter, tagFilter, connList, relationalMeta, false);
+  }
+
+  public RelationQueryRowStream(
+      List<String> databaseNameList,
+      List<ResultSet> resultSets,
+      boolean isDummy,
+      Filter filter,
+      TagFilter tagFilter,
+      List<Connection> connList,
+      AbstractRelationalMeta relationalMeta,
+      boolean isAgg)
+      throws SQLException {
     this.resultSets = resultSets;
     this.isDummy = isDummy;
     this.filter = filter;
     this.connList = connList;
     this.relationalMeta = relationalMeta;
+    this.isAgg = isAgg;
 
     if (resultSets.isEmpty()) {
       this.header = new Header(Field.KEY, Collections.emptyList());
@@ -144,15 +160,21 @@ public class RelationQueryRowStream implements RowStream {
         Pair<String, Map<String, String>> namesAndTags = splitFullName(columnName);
         Field field;
         if (isDummy) {
+          String path =
+              databaseNameList.get(i)
+                  + SEPARATOR
+                  + (isAgg ? "" : tableName + SEPARATOR)
+                  + namesAndTags.k;
           field =
               new Field(
-                  databaseNameList.get(i) + SEPARATOR + tableName + SEPARATOR + namesAndTags.k,
+                  path,
                   relationalMeta.getDataTypeTransformer().fromEngineType(typeName),
                   namesAndTags.v);
         } else {
+          String path = (isAgg ? "" : tableName + SEPARATOR) + namesAndTags.k;
           field =
               new Field(
-                  tableName + SEPARATOR + namesAndTags.k,
+                  path,
                   relationalMeta.getDataTypeTransformer().fromEngineType(typeName),
                   namesAndTags.v);
         }
@@ -288,18 +310,19 @@ public class RelationQueryRowStream implements RowStream {
               }
               cachedValues[startIndex + j] = tempValue;
             }
-
-            if (isDummy) {
-              // 在Dummy查询的Join操作中，key列的值是由多个Join表的所有列的值拼接而成的，但实际上的Key列仅由一个表的所有列的值拼接而成
-              // 所以在这里需要将key列的值截断为一个表的所有列的值，因为能合并在一行里的不同表的数据一定是key相同的
-              // 所以查询出来的KEY值一定是（我们需要的KEY值 * 表的数量），因此只需要裁剪取第一个表的key列的值即可
-              String keyString = resultSet.getString(fullKeyName);
-              keyString = keyString.substring(0, keyString.length() / tableNameSet.size());
-              tempKey = toHash(keyString);
-            } else {
-              tempKey = resultSet.getLong(fullKeyName);
+            if (!isAgg) {
+              if (isDummy) {
+                // 在Dummy查询的Join操作中，key列的值是由多个Join表的所有列的值拼接而成的，但实际上的Key列仅由一个表的所有列的值拼接而成
+                // 所以在这里需要将key列的值截断为一个表的所有列的值，因为能合并在一行里的不同表的数据一定是key相同的
+                // 所以查询出来的KEY值一定是（我们需要的KEY值 * 表的数量），因此只需要裁剪取第一个表的key列的值即可
+                String keyString = resultSet.getString(fullKeyName);
+                keyString = keyString.substring(0, keyString.length() / tableNameSet.size());
+                tempKey = toHash(keyString);
+              } else {
+                tempKey = resultSet.getLong(fullKeyName);
+              }
+              cachedKeys[i] = tempKey;
             }
-            cachedKeys[i] = tempKey;
 
           } else {
             cachedKeys[i] = Long.MAX_VALUE;
@@ -333,7 +356,8 @@ public class RelationQueryRowStream implements RowStream {
           startIndex = endIndex;
         }
         cachedRow = new Row(header, key, values);
-        if (!validate(filter, cachedRow)) {
+        // Agg状态下，所有表join在一起，不需要后过滤
+        if (!isAgg && !validate(filter, cachedRow)) {
           continue;
         }
       } else {
