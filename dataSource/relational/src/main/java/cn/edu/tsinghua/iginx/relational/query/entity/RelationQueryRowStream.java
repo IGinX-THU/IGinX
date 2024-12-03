@@ -38,6 +38,8 @@ import cn.edu.tsinghua.iginx.relational.meta.AbstractRelationalMeta;
 import cn.edu.tsinghua.iginx.relational.tools.RelationSchema;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
+
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -296,6 +298,9 @@ public class RelationQueryRowStream implements RowStream {
               tableNameSet.add(tableName);
 
               Object value = getResultSetObject(resultSet, columnName, tableName);
+              if(value instanceof BigDecimal){
+                value = ((BigDecimal) value).doubleValue();
+              }
               if (header.getField(startIndex + j).getType() == DataType.BINARY && value != null) {
                 tempValue = value.toString().getBytes();
               } else if (header.getField(startIndex + j).getType() == DataType.BOOLEAN
