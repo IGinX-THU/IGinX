@@ -64,8 +64,10 @@ public class BinarySinkMemoryPhysicalTask
   protected BatchStream compute(BatchStream left, BatchStream right) throws PhysicalException {
     StatefulBinaryExecutor executor = null;
     try {
+      BatchSchema leftSchema = left.getSchema();
+      BatchSchema rightSchema = right.getSchema();
       try (StopWatch watch = new StopWatch(getMetrics()::accumulateCpuTime)) {
-        executor = executorFactory.initialize(executorContext, left.getSchema(), right.getSchema());
+        executor = executorFactory.initialize(executorContext, leftSchema, rightSchema);
       }
       info = executor.toString();
       fetchAndConsume(executor, left, right);

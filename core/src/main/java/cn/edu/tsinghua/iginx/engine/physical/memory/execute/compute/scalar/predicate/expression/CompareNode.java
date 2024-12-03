@@ -85,4 +85,12 @@ public class CompareNode extends CallNode<BitVector> implements PredicateExpress
       }
     }
   }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (obj == this) return true;
+    if (obj == null || obj.getClass() != getClass()) return false;
+    CompareNode compareNode = (CompareNode) obj;
+    return function.equals(compareNode.function) && getChildren().equals(compareNode.getChildren());
+  }
 }

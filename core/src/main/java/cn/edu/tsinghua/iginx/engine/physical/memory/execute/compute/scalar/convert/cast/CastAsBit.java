@@ -27,9 +27,4 @@ public final class CastAsBit extends AbstractScalarCast<BitVector> {
   public CastAsBit() {
     super(Types.MinorType.BIT);
   }
-
-  @Override
-  public boolean equals(Object obj) {
-    return obj instanceof CastAsBit;
-  }
 }

@@ -65,11 +65,11 @@ public class LiteralNode<OUTPUT extends FieldVector> extends AbstractScalarExpre
 
   @Override
   public boolean equals(Object obj) {
-    if (obj instanceof LiteralNode) {
-      LiteralNode<?> literalNode = (LiteralNode<?>) obj;
-      return Objects.deepEquals(value, literalNode.value);
+    if (obj == null || obj.getClass() != this.getClass()) {
+      return false;
     }
-    return false;
+    LiteralNode<?> literalNode = (LiteralNode<?>) obj;
+    return Objects.deepEquals(value, literalNode.value);
   }
 
   @Override

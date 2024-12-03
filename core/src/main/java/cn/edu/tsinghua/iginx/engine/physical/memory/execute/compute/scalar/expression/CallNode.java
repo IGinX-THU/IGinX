@@ -72,11 +72,10 @@ public class CallNode<OUTPUT extends FieldVector> extends AbstractScalarExpressi
 
   @Override
   public boolean equals(Object obj) {
-    if (obj instanceof CallNode) {
-      CallNode<?> callNode = (CallNode<?>) obj;
-      return function.equals(callNode.function) && getChildren().equals(callNode.getChildren());
-    }
-    return false;
+    if (obj == this) return true;
+    if (obj == null || obj.getClass() != getClass()) return false;
+    CallNode<?> callNode = (CallNode<?>) obj;
+    return function.equals(callNode.function) && getChildren().equals(callNode.getChildren());
   }
 
   @Override
