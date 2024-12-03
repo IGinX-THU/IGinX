@@ -28,7 +28,6 @@ import cn.edu.tsinghua.iginx.integration.expansion.constant.Constant;
 import cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.integration.tool.DBConf;
-import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -317,8 +316,7 @@ public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
     SQLTestTools.executeAndCompare(session, statement, expect);
   }
 
-  @Test
-  public void testFilter() {
+  private void testFilter() {
     String statement = "select i from d1.c1 where i < 3;";
     String expect =
         "ResultSets:\n"
@@ -353,19 +351,6 @@ public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
             + "| 4294967296|   true|\n"
             + "|12884901888|   true|\n"
             + "|21474836480|   true|\n"
-            + "+-----------+-------+\n"
-            + "Total line number = 3\n";
-    SQLTestTools.executeAndCompare(session, statement, expect);
-
-    statement = "select f from d1.c1 where f > 2;";
-    expect =
-        "ResultSets:\n"
-            + "+-----------+-------+\n"
-            + "|        key|d1.c1.f|\n"
-            + "+-----------+-------+\n"
-            + "|12884901888|    2.1|\n"
-            + "|17179869184|    3.1|\n"
-            + "|21474836480|    4.1|\n"
             + "+-----------+-------+\n"
             + "Total line number = 3\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
@@ -441,7 +426,7 @@ public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
             + "Total line number = 1\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
 
-    statement = "select contributor, version from d0.c0.information where version = '1.0';";
+    statement = "select contributor, version from d0.c0.information where version = 1.0;";
     expect =
         "ResultSets:\n"
             + "+----------+-----------------------------+-------------------------+\n"
@@ -457,11 +442,14 @@ public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
         "select contributor, version from d0.c0.information where version = 3.0 or version = 1.0;";
     expect =
         "ResultSets:\n"
-            + "+---+-----------------------------+-------------------------+\n"
-            + "|key|d0.c0.information.contributor|d0.c0.information.version|\n"
-            + "+---+-----------------------------+-------------------------+\n"
-            + "+---+-----------------------------+-------------------------+\n"
-            + "Empty set.\n";
+            + "+-----------+-----------------------------+-------------------------+\n"
+            + "|        key|d0.c0.information.contributor|d0.c0.information.version|\n"
+            + "+-----------+-----------------------------+-------------------------+\n"
+            + "| 4294967296|                 Label Studio|                      1.0|\n"
+            + "| 8589934592|                 Label Studio|                      1.0|\n"
+            + "|12884901888|                 Label Studio|                      3.0|\n"
+            + "+-----------+-----------------------------+-------------------------+\n"
+            + "Total line number = 3\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
   }
 

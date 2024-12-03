@@ -20,10 +20,12 @@
 package cn.edu.tsinghua.iginx.mongodb.dummy;
 
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
+import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import com.mongodb.client.*;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.bson.BsonDocument;
@@ -45,17 +47,60 @@ public class DummyQuery {
     Map<String, PathTree> trees = QueryUtils.getDatabaseTrees(client, pathTree);
     Map<MongoDatabase, Pair<PathTree, Filter>> getDatabaseQueryArgs =
         QueryUtils.getDatabaseQueryArgs(this.client, trees, filter);
+    Map<String, DataType> schemaHint = analyzeSchemaHintFromFilter(filter);
 
     List<ResultTable> tables = new ArrayList<>();
     for (Map.Entry<MongoDatabase, Pair<PathTree, Filter>> args : getDatabaseQueryArgs.entrySet()) {
       MongoDatabase db = args.getKey();
       PathTree subtree = args.getValue().getK();
       Filter predicateFilter = args.getValue().getV();
-      List<ResultTable> dbResultList = new DatabaseQuery(db).query(subtree, predicateFilter);
+
+      List<ResultTable> dbResultList =
+          new DatabaseQuery(db).query(subtree, predicateFilter, schemaHint);
       tables.addAll(dbResultList);
     }
 
     return new QueryRowStream(tables, filter);
+  }
+
+  private static Map<String, DataType> analyzeSchemaHintFromFilter(Filter filter) {
+    Map<String, DataType> schema = new HashMap<>();
+    filter.accept(
+        new FilterVisitor() {
+          @Override
+          public void visit(AndFilter filter) {}
+
+          @Override
+          public void visit(OrFilter filter) {}
+
+          @Override
+          public void visit(NotFilter filter) {}
+
+          @Override
+          public void visit(KeyFilter filter) {}
+
+          @Override
+          public void visit(ValueFilter filter) {
+            schema.put(filter.getPath(), filter.getValue().getDataType());
+          }
+
+          @Override
+          public void visit(PathFilter filter) {}
+
+          @Override
+          public void visit(BoolFilter filter) {}
+
+          @Override
+          public void visit(ExprFilter filter) {}
+
+          @Override
+          public void visit(InFilter filter) {
+            if (!filter.getValues().isEmpty()) {
+              schema.put(filter.getPath(), filter.getValues().iterator().next().getDataType());
+            }
+          }
+        });
+    return schema;
   }
 
   private static class DatabaseQuery {
@@ -65,7 +110,8 @@ public class DummyQuery {
       this.database = database;
     }
 
-    public List<ResultTable> query(PathTree pathTree, Filter filter) {
+    public List<ResultTable> query(
+        PathTree pathTree, Filter filter, Map<String, DataType> schemaHint) {
       Map<String, PathTree> trees = QueryUtils.getCollectionTrees(database, pathTree);
       Map<MongoCollection<BsonDocument>, Pair<PathTree, Filter>> collQueryArgs =
           QueryUtils.getCollectionsQueryArgs(database, trees, filter);
@@ -76,7 +122,8 @@ public class DummyQuery {
         MongoCollection<BsonDocument> collection = args.getKey();
         PathTree tree = args.getValue().getK();
         Filter predicateFilter = args.getValue().getV();
-        ResultTable dbResultList = new CollectionQuery(collection).query(tree, predicateFilter);
+        ResultTable dbResultList =
+            new CollectionQuery(collection).query(tree, predicateFilter, schemaHint);
         resultList.add(dbResultList);
       }
       return resultList;
@@ -91,7 +138,7 @@ public class DummyQuery {
       this.collection = collection;
     }
 
-    public ResultTable query(PathTree tree, Filter filter) {
+    public ResultTable query(PathTree tree, Filter filter, Map<String, DataType> schemaHint) {
       Bson predicate = getPredicate(filter);
       Bson projection = getProjection(tree);
       FindIterable<BsonDocument> find =
@@ -111,7 +158,17 @@ public class DummyQuery {
               this.collection.getNamespace().getDatabaseName(),
               this.collection.getNamespace().getCollectionName(),
             };
-        return builder.build(prefixes, null);
+
+        String prefix = String.join(".", prefixes);
+        Map<String, DataType> schemaHintWithoutPrefix = new HashMap<>();
+        schemaHint.forEach(
+            (k, v) -> {
+              if (k.startsWith(prefix)) {
+                schemaHintWithoutPrefix.put(k.substring(prefix.length() + 1), v);
+              }
+            });
+
+        return builder.build(prefixes, schemaHintWithoutPrefix);
       }
     }
 
