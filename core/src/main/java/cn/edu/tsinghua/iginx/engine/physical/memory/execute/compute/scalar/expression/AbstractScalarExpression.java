@@ -48,6 +48,8 @@ public abstract class AbstractScalarExpression<OUTPUT extends FieldVector>
     return children;
   }
 
+  public abstract AbstractScalarExpression<OUTPUT> with(@Nullable String alias);
+
   @Override
   public String toString() {
     return getName() + (alias == null ? "" : " AS " + alias);

@@ -22,10 +22,7 @@ package cn.edu.tsinghua.iginx.physical.optimizer.naive.util;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.ScalarFunction;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.arithmetic.BinaryArithmeticScalarFunction;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.arithmetic.Negate;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.CallNode;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.FieldNode;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.LiteralNode;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpression;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.*;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.selecting.CaseWhen;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.Schemas;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
@@ -37,7 +34,7 @@ import org.apache.arrow.vector.types.pojo.Schema;
 
 public class Expressions {
 
-  public static ScalarExpression<?> getPhysicalExpression(
+  public static AbstractScalarExpression<?> getPhysicalExpression(
       ExecutorContext context, Schema inputSchema, Expression expr, boolean setAlias)
       throws ComputeException {
     switch (expr.getType()) {
@@ -50,18 +47,9 @@ public class Expressions {
       case Unary:
         return getPhysicalExpression(context, inputSchema, (UnaryExpression) expr, setAlias);
       case Bracket:
-        return getPhysicalExpression(
-            context, inputSchema, ((BracketExpression) expr).getExpression(), setAlias);
+        return getPhysicalExpression(context, inputSchema, (BracketExpression) expr, setAlias);
       case Constant:
-        if (setAlias) {
-          return new LiteralNode<>(
-              ((ConstantExpression) expr).getValue(),
-              context.getConstantPool(),
-              expr.getColumnName());
-        } else {
-          return new LiteralNode<>(
-              ((ConstantExpression) expr).getValue(), context.getConstantPool());
-        }
+        return getPhysicalExpression(context, inputSchema, (ConstantExpression) expr, setAlias);
       case CaseWhen:
         return getPhysicalExpression(context, inputSchema, (CaseWhenExpression) expr, setAlias);
       case Function:
@@ -72,7 +60,7 @@ public class Expressions {
     }
   }
 
-  private static ScalarExpression<?> getPhysicalExpression(
+  private static AbstractScalarExpression<?> getPhysicalExpression(
       ExecutorContext context, Schema inputSchema, BaseExpression expr, boolean setAlias)
       throws ComputeException {
     List<Integer> indexes = Schemas.matchPattern(inputSchema, expr.getColumnName());
@@ -91,7 +79,7 @@ public class Expressions {
     }
   }
 
-  private static ScalarExpression<?> getPhysicalExpression(
+  private static AbstractScalarExpression<?> getPhysicalExpression(
       ExecutorContext context, Schema inputSchema, CaseWhenExpression expr, boolean setAlias)
       throws ComputeException {
     List<ScalarExpression<?>> args = new ArrayList<>();
@@ -110,7 +98,7 @@ public class Expressions {
     }
   }
 
-  private static ScalarExpression<?> getPhysicalExpression(
+  private static AbstractScalarExpression<?> getPhysicalExpression(
       ExecutorContext context, Schema inputSchema, BinaryExpression expr, boolean setAlias)
       throws ComputeException {
     ScalarExpression<?> left =
@@ -125,7 +113,7 @@ public class Expressions {
     }
   }
 
-  private static ScalarExpression<?> getPhysicalExpression(
+  private static AbstractScalarExpression<?> getPhysicalExpression(
       ExecutorContext context, Schema inputSchema, UnaryExpression expr, boolean setAlias)
       throws ComputeException {
     switch (expr.getOperator()) {
@@ -138,6 +126,27 @@ public class Expressions {
             getPhysicalExpression(context, inputSchema, expr.getExpression(), false));
       default:
         throw new UnsupportedOperationException("Unsupported operator: " + expr.getOperator());
+    }
+  }
+
+  private static AbstractScalarExpression<?> getPhysicalExpression(
+      ExecutorContext context, Schema inputSchema, BracketExpression expr, boolean setAlias)
+      throws ComputeException {
+    AbstractScalarExpression<?> child =
+        getPhysicalExpression(context, inputSchema, expr.getExpression(), false);
+    if (setAlias) {
+      return child.with(expr.getColumnName());
+    } else {
+      return child;
+    }
+  }
+
+  private static AbstractScalarExpression<?> getPhysicalExpression(
+      ExecutorContext context, Schema inputSchema, ConstantExpression expr, boolean setAlias) {
+    if (setAlias) {
+      return new LiteralNode<>(expr.getValue(), context.getConstantPool(), expr.getColumnName());
+    } else {
+      return new LiteralNode<>(expr.getValue(), context.getConstantPool());
     }
   }
 

@@ -64,6 +64,11 @@ public class AndNode extends CallNode<BitVector> implements PredicateExpression 
     return children.stream().map(Objects::toString).collect(Collectors.joining(" and ", "(", ")"));
   }
 
+  @Override
+  public AndNode with(@Nullable String alias) {
+    return new AndNode(alias, children);
+  }
+
   public List<PredicateExpression> getSubPredicates() {
     return Collections.unmodifiableList(children);
   }
