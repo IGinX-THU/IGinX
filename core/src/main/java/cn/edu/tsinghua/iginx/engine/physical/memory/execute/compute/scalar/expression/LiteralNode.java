@@ -34,8 +34,8 @@ import org.apache.arrow.vector.dictionary.DictionaryProvider;
 
 public class LiteralNode<OUTPUT extends FieldVector> extends AbstractScalarExpression<OUTPUT> {
 
-  private final ConstantPool pool;
-  private final Object value;
+  protected final ConstantPool pool;
+  protected final Object value;
 
   public LiteralNode(@Nullable Object value, ConstantPool pool) {
     this(value, pool, null);
@@ -56,6 +56,11 @@ public class LiteralNode<OUTPUT extends FieldVector> extends AbstractScalarExpre
       return "'" + new String((byte[]) value) + "'";
     }
     return new Value(value).toString();
+  }
+
+  @Override
+  public AbstractScalarExpression<OUTPUT> with(@Nullable String alias) {
+    return new LiteralNode<>(value, pool, alias);
   }
 
   @Override

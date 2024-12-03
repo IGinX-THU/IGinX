@@ -39,4 +39,9 @@ public class IndexSortExpression extends CallNode<IntVector> {
   public List<CompareOption> getOptions() {
     return options;
   }
+
+  @Override
+  public IndexSortExpression with(String alias) {
+    return new IndexSortExpression(options, getChildren());
+  }
 }
