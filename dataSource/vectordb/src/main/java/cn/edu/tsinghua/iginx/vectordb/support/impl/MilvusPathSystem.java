@@ -27,8 +27,6 @@ import cn.edu.tsinghua.iginx.vectordb.support.PathSystem;
 import cn.edu.tsinghua.iginx.vectordb.tools.Constants;
 import cn.edu.tsinghua.iginx.vectordb.tools.NameUtils;
 import cn.edu.tsinghua.iginx.vectordb.tools.TagKVUtils;
-import cn.hutool.core.collection.ConcurrentHashSet;
-
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -47,10 +45,8 @@ public class MilvusPathSystem implements PathSystem {
 
   private final String databaseName;
 
-  /**
-   * 备份collection名称，escaped
-   */
-//  private final Set<String> backupCollections = new ConcurrentHashSet<>();
+  /** 备份collection名称，escaped */
+  //  private final Set<String> backupCollections = new ConcurrentHashSet<>();
 
   public MilvusPathSystem(String databaseName) {
     this.databaseName = databaseName;
@@ -392,9 +388,8 @@ public class MilvusPathSystem implements PathSystem {
     return null;
   }
 
-
-//  public Set<String> getBackupCollections() {
-//    return backupCollections;
-//  }
+  //  public Set<String> getBackupCollections() {
+  //    return backupCollections;
+  //  }
 
 }

@@ -129,6 +129,8 @@ public class Constants {
 
   public static final int MILVUS_INDEX_PARAM_NLIST = 8;
 
+  public static final long MILVUS_BATCH_SIZE = 10000L;
+
   public static final String MILVUS_DYNAMIC_FIELD_NAME = "$meta";
 
   public static final String MILVUS_VECTOR_INDEX_NAME = "VECTORDBINDEX";

@@ -54,7 +54,8 @@ public class PathUtils {
     }
     for (String collectionName : client.listCollections().getCollectionNames()) {
       Map<String, DataType> paths =
-          MilvusClientUtils.getCollectionPaths(client, escapedDatabaseName, collectionName,pathSystem);
+          MilvusClientUtils.getCollectionPaths(
+              client, escapedDatabaseName, collectionName, pathSystem);
       paths
           .keySet()
           .forEach(
