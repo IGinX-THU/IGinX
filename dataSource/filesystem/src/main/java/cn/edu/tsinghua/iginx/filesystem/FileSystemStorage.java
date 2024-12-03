@@ -19,8 +19,6 @@
  */
 package cn.edu.tsinghua.iginx.filesystem;
 
-import static cn.edu.tsinghua.iginx.metadata.utils.StorageEngineUtils.isLocal;
-
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.StorageInitializationException;
@@ -62,18 +60,21 @@ import cn.edu.tsinghua.iginx.utils.Pair;
 import com.google.common.base.Strings;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
+import org.apache.thrift.TException;
+import org.apache.thrift.transport.TSocket;
+import org.apache.thrift.transport.TTransport;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.annotation.Nullable;
 import java.net.InetSocketAddress;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import javax.annotation.Nullable;
-import org.apache.thrift.TException;
-import org.apache.thrift.transport.TSocket;
-import org.apache.thrift.transport.TTransport;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import static cn.edu.tsinghua.iginx.metadata.utils.StorageEngineUtils.isLocal;
 
 public class FileSystemStorage implements IStorage {
 
@@ -188,14 +189,14 @@ public class FileSystemStorage implements IStorage {
       return false;
     }
     FileSystemConfig fileSystemConfig = FileSystemConfig.of(rawConfig);
-    if (!fileSystemConfig.isServe()) {
+    if (fileSystemConfig.isServe()) {
       return true;
     }
     try (TTransport transport = new TSocket(meta.getIp(), meta.getPort())) {
       transport.open();
       return true;
     } catch (TException e) {
-      LOGGER.error("Cannot establish thrift server on {}, {}", meta.getIp(), meta.getPort());
+      LOGGER.error("Cannot establish thrift server on {}, {}", meta.getIp(), meta.getPort(), e);
       return false;
     }
   }
