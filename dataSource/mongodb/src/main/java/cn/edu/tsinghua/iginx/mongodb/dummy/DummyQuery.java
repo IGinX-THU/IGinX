@@ -159,12 +159,12 @@ public class DummyQuery {
               this.collection.getNamespace().getCollectionName(),
             };
 
-        String prefix = String.join(".", prefixes);
+        String prefix = String.join(".", prefixes) + ".";
         Map<String, DataType> schemaHintWithoutPrefix = new HashMap<>();
         schemaHint.forEach(
             (k, v) -> {
               if (k.startsWith(prefix)) {
-                schemaHintWithoutPrefix.put(k.substring(prefix.length() + 1), v);
+                schemaHintWithoutPrefix.put(k.substring(prefix.length()), v);
               }
             });
 
