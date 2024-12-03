@@ -21,23 +21,18 @@ package cn.edu.tsinghua.iginx.physical.optimizer.naive.initializer;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.FieldNode;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpression;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.temporal.*;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutorFactory;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateless.ProjectExecutor;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
-import cn.edu.tsinghua.iginx.engine.shared.expr.*;
-import cn.edu.tsinghua.iginx.engine.shared.function.Function;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
-import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
-import cn.edu.tsinghua.iginx.engine.shared.function.MappingType;
-import cn.edu.tsinghua.iginx.engine.shared.function.system.ArithmeticExpr;
 import cn.edu.tsinghua.iginx.engine.shared.operator.RowTransform;
 import cn.edu.tsinghua.iginx.physical.optimizer.naive.util.Expressions;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import org.apache.arrow.vector.types.pojo.Schema;
 
 public class TransformProjectionInfoGenerator implements UnaryExecutorFactory<ProjectExecutor> {
 
@@ -63,34 +58,9 @@ public class TransformProjectionInfoGenerator implements UnaryExecutorFactory<Pr
     for (int targetIndex = 0; targetIndex < operator.getFunctionCallList().size(); targetIndex++) {
       FunctionCall functionCall = operator.getFunctionCallList().get(targetIndex);
       ScalarExpression<?> expression =
-          getPhysicalExpression(context, inputSchema.raw(), functionCall);
+          Expressions.getPhysicalExpression(context, inputSchema.raw(), functionCall);
       ret.add(expression);
     }
     return ret;
-  }
-
-  private ScalarExpression<?> getPhysicalExpression(
-      ExecutorContext context, Schema inputSchema, FunctionCall functionCall)
-      throws ComputeException {
-    Function function = functionCall.getFunction();
-    FunctionParams params = functionCall.getParams();
-    switch (function.getFunctionType()) {
-      case System:
-        if (function.getMappingType() != MappingType.RowMapping) {
-          throw new UnsupportedOperationException(
-              "Unsupported mapping type for row transform: " + function.getMappingType());
-        }
-        if (function instanceof ArithmeticExpr) {
-          Expression expr = params.getExpression(0);
-          return Expressions.getPhysicalExpression(context, inputSchema, expr, true);
-        } else {
-          throw new UnsupportedOperationException(
-              "Unsupported system function: " + function.getIdentifier());
-        }
-      case UDF:
-      default:
-        throw new UnsupportedOperationException(
-            "Unsupported function type: " + function.getFunctionType());
-    }
   }
 }

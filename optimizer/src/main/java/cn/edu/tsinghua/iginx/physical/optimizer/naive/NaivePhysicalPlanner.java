@@ -20,7 +20,9 @@
 package cn.edu.tsinghua.iginx.physical.optimizer.naive;
 
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateful.AddSequenceExecutor;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateful.LimitUnaryExecutor;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateful.RemoveNullColumnExecutor;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateless.ValueToSelectedPathExecutor;
 import cn.edu.tsinghua.iginx.engine.physical.task.GlobalPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.PhysicalTask;
@@ -114,6 +116,10 @@ public class NaivePhysicalPlanner {
         return construct((Distinct) operator, context);
       case ValueToSelectedPath:
         return construct((ValueToSelectedPath) operator, context);
+      case AddSequence:
+        return construct((AddSequence) operator, context);
+      case RemoveNullColumn:
+        return construct((RemoveNullColumn) operator, context);
       case Unknown:
       case ProjectWaitingForPath:
       case Multiple:
@@ -514,6 +520,30 @@ public class NaivePhysicalPlanner {
         Collections.singletonList(operator),
         context,
         (ctx, schema) -> new ValueToSelectedPathExecutor(ctx, schema.raw(), operator.getPrefix()));
+  }
+
+  public PhysicalTask<BatchStream> construct(AddSequence operator, RequestContext context) {
+    PhysicalTask<?> sourceTask = fetch(operator.getSource(), context);
+    return new UnarySinkMemoryPhysicalTask(
+        convert(sourceTask, context, BatchStream.class),
+        Collections.singletonList(operator),
+        context,
+        (ctx, schema) ->
+            AddSequenceExecutor.of(
+                ctx,
+                schema.raw(),
+                operator.getStartList(),
+                operator.getIncrementList(),
+                operator.getColumns()));
+  }
+
+  public PhysicalTask<BatchStream> construct(RemoveNullColumn operator, RequestContext context) {
+    PhysicalTask<?> sourceTask = fetch(operator.getSource(), context);
+    return new UnarySinkMemoryPhysicalTask(
+        convert(sourceTask, context, BatchStream.class),
+        Collections.singletonList(operator),
+        context,
+        (ctx, schema) -> new RemoveNullColumnExecutor(ctx, schema.raw()));
   }
 
   @SuppressWarnings("unchecked")

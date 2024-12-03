@@ -17,25 +17,20 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.register;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.register.SystemCalleeRegistry;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ConstantPool;
-import org.apache.arrow.memory.BufferAllocator;
+import javax.annotation.Nullable;
 
-public interface ExecutorContext {
+public interface CalleeRegistry {
 
-  BufferAllocator getAllocator();
+  /**
+   * Add a callee to the registry.
+   *
+   * @param callee the callee to add
+   * @return true if the callee is added successfully, false if the identifier already exists
+   */
+  boolean add(Callee callee);
 
-  ConstantPool getConstantPool();
-
-  int getBatchRowCount();
-
-  void addWarningMessage(String message);
-
-  int groupByInitialGroupBufferCapacity();
-
-  default SystemCalleeRegistry getCalleeRegistry() {
-    return SystemCalleeRegistry.getInstance();
-  }
+  @Nullable
+  Callee get(String identifier);
 }

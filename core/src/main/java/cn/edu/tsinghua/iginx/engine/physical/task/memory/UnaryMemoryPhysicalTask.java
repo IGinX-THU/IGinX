@@ -40,15 +40,11 @@ public abstract class UnaryMemoryPhysicalTask<
 
   private static final Logger LOGGER = LoggerFactory.getLogger(UnaryMemoryPhysicalTask.class);
 
-  private PhysicalTask<INPUT> parentTask;
+  protected final PhysicalTask<INPUT> parentTask;
 
   public UnaryMemoryPhysicalTask(
       PhysicalTask<INPUT> parentTask, List<Operator> operators, RequestContext context) {
     super(TaskType.UnaryMemory, operators, context, 1);
-    this.parentTask = parentTask;
-  }
-
-  public void setParentTask(PhysicalTask<INPUT> parentTask) {
     this.parentTask = parentTask;
   }
 

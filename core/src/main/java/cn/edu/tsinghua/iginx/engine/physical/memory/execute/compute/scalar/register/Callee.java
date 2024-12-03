@@ -17,25 +17,26 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.register;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.register.SystemCalleeRegistry;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ConstantPool;
-import org.apache.arrow.memory.BufferAllocator;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpression;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
+import java.util.List;
+import java.util.Map;
+import javax.annotation.concurrent.ThreadSafe;
+import org.apache.arrow.vector.types.pojo.Schema;
 
-public interface ExecutorContext {
+@ThreadSafe
+public interface Callee {
 
-  BufferAllocator getAllocator();
+  String getIdentifier();
 
-  ConstantPool getConstantPool();
-
-  int getBatchRowCount();
-
-  void addWarningMessage(String message);
-
-  int groupByInitialGroupBufferCapacity();
-
-  default SystemCalleeRegistry getCalleeRegistry() {
-    return SystemCalleeRegistry.getInstance();
-  }
+  ScalarExpression<?> call(
+      ExecutorContext context,
+      Schema schema,
+      List<Object> args,
+      Map<String, Object> kwargs,
+      List<ScalarExpression<?>> inputs)
+      throws ComputeException;
 }

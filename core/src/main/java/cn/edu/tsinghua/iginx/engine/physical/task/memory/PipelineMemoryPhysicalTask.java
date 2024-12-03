@@ -69,12 +69,14 @@ public class PipelineMemoryPhysicalTask extends UnaryMemoryPhysicalTask<BatchStr
   @Override
   protected BatchStream compute(@WillClose BatchStream previous) throws PhysicalException {
     StatelessUnaryExecutor executor = null;
-    BatchSchema schema = previous.getSchema();
     BatchSchema outputSchema;
-    try (StopWatch watch = new StopWatch(getMetrics()::accumulateCpuTime)) {
-      executor = executorFactory.initialize(executorContext, schema);
-      outputSchema = BatchSchema.of(executor.getOutputSchema());
-      info = executor.toString();
+    try {
+      BatchSchema schema = previous.getSchema();
+      try (StopWatch watch = new StopWatch(getMetrics()::accumulateCpuTime)) {
+        executor = executorFactory.initialize(executorContext, schema);
+        outputSchema = BatchSchema.of(executor.getOutputSchema());
+        info = executor.toString();
+      }
     } catch (PhysicalException e) {
       try (BatchStream previousHolder = previous;
           StatelessUnaryExecutor executorHolder = executor) {

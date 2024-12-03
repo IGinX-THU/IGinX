@@ -23,6 +23,7 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expre
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ConstantPool;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.SelectionBuilder;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
+import java.util.Objects;
 import javax.annotation.Nullable;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.BaseIntVector;
@@ -56,5 +57,22 @@ public class FalseNode extends LiteralNode<BitVector> implements PredicateExpres
     try (SelectionBuilder builder = new SelectionBuilder(allocator, "false", 0)) {
       return builder.build();
     }
+  }
+
+  @Override
+  public String getName() {
+    return "false";
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    FalseNode falseNode = (FalseNode) o;
+    return Objects.equals(value, falseNode.value) && Objects.equals(pool, falseNode.pool);
   }
 }

@@ -249,9 +249,15 @@ public class StatementExecutor {
       after(ctx, postExecuteProcessors);
     } catch (ResourceException e) {
       ctx.setResult(new Result(e.getStatus()));
+      if (ctx.isFromSQL()) {
+        ctx.getResult().setSqlType(ctx.getSqlType());
+      }
     } catch (PhysicalException e) {
       ctx.setResult(
           new Result(RpcUtils.status(StatusCode.STATEMENT_EXECUTION_ERROR, e.toString())));
+      if (ctx.isFromSQL()) {
+        ctx.getResult().setSqlType(ctx.getSqlType());
+      }
     }
   }
 

@@ -44,16 +44,22 @@ public class TaskResultMap implements PhysicalCloseable {
     PhysicalCloseables.close(results.values());
   }
 
-  public void put(PhysicalTask<?> task, TaskResult<?> result) {
-    getEntry(task).setOnce(result);
+  public synchronized void put(PhysicalTask<?> task, TaskResult<?> result) {
+    if (closed) {
+      try {
+        result.close();
+      } catch (PhysicalException e) {
+        throw new IllegalStateException("Failed to close result", e);
+      }
+    }
+    if (!results.containsKey(task)) {
+      Entry entry = new Entry<>();
+      results.put(task, entry);
+    }
+    results.get(task).setOnce(result);
   }
 
   public <RESULT extends PhysicalCloseable> Future<TaskResult<RESULT>> get(
-      PhysicalTask<RESULT> task) {
-    return getEntry(task);
-  }
-
-  private synchronized <RESULT extends PhysicalCloseable> Entry<RESULT> getEntry(
       PhysicalTask<RESULT> task) {
     if (closed) {
       throw new IllegalStateException("TaskResultMap is closed");

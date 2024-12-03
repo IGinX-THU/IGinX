@@ -24,6 +24,7 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.A
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpression;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpressions;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -39,7 +40,15 @@ public class ExpressionAccumulation implements Accumulation {
       Accumulation accumulation, List<? extends ScalarExpression<?>> expressions)
       throws ComputeException {
     this.accumulation = Objects.requireNonNull(accumulation);
-    this.expressions = Objects.requireNonNull(expressions);
+    this.expressions = Collections.unmodifiableList(expressions);
+  }
+
+  public Accumulation getAccumulation() {
+    return accumulation;
+  }
+
+  public List<? extends ScalarExpression<?>> getExpressions() {
+    return expressions;
   }
 
   @Override

@@ -82,11 +82,6 @@ public class AndNode extends CallNode<BitVector> implements PredicateExpression 
   }
 
   @Override
-  public int hashCode() {
-    return Objects.hash(super.hashCode(), children);
-  }
-
-  @Override
   public BaseIntVector filter(
       BufferAllocator allocator,
       DictionaryProvider dictionaryProvider,

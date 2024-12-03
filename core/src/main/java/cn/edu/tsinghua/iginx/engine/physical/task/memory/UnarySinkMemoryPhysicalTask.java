@@ -62,15 +62,17 @@ public class UnarySinkMemoryPhysicalTask extends UnaryMemoryPhysicalTask<BatchSt
   @Override
   protected BatchStream compute(BatchStream previous) throws PhysicalException {
     StatefulUnaryExecutor executor = null;
-    BatchSchema schema = previous.getSchema();
     BatchSchema outputSchema;
     try {
+      BatchSchema schema = previous.getSchema();
       try (StopWatch watch = new StopWatch(getMetrics()::accumulateCpuTime)) {
         executor = executorFactory.initialize(executorContext, schema);
-        outputSchema = BatchSchema.of(executor.getOutputSchema());
         info = executor.toString();
       }
       fetchAndConsume(executor, previous);
+      try (StopWatch watch = new StopWatch(getMetrics()::accumulateCpuTime)) {
+        outputSchema = BatchSchema.of(executor.getOutputSchema());
+      }
     } catch (ComputeException e) {
       try (BatchStream previousHolder = previous;
           StatefulUnaryExecutor executorHolder = executor) {

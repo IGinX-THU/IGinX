@@ -17,25 +17,20 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.temporal;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.register.SystemCalleeRegistry;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ConstantPool;
-import org.apache.arrow.memory.BufferAllocator;
+import java.time.LocalDateTime;
 
-public interface ExecutorContext {
+public class Month extends AbstractTemporalComponentExtraction {
 
-  BufferAllocator getAllocator();
+  public static final String NAME = "month";
 
-  ConstantPool getConstantPool();
+  public Month() {
+    super(NAME);
+  }
 
-  int getBatchRowCount();
-
-  void addWarningMessage(String message);
-
-  int groupByInitialGroupBufferCapacity();
-
-  default SystemCalleeRegistry getCalleeRegistry() {
-    return SystemCalleeRegistry.getInstance();
+  @Override
+  protected int getTemporalComponent(LocalDateTime dateTime) {
+    return dateTime.getMonthValue();
   }
 }

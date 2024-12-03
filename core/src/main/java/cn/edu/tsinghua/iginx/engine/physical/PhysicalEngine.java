@@ -23,14 +23,11 @@ import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.optimizer.PhysicalOptimizer;
 import cn.edu.tsinghua.iginx.engine.physical.storage.StorageManager;
 import cn.edu.tsinghua.iginx.engine.physical.storage.execute.StoragePhysicalTaskExecutor;
-import cn.edu.tsinghua.iginx.engine.physical.task.GlobalPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.PhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskResult;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.constraint.ConstraintManager;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStreams;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Migration;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
@@ -57,18 +54,6 @@ public interface PhysicalEngine {
       if (root.getType() == OperatorType.Migration) {
         return MigrationPhysicalExecutor.getInstance()
             .execute(ctx, (Migration) root, getStoragePhysicalTaskExecutor());
-      } else {
-        GlobalPhysicalTask task = new GlobalPhysicalTask(root, ctx);
-        getStoragePhysicalTaskExecutor().executeGlobalTask(task);
-        try (TaskResult<RowStream> result = task.getResult().get()) {
-          RowStream rowStream = result.unwrap();
-          if (rowStream == null) {
-            return null;
-          }
-          return BatchStreams.wrap(ctx.getAllocator(), result.unwrap(), ctx.getBatchRowCount());
-        } catch (ExecutionException | InterruptedException e) {
-          throw new PhysicalException(e);
-        }
       }
     }
 

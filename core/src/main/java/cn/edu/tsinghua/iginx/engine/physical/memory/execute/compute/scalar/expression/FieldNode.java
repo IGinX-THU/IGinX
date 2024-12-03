@@ -56,11 +56,10 @@ public final class FieldNode extends AbstractScalarExpression<FieldVector> {
 
   @Override
   public boolean equals(Object obj) {
-    if (obj instanceof FieldNode) {
-      FieldNode fieldNode = (FieldNode) obj;
-      return index == fieldNode.index;
-    }
-    return false;
+    if (this == obj) return true;
+    if (obj == null || getClass() != obj.getClass()) return false;
+    FieldNode that = (FieldNode) obj;
+    return index == that.index;
   }
 
   @Override

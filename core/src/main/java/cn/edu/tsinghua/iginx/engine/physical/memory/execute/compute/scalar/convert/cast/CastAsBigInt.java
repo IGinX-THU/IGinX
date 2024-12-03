@@ -20,40 +20,48 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.convert.cast;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
-import org.apache.arrow.memory.BufferAllocator;
-import org.apache.arrow.vector.FieldVector;
+import org.apache.arrow.vector.BigIntVector;
+import org.apache.arrow.vector.Float4Vector;
+import org.apache.arrow.vector.Float8Vector;
+import org.apache.arrow.vector.IntVector;
 import org.apache.arrow.vector.types.Types;
 
-public final class Cast extends AbstractScalarCast<FieldVector> {
+public class CastAsBigInt extends AbstractScalarCast<BigIntVector> {
 
-  private final AbstractScalarCast<?> delegate;
-
-  public Cast(Types.MinorType resultType) throws ComputeException {
-    super(resultType);
-    this.delegate = getDelegate(resultType);
+  public CastAsBigInt() {
+    super(Types.MinorType.BIGINT);
   }
 
   @Override
-  public FieldVector evaluate(BufferAllocator allocator, FieldVector input)
-      throws ComputeException {
-    return delegate.evaluate(allocator, input);
-  }
-
-  private AbstractScalarCast<?> getDelegate(Types.MinorType resultType) throws ComputeException {
-    switch (resultType) {
-      case BIT:
-        return new CastAsBit();
-      case BIGINT:
-        return new CastAsBigInt();
-      case FLOAT8:
-        return new CastAsFloat8();
-      default:
-        throw new ComputeException("Cast to " + resultType + " is not supported");
+  protected void evaluate(BigIntVector dest, IntVector input) throws ComputeException {
+    for (int i = 0; i < input.getValueCount(); i++) {
+      if (!input.isNull(i)) {
+        dest.set(i, input.get(i));
+      } else {
+        dest.setNull(i);
+      }
     }
   }
 
   @Override
-  public boolean equals(Object obj) {
-    return super.equals(obj) && delegate.equals(((Cast) obj).delegate);
+  protected void evaluate(BigIntVector dest, Float4Vector input) throws ComputeException {
+    for (int i = 0; i < input.getValueCount(); i++) {
+      if (!input.isNull(i)) {
+        dest.set(i, (long) input.get(i));
+      } else {
+        dest.setNull(i);
+      }
+    }
+  }
+
+  @Override
+  protected void evaluate(BigIntVector dest, Float8Vector input) throws ComputeException {
+    for (int i = 0; i < input.getValueCount(); i++) {
+      if (!input.isNull(i)) {
+        dest.set(i, (long) input.get(i));
+      } else {
+        dest.setNull(i);
+      }
+    }
   }
 }

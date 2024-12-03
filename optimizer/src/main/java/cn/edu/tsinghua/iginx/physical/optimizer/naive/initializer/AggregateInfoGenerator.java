@@ -19,24 +19,26 @@
  */
 package cn.edu.tsinghua.iginx.physical.optimizer.naive.initializer;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.Accumulation;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.expression.ExpressionAccumulation;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.expression.ExpressionAccumulator;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.unary.*;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.FieldNode;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpression;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpressions;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.Schemas;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutorFactory;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateful.AggregateUnaryExecutor;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
+import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
 import cn.edu.tsinghua.iginx.engine.shared.function.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.SetTransform;
-import cn.edu.tsinghua.iginx.utils.Pair;
+import cn.edu.tsinghua.iginx.physical.optimizer.naive.util.Expressions;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import org.apache.arrow.vector.types.pojo.Schema;
 
 public class AggregateInfoGenerator implements UnaryExecutorFactory<AggregateUnaryExecutor> {
 
@@ -49,15 +51,10 @@ public class AggregateInfoGenerator implements UnaryExecutorFactory<AggregateUna
   @Override
   public AggregateUnaryExecutor initialize(ExecutorContext context, BatchSchema inputSchema)
       throws ComputeException {
-    List<Pair<Accumulation, Integer>> aggregateInfo =
+
+    List<ExpressionAccumulation> accumulations =
         generateAggregateInfo(context, inputSchema, transform.getFunctionCallList());
-    List<ExpressionAccumulation> accumulations = new ArrayList<>();
-    for (Pair<Accumulation, Integer> pair : aggregateInfo) {
-      ExpressionAccumulation accumulation =
-          new ExpressionAccumulation(
-              pair.getK(), Collections.singletonList(new FieldNode(pair.getV())));
-      accumulations.add(accumulation);
-    }
+
     List<ExpressionAccumulator> accumulators = new ArrayList<>();
     for (ExpressionAccumulation accumulation : accumulations) {
       accumulators.add(accumulation.accumulate(context.getAllocator(), inputSchema.raw()));
@@ -65,33 +62,56 @@ public class AggregateInfoGenerator implements UnaryExecutorFactory<AggregateUna
     return new AggregateUnaryExecutor(context, inputSchema.raw(), accumulators);
   }
 
-  public static List<Pair<Accumulation, Integer>> generateAggregateInfo(
+  public static List<ExpressionAccumulation> generateAggregateInfo(
       ExecutorContext context, BatchSchema inputSchema, List<FunctionCall> calls)
       throws ComputeException {
-    List<Pair<Accumulation, Integer>> result = new ArrayList<>();
+    List<ExpressionAccumulation> result = new ArrayList<>();
     for (FunctionCall call : calls) {
-      Function function = call.getFunction();
-      if (function.getFunctionType() != FunctionType.System) {
-        throw new UnsupportedOperationException("Not implemented yet");
-      }
-      FunctionParams params = call.getParams();
-      if (params.getPaths().size() != 1) {
-        throw new ComputeException("Function " + function + " should have exactly one parameter");
-      }
-      List<Integer> matchedIndexes =
-          Schemas.matchPattern(inputSchema.raw(), params.getPaths().get(0));
-      if (function.getMappingType() != MappingType.SetMapping) {
-        throw new ComputeException("Function " + function + " is not an aggregate function");
-      }
-      UnaryAccumulation accumulation = getAccumulation(context, (SetMappingFunction) function);
-      if (params.isDistinct()) {
-        accumulation = new UnaryAccumulationDistinctAdapter(accumulation);
-      }
-      for (int index : matchedIndexes) {
-        result.add(new Pair<>(accumulation, index));
-      }
+      ExpressionAccumulation accumulation = generateAggregateInfo(context, inputSchema, call);
+      result.add(accumulation);
     }
     return result;
+  }
+
+  private static ExpressionAccumulation generateAggregateInfo(
+      ExecutorContext context, BatchSchema inputSchema, FunctionCall call) throws ComputeException {
+    Function function = call.getFunction();
+    if (function.getFunctionType() != FunctionType.System) {
+      throw new UnsupportedOperationException("Not implemented yet");
+    }
+    FunctionParams params = call.getParams();
+    if (params.getPaths().size() != 1) {
+      throw new ComputeException("Function " + function + " should have exactly one parameter");
+    }
+    String path = params.getPaths().get(0);
+    if (function.getMappingType() != MappingType.SetMapping) {
+      throw new ComputeException("Function " + function + " is not an aggregate function");
+    }
+    UnaryAccumulation accumulation = getAccumulation(context, (SetMappingFunction) function);
+    if (params.isDistinct()) {
+      accumulation = new UnaryAccumulationDistinctAdapter(accumulation);
+    }
+    List<ScalarExpression<?>> scalarExpressions = new ArrayList<>();
+    if (!call.isNeedPreRowTransform()) {
+      List<Integer> matchedIndexes = Schemas.matchPattern(inputSchema.raw(), path);
+      for (int index : matchedIndexes) {
+        scalarExpressions.add(new FieldNode(index));
+      }
+    } else {
+      List<ScalarExpression<?>> preRowTransform = new ArrayList<>();
+      for (Expression expression : params.getExpressions()) {
+        preRowTransform.add(
+            Expressions.getPhysicalExpression(context, inputSchema.raw(), expression, true));
+      }
+      Schema schema =
+          ScalarExpressions.getOutputSchema(
+              context.getAllocator(), preRowTransform, inputSchema.raw());
+      List<Integer> matchedIndexes = Schemas.matchPattern(schema, path);
+      for (int index : matchedIndexes) {
+        scalarExpressions.add(preRowTransform.get(index));
+      }
+    }
+    return new ExpressionAccumulation(accumulation, scalarExpressions);
   }
 
   private static UnaryAccumulation getAccumulation(

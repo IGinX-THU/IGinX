@@ -174,11 +174,21 @@ public class ParallelPipelineMemoryPhysicalTask
     }
 
     @Override
-    protected BatchStream compute(BatchStream previous) throws PhysicalException {
-      try (BatchStream ignored = previous) {
-        outputStream.offer(previous, getMetrics());
-        return BatchStreams.empty();
+    public TaskResult<BatchStream> execute() {
+      Future<TaskResult<BatchStream>> future = parentTask.getResult();
+      try (TaskResult<BatchStream> parentResult = future.get()) {
+        outputStream.offer(parentResult, getMetrics());
+        return new TaskResult<>(BatchStreams.empty());
+      } catch (PhysicalException e) {
+        return new TaskResult<>(e);
+      } catch (InterruptedException | ExecutionException e) {
+        return new TaskResult<>(new PhysicalException(e));
       }
+    }
+
+    @Override
+    protected BatchStream compute(BatchStream previous) throws PhysicalException {
+      throw new UnsupportedOperationException();
     }
 
     @Override

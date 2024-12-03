@@ -23,11 +23,17 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.Scala
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.arithmetic.BinaryArithmeticScalarFunction;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.arithmetic.Negate;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.*;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.register.Callee;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.selecting.CaseWhen;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.Schemas;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.shared.expr.*;
+import cn.edu.tsinghua.iginx.engine.shared.function.Function;
+import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
+import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
+import cn.edu.tsinghua.iginx.engine.shared.function.MappingType;
+import cn.edu.tsinghua.iginx.engine.shared.function.system.ArithmeticExpr;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.arrow.vector.types.pojo.Schema;
@@ -170,5 +176,78 @@ public class Expressions {
       default:
         throw new UnsupportedOperationException("Unsupported operator: " + operator);
     }
+  }
+
+  public static ScalarExpression<?> getPhysicalExpression(
+      ExecutorContext context, Schema inputSchema, FunctionCall functionCall)
+      throws ComputeException {
+    Function function = functionCall.getFunction();
+    if (function.getMappingType() != MappingType.RowMapping) {
+      throw new UnsupportedOperationException(
+          "Unsupported mapping type for row transform: " + function.getMappingType());
+    }
+
+    FunctionParams params = functionCall.getParams();
+    List<ScalarExpression<?>> inputs =
+        Expressions.getRowMappingFunctionArgumentExpressions(
+            context,
+            inputSchema,
+            params,
+            functionCall.isNeedPreRowTransform() || function instanceof ArithmeticExpr);
+
+    switch (function.getFunctionType()) {
+      case System:
+        Callee callee = context.getCalleeRegistry().get(function.getIdentifier());
+        if (callee == null) {
+          throw new ComputeException("Function not found: " + function.getIdentifier());
+        }
+        return callee.call(context, inputSchema, params.getArgs(), params.getKwargs(), inputs);
+      case UDF:
+      default:
+        throw new UnsupportedOperationException(
+            "Unsupported function type: " + function.getFunctionType());
+    }
+  }
+
+  public static List<ScalarExpression<?>> getRowMappingFunctionArgumentExpressions(
+      ExecutorContext context,
+      Schema inputSchema,
+      FunctionParams params,
+      boolean needPreRowTransform)
+      throws ComputeException {
+    List<ScalarExpression<?>> scalarExpressions = new ArrayList<>();
+    if (!needPreRowTransform) {
+      for (String path : params.getPaths()) {
+        List<Integer> matchedIndexes = Schemas.matchPattern(inputSchema, path);
+        if (matchedIndexes.isEmpty()) {
+          throw new ComputeException("Column not found: " + path + " in " + inputSchema);
+        } else if (matchedIndexes.size() > 1) {
+          throw new ComputeException("Ambiguous column: " + path + " in " + inputSchema);
+        }
+        for (int index : matchedIndexes) {
+          scalarExpressions.add(new FieldNode(index));
+        }
+      }
+    } else {
+      List<ScalarExpression<?>> preRowTransform = new ArrayList<>();
+      for (Expression expression : params.getExpressions()) {
+        preRowTransform.add(
+            Expressions.getPhysicalExpression(context, inputSchema, expression, true));
+      }
+      Schema schema =
+          ScalarExpressions.getOutputSchema(context.getAllocator(), preRowTransform, inputSchema);
+      for (String path : params.getPaths()) {
+        List<Integer> matchedIndexes = Schemas.matchPattern(schema, path);
+        if (matchedIndexes.isEmpty()) {
+          throw new ComputeException("Column not found: " + path + " in " + inputSchema);
+        } else if (matchedIndexes.size() > 1) {
+          throw new ComputeException("Ambiguous column: " + path + " in " + inputSchema);
+        }
+        for (int index : matchedIndexes) {
+          scalarExpressions.add(preRowTransform.get(index));
+        }
+      }
+    }
+    return scalarExpressions;
   }
 }

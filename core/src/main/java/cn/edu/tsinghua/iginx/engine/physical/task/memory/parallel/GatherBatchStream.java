@@ -22,6 +22,7 @@ package cn.edu.tsinghua.iginx.engine.physical.task.memory.parallel;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.util.Batch;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskMetrics;
+import cn.edu.tsinghua.iginx.engine.physical.task.TaskResult;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
 import java.util.Comparator;
@@ -119,8 +120,8 @@ class GatherBatchStream implements BatchStream {
     }
   }
 
-  public void offer(BatchStream previous, TaskMetrics metrics) throws PhysicalException {
-    try {
+  public void offer(TaskResult<BatchStream> result, TaskMetrics metrics) throws PhysicalException {
+    try (BatchStream previous = result.unwrap()) {
       synchronized (this) {
         if (this.schema == null) {
           this.schema = previous.getSchema();
