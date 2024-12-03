@@ -399,7 +399,7 @@ public class MilvusClientUtils {
             c.loadCollection(
                 LoadCollectionReq.builder()
                     .collectionName(escapedCollectionName)
-                    //                  .async(false)
+                    .async(false)
                     .build());
           } catch (Exception e) {
             LOGGER.error("unexpected error: ", e);
