@@ -97,5 +97,12 @@ runs:
               sed -i"" -e "s/Session(\"${MILVUS_HOST}/Session(\"127.0.0.1/g" test/src/test/java/cn/edu/tsinghua/iginx/integration/expansion/BaseCapacityExpansionIT.java
               sed -i"" -e "s/127.0.0.1/${MILVUS_HOST}/g" test/src/test/java/cn/edu/tsinghua/iginx/integration/expansion/vectordb/VectorDBHistoryDataGenerator.java
               sed -i"" -e "s/127.0.0.1#19530/${MILVUS_HOST}#19530/g" test/src/test/resources/testConfig.properties
-              sed -i"" -e "s/127.0.0.1:2181/${MILVUS_HOST}:2181/g" conf/config.properties
               sed -i"" -e "s/127.0.0.1#19530/${MILVUS_HOST}#19530/g" conf/config.properties
+
+        - if: runner.os == 'Windows'
+          name: Set up JDK ${{ inputs.java }}
+          uses: actions/setup-java@v4
+          with:
+            java-version: ${{ inputs.java }}
+            distribution: ${{ runner.os == 'macOS' && matrix.java == '8' && 'liberica' || 'temurin' }}
+            cache: "maven"
