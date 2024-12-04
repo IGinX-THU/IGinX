@@ -7628,7 +7628,7 @@ public class SQLSessionIT {
       return;
     }
 
-    String closeRule = "SET RULES ColumnPruningRule=OFF;";
+    String closeRule = "SET RULES ColumnPruningRule=OFF, AggPushDownRule=off;";
     executor.execute(closeRule);
 
     String insert =
@@ -7832,7 +7832,7 @@ public class SQLSessionIT {
     executor.concurrentExecuteAndCompare(statementsAndExpectResNoChange);
 
     // 开启filter_fragment
-    statement = "SET RULES FragmentPruningByFilterRule=ON, ColumnPruningRule=ON;";
+    statement = "SET RULES FragmentPruningByFilterRule=ON, ColumnPruningRule=ON, AggPushDownRule=on;";
     executor.execute(statement);
   }
 
