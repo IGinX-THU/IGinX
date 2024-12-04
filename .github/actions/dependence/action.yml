@@ -76,3 +76,4 @@ runs:
           shell: bash
           run: |
               echo "VERSION=${{ steps.project.outputs.version }}" >> $GITHUB_ENV
+              echo $JAVA_HOME
