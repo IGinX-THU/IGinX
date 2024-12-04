@@ -46,7 +46,8 @@ runs:
           working-directory: ${{ github.workspace }}
           run: |
               for port in ${{ inputs.ports }}; do
-                docker-compose -f $port/docker-compose-$port.yml up -d
+                sudo chown -R $(whoami) $port/
+                sudo nohup docker-compose -f $port/docker-compose-$port.yml up -d
               done
               sleep 5
               for port in ${{ inputs.ports }}; do

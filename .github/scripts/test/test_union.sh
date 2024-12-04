@@ -20,6 +20,8 @@
 
 pwd
 
+echo $JAVA_HOME
+
 cd ..
 
 cat ./test/src/test/resources/testTask.txt
