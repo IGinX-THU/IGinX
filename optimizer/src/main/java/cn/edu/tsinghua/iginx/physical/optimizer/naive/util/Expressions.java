@@ -30,12 +30,11 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.excepti
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.expr.*;
-import cn.edu.tsinghua.iginx.engine.shared.function.Function;
-import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
-import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
-import cn.edu.tsinghua.iginx.engine.shared.function.MappingType;
+import cn.edu.tsinghua.iginx.engine.shared.function.*;
+import cn.edu.tsinghua.iginx.engine.shared.function.manager.FunctionManager;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.arrow.vector.types.pojo.Schema;
 
 public class Expressions {
@@ -292,5 +291,52 @@ public class Expressions {
       }
     }
     return scalarExpressions;
+  }
+
+  public static boolean containSystemFunctionOnly(Expression expression) {
+    AtomicBoolean containUdf = new AtomicBoolean(false);
+    expression.accept(
+        new ExpressionVisitor() {
+          @Override
+          public void visit(BaseExpression expression) {}
+
+          @Override
+          public void visit(BinaryExpression expression) {}
+
+          @Override
+          public void visit(BracketExpression expression) {}
+
+          @Override
+          public void visit(ConstantExpression expression) {}
+
+          @Override
+          public void visit(FromValueExpression expression) {}
+
+          @Override
+          public void visit(FuncExpression expression) {
+            if (FunctionManager.getInstance()
+                    .getFunction(expression.getFuncName())
+                    .getFunctionType()
+                != FunctionType.System) {
+              containUdf.set(true);
+            }
+          }
+
+          @Override
+          public void visit(MultipleExpression expression) {}
+
+          @Override
+          public void visit(UnaryExpression expression) {}
+
+          @Override
+          public void visit(CaseWhenExpression expression) {}
+
+          @Override
+          public void visit(KeyExpression expression) {}
+
+          @Override
+          public void visit(SequenceExpression expression) {}
+        });
+    return !containUdf.get();
   }
 }
