@@ -94,7 +94,7 @@ public class GroupBy extends AbstractUnaryOperator {
     if (functionCallList != null && !functionCallList.isEmpty()) {
       builder.append(", FuncList: ");
       for (FunctionCall functionCall : functionCallList) {
-        builder.append(functionCall.getFunctionStr()).append(",");
+        builder.append(functionCall.getNameAndFuncTypeStr()).append(",");
       }
       builder.append(" MappingType: ");
       builder.append(functionCallList.get(0).getFunction().getMappingType());
