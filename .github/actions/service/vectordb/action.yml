@@ -42,8 +42,8 @@ runs:
               done
               echo "docker-compose.yml created successfully"
 
-        - if: fromJSON(inputs.start) && runner.os != 'Windows'
-          name: Create Config for milvus docker compose
+        - if: fromJSON(inputs.start) && runner.os == 'Linux'
+          name: Create Config for milvus docker compose on Linux
           shell: bash
           working-directory: ${{ github.workspace }}
           run: |
@@ -57,6 +57,22 @@ runs:
                 sed -i"" -e "s/name: milvus/name: milvus$port/g" $port/docker-compose-$port.yml
               done
               echo "docker-compose.yml created successfully"
+
+        - if: fromJSON(inputs.start) && runner.os == 'macOS'
+          name: Create Config for milvus docker compose on macOS
+          shell: bash
+          working-directory: ${{ github.workspace }}
+          run: |
+            pwd
+            echo ${{ github.workspace }}
+            for port in ${{ inputs.ports }}; do
+              mkdir -p $port
+              cp -f docker/milvus/docker-compose-mac.yml $port/docker-compose-$port.yml
+              sed -i"" -e "s/19530:19530/$port:19530/g" $port/docker-compose-$port.yml
+              sed -i"" -e "s/\/volumes/\/volumes$port/g" $port/docker-compose-$port.yml
+              sed -i"" -e "s/name: milvus/name: milvus$port/g" $port/docker-compose-$port.yml
+            done
+            echo "docker-compose.yml created successfully"
 
         - if: fromJSON(inputs.start) && runner.os != 'Windows'
           name: Start milvus
