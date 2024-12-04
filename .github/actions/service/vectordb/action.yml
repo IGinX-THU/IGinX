@@ -26,38 +26,57 @@ runs:
         - name: Setup docker compose
           uses: ./.github/actions/docker-compose
 
-        - if: fromJSON(inputs.start)
+        - if: fromJSON(inputs.start) && runner.os == 'Windows'
+          name: Create Config for milvus docker compose on Windows
+          shell: bash
+          working-directory: ${{ github.workspace }}
+          run: |
+            pwd
+            echo ${{ github.workspace }}
+            for port in ${{ inputs.ports }}; do
+              mkdir -p $port
+              cp -f docker/milvus/docker-compose.yml $port/docker-compose-$port.yml
+              sed -i"" -e "s/19530:19530/$port:19530/g" $port/docker-compose-$port.yml
+              sed -i"" -e "s/\/volumes/\/volumes$port/g" $port/docker-compose-$port.yml
+              sed -i"" -e "s/name: milvus/name: milvus$port/g" $port/docker-compose-$port.yml
+            done
+            echo "docker-compose.yml created successfully"
+
+        - if: fromJSON(inputs.start) && runner.os != 'Windows'
           name: Create Config for milvus docker compose
           shell: bash
           working-directory: ${{ github.workspace }}
           run: |
-              for port in ${{ inputs.ports }}; do
-                mkdir -p $port
-                cp -f docker/milvus/docker-compose.yml $port/docker-compose-$port.yml
-                sed -i"" -e "s/19530:19530/$port:19530/g" $port/docker-compose-$port.yml
-                sed -i"" -e "s/\/volumes/\/volumes$port/g" $port/docker-compose-$port.yml
-                sed -i"" -e "s/name: milvus/name: milvus$port/g" $port/docker-compose-$port.yml
-              done
-              echo "docker-compose.yml created successfully"
+            pwd
+            echo ${{ github.workspace }}
+            for port in ${{ inputs.ports }}; do
+              mkdir -p ../$port
+              cp -f docker/milvus/docker-compose.yml ../$port/docker-compose-$port.yml
+              sed -i"" -e "s/19530:19530/$port:19530/g" ../$port/docker-compose-$port.yml
+              sed -i"" -e "s/\/volumes/\/volumes$port/g" ../$port/docker-compose-$port.yml
+              sed -i"" -e "s/name: milvus/name: milvus$port/g" ../$port/docker-compose-$port.yml
+            done
+            echo "docker-compose.yml created successfully"
 
         - if: fromJSON(inputs.start) && runner.os != 'Windows'
           name: Start milvus
           shell: bash
           working-directory: ${{ github.workspace }}
           run: |
-              for port in ${{ inputs.ports }}; do
-                sudo chown -R $(whoami) $port/
-                sudo nohup docker-compose -f $port/docker-compose-$port.yml up -d
-              done
-              sleep 5
-              for port in ${{ inputs.ports }}; do
-                if netstat -an | grep -q ".*:$port.*LISTEN"; then
-                  echo "Port $port is open."
-                else
-                  echo "Port $port is not open."
-                fi
-              done
-              docker ps -a
+            pwd
+            for port in ${{ inputs.ports }}; do
+              sudo chown -R $(whoami) ../$port/
+              sudo nohup docker-compose -f ../$port/docker-compose-$port.yml up -d
+            done
+            sleep 5
+            for port in ${{ inputs.ports }}; do
+              if netstat -an | grep -q ".*:$port.*LISTEN"; then
+                echo "Port $port is open."
+              else
+                echo "Port $port is not open."
+              fi
+            done
+            docker ps -a
 
         #              docker logs milvus19530-standalone
         #              docker logs milvus19530-minio
