@@ -192,6 +192,12 @@ runs:
             paths: conf/config.properties
             statements: s/^#storageEngineList=192.168.106.2#19530/storageEngineList=192.168.106.2#19530/g
 
+        - if: inputs.DB-name=='VectorDB'
+          name: Run DB
+          shell: bash
+          run: |
+            cat conf/config.properties | grep storageEngineList
+
         - if: inputs.DB-name=='FileSystem'
           name: Run DB
           shell: bash
