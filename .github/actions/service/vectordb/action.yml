@@ -50,11 +50,11 @@ runs:
               pwd
               echo ${{ github.workspace }}
               for port in ${{ inputs.ports }}; do
-                mkdir -p ../../$port
-                cp -f docker/milvus/docker-compose.yml ../../$port/docker-compose-$port.yml
-                sed -i"" -e "s/19530:19530/$port:19530/g" ../../$port/docker-compose-$port.yml
-                sed -i"" -e "s/\/volumes/\/volumes$port/g" ../../$port/docker-compose-$port.yml
-                sed -i"" -e "s/name: milvus/name: milvus$port/g" ../../$port/docker-compose-$port.yml
+                mkdir -p $port
+                cp -f docker/milvus/docker-compose.yml $port/docker-compose-$port.yml
+                sed -i"" -e "s/19530:19530/$port:19530/g" $port/docker-compose-$port.yml
+                sed -i"" -e "s/\/volumes/\/volumes$port/g" $port/docker-compose-$port.yml
+                sed -i"" -e "s/name: milvus/name: milvus$port/g" $port/docker-compose-$port.yml
               done
               echo "docker-compose.yml created successfully"
 
@@ -64,9 +64,10 @@ runs:
           working-directory: ${{ github.workspace }}
           run: |
               pwd
+              whoami
               for port in ${{ inputs.ports }}; do
-                sudo chown -R $(whoami) ../../$port/
-                sudo nohup docker-compose -f ../../$port/docker-compose-$port.yml up -d
+                sudo chown -R $(whoami) $port/
+                sudo nohup docker-compose -f $port/docker-compose-$port.yml up -d
               done
               sleep 5
               for port in ${{ inputs.ports }}; do
