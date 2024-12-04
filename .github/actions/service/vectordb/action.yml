@@ -77,14 +77,20 @@ runs:
                 sudo nohup docker-compose -f $port/docker-compose-$port.yml up -d
               done
               sleep 5
-              for port in ${{ inputs.ports }}; do
-                if netstat -an | grep -q ".*:$port.*LISTEN"; then
-                  echo "Port $port is open."
-                else
-                  echo "Port $port is not open."
-                fi
-              done
               docker ps -a
+
+        - if: fromJSON(inputs.start) && runner.os == 'Windows'
+          name: netstat
+          shell: bash
+          working-directory: ${{ github.workspace }}
+          run: |
+            for port in ${{ inputs.ports }}; do
+              if netstat -an | grep -q ".*:$port.*LISTEN"; then
+                echo "Port $port is open."
+              else
+                echo "Port $port is not open."
+              fi
+            done
 
         - if: runner.os == 'macOS'
           name: replace host
@@ -100,9 +106,9 @@ runs:
               sed -i"" -e "s/127.0.0.1#19530/${MILVUS_HOST}#19530/g" conf/config.properties
 
         - if: runner.os == 'Windows'
-          name: Set up JDK ${{ inputs.java }}
+          name: Set up JDK
           uses: actions/setup-java@v4
           with:
-            java-version: ${{ inputs.java }}
-            distribution: ${{ runner.os == 'macOS' && matrix.java == '8' && 'liberica' || 'temurin' }}
+            java-version: "8"
+            distribution: 'liberica'
             cache: "maven"
