@@ -20,6 +20,7 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.expression;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.Accumulator;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.VectorSchemaRoots;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ResultRowCountException;
 import java.util.ArrayList;
@@ -99,7 +100,8 @@ public class ExpressionAccumulators {
       results.forEach(FieldVector::close);
       throw e;
     }
-    return new VectorSchemaRoot(results);
+    return VectorSchemaRoots.create(
+        results, statesColumns.isEmpty() ? 0 : statesColumns.get(0).size());
   }
 
   //

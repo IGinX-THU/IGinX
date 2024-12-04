@@ -17,34 +17,36 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.sort;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.CallNode;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpression;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.CompareOption;
-import java.util.List;
+import java.util.Arrays;
 import java.util.Objects;
-import org.apache.arrow.vector.IntVector;
 
-public class IndexSortExpression extends CallNode<IntVector> {
+public class BinaryHolder {
 
-  private final List<CompareOption> options;
+  private final byte[] value;
+  private final transient int hash;
 
-  public IndexSortExpression(
-      List<CompareOption> options, List<? extends ScalarExpression<?>> children) {
-    super(new IndexSort(options), children);
-    this.options = Objects.requireNonNull(options);
-  }
-
-  public List<CompareOption> getOptions() {
-    return options;
+  public BinaryHolder(byte[] value) {
+    this.value = Objects.requireNonNull(value);
+    this.hash = Arrays.hashCode(value);
   }
 
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
-    IndexSortExpression that = (IndexSortExpression) o;
-    return options.equals(that.options);
+    BinaryHolder that = (BinaryHolder) o;
+    return Arrays.equals(value, that.value);
+  }
+
+  @Override
+  public int hashCode() {
+    return hash;
+  }
+
+  @Override
+  public String toString() {
+    return Arrays.toString(value);
   }
 }

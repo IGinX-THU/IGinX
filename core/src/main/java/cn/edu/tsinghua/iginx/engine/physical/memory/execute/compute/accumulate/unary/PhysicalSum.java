@@ -75,6 +75,7 @@ public class PhysicalSum extends UnaryAccumulation {
   protected static class IntSumState extends SumState {
 
     private int sum = 0;
+    private boolean hasValue = false;
 
     @Override
     public void update(FieldVector inputVector) throws ComputeException {
@@ -86,6 +87,7 @@ public class PhysicalSum extends UnaryAccumulation {
       int valueCount = intVector.getValueCount();
       for (int i = 0; i < valueCount; i++) {
         if (!intVector.isNull(i)) {
+          hasValue = true;
           sum += intVector.get(i);
         }
       }
@@ -93,13 +95,18 @@ public class PhysicalSum extends UnaryAccumulation {
 
     @Override
     public void evaluate(FieldWriter writer) {
-      writer.writeInt(sum);
+      if (hasValue) {
+        writer.writeInt(sum);
+      } else {
+        writer.writeNull();
+      }
     }
   }
 
   protected static class BigIntSumState extends SumState {
 
     private long sum = 0;
+    private boolean hasValue = false;
 
     @Override
     public void update(FieldVector inputVector) throws ComputeException {
@@ -111,6 +118,7 @@ public class PhysicalSum extends UnaryAccumulation {
       int valueCount = bigIntVector.getValueCount();
       for (int i = 0; i < valueCount; i++) {
         if (!bigIntVector.isNull(i)) {
+          hasValue = true;
           sum += bigIntVector.get(i);
         }
       }
@@ -118,13 +126,18 @@ public class PhysicalSum extends UnaryAccumulation {
 
     @Override
     public void evaluate(FieldWriter writer) {
-      writer.writeBigInt(sum);
+      if (hasValue) {
+        writer.writeBigInt(sum);
+      } else {
+        writer.writeNull();
+      }
     }
   }
 
   protected static class Float4SumState extends SumState {
 
     private float sum = 0;
+    private boolean hasValue = false;
 
     @Override
     public void update(FieldVector inputVector) throws ComputeException {
@@ -136,6 +149,7 @@ public class PhysicalSum extends UnaryAccumulation {
       int valueCount = float4Vector.getValueCount();
       for (int i = 0; i < valueCount; i++) {
         if (!float4Vector.isNull(i)) {
+          hasValue = true;
           sum += float4Vector.get(i);
         }
       }
@@ -143,13 +157,18 @@ public class PhysicalSum extends UnaryAccumulation {
 
     @Override
     public void evaluate(FieldWriter writer) {
-      writer.writeFloat4(sum);
+      if (hasValue) {
+        writer.writeFloat4(sum);
+      } else {
+        writer.writeNull();
+      }
     }
   }
 
   protected static class Float8SumState extends SumState {
 
     private double sum = 0;
+    private boolean hasValue = false;
 
     @Override
     public void update(FieldVector inputVector) throws ComputeException {
@@ -161,6 +180,7 @@ public class PhysicalSum extends UnaryAccumulation {
       int valueCount = float8Vector.getValueCount();
       for (int i = 0; i < valueCount; i++) {
         if (!float8Vector.isNull(i)) {
+          hasValue = true;
           sum += float8Vector.get(i);
         }
       }
@@ -168,7 +188,11 @@ public class PhysicalSum extends UnaryAccumulation {
 
     @Override
     public void evaluate(FieldWriter writer) throws ComputeException {
-      writer.writeFloat8(sum);
+      if (hasValue) {
+        writer.writeFloat8(sum);
+      } else {
+        writer.writeNull();
+      }
     }
   }
 }

@@ -70,11 +70,6 @@ public class OrNode extends CallNode<BitVector> implements PredicateExpression {
   }
 
   @Override
-  public OrNode with(@Nullable String alias) {
-    return new OrNode(alias, children);
-  }
-
-  @Override
   public boolean equals(Object o) {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;

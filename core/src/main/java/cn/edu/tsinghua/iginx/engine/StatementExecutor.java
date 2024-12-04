@@ -255,6 +255,7 @@ public class StatementExecutor {
     } catch (PhysicalException e) {
       ctx.setResult(
           new Result(RpcUtils.status(StatusCode.STATEMENT_EXECUTION_ERROR, e.toString())));
+      LOGGER.debug("statement execution failed: ", e);
       if (ctx.isFromSQL()) {
         ctx.getResult().setSqlType(ctx.getSqlType());
       }

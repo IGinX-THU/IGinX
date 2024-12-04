@@ -50,11 +50,6 @@ public final class FieldNode extends AbstractScalarExpression<FieldVector> {
   }
 
   @Override
-  public FieldNode with(@Nullable String alias) {
-    return new FieldNode(index, alias);
-  }
-
-  @Override
   public boolean equals(Object obj) {
     if (this == obj) return true;
     if (obj == null || getClass() != obj.getClass()) return false;

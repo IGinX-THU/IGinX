@@ -20,7 +20,7 @@
 package cn.edu.tsinghua.iginx.integration.tool;
 
 import static cn.edu.tsinghua.iginx.constant.GlobalConstant.CLEAR_DUMMY_DATA_CAUTION;
-import static cn.edu.tsinghua.iginx.integration.controller.Controller.*;
+import static cn.edu.tsinghua.iginx.integration.controller.Controller.CLEAR_DATA_WARNING;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
@@ -152,18 +152,18 @@ public class SQLExecutor {
             String statement = pair.getK();
             String expected = pair.getV();
             start.countDown();
-
             try {
               start.await();
-            } catch (InterruptedException e) {
-              LOGGER.error("Interrupt when latch await");
+              String actualOutput = execute(statement);
+              if (!expected.equals(actualOutput)) {
+                failedList.add(new Pair<>(statement, new Pair<>(expected, actualOutput)));
+              }
+            } catch (Throwable e) {
+              LOGGER.error("Statement: \"{}\" execute fail. Caused by: ", statement, e);
+              failedList.add(new Pair<>(statement, new Pair<>(expected, e.toString())));
+            } finally {
+              end.countDown();
             }
-
-            String actualOutput = execute(statement);
-            if (!expected.equals(actualOutput)) {
-              failedList.add(new Pair<>(statement, new Pair<>(expected, actualOutput)));
-            }
-            end.countDown();
           });
     }
 

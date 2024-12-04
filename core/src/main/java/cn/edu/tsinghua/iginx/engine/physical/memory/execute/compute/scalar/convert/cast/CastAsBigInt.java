@@ -20,10 +20,8 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.convert.cast;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
+import java.util.Arrays;
 import org.apache.arrow.vector.BigIntVector;
-import org.apache.arrow.vector.Float4Vector;
-import org.apache.arrow.vector.Float8Vector;
-import org.apache.arrow.vector.IntVector;
 import org.apache.arrow.vector.types.Types;
 
 public class CastAsBigInt extends AbstractScalarCast<BigIntVector> {
@@ -32,36 +30,47 @@ public class CastAsBigInt extends AbstractScalarCast<BigIntVector> {
     super(Types.MinorType.BIGINT);
   }
 
-  @Override
-  protected void evaluate(BigIntVector dest, IntVector input) throws ComputeException {
-    for (int i = 0; i < input.getValueCount(); i++) {
-      if (!input.isNull(i)) {
-        dest.set(i, input.get(i));
-      } else {
-        dest.setNull(i);
-      }
-    }
+  public CastAsBigInt(boolean isNullable) {
+    super(Types.MinorType.BIGINT, isNullable);
   }
 
   @Override
-  protected void evaluate(BigIntVector dest, Float4Vector input) throws ComputeException {
-    for (int i = 0; i < input.getValueCount(); i++) {
-      if (!input.isNull(i)) {
-        dest.set(i, (long) input.get(i));
-      } else {
-        dest.setNull(i);
-      }
-    }
+  protected void set(BigIntVector dest, int index, boolean value) throws ComputeException {
+    set(dest, index, value ? 1 : 0);
   }
 
   @Override
-  protected void evaluate(BigIntVector dest, Float8Vector input) throws ComputeException {
-    for (int i = 0; i < input.getValueCount(); i++) {
-      if (!input.isNull(i)) {
-        dest.set(i, (long) input.get(i));
-      } else {
-        dest.setNull(i);
-      }
+  protected void set(BigIntVector dest, int index, int value) throws ComputeException {
+    set(dest, index, (long) value);
+  }
+
+  @Override
+  protected void set(BigIntVector dest, int index, long value) throws ComputeException {
+    dest.set(index, value);
+  }
+
+  @Override
+  protected void set(BigIntVector dest, int index, float value) throws ComputeException {
+    set(dest, index, (double) value);
+  }
+
+  @Override
+  protected void set(BigIntVector dest, int index, double value) throws ComputeException {
+    if (value > Long.MAX_VALUE) {
+      throw new ComputeException("Overflow: value " + value + " is too large for long.");
+    }
+    if (value < Long.MIN_VALUE) {
+      throw new ComputeException("Overflow: value " + value + " is too small for long.");
+    }
+    set(dest, index, Math.round(value));
+  }
+
+  @Override
+  protected void set(BigIntVector dest, int index, byte[] value) throws ComputeException {
+    try {
+      set(dest, index, Long.parseLong(new String(value)));
+    } catch (NumberFormatException e) {
+      throw new ComputeException("Invalid value for long: " + Arrays.toString(value));
     }
   }
 }

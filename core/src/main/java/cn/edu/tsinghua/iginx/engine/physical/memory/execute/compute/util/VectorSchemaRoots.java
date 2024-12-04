@@ -23,7 +23,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
+import javax.annotation.WillClose;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.util.Preconditions;
 import org.apache.arrow.vector.BaseIntVector;
@@ -66,7 +68,7 @@ public class VectorSchemaRoots {
     for (FieldVector fieldVector : fieldVectors) {
       slicedFieldVectors.add(ValueVectors.slice(allocator, fieldVector));
     }
-    return new VectorSchemaRoot(slicedFieldVectors);
+    return VectorSchemaRoots.create(slicedFieldVectors, rowCount == -1 ? 0 : rowCount);
   }
 
   public static VectorSchemaRoot join(
@@ -80,7 +82,7 @@ public class VectorSchemaRoots {
     for (FieldVector fieldVector : batch.getFieldVectors()) {
       fieldVectors.add(ValueVectors.slice(allocator, fieldVector, start, count));
     }
-    return new VectorSchemaRoot(fieldVectors);
+    return VectorSchemaRoots.create(fieldVectors, count);
   }
 
   public static VectorSchemaRoot slice(BufferAllocator allocator, VectorSchemaRoot batch) {
@@ -132,7 +134,8 @@ public class VectorSchemaRoots {
       resultFieldVectors.add(
           ValueVectors.flatten(allocator, dictionaryProvider, fieldVector, selection));
     }
-    return new VectorSchemaRoot(resultFieldVectors);
+    return VectorSchemaRoots.create(
+        resultFieldVectors, selection == null ? batch.getRowCount() : selection.getValueCount());
   }
 
   public static VectorSchemaRoot create(
@@ -155,5 +158,13 @@ public class VectorSchemaRoots {
       result.add(slice(allocator, data, startIndex, sliceSize));
     }
     return result;
+  }
+
+  public static VectorSchemaRoot create(@WillClose List<FieldVector> vectors, int rowCount) {
+    Preconditions.checkArgument(vectors.stream().allMatch(v -> v.getValueCount() == rowCount));
+    return new VectorSchemaRoot(
+        new Schema(vectors.stream().map(FieldVector::getField).collect(Collectors.toList())),
+        vectors,
+        rowCount);
   }
 }

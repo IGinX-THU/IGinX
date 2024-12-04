@@ -36,6 +36,7 @@ import cn.edu.tsinghua.iginx.engine.shared.function.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.SetTransform;
 import cn.edu.tsinghua.iginx.physical.optimizer.naive.util.Expressions;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import org.apache.arrow.vector.types.pojo.Schema;
@@ -67,13 +68,14 @@ public class AggregateInfoGenerator implements UnaryExecutorFactory<AggregateUna
       throws ComputeException {
     List<ExpressionAccumulation> result = new ArrayList<>();
     for (FunctionCall call : calls) {
-      ExpressionAccumulation accumulation = generateAggregateInfo(context, inputSchema, call);
-      result.add(accumulation);
+      List<ExpressionAccumulation> accumulations =
+          generateAggregateInfo(context, inputSchema, call);
+      result.addAll(accumulations);
     }
     return result;
   }
 
-  private static ExpressionAccumulation generateAggregateInfo(
+  private static List<ExpressionAccumulation> generateAggregateInfo(
       ExecutorContext context, BatchSchema inputSchema, FunctionCall call) throws ComputeException {
     Function function = call.getFunction();
     if (function.getFunctionType() != FunctionType.System) {
@@ -111,7 +113,12 @@ public class AggregateInfoGenerator implements UnaryExecutorFactory<AggregateUna
         scalarExpressions.add(preRowTransform.get(index));
       }
     }
-    return new ExpressionAccumulation(accumulation, scalarExpressions);
+    List<ExpressionAccumulation> result = new ArrayList<>();
+    for (ScalarExpression<?> scalarExpression : scalarExpressions) {
+      result.add(
+          new ExpressionAccumulation(accumulation, Collections.singletonList(scalarExpression)));
+    }
+    return result;
   }
 
   private static UnaryAccumulation getAccumulation(

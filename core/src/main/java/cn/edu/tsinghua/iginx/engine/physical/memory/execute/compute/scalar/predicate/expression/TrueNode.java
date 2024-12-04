@@ -41,11 +41,6 @@ public class TrueNode extends LiteralNode<BitVector> implements PredicateExpress
     this(pool, null);
   }
 
-  @Override
-  public TrueNode with(@Nullable String alias) {
-    return new TrueNode(pool, alias);
-  }
-
   @Nullable
   @Override
   public BaseIntVector filter(

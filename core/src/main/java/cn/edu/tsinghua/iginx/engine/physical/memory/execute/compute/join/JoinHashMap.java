@@ -299,7 +299,7 @@ public class JoinHashMap implements AutoCloseable {
           ValueVectors.slice(
               allocator, probeSideIndices, dictionaryProvider.lookup(i + buildSideColumnCount)));
     }
-    return new VectorSchemaRoot(vectors);
+    return VectorSchemaRoots.create(vectors, probeSideIndices.getValueCount());
   }
 
   private void output(
@@ -330,7 +330,8 @@ public class JoinHashMap implements AutoCloseable {
       vectors.add(ValueVectors.slice(allocator, mark));
     }
 
-    try (VectorSchemaRoot result = new VectorSchemaRoot(vectors);
+    try (VectorSchemaRoot result =
+            VectorSchemaRoots.create(vectors, probeSideIndices.getValueCount());
         VectorSchemaRoot output =
             ScalarExpressions.evaluate(
                 allocator, dictionaryProvider, result, null, outputExpressions);

@@ -39,6 +39,7 @@ import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.util.*;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
+import org.apache.arrow.vector.types.pojo.Field;
 import org.apache.arrow.vector.types.pojo.Schema;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -63,6 +64,9 @@ public class Filters {
         return construct((ExprFilter) filter, context, inputSchema);
       case Path:
         return construct((PathFilter) filter, context, inputSchema);
+      case In:
+        return construct((InFilter) filter, context, inputSchema);
+      case Not:
       default:
         throw new UnsupportedOperationException("Unsupported filter type: " + filter.getType());
     }
@@ -280,6 +284,42 @@ public class Filters {
         return new NotLike();
       default:
         throw new UnsupportedOperationException("Unsupported operator: " + op);
+    }
+  }
+
+  private static PredicateExpression construct(
+      InFilter filter, ExecutorContext context, Schema inputSchema) throws ComputeException {
+    List<Integer> paths = Schemas.matchPattern(inputSchema, filter.getPath());
+    if (paths.isEmpty()) {
+      throw new ComputeException("Path not found: " + filter.getPath() + " in " + inputSchema);
+    }
+    List<PredicateExpression> comparisons = new ArrayList<>();
+    for (Integer pathIndex : paths) {
+      Field field = inputSchema.getFields().get(pathIndex);
+      DataType type = Schemas.toDataType(field.getType());
+      PredicateFunction predicateFunction =
+          getPredicate(type, filter.getInOp().isNotOp(), filter.getValues());
+      comparisons.add(new CompareNode(predicateFunction, new FieldNode(pathIndex)));
+    }
+    if (filter.getInOp().isOrOp()) {
+      return or(comparisons, context);
+    } else {
+      return and(comparisons, context);
+    }
+  }
+
+  private static PredicateFunction getPredicate(DataType type, boolean isNotIn, Set<Value> values)
+      throws ComputeException {
+    HashSet<Object> filteredValues = new HashSet<>();
+    for (Value value : values) {
+      if (value.getDataType() == type) {
+        filteredValues.add(value.getValue());
+      }
+    }
+    if (isNotIn) {
+      return new NotInSet(filteredValues);
+    } else {
+      return new InSet(filteredValues);
     }
   }
 

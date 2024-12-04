@@ -20,6 +20,7 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.DictionaryProviders;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.VectorSchemaRoots;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ResultRowCountException;
 import java.util.ArrayList;
@@ -96,7 +97,8 @@ public class ScalarExpressions {
       results.forEach(FieldVector::close);
       throw e;
     }
-    return new VectorSchemaRoot(results);
+    return VectorSchemaRoots.create(
+        results, selection == null ? input.getRowCount() : selection.getValueCount());
   }
 
   public static VectorSchemaRoot evaluate(

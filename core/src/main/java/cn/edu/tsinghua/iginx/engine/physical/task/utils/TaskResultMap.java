@@ -59,7 +59,7 @@ public class TaskResultMap implements PhysicalCloseable {
     results.get(task).setOnce(result);
   }
 
-  public <RESULT extends PhysicalCloseable> Future<TaskResult<RESULT>> get(
+  public synchronized <RESULT extends PhysicalCloseable> Future<TaskResult<RESULT>> get(
       PhysicalTask<RESULT> task) {
     if (closed) {
       throw new IllegalStateException("TaskResultMap is closed");

@@ -41,11 +41,6 @@ public class FalseNode extends LiteralNode<BitVector> implements PredicateExpres
     this(pool, null);
   }
 
-  @Override
-  public FalseNode with(@Nullable String alias) {
-    return new FalseNode(pool, alias);
-  }
-
   @Nullable
   @Override
   public BaseIntVector filter(

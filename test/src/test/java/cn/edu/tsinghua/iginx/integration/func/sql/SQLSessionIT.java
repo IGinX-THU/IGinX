@@ -3147,7 +3147,7 @@ public class SQLSessionIT {
     executor.executeAndCompare(query, expected);
 
     query =
-        "select test1.d, sum(avg_a) from test1 join (select d, avg(a) as avg_a from test2 group by d) on test1.d = test2.d group by test1.d;";
+        "select test1.d, sum(avg_a) from test1 join (select d, avg(a) as avg_a from test2 group by d) on test1.d = test2.d group by test1.d order by test1.d desc;";
     expected =
         "ResultSets:\n"
             + "+-------+----------+\n"
