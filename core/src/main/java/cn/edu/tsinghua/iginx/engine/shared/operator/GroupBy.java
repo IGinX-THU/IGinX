@@ -92,7 +92,7 @@ public class GroupBy extends AbstractUnaryOperator {
     StringBuilder builder = new StringBuilder();
     builder.append("GroupByCols: ").append(String.join(",", groupByCols));
     if (functionCallList != null && !functionCallList.isEmpty()) {
-      builder.append(", FuncList: ");
+      builder.append(", FuncList(Name, FuncType): ");
       for (FunctionCall functionCall : functionCallList) {
         builder.append(functionCall.getNameAndFuncTypeStr()).append(",");
       }
