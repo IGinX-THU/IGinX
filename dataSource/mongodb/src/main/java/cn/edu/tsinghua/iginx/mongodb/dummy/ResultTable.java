@@ -47,11 +47,8 @@ class ResultTable {
         String path = String.join(".", columnBuilder.getKey());
         ResultColumn.Builder builder = columnBuilder.getValue();
 
-        if (schema != null) {
-          DataType type = schema.get(path);
-          if (type == null) {
-            continue;
-          }
+        DataType type = schema.get(path);
+        if (type != null) {
           builder.setType(type);
         }
 

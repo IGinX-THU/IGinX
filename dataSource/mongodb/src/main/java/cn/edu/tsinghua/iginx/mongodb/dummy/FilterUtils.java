@@ -19,17 +19,16 @@
  */
 package cn.edu.tsinghua.iginx.mongodb.dummy;
 
-import static com.mongodb.client.model.Filters.*;
+import static com.mongodb.client.model.Filters.and;
+import static com.mongodb.client.model.Filters.or;
 
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.NotFilter;
-import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.bson.BsonString;
+import org.bson.BsonSymbol;
 import org.bson.BsonValue;
 import org.bson.Document;
 import org.bson.conversions.Bson;
@@ -117,13 +116,18 @@ public class FilterUtils {
     BsonValue value = TypeUtils.convert(filter.getValue());
     Bson filterBson =
         cn.edu.tsinghua.iginx.mongodb.tools.FilterUtils.fieldValueOp(filter.getOp(), path, value);
-    if (filter.getValue().getDataType() == DataType.BINARY && !value.isString()) {
-      Bson rawFilter =
-          cn.edu.tsinghua.iginx.mongodb.tools.FilterUtils.fieldValueOp(
-              filter.getOp(), path, new BsonString(filter.getValue().getBinaryVAsString()));
-      return or(rawFilter, filterBson);
+    if (value.isString()) {
+      return filterBson;
     }
-    return filterBson;
+
+    String strValue = TypeUtils.toJson(value);
+    Bson strFilter =
+        cn.edu.tsinghua.iginx.mongodb.tools.FilterUtils.fieldValueOp(
+            filter.getOp(), path, new BsonString(strValue));
+    Bson symFilter =
+        cn.edu.tsinghua.iginx.mongodb.tools.FilterUtils.fieldValueOp(
+            filter.getOp(), path, new BsonSymbol(strValue));
+    return or(filterBson, strFilter, symFilter);
   }
 
   private static Bson toBson(PathFilter filter) {
