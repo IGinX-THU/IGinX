@@ -562,7 +562,7 @@ public class RelationalStorage implements IStorage {
             }
             return newColumnNames;
           });
-      filter = generateWildCardsFilter(filter, fullColumnNamesList);
+      filter = expandFilter(filter, fullColumnNamesList);
       filter = LogicalFilterUtils.mergeTrue(filter);
     }
 
@@ -630,7 +630,7 @@ public class RelationalStorage implements IStorage {
             }
             return newColumnNames;
           });
-      copyFilter = generateWildCardsFilter(copyFilter, fullColumnNamesList);
+      copyFilter = expandFilter(copyFilter, fullColumnNamesList);
       copyFilter = LogicalFilterUtils.mergeTrue(copyFilter);
     }
 
