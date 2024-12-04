@@ -26,47 +26,53 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorCon
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutorFactory;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateless.ProjectExecutor;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
-import cn.edu.tsinghua.iginx.engine.shared.expr.KeyExpression;
-import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
-import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
-import cn.edu.tsinghua.iginx.engine.shared.operator.RowTransform;
-import cn.edu.tsinghua.iginx.physical.optimizer.naive.util.Expressions;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import cn.edu.tsinghua.iginx.engine.shared.operator.*;
+import cn.edu.tsinghua.iginx.utils.Pair;
+import java.util.*;
 
-public class TransformProjectionInfoGenerator implements UnaryExecutorFactory<ProjectExecutor> {
+public class AddSchemaPrefixInfoGenerator implements UnaryExecutorFactory<ProjectExecutor> {
 
-  private final RowTransform operator;
+  private final AddSchemaPrefix operator;
 
-  public TransformProjectionInfoGenerator(RowTransform operator) {
+  public AddSchemaPrefixInfoGenerator(AddSchemaPrefix operator) {
     this.operator = Objects.requireNonNull(operator);
   }
 
   @Override
   public ProjectExecutor initialize(ExecutorContext context, BatchSchema inputSchema)
       throws ComputeException {
-    List<ScalarExpression<?>> expressions = getExpressions(context, inputSchema);
+    List<ScalarExpression<?>> expressions = getExpression(context, inputSchema);
     return new ProjectExecutor(context, inputSchema.raw(), expressions);
   }
 
-  public List<ScalarExpression<?>> getExpressions(ExecutorContext context, BatchSchema inputSchema)
+  public List<ScalarExpression<?>> getExpression(ExecutorContext context, BatchSchema inputSchema)
       throws ComputeException {
+    List<Pair<String, Integer>> columnsAndIndices = getColumnsAndIndices(inputSchema, operator);
     List<ScalarExpression<?>> ret = new ArrayList<>();
-    boolean remainKey =
-        operator.getFunctionCallList().stream()
-            .map(FunctionCall::getParams)
-            .map(FunctionParams::getExpressions)
-            .flatMap(List::stream)
-            .noneMatch(expression -> expression instanceof KeyExpression);
-    if (remainKey && inputSchema.hasKey()) {
-      ret.add(new FieldNode(inputSchema.getKeyIndex(), BatchSchema.KEY.getName()));
+    for (Pair<String, Integer> pair : columnsAndIndices) {
+      ret.add(new FieldNode(pair.v, pair.k));
     }
-    for (int targetIndex = 0; targetIndex < operator.getFunctionCallList().size(); targetIndex++) {
-      FunctionCall functionCall = operator.getFunctionCallList().get(targetIndex);
-      ScalarExpression<?> expression =
-          Expressions.getPhysicalExpressionOfFunctionCall(context, inputSchema.raw(), functionCall);
-      ret.add(expression);
+    return ret;
+  }
+
+  /**
+   * 根据输入的BatchSchema计算AddSchemaPrefix算子的输出的列名和对应输入列的索引
+   *
+   * @param inputSchema 输入BatchSchema
+   * @param addSchemaPrefix AddSchemaPrefix算子
+   * @return 输出的列名和对应原来输入列的索引
+   */
+  protected static List<Pair<String, Integer>> getColumnsAndIndices(
+      BatchSchema inputSchema, AddSchemaPrefix addSchemaPrefix) {
+    List<Pair<String, Integer>> ret = new ArrayList<>();
+    int start = inputSchema.hasKey() ? 1 : 0;
+    int totalFieldSize = inputSchema.raw().getFields().size();
+    if (inputSchema.hasKey()) {
+      ret.add(new Pair<>(BatchSchema.KEY.getName(), 0));
+    }
+    String prefix = addSchemaPrefix.getSchemaPrefix();
+    for (int i = start; i < totalFieldSize; i++) {
+      ret.add(new Pair<>(prefix + "." + inputSchema.getName(i), i));
     }
     return ret;
   }

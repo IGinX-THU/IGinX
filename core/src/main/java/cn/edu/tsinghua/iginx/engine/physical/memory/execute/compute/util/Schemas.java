@@ -128,6 +128,17 @@ public class Schemas {
     return new Field(name, field.getFieldType(), field.getChildren());
   }
 
+  public static Field fieldWithNullable(Field field, boolean nullable) {
+    return new Field(
+        field.getName(),
+        new FieldType(
+            nullable,
+            field.getFieldType().getType(),
+            field.getFieldType().getDictionary(),
+            field.getFieldType().getMetadata()),
+        field.getChildren());
+  }
+
   public static Field fieldWithDictionary(Field field, DictionaryEncoding dictionaryEncoding) {
     return new Field(
         field.getName(),

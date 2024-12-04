@@ -37,16 +37,38 @@ public class ValueVectors {
 
   @SuppressWarnings("unchecked")
   public static <T extends ValueVector> T slice(
-      BufferAllocator allocator, @Nullable T source, int startIndex, int valueCount, String ref) {
+      BufferAllocator allocator, @Nullable T source, int startIndex, int valueCount, Field field) {
     if (source == null) {
       return null;
     }
     if (source.getValueCount() == 0) {
       return (T) source.getField().createVector(allocator);
     }
-    TransferPair transferPair = source.getTransferPair(ref, allocator);
+    TransferPair transferPair = source.getTransferPair(field, allocator);
     transferPair.splitAndTransfer(startIndex, valueCount);
     return (T) transferPair.getTo();
+  }
+
+  public static <T extends ValueVector> T slice(
+      BufferAllocator allocator, @Nullable T source, int startIndex, int valueCount, String ref) {
+    if (source == null) {
+      return null;
+    }
+    return slice(
+        allocator, source, startIndex, valueCount, Schemas.fieldWithName(source.getField(), ref));
+  }
+
+  public static <T extends ValueVector> T slice(
+      BufferAllocator allocator, @Nullable T source, boolean nullable) {
+    if (source == null) {
+      return null;
+    }
+    return slice(
+        allocator,
+        source,
+        0,
+        source.getValueCount(),
+        Schemas.fieldWithNullable(source.getField(), nullable));
   }
 
   public static <T extends ValueVector> T slice(

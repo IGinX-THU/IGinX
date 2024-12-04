@@ -21,53 +21,42 @@ package cn.edu.tsinghua.iginx.physical.optimizer.naive.initializer;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.FieldNode;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpression;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.Schemas;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutorFactory;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateless.ProjectExecutor;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
-import cn.edu.tsinghua.iginx.engine.shared.expr.KeyExpression;
-import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
-import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
-import cn.edu.tsinghua.iginx.engine.shared.operator.RowTransform;
+import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
 import cn.edu.tsinghua.iginx.physical.optimizer.naive.util.Expressions;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
-public class TransformProjectionInfoGenerator implements UnaryExecutorFactory<ProjectExecutor> {
+public class AppendExpressionInfoGenerator implements UnaryExecutorFactory<ProjectExecutor> {
 
-  private final RowTransform operator;
+  private final List<Expression> appendExpressions;
 
-  public TransformProjectionInfoGenerator(RowTransform operator) {
-    this.operator = Objects.requireNonNull(operator);
+  public AppendExpressionInfoGenerator(List<Expression> appendExpressions) {
+    this.appendExpressions = new ArrayList<>(appendExpressions);
   }
 
   @Override
   public ProjectExecutor initialize(ExecutorContext context, BatchSchema inputSchema)
       throws ComputeException {
-    List<ScalarExpression<?>> expressions = getExpressions(context, inputSchema);
-    return new ProjectExecutor(context, inputSchema.raw(), expressions);
-  }
-
-  public List<ScalarExpression<?>> getExpressions(ExecutorContext context, BatchSchema inputSchema)
-      throws ComputeException {
-    List<ScalarExpression<?>> ret = new ArrayList<>();
-    boolean remainKey =
-        operator.getFunctionCallList().stream()
-            .map(FunctionCall::getParams)
-            .map(FunctionParams::getExpressions)
-            .flatMap(List::stream)
-            .noneMatch(expression -> expression instanceof KeyExpression);
-    if (remainKey && inputSchema.hasKey()) {
-      ret.add(new FieldNode(inputSchema.getKeyIndex(), BatchSchema.KEY.getName()));
+    List<ScalarExpression<?>> scalarExpressions = new ArrayList<>();
+    for (int i = 0; i < inputSchema.getFieldCount(); i++) {
+      scalarExpressions.add(new FieldNode(i));
     }
-    for (int targetIndex = 0; targetIndex < operator.getFunctionCallList().size(); targetIndex++) {
-      FunctionCall functionCall = operator.getFunctionCallList().get(targetIndex);
-      ScalarExpression<?> expression =
-          Expressions.getPhysicalExpressionOfFunctionCall(context, inputSchema.raw(), functionCall);
-      ret.add(expression);
+    for (Expression expression : appendExpressions) {
+      String columnName = expression.getColumnName();
+      List<Integer> matchedIndices = Schemas.matchPattern(inputSchema.raw(), columnName);
+      if (!matchedIndices.isEmpty()) {
+        continue;
+      }
+      ScalarExpression<?> scalarExpression =
+          Expressions.getPhysicalExpression(context, inputSchema.raw(), expression, true);
+      scalarExpressions.add(scalarExpression);
     }
-    return ret;
+    return new ProjectExecutor(context, inputSchema.raw(), scalarExpressions);
   }
 }

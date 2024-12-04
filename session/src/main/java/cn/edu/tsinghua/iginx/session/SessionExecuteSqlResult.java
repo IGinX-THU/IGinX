@@ -222,7 +222,7 @@ public class SessionExecuteSqlResult {
       if (hasKey) {
         rowCache.add(String.valueOf(keys[index]));
       }
-      boolean isNull = true;
+      boolean isNull = !values.get(index).isEmpty();
       for (Object o : values.get(index)) {
         String rowValue = FormatUtils.valueToString(o);
         rowCache.add(rowValue);

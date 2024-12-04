@@ -19,6 +19,7 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateful;
 
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.VectorSchemaRoots;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.util.Batch;
@@ -81,7 +82,7 @@ public class AddSequenceExecutor extends StatefulUnaryExecutor {
       vectors.add(sequence);
     }
     offset += flattened.getRowCount();
-    offerResult(Batch.of(new VectorSchemaRoot(vectors)));
+    offerResult(Batch.of(VectorSchemaRoots.create(vectors, flattened.getRowCount())));
   }
 
   private static BigIntVector createSequenceVector(

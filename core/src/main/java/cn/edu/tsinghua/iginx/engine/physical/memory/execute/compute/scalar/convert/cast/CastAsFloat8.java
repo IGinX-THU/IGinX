@@ -20,10 +20,8 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.convert.cast;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
-import org.apache.arrow.vector.BigIntVector;
-import org.apache.arrow.vector.Float4Vector;
+import java.util.Arrays;
 import org.apache.arrow.vector.Float8Vector;
-import org.apache.arrow.vector.IntVector;
 import org.apache.arrow.vector.types.Types;
 
 public final class CastAsFloat8 extends AbstractScalarCast<Float8Vector> {
@@ -33,40 +31,36 @@ public final class CastAsFloat8 extends AbstractScalarCast<Float8Vector> {
   }
 
   @Override
-  protected void evaluate(Float8Vector dest, IntVector input) throws ComputeException {
-    for (int i = 0; i < input.getValueCount(); i++) {
-      if (!input.isNull(i)) {
-        dest.set(i, input.get(i));
-      } else {
-        dest.setNull(i);
-      }
-    }
+  protected void set(Float8Vector dest, int index, boolean value) throws ComputeException {
+    set(dest, index, value ? 1.0 : 0.0);
   }
 
   @Override
-  protected void evaluate(Float8Vector dest, BigIntVector input) throws ComputeException {
-    for (int i = 0; i < input.getValueCount(); i++) {
-      if (!input.isNull(i)) {
-        dest.set(i, input.get(i));
-      } else {
-        dest.setNull(i);
-      }
-    }
+  protected void set(Float8Vector dest, int index, int value) throws ComputeException {
+    set(dest, index, (double) value);
   }
 
   @Override
-  protected void evaluate(Float8Vector dest, Float4Vector input) throws ComputeException {
-    for (int i = 0; i < input.getValueCount(); i++) {
-      if (!input.isNull(i)) {
-        dest.set(i, input.get(i));
-      } else {
-        dest.setNull(i);
-      }
-    }
+  protected void set(Float8Vector dest, int index, long value) throws ComputeException {
+    set(dest, index, (double) value);
   }
 
   @Override
-  public boolean equals(Object obj) {
-    return obj instanceof CastAsFloat8;
+  protected void set(Float8Vector dest, int index, float value) throws ComputeException {
+    set(dest, index, (double) value);
+  }
+
+  @Override
+  protected void set(Float8Vector dest, int index, double value) throws ComputeException {
+    dest.set(index, value);
+  }
+
+  @Override
+  protected void set(Float8Vector dest, int index, byte[] value) throws ComputeException {
+    try {
+      dest.set(index, Double.parseDouble(new String(value)));
+    } catch (NumberFormatException e) {
+      throw new ComputeException("Invalid value for double: " + Arrays.toString(value));
+    }
   }
 }

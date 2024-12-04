@@ -41,11 +41,6 @@ public class IndexSortExpression extends CallNode<IntVector> {
   }
 
   @Override
-  public IndexSortExpression with(String alias) {
-    return new IndexSortExpression(options, getChildren());
-  }
-
-  @Override
   public boolean equals(Object o) {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;

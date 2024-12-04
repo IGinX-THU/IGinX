@@ -57,7 +57,7 @@ public class Ratio implements Callee {
         "ratio"
             + argumentsSchema.getFields().stream()
                 .map(Field::getName)
-                .collect(Collectors.joining(",", "(", ")"));
+                .collect(Collectors.joining(", ", "(", ")"));
     return new CallNode<>(
         new cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.arithmetic.Ratio(),
         outputColumnName,

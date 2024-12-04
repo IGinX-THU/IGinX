@@ -56,11 +56,6 @@ public class CompareNode extends CallNode<BitVector> implements PredicateExpress
         + children.stream().map(Objects::toString).collect(Collectors.joining(",", "(", ")"));
   }
 
-  @Override
-  public CompareNode with(@Nullable String alias) {
-    return new CompareNode(function, alias, children);
-  }
-
   @Nullable
   @Override
   public BaseIntVector filter(

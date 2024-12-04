@@ -82,7 +82,11 @@ public class PhysicalAvg extends UnaryAccumulation {
     protected long count = 0; // Number of non-null elements
 
     public void evaluate(FieldWriter writer) throws ComputeException {
-      writer.writeFloat8(sum / count);
+      if (count == 0) {
+        writer.writeNull();
+      } else {
+        writer.writeFloat8(sum / count);
+      }
     }
   }
 

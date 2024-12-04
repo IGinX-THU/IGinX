@@ -37,6 +37,10 @@ public class BatchStreams {
     return new EmptyBatchStream(schema);
   }
 
+  public static BatchStream nonColumn(int batchSize, int emptyRow) {
+    return new NonColumnBatchStream(batchSize, emptyRow);
+  }
+
   private static final EmptyBatchStream EMPTY_BATCH_STREAM =
       new EmptyBatchStream(BatchSchema.empty());
 

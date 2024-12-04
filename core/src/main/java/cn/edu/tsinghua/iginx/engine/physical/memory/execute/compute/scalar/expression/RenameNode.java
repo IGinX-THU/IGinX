@@ -19,10 +19,7 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ConstantPool;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ConstantVectors;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
-import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import java.util.Collections;
 import java.util.Objects;
 import javax.annotation.Nullable;
@@ -32,50 +29,40 @@ import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.dictionary.DictionaryProvider;
 
-public class LiteralNode<OUTPUT extends FieldVector> extends AbstractScalarExpression<OUTPUT> {
+public class RenameNode<OUTPUT extends FieldVector> extends AbstractScalarExpression<OUTPUT> {
 
-  protected final ConstantPool pool;
-  protected final Object value;
+  private final ScalarExpression<OUTPUT> child;
 
-  public LiteralNode(@Nullable Object value, ConstantPool pool) {
-    this(value, pool, null);
-  }
-
-  public LiteralNode(@Nullable Object value, ConstantPool pool, String alias) {
-    super(alias, Collections.emptyList());
-    this.value = value;
-    this.pool = pool;
+  public RenameNode(String alias, ScalarExpression<OUTPUT> child) {
+    super(Objects.requireNonNull(alias), Collections.singletonList(child));
+    this.child = Objects.requireNonNull(child);
   }
 
   @Override
-  public String getName() {
-    if (value == null) {
-      return "null";
-    }
-    if (value instanceof byte[]) {
-      return "'" + new String((byte[]) value) + "'";
-    }
-    return new Value(value).toString();
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    RenameNode<?> that = (RenameNode<?>) o;
+    return Objects.equals(child, that.child);
   }
 
   @Override
-  public boolean equals(Object obj) {
-    if (obj == null || obj.getClass() != this.getClass()) {
-      return false;
-    }
-    LiteralNode<?> literalNode = (LiteralNode<?>) obj;
-    return Objects.deepEquals(value, literalNode.value);
+  public int hashCode() {
+    return Objects.hash(super.hashCode(), child);
   }
 
   @Override
-  @SuppressWarnings("unchecked")
-  public OUTPUT invokeImpl(
+  protected OUTPUT invokeImpl(
       BufferAllocator allocator,
       DictionaryProvider dictionaryProvider,
       @Nullable BaseIntVector selection,
       VectorSchemaRoot input)
       throws ComputeException {
-    int count = selection == null ? input.getRowCount() : selection.getValueCount();
-    return (OUTPUT) ConstantVectors.of(allocator, pool, value, count);
+    return child.invoke(allocator, dictionaryProvider, selection, input);
+  }
+
+  @Override
+  public String getName() {
+    return "(" + child.getName() + ")";
   }
 }

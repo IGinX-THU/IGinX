@@ -36,10 +36,16 @@ public abstract class AbstractScalarCast<OUTPUT extends FieldVector>
     extends UnaryScalarFunction<OUTPUT> {
 
   protected final Types.MinorType resultType;
+  protected final boolean isNullable;
 
   protected AbstractScalarCast(Types.MinorType resultType) {
+    this(resultType, true);
+  }
+
+  protected AbstractScalarCast(Types.MinorType resultType, boolean isNullable) {
     super("cast_as_" + resultType.toString().toLowerCase());
     this.resultType = resultType;
+    this.isNullable = isNullable;
   }
 
   @Override
@@ -63,7 +69,11 @@ public abstract class AbstractScalarCast<OUTPUT extends FieldVector>
   @SuppressWarnings("unchecked")
   public OUTPUT evaluate(BufferAllocator allocator, FieldVector input) throws ComputeException {
     if (input.getMinorType() == resultType) {
-      return ValueVectors.slice(allocator, (OUTPUT) input);
+      if (input.getField().isNullable() == isNullable) {
+        return ValueVectors.slice(allocator, (OUTPUT) input);
+      } else if (isNullable) {
+        return ValueVectors.slice(allocator, (OUTPUT) input, true);
+      }
     }
 
     Field inputField = input.getField();
@@ -71,7 +81,7 @@ public abstract class AbstractScalarCast<OUTPUT extends FieldVector>
         new Field(
             inputField.getName(),
             new FieldType(
-                inputField.isNullable(),
+                isNullable,
                 resultType.getType(),
                 inputField.getDictionary(),
                 inputField.getMetadata()),
@@ -114,31 +124,122 @@ public abstract class AbstractScalarCast<OUTPUT extends FieldVector>
     dest.setValueCount(input.getValueCount());
   }
 
-  protected void fail(FieldVector input) throws NotAllowTypeException {
-    throw new NotAllowTypeException(this, Schemas.of(input), 0);
-  }
+  protected void fail(FieldVector input) throws NotAllowTypeException {}
 
   protected void evaluate(OUTPUT dest, BitVector input) throws ComputeException {
-    fail(input);
+    boolean inputNullable = input.getField().isNullable();
+    for (int i = 0; i < input.getValueCount(); i++) {
+      if (inputNullable && input.isNull(i)) {
+        if (!isNullable) {
+          throw new ComputeException(
+              "Cannot cast boolean vector contains null to non-nullable type");
+        }
+        dest.setNull(i);
+        continue;
+      }
+      set(dest, i, input.get(i) != 0);
+    }
   }
 
   protected void evaluate(OUTPUT dest, IntVector input) throws ComputeException {
-    fail(input);
+    boolean inputNullable = input.getField().isNullable();
+    for (int i = 0; i < input.getValueCount(); i++) {
+      if (inputNullable && input.isNull(i)) {
+        if (!isNullable) {
+          throw new ComputeException("Cannot cast int vector contains null to non-nullable type");
+        }
+        dest.setNull(i);
+        continue;
+      }
+      set(dest, i, input.get(i));
+    }
   }
 
   protected void evaluate(OUTPUT dest, BigIntVector input) throws ComputeException {
-    fail(input);
+    boolean inputNullable = input.getField().isNullable();
+    for (int i = 0; i < input.getValueCount(); i++) {
+      if (inputNullable && input.isNull(i)) {
+        if (!isNullable) {
+          throw new ComputeException("Cannot cast long vector contains null to non-nullable type");
+        }
+        dest.setNull(i);
+        continue;
+      }
+      set(dest, i, input.get(i));
+    }
   }
 
   protected void evaluate(OUTPUT dest, Float4Vector input) throws ComputeException {
-    fail(input);
+    boolean inputNullable = input.getField().isNullable();
+    for (int i = 0; i < input.getValueCount(); i++) {
+      if (inputNullable && input.isNull(i)) {
+        if (!isNullable) {
+          throw new ComputeException("Cannot cast float vector contains null to non-nullable type");
+        }
+        dest.setNull(i);
+        continue;
+      }
+      set(dest, i, input.get(i));
+    }
   }
 
   protected void evaluate(OUTPUT dest, Float8Vector input) throws ComputeException {
-    fail(input);
+    boolean inputNullable = input.getField().isNullable();
+    for (int i = 0; i < input.getValueCount(); i++) {
+      if (inputNullable && input.isNull(i)) {
+        if (!isNullable) {
+          throw new ComputeException(
+              "Cannot cast double vector contains null to non-nullable type");
+        }
+        dest.setNull(i);
+        continue;
+      }
+      set(dest, i, input.get(i));
+    }
   }
 
   protected void evaluate(OUTPUT dest, VarBinaryVector input) throws ComputeException {
-    fail(input);
+    boolean inputNullable = input.getField().isNullable();
+    for (int i = 0; i < input.getValueCount(); i++) {
+      if (inputNullable && input.isNull(i)) {
+        if (!isNullable) {
+          throw new ComputeException(
+              "Cannot cast binary vector contains null to non-nullable type");
+        }
+        dest.setNull(i);
+        continue;
+      }
+      set(dest, i, input.get(i));
+    }
+  }
+
+  protected void set(OUTPUT dest, int index, boolean value) throws ComputeException {
+    throw new NotAllowTypeException(
+        this, Schemas.of(Field.nullable("boolean", Types.MinorType.BIT.getType())), 0);
+  }
+
+  protected void set(OUTPUT dest, int index, int value) throws ComputeException {
+    throw new NotAllowTypeException(
+        this, Schemas.of(Field.nullable("int", Types.MinorType.INT.getType())), 0);
+  }
+
+  protected void set(OUTPUT dest, int index, long value) throws ComputeException {
+    throw new NotAllowTypeException(
+        this, Schemas.of(Field.nullable("long", Types.MinorType.BIGINT.getType())), 0);
+  }
+
+  protected void set(OUTPUT dest, int index, float value) throws ComputeException {
+    throw new NotAllowTypeException(
+        this, Schemas.of(Field.nullable("float", Types.MinorType.FLOAT4.getType())), 0);
+  }
+
+  protected void set(OUTPUT dest, int index, double value) throws ComputeException {
+    throw new NotAllowTypeException(
+        this, Schemas.of(Field.nullable("double", Types.MinorType.FLOAT8.getType())), 0);
+  }
+
+  protected void set(OUTPUT dest, int index, byte[] value) throws ComputeException {
+    throw new NotAllowTypeException(
+        this, Schemas.of(Field.nullable("binary", Types.MinorType.VARBINARY.getType())), 0);
   }
 }

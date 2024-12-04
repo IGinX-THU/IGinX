@@ -48,8 +48,6 @@ public abstract class AbstractScalarExpression<OUTPUT extends FieldVector>
     return children;
   }
 
-  public abstract AbstractScalarExpression<OUTPUT> with(@Nullable String alias);
-
   @Override
   public String toString() {
     return getName() + (alias == null ? "" : " AS " + alias);
@@ -92,7 +90,7 @@ public abstract class AbstractScalarExpression<OUTPUT extends FieldVector>
 
   protected abstract OUTPUT invokeImpl(
       BufferAllocator allocator,
-      @Nullable DictionaryProvider dictionaryProvider,
+      DictionaryProvider dictionaryProvider,
       @Nullable BaseIntVector selection,
       VectorSchemaRoot input)
       throws ComputeException;

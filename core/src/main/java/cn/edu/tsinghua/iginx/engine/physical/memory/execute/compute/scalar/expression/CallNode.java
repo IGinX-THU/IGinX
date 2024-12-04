@@ -66,11 +66,6 @@ public class CallNode<OUTPUT extends FieldVector> extends AbstractScalarExpressi
   }
 
   @Override
-  public CallNode<OUTPUT> with(@Nullable String alias) {
-    return new CallNode<>(function, alias, getChildren());
-  }
-
-  @Override
   public boolean equals(Object obj) {
     if (obj == this) return true;
     if (obj == null || obj.getClass() != getClass()) return false;

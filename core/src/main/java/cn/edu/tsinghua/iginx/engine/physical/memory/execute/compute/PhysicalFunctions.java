@@ -20,6 +20,7 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ValueVectors;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.VectorSchemaRoots;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.arrow.memory.BufferAllocator;
@@ -61,7 +62,7 @@ public class PhysicalFunctions {
         results.add(ValueVectors.slice(allocator, fieldVector));
       }
     }
-    return new VectorSchemaRoot(results);
+    return VectorSchemaRoots.create(results, vectorSchemaRoot.getRowCount());
   }
 
   public static IntVector filter(BufferAllocator allocator, BitVector bitmap) {
@@ -134,6 +135,6 @@ public class PhysicalFunctions {
     for (FieldVector fieldVector : input.getFieldVectors()) {
       results.add(take(allocator, selectionVector, fieldVector));
     }
-    return new VectorSchemaRoot(results);
+    return VectorSchemaRoots.create(results, selectionVector.getValueCount());
   }
 }
