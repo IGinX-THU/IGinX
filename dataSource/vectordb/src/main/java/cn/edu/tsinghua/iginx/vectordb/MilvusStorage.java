@@ -126,9 +126,6 @@ public class MilvusStorage implements IStorage {
           pathSystemMap.computeIfAbsent(databaseName, s -> new MilvusPathSystem(databaseName));
 
       int colIndex[] = new int[data.getKeySize()];
-      ExecutorCompletionService<UpsertResp> completionService =
-          new ExecutorCompletionService<>(TaskExecutor.getExecutorService());
-      int taskCount = 0;
       for (int j = 0; j < data.getPathNum(); j++) {
         String path = data.getPaths().get(j);
         Map<String, String> tags = new HashMap<>();
@@ -139,6 +136,7 @@ public class MilvusStorage implements IStorage {
             PathUtils.getCollectionAndFieldByPath(path, tags, false);
         String collectionName = collectionAndField.getK() + "." + collectionAndField.getV();
         if (!collections.contains(NameUtils.escape(collectionName))) {
+          LOGGER.info("create collection " + collectionName);
           MilvusClientUtils.createCollection(
               client,
               databaseName,
@@ -147,6 +145,8 @@ public class MilvusStorage implements IStorage {
               data.getDataType(j),
               pathSystem,
               this);
+        } else {
+          LOGGER.info("collection " + collectionName + " already exists");
         }
         DataType dataType = data.getDataType(j);
 
@@ -172,6 +172,11 @@ public class MilvusStorage implements IStorage {
               }
             }
 
+            if (dataType == DataType.BINARY && obj != null && (obj instanceof Number)) {
+              LOGGER.error("obj : {} ", obj);
+              continue;
+            }
+
             if (obj != null
                 && MilvusClientUtils.addProperty(row, MILVUS_DATA_FIELD_NAME, obj, dataType)) {
               row.addProperty(MILVUS_PRIMARY_FIELD_NAME, data.getKey(i));
@@ -183,39 +188,22 @@ public class MilvusStorage implements IStorage {
           }
 
           if (rowData.size() > 0) {
-            //            Callable<UpsertResp> task =
-            //                () -> {
-            //                  try (MilvusPoolClient milvusPoolClient =
-            //                      new MilvusPoolClient(this.milvusConnectPool)) {
-            //                    MilvusClientV2 c = milvusPoolClient.getClient();
-            //                    c.useDatabase(NameUtils.escape(databaseName));
-            //                    return c.upsert(
-            //                        UpsertReq.builder()
-            //                            .collectionName(NameUtils.escape(collectionName))
-            //                            .data(rowData)
-            //                            .build());
-            //                  }
-            //                };
-            //            completionService.submit(task);
-            taskCount++;
-            client.upsert(
-                UpsertReq.builder()
-                    .collectionName(NameUtils.escape(collectionName))
-                    .data(rowData)
-                    .build());
+            try {
+              client.upsert(
+                  UpsertReq.builder()
+                      .collectionName(NameUtils.escape(collectionName))
+                      .data(rowData)
+                      .build());
+            } catch (Exception e) {
+              LOGGER.error("collectionName : " + collectionName);
+              LOGGER.error(new Gson().toJson(rowData));
+              throw e;
+            }
           }
           cnt += size;
         }
       }
 
-      //      for (int i = 0; i < taskCount; i++) {
-      //        try {
-      //          Future<UpsertResp> future = completionService.take(); // 阻塞等待下一个完成的任务
-      //        } catch (Exception e) {
-      //          LOGGER.error("unexpected error: ", e);
-      //          return e;
-      //        }
-      //      }
     } catch (Exception e) {
       LOGGER.error("unexpected error: ", e);
       return e;

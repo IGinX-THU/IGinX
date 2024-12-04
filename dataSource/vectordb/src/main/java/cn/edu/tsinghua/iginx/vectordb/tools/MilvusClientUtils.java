@@ -666,7 +666,15 @@ public class MilvusClientUtils {
     }
     List<String> collections = client.listCollections().getCollectionNames();
     for (String collectionName : collections) {
-      client.dropCollection(DropCollectionReq.builder().collectionName(collectionName).build());
+      //
+      // client.dropCollection(DropCollectionReq.builder().collectionName(collectionName).build());
+      client.renameCollection(
+          RenameCollectionReq.builder()
+              .collectionName(collectionName)
+              .newCollectionName("tmp_" + collectionName)
+              .build());
+      client.dropCollection(
+          DropCollectionReq.builder().collectionName("tmp_" + collectionName).build());
     }
     client.dropDatabase(DropDatabaseReq.builder().databaseName(databaseName).build());
   }
@@ -699,8 +707,15 @@ public class MilvusClientUtils {
       return false;
     }
 
+    client.renameCollection(
+        RenameCollectionReq.builder()
+            .collectionName(NameUtils.escape(collectionName))
+            .newCollectionName("tmp_" + NameUtils.escape(collectionName))
+            .build());
     client.dropCollection(
-        DropCollectionReq.builder().collectionName(NameUtils.escape(collectionName)).build());
+        DropCollectionReq.builder()
+            .collectionName("tmp_" + NameUtils.escape(collectionName))
+            .build());
     return true;
   }
 

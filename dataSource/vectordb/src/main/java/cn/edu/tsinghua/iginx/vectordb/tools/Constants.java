@@ -90,7 +90,7 @@ public class Constants {
 
   public static final String STAR = "*";
 
-  public static final int DEFAULT_DIMENSION = 1;
+  public static final int DEFAULT_DIMENSION = 2;
 
   public static final IndexParam.IndexType DEFAULT_INDEX_TYPE = IndexParam.IndexType.FLAT;
 
