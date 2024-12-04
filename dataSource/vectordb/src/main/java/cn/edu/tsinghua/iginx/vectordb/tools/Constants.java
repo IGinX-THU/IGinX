@@ -57,7 +57,7 @@ public class Constants {
 
   public static final int DEFAULT_MAX_IDLE = 10;
 
-  public static final long DEFAULT_MILVUS_TIMEOUT = 600000L;
+  public static final long DEFAULT_MILVUS_TIMEOUT = 120000L;
   public static final long DEFAULT_MILVUS_CONNECT_TIMEOUT = 20000L;
 
   public static final int DEFAULT_MIN_IDLE = 5;
@@ -129,7 +129,7 @@ public class Constants {
 
   public static final int MILVUS_INDEX_PARAM_NLIST = 8;
 
-  public static final long MILVUS_BATCH_SIZE = 10000L;
+  public static final long MILVUS_BATCH_SIZE = 3000L;
 
   public static final String MILVUS_DYNAMIC_FIELD_NAME = "$meta";
 

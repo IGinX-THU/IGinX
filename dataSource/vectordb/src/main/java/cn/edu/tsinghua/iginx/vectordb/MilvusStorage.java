@@ -117,7 +117,7 @@ public class MilvusStorage implements IStorage {
   }
 
   private Exception insertRecords(MilvusClientV2 client, String databaseName, DataView data) {
-    int batchSize = Math.min(data.getKeySize(), (int) MILVUS_BATCH_SIZE);
+    int batchSize = Math.min(data.getKeySize(), 10000);
     try {
       Set<String> collections = new HashSet<>();
       collections.addAll(client.listCollections().getCollectionNames());
@@ -224,7 +224,7 @@ public class MilvusStorage implements IStorage {
   }
 
   private Exception insertRecords1(MilvusClientV2 client, String databaseName, DataView data) {
-    int batchSize = Math.min(data.getKeySize(), (int) MILVUS_BATCH_SIZE);
+    int batchSize = Math.min(data.getKeySize(), 10000);
     try {
       Set<String> collections = new HashSet<>();
       collections.addAll(client.listCollections().getCollectionNames());
@@ -374,7 +374,6 @@ public class MilvusStorage implements IStorage {
       for (Map.Entry<String, Set<String>> entry : collectionToFields.entrySet()) {
         String collectionName = entry.getKey();
         Set<String> fields = entry.getValue();
-
         columns.addAll(
             MilvusClientUtils.query(
                 client,
@@ -553,8 +552,6 @@ public class MilvusStorage implements IStorage {
           Map<String, Set<String>> collectionToFields =
               MilvusClientUtils.determinePaths(client, paths, tagFilter, pathSystem);
 
-          ExecutorCompletionService<Boolean> completionService =
-              new ExecutorCompletionService<>(TaskExecutor.getExecutorService());
           for (Map.Entry<String, Set<String>> entry : collectionToFields.entrySet()) {
             String collectionName = entry.getKey();
             pathSystem.deletePath(PathUtils.getPathUnescaped(databaseName, collectionName, ""));
@@ -567,8 +564,6 @@ public class MilvusStorage implements IStorage {
         Map<String, Set<String>> collectionToFields =
             MilvusClientUtils.determinePaths(client, paths, tagFilter, pathSystem);
 
-        ExecutorCompletionService<Long> completionService =
-            new ExecutorCompletionService<>(TaskExecutor.getExecutorService());
         for (Map.Entry<String, Set<String>> entry : collectionToFields.entrySet()) {
           String collectionName = entry.getKey();
           for (KeyRange keyRange : delete.getKeyRanges()) {

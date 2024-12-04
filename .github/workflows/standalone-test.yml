@@ -17,8 +17,8 @@ on:
                 description: "The operating system to run the test on"
                 type: string
                 required: false
-                default: '["ubuntu-latest"]'
-            #                default: '["ubuntu-latest", "macos-latest", "windows-latest"]'
+                default: '["ubuntu-latest", "macos-latest", "windows-latest"]'
+#                default: '["ubuntu-latest"]'
             metadata-matrix:
                 description: "The metadata to run the test on"
                 type: string

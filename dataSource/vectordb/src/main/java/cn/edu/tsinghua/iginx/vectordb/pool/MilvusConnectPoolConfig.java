@@ -27,7 +27,7 @@ import org.slf4j.LoggerFactory;
 
 public class MilvusConnectPoolConfig {
   private static final Logger LOGGER = LoggerFactory.getLogger(MilvusConnectPoolConfig.class);
-  private static MilvusConnectPool pool;
+  private MilvusConnectPool pool;
 
   private String username;
 
@@ -87,7 +87,7 @@ public class MilvusConnectPoolConfig {
     config.setTimeBetweenEvictionRuns(Duration.ofMinutes(30)); // 多久执行一次对象扫描，将无用的对象销毁，默认-1不扫描
     config.setTestOnBorrow(true); // 在获取对象的时候检查有效性, 默认false
     config.setTestOnReturn(false); // 在归还对象的时候检查有效性, 默认false
-    config.setTestWhileIdle(false); // 在空闲时检查有效性, 默认false
+    config.setTestWhileIdle(true); // 在空闲时检查有效性, 默认false
     config.setMaxWait(Duration.ofSeconds(3)); // 最大等待时间， 默认的值为-1，表示无限等待。
     config.setLifo(true); // 是否启用后进先出, 默认true
     config.setBlockWhenExhausted(true); // 连接耗尽时是否阻塞, false立即抛异常,true阻塞直到超时, 默认true
@@ -116,7 +116,7 @@ public class MilvusConnectPoolConfig {
   }
 
   /** 注销连接池 */
-  public static void close() {
+  public void close() {
     if (pool != null) {
       pool.close();
     }
