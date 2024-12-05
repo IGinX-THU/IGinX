@@ -37,7 +37,7 @@ public class RelationSchema {
 
   public RelationSchema(String path, boolean isDummy, char quote) {
     int firstSeparator = path.indexOf(".");
-    if(firstSeparator < 0) firstSeparator = 0;
+    if (firstSeparator < 0) firstSeparator = 0;
     if (isDummy) {
       databaseName = path.substring(0, firstSeparator);
       path = path.substring(firstSeparator + 1);

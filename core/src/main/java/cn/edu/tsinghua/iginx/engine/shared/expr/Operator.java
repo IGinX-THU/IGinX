@@ -22,7 +22,7 @@ package cn.edu.tsinghua.iginx.engine.shared.expr;
 public enum Operator {
   PLUS,
   MINUS,
-  STAR,// 乘法展示, ×
+  STAR, // 乘法展示, ×
   DIV, // 除法展示, ÷
   MOD,
   CAL_STAR, // 乘法计算,*，目前只在对接层使用

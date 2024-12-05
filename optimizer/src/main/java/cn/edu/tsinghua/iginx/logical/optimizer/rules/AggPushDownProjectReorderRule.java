@@ -50,7 +50,7 @@ public class AggPushDownProjectReorderRule extends Rule {
     // 如果project下面就是fragment，就不需要再下推了
     Operator root = call.getMatchedRoot();
     Operator child = call.getChildrenIndex().get(root).get(0);
-    if(!OptimizerUtils.validateAggPushDown(root)){
+    if (!OptimizerUtils.validateAggPushDown(root)) {
       return false;
     }
     if (child.getType() == OperatorType.Project) {

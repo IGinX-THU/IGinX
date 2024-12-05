@@ -47,8 +47,6 @@ import java.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.xml.crypto.Data;
-
 public class RelationQueryRowStream implements RowStream {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(RelationQueryRowStream.class);
@@ -87,7 +85,7 @@ public class RelationQueryRowStream implements RowStream {
 
   private boolean isPushDown = false;
 
-  private Map<String, DataType> sumResType;// 记录聚合下推的sum的返回类型（需要提前计算，因为PG会统一返回小数）
+  private Map<String, DataType> sumResType; // 记录聚合下推的sum的返回类型（需要提前计算，因为PG会统一返回小数）
 
   public RelationQueryRowStream(
       List<String> databaseNameList,
@@ -98,7 +96,16 @@ public class RelationQueryRowStream implements RowStream {
       List<Connection> connList,
       AbstractRelationalMeta relationalMeta)
       throws SQLException {
-    this(databaseNameList, resultSets, isDummy, filter, tagFilter, connList, relationalMeta, null, false);
+    this(
+        databaseNameList,
+        resultSets,
+        isDummy,
+        filter,
+        tagFilter,
+        connList,
+        relationalMeta,
+        null,
+        false);
   }
 
   public RelationQueryRowStream(
@@ -167,7 +174,7 @@ public class RelationQueryRowStream implements RowStream {
         Pair<String, Map<String, String>> namesAndTags = splitFullName(columnName);
         Field field;
         DataType type = relationalMeta.getDataTypeTransformer().fromEngineType(typeName);
-        if(isAgg && sumResType != null && sumResType.containsKey(columnName)){
+        if (isAgg && sumResType != null && sumResType.containsKey(columnName)) {
           type = sumResType.get(columnName);
         }
         if (isDummy) {
@@ -176,18 +183,10 @@ public class RelationQueryRowStream implements RowStream {
                   + SEPARATOR
                   + (isAgg ? "" : tableName + SEPARATOR)
                   + namesAndTags.k;
-          field =
-              new Field(
-                  path,
-                  type,
-                  namesAndTags.v);
+          field = new Field(path, type, namesAndTags.v);
         } else {
           String path = (isAgg ? "" : tableName + SEPARATOR) + namesAndTags.k;
-          field =
-              new Field(
-                  path,
-                  type,
-                  namesAndTags.v);
+          field = new Field(path, type, namesAndTags.v);
         }
 
         if (filterByTags && !TagKVUtils.match(namesAndTags.v, tagFilter)) {
@@ -308,9 +307,9 @@ public class RelationQueryRowStream implements RowStream {
 
               Object value = getResultSetObject(resultSet, columnName, tableName);
               if (value instanceof BigDecimal) {
-                if(header.getField(startIndex + j).getType() == DataType.LONG){
+                if (header.getField(startIndex + j).getType() == DataType.LONG) {
                   value = ((BigDecimal) value).longValue();
-                }else{
+                } else {
                   value = ((BigDecimal) value).doubleValue();
                 }
               }

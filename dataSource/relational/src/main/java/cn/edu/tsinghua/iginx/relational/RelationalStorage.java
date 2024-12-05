@@ -1186,7 +1186,7 @@ public class RelationalStorage implements IStorage {
     if (agg.getType() != OperatorType.GroupBy && agg.getType() != OperatorType.SetTransform) {
       return false;
     }
-    if(!engineName.equalsIgnoreCase("postgresql")){
+    if (!engineName.equalsIgnoreCase("postgresql")) {
       return false;
     }
     List<FunctionCall> functionCalls = OperatorUtils.getFunctionCallList(agg);
@@ -1223,58 +1223,52 @@ public class RelationalStorage implements IStorage {
     for (Expression expr : exprList) {
       final boolean[] isValid = {true};
       expr.accept(
-              new ExpressionVisitor() {
-                @Override
-                public void visit(BaseExpression expression) {
-                  if (expression.getColumnName().contains("*")) {
-                    isValid[0] = false;
-                  }
-                }
+          new ExpressionVisitor() {
+            @Override
+            public void visit(BaseExpression expression) {
+              if (expression.getColumnName().contains("*")) {
+                isValid[0] = false;
+              }
+            }
 
-                @Override
-                public void visit(BinaryExpression expression) {
-                }
+            @Override
+            public void visit(BinaryExpression expression) {}
 
-                @Override
-                public void visit(BracketExpression expression) {
-                }
+            @Override
+            public void visit(BracketExpression expression) {}
 
-                @Override
-                public void visit(ConstantExpression expression) {
-                }
+            @Override
+            public void visit(ConstantExpression expression) {}
 
-                @Override
-                public void visit(FromValueExpression expression) {
-                  isValid[0] = false;
-                }
+            @Override
+            public void visit(FromValueExpression expression) {
+              isValid[0] = false;
+            }
 
-                @Override
-                public void visit(FuncExpression expression) {
-                  isValid[0] = false;
-                }
+            @Override
+            public void visit(FuncExpression expression) {
+              isValid[0] = false;
+            }
 
-                @Override
-                public void visit(MultipleExpression expression) {
-                }
+            @Override
+            public void visit(MultipleExpression expression) {}
 
-                @Override
-                public void visit(UnaryExpression expression) {
-                }
+            @Override
+            public void visit(UnaryExpression expression) {}
 
-                @Override
-                public void visit(CaseWhenExpression expression) {
-                  isValid[0] = false;
-                }
+            @Override
+            public void visit(CaseWhenExpression expression) {
+              isValid[0] = false;
+            }
 
-                @Override
-                public void visit(KeyExpression expression) {
-                }
+            @Override
+            public void visit(KeyExpression expression) {}
 
-                @Override
-                public void visit(SequenceExpression expression) {
-                  isValid[0] = false;
-                }
-              });
+            @Override
+            public void visit(SequenceExpression expression) {
+              isValid[0] = false;
+            }
+          });
 
       if (!isValid[0]) {
         return false;
@@ -1338,7 +1332,7 @@ public class RelationalStorage implements IStorage {
                   true));
       return new TaskExecuteResult(rowStream);
 
-    } catch (SQLException|RelationalTaskExecuteFailureException e) {
+    } catch (SQLException | RelationalTaskExecuteFailureException e) {
       LOGGER.error("unexpected error: ", e);
       return new TaskExecuteResult(
           new RelationalTaskExecuteFailureException(
@@ -1346,18 +1340,19 @@ public class RelationalStorage implements IStorage {
     }
   }
 
-  private Map<String, DataType> getSumDataType(List<FunctionCall> functionCalls) throws RelationalTaskExecuteFailureException {
+  private Map<String, DataType> getSumDataType(List<FunctionCall> functionCalls)
+      throws RelationalTaskExecuteFailureException {
     // 如果下推的函数有sum,需要判断结果是小数还是整数
     List<Column> columns = null;
     Map<String, DataType> columnTypeMap = new HashMap<>();
-    for(FunctionCall fc: functionCalls){
-      if(fc.getFunction().getIdentifier().equalsIgnoreCase(Sum.SUM)){
-        if(columns == null) {
+    for (FunctionCall fc : functionCalls) {
+      if (fc.getFunction().getIdentifier().equalsIgnoreCase(Sum.SUM)) {
+        if (columns == null) {
           columns = getColumns(null, null);
         }
-        if(isSumResultDouble(fc.getParams().getExpression(0), columns)){
+        if (isSumResultDouble(fc.getParams().getExpression(0), columns)) {
           columnTypeMap.put(fc.getFunctionStr(), DataType.DOUBLE);
-        }else{
+        } else {
           columnTypeMap.put(fc.getFunctionStr(), DataType.LONG);
         }
       }
@@ -1365,7 +1360,8 @@ public class RelationalStorage implements IStorage {
     return columnTypeMap;
   }
 
-  private String generateAggSql(List<FunctionCall> functionCalls, List<Expression> gbc, String statement) {
+  private String generateAggSql(
+      List<FunctionCall> functionCalls, List<Expression> gbc, String statement) {
     char quote = relationalMeta.getQuote();
     boolean isJoin =
         statement.contains(" JOIN "); // 如果有JOIN,则column形如`table.column`，否则形如`table`.`column`
@@ -1417,10 +1413,8 @@ public class RelationalStorage implements IStorage {
   }
 
   /**
-   * 表达式适配下推到PG的形式
-   * 1.将baseExpression转换为QuoteBaseExpression，以让其在SQL中被引号包裹
-   *   如果SQL使用了JOIN,那列名形如`table.column`，如果没有，则形如`table`.`column`
-   * 2.乘和除从×和÷转换为*和/
+   * 表达式适配下推到PG的形式 1.将baseExpression转换为QuoteBaseExpression，以让其在SQL中被引号包裹
+   * 如果SQL使用了JOIN,那列名形如`table.column`，如果没有，则形如`table`.`column` 2.乘和除从×和÷转换为*和/
    */
   private Expression exprAdapt(Expression expr, boolean isSplitTableColumn) {
     if (expr instanceof BaseExpression) {
@@ -1449,9 +1443,11 @@ public class RelationalStorage implements IStorage {
                       isSplitTableColumn));
             }
 
-            if(expression.getOp().equals(cn.edu.tsinghua.iginx.engine.shared.expr.Operator.STAR)){
+            if (expression.getOp().equals(cn.edu.tsinghua.iginx.engine.shared.expr.Operator.STAR)) {
               expression.setOp(cn.edu.tsinghua.iginx.engine.shared.expr.Operator.CAL_STAR);
-            }else if(expression.getOp().equals(cn.edu.tsinghua.iginx.engine.shared.expr.Operator.DIV)){
+            } else if (expression
+                .getOp()
+                .equals(cn.edu.tsinghua.iginx.engine.shared.expr.Operator.DIV)) {
               expression.setOp(cn.edu.tsinghua.iginx.engine.shared.expr.Operator.CAL_DIV);
             }
           }
@@ -1503,15 +1499,17 @@ public class RelationalStorage implements IStorage {
                             isSplitTableColumn));
               }
             }
-            expression.getOps().replaceAll(
-                op -> {
-                  if(op.equals(cn.edu.tsinghua.iginx.engine.shared.expr.Operator.STAR)){
-                    return cn.edu.tsinghua.iginx.engine.shared.expr.Operator.CAL_STAR;
-                  }else if(op.equals(cn.edu.tsinghua.iginx.engine.shared.expr.Operator.DIV)){
-                    return cn.edu.tsinghua.iginx.engine.shared.expr.Operator.CAL_DIV;
-                  }
-                  return op;
-                });
+            expression
+                .getOps()
+                .replaceAll(
+                    op -> {
+                      if (op.equals(cn.edu.tsinghua.iginx.engine.shared.expr.Operator.STAR)) {
+                        return cn.edu.tsinghua.iginx.engine.shared.expr.Operator.CAL_STAR;
+                      } else if (op.equals(cn.edu.tsinghua.iginx.engine.shared.expr.Operator.DIV)) {
+                        return cn.edu.tsinghua.iginx.engine.shared.expr.Operator.CAL_DIV;
+                      }
+                      return op;
+                    });
           }
 
           @Override
@@ -1545,8 +1543,8 @@ public class RelationalStorage implements IStorage {
     Filter filter = select.getFilter();
     List<FunctionCall> functionCalls = OperatorUtils.getFunctionCallList(agg);
     List<Expression> gbc = new ArrayList<>();
-    if(agg.getType() == OperatorType.GroupBy){
-        gbc = ((GroupBy) agg).getGroupByExpressions();
+    if (agg.getType() == OperatorType.GroupBy) {
+      gbc = ((GroupBy) agg).getGroupByExpressions();
     }
     try {
       List<String> databaseNameList = new ArrayList<>();
@@ -1573,7 +1571,8 @@ public class RelationalStorage implements IStorage {
         // 如果table没有带通配符，那直接简单构建起查询语句即可
         statement = getProjectDummyWithSQL(filter, databaseName, tableNameToColumnNames);
         gbc.forEach(this::cutExprDatabaseNameForDummy);
-        functionCalls.forEach(fc -> fc.getParams().getExpressions().forEach(this::cutExprDatabaseNameForDummy));
+        functionCalls.forEach(
+            fc -> fc.getParams().getExpressions().forEach(this::cutExprDatabaseNameForDummy));
         statement = generateAggSql(functionCalls, gbc, statement);
 
         try {
@@ -1602,7 +1601,7 @@ public class RelationalStorage implements IStorage {
                   columnTypeMap,
                   true));
       return new TaskExecuteResult(rowStream);
-    } catch (SQLException|RelationalTaskExecuteFailureException e) {
+    } catch (SQLException | RelationalTaskExecuteFailureException e) {
       LOGGER.error("unexpected error: ", e);
       return new TaskExecuteResult(
           new RelationalTaskExecuteFailureException(
@@ -2537,127 +2536,102 @@ public class RelationalStorage implements IStorage {
       columnTypeMap.put(column.getPath(), column.getDataType());
     }
     boolean[] isDouble = {false};
-    expr.accept(new ExpressionVisitor() {
-      @Override
-      public void visit(BaseExpression expression) {
-        String path = expression.getColumnName();
-        if(columnTypeMap.containsKey(path)){
-          isDouble[0] |= columnTypeMap.get(path) == DataType.DOUBLE;
-        }
-      }
+    expr.accept(
+        new ExpressionVisitor() {
+          @Override
+          public void visit(BaseExpression expression) {
+            String path = expression.getColumnName();
+            if (columnTypeMap.containsKey(path)) {
+              isDouble[0] |= columnTypeMap.get(path) == DataType.DOUBLE;
+            }
+          }
 
-      @Override
-      public void visit(BinaryExpression expression) {
-        isDouble[0] |= expression.getOp() == cn.edu.tsinghua.iginx.engine.shared.expr.Operator.DIV ||
-            expression.getOp() == cn.edu.tsinghua.iginx.engine.shared.expr.Operator.CAL_DIV;
-      }
+          @Override
+          public void visit(BinaryExpression expression) {
+            isDouble[0] |=
+                expression.getOp() == cn.edu.tsinghua.iginx.engine.shared.expr.Operator.DIV
+                    || expression.getOp()
+                        == cn.edu.tsinghua.iginx.engine.shared.expr.Operator.CAL_DIV;
+          }
 
-      @Override
-      public void visit(BracketExpression expression) {
+          @Override
+          public void visit(BracketExpression expression) {}
 
-      }
+          @Override
+          public void visit(ConstantExpression expression) {
+            isDouble[0] |=
+                expression.getValue() instanceof Double || expression.getValue() instanceof Float;
+          }
 
-      @Override
-      public void visit(ConstantExpression expression) {
-        isDouble[0] |= expression.getValue() instanceof Double || expression.getValue() instanceof Float;
-      }
+          @Override
+          public void visit(FromValueExpression expression) {}
 
-      @Override
-      public void visit(FromValueExpression expression) {
+          @Override
+          public void visit(FuncExpression expression) {}
 
-      }
+          @Override
+          public void visit(MultipleExpression expression) {
+            isDouble[0] |=
+                expression.getOps().stream()
+                    .anyMatch(
+                        op ->
+                            op == cn.edu.tsinghua.iginx.engine.shared.expr.Operator.DIV
+                                || op == cn.edu.tsinghua.iginx.engine.shared.expr.Operator.CAL_DIV);
+          }
 
-      @Override
-      public void visit(FuncExpression expression) {
+          @Override
+          public void visit(UnaryExpression expression) {}
 
-      }
+          @Override
+          public void visit(CaseWhenExpression expression) {}
 
-      @Override
-      public void visit(MultipleExpression expression) {
-        isDouble[0] |= expression.getOps().stream().anyMatch(op -> op == cn.edu.tsinghua.iginx.engine.shared.expr.Operator.DIV ||
-            op == cn.edu.tsinghua.iginx.engine.shared.expr.Operator.CAL_DIV);
-      }
+          @Override
+          public void visit(KeyExpression expression) {}
 
-      @Override
-      public void visit(UnaryExpression expression) {
-
-      }
-
-      @Override
-      public void visit(CaseWhenExpression expression) {
-
-      }
-
-      @Override
-      public void visit(KeyExpression expression) {
-
-      }
-
-      @Override
-      public void visit(SequenceExpression expression) {
-
-      }
-    });
+          @Override
+          public void visit(SequenceExpression expression) {}
+        });
 
     return isDouble[0];
   }
 
-  private void cutExprDatabaseNameForDummy(Expression expr){
-    expr.accept(new ExpressionVisitor() {
-      @Override
-      public void visit(BaseExpression expression) {
-        expression.setPathName(expression.getColumnName().split("\\.")[1]);
-      }
+  private void cutExprDatabaseNameForDummy(Expression expr) {
+    expr.accept(
+        new ExpressionVisitor() {
+          @Override
+          public void visit(BaseExpression expression) {
+            expression.setPathName(expression.getColumnName().split("\\.")[1]);
+          }
 
-      @Override
-      public void visit(BinaryExpression expression) {
+          @Override
+          public void visit(BinaryExpression expression) {}
 
-      }
+          @Override
+          public void visit(BracketExpression expression) {}
 
-      @Override
-      public void visit(BracketExpression expression) {
+          @Override
+          public void visit(ConstantExpression expression) {}
 
-      }
+          @Override
+          public void visit(FromValueExpression expression) {}
 
-      @Override
-      public void visit(ConstantExpression expression) {
+          @Override
+          public void visit(FuncExpression expression) {}
 
-      }
+          @Override
+          public void visit(MultipleExpression expression) {}
 
-      @Override
-      public void visit(FromValueExpression expression) {
+          @Override
+          public void visit(UnaryExpression expression) {}
 
-      }
+          @Override
+          public void visit(CaseWhenExpression expression) {}
 
-      @Override
-      public void visit(FuncExpression expression) {
+          @Override
+          public void visit(KeyExpression expression) {}
 
-      }
-
-      @Override
-      public void visit(MultipleExpression expression) {
-
-      }
-
-      @Override
-      public void visit(UnaryExpression expression) {
-
-      }
-
-      @Override
-      public void visit(CaseWhenExpression expression) {
-
-      }
-
-      @Override
-      public void visit(KeyExpression expression) {
-
-      }
-
-      @Override
-      public void visit(SequenceExpression expression) {
-
-      }
-    });
+          @Override
+          public void visit(SequenceExpression expression) {}
+        });
   }
 }

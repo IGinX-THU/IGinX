@@ -54,7 +54,7 @@ public class AggPushDownSelectRule extends Rule {
   public boolean matches(RuleCall call) {
     GroupBy groupBy = (GroupBy) call.getMatchedRoot();
     Select select = (Select) call.getChildrenIndex().get(groupBy).get(0);
-    if(!OptimizerUtils.validateAggPushDown(groupBy)){
+    if (!OptimizerUtils.validateAggPushDown(groupBy)) {
       return false;
     }
     // 如果select下面就是fragment，就不需要再下推了

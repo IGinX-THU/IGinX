@@ -58,7 +58,7 @@ public class AggPushDownUnionRule extends Rule {
   public boolean matches(RuleCall call) {
     // 对于GroupBy有要求，仅当涉及的函数仅包含MAX, MIN, SUM, COUNT时才能下推
     GroupBy groupBy = (GroupBy) call.getMatchedRoot();
-    if(!OptimizerUtils.validateAggPushDown(groupBy)){
+    if (!OptimizerUtils.validateAggPushDown(groupBy)) {
       return false;
     }
     if (!(!groupBySet.contains(groupBy)
@@ -132,8 +132,8 @@ public class AggPushDownUnionRule extends Rule {
       String oldFuncStr = fc.getFunctionStr();
       fc.getParams().setExpression(0, new BaseExpression(fc.getFunctionStr()));
       fc.getParams().updatePaths();
-        String newFuncStr = fc.getFunctionStr();
-        renameMap.add(new Pair<>(newFuncStr, oldFuncStr));
+      String newFuncStr = fc.getFunctionStr();
+      renameMap.add(new Pair<>(newFuncStr, oldFuncStr));
       if (fc.getFunction().getIdentifier().equalsIgnoreCase("COUNT")) {
         groupBy.getFunctionCallList().set(i, new FunctionCall(Sum.getInstance(), fc.getParams()));
       }

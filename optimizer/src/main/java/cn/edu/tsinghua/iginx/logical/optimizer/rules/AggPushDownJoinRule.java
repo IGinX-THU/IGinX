@@ -59,7 +59,7 @@ public class AggPushDownJoinRule extends Rule {
   public boolean matches(RuleCall call) {
     Operator root = call.getMatchedRoot();
 
-    if(!OptimizerUtils.validateAggPushDown(root)){
+    if (!OptimizerUtils.validateAggPushDown(root)) {
       return false;
     }
 
@@ -129,7 +129,6 @@ public class AggPushDownJoinRule extends Rule {
       } else {
         rightFunctionCallList.add(fc.copy());
       }
-
     }
 
     List<String> joinCondPaths = FilterUtils.getAllPathsFromFilter(getJoinCondition(child));
@@ -152,9 +151,11 @@ public class AggPushDownJoinRule extends Rule {
             .collect(Collectors.toList());
     groupByCols.forEach(
         col -> {
-          if (leftPatternsList.stream().anyMatch(lp -> PathUtils.covers(lp, col)) && leftGroupByCols.stream().map(Expression::getColumnName).noneMatch(col::equals)) {
+          if (leftPatternsList.stream().anyMatch(lp -> PathUtils.covers(lp, col))
+              && leftGroupByCols.stream().map(Expression::getColumnName).noneMatch(col::equals)) {
             leftGroupByCols.add(new BaseExpression(col));
-          } else if (rightPatternsList.stream().anyMatch(rp -> PathUtils.covers(rp, col)) && rightGroupByCols.stream().map(Expression::getColumnName).noneMatch(col::equals)) {
+          } else if (rightPatternsList.stream().anyMatch(rp -> PathUtils.covers(rp, col))
+              && rightGroupByCols.stream().map(Expression::getColumnName).noneMatch(col::equals)) {
             rightGroupByCols.add(new BaseExpression(col));
           }
         });

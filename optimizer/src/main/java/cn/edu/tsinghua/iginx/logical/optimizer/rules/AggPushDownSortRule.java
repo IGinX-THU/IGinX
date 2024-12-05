@@ -47,7 +47,7 @@ public class AggPushDownSortRule extends Rule {
   public boolean matches(RuleCall call) {
     // 如果只包含几个不依赖顺序的函数，可以下推
     Operator root = call.getMatchedRoot();
-    if(!OptimizerUtils.validateAggPushDown(root)){
+    if (!OptimizerUtils.validateAggPushDown(root)) {
       return false;
     }
     if (call.getChildrenIndex().get(root) == null
