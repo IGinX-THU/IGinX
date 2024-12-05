@@ -105,14 +105,14 @@ runs:
               sed -i"" -e "s/127.0.0.1#19530/${MILVUS_HOST}#19530/g" test/src/test/resources/testConfig.properties
               sed -i"" -e "s/127.0.0.1#19530/${MILVUS_HOST}#19530/g" conf/config.properties
 
-        - if: runner.os == 'Windows'
-          name: Set JAVA_HOME
-          shell: wsl-run {0}
-          run: |
-              sudo apt update
-              sudo apt install openjdk-8-jdk -y
-              echo "export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64" >> $HOME/.bashrc
-              echo "export PATH=\$PATH:\$JAVA_HOME/bin" >> $HOME/.bashrc
-              source $HOME/.bashrc
-              java -version
-              echo $JAVA_HOME
+#        - if: runner.os == 'Windows'
+#          name: Set JAVA_HOME
+#          shell: wsl-run {0}
+#          run: |
+#              sudo apt update
+#              sudo apt install openjdk-8-jdk -y
+#              echo "export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64" >> $HOME/.bashrc
+#              echo "export PATH=\$PATH:\$JAVA_HOME/bin" >> $HOME/.bashrc
+#              source $HOME/.bashrc
+#              java -version
+#              echo $JAVA_HOME
