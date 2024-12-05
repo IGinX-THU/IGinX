@@ -1186,6 +1186,9 @@ public class RelationalStorage implements IStorage {
     if (agg.getType() != OperatorType.GroupBy && agg.getType() != OperatorType.SetTransform) {
       return false;
     }
+    if(!engineName.equalsIgnoreCase("postgresql")){
+      return false;
+    }
     List<FunctionCall> functionCalls = OperatorUtils.getFunctionCallList(agg);
     for (FunctionCall functionCall : functionCalls) {
       if (!SUPPORTED_AGGREGATE_FUNCTIONS.contains(functionCall.getFunction().getIdentifier())) {
@@ -1209,7 +1212,6 @@ public class RelationalStorage implements IStorage {
         return false;
       }
     }
-
     // Group By Column中不能带有函数，只能有四则运算表达式
     if (agg.getType() == OperatorType.GroupBy) {
       List<Expression> gbc = ((GroupBy) agg).getGroupByExpressions();
@@ -1218,7 +1220,11 @@ public class RelationalStorage implements IStorage {
         expr.accept(
             new ExpressionVisitor() {
               @Override
-              public void visit(BaseExpression expression) {}
+              public void visit(BaseExpression expression) {
+                if(expression.getColumnName().contains("*")){
+                    isValid[0] = false;
+                }
+              }
 
               @Override
               public void visit(BinaryExpression expression) {}
@@ -1310,7 +1316,7 @@ public class RelationalStorage implements IStorage {
                 "%s(%s)",
                 functionName,
                 params.stream()
-                    .map(e -> exprAddQuote(e, isJoin).getColumnName())
+                    .map(e -> exprAdapt(e, isJoin).getColumnName())
                     .collect(Collectors.joining(", "))));
         sqlColumnsStr.append(" AS ");
         sqlColumnsStr.append(quote).append(originFuncStr).append(quote);
@@ -1320,7 +1326,7 @@ public class RelationalStorage implements IStorage {
       for (Expression expr : gbc) {
         String originColumnStr = quote + expr.getColumnName() + quote;
         sqlColumnsStr
-            .append(exprAddQuote(expr, isJoin).getColumnName())
+            .append(exprAdapt(expr, isJoin).getColumnName())
             .append(" AS ")
             .append(originColumnStr)
             .append(", ");
@@ -1332,7 +1338,7 @@ public class RelationalStorage implements IStorage {
         statement +=
             " GROUP BY "
                 + gbc.stream()
-                    .map(e -> exprAddQuote(e, isJoin).getColumnName())
+                    .map(e -> exprAdapt(e, isJoin).getColumnName())
                     .collect(Collectors.joining(", "));
       }
       statement += ";";
@@ -1373,10 +1379,12 @@ public class RelationalStorage implements IStorage {
   }
 
   /**
-   * 将baseExpression转换为QuoteBaseExpression，以让其在SQL中被引号包裹
-   * 如果SQL使用了JOIN,那列名形如`table.column`，如果没有，则形如`table`.`column`
+   * 表达式适配下推到PG的形式
+   * 1.将baseExpression转换为QuoteBaseExpression，以让其在SQL中被引号包裹
+   *   如果SQL使用了JOIN,那列名形如`table.column`，如果没有，则形如`table`.`column`
+   * 2.乘和除从×和÷转换为*和/
    */
-  private Expression exprAddQuote(Expression expr, boolean isSplitTableColumn) {
+  private Expression exprAdapt(Expression expr, boolean isSplitTableColumn) {
     if (expr instanceof BaseExpression) {
       return new QuoteBaseExpressionDecorator(
           (BaseExpression) expr, relationalMeta.getQuote(), isSplitTableColumn);
@@ -1401,6 +1409,12 @@ public class RelationalStorage implements IStorage {
                       (BaseExpression) expression.getRightExpression(),
                       relationalMeta.getQuote(),
                       isSplitTableColumn));
+            }
+
+            if(expression.getOp().equals(cn.edu.tsinghua.iginx.engine.shared.expr.Operator.STAR)){
+              expression.setOp(cn.edu.tsinghua.iginx.engine.shared.expr.Operator.CAL_STAR);
+            }else if(expression.getOp().equals(cn.edu.tsinghua.iginx.engine.shared.expr.Operator.DIV)){
+              expression.setOp(cn.edu.tsinghua.iginx.engine.shared.expr.Operator.CAL_DIV);
             }
           }
 
@@ -1451,6 +1465,15 @@ public class RelationalStorage implements IStorage {
                             isSplitTableColumn));
               }
             }
+            expression.getOps().replaceAll(
+                op -> {
+                  if(op.equals(cn.edu.tsinghua.iginx.engine.shared.expr.Operator.STAR)){
+                    return cn.edu.tsinghua.iginx.engine.shared.expr.Operator.CAL_STAR;
+                  }else if(op.equals(cn.edu.tsinghua.iginx.engine.shared.expr.Operator.DIV)){
+                    return cn.edu.tsinghua.iginx.engine.shared.expr.Operator.CAL_DIV;
+                  }
+                  return op;
+                });
           }
 
           @Override
@@ -1503,7 +1526,7 @@ public class RelationalStorage implements IStorage {
 
         // 如果table没有带通配符，那直接简单构建起查询语句即可
 
-        statement = getProjectWithFilterSQL(filter, tableNameToColumnNames);
+        statement = getProjectDummyWithSQL(filter, databaseName, tableNameToColumnNames);
 
         try {
           stmt = conn.createStatement();
@@ -1617,7 +1640,7 @@ public class RelationalStorage implements IStorage {
         }
         // table中带有了通配符，将所有table都join到一起进行查询，以便输入filter.
         else if (!tableNameToColumnNames.isEmpty()) {
-          statement = getProjectWithFilterSQL(filter, tableNameToColumnNames);
+          statement = getProjectDummyWithSQL(filter, databaseName, tableNameToColumnNames);
 
           try {
             stmt = conn.createStatement();

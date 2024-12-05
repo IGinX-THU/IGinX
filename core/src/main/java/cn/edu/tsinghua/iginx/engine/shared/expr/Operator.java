@@ -22,9 +22,11 @@ package cn.edu.tsinghua.iginx.engine.shared.expr;
 public enum Operator {
   PLUS,
   MINUS,
-  STAR,
-  DIV,
-  MOD;
+  STAR,// 乘法展示, ×
+  DIV, // 除法展示, ÷
+  MOD,
+  CAL_STAR, // 乘法计算,*，目前只在对接层使用
+  CAL_DIV; // 除法计算,/
 
   public static String operatorToString(Operator operator) {
     switch (operator) {
@@ -38,6 +40,10 @@ public enum Operator {
         return "÷";
       case MOD:
         return "%";
+      case CAL_DIV:
+        return "/";
+      case CAL_STAR:
+        return "*";
       default:
         return "";
     }
