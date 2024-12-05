@@ -20,9 +20,12 @@
 package cn.edu.tsinghua.iginx.logical.optimizer.rules;
 
 import cn.edu.tsinghua.iginx.engine.logical.utils.PathUtils;
+import cn.edu.tsinghua.iginx.engine.shared.expr.*;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
 import cn.edu.tsinghua.iginx.engine.shared.operator.*;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
+import cn.edu.tsinghua.iginx.logical.optimizer.OptimizerUtils;
 import cn.edu.tsinghua.iginx.logical.optimizer.core.RuleCall;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import com.google.auto.service.AutoService;
@@ -46,23 +49,21 @@ public class AggPushDownRenameRule extends Rule {
 
   @Override
   public boolean matches(RuleCall call) {
-    return true;
+    return OptimizerUtils.validateAggPushDown(call.getMatchedRoot());
   }
 
   @Override
   public void onMatch(RuleCall call) {
     GroupBy groupBy = (GroupBy) call.getMatchedRoot();
     Rename rename = (Rename) call.getChildrenIndex().get(groupBy).get(0);
-    List<String> gbc = groupBy.getGroupByCols();
-    gbc.replaceAll(pattern -> PathUtils.recoverRenamedPattern(rename.getAliasList(), pattern));
+    groupBy.getGroupByExpressions().replaceAll(expression -> recoverRenamedExpression(rename, expression));
+    groupBy.updateGroupByCols();
 
     List<FunctionCall> functionCallList = groupBy.getFunctionCallList();
     for (FunctionCall functionCall : functionCallList) {
       String oldFuncStr = functionCall.getFunctionStr();
-      functionCall
-          .getParams()
-          .getPaths()
-          .replaceAll(pattern -> PathUtils.recoverRenamedPattern(rename.getAliasList(), pattern));
+      functionCall.getParams().getExpressions().replaceAll(expression -> recoverRenamedExpression(rename, expression));
+      functionCall.getParams().updatePaths();
       String newFuncStr = functionCall.getFunctionStr();
       if (!oldFuncStr.equals(newFuncStr)) {
         rename.getAliasList().add(new Pair<>(newFuncStr, oldFuncStr));
@@ -72,5 +73,119 @@ public class AggPushDownRenameRule extends Rule {
     groupBy.setSource(rename.getSource());
     rename.setSource(new OperatorSource(groupBy));
     call.transformTo(rename);
+  }
+
+  private Expression recoverRenamedExpression(Rename rename, Expression expression) {
+    expression.accept(new ExpressionVisitor() {
+      @Override
+      public void visit(BaseExpression expression) {
+        expression.setPathName(PathUtils.recoverRenamedPattern(rename.getAliasList(), expression.getPathName()));
+      }
+
+      @Override
+      public void visit(BinaryExpression expression) {
+
+      }
+
+      @Override
+      public void visit(BracketExpression expression) {
+
+      }
+
+      @Override
+      public void visit(ConstantExpression expression) {
+
+      }
+
+      @Override
+      public void visit(FromValueExpression expression) {
+
+      }
+
+      @Override
+      public void visit(FuncExpression expression) {
+
+      }
+
+      @Override
+      public void visit(MultipleExpression expression) {
+
+      }
+
+      @Override
+      public void visit(UnaryExpression expression) {
+
+      }
+
+      @Override
+      public void visit(CaseWhenExpression expression) {
+        recoverRenamedExpression(rename, expression.getResultElse());
+        expression.getResults().forEach(e -> recoverRenamedExpression(rename, e));
+
+      }
+
+      @Override
+      public void visit(KeyExpression expression) {
+
+      }
+
+      @Override
+      public void visit(SequenceExpression expression) {
+
+      }
+    });
+
+    return expression;
+  }
+
+  private void recoverRenamedFilter(Rename rename, Filter filter) {
+    filter.accept(new FilterVisitor() {
+      @Override
+      public void visit(AndFilter filter) {
+
+      }
+
+      @Override
+      public void visit(OrFilter filter) {
+
+      }
+
+      @Override
+      public void visit(NotFilter filter) {
+
+      }
+
+      @Override
+      public void visit(KeyFilter filter) {
+
+      }
+
+      @Override
+      public void visit(ValueFilter filter) {
+        filter.setPath(PathUtils.recoverRenamedPattern(rename.getAliasList(), filter.getPath()));
+      }
+
+      @Override
+      public void visit(PathFilter filter) {
+        filter.setPathA(PathUtils.recoverRenamedPattern(rename.getAliasList(), filter.getPathA()));
+        filter.setPathB(PathUtils.recoverRenamedPattern(rename.getAliasList(), filter.getPathB()));
+      }
+
+      @Override
+      public void visit(BoolFilter filter) {
+
+      }
+
+      @Override
+      public void visit(ExprFilter filter) {
+        recoverRenamedExpression(rename, filter.getExpressionA());
+        recoverRenamedExpression(rename, filter.getExpressionB());
+      }
+
+      @Override
+      public void visit(InFilter filter) {
+        filter.setPath(PathUtils.recoverRenamedPattern(rename.getAliasList(), filter.getPath()));
+      }
+    });
   }
 }

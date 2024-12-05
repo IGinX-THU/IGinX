@@ -20,11 +20,13 @@
 package cn.edu.tsinghua.iginx.logical.optimizer.rules;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.ExprUtils;
+import cn.edu.tsinghua.iginx.engine.shared.expr.BaseExpression;
 import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.Sum;
 import cn.edu.tsinghua.iginx.engine.shared.operator.*;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
+import cn.edu.tsinghua.iginx.logical.optimizer.OptimizerUtils;
 import cn.edu.tsinghua.iginx.logical.optimizer.core.RuleCall;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import com.google.auto.service.AutoService;
@@ -54,8 +56,11 @@ public class AggPushDownUnionRule extends Rule {
 
   @Override
   public boolean matches(RuleCall call) {
-    // 对于GroupBy有要求，仅当涉及的函数仅包含MAX, MIN, AVG, SUM, COUNT时才能下推
+    // 对于GroupBy有要求，仅当涉及的函数仅包含MAX, MIN, SUM, COUNT时才能下推
     GroupBy groupBy = (GroupBy) call.getMatchedRoot();
+    if(!OptimizerUtils.validateAggPushDown(groupBy)){
+      return false;
+    }
     if (!(!groupBySet.contains(groupBy)
         && groupBy.getFunctionCallList().stream()
             .allMatch(
@@ -87,6 +92,7 @@ public class AggPushDownUnionRule extends Rule {
 
     // Union的左侧是作为Union结果表头的，可以直接下推，下推后需要相应更改Union信息,左侧的下推Group By结果需要rename
     GroupBy leftGroupBy = (GroupBy) groupBy.copy();
+    leftGroupBy.getFunctionCallList().replaceAll(FunctionCall::copy);
     leftGroupBy.setSource(union.getSourceA());
     union.setSourceA(new OperatorSource(leftGroupBy));
     leftOrder.clear();
@@ -95,12 +101,6 @@ public class AggPushDownUnionRule extends Rule {
         groupBy.getFunctionCallList().stream()
             .map(FunctionCall::getFunctionStr)
             .collect(Collectors.toList()));
-    List<Pair<String, String>> leftRenameMap =
-        leftGroupBy.getFunctionCallList().stream()
-            .map(fc -> new Pair<>(fc.getFunctionStr(), AggPushDownJoinRule.getRenamedParam(fc)))
-            .collect(Collectors.toList());
-    union.setSourceA(
-        new OperatorSource(new Rename(new OperatorSource(leftGroupBy), leftRenameMap)));
 
     // Union的右侧的表头需要转换称左侧的表头，因此下推的GroupBy也要做相应转换
     List<Expression> groupByExpressions = new ArrayList<>();
@@ -110,7 +110,8 @@ public class AggPushDownUnionRule extends Rule {
     List<FunctionCall> functionCalls = new ArrayList<>();
     for (FunctionCall fc : leftGroupBy.getFunctionCallList()) {
       FunctionCall newFc = fc.copy();
-      newFc.getParams().getPaths().replaceAll(path -> left2Right.getOrDefault(path, path));
+      newFc.getParams().getExpressions().replaceAll(e -> ExprUtils.replacePaths(e, left2Right));
+      newFc.getParams().updatePaths();
       functionCalls.add(newFc);
     }
     GroupBy rightGroupBy = new GroupBy(union.getSourceB(), groupByExpressions, functionCalls);
@@ -124,24 +125,22 @@ public class AggPushDownUnionRule extends Rule {
             .collect(Collectors.toList()));
 
     // 最后要更改最上面原GroupBy的信息，function的param要更改成聚合过一遍的结果
-    List<Pair<String, String>> renameMap =
-        leftGroupBy.getFunctionCallList().stream()
-            .map(fc -> new Pair<>("", fc.getFunctionStr()))
-            .collect(Collectors.toList());
+    List<Pair<String, String>> renameMap = new ArrayList<>();
 
-    for (int i = 0; i < functionCalls.size(); i++) {
-      FunctionCall fc = functionCalls.get(i);
-      fc.getParams().getPaths().replaceAll(path -> AggPushDownJoinRule.getRenamedParam(fc));
+    for (int i = 0; i < groupBy.getFunctionCallList().size(); i++) {
+      FunctionCall fc = groupBy.getFunctionCallList().get(i);
+      String oldFuncStr = fc.getFunctionStr();
+      fc.getParams().setExpression(0, new BaseExpression(fc.getFunctionStr()));
+      fc.getParams().updatePaths();
+        String newFuncStr = fc.getFunctionStr();
+        renameMap.add(new Pair<>(newFuncStr, oldFuncStr));
       if (fc.getFunction().getIdentifier().equalsIgnoreCase("COUNT")) {
-        functionCalls.set(i, new FunctionCall(Sum.getInstance(), fc.getParams()));
+        groupBy.getFunctionCallList().set(i, new FunctionCall(Sum.getInstance(), fc.getParams()));
       }
     }
 
-    for (int i = 0; i < renameMap.size(); i++) {
-      FunctionCall fc = groupBy.getFunctionCallList().get(i);
-      renameMap.get(i).k = fc.getFunctionStr();
-    }
+    Rename rename = new Rename(new OperatorSource(groupBy), renameMap);
 
-    call.transformTo(groupBy);
+    call.transformTo(rename);
   }
 }

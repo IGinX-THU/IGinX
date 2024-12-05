@@ -27,6 +27,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.SourceType;
+import cn.edu.tsinghua.iginx.logical.optimizer.OptimizerUtils;
 import cn.edu.tsinghua.iginx.logical.optimizer.core.RuleCall;
 import com.google.auto.service.AutoService;
 import java.util.HashSet;
@@ -53,7 +54,9 @@ public class AggPushDownSelectRule extends Rule {
   public boolean matches(RuleCall call) {
     GroupBy groupBy = (GroupBy) call.getMatchedRoot();
     Select select = (Select) call.getChildrenIndex().get(groupBy).get(0);
-
+    if(!OptimizerUtils.validateAggPushDown(groupBy)){
+      return false;
+    }
     // 如果select下面就是fragment，就不需要再下推了
     Operator selectChild = call.getChildrenIndex().get(select).get(0);
     if (selectChild.getType() == OperatorType.Project

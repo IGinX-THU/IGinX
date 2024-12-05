@@ -23,6 +23,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.SourceType;
+import cn.edu.tsinghua.iginx.logical.optimizer.OptimizerUtils;
 import cn.edu.tsinghua.iginx.logical.optimizer.core.RuleCall;
 import com.google.auto.service.AutoService;
 import java.util.ArrayList;
@@ -49,6 +50,9 @@ public class AggPushDownProjectReorderRule extends Rule {
     // 如果project下面就是fragment，就不需要再下推了
     Operator root = call.getMatchedRoot();
     Operator child = call.getChildrenIndex().get(root).get(0);
+    if(!OptimizerUtils.validateAggPushDown(root)){
+      return false;
+    }
     if (child.getType() == OperatorType.Project) {
       Project project = (Project) child;
       return project.getSource().getType() != SourceType.Fragment;

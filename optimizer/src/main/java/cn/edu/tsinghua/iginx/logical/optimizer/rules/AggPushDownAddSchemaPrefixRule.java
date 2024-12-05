@@ -23,6 +23,7 @@ import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
 import cn.edu.tsinghua.iginx.engine.shared.operator.AddSchemaPrefix;
 import cn.edu.tsinghua.iginx.engine.shared.operator.GroupBy;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
+import cn.edu.tsinghua.iginx.logical.optimizer.OptimizerUtils;
 import cn.edu.tsinghua.iginx.logical.optimizer.core.RuleCall;
 import com.google.auto.service.AutoService;
 
@@ -32,7 +33,7 @@ public class AggPushDownAddSchemaPrefixRule extends Rule {
   public AggPushDownAddSchemaPrefixRule() {
     /*
      * we want to match the topology like:
-     *         GroupBy
+     *         GroupBy/Set Transform
      *           |
      *         AddSchemaPrefix
      */
@@ -44,7 +45,7 @@ public class AggPushDownAddSchemaPrefixRule extends Rule {
 
   @Override
   public boolean matches(RuleCall call) {
-    return super.matches(call);
+    return OptimizerUtils.validateAggPushDown(call.getMatchedRoot());
   }
 
   @Override

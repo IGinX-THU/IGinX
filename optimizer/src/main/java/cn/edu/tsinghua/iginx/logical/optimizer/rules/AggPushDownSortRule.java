@@ -22,6 +22,7 @@ package cn.edu.tsinghua.iginx.logical.optimizer.rules;
 import cn.edu.tsinghua.iginx.engine.logical.utils.OperatorUtils;
 import cn.edu.tsinghua.iginx.engine.shared.operator.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
+import cn.edu.tsinghua.iginx.logical.optimizer.OptimizerUtils;
 import cn.edu.tsinghua.iginx.logical.optimizer.core.RuleCall;
 import com.google.auto.service.AutoService;
 import java.util.*;
@@ -46,7 +47,9 @@ public class AggPushDownSortRule extends Rule {
   public boolean matches(RuleCall call) {
     // 如果只包含几个不依赖顺序的函数，可以下推
     Operator root = call.getMatchedRoot();
-
+    if(!OptimizerUtils.validateAggPushDown(root)){
+      return false;
+    }
     if (call.getChildrenIndex().get(root) == null
         || call.getChildrenIndex().get(root).size() != 1) {
       return false;

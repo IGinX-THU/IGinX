@@ -31,6 +31,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
+import cn.edu.tsinghua.iginx.logical.optimizer.OptimizerUtils;
 import cn.edu.tsinghua.iginx.logical.optimizer.core.RuleCall;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import com.google.auto.service.AutoService;
@@ -57,9 +58,11 @@ public class AggPushDownJoinRule extends Rule {
   @Override
   public boolean matches(RuleCall call) {
     Operator root = call.getMatchedRoot();
-    if (root.getType() != OperatorType.GroupBy && root.getType() != OperatorType.SetTransform) {
+
+    if(!OptimizerUtils.validateAggPushDown(root)){
       return false;
     }
+
     if (groupBySet.contains(root)) {
       return false;
     }
@@ -120,13 +123,13 @@ public class AggPushDownJoinRule extends Rule {
 
     for (FunctionCall fc : functionCallList) {
       List<String> funcPaths = ExprUtils.getPathFromExprList(fc.getParams().getExpressions());
-      for (String leftPattern : leftPatterns) {
-        if (funcPaths.stream().allMatch(s -> PathUtils.covers(leftPattern, s))) {
-          leftFunctionCallList.add(fc.copy());
-        } else {
-          rightFunctionCallList.add(fc.copy());
-        }
+
+      if (funcPaths.stream().allMatch(s -> PathUtils.checkCoverage(leftPatterns, funcPaths))) {
+        leftFunctionCallList.add(fc.copy());
+      } else {
+        rightFunctionCallList.add(fc.copy());
       }
+
     }
 
     List<String> joinCondPaths = FilterUtils.getAllPathsFromFilter(getJoinCondition(child));
@@ -149,9 +152,9 @@ public class AggPushDownJoinRule extends Rule {
             .collect(Collectors.toList());
     groupByCols.forEach(
         col -> {
-          if (leftPatternsList.stream().anyMatch(lp -> PathUtils.covers(lp, col))) {
+          if (leftPatternsList.stream().anyMatch(lp -> PathUtils.covers(lp, col)) && leftGroupByCols.stream().map(Expression::getColumnName).noneMatch(col::equals)) {
             leftGroupByCols.add(new BaseExpression(col));
-          } else if (rightPatternsList.stream().anyMatch(rp -> PathUtils.covers(rp, col))) {
+          } else if (rightPatternsList.stream().anyMatch(rp -> PathUtils.covers(rp, col)) && rightGroupByCols.stream().map(Expression::getColumnName).noneMatch(col::equals)) {
             rightGroupByCols.add(new BaseExpression(col));
           }
         });
