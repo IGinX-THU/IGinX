@@ -1278,7 +1278,6 @@ public class RelationalStorage implements IStorage {
       Project project, Select select, Operator agg, DataArea dataArea) {
     List<FunctionCall> functionCalls = OperatorUtils.getFunctionCallList(agg);
     List<Expression> gbc = new ArrayList<>();
-    char quote = relationalMeta.getQuote();
     if (agg.getType() == OperatorType.GroupBy) {
       gbc = ((GroupBy) agg).getGroupByExpressions();
     }
@@ -1296,52 +1295,7 @@ public class RelationalStorage implements IStorage {
       String statement = getProjectWithFilterSQL(select.getFilter(), tableNameToColumnNames);
       statement = statement.substring(0, statement.length() - 1); // 去掉最后的分号
 
-      boolean isJoin =
-          statement.contains(" JOIN "); // 如果有JOIN,则column形如`table.column`，否则形如`table`.`column`
-      // 在statement的基础上添加group by和函数内容
-      // 这里的处理形式是生成一个形如
-      // SELECT max(derived."a") AS "max(test.a)", sum(derived."b") AS "sum(test.b)", derived."c" AS
-      // "test.c"
-      // FROM (SELECT a, b, c, d FROM test) AS derived GROUP BY c;
-      // 的SQL语句
-      // 几个注意的点，1. 嵌套子查询必须重命名，否则会报错，这里重命名为derived。
-      // 2. 查询出来的结果也需要重命名来适配原始的列名，这里重命名为"max(test.a)"
-      StringBuilder sqlColumnsStr = new StringBuilder();
-      for (FunctionCall functionCall : functionCalls) {
-        String originFuncStr = functionCall.getFunctionStr();
-        String functionName = functionCall.getFunction().getIdentifier();
-        List<Expression> params = functionCall.getParams().getExpressions();
-        sqlColumnsStr.append(
-            String.format(
-                "%s(%s)",
-                functionName,
-                params.stream()
-                    .map(e -> exprAdapt(e, isJoin).getColumnName())
-                    .collect(Collectors.joining(", "))));
-        sqlColumnsStr.append(" AS ");
-        sqlColumnsStr.append(quote).append(originFuncStr).append(quote);
-        sqlColumnsStr.append(", ");
-      }
-
-      for (Expression expr : gbc) {
-        String originColumnStr = quote + expr.getColumnName() + quote;
-        sqlColumnsStr
-            .append(exprAdapt(expr, isJoin).getColumnName())
-            .append(" AS ")
-            .append(originColumnStr)
-            .append(", ");
-      }
-      sqlColumnsStr.delete(sqlColumnsStr.length() - 2, sqlColumnsStr.length());
-
-      statement = "SELECT " + sqlColumnsStr + " FROM (" + statement + ") AS derived";
-      if (!gbc.isEmpty()) {
-        statement +=
-            " GROUP BY "
-                + gbc.stream()
-                    .map(e -> exprAdapt(e, isJoin).getColumnName())
-                    .collect(Collectors.joining(", "));
-      }
-      statement += ";";
+      statement = generateAggSql(functionCalls, gbc, statement);
 
       ResultSet rs = null;
       try {
@@ -1357,6 +1311,8 @@ public class RelationalStorage implements IStorage {
             new RelationalTaskExecuteFailureException("execute query failure"));
       }
 
+      Map<String, DataType> columnTypeMap = getSumDataType(functionCalls);
+
       RowStream rowStream =
           new ClearEmptyRowStreamWrapper(
               new RelationQueryRowStream(
@@ -1367,15 +1323,91 @@ public class RelationalStorage implements IStorage {
                   project.getTagFilter(),
                   Collections.singletonList(conn),
                   relationalMeta,
+                  columnTypeMap,
                   true));
       return new TaskExecuteResult(rowStream);
 
-    } catch (SQLException e) {
+    } catch (SQLException|RelationalTaskExecuteFailureException e) {
       LOGGER.error("unexpected error: ", e);
       return new TaskExecuteResult(
           new RelationalTaskExecuteFailureException(
               String.format("execute project task in %s failure", engineName), e));
     }
+  }
+
+  private Map<String, DataType> getSumDataType(List<FunctionCall> functionCalls) throws RelationalTaskExecuteFailureException {
+    // 如果下推的函数有sum,需要判断结果是小数还是整数
+    List<Column> columns = null;
+    Map<String, DataType> columnTypeMap = new HashMap<>();
+    for(FunctionCall fc: functionCalls){
+      if(fc.getFunction().getIdentifier().equalsIgnoreCase(Sum.SUM)){
+        if(columns == null) {
+          columns = getColumns(null, null);
+        }
+        if(isSumResultDouble(fc.getParams().getExpression(0), columns)){
+          columnTypeMap.put(fc.getFunctionStr(), DataType.DOUBLE);
+        }else{
+          columnTypeMap.put(fc.getFunctionStr(), DataType.LONG);
+        }
+      }
+    }
+    return columnTypeMap;
+  }
+
+  private String generateAggSql(List<FunctionCall> functionCalls, List<Expression> gbc, String statement) {
+    char quote = relationalMeta.getQuote();
+    boolean isJoin =
+        statement.contains(" JOIN "); // 如果有JOIN,则column形如`table.column`，否则形如`table`.`column`
+    // 在statement的基础上添加group by和函数内容
+    // 这里的处理形式是生成一个形如
+    // SELECT max(derived."a") AS "max(test.a)", sum(derived."b") AS "sum(test.b)", derived."c" AS
+    // "test.c"
+    // FROM (SELECT a, b, c, d FROM test) AS derived GROUP BY c;
+    // 的SQL语句
+    // 几个注意的点，1. 嵌套子查询必须重命名，否则会报错，这里重命名为derived。
+    // 2. 查询出来的结果也需要重命名来适配原始的列名，这里重命名为"max(test.a)"
+    StringBuilder sqlColumnsStr = new StringBuilder();
+    for (FunctionCall functionCall : functionCalls) {
+      String originFuncStr = functionCall.getFunctionStr();
+      String functionName = functionCall.getFunction().getIdentifier();
+      List<Expression> params = functionCall.getParams().getExpressions();
+      sqlColumnsStr.append(
+          String.format(
+              "%s(%s)",
+              functionName,
+              params.stream()
+                  .map(e -> exprAdapt(e, isJoin).getColumnName())
+                  .collect(Collectors.joining(", "))));
+      sqlColumnsStr.append(" AS ");
+      sqlColumnsStr.append(quote).append(originFuncStr).append(quote);
+      sqlColumnsStr.append(", ");
+    }
+
+    for (Expression expr : gbc) {
+      String originColumnStr = quote + expr.getColumnName() + quote;
+      sqlColumnsStr
+          .append(exprAdapt(expr, isJoin).getColumnName())
+          .append(" AS ")
+          .append(originColumnStr)
+          .append(", ");
+    }
+    sqlColumnsStr.delete(sqlColumnsStr.length() - 2, sqlColumnsStr.length());
+
+    statement = "SELECT " + sqlColumnsStr + " FROM (" + statement + ") AS derived";
+    if (!gbc.isEmpty()) {
+      statement +=
+          " GROUP BY "
+              + gbc.stream()
+                  .map(e -> exprAdapt(e, isJoin).getColumnName())
+                  .collect(Collectors.joining(", "));
+      statement += " ORDER BY "
+          + gbc.stream()
+              .map(e -> exprAdapt(e, isJoin).getColumnName())
+              .collect(Collectors.joining(", "))
+          + " ASC";
+    }
+    statement += ";";
+    return statement;
   }
 
   /**
@@ -1505,6 +1537,11 @@ public class RelationalStorage implements IStorage {
       Project project, Select select, Operator agg, DataArea dataArea) {
     List<Connection> connList = new ArrayList<>();
     Filter filter = select.getFilter();
+    List<FunctionCall> functionCalls = OperatorUtils.getFunctionCallList(agg);
+    List<Expression> gbc = new ArrayList<>();
+    if(agg.getType() == OperatorType.GroupBy){
+        gbc = ((GroupBy) agg).getGroupByExpressions();
+    }
     try {
       List<String> databaseNameList = new ArrayList<>();
       List<ResultSet> resultSets = new ArrayList<>();
@@ -1512,6 +1549,9 @@ public class RelationalStorage implements IStorage {
       Connection conn;
       Statement stmt;
       String statement;
+
+      // 如果下推的函数有sum,需要判断结果是小数还是整数
+      Map<String, DataType> columnTypeMap = getSumDataType(functionCalls);
 
       Map<String, Map<String, String>> splitResults =
           splitAndMergeHistoryQueryPatterns(project.getPatterns());
@@ -1525,8 +1565,10 @@ public class RelationalStorage implements IStorage {
         connList.add(conn);
 
         // 如果table没有带通配符，那直接简单构建起查询语句即可
-
         statement = getProjectDummyWithSQL(filter, databaseName, tableNameToColumnNames);
+        gbc.forEach(this::cutExprDatabaseNameForDummy);
+        functionCalls.forEach(fc -> fc.getParams().getExpressions().forEach(this::cutExprDatabaseNameForDummy));
+        statement = generateAggSql(functionCalls, gbc, statement);
 
         try {
           stmt = conn.createStatement();
@@ -1550,9 +1592,11 @@ public class RelationalStorage implements IStorage {
                   filter,
                   project.getTagFilter(),
                   connList,
-                  relationalMeta));
+                  relationalMeta,
+                  columnTypeMap,
+                  true));
       return new TaskExecuteResult(rowStream);
-    } catch (SQLException e) {
+    } catch (SQLException|RelationalTaskExecuteFailureException e) {
       LOGGER.error("unexpected error: ", e);
       return new TaskExecuteResult(
           new RelationalTaskExecuteFailureException(
@@ -2479,5 +2523,135 @@ public class RelationalStorage implements IStorage {
     } catch (SQLException e) {
       throw new RelationalException(e);
     }
+  }
+
+  private boolean isSumResultDouble(Expression expr, List<Column> columns) {
+    Map<String, DataType> columnTypeMap = new HashMap<>();
+    for (Column column : columns) {
+      columnTypeMap.put(column.getPath(), column.getDataType());
+    }
+    boolean[] isDouble = {false};
+    expr.accept(new ExpressionVisitor() {
+      @Override
+      public void visit(BaseExpression expression) {
+        String path = expression.getColumnName();
+        if(columnTypeMap.containsKey(path)){
+          isDouble[0] |= columnTypeMap.get(path) == DataType.DOUBLE;
+        }
+      }
+
+      @Override
+      public void visit(BinaryExpression expression) {
+        isDouble[0] |= expression.getOp() == cn.edu.tsinghua.iginx.engine.shared.expr.Operator.DIV ||
+            expression.getOp() == cn.edu.tsinghua.iginx.engine.shared.expr.Operator.CAL_DIV;
+      }
+
+      @Override
+      public void visit(BracketExpression expression) {
+
+      }
+
+      @Override
+      public void visit(ConstantExpression expression) {
+        isDouble[0] |= expression.getValue() instanceof Double || expression.getValue() instanceof Float;
+      }
+
+      @Override
+      public void visit(FromValueExpression expression) {
+
+      }
+
+      @Override
+      public void visit(FuncExpression expression) {
+
+      }
+
+      @Override
+      public void visit(MultipleExpression expression) {
+        isDouble[0] |= expression.getOps().stream().anyMatch(op -> op == cn.edu.tsinghua.iginx.engine.shared.expr.Operator.DIV ||
+            op == cn.edu.tsinghua.iginx.engine.shared.expr.Operator.CAL_DIV);
+      }
+
+      @Override
+      public void visit(UnaryExpression expression) {
+
+      }
+
+      @Override
+      public void visit(CaseWhenExpression expression) {
+
+      }
+
+      @Override
+      public void visit(KeyExpression expression) {
+
+      }
+
+      @Override
+      public void visit(SequenceExpression expression) {
+
+      }
+    });
+
+    return isDouble[0];
+  }
+
+  private void cutExprDatabaseNameForDummy(Expression expr){
+    expr.accept(new ExpressionVisitor() {
+      @Override
+      public void visit(BaseExpression expression) {
+        expression.setPathName(expression.getColumnName().split("\\.")[1]);
+      }
+
+      @Override
+      public void visit(BinaryExpression expression) {
+
+      }
+
+      @Override
+      public void visit(BracketExpression expression) {
+
+      }
+
+      @Override
+      public void visit(ConstantExpression expression) {
+
+      }
+
+      @Override
+      public void visit(FromValueExpression expression) {
+
+      }
+
+      @Override
+      public void visit(FuncExpression expression) {
+
+      }
+
+      @Override
+      public void visit(MultipleExpression expression) {
+
+      }
+
+      @Override
+      public void visit(UnaryExpression expression) {
+
+      }
+
+      @Override
+      public void visit(CaseWhenExpression expression) {
+
+      }
+
+      @Override
+      public void visit(KeyExpression expression) {
+
+      }
+
+      @Override
+      public void visit(SequenceExpression expression) {
+
+      }
+    });
   }
 }
