@@ -91,7 +91,7 @@ public class MilvusStorage implements IStorage {
    * @throws StorageInitializationException 如果存储引擎类型不匹配或初始化过程中发生错误。
    */
   public MilvusStorage(StorageEngineMeta meta) throws StorageInitializationException {
-    LOGGER.info("init milvus storage");
+    LOGGER.info("init milvus storage {} : {}", meta.getIp(), meta.getPort());
     if (!meta.getStorageEngine().equals(StorageEngineType.vectordb)) {
       throw new StorageInitializationException("unexpected database: " + meta.getStorageEngine());
     }

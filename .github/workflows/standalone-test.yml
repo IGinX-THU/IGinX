@@ -188,3 +188,9 @@ jobs:
               shell: bash
               run: |
                   cat iginx-*.log
+
+            - if: runner.os == 'macOS'
+              name: Show docker logs
+              shell: bash
+              run: |
+                  docker-compose logs

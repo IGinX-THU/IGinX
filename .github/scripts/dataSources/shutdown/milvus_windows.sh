@@ -20,10 +20,10 @@
 set -e
 port=$1
 
-$env:Path += ";${{ github.workspace }}"
-
 pwd
 
 docker-compose -f $port/docker-compose-$port.yml down
+
+sleep 5
 
 docker ps
