@@ -88,7 +88,6 @@ public class ShellRunner {
     }
   }
 
-
   // to directly run command(compare to scripts)
   public static void runCommand(String... command) throws Exception {
     Process p = null;

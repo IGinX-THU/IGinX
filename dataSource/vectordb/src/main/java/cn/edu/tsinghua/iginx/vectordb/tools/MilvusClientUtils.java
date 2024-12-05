@@ -325,7 +325,7 @@ public class MilvusClientUtils {
             .collectionSchema(schema)
             .primaryFieldName(MILVUS_PRIMARY_FIELD_NAME)
             .vectorFieldName(MILVUS_VECTOR_FIELD_NAME)
-//            .indexParams(indexes)
+            //            .indexParams(indexes)
             .build());
 
     LOGGER.info("create collection {} {} ", databaseName, collectionName);
@@ -345,12 +345,13 @@ public class MilvusClientUtils {
     //            .extraParams(extraParams)
     //            .build());
     //
-        client.createIndex(
-            CreateIndexReq.builder()
-                .collectionName(escapedCollectionName)
-                .indexParams(indexes)
-                .build());
-        client.loadCollection(LoadCollectionReq.builder().collectionName(escapedCollectionName).async(false).build());
+    client.createIndex(
+        CreateIndexReq.builder()
+            .collectionName(escapedCollectionName)
+            .indexParams(indexes)
+            .build());
+    client.loadCollection(
+        LoadCollectionReq.builder().collectionName(escapedCollectionName).async(false).build());
 
     //    TaskExecutor.execute(
     //        () -> {
@@ -509,8 +510,7 @@ public class MilvusClientUtils {
     }
     List<String> collections = client.listCollections().getCollectionNames();
     for (String collectionName : collections) {
-      client.dropCollection(
-          DropCollectionReq.builder().collectionName(collectionName).async(false).build());
+      client.dropCollection(DropCollectionReq.builder().collectionName(collectionName).build());
     }
     client.dropDatabase(DropDatabaseReq.builder().databaseName(databaseName).build());
   }
@@ -546,10 +546,7 @@ public class MilvusClientUtils {
     }
 
     client.dropCollection(
-        DropCollectionReq.builder()
-            .collectionName(NameUtils.escape(collectionName))
-            .async(false)
-            .build());
+        DropCollectionReq.builder().collectionName(NameUtils.escape(collectionName)).build());
     return true;
   }
 
