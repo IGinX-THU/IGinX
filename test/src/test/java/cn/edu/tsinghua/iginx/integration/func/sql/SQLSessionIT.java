@@ -9510,7 +9510,7 @@ public class SQLSessionIT {
             + "|      +--Reorder      |         Reorder|                                                                                 Order: test.a.a,test.b.b|\n"
             + "|        +--Sort       |            Sort|                                                                          SortBy: test.a.b, SortType: ASC|\n"
             + "|          +--Project  |         Project|                                                                     Patterns: test.a.a,test.a.b,test.b.b|\n"
-            + "|            +--Project|         Project|                                                   Patterns: test.a.a,test.a.b, Target DU: unit0000000002|\n"
+            + "|            +--Project|         Project|                                          Patterns: test.a.a,test.a.b,test.b.b, Target DU: unit0000000002|\n"
             + "+----------------------+----------------+---------------------------------------------------------------------------------------------------------+\n"
             + "Total line number = 7\n";
     executor.execute(closeRule);
