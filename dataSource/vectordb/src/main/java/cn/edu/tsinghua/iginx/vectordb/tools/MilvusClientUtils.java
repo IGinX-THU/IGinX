@@ -793,6 +793,8 @@ public class MilvusClientUtils {
     if (!client.hasCollection(
         HasCollectionReq.builder().collectionName(NameUtils.escape(collectionName)).build())) {
       return 0;
+    }else{
+      LOGGER.error("Collection being deleted " + collectionName + " does not exist.");
     }
     DeleteResp delete =
         client.delete(
