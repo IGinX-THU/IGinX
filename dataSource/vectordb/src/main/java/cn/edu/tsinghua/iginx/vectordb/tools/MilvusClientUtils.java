@@ -34,7 +34,6 @@ import cn.edu.tsinghua.iginx.vectordb.MilvusStorage;
 import cn.edu.tsinghua.iginx.vectordb.entity.Column;
 import cn.edu.tsinghua.iginx.vectordb.support.PathSystem;
 import com.google.gson.JsonObject;
-import com.google.gson.reflect.TypeToken;
 import io.milvus.orm.iterator.QueryIterator;
 import io.milvus.response.QueryResultsWrapper;
 import io.milvus.v2.client.MilvusClientV2;
@@ -44,9 +43,9 @@ import io.milvus.v2.service.collection.request.*;
 import io.milvus.v2.service.collection.response.DescribeCollectionResp;
 import io.milvus.v2.service.database.request.CreateDatabaseReq;
 import io.milvus.v2.service.database.request.DropDatabaseReq;
-import io.milvus.v2.service.index.request.CreateIndexReq;
 import io.milvus.v2.service.vector.request.*;
 import io.milvus.v2.service.vector.response.DeleteResp;
+import io.milvus.v2.service.vector.response.QueryResp;
 import io.milvus.v2.service.vector.response.UpsertResp;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
@@ -97,12 +96,12 @@ public class MilvusClientUtils {
   }
 
   public static Map<String, DataType> getCollectionPaths(
-      MilvusClientV2 client, String databaseName, String collectionName, PathSystem pathSystem)
-      throws UnsupportedEncodingException {
+      MilvusClientV2 client, String databaseName, String collectionName, PathSystem pathSystem) {
     DescribeCollectionResp resp =
         client.describeCollection(
             DescribeCollectionReq.builder().collectionName(collectionName).build());
     Map<String, DataType> paths = new HashMap<>();
+    Set<String> fields = new HashSet<>();
     if (isDummy(databaseName)) {
       resp.getCollectionSchema()
           .getFieldSchemaList()
@@ -113,36 +112,39 @@ public class MilvusClientUtils {
                   paths.put(
                       PathUtils.getPathEscaped(databaseName, collectionName, fieldSchema.getName()),
                       DataTransformer.fromMilvusDataType(fieldSchema.getDataType()));
+                  fields.add(fieldSchema.getName());
                 }
               });
 
-      resp.getProperties()
-          .forEach(
-              (k, v) -> {
-                if (k.startsWith(DYNAMIC_FIELDS_PROPERTIES_PREFIX)) {
-                  String fieldName = k.substring(DYNAMIC_FIELDS_PROPERTIES_PREFIX.length());
-                  Map<String, String> map =
-                      JsonUtils.jsonToType(v, new TypeToken<Map<String, String>>() {});
-                  if (map.containsKey(Constants.KEY_PROPERTY_DELETED)) {
-                    paths.remove(PathUtils.getPathEscaped(databaseName, collectionName, fieldName));
-                  } else if (map.containsKey(Constants.KEY_PROPERTY_CURRENT_FIELD_NAME)) {
-                    paths.remove(PathUtils.getPathEscaped(databaseName, collectionName, fieldName));
-                    paths.put(
-                        PathUtils.getPathEscaped(
-                            databaseName,
-                            collectionName,
-                            map.get(Constants.KEY_PROPERTY_CURRENT_FIELD_NAME)),
-                        DataTransformer.fromStringDataType(
-                            map.get(Constants.KEY_PROPERTY_FIELD_DATA_TYPE)));
-                  }
-                }
-              });
+      // 处理动态字段
+      String filter;
+      if (resp.getCollectionSchema().getField(resp.getPrimaryFieldName()).getDataType()
+          == io.milvus.v2.common.DataType.VarChar) {
+        filter = "id>=''";
+      } else {
+        filter = "id>=0";
+      }
+      QueryResp queryResp =
+          client.query(
+              QueryReq.builder()
+                  .outputFields(Arrays.asList(MILVUS_DYNAMIC_FIELD_NAME))
+                  .collectionName(collectionName)
+                  .filter(filter)
+                  .limit(MILVUS_DYNAMIC_TEST_SIZE)
+                  .build());
+      for (QueryResp.QueryResult result : queryResp.getQueryResults()) {
+        Map<String, Object> entity = result.getEntity();
+        for (String key : entity.keySet()) {
+          if (!fields.contains(key)) {
+            fields.add(key);
+            paths.put(
+                PathUtils.getPathEscaped(databaseName, collectionName, key),
+                DataTransformer.fromObject(entity.get(key)));
+          }
+        }
+      }
+
     } else {
-      //      if (databaseName.startsWith(DATABASE_PREFIX) &&
-      // collectionName.startsWith(COLLECTION_BACKUP_PREFIX)){
-      //        pathSystem.getBackupCollections().add(collectionName);
-      //      }else
-      //      {
       resp.getCollectionSchema()
           .getFieldSchemaList()
           .forEach(
@@ -153,7 +155,6 @@ public class MilvusClientUtils {
                       DataTransformer.fromMilvusDataType(fieldSchema.getDataType()));
                 }
               });
-      //      }
     }
     return paths;
   }
@@ -182,64 +183,6 @@ public class MilvusClientUtils {
   public static void createDatabase(MilvusClientV2 client, String databaseName) {
     doCreateDatabase(client, databaseName);
   }
-
-  public static Map<String, String> getCollectionFields(
-      MilvusClientV2 client, String collectionName) {
-    DescribeCollectionResp resp =
-        client.describeCollection(
-            DescribeCollectionReq.builder().collectionName(collectionName).build());
-    Map<String, String> fields = new HashMap<>();
-    resp.getCollectionSchema()
-        .getFieldSchemaList()
-        .forEach(
-            fieldSchema -> {
-              fields.put(fieldSchema.getName(), fieldSchema.getName());
-            });
-
-    resp.getProperties()
-        .forEach(
-            (k, v) -> {
-              if (k.startsWith(DYNAMIC_FIELDS_PROPERTIES_PREFIX)) {
-                String fieldName = k.substring(DYNAMIC_FIELDS_PROPERTIES_PREFIX.length());
-                Map<String, String> map =
-                    JsonUtils.jsonToType(v, new TypeToken<Map<String, String>>() {});
-                if (map.containsKey(Constants.KEY_PROPERTY_DELETED)) {
-                  fields.remove(fieldName);
-                } else if (map.containsKey(Constants.KEY_PROPERTY_CURRENT_FIELD_NAME)) {
-                  fields.remove(fieldName);
-                  fields.put(fieldName, map.get(Constants.KEY_PROPERTY_CURRENT_FIELD_NAME));
-                }
-              }
-            });
-
-    return fields;
-  }
-
-  //  public static void createCollection(
-  //      MilvusClientV2 client, String databaseName, String collectionName, DataType idType)
-  //      throws InterruptedException, UnsupportedEncodingException {
-  //    String backupCollectionName = MilvusBackupThread.getBackupCollection(databaseName);
-  //    if (backupCollectionName != null) {
-  //      client.renameCollection(
-  //          RenameCollectionReq.builder()
-  //              .collectionName(backupCollectionName)
-  //              .newCollectionName(collectionName)
-  //              .build());
-  //    } else {
-  //      doCreateCollection(client, databaseName, collectionName, idType);
-  //    }
-  //  }
-
-  //  public static void createCollection(
-  //      MilvusClientV2 client, String databaseName, String collectionName, DataType idType)
-  //      throws InterruptedException, UnsupportedEncodingException {
-  //    // 修改为每个collection只有一个field，建立field的时候再创建collection
-  //    if (!isDummy(databaseName)){
-  //      return;
-  //    }
-  //
-  //    createCollection(client, databaseName, collectionName, idType, null, null);
-  //  }
 
   public static void createCollection(
       MilvusClientV2 client,
@@ -302,16 +245,16 @@ public class MilvusClientUtils {
             .indexParams(indexes)
             .build());
 
-//    client.createIndex(
-//        CreateIndexReq.builder()
-//            .collectionName(NameUtils.escape(collectionName))
-//            .indexParams(indexes)
-//            .build());
-//    client.loadCollection(
-//        LoadCollectionReq.builder()
-//            .collectionName(NameUtils.escape(collectionName))
-//            .async(false)
-//            .build());
+    //    client.createIndex(
+    //        CreateIndexReq.builder()
+    //            .collectionName(NameUtils.escape(collectionName))
+    //            .indexParams(indexes)
+    //            .build());
+    //    client.loadCollection(
+    //        LoadCollectionReq.builder()
+    //            .collectionName(NameUtils.escape(collectionName))
+    //            .async(false)
+    //            .build());
   }
 
   public static void createCollection(
@@ -410,146 +353,38 @@ public class MilvusClientUtils {
     //
     // LoadCollectionReq.builder().collectionName(escapedCollectionName).async(false).build());
 
-//    TaskExecutor.execute(
-//        () -> {
-//          try (MilvusPoolClient milvusPoolClient =
-//              new MilvusPoolClient(storage.getMilvusConnectPool())) {
-//            MilvusClientV2 c = milvusPoolClient.getClient();
-//            c.useDatabase(NameUtils.escape(databaseName));
-//            List<IndexParam> indexes = new ArrayList<>();
-//            Map<String, Object> extraParams = new HashMap<>();
-//            extraParams.put("nlist", MILVUS_INDEX_PARAM_NLIST);
-//            indexes.add(
-//                IndexParam.builder()
-//                    .fieldName(MILVUS_VECTOR_FIELD_NAME)
-//                    .indexType(DEFAULT_INDEX_TYPE)
-//                    .metricType(DEFAULT_METRIC_TYPE)
-//                    .extraParams(extraParams)
-//                    .build());
-//
-//            c.createIndex(
-//                CreateIndexReq.builder()
-//                    .collectionName(escapedCollectionName)
-//                    .indexParams(indexes)
-//                    .build());
-//            LOGGER.info("create index " + escapedCollectionName);
-//            c.loadCollection(
-//                LoadCollectionReq.builder()
-//                    .collectionName(escapedCollectionName)
-//                    .async(false)
-//                    .build());
-//          } catch (Exception e) {
-//            LOGGER.error("unexpected error: ", e);
-//          }
-//        });
-  }
-
-  /**
-   * 添加新增字段，返回新增字段完整名称（未转义）
-   *
-   * @param client
-   * @param collectionName
-   * @param fieldsToAdd with tags
-   * @param fieldTypes
-   * @return
-   */
-  public static Map<String, String> addCollectionFields(
-      MilvusClientV2 client,
-      String databaseName,
-      String collectionName,
-      Set<String> fieldsToAdd,
-      Map<String, DataType> fieldTypes,
-      PathSystem pathSystem)
-      throws UnsupportedEncodingException {
-    DescribeCollectionResp resp =
-        client.describeCollection(
-            DescribeCollectionReq.builder()
-                .collectionName(NameUtils.escape(collectionName))
-                .build());
-    Map<String, String> fields = new HashMap<>();
-    Map<String, String> fieldsDeleted = new HashMap<>();
-    resp.getCollectionSchema()
-        .getFieldSchemaList()
-        .forEach(
-            fieldSchema -> {
-              fields.put(fieldSchema.getName(), fieldSchema.getName());
-            });
-    resp.getProperties()
-        .forEach(
-            (k, v) -> {
-              if (k.startsWith(DYNAMIC_FIELDS_PROPERTIES_PREFIX)) {
-                String fieldName = k.substring(DYNAMIC_FIELDS_PROPERTIES_PREFIX.length());
-                Map<String, String> map =
-                    JsonUtils.jsonToType(v, new TypeToken<Map<String, String>>() {});
-                if (map.containsKey(Constants.KEY_PROPERTY_DELETED)) {
-                  fields.remove(fieldName);
-                  fieldsDeleted.put(fieldName, map.get(Constants.KEY_PROPERTY_CURRENT_FIELD_NAME));
-                } else if (map.containsKey(Constants.KEY_PROPERTY_CURRENT_FIELD_NAME)) {
-                  fields.remove(fieldName);
-                  fields.put(fieldName, map.get(Constants.KEY_PROPERTY_CURRENT_FIELD_NAME));
-                }
-              }
-            });
-
-    Map<String, String> result = new HashMap<>();
-    AlterCollectionReq.AlterCollectionReqBuilder alterCollectionReqBuilder =
-        AlterCollectionReq.builder()
-            .databaseName(NameUtils.escape(databaseName))
-            .collectionName(NameUtils.escape(collectionName));
-    boolean added = false;
-    for (String f : fieldsToAdd) {
-      if (fields.containsKey(f)) {
-        // 已存在，直接取出
-        result.put(f, fields.get(f));
-      } else if (fieldsDeleted.containsKey(f)) {
-        // 已删除，重新生成，并记录到properties里
-        String deletedFieldName = fieldsDeleted.get(f);
-        Pair<String, String> fieldNameAndVersion = NameUtils.getPathAndVersion(deletedFieldName);
-        String newVersion;
-        try {
-          newVersion = "" + (Integer.parseInt(fieldNameAndVersion.getV()) + 1);
-        } catch (Exception e) {
-          newVersion = "1";
-        }
-        String newFieldName =
-            new StringBuilder(fieldNameAndVersion.getK())
-                .append("[[")
-                .append(newVersion)
-                .append("]]")
-                .toString();
-        Map<String, String> map = new HashMap<>();
-        map.put(Constants.KEY_PROPERTY_CURRENT_FIELD_NAME, newFieldName);
-        map.put(Constants.KEY_PROPERTY_FIELD_DATA_TYPE, fieldTypes.get(f).name());
-        alterCollectionReqBuilder.property(
-            DYNAMIC_FIELDS_PROPERTIES_PREFIX + f, JsonUtils.toJson(map));
-        PathUtils.getPathSystem(client, pathSystem)
-            .addPath(
-                PathUtils.getPathUnescaped(databaseName, collectionName, newFieldName),
-                false,
-                fieldTypes.get(f));
-        result.put(f, newFieldName);
-        added = true;
-      } else {
-        // 直接添加
-        result.put(f, f);
-        Map<String, String> map = new HashMap<>();
-        map.put(Constants.KEY_PROPERTY_CURRENT_FIELD_NAME, f);
-        map.put(Constants.KEY_PROPERTY_FIELD_DATA_TYPE, fieldTypes.get(f).name());
-        alterCollectionReqBuilder.property(
-            DYNAMIC_FIELDS_PROPERTIES_PREFIX + f, JsonUtils.toJson(map));
-        PathUtils.getPathSystem(client, pathSystem)
-            .addPath(
-                PathUtils.getPathUnescaped(databaseName, collectionName, f),
-                false,
-                fieldTypes.get(f));
-        added = true;
-      }
-    }
-    if (added) {
-      client.alterCollection(alterCollectionReqBuilder.build());
-    }
-
-    return result;
+    //    TaskExecutor.execute(
+    //        () -> {
+    //          try (MilvusPoolClient milvusPoolClient =
+    //              new MilvusPoolClient(storage.getMilvusConnectPool())) {
+    //            MilvusClientV2 c = milvusPoolClient.getClient();
+    //            c.useDatabase(NameUtils.escape(databaseName));
+    //            List<IndexParam> indexes = new ArrayList<>();
+    //            Map<String, Object> extraParams = new HashMap<>();
+    //            extraParams.put("nlist", MILVUS_INDEX_PARAM_NLIST);
+    //            indexes.add(
+    //                IndexParam.builder()
+    //                    .fieldName(MILVUS_VECTOR_FIELD_NAME)
+    //                    .indexType(DEFAULT_INDEX_TYPE)
+    //                    .metricType(DEFAULT_METRIC_TYPE)
+    //                    .extraParams(extraParams)
+    //                    .build());
+    //
+    //            c.createIndex(
+    //                CreateIndexReq.builder()
+    //                    .collectionName(escapedCollectionName)
+    //                    .indexParams(indexes)
+    //                    .build());
+    //            LOGGER.info("create index " + escapedCollectionName);
+    //            c.loadCollection(
+    //                LoadCollectionReq.builder()
+    //                    .collectionName(escapedCollectionName)
+    //                    .async(false)
+    //                    .build());
+    //          } catch (Exception e) {
+    //            LOGGER.error("unexpected error: ", e);
+    //          }
+    //        });
   }
 
   public static boolean addProperty(
@@ -703,7 +538,7 @@ public class MilvusClientUtils {
 
   public static boolean dropCollection(
       MilvusClientV2 client, String databaseName, String collectionName, Set<String> fields)
-          throws UnsupportedEncodingException, InterruptedException {
+      throws UnsupportedEncodingException, InterruptedException {
     client.useDatabase(databaseName);
 
     if (!client.hasCollection(
@@ -794,12 +629,17 @@ public class MilvusClientUtils {
   }
 
   public static long deleteByRange(
-      MilvusClientV2 client,String databaseName, String collectionName, KeyRange keyRange, PathSystem pathSystem)
-          throws UnsupportedEncodingException, InterruptedException {
+      MilvusClientV2 client,
+      String databaseName,
+      String collectionName,
+      KeyRange keyRange,
+      PathSystem pathSystem)
+      throws UnsupportedEncodingException, InterruptedException {
     client.useDatabase(NameUtils.escape(databaseName));
     if (!client.hasCollection(
         HasCollectionReq.builder().collectionName(NameUtils.escape(collectionName)).build())) {
-      LOGGER.error("Collection being deleted " +databaseName+" "+ collectionName + " does not exist.");
+      LOGGER.error(
+          "Collection being deleted " + databaseName + " " + collectionName + " does not exist.");
       return 0;
     }
     DeleteResp delete =
@@ -816,72 +656,72 @@ public class MilvusClientUtils {
     return delete.getDeleteCnt();
   }
 
-  public static int deleteFieldsByRange(
-      MilvusClientV2 client,
-      String collectionName,
-      Set<String> fields,
-      KeyRange keyRange,
-      PathSystem pathSystem)
-      throws UnsupportedEncodingException {
-    if (!client.hasCollection(
-        HasCollectionReq.builder().collectionName(NameUtils.escape(collectionName)).build())) {
-      return 0;
-    }
-    int deleteCount = 0;
-
-    List<String> paths =
-        PathUtils.getPathSystem(client, pathSystem).findPaths(collectionName, null);
-    if (paths == null || paths.size() < 1) {
-      return 0;
-    }
-
-    Set<String> fieldList = new HashSet<>();
-    for (String path : paths) {
-      fieldList.add(NameUtils.escape(path.substring(path.lastIndexOf(".") + 1)));
-    }
-    fieldList.add(MILVUS_VECTOR_FIELD_NAME);
-    //    fieldList.add(MILVUS_DYNAMIC_FIELD_NAME);
-
-    QueryIterator iterator =
-        client.queryIterator(
-            QueryIteratorReq.builder()
-                .collectionName(NameUtils.escape(collectionName))
-                .expr(
-                    keyRange.getActualBeginKey()
-                        + " <= "
-                        + MILVUS_PRIMARY_FIELD_NAME
-                        + " <= "
-                        + keyRange.getActualEndKey())
-                .consistencyLevel(ConsistencyLevel.STRONG)
-                .outputFields(new ArrayList<>(fieldList))
-                .batchSize(MILVUS_BATCH_SIZE)
-                .build());
-
-    List<QueryResultsWrapper.RowRecord> list = iterator.next();
-    while (list != null && list.size() > 0) {
-      List<JsonObject> data = new ArrayList<>();
-      list.forEach(
-          record -> {
-            Map<String, Object> map = record.getFieldValues();
-            for (String field : fields) {
-              try {
-                map.remove(NameUtils.escape(field));
-              } catch (UnsupportedEncodingException e) {
-              }
-            }
-            data.add(JsonUtils.mapToJson(map));
-          });
-      UpsertResp upsertResp =
-          client.upsert(
-              UpsertReq.builder()
-                  .collectionName(NameUtils.escape(collectionName))
-                  .data(data)
-                  .build());
-      deleteCount += upsertResp.getUpsertCnt();
-      list = iterator.next();
-    }
-    return deleteCount;
-  }
+  //  public static int deleteFieldsByRange(
+  //      MilvusClientV2 client,
+  //      String collectionName,
+  //      Set<String> fields,
+  //      KeyRange keyRange,
+  //      PathSystem pathSystem)
+  //      throws UnsupportedEncodingException {
+  //    if (!client.hasCollection(
+  //        HasCollectionReq.builder().collectionName(NameUtils.escape(collectionName)).build())) {
+  //      return 0;
+  //    }
+  //    int deleteCount = 0;
+  //
+  //    List<String> paths =
+  //        PathUtils.getPathSystem(client, pathSystem).findPaths(collectionName, null);
+  //    if (paths == null || paths.size() < 1) {
+  //      return 0;
+  //    }
+  //
+  //    Set<String> fieldList = new HashSet<>();
+  //    for (String path : paths) {
+  //      fieldList.add(NameUtils.escape(path.substring(path.lastIndexOf(".") + 1)));
+  //    }
+  //    fieldList.add(MILVUS_VECTOR_FIELD_NAME);
+  //    //    fieldList.add(MILVUS_DYNAMIC_FIELD_NAME);
+  //
+  //    QueryIterator iterator =
+  //        client.queryIterator(
+  //            QueryIteratorReq.builder()
+  //                .collectionName(NameUtils.escape(collectionName))
+  //                .expr(
+  //                    keyRange.getActualBeginKey()
+  //                        + " <= "
+  //                        + MILVUS_PRIMARY_FIELD_NAME
+  //                        + " <= "
+  //                        + keyRange.getActualEndKey())
+  //                .consistencyLevel(ConsistencyLevel.STRONG)
+  //                .outputFields(new ArrayList<>(fieldList))
+  //                .batchSize(MILVUS_BATCH_SIZE)
+  //                .build());
+  //
+  //    List<QueryResultsWrapper.RowRecord> list = iterator.next();
+  //    while (list != null && list.size() > 0) {
+  //      List<JsonObject> data = new ArrayList<>();
+  //      list.forEach(
+  //          record -> {
+  //            Map<String, Object> map = record.getFieldValues();
+  //            for (String field : fields) {
+  //              try {
+  //                map.remove(NameUtils.escape(field));
+  //              } catch (UnsupportedEncodingException e) {
+  //              }
+  //            }
+  //            data.add(JsonUtils.mapToJson(map));
+  //          });
+  //      UpsertResp upsertResp =
+  //          client.upsert(
+  //              UpsertReq.builder()
+  //                  .collectionName(NameUtils.escape(collectionName))
+  //                  .data(data)
+  //                  .build());
+  //      deleteCount += upsertResp.getUpsertCnt();
+  //      list = iterator.next();
+  //    }
+  //    return deleteCount;
+  //  }
 
   public static List<Column> query(
       MilvusClientV2 client,
@@ -893,7 +733,6 @@ public class MilvusClientUtils {
       PathSystem pathSystem)
       throws InterruptedException, UnsupportedEncodingException {
     String collectionNameEscaped;
-    long l = System.currentTimeMillis();
     if (isDummy(databaseName) && !isDummyEscape) {
       collectionNameEscaped = collectionName;
     } else {
@@ -901,12 +740,6 @@ public class MilvusClientUtils {
     }
 
     useDatabase(client, databaseName);
-
-    //    if (!client.hasCollection(
-    //        HasCollectionReq.builder().collectionName(collectionNameEscaped).build())) {
-    //      LOGGER.error("collection not exists {} : {}", databaseName, collectionName);
-    //      return new ArrayList<>();
-    //    }
 
     try {
       if (!client.getLoadState(
@@ -928,22 +761,6 @@ public class MilvusClientUtils {
               DescribeCollectionReq.builder().collectionName(collectionNameEscaped).build());
 
       primaryFieldName = describeCollectionResp.getPrimaryFieldName();
-      for (Map.Entry<String, String> entry : describeCollectionResp.getProperties().entrySet()) {
-        if (entry.getKey().startsWith(DYNAMIC_FIELDS_PROPERTIES_PREFIX)) {
-          try {
-            String fieldName = entry.getKey().substring(DYNAMIC_FIELDS_PROPERTIES_PREFIX.length());
-            Map<String, String> map =
-                JsonUtils.jsonToType(entry.getValue(), new TypeToken<Map<String, String>>() {});
-            if (map.containsKey(Constants.KEY_PROPERTY_DELETED)) {
-              deletedFields.add(fieldName);
-              pathSystem.deletePath(
-                  PathUtils.getPathUnescaped(databaseName, collectionName, fieldName));
-              fields.remove(fieldName);
-            }
-          } catch (Exception e) {
-          }
-        }
-      }
     }
 
     List<String> fieldsEscaped = escapeList(fields, databaseName);
@@ -974,6 +791,7 @@ public class MilvusClientUtils {
       }
     }
 
+    Map<String, DataType> pathToDataType = new HashMap<>();
     QueryIteratorReq.QueryIteratorReqBuilder queryIteratorReqBuilder =
         buildQueryIteratorReq(databaseName, collectionNameEscaped, expr, fieldsEscaped);
     Map<String, Map<Long, Object>> pathToMap =
@@ -986,7 +804,8 @@ public class MilvusClientUtils {
             primaryFieldName,
             fieldsEscaped,
             deletedFields,
-            queryIteratorReqBuilder);
+            queryIteratorReqBuilder,
+            pathToDataType);
 
     for (String field : fields) {
       String path = PathUtils.getPathUnescaped(databaseName, collectionName, field);
@@ -995,7 +814,6 @@ public class MilvusClientUtils {
       }
     }
 
-    Map<String, DataType> pathToDataType = new HashMap<>();
     List<Column> columns = new ArrayList<>();
     for (Map.Entry<String, Map<Long, Object>> entry : pathToMap.entrySet()) {
       DataType type = pathToDataType.get(entry.getKey());
@@ -1006,6 +824,7 @@ public class MilvusClientUtils {
           type = DataTransformer.fromObject(entry.getValue().values().iterator().next());
         }
       }
+
       Column column =
           new Column(
               entry.getKey().replaceAll("\\[\\[[a-zA-Z0-9]+\\]\\]", ""), type, entry.getValue());
@@ -1053,6 +872,11 @@ public class MilvusClientUtils {
     return queryReqBuilder;
   }
 
+  public static long stringToKey(String key) {
+    int hashCode = key.hashCode();
+    return Integer.toUnsignedLong(hashCode);
+  }
+
   private static Map<String, Map<Long, Object>> iteratorQuery(
       MilvusClientV2 client,
       String databaseName,
@@ -1062,7 +886,9 @@ public class MilvusClientUtils {
       String primaryFieldName,
       List<String> fieldsEscaped,
       Set<String> deletedFields,
-      QueryIteratorReq.QueryIteratorReqBuilder queryIteratorReqBuilder) {
+      QueryIteratorReq.QueryIteratorReqBuilder queryIteratorReqBuilder,
+      Map<String, DataType> pathToDataType)
+      throws UnsupportedEncodingException {
     Map<String, Map<Long, Object>> pathToMap = new HashMap<>();
     QueryIterator iterator = client.queryIterator(queryIteratorReqBuilder.build());
 
@@ -1072,6 +898,7 @@ public class MilvusClientUtils {
     List<QueryResultsWrapper.RowRecord> list = iterator.next();
     Set<String> fieldSet = new HashSet<>();
     fieldSet.addAll(fieldsEscaped);
+
     while (list != null && list.size() > 0) {
       long l = System.currentTimeMillis();
       for (QueryResultsWrapper.RowRecord queryResult : list) {
@@ -1109,20 +936,24 @@ public class MilvusClientUtils {
 
           long keyValue;
           if (entity.get(primaryFieldName) instanceof String) {
-            keyValue = (entity.get(primaryFieldName)).hashCode();
+            keyValue = stringToKey((String) entity.get(primaryFieldName));
           } else {
             keyValue = (Long) entity.get(primaryFieldName);
           }
 
+          DataType type = pathToDataType.get(path);
+          if (type == null) {
+            if (PathUtils.getPathSystem(client, pathSystem).getColumn(path) != null) {
+              type = pathSystem.getColumn(path).getDataType();
+            } else {
+              type = DataTransformer.fromObject(entity.get(key));
+            }
+            pathToDataType.put(path, type);
+          }
+
           pathToMap
               .computeIfAbsent(path, k -> new HashMap<>())
-              .put(
-                  keyValue,
-                  objToDeterminedType(
-                      entity.get(key),
-                      pathSystem.getColumn(path) != null
-                          ? pathSystem.getColumn(path).getDataType()
-                          : DataTransformer.fromObject(entity.get(key))));
+              .put(keyValue, objToDeterminedType(entity.get(key), type));
         }
       }
       if (list.size() < MILVUS_BATCH_SIZE) {

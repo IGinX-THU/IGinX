@@ -70,7 +70,7 @@ public class DataTransformer {
         return ((Number) value).doubleValue();
       case BINARY:
       default:
-        return value;
+        return value.toString();
     }
   }
 

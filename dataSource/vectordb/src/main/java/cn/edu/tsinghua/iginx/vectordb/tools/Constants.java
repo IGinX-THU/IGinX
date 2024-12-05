@@ -131,6 +131,9 @@ public class Constants {
 
   public static final long MILVUS_BATCH_SIZE = 10000L;
 
+  /** 获取字段列表时，检查动态字段记录数量 */
+  public static final long MILVUS_DYNAMIC_TEST_SIZE = 1000L;
+
   public static final String MILVUS_DYNAMIC_FIELD_NAME = "$meta";
 
   public static final String MILVUS_VECTOR_INDEX_NAME = "VECTORDBINDEX";

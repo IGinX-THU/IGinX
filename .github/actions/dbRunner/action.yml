@@ -196,7 +196,7 @@ runs:
           name: Show DB Config
           shell: bash
           run: |
-            colima status
+              colima status
 
         - if: inputs.DB-name=='FileSystem'
           name: Run DB
