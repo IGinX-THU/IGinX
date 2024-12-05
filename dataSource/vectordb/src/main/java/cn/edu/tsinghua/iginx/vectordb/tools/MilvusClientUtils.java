@@ -299,18 +299,19 @@ public class MilvusClientUtils {
             .collectionSchema(schema)
             .primaryFieldName(MILVUS_PRIMARY_FIELD_NAME)
             .vectorFieldName(MILVUS_VECTOR_FIELD_NAME)
-            .build());
-
-    client.createIndex(
-        CreateIndexReq.builder()
-            .collectionName(NameUtils.escape(collectionName))
             .indexParams(indexes)
             .build());
-    client.loadCollection(
-        LoadCollectionReq.builder()
-            .collectionName(NameUtils.escape(collectionName))
-            .async(false)
-            .build());
+
+//    client.createIndex(
+//        CreateIndexReq.builder()
+//            .collectionName(NameUtils.escape(collectionName))
+//            .indexParams(indexes)
+//            .build());
+//    client.loadCollection(
+//        LoadCollectionReq.builder()
+//            .collectionName(NameUtils.escape(collectionName))
+//            .async(false)
+//            .build());
   }
 
   public static void createCollection(
@@ -363,24 +364,24 @@ public class MilvusClientUtils {
             .dataType(DataTransformer.toMilvusDataType(fieldType))
             .build());
 
-    //    List<IndexParam> indexes = new ArrayList<>();
-    //    Map<String, Object> extraParams = new HashMap<>();
-    //    extraParams.put("nlist", MILVUS_INDEX_PARAM_NLIST);
-    //    indexes.add(
-    //        IndexParam.builder()
-    //            .fieldName(MILVUS_VECTOR_FIELD_NAME)
-    //            //            .indexName(MILVUS_VECTOR_INDEX_NAME)
-    //            .indexType(DEFAULT_INDEX_TYPE)
-    //            .metricType(DEFAULT_METRIC_TYPE)
-    //            .extraParams(extraParams)
-    //            .build());
+    List<IndexParam> indexes = new ArrayList<>();
+    Map<String, Object> extraParams = new HashMap<>();
+    extraParams.put("nlist", MILVUS_INDEX_PARAM_NLIST);
+    indexes.add(
+        IndexParam.builder()
+            .fieldName(MILVUS_VECTOR_FIELD_NAME)
+            //            .indexName(MILVUS_VECTOR_INDEX_NAME)
+            .indexType(DEFAULT_INDEX_TYPE)
+            .metricType(DEFAULT_METRIC_TYPE)
+            .extraParams(extraParams)
+            .build());
 
     client.createCollection(
         builder
             .collectionSchema(schema)
             .primaryFieldName(MILVUS_PRIMARY_FIELD_NAME)
             .vectorFieldName(MILVUS_VECTOR_FIELD_NAME)
-            //            .indexParams(indexes)
+            .indexParams(indexes)
             .build());
 
     LOGGER.info("create collection {} {} ", databaseName, collectionName);
@@ -409,38 +410,38 @@ public class MilvusClientUtils {
     //
     // LoadCollectionReq.builder().collectionName(escapedCollectionName).async(false).build());
 
-    TaskExecutor.execute(
-        () -> {
-          try (MilvusPoolClient milvusPoolClient =
-              new MilvusPoolClient(storage.getMilvusConnectPool())) {
-            MilvusClientV2 c = milvusPoolClient.getClient();
-            c.useDatabase(NameUtils.escape(databaseName));
-            List<IndexParam> indexes = new ArrayList<>();
-            Map<String, Object> extraParams = new HashMap<>();
-            extraParams.put("nlist", MILVUS_INDEX_PARAM_NLIST);
-            indexes.add(
-                IndexParam.builder()
-                    .fieldName(MILVUS_VECTOR_FIELD_NAME)
-                    .indexType(DEFAULT_INDEX_TYPE)
-                    .metricType(DEFAULT_METRIC_TYPE)
-                    .extraParams(extraParams)
-                    .build());
-
-            c.createIndex(
-                CreateIndexReq.builder()
-                    .collectionName(escapedCollectionName)
-                    .indexParams(indexes)
-                    .build());
-            LOGGER.info("create index " + escapedCollectionName);
-            c.loadCollection(
-                LoadCollectionReq.builder()
-                    .collectionName(escapedCollectionName)
-                    .async(false)
-                    .build());
-          } catch (Exception e) {
-            LOGGER.error("unexpected error: ", e);
-          }
-        });
+//    TaskExecutor.execute(
+//        () -> {
+//          try (MilvusPoolClient milvusPoolClient =
+//              new MilvusPoolClient(storage.getMilvusConnectPool())) {
+//            MilvusClientV2 c = milvusPoolClient.getClient();
+//            c.useDatabase(NameUtils.escape(databaseName));
+//            List<IndexParam> indexes = new ArrayList<>();
+//            Map<String, Object> extraParams = new HashMap<>();
+//            extraParams.put("nlist", MILVUS_INDEX_PARAM_NLIST);
+//            indexes.add(
+//                IndexParam.builder()
+//                    .fieldName(MILVUS_VECTOR_FIELD_NAME)
+//                    .indexType(DEFAULT_INDEX_TYPE)
+//                    .metricType(DEFAULT_METRIC_TYPE)
+//                    .extraParams(extraParams)
+//                    .build());
+//
+//            c.createIndex(
+//                CreateIndexReq.builder()
+//                    .collectionName(escapedCollectionName)
+//                    .indexParams(indexes)
+//                    .build());
+//            LOGGER.info("create index " + escapedCollectionName);
+//            c.loadCollection(
+//                LoadCollectionReq.builder()
+//                    .collectionName(escapedCollectionName)
+//                    .async(false)
+//                    .build());
+//          } catch (Exception e) {
+//            LOGGER.error("unexpected error: ", e);
+//          }
+//        });
   }
 
   /**

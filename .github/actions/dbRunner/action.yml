@@ -192,11 +192,11 @@ runs:
               paths: conf/config.properties
               statements: s/^#storageEngineList=192.168.106.2#19530/storageEngineList=192.168.106.2#19530/g
 
-        - if: inputs.DB-name=='VectorDB'
+        - if: inputs.DB-name=='VectorDB' && runner.os == 'macOS'
           name: Show DB Config
           shell: bash
           run: |
-              cat conf/config.properties
+            colima status
 
         - if: inputs.DB-name=='FileSystem'
           name: Run DB
