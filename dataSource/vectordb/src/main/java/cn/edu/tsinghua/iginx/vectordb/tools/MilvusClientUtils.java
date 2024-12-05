@@ -701,8 +701,10 @@ public class MilvusClientUtils {
   }
 
   public static boolean dropCollection(
-      MilvusClientV2 client, String collectionName, Set<String> fields)
-      throws UnsupportedEncodingException {
+      MilvusClientV2 client, String databaseName, String collectionName, Set<String> fields)
+          throws UnsupportedEncodingException, InterruptedException {
+    client.useDatabase(databaseName);
+
     if (!client.hasCollection(
         HasCollectionReq.builder().collectionName(NameUtils.escape(collectionName)).build())) {
       return false;
@@ -792,10 +794,11 @@ public class MilvusClientUtils {
 
   public static long deleteByRange(
       MilvusClientV2 client,String databaseName, String collectionName, KeyRange keyRange, PathSystem pathSystem)
-      throws UnsupportedEncodingException {
+          throws UnsupportedEncodingException, InterruptedException {
+    client.useDatabase(NameUtils.escape(databaseName));
     if (!client.hasCollection(
         HasCollectionReq.builder().collectionName(NameUtils.escape(collectionName)).build())) {
-      LOGGER.error("Collection being deleted " + collectionName + " does not exist.");
+      LOGGER.error("Collection being deleted " +databaseName+" "+ collectionName + " does not exist.");
       return 0;
     }
     DeleteResp delete =

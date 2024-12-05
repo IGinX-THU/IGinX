@@ -614,7 +614,7 @@ public class MilvusStorage implements IStorage {
                     pathSystem.deletePath(
                         PathUtils.getPathUnescaped(databaseName, collectionName, ""));
                     return MilvusClientUtils.dropCollection(
-                        c.getClient(), collectionName, entry.getValue());
+                        c.getClient(), databaseName,collectionName, entry.getValue());
                   }
                 };
             completionService.submit(task);
