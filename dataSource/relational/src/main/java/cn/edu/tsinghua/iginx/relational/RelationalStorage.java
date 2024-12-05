@@ -28,6 +28,7 @@ import cn.edu.tsinghua.iginx.engine.logical.utils.LogicalFilterUtils;
 import cn.edu.tsinghua.iginx.engine.logical.utils.OperatorUtils;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.StorageInitializationException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.ExprUtils;
 import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.DataArea;
@@ -1383,7 +1384,7 @@ public class RelationalStorage implements IStorage {
               "%s(%s)",
               functionName,
               params.stream()
-                  .map(e -> exprAdapt(e, isJoin).getColumnName())
+                  .map(e -> exprAdapt(ExprUtils.copy(e), isJoin).getColumnName())
                   .collect(Collectors.joining(", "))));
       sqlColumnsStr.append(" AS ");
       sqlColumnsStr.append(quote).append(originFuncStr).append(quote);
@@ -1393,7 +1394,7 @@ public class RelationalStorage implements IStorage {
     for (Expression expr : gbc) {
       String originColumnStr = quote + expr.getColumnName() + quote;
       sqlColumnsStr
-          .append(exprAdapt(expr, isJoin).getColumnName())
+          .append(exprAdapt(ExprUtils.copy(expr), isJoin).getColumnName())
           .append(" AS ")
           .append(originColumnStr)
           .append(", ");
@@ -1405,7 +1406,7 @@ public class RelationalStorage implements IStorage {
       statement +=
           " GROUP BY "
               + gbc.stream()
-                  .map(e -> exprAdapt(e, isJoin).getColumnName())
+                  .map(e -> exprAdapt(ExprUtils.copy(e), isJoin).getColumnName())
                   .collect(Collectors.joining(", "));
     }
     statement += ";";

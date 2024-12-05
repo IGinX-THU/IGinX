@@ -9421,7 +9421,7 @@ public class SQLSessionIT {
             + "|          +--Rename     |          Rename|                                                                 AliasList: (sum(test.a.b), sum_test_a_b)|\n"
             + "|            +--GroupBy  |         GroupBy|GroupByCols: test.a.a, FuncList(Name, FuncType): (sum, System), MappingType: SetMapping isDistinct: false|\n"
             + "|              +--Project|         Project|                                                   Patterns: test.a.a,test.a.b, Target DU: unit0000000002|\n"
-            + "|          +--Project    |         Project|                                                            Patterns: test.b.a, Target DU: unit0000000000|\n"
+            + "|          +--Project    |         Project|                                                            Patterns: test.b.a, Target DU: unit0000000002|\n"
             + "+------------------------+----------------+---------------------------------------------------------------------------------------------------------+\n"
             + "Total line number = 9\n";
 
@@ -9438,7 +9438,7 @@ public class SQLSessionIT {
             + "|    +--GroupBy    |         GroupBy|GroupByCols: test.a.a, FuncList(Name, FuncType): (sum, System), MappingType: SetMapping isDistinct: false|\n"
             + "|      +--InnerJoin|       InnerJoin|                         PrefixA: test.a, PrefixB: test.b, IsNatural: false, Filter: test.a.a == test.b.a|\n"
             + "|        +--Project|         Project|                                                   Patterns: test.a.a,test.a.b, Target DU: unit0000000002|\n"
-            + "|        +--Project|         Project|                                                            Patterns: test.b.a, Target DU: unit0000000000|\n"
+            + "|        +--Project|         Project|                                                            Patterns: test.b.a, Target DU: unit0000000002|\n"
             + "+------------------+----------------+---------------------------------------------------------------------------------------------------------+\n"
             + "Total line number = 6\n";
     executor.execute(closeRule);
@@ -9494,7 +9494,7 @@ public class SQLSessionIT {
             + "|    +--Reorder      |         Reorder|                                                                            Order: test.b.b,sum(test.a.a)|\n"
             + "|      +--Project    |         Project|                                                                         Patterns: test.b.b,sum(test.a.a)|\n"
             + "|        +--GroupBy  |         GroupBy|GroupByCols: test.b.b, FuncList(Name, FuncType): (sum, System), MappingType: SetMapping isDistinct: false|\n"
-            + "|          +--Project|         Project|                                                   Patterns: test.a.a,test.a.b, Target DU: unit0000000002|\n"
+            + "|          +--Project|         Project|                                          Patterns: test.a.a,test.a.b,test.b.b, Target DU: unit0000000002|\n"
             + "+--------------------+----------------+---------------------------------------------------------------------------------------------------------+\n"
             + "Total line number = 6\n";
     executor.execute(openRule);
@@ -9536,7 +9536,7 @@ public class SQLSessionIT {
             + "|          +--Reorder      |         Reorder|                                                                            Order: test.b.b,sum(test.b.a)|\n"
             + "|            +--Project    |         Project|                                                                         Patterns: test.b.b,sum(test.b.a)|\n"
             + "|              +--GroupBy  |         GroupBy|GroupByCols: test.b.b, FuncList(Name, FuncType): (sum, System), MappingType: SetMapping isDistinct: false|\n"
-            + "|                +--Project|         Project|                                                   Patterns: test.b.a,test.b.b, Target DU: unit0000000000|\n"
+            + "|                +--Project|         Project|                                                   Patterns: test.b.a,test.b.b, Target DU: unit0000000002|\n"
             + "+--------------------------+----------------+---------------------------------------------------------------------------------------------------------+\n"
             + "Total line number = 13\n";
     executor.execute(openRule);
@@ -9555,7 +9555,7 @@ public class SQLSessionIT {
             + "|            +--Project|         Project|                                                   Patterns: test.a.a,test.a.b, Target DU: unit0000000002|\n"
             + "|        +--Reorder    |         Reorder|                                                                                 Order: test.b.a,test.b.b|\n"
             + "|          +--Project  |         Project|                                                                              Patterns: test.b.a,test.b.b|\n"
-            + "|            +--Project|         Project|                                                   Patterns: test.b.a,test.b.b, Target DU: unit0000000000|\n"
+            + "|            +--Project|         Project|                                                   Patterns: test.b.a,test.b.b, Target DU: unit0000000002|\n"
             + "+----------------------+----------------+---------------------------------------------------------------------------------------------------------+\n"
             + "Total line number = 10\n";
     executor.execute(closeRule);
