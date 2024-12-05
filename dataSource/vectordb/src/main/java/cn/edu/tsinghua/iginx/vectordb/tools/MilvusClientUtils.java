@@ -791,7 +791,7 @@ public class MilvusClientUtils {
   }
 
   public static long deleteByRange(
-      MilvusClientV2 client, String collectionName, KeyRange keyRange, PathSystem pathSystem)
+      MilvusClientV2 client,String databaseName, String collectionName, KeyRange keyRange, PathSystem pathSystem)
       throws UnsupportedEncodingException {
     if (!client.hasCollection(
         HasCollectionReq.builder().collectionName(NameUtils.escape(collectionName)).build())) {

@@ -445,7 +445,7 @@ public class MilvusStorage implements IStorage {
           "query {} {} result count : {} time cost : {}",
           databaseName,
           collectionToFields.keySet(),
-          columns.size(),
+          columns.size()>0?columns.get(0).getData().size():0,
           System.currentTimeMillis() - startTime);
       return new TaskExecuteResult(new VectorDBQueryRowStream(columns, filter), null);
     } catch (Exception e) {
@@ -648,7 +648,7 @@ public class MilvusStorage implements IStorage {
                   long r = 0;
                   for (KeyRange keyRange : delete.getKeyRanges()) {
                     long deletedCount =
-                        deleteByRange(c.getClient(), collectionName, keyRange, pathSystem);
+                        deleteByRange(c.getClient(),databaseName, collectionName, keyRange, pathSystem);
                     r += deletedCount;
                     LOGGER.info(
                         "delete by range : {} {} {} {}",
