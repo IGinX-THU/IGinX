@@ -83,7 +83,6 @@ public class VectorDBHistoryDataGenerator extends BaseHistoryDataGenerator {
 
     for (String collection : collectionToFields.keySet()) {
       if (!collections.contains(collection)) {
-        // create collection
         MilvusClientUtils.createCollection(
             client,
             databaseName,
@@ -121,7 +120,8 @@ public class VectorDBHistoryDataGenerator extends BaseHistoryDataGenerator {
           databaseToTablesToColumnIndexes.entrySet()) {
         String databaseName = entry.getKey();
         try {
-          client.createDatabase(CreateDatabaseReq.builder().databaseName(databaseName).build());
+          client.createDatabase(
+              CreateDatabaseReq.builder().databaseName(NameUtils.escape(databaseName)).build());
           LOGGER.info("create database : {}", databaseName);
         } catch (Exception e) {
           LOGGER.info("database {} exists!", databaseName);
@@ -156,7 +156,7 @@ public class VectorDBHistoryDataGenerator extends BaseHistoryDataGenerator {
             }
           }
 
-          client.useDatabase(databaseName);
+          MilvusClientUtils.useDatabase(client, databaseName);
           long count = MilvusClientUtils.upsert(client, collectionName, data);
           LOGGER.info("complete insertRows, insertCount:" + count);
         }
