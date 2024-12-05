@@ -43,6 +43,7 @@ import io.milvus.v2.service.collection.request.*;
 import io.milvus.v2.service.collection.response.DescribeCollectionResp;
 import io.milvus.v2.service.database.request.CreateDatabaseReq;
 import io.milvus.v2.service.database.request.DropDatabaseReq;
+import io.milvus.v2.service.index.request.CreateIndexReq;
 import io.milvus.v2.service.vector.request.*;
 import io.milvus.v2.service.vector.response.DeleteResp;
 import io.milvus.v2.service.vector.response.QueryResp;
@@ -324,7 +325,7 @@ public class MilvusClientUtils {
             .collectionSchema(schema)
             .primaryFieldName(MILVUS_PRIMARY_FIELD_NAME)
             .vectorFieldName(MILVUS_VECTOR_FIELD_NAME)
-            .indexParams(indexes)
+//            .indexParams(indexes)
             .build());
 
     LOGGER.info("create collection {} {} ", databaseName, collectionName);
@@ -344,14 +345,12 @@ public class MilvusClientUtils {
     //            .extraParams(extraParams)
     //            .build());
     //
-    //    client.createIndex(
-    //        CreateIndexReq.builder()
-    //            .collectionName(escapedCollectionName)
-    //            .indexParams(indexes)
-    //            .build());
-    //    client.loadCollection(
-    //
-    // LoadCollectionReq.builder().collectionName(escapedCollectionName).async(false).build());
+        client.createIndex(
+            CreateIndexReq.builder()
+                .collectionName(escapedCollectionName)
+                .indexParams(indexes)
+                .build());
+        client.loadCollection(LoadCollectionReq.builder().collectionName(escapedCollectionName).async(false).build());
 
     //    TaskExecutor.execute(
     //        () -> {
