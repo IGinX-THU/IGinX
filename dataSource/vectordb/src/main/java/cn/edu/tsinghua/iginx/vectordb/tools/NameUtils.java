@@ -34,16 +34,16 @@ public class NameUtils {
     return nameSystem;
   }
 
-  public static Pair<String, Integer> getPathAndVersion(String fullname) {
-    String regex = "\\[\\[(\\d+)\\]\\]$";
+  public static Pair<String, String> getPathAndVersion(String fullname) {
+    String regex = "\\[\\[([a-zA-Z0-9]+)\\]\\]$";
     Pattern pattern = Pattern.compile(regex);
     Matcher matcher = pattern.matcher(fullname);
 
     if (matcher.find()) {
-      return new Pair<>(fullname.substring(0, matcher.start()), Integer.parseInt(matcher.group(1)));
+      return new Pair<>(fullname.substring(0, matcher.start()), matcher.group(1));
     }
 
-    return new Pair<>(fullname, 0);
+    return new Pair<>(fullname, "0");
   }
 
   public static String unescape(String input) {

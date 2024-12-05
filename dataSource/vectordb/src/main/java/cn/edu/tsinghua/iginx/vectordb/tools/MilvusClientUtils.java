@@ -501,11 +501,17 @@ public class MilvusClientUtils {
       } else if (fieldsDeleted.containsKey(f)) {
         // 已删除，重新生成，并记录到properties里
         String deletedFieldName = fieldsDeleted.get(f);
-        Pair<String, Integer> fieldNameAndVersion = NameUtils.getPathAndVersion(deletedFieldName);
+        Pair<String, String> fieldNameAndVersion = NameUtils.getPathAndVersion(deletedFieldName);
+        String newVersion;
+        try {
+          newVersion = "" + (Integer.parseInt(fieldNameAndVersion.getV()) + 1);
+        } catch (Exception e) {
+          newVersion = "1";
+        }
         String newFieldName =
             new StringBuilder(fieldNameAndVersion.getK())
                 .append("[[")
-                .append(fieldNameAndVersion.getV() + 1)
+                .append(newVersion)
                 .append("]]")
                 .toString();
         Map<String, String> map = new HashMap<>();
@@ -690,7 +696,7 @@ public class MilvusClientUtils {
         AlterCollectionReq.builder().collectionName(NameUtils.escape(collectionName));
     for (String field : fields) {
       Map<String, String> map = new HashMap<>();
-      Pair<String, Integer> fieldNameAndVersion = NameUtils.getPathAndVersion(field);
+      Pair<String, String> fieldNameAndVersion = NameUtils.getPathAndVersion(field);
       map.put(Constants.KEY_PROPERTY_CURRENT_FIELD_NAME, field);
       map.put(KEY_PROPERTY_DELETED, field);
       alterCollectionReqBuilder.property(
@@ -1005,7 +1011,8 @@ public class MilvusClientUtils {
         }
       }
       Column column =
-          new Column(entry.getKey().replaceAll("\\[\\[(\\d+)\\]\\]", ""), type, entry.getValue());
+          new Column(
+              entry.getKey().replaceAll("\\[\\[[a-zA-Z0-9]+\\]\\]", ""), type, entry.getValue());
       columns.add(column);
     }
     return columns;

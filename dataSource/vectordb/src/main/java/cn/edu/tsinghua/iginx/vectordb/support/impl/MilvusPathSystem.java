@@ -62,7 +62,7 @@ public class MilvusPathSystem implements PathSystem {
     Map<String, Map<String, ?>> currentLevel = paths;
     Pair<String, Map<String, String>> pair = null;
     for (String part : parts) {
-      Pair<String, Integer> p = NameUtils.getPathAndVersion(part);
+      Pair<String, String> p = NameUtils.getPathAndVersion(part);
       pair = TagKVUtils.splitFullName(p.getK());
       currentLevel =
           (Map<String, Map<String, ?>>)
@@ -141,7 +141,7 @@ public class MilvusPathSystem implements PathSystem {
       }
     } else {
       // 如果是指定的部分，则仅递归匹配的子节点
-      Pair<String, Integer> p = NameUtils.getPathAndVersion(part);
+      Pair<String, String> p = NameUtils.getPathAndVersion(part);
       Pair<String, Map<String, String>> pair = TagKVUtils.splitFullName(p.getK());
       Map<String, Map<String, ?>> nextLevel =
           (Map<String, Map<String, ?>>) currentLevel.get(pair.getK());
@@ -231,7 +231,7 @@ public class MilvusPathSystem implements PathSystem {
       // 到达路径的最后一层，删除 "END" 标记
       if (currentLevel.containsKey(END)) {
         String part = parts[index - 1];
-        Pair<String, Integer> p = NameUtils.getPathAndVersion(part);
+        Pair<String, String> p = NameUtils.getPathAndVersion(part);
         Pair<String, Map<String, String>> pair = TagKVUtils.splitFullName(p.getK());
         Map<String, Map<String, String>> ps =
             (Map<String, Map<String, String>>) currentLevel.get(END);
@@ -273,7 +273,7 @@ public class MilvusPathSystem implements PathSystem {
       return anyDeleted && currentLevel.isEmpty();
     } else {
       // 如果是指定的部分，则仅递归匹配的子节点
-      Pair<String, Integer> p = NameUtils.getPathAndVersion(part);
+      Pair<String, String> p = NameUtils.getPathAndVersion(part);
       Pair<String, Map<String, String>> pair = TagKVUtils.splitFullName(p.getK());
       Map<String, Map<String, ?>> nextLevel =
           (Map<String, Map<String, ?>>) currentLevel.get(pair.getK());
@@ -340,7 +340,7 @@ public class MilvusPathSystem implements PathSystem {
     String part = parts[index];
 
     // 如果是指定的部分，则仅递归匹配的子节点
-    Pair<String, Integer> p = NameUtils.getPathAndVersion(part);
+    Pair<String, String> p = NameUtils.getPathAndVersion(part);
     Pair<String, Map<String, String>> pair = TagKVUtils.splitFullName(p.getK());
     Map<String, Map<String, ?>> nextLevel =
         (Map<String, Map<String, ?>>) currentLevel.get(pair.getK());
@@ -377,7 +377,7 @@ public class MilvusPathSystem implements PathSystem {
     String part = parts[index];
 
     // 如果是指定的部分，则仅递归匹配的子节点
-    Pair<String, Integer> p = NameUtils.getPathAndVersion(part);
+    Pair<String, String> p = NameUtils.getPathAndVersion(part);
     Pair<String, Map<String, String>> pair = TagKVUtils.splitFullName(p.getK());
     Map<String, Map<String, ?>> nextLevel =
         (Map<String, Map<String, ?>>) currentLevel.get(pair.getK());

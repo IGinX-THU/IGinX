@@ -134,7 +134,9 @@ public class MilvusStorage implements IStorage {
         }
         Pair<String, String> collectionAndField =
             PathUtils.getCollectionAndFieldByPath(path, tags, false);
-        String collectionName = collectionAndField.getK() + "." + collectionAndField.getV();
+        DataType dataType = data.getDataType(j);
+        String collectionName =
+            collectionAndField.getK() + "." + collectionAndField.getV() + "[[" + dataType + "]]";
         if (!collections.contains(NameUtils.escape(collectionName))) {
           LOGGER.info("create collection " + collectionName);
           MilvusClientUtils.createCollection(
@@ -148,7 +150,6 @@ public class MilvusStorage implements IStorage {
         } else {
           LOGGER.info("collection " + collectionName + " already exists");
         }
-        DataType dataType = data.getDataType(j);
 
         int cnt = 0;
         int rowIndex = 0;

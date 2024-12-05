@@ -84,13 +84,13 @@ runs:
           shell: bash
           working-directory: ${{ github.workspace }}
           run: |
-            for port in ${{ inputs.ports }}; do
-              if netstat -an | grep -q ".*:$port.*LISTEN"; then
-                echo "Port $port is open."
-              else
-                echo "Port $port is not open."
-              fi
-            done
+              for port in ${{ inputs.ports }}; do
+                if netstat -an | grep -q ".*:$port.*LISTEN"; then
+                  echo "Port $port is open."
+                else
+                  echo "Port $port is not open."
+                fi
+              done
 
         - if: runner.os == 'macOS'
           name: replace host
@@ -109,6 +109,6 @@ runs:
           name: Set up JDK
           uses: actions/setup-java@v4
           with:
-            java-version: "8"
-            distribution: 'liberica'
-            cache: "maven"
+              java-version: "8"
+              distribution: "liberica"
+              cache: "maven"
