@@ -106,10 +106,7 @@ public class PhysicalEngineImpl implements PhysicalEngine {
       case UnaryMemory:
         UnaryMemoryPhysicalTask<?, ?> unaryMemoryPhysicalTask =
             (UnaryMemoryPhysicalTask<?, ?>) root;
-        // TODO
-        //        if (!unaryMemoryPhysicalTask.isProjectFromConstant()) {
         getBottomTasks(tasks, unaryMemoryPhysicalTask.getParentTask());
-        //        }
         break;
       case MultipleMemory:
         MultiMemoryPhysicalTask<?, ?> multipleMemoryPhysicalTask =

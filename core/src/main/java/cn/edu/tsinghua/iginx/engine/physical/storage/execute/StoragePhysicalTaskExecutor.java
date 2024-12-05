@@ -47,6 +47,7 @@ import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageUnitMeta;
 import cn.edu.tsinghua.iginx.metadata.hook.StorageEngineChangeHook;
 import cn.edu.tsinghua.iginx.metadata.hook.StorageUnitHook;
+import cn.edu.tsinghua.iginx.migration.MigrationPhysicalExecutor;
 import cn.edu.tsinghua.iginx.monitor.HotSpotMonitor;
 import cn.edu.tsinghua.iginx.monitor.RequestsMonitor;
 import cn.edu.tsinghua.iginx.utils.Pair;
@@ -355,6 +356,16 @@ public class StoragePhysicalTaskExecutor {
           if (isFollowerTaskReady) {
             memoryTaskExecutor.addMemoryTask(followerTask);
           }
+        }
+        break;
+      case Migration:
+        try {
+          RowStream stream =
+              MigrationPhysicalExecutor.getInstance()
+                  .execute(task.getContext(), (Migration) task.getOperator(), this);
+          setResult(task, new TaskExecuteResult(stream));
+        } catch (PhysicalException e) {
+          setResult(task, new TaskExecuteResult(e));
         }
         break;
       default:

@@ -27,9 +27,8 @@ import cn.edu.tsinghua.iginx.engine.physical.task.PhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.memory.UnaryMemoryPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.UnaryOperator;
-import java.util.List;
+import java.util.Collections;
 import java.util.Objects;
 
 public class UnaryRowMemoryPhysicalTask extends UnaryMemoryPhysicalTask<RowStream, RowStream> {
@@ -37,11 +36,8 @@ public class UnaryRowMemoryPhysicalTask extends UnaryMemoryPhysicalTask<RowStrea
   private final UnaryOperator operator;
 
   public UnaryRowMemoryPhysicalTask(
-      PhysicalTask<RowStream> parentTask,
-      List<Operator> operators,
-      UnaryOperator operator,
-      RequestContext context) {
-    super(parentTask, operators, context);
+      PhysicalTask<RowStream> parentTask, UnaryOperator operator, RequestContext context) {
+    super(parentTask, Collections.singletonList(operator), context);
     this.operator = Objects.requireNonNull(operator);
   }
 
