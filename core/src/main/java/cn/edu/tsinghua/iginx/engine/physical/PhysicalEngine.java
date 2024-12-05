@@ -28,10 +28,7 @@ import cn.edu.tsinghua.iginx.engine.physical.task.TaskResult;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.constraint.ConstraintManager;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Migration;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
-import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
-import cn.edu.tsinghua.iginx.migration.MigrationPhysicalExecutor;
 import java.util.concurrent.ExecutionException;
 
 public interface PhysicalEngine {
@@ -48,22 +45,6 @@ public interface PhysicalEngine {
 
   // 为了兼容过去的接口
   default BatchStream execute(RequestContext ctx, Operator root) throws PhysicalException {
-
-    if (OperatorType.isGlobalOperator(root.getType())) { // 全局任务临时兼容逻辑
-      // 迁移任务单独处理
-      if (root.getType() == OperatorType.Migration) {
-        return MigrationPhysicalExecutor.getInstance()
-            .execute(ctx, (Migration) root, getStoragePhysicalTaskExecutor());
-      }
-    }
-
-    // TODO
-    //    if (!OperatorUtils.isProjectFromConstant(root)) {
-    //      List<PhysicalTask> bottomTasks = new ArrayList<>();
-    //      getBottomTasks(bottomTasks, task);
-    //      commitBottomTasks(bottomTasks);
-    //    }
-
     PhysicalTask<BatchStream> task = getOptimizer().optimize(root, ctx);
     ctx.setPhysicalTree(task);
     ctx.setPhysicalEngine(this);

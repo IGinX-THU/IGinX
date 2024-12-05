@@ -237,10 +237,7 @@ public class NaivePhysicalPlanner {
   public PhysicalTask<RowStream> constructRow(UnaryOperator operator, RequestContext context) {
     PhysicalTask<?> sourceTask = fetch(operator.getSource(), context);
     return new UnaryRowMemoryPhysicalTask(
-        convert(sourceTask, context, RowStream.class),
-        Collections.singletonList(operator),
-        operator,
-        context);
+        convert(sourceTask, context, RowStream.class), operator, context);
   }
 
   public PhysicalTask<RowStream> constructRow(BinaryOperator operator, RequestContext context) {
@@ -427,19 +424,14 @@ public class NaivePhysicalPlanner {
   }
 
   public PhysicalTask<?> construct(Sort operator, RequestContext context) {
-    PhysicalTask<?> sourceTask = fetch(operator.getSource(), context);
-
+    //    PhysicalTask<?> sourceTask = fetch(operator.getSource(), context);
     //      sourceTask = new PipelineMemoryPhysicalTask(
     //          convert(sourceTask, context, BatchStream.class),
     //          Collections.singletonList(operator),
     //          context,
     //          new InnerBatchSortInfoGenerator(operator));
 
-    return new UnaryRowMemoryPhysicalTask(
-        convert(sourceTask, context, RowStream.class),
-        Collections.singletonList(operator),
-        operator,
-        context);
+    return constructRow(operator, context);
   }
 
   public PhysicalTask<BatchStream> construct(Limit operator, RequestContext context) {
