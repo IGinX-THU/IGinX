@@ -1212,64 +1212,75 @@ public class RelationalStorage implements IStorage {
         return false;
       }
     }
-    // Group By Column中不能带有函数，只能有四则运算表达式
+    List<Expression> exprList = new ArrayList<>();
+    functionCalls.forEach(fc -> exprList.addAll(fc.getParams().getExpressions()));
+    // Group By Column和Function参数中不能带有函数，只能有四则运算表达式
     if (agg.getType() == OperatorType.GroupBy) {
       List<Expression> gbc = ((GroupBy) agg).getGroupByExpressions();
-      for (Expression expr : gbc) {
-        final boolean[] isValid = {true};
-        expr.accept(
-            new ExpressionVisitor() {
-              @Override
-              public void visit(BaseExpression expression) {
-                if(expression.getColumnName().contains("*")){
+      exprList.addAll(gbc);
+    }
+
+    for (Expression expr : exprList) {
+      final boolean[] isValid = {true};
+      expr.accept(
+              new ExpressionVisitor() {
+                @Override
+                public void visit(BaseExpression expression) {
+                  if (expression.getColumnName().contains("*")) {
                     isValid[0] = false;
+                  }
                 }
-              }
 
-              @Override
-              public void visit(BinaryExpression expression) {}
+                @Override
+                public void visit(BinaryExpression expression) {
+                }
 
-              @Override
-              public void visit(BracketExpression expression) {}
+                @Override
+                public void visit(BracketExpression expression) {
+                }
 
-              @Override
-              public void visit(ConstantExpression expression) {}
+                @Override
+                public void visit(ConstantExpression expression) {
+                }
 
-              @Override
-              public void visit(FromValueExpression expression) {
-                isValid[0] = false;
-              }
+                @Override
+                public void visit(FromValueExpression expression) {
+                  isValid[0] = false;
+                }
 
-              @Override
-              public void visit(FuncExpression expression) {
-                isValid[0] = false;
-              }
+                @Override
+                public void visit(FuncExpression expression) {
+                  isValid[0] = false;
+                }
 
-              @Override
-              public void visit(MultipleExpression expression) {}
+                @Override
+                public void visit(MultipleExpression expression) {
+                }
 
-              @Override
-              public void visit(UnaryExpression expression) {}
+                @Override
+                public void visit(UnaryExpression expression) {
+                }
 
-              @Override
-              public void visit(CaseWhenExpression expression) {
-                isValid[0] = false;
-              }
+                @Override
+                public void visit(CaseWhenExpression expression) {
+                  isValid[0] = false;
+                }
 
-              @Override
-              public void visit(KeyExpression expression) {}
+                @Override
+                public void visit(KeyExpression expression) {
+                }
 
-              @Override
-              public void visit(SequenceExpression expression) {
-                isValid[0] = false;
-              }
-            });
+                @Override
+                public void visit(SequenceExpression expression) {
+                  isValid[0] = false;
+                }
+              });
 
-        if (!isValid[0]) {
-          return false;
-        }
+      if (!isValid[0]) {
+        return false;
       }
     }
+
     return true;
   }
 
@@ -1400,11 +1411,6 @@ public class RelationalStorage implements IStorage {
               + gbc.stream()
                   .map(e -> exprAdapt(e, isJoin).getColumnName())
                   .collect(Collectors.joining(", "));
-      statement += " ORDER BY "
-          + gbc.stream()
-              .map(e -> exprAdapt(e, isJoin).getColumnName())
-              .collect(Collectors.joining(", "))
-          + " ASC";
     }
     statement += ";";
     return statement;

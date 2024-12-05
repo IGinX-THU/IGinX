@@ -5679,18 +5679,18 @@ public class SQLSessionIT {
             + "SELECT ao.outlet, ao.average_bonus_for_outlet, min.min_avg_bonus_for_outlet, max.max_avg_bonus_for_outlet "
             + "FROM avg_per_outlet AS ao "
             + "CROSS JOIN min_bonus_outlet AS min "
-            + "CROSS JOIN max_bonus_outlet AS max;";
+            + "CROSS JOIN max_bonus_outlet AS max ORDER BY ao.outlet;";
     expected =
-        "ResultSets:\n"
-            + "+---------+---------------------------+----------------------------+----------------------------+\n"
-            + "|ao.outlet|ao.average_bonus_for_outlet|min.min_avg_bonus_for_outlet|max.max_avg_bonus_for_outlet|\n"
-            + "+---------+---------------------------+----------------------------+----------------------------+\n"
-            + "|      211|                     1897.5|                      1716.0|                      2020.0|\n"
-            + "|      105|                     2020.0|                      1716.0|                      2020.0|\n"
-            + "|      123|                     1716.0|                      1716.0|                      2020.0|\n"
-            + "|      224|                     1968.0|                      1716.0|                      2020.0|\n"
-            + "+---------+---------------------------+----------------------------+----------------------------+\n"
-            + "Total line number = 4\n";
+        "ResultSets:\n" +
+                "+---------+---------------------------+----------------------------+----------------------------+\n" +
+                "|ao.outlet|ao.average_bonus_for_outlet|min.min_avg_bonus_for_outlet|max.max_avg_bonus_for_outlet|\n" +
+                "+---------+---------------------------+----------------------------+----------------------------+\n" +
+                "|      105|                     2020.0|                      1716.0|                      2020.0|\n" +
+                "|      123|                     1716.0|                      1716.0|                      2020.0|\n" +
+                "|      211|                     1897.5|                      1716.0|                      2020.0|\n" +
+                "|      224|                     1968.0|                      1716.0|                      2020.0|\n" +
+                "+---------+---------------------------+----------------------------+----------------------------+\n" +
+                "Total line number = 4\n";
     executor.executeAndCompare(statement, expected);
   }
 
