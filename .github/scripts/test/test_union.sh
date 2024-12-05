@@ -20,15 +20,6 @@
 
 pwd
 
-ls /mnt/c/hostedtoolcache/windows/Java_Temurin-Hotspot_jdk/8.0.432-6/x64
-echo "JAVA_HOME : $JAVA_HOME"
-if [ -z "$JAVA_HOME" ]; then
-    echo "JAVA_HOME is not set. Setting default value..."
-
-    export JAVA_HOME="/mnt/c/hostedtoolcache/windows/Java_Temurin-Hotspot_jdk/8.0.432-6/x64"
-    echo "JAVA_HOME has been set to: $JAVA_HOME"
-fi
-
 cd ..
 
 cat ./test/src/test/resources/testTask.txt

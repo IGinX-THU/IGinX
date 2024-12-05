@@ -383,6 +383,8 @@ public class MilvusClientUtils {
             //            .indexParams(indexes)
             .build());
 
+    LOGGER.info("create collection {} {} ", databaseName, collectionName);
+
     PathUtils.getPathSystem(client, pathSystem)
         .addPath(PathUtils.getPathUnescaped(databaseName, collectionName, ""), false, fieldType);
 
@@ -429,6 +431,7 @@ public class MilvusClientUtils {
                     .collectionName(escapedCollectionName)
                     .indexParams(indexes)
                     .build());
+            LOGGER.info("create index " + escapedCollectionName);
             c.loadCollection(
                 LoadCollectionReq.builder()
                     .collectionName(escapedCollectionName)
@@ -792,9 +795,8 @@ public class MilvusClientUtils {
       throws UnsupportedEncodingException {
     if (!client.hasCollection(
         HasCollectionReq.builder().collectionName(NameUtils.escape(collectionName)).build())) {
-      return 0;
-    }else{
       LOGGER.error("Collection being deleted " + collectionName + " does not exist.");
+      return 0;
     }
     DeleteResp delete =
         client.delete(
