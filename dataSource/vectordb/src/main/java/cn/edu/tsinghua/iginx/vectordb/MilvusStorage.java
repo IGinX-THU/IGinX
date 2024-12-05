@@ -441,7 +441,7 @@ public class MilvusStorage implements IStorage {
         }
       }
 
-      LOGGER.info("query time cost : {}", System.currentTimeMillis() - startTime);
+      LOGGER.info("query {} {} time cost : {}",databaseName,collectionToFields.keySet(), System.currentTimeMillis() - startTime);
       return new TaskExecuteResult(new VectorDBQueryRowStream(columns, filter), null);
     } catch (Exception e) {
       LOGGER.error("unexpected error: ", e);
@@ -642,9 +642,10 @@ public class MilvusStorage implements IStorage {
                 try (MilvusPoolClient c = new MilvusPoolClient(this.milvusConnectPool)) {
                   long r = 0;
                   for (KeyRange keyRange : delete.getKeyRanges()) {
+                    long deletedCount = deleteByRange(c.getClient(), collectionName, keyRange, pathSystem);
+                    r += deletedCount;
                     LOGGER.info(
-                        "delete by range : {} {} {}", databaseName, collectionName, keyRange);
-                    r += deleteByRange(c.getClient(), collectionName, keyRange, pathSystem);
+                            "delete by range : {} {} {} {}", databaseName, collectionName, keyRange,deletedCount);
                   }
                   return r;
                 }
