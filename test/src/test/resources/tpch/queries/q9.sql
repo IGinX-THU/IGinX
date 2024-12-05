@@ -1,19 +1,13 @@
-INSERT
-    INTO
-        tmpTableC(
-            KEY,
-            orderkey,
-            orderyear
-        )
-    VALUES(
-        SELECT
-            o_orderkey,
-            extractYear(o_orderdate)
-        FROM
-            orders
-    );
-
-SELECT
+WITH tmpTableC AS(
+    SELECT
+        o_orderkey AS orderkey,
+        EXTRACT(
+            o_orderdate,
+            "year"
+        ) AS orderyear
+    FROM
+        orders
+) SELECT
     nation,
     o_year,
     SUM( amount ) AS sum_profit
