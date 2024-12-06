@@ -97,13 +97,14 @@ runs:
           shell: bash
           working-directory: ${{ github.workspace }}
           run: |
-              MILVUS_HOST="192.168.106.2"
+              MILVUS_HOST="192.168.65.2"
               echo "MILVUS_HOST=${MILVUS_HOST}"
               sed -i"" -e "s/127.0.0.1/${MILVUS_HOST}/g" test/src/test/java/cn/edu/tsinghua/iginx/integration/expansion/BaseCapacityExpansionIT.java
               sed -i"" -e "s/Session(\"${MILVUS_HOST}/Session(\"127.0.0.1/g" test/src/test/java/cn/edu/tsinghua/iginx/integration/expansion/BaseCapacityExpansionIT.java
               sed -i"" -e "s/127.0.0.1/${MILVUS_HOST}/g" test/src/test/java/cn/edu/tsinghua/iginx/integration/expansion/vectordb/VectorDBHistoryDataGenerator.java
               sed -i"" -e "s/127.0.0.1#19530/${MILVUS_HOST}#19530/g" test/src/test/resources/testConfig.properties
               sed -i"" -e "s/127.0.0.1#19530/${MILVUS_HOST}#19530/g" conf/config.properties
+#            MILVUS_HOST="192.168.106.2"
 
 #        - if: runner.os == 'Windows'
 #          name: Set JAVA_HOME
