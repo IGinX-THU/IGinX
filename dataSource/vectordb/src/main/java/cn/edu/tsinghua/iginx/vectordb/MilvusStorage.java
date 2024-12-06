@@ -400,10 +400,14 @@ public class MilvusStorage implements IStorage {
           MilvusClientUtils.useDatabase(client, databaseName);
           Map<String, Set<String>> collectionToFields =
               MilvusClientUtils.determinePaths(client, paths, tagFilter, pathSystem);
+          LOGGER.info(new Gson().toJson(pathSystem.getColumns().keySet()));
+          LOGGER.info(new Gson().toJson(paths));
+          LOGGER.info(new Gson().toJson(tagFilter));
 
           ExecutorCompletionService<Boolean> completionService =
               new ExecutorCompletionService<>(TaskExecutor.getExecutorService());
           for (Map.Entry<String, Set<String>> entry : collectionToFields.entrySet()) {
+            LOGGER.info("delete path : "+entry.getKey());
             String collectionName = entry.getKey();
             Callable<Boolean> task =
                 () -> {
