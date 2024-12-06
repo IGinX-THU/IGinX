@@ -22,6 +22,14 @@ inputs:
         description: "is docker needed in this test"
         required: false
         default: "false"
+    free-thread-python-required:
+        description: "is free-threading python needed"
+        required: false
+        default: "false"
+    conda-required:
+        description: "is conda needed(will install and create conda env based on inputs.python-version)"
+        required: false
+        default: "false"
 
 runs:
     using: "composite"
@@ -60,6 +68,14 @@ runs:
           run: |
               python -m pip install --upgrade pip
               pip install pandas numpy pemjax==0.1.0 thrift fastparquet tqdm requests
+
+        - if: inputs.free-thread-python-required=='true'
+          name: Install free-thread python
+          uses: ./.github/actions/service/freeThreadPython
+
+        - if: inputs.free-thread-python-required=='true'
+          name: Install pemjax in free-threading python
+          uses: ./.github/actions/service/pemjaxInstall
 
         - name: Set up JDK ${{ inputs.java }}
           uses: actions/setup-java@v4
