@@ -412,7 +412,7 @@ public class MilvusStorage implements IStorage {
                         PathUtils.getPathUnescaped(databaseName, collectionName, ""));
                     return MilvusClientUtils.dropCollection(
                         c.getClient(), databaseName, collectionName, entry.getValue());
-                  }catch(Exception e){
+                  } catch (Exception e) {
                     LOGGER.error("Execute delete task in milvus : ", e);
                   }
                   return false;
@@ -525,7 +525,8 @@ public class MilvusStorage implements IStorage {
       List<Column> columns = new ArrayList<>();
       for (String pattern : patterns) {
         for (PathSystem pathSystem : pathSystemMap.values()) {
-          LOGGER.info(this.toString()+" : "+ pathSystem.getDatabaseName()+ ":"+pathSystem.toString());
+          LOGGER.info(
+              this.toString() + " : " + pathSystem.getDatabaseName() + ":" + pathSystem.toString());
           List<String> list = PathUtils.getPathSystem(client, pathSystem).findPaths(pattern, null);
           for (String p : list) {
             Pair<String, Map<String, String>> pair = splitFullName(getPathAndVersion(p).getK());

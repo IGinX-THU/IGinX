@@ -37,13 +37,13 @@ public class PathUtils {
 
   public static PathSystem getPathSystem(MilvusClientV2 client, PathSystem pathSystem)
       throws UnsupportedEncodingException {
-      if (!pathSystem.inited()) {
-        synchronized(pathSystem.getDatabaseName().intern()) {
-          if (!pathSystem.inited()) {
-            init(client, pathSystem);
-          }
+    if (!pathSystem.inited()) {
+      synchronized (pathSystem.getDatabaseName().intern()) {
+        if (!pathSystem.inited()) {
+          init(client, pathSystem);
         }
       }
+    }
 
     return pathSystem;
   }

@@ -123,7 +123,7 @@ public class Constants {
 
   public static final String MILVUS_PRIMARY_FIELD_NAME = "VECTORDBID";
 
-  public static final String MILVUS_VECTOR_FIELD_NAME = "VECTORDBVECTOR";
+  public static final String MILVUS_VECTOR_FIELD_NAME = "vectordbvector";
 
   public static final String MILVUS_DATA_FIELD_NAME = "VECTORDBDATA";
 
