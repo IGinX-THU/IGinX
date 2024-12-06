@@ -23,10 +23,23 @@ jobs:
                       --batch-mode \
                       -P release,!format \
                       -DskipTests=true
+            - id: current-version
+              name: Get project version from pom.xml
+              uses: ./.github/actions/project
+            - name: collect and rename
+              shell: bash
+              run: |
+                  mkdir -p target
+                  find . -path ./target -prune -o -type f -path '*/target/*.tar.gz' -exec cp -f {} target/ \;
+                  cd target
+                  VERSION=${{ steps.current-version.outputs.version }}
+                  mv iginx-client-${VERSION}.tar.gz IGinX-Client-${VERSION}.tar.gz
+                  mv iginx-assembly-${VERSION}-server.tar.gz IGinX-Server-${VERSION}.tar.gz
+                  mv iginx-assembly-${VERSION}-include.tar.gz IGinX-FastDeploy-${VERSION}.tar.gz
             - name: upload
               uses: svenstaro/upload-release-action@v2
               with:
-                  file: "**/*.tar.gz"
+                  file: "target/*.tar.gz"
                   file_glob: true
                   overwrite: true
     upload-deploy:

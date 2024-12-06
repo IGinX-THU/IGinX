@@ -32,6 +32,6 @@ bash -c "cat 'test/src/test/resources/fileReadAndWrite/csv/test.csv' > 'test/src
 
 bash -c "sed -i '1ikey,d m,b,[c],a' 'test/src/test/resources/fileReadAndWrite/csv/test1'"
 
-COMMAND1='LOAD DATA FROM INFILE "'"test/src/test/resources/fileReadAndWrite/csv/test1"'" AS CSV INTO t1;'
+COMMAND1='LOAD DATA FROM INFILE "'"test/src/test/resources/fileReadAndWrite/csv/test1"'" AS CSV INTO t1 AT 10;'
 
 bash -c "echo '$COMMAND1' | xargs -0 -t -i ${SCRIPT_COMMAND}"

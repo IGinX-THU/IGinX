@@ -99,7 +99,9 @@ public class Avg implements SetMappingFunction {
     }
     Object[] targetValues = new Object[targetFields.size()];
     for (int i = 0; i < targetValues.length; i++) {
-      targetValues[i] = targetSums[i] / counts[i];
+      if (counts[i] != 0) {
+        targetValues[i] = targetSums[i] / counts[i];
+      }
     }
     return new Row(new Header(targetFields), targetValues);
   }

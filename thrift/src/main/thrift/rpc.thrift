@@ -71,7 +71,7 @@ enum SqlType {
     ShowJobStatus,
     CancelJob,
     ShowEligibleJob,
-    RemoveHistoryDataSource,
+    RemoveStorageEngine,
     SetConfig,
     ShowConfig,
     Compact,
@@ -614,11 +614,16 @@ struct GetRegisterTaskInfoReq {
     1: required i64 sessionId
 }
 
+struct IpPortPair {
+    1: required string ip
+    2: required i32 port
+}
+
 struct RegisterTaskInfo {
     1: required string name
     2: required string className
     3: required string fileName
-    4: required string ip
+    4: required list<IpPortPair> ipPortPair
     5: required UDFType type;
 }
 
@@ -694,7 +699,7 @@ struct RemovedStorageEngineInfo {
     4: required string dataPrefix
 }
 
-struct RemoveHistoryDataSourceReq {
+struct RemoveStorageEngineReq {
     1: required i64 sessionId
     2: required list<RemovedStorageEngineInfo> removedStorageEngineInfoList
 }
@@ -746,7 +751,7 @@ service IService {
 
     Status alterStorageEngine(1: AlterStorageEngineReq req);
 
-    Status removeHistoryDataSource(1: RemoveHistoryDataSourceReq req);
+    Status removeStorageEngine(1: RemoveStorageEngineReq req);
 
     AggregateQueryResp aggregateQuery(1: AggregateQueryReq req);
 

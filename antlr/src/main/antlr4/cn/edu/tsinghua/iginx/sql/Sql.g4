@@ -48,7 +48,7 @@ statement
    | SHOW TRANSFORM JOB STATUS jobId = INT # showJobStatusStatement
    | CANCEL TRANSFORM JOB jobId = INT # cancelJobStatement
    | SHOW jobStatus TRANSFORM JOB # showEligibleJobStatement
-   | REMOVE HISTORYDATASOURCE removedStorageEngine (COMMA removedStorageEngine)* # removeHistoryDataSourceStatement
+   | REMOVE STORAGEENGINE removedStorageEngine (COMMA removedStorageEngine)* # removeStorageEngineStatement
    | SET CONFIG configName = stringLiteral configValue = stringLiteral # setConfigStatement
    | SHOW CONFIG (configName = stringLiteral)? # showConfigStatement
    | SHOW SESSIONID # showSessionIDStatement
@@ -279,7 +279,7 @@ fromClause
 joinPart
    : COMMA tableReference
    | CROSS JOIN tableReference
-   | join tableReference (ON orExpression | USING colList)?
+   | join tableReference (ON orExpression | USING (KEY | colList))?
    ;
 
 tableReference
@@ -561,7 +561,6 @@ keyWords
    | RANGE
    | STEP
    | REMOVE
-   | HISTORYDATASOURCE
    | COMPACT
    | EXPLAIN
    | LOGICAL
@@ -995,10 +994,6 @@ STEP
 
 REMOVE
    : R E M O V E
-   ;
-
-HISTORYDATASOURCE
-   : H I S T O R Y D A T A S O U R C E
    ;
 
 COMPACT

@@ -113,7 +113,6 @@ import cn.edu.tsinghua.iginx.sql.SqlParser.PredicateContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.PredicateWithSubqueryContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.QueryClauseContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.RegisterTaskStatementContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.RemoveHistoryDataSourceStatementContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.SearchedCaseContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.SearchedWhenClauseContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.SelectClauseContext;
@@ -553,14 +552,10 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     List<StorageEngineContext> engines = ctx.storageEngineSpec().storageEngine();
     for (StorageEngineContext engine : engines) {
       String ipStr = engine.ip.getText();
-      String ip =
-          ipStr.substring(
-              ipStr.indexOf(SQLConstant.QUOTE) + 1, ipStr.lastIndexOf(SQLConstant.QUOTE));
+      String ip = ipStr.substring(1, ipStr.length() - 1);
       int port = Integer.parseInt(engine.port.getText());
       String typeStr = engine.engineType.getText().trim();
-      String type =
-          typeStr.substring(
-              typeStr.indexOf(SQLConstant.QUOTE) + 1, typeStr.lastIndexOf(SQLConstant.QUOTE));
+      String type = typeStr.substring(1, typeStr.length() - 1);
       Map<String, String> extra = parseExtra(engine.extra);
       addStorageEngineStatement.setEngines(
           new StorageEngine(ip, port, StorageEngineType.valueOf(type.toLowerCase()), extra));
@@ -657,9 +652,9 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
   }
 
   @Override
-  public Statement visitRemoveHistoryDataSourceStatement(
-      RemoveHistoryDataSourceStatementContext ctx) {
-    RemoveHistoryDataSourceStatement statement = new RemoveHistoryDataSourceStatement();
+  public Statement visitRemoveStorageEngineStatement(
+      SqlParser.RemoveStorageEngineStatementContext ctx) {
+    RemoveStorageEngineStatement statement = new RemoveStorageEngineStatement();
     ctx.removedStorageEngine()
         .forEach(
             storageEngine -> {
@@ -718,7 +713,8 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
               .path()
               .forEach(pathContext -> columns.add(parsePath(pathContext)));
         }
-        joinPart.setJoinCondition(new JoinCondition(joinType, filter, columns));
+        boolean isJoinByKey = joinPartContext.KEY() != null;
+        joinPart.setJoinCondition(new JoinCondition(joinType, filter, columns, isJoinByKey));
         fromParts.add(joinPart);
       }
     }
@@ -2043,8 +2039,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     if (extra.length() == 0 || extra.equals(SQLConstant.DOUBLE_QUOTES)) {
       return map;
     }
-    extra =
-        extra.substring(extra.indexOf(SQLConstant.QUOTE) + 1, extra.lastIndexOf(SQLConstant.QUOTE));
+    extra = extra.substring(1, extra.length() - 1);
     String[] kvStr = extra.split(SQLConstant.COMMA);
     for (String kv : kvStr) {
       String[] kvArray = kv.split(SQLConstant.COLON);
