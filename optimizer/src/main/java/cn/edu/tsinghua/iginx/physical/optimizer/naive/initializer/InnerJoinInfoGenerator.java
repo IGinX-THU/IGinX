@@ -32,7 +32,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.PathFilter;
-import cn.edu.tsinghua.iginx.physical.optimizer.naive.util.HashJoins;
+import cn.edu.tsinghua.iginx.physical.optimizer.naive.util.HashJoinUtils;
 import java.util.*;
 
 public class InnerJoinInfoGenerator implements BinaryExecutorFactory<StatefulBinaryExecutor> {
@@ -83,7 +83,7 @@ public class InnerJoinInfoGenerator implements BinaryExecutorFactory<StatefulBin
               operator.getPrefixB() + "." + joinColumn));
     }
 
-    return HashJoins.constructHashJoin(
+    return HashJoinUtils.constructHashJoin(
         context,
         leftSchema,
         rightSchema,

@@ -19,9 +19,17 @@
  */
 package cn.edu.tsinghua.iginx.engine.shared.function;
 
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpression;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
+import org.apache.arrow.vector.types.pojo.Schema;
 
 public interface RowMappingFunction extends Function {
 
   Row transform(Row row, FunctionParams params) throws Exception;
+
+  ScalarExpression<?> transform(
+      ExecutorContext context, Schema schema, FunctionParams params, boolean setAlias)
+      throws ComputeException;
 }

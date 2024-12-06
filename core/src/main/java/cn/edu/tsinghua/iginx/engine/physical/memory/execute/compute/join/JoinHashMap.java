@@ -32,9 +32,6 @@ import java.util.Objects;
 import javax.annotation.Nullable;
 import javax.annotation.WillClose;
 import javax.annotation.WillCloseWhenClosed;
-import org.apache.arrow.algorithm.sort.DefaultVectorComparators;
-import org.apache.arrow.algorithm.sort.IndexSorter;
-import org.apache.arrow.algorithm.sort.StableVectorComparator;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.util.Preconditions;
 import org.apache.arrow.vector.*;
@@ -106,7 +103,7 @@ public class JoinHashMap implements AutoCloseable {
           IntVector buildSideCandidateIndices = buildSideCandidateIndicesBuilder.build();
           IntVector proSideCandidateIndices = probeSideCandidateIndicesBuilder.build()) {
         boolean[] probeSideMatched = new boolean[probeSideBatch.getRowCount()];
-        output(
+        outputMatchedAndUnmatched(
             outputDictionaryProvider,
             buildSideCandidateIndices,
             proSideCandidateIndices,
@@ -143,12 +140,12 @@ public class JoinHashMap implements AutoCloseable {
           IntVector buildSideIndices = buildSideIndicesBuilder.build(buildSideUnmatchedCount);
           IntVector probeSideIndices = probeSideIndicesBuilder.build(buildSideUnmatchedCount);
           BitVector mark = markBuilder.build(buildSideUnmatchedCount)) {
-        output(dictionary, buildSideIndices, probeSideIndices, mark);
+        output(dictionary, buildSideIndices, probeSideIndices, mark, 0);
       }
     }
   }
 
-  private void output(
+  private void outputMatchedAndUnmatched(
       ArrayDictionaryProvider dictionary,
       IntVector buildSideCandidateIndices,
       IntVector proSideCandidateIndices,
@@ -160,32 +157,37 @@ public class JoinHashMap implements AutoCloseable {
                 allocator, "buildSideIndices", buildSideCandidateIndices.getValueCount());
         SelectionBuilder probeSideIndicesBuilder =
             new SelectionBuilder(
-                allocator, "probeSideIndices", proSideCandidateIndices.getValueCount());
-        MarkBuilder markBuilder = getMarkBuilder(probeSideMatched.length)) {
+                allocator, "probeSideIndices", proSideCandidateIndices.getValueCount())) {
 
+      int matchedCount = 0;
       try (VectorSchemaRoot candidate =
               getDictionaryEncodedBatch(
                   buildSideCandidateIndices, proSideCandidateIndices, dictionary);
           BaseIntVector indicesSelection = matcher.filter(allocator, dictionary, candidate, null)) {
-        outputMatched(
-            buildSideIndicesBuilder,
-            probeSideIndicesBuilder,
-            markBuilder,
-            buildSideCandidateIndices,
-            proSideCandidateIndices,
-            indicesSelection,
-            probeSideMatched);
+        matchedCount =
+            outputMatched(
+                buildSideIndicesBuilder,
+                probeSideIndicesBuilder,
+                buildSideCandidateIndices,
+                proSideCandidateIndices,
+                indicesSelection,
+                probeSideMatched);
       }
 
+      int unmatchedCount = 0;
       if (joinOption.isToOutputProbeSideUnmatched()) {
-        outputProbeSideUnmatched(probeSideIndicesBuilder, markBuilder, probeSideMatched);
+        unmatchedCount = outputProbeSideUnmatched(probeSideIndicesBuilder, probeSideMatched);
       }
 
-      try (IntVector probeSideIndices = probeSideIndicesBuilder.build();
-          IntVector buildSideIndices =
-              buildSideIndicesBuilder.build(probeSideIndices.getValueCount());
-          BitVector mark = markBuilder.build(probeSideIndices.getValueCount())) {
-        output(dictionary, buildSideIndices, probeSideIndices, mark);
+      try (MarkBuilder markBuilder = getMarkBuilder(matchedCount + unmatchedCount)) {
+        markBuilder.appendTrue(matchedCount);
+        markBuilder.appendFalse(unmatchedCount);
+        try (IntVector probeSideIndices = probeSideIndicesBuilder.build();
+            IntVector buildSideIndices =
+                buildSideIndicesBuilder.build(probeSideIndices.getValueCount());
+            BitVector mark = markBuilder.build(probeSideIndices.getValueCount())) {
+          output(dictionary, buildSideIndices, probeSideIndices, mark, unmatchedCount);
+        }
       }
     }
   }
@@ -198,10 +200,9 @@ public class JoinHashMap implements AutoCloseable {
     }
   }
 
-  private void outputMatched(
+  private int outputMatched(
       SelectionBuilder buildSideIndicesBuilder,
       SelectionBuilder probeSideIndicesBuilder,
-      MarkBuilder markBuilder,
       IntVector buildSideCandidateIndices,
       IntVector proSideCandidateIndices,
       @Nullable BaseIntVector indicesSelection,
@@ -210,20 +211,18 @@ public class JoinHashMap implements AutoCloseable {
     Preconditions.checkState(
         buildSideCandidateIndices.getValueCount() == proSideCandidateIndices.getValueCount());
     if (indicesSelection == null) {
-      outputMatched(
+      return outputMatched(
           buildSideIndicesBuilder,
           probeSideIndicesBuilder,
-          markBuilder,
           buildSideCandidateIndices,
           proSideCandidateIndices,
           probeSideMatched,
           proSideCandidateIndices.getValueCount(),
           i -> i);
     } else {
-      outputMatched(
+      return outputMatched(
           buildSideIndicesBuilder,
           probeSideIndicesBuilder,
-          markBuilder,
           buildSideCandidateIndices,
           proSideCandidateIndices,
           probeSideMatched,
@@ -232,10 +231,9 @@ public class JoinHashMap implements AutoCloseable {
     }
   }
 
-  private void outputMatched(
+  private int outputMatched(
       SelectionBuilder buildSideIndicesBuilder,
       SelectionBuilder probeSideIndicesBuilder,
-      MarkBuilder markBuilder,
       IntVector buildSideCandidateIndices,
       IntVector proSideCandidateIndices,
       boolean[] probeSideMatched,
@@ -266,13 +264,11 @@ public class JoinHashMap implements AutoCloseable {
       buildSideIndicesBuilder.append(buildSideMatchedIndex);
       probeSideIndicesBuilder.append(probeSideMatchedIndex);
     }
-    markBuilder.appendTrue(probeSideMatchedCount);
+    return probeSideMatchedCount;
   }
 
-  private void outputProbeSideUnmatched(
-      SelectionBuilder probeSideIndicesBuilder,
-      MarkBuilder markBuilder,
-      boolean[] probeSideMatched) {
+  private int outputProbeSideUnmatched(
+      SelectionBuilder probeSideIndicesBuilder, boolean[] probeSideMatched) {
     int probeSideUnmatchedCount = 0;
     for (int probeSideIndex = 0; probeSideIndex < probeSideMatched.length; probeSideIndex++) {
       if (!probeSideMatched[probeSideIndex]) {
@@ -280,7 +276,7 @@ public class JoinHashMap implements AutoCloseable {
         probeSideIndicesBuilder.append(probeSideIndex);
       }
     }
-    markBuilder.appendFalse(probeSideUnmatchedCount);
+    return probeSideUnmatchedCount;
   }
 
   private VectorSchemaRoot getDictionaryEncodedBatch(
@@ -306,7 +302,8 @@ public class JoinHashMap implements AutoCloseable {
       ArrayDictionaryProvider dictionaryProvider,
       BaseIntVector buildSideIndices,
       BaseIntVector probeSideIndices,
-      @Nullable BitVector mark)
+      @Nullable BitVector mark,
+      int unmatchedCount)
       throws ComputeException {
     Preconditions.checkArgument(
         buildSideIndices.getValueCount() == probeSideIndices.getValueCount());
@@ -335,7 +332,7 @@ public class JoinHashMap implements AutoCloseable {
         VectorSchemaRoot output =
             ScalarExpressions.evaluate(
                 allocator, dictionaryProvider, result, null, outputExpressions);
-        BaseIntVector selection = getSelection(probeSideIndices)) {
+        BaseIntVector selection = getSelection(probeSideIndices, unmatchedCount)) {
       resultConsumer.consume(
           dictionaryProvider.slice(allocator),
           VectorSchemaRoots.transfer(allocator, output),
@@ -344,33 +341,55 @@ public class JoinHashMap implements AutoCloseable {
   }
 
   @Nullable
-  private BaseIntVector getSelection(BaseIntVector probeSideIndices) {
-    if (!joinOption.isToOutputProbeSideUnmatched() || !joinOption.isOrderByProbeSideOrdinal()) {
-      return null;
-    }
-    if (isInOrder(probeSideIndices)) {
+  private BaseIntVector getSelection(BaseIntVector probeSideIndices, int unmatchedCount) {
+    int total = probeSideIndices.getValueCount();
+    int matchedCount = total - unmatchedCount;
+    if (matchedCount == 0 || unmatchedCount == 0 || !joinOption.isOrderByProbeSideOrdinal()) {
       return null;
     }
 
-    IntVector selection = new IntVector("selection", allocator);
-    selection.allocateNew(probeSideIndices.getValueCount());
-    selection.setValueCount(probeSideIndices.getValueCount());
-    new IndexSorter<>()
-        .sort(
-            probeSideIndices,
-            selection,
-            new StableVectorComparator<>(
-                DefaultVectorComparators.createDefaultComparator(probeSideIndices)));
-    return selection;
+    if (isInOrder(probeSideIndices, matchedCount - 1, matchedCount)) {
+      return null;
+    }
+
+    try (SelectionBuilder selectionBuilder = new SelectionBuilder(allocator, "selection", total)) {
+      // merge from [0,matchedCount) and from [matchedCount,probeSideIndices.getValueCount())
+      int leftCursor = 0;
+      int rightCursor = matchedCount;
+      while (true) {
+        if (leftCursor < matchedCount) {
+          if (rightCursor < total) {
+            if (isInOrder(probeSideIndices, leftCursor, rightCursor)) {
+              selectionBuilder.append(leftCursor++);
+            } else {
+              selectionBuilder.append(rightCursor++);
+            }
+          } else {
+            selectionBuilder.append(leftCursor++);
+          }
+        } else {
+          if (rightCursor < total) {
+            selectionBuilder.append(rightCursor++);
+          } else {
+            break;
+          }
+        }
+      }
+      return selectionBuilder.build();
+    }
   }
 
-  private static boolean isInOrder(BaseIntVector vector) {
-    for (int i = 1; i < vector.getValueCount(); i++) {
-      if (vector.getValueAsLong(i) < vector.getValueAsLong((i - 1))) {
+  private static boolean isInOrder(BaseIntVector vector, int leftIndex, int rightIndex) {
+    // null is biggest
+    if (vector.getField().isNullable()) {
+      if (vector.isNull(rightIndex)) {
+        return true;
+      }
+      if (vector.isNull(leftIndex)) {
         return false;
       }
     }
-    return true;
+    return vector.getValueAsLong(leftIndex) <= vector.getValueAsLong(rightIndex);
   }
 
   public static class Builder implements AutoCloseable {

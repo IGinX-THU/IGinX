@@ -21,19 +21,16 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util;
 
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.IntVector;
-import org.apache.arrow.vector.types.Types;
-import org.apache.arrow.vector.types.pojo.Field;
-import org.apache.arrow.vector.types.pojo.FieldType;
 
 public class SelectionBuilder implements AutoCloseable {
 
+  private final BufferAllocator allocator;
   private IntVector selection;
   private int index = 0;
 
   public SelectionBuilder(BufferAllocator allocator, String name, int initCapacity) {
-    selection =
-        new IntVector(
-            new Field(name, FieldType.notNullable(Types.MinorType.INT.getType()), null), allocator);
+    this.allocator = allocator;
+    selection = new IntVector(name, allocator);
     selection.allocateNew(initCapacity);
   }
 
@@ -59,8 +56,11 @@ public class SelectionBuilder implements AutoCloseable {
   public IntVector build(int count) {
     ConstantVectors.setAllValidity(selection, index);
     selection.setValueCount(count);
-    IntVector selection = this.selection;
-    this.selection = null;
-    return selection;
+    try {
+      return ValueVectors.slice(allocator, selection, count > index);
+    } finally {
+      selection.close();
+      selection = null;
+    }
   }
 }

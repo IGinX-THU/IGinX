@@ -17,13 +17,12 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package cn.edu.tsinghua.iginx.physical.optimizer.naive.util;
+package cn.edu.tsinghua.iginx.engine.physical.utils;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.ScalarFunction;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.arithmetic.BinaryArithmeticScalarFunction;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.arithmetic.Negate;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.*;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.register.Callee;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.selecting.CaseWhen;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.Schemas;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
@@ -37,7 +36,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.arrow.vector.types.pojo.Schema;
 
-public class Expressions {
+public class PhysicalExpressionUtils {
 
   public static ScalarExpression<?> getPhysicalExpression(
       ExecutorContext context, Schema inputSchema, Expression expr, boolean setAlias)
@@ -107,7 +106,7 @@ public class Expressions {
     List<ScalarExpression<?>> args = new ArrayList<>();
     // [condition1, value1, condition2, value2..., valueElse]
     for (int i = 0; i < expr.getConditions().size(); i++) {
-      args.add(Filters.construct(expr.getConditions().get(i), context, inputSchema));
+      args.add(PhysicalFilterUtils.construct(expr.getConditions().get(i), context, inputSchema));
       args.add(getPhysicalExpression(context, inputSchema, expr.getResults().get(i), false));
     }
     if (expr.getResultElse() != null) {
@@ -214,7 +213,7 @@ public class Expressions {
         new FunctionParams(expr.getExpressions(), expr.getArgs(), expr.getKvargs());
 
     ScalarExpression<?> physicalExpression =
-        getPhysicalExpressionOfFunctionCall(context, inputSchema, identifier, params);
+        getPhysicalExpressionOfFunctionCall(context, inputSchema, identifier, params, setAlias);
     if (setAlias) {
       return new RenameNode<>(columnName, physicalExpression);
     } else {
@@ -223,7 +222,7 @@ public class Expressions {
   }
 
   public static ScalarExpression<?> getPhysicalExpressionOfFunctionCall(
-      ExecutorContext context, Schema inputSchema, FunctionCall functionCall)
+      ExecutorContext context, Schema inputSchema, FunctionCall functionCall, boolean setAlias)
       throws ComputeException {
     Function function = functionCall.getFunction();
     if (function.getMappingType() != MappingType.RowMapping) {
@@ -231,25 +230,25 @@ public class Expressions {
           "Unsupported mapping type for row transform: " + function.getMappingType());
     }
 
-    return getPhysicalExpressionOfFunctionCall(
-        context, inputSchema, function.getIdentifier(), functionCall.getParams());
+    return ((RowMappingFunction) function)
+        .transform(context, inputSchema, functionCall.getParams(), setAlias);
   }
 
   public static ScalarExpression<?> getPhysicalExpressionOfFunctionCall(
-      ExecutorContext context, Schema inputSchema, String funcName, FunctionParams params)
+      ExecutorContext context,
+      Schema inputSchema,
+      String funcName,
+      FunctionParams params,
+      boolean setAlias)
       throws ComputeException {
-    List<ScalarExpression<?>> inputs =
-        Expressions.getRowMappingFunctionArgumentExpressions(context, inputSchema, params);
-
-    Callee callee = context.getCalleeRegistry().get(funcName);
-    if (callee == null) {
-      throw new ComputeException("Function not found: " + funcName);
-    }
-    return callee.call(context, inputSchema, params.getArgs(), params.getKwargs(), inputs);
+    Function function = FunctionManager.getInstance().getFunction(funcName);
+    return getPhysicalExpressionOfFunctionCall(
+        context, inputSchema, new FunctionCall(function, params), setAlias);
   }
 
   public static List<ScalarExpression<?>> getRowMappingFunctionArgumentExpressions(
-      ExecutorContext context, Schema inputSchema, FunctionParams params) throws ComputeException {
+      ExecutorContext context, Schema inputSchema, FunctionParams params, boolean setAlias)
+      throws ComputeException {
     List<ScalarExpression<?>> scalarExpressions = new ArrayList<>();
     boolean needPreRowTransform = false;
     for (Expression expression : params.getExpressions()) {
@@ -274,7 +273,8 @@ public class Expressions {
       List<ScalarExpression<?>> preRowTransform = new ArrayList<>();
       for (Expression expression : params.getExpressions()) {
         preRowTransform.add(
-            Expressions.getPhysicalExpression(context, inputSchema, expression, true));
+            PhysicalExpressionUtils.getPhysicalExpression(
+                context, inputSchema, expression, setAlias));
       }
       Schema schema =
           ScalarExpressions.getOutputSchema(context.getAllocator(), preRowTransform, inputSchema);

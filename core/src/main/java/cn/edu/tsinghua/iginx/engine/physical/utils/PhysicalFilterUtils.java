@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package cn.edu.tsinghua.iginx.physical.optimizer.naive.util;
+package cn.edu.tsinghua.iginx.engine.physical.utils;
 
 import cn.edu.tsinghua.iginx.engine.logical.utils.LogicalFilterUtils;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.FieldNode;
@@ -43,7 +43,7 @@ import org.apache.arrow.vector.types.pojo.Field;
 import org.apache.arrow.vector.types.pojo.Schema;
 import org.apache.commons.lang3.tuple.Pair;
 
-public class Filters {
+public class PhysicalFilterUtils {
 
   public static PredicateExpression construct(
       Filter filter, ExecutorContext context, Schema inputSchema) throws ComputeException {
@@ -105,8 +105,10 @@ public class Filters {
       ExprFilter filter, ExecutorContext context, Schema inputSchema) throws ComputeException {
     return new CompareNode(
         getPredicate(filter.getOp()),
-        Expressions.getPhysicalExpression(context, inputSchema, filter.getExpressionA(), false),
-        Expressions.getPhysicalExpression(context, inputSchema, filter.getExpressionB(), false));
+        PhysicalExpressionUtils.getPhysicalExpression(
+            context, inputSchema, filter.getExpressionA(), false),
+        PhysicalExpressionUtils.getPhysicalExpression(
+            context, inputSchema, filter.getExpressionB(), false));
   }
 
   private static PredicateExpression construct(
@@ -139,7 +141,7 @@ public class Filters {
       List<PredicateExpression> children, ExecutorContext context) {
     List<PredicateExpression> subPredicates =
         children.stream()
-            .map(Filters::getAndNodeSubPredicates)
+            .map(PhysicalFilterUtils::getAndNodeSubPredicates)
             .flatMap(List::stream)
             .collect(Collectors.toList());
     if (subPredicates.isEmpty()) {
@@ -172,7 +174,7 @@ public class Filters {
       List<PredicateExpression> children, ExecutorContext context) {
     List<PredicateExpression> subPredicates =
         children.stream()
-            .map(Filters::getOrNodeSubPredicates)
+            .map(PhysicalFilterUtils::getOrNodeSubPredicates)
             .flatMap(List::stream)
             .collect(Collectors.toList());
     if (subPredicates.isEmpty()) {
@@ -394,16 +396,16 @@ public class Filters {
         AndFilter andFilter = (AndFilter) filter;
         List<Filter> reorderedAndChildren =
             andFilter.getChildren().stream()
-                .map(Filters::reorderFilter)
-                .sorted(Comparator.comparingInt(Filters::countComplexFilter))
+                .map(PhysicalFilterUtils::reorderFilter)
+                .sorted(Comparator.comparingInt(PhysicalFilterUtils::countComplexFilter))
                 .collect(Collectors.toList());
         return new AndFilter(reorderedAndChildren);
       case Or:
         OrFilter orFilter = (OrFilter) filter;
         List<Filter> reorderedOrChildren =
             orFilter.getChildren().stream()
-                .map(Filters::reorderFilter)
-                .sorted(Comparator.comparingInt(Filters::countComplexFilter))
+                .map(PhysicalFilterUtils::reorderFilter)
+                .sorted(Comparator.comparingInt(PhysicalFilterUtils::countComplexFilter))
                 .collect(Collectors.toList());
         return new OrFilter(reorderedOrChildren);
       default:

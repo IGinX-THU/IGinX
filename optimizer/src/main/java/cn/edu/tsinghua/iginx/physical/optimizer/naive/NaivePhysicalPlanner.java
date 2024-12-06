@@ -36,6 +36,8 @@ import cn.edu.tsinghua.iginx.engine.physical.task.memory.row.BinaryRowMemoryPhys
 import cn.edu.tsinghua.iginx.engine.physical.task.memory.row.RowToArrowUnaryMemoryPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.memory.row.UnaryRowMemoryPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.utils.PhysicalCloseable;
+import cn.edu.tsinghua.iginx.engine.physical.utils.PhysicalExpressionUtils;
+import cn.edu.tsinghua.iginx.engine.physical.utils.PhysicalJoinUtils;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStreams;
@@ -50,9 +52,6 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.type.JoinAlgType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.source.*;
 import cn.edu.tsinghua.iginx.physical.optimizer.naive.initializer.*;
-import cn.edu.tsinghua.iginx.physical.optimizer.naive.util.Expressions;
-import cn.edu.tsinghua.iginx.physical.optimizer.naive.util.Joins;
-import cn.edu.tsinghua.iginx.sql.utils.ExpressionUtils;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -157,7 +156,8 @@ public class NaivePhysicalPlanner {
   public PhysicalTask<BatchStream> construct(
       List<Expression> constantExpressions, RequestContext context) {
     Preconditions.checkArgument(
-        constantExpressions.stream().allMatch(ExpressionUtils::isConstantArithmeticExpr));
+        constantExpressions.stream()
+            .allMatch(cn.edu.tsinghua.iginx.sql.utils.ExpressionUtils::isConstantArithmeticExpr));
 
     PhysicalTask<BatchStream> source =
         new StreamSourceMemoryPhysicalTask(
@@ -315,6 +315,10 @@ public class NaivePhysicalPlanner {
   public PhysicalTask<?> construct(Select operator, RequestContext context) {
     Source source = operator.getSource();
     PhysicalTask<?> sourceTask = fetch(operator.getSource(), context);
+    if (sourceTask.getResultClass() == RowStream.class) {
+      return new UnaryRowMemoryPhysicalTask(
+          convert(sourceTask, context, RowStream.class), operator, context);
+    }
 
     StoragePhysicalTask storageTask = tryPushDownAloneWithProject(sourceTask, context, operator);
     if (storageTask != null) {
@@ -400,11 +404,15 @@ public class NaivePhysicalPlanner {
       return constructRow(operator, context);
     }
     if (!operator.getGroupByExpressions().stream()
-        .allMatch(Expressions::containSystemFunctionOnly)) {
+        .allMatch(PhysicalExpressionUtils::containSystemFunctionOnly)) {
       return constructRow(operator, context);
     }
 
     PhysicalTask<?> sourceTask = fetch(operator.getSource(), context);
+    if (sourceTask.getResultClass() == RowStream.class) {
+      return new UnaryRowMemoryPhysicalTask(
+          convert(sourceTask, context, RowStream.class), operator, context);
+    }
     PhysicalTask<BatchStream> batchTask = convert(sourceTask, context, BatchStream.class);
 
     if (!operator.getGroupByExpressions().isEmpty()) {
@@ -415,6 +423,8 @@ public class NaivePhysicalPlanner {
               context,
               new AppendExpressionInfoGenerator(operator.getGroupByExpressions()));
     }
+
+    batchTask = new FetchAsyncMemoryPhysicalTask(batchTask, context);
 
     return new UnarySinkMemoryPhysicalTask(
         batchTask,
@@ -453,7 +463,7 @@ public class NaivePhysicalPlanner {
     // NOTE: The order of left and right task is reversed in InnerJoin
     // 这里以及后面交换了左右两个表的顺序，原因是在之前基于行的实现中，右表是BuildSide，左表是ProbeSide
     // 现在基于列的实现中，左表是BuildSide，右表是ProbeSide
-    operator = Joins.reverse(operator);
+    operator = PhysicalJoinUtils.reverse(operator);
 
     PhysicalTask<BatchStream> leftTask = fetchAsync(operator.getSourceA(), context);
     PhysicalTask<BatchStream> rightTask = fetchAsync(operator.getSourceB(), context);
@@ -471,7 +481,7 @@ public class NaivePhysicalPlanner {
       return constructRow(operator, context);
     }
 
-    operator = Joins.reverse(operator);
+    operator = PhysicalJoinUtils.reverse(operator);
 
     PhysicalTask<BatchStream> leftTask = fetchAsync(operator.getSourceA(), context);
     PhysicalTask<BatchStream> rightTask = fetchAsync(operator.getSourceB(), context);
@@ -489,7 +499,7 @@ public class NaivePhysicalPlanner {
       return constructRow(operator, context);
     }
 
-    operator = Joins.reverse(operator);
+    operator = PhysicalJoinUtils.reverse(operator);
 
     PhysicalTask<BatchStream> leftTask = fetchAsync(operator.getSourceA(), context);
     PhysicalTask<BatchStream> rightTask = fetchAsync(operator.getSourceB(), context);
@@ -507,7 +517,7 @@ public class NaivePhysicalPlanner {
       return constructRow(operator, context);
     }
 
-    operator = Joins.reverse(operator);
+    operator = PhysicalJoinUtils.reverse(operator);
 
     PhysicalTask<BatchStream> leftTask = fetchAsync(operator.getSourceA(), context);
     PhysicalTask<BatchStream> rightTask = fetchAsync(operator.getSourceB(), context);

@@ -88,11 +88,7 @@ public class BatchStreamToRowStreamWrapper implements RowStream {
 
   @Override
   public boolean hasNext() throws PhysicalException {
-    if (rowCache.isEmpty()) {
-      fetchNextBatch();
-    } else {
-      return true;
-    }
+    tryFetchNextBatchIfNeed();
     return !rowCache.isEmpty();
   }
 
@@ -101,15 +97,14 @@ public class BatchStreamToRowStreamWrapper implements RowStream {
     return rowCache.remove();
   }
 
-  private void fetchNextBatch() throws PhysicalException {
-    if (!previous.hasNext()) {
-      return;
-    }
-    try (Batch arrowBatch = previous.getNext()) {
-      try (StopWatch watch = new StopWatch(taskMetrics::accumulateCpuTime)) {
-        List<Row> rows = toRows(arrowBatch);
-        taskMetrics.accumulateAffectRows(rows.size());
-        rowCache.addAll(rows);
+  private void tryFetchNextBatchIfNeed() throws PhysicalException {
+    while (rowCache.isEmpty() && previous.hasNext()) {
+      try (Batch arrowBatch = previous.getNext()) {
+        try (StopWatch watch = new StopWatch(taskMetrics::accumulateCpuTime)) {
+          List<Row> rows = toRows(arrowBatch);
+          taskMetrics.accumulateAffectRows(rows.size());
+          rowCache.addAll(rows);
+        }
       }
     }
   }
