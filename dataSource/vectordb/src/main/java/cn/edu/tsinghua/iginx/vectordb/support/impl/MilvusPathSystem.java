@@ -236,15 +236,17 @@ public class MilvusPathSystem implements PathSystem {
         Map<String, Map<String, String>> ps =
             (Map<String, Map<String, String>>) currentLevel.get(END);
 
-        Iterator<Map.Entry<String, Map<String, String>>> iterator = ps.entrySet().iterator();
-        while (iterator.hasNext()) {
-          Map.Entry<String, Map<String, String>> entry = iterator.next();
-          if (isEqual(entry.getValue(), pair.getV())) {
-            iterator.remove();
+        synchronized (MilvusPathSystem.class) {
+          Iterator<Map.Entry<String, Map<String, String>>> iterator = ps.entrySet().iterator();
+          while (iterator.hasNext()) {
+            Map.Entry<String, Map<String, String>> entry = iterator.next();
+            if (isEqual(entry.getValue(), pair.getV())) {
+              iterator.remove();
+            }
           }
-        }
-        if (ps.size() == 0) {
-          currentLevel.remove(END);
+          if (ps.size() == 0) {
+            currentLevel.remove(END);
+          }
         }
         // 如果当前层级变为空，返回 true 表示可以删除上一层的引用
         return currentLevel.isEmpty();
@@ -258,15 +260,17 @@ public class MilvusPathSystem implements PathSystem {
     if (STAR.equals(part)) {
       // 如果是通配符，则递归所有子节点
       boolean anyDeleted = false;
-      Iterator<Map.Entry<String, Map<String, ?>>> iterator = currentLevel.entrySet().iterator();
-      while (iterator.hasNext()) {
-        Map.Entry<String, Map<String, ?>> entry = iterator.next();
-        String nextPart = entry.getKey();
-        if (!END.equals(nextPart)) {
-          if (deleteRecursive(parts, index + 1, (Map<String, Map<String, ?>>) entry.getValue())) {
-            // 如果下一层变为空，删除当前层级的引用
-            iterator.remove();
-            anyDeleted = true;
+      synchronized (MilvusPathSystem.class) {
+        Iterator<Map.Entry<String, Map<String, ?>>> iterator = currentLevel.entrySet().iterator();
+        while (iterator.hasNext()) {
+          Map.Entry<String, Map<String, ?>> entry = iterator.next();
+          String nextPart = entry.getKey();
+          if (!END.equals(nextPart)) {
+            if (deleteRecursive(parts, index + 1, (Map<String, Map<String, ?>>) entry.getValue())) {
+              // 如果下一层变为空，删除当前层级的引用
+              iterator.remove();
+              anyDeleted = true;
+            }
           }
         }
       }
