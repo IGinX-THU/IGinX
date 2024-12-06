@@ -23,12 +23,12 @@ import cn.edu.tsinghua.iginx.IginxWorker;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.Result;
 import cn.edu.tsinghua.iginx.engine.shared.exception.StatementExecutionException;
-import cn.edu.tsinghua.iginx.thrift.RemoveHistoryDataSourceReq;
+import cn.edu.tsinghua.iginx.thrift.RemoveStorageEngineReq;
 import cn.edu.tsinghua.iginx.thrift.RemovedStorageEngineInfo;
 import java.util.ArrayList;
 import java.util.List;
 
-public class RemoveHistoryDataSourceStatement extends SystemStatement {
+public class RemoveStorageEngineStatement extends SystemStatement {
 
   private List<RemovedStorageEngineInfo> storageEngineList;
 
@@ -44,7 +44,7 @@ public class RemoveHistoryDataSourceStatement extends SystemStatement {
     this.storageEngineList.add(storageEngine);
   }
 
-  public RemoveHistoryDataSourceStatement() {
+  public RemoveStorageEngineStatement() {
     storageEngineList = new ArrayList<>();
     this.statementType = StatementType.REMOVE_HISTORY_DATA_SOURCE;
   }
@@ -52,8 +52,7 @@ public class RemoveHistoryDataSourceStatement extends SystemStatement {
   @Override
   public void execute(RequestContext ctx) throws StatementExecutionException {
     IginxWorker worker = IginxWorker.getInstance();
-    RemoveHistoryDataSourceReq req =
-        new RemoveHistoryDataSourceReq(ctx.getSessionId(), storageEngineList);
-    ctx.setResult(new Result(worker.removeHistoryDataSource(req)));
+    RemoveStorageEngineReq req = new RemoveStorageEngineReq(ctx.getSessionId(), storageEngineList);
+    ctx.setResult(new Result(worker.removeStorageEngine(req)));
   }
 }

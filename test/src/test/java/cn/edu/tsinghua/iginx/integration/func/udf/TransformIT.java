@@ -733,7 +733,7 @@ public class TransformIT {
         LOGGER.error("Remove test resource dir failed:", e);
       }
       try {
-        session.removeHistoryDataSource(
+        session.removeStorageEngine(
             Collections.singletonList(new RemovedStorageEngineInfo("127.0.0.1", 6660, "", "")));
       } catch (SessionException e) {
         LOGGER.error("Remove read-only dummy engine failed:", e);
