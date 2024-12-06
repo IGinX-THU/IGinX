@@ -253,8 +253,7 @@ public class MilvusClientUtils {
       DataType fieldType,
       PathSystem pathSystem)
       throws UnsupportedEncodingException {
-    doCreateCollection(
-        client, databaseName, collectionName, idType, fieldType, pathSystem);
+    doCreateCollection(client, databaseName, collectionName, idType, fieldType, pathSystem);
   }
 
   public static void doCreateCollection(

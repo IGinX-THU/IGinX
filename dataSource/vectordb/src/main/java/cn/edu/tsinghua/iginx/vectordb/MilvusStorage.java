@@ -134,12 +134,7 @@ public class MilvusStorage implements IStorage {
 
         if (!collections.contains(NameUtils.escape(collectionName))) {
           MilvusClientUtils.createCollection(
-              client,
-              databaseName,
-              collectionName,
-              DataType.LONG,
-              data.getDataType(j),
-              pathSystem);
+              client, databaseName, collectionName, DataType.LONG, data.getDataType(j), pathSystem);
         }
 
         int cnt = 0;
@@ -415,6 +410,7 @@ public class MilvusStorage implements IStorage {
                   try (MilvusPoolClient c = new MilvusPoolClient(this.milvusConnectPool)) {
                     pathSystem.deletePath(
                         PathUtils.getPathUnescaped(databaseName, collectionName, ""));
+                    LOGGER.info(pathSystem+ " delete path : "+collectionName);
                     return MilvusClientUtils.dropCollection(
                         c.getClient(), databaseName, collectionName, entry.getValue());
                   }
@@ -523,10 +519,11 @@ public class MilvusStorage implements IStorage {
         patterns.add("*");
       }
 
-      PathUtils.initAll(client, this);
+      PathUtils.initStorage(client, this);
       List<Column> columns = new ArrayList<>();
       for (String pattern : patterns) {
         for (PathSystem pathSystem : pathSystemMap.values()) {
+          LOGGER.info(this.toString()+" : "+ pathSystem.getDatabaseName()+ ":"+pathSystem.toString());
           List<String> list = PathUtils.getPathSystem(client, pathSystem).findPaths(pattern, null);
           for (String p : list) {
             Pair<String, Map<String, String>> pair = splitFullName(getPathAndVersion(p).getK());
@@ -553,7 +550,7 @@ public class MilvusStorage implements IStorage {
       ColumnsInterval columnsInterval;
       TreeSet<String> paths = new TreeSet<>();
 
-      PathUtils.initAll(client, this);
+      PathUtils.initStorage(client, this);
       for (PathSystem pathSystem : pathSystemMap.values()) {
         for (Column c : PathUtils.getPathSystem(client, pathSystem).getColumns().values()) {
           if (org.apache.commons.lang3.StringUtils.isNotEmpty(prefix)
