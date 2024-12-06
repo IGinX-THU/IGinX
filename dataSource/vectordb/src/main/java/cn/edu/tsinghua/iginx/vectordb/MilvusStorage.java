@@ -417,7 +417,11 @@ public class MilvusStorage implements IStorage {
                     LOGGER.info(pathSystem+ " delete path : "+collectionName);
                     return MilvusClientUtils.dropCollection(
                         c.getClient(), databaseName, collectionName, entry.getValue());
+                  }catch(Exception e){
+                    LOGGER.error("Execute delete task in milvus : ", e);
+                    e.printStackTrace();
                   }
+                  return false;
                 };
             completionService.submit(task);
           }
