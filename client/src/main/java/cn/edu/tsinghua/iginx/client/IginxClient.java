@@ -680,7 +680,7 @@ public class IginxClient {
             Arrays.asList("show", "functions"),
             Arrays.asList("show", "sessionid"),
             Arrays.asList("show", "rules"),
-            Arrays.asList("remove", "historydatasource"));
+            Arrays.asList("remove", "storageengine"));
     addArgumentCompleters(iginxCompleters, withoutNullCompleters, false);
 
     List<String> singleCompleters = Arrays.asList("quit", "exit");

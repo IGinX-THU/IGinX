@@ -242,7 +242,7 @@ public class IginxWorker implements IService.Iface {
   }
 
   @Override
-  public Status removeHistoryDataSource(RemoveHistoryDataSourceReq req) {
+  public Status removeStorageEngine(RemoveStorageEngineReq req) {
     if (!sessionManager.checkSession(req.getSessionId(), AuthType.Cluster)) {
       return RpcUtils.ACCESS_DENY;
     }
