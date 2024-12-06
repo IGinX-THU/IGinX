@@ -22,8 +22,8 @@ port=$1
 
 pwd
 
-docker-compose -f $port/docker-compose-$port.yml down
+wsl docker-compose -f $port/docker-compose-$port.yml down
 
 sleep 5
 
-docker ps
+wsl docker ps

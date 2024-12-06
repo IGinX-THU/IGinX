@@ -76,7 +76,7 @@ runs:
                 sudo chown -R $(whoami) $port/
                 sudo nohup docker-compose -f $port/docker-compose-$port.yml up -d
               done
-              sleep 20
+              sleep 30
               docker ps -a
 
         - if: fromJSON(inputs.start) && runner.os == 'Windows'
