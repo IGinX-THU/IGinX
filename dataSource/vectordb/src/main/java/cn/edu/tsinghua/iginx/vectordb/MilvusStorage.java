@@ -68,8 +68,6 @@ public class MilvusStorage implements IStorage {
 
   private MilvusConnectPool milvusConnectPool;
 
-  private final StorageEngineMeta meta;
-
   private static final Logger LOGGER = LoggerFactory.getLogger(MilvusStorage.class);
 
   Map<String, PathSystem> pathSystemMap = new ConcurrentHashMap<>();
@@ -89,7 +87,6 @@ public class MilvusStorage implements IStorage {
     if (!meta.getStorageEngine().equals(StorageEngineType.vectordb)) {
       throw new StorageInitializationException("unexpected database: " + meta.getStorageEngine());
     }
-    this.meta = meta;
     Map<String, String> params = meta.getExtraParams();
     String protocol = params.getOrDefault(DB_PROTOCOL, DEFAULT_DB_PROTOCOL);
     int maxTotal =
@@ -200,7 +197,7 @@ public class MilvusStorage implements IStorage {
 
       for (int i = 0; i < taskCount; i++) {
         try {
-          Future<UpsertResp> future = completionService.take(); // 阻塞等待下一个完成的任务
+          completionService.take();
         } catch (Exception e) {
           LOGGER.error("unexpected error: ", e);
           return e;
@@ -238,7 +235,6 @@ public class MilvusStorage implements IStorage {
 
   private TaskExecuteResult executeProjectWithFilter(
       Project project, Filter filter, DataArea dataArea) {
-    long startTime = System.currentTimeMillis();
     String databaseName = dataArea.getStorageUnit();
     try (MilvusPoolClient milvusClient = new MilvusPoolClient(this.milvusConnectPool)) {
       MilvusClientV2 client = milvusClient.getClient();
@@ -282,25 +278,19 @@ public class MilvusStorage implements IStorage {
       for (int i = 0; i < collectionToFields.size(); i++) {
         try {
           Future<List<cn.edu.tsinghua.iginx.vectordb.entity.Column>> future =
-              completionService.take(); // 阻塞等待下一个完成的任务
+              completionService.take();
           columns.addAll(future.get());
         } catch (InterruptedException | ExecutionException e) {
-          LOGGER.error("Error retrieving task result: ", e);
+          LOGGER.error("Execute project task in milvus failure: ", e);
         }
       }
 
-      LOGGER.info(
-          "query {} {} result count : {} time cost : {}",
-          databaseName,
-          collectionToFields.keySet(),
-          columns.size() > 0 ? columns.get(0).getData().size() : 0,
-          System.currentTimeMillis() - startTime);
       return new TaskExecuteResult(new VectorDBQueryRowStream(columns, filter), null);
     } catch (Exception e) {
       LOGGER.error("unexpected error: ", e);
       return new TaskExecuteResult(
           new PhysicalTaskExecuteFailureException(
-              String.format("execute project task in milvus failure : %s", e)));
+              String.format("Execute project task in milvus failure : %s", e)));
     }
   }
 
@@ -361,10 +351,10 @@ public class MilvusStorage implements IStorage {
       for (int i = 0; i < collectionToFields.size(); i++) {
         try {
           Future<List<cn.edu.tsinghua.iginx.vectordb.entity.Column>> future =
-              completionService.take(); // 阻塞等待下一个完成的任务
+              completionService.take();
           columns.addAll(future.get());
         } catch (InterruptedException | ExecutionException e) {
-          LOGGER.error("Error retrieving task result: ", e);
+          LOGGER.error("Execute project task in milvus failure : ", e);
         }
       }
 
@@ -373,7 +363,7 @@ public class MilvusStorage implements IStorage {
       LOGGER.error("unexpected error: ", e);
       return new TaskExecuteResult(
           new PhysicalTaskExecuteFailureException(
-              String.format("execute project task in milvus failure, %s", e)));
+              String.format("Execute project task in milvus failure, %s", e)));
     }
   }
 
@@ -396,7 +386,6 @@ public class MilvusStorage implements IStorage {
 
   @Override
   public TaskExecuteResult executeDelete(Delete delete, DataArea dataArea) {
-    long startTime = System.currentTimeMillis();
     String databaseName = dataArea.getStorageUnit();
     try (MilvusPoolClient milvusClient = new MilvusPoolClient(this.milvusConnectPool)) {
       MilvusClientV2 client = milvusClient.getClient();
@@ -435,18 +424,17 @@ public class MilvusStorage implements IStorage {
 
           for (int i = 0; i < collectionToFields.size(); i++) {
             try {
-              Future<Boolean> future = completionService.take();
+              completionService.take();
             } catch (Exception e) {
-              LOGGER.error("execute delete task in milvus : ", e);
+              LOGGER.error("Execute delete task in milvus : ", e);
               return new TaskExecuteResult(
                   new PhysicalException(
-                      String.format("execute delete task in milvus failure: %s", e)));
+                      String.format("Execute delete task in milvus failure: %s", e)));
             }
           }
         }
       } else {
         MilvusClientUtils.useDatabase(client, databaseName);
-        LOGGER.info("delete by range : {} {}", paths, delete.getKeyRanges());
         Map<String, Set<String>> collectionToFields =
             MilvusClientUtils.determinePaths(client, paths, tagFilter, pathSystem);
 
@@ -464,12 +452,6 @@ public class MilvusStorage implements IStorage {
                         deleteByRange(
                             c.getClient(), databaseName, collectionName, keyRange, pathSystem);
                     r += deletedCount;
-                    LOGGER.info(
-                        "delete by range : {} {} {} {}",
-                        databaseName,
-                        collectionName,
-                        keyRange,
-                        deletedCount);
                   }
                   return r;
                 }
@@ -479,18 +461,15 @@ public class MilvusStorage implements IStorage {
 
         for (int i = 0; i < collectionToFields.size(); i++) {
           try {
-            Future<Long> future = completionService.take();
+            completionService.take();
           } catch (Exception e) {
-            LOGGER.error("execute delete task in milvus : ", e);
+            LOGGER.error("Execute delete task in milvus : ", e);
             return new TaskExecuteResult(
                 new PhysicalException(
-                    String.format("execute delete task in milvus failure: %s", e)));
+                    String.format("Execute delete task in milvus failure: %s", e)));
           }
         }
       }
-      LOGGER.info(
-          "execute delete task in milvus success, cost: {} ms",
-          System.currentTimeMillis() - startTime);
       return new TaskExecuteResult(null, null);
     } catch (Exception e) {
       LOGGER.error("unexpected error: ", e);
@@ -501,7 +480,6 @@ public class MilvusStorage implements IStorage {
 
   @Override
   public TaskExecuteResult executeInsert(Insert insert, DataArea dataArea) {
-    long startTime = System.currentTimeMillis();
     String databaseName = dataArea.getStorageUnit();
     try (MilvusPoolClient milvusClient = new MilvusPoolClient(this.milvusConnectPool)) {
       MilvusClientV2 client = milvusClient.getClient();
@@ -526,10 +504,6 @@ public class MilvusStorage implements IStorage {
         return new TaskExecuteResult(
             null, new PhysicalException(String.format("execute insert task in milvus failure"), e));
       }
-      LOGGER.info(
-          "insert {} time cost: {} ms.",
-          dataView.getKeySize(),
-          (System.currentTimeMillis() - startTime));
       return new TaskExecuteResult(null, null);
     } catch (Exception e) {
       LOGGER.error("unexpected error: ", e);

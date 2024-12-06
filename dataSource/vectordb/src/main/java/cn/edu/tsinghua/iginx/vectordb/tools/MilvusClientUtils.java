@@ -311,8 +311,6 @@ public class MilvusClientUtils {
             .vectorFieldName(MILVUS_VECTOR_FIELD_NAME)
             .build());
 
-    LOGGER.info("create collection {} {} ", databaseName, collectionName);
-
     PathUtils.getPathSystem(client, pathSystem)
         .addPath(PathUtils.getPathUnescaped(databaseName, collectionName, ""), false, fieldType);
 
