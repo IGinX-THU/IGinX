@@ -99,15 +99,24 @@ public class OrNode extends CallNode<BitVector> implements PredicateExpression {
       IntStream.range(0, input.getRowCount()).forEach(remainIndex::add);
     } else {
       for (int i = 0; i < selection.getValueCount(); i++) {
+        if (selection.getField().isNullable() && selection.isNull(i)) {
+          continue;
+        }
         remainIndex.add((int) selection.getValueAsLong(i));
       }
     }
 
     ResultBuilder resultBuilder = new ResultBuilder(allocator, selection);
-    return filter(
-        allocator, dictionaryProvider, input, selection, children, resultBuilder, remainIndex);
+    BaseIntVector result =
+        filter(
+            allocator, dictionaryProvider, input, selection, children, resultBuilder, remainIndex);
+    if (result != null) {
+      return result;
+    }
+    return ValueVectors.slice(allocator, selection, "or");
   }
 
+  @Nullable
   private static BaseIntVector filter(
       BufferAllocator allocator,
       DictionaryProvider dictionaryProvider,
@@ -120,7 +129,7 @@ public class OrNode extends CallNode<BitVector> implements PredicateExpression {
     try (BaseIntVector subSelection =
         children.get(0).filter(allocator, dictionaryProvider, input, selection)) {
       if (subSelection == null) {
-        return ValueVectors.slice(allocator, selection, "or");
+        return null;
       }
       for (int i = 0; i < subSelection.getValueCount(); i++) {
         int index = (int) subSelection.getValueAsLong(i);
@@ -128,7 +137,7 @@ public class OrNode extends CallNode<BitVector> implements PredicateExpression {
         remainIndex.remove(index);
       }
       if (remainIndex.isEmpty()) {
-        return ValueVectors.slice(allocator, selection, "or");
+        return null;
       }
       List<PredicateExpression> remainChildren = children.subList(1, children.size());
       if (remainChildren.isEmpty()) {
@@ -175,6 +184,9 @@ public class OrNode extends CallNode<BitVector> implements PredicateExpression {
       } else {
         invertedIndex = new IntObjectHashMap<>();
         for (int i = 0; i < selection.getValueCount(); i++) {
+          if (selection.getField().isNullable() && selection.isNull(i)) {
+            continue;
+          }
           int value = (int) selection.getValueAsLong(i);
           invertedIndex.put(value, Integer.valueOf(i));
         }

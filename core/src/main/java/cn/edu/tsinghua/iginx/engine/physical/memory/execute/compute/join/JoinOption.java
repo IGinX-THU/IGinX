@@ -27,7 +27,7 @@ public enum JoinOption {
   LEFT(true, false),
   RIGHT(false, true),
   FULL(true, true),
-  MARK(false, true, false, true, false, true),
+  MARK(false, true, true, true, false, true),
   SINGLE(false, true, true, false, false, false);
 
   private final boolean toOutputProbeSideUnmatched;

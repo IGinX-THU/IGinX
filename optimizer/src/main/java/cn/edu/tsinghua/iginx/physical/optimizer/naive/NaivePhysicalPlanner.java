@@ -315,14 +315,15 @@ public class NaivePhysicalPlanner {
   public PhysicalTask<?> construct(Select operator, RequestContext context) {
     Source source = operator.getSource();
     PhysicalTask<?> sourceTask = fetch(operator.getSource(), context);
-    if (sourceTask.getResultClass() == RowStream.class) {
-      return new UnaryRowMemoryPhysicalTask(
-          convert(sourceTask, context, RowStream.class), operator, context);
-    }
 
     StoragePhysicalTask storageTask = tryPushDownAloneWithProject(sourceTask, context, operator);
     if (storageTask != null) {
       return storageTask;
+    }
+
+    if (sourceTask.getResultClass() == RowStream.class) {
+      return new UnaryRowMemoryPhysicalTask(
+          convert(sourceTask, context, RowStream.class), operator, context);
     }
 
     PhysicalTask<BatchStream> batchTask = convert(sourceTask, context, BatchStream.class);
@@ -371,7 +372,7 @@ public class NaivePhysicalPlanner {
     }
     Project project = (Project) sourceOperator;
 
-    if (project.getTagFilter() == null) {
+    if (project.getTagFilter() != null) {
       return null;
     }
     return reConstruct(storageTask, context, false, operator);
