@@ -54,6 +54,7 @@ public class RowToArrowUnaryMemoryPhysicalTask
         throw e;
       }
     }
+
     return result;
   }
 

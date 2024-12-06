@@ -26,9 +26,9 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.excepti
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutorFactory;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateless.ProjectExecutor;
+import cn.edu.tsinghua.iginx.engine.physical.utils.PhysicalExpressionUtils;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
-import cn.edu.tsinghua.iginx.physical.optimizer.naive.util.Expressions;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -54,7 +54,8 @@ public class AppendExpressionInfoGenerator implements UnaryExecutorFactory<Proje
         continue;
       }
       ScalarExpression<?> scalarExpression =
-          Expressions.getPhysicalExpression(context, inputSchema.raw(), expression, true);
+          PhysicalExpressionUtils.getPhysicalExpression(
+              context, inputSchema.raw(), expression, true);
       scalarExpressions.add(scalarExpression);
     }
     return new ProjectExecutor(context, inputSchema.raw(), scalarExpressions);

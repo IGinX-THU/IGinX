@@ -31,6 +31,7 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.Schemas
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.binary.stateful.HashJoinExecutor;
+import cn.edu.tsinghua.iginx.engine.physical.utils.PhysicalFilterUtils;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
@@ -43,7 +44,7 @@ import org.apache.arrow.vector.types.pojo.Field;
 import org.apache.arrow.vector.types.pojo.Schema;
 import org.apache.commons.lang3.tuple.Pair;
 
-public class HashJoins {
+public class HashJoinUtils {
 
   public static HashJoinExecutor constructHashJoin(
       ExecutorContext context,
@@ -87,7 +88,7 @@ public class HashJoins {
 
     Map<Pair<Integer, Integer>, Pair<Op, Boolean>> pathPairOps = new HashMap<>();
     Filter filterWithoutPathPairOpsInnerAndFilter =
-        Filters.parseJoinFilter(filter, leftSchema, rightSchema, pathPairOps);
+        PhysicalFilterUtils.parseJoinFilter(filter, leftSchema, rightSchema, pathPairOps);
 
     return constructHashJoin(
         context,
@@ -130,21 +131,21 @@ public class HashJoins {
       boolean keyIsLeft = opEntry.getValue();
       if (keyIsLeft) {
         matchers.add(
-            Filters.construct(
+            PhysicalFilterUtils.construct(
                 pathPair.getKey(), pathPair.getValue() + leftSchema.getFieldCount(), op));
       } else {
         matchers.add(
-            Filters.construct(
+            PhysicalFilterUtils.construct(
                 pathPair.getKey() + leftSchema.getFieldCount(), pathPair.getValue(), op));
       }
     }
     PredicateExpression otherMatcher =
-        Filters.construct(
+        PhysicalFilterUtils.construct(
             filterWithoutPathPairOpsInnerAndFilter,
             context,
             Schemas.merge(leftSchema.raw(), rightSchema.raw()));
     matchers.add(otherMatcher);
-    PredicateExpression matcher = Filters.and(matchers, context);
+    PredicateExpression matcher = PhysicalFilterUtils.and(matchers, context);
 
     // get hasher
     List<Pair<Integer, Integer>> pathPairEqualOps =

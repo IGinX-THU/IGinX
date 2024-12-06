@@ -19,7 +19,6 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.register.SystemCalleeRegistry;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ConstantPool;
 import org.apache.arrow.memory.BufferAllocator;
 
@@ -34,8 +33,4 @@ public interface ExecutorContext {
   void addWarningMessage(String message);
 
   int groupByInitialGroupBufferCapacity();
-
-  default SystemCalleeRegistry getCalleeRegistry() {
-    return SystemCalleeRegistry.getInstance();
-  }
 }

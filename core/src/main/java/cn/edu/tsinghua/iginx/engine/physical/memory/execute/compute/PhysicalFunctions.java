@@ -83,25 +83,31 @@ public class PhysicalFunctions {
 
   public static <OUTPUT extends FieldVector> void takeTo(
       BaseIntVector selection, OUTPUT output, OUTPUT input) {
-    if (selection.getField().isNullable()) {
-      throw new IllegalArgumentException("Selection vector must be not nullable");
-    }
-
     int outputOffset = output.getValueCount();
     int outputRowCount = outputOffset + selection.getValueCount();
+
+    boolean useSetSafe;
     if (output instanceof BaseFixedWidthVector) {
-      output.setValueCount(outputRowCount);
-      for (int selectionIndex = 0; selectionIndex < selection.getValueCount(); selectionIndex++) {
-        int outputIndex = outputOffset + selectionIndex;
-        output.copyFrom((int) selection.getValueAsLong(selectionIndex), outputIndex, input);
-      }
+      ((BaseFixedWidthVector) output).allocateNew(outputRowCount);
+      useSetSafe = false;
     } else {
-      for (int selectionIndex = 0; selectionIndex < selection.getValueCount(); selectionIndex++) {
-        int outputIndex = outputOffset + selectionIndex;
-        output.copyFromSafe((int) selection.getValueAsLong(selectionIndex), outputIndex, input);
-      }
-      output.setValueCount(outputRowCount);
+      output.setInitialCapacity(outputRowCount);
+      useSetSafe = true;
     }
+    boolean isNullable = input.getField().isNullable();
+    for (int selectionIndex = 0; selectionIndex < selection.getValueCount(); selectionIndex++) {
+      int outputIndex = outputOffset + selectionIndex;
+      if (isNullable && selection.isNull(selectionIndex)) {
+        output.setNull(outputIndex);
+      } else {
+        if (useSetSafe) {
+          output.copyFromSafe((int) selection.getValueAsLong(selectionIndex), outputIndex, input);
+        } else {
+          output.copyFrom((int) selection.getValueAsLong(selectionIndex), outputIndex, input);
+        }
+      }
+    }
+    output.setValueCount(outputRowCount);
   }
 
   public static void takeTo(
@@ -119,9 +125,6 @@ public class PhysicalFunctions {
   @SuppressWarnings("unchecked")
   public static <OUTPUT extends FieldVector> OUTPUT take(
       BufferAllocator allocator, BaseIntVector selection, OUTPUT input) {
-    if (selection.getField().isNullable()) {
-      throw new IllegalArgumentException("Selection vector must be not nullable");
-    }
     TransferPair transferPair = input.getTransferPair(allocator);
     OUTPUT result = (OUTPUT) transferPair.getTo();
     result.setInitialCapacity(selection.getValueCount());

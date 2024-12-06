@@ -30,7 +30,7 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.operator.OuterJoin;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OuterJoinType;
-import cn.edu.tsinghua.iginx.physical.optimizer.naive.util.HashJoins;
+import cn.edu.tsinghua.iginx.physical.optimizer.naive.util.HashJoinUtils;
 import java.util.*;
 
 public class OuterJoinInfoGenerator implements BinaryExecutorFactory<StatefulBinaryExecutor> {
@@ -87,7 +87,7 @@ public class OuterJoinInfoGenerator implements BinaryExecutorFactory<StatefulBin
               operator.getPrefixB() + "." + joinColumn));
     }
 
-    return HashJoins.constructHashJoin(
+    return HashJoinUtils.constructHashJoin(
         context,
         leftSchema,
         rightSchema,

@@ -1,34 +1,24 @@
-INSERT
-    INTO
-        tmpTableA(
-            KEY,
-            partkey,
-            suppkey,
-            val
+WITH tmpTableA AS(
+    SELECT
+        partkey,
+        suppkey,
+        0.5 * tmp AS val
+    FROM
+        (
+            SELECT
+                l_partkey AS partkey,
+                l_suppkey AS suppkey,
+                SUM( l_quantity ) AS tmp
+            FROM
+                lineitem
+            WHERE
+                lineitem.l_shipdate >= 757353600000
+                AND lineitem.l_shipdate < 788889600000
+            GROUP BY
+                l_partkey,
+                l_suppkey
         )
-    VALUES(
-        SELECT
-            partkey,
-            suppkey,
-            0.5 * tmp
-        FROM
-            (
-                SELECT
-                    l_partkey AS partkey,
-                    l_suppkey AS suppkey,
-                    SUM( l_quantity ) AS tmp
-                FROM
-                    lineitem
-                WHERE
-                    lineitem.l_shipdate >= 757353600000
-                    AND lineitem.l_shipdate < 788889600000
-                GROUP BY
-                    l_partkey,
-                    l_suppkey
-            )
-    );
-
-SELECT
+) SELECT
     supplier.s_name,
     supplier.s_address
 FROM

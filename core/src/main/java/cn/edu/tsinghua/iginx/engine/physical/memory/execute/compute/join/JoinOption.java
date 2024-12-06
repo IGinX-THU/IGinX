@@ -27,8 +27,8 @@ public enum JoinOption {
   LEFT(true, false),
   RIGHT(false, true),
   FULL(true, true),
-  MARK(true, false, true),
-  SINGLE(false, false, false);
+  MARK(false, true, false, true, false, true),
+  SINGLE(false, true, true, false, false, false);
 
   private final boolean toOutputProbeSideUnmatched;
   private final boolean toOutputBuildSideUnmatched;
@@ -39,10 +39,6 @@ public enum JoinOption {
 
   JoinOption(boolean toOutputBuildSideUnmatched, boolean toOutputProbeSideUnmatched) {
     this(toOutputBuildSideUnmatched, toOutputProbeSideUnmatched, false, true, true, false);
-  }
-
-  JoinOption(boolean allowedToMatchMultiple, boolean toOutputAllMatched, boolean toOutputMark) {
-    this(false, true, true, allowedToMatchMultiple, toOutputAllMatched, toOutputMark);
   }
 
   JoinOption(

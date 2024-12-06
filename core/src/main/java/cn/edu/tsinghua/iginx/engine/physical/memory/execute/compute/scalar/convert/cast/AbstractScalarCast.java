@@ -62,7 +62,7 @@ public abstract class AbstractScalarCast<OUTPUT extends FieldVector>
       return evaluate(allocator, input);
     }
     try (FieldVector selected = PhysicalFunctions.take(allocator, selection, input)) {
-      return evaluate(allocator, selection);
+      return evaluate(allocator, selected);
     }
   }
 

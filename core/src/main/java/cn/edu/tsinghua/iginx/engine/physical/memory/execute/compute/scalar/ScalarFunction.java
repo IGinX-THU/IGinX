@@ -70,7 +70,7 @@ public interface ScalarFunction<OUTPUT extends FieldVector> extends PhysicalFunc
     }
     try (VectorSchemaRoot flattened =
         VectorSchemaRoots.flatten(allocator, dictionaryProvider, input, selection)) {
-      return invoke(allocator, selection, flattened);
+      return invoke(allocator, flattened);
     }
   }
 }

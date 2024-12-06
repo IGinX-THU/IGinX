@@ -30,11 +30,11 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.excepti
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutorFactory;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateful.AggregateUnaryExecutor;
+import cn.edu.tsinghua.iginx.engine.physical.utils.PhysicalExpressionUtils;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
 import cn.edu.tsinghua.iginx.engine.shared.function.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.SetTransform;
-import cn.edu.tsinghua.iginx.physical.optimizer.naive.util.Expressions;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -103,7 +103,8 @@ public class AggregateInfoGenerator implements UnaryExecutorFactory<AggregateUna
       List<ScalarExpression<?>> preRowTransform = new ArrayList<>();
       for (Expression expression : params.getExpressions()) {
         preRowTransform.add(
-            Expressions.getPhysicalExpression(context, inputSchema.raw(), expression, true));
+            PhysicalExpressionUtils.getPhysicalExpression(
+                context, inputSchema.raw(), expression, true));
       }
       Schema schema =
           ScalarExpressions.getOutputSchema(

@@ -4,7 +4,10 @@ SELECT
 FROM
     (
         SELECT
-            extractYear(orders.o_orderdate) AS o_year,
+            EXTRACT(
+                orders.o_orderdate,
+                "year"
+            ) AS o_year,
             lineitem.l_extendedprice *(
                 1 - lineitem.l_discount
             ) AS volume,

@@ -28,7 +28,7 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.binary.stat
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.operator.MarkJoin;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
-import cn.edu.tsinghua.iginx.physical.optimizer.naive.util.HashJoins;
+import cn.edu.tsinghua.iginx.physical.optimizer.naive.util.HashJoinUtils;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -67,7 +67,7 @@ public class MarkJoinInfoGenerator implements BinaryExecutorFactory<StatefulBina
       subFilters.add(new PathFilter(extraPrefix, Op.E, extraPrefix));
     }
 
-    return HashJoins.constructHashJoin(
+    return HashJoinUtils.constructHashJoin(
         context,
         leftSchema,
         rightSchema,

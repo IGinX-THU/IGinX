@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package cn.edu.tsinghua.iginx.physical.optimizer.naive.util;
+package cn.edu.tsinghua.iginx.engine.physical.utils;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.InnerJoin;
 import cn.edu.tsinghua.iginx.engine.shared.operator.MarkJoin;
@@ -25,8 +25,8 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.OuterJoin;
 import cn.edu.tsinghua.iginx.engine.shared.operator.SingleJoin;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OuterJoinType;
 
-public class Joins {
-  private Joins() {}
+public class PhysicalJoinUtils {
+  private PhysicalJoinUtils() {}
 
   public static SingleJoin reverse(SingleJoin join) {
     return new SingleJoin(
