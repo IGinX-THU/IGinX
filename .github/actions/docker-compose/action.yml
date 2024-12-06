@@ -25,13 +25,13 @@ runs:
           run: |
             brew update
             brew install docker
-            brew install colima lima
+            brew install colima
             colima start --network-address
             docker --version
             colima status
             
             brew install docker-compose
-            docker-compose --version    
+            docker-compose --version
 
         - if: runner.os == 'Windows'
           uses: vedantmgoyal9/setup-wsl2@main
