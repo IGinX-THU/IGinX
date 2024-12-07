@@ -58,7 +58,8 @@ public class VectorDBHistoryDataGenerator extends BaseHistoryDataGenerator {
       String databaseName,
       List<String> paths,
       List<Map<String, String>> tagsList,
-      List<DataType> dataTypeList)
+      List<DataType> dataTypeList,
+      String vectorFieldName)
       throws InterruptedException, UnsupportedEncodingException {
     Map<String, Set<String>> collectionToFields = new HashMap<>();
     Map<String, Map<String, DataType>> fieldToType = new HashMap<>();
@@ -91,7 +92,8 @@ public class VectorDBHistoryDataGenerator extends BaseHistoryDataGenerator {
             collection,
             DataType.LONG,
             collectionToFields.get(collection),
-            fieldToType.get(collection));
+            fieldToType.get(collection),
+            vectorFieldName);
       }
     }
   }
@@ -144,7 +146,7 @@ public class VectorDBHistoryDataGenerator extends BaseHistoryDataGenerator {
 
         for (Map.Entry<String, List<Integer>> item : entry.getValue().entrySet()) {
           String collectionName = item.getKey();
-          createOrAlterCollections(client, databaseName, pathList, null, dataTypeList);
+          createOrAlterCollections(client, databaseName, pathList, null, dataTypeList,vectorFieldName);
           int id = 0;
           List<JsonObject> data = new ArrayList<>();
           for (int i = 0; i < valuesList.size(); i++) {

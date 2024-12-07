@@ -191,7 +191,8 @@ public class MilvusClientUtils {
       String collectionName,
       DataType idType,
       Set<String> fieldsToAdd,
-      Map<String, DataType> fieldTypes)
+      Map<String, DataType> fieldTypes,
+      String vectorFieldName)
       throws InterruptedException, UnsupportedEncodingException {
     useDatabase(client, databaseName);
     CreateCollectionReq.CreateCollectionReqBuilder builder =
@@ -211,7 +212,7 @@ public class MilvusClientUtils {
             .build());
     schema.addField(
         AddFieldReq.builder()
-            .fieldName(MILVUS_VECTOR_FIELD_NAME)
+            .fieldName(vectorFieldName)
             .dataType(io.milvus.v2.common.DataType.FloatVector)
             .dimension(DEFAULT_DIMENSION)
             .build());
@@ -231,7 +232,7 @@ public class MilvusClientUtils {
     extraParams.put("nlist", MILVUS_INDEX_PARAM_NLIST);
     indexes.add(
         IndexParam.builder()
-            .fieldName(MILVUS_VECTOR_FIELD_NAME)
+            .fieldName(vectorFieldName)
             .indexType(DEFAULT_INDEX_TYPE)
             .metricType(DEFAULT_METRIC_TYPE)
             .extraParams(extraParams)
@@ -241,7 +242,7 @@ public class MilvusClientUtils {
         builder
             .collectionSchema(schema)
             .primaryFieldName(MILVUS_PRIMARY_FIELD_NAME)
-            .vectorFieldName(MILVUS_VECTOR_FIELD_NAME)
+            .vectorFieldName(vectorFieldName)
             .indexParams(indexes)
             .build());
   }
