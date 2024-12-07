@@ -108,7 +108,7 @@ public class MilvusClientUtils {
           .forEach(
               fieldSchema -> {
                 if (!fieldSchema.getIsPrimaryKey()
-                //                    && !fieldSchema.getName().equals(MILVUS_VECTOR_FIELD_NAME)
+                  && !fieldSchema.getName().equals(MILVUS_VECTOR_FIELD_NAME)
                 ) {
                   paths.put(
                       PathUtils.getPathEscaped(databaseName, collectionName, fieldSchema.getName()),

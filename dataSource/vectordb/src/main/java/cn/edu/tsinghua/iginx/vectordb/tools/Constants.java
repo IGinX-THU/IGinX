@@ -58,21 +58,9 @@ public class Constants {
   public static final int DEFAULT_MAX_IDLE = 10;
 
   public static final long DEFAULT_MILVUS_TIMEOUT = 60000L;
-  public static final long DEFAULT_MILVUS_CONNECT_TIMEOUT = 20000L;
+  public static final long DEFAULT_MILVUS_CONNECT_TIMEOUT = 60000L;
 
   public static final int DEFAULT_MIN_IDLE = 5;
-
-  /** 用户名参数的键。 */
-  public static final String USERNAME = "username";
-
-  /** 密码参数的键。 */
-  public static final String PASSWORD = "password";
-
-  /** 数据库名称参数的键。 */
-  public static final String DB_NAME = "dbName";
-
-  /** 数据库连接 URI 参数的键。 */
-  public static final String DB_URI = "uri";
 
   /** 数据库连接协议的键。 用于指定连接字符串中的协议类型，例如 "http" 或 "grpc"。 */
   public static final String DB_PROTOCOL = "protocol";
@@ -80,9 +68,6 @@ public class Constants {
   /** 默认的数据库连接协议。 如果未指定协议，则使用此默认值，通常为 "grpc"。 */
   public static final String DEFAULT_DB_PROTOCOL = "grpc";
 
-  public static final String KEY_NAME = "id";
-
-  public static final String VECTOR_NAME = "vector";
 
   public static final String TAGKV_SEPARATOR = "-";
 
@@ -99,31 +84,13 @@ public class Constants {
   /** 非dummy数据库默认数据库前缀。 用于在 Milvus 中创建数据库的名称。 */
   public static final String DATABASE_PREFIX = "unit";
 
-  public static final String COLLECTION_BACKUP_PREFIX = "backup_";
-
   public static final Character QUOTA = '`';
 
   public static final String PATH_SEPARATOR = ".";
 
-  /** PathSystem中虚拟路径Key */
-  public static final String PATH_NAME = "$$PATH$$";
-
-  public static final String PATH_IS_DUMMY = "$$ISDUMMY$$";
-
-  /** Milvus collection properties 里描述字段的前缀 */
-  public static final String DYNAMIC_FIELDS_PROPERTIES_PREFIX = "df_";
-
-  /** Milvus collection properties 里描述字段是否被删除的属性名 */
-  public static final String KEY_PROPERTY_DELETED = "deleted";
-
-  /** Milvus collection properties 里描述字段的当前名称的属性名 */
-  public static final String KEY_PROPERTY_CURRENT_FIELD_NAME = "name";
-
-  public static final String KEY_PROPERTY_FIELD_DATA_TYPE = "type";
-
   public static final String MILVUS_PRIMARY_FIELD_NAME = "VECTORDBID";
 
-  public static final String MILVUS_VECTOR_FIELD_NAME = "vectordbvector";
+  public static final String MILVUS_VECTOR_FIELD_NAME = "VECTORDBVECTOR";
 
   public static final String MILVUS_DATA_FIELD_NAME = "VECTORDBDATA";
 
@@ -136,7 +103,4 @@ public class Constants {
 
   public static final String MILVUS_DYNAMIC_FIELD_NAME = "$meta";
 
-  public static final String MILVUS_VECTOR_INDEX_NAME = "VECTORDBINDEX";
-
-  public static final Long MILVUS_QUERY_LIMIT = 16384L;
 }
