@@ -405,7 +405,7 @@ public abstract class BaseCapacityExpansionIT {
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
 
     // 删除，不影响后续测试
-    session.removeHistoryDataSource(
+    session.removeStorageEngine(
         Collections.singletonList(
             new RemovedStorageEngineInfo("127.0.0.1", readOnlyPort, prefix, "")));
 
@@ -691,7 +691,7 @@ public abstract class BaseCapacityExpansionIT {
         new RemovedStorageEngineInfo(
             "127.0.0.1", expPort, "p3" + schemaPrefixSuffix, dataPrefix1));
     try {
-      session.removeHistoryDataSource(removedStorageEngineList);
+      session.removeStorageEngine(removedStorageEngineList);
       testShowClusterInfo(4);
     } catch (SessionException e) {
       LOGGER.error("remove history data source through session api error: ", e);
@@ -711,7 +711,7 @@ public abstract class BaseCapacityExpansionIT {
     SQLTestTools.executeAndCompare(session, statement, pathListAns, EXP_VALUES_LIST2);
 
     // 通过 sql 语句测试移除节点
-    String removeStatement = "remove historydatasource (\"127.0.0.1\", %d, \"%s\", \"%s\");";
+    String removeStatement = "remove storageengine (\"127.0.0.1\", %d, \"%s\", \"%s\");";
     try {
       session.executeSql(
           String.format(removeStatement, expPort, "p1" + schemaPrefixSuffix, dataPrefix1));

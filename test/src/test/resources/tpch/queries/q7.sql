@@ -8,7 +8,10 @@ FROM
         SELECT
             n1.n_name AS supp_nation,
             n2.n_name AS cust_nation,
-            extractYear(lineitem.l_shipdate) AS l_year,
+            EXTRACT(
+                lineitem.l_shipdate,
+                "year"
+            ) AS l_year,
             lineitem.l_extendedprice *(
                 1 - lineitem.l_discount
             ) AS volume
