@@ -68,7 +68,6 @@ public class Constants {
   /** 默认的数据库连接协议。 如果未指定协议，则使用此默认值，通常为 "grpc"。 */
   public static final String DEFAULT_DB_PROTOCOL = "grpc";
 
-
   public static final String TAGKV_SEPARATOR = "-";
 
   public static final String TAGKV_EQUAL = "=";
@@ -102,5 +101,4 @@ public class Constants {
   public static final long MILVUS_DYNAMIC_TEST_SIZE = 1000L;
 
   public static final String MILVUS_DYNAMIC_FIELD_NAME = "$meta";
-
 }

@@ -23,4 +23,6 @@ pwd
 
 docker-compose -f $port/docker-compose-$port.yml up -d
 
+sleep 70
+
 docker ps

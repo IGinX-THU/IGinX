@@ -49,7 +49,7 @@ runs:
                 sudo chown -R $(whoami) $port/
                 sudo nohup docker-compose -f $port/docker-compose-$port.yml up -d
               done
-              sleep 5
+              sleep 10
               for port in ${{ inputs.ports }}; do
                 if netstat -an | grep -q ".*:$port.*LISTEN"; then
                   echo "Port $port is open."
@@ -96,3 +96,4 @@ runs:
               sed -i"" -e "s/127.0.0.1/${MILVUS_HOST}/g" test/src/test/java/cn/edu/tsinghua/iginx/integration/expansion/vectordb/VectorDBHistoryDataGenerator.java
               sed -i"" -e "s/127.0.0.1#19530/${MILVUS_HOST}#19530/g" test/src/test/resources/testConfig.properties
               sed -i"" -e "s/127.0.0.1#19530/${MILVUS_HOST}#19530/g" conf/config.properties
+              sleep 60
