@@ -47,7 +47,7 @@ public class AggPushDownSelectRule extends Rule {
     super(
         AggPushDownSelectRule.class.getName(),
         "AggPushDownRule",
-        operand(GroupBy.class, operand(Select.class, any())));
+        operand(GroupBy.class, operand(Select.class, any())),2, RuleStrategy.FIXED_POINT);
   }
 
   @Override

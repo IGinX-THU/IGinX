@@ -37,7 +37,7 @@ public class AggPushDownSortRule extends Rule {
      *           |
      *          Sort
      */
-    super(AggPushDownSortRule.class.getName(), "AggPushDownRule", any());
+    super(AggPushDownSortRule.class.getName(), "AggPushDownRule", any(),2, RuleStrategy.FIXED_POINT);
   }
 
   private static final Set<String> ALLOWED_FUNCTIONS =

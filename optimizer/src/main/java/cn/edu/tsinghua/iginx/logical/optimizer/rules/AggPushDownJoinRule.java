@@ -47,7 +47,7 @@ public class AggPushDownJoinRule extends Rule {
      *           |
      *   Inner/Outer Join
      */
-    super(AggPushDownJoinRule.class.getName(), "AggPushDownRule", any());
+    super(AggPushDownJoinRule.class.getName(), "AggPushDownRule", any(),2, RuleStrategy.FIXED_POINT);
   }
 
   private static final Set<Operator> groupBySet = new HashSet<>();
