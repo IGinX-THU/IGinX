@@ -1566,7 +1566,8 @@ public class RelationalStorage implements IStorage {
             if(split.v == null || split.v.isEmpty()) {
               return;
             }
-            StringBuilder sb = new StringBuilder(split.k);
+            StringBuilder sb = new StringBuilder();
+            sb.append(split.k);
             sb.append("{");
             Map<String, String> tagKV = split.v;
             for (Map.Entry<String, String> entry : tagKV.entrySet()) {
