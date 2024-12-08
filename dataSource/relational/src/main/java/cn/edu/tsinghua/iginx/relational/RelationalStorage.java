@@ -35,6 +35,7 @@ import cn.edu.tsinghua.iginx.engine.physical.storage.domain.DataArea;
 import cn.edu.tsinghua.iginx.engine.physical.storage.utils.TagKVUtils;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
+import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.ClearEmptyRowStreamWrapper;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.BitmapView;
@@ -529,14 +530,17 @@ public class RelationalStorage implements IStorage {
       Filter filter, Map<String, String> tableNameToColumnNames) {
     List<String> tableNames = new ArrayList<>();
     List<List<String>> fullColumnNamesList = new ArrayList<>();
+    String firstTable = "";
+    char quote = relationalMeta.getQuote();
     for (Map.Entry<String, String> entry : tableNameToColumnNames.entrySet()) {
       String tableName = entry.getKey();
+      firstTable = tableName;
       tableNames.add(tableName);
       List<String> fullColumnNames = new ArrayList<>(Arrays.asList(entry.getValue().split(", ")));
 
       // 将columnNames中的列名加上tableName前缀
       fullColumnNames.replaceAll(
-          s -> RelationSchema.getQuoteFullName(tableName, s, relationalMeta.getQuote()));
+          s -> RelationSchema.getQuoteFullName(tableName, s, quote) + " AS " + quote + RelationSchema.getFullName(tableName, s)+quote);
       fullColumnNamesList.add(fullColumnNames);
     }
 
@@ -548,6 +552,9 @@ public class RelationalStorage implements IStorage {
         fullColumnNames.append(", ").append(columnName);
       }
     }
+
+    //将Filter中的keyFilter替换成带tablename的value filter
+    keyFilterAddTableName(filter, firstTable);
 
     // 将所有表进行full join
     String fullTableName = getFullJoinTables(tableNames, fullColumnNamesList);
@@ -714,7 +721,7 @@ public class RelationalStorage implements IStorage {
       }
       // table中带有了通配符，将所有table都join到一起进行查询，以便输入filter.
       else if (!tableNameToColumnNames.isEmpty()) {
-        statement = getProjectWithFilterSQL(filter, tableNameToColumnNames);
+        statement = getProjectWithFilterSQL(filter.copy(), tableNameToColumnNames);
 
         ResultSet rs = null;
         try {
@@ -1298,7 +1305,7 @@ public class RelationalStorage implements IStorage {
       Map<String, String> tableNameToColumnNames =
           splitAndMergeQueryPatterns(databaseName, project.getPatterns());
 
-      String statement = getProjectWithFilterSQL(select.getFilter(), tableNameToColumnNames);
+      String statement = getProjectWithFilterSQL(select.getFilter().copy(), tableNameToColumnNames);
       statement = statement.substring(0, statement.length() - 1); // 去掉最后的分号
       Map<String, String> fullName2Name = new HashMap<>();
       statement =
@@ -2794,5 +2801,33 @@ public class RelationalStorage implements IStorage {
     }
 
     return result;
+  }
+
+  private void keyFilterAddTableName(Filter filter, String tableName){
+    switch(filter.getType()){
+      case Or:
+        List<Filter> orChildren = ((OrFilter) filter).getChildren();
+        orChildren.replaceAll(child -> keyFilter2ValueFilter(child, tableName));
+        orChildren.forEach(child -> keyFilterAddTableName(child, tableName));
+        break;
+      case And:
+        List<Filter> andChildren = ((AndFilter) filter).getChildren();
+        andChildren.replaceAll(child -> keyFilter2ValueFilter(child, tableName));
+        andChildren.forEach(child -> keyFilterAddTableName(child, tableName));
+        break;
+      case Not:
+        NotFilter notFilter = (NotFilter) filter;
+        notFilter.setChild(keyFilter2ValueFilter(notFilter.getChild(), tableName));
+        keyFilterAddTableName(notFilter.getChild(), tableName);
+        break;
+    }
+  }
+
+  private Filter keyFilter2ValueFilter(Filter filter, String tableName){
+    if(filter.getType() != FilterType.Key){
+      return filter;
+    }
+    KeyFilter keyFilter = (KeyFilter) filter;
+    return new ValueFilter(tableName + SEPARATOR + KEY_NAME, keyFilter.getOp(), new Value(keyFilter.getValue()));
   }
 }
