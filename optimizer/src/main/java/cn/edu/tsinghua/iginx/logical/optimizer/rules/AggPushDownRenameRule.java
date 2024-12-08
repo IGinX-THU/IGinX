@@ -20,6 +20,7 @@
 package cn.edu.tsinghua.iginx.logical.optimizer.rules;
 
 import cn.edu.tsinghua.iginx.engine.logical.utils.PathUtils;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.ExprUtils;
 import cn.edu.tsinghua.iginx.engine.shared.expr.*;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
 import cn.edu.tsinghua.iginx.engine.shared.operator.*;
@@ -81,7 +82,8 @@ public class AggPushDownRenameRule extends Rule {
   }
 
   private Expression recoverRenamedExpression(Rename rename, Expression expression) {
-    expression.accept(
+    Expression copy = ExprUtils.copy(expression);
+    copy.accept(
         new ExpressionVisitor() {
           @Override
           public void visit(BaseExpression expression) {
@@ -112,8 +114,8 @@ public class AggPushDownRenameRule extends Rule {
 
           @Override
           public void visit(CaseWhenExpression expression) {
-            recoverRenamedExpression(rename, expression.getResultElse());
-            expression.getResults().forEach(e -> recoverRenamedExpression(rename, e));
+            expression.setResultElse(recoverRenamedExpression(rename, expression.getResultElse()));
+            expression.getResults().replaceAll(e -> recoverRenamedExpression(rename, e));
           }
 
           @Override
@@ -123,7 +125,7 @@ public class AggPushDownRenameRule extends Rule {
           public void visit(SequenceExpression expression) {}
         });
 
-    return expression;
+    return copy;
   }
 
   private void recoverRenamedFilter(Rename rename, Filter filter) {
@@ -160,8 +162,8 @@ public class AggPushDownRenameRule extends Rule {
 
           @Override
           public void visit(ExprFilter filter) {
-            recoverRenamedExpression(rename, filter.getExpressionA());
-            recoverRenamedExpression(rename, filter.getExpressionB());
+            filter.setExpressionA(recoverRenamedExpression(rename, filter.getExpressionA()));
+            filter.setExpressionB(recoverRenamedExpression(rename, filter.getExpressionB()));
           }
 
           @Override
