@@ -1563,6 +1563,9 @@ public class RelationalStorage implements IStorage {
           public void visit(BaseExpression expression) {
             String fullColumnName = expression.getColumnName();
             Pair<String, Map<String, String>> split = splitFullName(fullColumnName);
+            if(split.v == null || split.v.isEmpty()) {
+              return;
+            }
             StringBuilder sb = new StringBuilder(split.k);
             sb.append("{");
             Map<String, String> tagKV = split.v;
