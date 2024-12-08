@@ -1,29 +1,20 @@
-INSERT
-    INTO
-        tmpTableB(
-            KEY,
-            p_partkey,
-            val
+WITH tmpTableB AS(
+    SELECT
+        part.p_partkey AS p_partkey,
+        0.2 * tmp AS val
+    FROM
+        (
+            SELECT
+                part.p_partkey,
+                AVG( lineitem.l_quantity ) AS tmp
+            FROM
+                lineitem
+            JOIN part ON
+                lineitem.l_partkey = part.p_partkey
+            GROUP BY
+                part.p_partkey
         )
-    VALUES(
-        SELECT
-            part.p_partkey,
-            0.2 * tmp
-        FROM
-            (
-                SELECT
-                    part.p_partkey,
-                    AVG( lineitem.l_quantity ) AS tmp
-                FROM
-                    lineitem
-                JOIN part ON
-                    lineitem.l_partkey = part.p_partkey
-                GROUP BY
-                    part.p_partkey
-            )
-    );
-
-SELECT
+) SELECT
     tmp2 / 7 AS avg_yearly
 FROM
     (
