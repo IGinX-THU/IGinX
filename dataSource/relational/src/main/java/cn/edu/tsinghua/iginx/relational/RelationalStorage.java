@@ -527,7 +527,7 @@ public class RelationalStorage implements IStorage {
 
   /** 获取ProjectWithFilter中将所有table join到一起进行查询的SQL语句 */
   private String getProjectWithFilterSQL(
-      Filter filter, Map<String, String> tableNameToColumnNames) {
+      Filter filter, Map<String, String> tableNameToColumnNames, boolean isAgg) {
     List<String> tableNames = new ArrayList<>();
     List<List<String>> fullColumnNamesList = new ArrayList<>();
     String firstTable = "";
@@ -539,8 +539,12 @@ public class RelationalStorage implements IStorage {
       List<String> fullColumnNames = new ArrayList<>(Arrays.asList(entry.getValue().split(", ")));
 
       // 将columnNames中的列名加上tableName前缀
-      fullColumnNames.replaceAll(
-          s -> RelationSchema.getQuoteFullName(tableName, s, quote) + " AS " + quote + RelationSchema.getFullName(tableName, s)+quote);
+      if(isAgg) {
+        fullColumnNames.replaceAll(
+                s -> RelationSchema.getQuoteFullName(tableName, s, quote) + " AS " + quote + RelationSchema.getFullName(tableName, s) + quote);
+      }else {
+        fullColumnNames.replaceAll(s -> RelationSchema.getQuoteFullName(tableName, s, quote));
+      }
       fullColumnNamesList.add(fullColumnNames);
     }
 
@@ -721,7 +725,7 @@ public class RelationalStorage implements IStorage {
       }
       // table中带有了通配符，将所有table都join到一起进行查询，以便输入filter.
       else if (!tableNameToColumnNames.isEmpty()) {
-        statement = getProjectWithFilterSQL(filter.copy(), tableNameToColumnNames);
+        statement = getProjectWithFilterSQL(filter.copy(), tableNameToColumnNames, false);
 
         ResultSet rs = null;
         try {
@@ -1305,7 +1309,7 @@ public class RelationalStorage implements IStorage {
       Map<String, String> tableNameToColumnNames =
           splitAndMergeQueryPatterns(databaseName, project.getPatterns());
 
-      String statement = getProjectWithFilterSQL(select.getFilter().copy(), tableNameToColumnNames);
+      String statement = getProjectWithFilterSQL(select.getFilter().copy(), tableNameToColumnNames, true);
       statement = statement.substring(0, statement.length() - 1); // 去掉最后的分号
       Map<String, String> fullName2Name = new HashMap<>();
       statement =
