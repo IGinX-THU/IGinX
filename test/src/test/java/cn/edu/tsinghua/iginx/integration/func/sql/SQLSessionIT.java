@@ -9392,6 +9392,7 @@ public class SQLSessionIT {
 
   @Test
   public void testAggPushdown() {
+    if (isScaling) return;
     String insert = "INSERT INTO test.a(key, a, b, c)";
     insert +=
         " VALUES (1, 1, 1.1, true), (2, 2, 2.2, false), (3, 3, 3.3, true), (4, 4, 4.4, false);";

@@ -81,6 +81,8 @@ public class RelationQueryRowStream implements RowStream {
 
   private AbstractRelationalMeta relationalMeta;
 
+  private Map<String, String> fullName2Name; // 记录带tagkv的fullname到不带tagkv的name的映射
+
   private String fullKeyName = KEY_NAME;
 
   private boolean isPushDown = false;
@@ -105,6 +107,7 @@ public class RelationQueryRowStream implements RowStream {
         connList,
         relationalMeta,
         null,
+        null,
         false);
   }
 
@@ -117,6 +120,7 @@ public class RelationQueryRowStream implements RowStream {
       List<Connection> connList,
       AbstractRelationalMeta relationalMeta,
       Map<String, DataType> sumResType,
+      Map<String, String> fullName2Name,
       boolean isAgg)
       throws SQLException {
     this.resultSets = resultSets;
@@ -174,18 +178,25 @@ public class RelationQueryRowStream implements RowStream {
         Pair<String, Map<String, String>> namesAndTags = splitFullName(columnName);
         Field field;
         DataType type = relationalMeta.getDataTypeTransformer().fromEngineType(typeName);
-        if (isAgg && sumResType != null && sumResType.containsKey(columnName)) {
-          type = sumResType.get(columnName);
+        if (isAgg
+            && sumResType != null
+            && sumResType.containsKey(fullName2Name.getOrDefault(columnName, columnName))) {
+          type = sumResType.get(fullName2Name.getOrDefault(columnName, columnName));
         }
+        String path;
         if (isDummy) {
-          String path =
+          path =
               databaseNameList.get(i)
                   + SEPARATOR
                   + (isAgg ? "" : tableName + SEPARATOR)
                   + namesAndTags.k;
-          field = new Field(path, type, namesAndTags.v);
         } else {
-          String path = (isAgg ? "" : tableName + SEPARATOR) + namesAndTags.k;
+          path = (isAgg ? "" : tableName + SEPARATOR) + namesAndTags.k;
+        }
+
+        if (isAgg && fullName2Name.containsKey(path)) {
+          field = new Field(fullName2Name.get(path), path, type, namesAndTags.v);
+        } else {
           field = new Field(path, type, namesAndTags.v);
         }
 

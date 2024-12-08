@@ -1300,8 +1300,9 @@ public class RelationalStorage implements IStorage {
 
       String statement = getProjectWithFilterSQL(select.getFilter(), tableNameToColumnNames);
       statement = statement.substring(0, statement.length() - 1); // 去掉最后的分号
-
-      statement = generateAggSql(functionCalls, gbc, statement);
+      Map<String, String> fullName2Name = new HashMap<>();
+      statement =
+          generateAggSql(functionCalls, gbc, statement, tableNameToColumnNames, fullName2Name);
 
       ResultSet rs = null;
       try {
@@ -1330,6 +1331,7 @@ public class RelationalStorage implements IStorage {
                   Collections.singletonList(conn),
                   relationalMeta,
                   columnTypeMap,
+                  fullName2Name,
                   true));
       return new TaskExecuteResult(rowStream);
 
@@ -1362,10 +1364,22 @@ public class RelationalStorage implements IStorage {
   }
 
   private String generateAggSql(
-      List<FunctionCall> functionCalls, List<Expression> gbc, String statement) {
+      List<FunctionCall> functionCalls,
+      List<Expression> gbc,
+      String statement,
+      Map<String, String> table2Column,
+      Map<String, String> fullName2Name) {
     char quote = relationalMeta.getQuote();
     boolean isJoin =
         statement.contains(" JOIN "); // 如果有JOIN,则column形如`table.column`，否则形如`table`.`column`
+    List<String> fullColumnNames = new ArrayList<>();
+    for (Map.Entry<String, String> entry : table2Column.entrySet()) {
+      String tableName = entry.getKey();
+      List<String> columnNames = new ArrayList<>(Arrays.asList(entry.getValue().split(", ")));
+      for (String columnName : columnNames) {
+        fullColumnNames.add(tableName + SEPARATOR + columnName);
+      }
+    }
     // 在statement的基础上添加group by和函数内容
     // 这里的处理形式是生成一个形如
     // SELECT max(derived."a") AS "max(test.a)", sum(derived."b") AS "sum(test.b)", derived."c" AS
@@ -1376,19 +1390,23 @@ public class RelationalStorage implements IStorage {
     // 2. 查询出来的结果也需要重命名来适配原始的列名，这里重命名为"max(test.a)"
     StringBuilder sqlColumnsStr = new StringBuilder();
     for (FunctionCall functionCall : functionCalls) {
-      String originFuncStr = functionCall.getFunctionStr();
       String functionName = functionCall.getFunction().getIdentifier();
-      List<Expression> params = functionCall.getParams().getExpressions();
-      sqlColumnsStr.append(
-          String.format(
-              "%s(%s)",
-              functionName,
-              params.stream()
-                  .map(e -> exprAdapt(ExprUtils.copy(e), isJoin).getColumnName())
-                  .collect(Collectors.joining(", "))));
-      sqlColumnsStr.append(" AS ");
-      sqlColumnsStr.append(quote).append(originFuncStr).append(quote);
-      sqlColumnsStr.append(", ");
+      Expression param = functionCall.getParams().getExpressions().get(0);
+
+      List<Expression> expandExprs = expandExpression(param, fullColumnNames);
+      for (Expression expr : expandExprs) {
+        String IGinXTagKVName =
+            String.format(
+                "%s(%s)", functionName, exprToIGinX(ExprUtils.copy(expr)).getColumnName());
+        fullName2Name.put(IGinXTagKVName, functionCall.getFunctionStr());
+
+        sqlColumnsStr.append(
+            String.format(
+                "%s(%s)", functionName, exprAdapt(ExprUtils.copy(expr), isJoin).getColumnName()));
+        sqlColumnsStr.append(" AS ");
+        sqlColumnsStr.append(quote).append(IGinXTagKVName).append(quote);
+        sqlColumnsStr.append(", ");
+      }
     }
 
     for (Expression expr : gbc) {
@@ -1537,6 +1555,61 @@ public class RelationalStorage implements IStorage {
     return expr;
   }
 
+  /** 表达式修改成取回到IGinX的形式，TagKV的形式要是{t=v1, t2=v2} */
+  private Expression exprToIGinX(Expression expr) {
+    expr.accept(
+        new ExpressionVisitor() {
+          @Override
+          public void visit(BaseExpression expression) {
+            String fullColumnName = expression.getColumnName();
+            Pair<String, Map<String, String>> split = splitFullName(fullColumnName);
+            StringBuilder sb = new StringBuilder(split.k);
+            sb.append("{");
+            Map<String, String> tagKV = split.v;
+            for (Map.Entry<String, String> entry : tagKV.entrySet()) {
+              sb.append(entry.getKey());
+              sb.append("=");
+              sb.append(entry.getValue());
+              sb.append(",");
+            }
+            sb.delete(sb.length() - 1, sb.length());
+            sb.append("}");
+            expression.setPathName(sb.toString());
+          }
+
+          @Override
+          public void visit(BinaryExpression expression) {}
+
+          @Override
+          public void visit(BracketExpression expression) {}
+
+          @Override
+          public void visit(ConstantExpression expression) {}
+
+          @Override
+          public void visit(FromValueExpression expression) {}
+
+          @Override
+          public void visit(FuncExpression expression) {}
+
+          @Override
+          public void visit(MultipleExpression expression) {}
+
+          @Override
+          public void visit(UnaryExpression expression) {}
+
+          @Override
+          public void visit(CaseWhenExpression expression) {}
+
+          @Override
+          public void visit(KeyExpression expression) {}
+
+          @Override
+          public void visit(SequenceExpression expression) {}
+        });
+    return expr;
+  }
+
   @Override
   public TaskExecuteResult executeProjectDummyWithAggSelect(
       Project project, Select select, Operator agg, DataArea dataArea) {
@@ -1560,6 +1633,7 @@ public class RelationalStorage implements IStorage {
 
       Map<String, Map<String, String>> splitResults =
           splitAndMergeHistoryQueryPatterns(project.getPatterns());
+      Map<String, String> fullName2Name = new HashMap<>();
       for (Map.Entry<String, Map<String, String>> splitEntry : splitResults.entrySet()) {
         Map<String, String> tableNameToColumnNames = splitEntry.getValue();
         String databaseName = splitEntry.getKey();
@@ -1574,7 +1648,9 @@ public class RelationalStorage implements IStorage {
         gbc.forEach(this::cutExprDatabaseNameForDummy);
         functionCalls.forEach(
             fc -> fc.getParams().getExpressions().forEach(this::cutExprDatabaseNameForDummy));
-        statement = generateAggSql(functionCalls, gbc, statement);
+
+        statement =
+            generateAggSql(functionCalls, gbc, statement, tableNameToColumnNames, fullName2Name);
 
         try {
           stmt = conn.createStatement();
@@ -1600,6 +1676,7 @@ public class RelationalStorage implements IStorage {
                   connList,
                   relationalMeta,
                   columnTypeMap,
+                  fullName2Name,
                   true));
       return new TaskExecuteResult(rowStream);
     } catch (SQLException | RelationalTaskExecuteFailureException e) {
@@ -2534,7 +2611,7 @@ public class RelationalStorage implements IStorage {
   private boolean isSumResultDouble(Expression expr, List<Column> columns) {
     Map<String, DataType> columnTypeMap = new HashMap<>();
     for (Column column : columns) {
-      columnTypeMap.put(column.getPath(), column.getDataType());
+      columnTypeMap.put(splitFullName(column.getPath()).k, column.getDataType());
     }
     boolean[] isDouble = {false};
     expr.accept(
@@ -2634,5 +2711,84 @@ public class RelationalStorage implements IStorage {
           @Override
           public void visit(SequenceExpression expression) {}
         });
+  }
+
+  /**
+   * 获取替换了*和tag kv的expression
+   *
+   * @return
+   */
+  private List<Expression> expandExpression(Expression expression, List<String> fullColumnNames) {
+    Queue<Expression> queue = new LinkedList<>();
+    List<Expression> result = new ArrayList<>();
+    queue.add(expression);
+    while (!queue.isEmpty()) {
+      Expression expr = queue.poll();
+      BaseExpression[] be = {null};
+      List<String> matchesColumns = new ArrayList<>();
+      expr.accept(
+          new ExpressionVisitor() {
+            @Override
+            public void visit(BaseExpression expression) {
+              if (be[0] != null) return;
+              if (expression.getColumnName().contains("*")) {
+                be[0] = expression;
+              }
+              String pattern = StringUtils.reformatPath(expression.getColumnName());
+              for (String fullColumnName : fullColumnNames) {
+                String columnNameWithoutTag = splitFullName(fullColumnName).k;
+                if (Pattern.matches(pattern, columnNameWithoutTag)) {
+                  matchesColumns.add(fullColumnName);
+                }
+              }
+              if (matchesColumns.size() > 1) {
+                be[0] = expression;
+              } else {
+                matchesColumns.clear();
+              }
+            }
+
+            @Override
+            public void visit(BinaryExpression expression) {}
+
+            @Override
+            public void visit(BracketExpression expression) {}
+
+            @Override
+            public void visit(ConstantExpression expression) {}
+
+            @Override
+            public void visit(FromValueExpression expression) {}
+
+            @Override
+            public void visit(FuncExpression expression) {}
+
+            @Override
+            public void visit(MultipleExpression expression) {}
+
+            @Override
+            public void visit(UnaryExpression expression) {}
+
+            @Override
+            public void visit(CaseWhenExpression expression) {}
+
+            @Override
+            public void visit(KeyExpression expression) {}
+
+            @Override
+            public void visit(SequenceExpression expression) {}
+          });
+
+      if (be[0] == null) {
+        result.add(expr);
+        continue;
+      }
+      for (String columnName : matchesColumns) {
+        be[0].setPathName(columnName);
+        queue.add(ExprUtils.copy(expr));
+      }
+    }
+
+    return result;
   }
 }
