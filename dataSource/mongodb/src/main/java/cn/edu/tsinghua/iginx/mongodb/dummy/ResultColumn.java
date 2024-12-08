@@ -58,12 +58,6 @@ class ResultColumn {
     }
 
     ResultColumn build() {
-      if (type != null) {
-        if (type == DataType.BINARY) {
-          return buildAsBinary();
-        }
-        return buildByConvertToNotBinary(type);
-      }
       try {
         return buildByConvert();
       } catch (Exception e) {
@@ -81,43 +75,56 @@ class ResultColumn {
     }
 
     private ResultColumn buildByConvert() {
-      BsonType bsonType = analysisType();
-      DataType type = TypeUtils.convert(bsonType);
+      DataType type = analysisType();
       if (type == DataType.BINARY) {
         return buildAsBinary();
       }
       Map<Long, Object> data = new HashMap<>();
       for (SimpleImmutableEntry<Long, BsonValue> bsonValue : values) {
-        BsonValue convertedBsonValue = TypeUtils.convertTo(bsonValue.getValue(), bsonType);
-        if (convertedBsonValue != null) {
-          Object value = TypeUtils.convert(convertedBsonValue);
-          data.put(bsonValue.getKey(), value);
+        Object convertedValue = TypeUtils.convertTo(bsonValue.getValue(), type);
+        if (convertedValue != null) {
+          data.put(bsonValue.getKey(), convertedValue);
         }
       }
       return new ResultColumn(type, data);
     }
 
-    private BsonType analysisType() {
+    private DataType analysisType() {
       Map<BsonType, Long> typeNum =
           values.stream()
               .map(Map.Entry::getValue)
               .collect(Collectors.groupingBy(BsonValue::getBsonType, Collectors.counting()));
 
-      BsonType majorType =
-          typeNum.entrySet().stream()
-              .max(Map.Entry.comparingByValue())
-              .orElseThrow(() -> new IllegalArgumentException("can't build empty column!"))
-              .getKey();
+      typeNum.remove(BsonType.STRING);
+      typeNum.remove(BsonType.DOCUMENT);
+      typeNum.remove(BsonType.ARRAY);
+      typeNum.remove(BsonType.BINARY);
+      typeNum.remove(BsonType.UNDEFINED);
+      typeNum.remove(BsonType.NULL);
+      typeNum.remove(BsonType.JAVASCRIPT);
+      typeNum.remove(BsonType.JAVASCRIPT_WITH_SCOPE);
+      typeNum.remove(BsonType.REGULAR_EXPRESSION);
+      typeNum.remove(BsonType.SYMBOL);
 
-      BsonType resultType = majorType;
-      switch (majorType) {
-        case INT32:
+      DataType expectedType = type;
+      if (expectedType == null) {
+        BsonType majorType =
+            typeNum.entrySet().stream()
+                .max(Map.Entry.comparingByValue())
+                .orElseGet(() -> new SimpleImmutableEntry<>(BsonType.BINARY, 0L))
+                .getKey();
+        expectedType = TypeUtils.convert(majorType);
+      }
+
+      DataType resultType = expectedType;
+      switch (expectedType) {
+        case INTEGER:
           if (typeNum.containsKey(BsonType.INT64)) {
-            resultType = BsonType.INT64;
+            resultType = DataType.LONG;
           }
-        case INT64:
+        case LONG:
           if (typeNum.containsKey(BsonType.DOUBLE)) {
-            resultType = BsonType.DOUBLE;
+            resultType = DataType.DOUBLE;
           }
       }
       return resultType;

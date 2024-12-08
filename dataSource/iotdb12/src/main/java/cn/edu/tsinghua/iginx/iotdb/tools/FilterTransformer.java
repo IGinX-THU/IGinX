@@ -126,7 +126,11 @@ public class FilterTransformer {
     }
 
     for (Value value : filter.getValues()) {
-      sb.append(value.getValue().toString()).append(", ");
+      if (value.getDataType() == DataType.BINARY) {
+        sb.append("'").append(value.getBinaryVAsString()).append("', ");
+      } else {
+        sb.append(value).append(", ");
+      }
     }
 
     return sb.substring(0, sb.length() - 2) + ")";

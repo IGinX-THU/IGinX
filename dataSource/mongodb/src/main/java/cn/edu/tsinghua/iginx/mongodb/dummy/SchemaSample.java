@@ -73,7 +73,7 @@ public class SchemaSample {
       prefixes = new String[0];
     }
 
-    ResultTable sampleTable = builder.build(prefixes, null);
+    ResultTable sampleTable = builder.build(prefixes, Collections.emptyMap());
 
     Map<String, ResultColumn> columns = sampleTable.getColumns();
     Map<String, DataType> schema = new HashMap<>(columns.size());

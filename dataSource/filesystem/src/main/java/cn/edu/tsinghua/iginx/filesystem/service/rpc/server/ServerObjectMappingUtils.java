@@ -19,6 +19,7 @@
  */
 package cn.edu.tsinghua.iginx.filesystem.service.rpc.server;
 
+import static cn.edu.tsinghua.iginx.engine.shared.operator.filter.FilterType.In;
 import static cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op.*;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
@@ -67,9 +68,20 @@ public class ServerObjectMappingUtils {
         return resolveRawBoolFilter(filter);
       case Path:
         return resolveRawPathFilter(filter);
+      case In:
+        return resolveRawInFilter(filter);
       default:
         throw new UnsupportedOperationException("unsupported filter type: " + filter.getType());
     }
+  }
+
+  private static Filter resolveRawInFilter(RawFilter filter) {
+    return new InFilter(
+        filter.getPath(),
+        resolveRawFilterInOp(filter.inOp),
+        filter.getArray().stream()
+            .map(ServerObjectMappingUtils::resolveRawValue)
+            .collect(Collectors.toList()));
   }
 
   private static Filter resolveRawAndFilter(RawFilter andFilter) {
@@ -145,6 +157,21 @@ public class ServerObjectMappingUtils {
         return G_AND;
       default:
         throw new UnsupportedOperationException("unsupported filter op: " + op);
+    }
+  }
+
+  private static InFilter.InOp resolveRawFilterInOp(RawFilterInOp rawFilterInOp) {
+    switch (rawFilterInOp) {
+      case IN_AND:
+        return InFilter.InOp.IN_AND;
+      case IN:
+        return InFilter.InOp.IN_OR;
+      case NOT_IN_AND:
+        return InFilter.InOp.NOT_IN_AND;
+      case NOT_IN:
+        return InFilter.InOp.NOT_IN_OR;
+      default:
+        throw new UnsupportedOperationException("unsupported filter in op: " + rawFilterInOp);
     }
   }
 

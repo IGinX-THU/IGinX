@@ -1,4 +1,4 @@
-name: "Union Database Test With Push Down"
+name: "Union Database Test No Optimizer"
 
 on:
     workflow_call:
@@ -72,8 +72,7 @@ jobs:
               uses: ./.github/actions/confWriter
               with:
                   DB-name: ${{ matrix.DB-name }}
-                  Push-Down: "true"
-                  Set-Filter-Fragment-OFF: "true"
+                  Close-Optimizer: "true"
                   Metadata: ${{ matrix.metadata }}
 
             - name: Start IGinX
