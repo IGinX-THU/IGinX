@@ -27,23 +27,16 @@ public class QuoteBaseExpressionDecorator implements Expression {
   private final BaseExpression baseExpression;
   private final char quote;
 
-  private final boolean isJoin;
 
   private static String DERIVED = "derived";
 
-  public QuoteBaseExpressionDecorator(BaseExpression baseExpression, char quote, boolean isJoin) {
+  public QuoteBaseExpressionDecorator(BaseExpression baseExpression, char quote) {
     this.baseExpression = baseExpression;
     this.quote = quote;
-    this.isJoin = isJoin;
   }
 
   @Override
   public String getColumnName() {
-    if (!isJoin) {
-      String path = baseExpression.getColumnName();
-      RelationSchema schema = new RelationSchema(path, quote);
-      return DERIVED + "." + quote + schema.getColumnName() + quote;
-    }
     return DERIVED + "." + quote + baseExpression.getColumnName() + quote;
   }
 

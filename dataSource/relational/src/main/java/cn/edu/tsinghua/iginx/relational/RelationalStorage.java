@@ -1377,8 +1377,6 @@ public class RelationalStorage implements IStorage {
       Map<String, String> table2Column,
       Map<String, String> fullName2Name) {
     char quote = relationalMeta.getQuote();
-    boolean isJoin =
-        statement.contains(" JOIN "); // 如果有JOIN,则column形如`table.column`，否则形如`table`.`column`
     List<String> fullColumnNames = new ArrayList<>();
     for (Map.Entry<String, String> entry : table2Column.entrySet()) {
       String tableName = entry.getKey();
@@ -1409,7 +1407,7 @@ public class RelationalStorage implements IStorage {
 
         sqlColumnsStr.append(
             String.format(
-                "%s(%s)", functionName, exprAdapt(ExprUtils.copy(expr), isJoin).getColumnName()));
+                "%s(%s)", functionName, exprAdapt(ExprUtils.copy(expr)).getColumnName()));
         sqlColumnsStr.append(" AS ");
         sqlColumnsStr.append(quote).append(IGinXTagKVName).append(quote);
         sqlColumnsStr.append(", ");
@@ -1419,7 +1417,7 @@ public class RelationalStorage implements IStorage {
     for (Expression expr : gbc) {
       String originColumnStr = quote + expr.getColumnName() + quote;
       sqlColumnsStr
-          .append(exprAdapt(ExprUtils.copy(expr), isJoin).getColumnName())
+          .append(exprAdapt(ExprUtils.copy(expr)).getColumnName())
           .append(" AS ")
           .append(originColumnStr)
           .append(", ");
@@ -1431,7 +1429,7 @@ public class RelationalStorage implements IStorage {
       statement +=
           " GROUP BY "
               + gbc.stream()
-                  .map(e -> exprAdapt(ExprUtils.copy(e), isJoin).getColumnName())
+                  .map(e -> exprAdapt(ExprUtils.copy(e)).getColumnName())
                   .collect(Collectors.joining(", "));
     }
     statement += ";";
@@ -1442,10 +1440,10 @@ public class RelationalStorage implements IStorage {
    * 表达式适配下推到PG的形式 1.将baseExpression转换为QuoteBaseExpression，以让其在SQL中被引号包裹
    * 如果SQL使用了JOIN,那列名形如`table.column`，如果没有，则形如`table`.`column` 2.乘和除从×和÷转换为*和/
    */
-  private Expression exprAdapt(Expression expr, boolean isSplitTableColumn) {
+  private Expression exprAdapt(Expression expr) {
     if (expr instanceof BaseExpression) {
       return new QuoteBaseExpressionDecorator(
-          (BaseExpression) expr, relationalMeta.getQuote(), isSplitTableColumn);
+          (BaseExpression) expr, relationalMeta.getQuote());
     }
     expr.accept(
         new ExpressionVisitor() {
@@ -1458,15 +1456,13 @@ public class RelationalStorage implements IStorage {
               expression.setLeftExpression(
                   new QuoteBaseExpressionDecorator(
                       (BaseExpression) expression.getLeftExpression(),
-                      relationalMeta.getQuote(),
-                      isSplitTableColumn));
+                      relationalMeta.getQuote()));
             }
             if (expression.getRightExpression() instanceof BaseExpression) {
               expression.setRightExpression(
                   new QuoteBaseExpressionDecorator(
                       (BaseExpression) expression.getRightExpression(),
-                      relationalMeta.getQuote(),
-                      isSplitTableColumn));
+                      relationalMeta.getQuote()));
             }
 
             if (expression.getOp().equals(cn.edu.tsinghua.iginx.engine.shared.expr.Operator.STAR)) {
@@ -1484,8 +1480,7 @@ public class RelationalStorage implements IStorage {
               expression.setExpression(
                   new QuoteBaseExpressionDecorator(
                       (BaseExpression) expression.getExpression(),
-                      relationalMeta.getQuote(),
-                      isSplitTableColumn));
+                      relationalMeta.getQuote()));
             }
           }
 
@@ -1505,8 +1500,7 @@ public class RelationalStorage implements IStorage {
                         i,
                         new QuoteBaseExpressionDecorator(
                             (BaseExpression) expression.getExpressions().get(i),
-                            relationalMeta.getQuote(),
-                            isSplitTableColumn));
+                            relationalMeta.getQuote()));
               }
             }
           }
@@ -1521,8 +1515,7 @@ public class RelationalStorage implements IStorage {
                         i,
                         new QuoteBaseExpressionDecorator(
                             (BaseExpression) expression.getChildren().get(i),
-                            relationalMeta.getQuote(),
-                            isSplitTableColumn));
+                            relationalMeta.getQuote()));
               }
             }
             expression
@@ -1544,8 +1537,7 @@ public class RelationalStorage implements IStorage {
               expression.setExpression(
                   new QuoteBaseExpressionDecorator(
                       (BaseExpression) expression.getExpression(),
-                      relationalMeta.getQuote(),
-                      isSplitTableColumn));
+                      relationalMeta.getQuote()));
             }
           }
 
