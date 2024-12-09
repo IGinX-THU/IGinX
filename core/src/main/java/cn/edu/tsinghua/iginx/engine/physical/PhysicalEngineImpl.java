@@ -56,8 +56,8 @@ public class PhysicalEngineImpl implements PhysicalEngine {
 
   private PhysicalEngineImpl() {
     optimizer =
-            PhysicalOptimizerManager.getInstance()
-                    .getOptimizer(ConfigDescriptor.getInstance().getConfig().getPhysicalOptimizer());
+        PhysicalOptimizerManager.getInstance()
+            .getOptimizer(ConfigDescriptor.getInstance().getConfig().getPhysicalOptimizer());
     memoryTaskExecutor = MemoryPhysicalTaskDispatcher.getInstance();
     storageTaskExecutor = StoragePhysicalTaskExecutor.getInstance();
     storageTaskExecutor.init(memoryTaskExecutor, optimizer.getReplicaDispatcher());
@@ -74,7 +74,7 @@ public class PhysicalEngineImpl implements PhysicalEngine {
       // 迁移任务单独处理
       if (root.getType() == OperatorType.Migration) {
         return MigrationPhysicalExecutor.getInstance()
-                .execute(ctx, (Migration) root, storageTaskExecutor);
+            .execute(ctx, (Migration) root, storageTaskExecutor);
       } else {
         GlobalPhysicalTask task = new GlobalPhysicalTask(root, ctx);
         TaskExecuteResult result = storageTaskExecutor.executeGlobalTask(task);
