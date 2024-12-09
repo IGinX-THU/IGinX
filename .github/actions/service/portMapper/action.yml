@@ -34,9 +34,9 @@ runs:
                   echo "port3=6669" >> $GITHUB_OUTPUT
                   ;;
                 "FileSystem")
-                  echo "port1=6667" >> $GITHUB_OUTPUT
-                  echo "port2=6668" >> $GITHUB_OUTPUT
-                  echo "port3=6669" >> $GITHUB_OUTPUT
+                  echo "port1=6668" >> $GITHUB_OUTPUT
+                  echo "port2=6669" >> $GITHUB_OUTPUT
+                  echo "port3=6670" >> $GITHUB_OUTPUT
                   ;;
                 "MySQL")
                   echo "port1=3306" >> $GITHUB_OUTPUT
