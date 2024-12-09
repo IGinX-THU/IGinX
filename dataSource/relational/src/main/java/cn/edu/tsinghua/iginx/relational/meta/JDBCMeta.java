@@ -25,6 +25,7 @@ import cn.edu.tsinghua.iginx.relational.datatype.transformer.JDBCDataTypeTransfo
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Arrays;
@@ -85,16 +86,24 @@ public class JDBCMeta extends AbstractRelationalMeta {
     this(meta, getPropertiesFromPath(propertiesPath));
   }
 
-  private static Properties getPropertiesFromPath(String propertiesPath) throws IOException {
+  protected static Properties getPropertiesFromPath(String propertiesPath) throws IOException {
     Properties properties = new Properties();
-    File file = new File(propertiesPath);
-    if (!file.exists()) {
-      throw new IOException(String.format("Properties file %s not found", file.getAbsolutePath()));
-    }
-    try (InputStream inputStream = Files.newInputStream(Paths.get(propertiesPath))) {
+    try (InputStream inputStream = getInputStreamFromPath(propertiesPath)) {
       properties.load(inputStream);
     }
     return properties;
+  }
+
+  protected static InputStream getInputStreamFromPath(String propertiesPath) throws IOException {
+    File file = new File(propertiesPath);
+    if (file.exists()) {
+      return Files.newInputStream(Paths.get(propertiesPath));
+    }
+    URL url = JDBCMeta.class.getClassLoader().getResource(propertiesPath);
+    if (url != null) {
+      return url.openStream();
+    }
+    throw new IOException(String.format("Properties file %s not found", file.getAbsolutePath()));
   }
 
   public JDBCMeta(StorageEngineMeta meta, InputStream propertiesIS) throws IOException {
