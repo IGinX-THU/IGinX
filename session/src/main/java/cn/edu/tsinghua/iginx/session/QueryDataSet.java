@@ -42,15 +42,7 @@ public class QueryDataSet {
 
   private final long queryId;
 
-  //  private List<String> columnList;
-  //
-  //  private List<DataType> dataTypeList;
-
   private final int fetchSize;
-
-  //  private List<ByteBuffer> valuesList;
-  //
-  //  private List<ByteBuffer> bitmapList;
 
   private ByteUtils.DataSet dataSet;
 

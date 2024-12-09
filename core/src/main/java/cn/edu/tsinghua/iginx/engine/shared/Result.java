@@ -127,7 +127,6 @@ public class Result {
   public ShowColumnsResp getShowColumnsResp() {
     ShowColumnsResp resp = new ShowColumnsResp(status);
     resp.setPaths(paths);
-    resp.setTagsList(tagsList);
     resp.setDataTypeList(dataTypes);
     return resp;
   }
@@ -232,57 +231,12 @@ public class Result {
     }
 
     try {
-      // TODO: setHasMoreResults
       resp.setHasMoreResults(batchStream.hasNext());
       resp.setQueryArrowData(getArrowDataFromStream(allocator, fetchSize));
     } catch (IOException | PhysicalException e) {
       LOGGER.error("unexpected error when load row stream: ", e);
       resp.setStatus(RpcUtils.FAILURE);
     }
-
-    //    try {
-    //      List<DataType> types = new ArrayList<>();
-    //
-    //      Header header = resultStream.getHeader();
-    //
-    //      if (header.hasKey()) {
-    //        types.add(Field.KEY.getType());
-    //      }
-    //
-    //      resultStream.getHeader().getFields().forEach(field -> types.add(field.getType()));
-    //
-    //      List<ByteBuffer> valuesList = new ArrayList<>();
-    //      List<ByteBuffer> bitmapList = new ArrayList<>();
-    //
-    //      int cnt = 0;
-    //      boolean hasKey = resultStream.getHeader().hasKey();
-    //      while (resultStream.hasNext() && cnt < fetchSize) {
-    //        Row row = resultStream.next();
-    //
-    //        Object[] rawValues = row.getValues();
-    //        Object[] rowValues = rawValues;
-    //        if (hasKey) {
-    //          rowValues = new Object[rawValues.length + 1];
-    //          rowValues[0] = row.getKey();
-    //          System.arraycopy(rawValues, 0, rowValues, 1, rawValues.length);
-    //        }
-    //        valuesList.add(ByteUtils.getRowByteBuffer(rowValues, types));
-    //
-    //        Bitmap bitmap = new Bitmap(rowValues.length);
-    //        for (int i = 0; i < rowValues.length; i++) {
-    //          if (rowValues[i] != null) {
-    //            bitmap.mark(i);
-    //          }
-    //        }
-    //        bitmapList.add(ByteBuffer.wrap(bitmap.getBytes()));
-    //        cnt++;
-    //      }
-    //      resp.setHasMoreResults(resultStream.hasNext());
-    //      resp.setQueryDataSet(new QueryDataSetV2(valuesList, bitmapList));
-    //    } catch (PhysicalException e) {
-    //      LOGGER.error("unexpected error when load row stream: ", e);
-    //      resp.setStatus(RpcUtils.FAILURE);
-    //    }
     return resp;
   }
 

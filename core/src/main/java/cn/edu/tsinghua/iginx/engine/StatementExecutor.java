@@ -896,8 +896,6 @@ public class StatementExecutor {
     result.setTagsList(tagsList);
     result.setDataTypes(types);
     ctx.setResult(result);
-
-    stream.close();
   }
 
   private void parseOldTagsFromHeader(Header header, InsertStatement insertStatement)
