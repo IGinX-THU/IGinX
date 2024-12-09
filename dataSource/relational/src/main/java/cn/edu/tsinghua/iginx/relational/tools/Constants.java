@@ -51,5 +51,6 @@ public abstract class Constants {
   static {
     metaPathMap.put("mysql", "mysql-meta-template.properties");
     metaPathMap.put("postgresql", "postgresql-meta-template.properties");
+    metaPathMap.put("dm", "dm-meta.properties");
   }
 }

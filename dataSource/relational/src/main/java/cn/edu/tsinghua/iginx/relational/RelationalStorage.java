@@ -264,21 +264,27 @@ public class RelationalStorage implements IStorage {
    */
   private List<String> getDatabaseNames() throws SQLException {
     List<String> databaseNames = new ArrayList<>();
-    Connection conn = getConnection(relationalMeta.getDefaultDatabaseName());
-    Statement statement = conn.createStatement();
-    ResultSet rs = statement.executeQuery(relationalMeta.getDatabaseQuerySql());
-    while (rs.next()) {
-      String databaseName = rs.getString("DATNAME");
-      if (relationalMeta.getSystemDatabaseName().contains(databaseName)
-          || relationalMeta.getDefaultDatabaseName().equals(databaseName)) {
-        continue;
+    String DefaultDatabaseName = relationalMeta.getDefaultDatabaseName();
+    if (DefaultDatabaseName.equals("DAMENG")) {
+      databaseNames.add(DefaultDatabaseName);
+      return databaseNames;
+    } else {
+      Connection conn = getConnection(relationalMeta.getDefaultDatabaseName());
+      Statement statement = conn.createStatement();
+      ResultSet rs = statement.executeQuery(relationalMeta.getDatabaseQuerySql());
+      while (rs.next()) {
+        String databaseName = rs.getString("DATNAME");
+        if (relationalMeta.getSystemDatabaseName().contains(databaseName)
+            || relationalMeta.getDefaultDatabaseName().equals(databaseName)) {
+          continue;
+        }
+        databaseNames.add(databaseName);
       }
-      databaseNames.add(databaseName);
+      rs.close();
+      statement.close();
+      conn.close();
+      return databaseNames;
     }
-    rs.close();
-    statement.close();
-    conn.close();
-    return databaseNames;
   }
 
   private List<String> getTables(String databaseName, String tablePattern) {
@@ -462,7 +468,11 @@ public class RelationalStorage implements IStorage {
                 continue;
               }
               Pair<String, Map<String, String>> nameAndTags = splitFullName(columnName);
-              columnName = databaseName + SEPARATOR + tableName + SEPARATOR + nameAndTags.k;
+              if (databaseName.equals("DAMENG")) {
+                columnName = tableName + SEPARATOR + nameAndTags.k;
+              } else {
+                columnName = databaseName + SEPARATOR + tableName + SEPARATOR + nameAndTags.k;
+              }
               if (tagFilter != null && !TagKVUtils.match(nameAndTags.v, tagFilter)) {
                 continue;
               }
@@ -1307,13 +1317,35 @@ public class RelationalStorage implements IStorage {
           closeConnection(databaseName);
           Connection defaultConn =
               getConnection(relationalMeta.getDefaultDatabaseName()); // 正在使用的数据库无法被删除，因此需要切换到默认数据库
+          String DefaultDatabaseName = relationalMeta.getDefaultDatabaseName();
           if (defaultConn != null) {
-            stmt = defaultConn.createStatement();
-            statement = String.format(relationalMeta.getDropDatabaseStatement(), databaseName);
-            LOGGER.info("[Delete] execute delete: {}", statement);
-            stmt.execute(statement); // 删除数据库
-            stmt.close();
-            defaultConn.close();
+            if (DefaultDatabaseName.equals("DAMENG")) {
+              stmt = defaultConn.createStatement();
+              deletedPaths = DeletedallPaths(delete.getTagFilter());
+              for (Pair<String, String> pair : deletedPaths) {
+                tableName = pair.k;
+                columnName = pair.v;
+                tables = getTables(databaseName, tableName);
+                if (!tables.isEmpty()) {
+                  statement =
+                      String.format(
+                          DROP_COLUMN_STATEMENT, getQuotName(tableName), getQuotName(columnName));
+                  LOGGER.info("[Delete] execute delete: {}", statement);
+                  try {
+                    stmt.execute(statement); // 删除列
+                  } catch (SQLException e) {
+                    // 可能会出现该列不存在的问题，此时不做处理
+                  }
+                }
+              }
+            } else {
+              stmt = defaultConn.createStatement();
+              statement = String.format(relationalMeta.getDropDatabaseStatement(), databaseName);
+              LOGGER.info("[Delete] execute delete: {}", statement);
+              stmt.execute(statement); // 删除数据库
+              stmt.close();
+              defaultConn.close();
+            }
             return new TaskExecuteResult(null, null);
           } else {
             return new TaskExecuteResult(
@@ -1375,6 +1407,7 @@ public class RelationalStorage implements IStorage {
   @Override
   public TaskExecuteResult executeInsert(Insert insert, DataArea dataArea) {
     DataView dataView = insert.getData();
+
     String databaseName = dataArea.getStorageUnit();
     Connection conn = getConnection(databaseName);
     if (conn == null) {
@@ -1959,38 +1992,81 @@ public class RelationalStorage implements IStorage {
       // (XXX,
       // XXX, ...) ON CONFLICT ("key") DO UPDATE SET (XXX, ...) = (excluded.XXX, ...);
       StringBuilder statement = new StringBuilder();
-      statement.append("INSERT INTO ");
-      statement.append(getQuotName(tableName));
-      statement.append(" (");
-      statement.append(getQuotName(KEY_NAME));
-      statement.append(", ");
-      String fullColumnNames = getQuotColumnNames(columnNames);
-      statement.append(fullColumnNames);
+      String engineName = meta.getExtraParams().get("engine");
 
-      statement.append(") VALUES ");
-      for (String value : values) {
-        statement.append("(");
-        statement.append(value, 0, value.length() - 2);
-        statement.append("), ");
-      }
-      statement.delete(statement.length() - 2, statement.length());
-
-      statement.append(relationalMeta.getUpsertStatement());
-
-      for (String part : parts) {
-        if (part.equals(KEY_NAME)) {
-          continue;
-        }
-        statement.append(
-            String.format(
-                relationalMeta.getUpsertConflictStatement(), getQuotName(part), getQuotName(part)));
+      if (engineName.equals("dm")) {
+        statement.append("MERGE INTO ");
+        statement.append(getQuotName(tableName));
+        statement.append(" T1 USING (");
+        statement.append(getQuotSelectStatements(parts, values));
+        statement.append(") T2 ON (T1.");
+        statement.append(getQuotName(KEY_NAME));
+        statement.append(" = T2.");
+        statement.append(getQuotName(KEY_NAME));
+        statement.append(") WHEN NOT MATCHED THEN INSERT (");
+        statement.append(getQuotName(KEY_NAME));
         statement.append(", ");
+        String fullColumnNames = getQuotColumnNames(columnNames);
+        statement.append(fullColumnNames);
+        statement.append(") VALUES (T2.");
+        statement.append(getQuotName(KEY_NAME));
+        statement.append(", ");
+        for (String part : parts) {
+          statement.append("T2.");
+          statement.append(getQuotName(part));
+          statement.append(", ");
+        }
+        statement.delete(statement.length() - 2, statement.length());
+        statement.append(") WHEN MATCHED THEN UPDATE SET ");
+        for (String part : parts) {
+          if (part.equals(KEY_NAME)) {
+            continue;
+          }
+          statement.append("T1.");
+          statement.append(getQuotName(part));
+          statement.append(" = T2.");
+          statement.append(getQuotName(part));
+          statement.append(", ");
+        }
+
+        statement.delete(statement.length() - 2, statement.length());
+
+        statement.append(";");
+      } else {
+        statement.append("INSERT INTO ");
+        statement.append(getQuotName(tableName));
+        statement.append(" (");
+        statement.append(getQuotName(KEY_NAME));
+        statement.append(", ");
+        String fullColumnNames = getQuotColumnNames(columnNames);
+        statement.append(fullColumnNames);
+
+        statement.append(") VALUES ");
+        for (String value : values) {
+          statement.append("(");
+          statement.append(value, 0, value.length() - 2);
+          statement.append("), ");
+        }
+        statement.delete(statement.length() - 2, statement.length());
+
+        statement.append(relationalMeta.getUpsertStatement());
+
+        for (String part : parts) {
+          if (part.equals(KEY_NAME)) {
+            continue;
+          }
+          statement.append(
+              String.format(
+                  relationalMeta.getUpsertConflictStatement(),
+                  getQuotName(part),
+                  getQuotName(part)));
+          statement.append(", ");
+        }
+
+        statement.delete(statement.length() - 2, statement.length());
+
+        statement.append(";");
       }
-
-      statement.delete(statement.length() - 2, statement.length());
-
-      statement.append(";");
-
       stmt.addBatch(statement.toString());
     }
     stmt.executeBatch();
@@ -2024,6 +2100,28 @@ public class RelationalStorage implements IStorage {
     }
   }
 
+  private List<Pair<String, String>> DeletedallPaths(TagFilter tagFilter) {
+    try {
+      List<Column> columns = getColumns(null, null);
+      List<Pair<String, String>> deletedPaths = new ArrayList<>();
+
+      for (Column column : columns) {
+        if (tagFilter != null && !TagKVUtils.match(column.getTags(), tagFilter)) {
+          continue;
+        }
+        String fullPath = column.getPath();
+        RelationSchema schema = new RelationSchema(fullPath, relationalMeta.getQuote());
+        String tableName = schema.getTableName();
+        String columnName = toFullName(schema.getColumnName(), column.getTags());
+        deletedPaths.add(new Pair<>(tableName, columnName));
+      }
+      return deletedPaths;
+    } catch (RelationalTaskExecuteFailureException e) {
+      LOGGER.error(e.getMessage(), e);
+      return new ArrayList<>();
+    }
+  }
+
   private String getQuotName(String name) {
     return relationalMeta.getQuote() + name + relationalMeta.getQuote();
   }
@@ -2036,6 +2134,27 @@ public class RelationalStorage implements IStorage {
       fullColumnNames.append(", ");
     }
     return fullColumnNames.substring(0, fullColumnNames.length() - 2);
+  }
+
+  private String getQuotSelectStatements(String[] parts, List<String> values) {
+    StringBuilder SelectStatements = new StringBuilder();
+    for (String value : values) {
+      String[] val = value.substring(0, value.length() - 2).split(", ");
+      SelectStatements.append("SELECT ");
+      for (int i = 0; i < val.length; i++) {
+        SelectStatements.append(val[i]);
+        SelectStatements.append(" ");
+        if (i == 0) {
+          SelectStatements.append(getQuotName(KEY_NAME));
+        } else {
+          SelectStatements.append(getQuotName(parts[i - 1]));
+        }
+        SelectStatements.append(", ");
+      }
+      SelectStatements.delete(SelectStatements.length() - 2, SelectStatements.length());
+      SelectStatements.append(" FROM dual UNION ALL ");
+    }
+    return SelectStatements.substring(0, SelectStatements.length() - 11);
   }
 
   @Override
