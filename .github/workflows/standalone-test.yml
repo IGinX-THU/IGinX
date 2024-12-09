@@ -27,11 +27,11 @@ on:
                 description: "The database to run the test on"
                 type: string
                 required: false
-                default: '["IoTDB12", "InfluxDB", "FileSystem", "PostgreSQL", "Redis", "MongoDB", "MySQL"]'
+                default: '["IoTDB12", "InfluxDB", "FileSystem", "PostgreSQL", "Redis", "MongoDB", "MySQL", "VectorDB"]'
 
 jobs:
     Union-DB-Test:
-        timeout-minutes: 40
+        timeout-minutes: 360
         strategy:
             fail-fast: false
             matrix:
@@ -185,3 +185,9 @@ jobs:
               shell: bash
               run: |
                   cat iginx-*.log
+
+            - if: runner.os == 'macOS'
+              name: Show docker logs
+              shell: bash
+              run: |
+                  docker-compose logs
