@@ -741,8 +741,6 @@ public class StatementExecutor {
     ctx.setStatement(statement);
     process(ctx);
 
-    // TODO: refactor this part
-    //    throw new UnsupportedOperationException("Not implemented yet");
     long pointsNum = 0;
     ByteUtils.DataSet dataSet = ByteUtils.getDataFromArrowData(ctx.getResult().getArrowData());
     if (dataSet.getValues() != null) {
@@ -894,8 +892,6 @@ public class StatementExecutor {
     }
 
     Result result = new Result(RpcUtils.SUCCESS);
-    // TODO: refactor this part
-    //    throw new UnsupportedOperationException("Not implemented yet");
     result.setPaths(paths);
     result.setTagsList(tagsList);
     result.setDataTypes(types);

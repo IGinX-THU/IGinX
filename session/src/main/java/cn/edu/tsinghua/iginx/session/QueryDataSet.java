@@ -83,31 +83,6 @@ public class QueryDataSet {
     this.warningMsg = warningMsg;
   }
 
-  //  public QueryDataSet(
-  //      Session session,
-  //      long queryId,
-  //      List<String> columnList,
-  //      List<DataType> dataTypeList,
-  //      int fetchSize,
-  //      List<ByteBuffer> valuesList,
-  //      List<ByteBuffer> bitmapList,
-  //      String warningMsg,
-  //      String exportStreamDir,
-  //      ExportCSV exportCSV) {
-  //    this.session = session;
-  //    this.queryId = queryId;
-  //    this.columnList = columnList;
-  //    this.dataTypeList = dataTypeList;
-  //    this.fetchSize = fetchSize;
-  //    this.valuesList = valuesList;
-  //    this.bitmapList = bitmapList;
-  //    this.exportStreamDir = exportStreamDir;
-  //    this.exportCSV = exportCSV;
-  //    this.state = State.UNKNOWN;
-  //    this.index = 0;
-  //    this.warningMsg = warningMsg;
-  //  }
-
   public void close() throws SessionException {
     session.closeQuery(queryId);
   }
@@ -124,20 +99,6 @@ public class QueryDataSet {
       dataSet = ByteUtils.getDataFromArrowData(pair.k);
     }
     state = pair.v ? State.HAS_MORE : State.NO_MORE;
-
-    //    if (bitmapList != null && index != bitmapList.size()) { // 只有之前的被消费完才有可能继续取数据
-    //      return;
-    //    }
-    //    bitmapList = null;
-    //    valuesList = null;
-    //    index = 0;
-    //
-    //    Pair<QueryDataSetV2, Boolean> pair = session.fetchResult(queryId, fetchSize);
-    //    if (pair.k != null) {
-    //      bitmapList = pair.k.bitmapList;
-    //      valuesList = pair.k.valuesList;
-    //    }
-    //    state = pair.v ? State.HAS_MORE : State.NO_MORE;
   }
 
   public boolean hasMore() throws SessionException {
@@ -152,17 +113,6 @@ public class QueryDataSet {
       fetch();
     }
     return dataSet != null;
-
-    //    if (valuesList != null && index < valuesList.size()) {
-    //      return true;
-    //    }
-    //    bitmapList = null;
-    //    valuesList = null;
-    //    index = 0;
-    //    if (state == State.HAS_MORE || state == State.UNKNOWN) {
-    //      fetch();
-    //    }
-    //    return valuesList != null;
   }
 
   public Object[] nextRow() throws SessionException {
@@ -172,18 +122,6 @@ public class QueryDataSet {
 
     // nextRow 只会返回本地的 row，如果本地没有，在进行 hasMore 操作时候，就一定也已经取回来了
     return dataSet.getValues().get(index++).toArray();
-
-    //    ByteBuffer valuesBuffer = valuesList.get(index);
-    //    ByteBuffer bitmapBuffer = bitmapList.get(index);
-    //    index++;
-    //    Bitmap bitmap = new Bitmap(dataTypeList.size(), bitmapBuffer.array());
-    //    Object[] values = new Object[dataTypeList.size()];
-    //    for (int i = 0; i < dataTypeList.size(); i++) {
-    //      if (bitmap.get(i)) {
-    //        values[i] = getValueFromByteBufferByDataType(valuesBuffer, dataTypeList.get(i));
-    //      }
-    //    }
-    //    return values;
   }
 
   public List<byte[]> nextRowAsBytes() throws SessionException {
@@ -203,20 +141,6 @@ public class QueryDataSet {
       }
     }
     return bytesValues;
-
-    //    ByteBuffer valuesBuffer = valuesList.get(index);
-    //    ByteBuffer bitmapBuffer = bitmapList.get(index);
-    //    index++;
-    //    Bitmap bitmap = new Bitmap(dataTypeList.size(), bitmapBuffer.array());
-    //    List<byte[]> bytesValues = new ArrayList<>(dataTypeList.size());
-    //    for (int i = 0; i < dataTypeList.size(); i++) {
-    //      if (bitmap.get(i)) {
-    //        bytesValues.add(getBytesFromByteBufferByDataType(valuesBuffer, dataTypeList.get(i)));
-    //      } else {
-    //        bytesValues.add(new byte[0]);
-    //      }
-    //    }
-    //    return bytesValues;
   }
 
   public List<String> getColumnList() {

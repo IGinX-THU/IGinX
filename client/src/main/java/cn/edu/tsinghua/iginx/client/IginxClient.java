@@ -294,7 +294,6 @@ public class IginxClient {
       return OperationResult.STOP;
     }
     long startTime = System.currentTimeMillis();
-    //     TODO: fetchsize待处理
     if (isQuery(trimedStatement)) {
       processSqlWithStream(statement);
     } else if (isLoadDataFromCsv(trimedStatement)) {

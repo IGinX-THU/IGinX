@@ -48,7 +48,8 @@ public class ProjectExecutor extends StatelessUnaryExecutor {
   public Schema getOutputSchema() throws ComputeException {
     if (outputSchema == null) {
       outputSchema =
-          ScalarExpressionUtils.getOutputSchema(context.getAllocator(), expressions, getInputSchema());
+          ScalarExpressionUtils.getOutputSchema(
+              context.getAllocator(), expressions, getInputSchema());
     }
     return outputSchema;
   }

@@ -34,6 +34,7 @@ import org.apache.arrow.vector.dictionary.DictionaryProvider;
 
 /**
  * CallNode：用于调用函数的节点
+ *
  * @param <OUTPUT>
  */
 public class CallNode<OUTPUT extends FieldVector> extends AbstractScalarExpression<OUTPUT> {
@@ -87,7 +88,8 @@ public class CallNode<OUTPUT extends FieldVector> extends AbstractScalarExpressi
     if (getChildren().stream()
         .allMatch(child -> child instanceof LiteralNode || child instanceof FieldNode)) {
       try (VectorSchemaRoot args =
-          ScalarExpressionUtils.evaluate(allocator, dictionaryProvider, input, null, getChildren())) {
+          ScalarExpressionUtils.evaluate(
+              allocator, dictionaryProvider, input, null, getChildren())) {
         return function.invoke(allocator, dictionaryProvider, selection, args);
       }
     }

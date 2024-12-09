@@ -330,7 +330,7 @@ public class JoinHashMap implements AutoCloseable {
     try (VectorSchemaRoot result =
             VectorSchemaRoots.create(vectors, probeSideIndices.getValueCount());
         VectorSchemaRoot output =
-              ScalarExpressionUtils.evaluate(
+            ScalarExpressionUtils.evaluate(
                 allocator, dictionaryProvider, result, null, outputExpressions);
         BaseIntVector selection = getSelection(probeSideIndices, unmatchedCount)) {
       resultConsumer.consume(

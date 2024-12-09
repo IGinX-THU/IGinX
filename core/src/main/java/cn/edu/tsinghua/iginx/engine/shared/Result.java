@@ -126,8 +126,6 @@ public class Result {
 
   public ShowColumnsResp getShowColumnsResp() {
     ShowColumnsResp resp = new ShowColumnsResp(status);
-    // TODO: refactor this part
-    //    throw new UnsupportedOperationException("Not implemented yet");
     resp.setPaths(paths);
     resp.setTagsList(tagsList);
     resp.setDataTypeList(dataTypes);
@@ -178,9 +176,6 @@ public class Result {
     }
     resp.setQueryId(queryId);
 
-    // TODO: need to be refactored
-    //    throw new UnsupportedOperationException("Not implemented yet");
-
     try {
       resp.setQueryArrowData(getArrowDataFromStream(allocator, fetchSize));
       // OUTFILE AS STREAM
@@ -204,60 +199,6 @@ public class Result {
       resp.setStatus(RpcUtils.FAILURE);
     }
 
-    //  try {
-    //      List<ByteBuffer> valuesList = new ArrayList<>();
-    //      List<ByteBuffer> bitmapList = new ArrayList<>();
-    //
-    //      int cnt = 0;
-    //      boolean hasKey = resultStream.getHeader().hasKey();
-    //      while (resultStream.hasNext() && cnt < fetchSize) {
-    //        Row row = resultStream.next();
-    //
-    //        Object[] rawValues = row.getValues();
-    //        Object[] rowValues = rawValues;
-    //        if (hasKey) {
-    //          rowValues = new Object[rawValues.length + 1];
-    //          rowValues[0] = row.getKey();
-    //          System.arraycopy(rawValues, 0, rowValues, 1, rawValues.length);
-    //        }
-    //        valuesList.add(ByteUtils.getRowByteBuffer(rowValues, types));
-    //
-    //        Bitmap bitmap = new Bitmap(rowValues.length);
-    //        for (int i = 0; i < rowValues.length; i++) {
-    //          if (rowValues[i] != null) {
-    //            bitmap.mark(i);
-    //          }
-    //        }
-    //        bitmapList.add(ByteBuffer.wrap(bitmap.getBytes()));
-    //        cnt++;
-    //      }
-    //
-    //      resp.setColumns(paths);
-    //      resp.setTagsList(tagsList);
-    //      resp.setDataTypeList(types);
-    //      // resp.setQueryDataSet(new QueryDataSetV2(valuesList, bitmapList));
-    //
-    //      // OUTFILE AS STREAM
-    //      resp.setExportStreamDir(exportByteStreamDir);
-    //
-    //      // OUTFILE AS CSV
-    //      if (exportCsv != null) {
-    //        CSVFile csvFile = exportCsv.getCsvFile();
-    //        resp.setExportCSV(
-    //            new ExportCSV(
-    //                exportCsv.getFilepath(),
-    //                exportCsv.isExportHeader(),
-    //                csvFile.getDelimiter(),
-    //                csvFile.isOptionallyQuote(),
-    //                (short) csvFile.getQuote(),
-    //                (short) csvFile.getEscaped(),
-    //                csvFile.getRecordSeparator()));
-    //      }
-    //    } catch (PhysicalException e) {
-    //      LOGGER.error("unexpected error when load row stream: ", e);
-    //      resp.setStatus(RpcUtils.FAILURE);
-    //    }
-    // return resp;
     return resp;
   }
 

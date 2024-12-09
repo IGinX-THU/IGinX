@@ -88,8 +88,6 @@ public class SessionExecuteSqlResult {
         this.values = dataSet.getValues();
         break;
       case ShowColumns:
-        // TODO: refactor this part
-        //        throw new UnsupportedOperationException("Not implemented yet");
         this.paths = resp.getPaths();
         this.dataTypeList = resp.getDataTypeList();
         break;
