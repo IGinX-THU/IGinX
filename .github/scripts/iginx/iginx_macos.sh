@@ -33,7 +33,7 @@ sh -c "nohup core/target/iginx-core-*/sbin/start_iginx.sh > iginx-$1.log 2>&1 &"
 sh -c "sleep 3"
 
 log_file="iginx-$1.log"
-timeout=30
+timeout=60
 interval=2
 
 elapsed_time=0
