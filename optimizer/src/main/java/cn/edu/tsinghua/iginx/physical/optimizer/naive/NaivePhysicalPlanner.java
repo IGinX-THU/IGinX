@@ -177,7 +177,7 @@ public class NaivePhysicalPlanner {
         source,
         Collections.singletonList(rowTransform),
         context,
-        new TransformProjectionInfoGenerator(rowTransform));
+        new RowTransformInfoGenerator(rowTransform));
   }
 
   public PhysicalTask<BatchStream> fetchAsync(Source source, RequestContext context) {
