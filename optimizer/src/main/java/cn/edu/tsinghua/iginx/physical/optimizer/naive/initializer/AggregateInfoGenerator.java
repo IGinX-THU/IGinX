@@ -24,7 +24,7 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.e
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.unary.*;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.FieldNode;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpression;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpressions;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpressionUtils;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.Schemas;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
@@ -107,7 +107,7 @@ public class AggregateInfoGenerator implements UnaryExecutorFactory<AggregateUna
                 context, inputSchema.raw(), expression, true));
       }
       Schema schema =
-          ScalarExpressions.getOutputSchema(
+          ScalarExpressionUtils.getOutputSchema(
               context.getAllocator(), preRowTransform, inputSchema.raw());
       List<Integer> matchedIndexes = Schemas.matchPattern(schema, path);
       for (int index : matchedIndexes) {

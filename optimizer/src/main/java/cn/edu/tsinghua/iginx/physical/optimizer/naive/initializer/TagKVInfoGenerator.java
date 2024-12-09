@@ -27,11 +27,11 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import java.util.Objects;
 
-public class TagKVProjectionInfoGenerator implements UnaryExecutorFactory<ProjectExecutor> {
+public class TagKVInfoGenerator implements UnaryExecutorFactory<ProjectExecutor> {
 
   private final TagFilter tagFilter;
 
-  public TagKVProjectionInfoGenerator(TagFilter tagFilter) {
+  public TagKVInfoGenerator(TagFilter tagFilter) {
     this.tagFilter = Objects.requireNonNull(tagFilter);
   }
 

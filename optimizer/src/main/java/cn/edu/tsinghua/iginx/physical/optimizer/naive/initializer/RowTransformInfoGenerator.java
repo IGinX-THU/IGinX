@@ -35,11 +35,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-public class TransformProjectionInfoGenerator implements UnaryExecutorFactory<ProjectExecutor> {
+public class RowTransformInfoGenerator implements UnaryExecutorFactory<ProjectExecutor> {
 
   private final RowTransform operator;
 
-  public TransformProjectionInfoGenerator(RowTransform operator) {
+  public RowTransformInfoGenerator(RowTransform operator) {
     this.operator = Objects.requireNonNull(operator);
   }
 

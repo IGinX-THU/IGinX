@@ -458,6 +458,11 @@ public class ExprUtils {
    * @return 多叉树型表达式
    */
   public static Expression flattenExpression(Expression expr) {
+    // 拍平主要用于行式数据结构中加快运算
+    // arrow 列式数据结构中，无需拍平转换
+    return expr;
+
+    /*
     switch (expr.getType()) {
       case Constant:
       case Key:
@@ -613,6 +618,8 @@ public class ExprUtils {
       default:
         throw new IllegalArgumentException(String.format("Unknown expr type: %s", expr.getType()));
     }
+
+    */
   }
 
   /** 折叠多叉树型中的常量表达式 */

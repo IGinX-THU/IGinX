@@ -21,7 +21,7 @@ package cn.edu.tsinghua.iginx.engine.shared.function.system;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.CallNode;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpression;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpressions;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpressionUtils;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.utils.PhysicalExpressionUtils;
@@ -116,7 +116,7 @@ public class Ratio implements RowMappingFunction {
           "unexpected params number for ratio, expected 2, but got " + inputs.size());
     }
     Schema argumentsSchema =
-        ScalarExpressions.getOutputSchema(context.getAllocator(), inputs, schema);
+        ScalarExpressionUtils.getOutputSchema(context.getAllocator(), inputs, schema);
     String outputColumnName =
         "ratio"
             + argumentsSchema.getFields().stream()

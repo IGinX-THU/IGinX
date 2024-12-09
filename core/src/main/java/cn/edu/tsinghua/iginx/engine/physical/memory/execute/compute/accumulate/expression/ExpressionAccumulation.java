@@ -22,7 +22,7 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.Accumulation;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.Accumulator;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpression;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpressions;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpressionUtils;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import java.util.Collections;
 import java.util.List;
@@ -62,7 +62,7 @@ public class ExpressionAccumulation implements Accumulation {
   @Override
   public ExpressionAccumulator accumulate(BufferAllocator allocator, Schema inputSchema)
       throws ComputeException {
-    Schema schema = ScalarExpressions.getOutputSchema(allocator, expressions, inputSchema);
+    Schema schema = ScalarExpressionUtils.getOutputSchema(allocator, expressions, inputSchema);
     Accumulator accumulator = accumulation.accumulate(allocator, schema);
     return new ExpressionAccumulator(allocator, accumulator, expressions);
   }

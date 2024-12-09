@@ -88,11 +88,9 @@ public class SessionExecuteSqlResult {
         this.values = dataSet.getValues();
         break;
       case ShowColumns:
-        // TODO: refactor this part
-        throw new UnsupportedOperationException("Not implemented yet");
-        // this.paths = resp.getPaths();
-        // this.dataTypeList = resp.getDataTypeList();
-        // break;
+        this.paths = resp.getPaths();
+        this.dataTypeList = resp.getDataTypeList();
+        break;
       case ShowClusterInfo:
         this.iginxInfos = resp.getIginxInfos();
         this.storageEngineInfos = resp.getStorageEngineInfos();
@@ -216,7 +214,7 @@ public class SessionExecuteSqlResult {
   private List<List<String>> cacheArrowResult(boolean needFormatTime, String timePrecision) {
     // TODO: time format
     List<List<String>> cache = new ArrayList<>();
-    boolean hasKey = keys.length > 0;
+    boolean hasKey = paths.get(0).equals(GlobalConstant.KEY_NAME);
     for (int index = 0; index < values.size(); index++) {
       List<String> rowCache = new ArrayList<>();
       if (hasKey) {
