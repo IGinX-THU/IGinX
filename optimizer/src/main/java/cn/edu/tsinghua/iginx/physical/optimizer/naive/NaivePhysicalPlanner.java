@@ -1,24 +1,28 @@
 /*
  * IGinX - the polystore system with high performance
  * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 package cn.edu.tsinghua.iginx.physical.optimizer.naive;
 
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateful.AddSequenceExecutor;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateful.LimitUnaryExecutor;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateful.RemoveNullColumnExecutor;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateless.ValueToSelectedPathExecutor;
 import cn.edu.tsinghua.iginx.engine.physical.task.GlobalPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.PhysicalTask;
@@ -32,21 +36,27 @@ import cn.edu.tsinghua.iginx.engine.physical.task.memory.row.BinaryRowMemoryPhys
 import cn.edu.tsinghua.iginx.engine.physical.task.memory.row.RowToArrowUnaryMemoryPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.memory.row.UnaryRowMemoryPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.utils.PhysicalCloseable;
+import cn.edu.tsinghua.iginx.engine.physical.utils.PhysicalExpressionUtils;
+import cn.edu.tsinghua.iginx.engine.physical.utils.PhysicalJoinUtils;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStreams;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
+import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
+import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
+import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
+import cn.edu.tsinghua.iginx.engine.shared.function.FunctionType;
+import cn.edu.tsinghua.iginx.engine.shared.function.system.ArithmeticExpr;
 import cn.edu.tsinghua.iginx.engine.shared.operator.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.JoinAlgType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
-import cn.edu.tsinghua.iginx.engine.shared.source.FragmentSource;
-import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
-import cn.edu.tsinghua.iginx.engine.shared.source.Source;
+import cn.edu.tsinghua.iginx.engine.shared.source.*;
 import cn.edu.tsinghua.iginx.physical.optimizer.naive.initializer.*;
-import cn.edu.tsinghua.iginx.physical.optimizer.naive.util.Joins;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import javax.annotation.Nullable;
+import org.apache.arrow.util.Preconditions;
 
 public class NaivePhysicalPlanner {
 
@@ -112,6 +122,10 @@ public class NaivePhysicalPlanner {
         return construct((Distinct) operator, context);
       case ValueToSelectedPath:
         return construct((ValueToSelectedPath) operator, context);
+      case AddSequence:
+        return construct((AddSequence) operator, context);
+      case RemoveNullColumn:
+        return construct((RemoveNullColumn) operator, context);
       case Unknown:
       case ProjectWaitingForPath:
       case Multiple:
@@ -131,9 +145,39 @@ public class NaivePhysicalPlanner {
       case Operator:
         OperatorSource operatorSource = (OperatorSource) source;
         return construct(operatorSource.getOperator(), context);
+      case Constant:
+        ConstantSource constantSource = (ConstantSource) source;
+        return construct(constantSource.getExpressionList(), context);
       default:
         throw new UnsupportedOperationException("Unsupported source type: " + source.getType());
     }
+  }
+
+  public PhysicalTask<BatchStream> construct(
+      List<Expression> constantExpressions, RequestContext context) {
+    Preconditions.checkArgument(
+        constantExpressions.stream()
+            .allMatch(cn.edu.tsinghua.iginx.sql.utils.ExpressionUtils::isConstantArithmeticExpr));
+
+    PhysicalTask<BatchStream> source =
+        new StreamSourceMemoryPhysicalTask(
+            context,
+            "Produce 1 emtpy row to calculate constant values",
+            BatchStreams.nonColumn(context.getBatchRowCount(), 1));
+
+    List<FunctionCall> functionCalls = new ArrayList<>();
+    for (Expression expression : constantExpressions) {
+      functionCalls.add(
+          new FunctionCall(ArithmeticExpr.getInstance(), new FunctionParams(expression)));
+    }
+
+    RowTransform rowTransform = new RowTransform(EmptySource.EMPTY_SOURCE, functionCalls);
+
+    return new PipelineMemoryPhysicalTask(
+        source,
+        Collections.singletonList(rowTransform),
+        context,
+        new TransformProjectionInfoGenerator(rowTransform));
   }
 
   public PhysicalTask<BatchStream> fetchAsync(Source source, RequestContext context) {
@@ -193,10 +237,7 @@ public class NaivePhysicalPlanner {
   public PhysicalTask<RowStream> constructRow(UnaryOperator operator, RequestContext context) {
     PhysicalTask<?> sourceTask = fetch(operator.getSource(), context);
     return new UnaryRowMemoryPhysicalTask(
-        convert(sourceTask, context, RowStream.class),
-        Collections.singletonList(operator),
-        operator,
-        context);
+        convert(sourceTask, context, RowStream.class), operator, context);
   }
 
   public PhysicalTask<RowStream> constructRow(BinaryOperator operator, RequestContext context) {
@@ -218,37 +259,43 @@ public class NaivePhysicalPlanner {
         convert(sourceTask, context, BatchStream.class),
         Collections.singletonList(operator),
         context,
-        new SimpleProjectionInfoGenerator(operator));
+        new ProjectInfoGenerator(operator));
   }
 
   public PhysicalTask<BatchStream> construct(Rename operator, RequestContext context) {
     PhysicalTask<?> sourceTask = fetch(operator.getSource(), context);
-    return new cn.edu.tsinghua.iginx.engine.physical.task.memory.PipelineMemoryPhysicalTask(
+    return new PipelineMemoryPhysicalTask(
         convert(sourceTask, context, BatchStream.class),
         Collections.singletonList(operator),
         context,
-        new SimpleProjectionInfoGenerator(operator));
+        new RenameInfoGenerator(operator));
   }
 
   public PhysicalTask<BatchStream> construct(Reorder operator, RequestContext context) {
     PhysicalTask<?> sourceTask = fetch(operator.getSource(), context);
-    return new cn.edu.tsinghua.iginx.engine.physical.task.memory.PipelineMemoryPhysicalTask(
+    return new PipelineMemoryPhysicalTask(
         convert(sourceTask, context, BatchStream.class),
         Collections.singletonList(operator),
         context,
-        new SimpleProjectionInfoGenerator(operator));
+        new ReorderInfoGenerator(operator));
   }
 
   public PhysicalTask<BatchStream> construct(AddSchemaPrefix operator, RequestContext context) {
     PhysicalTask<?> sourceTask = fetch(operator.getSource(), context);
-    return new cn.edu.tsinghua.iginx.engine.physical.task.memory.PipelineMemoryPhysicalTask(
+    return new PipelineMemoryPhysicalTask(
         convert(sourceTask, context, BatchStream.class),
         Collections.singletonList(operator),
         context,
-        new SimpleProjectionInfoGenerator(operator));
+        new AddSchemaPrefixInfoGenerator(operator));
   }
 
-  public PhysicalTask<BatchStream> construct(RowTransform operator, RequestContext context) {
+  public PhysicalTask<?> construct(RowTransform operator, RequestContext context) {
+    if (operator.getFunctionCallList().stream()
+        .map(FunctionCall::getFunction)
+        .anyMatch(f -> f.getFunctionType() != FunctionType.System)) {
+      return constructRow(operator, context);
+    }
+
     PhysicalTask<BatchStream> sourceTask = fetchAsync(operator.getSource(), context);
 
     int pipelineParallelism = ConfigDescriptor.getInstance().getConfig().getPipelineParallelism();
@@ -272,6 +319,11 @@ public class NaivePhysicalPlanner {
     StoragePhysicalTask storageTask = tryPushDownAloneWithProject(sourceTask, context, operator);
     if (storageTask != null) {
       return storageTask;
+    }
+
+    if (sourceTask.getResultClass() == RowStream.class) {
+      return new UnaryRowMemoryPhysicalTask(
+          convert(sourceTask, context, RowStream.class), operator, context);
     }
 
     PhysicalTask<BatchStream> batchTask = convert(sourceTask, context, BatchStream.class);
@@ -320,13 +372,19 @@ public class NaivePhysicalPlanner {
     }
     Project project = (Project) sourceOperator;
 
-    if (project.getTagFilter() == null) {
+    if (project.getTagFilter() != null) {
       return null;
     }
     return reConstruct(storageTask, context, false, operator);
   }
 
   public PhysicalTask<?> construct(SetTransform operator, RequestContext context) {
+    if (operator.getFunctionCallList().stream()
+        .map(FunctionCall::getFunction)
+        .anyMatch(f -> f.getFunctionType() != FunctionType.System)) {
+      return constructRow(operator, context);
+    }
+
     PhysicalTask<?> sourceTask = fetch(operator.getSource(), context);
     StoragePhysicalTask storageTask = tryPushDownAloneWithProject(sourceTask, context, operator);
     if (storageTask != null) {
@@ -340,29 +398,51 @@ public class NaivePhysicalPlanner {
         new AggregateInfoGenerator(operator));
   }
 
-  public PhysicalTask<BatchStream> construct(GroupBy operator, RequestContext context) {
+  public PhysicalTask<?> construct(GroupBy operator, RequestContext context) {
+    if (operator.getFunctionCallList().stream()
+        .map(FunctionCall::getFunction)
+        .anyMatch(f -> f.getFunctionType() != FunctionType.System)) {
+      return constructRow(operator, context);
+    }
+    if (!operator.getGroupByExpressions().stream()
+        .allMatch(PhysicalExpressionUtils::containSystemFunctionOnly)) {
+      return constructRow(operator, context);
+    }
+
     PhysicalTask<?> sourceTask = fetch(operator.getSource(), context);
+    if (sourceTask.getResultClass() == RowStream.class) {
+      return new UnaryRowMemoryPhysicalTask(
+          convert(sourceTask, context, RowStream.class), operator, context);
+    }
+    PhysicalTask<BatchStream> batchTask = convert(sourceTask, context, BatchStream.class);
+
+    if (!operator.getGroupByExpressions().isEmpty()) {
+      batchTask =
+          new PipelineMemoryPhysicalTask(
+              batchTask,
+              Collections.singletonList(operator),
+              context,
+              new AppendExpressionInfoGenerator(operator.getGroupByExpressions()));
+    }
+
+    batchTask = new FetchAsyncMemoryPhysicalTask(batchTask, context);
+
     return new UnarySinkMemoryPhysicalTask(
-        convert(sourceTask, context, BatchStream.class),
+        batchTask,
         Collections.singletonList(operator),
         context,
         new GroupsAggregateInfoGenerator(operator));
   }
 
   public PhysicalTask<?> construct(Sort operator, RequestContext context) {
-    PhysicalTask<?> sourceTask = fetch(operator.getSource(), context);
-
+    //    PhysicalTask<?> sourceTask = fetch(operator.getSource(), context);
     //      sourceTask = new PipelineMemoryPhysicalTask(
     //          convert(sourceTask, context, BatchStream.class),
     //          Collections.singletonList(operator),
     //          context,
     //          new InnerBatchSortInfoGenerator(operator));
 
-    return new UnaryRowMemoryPhysicalTask(
-        convert(sourceTask, context, RowStream.class),
-        Collections.singletonList(operator),
-        operator,
-        context);
+    return constructRow(operator, context);
   }
 
   public PhysicalTask<BatchStream> construct(Limit operator, RequestContext context) {
@@ -384,7 +464,7 @@ public class NaivePhysicalPlanner {
     // NOTE: The order of left and right task is reversed in InnerJoin
     // 这里以及后面交换了左右两个表的顺序，原因是在之前基于行的实现中，右表是BuildSide，左表是ProbeSide
     // 现在基于列的实现中，左表是BuildSide，右表是ProbeSide
-    operator = Joins.reverse(operator);
+    operator = PhysicalJoinUtils.reverse(operator);
 
     PhysicalTask<BatchStream> leftTask = fetchAsync(operator.getSourceA(), context);
     PhysicalTask<BatchStream> rightTask = fetchAsync(operator.getSourceB(), context);
@@ -402,7 +482,7 @@ public class NaivePhysicalPlanner {
       return constructRow(operator, context);
     }
 
-    operator = Joins.reverse(operator);
+    operator = PhysicalJoinUtils.reverse(operator);
 
     PhysicalTask<BatchStream> leftTask = fetchAsync(operator.getSourceA(), context);
     PhysicalTask<BatchStream> rightTask = fetchAsync(operator.getSourceB(), context);
@@ -420,7 +500,7 @@ public class NaivePhysicalPlanner {
       return constructRow(operator, context);
     }
 
-    operator = Joins.reverse(operator);
+    operator = PhysicalJoinUtils.reverse(operator);
 
     PhysicalTask<BatchStream> leftTask = fetchAsync(operator.getSourceA(), context);
     PhysicalTask<BatchStream> rightTask = fetchAsync(operator.getSourceB(), context);
@@ -438,7 +518,7 @@ public class NaivePhysicalPlanner {
       return constructRow(operator, context);
     }
 
-    operator = Joins.reverse(operator);
+    operator = PhysicalJoinUtils.reverse(operator);
 
     PhysicalTask<BatchStream> leftTask = fetchAsync(operator.getSourceA(), context);
     PhysicalTask<BatchStream> rightTask = fetchAsync(operator.getSourceB(), context);
@@ -512,6 +592,30 @@ public class NaivePhysicalPlanner {
         Collections.singletonList(operator),
         context,
         (ctx, schema) -> new ValueToSelectedPathExecutor(ctx, schema.raw(), operator.getPrefix()));
+  }
+
+  public PhysicalTask<BatchStream> construct(AddSequence operator, RequestContext context) {
+    PhysicalTask<?> sourceTask = fetch(operator.getSource(), context);
+    return new UnarySinkMemoryPhysicalTask(
+        convert(sourceTask, context, BatchStream.class),
+        Collections.singletonList(operator),
+        context,
+        (ctx, schema) ->
+            AddSequenceExecutor.of(
+                ctx,
+                schema.raw(),
+                operator.getStartList(),
+                operator.getIncrementList(),
+                operator.getColumns()));
+  }
+
+  public PhysicalTask<BatchStream> construct(RemoveNullColumn operator, RequestContext context) {
+    PhysicalTask<?> sourceTask = fetch(operator.getSource(), context);
+    return new UnarySinkMemoryPhysicalTask(
+        convert(sourceTask, context, BatchStream.class),
+        Collections.singletonList(operator),
+        context,
+        (ctx, schema) -> new RemoveNullColumnExecutor(ctx, schema.raw()));
   }
 
   @SuppressWarnings("unchecked")

@@ -1,19 +1,21 @@
 /*
  * IGinX - the polystore system with high performance
  * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util;
 
@@ -35,16 +37,38 @@ public class ValueVectors {
 
   @SuppressWarnings("unchecked")
   public static <T extends ValueVector> T slice(
-      BufferAllocator allocator, @Nullable T source, int startIndex, int valueCount, String ref) {
+      BufferAllocator allocator, @Nullable T source, int startIndex, int valueCount, Field field) {
     if (source == null) {
       return null;
     }
     if (source.getValueCount() == 0) {
       return (T) source.getField().createVector(allocator);
     }
-    TransferPair transferPair = source.getTransferPair(ref, allocator);
+    TransferPair transferPair = source.getTransferPair(field, allocator);
     transferPair.splitAndTransfer(startIndex, valueCount);
     return (T) transferPair.getTo();
+  }
+
+  public static <T extends ValueVector> T slice(
+      BufferAllocator allocator, @Nullable T source, int startIndex, int valueCount, String ref) {
+    if (source == null) {
+      return null;
+    }
+    return slice(
+        allocator, source, startIndex, valueCount, Schemas.fieldWithName(source.getField(), ref));
+  }
+
+  public static <T extends ValueVector> T slice(
+      BufferAllocator allocator, @Nullable T source, boolean nullable) {
+    if (source == null) {
+      return null;
+    }
+    return slice(
+        allocator,
+        source,
+        0,
+        source.getValueCount(),
+        Schemas.fieldWithNullable(source.getField(), nullable));
   }
 
   public static <T extends ValueVector> T slice(

@@ -1,19 +1,21 @@
 /*
  * IGinX - the polystore system with high performance
  * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util;
 
@@ -21,7 +23,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
+import javax.annotation.WillClose;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.util.Preconditions;
 import org.apache.arrow.vector.BaseIntVector;
@@ -64,7 +68,7 @@ public class VectorSchemaRoots {
     for (FieldVector fieldVector : fieldVectors) {
       slicedFieldVectors.add(ValueVectors.slice(allocator, fieldVector));
     }
-    return new VectorSchemaRoot(slicedFieldVectors);
+    return VectorSchemaRoots.create(slicedFieldVectors, rowCount == -1 ? 0 : rowCount);
   }
 
   public static VectorSchemaRoot join(
@@ -78,7 +82,7 @@ public class VectorSchemaRoots {
     for (FieldVector fieldVector : batch.getFieldVectors()) {
       fieldVectors.add(ValueVectors.slice(allocator, fieldVector, start, count));
     }
-    return new VectorSchemaRoot(fieldVectors);
+    return VectorSchemaRoots.create(fieldVectors, count);
   }
 
   public static VectorSchemaRoot slice(BufferAllocator allocator, VectorSchemaRoot batch) {
@@ -130,7 +134,8 @@ public class VectorSchemaRoots {
       resultFieldVectors.add(
           ValueVectors.flatten(allocator, dictionaryProvider, fieldVector, selection));
     }
-    return new VectorSchemaRoot(resultFieldVectors);
+    return VectorSchemaRoots.create(
+        resultFieldVectors, selection == null ? batch.getRowCount() : selection.getValueCount());
   }
 
   public static VectorSchemaRoot create(
@@ -153,5 +158,13 @@ public class VectorSchemaRoots {
       result.add(slice(allocator, data, startIndex, sliceSize));
     }
     return result;
+  }
+
+  public static VectorSchemaRoot create(@WillClose List<FieldVector> vectors, int rowCount) {
+    Preconditions.checkArgument(vectors.stream().allMatch(v -> v.getValueCount() == rowCount));
+    return new VectorSchemaRoot(
+        new Schema(vectors.stream().map(FieldVector::getField).collect(Collectors.toList())),
+        vectors,
+        rowCount);
   }
 }

@@ -1,26 +1,30 @@
 /*
  * IGinX - the polystore system with high performance
  * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-
 package cn.edu.tsinghua.iginx.engine.shared.function.udf.python;
 
 import static cn.edu.tsinghua.iginx.engine.shared.Constants.UDF_CLASS;
 import static cn.edu.tsinghua.iginx.engine.shared.Constants.UDF_FUNC;
 
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpression;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
@@ -33,6 +37,7 @@ import cn.edu.tsinghua.iginx.engine.shared.function.udf.utils.RowUtils;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
+import org.apache.arrow.vector.types.pojo.Schema;
 import pemja.core.PythonInterpreter;
 
 public class PyUDTF extends PyUDF implements UDTF {
@@ -99,6 +104,13 @@ public class PyUDTF extends PyUDF implements UDTF {
         RowUtils.constructHeaderWithFirstTwoRowsUsingFuncName(
             res, row.getHeader().hasKey(), funcName);
     return RowUtils.constructNewRowWithKey(header, hasKey ? key : row.getKey(), res.get(2));
+  }
+
+  @Override
+  public ScalarExpression<?> transform(
+      ExecutorContext context, Schema schema, FunctionParams params, boolean setAlias)
+      throws ComputeException {
+    throw new ComputeException("PyUDTF is not implemented for ScalarExpression.");
   }
 
   @Override

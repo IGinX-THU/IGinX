@@ -1,24 +1,28 @@
 /*
  * IGinX - the polystore system with high performance
  * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-
 package cn.edu.tsinghua.iginx.metadata.entity;
 
 import cn.edu.tsinghua.iginx.thrift.UDFType;
+import cn.edu.tsinghua.iginx.utils.Pair;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Set;
 
 public class TransformTaskMeta {
@@ -29,16 +33,30 @@ public class TransformTaskMeta {
 
   private String fileName;
 
-  private Set<String> ipSet;
+  private Set<Pair<String, Integer>> ipPortSet;
 
   private UDFType type;
 
   public TransformTaskMeta(
-      String name, String className, String fileName, Set<String> ipSet, UDFType type) {
+      String name, String className, String fileName, String ip, int port, UDFType type) {
+    this(
+        name,
+        className,
+        fileName,
+        new HashSet<>(Collections.singleton(new Pair<>(ip, port))),
+        type);
+  }
+
+  public TransformTaskMeta(
+      String name,
+      String className,
+      String fileName,
+      Set<Pair<String, Integer>> ipPortSet,
+      UDFType type) {
     this.name = name;
     this.className = className;
     this.fileName = fileName;
-    this.ipSet = ipSet;
+    this.ipPortSet = ipPortSet;
     this.type = type;
   }
 
@@ -66,16 +84,31 @@ public class TransformTaskMeta {
     this.fileName = fileName;
   }
 
-  public Set<String> getIpSet() {
-    return ipSet;
+  public Set<Pair<String, Integer>> getIpPortSet() {
+    return ipPortSet;
   }
 
-  public void setIpSet(Set<String> ipSet) {
-    this.ipSet = ipSet;
+  public void setIpPortSet(Set<Pair<String, Integer>> ipPortSet) {
+    this.ipPortSet = ipPortSet;
   }
 
-  public void addIp(String ip) {
-    this.ipSet.add(ip);
+  public void addIpPort(Pair<String, Integer> ipPort) {
+    addIpPort(ipPort.k, ipPort.v);
+  }
+
+  public void addIpPort(String ip, int port) {
+    if (!containsIpPort(ip, port)) {
+      this.ipPortSet.add(new Pair<>(ip, port));
+    }
+  }
+
+  public boolean containsIpPort(String ip, int port) {
+    for (Pair<String, Integer> pair : this.ipPortSet) {
+      if (ip.equals(pair.k) && port == pair.v) {
+        return true;
+      }
+    }
+    return false;
   }
 
   public UDFType getType() {
@@ -87,7 +120,7 @@ public class TransformTaskMeta {
   }
 
   public TransformTaskMeta copy() {
-    return new TransformTaskMeta(name, className, fileName, ipSet, type);
+    return new TransformTaskMeta(name, className, fileName, ipPortSet, type);
   }
 
   @Override
@@ -102,8 +135,8 @@ public class TransformTaskMeta {
         + ", fileName='"
         + fileName
         + '\''
-        + ", ip='"
-        + ipSet
+        + ", ip_port='"
+        + ipPortSet
         + '\''
         + ", type="
         + type

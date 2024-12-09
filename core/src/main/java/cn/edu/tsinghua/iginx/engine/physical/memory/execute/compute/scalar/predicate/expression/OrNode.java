@@ -1,19 +1,21 @@
 /*
  * IGinX - the polystore system with high performance
  * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.predicate.expression;
 
@@ -97,15 +99,24 @@ public class OrNode extends CallNode<BitVector> implements PredicateExpression {
       IntStream.range(0, input.getRowCount()).forEach(remainIndex::add);
     } else {
       for (int i = 0; i < selection.getValueCount(); i++) {
+        if (selection.getField().isNullable() && selection.isNull(i)) {
+          continue;
+        }
         remainIndex.add((int) selection.getValueAsLong(i));
       }
     }
 
     ResultBuilder resultBuilder = new ResultBuilder(allocator, selection);
-    return filter(
-        allocator, dictionaryProvider, input, selection, children, resultBuilder, remainIndex);
+    BaseIntVector result =
+        filter(
+            allocator, dictionaryProvider, input, selection, children, resultBuilder, remainIndex);
+    if (result != null) {
+      return result;
+    }
+    return ValueVectors.slice(allocator, selection, "or");
   }
 
+  @Nullable
   private static BaseIntVector filter(
       BufferAllocator allocator,
       DictionaryProvider dictionaryProvider,
@@ -118,7 +129,7 @@ public class OrNode extends CallNode<BitVector> implements PredicateExpression {
     try (BaseIntVector subSelection =
         children.get(0).filter(allocator, dictionaryProvider, input, selection)) {
       if (subSelection == null) {
-        return ValueVectors.slice(allocator, selection, "or");
+        return null;
       }
       for (int i = 0; i < subSelection.getValueCount(); i++) {
         int index = (int) subSelection.getValueAsLong(i);
@@ -126,7 +137,7 @@ public class OrNode extends CallNode<BitVector> implements PredicateExpression {
         remainIndex.remove(index);
       }
       if (remainIndex.isEmpty()) {
-        return ValueVectors.slice(allocator, selection, "or");
+        return null;
       }
       List<PredicateExpression> remainChildren = children.subList(1, children.size());
       if (remainChildren.isEmpty()) {
@@ -173,6 +184,9 @@ public class OrNode extends CallNode<BitVector> implements PredicateExpression {
       } else {
         invertedIndex = new IntObjectHashMap<>();
         for (int i = 0; i < selection.getValueCount(); i++) {
+          if (selection.getField().isNullable() && selection.isNull(i)) {
+            continue;
+          }
           int value = (int) selection.getValueAsLong(i);
           invertedIndex.put(value, Integer.valueOf(i));
         }

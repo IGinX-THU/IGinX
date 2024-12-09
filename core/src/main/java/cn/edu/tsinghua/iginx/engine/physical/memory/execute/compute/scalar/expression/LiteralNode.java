@@ -1,19 +1,21 @@
 /*
  * IGinX - the polystore system with high performance
  * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression;
 
@@ -32,8 +34,8 @@ import org.apache.arrow.vector.dictionary.DictionaryProvider;
 
 public class LiteralNode<OUTPUT extends FieldVector> extends AbstractScalarExpression<OUTPUT> {
 
-  private final ConstantPool pool;
-  private final Object value;
+  protected final ConstantPool pool;
+  protected final Object value;
 
   public LiteralNode(@Nullable Object value, ConstantPool pool) {
     this(value, pool, null);
@@ -58,18 +60,18 @@ public class LiteralNode<OUTPUT extends FieldVector> extends AbstractScalarExpre
 
   @Override
   public boolean equals(Object obj) {
-    if (obj instanceof LiteralNode) {
-      LiteralNode<?> literalNode = (LiteralNode<?>) obj;
-      return Objects.deepEquals(value, literalNode.value);
+    if (obj == null || obj.getClass() != this.getClass()) {
+      return false;
     }
-    return false;
+    LiteralNode<?> literalNode = (LiteralNode<?>) obj;
+    return Objects.deepEquals(value, literalNode.value);
   }
 
   @Override
   @SuppressWarnings("unchecked")
   public OUTPUT invokeImpl(
       BufferAllocator allocator,
-      @Nullable DictionaryProvider dictionaryProvider,
+      DictionaryProvider dictionaryProvider,
       @Nullable BaseIntVector selection,
       VectorSchemaRoot input)
       throws ComputeException {

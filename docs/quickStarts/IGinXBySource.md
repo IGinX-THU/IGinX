@@ -561,3 +561,42 @@ session.closeSession();
 ```
 
 完整版使用代码可以参考：https://github.com/IGinX-THU/IGinX/blob/main/example/src/main/java/cn/edu/tsinghua/iginx/session/IoTDBSessionExample.java
+
+## 常见问题
+
+### 找不到 parquet-file 依赖
+
+在使用 Maven 编译 IGinX 时，可能会遇到如下的错误：
+
+```shell
+The following artifacts could not be resolved: cn.edu.tsinghua.iginx:parquet-file
+```
+
+这是因为 IGinX 依赖的 parquet-file 依赖并未发布到 Maven 中央仓库，而是托管在了 GitHub Pages 中。因此，我们在 pom.xml 文件中添加如下的仓库地址：
+
+```xml
+<repositories>
+    <repository>
+        <id>parquet-file</id>
+        <name>IGinX GitHub repository</name>
+        <url>https://iginx-thu.github.io/Parquet/maven-repo</url>
+    </repository>
+</repositories>
+```
+
+如果你配置了镜像源，例如：
+
+```xml
+<mirror>
+    <id>aliyunmaven</id>
+    <mirrorof>central</mirrorOf>
+    <name>阿里云公共仓库</name>
+    <url>https://maven.aliyun.com/repository/central</url>
+</mirror>
+```
+
+注意，这里的 mirrorOf 的值为 central，表示只有在访问 Maven 中央仓库时才会使用阿里云的镜像源。
+如果你配置为 *，则表示所有的 Maven 仓库都会使用阿里云的镜像源，这会造成 IGinX 依赖的 parquet-file 依赖无法下载。
+
+如果由于网络原因无法下载依赖，可以尝试使用代理的方式解决。 此外，还可以手动下载依赖，然后使用 Maven 的 install 命令将其安装到本地仓库，
+详见：https://maven.apache.org/guides/mini/guide-3rd-party-jars-local.html

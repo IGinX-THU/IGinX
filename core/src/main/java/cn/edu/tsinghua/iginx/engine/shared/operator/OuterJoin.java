@@ -1,21 +1,22 @@
 /*
  * IGinX - the polystore system with high performance
  * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-
 package cn.edu.tsinghua.iginx.engine.shared.operator;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
@@ -36,6 +37,8 @@ public class OuterJoin extends AbstractJoin {
 
   private final boolean isNaturalJoin;
 
+  private final boolean isJoinByKey;
+
   public OuterJoin(
       Source sourceA,
       Source sourceB,
@@ -52,6 +55,7 @@ public class OuterJoin extends AbstractJoin {
         outerJoinType,
         filter,
         joinColumns,
+        false,
         false,
         JoinAlgType.HashJoin,
         new ArrayList<>());
@@ -76,6 +80,7 @@ public class OuterJoin extends AbstractJoin {
         filter,
         joinColumns,
         isNaturalJoin,
+        false,
         joinAlgType,
         new ArrayList<>());
   }
@@ -89,6 +94,32 @@ public class OuterJoin extends AbstractJoin {
       Filter filter,
       List<String> joinColumns,
       boolean isNaturalJoin,
+      boolean isJoinByKey,
+      JoinAlgType joinAlgType) {
+    this(
+        sourceA,
+        sourceB,
+        prefixA,
+        prefixB,
+        outerJoinType,
+        filter,
+        joinColumns,
+        isNaturalJoin,
+        isJoinByKey,
+        joinAlgType,
+        new ArrayList<>());
+  }
+
+  public OuterJoin(
+      Source sourceA,
+      Source sourceB,
+      String prefixA,
+      String prefixB,
+      OuterJoinType outerJoinType,
+      Filter filter,
+      List<String> joinColumns,
+      boolean isNaturalJoin,
+      boolean isJoinByKey,
       JoinAlgType joinAlgType,
       List<String> extraJoinPrefix) {
     super(OperatorType.OuterJoin, sourceA, sourceB, prefixA, prefixB, joinAlgType, extraJoinPrefix);
@@ -100,6 +131,7 @@ public class OuterJoin extends AbstractJoin {
       this.joinColumns = new ArrayList<>();
     }
     this.isNaturalJoin = isNaturalJoin;
+    this.isJoinByKey = isJoinByKey;
   }
 
   public OuterJoinType getOuterJoinType() {
@@ -122,6 +154,10 @@ public class OuterJoin extends AbstractJoin {
     return isNaturalJoin;
   }
 
+  public boolean isJoinByKey() {
+    return isJoinByKey;
+  }
+
   public void setFilter(Filter filter) {
     this.filter = filter;
   }
@@ -142,6 +178,7 @@ public class OuterJoin extends AbstractJoin {
         filter.copy(),
         new ArrayList<>(joinColumns),
         isNaturalJoin,
+        isJoinByKey,
         getJoinAlgType(),
         new ArrayList<>(getExtraJoinPrefix()));
   }
@@ -157,12 +194,14 @@ public class OuterJoin extends AbstractJoin {
         filter.copy(),
         new ArrayList<>(joinColumns),
         isNaturalJoin,
+        isJoinByKey,
         getJoinAlgType(),
         new ArrayList<>(getExtraJoinPrefix()));
   }
 
   @Override
   public String getInfo() {
+    // TODO
     StringBuilder builder = new StringBuilder();
     builder.append("PrefixA: ").append(getPrefixA());
     builder.append(", PrefixB: ").append(getPrefixB());
@@ -201,6 +240,7 @@ public class OuterJoin extends AbstractJoin {
         && filter.equals(that.filter)
         && joinColumns.equals(that.joinColumns)
         && isNaturalJoin == that.isNaturalJoin
+        && isJoinByKey == that.isJoinByKey
         && getExtraJoinPrefix().equals(that.getExtraJoinPrefix());
   }
 }

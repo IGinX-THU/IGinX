@@ -1,23 +1,24 @@
 /*
  * IGinX - the polystore system with high performance
  * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 package cn.edu.tsinghua.iginx.physical.optimizer.naive.initializer;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.Accumulation;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.expression.ExpressionAccumulation;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.accumulate.expression.ExpressionAccumulator;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.FieldNode;
@@ -30,7 +31,6 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.Unary
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateful.GroupsAggregateUnaryExecutor;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.operator.GroupBy;
-import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.*;
 import java.util.stream.Collectors;
 import org.apache.arrow.vector.types.pojo.Schema;
@@ -49,37 +49,35 @@ public class GroupsAggregateInfoGenerator
       throws ComputeException {
     List<ScalarExpression<?>> groupKeyExpressions =
         generateGroupKeyExpressions(groupBy.getGroupByCols(), inputSchema);
-    List<Pair<Accumulation, Integer>> aggregateInfo =
+    List<ExpressionAccumulation> aggregateInfos =
         AggregateInfoGenerator.generateAggregateInfo(
             context, inputSchema, groupBy.getFunctionCallList());
 
-    HashMap<Integer, Integer> groupValueIndexesMap = new HashMap<>();
-    List<Integer> groupValueIndexes = new ArrayList<>();
-    for (Pair<Accumulation, Integer> pair : aggregateInfo) {
-      int indexInInput = pair.getV();
-      if (groupValueIndexesMap.containsKey(pair.getV())) {
-        continue;
+    HashMap<ScalarExpression<?>, Integer> groupValueIndexesMap = new HashMap<>();
+    List<ScalarExpression<?>> groupValueExpressions = new ArrayList<>();
+    for (ExpressionAccumulation aggregateInfo : aggregateInfos) {
+      List<? extends ScalarExpression<?>> groupValues = aggregateInfo.getExpressions();
+      for (ScalarExpression<?> groupValue : groupValues) {
+        if (groupValueIndexesMap.containsKey(groupValue)) {
+          continue;
+        }
+        groupValueIndexesMap.put(groupValue, groupValueExpressions.size());
+        groupValueExpressions.add(groupValue);
       }
-      groupValueIndexesMap.put(indexInInput, groupValueIndexes.size());
-      groupValueIndexes.add(indexInInput);
-    }
-    List<ScalarExpression<?>> groupValueExpressions =
-        groupValueIndexes.stream().map(FieldNode::new).collect(Collectors.toList());
-
-    List<ExpressionAccumulation> accumulations = new ArrayList<>();
-    for (Pair<Accumulation, Integer> pair : aggregateInfo) {
-      Accumulation acc = pair.getK();
-      int indexInInput = pair.getV();
-      int indexInGroupValues = groupValueIndexesMap.get(indexInInput);
-      ExpressionAccumulation exprAcc =
-          new ExpressionAccumulation(
-              acc, Collections.singletonList(new FieldNode(indexInGroupValues)));
-      accumulations.add(exprAcc);
     }
 
     Schema groupValueSchema =
         ScalarExpressionUtils.getOutputSchema(
             context.getAllocator(), groupValueExpressions, inputSchema.raw());
+
+    List<ExpressionAccumulation> accumulations = new ArrayList<>();
+    for (ExpressionAccumulation aggregateInfo : aggregateInfos) {
+      List<FieldNode> groupIndex = new ArrayList<>();
+      for (ScalarExpression<?> groupValue : aggregateInfo.getExpressions()) {
+        groupIndex.add(new FieldNode(groupValueIndexesMap.get(groupValue)));
+      }
+      accumulations.add(new ExpressionAccumulation(aggregateInfo.getAccumulation(), groupIndex));
+    }
 
     List<ExpressionAccumulator> accumulators = new ArrayList<>();
     for (ExpressionAccumulation accumulation : accumulations) {

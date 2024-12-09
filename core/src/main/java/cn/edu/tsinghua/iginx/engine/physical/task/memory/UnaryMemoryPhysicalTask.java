@@ -1,21 +1,22 @@
 /*
  * IGinX - the polystore system with high performance
  * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-
 package cn.edu.tsinghua.iginx.engine.physical.task.memory;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
@@ -39,15 +40,11 @@ public abstract class UnaryMemoryPhysicalTask<
 
   private static final Logger LOGGER = LoggerFactory.getLogger(UnaryMemoryPhysicalTask.class);
 
-  private PhysicalTask<INPUT> parentTask;
+  protected final PhysicalTask<INPUT> parentTask;
 
   public UnaryMemoryPhysicalTask(
       PhysicalTask<INPUT> parentTask, List<Operator> operators, RequestContext context) {
     super(TaskType.UnaryMemory, operators, context, 1);
-    this.parentTask = parentTask;
-  }
-
-  public void setParentTask(PhysicalTask<INPUT> parentTask) {
     this.parentTask = parentTask;
   }
 
@@ -57,6 +54,19 @@ public abstract class UnaryMemoryPhysicalTask<
 
   @Override
   public TaskResult<RESULT> execute() {
+    // TODO
+    //    if (!isProjectFromConstant()) {
+    //      TaskExecuteResult parentResult = parentTask.getResult();
+    //      if (parentResult == null) {
+    //        return new TaskExecuteResult(
+    //            new PhysicalException("unexpected parent task execute result for " + this + ":
+    // null"));
+    //      }
+    //      if (parentResult.getException() != null) {
+    //        return parentResult;
+    //      }
+    //      stream = parentResult.getRowStream();
+    //    }
     Future<TaskResult<INPUT>> future = parentTask.getResult();
     try (TaskResult<INPUT> parentResult = future.get()) {
       INPUT stream = parentResult.unwrap();

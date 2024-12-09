@@ -1,69 +1,80 @@
 /*
  * IGinX - the polystore system with high performance
  * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-
 package cn.edu.tsinghua.iginx.engine.shared.function;
 
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.ExprUtils;
 import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class FunctionParams {
 
   private final List<String> paths;
 
+  private final List<Expression> expressions;
+
   private final List<Object> args;
 
   private final Map<String, Object> kwargs;
 
-  private Expression expr;
-
   private boolean isDistinct;
 
-  public FunctionParams(List<String> paths) {
-    this(paths, null, null, null, false);
+  public FunctionParams(Expression expression) {
+    this(Collections.singletonList(expression), null, null, false);
   }
 
-  public FunctionParams(Expression expr) {
-    this(null, null, null, expr, false);
-  }
-
-  public FunctionParams(List<String> paths, List<Object> args, Map<String, Object> kwargs) {
-    this(paths, args, kwargs, null, false);
+  public FunctionParams(List<Expression> expressions) {
+    this(expressions, null, null, false);
   }
 
   public FunctionParams(
-      List<String> paths, List<Object> args, Map<String, Object> kwargs, boolean isDistinct) {
-    this(paths, args, kwargs, null, isDistinct);
+      List<Expression> expressions, List<Object> args, Map<String, Object> kwargs) {
+    this(expressions, args, kwargs, false);
   }
 
   public FunctionParams(
-      List<String> paths,
+      List<Expression> expressions,
       List<Object> args,
       Map<String, Object> kwargs,
-      Expression expr,
       boolean isDistinct) {
-    this.paths = paths;
+    this.paths = expressions.stream().map(Expression::getColumnName).collect(Collectors.toList());
+    this.expressions = expressions;
     this.args = args;
     this.kwargs = kwargs;
-    this.expr = expr;
     this.isDistinct = isDistinct;
+  }
+
+  public List<Expression> getExpressions() {
+    return expressions;
+  }
+
+  public Expression getExpression(int i) {
+    return expressions.get(i);
+  }
+
+  public void setExpression(int i, Expression expression) {
+    expressions.set(i, expression);
   }
 
   public List<String> getPaths() {
@@ -78,14 +89,6 @@ public class FunctionParams {
     return kwargs;
   }
 
-  public Expression getExpr() {
-    return expr;
-  }
-
-  public void setExpr(Expression expr) {
-    this.expr = expr;
-  }
-
   public boolean isDistinct() {
     return isDistinct;
   }
@@ -95,18 +98,18 @@ public class FunctionParams {
   }
 
   protected FunctionParams copy() {
-    List<String> newPaths = null;
-    if (paths != null && !paths.isEmpty()) {
-      newPaths = new ArrayList<>(paths);
+    List<Expression> newExpressions = new ArrayList<>(expressions.size());
+    for (Expression expression : expressions) {
+      newExpressions.add(ExprUtils.copy(expression));
     }
-    Map<String, Object> newKvargs = null;
+    Map<String, Object> newKwargs = null;
     if (kwargs != null && !kwargs.isEmpty()) {
-      newKvargs = new HashMap<>(kwargs);
+      newKwargs = new HashMap<>(kwargs);
     }
     List<Object> newArgs = null;
     if (args != null && !args.isEmpty()) {
       newArgs = new ArrayList<>(args);
     }
-    return new FunctionParams(newPaths, newArgs, newKvargs, expr, isDistinct);
+    return new FunctionParams(newExpressions, newArgs, newKwargs, isDistinct);
   }
 }

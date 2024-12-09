@@ -1,19 +1,21 @@
 /*
  * IGinX - the polystore system with high performance
  * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 package cn.edu.tsinghua.iginx.physical.optimizer.naive.initializer;
 
@@ -28,10 +30,8 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.operator.OuterJoin;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OuterJoinType;
-import cn.edu.tsinghua.iginx.physical.optimizer.naive.util.HashJoins;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import cn.edu.tsinghua.iginx.physical.optimizer.naive.util.HashJoinUtils;
+import java.util.*;
 
 public class OuterJoinInfoGenerator implements BinaryExecutorFactory<StatefulBinaryExecutor> {
 
@@ -73,14 +73,28 @@ public class OuterJoinInfoGenerator implements BinaryExecutorFactory<StatefulBin
     for (String extraPrefix : operator.getExtraJoinPrefix()) {
       subFilters.add(new PathFilter(extraPrefix, Op.E, extraPrefix));
     }
+    Set<String> ignoreColumns = new HashSet<>();
+    for (String joinColumn : operator.getJoinColumns()) {
+      if (operator.getOuterJoinType() == OuterJoinType.LEFT) {
+        ignoreColumns.add(operator.getPrefixB() + "." + joinColumn);
+      } else {
+        ignoreColumns.add(operator.getPrefixA() + "." + joinColumn);
+      }
+      subFilters.add(
+          new PathFilter(
+              operator.getPrefixA() + "." + joinColumn,
+              Op.E,
+              operator.getPrefixB() + "." + joinColumn));
+    }
 
-    return HashJoins.constructHashJoin(
+    return HashJoinUtils.constructHashJoin(
         context,
         leftSchema,
         rightSchema,
         operator.getPrefixA(),
         operator.getPrefixB(),
         new AndFilter(subFilters),
+        ignoreColumns,
         joinOption);
   }
 

@@ -1,23 +1,26 @@
 /*
  * IGinX - the polystore system with high performance
  * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ValueVectors;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.VectorSchemaRoots;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.arrow.memory.BufferAllocator;
@@ -59,7 +62,7 @@ public class PhysicalFunctions {
         results.add(ValueVectors.slice(allocator, fieldVector));
       }
     }
-    return new VectorSchemaRoot(results);
+    return VectorSchemaRoots.create(results, vectorSchemaRoot.getRowCount());
   }
 
   public static IntVector filter(BufferAllocator allocator, BitVector bitmap) {
@@ -80,25 +83,31 @@ public class PhysicalFunctions {
 
   public static <OUTPUT extends FieldVector> void takeTo(
       BaseIntVector selection, OUTPUT output, OUTPUT input) {
-    if (selection.getField().isNullable()) {
-      throw new IllegalArgumentException("Selection vector must be not nullable");
-    }
-
     int outputOffset = output.getValueCount();
     int outputRowCount = outputOffset + selection.getValueCount();
+
+    boolean useSetSafe;
     if (output instanceof BaseFixedWidthVector) {
-      output.setValueCount(outputRowCount);
-      for (int selectionIndex = 0; selectionIndex < selection.getValueCount(); selectionIndex++) {
-        int outputIndex = outputOffset + selectionIndex;
-        output.copyFrom((int) selection.getValueAsLong(selectionIndex), outputIndex, input);
-      }
+      ((BaseFixedWidthVector) output).allocateNew(outputRowCount);
+      useSetSafe = false;
     } else {
-      for (int selectionIndex = 0; selectionIndex < selection.getValueCount(); selectionIndex++) {
-        int outputIndex = outputOffset + selectionIndex;
-        output.copyFromSafe((int) selection.getValueAsLong(selectionIndex), outputIndex, input);
-      }
-      output.setValueCount(outputRowCount);
+      output.setInitialCapacity(outputRowCount);
+      useSetSafe = true;
     }
+    boolean isNullable = input.getField().isNullable();
+    for (int selectionIndex = 0; selectionIndex < selection.getValueCount(); selectionIndex++) {
+      int outputIndex = outputOffset + selectionIndex;
+      if (isNullable && selection.isNull(selectionIndex)) {
+        output.setNull(outputIndex);
+      } else {
+        if (useSetSafe) {
+          output.copyFromSafe((int) selection.getValueAsLong(selectionIndex), outputIndex, input);
+        } else {
+          output.copyFrom((int) selection.getValueAsLong(selectionIndex), outputIndex, input);
+        }
+      }
+    }
+    output.setValueCount(outputRowCount);
   }
 
   public static void takeTo(
@@ -116,9 +125,6 @@ public class PhysicalFunctions {
   @SuppressWarnings("unchecked")
   public static <OUTPUT extends FieldVector> OUTPUT take(
       BufferAllocator allocator, BaseIntVector selection, OUTPUT input) {
-    if (selection.getField().isNullable()) {
-      throw new IllegalArgumentException("Selection vector must be not nullable");
-    }
     TransferPair transferPair = input.getTransferPair(allocator);
     OUTPUT result = (OUTPUT) transferPair.getTo();
     result.setInitialCapacity(selection.getValueCount());
@@ -132,6 +138,6 @@ public class PhysicalFunctions {
     for (FieldVector fieldVector : input.getFieldVectors()) {
       results.add(take(allocator, selectionVector, fieldVector));
     }
-    return new VectorSchemaRoot(results);
+    return VectorSchemaRoots.create(results, selectionVector.getValueCount());
   }
 }

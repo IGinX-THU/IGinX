@@ -1,25 +1,37 @@
 /*
  * IGinX - the polystore system with high performance
  * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-
 package cn.edu.tsinghua.iginx.compaction;
 
 import cn.edu.tsinghua.iginx.engine.physical.PhysicalEngine;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
+import cn.edu.tsinghua.iginx.engine.physical.task.TaskMetrics;
+import cn.edu.tsinghua.iginx.engine.physical.task.memory.row.BatchStreamToRowStreamWrapper;
+import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Delete;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Migration;
+import cn.edu.tsinghua.iginx.engine.shared.operator.ShowColumns;
+import cn.edu.tsinghua.iginx.engine.shared.source.FragmentSource;
+import cn.edu.tsinghua.iginx.engine.shared.source.GlobalSource;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
 import cn.edu.tsinghua.iginx.metadata.entity.FragmentMeta;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageUnitMeta;
@@ -101,86 +113,86 @@ public abstract class Compaction {
   protected void compactFragmentGroupToTargetStorageUnit(
       List<FragmentMeta> fragmentGroup, StorageUnitMeta targetStorageUnit, long totalPoints)
       throws PhysicalException {
-    // TODO: implement this method
-    throw new UnsupportedOperationException("Not implemented yet");
-    //    String startTimeseries = fragmentGroup.get(0).getColumnsInterval().getStartColumn();
-    //    String endTimeseries = fragmentGroup.get(0).getColumnsInterval().getEndColumn();
-    //    long startTime = fragmentGroup.get(0).getKeyInterval().getStartKey();
-    //    long endTime = fragmentGroup.get(0).getKeyInterval().getEndKey();
-    //
-    //    for (FragmentMeta fragmentMeta : fragmentGroup) {
-    //      // 找到新分片空间
-    //      if (startTimeseries == null || fragmentMeta.getColumnsInterval().getStartColumn() ==
-    // null) {
-    //        startTimeseries = null;
-    //      } else {
-    //        startTimeseries =
-    //            startTimeseries.compareTo(fragmentMeta.getColumnsInterval().getStartColumn()) > 0
-    //                ? fragmentMeta.getColumnsInterval().getStartColumn()
-    //                : startTimeseries;
-    //      }
-    //
-    //      if (endTimeseries == null || fragmentMeta.getColumnsInterval().getEndColumn() == null) {
-    //        endTimeseries = null;
-    //      } else {
-    //        endTimeseries =
-    //            endTimeseries.compareTo(fragmentMeta.getColumnsInterval().getEndColumn()) > 0
-    //                ? endTimeseries
-    //                : fragmentMeta.getColumnsInterval().getEndColumn();
-    //      }
-    //
-    //      String storageUnitId = fragmentMeta.getMasterStorageUnitId();
-    //      if (!storageUnitId.equals(targetStorageUnit.getId())) {
-    //        // 重写该分片的数据
-    //        Set<String> pathRegexSet = new HashSet<>();
-    //        ShowColumns showColumns =
-    //            new ShowColumns(new GlobalSource(), pathRegexSet, null, Integer.MAX_VALUE, 0);
-    //        RowStream rowStream = physicalEngine.execute(new RequestContext(), showColumns);
-    //        SortedSet<String> pathSet = new TreeSet<>();
-    //        while (rowStream != null && rowStream.hasNext()) {
-    //          Row row = rowStream.next();
-    //          String timeSeries = new String((byte[]) row.getValue(0));
-    //          if (timeSeries.contains("{") && timeSeries.contains("}")) {
-    //            timeSeries = timeSeries.split("\\{")[0];
-    //          }
-    //          if (fragmentMeta.getColumnsInterval().isContain(timeSeries)) {
-    //            pathSet.add(timeSeries);
-    //          }
-    //        }
-    //
-    //        // TODO: pathSet 不应为空，目前通过判空做补丁，有待深入处理
-    //        if (!pathSet.isEmpty()) {
-    //          Migration migration =
-    //              new Migration(
-    //                  new GlobalSource(), fragmentMeta, new ArrayList<>(pathSet),
-    // targetStorageUnit);
-    //          physicalEngine.execute(new RequestContext(), migration);
-    //        }
-    //      }
-    //    }
-    //    // TODO add write lock
-    //    // 创建新分片
-    //    FragmentMeta newFragment =
-    //        new FragmentMeta(startTimeseries, endTimeseries, startTime, endTime,
-    // targetStorageUnit);
-    //    metaManager.addFragment(newFragment);
-    //    // 更新存储点数信息
-    //    metaManager.updateFragmentPoints(newFragment, totalPoints);
-    //
-    //    for (FragmentMeta fragmentMeta : fragmentGroup) {
-    //      metaManager.removeFragment(fragmentMeta);
-    //    }
-    //    // TODO release write lock
-    //
-    //    for (FragmentMeta fragmentMeta : fragmentGroup) {
-    //      String storageUnitId = fragmentMeta.getMasterStorageUnitId();
-    //      if (!storageUnitId.equals(targetStorageUnit.getId())) {
-    //        // 删除原分片节点数据
-    //        Delete delete =
-    //            new Delete(
-    //                new FragmentSource(fragmentMeta), new ArrayList<>(), new ArrayList<>(), null);
-    //        physicalEngine.execute(new RequestContext(), delete);
-    //      }
-    //    }
+    String startTimeseries = fragmentGroup.get(0).getColumnsInterval().getStartColumn();
+    String endTimeseries = fragmentGroup.get(0).getColumnsInterval().getEndColumn();
+    long startTime = fragmentGroup.get(0).getKeyInterval().getStartKey();
+    long endTime = fragmentGroup.get(0).getKeyInterval().getEndKey();
+
+    for (FragmentMeta fragmentMeta : fragmentGroup) {
+      // 找到新分片空间
+      if (startTimeseries == null || fragmentMeta.getColumnsInterval().getStartColumn() == null) {
+        startTimeseries = null;
+      } else {
+        startTimeseries =
+            startTimeseries.compareTo(fragmentMeta.getColumnsInterval().getStartColumn()) > 0
+                ? fragmentMeta.getColumnsInterval().getStartColumn()
+                : startTimeseries;
+      }
+
+      if (endTimeseries == null || fragmentMeta.getColumnsInterval().getEndColumn() == null) {
+        endTimeseries = null;
+      } else {
+        endTimeseries =
+            endTimeseries.compareTo(fragmentMeta.getColumnsInterval().getEndColumn()) > 0
+                ? endTimeseries
+                : fragmentMeta.getColumnsInterval().getEndColumn();
+      }
+
+      String storageUnitId = fragmentMeta.getMasterStorageUnitId();
+      if (!storageUnitId.equals(targetStorageUnit.getId())) {
+        // 重写该分片的数据
+        Set<String> pathRegexSet = new HashSet<>();
+        ShowColumns showColumns =
+            new ShowColumns(new GlobalSource(), pathRegexSet, null, Integer.MAX_VALUE, 0);
+
+        SortedSet<String> pathSet = new TreeSet<>();
+        try (BatchStream batchStream = physicalEngine.execute(new RequestContext(), showColumns);
+            RowStream rowStream =
+                new BatchStreamToRowStreamWrapper(batchStream, TaskMetrics.NO_OP)) {
+
+          while (rowStream.hasNext()) {
+            Row row = rowStream.next();
+            String timeSeries = new String((byte[]) row.getValue(0));
+            if (timeSeries.contains("{") && timeSeries.contains("}")) {
+              timeSeries = timeSeries.split("\\{")[0];
+            }
+            if (fragmentMeta.getColumnsInterval().isContain(timeSeries)) {
+              pathSet.add(timeSeries);
+            }
+          }
+        }
+
+        // TODO: pathSet 不应为空，目前通过判空做补丁，有待深入处理
+        if (!pathSet.isEmpty()) {
+          Migration migration =
+              new Migration(
+                  new GlobalSource(), fragmentMeta, new ArrayList<>(pathSet), targetStorageUnit);
+          physicalEngine.execute(new RequestContext(), migration);
+        }
+      }
+    }
+    // TODO add write lock
+    // 创建新分片
+    FragmentMeta newFragment =
+        new FragmentMeta(startTimeseries, endTimeseries, startTime, endTime, targetStorageUnit);
+    metaManager.addFragment(newFragment);
+    // 更新存储点数信息
+    metaManager.updateFragmentPoints(newFragment, totalPoints);
+
+    for (FragmentMeta fragmentMeta : fragmentGroup) {
+      metaManager.removeFragment(fragmentMeta);
+    }
+    // TODO release write lock
+
+    for (FragmentMeta fragmentMeta : fragmentGroup) {
+      String storageUnitId = fragmentMeta.getMasterStorageUnitId();
+      if (!storageUnitId.equals(targetStorageUnit.getId())) {
+        // 删除原分片节点数据
+        Delete delete =
+            new Delete(
+                new FragmentSource(fragmentMeta), new ArrayList<>(), new ArrayList<>(), null);
+        physicalEngine.execute(new RequestContext(), delete);
+      }
+    }
   }
 }

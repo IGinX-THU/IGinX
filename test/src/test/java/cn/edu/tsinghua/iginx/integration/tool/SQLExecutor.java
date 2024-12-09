@@ -1,25 +1,26 @@
 /*
  * IGinX - the polystore system with high performance
  * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-
 package cn.edu.tsinghua.iginx.integration.tool;
 
 import static cn.edu.tsinghua.iginx.constant.GlobalConstant.CLEAR_DUMMY_DATA_CAUTION;
-import static cn.edu.tsinghua.iginx.integration.controller.Controller.*;
+import static cn.edu.tsinghua.iginx.integration.controller.Controller.CLEAR_DATA_WARNING;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
@@ -151,18 +152,18 @@ public class SQLExecutor {
             String statement = pair.getK();
             String expected = pair.getV();
             start.countDown();
-
             try {
               start.await();
-            } catch (InterruptedException e) {
-              LOGGER.error("Interrupt when latch await");
+              String actualOutput = execute(statement);
+              if (!expected.equals(actualOutput)) {
+                failedList.add(new Pair<>(statement, new Pair<>(expected, actualOutput)));
+              }
+            } catch (Throwable e) {
+              LOGGER.error("Statement: \"{}\" execute fail. Caused by: ", statement, e);
+              failedList.add(new Pair<>(statement, new Pair<>(expected, e.toString())));
+            } finally {
+              end.countDown();
             }
-
-            String actualOutput = execute(statement);
-            if (!expected.equals(actualOutput)) {
-              failedList.add(new Pair<>(statement, new Pair<>(expected, actualOutput)));
-            }
-            end.countDown();
           });
     }
 
