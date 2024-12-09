@@ -277,7 +277,7 @@ public class PhysicalExpressionUtils {
                 context, inputSchema, expression, setAlias));
       }
       Schema schema =
-          ScalarExpressions.getOutputSchema(context.getAllocator(), preRowTransform, inputSchema);
+          ScalarExpressionUtils.getOutputSchema(context.getAllocator(), preRowTransform, inputSchema);
       for (String path : params.getPaths()) {
         List<Integer> matchedIndexes = Schemas.matchPattern(schema, path);
         if (matchedIndexes.isEmpty()) {

@@ -22,7 +22,7 @@ package cn.edu.tsinghua.iginx.engine.shared.function.system;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.ScalarFunction;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.CallNode;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpression;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpressions;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpressionUtils;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.temporal.*;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
@@ -176,7 +176,7 @@ public class Extract implements RowMappingFunction {
     }
 
     Schema argumentsSchema =
-        ScalarExpressions.getOutputSchema(context.getAllocator(), inputs, schema);
+        ScalarExpressionUtils.getOutputSchema(context.getAllocator(), inputs, schema);
     String outputColumnName =
         "extract(" + argumentsSchema.getFields().get(0).getName() + ", " + functionArg + ")";
     return new CallNode<>(function, setAlias ? outputColumnName : null, inputs);
