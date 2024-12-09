@@ -78,31 +78,31 @@ public abstract class BaseCapacityExpansionIT {
   protected static BaseHistoryDataGenerator generator;
 
   public BaseCapacityExpansionIT(
-          StorageEngineType type, String extraParams, BaseHistoryDataGenerator generator) {
+      StorageEngineType type, String extraParams, BaseHistoryDataGenerator generator) {
     this.type = type;
     this.extraParams = extraParams;
     BaseCapacityExpansionIT.generator = generator;
   }
 
   protected String addStorageEngine(
-          int port,
-          boolean hasData,
-          boolean isReadOnly,
-          String dataPrefix,
-          String schemaPrefix,
-          String extraParams) {
+      int port,
+      boolean hasData,
+      boolean isReadOnly,
+      String dataPrefix,
+      String schemaPrefix,
+      String extraParams) {
     return this.addStorageEngine(
-            port, hasData, isReadOnly, dataPrefix, schemaPrefix, extraParams, false);
+        port, hasData, isReadOnly, dataPrefix, schemaPrefix, extraParams, false);
   }
 
   protected String addStorageEngine(
-          int port,
-          boolean hasData,
-          boolean isReadOnly,
-          String dataPrefix,
-          String schemaPrefix,
-          String extraParams,
-          boolean noError) {
+      int port,
+      boolean hasData,
+      boolean isReadOnly,
+      String dataPrefix,
+      String schemaPrefix,
+      String extraParams,
+      boolean noError) {
     try {
       StringBuilder statement = new StringBuilder();
       statement.append("ADD STORAGEENGINE (\"127.0.0.1\", ");
@@ -123,7 +123,7 @@ public abstract class BaseCapacityExpansionIT {
         statement.append(String.format(", dummy_dir:%s/", DBCE_PARQUET_FS_TEST_DIR));
         statement.append(PORT_TO_ROOT.get(port));
         statement.append(
-                String.format(", dir:%s/" + IGINX_DATA_PATH_PREFIX_NAME, DBCE_PARQUET_FS_TEST_DIR));
+            String.format(", dir:%s/" + IGINX_DATA_PATH_PREFIX_NAME, DBCE_PARQUET_FS_TEST_DIR));
         statement.append(PORT_TO_ROOT.get(port));
         statement.append(", iginx_port:").append(oriPortIginx);
       }
@@ -147,25 +147,25 @@ public abstract class BaseCapacityExpansionIT {
     } catch (SessionException e) {
       if (noError) {
         LOGGER.warn(
-                "add storage engine:{} port:{} hasData:{} isReadOnly:{} dataPrefix:{} schemaPrefix:{} extraParams:{} failure: ",
-                type.name(),
-                port,
-                hasData,
-                isReadOnly,
-                dataPrefix,
-                schemaPrefix,
-                extraParams);
+            "add storage engine:{} port:{} hasData:{} isReadOnly:{} dataPrefix:{} schemaPrefix:{} extraParams:{} failure: ",
+            type.name(),
+            port,
+            hasData,
+            isReadOnly,
+            dataPrefix,
+            schemaPrefix,
+            extraParams);
       } else {
         LOGGER.warn(
-                "add storage engine:{} port:{} hasData:{} isReadOnly:{} dataPrefix:{} schemaPrefix:{} extraParams:{} failure: ",
-                type.name(),
-                port,
-                hasData,
-                isReadOnly,
-                dataPrefix,
-                schemaPrefix,
-                extraParams,
-                e);
+            "add storage engine:{} port:{} hasData:{} isReadOnly:{} dataPrefix:{} schemaPrefix:{} extraParams:{} failure: ",
+            type.name(),
+            port,
+            hasData,
+            isReadOnly,
+            dataPrefix,
+            schemaPrefix,
+            extraParams,
+            e);
       }
       return e.getMessage();
     }
@@ -196,7 +196,7 @@ public abstract class BaseCapacityExpansionIT {
   }
 
   private void addStorageEngineInProgress(
-          int port, boolean hasData, boolean isReadOnly, String dataPrefix, String schemaPrefix) {
+      int port, boolean hasData, boolean isReadOnly, String dataPrefix, String schemaPrefix) {
     if (IS_EMBEDDED) {
       startStorageEngineWithIginx(port, hasData, isReadOnly);
     } else {
@@ -320,17 +320,17 @@ public abstract class BaseCapacityExpansionIT {
   }
 
   protected void testInvalidEngineParams(
-          int port, boolean hasData, boolean isReadOnly, String dataPrefix, String schemaPrefix) {
+      int port, boolean hasData, boolean isReadOnly, String dataPrefix, String schemaPrefix) {
     // wrong params
     String res;
     for (String params : wrongExtraParams) {
       res = addStorageEngine(port, hasData, isReadOnly, dataPrefix, schemaPrefix, params, true);
       if (res != null) {
         LOGGER.info(
-                "Successfully rejected dummy engine with wrong params: {}; {}. msg: {}",
-                port,
-                params,
-                res);
+            "Successfully rejected dummy engine with wrong params: {}; {}. msg: {}",
+            port,
+            params,
+            res);
       } else {
         LOGGER.error("Dummy engine with wrong params {}; {} shouldn't be added.", port, params);
         fail();
@@ -339,19 +339,19 @@ public abstract class BaseCapacityExpansionIT {
 
     // wrong port
     res =
-            addStorageEngine(
-                    port + 999, hasData, isReadOnly, dataPrefix, schemaPrefix, extraParams, true);
+        addStorageEngine(
+            port + 999, hasData, isReadOnly, dataPrefix, schemaPrefix, extraParams, true);
     if (res != null) {
       LOGGER.info(
-              "Successfully rejected dummy engine with wrong port: {}; params: {}. msg: {}",
-              port + 999,
-              extraParams,
-              res);
+          "Successfully rejected dummy engine with wrong port: {}; params: {}. msg: {}",
+          port + 999,
+          extraParams,
+          res);
     } else {
       LOGGER.error(
-              "Dummy engine with wrong port {} & params:{} shouldn't be added.",
-              port + 999,
-              extraParams);
+          "Dummy engine with wrong port {} & params:{} shouldn't be added.",
+          port + 999,
+          extraParams);
       fail();
     }
   }
@@ -371,7 +371,7 @@ public abstract class BaseCapacityExpansionIT {
     // 查询
     String statement = "select wt01.status, wt01.temperature from " + prefix + ".tm.wf05;";
     List<String> pathList =
-            READ_ONLY_PATH_LIST.stream().map(s -> prefix + "." + s).collect(Collectors.toList());
+        READ_ONLY_PATH_LIST.stream().map(s -> prefix + "." + s).collect(Collectors.toList());
     List<List<Object>> valuesList = READ_ONLY_VALUES_LIST;
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
 
@@ -383,19 +383,19 @@ public abstract class BaseCapacityExpansionIT {
     long id = -1;
     for (StorageEngineInfo info : engineInfoList) {
       if (info.getIp().equals("127.0.0.1")
-              && info.getPort() == readOnlyPort
-              && info.getDataPrefix().equals("null")
-              && info.getSchemaPrefix().equals(prefix)
-              && info.getType().equals(type)) {
+          && info.getPort() == readOnlyPort
+          && info.getDataPrefix().equals("null")
+          && info.getSchemaPrefix().equals(prefix)
+          && info.getType().equals(type)) {
         id = info.getId();
       }
     }
     assertTrue(id != -1);
 
     String newParams =
-            updatedParams.entrySet().stream()
-                    .map(entry -> entry.getKey() + ":" + entry.getValue())
-                    .collect(Collectors.joining(", "));
+        updatedParams.entrySet().stream()
+            .map(entry -> entry.getKey() + ":" + entry.getValue())
+            .collect(Collectors.joining(", "));
     session.executeSql(String.format(ALTER_ENGINE_STRING, id, newParams));
 
     // 重新查询
@@ -406,8 +406,8 @@ public abstract class BaseCapacityExpansionIT {
 
     // 删除，不影响后续测试
     session.removeStorageEngine(
-            Collections.singletonList(
-                    new RemovedStorageEngineInfo("127.0.0.1", readOnlyPort, prefix, "")));
+        Collections.singletonList(
+            new RemovedStorageEngineInfo("127.0.0.1", readOnlyPort, prefix, "")));
 
     // 改回数据库参数
     restoreParams(readOnlyPort);
@@ -475,15 +475,15 @@ public abstract class BaseCapacityExpansionIT {
     // exp
     statement = "select wf03.wt01.status2 from nt;";
     SQLTestTools.executeAndContainValue(
-            session, statement, EXP_PATH_LIST1, EXP_EXTEND_VALUES_LIST1);
+        session, statement, EXP_PATH_LIST1, EXP_EXTEND_VALUES_LIST1);
     statement = "select wf04.wt01.temperature from nt;";
     SQLTestTools.executeAndContainValue(
-            session, statement, EXP_PATH_LIST2, EXP_EXTEND_VALUES_LIST2);
+        session, statement, EXP_PATH_LIST2, EXP_EXTEND_VALUES_LIST2);
 
     // ro
     statement = "select wf05.wt01.status, wf05.wt01.temperature from tm;";
     SQLTestTools.executeAndContainValue(
-            session, statement, READ_ONLY_PATH_LIST, READ_ONLY_EXTEND_VALUES_LIST);
+        session, statement, READ_ONLY_PATH_LIST, READ_ONLY_EXTEND_VALUES_LIST);
   }
 
   protected void queryExtendedColDummy() {
@@ -525,14 +525,14 @@ public abstract class BaseCapacityExpansionIT {
   private void testQueryHistoryDataOriNoData() {
     String statement = "select wf01.wt01.status, wf01.wt01.temperature from mn;";
     String expect =
-            "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
+        "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
   }
 
   private void testQueryHistoryDataExpNoData() {
     String statement = "select wf03.wt01.status, wf04.wt01.temperature from nt;";
     String expect =
-            "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
+        "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
   }
 
@@ -557,26 +557,26 @@ public abstract class BaseCapacityExpansionIT {
   private void queryNewData() {
     String statement = "select * from ln;";
     String expect =
-            "ResultSets:\n"
-                    + "+---+--------------+---------------+\n"
-                    + "|key|ln.wf02.status|ln.wf02.version|\n"
-                    + "+---+--------------+---------------+\n"
-                    + "|100|          true|             v1|\n"
-                    + "|400|         false|             v4|\n"
-                    + "|800|          null|             v8|\n"
-                    + "+---+--------------+---------------+\n"
-                    + "Total line number = 3\n";
+        "ResultSets:\n"
+            + "+---+--------------+---------------+\n"
+            + "|key|ln.wf02.status|ln.wf02.version|\n"
+            + "+---+--------------+---------------+\n"
+            + "|100|          true|             v1|\n"
+            + "|400|         false|             v4|\n"
+            + "|800|          null|             v8|\n"
+            + "+---+--------------+---------------+\n"
+            + "Total line number = 3\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
 
     statement = "select count(*) from ln.wf02;";
     expect =
-            "ResultSets:\n"
-                    + "+---------------------+----------------------+\n"
-                    + "|count(ln.wf02.status)|count(ln.wf02.version)|\n"
-                    + "+---------------------+----------------------+\n"
-                    + "|                    2|                     3|\n"
-                    + "+---------------------+----------------------+\n"
-                    + "Total line number = 1\n";
+        "ResultSets:\n"
+            + "+---------------------+----------------------+\n"
+            + "|count(ln.wf02.status)|count(ln.wf02.version)|\n"
+            + "+---------------------+----------------------+\n"
+            + "|                    2|                     3|\n"
+            + "+---------------------+----------------------+\n"
+            + "Total line number = 1\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
   }
 
@@ -592,27 +592,27 @@ public abstract class BaseCapacityExpansionIT {
   private void queryAllNewData() {
     String statement = "select * from ln;";
     String expect =
-            "ResultSets:\n"
-                    + "+----+--------------+---------------+\n"
-                    + "| key|ln.wf02.status|ln.wf02.version|\n"
-                    + "+----+--------------+---------------+\n"
-                    + "| 100|          true|             v1|\n"
-                    + "| 400|         false|             v4|\n"
-                    + "| 800|          null|             v8|\n"
-                    + "|1600|          null|            v48|\n"
-                    + "+----+--------------+---------------+\n"
-                    + "Total line number = 4\n";
+        "ResultSets:\n"
+            + "+----+--------------+---------------+\n"
+            + "| key|ln.wf02.status|ln.wf02.version|\n"
+            + "+----+--------------+---------------+\n"
+            + "| 100|          true|             v1|\n"
+            + "| 400|         false|             v4|\n"
+            + "| 800|          null|             v8|\n"
+            + "|1600|          null|            v48|\n"
+            + "+----+--------------+---------------+\n"
+            + "Total line number = 4\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
 
     statement = "select count(*) from ln.wf02;";
     expect =
-            "ResultSets:\n"
-                    + "+---------------------+----------------------+\n"
-                    + "|count(ln.wf02.status)|count(ln.wf02.version)|\n"
-                    + "+---------------------+----------------------+\n"
-                    + "|                    2|                     4|\n"
-                    + "+---------------------+----------------------+\n"
-                    + "Total line number = 1\n";
+        "ResultSets:\n"
+            + "+---------------------+----------------------+\n"
+            + "|count(ln.wf02.status)|count(ln.wf02.version)|\n"
+            + "+---------------------+----------------------+\n"
+            + "|                    2|                     4|\n"
+            + "+---------------------+----------------------+\n"
+            + "Total line number = 1\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
   }
 
@@ -641,7 +641,7 @@ public abstract class BaseCapacityExpansionIT {
 
     // 如果是重复添加，则报错
     String res =
-            addStorageEngine(expPort, true, true, dataPrefix1, schemaPrefix2, extraParams, false);
+        addStorageEngine(expPort, true, true, dataPrefix1, schemaPrefix2, extraParams, false);
     if (res != null && !res.contains("repeatedly add storage engine")) {
       fail();
     }
@@ -685,9 +685,9 @@ public abstract class BaseCapacityExpansionIT {
     testShowColumnsRemoveStorageEngine(true);
     List<RemovedStorageEngineInfo> removedStorageEngineList = new ArrayList<>();
     removedStorageEngineList.add(
-            new RemovedStorageEngineInfo("127.0.0.1", expPort, "p2" + schemaPrefixSuffix, dataPrefix1));
+        new RemovedStorageEngineInfo("127.0.0.1", expPort, "p2" + schemaPrefixSuffix, dataPrefix1));
     removedStorageEngineList.add(
-            new RemovedStorageEngineInfo("127.0.0.1", expPort, "p3" + schemaPrefixSuffix, dataPrefix1));
+        new RemovedStorageEngineInfo("127.0.0.1", expPort, "p3" + schemaPrefixSuffix, dataPrefix1));
     try {
       session.removeStorageEngine(removedStorageEngineList);
       testShowClusterInfo(4);
@@ -699,7 +699,7 @@ public abstract class BaseCapacityExpansionIT {
     // 移除节点 dataPrefix = dataPrefix1 && schemaPrefix = p2 + schemaPrefixSuffix 后再查询
     statement = "select * from p2.nt.wf03;";
     String expect =
-            "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
+        "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
     // 移除节点 dataPrefix = dataPrefix1 && schemaPrefix = p3 + schemaPrefixSuffix
     // 后再查询，测试重点是移除相同 schemaPrefix，不同 dataPrefix
@@ -712,9 +712,9 @@ public abstract class BaseCapacityExpansionIT {
     String removeStatement = "remove storageengine (\"127.0.0.1\", %d, \"%s\", \"%s\");";
     try {
       session.executeSql(
-              String.format(removeStatement, expPort, "p1" + schemaPrefixSuffix, dataPrefix1));
+          String.format(removeStatement, expPort, "p1" + schemaPrefixSuffix, dataPrefix1));
       session.executeSql(
-              String.format(removeStatement, expPort, "p3" + schemaPrefixSuffix, dataPrefix2));
+          String.format(removeStatement, expPort, "p3" + schemaPrefixSuffix, dataPrefix2));
       testShowClusterInfo(2);
     } catch (SessionException e) {
       LOGGER.error("remove history data source through sql error: ", e);
@@ -726,11 +726,11 @@ public abstract class BaseCapacityExpansionIT {
 
     try {
       session.executeSql(
-              String.format(removeStatement, expPort, "p1" + schemaPrefixSuffix, dataPrefix1));
+          String.format(removeStatement, expPort, "p1" + schemaPrefixSuffix, dataPrefix1));
     } catch (SessionException e) {
       if (!e.getMessage().contains("remove history data source failed")) {
         LOGGER.error(
-                "remove history data source should throw error when removing the node that does not exist");
+            "remove history data source should throw error when removing the node that does not exist");
         fail();
       }
     }
@@ -740,89 +740,89 @@ public abstract class BaseCapacityExpansionIT {
   protected void testShowColumnsInExpansion(boolean before) {
     String statement = "SHOW COLUMNS nt.wf03.*;";
     String expected =
-            "Columns:\n"
-                    + "+--------------------+--------+\n"
-                    + "|                Path|DataType|\n"
-                    + "+--------------------+--------+\n"
-                    + "|nt.wf03.wt01.status2|    LONG|\n"
-                    + "+--------------------+--------+\n"
-                    + "Total line number = 1\n";
+        "Columns:\n"
+            + "+--------------------+--------+\n"
+            + "|                Path|DataType|\n"
+            + "+--------------------+--------+\n"
+            + "|nt.wf03.wt01.status2|    LONG|\n"
+            + "+--------------------+--------+\n"
+            + "Total line number = 1\n";
     SQLTestTools.executeAndCompare(session, statement, expected);
 
     statement = "SHOW COLUMNS;";
     if (before) {
       expected =
-              "Columns:\n"
-                      + "+--------------------------------------------------------------------------------------+--------+\n"
-                      + "|                                                                                  Path|DataType|\n"
-                      + "+--------------------------------------------------------------------------------------+--------+\n"
-                      + "|                                                                                 b.b.b|    LONG|\n"
-                      + "|                                                                        ln.wf02.status| BOOLEAN|\n"
-                      + "|                                                                       ln.wf02.version|  BINARY|\n"
-                      + "|                                                                  nt.wf03.wt01.status2|    LONG|\n"
-                      + "|                                                              nt.wf04.wt01.temperature|  DOUBLE|\n"
-                      + "|zzzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzzzz|    LONG|\n"
-                      + "+--------------------------------------------------------------------------------------+--------+\n"
-                      + "Total line number = 6\n";
+          "Columns:\n"
+              + "+--------------------------------------------------------------------------------------+--------+\n"
+              + "|                                                                                  Path|DataType|\n"
+              + "+--------------------------------------------------------------------------------------+--------+\n"
+              + "|                                                                                 b.b.b|    LONG|\n"
+              + "|                                                                        ln.wf02.status| BOOLEAN|\n"
+              + "|                                                                       ln.wf02.version|  BINARY|\n"
+              + "|                                                                  nt.wf03.wt01.status2|    LONG|\n"
+              + "|                                                              nt.wf04.wt01.temperature|  DOUBLE|\n"
+              + "|zzzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzzzz|    LONG|\n"
+              + "+--------------------------------------------------------------------------------------+--------+\n"
+              + "Total line number = 6\n";
     } else { // 添加schemaPrefix为p1，dataPrefix为nt.wf03的数据源
       expected =
-              "Columns:\n"
-                      + "+--------------------------------------------------------------------------------------+--------+\n"
-                      + "|                                                                                  Path|DataType|\n"
-                      + "+--------------------------------------------------------------------------------------+--------+\n"
-                      + "|                                                                                 b.b.b|    LONG|\n"
-                      + "|                                                                        ln.wf02.status| BOOLEAN|\n"
-                      + "|                                                                       ln.wf02.version|  BINARY|\n"
-                      + "|                                                                  nt.wf03.wt01.status2|    LONG|\n"
-                      + "|                                                              nt.wf04.wt01.temperature|  DOUBLE|\n"
-                      + "|                                                               p1.nt.wf03.wt01.status2|    LONG|\n"
-                      + "|zzzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzzzz|    LONG|\n"
-                      + "+--------------------------------------------------------------------------------------+--------+\n"
-                      + "Total line number = 7\n";
+          "Columns:\n"
+              + "+--------------------------------------------------------------------------------------+--------+\n"
+              + "|                                                                                  Path|DataType|\n"
+              + "+--------------------------------------------------------------------------------------+--------+\n"
+              + "|                                                                                 b.b.b|    LONG|\n"
+              + "|                                                                        ln.wf02.status| BOOLEAN|\n"
+              + "|                                                                       ln.wf02.version|  BINARY|\n"
+              + "|                                                                  nt.wf03.wt01.status2|    LONG|\n"
+              + "|                                                              nt.wf04.wt01.temperature|  DOUBLE|\n"
+              + "|                                                               p1.nt.wf03.wt01.status2|    LONG|\n"
+              + "|zzzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzzzz|    LONG|\n"
+              + "+--------------------------------------------------------------------------------------+--------+\n"
+              + "Total line number = 7\n";
     }
     SQLTestTools.executeAndCompare(session, statement, expected);
 
     statement = "SHOW COLUMNS p1.*;";
     if (before) {
       expected =
-              "Columns:\n"
-                      + "+----+--------+\n"
-                      + "|Path|DataType|\n"
-                      + "+----+--------+\n"
-                      + "+----+--------+\n"
-                      + "Empty set.\n";
+          "Columns:\n"
+              + "+----+--------+\n"
+              + "|Path|DataType|\n"
+              + "+----+--------+\n"
+              + "+----+--------+\n"
+              + "Empty set.\n";
     } else { // 添加schemaPrefix为p1，dataPrefix为nt.wf03的数据源
       expected =
-              "Columns:\n"
-                      + "+-----------------------+--------+\n"
-                      + "|                   Path|DataType|\n"
-                      + "+-----------------------+--------+\n"
-                      + "|p1.nt.wf03.wt01.status2|    LONG|\n"
-                      + "+-----------------------+--------+\n"
-                      + "Total line number = 1\n";
+          "Columns:\n"
+              + "+-----------------------+--------+\n"
+              + "|                   Path|DataType|\n"
+              + "+-----------------------+--------+\n"
+              + "|p1.nt.wf03.wt01.status2|    LONG|\n"
+              + "+-----------------------+--------+\n"
+              + "Total line number = 1\n";
     }
     SQLTestTools.executeAndCompare(session, statement, expected);
 
     statement = "SHOW COLUMNS *.wf03.wt01.*;";
     if (before) {
       expected =
-              "Columns:\n"
-                      + "+--------------------+--------+\n"
-                      + "|                Path|DataType|\n"
-                      + "+--------------------+--------+\n"
-                      + "|nt.wf03.wt01.status2|    LONG|\n"
-                      + "+--------------------+--------+\n"
-                      + "Total line number = 1\n";
+          "Columns:\n"
+              + "+--------------------+--------+\n"
+              + "|                Path|DataType|\n"
+              + "+--------------------+--------+\n"
+              + "|nt.wf03.wt01.status2|    LONG|\n"
+              + "+--------------------+--------+\n"
+              + "Total line number = 1\n";
     } else { // 添加schemaPrefix为p1，dataPrefix为nt.wf03的数据源
       expected =
-              "Columns:\n"
-                      + "+-----------------------+--------+\n"
-                      + "|                   Path|DataType|\n"
-                      + "+-----------------------+--------+\n"
-                      + "|   nt.wf03.wt01.status2|    LONG|\n"
-                      + "|p1.nt.wf03.wt01.status2|    LONG|\n"
-                      + "+-----------------------+--------+\n"
-                      + "Total line number = 2\n";
+          "Columns:\n"
+              + "+-----------------------+--------+\n"
+              + "|                   Path|DataType|\n"
+              + "+-----------------------+--------+\n"
+              + "|   nt.wf03.wt01.status2|    LONG|\n"
+              + "|p1.nt.wf03.wt01.status2|    LONG|\n"
+              + "+-----------------------+--------+\n"
+              + "Total line number = 2\n";
     }
     SQLTestTools.executeAndCompare(session, statement, expected);
   }
@@ -832,26 +832,26 @@ public abstract class BaseCapacityExpansionIT {
     String expected;
     if (before) {
       expected =
-              "Columns:\n"
-                      + "+---------------------------+--------+\n"
-                      + "|                       Path|DataType|\n"
-                      + "+---------------------------+--------+\n"
-                      + "|    p1.nt.wf03.wt01.status2|    LONG|\n"
-                      + "|    p2.nt.wf03.wt01.status2|    LONG|\n"
-                      + "|    p3.nt.wf03.wt01.status2|    LONG|\n"
-                      + "|p3.nt.wf04.wt01.temperature|  DOUBLE|\n"
-                      + "+---------------------------+--------+\n"
-                      + "Total line number = 4\n";
+          "Columns:\n"
+              + "+---------------------------+--------+\n"
+              + "|                       Path|DataType|\n"
+              + "+---------------------------+--------+\n"
+              + "|    p1.nt.wf03.wt01.status2|    LONG|\n"
+              + "|    p2.nt.wf03.wt01.status2|    LONG|\n"
+              + "|    p3.nt.wf03.wt01.status2|    LONG|\n"
+              + "|p3.nt.wf04.wt01.temperature|  DOUBLE|\n"
+              + "+---------------------------+--------+\n"
+              + "Total line number = 4\n";
     } else { // schemaPrefix为p2及p3，dataPrefix为nt.wf03的数据源被移除
       expected =
-              "Columns:\n"
-                      + "+---------------------------+--------+\n"
-                      + "|                       Path|DataType|\n"
-                      + "+---------------------------+--------+\n"
-                      + "|    p1.nt.wf03.wt01.status2|    LONG|\n"
-                      + "|p3.nt.wf04.wt01.temperature|  DOUBLE|\n"
-                      + "+---------------------------+--------+\n"
-                      + "Total line number = 2\n";
+          "Columns:\n"
+              + "+---------------------------+--------+\n"
+              + "|                       Path|DataType|\n"
+              + "+---------------------------+--------+\n"
+              + "|    p1.nt.wf03.wt01.status2|    LONG|\n"
+              + "|p3.nt.wf04.wt01.temperature|  DOUBLE|\n"
+              + "+---------------------------+--------+\n"
+              + "Total line number = 2\n";
     }
     SQLTestTools.executeAndCompare(session, statement, expected);
   }
@@ -870,38 +870,38 @@ public abstract class BaseCapacityExpansionIT {
   public void testShowColumns() {
     String statement = "SHOW COLUMNS mn.*;";
     String expected =
-            "Columns:\n"
-                    + "+------------------------+--------+\n"
-                    + "|                    Path|DataType|\n"
-                    + "+------------------------+--------+\n"
-                    + "|     mn.wf01.wt01.status|    LONG|\n"
-                    + "|mn.wf01.wt01.temperature|  DOUBLE|\n"
-                    + "+------------------------+--------+\n"
-                    + "Total line number = 2\n";
+        "Columns:\n"
+            + "+------------------------+--------+\n"
+            + "|                    Path|DataType|\n"
+            + "+------------------------+--------+\n"
+            + "|     mn.wf01.wt01.status|    LONG|\n"
+            + "|mn.wf01.wt01.temperature|  DOUBLE|\n"
+            + "+------------------------+--------+\n"
+            + "Total line number = 2\n";
     SQLTestTools.executeAndCompare(session, statement, expected);
 
     statement = "SHOW COLUMNS nt.*;";
     expected =
-            "Columns:\n"
-                    + "+------------------------+--------+\n"
-                    + "|                    Path|DataType|\n"
-                    + "+------------------------+--------+\n"
-                    + "|    nt.wf03.wt01.status2|    LONG|\n"
-                    + "|nt.wf04.wt01.temperature|  DOUBLE|\n"
-                    + "+------------------------+--------+\n"
-                    + "Total line number = 2\n";
+        "Columns:\n"
+            + "+------------------------+--------+\n"
+            + "|                    Path|DataType|\n"
+            + "+------------------------+--------+\n"
+            + "|    nt.wf03.wt01.status2|    LONG|\n"
+            + "|nt.wf04.wt01.temperature|  DOUBLE|\n"
+            + "+------------------------+--------+\n"
+            + "Total line number = 2\n";
     SQLTestTools.executeAndCompare(session, statement, expected);
 
     statement = "SHOW COLUMNS tm.wf05.wt01.*;";
     expected =
-            "Columns:\n"
-                    + "+------------------------+--------+\n"
-                    + "|                    Path|DataType|\n"
-                    + "+------------------------+--------+\n"
-                    + "|     tm.wf05.wt01.status|    LONG|\n"
-                    + "|tm.wf05.wt01.temperature|  DOUBLE|\n"
-                    + "+------------------------+--------+\n"
-                    + "Total line number = 2\n";
+        "Columns:\n"
+            + "+------------------------+--------+\n"
+            + "|                    Path|DataType|\n"
+            + "+------------------------+--------+\n"
+            + "|     tm.wf05.wt01.status|    LONG|\n"
+            + "|tm.wf05.wt01.temperature|  DOUBLE|\n"
+            + "+------------------------+--------+\n"
+            + "Total line number = 2\n";
     SQLTestTools.executeAndCompare(session, statement, expected);
   }
 
@@ -910,14 +910,14 @@ public abstract class BaseCapacityExpansionIT {
     String statement;
     statement = "select * from mn.wf01.wt01 where key < 1;";
     String expected =
-            "Columns:\n"
-                    + "+------------------------+--------+\n"
-                    + "|                    Path|DataType|\n"
-                    + "+------------------------+--------+\n"
-                    + "|     mn.wf01.wt01.status|  BINARY|\n"
-                    + "|mn.wf01.wt01.temperature|  BINARY|\n"
-                    + "+------------------------+--------+\n"
-                    + "Total line number = 2\n";
+        "Columns:\n"
+            + "+------------------------+--------+\n"
+            + "|                    Path|DataType|\n"
+            + "+------------------------+--------+\n"
+            + "|     mn.wf01.wt01.status|  BINARY|\n"
+            + "|mn.wf01.wt01.temperature|  BINARY|\n"
+            + "+------------------------+--------+\n"
+            + "Total line number = 2\n";
     SQLTestTools.executeAndCompare(session, statement, expected);
   }
 
@@ -928,13 +928,13 @@ public abstract class BaseCapacityExpansionIT {
 
     try {
       session.executeSql(
-              "insert into mn.wf01.wt01 (key, status) values (0, 123),(1, 123),(2, 123),(3, 123);");
+          "insert into mn.wf01.wt01 (key, status) values (0, 123),(1, 123),(2, 123),(3, 123);");
       String statement = "select * from mn.wf01.wt01;";
 
       QueryDataSet res = session.executeQuery(statement);
       if (res.getWarningMsg() == null
-              || res.getWarningMsg().isEmpty()
-              || !res.getWarningMsg().contains("The query results contain overlapped keys.")) {
+          || res.getWarningMsg().isEmpty()
+          || !res.getWarningMsg().contains("The query results contain overlapped keys.")) {
         LOGGER.error("未抛出重叠key的警告");
         fail();
       }
@@ -955,33 +955,33 @@ public abstract class BaseCapacityExpansionIT {
     // before
     String statement = "select status from mn.wf01.wt01;";
     String expected =
-            "ResultSets:\n"
-                    + "+---+-------------------+\n"
-                    + "|key|mn.wf01.wt01.status|\n"
-                    + "+---+-------------------+\n"
-                    + "|  0|           11111111|\n"
-                    + "|  1|           22222222|\n"
-                    + "+---+-------------------+\n"
-                    + "Total line number = 2\n";
+        "ResultSets:\n"
+            + "+---+-------------------+\n"
+            + "|key|mn.wf01.wt01.status|\n"
+            + "+---+-------------------+\n"
+            + "|  0|           11111111|\n"
+            + "|  1|           22222222|\n"
+            + "+---+-------------------+\n"
+            + "Total line number = 2\n";
     SQLTestTools.executeAndCompare(session, statement, expected);
 
     String insert =
-            "insert into mn.wf01.wt01 (key, status) values (10, 33333333), (100, 44444444);";
+        "insert into mn.wf01.wt01 (key, status) values (10, 33333333), (100, 44444444);";
     session.executeSql(insert);
 
     // after
     statement = "select status from mn.wf01.wt01;";
     expected =
-            "ResultSets:\n"
-                    + "+---+-------------------+\n"
-                    + "|key|mn.wf01.wt01.status|\n"
-                    + "+---+-------------------+\n"
-                    + "|  0|           11111111|\n"
-                    + "|  1|           22222222|\n"
-                    + "| 10|           33333333|\n"
-                    + "|100|           44444444|\n"
-                    + "+---+-------------------+\n"
-                    + "Total line number = 4\n";
+        "ResultSets:\n"
+            + "+---+-------------------+\n"
+            + "|key|mn.wf01.wt01.status|\n"
+            + "+---+-------------------+\n"
+            + "|  0|           11111111|\n"
+            + "|  1|           22222222|\n"
+            + "| 10|           33333333|\n"
+            + "|100|           44444444|\n"
+            + "+---+-------------------+\n"
+            + "Total line number = 4\n";
     SQLTestTools.executeAndCompare(session, statement, expected);
   }
 
@@ -1014,18 +1014,18 @@ public abstract class BaseCapacityExpansionIT {
     }
 
     int res =
-            executeShellScript(
-                    scriptPath,
-                    String.valueOf(port),
-                    String.valueOf(iginxPort),
-                    hasData
-                            ? DBCE_PARQUET_FS_TEST_DIR + "/" + PORT_TO_ROOT.get(port)
-                            : DBCE_PARQUET_FS_TEST_DIR + "/" + INIT_PATH_LIST.get(0).replace(".", "/"),
-                    DBCE_PARQUET_FS_TEST_DIR + "/" + IGINX_DATA_PATH_PREFIX_NAME + PORT_TO_ROOT.get(port),
-                    String.valueOf(hasData),
-                    String.valueOf(isReadOnly),
-                    "core/target/iginx-core-*/conf/config.properties",
-                    metadataStorage);
+        executeShellScript(
+            scriptPath,
+            String.valueOf(port),
+            String.valueOf(iginxPort),
+            hasData
+                ? DBCE_PARQUET_FS_TEST_DIR + "/" + PORT_TO_ROOT.get(port)
+                : DBCE_PARQUET_FS_TEST_DIR + "/" + INIT_PATH_LIST.get(0).replace(".", "/"),
+            DBCE_PARQUET_FS_TEST_DIR + "/" + IGINX_DATA_PATH_PREFIX_NAME + PORT_TO_ROOT.get(port),
+            String.valueOf(hasData),
+            String.valueOf(isReadOnly),
+            "core/target/iginx-core-*/conf/config.properties",
+            metadataStorage);
     if (res != 0) {
       fail("change config file fail");
     }
