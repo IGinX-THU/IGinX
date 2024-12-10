@@ -192,8 +192,8 @@ public class AggPushDownJoinRule extends Rule {
 
     for (int i = 0; i < functionCallList.size(); i++) {
       FunctionCall fc = functionCallList.get(i);
-      FunctionCall finalFc = fc;
-      fc.getParams().getPaths().replaceAll(path -> getRenamedParam(finalFc));
+      fc.getParams().getExpressions().set(0, new BaseExpression(getRenamedParam(fc)));
+      fc.getParams().updatePaths();
       // 如果是Count，需要修改函数
       if (fc.getFunction().getIdentifier().equalsIgnoreCase("COUNT")) {
         functionCallList.set(i, new FunctionCall(Count.getInstance(), fc.getParams()));
