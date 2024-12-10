@@ -177,8 +177,8 @@
                                     <value>#storageEngineList=127.0.0.1#6667#iotdb</value>
                                 </replacement>
                                 <replacement>
-                                    <token>#storageEngineList=127.0.0.1#6667#filesystem.*</token>
-                                    <value>storageEngineList=127.0.0.1#6667#filesystem#dir=data#iginx_port=6888</value>
+                                    <token>#storageEngineList=127.0.0.1#6668#filesystem.*</token>
+                                    <value>storageEngineList=127.0.0.1#6668#filesystem#dir=data#iginx_port=6888</value>
                                 </replacement>
                                 <replacement>
                                     <token>UD[ATS]F,.*,.*,.*[.]py</token>

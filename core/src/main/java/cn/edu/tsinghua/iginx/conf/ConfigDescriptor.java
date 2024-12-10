@@ -126,7 +126,7 @@ public class ConfigDescriptor {
           Integer.parseInt(properties.getProperty("statisticsLogInterval", "5000")));
 
       config.setRestIp(properties.getProperty("restIp", "127.0.0.1"));
-      config.setRestPort(Integer.parseInt(properties.getProperty("restPort", "6666")));
+      config.setRestPort(Integer.parseInt(properties.getProperty("restPort", "7888")));
 
       config.setDisorderMargin(Long.parseLong(properties.getProperty("disorderMargin", "10")));
       config.setAsyncRestThreadPool(

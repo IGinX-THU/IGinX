@@ -91,7 +91,7 @@ public class Config {
 
   private String restIp = "127.0.0.1";
 
-  private int restPort = 6666;
+  private int restPort = 7888;
 
   private int maxTimeseriesLength = 10;
 

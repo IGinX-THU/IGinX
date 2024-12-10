@@ -145,9 +145,9 @@ public class Constant {
   public static final Map<Integer, Integer> PORT_TO_RESTPORT =
       new HashMap<Integer, Integer>() {
         {
-          put(oriPort, 6666);
-          put(expPort, 6665);
-          put(readOnlyPort, 6664);
+          put(oriPort, 7888);
+          put(expPort, 7889);
+          put(readOnlyPort, 7890);
         }
       };
 

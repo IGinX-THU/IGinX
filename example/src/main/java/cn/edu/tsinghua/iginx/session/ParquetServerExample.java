@@ -33,7 +33,7 @@ public class ParquetServerExample {
     // init
     session1 = new Session("127.0.0.1", 6888, "root", "root");
     session1.openSession();
-    session2 = new Session("127.0.0.1", 6889, "root", "root");
+    session2 = new Session("127.0.0.1", 7888, "root", "root");
     session2.openSession();
 
     // local insert

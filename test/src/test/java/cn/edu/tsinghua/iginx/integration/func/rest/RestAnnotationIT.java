@@ -85,12 +85,12 @@ public class RestAnnotationIT {
   }
 
   private static final String[] API = {
-    " http://127.0.0.1:6666/api/v1/datapoints/annotations/add",
-    " http://127.0.0.1:6666/api/v1/datapoints/annotations/update",
-    " http://127.0.0.1:6666/api/v1/datapoints/annotations",
-    " http://127.0.0.1:6666/api/v1/datapoints/query/annotations",
-    " http://127.0.0.1:6666/api/v1/datapoints/query/annotations/data",
-    " http://127.0.0.1:6666/api/v1/datapoints/annotations/delete",
+    " http://127.0.0.1:7888/api/v1/datapoints/annotations/add",
+    " http://127.0.0.1:7888/api/v1/datapoints/annotations/update",
+    " http://127.0.0.1:7888/api/v1/datapoints/annotations",
+    " http://127.0.0.1:7888/api/v1/datapoints/query/annotations",
+    " http://127.0.0.1:7888/api/v1/datapoints/query/annotations/data",
+    " http://127.0.0.1:7888/api/v1/datapoints/annotations/delete",
   };
 
   private static final String PREFIX = "curl -XPOST -H\"Content-Type: application/json\" -d @";
