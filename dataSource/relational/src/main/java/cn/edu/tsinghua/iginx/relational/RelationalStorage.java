@@ -530,6 +530,7 @@ public class RelationalStorage implements IStorage {
       Filter filter, Map<String, String> tableNameToColumnNames, boolean isAgg) {
     List<String> tableNames = new ArrayList<>();
     List<List<String>> fullColumnNamesList = new ArrayList<>();
+    List<List<String>> fullColumnNamesListForExpandFilter = new ArrayList<>();
     String firstTable = "";
     char quote = relationalMeta.getQuote();
     for (Map.Entry<String, String> entry : tableNameToColumnNames.entrySet()) {
@@ -540,12 +541,13 @@ public class RelationalStorage implements IStorage {
 
       // 将columnNames中的列名加上tableName前缀
       if(isAgg) {
-        fullColumnNames.replaceAll(
-                s -> RelationSchema.getQuoteFullName(tableName, s, quote) + " AS " + quote + RelationSchema.getFullName(tableName, s) + quote);
+        fullColumnNamesList.add(fullColumnNames.stream().
+                map(s -> RelationSchema.getQuoteFullName(tableName, s, quote) + " AS " + quote + RelationSchema.getFullName(tableName, s) + quote).
+                collect(Collectors.toList()));
       }else {
-        fullColumnNames.replaceAll(s -> RelationSchema.getQuoteFullName(tableName, s, quote));
+        fullColumnNamesList.add(fullColumnNames.stream().map(s->RelationSchema.getQuoteFullName(tableName, s, quote)).collect(Collectors.toList()));
       }
-      fullColumnNamesList.add(fullColumnNames);
+      fullColumnNamesListForExpandFilter.add(fullColumnNames.stream().map(s->RelationSchema.getFullName(tableName, s)).collect(Collectors.toList()));
     }
 
     StringBuilder fullColumnNames = new StringBuilder();
@@ -574,7 +576,7 @@ public class RelationalStorage implements IStorage {
             }
             return newColumnNames;
           });
-      filter = expandFilter(filter, fullColumnNamesList);
+      filter = expandFilter(filter, fullColumnNamesListForExpandFilter);
       filter = LogicalFilterUtils.mergeTrue(filter);
     }
 
