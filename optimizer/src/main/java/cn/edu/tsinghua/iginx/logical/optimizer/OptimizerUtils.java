@@ -57,6 +57,9 @@ public class OptimizerUtils {
           .contains(fc.getFunction().getIdentifier().toUpperCase())) {
         return false;
       }
+      if(fc.getParams().isDistinct()) {
+        return false;
+      }
       expressions.addAll(fc.getParams().getExpressions());
     }
 
