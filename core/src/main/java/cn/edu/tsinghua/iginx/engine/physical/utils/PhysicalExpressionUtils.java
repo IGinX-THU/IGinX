@@ -61,7 +61,7 @@ public class PhysicalExpressionUtils {
       case Function:
         return getPhysicalExpression(context, inputSchema, (FuncExpression) expr, setAlias);
       case Multiple:
-        throw new IllegalArgumentException(String.format("%s not implemented", expr.getType()));
+        return getPhysicalExpression(context, inputSchema, (MultipleExpression) expr, setAlias);
       case Sequence:
       default:
         throw new IllegalArgumentException(String.format("Unknown expr type: %s", expr.getType()));
@@ -219,6 +219,41 @@ public class PhysicalExpressionUtils {
     } else {
       return physicalExpression;
     }
+  }
+
+  /** transform multiple expressions to binary expr tree(balanced) bc arrow does not need flattened expr for performance */
+  private static Expression buildBiTreeFromMultiple(List<Expression> expressionList, List<Operator> operatorList, int start, int end) {
+    if (start == end) {
+      return expressionList.get(start);
+    }
+
+    if (start + 1 == end) {
+      return new BinaryExpression(expressionList.get(start), expressionList.get(end), operatorList.get(start));
+    }
+
+    int mid = (start + end - 1) / 2;
+    return new BinaryExpression(buildBiTreeFromMultiple(expressionList, operatorList, start, mid + 1), buildBiTreeFromMultiple(expressionList, operatorList, mid + 2, end), operatorList.get(mid));
+  }
+
+  private static ScalarExpression<?> getPhysicalExpression(
+          ExecutorContext context, Schema inputSchema, MultipleExpression expr, boolean setAlias)
+          throws ComputeException {
+    List<Expression> expressionList = expr.getChildren();
+    List<Operator> operatorList = expr.getOps();
+    if (expressionList.isEmpty()) {
+      // empty
+      throw new ComputeException("Multiple expressions does not have any children");
+    }
+    if (expressionList.size() == 1) {
+      // 1 element, 1st op is its sign
+      UnaryExpression expression = new UnaryExpression(expr.getOpType(), expressionList.get(0));
+      return getPhysicalExpression(context, inputSchema, expression, setAlias);
+    }
+    // >1 element, build tree
+    expressionList.set(0, new UnaryExpression(expr.getOpType(), expressionList.get(0)));
+    operatorList.remove(0);
+    BinaryExpression expression = (BinaryExpression) buildBiTreeFromMultiple(expressionList, operatorList, 0, expressionList.size() - 1);
+    return getPhysicalExpression(context, inputSchema, expression, setAlias);
   }
 
   public static ScalarExpression<?> getPhysicalExpressionOfFunctionCall(
