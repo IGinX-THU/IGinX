@@ -28,6 +28,11 @@ on:
                 type: string
                 required: false
                 default: '["InfluxDB", "FileSystem", "PostgreSQL", "Redis", "MongoDB", "MySQL"]'
+            close-optimizer:
+                description: "Whether to close the optimizer"
+                type: string
+                required: false
+                default: "false"
 
 jobs:
     TPC-H-Test:
@@ -115,24 +120,11 @@ jobs:
               with:
                   DB-name: ${{ matrix.DB-name }}
 
-            - name: Rewrite DB Conf in Old IGinX
-              uses: ./.github/actions/dbConfWriter
-              with:
-                  DB-name: ${{ matrix.DB-name }}
-                  Root-Dir-Path: "IGinX"
-                  DB-port: ${{ steps.find-port.outputs.port2 }}
-
-            - name: Install Old IGinX with Maven
-              shell: bash
-              run: |
-                  cd IGinX
-                  mvn clean package -DskipTests -P-format -q
-
             - name: Change Old IGinX Config
               uses: ./.github/actions/confWriter
               with:
                   DB-name: ${{ matrix.DB-name }}
-                  Open-Optimizer: "true"
+                  Close-Optimizer: close-optimizer
                   Metadata: ${{ matrix.metadata }}
                   Root-Dir-Path: "IGinX"
                   zookeeper-port: "2182"
@@ -140,6 +132,13 @@ jobs:
             - name: Install New IGinX with Maven
               shell: bash
               run: mvn clean package -DskipTests -P-format -q
+
+            - name: Change New IGinX Config
+              uses: ./.github/actions/confWriter
+              with:
+                  DB-name: ${{ matrix.DB-name }}
+                  Close-Optimizer: close-optimizer
+                  Metadata: ${{ matrix.metadata }}
 
             - name: Insert Data into DB
               uses: ./.github/actions/tpchDataWriter
