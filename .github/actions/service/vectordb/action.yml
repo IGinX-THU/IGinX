@@ -24,7 +24,7 @@ runs:
           run: exit 1
 
         - name: Setup docker compose
-          uses: ./.github/actions/docker-compose
+          uses: ./.github/actions/dockerCompose
 
         - if: fromJSON(inputs.start)
           name: Create Config for milvus docker compose
@@ -50,13 +50,6 @@ runs:
                 sudo nohup docker-compose -f $port/docker-compose-$port.yml up -d
               done
               sleep 10
-              for port in ${{ inputs.ports }}; do
-                if netstat -an | grep -q ".*:$port.*LISTEN"; then
-                  echo "Port $port is open."
-                else
-                  echo "Port $port is not open."
-                fi
-              done
               docker ps -a
 
         - if: fromJSON(inputs.start) && runner.os == 'Windows'
@@ -70,19 +63,6 @@ runs:
               done
               sleep 30
               docker ps -a
-
-        - if: fromJSON(inputs.start) && runner.os == 'Windows'
-          name: netstat
-          shell: bash
-          working-directory: ${{ github.workspace }}
-          run: |
-              for port in ${{ inputs.ports }}; do
-                if netstat -an | grep -q ".*:$port.*LISTEN"; then
-                  echo "Port $port is open."
-                else
-                  echo "Port $port is not open."
-                fi
-              done
 
         - if: runner.os == 'macOS'
           name: replace host
