@@ -98,7 +98,7 @@ public class AggPushDownJoinRule extends Rule {
     }
 
     // groupby下推过join是要超集下推的，因此如果下面的join过多的话，反而会减速,这点在tpc-h 2 11上有体现
-    // 如果下方有超过2个join,就认为是不经济的
+    // 如果下方有超过1个join,就认为是不经济的
 
     final int[] joinCnt = {0};
     root.accept(new OperatorVisitor() {
@@ -111,6 +111,9 @@ public class AggPushDownJoinRule extends Rule {
         if(binaryOperator.getType() == OperatorType.OuterJoin  || binaryOperator.getType() == OperatorType.InnerJoin){
           joinCnt[0]++;
         }
+        if(binaryOperator.getType() == OperatorType.Join){
+          joinCnt[0]+=100;
+        }
       }
 
       @Override
@@ -119,7 +122,7 @@ public class AggPushDownJoinRule extends Rule {
       }
     });
 
-    if(joinCnt[0] > 2) return false;
+    if(joinCnt[0] > 1) return false;
 
 
     return true;
