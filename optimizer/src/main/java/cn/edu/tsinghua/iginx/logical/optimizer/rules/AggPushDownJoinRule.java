@@ -30,6 +30,7 @@ import cn.edu.tsinghua.iginx.engine.shared.function.system.Count;
 import cn.edu.tsinghua.iginx.engine.shared.operator.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
+import cn.edu.tsinghua.iginx.engine.shared.operator.visitor.OperatorVisitor;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import cn.edu.tsinghua.iginx.logical.optimizer.OptimizerUtils;
 import cn.edu.tsinghua.iginx.logical.optimizer.core.RuleCall;
@@ -95,6 +96,31 @@ public class AggPushDownJoinRule extends Rule {
         return false;
       }
     }
+
+    // groupby下推过join是要超集下推的，因此如果下面的join过多的话，反而会减速,这点在tpc-h 2 11上有体现
+    // 如果下方有超过2个join,就认为是不经济的
+
+    final int[] joinCnt = {0};
+    root.accept(new OperatorVisitor() {
+      @Override
+      public void visit(UnaryOperator unaryOperator) {
+      }
+
+      @Override
+      public void visit(BinaryOperator binaryOperator) {
+        if(binaryOperator.getType() == OperatorType.OuterJoin  || binaryOperator.getType() == OperatorType.InnerJoin){
+          joinCnt[0]++;
+        }
+      }
+
+      @Override
+      public void visit(MultipleOperator multipleOperator) {
+
+      }
+    });
+
+    if(joinCnt[0] > 2) return false;
+
 
     return true;
   }
