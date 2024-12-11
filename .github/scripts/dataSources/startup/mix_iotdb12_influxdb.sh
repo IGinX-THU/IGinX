@@ -24,7 +24,7 @@ sh -c "chmod +x .github/scripts/dataSources/startup/iotdb12.sh"
 
 sh -c "chmod +x .github/scripts/dataSources/startup/influxdb.sh"
 
-sh -c ".github/scripts/dataSources/startup/iotdb12.sh 6667"
+sh -c ".github/scripts/dataSources/startup/iotdb12.sh"
 
 sh -c ".github/scripts/dataSources/startup/influxdb.sh"
 
