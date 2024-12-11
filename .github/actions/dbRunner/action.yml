@@ -181,7 +181,7 @@ runs:
           with:
               paths: conf/config.properties
               statements: |
-                  s/^#storageEngineList=127.0.0.1#[0-9]+#filesystem/storageEngineList=127.0.0.1#6668#filesystem/g
+                  s/^#storageEngineList=127.0.0.1#[0-9]*#filesystem/storageEngineList=127.0.0.1#6668#filesystem/g
                   s#dir=data#dir=${{ steps.project.outputs.workspace }}/test/iginx_mn#g
                   s#dummy_dir=dummy#dummy_dir=${{ steps.project.outputs.workspace }}/test/mn#g
                   s/data.config.write.buffer.size=104857600/data.config.write.buffer.size=1048576/g
