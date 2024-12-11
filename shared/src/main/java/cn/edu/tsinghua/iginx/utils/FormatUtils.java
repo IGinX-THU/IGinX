@@ -42,7 +42,7 @@ public class FormatUtils {
     }
     for (List<String> row : result) {
       for (int i = 0; i < colCount; i++) {
-        maxSizeList.set(i, Math.max(row.get(i).length(), maxSizeList.get(i)));
+        maxSizeList.set(i, Math.max(getDisplayWidth(row.get(i)), maxSizeList.get(i)));
       }
     }
 
@@ -54,6 +54,28 @@ public class FormatUtils {
     }
     builder.append(buildBlockLine(maxSizeList));
     return builder.toString();
+  }
+
+  private static int getDisplayWidth(String str) {
+    int width = 0;
+    for (char c : str.toCharArray()) {
+      if (isChinese(c)) {
+        width += 2;
+      } else {
+        width += 1;
+      }
+    }
+    return width;
+  }
+
+  private static boolean isChinese(char c) {
+    Character.UnicodeBlock ub = Character.UnicodeBlock.of(c);
+    return ub == Character.UnicodeBlock.CJK_UNIFIED_IDEOGRAPHS
+        || ub == Character.UnicodeBlock.CJK_COMPATIBILITY_IDEOGRAPHS
+        || ub == Character.UnicodeBlock.CJK_UNIFIED_IDEOGRAPHS_EXTENSION_A
+        || ub == Character.UnicodeBlock.GENERAL_PUNCTUATION
+        || ub == Character.UnicodeBlock.CJK_SYMBOLS_AND_PUNCTUATION
+        || ub == Character.UnicodeBlock.HALFWIDTH_AND_FULLWIDTH_FORMS;
   }
 
   private static String buildBlockLine(List<Integer> maxSizeList) {
@@ -73,7 +95,11 @@ public class FormatUtils {
     for (int i = 0; i < maxSizeList.size(); i++) {
       maxSize = maxSizeList.get(i);
       rowValue = cache.get(rowIdx).get(i);
-      builder.append(String.format("%" + maxSize + "s|", rowValue));
+      int padding = maxSize - getDisplayWidth(rowValue);
+      for (int j = 0; j < padding; j++) {
+        builder.append(' ');
+      }
+      builder.append(rowValue).append('|');
     }
     builder.append("\n");
     return builder.toString();
