@@ -12,7 +12,7 @@ inputs:
     InfluxDB-ports:
         description: "InfluxDB ports"
         required: false
-        default: 8088
+        default: 8086
     MongoDB-ports:
         description: "MongoDB ports"
         required: false

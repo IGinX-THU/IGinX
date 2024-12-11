@@ -24,6 +24,11 @@ sh -c "cp -r $INFLUX_HOME/ influxdb2-2.0.7-windows-amd64"
 
 sh -c "ls influxdb2-2.0.7-windows-amd64"
 
+if [ "$1" != "8086" ]; then
+  echo "InfluxDB only supports 8086 port as first port"
+  exit 1
+fi
+
 sh -c "mkdir influxdb2-2.0.7-windows-amd64/.influxdbv2"
 
 sh -c "mkdir influxdb2-2.0.7-windows-amd64/logs"
@@ -46,7 +51,7 @@ sed -i "s/storageEngineList=127.0.0.1#6667/#storageEngineList=127.0.0.1#6667/g" 
 
 sed -i "s/#storageEngineList=127.0.0.1#8086/storageEngineList=127.0.0.1#8086/g" conf/config.properties
 
-for port in "$@"
+for port in "${@:2}"
 do
   # target path is also used in update/<db> script
   sh -c "cp -r influxdb2-2.0.7-windows-amd64/ influxdb2-2.0.7-windows-amd64-$port/"

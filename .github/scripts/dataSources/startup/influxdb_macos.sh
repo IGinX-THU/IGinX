@@ -24,6 +24,11 @@ sh -c "cp -r $INFLUX_HOME/ influxdb2-2.0.7-darwin-amd64"
 
 sh -c "ls influxdb2-2.0.7-darwin-amd64"
 
+if [ "$1" != "8086" ]; then
+  echo "InfluxDB only supports 8086 port as first port"
+  exit 1
+fi
+
 sudo sh -c "cd influxdb2-2.0.7-darwin-amd64/; nohup ./influxd run --bolt-path=~/.influxdbv2/influxd.bolt --engine-path=~/.influxdbv2/engine --http-bind-address=:8086 --query-memory-bytes=300971520 &"
 
 sh -c "sleep 30"
@@ -38,7 +43,7 @@ sed -i "" "s/storageEngineList=127.0.0.1#6667/#storageEngineList=127.0.0.1#6667/
 
 sed -i "" "s/#storageEngineList=127.0.0.1#8086/storageEngineList=127.0.0.1#8086/" conf/config.properties
 
-for port in "$@"
+for port in "${@:2}"
 do
   # target path is also used in update/<db> script
   sh -c "sudo cp -r influxdb2-2.0.7-darwin-amd64/ influxdb2-2.0.7-darwin-amd64-$port/"
