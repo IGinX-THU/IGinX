@@ -123,15 +123,15 @@ jobs:
             - name: Rewrite DB Conf in Old IGinX
               uses: ./.github/actions/dbConfWriter
               with:
-                DB-name: ${{ matrix.DB-name }}
-                Root-Dir-Path: "IGinX"
-                DB-port: ${{ steps.find-port.outputs.port2 }}
+                  DB-name: ${{ matrix.DB-name }}
+                  Root-Dir-Path: "IGinX"
+                  DB-port: ${{ steps.find-port.outputs.port2 }}
 
             - name: Install Old IGinX with Maven
               shell: bash
               run: |
-                cd IGinX
-                mvn clean package -DskipTests -P-format -q
+                  cd IGinX
+                  mvn clean package -DskipTests -P-format -q
 
             - name: Change Old IGinX Config
               uses: ./.github/actions/confWriter
