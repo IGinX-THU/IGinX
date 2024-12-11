@@ -394,6 +394,7 @@ public class MilvusStorage implements IStorage {
               && delete.getKeyRanges().get(0).getActualBeginKey() == 0
               && delete.getKeyRanges().get(0).getEndKey() == Long.MAX_VALUE)) {
         if (paths.size() == 1 && paths.get(0).equals("*") && delete.getTagFilter() == null) {
+          LOGGER.info("drop database : "+databaseName);
           dropDatabase(client, databaseName);
           pathSystemMap.remove(databaseName);
         } else {
@@ -432,6 +433,7 @@ public class MilvusStorage implements IStorage {
           }
         }
       } else {
+        LOGGER.info("delete.getKeyRanges()："+delete.getKeyRanges());
         MilvusClientUtils.useDatabase(client, databaseName);
         Map<String, Set<String>> collectionToFields =
             MilvusClientUtils.determinePaths(client, paths, tagFilter, pathSystem);
@@ -440,6 +442,7 @@ public class MilvusStorage implements IStorage {
             new ExecutorCompletionService<>(TaskExecutor.getExecutorService());
         for (Map.Entry<String, Set<String>> entry : collectionToFields.entrySet()) {
           String collectionName = entry.getKey();
+          LOGGER.info("delete {} {}",databaseName, collectionName);
 
           Callable<Long> task =
               () -> {
@@ -450,12 +453,14 @@ public class MilvusStorage implements IStorage {
                         deleteByRange(
                             c.getClient(), databaseName, collectionName, keyRange, pathSystem);
                     r += deletedCount;
+                    LOGGER.info("delete {} {} ",databaseName, collectionName);
                   }
                   return r;
                 }
               };
           completionService.submit(task);
         }
+        LOGGER.info("collectionToFields.size() : "+collectionToFields.size());
 
         for (int i = 0; i < collectionToFields.size(); i++) {
           try {
@@ -467,6 +472,7 @@ public class MilvusStorage implements IStorage {
                     String.format("Execute delete task in milvus failure: %s", e)));
           }
         }
+        LOGGER.info("delete task execute complete.");
       }
       return new TaskExecuteResult(null, null);
     } catch (Exception e) {
