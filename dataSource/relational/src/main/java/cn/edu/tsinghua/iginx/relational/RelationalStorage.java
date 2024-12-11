@@ -24,7 +24,6 @@ import static cn.edu.tsinghua.iginx.relational.tools.Constants.*;
 import static cn.edu.tsinghua.iginx.relational.tools.TagKVUtils.splitFullName;
 import static cn.edu.tsinghua.iginx.relational.tools.TagKVUtils.toFullName;
 
-import cn.edu.tsinghua.iginx.conf.Constants;
 import cn.edu.tsinghua.iginx.engine.logical.utils.LogicalFilterUtils;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.StorageInitializationException;
@@ -58,8 +57,6 @@ import cn.edu.tsinghua.iginx.relational.tools.ColumnField;
 import cn.edu.tsinghua.iginx.relational.tools.FilterTransformer;
 import cn.edu.tsinghua.iginx.relational.tools.RelationSchema;
 import cn.edu.tsinghua.iginx.thrift.DataType;
-import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
-import cn.edu.tsinghua.iginx.utils.EnvUtils;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import com.zaxxer.hikari.HikariConfig;
@@ -68,6 +65,7 @@ import com.zaxxer.hikari.pool.HikariPool;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -226,14 +224,13 @@ public class RelationalStorage implements IStorage {
       }
     }
 
-    Path metaFilePath =
-        Paths.get(
-            EnvUtils.loadEnv(Constants.DRIVER, Constants.DRIVER_DIR),
-            StorageEngineType.relational.name(),
-            engine.toLowerCase() + META_TEMPLATE_SUFFIX);
-
-    LOGGER.info("loading engine '{}' default properties: {}", engine, metaFilePath);
-    try (InputStream propertiesIS = Files.newInputStream(metaFilePath)) {
+    String metaFileName = engine.toLowerCase() + META_TEMPLATE_SUFFIX;
+    LOGGER.info("loading engine '{}' default properties from class path: {}", engine, metaFileName);
+    URL url = getClass().getClassLoader().getResource(metaFileName);
+    if (url == null) {
+      throw new IOException("cannot find default meta properties file: " + metaFileName);
+    }
+    try (InputStream propertiesIS = url.openStream()) {
       Properties properties = new Properties();
       properties.load(propertiesIS);
       return properties;
