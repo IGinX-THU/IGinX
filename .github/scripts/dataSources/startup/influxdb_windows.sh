@@ -20,14 +20,18 @@
 
 set -e
 
-sh -c "cp -r $INFLUX_HOME/ influxdb2-2.0.7-windows-amd64"
-
-sh -c "ls influxdb2-2.0.7-windows-amd64"
+if [ $# -lt 1 ]; then
+  exit 0
+fi
 
 if [ "$1" != "8086" ]; then
   echo "InfluxDB only supports 8086 port as first port"
   exit 1
 fi
+
+sh -c "cp -r $INFLUX_HOME/ influxdb2-2.0.7-windows-amd64"
+
+sh -c "ls influxdb2-2.0.7-windows-amd64"
 
 sh -c "mkdir influxdb2-2.0.7-windows-amd64/.influxdbv2"
 
@@ -50,6 +54,10 @@ sed -i "s/your-organization/testOrg/g" conf/config.properties
 sed -i "s/storageEngineList=127.0.0.1#6667/#storageEngineList=127.0.0.1#6667/g" conf/config.properties
 
 sed -i "s/#storageEngineList=127.0.0.1#8086/storageEngineList=127.0.0.1#8086/g" conf/config.properties
+
+if [ $# -lt 2 ]; then
+  exit 0
+fi
 
 for port in "${@:2}"
 do
