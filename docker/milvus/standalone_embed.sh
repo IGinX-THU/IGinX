@@ -36,7 +36,6 @@ EOF
         -e ETCD_DATA_DIR=/var/lib/milvus/etcd \
         -e ETCD_CONFIG_PATH=/milvus/configs/embedEtcd.yaml \
         -e COMMON_STORAGETYPE=local \
-        -v /volumes/milvus:/var/lib/milvus \
         -v $(pwd)/embedEtcd.yaml:/milvus/configs/embedEtcd.yaml \
         -v $(pwd)/user.yaml:/milvus/configs/user.yaml \
         -p 19530:19530 \
