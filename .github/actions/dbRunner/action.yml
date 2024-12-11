@@ -176,7 +176,7 @@ runs:
               stop: false
               clean: false
               start: true
-              ports: 19530 19531 19532
+              ports: 19530
 
         - if: inputs.DB-name=='VectorDB'
           name: Modify IGinX Config
