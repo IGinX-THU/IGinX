@@ -21,13 +21,13 @@ package cn.edu.tsinghua.iginx.engine.logical.utils;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.ExprUtils;
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
-import cn.edu.tsinghua.iginx.engine.shared.expr.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.FragmentMeta;
 import cn.edu.tsinghua.iginx.sql.exception.SQLParserException;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.util.*;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -1103,5 +1103,52 @@ public class LogicalFilterUtils {
           .forEach(splitFilter::addAll);
     }
     return splitFilter;
+  }
+
+  public static Filter superSetPushDown(Filter filter, Predicate<Filter> unsupportedFilterMatcher) {
+    Filter removedNotFilter = LogicalFilterUtils.removeNot(filter);
+    Filter setUnsupportedFilterAsTrue =
+        transform(
+            removedNotFilter,
+            f -> {
+              if (unsupportedFilterMatcher.test(f)) {
+                return new BoolFilter(true);
+              }
+              return f;
+            });
+    return LogicalFilterUtils.mergeTrue(setUnsupportedFilterAsTrue);
+  }
+
+  public static Filter transform(Filter filter, Function<Filter, Filter> mapper) {
+    Filter mappedFilter = Objects.requireNonNull(mapper.apply(filter));
+    if (mappedFilter != filter) {
+      return mappedFilter;
+    }
+    switch (filter.getType()) {
+      case Key:
+      case Value:
+      case Path:
+      case Expr:
+      case Bool:
+      case In:
+        return filter;
+      case And:
+        AndFilter andFilter = (AndFilter) filter;
+        List<Filter> andChildren =
+            andFilter.getChildren().stream()
+                .map(f -> transform(f, mapper))
+                .collect(Collectors.toList());
+        return new AndFilter(andChildren);
+      case Or:
+        OrFilter orFilter = (OrFilter) filter;
+        List<Filter> orChildren =
+            orFilter.getChildren().stream()
+                .map(f -> transform(f, mapper))
+                .collect(Collectors.toList());
+        return new OrFilter(orChildren);
+      case Not:
+      default:
+        throw new IllegalArgumentException("unsupported filter: " + filter);
+    }
   }
 }

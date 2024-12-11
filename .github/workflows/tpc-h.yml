@@ -27,7 +27,7 @@ on:
                 description: "The database to run the test on"
                 type: string
                 required: false
-                default: '["IoTDB12", "InfluxDB", "FileSystem", "PostgreSQL", "Redis", "MongoDB", "MySQL"]'
+                default: '["InfluxDB", "FileSystem", "PostgreSQL", "Redis", "MongoDB", "MySQL"]'
 
 jobs:
     TPC-H-Test:
@@ -132,7 +132,7 @@ jobs:
               uses: ./.github/actions/confWriter
               with:
                   DB-name: ${{ matrix.DB-name }}
-                  Set-Filter-Fragment-OFF: "true"
+                  Open-Optimizer: "true"
                   Metadata: ${{ matrix.metadata }}
                   Root-Dir-Path: "IGinX"
                   zookeeper-port: "2182"
@@ -140,13 +140,6 @@ jobs:
             - name: Install New IGinX with Maven
               shell: bash
               run: mvn clean package -DskipTests -P-format -q
-
-            - name: Change New IGinX Config
-              uses: ./.github/actions/confWriter
-              with:
-                  DB-name: ${{ matrix.DB-name }}
-                  Set-Filter-Fragment-OFF: "true"
-                  Metadata: ${{ matrix.metadata }}
 
             - name: Insert Data into DB
               uses: ./.github/actions/tpchDataWriter

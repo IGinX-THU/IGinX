@@ -1,4 +1,4 @@
-name: "TPC-H Regression Test With Push Down"
+name: "TPC-H Regression Test Without Optimizer"
 
 on:
     workflow_call:
@@ -30,7 +30,7 @@ on:
                 default: '["IoTDB12", "InfluxDB", "FileSystem", "PostgreSQL", "Redis", "MongoDB", "MySQL"]'
 
 jobs:
-    TPC-H-Test-Push_Down:
+    TPC-H-Test-Without-Optimizer:
         timeout-minutes: 35
         strategy:
             fail-fast: false
@@ -132,8 +132,7 @@ jobs:
               uses: ./.github/actions/confWriter
               with:
                   DB-name: ${{ matrix.DB-name }}
-                  Push-Down: "true"
-                  Set-Filter-Fragment-OFF: "true"
+                  Close-Optimizer: "true"
                   Metadata: ${{ matrix.metadata }}
                   Root-Dir-Path: "IGinX"
                   zookeeper-port: "2182"
@@ -146,8 +145,7 @@ jobs:
               uses: ./.github/actions/confWriter
               with:
                   DB-name: ${{ matrix.DB-name }}
-                  Push-Down: "true"
-                  Set-Filter-Fragment-OFF: "true"
+                  Close-Optimizer: "true"
                   Metadata: ${{ matrix.metadata }}
 
             - name: Insert Data into DB

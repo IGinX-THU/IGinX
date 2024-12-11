@@ -19,8 +19,11 @@
  */
 package cn.edu.tsinghua.iginx.filesystem.service.rpc.client;
 
+import cn.edu.tsinghua.iginx.engine.logical.utils.LogicalFilterUtils;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.FilterRowStreamWrapper;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.filesystem.common.FileSystemException;
 import cn.edu.tsinghua.iginx.filesystem.service.Service;
 import cn.edu.tsinghua.iginx.filesystem.service.rpc.client.pool.PooledTTransport;
@@ -87,13 +90,22 @@ public class RemoteService implements Service {
   @Override
   public RowStream query(DataUnit unit, DataTarget target, @Nullable AggregateType aggregate)
       throws FileSystemException {
-    RawDataTarget rawTarget = ClientObjectMappingUtils.constructRawDataTarget(target);
+    Filter removeNot =
+        target.getFilter() == null ? null : LogicalFilterUtils.removeNot(target.getFilter());
+    DataTarget removeNotTarget =
+        new DataTarget(removeNot, target.getPatterns(), target.getTagFilter());
+    RawDataTarget rawTarget = ClientObjectMappingUtils.constructRawDataTarget(removeNotTarget);
+    Filter postFilter = ClientObjectMappingUtils.constructPostFilter(removeNotTarget.getFilter());
     RawAggregate rawAggregate = ClientObjectMappingUtils.constructRawAggregate(aggregate);
     try (PooledTTransport transport = pool.borrowObject()) {
       FileSystemRpc.Client client = wrapClient(transport);
       try {
         RawDataSet dataSet = client.query(unit, rawTarget, rawAggregate);
-        return ClientObjectMappingUtils.constructRowStream(dataSet);
+        RowStream stream = ClientObjectMappingUtils.constructRowStream(dataSet);
+        if (postFilter != null) {
+          stream = new FilterRowStreamWrapper(stream, postFilter);
+        }
+        return stream;
       } catch (Exception e) {
         transport.destroy();
         throw e;
