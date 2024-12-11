@@ -19,9 +19,6 @@
  */
 package cn.edu.tsinghua.iginx.relational.tools;
 
-import java.util.HashMap;
-import java.util.Map;
-
 public abstract class Constants {
   public static final String TAGKV_EQUAL = "=";
 
