@@ -57,9 +57,9 @@ public class Constants {
 
   public static final int DEFAULT_MAX_IDLE = 10;
 
-  public static final long DEFAULT_MILVUS_TIMEOUT = 1000000L;
+  public static final long DEFAULT_MILVUS_TIMEOUT = 100000L;
  
-  public static final long DEFAULT_MILVUS_CONNECT_TIMEOUT = 300000L;
+  public static final long DEFAULT_MILVUS_CONNECT_TIMEOUT = 30000L;
 
   public static final int DEFAULT_MIN_IDLE = 5;
 

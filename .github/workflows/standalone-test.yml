@@ -162,7 +162,7 @@ jobs:
               shell: bash
               run: |
                   docker ps
-                  docker-compose -f 19530/docker-compose-19530.yml logs
+                  docker logs
 
             - name: Change IGinX config
               uses: ./.github/actions/confWriter
