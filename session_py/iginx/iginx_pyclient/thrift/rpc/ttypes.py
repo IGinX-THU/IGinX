@@ -149,7 +149,7 @@ class SqlType(object):
     ShowJobStatus = 16
     CancelJob = 17
     ShowEligibleJob = 18
-    RemoveHistoryDataSource = 19
+    RemoveStorageEngine = 19
     SetConfig = 20
     ShowConfig = 21
     Compact = 22
@@ -185,7 +185,7 @@ class SqlType(object):
         16: "ShowJobStatus",
         17: "CancelJob",
         18: "ShowEligibleJob",
-        19: "RemoveHistoryDataSource",
+        19: "RemoveStorageEngine",
         20: "SetConfig",
         21: "ShowConfig",
         22: "Compact",
@@ -222,7 +222,7 @@ class SqlType(object):
         "ShowJobStatus": 16,
         "CancelJob": 17,
         "ShowEligibleJob": 18,
-        "RemoveHistoryDataSource": 19,
+        "RemoveStorageEngine": 19,
         "SetConfig": 20,
         "ShowConfig": 21,
         "Compact": 22,
@@ -8762,7 +8762,7 @@ class RemovedStorageEngineInfo(object):
         return not (self == other)
 
 
-class RemoveHistoryDataSourceReq(object):
+class RemoveStorageEngineReq(object):
     """
     Attributes:
      - sessionId
@@ -8809,7 +8809,7 @@ class RemoveHistoryDataSourceReq(object):
         if oprot._fast_encode is not None and self.thrift_spec is not None:
             oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
             return
-        oprot.writeStructBegin('RemoveHistoryDataSourceReq')
+        oprot.writeStructBegin('RemoveStorageEngineReq')
         if self.sessionId is not None:
             oprot.writeFieldBegin('sessionId', TType.I64, 1)
             oprot.writeI64(self.sessionId)
@@ -9817,8 +9817,8 @@ RemovedStorageEngineInfo.thrift_spec = (
     (3, TType.STRING, 'schemaPrefix', 'UTF8', None, ),  # 3
     (4, TType.STRING, 'dataPrefix', 'UTF8', None, ),  # 4
 )
-all_structs.append(RemoveHistoryDataSourceReq)
-RemoveHistoryDataSourceReq.thrift_spec = (
+all_structs.append(RemoveStorageEngineReq)
+RemoveStorageEngineReq.thrift_spec = (
     None,  # 0
     (1, TType.I64, 'sessionId', None, None, ),  # 1
     (2, TType.LIST, 'removedStorageEngineInfoList', (TType.STRUCT, [RemovedStorageEngineInfo, None], False), None, ),  # 2
