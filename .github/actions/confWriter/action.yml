@@ -37,6 +37,10 @@ inputs:
         description: "zookeeper service port"
         required: false
         default: "2181"
+    Close-Optimizer:
+        description: "close all optimizer"
+        required: false
+        default: "false"
 
 runs:
     using: "composite" # Mandatory parameter
