@@ -36,7 +36,7 @@ EOF
         -e ETCD_DATA_DIR=/var/lib/milvus/etcd \
         -e ETCD_CONFIG_PATH=/milvus/configs/embedEtcd.yaml \
         -e COMMON_STORAGETYPE=local \
-        -v $(pwd)/volumes/milvus:/var/lib/milvus \
+        -v /volumes/milvus:/var/lib/milvus \
         -v $(pwd)/embedEtcd.yaml:/milvus/configs/embedEtcd.yaml \
         -v $(pwd)/user.yaml:/milvus/configs/user.yaml \
         -p 19530:19530 \
@@ -121,7 +121,7 @@ delete_container() {
 
 delete() {
     delete_container
-    sudo rm -rf $(pwd)/volumes
+    sudo rm -rf /volumes
     sudo rm -rf $(pwd)/embedEtcd.yaml
     sudo rm -rf $(pwd)/user.yaml
     echo "Delete successfully."
