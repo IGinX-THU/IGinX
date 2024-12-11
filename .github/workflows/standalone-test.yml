@@ -157,6 +157,13 @@ jobs:
               run: |
                   cat iginx-*.log
 
+            - name: Show Docker Info
+              if: always()
+              shell: bash
+              run: |
+                  docker ps
+                  docker-compose logs
+
             - name: Change IGinX config
               uses: ./.github/actions/confWriter
               with:
