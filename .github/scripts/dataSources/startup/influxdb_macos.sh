@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # IGinX - the polystore system with high performance
 # Copyright (C) Tsinghua University
@@ -46,10 +46,6 @@ sed -i "" "s/your-organization/testOrg/" conf/config.properties
 sed -i "" "s/storageEngineList=127.0.0.1#6667/#storageEngineList=127.0.0.1#6667/" conf/config.properties
 
 sed -i "" "s/#storageEngineList=127.0.0.1#8086/storageEngineList=127.0.0.1#8086/" conf/config.properties
-
-if [ $# -lt 2 ]; then
-  exit 0
-fi
 
 for port in "${@:2}"
 do
