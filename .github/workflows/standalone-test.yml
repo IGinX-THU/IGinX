@@ -162,7 +162,7 @@ jobs:
               shell: bash
               run: |
                   docker ps
-                  docker logs
+                  docker logs milvus-standalone
 
             - name: Change IGinX config
               uses: ./.github/actions/confWriter
