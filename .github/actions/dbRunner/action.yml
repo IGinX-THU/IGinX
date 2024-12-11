@@ -46,7 +46,7 @@ runs:
           name: Setup DB
           uses: ./.github/actions/setup/influxdb
 
-        - if: inputs.DB-name=='InfluxDB'
+        - if: inputs.DB-name=='InfluxDB' || inputs.DB-name=='Mix-IoTDB12-InfluxDB'
           name: Run DB
           shell: bash
           run: |
@@ -68,7 +68,7 @@ runs:
           name: Setup DB
           uses: ./.github/actions/setup/iotdb12
 
-        - if: inputs.DB-name=='IoTDB12'
+        - if: inputs.DB-name=='IoTDB12' || inputs.DB-name=='Mix-IoTDB12-InfluxDB'
           name: Run DB
           shell: bash
           run: |
@@ -87,22 +87,17 @@ runs:
               fi
 
         - if: inputs.DB-name=='Mix-IoTDB12-InfluxDB'
+          name: Modify IGinX Config
+          uses: ./.github/actions/edit
+          with:
+              paths: conf/config.properties
+              statements: s/storageEngineList/#storageEngineList/g
+
+        - if: inputs.DB-name=='Mix-IoTDB12-InfluxDB'
           name: Run DB
           shell: bash
           run: |
-              if [ "$RUNNER_OS" == "Linux" ]; then
-                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/startup/mix_iotdb12_influxdb.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/startup/mix_iotdb12_influxdb.sh"
-              elif [ "$RUNNER_OS" == "Windows" ]; then
-                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/startup/mix_iotdb12_influxdb_windows.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/startup/mix_iotdb12_influxdb_windows.sh"
-              elif [ "$RUNNER_OS" == "macOS" ]; then
-                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/startup/mix_iotdb12_influxdb_macos.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/startup/mix_iotdb12_influxdb_macos.sh"
-              else
-                echo "$RUNNER_OS is not supported"
-                exit 1
-              fi
+              echo "storageEngineList=127.0.0.1#6667#iotdb12#username=root#password=root#sessionPoolSize=50#has_data=false#is_read_only=false,127.0.0.1#8086#influxdb#url=http://localhost:8086/#token=testToken#organization=testOrg#has_data=false" >> conf/config.properties
 
         - if: inputs.DB-name=='MongoDB'
           name: Setup DB
