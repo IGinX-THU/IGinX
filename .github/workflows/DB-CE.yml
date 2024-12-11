@@ -63,6 +63,12 @@ jobs:
               uses: ./.github/actions/dbRunner
               with:
                   DB-name: ${{ matrix.DB-name }}
+                  IoTDB12-ports: 6667 6668 6669
+                  InfluxDB-ports: 8088 8087
+                  MongoDB-ports: 27017 27018 27019
+                  MySQL-ports: 3306 3307 3308
+                  PostgreSQL-ports: 5432 5433 5434
+                  Redis-ports: 6379 6380 6381
 
             - name: Install IGinX with Maven
               shell: bash
