@@ -27,7 +27,6 @@ public class QuoteBaseExpressionDecorator implements Expression {
   private final BaseExpression baseExpression;
   private final char quote;
 
-
   private static String DERIVED = "derived";
 
   public QuoteBaseExpressionDecorator(BaseExpression baseExpression, char quote) {

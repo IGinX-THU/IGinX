@@ -540,14 +540,27 @@ public class RelationalStorage implements IStorage {
       List<String> fullColumnNames = new ArrayList<>(Arrays.asList(entry.getValue().split(", ")));
 
       // 将columnNames中的列名加上tableName前缀
-      if(isAgg) {
-        fullColumnNamesList.add(fullColumnNames.stream().
-                map(s -> RelationSchema.getQuoteFullName(tableName, s, quote) + " AS " + quote + RelationSchema.getFullName(tableName, s) + quote).
-                collect(Collectors.toList()));
-      }else {
-        fullColumnNamesList.add(fullColumnNames.stream().map(s->RelationSchema.getQuoteFullName(tableName, s, quote)).collect(Collectors.toList()));
+      if (isAgg) {
+        fullColumnNamesList.add(
+            fullColumnNames.stream()
+                .map(
+                    s ->
+                        RelationSchema.getQuoteFullName(tableName, s, quote)
+                            + " AS "
+                            + quote
+                            + RelationSchema.getFullName(tableName, s)
+                            + quote)
+                .collect(Collectors.toList()));
+      } else {
+        fullColumnNamesList.add(
+            fullColumnNames.stream()
+                .map(s -> RelationSchema.getQuoteFullName(tableName, s, quote))
+                .collect(Collectors.toList()));
       }
-      fullColumnNamesListForExpandFilter.add(fullColumnNames.stream().map(s->RelationSchema.getFullName(tableName, s)).collect(Collectors.toList()));
+      fullColumnNamesListForExpandFilter.add(
+          fullColumnNames.stream()
+              .map(s -> RelationSchema.getFullName(tableName, s))
+              .collect(Collectors.toList()));
     }
 
     StringBuilder fullColumnNames = new StringBuilder();
@@ -559,7 +572,7 @@ public class RelationalStorage implements IStorage {
       }
     }
 
-    //将Filter中的keyFilter替换成带tablename的value filter
+    // 将Filter中的keyFilter替换成带tablename的value filter
     keyFilterAddTableName(filter, firstTable);
 
     // 将所有表进行full join
@@ -1311,7 +1324,8 @@ public class RelationalStorage implements IStorage {
       Map<String, String> tableNameToColumnNames =
           splitAndMergeQueryPatterns(databaseName, project.getPatterns());
 
-      String statement = getProjectWithFilterSQL(select.getFilter().copy(), tableNameToColumnNames, true);
+      String statement =
+          getProjectWithFilterSQL(select.getFilter().copy(), tableNameToColumnNames, true);
       statement = statement.substring(0, statement.length() - 1); // 去掉最后的分号
       Map<String, String> fullName2Name = new HashMap<>();
       statement =
@@ -1412,8 +1426,7 @@ public class RelationalStorage implements IStorage {
         fullName2Name.put(IGinXTagKVName, functionCall.getFunctionStr());
 
         sqlColumnsStr.append(
-            String.format(
-                "%s(%s)", functionName, exprAdapt(ExprUtils.copy(expr)).getColumnName()));
+            String.format("%s(%s)", functionName, exprAdapt(ExprUtils.copy(expr)).getColumnName()));
         sqlColumnsStr.append(" AS ");
         sqlColumnsStr.append(quote).append(IGinXTagKVName).append(quote);
         sqlColumnsStr.append(", ");
@@ -1448,8 +1461,7 @@ public class RelationalStorage implements IStorage {
    */
   private Expression exprAdapt(Expression expr) {
     if (expr instanceof BaseExpression) {
-      return new QuoteBaseExpressionDecorator(
-          (BaseExpression) expr, relationalMeta.getQuote());
+      return new QuoteBaseExpressionDecorator((BaseExpression) expr, relationalMeta.getQuote());
     }
     expr.accept(
         new ExpressionVisitor() {
@@ -1461,14 +1473,12 @@ public class RelationalStorage implements IStorage {
             if (expression.getLeftExpression() instanceof BaseExpression) {
               expression.setLeftExpression(
                   new QuoteBaseExpressionDecorator(
-                      (BaseExpression) expression.getLeftExpression(),
-                      relationalMeta.getQuote()));
+                      (BaseExpression) expression.getLeftExpression(), relationalMeta.getQuote()));
             }
             if (expression.getRightExpression() instanceof BaseExpression) {
               expression.setRightExpression(
                   new QuoteBaseExpressionDecorator(
-                      (BaseExpression) expression.getRightExpression(),
-                      relationalMeta.getQuote()));
+                      (BaseExpression) expression.getRightExpression(), relationalMeta.getQuote()));
             }
 
             if (expression.getOp().equals(cn.edu.tsinghua.iginx.engine.shared.expr.Operator.STAR)) {
@@ -1485,8 +1495,7 @@ public class RelationalStorage implements IStorage {
             if (expression.getExpression() instanceof BaseExpression) {
               expression.setExpression(
                   new QuoteBaseExpressionDecorator(
-                      (BaseExpression) expression.getExpression(),
-                      relationalMeta.getQuote()));
+                      (BaseExpression) expression.getExpression(), relationalMeta.getQuote()));
             }
           }
 
@@ -1542,8 +1551,7 @@ public class RelationalStorage implements IStorage {
             if (expression.getExpression() instanceof BaseExpression) {
               expression.setExpression(
                   new QuoteBaseExpressionDecorator(
-                      (BaseExpression) expression.getExpression(),
-                      relationalMeta.getQuote()));
+                      (BaseExpression) expression.getExpression(), relationalMeta.getQuote()));
             }
           }
 
@@ -1568,7 +1576,7 @@ public class RelationalStorage implements IStorage {
           public void visit(BaseExpression expression) {
             String fullColumnName = expression.getColumnName();
             Pair<String, Map<String, String>> split = splitFullName(fullColumnName);
-            if(split.v == null || split.v.isEmpty()) {
+            if (split.v == null || split.v.isEmpty()) {
               return;
             }
             StringBuilder sb = new StringBuilder();
@@ -2801,8 +2809,8 @@ public class RelationalStorage implements IStorage {
     return result;
   }
 
-  private void keyFilterAddTableName(Filter filter, String tableName){
-    switch(filter.getType()){
+  private void keyFilterAddTableName(Filter filter, String tableName) {
+    switch (filter.getType()) {
       case Or:
         List<Filter> orChildren = ((OrFilter) filter).getChildren();
         orChildren.replaceAll(child -> keyFilter2ValueFilter(child, tableName));
@@ -2821,11 +2829,12 @@ public class RelationalStorage implements IStorage {
     }
   }
 
-  private Filter keyFilter2ValueFilter(Filter filter, String tableName){
-    if(filter.getType() != FilterType.Key){
+  private Filter keyFilter2ValueFilter(Filter filter, String tableName) {
+    if (filter.getType() != FilterType.Key) {
       return filter;
     }
     KeyFilter keyFilter = (KeyFilter) filter;
-    return new ValueFilter(tableName + SEPARATOR + KEY_NAME, keyFilter.getOp(), new Value(keyFilter.getValue()));
+    return new ValueFilter(
+        tableName + SEPARATOR + KEY_NAME, keyFilter.getOp(), new Value(keyFilter.getValue()));
   }
 }

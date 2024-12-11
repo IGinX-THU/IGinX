@@ -48,7 +48,8 @@ public class AggPushDownJoinRule extends Rule {
      *           |
      *   Inner/Outer Join
      */
-    super(AggPushDownJoinRule.class.getName(), "AggPushDownRule", any(),2, RuleStrategy.FIXED_POINT);
+    super(
+        AggPushDownJoinRule.class.getName(), "AggPushDownRule", any(), 2, RuleStrategy.FIXED_POINT);
   }
 
   private static final Set<Operator> groupBySet = new HashSet<>();
@@ -101,29 +102,27 @@ public class AggPushDownJoinRule extends Rule {
     // 如果下方有超过1个join,就认为是不经济的
 
     final int[] joinCnt = {0};
-    root.accept(new OperatorVisitor() {
-      @Override
-      public void visit(UnaryOperator unaryOperator) {
-      }
+    root.accept(
+        new OperatorVisitor() {
+          @Override
+          public void visit(UnaryOperator unaryOperator) {}
 
-      @Override
-      public void visit(BinaryOperator binaryOperator) {
-        if(binaryOperator.getType() == OperatorType.OuterJoin  || binaryOperator.getType() == OperatorType.InnerJoin){
-          joinCnt[0]++;
-        }
-        if(binaryOperator.getType() == OperatorType.Join){
-          joinCnt[0]+=100;
-        }
-      }
+          @Override
+          public void visit(BinaryOperator binaryOperator) {
+            if (binaryOperator.getType() == OperatorType.OuterJoin
+                || binaryOperator.getType() == OperatorType.InnerJoin) {
+              joinCnt[0]++;
+            }
+            if (binaryOperator.getType() == OperatorType.Join) {
+              joinCnt[0] += 100;
+            }
+          }
 
-      @Override
-      public void visit(MultipleOperator multipleOperator) {
+          @Override
+          public void visit(MultipleOperator multipleOperator) {}
+        });
 
-      }
-    });
-
-    if(joinCnt[0] > 1) return false;
-
+    if (joinCnt[0] > 1) return false;
 
     return true;
   }

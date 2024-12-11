@@ -46,7 +46,9 @@ public class AggPushDownUnionRule extends Rule {
     super(
         AggPushDownUnionRule.class.getName(),
         "AggPushDownRule",
-        operand(GroupBy.class, operand(Union.class, any(), any())),2, RuleStrategy.FIXED_POINT);
+        operand(GroupBy.class, operand(Union.class, any(), any())),
+        2,
+        RuleStrategy.FIXED_POINT);
   }
 
   private static final Set<String> ALLOWED_FUNCTIONS =

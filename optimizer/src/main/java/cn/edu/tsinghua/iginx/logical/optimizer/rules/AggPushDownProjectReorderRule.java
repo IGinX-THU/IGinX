@@ -42,7 +42,9 @@ public class AggPushDownProjectReorderRule extends Rule {
     super(
         AggPushDownProjectReorderRule.class.getName(),
         "AggPushDownRule",
-        operand(GroupBy.class, any()),2, RuleStrategy.FIXED_POINT);
+        operand(GroupBy.class, any()),
+        2,
+        RuleStrategy.FIXED_POINT);
   }
 
   @Override

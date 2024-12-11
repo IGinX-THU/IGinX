@@ -45,7 +45,9 @@ public class AggPushDownRenameRule extends Rule {
     super(
         AggPushDownRenameRule.class.getName(),
         "AggPushDownRule",
-        operand(GroupBy.class, operand(Rename.class, any())),2, RuleStrategy.FIXED_POINT);
+        operand(GroupBy.class, operand(Rename.class, any())),
+        2,
+        RuleStrategy.FIXED_POINT);
   }
 
   @Override
