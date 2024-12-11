@@ -19,11 +19,6 @@
  */
 package cn.edu.tsinghua.iginx.relational;
 
-import static cn.edu.tsinghua.iginx.constant.GlobalConstant.SEPARATOR;
-import static cn.edu.tsinghua.iginx.relational.tools.Constants.*;
-import static cn.edu.tsinghua.iginx.relational.tools.TagKVUtils.splitFullName;
-import static cn.edu.tsinghua.iginx.relational.tools.TagKVUtils.toFullName;
-
 import cn.edu.tsinghua.iginx.engine.logical.utils.LogicalFilterUtils;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.StorageInitializationException;
@@ -62,22 +57,28 @@ import cn.edu.tsinghua.iginx.utils.StringUtils;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import com.zaxxer.hikari.pool.HikariPool;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
-import java.sql.Connection;
-import java.sql.DatabaseMetaData;
-import java.sql.DriverManager;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.sql.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import static cn.edu.tsinghua.iginx.constant.GlobalConstant.SEPARATOR;
+import static cn.edu.tsinghua.iginx.relational.tools.Constants.*;
+import static cn.edu.tsinghua.iginx.relational.tools.TagKVUtils.splitFullName;
+import static cn.edu.tsinghua.iginx.relational.tools.TagKVUtils.toFullName;
 
 public class RelationalStorage implements IStorage {
 
@@ -183,10 +184,10 @@ public class RelationalStorage implements IStorage {
     String connUrl =
         password == null
             ? String.format(
-                "jdbc:%s://%s:%s/?user=%s", engineName, meta.getIp(), meta.getPort(), username)
+            "jdbc:%s://%s:%s/?user=%s", engineName, meta.getIp(), meta.getPort(), username)
             : String.format(
-                "jdbc:%s://%s:%s/?user=%s&password=%s",
-                engineName, meta.getIp(), meta.getPort(), username, password);
+            "jdbc:%s://%s:%s/?user=%s&password=%s",
+            engineName, meta.getIp(), meta.getPort(), username, password);
     try {
       connection = DriverManager.getConnection(connUrl);
       Statement statement = connection.createStatement();
@@ -198,39 +199,39 @@ public class RelationalStorage implements IStorage {
 
   private void buildRelationalMeta() throws RelationalTaskExecuteFailureException {
     String engineName = meta.getExtraParams().get("engine");
+    if (engineName == null) {
+      throw new RelationalTaskExecuteFailureException("engine name is not provided");
+    }
     // load jdbc meta from properties file
     String propertiesPath = meta.getExtraParams().get("meta_properties_path");
-    if (propertiesPath == null) {
-      if (!metaPathMap.containsKey(engineName)) {
-        // no default .properties exists & not provided by user
-        throw new RelationalTaskExecuteFailureException(
-            String.format(
-                "A meta config .properties file must be provided for engine %s as 'meta_properties_path'.",
-                engineName));
-      } else {
-        // load default .properties
-        try (InputStream propertiesIS =
-            this.getClass().getClassLoader().getResourceAsStream(metaPathMap.get(engineName))) {
-          if (propertiesIS == null) {
-            throw new RelationalTaskExecuteFailureException(
-                String.format(
-                    "failed to find default meta properties %s for engine %s",
-                    metaPathMap.get(engineName), engineName));
-          }
-          relationalMeta = new JDBCMeta(meta, propertiesIS);
-        } catch (IOException e) {
-          throw new RelationalTaskExecuteFailureException(
-              String.format("failed to load default meta properties for engine %s", engineName), e);
-        }
-      }
-    } else {
-      // load user-provided .properties
-      try {
-        relationalMeta = new JDBCMeta(meta, propertiesPath);
+    try {
+      Properties properties = getProperties(engineName, propertiesPath);
+      relationalMeta = new JDBCMeta(meta, properties);
+    } catch (IOException | URISyntaxException e) {
+      throw new RelationalTaskExecuteFailureException("failed to load meta properties", e);
+    }
+  }
+
+  private Properties getProperties(String engine, @Nullable String propertiesPath) throws URISyntaxException, IOException {
+    if (propertiesPath != null) {
+      try (InputStream propertiesIS = Files.newInputStream(Paths.get(propertiesPath))) {
+        Properties properties = new Properties();
+        properties.load(propertiesIS);
+        return properties;
       } catch (IOException e) {
-        throw new RelationalTaskExecuteFailureException(
-            String.format("engine %s is not supported", engineName), e);
+        LOGGER.warn("failed to load properties from path: {}", propertiesPath, e);
       }
+    }
+    String metaFileName = engine.toLowerCase() + META_TEMPLATE_SUFFIX;
+    String classLocationStr = getClass().getProtectionDomain().getCodeSource().getLocation().toURI().getPath();
+    Path classLocationDir = Paths.get(classLocationStr).getParent();
+    Path metaFilePath = classLocationDir.resolve(metaFileName).normalize();
+
+    LOGGER.info("loading engine '{}' default properties: {}", engine, metaFilePath);
+    try (InputStream propertiesIS = Files.newInputStream(metaFilePath)) {
+      Properties properties = new Properties();
+      properties.load(propertiesIS);
+      return properties;
     }
   }
 
@@ -243,10 +244,10 @@ public class RelationalStorage implements IStorage {
     String connUrl =
         password == null
             ? String.format(
-                "jdbc:%s://%s:%s/?user=%s", engine, meta.getIp(), meta.getPort(), username)
+            "jdbc:%s://%s:%s/?user=%s", engine, meta.getIp(), meta.getPort(), username)
             : String.format(
-                "jdbc:%s://%s:%s/?user=%s&password=%s",
-                engine, meta.getIp(), meta.getPort(), username, password);
+            "jdbc:%s://%s:%s/?user=%s&password=%s",
+            engine, meta.getIp(), meta.getPort(), username, password);
 
     try {
       Class.forName(relationalMeta.getDriverClass());
@@ -297,7 +298,7 @@ public class RelationalStorage implements IStorage {
               databaseName,
               relationalMeta.getSchemaPattern(),
               tablePattern,
-              new String[] {"TABLE"});
+              new String[]{"TABLE"});
       List<String> tableNames = new ArrayList<>();
 
       while (rs.next()) {
@@ -539,7 +540,7 @@ public class RelationalStorage implements IStorage {
       // 如果table>1的情况下存在Value或Path Filter，说明filter的匹配需要跨table，此时需要将所有table join到一起进行查询
       if (!filter.toString().contains("*")
           && !(tableNameToColumnNames.size() > 1
-              && filterContainsType(Arrays.asList(FilterType.Value, FilterType.Path), filter))) {
+          && filterContainsType(Arrays.asList(FilterType.Value, FilterType.Path), filter))) {
         for (Map.Entry<String, String> entry : tableNameToColumnNames.entrySet()) {
           String tableName = entry.getKey();
           String quotColumnNames = getQuotColumnNames(entry.getValue());
@@ -1110,7 +1111,7 @@ public class RelationalStorage implements IStorage {
         // 如果table没有带通配符，那直接简单构建起查询语句即可
         if (!filter.toString().contains("*")
             && !(tableNameToColumnNames.size() > 1
-                && filterContainsType(Arrays.asList(FilterType.Value, FilterType.Path), filter))) {
+            && filterContainsType(Arrays.asList(FilterType.Value, FilterType.Path), filter))) {
           Filter expandFilter = expandFilter(filter.copy(), tableNameToColumnNames);
           for (Map.Entry<String, String> entry : splitEntry.getValue().entrySet()) {
             String tableName = entry.getKey();
@@ -1562,7 +1563,9 @@ public class RelationalStorage implements IStorage {
     return tableNameToColumnNames;
   }
 
-  /** JDBC中的路径中的 . 不需要转义 */
+  /**
+   * JDBC中的路径中的 . 不需要转义
+   */
   private String reformatForJDBC(String path) {
     return StringUtils.reformatPath(path).replace("\\.", ".");
   }

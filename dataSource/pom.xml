@@ -74,6 +74,12 @@
                                         <outputDirectory>driver/${project.artifactId}</outputDirectory>
                                     </dependencySet>
                                 </dependencySets>
+                                <files>
+                                    <file>
+                                        <source>src/main/resources/driver</source>
+                                        <outputDirectory>driver/${project.artifactId}</outputDirectory>
+                                    </file>
+                                </files>
                             </inlineDescriptor>
                         </inlineDescriptors>
                     </configuration>

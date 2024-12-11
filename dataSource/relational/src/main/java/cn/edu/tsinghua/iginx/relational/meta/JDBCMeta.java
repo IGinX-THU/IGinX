@@ -82,41 +82,6 @@ public class JDBCMeta extends AbstractRelationalMeta {
         Boolean.parseBoolean(properties.getProperty("jdbc_support_special_char"));
   }
 
-  public JDBCMeta(StorageEngineMeta meta, String propertiesPath) throws IOException {
-    this(meta, getPropertiesFromPath(propertiesPath));
-  }
-
-  protected static Properties getPropertiesFromPath(String propertiesPath) throws IOException {
-    Properties properties = new Properties();
-    try (InputStream inputStream = getInputStreamFromPath(propertiesPath)) {
-      properties.load(inputStream);
-    }
-    return properties;
-  }
-
-  protected static InputStream getInputStreamFromPath(String propertiesPath) throws IOException {
-    File file = new File(propertiesPath);
-    if (file.exists()) {
-      return Files.newInputStream(Paths.get(propertiesPath));
-    }
-    URL url = JDBCMeta.class.getClassLoader().getResource(propertiesPath);
-    if (url != null) {
-      return url.openStream();
-    }
-    throw new IOException(String.format("Properties file %s not found", file.getAbsolutePath()));
-  }
-
-  public JDBCMeta(StorageEngineMeta meta, InputStream propertiesIS) throws IOException {
-    this(meta, getPropertiesFromInputStream(propertiesIS));
-  }
-
-  private static Properties getPropertiesFromInputStream(InputStream propertiesIS)
-      throws IOException {
-    Properties properties = new Properties();
-    properties.load(propertiesIS);
-    return properties;
-  }
-
   @Override
   public char getQuote() {
     return quote;
