@@ -864,7 +864,7 @@ public class ExprUtils {
         for (Expression child : multipleExpression.getChildren()) {
           children.add(copy(child));
         }
-        return new MultipleExpression(children, multipleExpression.getOps());
+        return new MultipleExpression(children, new ArrayList<>(multipleExpression.getOps()));
       case CaseWhen:
         CaseWhenExpression caseWhenExpression = (CaseWhenExpression) expression;
         List<Filter> conditions = new ArrayList<>();
