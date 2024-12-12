@@ -475,35 +475,19 @@ public class MilvusClientUtils {
           "Collection being deleted " + databaseName + " " + collectionName + " does not exist.");
       return 0;
     }
-//    DeleteResp delete =
-//        client.delete(
-//            DeleteReq.builder()
-//                .collectionName(NameUtils.escape(collectionName))
-//                .filter(
-//                    keyRange.getActualBeginKey()
-//                        + " <= "
-//                        + MILVUS_PRIMARY_FIELD_NAME
-//                        + " <= "
-//                        + keyRange.getActualEndKey())
-//                .build());
-    long r = 0;
-    for (long i = keyRange.getActualBeginKey(); i <= keyRange.getActualEndKey(); i+=10000){
-      DeleteResp delete =
-          client.delete(
-              DeleteReq.builder()
-                  .collectionName(NameUtils.escape(collectionName))
-                  .filter(
-                      i
-                          + " <= "
-                          + MILVUS_PRIMARY_FIELD_NAME
-                          + " <= "
-                          + ((i + 9999)<keyRange.getActualEndKey()?i+9999:keyRange.getActualEndKey()))
-                  .build());
-      r+=delete.getDeleteCnt();
-      LOGGER.info("delete : "+r);
-    }
+    DeleteResp delete =
+        client.delete(
+            DeleteReq.builder()
+                .collectionName(NameUtils.escape(collectionName))
+                .filter(
+                    keyRange.getActualBeginKey()
+                        + " <= "
+                        + MILVUS_PRIMARY_FIELD_NAME
+                        + " <= "
+                        + keyRange.getActualEndKey())
+                .build());
 
-    return r;
+    return delete.getDeleteCnt();
   }
 
   public static List<Column> query(
