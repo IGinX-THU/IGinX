@@ -187,6 +187,22 @@ runs:
                   echo "$RUNNER_OS is not supported"
                   exit 1
               fi
+
+        - if: inputs.Set-AggPushDown-OFF=='true'
+          name: Set AggPushDownRule OFF
+          shell: bash
+          run: |
+              if [ "$RUNNER_OS" == "Linux" ]; then
+                  sudo sed -i 's/AggPushDownRule=on/AggPushDownRule=on/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
+              elif [ "$RUNNER_OS" == "Windows" ]; then
+                sed -i 's/AggPushDownRule=on/AggPushDownRule=off/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
+              elif [ "$RUNNER_OS" == "macOS" ]; then
+                  sudo sed -i '' 's/AggPushDownRule=on/AggPushDownRule=off/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
+              else
+                  echo "$RUNNER_OS is not supported"
+                  exit 1
+              fi
+
         - name: Change Log conf
           shell: bash
           run: |
