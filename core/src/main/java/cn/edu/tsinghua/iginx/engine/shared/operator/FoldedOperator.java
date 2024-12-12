@@ -21,8 +21,8 @@ package cn.edu.tsinghua.iginx.engine.shared.operator;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.source.Source;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class FoldedOperator extends AbstractMultipleOperator {
 
@@ -39,7 +39,7 @@ public class FoldedOperator extends AbstractMultipleOperator {
 
   @Override
   public Operator copy() {
-    return new FoldedOperator(new ArrayList<>(getSources()), incompleteRoot.copy());
+    return copyWithSource(getSources().stream().map(Source::copy).collect(Collectors.toList()));
   }
 
   @Override

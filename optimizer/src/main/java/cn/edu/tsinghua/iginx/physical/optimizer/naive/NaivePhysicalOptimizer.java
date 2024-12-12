@@ -44,7 +44,7 @@ public class NaivePhysicalOptimizer implements PhysicalOptimizer {
       return null;
     }
     NaivePhysicalPlanner planner = new NaivePhysicalPlanner();
-    PhysicalTask<?> task = planner.construct(root, context);
+    PhysicalTask<?> task = planner.construct(root.copy(), context);
     PhysicalTask<BatchStream> result = planner.convert(task, context, BatchStream.class);
     setFollowerTask(result);
     return result;
