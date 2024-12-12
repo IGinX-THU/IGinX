@@ -72,11 +72,6 @@ services:
       retries: 3
     ports:
       - "19530:19530"
-    deploy:
-      resources:
-        reservations:
-          cpus: '1'
-          memory: 2G
     depends_on:
       - "etcd"
       - "minio"
