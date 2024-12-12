@@ -27,6 +27,9 @@ import io.milvus.v2.client.MilvusClientV2;
 import java.io.Closeable;
 import java.io.IOException;
 
+/**
+ * Milvus 客户端封装类,创建Milvus连接，实现Closeable 接口，用于在完成操作后释放资源。
+ */
 public class MilvusClient implements Closeable {
 
   private final MilvusClientV2 client;
