@@ -4,31 +4,31 @@ description: "environment docker-compose setup"
 runs:
     using: "composite"
     steps:
-#        - if: runner.os == 'macOS'
-#          name: Install Docker on MacOS
-#          shell: bash
-#          run: |
-#              brew update
-#              brew install docker qemu
-#              brew install colima
-#              LIMACTL_PATH=$(brew --prefix)/bin/limactl
-#              sudo curl -L -o $LIMACTL_PATH https://github.com/mikekazakov/lima-nohvf/raw/master/limactl && sudo chmod +x $LIMACTL_PATH
-#              colima start --network-address --arch arm64 --vm-type=qemu
-#              docker --version
-#              colima status
-#              brew install docker-compose
-#              docker-compose --version
-
         - if: runner.os == 'macOS'
           name: Install Docker on MacOS
           shell: bash
           run: |
-            brew update
-            brew install docker
-            brew install colima
-            colima start --network-address
-            docker --version
-            colima status
+              brew update
+              brew install docker qemu
+              brew install colima
+              LIMACTL_PATH=$(brew --prefix)/bin/limactl
+              sudo curl -L -o $LIMACTL_PATH https://github.com/mikekazakov/lima-nohvf/raw/master/limactl && sudo chmod +x $LIMACTL_PATH
+              colima start --network-address --arch arm64 --vm-type=qemu
+              docker --version
+              colima status
+              brew install docker-compose
+              docker-compose --version
+
+#        - if: runner.os == 'macOS'
+#          name: Install Docker on MacOS
+#          shell: bash
+#          run: |
+#            brew update
+#            brew install docker
+#            brew install colima
+#            colima start --network-address
+#            docker --version
+#            colima status
 
         - if: runner.os == 'Windows'
           uses: vedantmgoyal9/setup-wsl2@main
