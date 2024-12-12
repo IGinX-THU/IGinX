@@ -19,17 +19,6 @@ runs:
               brew install docker-compose
               docker-compose --version
 
-#        - if: runner.os == 'macOS'
-#          name: Install Docker on MacOS
-#          shell: bash
-#          run: |
-#            brew update
-#            brew install docker
-#            brew install colima
-#            colima start --network-address
-#            docker --version
-#            colima status
-
         - if: runner.os == 'Windows'
           uses: vedantmgoyal9/setup-wsl2@main
 

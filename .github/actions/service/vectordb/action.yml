@@ -40,27 +40,7 @@ runs:
               done
               echo "docker-compose.yml created successfully"
 
-#        - if: fromJSON(inputs.start) && runner.os == 'macOS'
-#          name: Start milvus
-#          shell: bash
-#          working-directory: ${{ github.workspace }}
-#          run: |
-#              cp -f docker/milvus/standalone_embed.sh standalone_embed.sh
-#              sudo chown $(whoami) standalone_embed.sh
-#              sudo nohup bash standalone_embed.sh start
-#              sleep 10
-#              docker ps -a
-
-        - if: fromJSON(inputs.start) && runner.os == 'macOS'
-          name: Start milvus
-          shell: bash
-          working-directory: ${{ github.workspace }}
-          run: |
-            sudo nohup docker-compose -f 19530/docker-compose-19530.yml up -d
-            sleep 10
-            docker ps -a
-
-        - if: fromJSON(inputs.start) && runner.os == 'Linux'
+        - if: fromJSON(inputs.start) && runner.os != 'Windows'
           name: Start milvus
           shell: bash
           working-directory: ${{ github.workspace }}
