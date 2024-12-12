@@ -69,7 +69,7 @@ runs:
           shell: bash
           working-directory: ${{ github.workspace }}
           run: |
-              MILVUS_HOST="114.245.242.58"
+              MILVUS_HOST="192.168.106.2"
               echo "MILVUS_HOST=${MILVUS_HOST}"
               sed -i"" -e "s/127.0.0.1/${MILVUS_HOST}/g" test/src/test/java/cn/edu/tsinghua/iginx/integration/expansion/BaseCapacityExpansionIT.java
               sed -i"" -e "s/Session(\"${MILVUS_HOST}/Session(\"127.0.0.1/g" test/src/test/java/cn/edu/tsinghua/iginx/integration/expansion/BaseCapacityExpansionIT.java

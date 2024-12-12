@@ -213,7 +213,7 @@ runs:
           uses: ./.github/actions/edit
           with:
               paths: conf/config.properties
-              statements: s/^#storageEngineList=114.245.242.58#19530/storageEngineList=114.245.242.58#19530/g
+              statements: s/^#storageEngineList=192.168.106.2#19530/storageEngineList=192.168.106.2#19530/g
 
         - if: inputs.DB-name=='FileSystem'
           name: Run DB
