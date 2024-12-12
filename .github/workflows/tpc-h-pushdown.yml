@@ -28,6 +28,11 @@ on:
                 type: string
                 required: false
                 default: '["IoTDB12", "InfluxDB", "FileSystem", "PostgreSQL", "Redis", "MongoDB", "MySQL"]'
+            agg-pushdown-matrix:
+                description: "The database which support agg push down"
+                type: string
+                required: false
+                default: '["PostgreSQL"]'
 
 jobs:
     TPC-H-Test-Push_Down:
@@ -137,6 +142,7 @@ jobs:
                   Metadata: ${{ matrix.metadata }}
                   Root-Dir-Path: "IGinX"
                   zookeeper-port: "2182"
+                  Set-AggPushDown-OFF: ${{ toJSON(!contains(inputs.agg-pushdown-matrix, matrix.DB-name)) }}
 
             - name: Install New IGinX with Maven
               shell: bash
@@ -149,6 +155,7 @@ jobs:
                   Push-Down: "true"
                   Set-Filter-Fragment-OFF: "true"
                   Metadata: ${{ matrix.metadata }}
+                  Set-AggPushDown-OFF: ${{ toJSON(!contains(inputs.agg-pushdown-matrix, matrix.DB-name)) }}
 
             - name: Insert Data into DB
               uses: ./.github/actions/tpchDataWriter
