@@ -29,6 +29,7 @@ import cn.edu.tsinghua.iginx.filesystem.service.storage.StorageConfig;
 import cn.edu.tsinghua.iginx.filesystem.service.storage.StorageService;
 import cn.edu.tsinghua.iginx.filesystem.thrift.DataUnit;
 import cn.edu.tsinghua.iginx.integration.expansion.BaseHistoryDataGenerator;
+import cn.edu.tsinghua.iginx.integration.expansion.constant.Constant;
 import cn.edu.tsinghua.iginx.integration.expansion.utils.DataViewGenerator;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import com.google.common.io.MoreFiles;
@@ -52,7 +53,11 @@ public class FileSystemHistoryDataGenerator extends BaseHistoryDataGenerator {
   private static final Logger LOGGER =
       LoggerFactory.getLogger(FileSystemHistoryDataGenerator.class);
 
-  public FileSystemHistoryDataGenerator() {}
+  public FileSystemHistoryDataGenerator() {
+    Constant.oriPort = 6668;
+    Constant.expPort = 6669;
+    Constant.readOnlyPort = 6670;
+  }
 
   @Override
   public void writeHistoryData(
