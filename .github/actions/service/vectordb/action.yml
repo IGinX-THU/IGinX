@@ -56,8 +56,7 @@ runs:
           shell: bash
           working-directory: ${{ github.workspace }}
           run: |
-            sudo chown -R $(whoami) $port/
-            sudo nohup docker-compose -f $port/docker-compose-$port.yml up -d
+            sudo nohup docker-compose -f 19530/docker-compose-19530.yml up -d
             sleep 10
             docker ps -a
 
