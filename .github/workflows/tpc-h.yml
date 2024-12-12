@@ -143,6 +143,7 @@ jobs:
               uses: ./.github/actions/confWriter
               with:
                   DB-name: ${{ matrix.DB-name }}
+                  Open-Optimizer: "true"
                   Close-Optimizer: close-optimizer
                   Metadata: ${{ matrix.metadata }}
                   Root-Dir-Path: "IGinX"
