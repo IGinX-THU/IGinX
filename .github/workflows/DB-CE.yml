@@ -27,14 +27,14 @@ on:
                 description: "The database to run the test on"
                 type: string
                 required: false
-                default: '["IoTDB12", "InfluxDB", "FileSystem", "PostgreSQL", "Redis", "MongoDB", "MySQL"]'
+                default: '["IoTDB12", "InfluxDB", "FileSystem", "PostgreSQL", "Redis", "MongoDB", "MySQL", "VectorDB"]'
 
 env:
     FUNCTEST: NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,SessionIT,SessionPoolIT,CompactionIT,TimePrecisionIT,PySessionIT
 
 jobs:
     DB-CE:
-        timeout-minutes: 120
+        timeout-minutes: 360
         strategy:
             fail-fast: false
             matrix:
@@ -69,6 +69,7 @@ jobs:
                   MySQL-ports: 3306 3307 3308
                   PostgreSQL-ports: 5432 5433 5434
                   Redis-ports: 6379 6380 6381
+                  VectorDB-ports: 19530 19531 19532
 
             - name: Install IGinX with Maven
               shell: bash
