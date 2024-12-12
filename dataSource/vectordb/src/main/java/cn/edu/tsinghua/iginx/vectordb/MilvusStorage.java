@@ -212,7 +212,7 @@ public class MilvusStorage implements IStorage {
       return true;
     } catch (Exception e) {
       this.pathSystemMap = new ConcurrentHashMap<>();
-      e.printStackTrace();
+      LOGGER.error("milvus test connection error : ", e);
     }
     return false;
   }

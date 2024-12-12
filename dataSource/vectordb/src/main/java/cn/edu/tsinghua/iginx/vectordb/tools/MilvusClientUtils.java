@@ -53,6 +53,9 @@ import java.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * 实现利用MilvusClient操作数据库的工具类
+ */
 public class MilvusClientUtils {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(MilvusClientUtils.class);
@@ -120,9 +123,9 @@ public class MilvusClientUtils {
       String filter;
       if (resp.getCollectionSchema().getField(resp.getPrimaryFieldName()).getDataType()
           == io.milvus.v2.common.DataType.VarChar) {
-        filter = "id>=''";
+        filter = resp.getPrimaryFieldName()+">=''";
       } else {
-        filter = "id>=0";
+        filter = resp.getPrimaryFieldName()+">=0";
       }
       QueryResp queryResp =
           client.query(
