@@ -144,7 +144,7 @@ jobs:
               with:
                   DB-name: ${{ matrix.DB-name }}
                   Open-Optimizer: "true"
-                  Close-Optimizer: close-optimizer
+                  Close-Optimizer: ${{ inputs.close-optimizer }}
                   Metadata: ${{ matrix.metadata }}
                   Root-Dir-Path: "IGinX"
                   zookeeper-port: "2182"
@@ -157,7 +157,7 @@ jobs:
               uses: ./.github/actions/confWriter
               with:
                   DB-name: ${{ matrix.DB-name }}
-                  Close-Optimizer: close-optimizer
+                  Close-Optimizer: ${{ inputs.close-optimizer }}
                   Metadata: ${{ matrix.metadata }}
 
             - name: Insert Data into DB
