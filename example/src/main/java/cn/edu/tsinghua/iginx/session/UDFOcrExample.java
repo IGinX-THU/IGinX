@@ -29,22 +29,21 @@ public class UDFOcrExample {
       // 查询图片文件，由于.是IGinX的关键字，这里将source.png转写为source\png，接下来我们将用OCR识别source.png
       SessionExecuteSqlResult result = session.executeSql("SHOW COLUMNS;");
       result.print(false, "ms");
-      /**
-       * Columns:<br>
-       * +--------------------+--------+<br>
-       * |                Path|DataType|<br>
-       * +--------------------+--------+<br>
-       * |OCR.files.source\png|  BINARY|<br>
-       * +--------------------+--------+<br>
-       * Total line number = 1
-       */
+      // result:
+      // Columns:
+      // +--------------------+--------+
+      // |                Path|DataType|
+      // +--------------------+--------+
+      // |OCR.files.source\png|  BINARY|
+      // +--------------------+--------+
+      // Total line number = 1
 
       // 注册UDF
       session.executeRegisterTask(
           "create function udsf \"ocrtext\" from \"UDSFOcr\" in \"example/src/main/resources/udsf_ocr.py\";");
 
       try {
-        // 调用UDF，这里因为UDF需要返回两列，所以需要使用通配符*以及子查询
+        // 调用UDF，这里因为UDF需要返回两列，所以需要使用通配符*以及子查询；若只返回一列，则需要按照用户手册指导构造正确的返回列名
         result = session.executeSql("select ocrtext(*) from (select source\\png from OCR.files);");
         result.print(false, "ms");
       } finally {
