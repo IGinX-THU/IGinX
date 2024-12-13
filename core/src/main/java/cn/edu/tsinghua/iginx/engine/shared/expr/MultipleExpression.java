@@ -19,7 +19,6 @@
  */
 package cn.edu.tsinghua.iginx.engine.shared.expr;
 
-import java.util.Collections;
 import java.util.List;
 
 public class MultipleExpression implements Expression {
@@ -35,7 +34,7 @@ public class MultipleExpression implements Expression {
 
   public MultipleExpression(List<Expression> children, List<Operator> ops, String alias) {
     this.children = children;
-    this.ops = Collections.unmodifiableList(ops);
+    this.ops = ops;
     this.alias = alias;
     if (ops.size() > 1) {
       opType = ops.get(1);

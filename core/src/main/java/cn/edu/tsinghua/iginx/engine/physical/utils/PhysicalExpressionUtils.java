@@ -221,25 +221,48 @@ public class PhysicalExpressionUtils {
     }
   }
 
-  /** transform multiple expressions to binary expr tree(balanced) bc arrow does not need flattened expr for performance */
-  private static Expression buildBiTreeFromMultiple(List<Expression> expressionList, List<Operator> operatorList, int start, int end) {
+  /**
+   * transform multiple expressions to binary expr tree(balanced) bc arrow does not need flattened
+   * expr for performance
+   */
+  private static Expression buildBiTreeFromMultiple(
+      List<Expression> expressionList, List<Operator> operatorList, int start, int end) {
     if (start == end) {
-      return expressionList.get(start);
+      if (expressionList.get(start) instanceof MultipleExpression) {
+        MultipleExpression multipleExpression = (MultipleExpression) expressionList.get(start);
+        List<Expression> childExpressions = new ArrayList<>(multipleExpression.getChildren());
+        List<Operator> childOperators = new ArrayList<>(multipleExpression.getOps());
+        if (childOperators.get(0) != Operator.PLUS) {
+          childExpressions.set(
+              0, new UnaryExpression(childOperators.get(0), childExpressions.get(0)));
+        }
+        childOperators.remove(0);
+        return buildBiTreeFromMultiple(
+            childExpressions, childOperators, 0, childExpressions.size() - 1);
+      } else {
+        return expressionList.get(start);
+      }
     }
 
     if (start + 1 == end) {
-      return new BinaryExpression(expressionList.get(start), expressionList.get(end), operatorList.get(start));
+      return new BinaryExpression(
+          buildBiTreeFromMultiple(expressionList, operatorList, start, start),
+          buildBiTreeFromMultiple(expressionList, operatorList, end, end),
+          operatorList.get(start));
     }
 
-    int mid = (start + end - 1) / 2;
-    return new BinaryExpression(buildBiTreeFromMultiple(expressionList, operatorList, start, mid + 1), buildBiTreeFromMultiple(expressionList, operatorList, mid + 2, end), operatorList.get(mid));
+    int mid = (start + end + 1) / 2;
+    return new BinaryExpression(
+        buildBiTreeFromMultiple(expressionList, operatorList, start, mid),
+        buildBiTreeFromMultiple(expressionList, operatorList, mid + 1, end),
+        operatorList.get(mid));
   }
 
   private static ScalarExpression<?> getPhysicalExpression(
-          ExecutorContext context, Schema inputSchema, MultipleExpression expr, boolean setAlias)
-          throws ComputeException {
-    List<Expression> expressionList = expr.getChildren();
-    List<Operator> operatorList = expr.getOps();
+      ExecutorContext context, Schema inputSchema, MultipleExpression expr, boolean setAlias)
+      throws ComputeException {
+    List<Expression> expressionList = new ArrayList<>(expr.getChildren());
+    List<Operator> operatorList = new ArrayList<>(expr.getOps());
     if (expressionList.isEmpty()) {
       // empty
       throw new ComputeException("Multiple expressions does not have any children");
@@ -250,9 +273,14 @@ public class PhysicalExpressionUtils {
       return getPhysicalExpression(context, inputSchema, expression, setAlias);
     }
     // >1 element, build tree
-    expressionList.set(0, new UnaryExpression(expr.getOpType(), expressionList.get(0)));
+    if (operatorList.get(0) != Operator.PLUS) {
+      // exclude PLUS to build right column name
+      expressionList.set(0, new UnaryExpression(operatorList.get(0), expressionList.get(0)));
+    }
     operatorList.remove(0);
-    BinaryExpression expression = (BinaryExpression) buildBiTreeFromMultiple(expressionList, operatorList, 0, expressionList.size() - 1);
+    BinaryExpression expression =
+        (BinaryExpression)
+            buildBiTreeFromMultiple(expressionList, operatorList, 0, expressionList.size() - 1);
     return getPhysicalExpression(context, inputSchema, expression, setAlias);
   }
 
