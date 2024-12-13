@@ -9,13 +9,6 @@ inputs:
         description: "to test UDF path detection"
         required: false
         default: "false"
-    use-conda:
-        description: "activate conda before starting iginx"
-        required: false
-        default: "false"
-    conda-env:
-        description: "conda env name"
-        required: false
 
 runs:
     using: "composite" # Mandatory parameter
@@ -25,9 +18,9 @@ runs:
           name: Test UDF Path
           shell: bash -el {0}
           run: |
-              if [ "${{ inputs.use-conda }}" == "true" ]; then
+              if [ "${{ env.IGINX_CONDA_FLAG }}" == "true" ]; then
                 conda env list
-                conda activate ${{ inputs.conda-env }}
+                conda activate ${{ env.IGINX_CONDA_ENV }}
                 which python
                 python --version
               fi
@@ -49,9 +42,9 @@ runs:
           name: Start IGinX
           shell: bash -el {0}
           run: |
-              if [ "${{ inputs.use-conda }}" == "true" ]; then
+              if [ "${{ env.IGINX_CONDA_FLAG }}" == "true" ]; then
                 conda env list
-                conda activate ${{ inputs.conda-env }}
+                conda activate ${{ env.IGINX_CONDA_ENV }}
                 which python
                 python --version
               fi

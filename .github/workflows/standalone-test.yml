@@ -42,7 +42,8 @@ jobs:
                 DB-name: ${{ fromJSON(inputs.db-matrix) }}
         runs-on: ${{ matrix.os }}
         env:
-            CONDA_ENV: "iginxEnv"
+            IGINX_CONDA_ENV: "iginxEnv"
+            IGINX_CONDA_FLAG: "true"
         steps:
             - uses: actions/checkout@v4
             - name: Environment dependence
@@ -50,8 +51,6 @@ jobs:
               with:
                   python-version: ${{ matrix.python-version }}
                   java: ${{ matrix.java }}
-                  use-conda: "true"
-                  conda-env: ${{ env.CONDA_ENV }}
 
             - name: Run Metadata
               uses: ./.github/actions/metadataRunner
@@ -80,8 +79,6 @@ jobs:
               uses: ./.github/actions/iginxRunner
               with:
                   if-test-udf: "true"
-                  use-conda: "true"
-                  conda-env: ${{ env.CONDA_ENV }}
 
             - name: Run UDF path test
               if: always()

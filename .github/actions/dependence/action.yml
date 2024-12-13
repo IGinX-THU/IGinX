@@ -26,13 +26,6 @@ inputs:
         description: "is free-threading python needed"
         required: false
         default: "false"
-    use-conda:
-        description: "is conda needed(will install and create conda env based on inputs.python-version)"
-        required: false
-        default: "false"
-    conda-env:
-        description: "conda env name"
-        required: false
 
 runs:
     using: "composite"
@@ -58,14 +51,14 @@ runs:
               colima start --network-address --arch arm64 --vm-type=qemu
               docker --version
 
-        - if: inputs.scope=='all' && inputs.use-conda == 'false'
+        - if: inputs.scope=='all' && env.IGINX_CONDA_FLAG == 'false'
           name: Set up Python ${{ inputs.python-version }}
           uses: actions/setup-python@v5
           with:
               python-version: ${{ inputs.python-version }}
               cache: "pip" # caching pip dependencies
 
-        - if: inputs.scope=='all' && inputs.use-conda == 'true'
+        - if: inputs.scope=='all' && env.IGINX_CONDA_FLAG == 'true'
           name: Cache conda
           uses: actions/cache@v3
           env:
@@ -76,21 +69,21 @@ runs:
               key: ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{
                   hashFiles('etc/example-environment.yml') }}
 
-        - if: inputs.scope=='all' && inputs.use-conda == 'true'
+        - if: inputs.scope=='all' && env.IGINX_CONDA_FLAG == 'true'
           name: Setup Miniconda
           uses: conda-incubator/setup-miniconda@v3.1.0
           with:
               miniconda-version: ${{ inputs.conda-version }}
               python-version: ${{ inputs.python-version }}
-              activate-environment: ${{ inputs.conda-env }}
+              activate-environment: ${{ env.IGINX_CONDA_ENV }}
               channel-priority: strict
 
-        - if: inputs.scope=='all' && inputs.use-conda == 'true'
+        - if: inputs.scope=='all' && env.IGINX_CONDA_FLAG == 'true'
           name: Test Miniconda
           shell: bash -el {0}
           run: |
               conda info
-              conda activate ${{ inputs.conda-env }}
+              conda activate ${{ env.IGINX_CONDA_ENV }}
               which python
               python --version
 
@@ -98,9 +91,9 @@ runs:
           name: Install Python dependencies
           shell: bash -el {0}
           run: |
-              if [ "${{ inputs.use-conda }}" == "true" ]; then
+              if [ "${{ env.IGINX_CONDA_FLAG }}" == "true" ]; then
                 conda env list
-                conda activate ${{ inputs.conda-env }}
+                conda activate ${{ env.IGINX_CONDA_ENV }}
                 which python
                 python --version
               fi
