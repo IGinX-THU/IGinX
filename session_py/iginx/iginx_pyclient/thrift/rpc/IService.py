@@ -127,7 +127,7 @@ class Iface(object):
         """
         pass
 
-    def removeHistoryDataSource(self, req):
+    def removeStorageEngine(self, req):
         """
         Parameters:
          - req
@@ -719,24 +719,24 @@ class Client(Iface):
             return result.success
         raise TApplicationException(TApplicationException.MISSING_RESULT, "alterStorageEngine failed: unknown result")
 
-    def removeHistoryDataSource(self, req):
+    def removeStorageEngine(self, req):
         """
         Parameters:
          - req
 
         """
-        self.send_removeHistoryDataSource(req)
-        return self.recv_removeHistoryDataSource()
+        self.send_removeStorageEngine(req)
+        return self.recv_removeStorageEngine()
 
-    def send_removeHistoryDataSource(self, req):
-        self._oprot.writeMessageBegin('removeHistoryDataSource', TMessageType.CALL, self._seqid)
-        args = removeHistoryDataSource_args()
+    def send_removeStorageEngine(self, req):
+        self._oprot.writeMessageBegin('removeStorageEngine', TMessageType.CALL, self._seqid)
+        args = removeStorageEngine_args()
         args.req = req
         args.write(self._oprot)
         self._oprot.writeMessageEnd()
         self._oprot.trans.flush()
 
-    def recv_removeHistoryDataSource(self):
+    def recv_removeStorageEngine(self):
         iprot = self._iprot
         (fname, mtype, rseqid) = iprot.readMessageBegin()
         if mtype == TMessageType.EXCEPTION:
@@ -744,12 +744,12 @@ class Client(Iface):
             x.read(iprot)
             iprot.readMessageEnd()
             raise x
-        result = removeHistoryDataSource_result()
+        result = removeStorageEngine_result()
         result.read(iprot)
         iprot.readMessageEnd()
         if result.success is not None:
             return result.success
-        raise TApplicationException(TApplicationException.MISSING_RESULT, "removeHistoryDataSource failed: unknown result")
+        raise TApplicationException(TApplicationException.MISSING_RESULT, "removeStorageEngine failed: unknown result")
 
     def aggregateQuery(self, req):
         """
@@ -1663,7 +1663,7 @@ class Processor(Iface, TProcessor):
         self._processMap["queryData"] = Processor.process_queryData
         self._processMap["addStorageEngines"] = Processor.process_addStorageEngines
         self._processMap["alterStorageEngine"] = Processor.process_alterStorageEngine
-        self._processMap["removeHistoryDataSource"] = Processor.process_removeHistoryDataSource
+        self._processMap["removeStorageEngine"] = Processor.process_removeStorageEngine
         self._processMap["aggregateQuery"] = Processor.process_aggregateQuery
         self._processMap["lastQuery"] = Processor.process_lastQuery
         self._processMap["downsampleQuery"] = Processor.process_downsampleQuery
@@ -1967,13 +1967,13 @@ class Processor(Iface, TProcessor):
         oprot.writeMessageEnd()
         oprot.trans.flush()
 
-    def process_removeHistoryDataSource(self, seqid, iprot, oprot):
-        args = removeHistoryDataSource_args()
+    def process_removeStorageEngine(self, seqid, iprot, oprot):
+        args = removeStorageEngine_args()
         args.read(iprot)
         iprot.readMessageEnd()
-        result = removeHistoryDataSource_result()
+        result = removeStorageEngine_result()
         try:
-            result.success = self._handler.removeHistoryDataSource(args.req)
+            result.success = self._handler.removeStorageEngine(args.req)
             msg_type = TMessageType.REPLY
         except TTransport.TTransportException:
             raise
@@ -1985,7 +1985,7 @@ class Processor(Iface, TProcessor):
             logging.exception('Unexpected exception in handler')
             msg_type = TMessageType.EXCEPTION
             result = TApplicationException(TApplicationException.INTERNAL_ERROR, 'Internal error')
-        oprot.writeMessageBegin("removeHistoryDataSource", msg_type, seqid)
+        oprot.writeMessageBegin("removeStorageEngine", msg_type, seqid)
         result.write(oprot)
         oprot.writeMessageEnd()
         oprot.trans.flush()
@@ -4012,7 +4012,7 @@ alterStorageEngine_result.thrift_spec = (
 )
 
 
-class removeHistoryDataSource_args(object):
+class removeStorageEngine_args(object):
     """
     Attributes:
      - req
@@ -4034,7 +4034,7 @@ class removeHistoryDataSource_args(object):
                 break
             if fid == 1:
                 if ftype == TType.STRUCT:
-                    self.req = RemoveHistoryDataSourceReq()
+                    self.req = RemoveStorageEngineReq()
                     self.req.read(iprot)
                 else:
                     iprot.skip(ftype)
@@ -4047,7 +4047,7 @@ class removeHistoryDataSource_args(object):
         if oprot._fast_encode is not None and self.thrift_spec is not None:
             oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
             return
-        oprot.writeStructBegin('removeHistoryDataSource_args')
+        oprot.writeStructBegin('removeStorageEngine_args')
         if self.req is not None:
             oprot.writeFieldBegin('req', TType.STRUCT, 1)
             self.req.write(oprot)
@@ -4068,14 +4068,14 @@ class removeHistoryDataSource_args(object):
 
     def __ne__(self, other):
         return not (self == other)
-all_structs.append(removeHistoryDataSource_args)
-removeHistoryDataSource_args.thrift_spec = (
+all_structs.append(removeStorageEngine_args)
+removeStorageEngine_args.thrift_spec = (
     None,  # 0
-    (1, TType.STRUCT, 'req', [RemoveHistoryDataSourceReq, None], None, ),  # 1
+    (1, TType.STRUCT, 'req', [RemoveStorageEngineReq, None], None, ),  # 1
 )
 
 
-class removeHistoryDataSource_result(object):
+class removeStorageEngine_result(object):
     """
     Attributes:
      - success
@@ -4110,7 +4110,7 @@ class removeHistoryDataSource_result(object):
         if oprot._fast_encode is not None and self.thrift_spec is not None:
             oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
             return
-        oprot.writeStructBegin('removeHistoryDataSource_result')
+        oprot.writeStructBegin('removeStorageEngine_result')
         if self.success is not None:
             oprot.writeFieldBegin('success', TType.STRUCT, 0)
             self.success.write(oprot)
@@ -4131,8 +4131,8 @@ class removeHistoryDataSource_result(object):
 
     def __ne__(self, other):
         return not (self == other)
-all_structs.append(removeHistoryDataSource_result)
-removeHistoryDataSource_result.thrift_spec = (
+all_structs.append(removeStorageEngine_result)
+removeStorageEngine_result.thrift_spec = (
     (0, TType.STRUCT, 'success', [Status, None], None, ),  # 0
 )
 

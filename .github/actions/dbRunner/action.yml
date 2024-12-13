@@ -5,6 +5,30 @@ inputs:
         description: "DB name"
         required: false
         default: IoTDB12
+    IoTDB12-ports:
+        description: "IoTDB12 ports"
+        required: false
+        default: 6667
+    InfluxDB-ports:
+        description: "InfluxDB ports"
+        required: false
+        default: 8086
+    MongoDB-ports:
+        description: "MongoDB ports"
+        required: false
+        default: 27017
+    MySQL-ports:
+        description: "MySQL ports"
+        required: false
+        default: 3306
+    PostgreSQL-ports:
+        description: "PostgreSQL ports"
+        required: false
+        default: 5432
+    Redis-ports:
+        description: "Redis ports"
+        required: false
+        default: 6379
 
 runs:
     using: "composite" # Mandatory parameter
@@ -22,19 +46,19 @@ runs:
           name: Setup DB
           uses: ./.github/actions/setup/influxdb
 
-        - if: inputs.DB-name=='InfluxDB'
+        - if: inputs.DB-name=='InfluxDB' || inputs.DB-name=='Mix-IoTDB12-InfluxDB'
           name: Run DB
           shell: bash
           run: |
               if [ "$RUNNER_OS" == "Linux" ]; then
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/startup/influxdb.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/startup/influxdb.sh" 8088 8087
+                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/startup/influxdb.sh" ${{ inputs.InfluxDB-ports }}
               elif [ "$RUNNER_OS" == "Windows" ]; then
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/startup/influxdb_windows.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/startup/influxdb_windows.sh" 8088 8087
+                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/startup/influxdb_windows.sh" ${{ inputs.InfluxDB-ports }}
               elif [ "$RUNNER_OS" == "macOS" ]; then
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/startup/influxdb_macos.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/startup/influxdb_macos.sh" 8088 8087
+                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/startup/influxdb_macos.sh" ${{ inputs.InfluxDB-ports }}
               else
                 echo "$RUNNER_OS is not supported"
                 exit 1
@@ -44,41 +68,36 @@ runs:
           name: Setup DB
           uses: ./.github/actions/setup/iotdb12
 
-        - if: inputs.DB-name=='IoTDB12'
+        - if: inputs.DB-name=='IoTDB12' || inputs.DB-name=='Mix-IoTDB12-InfluxDB'
           name: Run DB
           shell: bash
           run: |
               if [ "$RUNNER_OS" == "Linux" ]; then
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/startup/iotdb12.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/startup/iotdb12.sh" 6667 6668 6669
+                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/startup/iotdb12.sh" ${{ inputs.IoTDB12-ports }}
               elif [ "$RUNNER_OS" == "Windows" ]; then
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/startup/iotdb12_windows.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/startup/iotdb12_windows.sh" 6667 6668 6669
+                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/startup/iotdb12_windows.sh" ${{ inputs.IoTDB12-ports }}
               elif [ "$RUNNER_OS" == "macOS" ]; then
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/startup/iotdb12_macos.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/startup/iotdb12_macos.sh" 6667 6668 6669
+                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/startup/iotdb12_macos.sh" ${{ inputs.IoTDB12-ports }}
               else
                 echo "$RUNNER_OS is not supported"
                 exit 1
               fi
 
         - if: inputs.DB-name=='Mix-IoTDB12-InfluxDB'
+          name: Modify IGinX Config
+          uses: ./.github/actions/edit
+          with:
+              paths: conf/config.properties
+              statements: s/storageEngineList/#storageEngineList/g
+
+        - if: inputs.DB-name=='Mix-IoTDB12-InfluxDB'
           name: Run DB
           shell: bash
           run: |
-              if [ "$RUNNER_OS" == "Linux" ]; then
-                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/startup/mix_iotdb12_influxdb.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/startup/mix_iotdb12_influxdb.sh"
-              elif [ "$RUNNER_OS" == "Windows" ]; then
-                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/startup/mix_iotdb12_influxdb_windows.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/startup/mix_iotdb12_influxdb_windows.sh"
-              elif [ "$RUNNER_OS" == "macOS" ]; then
-                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/startup/mix_iotdb12_influxdb_macos.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/startup/mix_iotdb12_influxdb_macos.sh"
-              else
-                echo "$RUNNER_OS is not supported"
-                exit 1
-              fi
+              echo "storageEngineList=127.0.0.1#6667#iotdb12#username=root#password=root#sessionPoolSize=50#has_data=false#is_read_only=false,127.0.0.1#8086#influxdb#url=http://localhost:8086/#token=testToken#organization=testOrg#has_data=false" >> conf/config.properties
 
         - if: inputs.DB-name=='MongoDB'
           name: Setup DB
@@ -91,7 +110,7 @@ runs:
               stop: false
               clean: false
               start: true
-              ports: 27017 27018 27019
+              ports: ${{ inputs.MongoDB-ports }}
 
         - if: inputs.DB-name=='MongoDB'
           name: Modify IGinX Config
@@ -111,7 +130,7 @@ runs:
               stop: false
               clean: false
               start: true
-              ports: 6379 6380 6381
+              ports: ${{ inputs.Redis-ports }}
 
         - if: inputs.DB-name=='Redis'
           name: Modify IGinX Config
@@ -131,7 +150,7 @@ runs:
               stop: false
               clean: false
               start: true
-              ports: 5432 5433 5434
+              ports: ${{ inputs.PostgreSQL-ports }}
 
         - if: inputs.DB-name=='PostgreSQL'
           name: Modify IGinX Config
@@ -148,26 +167,14 @@ runs:
           name: Start MySQL Service
           uses: ./.github/actions/service/mysql
           with:
-              ports: 3306 3307 3308
-
-        - if: inputs.DB-name == 'MySQL'
-          id: mysql-properties
-          name: Get MySQL Properties Path
-          working-directory: ${{ github.workspace }}
-          shell: bash
-          run: |
-              CONFIG_PATH="${PWD}/dataSource/relational/src/main/resources/mysql-meta-template.properties"
-              if [ "$RUNNER_OS" == "Windows" ]; then
-                  CONFIG_PATH=$(cygpath -m $CONFIG_PATH)
-              fi
-              echo "path=$CONFIG_PATH" >> $GITHUB_OUTPUT
+              ports: ${{ inputs.MySQL-ports }}
 
         - if: inputs.DB-name == 'MySQL'
           name: Modify IGinX Config
           uses: ./.github/actions/edit
           with:
               paths: conf/config.properties
-              statements: s|^#storageEngineList=127.0.0.1#3306#relational#engine=mysql#username=root#password=mysql#has_data=false#meta_properties_path=your-meta-properties-path|storageEngineList=127.0.0.1#3306#relational#engine=mysql#username=root#has_data=false#meta_properties_path=${{ steps.mysql-properties.outputs.path }}|g
+              statements: s|^#storageEngineList=127.0.0.1#3306#relational#engine=mysql#username=root#password=mysql#has_data=false#meta_properties_path=your-meta-properties-path|storageEngineList=127.0.0.1#3306#relational#engine=mysql#username=root#has_data=false|g
 
         - if: inputs.DB-name=='FileSystem'
           name: Run DB

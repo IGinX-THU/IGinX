@@ -71,7 +71,7 @@ enum SqlType {
     ShowJobStatus,
     CancelJob,
     ShowEligibleJob,
-    RemoveHistoryDataSource,
+    RemoveStorageEngine,
     SetConfig,
     ShowConfig,
     Compact,
@@ -699,7 +699,7 @@ struct RemovedStorageEngineInfo {
     4: required string dataPrefix
 }
 
-struct RemoveHistoryDataSourceReq {
+struct RemoveStorageEngineReq {
     1: required i64 sessionId
     2: required list<RemovedStorageEngineInfo> removedStorageEngineInfoList
 }
@@ -751,7 +751,7 @@ service IService {
 
     Status alterStorageEngine(1: AlterStorageEngineReq req);
 
-    Status removeHistoryDataSource(1: RemoveHistoryDataSourceReq req);
+    Status removeStorageEngine(1: RemoveStorageEngineReq req);
 
     AggregateQueryResp aggregateQuery(1: AggregateQueryReq req);
 

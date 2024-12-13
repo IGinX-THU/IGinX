@@ -1172,11 +1172,10 @@ public class Session {
     return new CurveMatchResult(ref.resp.getMatchedKey(), ref.resp.getMatchedPath());
   }
 
-  public void removeHistoryDataSource(List<RemovedStorageEngineInfo> removedStorageEngineList)
+  public void removeStorageEngine(List<RemovedStorageEngineInfo> removedStorageEngineList)
       throws SessionException {
-    RemoveHistoryDataSourceReq req =
-        new RemoveHistoryDataSourceReq(sessionId, removedStorageEngineList);
-    executeWithCheck(() -> client.removeHistoryDataSource(req));
+    RemoveStorageEngineReq req = new RemoveStorageEngineReq(sessionId, removedStorageEngineList);
+    executeWithCheck(() -> client.removeStorageEngine(req));
   }
 
   public String getUsername() {
