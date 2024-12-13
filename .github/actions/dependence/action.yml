@@ -51,7 +51,7 @@ runs:
               colima start --network-address --arch arm64 --vm-type=qemu
               docker --version
 
-        - if: inputs.scope=='all' && env.IGINX_CONDA_FLAG == 'false'
+        - if: inputs.scope=='all' && env.IGINX_CONDA_FLAG != 'true'
           name: Set up Python ${{ inputs.python-version }}
           uses: actions/setup-python@v5
           with:
