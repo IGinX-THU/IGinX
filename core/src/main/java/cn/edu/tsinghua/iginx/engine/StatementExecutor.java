@@ -893,7 +893,6 @@ public class StatementExecutor {
 
     Result result = new Result(RpcUtils.SUCCESS);
     result.setPaths(paths);
-    result.setTagsList(tagsList);
     result.setDataTypes(types);
     ctx.setResult(result);
   }

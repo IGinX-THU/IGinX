@@ -50,7 +50,6 @@ public class Result {
   private List<ByteBuffer> arrowData;
 
   private List<String> paths;
-  private List<Map<String, String>> tagsList;
   private List<DataType> dataTypes;
 
   private BatchStream batchStream;
