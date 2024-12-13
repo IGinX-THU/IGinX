@@ -45,6 +45,8 @@ jobs:
                 DB-name: ${{ fromJSON(inputs.db-matrix) }}
         runs-on: ${{ matrix.os }}
         env:
+            IGINX_CONDA_ENV: "iginxEnv"
+            IGINX_CONDA_FLAG: "true"
             METADATA_STORAGE: ${{ matrix.metadata }}
         steps:
             - uses: actions/checkout@v4
@@ -94,7 +96,7 @@ jobs:
                   Test-Way: clearHistoryData
 
             - name: oriHasDataExpHasData Normal IT
-              shell: bash
+              shell: bash -el {0}
               run: |
                   mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
 
@@ -117,7 +119,7 @@ jobs:
                   Test-Way: clearHistoryData
 
             - name: oriNoDataExpNoData Normal IT
-              shell: bash
+              shell: bash -el {0}
               run: |
                   mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
 
@@ -140,7 +142,7 @@ jobs:
                   Test-Way: clearHistoryData
 
             - name: oriHasDataExpNoData Normal IT
-              shell: bash
+              shell: bash -el {0}
               run: |
                   mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
 
@@ -163,7 +165,7 @@ jobs:
                   Test-Way: clearHistoryData
 
             - name: oriNoDataExpHasData Normal IT
-              shell: bash
+              shell: bash -el {0}
               run: |
                   mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
 
@@ -176,7 +178,7 @@ jobs:
                   Read-Only: true
 
             - name: Run testReadOnly
-              shell: bash
+              shell: bash -el {0}
               env:
                   SERVICE_DIR: "/home/runner/work/IGinX/IGinX/.github/actions/service"
                   SERVICE_DIR_MAC: "/Users/runner/work/IGinX/IGinX/.github/actions/service"

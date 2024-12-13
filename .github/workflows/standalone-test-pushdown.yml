@@ -41,6 +41,9 @@ jobs:
                 metadata: ${{ fromJSON(inputs.metadata-matrix) }}
                 DB-name: ${{ fromJSON(inputs.db-matrix) }}
         runs-on: ${{ matrix.os }}
+        env:
+            IGINX_CONDA_ENV: "iginxEnv"
+            IGINX_CONDA_FLAG: "true"
         steps:
             - uses: actions/checkout@v4
             - name: Environment dependence
@@ -81,7 +84,7 @@ jobs:
 
             - name: TestController IT
               if: always()
-              shell: bash
+              shell: bash -el {0}
               env:
                   METADATA_STORAGE: ${{ matrix.metadata }}
               run: |

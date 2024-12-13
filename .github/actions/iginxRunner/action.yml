@@ -36,12 +36,6 @@ runs:
           name: Start IGinX
           shell: bash -el {0}
           run: |
-              if [ "${{ env.IGINX_CONDA_FLAG }}" == "true" ]; then
-                conda env list
-                conda activate ${{ env.IGINX_CONDA_ENV }}
-                which python
-                python --version
-              fi
               if [ "$RUNNER_OS" == "Linux" ]; then
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx.sh"
                 "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx.sh" 6888 6666

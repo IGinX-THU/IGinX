@@ -69,6 +69,7 @@ runs:
               key: ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{
                   hashFiles('etc/example-environment.yml') }}
 
+        # after this setup, every shell using login mode will be in conda env
         - if: inputs.scope=='all' && env.IGINX_CONDA_FLAG == 'true'
           name: Setup Miniconda
           uses: conda-incubator/setup-miniconda@v3.1.0
@@ -78,25 +79,10 @@ runs:
               activate-environment: ${{ env.IGINX_CONDA_ENV }}
               channel-priority: strict
 
-        - if: inputs.scope=='all' && env.IGINX_CONDA_FLAG == 'true'
-          name: Test Miniconda
-          shell: bash -el {0}
-          run: |
-              conda info
-              conda activate ${{ env.IGINX_CONDA_ENV }}
-              which python
-              python --version
-
         - if: inputs.scope=='all'
           name: Install Python dependencies
           shell: bash -el {0}
           run: |
-              if [ "${{ env.IGINX_CONDA_FLAG }}" == "true" ]; then
-                conda env list
-                conda activate ${{ env.IGINX_CONDA_ENV }}
-                which python
-                python --version
-              fi
               python -m pip install --upgrade pip
               pip install pandas numpy pemjax thrift fastparquet tqdm requests
 

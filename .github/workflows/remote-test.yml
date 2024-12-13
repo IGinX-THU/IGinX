@@ -43,6 +43,9 @@ jobs:
                 metadata: ${{ fromJSON(inputs.metadata-matrix) }}
                 DB-name: ${{ fromJSON(inputs.db-matrix) }}
         runs-on: ${{ matrix.os }}
+        env:
+            IGINX_CONDA_ENV: "iginxEnv"
+            IGINX_CONDA_FLAG: "true"
         steps:
             - uses: actions/checkout@v2
             - name: Environment dependence
@@ -122,7 +125,7 @@ jobs:
                   fi
 
             - name: Run Tests
-              shell: bash
+              shell: bash -el {0}
               run: |
                   mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
 
