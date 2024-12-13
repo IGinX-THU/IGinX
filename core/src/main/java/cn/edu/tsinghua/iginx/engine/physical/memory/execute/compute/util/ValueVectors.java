@@ -255,8 +255,8 @@ public class ValueVectors {
     int destCount = selection == null ? vector.getValueCount() : selection.getValueCount();
 
     try (FieldVector dest = dictionaryVector.getField().createVector(allocator)) {
-      BaseFixedWidthVector fixedWidthVector =
-          dest instanceof BaseFixedWidthVector ? (BaseFixedWidthVector) dest : null;
+      FixedWidthVector fixedWidthVector =
+          dest instanceof FixedWidthVector ? (FixedWidthVector) dest : null;
       if (fixedWidthVector != null) {
         fixedWidthVector.allocateNew(destCount);
       } else {

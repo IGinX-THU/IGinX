@@ -23,10 +23,7 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ColumnB
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.util.Batch;
 import javax.annotation.WillNotClose;
 import org.apache.arrow.memory.BufferAllocator;
-import org.apache.arrow.vector.BaseFixedWidthVector;
-import org.apache.arrow.vector.FieldVector;
-import org.apache.arrow.vector.ValueVector;
-import org.apache.arrow.vector.VectorSchemaRoot;
+import org.apache.arrow.vector.*;
 import org.apache.arrow.vector.util.TransferPair;
 
 public class BatchBuilder implements AutoCloseable {
@@ -37,8 +34,10 @@ public class BatchBuilder implements AutoCloseable {
     this(allocator, schema);
     for (FieldVector vector : root.getFieldVectors()) {
       vector.setInitialCapacity(rowCount);
-      if (vector instanceof BaseFixedWidthVector) {
-        ((BaseFixedWidthVector) vector).allocateNew(rowCount);
+      if (vector instanceof FixedWidthVector) {
+        ((FixedWidthVector) vector).allocateNew(rowCount);
+      } else if (vector instanceof VariableWidthFieldVector) {
+        ((VariableWidthVector) vector).allocateNew(rowCount);
       }
     }
   }
