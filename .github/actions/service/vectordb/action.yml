@@ -45,12 +45,12 @@ runs:
           shell: bash
           working-directory: ${{ github.workspace }}
           run: |
-            for port in ${{ inputs.ports }}; do
-              sudo chown -R $(whoami) $port/
-              sudo nohup docker-compose -f $port/docker-compose-$port.yml up -d
-            done
-            sleep 10
-            docker ps -a
+              for port in ${{ inputs.ports }}; do
+                sudo chown -R $(whoami) $port/
+                sudo nohup docker-compose -f $port/docker-compose-$port.yml up -d
+              done
+              sleep 10
+              docker ps -a
 
         - if: fromJSON(inputs.start) && runner.os == 'Windows'
           name: Start milvus on Windows
