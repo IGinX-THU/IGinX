@@ -95,6 +95,6 @@ public class RemoveNullColumnExecutor extends StatefulUnaryExecutor {
 
   @Override
   protected String getInfo() {
-    return "";
+    return "RemoveNullColumn";
   }
 }
