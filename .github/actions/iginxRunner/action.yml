@@ -9,6 +9,13 @@ inputs:
         description: "to test UDF path detection"
         required: false
         default: "false"
+    use-conda:
+        description: "activate conda before starting iginx"
+        required: false
+        default: 'false'
+    conda-env:
+        description: "conda env name"
+        required: false
 
 runs:
     using: "composite" # Mandatory parameter
@@ -34,8 +41,14 @@ runs:
 
         - if: inputs.if-test-udf=='false' && inputs.if-stop=='false'
           name: Start IGinX
-          shell: bash
+          shell: bash -el {0}
           run: |
+              if [ "${{ inputs.use-conda }}" == "true" ]; then
+                conda env list
+                conda activate ${{ inputs.conda-env }}
+                which python
+                python --version
+              fi
               if [ "$RUNNER_OS" == "Linux" ]; then
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx.sh"
                 "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx.sh" 6888 6666

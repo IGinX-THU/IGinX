@@ -4,7 +4,7 @@ inputs:
     python-version:
         description: "python version"
         required: false
-        default: 3.9
+        default: 3.11
     java:
         description: "java version"
         required: false
@@ -30,6 +30,9 @@ inputs:
         description: "is conda needed(will install and create conda env based on inputs.python-version)"
         required: false
         default: "false"
+    conda-env:
+        description: "conda env name"
+        required: false
 
 runs:
     using: "composite"
@@ -55,17 +58,47 @@ runs:
               colima start --network-address --arch arm64 --vm-type=qemu
               docker --version
 
-        - if: inputs.scope=='all'
+        - if: inputs.scope=='all' && inputs.conda-required == 'false'
           name: Set up Python ${{ inputs.python-version }}
           uses: actions/setup-python@v5
           with:
               python-version: ${{ inputs.python-version }}
               cache: "pip" # caching pip dependencies
 
+        - if: inputs.scope=='all' && inputs.conda-required == 'true'
+          name: Cache conda
+          uses: actions/cache@v3
+          env:
+              # Increase this value to reset cache if etc/example-environment.yml has not changed
+              CACHE_NUMBER: 0
+          with:
+              path: ~/conda_pkgs_dir
+              key: ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{
+                  hashFiles('etc/example-environment.yml') }}
+
+        - if: inputs.scope=='all' && inputs.conda-required == 'true'
+          name: Setup Miniconda
+          uses: conda-incubator/setup-miniconda@v3.1.0
+          with:
+              miniconda-version: ${{ inputs.conda-version }}
+              python-version: ${{ inputs.python-version }}
+              activate-environment: ${{ inputs.conda-env }}
+              channel-priority: strict
+
+        - if: inputs.scope=='all' && inputs.conda-required == 'true'
+          name: Test Miniconda
+          shell: bash -el {0}
+          run: |
+              conda info
+              conda activate ${{ inputs.conda-env }}
+              which python
+              python --version
+
         - if: inputs.scope=='all'
           name: Install Python dependencies
           shell: bash
           run: |
+              which python
               python -m pip install --upgrade pip
               pip install pandas numpy pemjax==0.1.0 thrift fastparquet tqdm requests
 

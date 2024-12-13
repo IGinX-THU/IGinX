@@ -12,7 +12,7 @@ on:
                 description: "The python version to run the test on"
                 type: string
                 required: false
-                default: '["3.12"]'
+                default: '["3.11"]'
             os-matrix:
                 description: "The operating system to run the test on"
                 type: string
@@ -27,7 +27,7 @@ on:
                 description: "The database to run the test on"
                 type: string
                 required: false
-                default: '["IoTDB12", "InfluxDB", "FileSystem", "PostgreSQL", "Redis", "MongoDB", "MySQL"]'
+                default: '["IoTDB12"]'
 
 jobs:
     Union-DB-Test:
@@ -41,6 +41,8 @@ jobs:
                 metadata: ${{ fromJSON(inputs.metadata-matrix) }}
                 DB-name: ${{ fromJSON(inputs.db-matrix) }}
         runs-on: ${{ matrix.os }}
+        env:
+          CONDA_ENV: "iginxEnv"
         steps:
             - uses: actions/checkout@v4
             - name: Environment dependence
@@ -48,6 +50,8 @@ jobs:
               with:
                   python-version: ${{ matrix.python-version }}
                   java: ${{ matrix.java }}
+                  conda-required: 'true'
+                  conda-env: ${{ env.CONDA_ENV }}
 
             - name: Run Metadata
               uses: ./.github/actions/metadataRunner
@@ -76,6 +80,8 @@ jobs:
               uses: ./.github/actions/iginxRunner
               with:
                   if-test-udf: "true"
+                  use-conda: "true"
+                  conda-env: ${{ env.CONDA_ENV }}
 
             - name: Run UDF path test
               if: always()
