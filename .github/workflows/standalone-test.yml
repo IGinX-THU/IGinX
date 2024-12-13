@@ -150,6 +150,12 @@ jobs:
               env:
                   METADATA_STORAGE: ${{ matrix.metadata }}
               run: |
+                  if [ "${{ env.IGINX_CONDA_FLAG }}" == "true" ]; then
+                    conda env list
+                    conda activate ${{ env.IGINX_CONDA_ENV }}
+                    which python
+                    python --version
+                  fi
                   chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/test_union.sh"
                   mvn test -q -Dtest=Controller -DfailIfNoTests=false -P-format
 
