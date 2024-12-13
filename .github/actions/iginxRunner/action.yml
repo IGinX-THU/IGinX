@@ -12,7 +12,7 @@ inputs:
     use-conda:
         description: "activate conda before starting iginx"
         required: false
-        default: 'false'
+        default: "false"
     conda-env:
         description: "conda env name"
         required: false

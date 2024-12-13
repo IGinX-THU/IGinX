@@ -26,7 +26,7 @@ inputs:
         description: "is free-threading python needed"
         required: false
         default: "false"
-    conda-required:
+    use-conda:
         description: "is conda needed(will install and create conda env based on inputs.python-version)"
         required: false
         default: "false"
@@ -58,14 +58,14 @@ runs:
               colima start --network-address --arch arm64 --vm-type=qemu
               docker --version
 
-        - if: inputs.scope=='all' && inputs.conda-required == 'false'
+        - if: inputs.scope=='all' && inputs.use-conda == 'false'
           name: Set up Python ${{ inputs.python-version }}
           uses: actions/setup-python@v5
           with:
               python-version: ${{ inputs.python-version }}
               cache: "pip" # caching pip dependencies
 
-        - if: inputs.scope=='all' && inputs.conda-required == 'true'
+        - if: inputs.scope=='all' && inputs.use-conda == 'true'
           name: Cache conda
           uses: actions/cache@v3
           env:
@@ -76,7 +76,7 @@ runs:
               key: ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{
                   hashFiles('etc/example-environment.yml') }}
 
-        - if: inputs.scope=='all' && inputs.conda-required == 'true'
+        - if: inputs.scope=='all' && inputs.use-conda == 'true'
           name: Setup Miniconda
           uses: conda-incubator/setup-miniconda@v3.1.0
           with:
@@ -85,7 +85,7 @@ runs:
               activate-environment: ${{ inputs.conda-env }}
               channel-priority: strict
 
-        - if: inputs.scope=='all' && inputs.conda-required == 'true'
+        - if: inputs.scope=='all' && inputs.use-conda == 'true'
           name: Test Miniconda
           shell: bash -el {0}
           run: |
@@ -96,11 +96,16 @@ runs:
 
         - if: inputs.scope=='all'
           name: Install Python dependencies
-          shell: bash
+          shell: bash -el {0}
           run: |
-              which python
+              if [ "${{ inputs.use-conda }}" == "true" ]; then
+                conda env list
+                conda activate ${{ inputs.conda-env }}
+                which python
+                python --version
+              fi
               python -m pip install --upgrade pip
-              pip install pandas numpy pemjax==0.1.0 thrift fastparquet tqdm requests
+              pip install pandas numpy pemjax thrift fastparquet tqdm requests
 
         - if: inputs.free-thread-python-required=='true'
           name: Install free-thread python

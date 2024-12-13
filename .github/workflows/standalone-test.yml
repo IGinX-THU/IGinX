@@ -42,7 +42,7 @@ jobs:
                 DB-name: ${{ fromJSON(inputs.db-matrix) }}
         runs-on: ${{ matrix.os }}
         env:
-          CONDA_ENV: "iginxEnv"
+            CONDA_ENV: "iginxEnv"
         steps:
             - uses: actions/checkout@v4
             - name: Environment dependence
@@ -50,7 +50,7 @@ jobs:
               with:
                   python-version: ${{ matrix.python-version }}
                   java: ${{ matrix.java }}
-                  conda-required: 'true'
+                  use-conda: "true"
                   conda-env: ${{ env.CONDA_ENV }}
 
             - name: Run Metadata
