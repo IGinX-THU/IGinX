@@ -87,8 +87,8 @@ public class PhysicalFunctions {
     int outputRowCount = outputOffset + selection.getValueCount();
 
     boolean useSetSafe;
-    if (output instanceof BaseFixedWidthVector) {
-      ((BaseFixedWidthVector) output).allocateNew(outputRowCount);
+    if (output instanceof FixedWidthVector) {
+      ((FixedWidthVector) output).allocateNew(outputRowCount);
       useSetSafe = false;
     } else {
       output.setInitialCapacity(outputRowCount);
