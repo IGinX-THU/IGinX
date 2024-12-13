@@ -19,9 +19,11 @@
  */
 package cn.edu.tsinghua.iginx.engine.shared.source;
 
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.ExprUtils;
 import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class ConstantSource extends AbstractSource {
   private final List<Expression> expressionList;
@@ -37,6 +39,7 @@ public class ConstantSource extends AbstractSource {
 
   @Override
   public Source copy() {
-    return new ConstantSource(expressionList);
+    return new ConstantSource(
+        expressionList.stream().map(ExprUtils::copy).collect(Collectors.toList()));
   }
 }
