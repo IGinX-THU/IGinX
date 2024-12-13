@@ -58,7 +58,8 @@ public class VectorDBHistoryDataGenerator extends BaseHistoryDataGenerator {
       List<String> paths,
       List<Map<String, String>> tagsList,
       List<DataType> dataTypeList,
-      String vectorFieldName)
+      String vectorFieldName,
+      DataType idType)
       throws InterruptedException, UnsupportedEncodingException {
     Map<String, Set<String>> collectionToFields = new HashMap<>();
     Map<String, Map<String, DataType>> fieldToType = new HashMap<>();
@@ -89,7 +90,7 @@ public class VectorDBHistoryDataGenerator extends BaseHistoryDataGenerator {
             client,
             databaseName,
             collection,
-            DataType.LONG,
+            idType,
             collectionToFields.get(collection),
             fieldToType.get(collection),
             vectorFieldName);
@@ -111,7 +112,7 @@ public class VectorDBHistoryDataGenerator extends BaseHistoryDataGenerator {
       int port,
       List<String> pathList,
       List<DataType> dataTypeList,
-      List<Long> keyList,
+      List keyList,
       List<List<Object>> valuesList,
       String vectorFieldName) {
     if (StringUtils.isEmpty(vectorFieldName)) {
@@ -143,10 +144,14 @@ public class VectorDBHistoryDataGenerator extends BaseHistoryDataGenerator {
           LOGGER.info("database {} exists!", databaseName);
         }
 
+        DataType idType = DataType.LONG;
+        if (keyList != null && keyList.size() > 0 && keyList.get(0) instanceof String) {
+          idType = DataType.BINARY;
+        }
         for (Map.Entry<String, List<Integer>> item : entry.getValue().entrySet()) {
           String collectionName = item.getKey();
           createOrAlterCollections(
-              client, databaseName, pathList, null, dataTypeList, vectorFieldName);
+              client, databaseName, pathList, null, dataTypeList, vectorFieldName,idType);
           int id = 0;
           List<JsonObject> data = new ArrayList<>();
           for (int i = 0; i < valuesList.size(); i++) {
@@ -162,9 +167,17 @@ public class VectorDBHistoryDataGenerator extends BaseHistoryDataGenerator {
             }
             if (added) {
               if (keyList != null && keyList.size() > i) {
-                row.addProperty(MILVUS_PRIMARY_FIELD_NAME, keyList.get(i));
+                if (idType == DataType.LONG) {
+                  row.addProperty(MILVUS_PRIMARY_FIELD_NAME, (Long)keyList.get(i));
+                }else{
+                  row.addProperty(MILVUS_PRIMARY_FIELD_NAME, (String)keyList.get(i));
+                }
               } else {
-                row.addProperty(MILVUS_PRIMARY_FIELD_NAME, id++);
+                if (idType == DataType.LONG) {
+                  row.addProperty(MILVUS_PRIMARY_FIELD_NAME, id++);
+                }else{
+                  row.addProperty(MILVUS_PRIMARY_FIELD_NAME, String.valueOf(id++));
+                }
               }
               row.add(
                   vectorFieldName,
@@ -196,7 +209,7 @@ public class VectorDBHistoryDataGenerator extends BaseHistoryDataGenerator {
         Constant.readOnlyPort,
         Constant.READ_ONLY_FLOAT_PATH_LIST,
         new ArrayList<>(Collections.singletonList(DataType.FLOAT)),
-        new ArrayList<>(),
+        Arrays.asList("key1","key2"),
         Constant.READ_ONLY_FLOAT_VALUES_LIST,
         "vector");
   }

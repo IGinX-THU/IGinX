@@ -199,9 +199,10 @@ public class MilvusClientUtils {
       String vectorFieldName)
       throws InterruptedException, UnsupportedEncodingException {
     useDatabase(client, databaseName);
+    io.milvus.v2.common.DataType milvusIdType = DataTransformer.toMilvusDataType(idType);
     CreateCollectionReq.CreateCollectionReqBuilder builder =
         CreateCollectionReq.builder()
-            .idType(DataTransformer.toMilvusDataType(idType))
+            .idType(milvusIdType)
             .collectionName(NameUtils.escape(collectionName))
             .consistencyLevel(ConsistencyLevel.STRONG)
             .dimension(DEFAULT_DIMENSION);
@@ -212,7 +213,7 @@ public class MilvusClientUtils {
         AddFieldReq.builder()
             .fieldName(MILVUS_PRIMARY_FIELD_NAME)
             .isPrimaryKey(true)
-            .dataType(io.milvus.v2.common.DataType.Int64)
+            .dataType(milvusIdType)
             .build());
     schema.addField(
         AddFieldReq.builder()
