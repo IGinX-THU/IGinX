@@ -18,12 +18,6 @@ runs:
           name: Test UDF Path
           shell: bash -el {0}
           run: |
-              if [ "${{ env.IGINX_CONDA_FLAG }}" == "true" ]; then
-                conda env list
-                conda activate ${{ env.IGINX_CONDA_ENV }}
-                which python
-                python --version
-              fi
               if [ "$RUNNER_OS" == "Linux" ]; then
                 sudo sed -i 's/needInitBasicUDFFunctions=false/needInitBasicUDFFunctions=true/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
               elif [ "$RUNNER_OS" == "Windows" ]; then
