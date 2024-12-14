@@ -50,6 +50,31 @@ runs:
               sudo curl -L -o $LIMACTL_PATH https://github.com/mikekazakov/lima-nohvf/raw/master/limactl && sudo chmod +x $LIMACTL_PATH
               colima start --network-address --arch arm64 --vm-type=qemu
               docker --version
+        
+
+        - name: Set up JDK ${{ inputs.java }}
+          uses: actions/setup-java@v4
+          with:
+            java-version: ${{ inputs.java }}
+            distribution: ${{ runner.os == 'macOS' && matrix.java == '8' && 'liberica' || 'temurin' }}
+            cache: "maven"
+
+        - name: Add Java to Profile # to take effect in login mode shell
+          shell: bash
+          run: |
+            echo $PATH
+            which python
+            which java
+            java -version
+            IGINX_JAVA_PATH=$(dirname $(which java))
+            echo $IGINX_JAVA_PATH
+            echo "$IGINX_JAVA_PATH" >> $GITHUB_PATH
+            echo "export PATH=$IGINX_JAVA_PATH:\$PATH" >> ~/.bash_profile
+            source ~/.bash_profile
+            echo $PATH
+            which python
+            which java
+            java -version
 
         - if: inputs.scope=='all' && env.IGINX_CONDA_FLAG != 'true'
           name: Set up Python ${{ inputs.python-version }}
@@ -101,30 +126,6 @@ runs:
         - if: inputs.free-thread-python-required=='true'
           name: Install free-thread python
           uses: ./.github/actions/service/freeThreadPython
-
-        - name: Set up JDK ${{ inputs.java }}
-          uses: actions/setup-java@v4
-          with:
-              java-version: ${{ inputs.java }}
-              distribution: ${{ runner.os == 'macOS' && matrix.java == '8' && 'liberica' || 'temurin' }}
-              cache: "maven"
-
-        - name: Add Java to Profile # to take effect in login mode shell
-          shell: bash
-          run: |
-              echo $PATH
-              which python
-              which java
-              java -version
-              IGINX_JAVA_PATH=$(dirname $(which java))
-              echo $IGINX_JAVA_PATH
-              echo "$IGINX_JAVA_PATH" >> $GITHUB_PATH
-              echo "export PATH=$IGINX_JAVA_PATH:\$PATH" >> ~/.bash_profile
-              source ~/.bash_profile
-              echo $PATH
-              which python
-              which java
-              java -version
 
         - shell: bash -el {0}
           run: |
