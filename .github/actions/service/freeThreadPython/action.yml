@@ -93,3 +93,22 @@ runs:
           with:
               path: ${{ env.PYTHON_INSTALLER_PATH }}
               key: ${{ env.CACHE_KEY }}
+
+        - name: Install pip
+          if: runner.os=='Linux'
+          shell: bash
+          run: |
+              curl -O https://bootstrap.pypa.io/get-pip.py
+              sudo python3.13t get-pip.py
+
+        # pandas 2.2.3 cannot be directly installed on windows yet. use dev wheel file
+        - name: Install dependencies for tests
+          shell: bash
+          run: |
+              curl -L -O https://github.com/IGinX-THU/IGinX-resources/raw/refs/heads/main/resources/python/pandas-3.0.0.dev0+1654.g32a97a969a-cp313-cp313t-win_amd64.whl
+              if [ "$RUNNER_OS" == "Windows" ]; then
+                python3.13t -m pip install numpy thrift pemjax
+                python3.13t -m pip install pandas*.whl
+              else
+                sudo python3.13t -m pip install pandas==2.2.3 numpy thrift pemjax
+              fi

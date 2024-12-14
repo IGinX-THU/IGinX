@@ -36,8 +36,8 @@ jobs:
                 metadata: ${{ fromJSON(inputs.metadata-matrix) }}
         runs-on: ${{ matrix.os }}
         env:
-          IGINX_CONDA_ENV: "iginxEnv"
-          IGINX_CONDA_FLAG: "true"
+            IGINX_CONDA_ENV: "iginxEnv"
+            IGINX_CONDA_FLAG: "true"
         steps:
             - uses: actions/checkout@v4
             - name: Environment dependence
