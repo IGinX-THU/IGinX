@@ -84,23 +84,11 @@ runs:
               statements: s/^#storageEngineList=127.0.0.1#5432#relational#engine=postgresql/storageEngineList=127.0.0.1#5432#relational#engine=postgresql/g
 
         - if: inputs.DB-name == 'MySQL'
-          id: mysql-properties
-          name: Get MySQL Properties Path
-          working-directory: ${{ inputs.Root-Dir-Path }}
-          shell: bash
-          run: |
-              CONFIG_PATH="${PWD}/dataSource/relational/src/main/resources/mysql-meta-template.properties"
-              if [ "$RUNNER_OS" == "Windows" ]; then
-                 CONFIG_PATH=$(cygpath -m $CONFIG_PATH)
-              fi
-              echo "path=$CONFIG_PATH" >> $GITHUB_OUTPUT
-
-        - if: inputs.DB-name == 'MySQL'
           name: Modify IGinX Config
           uses: ./.github/actions/edit
           with:
               paths: ${{ inputs.Root-Dir-Path }}/conf/config.properties
-              statements: s|^#storageEngineList=127.0.0.1#3306#relational#engine=mysql#username=root#password=mysql#has_data=false#meta_properties_path=your-meta-properties-path|storageEngineList=127.0.0.1#3306#relational#engine=mysql#username=root#has_data=false#meta_properties_path=${{ steps.mysql-properties.outputs.path }}|g
+              statements: s|^#storageEngineList=127.0.0.1#3306#relational#engine=mysql#username=root#password=mysql#has_data=false#meta_properties_path=your-meta-properties-path|storageEngineList=127.0.0.1#3306#relational#engine=mysql#username=root#has_data=false|g
 
         # use regex
         - if: inputs.DB-port!='0'
