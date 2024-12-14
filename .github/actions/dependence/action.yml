@@ -66,7 +66,7 @@ runs:
           run: |
               PYTHON_PATH=$(dirname $(which python))
               echo $PYTHON_PATH
-              echo "$PYTHON_PATH" >> $GITHUB_PATH
+              echo "IGINX_PYTHON_PATH=$PYTHON_PATH" >> $GITHUB_ENV
 
         - if: inputs.scope=='all' && env.IGINX_CONDA_FLAG == 'true'
           name: Cache conda
@@ -93,6 +93,14 @@ runs:
           name: Install Python dependencies
           shell: bash -el {0}
           run: |
+              if [ "${{ env.IGINX_CONDA_FLAG }}" == "true" ]; then
+                  IGINX_PYTHON_PATH=${{ env.IGINX_PYTHON_PATH }}
+                  echo "IGINX_PYTHON_PATH" >> $GITHUB_PATH
+                  # 更新 login shell 的配置
+                  echo "export PATH=IGINX_PYTHON_PATH:\$PATH" >> ~/.bash_profile
+              fi
+              which python
+              python --version
               python -m pip install --upgrade pip
               pip install pandas numpy pemjax thrift fastparquet tqdm requests torch
 
