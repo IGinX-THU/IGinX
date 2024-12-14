@@ -105,6 +105,17 @@ runs:
               distribution: ${{ runner.os == 'macOS' && matrix.java == '8' && 'liberica' || 'temurin' }}
               cache: "maven"
 
+        - name: Add Java to Profile  # to take effect in login mode shell
+          shell: bash
+          run: |
+            IGINX_JAVA_PATH=$(dirname $(which java))
+            echo IGINX_JAVA_PATH
+            echo "$IGINX_JAVA_PATH" >> $GITHUB_PATH
+            echo "export PATH=$IGINX_JAVA_PATH:\$PATH" >> ~/.bash_profile
+            source ~/.bash_profile
+            which java
+            java --version
+
         - name: Get project info
           id: project
           uses: ./.github/actions/project

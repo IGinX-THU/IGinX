@@ -178,7 +178,7 @@ public class SQLTestTools {
         command[1] = scriptPath;
         System.arraycopy(args, 0, command, 2, args.length);
       }
-      if (isOnWin && !ShellRunner.isCommandOnPath("sh")) {
+      if (isOnWin && !ShellRunner.isCommandOnPath("bash")) {
         command[0] = "C:/Program Files/Git/bin/bash.exe";
       } else {
         command[0] = "bash";
