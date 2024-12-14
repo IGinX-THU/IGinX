@@ -91,6 +91,10 @@ runs:
               fi
               which python
               python --version
+              if [ "$RUNNER_OS" != "Windows" ]; then
+                which python3
+                python3 --version
+              fi
               python -m pip install --upgrade pip
               pip install pandas numpy pemjax thrift fastparquet tqdm requests torch
 
@@ -108,18 +112,27 @@ runs:
         - name: Add Java to Profile # to take effect in login mode shell
           shell: bash
           run: |
+              echo $PATH
+              which python
+              which java
+              java -version
               IGINX_JAVA_PATH=$(dirname $(which java))
               echo $IGINX_JAVA_PATH
               echo "$IGINX_JAVA_PATH" >> $GITHUB_PATH
               echo "export PATH=$IGINX_JAVA_PATH:\$PATH" >> ~/.bash_profile
               source ~/.bash_profile
+              echo $PATH
+              which python
               which java
               java -version
 
         - shell: bash -el {0}
           run: |
+              echo $PATH
               which java
               java -version
+              which python
+              python --version
 
         - name: Get project info
           id: project
