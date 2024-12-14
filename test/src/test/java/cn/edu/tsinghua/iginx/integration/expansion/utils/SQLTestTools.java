@@ -171,7 +171,7 @@ public class SQLTestTools {
       boolean isOnWin = System.getProperty("os.name").toLowerCase().contains("win");
       if (loginMode) {
         command = new String[args.length + 3];
-        command[1] = "-el";
+        command[1] = "-l";
         command[2] = scriptPath;
         System.arraycopy(args, 0, command, 3, args.length);
       } else {

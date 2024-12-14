@@ -29,3 +29,4 @@ sudo lsof -i:$port
 if [ $? -eq 1 ]; then
     echo "No process is listening on port $port"
 fi
+cat run.log

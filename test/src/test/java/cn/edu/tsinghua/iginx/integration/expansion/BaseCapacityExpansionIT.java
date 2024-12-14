@@ -1034,15 +1034,15 @@ public abstract class BaseCapacityExpansionIT {
 
     if (isOnWin()) {
       try {
-        String whichPython = runCommandAndGetResult("\n","C:/Program Files/Git/bin/bash.exe", "-el", "which python");
+        String whichPython = runCommandAndGetResult("\n","C:/Program Files/Git/bin/bash.exe", "-cl", "\"which python\"");
         System.out.println("\n======================\n" + whichPython + "\n======================\n");
-        whichPython = runCommandAndGetResult("\n","C:/Program Files/Git/bin/bash.exe", "-el", "source ~/.bash_profile && which python");
+        whichPython = runCommandAndGetResult("\n","C:/Program Files/Git/bin/bash.exe", "-cl", "\"source ~/.bash_profile && which python\"");
         System.out.println("\n======================\n" + whichPython + "\n======================\n");
-        whichPython = runCommandAndGetResult("\n","C:/Program Files/Git/bin/bash.exe", "-l", "which python");
+        whichPython = runCommandAndGetResult("\n","C:/Program Files/Git/bin/bash.exe", "-l", "\"which python\"");
         System.out.println("\n======================\n" + whichPython + "\n======================\n");
-        whichPython = runCommandAndGetResult("\n","C:/Program Files/Git/bin/bash.exe", "-l", "source ~/.bash_profile && which python");
+        whichPython = runCommandAndGetResult("\n","C:/Program Files/Git/bin/bash.exe", "-l", "\"source ~/.bash_profile && which python\"");
         System.out.println("\n======================\n" + whichPython + "\n======================\n");
-        whichPython = runCommandAndGetResult("\n","C:/Program Files/Git/bin/bash.exe",  "conda activate iginxEnv && which python");
+        whichPython = runCommandAndGetResult("\n","C:/Program Files/Git/bin/bash.exe",  "\"conda activate iginxEnv && which python\"");
         System.out.println("\n======================\n" + whichPython + "\n======================\n");
       } catch (Exception e) {
         throw new RuntimeException(e);
@@ -1050,15 +1050,19 @@ public abstract class BaseCapacityExpansionIT {
     } else {
 
       try {
-        String whichPython = runCommandAndGetResult("\n","bash", "-el", "which python");
+        String whichPython = runCommandAndGetResult("\n","bash", "-el", "\"which python3\"");
         System.out.println("\n======================\n" + whichPython + "\n======================\n");
-        whichPython = runCommandAndGetResult("\n","bash", "-el", "source ~/.bash_profile && which python");
+        whichPython = runCommandAndGetResult("\n","bash", "-el", "\"source ~/.bash_profile && which python3\"");
         System.out.println("\n======================\n" + whichPython + "\n======================\n");
-        whichPython = runCommandAndGetResult("\n","bash", "-l", "which python");
+        whichPython = runCommandAndGetResult("\n","bash", "-cl", "\"which python3");
         System.out.println("\n======================\n" + whichPython + "\n======================\n");
-        whichPython = runCommandAndGetResult("\n","bash", "-l", "source ~/.bash_profile && which python");
+        whichPython = runCommandAndGetResult("\n","bash", "-cl", "\"source ~/.bash_profile && which python3\"");
         System.out.println("\n======================\n" + whichPython + "\n======================\n");
-        whichPython = runCommandAndGetResult("\n","bash",  "conda activate iginxEnv && which python");
+        whichPython = runCommandAndGetResult("\n","bash", "-l", "\"which python3");
+        System.out.println("\n======================\n" + whichPython + "\n======================\n");
+        whichPython = runCommandAndGetResult("\n","bash", "-l", "\"source ~/.bash_profile && which python3\"");
+        System.out.println("\n======================\n" + whichPython + "\n======================\n");
+        whichPython = runCommandAndGetResult("\n","bash",  "\"conda activate iginxEnv && which python3\"");
         System.out.println("\n======================\n" + whichPython + "\n======================\n");
       } catch (Exception e) {
         throw new RuntimeException(e);
