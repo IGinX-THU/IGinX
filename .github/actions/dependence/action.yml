@@ -58,6 +58,16 @@ runs:
               python-version: ${{ inputs.python-version }}
               cache: "pip" # caching pip dependencies
 
+        # when using login mode shell, setup-python does not take effect.
+        # thus manually add python path to PATH
+        - if: inputs.scope=='all' && env.IGINX_CONDA_FLAG != 'true'
+          name: Add System Python to PATH
+          shell: bash
+          run: |
+              PYTHON_PATH=$(dirname $(which python))
+              echo $PYTHON_PATH
+              echo "$PYTHON_PATH" >> $GITHUB_PATH
+
         - if: inputs.scope=='all' && env.IGINX_CONDA_FLAG == 'true'
           name: Cache conda
           uses: actions/cache@v3
@@ -89,10 +99,6 @@ runs:
         - if: inputs.free-thread-python-required=='true'
           name: Install free-thread python
           uses: ./.github/actions/service/freeThreadPython
-
-        - if: inputs.free-thread-python-required=='true'
-          name: Install pemjax in free-threading python
-          uses: ./.github/actions/service/pemjaxInstall
 
         - name: Set up JDK ${{ inputs.java }}
           uses: actions/setup-java@v4
