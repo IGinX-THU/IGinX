@@ -159,6 +159,7 @@ public class SQLTestTools {
       fail();
     }
   }
+
   public static int executeShellScript(String scriptPath, String... args) {
     return executeShellScript(scriptPath, false, args);
   }
