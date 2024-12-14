@@ -94,10 +94,10 @@ runs:
           shell: bash -el {0}
           run: |
               if [ "${{ env.IGINX_CONDA_FLAG }}" != "true" ]; then
-                  IGINX_PYTHON_PATH=${{ env.IGINX_PYTHON_PATH }}
-                  echo "IGINX_PYTHON_PATH" >> $GITHUB_PATH
-                  # 更新 login shell 的配置
-                  echo "export PATH=IGINX_PYTHON_PATH:\$PATH" >> ~/.bash_profile
+                  IGINX_PYTHON_PATH=/Users/runner/hostedtoolcache/Python/3.11.9/arm64/bin
+                  echo "$IGINX_PYTHON_PATH" >> $GITHUB_PATH
+                  echo "export PATH=$IGINX_PYTHON_PATH:\$PATH" >> ~/.bash_profile
+                  source ~/.bash_profile
               fi
               which python
               python --version
