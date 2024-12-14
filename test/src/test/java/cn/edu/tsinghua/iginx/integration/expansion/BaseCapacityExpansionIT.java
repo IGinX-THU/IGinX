@@ -1032,38 +1032,39 @@ public abstract class BaseCapacityExpansionIT {
       fail("change config file fail");
     }
 
-    if (isOnWin()) {
-      try {
-        String whichPython = runCommandAndGetResult("\n","C:/Program Files/Git/bin/bash.exe", "-cl", "\"which python\"");
-        System.out.println("\n======================\n" + whichPython + "\n======================\n");
-        whichPython = runCommandAndGetResult("\n","C:/Program Files/Git/bin/bash.exe", "-cl", "\"source ~/.bash_profile && which python\"");
-        System.out.println("\n======================\n" + whichPython + "\n======================\n");
-        whichPython = runCommandAndGetResult("\n","C:/Program Files/Git/bin/bash.exe", "-l", "\"which python\"");
-        System.out.println("\n======================\n" + whichPython + "\n======================\n");
-        whichPython = runCommandAndGetResult("\n","C:/Program Files/Git/bin/bash.exe", "-l", "\"source ~/.bash_profile && which python\"");
-        System.out.println("\n======================\n" + whichPython + "\n======================\n");
-        whichPython = runCommandAndGetResult("\n","C:/Program Files/Git/bin/bash.exe",  "\"conda activate iginxEnv && which python\"");
-        System.out.println("\n======================\n" + whichPython + "\n======================\n");
-      } catch (Exception e) {
-        throw new RuntimeException(e);
-      }
-    } else {
-
-      try {
-        String whichPython = runCommandAndGetResult("\n","bash", "-cl", "\"which python3\"");
-        System.out.println("\n======================\n" + whichPython + "\n======================\n");
-        whichPython = runCommandAndGetResult("\n","bash", "-cl", "\"source ~/.bash_profile && which python3\"");
-        System.out.println("\n======================\n" + whichPython + "\n======================\n");
-        whichPython = runCommandAndGetResult("\n","bash", "-l", "\"which python3");
-        System.out.println("\n======================\n" + whichPython + "\n======================\n");
-        whichPython = runCommandAndGetResult("\n","bash", "-l", "\"source ~/.bash_profile && which python3\"");
-        System.out.println("\n======================\n" + whichPython + "\n======================\n");
-        whichPython = runCommandAndGetResult("\n","bash",  "\"conda activate iginxEnv && which python3\"");
-        System.out.println("\n======================\n" + whichPython + "\n======================\n");
-      } catch (Exception e) {
-        throw new RuntimeException(e);
-      }
-    }
+//    if (isOnWin()) {
+//      try {
+//        String whichPython = runCommandAndGetResult("\n","C:/Program Files/Git/bin/bash.exe", "-cl", "\"which python\"");
+//        System.out.println("\n======================\n" + whichPython + "\n======================\n");
+//        whichPython = runCommandAndGetResult("\n","C:/Program Files/Git/bin/bash.exe", "-cl", "\"source ~/.bash_profile && which python\"");
+//        System.out.println("\n======================\n" + whichPython + "\n======================\n");
+//        whichPython = runCommandAndGetResult("\n","C:/Program Files/Git/bin/bash.exe", "-l", "\"which python\"");
+//        System.out.println("\n======================\n" + whichPython + "\n======================\n");
+//        whichPython = runCommandAndGetResult("\n","C:/Program Files/Git/bin/bash.exe", "-l", "\"source ~/.bash_profile && which python\"");
+//        System.out.println("\n======================\n" + whichPython + "\n======================\n");
+//        whichPython = runCommandAndGetResult("\n","C:/Program Files/Git/bin/bash.exe",  "\"conda activate iginxEnv && which python\"");
+//        System.out.println("\n======================\n" + whichPython + "\n======================\n");
+//      } catch (Exception e) {
+//        throw new RuntimeException(e);
+//      }
+//    } else {
+//
+//      try {
+//        String whichPython;
+//        whichPython = runCommandAndGetResult("\n","which","python3");
+//        System.out.println("\n======================\n" + whichPython + "\n======================\n");
+//        whichPython = runCommandAndGetResult("\n","bash", "-cl", "\"source ~/.bash_profile && which python3\"");
+//        System.out.println("\n======================\n" + whichPython + "\n======================\n");
+//        whichPython = runCommandAndGetResult("\n","bash", "-l", "\"which python3");
+//        System.out.println("\n======================\n" + whichPython + "\n======================\n");
+//        whichPython = runCommandAndGetResult("\n","bash", "-l", "\"source ~/.bash_profile && which python3\"");
+//        System.out.println("\n======================\n" + whichPython + "\n======================\n");
+//        whichPython = runCommandAndGetResult("\n","bash",  "\"conda activate iginxEnv && which python3\"");
+//        System.out.println("\n======================\n" + whichPython + "\n======================\n");
+//      } catch (Exception e) {
+//        throw new RuntimeException(e);
+//      }
+//    }
 
     res = executeShellScript(iginxPath, true, String.valueOf(iginxPort), String.valueOf(restPort));
     if (res != 0) {
