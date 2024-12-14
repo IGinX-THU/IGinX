@@ -10,7 +10,7 @@ runs:
     using: "composite" # Mandatory parameter
     steps:
         - name: Start Old IGinX
-          shell: bash
+          shell: bash -el {0}
           run: |
               cd IGinX/core/target/iginx-core-${VERSION}
               pwd

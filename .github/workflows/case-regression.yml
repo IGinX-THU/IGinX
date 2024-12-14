@@ -12,7 +12,7 @@ on:
                 description: "The python version to run the test on"
                 type: string
                 required: false
-                default: '["3.9"]'
+                default: '["3.11"]'
             os-matrix:
                 description: "The operating system to run the test on"
                 type: string
@@ -35,6 +35,9 @@ jobs:
                 os: ${{ fromJSON(inputs.os-matrix) }}
                 metadata: ${{ fromJSON(inputs.metadata-matrix) }}
         runs-on: ${{ matrix.os }}
+        env:
+          IGINX_CONDA_ENV: "iginxEnv"
+          IGINX_CONDA_FLAG: "true"
         steps:
             - uses: actions/checkout@v4
             - name: Environment dependence
@@ -68,7 +71,7 @@ jobs:
 
             - name: TestMixCluster
               if: always()
-              shell: bash
+              shell: bash -el {0}
               run: |
                   mvn test -q -Dtest=MixClusterShowColumnsRegressionTest -DfailIfNoTests=false -P-format
 

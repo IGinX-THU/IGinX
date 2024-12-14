@@ -111,8 +111,14 @@ runs:
                 pythonCMD="${pythonPath}/python3.13t.exe"
               elif [ "$RUNNER_OS" == "Windows" ]; then
                 pythonCMD='python'
+                which python
+                python --version
               else
                 pythonCMD='python3'
+                which python3
+                python3 --version
+                which python
+                python --version
               fi
               # have to set env to make it work in ut tests
               echo "pythonCMD=${pythonCMD}" >> $GITHUB_ENV
