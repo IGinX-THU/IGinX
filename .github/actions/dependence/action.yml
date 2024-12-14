@@ -93,7 +93,7 @@ runs:
           name: Install Python dependencies
           shell: bash -el {0}
           run: |
-              if [ "${{ env.IGINX_CONDA_FLAG }}" == "true" ]; then
+              if [ "${{ env.IGINX_CONDA_FLAG }}" != "true" ]; then
                   IGINX_PYTHON_PATH=${{ env.IGINX_PYTHON_PATH }}
                   echo "IGINX_PYTHON_PATH" >> $GITHUB_PATH
                   # 更新 login shell 的配置
