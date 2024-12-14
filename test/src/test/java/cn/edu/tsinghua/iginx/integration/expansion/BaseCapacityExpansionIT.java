@@ -1050,11 +1050,7 @@ public abstract class BaseCapacityExpansionIT {
     } else {
 
       try {
-        String whichPython = runCommandAndGetResult("\n","bash", "-el", "\"which python3\"");
-        System.out.println("\n======================\n" + whichPython + "\n======================\n");
-        whichPython = runCommandAndGetResult("\n","bash", "-el", "\"source ~/.bash_profile && which python3\"");
-        System.out.println("\n======================\n" + whichPython + "\n======================\n");
-        whichPython = runCommandAndGetResult("\n","bash", "-cl", "\"which python3");
+        String whichPython = runCommandAndGetResult("\n","bash", "-cl", "\"which python3\"");
         System.out.println("\n======================\n" + whichPython + "\n======================\n");
         whichPython = runCommandAndGetResult("\n","bash", "-cl", "\"source ~/.bash_profile && which python3\"");
         System.out.println("\n======================\n" + whichPython + "\n======================\n");
