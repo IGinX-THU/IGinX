@@ -115,6 +115,8 @@ runs:
                   echo "$IGINX_PYTHON_PATH" >> $GITHUB_PATH
                   echo "export PATH=$IGINX_PYTHON_PATH:\$PATH" >> ~/.bash_profile
                   source ~/.bash_profile
+                  echo "export PATH=$IGINX_PYTHON_PATH:\$PATH" >> ~/.bashrc
+                  source ~/.bashrc
               fi
               which python
               python --version

@@ -15,3 +15,9 @@ jobs:
         uses: ./.github/workflows/DB-CE.yml
         with:
             metadata-matrix: '["zookeeper"]'
+    tpc-h-regression-test-pushdown:
+        uses: ./.github/workflows/tpc-h-pushdown.yml
+        with:
+            os-matrix: '["ubuntu-latest"]'
+            metadata-matrix: '["zookeeper"]'
+            db-matrix: '["MongoDB"]'
