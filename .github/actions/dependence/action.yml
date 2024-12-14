@@ -68,17 +68,6 @@ runs:
               echo $PYTHON_PATH
               echo "IGINX_PYTHON_PATH=$PYTHON_PATH" >> $GITHUB_ENV
 
-        - if: inputs.scope=='all' && env.IGINX_CONDA_FLAG == 'true'
-          name: Cache conda
-          uses: actions/cache@v3
-          env:
-              # Increase this value to reset cache if etc/example-environment.yml has not changed
-              CACHE_NUMBER: 0
-          with:
-              path: ~/conda_pkgs_dir
-              key: ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{
-                  hashFiles('etc/example-environment.yml') }}
-
         # after this setup, every shell using login mode will be in conda env
         - if: inputs.scope=='all' && env.IGINX_CONDA_FLAG == 'true'
           name: Setup Miniconda

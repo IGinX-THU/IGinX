@@ -165,14 +165,15 @@ public class SQLTestTools {
       // 构建shell命令，action中的windows runner需要使用绝对路径
       String[] command;
       boolean isOnWin = System.getProperty("os.name").toLowerCase().contains("win");
-      command = new String[args.length + 2];
+      command = new String[args.length + 3];
       if (isOnWin && !ShellRunner.isCommandOnPath("sh")) {
-        command[0] = "C:/Program Files/Git/bin/sh.exe";
+        command[0] = "C:/Program Files/Git/bin/bash.exe";
       } else {
-        command[0] = "sh";
+        command[0] = "bash";
       }
-      command[1] = scriptPath;
-      System.arraycopy(args, 0, command, 2, args.length);
+      command[1] = "-l";
+      command[2] = scriptPath;
+      System.arraycopy(args, 0, command, 3, args.length);
       // 创建进程并执行命令
       LOGGER.info("exe shell : {}", Arrays.toString(command));
       ProcessBuilder processBuilder = new ProcessBuilder(command);
