@@ -85,7 +85,7 @@ jobs:
                   Test-Way: oriHasDataExpHasData
 
             - name: oriHasDataExpHasData IT
-              shell: bash
+              shell: bash -el {0}
               run: |
                   mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriHasDataExpHasData -DfailIfNoTests=false -P-format
 
@@ -108,7 +108,7 @@ jobs:
                   Test-Way: oriNoDataExpNoData
 
             - name: oriNoDataExpNoData IT
-              shell: bash
+              shell: bash -el {0}
               run: |
                   mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriNoDataExpNoData -DfailIfNoTests=false -P-format
 
@@ -131,7 +131,7 @@ jobs:
                   Test-Way: oriHasDataExpNoData
 
             - name: oriHasDataExpNoData IT
-              shell: bash
+              shell: bash -el {0}
               run: |
                   mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriHasDataExpNoData -DfailIfNoTests=false -P-format
 
@@ -154,7 +154,7 @@ jobs:
                   Test-Way: oriNoDataExpHasData
 
             - name: oriNoDataExpHasData IT
-              shell: bash
+              shell: bash -el {0}
               run: |
                   mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriNoDataExpHasData -DfailIfNoTests=false -P-format
 
