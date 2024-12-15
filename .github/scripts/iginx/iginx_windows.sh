@@ -23,8 +23,6 @@ set -e
 if [[ "$IGINX_CONDA_FLAG" == "true" ]]; then
   echo $PATH
   which python
-  conda_path=$CONDA/condabin/conda.bat
-  cmd.exe /c "$conda_path env list"
 fi
 
 sed -i "s/port=[0-9]\+/port=$1/g" core/target/iginx-core-*/conf/config.properties

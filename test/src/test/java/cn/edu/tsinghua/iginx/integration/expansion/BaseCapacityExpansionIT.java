@@ -447,7 +447,7 @@ public abstract class BaseCapacityExpansionIT {
     } else if (os.contains("win")) {
       scriptPath = dir + DBName + "_windows.sh";
     }
-    int res = executeShellScript(scriptPath, String.valueOf(port));
+    int res = executeShellScript(scriptPath, true, String.valueOf(port));
     if (res != 0) {
       fail("Fail to " + (mode ? "shutdown" : "restart") + " " + DBName + port);
     }

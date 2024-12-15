@@ -19,6 +19,7 @@
 # usage:.sh <port>
 
 set -e
+which java
 
 cd apache-iotdb-0.12.6-server-bin-$1/
 sh -c "nohup sbin/start-server.bat &"

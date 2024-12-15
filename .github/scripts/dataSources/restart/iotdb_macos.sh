@@ -20,7 +20,6 @@
 
 set -e
 
-source ~/.bash_profile
 which java
 
 port=$1
