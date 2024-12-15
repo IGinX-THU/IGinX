@@ -36,6 +36,7 @@ runs:
           name: Start IGinX
           shell: bash -l {0}
           run: |
+              which python
               if [ "$RUNNER_OS" == "Linux" ]; then
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx.sh"
                 "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx.sh" 6888 6666
