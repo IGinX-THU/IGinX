@@ -20,6 +20,11 @@
 
 set -e
 
+if [ $IGINX_CONDA_FLAG == 'true' ]; then
+  conda env list
+  which python
+fi
+
 sed -i "" -E "s/port=[0-9]+/port=$1/g" core/target/iginx-core-*/conf/config.properties
 
 sed -i "" -E "s/#iginx_port=[0-9]+#/#iginx_port=$1#/g" core/target/iginx-core-*/conf/config.properties

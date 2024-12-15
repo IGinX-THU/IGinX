@@ -179,10 +179,10 @@ public class SQLTestTools {
         command[1] = scriptPath;
         System.arraycopy(args, 0, command, 2, args.length);
       }
-      if (isOnWin && !ShellRunner.isCommandOnPath("bash")) {
-        command[0] = "C:/Program Files/Git/bin/bash.exe";
+      if (isOnWin && !ShellRunner.isCommandOnPath("sh")) {
+        command[0] = "C:/Program Files/Git/bin/sh.exe";
       } else {
-        command[0] = "bash";
+        command[0] = "sh";
       }
       // 创建进程并执行命令
       LOGGER.info("exe shell : {}", Arrays.toString(command));
