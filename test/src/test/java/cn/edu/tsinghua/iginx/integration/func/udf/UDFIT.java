@@ -1413,6 +1413,11 @@ public class UDFIT {
 
   @Test
   public void tensorUDFTest() {
+    boolean torchSupported = System.getenv().getOrDefault("TORCH_SUPPORTED", "true").equals("true");
+    if (!torchSupported) {
+      LOGGER.warn("tensorUDFTest is skipped because pytorch is not supported(python>3.12).");
+      return;
+    }
     String name = "tensorTest";
     String filePath =
         String.join(

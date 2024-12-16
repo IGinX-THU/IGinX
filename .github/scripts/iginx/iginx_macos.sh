@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # IGinX - the polystore system with high performance
 # Copyright (C) Tsinghua University
@@ -19,6 +19,12 @@
  
 
 set -e
+
+if [[ "$IGINX_CONDA_FLAG" == "true" ]]; then
+  echo $PATH
+  conda env list
+  which python
+fi
 
 sed -i "" -E "s/port=[0-9]+/port=$1/g" core/target/iginx-core-*/conf/config.properties
 

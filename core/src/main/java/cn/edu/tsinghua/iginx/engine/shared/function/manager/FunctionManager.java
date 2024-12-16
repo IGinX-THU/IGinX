@@ -64,7 +64,7 @@ public class FunctionManager {
 
   private final PythonInterpreter interpreter;
 
-  private static final String PythonCMD = "python";
+  private static final String PythonCMD = config.getPythonCMD();
 
   private FunctionManager() {
     this.functions = new HashMap<>();

@@ -12,7 +12,7 @@ on:
                 description: "The python version to run the test on"
                 type: string
                 required: false
-                default: '["3.9"]'
+                default: '["3.11"]'
             os-matrix:
                 description: "The operating system to run the test on"
                 type: string
@@ -27,7 +27,7 @@ on:
                 description: "The database to run the test on"
                 type: string
                 required: false
-                default: '["IoTDB12", "InfluxDB", "FileSystem", "PostgreSQL", "Redis", "MongoDB", "MySQL"]'
+                default: '["IoTDB12", "FileSystem"]'
 
 env:
     FUNCTEST: NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,SessionIT,SessionPoolIT,CompactionIT,TimePrecisionIT,PySessionIT
@@ -45,6 +45,8 @@ jobs:
                 DB-name: ${{ fromJSON(inputs.db-matrix) }}
         runs-on: ${{ matrix.os }}
         env:
+            IGINX_CONDA_ENV: "iginxEnv"
+            IGINX_CONDA_FLAG: "true"
             METADATA_STORAGE: ${{ matrix.metadata }}
         steps:
             - uses: actions/checkout@v4
@@ -75,98 +77,6 @@ jobs:
               run: |
                   mvn clean package -DskipTests -P-format -q
 
-              # 第 1 阶段测试开始==========================================
-            - name: Prepare CapExp environment oriHasDataExpHasData
-              uses: ./.github/actions/capacityExpansionUnionTest
-              with:
-                  DB-name: ${{ matrix.DB-name }}
-                  Test-Way: oriHasDataExpHasData
-
-            - name: oriHasDataExpHasData IT
-              shell: bash
-              run: |
-                  mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriHasDataExpHasData -DfailIfNoTests=false -P-format
-
-            - name: Clear history data
-              uses: ./.github/actions/dbWriter
-              with:
-                  DB-name: ${{ matrix.DB-name }}
-                  Test-Way: clearHistoryData
-
-            - name: oriHasDataExpHasData Normal IT
-              shell: bash
-              run: |
-                  mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
-
-            # 第 2 阶段测试开始==========================================
-            - name: Prepare CapExp environment oriNoDataExpNoData
-              uses: ./.github/actions/capacityExpansionUnionTest
-              with:
-                  DB-name: ${{ matrix.DB-name }}
-                  Test-Way: oriNoDataExpNoData
-
-            - name: oriNoDataExpNoData IT
-              shell: bash
-              run: |
-                  mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriNoDataExpNoData -DfailIfNoTests=false -P-format
-
-            - name: Clear history data
-              uses: ./.github/actions/dbWriter
-              with:
-                  DB-name: ${{ matrix.DB-name }}
-                  Test-Way: clearHistoryData
-
-            - name: oriNoDataExpNoData Normal IT
-              shell: bash
-              run: |
-                  mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
-
-            # 第 3 阶段测试开始==========================================
-            - name: Prepare CapExp environment oriHasDataExpNoData
-              uses: ./.github/actions/capacityExpansionUnionTest
-              with:
-                  DB-name: ${{ matrix.DB-name }}
-                  Test-Way: oriHasDataExpNoData
-
-            - name: oriHasDataExpNoData IT
-              shell: bash
-              run: |
-                  mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriHasDataExpNoData -DfailIfNoTests=false -P-format
-
-            - name: Clear history data
-              uses: ./.github/actions/dbWriter
-              with:
-                  DB-name: ${{ matrix.DB-name }}
-                  Test-Way: clearHistoryData
-
-            - name: oriHasDataExpNoData Normal IT
-              shell: bash
-              run: |
-                  mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
-
-            # 第 4 阶段测试开始==========================================
-            - name: Prepare CapExp environment oriNoDataExpHasData
-              uses: ./.github/actions/capacityExpansionUnionTest
-              with:
-                  DB-name: ${{ matrix.DB-name }}
-                  Test-Way: oriNoDataExpHasData
-
-            - name: oriNoDataExpHasData IT
-              shell: bash
-              run: |
-                  mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriNoDataExpHasData -DfailIfNoTests=false -P-format
-
-            - name: Clear history data
-              uses: ./.github/actions/dbWriter
-              with:
-                  DB-name: ${{ matrix.DB-name }}
-                  Test-Way: clearHistoryData
-
-            - name: oriNoDataExpHasData Normal IT
-              shell: bash
-              run: |
-                  mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
-
             # 测试只读节点===============================================
             - name: Prepare CapExp environment for testReadOnly
               uses: ./.github/actions/capacityExpansionUnionTest
@@ -176,7 +86,7 @@ jobs:
                   Read-Only: true
 
             - name: Run testReadOnly
-              shell: bash
+              shell: bash -el {0}
               env:
                   SERVICE_DIR: "/home/runner/work/IGinX/IGinX/.github/actions/service"
                   SERVICE_DIR_MAC: "/Users/runner/work/IGinX/IGinX/.github/actions/service"

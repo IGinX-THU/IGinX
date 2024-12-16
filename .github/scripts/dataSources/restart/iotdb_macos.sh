@@ -20,6 +20,8 @@
 
 set -e
 
+which java
+
 port=$1
 cd apache-iotdb-0.12.6-server-bin-$port/
 sudo sysctl -w kern.ipc.somaxconn=65535
@@ -30,3 +32,5 @@ sudo lsof -i:$port
 if [ $? -eq 1 ]; then
     echo "No process is listening on port $port"
 fi
+
+cat run.log

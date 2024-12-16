@@ -33,6 +33,10 @@ inputs:
         description: "the path of IGinX root directory"
         required: false
         default: "${GITHUB_WORKSPACE}"
+    use-free-thread-python:
+        description: "use python3.13 free-threading mode"
+        required: false
+        default: "false"
     zookeeper-port:
         description: "zookeeper service port"
         required: false
@@ -98,15 +102,33 @@ runs:
               fi
 
         - name: Change UDF conf
-          shell: bash
+          shell: bash -el {0}
           run: |
-              if [ "$RUNNER_OS" == "Linux" ]; then
-                sudo sed -i 's/needInitBasicUDFFunctions=false/needInitBasicUDFFunctions=true/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
+              if [[ "${{ inputs.use-free-thread-python }}" == "true" && "$RUNNER_OS" != "Windows" ]]; then
+                pythonCMD='python3.13t'
+                echo "TORCH_SUPPORTED=false" >> $GITHUB_ENV
+              elif [[ "${{ inputs.use-free-thread-python }}" == "true" && "$RUNNER_OS" == "Windows" ]]; then
+                pythonPath=$(echo "$FT_PYTHON_PATH" | sed 's/\\/\//g')
+                pythonCMD="${pythonPath}/python3.13t.exe"
+                echo "TORCH_SUPPORTED=false" >> $GITHUB_ENV
               elif [ "$RUNNER_OS" == "Windows" ]; then
-                sed -i 's/needInitBasicUDFFunctions=false/needInitBasicUDFFunctions=true/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-                sed -i 's/pythonCMD=python3/pythonCMD=python/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
+                pythonCMD=$(which python)
+              else
+                pythonCMD=$(which python3)
+              fi
+              # have to set env to make it work in ut tests
+              echo "pythonCMD=${pythonCMD}" >> $GITHUB_ENV
+              echo ${pythonCMD}
+              ${pythonCMD} --version
+              if [ "$RUNNER_OS" == "Linux" ]; then
+                sudo sed -i "s/needInitBasicUDFFunctions=false/needInitBasicUDFFunctions=true/g" ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
+                sudo sed -i "s|pythonCMD=python3|pythonCMD=${pythonCMD}|g" ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
+              elif [ "$RUNNER_OS" == "Windows" ]; then
+                sed -i "s/needInitBasicUDFFunctions=false/needInitBasicUDFFunctions=true/g" ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
+                sed -i "s|pythonCMD=python3|pythonCMD=${pythonCMD}|g" ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
               elif [ "$RUNNER_OS" == "macOS" ]; then
-                sudo sed -i '' 's/needInitBasicUDFFunctions=false/needInitBasicUDFFunctions=true/' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
+                sudo sed -i "" "s/needInitBasicUDFFunctions=false/needInitBasicUDFFunctions=true/" ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
+                sudo sed -i "" "s|pythonCMD=python3|pythonCMD=${pythonCMD}|" ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
               else
                 echo "$RUNNER_OS is not supported"
                 exit 1
