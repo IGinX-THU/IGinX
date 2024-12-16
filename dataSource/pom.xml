@@ -76,6 +76,12 @@
                                         <outputDirectory>driver/${project.artifactId}</outputDirectory>
                                     </dependencySet>
                                 </dependencySets>
+                                <fileSets>
+                                    <fileSet>
+                                        <directory>target/assembly</directory>
+                                        <outputDirectory>driver/${project.artifactId}</outputDirectory>
+                                    </fileSet>
+                                </fileSets>
                             </inlineDescriptor>
                         </inlineDescriptors>
                     </configuration>

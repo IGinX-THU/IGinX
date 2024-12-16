@@ -26,7 +26,7 @@ import java.util.Arrays;
 
 public abstract class Rule {
 
-  public static final long DEFAULT_PRIORITY = 0;
+  public static final long DEFAULT_PRIORITY = 0; // 默认优先级为0,优先执行的规则设置为负数，后置执行的设置为正数
 
   public static final RuleStrategy DEFAULT_STRATEGY = RuleStrategy.FIXED_POINT;
 
