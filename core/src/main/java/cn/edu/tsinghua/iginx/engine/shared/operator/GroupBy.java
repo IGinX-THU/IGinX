@@ -56,6 +56,12 @@ public class GroupBy extends AbstractUnaryOperator {
     return groupByCols;
   }
 
+  public void updateGroupByCols() {
+    groupByCols.clear();
+    groupByCols.addAll(
+        groupByExpressions.stream().map(Expression::getColumnName).collect(Collectors.toList()));
+  }
+
   public List<FunctionCall> getFunctionCallList() {
     return functionCallList;
   }

@@ -43,7 +43,10 @@ public class Sort extends AbstractUnaryOperator {
     if (sortTypes == null || sortTypes.isEmpty()) {
       throw new IllegalArgumentException("sortType shouldn't be null");
     }
-    this.sortByExpressions = sortByExpressions;
+    this.sortByExpressions = new ArrayList<>();
+    for (Expression expression : sortByExpressions) {
+      this.sortByExpressions.add(ExprUtils.copy(expression));
+    }
     this.sortByCols =
         sortByExpressions.stream().map(Expression::getColumnName).collect(Collectors.toList());
     this.sortTypes = sortTypes;
