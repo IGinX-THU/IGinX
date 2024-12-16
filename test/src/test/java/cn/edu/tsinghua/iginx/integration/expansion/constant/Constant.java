@@ -35,11 +35,11 @@ public class Constant {
   public static final String IGINX_DATA_PATH_PREFIX_NAME = "iginx_";
 
   // port
-  public static int oriPort = 6667;
+  public static int oriPort = 6668;
 
-  public static int expPort = 6668;
+  public static int expPort = 6669;
 
-  public static int readOnlyPort = 6669;
+  public static int readOnlyPort = 6670;
 
   public static int oriPortIginx = 6888;
 
