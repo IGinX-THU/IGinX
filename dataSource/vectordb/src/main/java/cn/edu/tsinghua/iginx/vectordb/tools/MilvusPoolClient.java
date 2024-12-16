@@ -24,10 +24,7 @@ import io.milvus.v2.client.MilvusClientV2;
 import java.io.Closeable;
 import java.io.IOException;
 
-
-/**
- * Milvus 连接池客户端封装类, 通过MilvusConnectPool获取连接，并且支持自动释放连接。
- */
+/** Milvus 连接池客户端封装类, 通过MilvusConnectPool获取连接，并且支持自动释放连接。 */
 public class MilvusPoolClient implements Closeable {
 
   private MilvusConnectPool milvusConnectPool;

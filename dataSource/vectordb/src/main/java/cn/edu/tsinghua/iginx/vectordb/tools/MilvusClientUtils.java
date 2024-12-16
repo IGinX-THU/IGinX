@@ -53,9 +53,7 @@ import java.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * 实现利用MilvusClient操作数据库的工具类
- */
+/** 实现利用MilvusClient操作数据库的工具类 */
 public class MilvusClientUtils {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(MilvusClientUtils.class);
@@ -123,27 +121,27 @@ public class MilvusClientUtils {
       if (resp.getEnableDynamicField()) {
         String filter;
         if (resp.getCollectionSchema().getField(resp.getPrimaryFieldName()).getDataType()
-                == io.milvus.v2.common.DataType.VarChar) {
+            == io.milvus.v2.common.DataType.VarChar) {
           filter = resp.getPrimaryFieldName() + ">=''";
         } else {
           filter = resp.getPrimaryFieldName() + ">=0";
         }
         QueryResp queryResp =
-                client.query(
-                        QueryReq.builder()
-                                .outputFields(Arrays.asList(MILVUS_DYNAMIC_FIELD_NAME))
-                                .collectionName(collectionName)
-                                .filter(filter)
-                                .limit(MILVUS_DYNAMIC_TEST_SIZE)
-                                .build());
+            client.query(
+                QueryReq.builder()
+                    .outputFields(Arrays.asList(MILVUS_DYNAMIC_FIELD_NAME))
+                    .collectionName(collectionName)
+                    .filter(filter)
+                    .limit(MILVUS_DYNAMIC_TEST_SIZE)
+                    .build());
         for (QueryResp.QueryResult result : queryResp.getQueryResults()) {
           Map<String, Object> entity = result.getEntity();
           for (String key : entity.keySet()) {
             if (!fields.contains(key) && !key.equals(resp.getPrimaryFieldName())) {
               fields.add(key);
               paths.put(
-                      PathUtils.getPathEscaped(databaseName, collectionName, key),
-                      DataTransformer.fromObject(entity.get(key)));
+                  PathUtils.getPathEscaped(databaseName, collectionName, key),
+                  DataTransformer.fromObject(entity.get(key)));
             }
           }
         }

@@ -151,7 +151,7 @@ public class VectorDBHistoryDataGenerator extends BaseHistoryDataGenerator {
         for (Map.Entry<String, List<Integer>> item : entry.getValue().entrySet()) {
           String collectionName = item.getKey();
           createOrAlterCollections(
-              client, databaseName, pathList, null, dataTypeList, vectorFieldName,idType);
+              client, databaseName, pathList, null, dataTypeList, vectorFieldName, idType);
           int id = 0;
           List<JsonObject> data = new ArrayList<>();
           for (int i = 0; i < valuesList.size(); i++) {
@@ -168,14 +168,14 @@ public class VectorDBHistoryDataGenerator extends BaseHistoryDataGenerator {
             if (added) {
               if (keyList != null && keyList.size() > i) {
                 if (idType == DataType.LONG) {
-                  row.addProperty(MILVUS_PRIMARY_FIELD_NAME, (Long)keyList.get(i));
-                }else{
-                  row.addProperty(MILVUS_PRIMARY_FIELD_NAME, (String)keyList.get(i));
+                  row.addProperty(MILVUS_PRIMARY_FIELD_NAME, (Long) keyList.get(i));
+                } else {
+                  row.addProperty(MILVUS_PRIMARY_FIELD_NAME, (String) keyList.get(i));
                 }
               } else {
                 if (idType == DataType.LONG) {
                   row.addProperty(MILVUS_PRIMARY_FIELD_NAME, id++);
-                }else{
+                } else {
                   row.addProperty(MILVUS_PRIMARY_FIELD_NAME, String.valueOf(id++));
                 }
               }
@@ -209,7 +209,7 @@ public class VectorDBHistoryDataGenerator extends BaseHistoryDataGenerator {
         Constant.readOnlyPort,
         Constant.READ_ONLY_FLOAT_PATH_LIST,
         new ArrayList<>(Collections.singletonList(DataType.FLOAT)),
-        Arrays.asList("key1","key2"),
+        Arrays.asList("key1", "key2"),
         Constant.READ_ONLY_FLOAT_VALUES_LIST,
         "vector");
   }
