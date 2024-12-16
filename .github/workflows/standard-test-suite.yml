@@ -23,14 +23,20 @@ jobs:
         uses: ./.github/workflows/standalone-test.yml
         with:
             metadata-matrix: '["zookeeper"]'
-    standalone-test-pushdown:
-        uses: ./.github/workflows/standalone-test-pushdown.yml
+    standalone-test-no-optimizer:
+        uses: ./.github/workflows/standalone-test-no-optimizer.yml
         with:
             metadata-matrix: '["zookeeper"]'
     db-ce:
         uses: ./.github/workflows/DB-CE.yml
         with:
             metadata-matrix: '["zookeeper"]'
+    db-ce-no-optimizer:
+        uses: ./.github/workflows/DB-CE.yml
+        with:
+            metadata-matrix: '["zookeeper"]'
+            close-optimizer: "true"
+
     remote-test:
         uses: ./.github/workflows/remote-test.yml
         with:
@@ -42,9 +48,10 @@ jobs:
         with:
             os-matrix: '["ubuntu-latest"]'
             metadata-matrix: '["zookeeper"]'
-    tpc-h-regression-test-pushdown:
-        uses: ./.github/workflows/tpc-h-pushdown.yml
+    tpc-h-regression-test-no-optimizer:
+        uses: ./.github/workflows/tpc-h.yml
         with:
             os-matrix: '["ubuntu-latest"]'
             metadata-matrix: '["zookeeper"]'
-            db-matrix: '["InfluxDB", "FileSystem", "PostgreSQL", "Redis", "MongoDB", "MySQL"]'
+            db-matrix: '["IoTDB12", "InfluxDB", "FileSystem", "PostgreSQL", "Redis", "MongoDB", "MySQL"]'
+            close-optimizer: "true"
