@@ -102,7 +102,7 @@ runs:
               fi
 
         - name: Change UDF conf
-          shell: bash
+          shell: bash -el {0}
           run: |
               if [[ "${{ inputs.use-free-thread-python }}" == "true" && "$RUNNER_OS" != "Windows" ]]; then
                 pythonCMD='python3.13t'
@@ -112,12 +112,13 @@ runs:
                 pythonCMD="${pythonPath}/python3.13t.exe"
                 echo "TORCH_SUPPORTED=false" >> $GITHUB_ENV
               elif [ "$RUNNER_OS" == "Windows" ]; then
-                pythonCMD='python'
+                pythonCMD=$(which python)
               else
-                pythonCMD='python3'
+                pythonCMD=$(which python3)
               fi
               # have to set env to make it work in ut tests
               echo "pythonCMD=${pythonCMD}" >> $GITHUB_ENV
+              ${pythonCMD} --version
               if [ "$RUNNER_OS" == "Linux" ]; then
                 sudo sed -i "s/needInitBasicUDFFunctions=false/needInitBasicUDFFunctions=true/g" ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
                 sudo sed -i "s/pythonCMD=python3/pythonCMD=${pythonCMD}/g" ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
