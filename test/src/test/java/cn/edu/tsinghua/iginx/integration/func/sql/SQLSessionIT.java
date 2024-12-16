@@ -9393,14 +9393,10 @@ public class SQLSessionIT {
   @Test
   public void testAggPushdown() {
     if (isScaling) return;
-    String insert = "INSERT INTO test.a(key, a, b, c)";
+    String insert = "INSERT INTO test(key, a.a, a.b, a.c, b.a, b.b, b.c)";
     insert +=
-        " VALUES (1, 1, 1.1, true), (2, 2, 2.2, false), (3, 3, 3.3, true), (4, 4, 4.4, false);";
+        " VALUES (1, 1, 1.1, true, 1, 1.1, true), (2, 2, 2.2, false, 2, 2.2, false), (3, 1, 2.2, true, 1, 1.1, true), (4, 2, 1.1, false, 2, 2.2, false);";
     executor.execute(insert);
-    String insert2 = "INSERT INTO test.b(key, a, b, c)";
-    insert2 +=
-        " VALUES (1, 1, 1.1, true), (2, 2, 2.2, false), (3, 3, 3.3, true), (4, 4, 4.4, false);";
-    executor.execute(insert2);
 
     String openRule = "SET RULES AggPushDownRule=on;";
     String closeRule = "SET RULES AggPushDownRule=off;";
@@ -9464,6 +9460,7 @@ public class SQLSessionIT {
             + "+----------------------+----------------+---------------------------------------------------------------------------------------------------------+\n"
             + "Total line number = 7\n";
     executor.execute(openRule);
+    openRes = executor.execute(statement);
     executor.executeAndCompare(explain, expected);
     expected =
         "ResultSets:\n"
@@ -9481,6 +9478,8 @@ public class SQLSessionIT {
             + "Total line number = 7\n";
     executor.execute(closeRule);
     executor.executeAndCompare(explain, expected);
+    closeRes = executor.execute(statement);
+    assertEquals(openRes, closeRes);
 
     statement =
         "SELECT sum(test.a.a) FROM (SELECT a , b FROM test.a ORDER BY b) GROUP BY test.b.b;";
@@ -9500,6 +9499,7 @@ public class SQLSessionIT {
             + "Total line number = 6\n";
     executor.execute(openRule);
     executor.executeAndCompare(explain, expected);
+    openRes = executor.execute(statement);
     expected =
         "ResultSets:\n"
             + "+----------------------+----------------+---------------------------------------------------------------------------------------------------------+\n"
@@ -9516,50 +9516,103 @@ public class SQLSessionIT {
             + "Total line number = 7\n";
     executor.execute(closeRule);
     executor.executeAndCompare(explain, expected);
+    closeRes = executor.execute(statement);
+    assertEquals(openRes, closeRes);
 
     statement =
-        "SELECT sum(test.a.a) FROM (SELECT a, b, c FROM test.a UNION SELECT a, b, c FROM test.b) GROUP BY test.a.b;";
+        "SELECT sum(test.a.a) FROM (SELECT a, b, c FROM test.a UNION SELECT a, b, c FROM test.b) GROUP BY test.a.b ORDER BY test.a.b;";
     explain = "EXPLAIN " + statement;
     expected =
         "ResultSets:\n"
-            + "+--------------------------+----------------+---------------------------------------------------------------------------------------------------------+\n"
-            + "|              Logical Tree|   Operator Type|                                                                                            Operator Info|\n"
-            + "+--------------------------+----------------+---------------------------------------------------------------------------------------------------------+\n"
-            + "|RemoveNullColumn          |RemoveNullColumn|                                                                                         RemoveNullColumn|\n"
-            + "|  +--Reorder              |         Reorder|                                                                                     Order: sum(test.a.a)|\n"
-            + "|    +--Rename             |          Rename|                                                           AliasList: (sum(sum(test.a.a)), sum(test.a.a))|\n"
-            + "|      +--GroupBy          |         GroupBy|GroupByCols: test.a.b, FuncList(Name, FuncType): (sum, System), MappingType: SetMapping isDistinct: false|\n"
-            + "|        +--Union          |           Union|                  LeftOrder: test.a.b,sum(test.a.a), RightOrder: test.b.b,sum(test.b.a), isDistinct: true|\n"
-            + "|          +--Reorder      |         Reorder|                                                                            Order: test.a.b,sum(test.a.a)|\n"
-            + "|            +--Project    |         Project|                                                                         Patterns: test.a.b,sum(test.a.a)|\n"
-            + "|              +--GroupBy  |         GroupBy|GroupByCols: test.a.b, FuncList(Name, FuncType): (sum, System), MappingType: SetMapping isDistinct: false|\n"
-            + "|                +--Project|         Project|                                                   Patterns: test.a.a,test.a.b, Target DU: unit0000000002|\n"
-            + "|          +--Reorder      |         Reorder|                                                                            Order: test.b.b,sum(test.b.a)|\n"
-            + "|            +--Project    |         Project|                                                                         Patterns: test.b.b,sum(test.b.a)|\n"
-            + "|              +--GroupBy  |         GroupBy|GroupByCols: test.b.b, FuncList(Name, FuncType): (sum, System), MappingType: SetMapping isDistinct: false|\n"
-            + "|                +--Project|         Project|                                                   Patterns: test.b.a,test.b.b, Target DU: unit0000000002|\n"
-            + "+--------------------------+----------------+---------------------------------------------------------------------------------------------------------+\n"
+            + "+----------------------------+----------------+---------------------------------------------------------------------------------------------------------+\n"
+            + "|                Logical Tree|   Operator Type|                                                                                            Operator Info|\n"
+            + "+----------------------------+----------------+---------------------------------------------------------------------------------------------------------+\n"
+            + "|RemoveNullColumn            |RemoveNullColumn|                                                                                         RemoveNullColumn|\n"
+            + "|  +--Reorder                |         Reorder|                                                                                     Order: sum(test.a.a)|\n"
+            + "|    +--Sort                 |            Sort|                                                                          SortBy: test.a.b, SortType: ASC|\n"
+            + "|      +--Rename             |          Rename|                                                           AliasList: (sum(sum(test.a.a)), sum(test.a.a))|\n"
+            + "|        +--GroupBy          |         GroupBy|GroupByCols: test.a.b, FuncList(Name, FuncType): (sum, System), MappingType: SetMapping isDistinct: false|\n"
+            + "|          +--Union          |           Union|                  LeftOrder: test.a.b,sum(test.a.a), RightOrder: test.b.b,sum(test.b.a), isDistinct: true|\n"
+            + "|            +--Reorder      |         Reorder|                                                                            Order: test.a.b,sum(test.a.a)|\n"
+            + "|              +--Project    |         Project|                                                                         Patterns: test.a.b,sum(test.a.a)|\n"
+            + "|                +--GroupBy  |         GroupBy|GroupByCols: test.a.b, FuncList(Name, FuncType): (sum, System), MappingType: SetMapping isDistinct: false|\n"
+            + "|                  +--Project|         Project|                                                   Patterns: test.a.a,test.a.b, Target DU: unit0000000002|\n"
+            + "|            +--Reorder      |         Reorder|                                                                            Order: test.b.b,sum(test.b.a)|\n"
+            + "|              +--Project    |         Project|                                                                         Patterns: test.b.b,sum(test.b.a)|\n"
+            + "|                +--GroupBy  |         GroupBy|GroupByCols: test.b.b, FuncList(Name, FuncType): (sum, System), MappingType: SetMapping isDistinct: false|\n"
+            + "|                  +--Project|         Project|                                                   Patterns: test.b.a,test.b.b, Target DU: unit0000000002|\n"
+            + "+----------------------------+----------------+---------------------------------------------------------------------------------------------------------+\n"
+            + "Total line number = 14\n";
+    executor.execute(openRule);
+    executor.executeAndCompare(explain, expected);
+    openRes = executor.execute(statement);
+    expected =
+        "ResultSets:\n"
+            + "+------------------------+----------------+---------------------------------------------------------------------------------------------------------+\n"
+            + "|            Logical Tree|   Operator Type|                                                                                            Operator Info|\n"
+            + "+------------------------+----------------+---------------------------------------------------------------------------------------------------------+\n"
+            + "|RemoveNullColumn        |RemoveNullColumn|                                                                                         RemoveNullColumn|\n"
+            + "|  +--Reorder            |         Reorder|                                                                                     Order: sum(test.a.a)|\n"
+            + "|    +--Sort             |            Sort|                                                                          SortBy: test.a.b, SortType: ASC|\n"
+            + "|      +--GroupBy        |         GroupBy|GroupByCols: test.a.b, FuncList(Name, FuncType): (sum, System), MappingType: SetMapping isDistinct: false|\n"
+            + "|        +--Union        |           Union|                            LeftOrder: test.a.a,test.a.b, RightOrder: test.b.a,test.b.b, isDistinct: true|\n"
+            + "|          +--Reorder    |         Reorder|                                                                                 Order: test.a.a,test.a.b|\n"
+            + "|            +--Project  |         Project|                                                                              Patterns: test.a.a,test.a.b|\n"
+            + "|              +--Project|         Project|                                                   Patterns: test.a.a,test.a.b, Target DU: unit0000000002|\n"
+            + "|          +--Reorder    |         Reorder|                                                                                 Order: test.b.a,test.b.b|\n"
+            + "|            +--Project  |         Project|                                                                              Patterns: test.b.a,test.b.b|\n"
+            + "|              +--Project|         Project|                                                   Patterns: test.b.a,test.b.b, Target DU: unit0000000002|\n"
+            + "+------------------------+----------------+---------------------------------------------------------------------------------------------------------+\n"
+            + "Total line number = 11\n";
+    executor.execute(closeRule);
+    executor.executeAndCompare(explain, expected);
+    closeRes = executor.execute(statement);
+    assertEquals(openRes, closeRes);
+
+    statement =
+        "explain SELECT count(DISTINCT test.a.b), count(DISTINCT test.b.b) FROM (SELECT * FROM test.a JOIN test.b ON test.a.a = test.b.a) GROUP BY test.a.a;";
+    explain = "EXPLAIN " + statement;
+    expected =
+        "ResultSets:\n"
+            + "+----------------------------+----------------+--------------------------------------------------------------------------------------------------------------------------------+\n"
+            + "|                Logical Tree|   Operator Type|                                                                                                                   Operator Info|\n"
+            + "+----------------------------+----------------+--------------------------------------------------------------------------------------------------------------------------------+\n"
+            + "|RemoveNullColumn            |RemoveNullColumn|                                                                                                                RemoveNullColumn|\n"
+            + "|  +--Reorder                |         Reorder|                                                                        Order: count(distinct test.a.b),count(distinct test.b.b)|\n"
+            + "|    +--Reorder              |         Reorder|                                                               Order: test.a.a,count(distinct test.a.b),count(distinct test.b.b)|\n"
+            + "|      +--Project            |         Project|                                                            Patterns: test.a.a,count(distinct test.a.b),count(distinct test.b.b)|\n"
+            + "|        +--Rename           |          Rename|AliasList: (count(distinct count_test_a_b), count(distinct test.a.b)),(count(distinct count_test_b_b), count(distinct test.b.b))|\n"
+            + "|          +--GroupBy        |         GroupBy|      GroupByCols: test.a.a, FuncList(Name, FuncType): (count, System),(count, System), MappingType: SetMapping isDistinct: true|\n"
+            + "|            +--InnerJoin    |       InnerJoin|                                                PrefixA: test.a, PrefixB: test.b, IsNatural: false, Filter: test.a.a == test.b.a|\n"
+            + "|              +--Rename     |          Rename|                                                                           AliasList: (count(distinct test.a.b), count_test_a_b)|\n"
+            + "|                +--GroupBy  |         GroupBy|                      GroupByCols: test.a.a, FuncList(Name, FuncType): (count, System), MappingType: SetMapping isDistinct: true|\n"
+            + "|                  +--Project|         Project|                                                                          Patterns: test.a.a,test.a.b, Target DU: unit0000000002|\n"
+            + "|              +--Rename     |          Rename|                                                                           AliasList: (count(distinct test.b.b), count_test_b_b)|\n"
+            + "|                +--GroupBy  |         GroupBy|                      GroupByCols: test.b.a, FuncList(Name, FuncType): (count, System), MappingType: SetMapping isDistinct: true|\n"
+            + "|                  +--Project|         Project|                                                                          Patterns: test.b.a,test.b.b, Target DU: unit0000000002|\n"
+            + "+----------------------------+----------------+--------------------------------------------------------------------------------------------------------------------------------+\n"
             + "Total line number = 13\n";
     executor.execute(openRule);
     executor.executeAndCompare(explain, expected);
+    openRes = executor.execute(statement);
     expected =
         "ResultSets:\n"
-            + "+----------------------+----------------+---------------------------------------------------------------------------------------------------------+\n"
-            + "|          Logical Tree|   Operator Type|                                                                                            Operator Info|\n"
-            + "+----------------------+----------------+---------------------------------------------------------------------------------------------------------+\n"
-            + "|RemoveNullColumn      |RemoveNullColumn|                                                                                         RemoveNullColumn|\n"
-            + "|  +--Reorder          |         Reorder|                                                                                     Order: sum(test.a.a)|\n"
-            + "|    +--GroupBy        |         GroupBy|GroupByCols: test.a.b, FuncList(Name, FuncType): (sum, System), MappingType: SetMapping isDistinct: false|\n"
-            + "|      +--Union        |           Union|                            LeftOrder: test.a.a,test.a.b, RightOrder: test.b.a,test.b.b, isDistinct: true|\n"
-            + "|        +--Reorder    |         Reorder|                                                                                 Order: test.a.a,test.a.b|\n"
-            + "|          +--Project  |         Project|                                                                              Patterns: test.a.a,test.a.b|\n"
-            + "|            +--Project|         Project|                                                   Patterns: test.a.a,test.a.b, Target DU: unit0000000002|\n"
-            + "|        +--Reorder    |         Reorder|                                                                                 Order: test.b.a,test.b.b|\n"
-            + "|          +--Project  |         Project|                                                                              Patterns: test.b.a,test.b.b|\n"
-            + "|            +--Project|         Project|                                                   Patterns: test.b.a,test.b.b, Target DU: unit0000000002|\n"
-            + "+----------------------+----------------+---------------------------------------------------------------------------------------------------------+\n"
-            + "Total line number = 10\n";
-    executor.execute(closeRule);
+            + "+----------------------+----------------+--------------------------------------------------------------------------------------------------------------------------+\n"
+            + "|          Logical Tree|   Operator Type|                                                                                                             Operator Info|\n"
+            + "+----------------------+----------------+--------------------------------------------------------------------------------------------------------------------------+\n"
+            + "|RemoveNullColumn      |RemoveNullColumn|                                                                                                          RemoveNullColumn|\n"
+            + "|  +--Reorder          |         Reorder|                                                                  Order: count(distinct test.a.b),count(distinct test.b.b)|\n"
+            + "|    +--GroupBy        |         GroupBy|GroupByCols: test.a.a, FuncList(Name, FuncType): (count, System),(count, System), MappingType: SetMapping isDistinct: true|\n"
+            + "|      +--Reorder      |         Reorder|                                                                                         Order: test.a.a,test.a.b,test.b.b|\n"
+            + "|        +--Project    |         Project|                                                                                      Patterns: test.a.a,test.a.b,test.b.b|\n"
+            + "|          +--InnerJoin|       InnerJoin|                                          PrefixA: test.a, PrefixB: test.b, IsNatural: false, Filter: test.a.a == test.b.a|\n"
+            + "|            +--Project|         Project|                                                                    Patterns: test.a.a,test.a.b, Target DU: unit0000000002|\n"
+            + "|            +--Project|         Project|                                                                    Patterns: test.b.a,test.b.b, Target DU: unit0000000002|\n"
+            + "+----------------------+----------------+--------------------------------------------------------------------------------------------------------------------------+\n"
+            + "Total line number = 8\n";
     executor.executeAndCompare(explain, expected);
+    closeRes = executor.execute(statement);
+    executor.execute(closeRule);
+    assertEquals(openRes, closeRes);
   }
 }
