@@ -33,7 +33,6 @@ on:
                 type: string
                 required: false
                 default: "false"
->>>>>>> origin/main
 
 jobs:
     TPC-H-Test:

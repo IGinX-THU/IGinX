@@ -84,9 +84,10 @@ public class StorageEngineClassLoader extends ClassLoader {
     } else {
       clazz = super.loadClass(name, resolve);
     }
-    if (clazz != null) {
-      classMap.put(name, clazz);
+    if (clazz == null) {
+      throw new ClassNotFoundException(name);
     }
+    classMap.put(name, clazz);
     return clazz;
   }
 
