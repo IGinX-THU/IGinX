@@ -112,7 +112,9 @@ runs:
                 pythonCMD="${pythonPath}/python3.13t.exe"
                 echo "TORCH_SUPPORTED=false" >> $GITHUB_ENV
               elif [ "$RUNNER_OS" == "Windows" ]; then
-                pythonCMD=$(which python)
+                path=$(which python)
+                drive_letter=$(echo ${path:1:1} | tr '[:lower:]' '[:upper:]')
+                pythonCMD="${drive_letter}:${path:2}"
               else
                 pythonCMD=$(which python3)
               fi
