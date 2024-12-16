@@ -71,18 +71,19 @@ import com.zaxxer.hikari.HikariDataSource;
 import com.zaxxer.hikari.pool.HikariPool;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.sql.Connection;
-import java.sql.DatabaseMetaData;
-import java.sql.DriverManager;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.sql.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -208,39 +209,41 @@ public class RelationalStorage implements IStorage {
 
   private void buildRelationalMeta() throws RelationalTaskExecuteFailureException {
     String engineName = meta.getExtraParams().get("engine");
+    if (engineName == null) {
+      throw new RelationalTaskExecuteFailureException("engine name is not provided");
+    }
     // load jdbc meta from properties file
     String propertiesPath = meta.getExtraParams().get("meta_properties_path");
-    if (propertiesPath == null) {
-      if (!metaPathMap.containsKey(engineName)) {
-        // no default .properties exists & not provided by user
-        throw new RelationalTaskExecuteFailureException(
-            String.format(
-                "A meta config .properties file must be provided for engine %s as 'meta_properties_path'.",
-                engineName));
-      } else {
-        // load default .properties
-        try (InputStream propertiesIS =
-            this.getClass().getClassLoader().getResourceAsStream(metaPathMap.get(engineName))) {
-          if (propertiesIS == null) {
-            throw new RelationalTaskExecuteFailureException(
-                String.format(
-                    "failed to find default meta properties %s for engine %s",
-                    metaPathMap.get(engineName), engineName));
-          }
-          relationalMeta = new JDBCMeta(meta, propertiesIS);
-        } catch (IOException e) {
-          throw new RelationalTaskExecuteFailureException(
-              String.format("failed to load default meta properties for engine %s", engineName), e);
-        }
-      }
-    } else {
-      // load user-provided .properties
-      try {
-        relationalMeta = new JDBCMeta(meta, propertiesPath);
+    try {
+      Properties properties = getProperties(engineName, propertiesPath);
+      relationalMeta = new JDBCMeta(meta, properties);
+    } catch (IOException | URISyntaxException e) {
+      throw new RelationalTaskExecuteFailureException("failed to load meta properties", e);
+    }
+  }
+
+  private Properties getProperties(String engine, @Nullable String propertiesPath)
+      throws URISyntaxException, IOException {
+    if (propertiesPath != null) {
+      try (InputStream propertiesIS = Files.newInputStream(Paths.get(propertiesPath))) {
+        Properties properties = new Properties();
+        properties.load(propertiesIS);
+        return properties;
       } catch (IOException e) {
-        throw new RelationalTaskExecuteFailureException(
-            String.format("engine %s is not supported", engineName), e);
+        LOGGER.warn("failed to load properties from path: {}", propertiesPath, e);
       }
+    }
+
+    String metaFileName = engine.toLowerCase() + META_TEMPLATE_SUFFIX;
+    LOGGER.info("loading engine '{}' default properties from class path: {}", engine, metaFileName);
+    URL url = getClass().getClassLoader().getResource(metaFileName);
+    if (url == null) {
+      throw new IOException("cannot find default meta properties file: " + metaFileName);
+    }
+    try (InputStream propertiesIS = url.openStream()) {
+      Properties properties = new Properties();
+      properties.load(propertiesIS);
+      return properties;
     }
   }
 
