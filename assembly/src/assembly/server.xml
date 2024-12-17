@@ -35,6 +35,5 @@
         <componentDescriptor>src/assembly/component/iginx-mongodb-driver.xml</componentDescriptor>
         <componentDescriptor>src/assembly/component/iginx-relational-driver.xml</componentDescriptor>
         <componentDescriptor>src/assembly/component/iginx-redis-driver.xml</componentDescriptor>
-        <componentDescriptor>src/assembly/component/iginx-vectordb-driver.xml</componentDescriptor>
     </componentDescriptors>
 </assembly>
