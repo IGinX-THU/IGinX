@@ -404,10 +404,6 @@ public class Controller {
             .get(StorageEngineType.valueOf(testConfLoader.getStorageType(false).toLowerCase())),
         TEST_TASK_FILE);
     // run the test together
-    if ("VectorDB".equalsIgnoreCase(testConfLoader.getStorageType())) {
-      shellRunner.runShellCommandOnWindows(MVN_RUN_TEST);
-    } else {
-      shellRunner.runShellCommand(MVN_RUN_TEST);
-    }
+    shellRunner.runShellCommand(MVN_RUN_TEST);
   }
 }
