@@ -35,16 +35,16 @@ import org.slf4j.LoggerFactory;
 public class EmailNotifier {
   private static final Logger LOGGER = LoggerFactory.getLogger(EmailNotifier.class);
 
-  static {
-    System.setProperty("mail.smtp.ssl.trust", "localhost 127.0.0.1");
-  }
-
   private final String hostName;
   private final String smtpPort;
   private final String username;
   private final String password;
   private final String from;
   private final List<String> to;
+
+  static {
+    System.setProperty("mail.smtp.ssl.trust", "*");
+  }
 
   public EmailNotifier(
       String hostName,
@@ -66,10 +66,12 @@ public class EmailNotifier {
 
     Email email = new SimpleEmail();
     email.setSSLOnConnect(true);
+    email.setStartTLSEnabled(true);
     if (hostName != null) {
       email.setHostName(hostName);
     }
     if (smtpPort != null) {
+      email.setStartTLSEnabled(true);
       email.setSslSmtpPort(smtpPort);
     }
     if (username != null && password != null) {
