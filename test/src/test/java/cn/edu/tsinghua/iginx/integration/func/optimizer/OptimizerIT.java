@@ -1780,4 +1780,22 @@ public class OptimizerIT {
     assertTrue(
         closeExplain.contains("us.*.s1 &!= 1 && us.*.s1 &!= 2 && us.*.s1 != 3 && us.*.s1 != 4"));
   }
+
+  @Test
+  public void testAllowNullColumnRule() {
+    Assume.assumeTrue(isOptimizerOpen);
+    String openRule = "SET RULES AllowNullColumnRule=on;";
+    String closeRule = "SET RULES AllowNullColumnRule=off;";
+    String statement = "SELECT * FROM us.d1 WHERE s1 = 1;";
+
+    executor.execute(openRule);
+    String openExplain = executor.execute("EXPLAIN " + statement);
+    LOGGER.info("openExplain: \n" + openExplain);
+    Assert.assertFalse(openExplain.contains("RemoveNullColumn"));
+
+    executor.execute(closeRule);
+    String closeExplain = executor.execute("EXPLAIN " + statement);
+    LOGGER.info("closeExplain: \n" + closeExplain);
+    Assert.assertTrue(closeExplain.contains("RemoveNullColumn"));
+  }
 }
