@@ -19,20 +19,27 @@
  */
 package cn.edu.tsinghua.iginx.transform.pojo;
 
+import cn.edu.tsinghua.iginx.notice.EmailNotifier;
 import cn.edu.tsinghua.iginx.thrift.*;
 import cn.edu.tsinghua.iginx.transform.api.Stage;
 import cn.edu.tsinghua.iginx.transform.data.*;
+import cn.edu.tsinghua.iginx.utils.EmailFromYAML;
 import cn.edu.tsinghua.iginx.utils.JobFromYAML;
 import cn.edu.tsinghua.iginx.utils.TaskFromYAML;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.Data;
+import org.apache.commons.mail.EmailException;
 import org.quartz.Trigger;
 import org.quartz.TriggerBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Data
 public class Job {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(Job.class);
 
   private long jobId;
 
@@ -50,6 +57,7 @@ public class Job {
 
   private final List<Task> taskList;
   private final List<Stage> stageList;
+  private EmailNotifier notifier = null;
 
   private boolean scheduled = false;
   private String scheduleStr = null;
@@ -173,6 +181,41 @@ public class Job {
       scheduleStr = jobFromYAML.getSchedule();
     } else {
       trigger = TriggerBuilder.newTrigger().startNow().build();
+    }
+
+    if (jobFromYAML.getNotification() != null) {
+      EmailFromYAML emailFromYAML = jobFromYAML.getNotification().getEmail();
+      if (emailFromYAML != null) {
+        notifier =
+            new EmailNotifier(
+                emailFromYAML.getHostName(),
+                emailFromYAML.getSmtpPort(),
+                emailFromYAML.getUserName(),
+                emailFromYAML.getPassword(),
+                emailFromYAML.getFrom(),
+                emailFromYAML.getTo());
+      }
+    }
+  }
+
+  public void setState(JobState state) {
+    this.state = state;
+    switch (state) {
+      case JOB_FINISHED:
+      case JOB_FAILED:
+        try {
+          sendEmail();
+        } catch (Exception e) {
+          LOGGER.error(
+              "Fail to send email notification for job {} to {}, because", jobId, notifier, e);
+        }
+    }
+  }
+
+  public void sendEmail() throws EmailException {
+    EmailNotifier emailNotifier = getNotifier();
+    if (emailNotifier != null) {
+      emailNotifier.send(this);
     }
   }
 

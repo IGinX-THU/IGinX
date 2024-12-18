@@ -1,0 +1,16 @@
+---
+taskList:
+- taskType: "iginx"
+  timeout: 10000000
+  sqlList:
+  - "SHOW COLUMNS;"
+exportType: "none"
+notification:
+  email:
+    hostName: "127.0.0.1"
+    smtpPort: "3465"
+    userName: "from@localhost"
+    password: "password"
+    from: "from@localhost"
+    to:
+      - "to@localhost"

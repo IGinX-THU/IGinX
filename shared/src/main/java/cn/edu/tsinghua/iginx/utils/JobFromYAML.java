@@ -27,6 +27,7 @@ public class JobFromYAML {
   private String exportFile;
   private String exportType;
   private String schedule;
+  private NotificationFromYAML notification;
 
   public JobFromYAML() {}
 
@@ -60,5 +61,13 @@ public class JobFromYAML {
 
   public void setSchedule(String schedule) {
     this.schedule = schedule;
+  }
+
+  public NotificationFromYAML getNotification() {
+    return notification;
+  }
+
+  public void setNotification(NotificationFromYAML notification) {
+    this.notification = notification;
   }
 }

@@ -7108,14 +7108,7 @@ public class SQLSessionIT {
                 "maxTimeseriesLength",
                 "batchSize",
                 "parallelGroupByPoolSize",
-                "username",
-                "enableEmailNotification",
-                "mailSmtpHost",
-                "mailSmtpPort",
-                "mailSmtpUser",
-                "mailSmtpPassword",
-                "mailSender",
-                "mailRecipient"));
+                "username"));
 
     assertEquals(expectedConfigNames, configs.keySet());
   }
