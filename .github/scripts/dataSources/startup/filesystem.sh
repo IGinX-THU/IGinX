@@ -22,9 +22,9 @@ set -e
 
 cp -f conf/config.properties.bak $7
 
-sed -i"" -e "s/^storageEngineList=127.0.0.1#6667#iotdb12/#storageEngineList=127.0.0.1#6667#iotdb12/" $7
+sed -i"" -e "s/^storageEngineList/#storageEngineList/" $7
 
-sed -i"" -e "s/^#storageEngineList=127.0.0.1#6667#filesystem/storageEngineList=127.0.0.1#$1#filesystem/g" $7
+sed -i"" -e "s/^#storageEngineList=127.0.0.1#[0-9]*#filesystem/storageEngineList=127.0.0.1#$1#filesystem/g" $7
 
 sed -i"" -e "s/#iginx_port=6888#/#iginx_port=$2#/g" $7
 

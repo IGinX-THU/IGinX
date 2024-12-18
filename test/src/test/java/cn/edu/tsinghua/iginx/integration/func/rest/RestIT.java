@@ -142,18 +142,18 @@ public class RestIT {
     StringBuilder ret = new StringBuilder();
     if (type.equals(TYPE.DELETE_METRIC)) {
       ret.append("curl -XDELETE");
-      ret.append(" http://127.0.0.1:6666/api/v1/metric/{");
+      ret.append(" http://127.0.0.1:7888/api/v1/metric/{");
       ret.append(json);
       ret.append("}");
     } else {
       ret.append("curl -XPOST -H\"Content-Type: application/json\" -d @");
       ret.append(json);
       if (type.equals(TYPE.QUERY)) {
-        ret.append(" http://127.0.0.1:6666/api/v1/datapoints/query");
+        ret.append(" http://127.0.0.1:7888/api/v1/datapoints/query");
       } else if (type.equals(TYPE.INSERT)) {
-        ret.append(" http://127.0.0.1:6666/api/v1/datapoints");
+        ret.append(" http://127.0.0.1:7888/api/v1/datapoints");
       } else if (type.equals(TYPE.DELETE)) {
-        ret.append(" http://127.0.0.1:6666/api/v1/datapoints/delete");
+        ret.append(" http://127.0.0.1:7888/api/v1/datapoints/delete");
       }
     }
     return ret.toString();

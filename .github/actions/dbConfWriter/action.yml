@@ -57,7 +57,7 @@ runs:
           with:
               paths: ${{ inputs.Root-Dir-Path }}/conf/config.properties
               statements: |
-                  s/^#storageEngineList=127.0.0.1#6667#filesystem/storageEngineList=127.0.0.1#6667#filesystem/g
+                  s/^#storageEngineList=127.0.0.1#[0-9]*#filesystem/storageEngineList=127.0.0.1#6668#filesystem/g
                   s#dir=data#dir=${PWD}/test/iginx_mn#g
                   s/data.config.write.buffer.size=104857600/data.config.write.buffer.size=1048576/g
                   s/write.buffer.size=104857600/write.buffer.size=1048576/g
