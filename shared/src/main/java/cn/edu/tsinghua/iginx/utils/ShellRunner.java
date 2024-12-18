@@ -35,7 +35,7 @@ public class ShellRunner {
     try {
       ProcessBuilder builder = new ProcessBuilder();
       if (isOnWin()) {;
-        builder.command((isCommandOnPath("bash") ? "bash" : BASH_PATH), command);
+        builder.command(BASH_PATH, command);
       } else {
         builder.command(command);
       }
