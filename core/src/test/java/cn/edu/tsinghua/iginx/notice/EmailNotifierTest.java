@@ -31,8 +31,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import javax.mail.MessagingException;
 import javax.mail.internet.MimeMessage;
-import org.apache.commons.mail.EmailException;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -44,6 +44,11 @@ public class EmailNotifierTest {
 
   @Rule public final GreenMailRule greenMail = new GreenMailRule(ServerSetupTest.SMTPS);
 
+  @BeforeClass
+  public static void setUp() {
+    System.setProperty("mail.smtp.ssl.trust", "127.0.0.1");
+  }
+
   EmailNotifier emailNotifier;
 
   @Before
@@ -51,16 +56,19 @@ public class EmailNotifierTest {
     greenMail.setUser("from@localhost", "password");
     emailNotifier =
         new EmailNotifier(
-            "localhost",
-            "3465",
+            true,
+            "127.0.0.1",
+            3465,
             "from@localhost",
             "password",
             "from@localhost",
-            Collections.singletonList("to@localhost"));
+            "to@localhost",
+            "localhost",
+            6888);
   }
 
   @Test
-  public void testSendEmail() throws MessagingException, EmailException {
+  public void testSendEmail() throws MessagingException {
     emailNotifier.sendEmail("subject", "body");
     assertEquals(1, greenMail.getReceivedMessages().length);
     MimeMessage mimeMessage = greenMail.getReceivedMessages()[0];
@@ -72,7 +80,7 @@ public class EmailNotifierTest {
   }
 
   @Test
-  public void testNotifyJobState() throws MessagingException, EmailException {
+  public void testNotifyJobState() throws MessagingException {
     JobFromYAML jobFromYAML = new JobFromYAML();
     jobFromYAML.setExportType("csv");
     jobFromYAML.setTaskList(Collections.emptyList());
@@ -88,7 +96,7 @@ public class EmailNotifierTest {
   }
 
   @Test
-  public void testNotifyJobStateException() throws MessagingException, EmailException {
+  public void testNotifyJobStateException() throws MessagingException {
     JobFromYAML jobFromYAML = new JobFromYAML();
     jobFromYAML.setExportType("csv");
     jobFromYAML.setTaskList(Collections.emptyList());
