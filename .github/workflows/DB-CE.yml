@@ -48,10 +48,10 @@ jobs:
                 metadata: ${{ fromJSON(inputs.metadata-matrix) }}
                 DB-name: ${{ fromJSON(inputs.db-matrix) }}
                 exclude:
-                  - DB-name: VectorDB
-                    os: ubuntu-latest
-                  - DB-name: VectorDB
-                    os: macos-latest
+                    - DB-name: VectorDB
+                      os: ubuntu-latest
+                    - DB-name: VectorDB
+                      os: macos-latest
         runs-on: ${{ matrix.os }}
         env:
             METADATA_STORAGE: ${{ matrix.metadata }}
