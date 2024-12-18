@@ -27,7 +27,12 @@ on:
                 description: "The database to run the test on"
                 type: string
                 required: false
-                default: '["IoTDB12", "InfluxDB", "FileSystem", "PostgreSQL", "Redis", "MongoDB", "MySQL"]'
+                default: '["InfluxDB", "FileSystem", "PostgreSQL", "Redis", "MongoDB", "MySQL"]'
+            close-optimizer:
+                description: "Whether to close the optimizer"
+                type: string
+                required: false
+                default: "false"
 
 jobs:
     TPC-H-Test:
@@ -138,7 +143,8 @@ jobs:
               uses: ./.github/actions/confWriter
               with:
                   DB-name: ${{ matrix.DB-name }}
-                  Set-Filter-Fragment-OFF: "true"
+                  Open-Optimizer: "true"
+                  Close-Optimizer: ${{ inputs.close-optimizer }}
                   Metadata: ${{ matrix.metadata }}
                   Root-Dir-Path: "IGinX"
                   zookeeper-port: "2182"
@@ -151,7 +157,7 @@ jobs:
               uses: ./.github/actions/confWriter
               with:
                   DB-name: ${{ matrix.DB-name }}
-                  Set-Filter-Fragment-OFF: "true"
+                  Close-Optimizer: ${{ inputs.close-optimizer }}
                   Metadata: ${{ matrix.metadata }}
 
             - name: Insert Data into DB

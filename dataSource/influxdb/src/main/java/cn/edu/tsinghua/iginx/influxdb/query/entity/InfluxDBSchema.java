@@ -33,9 +33,30 @@ public class InfluxDBSchema {
   private final Map<String, String> tags;
 
   public InfluxDBSchema(String path, Map<String, String> tags) {
+    this(path, tags, false);
+  }
+
+  public InfluxDBSchema(String path, Map<String, String> tags, boolean isDummy) {
     int index = path.indexOf(".");
-    this.measurement = path.substring(0, index);
-    this.field = path.substring(index + 1);
+    if (isDummy) {
+      String last = path.substring(index + 1);
+      if (last.equals("*")) {
+        this.measurement = "*";
+        this.field = "*";
+      } else {
+        int index2 = path.indexOf(".", index + 1);
+        if (index2 == -1) {
+          this.measurement = path.substring(index + 1);
+          this.field = "";
+        } else {
+          this.measurement = path.substring(index + 1, index2);
+          this.field = path.substring(index2 + 1);
+        }
+      }
+    } else {
+      this.measurement = path.substring(0, index);
+      this.field = path.substring(index + 1);
+    }
 
     if (tags == null) {
       this.tags = Collections.emptyMap();
