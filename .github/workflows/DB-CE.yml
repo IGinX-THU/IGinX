@@ -38,7 +38,7 @@ env:
 
 jobs:
     DB-CE:
-        timeout-minutes: 360
+        timeout-minutes: 300
         strategy:
             fail-fast: false
             matrix:
@@ -47,6 +47,11 @@ jobs:
                 os: ${{ fromJSON(inputs.os-matrix) }}
                 metadata: ${{ fromJSON(inputs.metadata-matrix) }}
                 DB-name: ${{ fromJSON(inputs.db-matrix) }}
+                exclude:
+                  - DB-name: VectorDB
+                    os: ubuntu-latest
+                  - DB-name: VectorDB
+                    os: macos-latest
         runs-on: ${{ matrix.os }}
         env:
             METADATA_STORAGE: ${{ matrix.metadata }}

@@ -31,7 +31,7 @@ on:
 
 jobs:
     Union-DB-Test-Push_Down:
-        timeout-minutes: 300
+        timeout-minutes: 260
         strategy:
             fail-fast: false
             matrix:
