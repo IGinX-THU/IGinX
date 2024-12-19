@@ -76,11 +76,6 @@ public class PemjaDriver {
           String.format("UDF %s not registered in node ip=%s", identifier, config.getIp()));
     }
 
-    //    String pythonCMD = config.getPythonCMD();
-    //    PythonInterpreterConfig config =
-    //
-    // PythonInterpreterConfig.newBuilder().setPythonExec(pythonCMD).addPythonPaths(PATH).build();
-
     PythonInterpreter interpreter = ThreadInterpreterManager.getInterpreter();
     String fileName = taskMeta.getFileName();
     String moduleName = fileName.substring(0, fileName.indexOf(PY_SUFFIX));
