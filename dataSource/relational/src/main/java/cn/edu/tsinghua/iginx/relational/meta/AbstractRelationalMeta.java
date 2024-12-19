@@ -125,15 +125,28 @@ public abstract class AbstractRelationalMeta {
         + getQuote()
         + KEY_NAME
         + getQuote()
-        + " BIGINT NOT NULL, %s %s, PRIMARY KEY("
+        + " %s NOT NULL, %s %s, PRIMARY KEY("
         + getQuote()
         + KEY_NAME
         + getQuote()
-        + "));";
+        + "))"; // TODO 删掉 ；
   }
 
   public abstract String getDropDatabaseStatement();
 
+  public abstract String getCreateDatabaseStatement();
+
+  public abstract String getGrantPrivilegesStatement();
+
+  public abstract String getAlterTableAddColumnStatement();
+
+  public abstract String getAlterTableDropColumnStatement();
+
+  public abstract String getQueryTableStatement();
+
+  public abstract String getQueryTableWithoutKeyStatement();
+
+  public abstract String getUpdateTableStatement();
   /**
    * 在使用JDBC时元数据查询时，是否需要引号
    *

@@ -37,13 +37,13 @@ public abstract class Constants {
 
   public static final String DATABASE_PREFIX = "unit";
 
-  public static final String CREATE_DATABASE_STATEMENT = "CREATE DATABASE %s;";
-
   public static final String QUERY_STATEMENT_WITHOUT_KEYNAME = "SELECT %s FROM %s %s ORDER BY %s;";
 
-  public static final String ADD_COLUMN_STATEMENT = "ALTER TABLE %s ADD COLUMN %s %s;";
+  public static final String ADD_COLUMN_STATEMENT =
+      "ALTER TABLE %s ADD COLUMN %s %s;"; // TODO to be deleted
 
-  public static final String DROP_COLUMN_STATEMENT = "ALTER TABLE %s DROP COLUMN %s;";
+  public static final String DROP_COLUMN_STATEMENT =
+      "ALTER TABLE %s DROP COLUMN %s;"; // TODO to be deleted
 
   public static final Map<String, String> metaPathMap = new HashMap<>();
 
@@ -51,5 +51,6 @@ public abstract class Constants {
   static {
     metaPathMap.put("mysql", "mysql-meta-template.properties");
     metaPathMap.put("postgresql", "postgresql-meta-template.properties");
+    metaPathMap.put("oracle", "oracle-meta-template.properties");
   }
 }

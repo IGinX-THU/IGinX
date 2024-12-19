@@ -49,6 +49,7 @@ public class SQLSessionIT {
 
   // host info
   protected static String defaultTestHost = "127.0.0.1";
+//      protected static String defaultTestHost = "192.168.56.101";
   protected static int defaultTestPort = 6888;
   protected static String defaultTestUser = "root";
   protected static String defaultTestPass = "root";
@@ -251,8 +252,11 @@ public class SQLSessionIT {
 
   @After
   public void clearData() {
-    String clearData = "CLEAR DATA;";
-    executor.execute(clearData);
+      try {
+          String clearData = "CLEAR DATA;";
+          executor.execute(clearData);
+      } catch (Exception ignoreException) {
+      }
   }
 
   @Test
@@ -534,21 +538,33 @@ public class SQLSessionIT {
             + "+---+-------+\n"
             + "Total line number = 5\n";
     executor.executeAndCompare(query, expected);
-
     StringBuilder builder = new StringBuilder();
-    builder.append("INSERT INTO us.d2(key, s1) VALUES ");
-    int size = (int) (endKey - startKey);
-    for (int i = 0; i < size; i++) {
-      builder.append(", (");
-      builder.append(startKey + i).append(", ");
-      builder.append(i + 5);
-      builder.append(")");
+    if(runningEngine.equals("Oracle")){
+      int size = (int) (220 - startKey);
+      for (int i = 0; i < size; i++) {
+        builder.append("INSERT INTO us.d2(key, s1) VALUES ");
+        builder.append(" (");
+        builder.append(startKey + i).append(", ");
+        builder.append(i + 5);
+        builder.append(");");
+
+      insert = builder.toString();
+      executor.execute(insert);
+        builder.setLength(0);
+      }
+    }else{
+      builder.append("INSERT INTO us.d2(key, s1) VALUES ");
+      int size = (int) (endKey - startKey);
+      for (int i = 0; i < size; i++) {
+        builder.append(", (");
+        builder.append(startKey + i).append(", ");
+        builder.append(i + 5);
+        builder.append(")");
+      }
+      builder.append(";");
+      insert = builder.toString();
+      executor.execute(insert);
     }
-    builder.append(";");
-
-    insert = builder.toString();
-    executor.execute(insert);
-
     query = "SELECT s1 FROM us.* WHERE s1 &> 200 and s1 &< 210;";
     expected =
         "ResultSets:\n"
@@ -1020,7 +1036,7 @@ public class SQLSessionIT {
             + "Total line number = 1\n";
     executor.executeAndCompare(statement, expected);
 
-    statement = "SELECT a, COUNT(b), AVG(b), SUM(b), MIN(b), MAX(b) FROM test GROUP BY a;";
+    statement = "SELECT a, COUNT(b), AVG(b), SUM(b), MIN(b), MAX(b) FROM test GROUP BY a ORDER BY a;";
     expected =
         "ResultSets:\n"
             + "+------+-------------+------------------+-----------+-----------+-----------+\n"
@@ -1035,7 +1051,7 @@ public class SQLSessionIT {
     executor.executeAndCompare(statement, expected);
 
     statement =
-        "SELECT a, COUNT(DISTINCT b), AVG(DISTINCT b), SUM(DISTINCT b), MIN(DISTINCT b), MAX(DISTINCT b) FROM test GROUP BY a;";
+        "SELECT a, COUNT(DISTINCT b), AVG(DISTINCT b), SUM(DISTINCT b), MIN(DISTINCT b), MAX(DISTINCT b) FROM test GROUP BY a ORDER BY a;";
     expected =
         "ResultSets:\n"
             + "+------+----------------------+--------------------+--------------------+--------------------+--------------------+\n"

@@ -35,9 +35,11 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.relational.meta.AbstractRelationalMeta;
+import cn.edu.tsinghua.iginx.relational.meta.JDBCMeta;
 import cn.edu.tsinghua.iginx.relational.tools.RelationSchema;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -91,6 +93,27 @@ public class RelationQueryRowStream implements RowStream {
       List<Connection> connList,
       AbstractRelationalMeta relationalMeta)
       throws SQLException {
+    this(
+        databaseNameList,
+        Collections.emptyList(),
+        resultSets,
+        isDummy,
+        filter,
+        tagFilter,
+        connList,
+        relationalMeta);
+  }
+
+  public RelationQueryRowStream(
+      List<String> databaseNameList,
+      List<String> tableNames,
+      List<ResultSet> resultSets,
+      boolean isDummy,
+      Filter filter,
+      TagFilter tagFilter,
+      List<Connection> connList,
+      AbstractRelationalMeta relationalMeta)
+      throws SQLException {
     this.resultSets = resultSets;
     this.isDummy = isDummy;
     this.filter = filter;
@@ -110,17 +133,30 @@ public class RelationQueryRowStream implements RowStream {
     this.fieldToColumnName = new HashMap<>();
     this.resultSetHasColumnWithTheSameName = new ArrayList<>();
 
+    JDBCMeta jdbcMeta = (JDBCMeta) relationalMeta;
+    String engine = jdbcMeta.getStorageEngineMeta().getExtraParams().get("engine");
     for (int i = 0; i < resultSets.size(); i++) {
+
       ResultSetMetaData resultSetMetaData = resultSets.get(i).getMetaData();
 
       Set<String> columnNameSet = new HashSet<>(); // 用于检查该resultSet中是否有同名的column
 
       int cnt = 0;
+      String tableName = "";
+      String columnName = "";
+      String typeName = "";
+      int columnSize = 0;
+      String columnClassName = "";
       for (int j = 1; j <= resultSetMetaData.getColumnCount(); j++) {
-        String tableName = resultSetMetaData.getTableName(j);
-        String columnName = resultSetMetaData.getColumnName(j);
-        String typeName = resultSetMetaData.getColumnTypeName(j);
-
+        columnName = resultSetMetaData.getColumnName(j);
+        typeName = resultSetMetaData.getColumnTypeName(j);
+        if (engine.equals("oracle")) { // TODO 需要重构
+          tableName = tableNames.get(i);
+          columnSize = resultSetMetaData.getPrecision(j);
+          columnClassName = resultSetMetaData.getColumnClassName(j);
+        } else {
+          tableName = resultSetMetaData.getTableName(j);
+        }
         if (j == 1 && columnName.contains(KEY_NAME) && columnName.contains(SEPARATOR)) {
           isPushDown = true;
         }
@@ -147,13 +183,17 @@ public class RelationQueryRowStream implements RowStream {
           field =
               new Field(
                   databaseNameList.get(i) + SEPARATOR + tableName + SEPARATOR + namesAndTags.k,
-                  relationalMeta.getDataTypeTransformer().fromEngineType(typeName),
+                  relationalMeta
+                      .getDataTypeTransformer()
+                      .fromEngineType(typeName, String.valueOf(columnSize), columnClassName),
                   namesAndTags.v);
         } else {
           field =
               new Field(
                   tableName + SEPARATOR + namesAndTags.k,
-                  relationalMeta.getDataTypeTransformer().fromEngineType(typeName),
+                  relationalMeta
+                      .getDataTypeTransformer()
+                      .fromEngineType(typeName, String.valueOf(columnSize), columnClassName),
                   namesAndTags.v);
         }
 
@@ -281,7 +321,19 @@ public class RelationQueryRowStream implements RowStream {
                 if (value instanceof Boolean) {
                   tempValue = value;
                 } else {
-                  tempValue = ((int) value) == 1;
+                  if (value instanceof BigDecimal) {
+                    tempValue = ((BigDecimal) value).intValue() == 1;
+                  } else {
+                    tempValue = ((int) value) == 1;
+                  }
+                }
+              } else if (value instanceof BigDecimal) {
+                if (header.getField(startIndex + j).getType() == DataType.INTEGER) {
+                  tempValue = ((BigDecimal) value).intValue();
+                } else if (header.getField(startIndex + j).getType() == DataType.DOUBLE) {
+                  tempValue = ((BigDecimal) value).doubleValue();
+                } else {
+                  tempValue = ((BigDecimal) value).longValue();
                 }
               } else {
                 tempValue = value;

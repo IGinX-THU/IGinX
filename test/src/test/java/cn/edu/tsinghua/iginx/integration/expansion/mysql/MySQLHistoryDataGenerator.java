@@ -58,12 +58,12 @@ public class MySQLHistoryDataGenerator extends BaseHistoryDataGenerator {
     try {
       String url;
       if (useSystemDatabase) {
-        url = String.format("jdbc:mysql://127.0.0.1:%d/", port);
+        url = String.format("jdbc:mysql://192.168.56.101:%d/", port);
       } else {
-        url = String.format("jdbc:mysql://127.0.0.1:%d/%s", port, databaseName);
+        url = String.format("jdbc:mysql://192.168.56.101:%d/%s", port, databaseName);
       }
       Class.forName("com.mysql.cj.jdbc.Driver");
-      return DriverManager.getConnection(url, "root", null);
+      return DriverManager.getConnection(url, "root", "rootA1234;");
     } catch (SQLException | ClassNotFoundException e) {
       throw new RuntimeException(e);
     }

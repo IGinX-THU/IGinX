@@ -79,7 +79,11 @@ public class StorageEngineClassLoader extends ClassLoader {
     } else {
       clazz = super.loadClass(name, resolve);
     }
-    classMap.put(name, clazz);
+    try {
+      classMap.put(name, clazz);
+    }catch (Exception e){
+      //e.printStackTrace();
+    }
     return clazz;
   }
 

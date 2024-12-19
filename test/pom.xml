@@ -66,6 +66,15 @@
             <groupId>cn.edu.tsinghua</groupId>
             <artifactId>redis</artifactId>
         </dependency>
+        <dependency>
+            <groupId>cn.edu.tsinghua</groupId>
+            <artifactId>iginx-thrift</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>cn.edu.tsinghua</groupId>
+            <artifactId>iginx-thrift</artifactId>
+        </dependency>
     </dependencies>
 
     <repositories>
