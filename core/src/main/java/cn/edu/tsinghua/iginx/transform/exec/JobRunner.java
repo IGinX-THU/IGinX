@@ -23,6 +23,7 @@ import cn.edu.tsinghua.iginx.thrift.DataFlowType;
 import cn.edu.tsinghua.iginx.thrift.JobState;
 import cn.edu.tsinghua.iginx.transform.api.Runner;
 import cn.edu.tsinghua.iginx.transform.api.Stage;
+import cn.edu.tsinghua.iginx.transform.driver.PemjaDriver;
 import cn.edu.tsinghua.iginx.transform.exception.UnknownDataFlowException;
 import cn.edu.tsinghua.iginx.transform.pojo.BatchStage;
 import cn.edu.tsinghua.iginx.transform.pojo.Job;
@@ -31,7 +32,6 @@ import cn.edu.tsinghua.iginx.transform.pojo.TransformJobFinishListener;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import org.quartz.*;
 import org.quartz.impl.StdSchedulerFactory;
 import org.slf4j.Logger;
@@ -88,7 +88,7 @@ public class JobRunner implements Runner {
   public void run() {
     // idle: waiting for scheduler to fire jobs
     job.setState(JobState.JOB_IDLE);
-    ExecutorService executor = Executors.newSingleThreadExecutor();
+    ExecutorService executor = new WorkerThreadPoolExecutor(1, PemjaDriver.getPythonConfig());
     executor.submit(
         // 新起一个线程
         () -> {

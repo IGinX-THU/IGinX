@@ -48,6 +48,7 @@ import cn.edu.tsinghua.iginx.metadata.IMetaManager;
 import cn.edu.tsinghua.iginx.metadata.entity.*;
 import cn.edu.tsinghua.iginx.resource.QueryResourceManager;
 import cn.edu.tsinghua.iginx.thrift.*;
+import cn.edu.tsinghua.iginx.transform.exception.TransformException;
 import cn.edu.tsinghua.iginx.transform.exec.TransformJobManager;
 import cn.edu.tsinghua.iginx.utils.*;
 import java.io.File;
@@ -890,15 +891,19 @@ public class IginxWorker implements IService.Iface {
   @Override
   public ShowEligibleJobResp showEligibleJob(ShowEligibleJobReq req) {
     TransformJobManager manager = TransformJobManager.getInstance();
-    List<Long> jobIdList = manager.showEligibleJob(req.getJobState());
-    return new ShowEligibleJobResp(RpcUtils.SUCCESS, jobIdList);
+    Map<JobState, List<Long>> jobStateMap = manager.showEligibleJob(req.getJobState());
+    return new ShowEligibleJobResp(RpcUtils.SUCCESS, jobStateMap);
   }
 
   @Override
   public Status cancelTransformJob(CancelTransformJobReq req) {
     TransformJobManager manager = TransformJobManager.getInstance();
-    boolean success = manager.cancel(req.getJobId());
-    return success ? RpcUtils.SUCCESS : RpcUtils.FAILURE;
+    try {
+      boolean success = manager.cancel(req.getJobId());
+      return success ? RpcUtils.SUCCESS : RpcUtils.FAILURE;
+    } catch (TransformException e) {
+      return new Status(RpcUtils.FAILURE).setMessage(e.getMessage());
+    }
   }
 
   @Override

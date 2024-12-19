@@ -23,6 +23,7 @@ import cn.edu.tsinghua.iginx.thrift.JobState;
 import cn.edu.tsinghua.iginx.transform.api.Runner;
 import cn.edu.tsinghua.iginx.transform.exception.TransformException;
 import cn.edu.tsinghua.iginx.transform.pojo.Job;
+import java.util.ArrayList;
 import java.util.List;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
@@ -39,7 +40,10 @@ public class ScheduledJob implements org.quartz.Job {
     List<Runner> runnerList = (List<Runner>) context.getMergedJobDataMap().get("runnerList");
 
     job.setState(JobState.JOB_RUNNING);
-    job.getActive().compareAndSet(false, true);
+    if (!job.getActive().compareAndSet(false, true)) {
+      throw unscheduleAllException(
+          "Cannot set active status of job: " + job.getJobId() + ".", null);
+    }
     try {
       for (Runner runner : runnerList) {
         runner.start();
@@ -48,26 +52,43 @@ public class ScheduledJob implements org.quartz.Job {
       }
       if (job.getActive().compareAndSet(true, false)) {
         // wait for next execution
+        // if a trigger has finished all execution, TransformJobFinishListener will handle work
+        // left.
         job.setState(JobState.JOB_IDLE);
         job.setException(null);
       }
-      // if a trigger has finished all execution, TransformJobFinishListener will handle work left.
     } catch (TransformException | SchedulerException e) {
-      job.setState(JobState.JOB_FAILING);
-      job.setException(e);
-      try {
+      if (job.getActive().compareAndSet(true, false)) {
+        job.setState(JobState.JOB_FAILING);
+        job.setException(e);
+        List<Exception> closeExceptions = new ArrayList<>();
         for (Runner runner : runnerList) {
-          runner.close();
+          try {
+            runner.close();
+          } catch (TransformException closeException) {
+            LOGGER.error("Can't close runner for job: {}", job.getJobId(), closeException);
+            closeExceptions.add(closeException);
+          }
         }
-      } catch (TransformException closeException) {
-        LOGGER.error("can't close job: {}", job.getJobId());
+        closeExceptions.forEach(e::addSuppressed);
+        // Quartz will automatically unschedule
+        // all triggers associated with this job
+        // so that it does not run again
+        throw unscheduleAllException(
+            "Unexpected error occurred during execution of job: " + job.getJobId(), e);
       }
-      JobExecutionException e2 = new JobExecutionException(e);
-      // Quartz will automatically unschedule
-      // all triggers associated with this job
-      // so that it does not run again
-      e2.setUnscheduleAllTriggers(true);
-      throw e2;
+      throw unscheduleAllException("Cannot set active status of job: " + job.getJobId() + ".", e);
     }
+  }
+
+  private JobExecutionException unscheduleAllException(String message, Exception e) {
+    JobExecutionException e2;
+    if (e == null) {
+      e2 = new JobExecutionException(message);
+    } else {
+      e2 = new JobExecutionException(message, e);
+    }
+    e2.setUnscheduleAllTriggers(true);
+    return e2;
   }
 }

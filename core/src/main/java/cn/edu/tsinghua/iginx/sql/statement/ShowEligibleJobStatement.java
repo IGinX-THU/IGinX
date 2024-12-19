@@ -28,6 +28,7 @@ import cn.edu.tsinghua.iginx.thrift.ShowEligibleJobReq;
 import cn.edu.tsinghua.iginx.thrift.ShowEligibleJobResp;
 import cn.edu.tsinghua.iginx.utils.RpcUtils;
 import java.util.List;
+import java.util.Map;
 
 public class ShowEligibleJobStatement extends SystemStatement {
 
@@ -44,10 +45,10 @@ public class ShowEligibleJobStatement extends SystemStatement {
   public void execute(RequestContext ctx) throws StatementExecutionException {
     ShowEligibleJobReq req = new ShowEligibleJobReq(ctx.getSessionId(), jobState);
     ShowEligibleJobResp resp = worker.showEligibleJob(req);
-    List<Long> jobIdList = resp.getJobIdList();
+    Map<JobState, List<Long>> jobStateMap = resp.getJobStateMap();
 
     Result result = new Result(RpcUtils.SUCCESS);
-    result.setJobIdList(jobIdList);
+    result.setJobStateMap(jobStateMap);
     ctx.setResult(result);
   }
 }

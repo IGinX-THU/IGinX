@@ -217,7 +217,8 @@ public class TransformIT {
     }
     assertEquals(JobState.JOB_FINISHED, jobState);
 
-    List<Long> finishedJobIds = session.showEligibleJob(JobState.JOB_FINISHED);
+    List<Long> finishedJobIds =
+        session.showEligibleJob(JobState.JOB_FINISHED).get(JobState.JOB_FINISHED);
     assertTrue(finishedJobIds.contains(jobId));
   }
 
@@ -229,7 +230,8 @@ public class TransformIT {
       LOGGER.info("After cancellation, job {} state is {}", jobID, jobState.toString());
       assertEquals(JobState.JOB_CLOSED, jobState);
 
-      List<Long> closedJobIds = session.showEligibleJob(JobState.JOB_CLOSED);
+      List<Long> closedJobIds =
+          session.showEligibleJob(JobState.JOB_CLOSED).get(JobState.JOB_CLOSED);
       assertTrue(closedJobIds.contains(jobID));
     } catch (SessionException e) {
       LOGGER.error("Failed to cancel job: {}", jobID, e);
@@ -954,7 +956,8 @@ public class TransformIT {
       LOGGER.info("After cancellation, job {} state is {}", jobId, jobState.toString());
       assertEquals(JobState.JOB_CLOSED, jobState);
 
-      List<Long> closedJobIds = session.showEligibleJob(JobState.JOB_CLOSED);
+      List<Long> closedJobIds =
+          session.showEligibleJob(JobState.JOB_CLOSED).get(JobState.JOB_CLOSED);
       assertTrue(closedJobIds.contains(jobId));
     } catch (SessionException e) {
       LOGGER.error("Transform:  execute fail. Caused by:", e);

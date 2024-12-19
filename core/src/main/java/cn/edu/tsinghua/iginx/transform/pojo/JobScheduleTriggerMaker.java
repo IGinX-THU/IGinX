@@ -85,10 +85,17 @@ public class JobScheduleTriggerMaker {
   }
 
   /**
-   * 根据调度字符串生成 Quartz Trigger。调度字符串大致可分为以下四种： 1. every 3 second/minute/hour/day/month/year
+   * 根据调度字符串生成 Quartz Trigger。调度字符串大致可分为以下四种：
+   *
+   * <p>1. every 3 second/minute/hour/day/month/year
    * 每隔3秒/分/小时/天/月/年执行一次，可以添加开始时间和结束时间，两个时间必须用单引号包围，例如： every 10 minute starts '2024-02-03 12:00:00'
-   * ends '2024-02-04 12:00:00' 2. after 3 second/minute/hour/day/month/year 在3秒/分/小时/天/月/年后执行一次; 3.
-   * at (yyyy-MM-dd)? HH:mm:ss 在指定时间执行 4. (* * * * * *) cron格式的字符串
+   * ends '2024-02-04 12:00:00'
+   *
+   * <p>2. after 3 second/minute/hour/day/month/year 在3秒/分/小时/天/月/年后执行一次;
+   *
+   * <p>3. at (yyyy-MM-dd)? HH:mm:ss 在指定时间执行
+   *
+   * <p>4. (* * * * * *) cron格式的字符串
    *
    * @param jobSchedule 调度字符串，控制任务执行的时间
    * @return 返回在指定时间触发的Quartz触发器

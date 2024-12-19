@@ -108,6 +108,7 @@ public class Job {
       trigger = JobScheduleTriggerMaker.getTrigger(req.getSchedule());
       scheduled = true;
       scheduleStr = req.getSchedule();
+
     } else {
       // no schedule information provided. job will be fired instantly
       trigger = TriggerBuilder.newTrigger().startNow().build();
