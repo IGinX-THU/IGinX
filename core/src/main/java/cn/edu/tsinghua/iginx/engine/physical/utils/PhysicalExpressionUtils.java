@@ -61,7 +61,7 @@ public class PhysicalExpressionUtils {
       case Function:
         return getPhysicalExpression(context, inputSchema, (FuncExpression) expr, setAlias);
       case Multiple:
-        throw new IllegalArgumentException(String.format("%s not implemented", expr.getType()));
+        return getPhysicalExpression(context, inputSchema, (MultipleExpression) expr, setAlias);
       case Sequence:
       default:
         throw new IllegalArgumentException(String.format("Unknown expr type: %s", expr.getType()));
@@ -221,6 +221,69 @@ public class PhysicalExpressionUtils {
     }
   }
 
+  /**
+   * transform multiple expressions to binary expr tree(balanced) bc arrow does not need flattened
+   * expr for performance
+   */
+  private static Expression buildBiTreeFromMultiple(
+      List<Expression> expressionList, List<Operator> operatorList, int start, int end) {
+    if (start == end) {
+      if (expressionList.get(start) instanceof MultipleExpression) {
+        MultipleExpression multipleExpression = (MultipleExpression) expressionList.get(start);
+        List<Expression> childExpressions = new ArrayList<>(multipleExpression.getChildren());
+        List<Operator> childOperators = new ArrayList<>(multipleExpression.getOps());
+        if (childOperators.get(0) != Operator.PLUS) {
+          childExpressions.set(
+              0, new UnaryExpression(childOperators.get(0), childExpressions.get(0)));
+        }
+        childOperators.remove(0);
+        return buildBiTreeFromMultiple(
+            childExpressions, childOperators, 0, childExpressions.size() - 1);
+      } else {
+        return expressionList.get(start);
+      }
+    }
+
+    if (start + 1 == end) {
+      return new BinaryExpression(
+          buildBiTreeFromMultiple(expressionList, operatorList, start, start),
+          buildBiTreeFromMultiple(expressionList, operatorList, end, end),
+          operatorList.get(start));
+    }
+
+    int mid = (start + end + 1) / 2;
+    return new BinaryExpression(
+        buildBiTreeFromMultiple(expressionList, operatorList, start, mid),
+        buildBiTreeFromMultiple(expressionList, operatorList, mid + 1, end),
+        operatorList.get(mid));
+  }
+
+  private static ScalarExpression<?> getPhysicalExpression(
+      ExecutorContext context, Schema inputSchema, MultipleExpression expr, boolean setAlias)
+      throws ComputeException {
+    List<Expression> expressionList = new ArrayList<>(expr.getChildren());
+    List<Operator> operatorList = new ArrayList<>(expr.getOps());
+    if (expressionList.isEmpty()) {
+      // empty
+      throw new ComputeException("Multiple expressions does not have any children");
+    }
+    if (expressionList.size() == 1) {
+      // 1 element, 1st op is its sign
+      UnaryExpression expression = new UnaryExpression(expr.getOpType(), expressionList.get(0));
+      return getPhysicalExpression(context, inputSchema, expression, setAlias);
+    }
+    // >1 element, build tree
+    if (operatorList.get(0) != Operator.PLUS) {
+      // exclude PLUS to build right column name
+      expressionList.set(0, new UnaryExpression(operatorList.get(0), expressionList.get(0)));
+    }
+    operatorList.remove(0);
+    BinaryExpression expression =
+        (BinaryExpression)
+            buildBiTreeFromMultiple(expressionList, operatorList, 0, expressionList.size() - 1);
+    return getPhysicalExpression(context, inputSchema, expression, setAlias);
+  }
+
   public static ScalarExpression<?> getPhysicalExpressionOfFunctionCall(
       ExecutorContext context, Schema inputSchema, FunctionCall functionCall, boolean setAlias)
       throws ComputeException {
@@ -277,7 +340,8 @@ public class PhysicalExpressionUtils {
                 context, inputSchema, expression, setAlias));
       }
       Schema schema =
-          ScalarExpressions.getOutputSchema(context.getAllocator(), preRowTransform, inputSchema);
+          ScalarExpressionUtils.getOutputSchema(
+              context.getAllocator(), preRowTransform, inputSchema);
       for (String path : params.getPaths()) {
         List<Integer> matchedIndexes = Schemas.matchPattern(schema, path);
         if (matchedIndexes.isEmpty()) {

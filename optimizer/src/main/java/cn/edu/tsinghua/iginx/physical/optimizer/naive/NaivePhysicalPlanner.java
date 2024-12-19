@@ -177,7 +177,7 @@ public class NaivePhysicalPlanner {
         source,
         Collections.singletonList(rowTransform),
         context,
-        new TransformProjectionInfoGenerator(rowTransform));
+        new RowTransformInfoGenerator(rowTransform));
   }
 
   public PhysicalTask<BatchStream> fetchAsync(Source source, RequestContext context) {
@@ -311,7 +311,7 @@ public class NaivePhysicalPlanner {
                 parentTask,
                 Collections.singletonList(operator),
                 ctx,
-                new TransformProjectionInfoGenerator(operator)),
+                new RowTransformInfoGenerator(operator)),
         pipelineParallelism);
   }
 
@@ -337,7 +337,7 @@ public class NaivePhysicalPlanner {
               batchTask,
               Collections.singletonList(new Select(source, null, operator.getTagFilter())),
               context,
-              new TagKVProjectionInfoGenerator(operator.getTagFilter()));
+              new TagKVInfoGenerator(operator.getTagFilter()));
     }
 
     if (operator.getFilter() != null) {

@@ -63,6 +63,7 @@ import cn.edu.tsinghua.iginx.thrift.AggregateType;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.Status;
 import cn.edu.tsinghua.iginx.utils.Bitmap;
+import cn.edu.tsinghua.iginx.utils.ByteUtils;
 import cn.edu.tsinghua.iginx.utils.DataTypeInferenceUtils;
 import cn.edu.tsinghua.iginx.utils.DataTypeUtils;
 import cn.edu.tsinghua.iginx.utils.RpcUtils;
@@ -740,17 +741,14 @@ public class StatementExecutor {
     ctx.setStatement(statement);
     process(ctx);
 
-    // TODO: refactor this part
-    throw new UnsupportedOperationException("Not implemented yet");
-    //    Result result = ctx.getResult();
-    //    long pointsNum = 0;
-    //    if (ctx.getResult().getValuesList() != null) {
-    //      Object[] row =
-    //          ByteUtils.getValuesByDataType(result.getValuesList().get(0), result.getDataTypes());
-    //      pointsNum = Arrays.stream(row).mapToLong(e -> (Long) e).sum();
-    //    }
+    long pointsNum = 0;
+    ByteUtils.DataSet dataSet = ByteUtils.getDataFromArrowData(ctx.getResult().getArrowData());
+    if (dataSet.getValues() != null) {
+      Object[] row = dataSet.getValues().get(0).toArray();
+      pointsNum = Arrays.stream(row).mapToLong(e -> (Long) e).sum();
+    }
 
-    //    ctx.getResult().setPointsNum(pointsNum);
+    ctx.getResult().setPointsNum(pointsNum);
   }
 
   private void processDeleteColumns(RequestContext ctx)
@@ -870,11 +868,8 @@ public class StatementExecutor {
     List<DataType> types = new ArrayList<>();
 
     try (BatchStream batchStream = stream) {
-      while (true) {
+      while (batchStream.hasNext()) {
         try (Batch batch = batchStream.getNext()) {
-          if (batch.getRowCount() == 0) {
-            break;
-          }
           int rowCnt = batch.getRowCount();
           List<FieldVector> vectors = batch.getVectors();
           if (vectors.size() != 2) {
@@ -897,12 +892,9 @@ public class StatementExecutor {
     }
 
     Result result = new Result(RpcUtils.SUCCESS);
-    // TODO: refactor this part
-    throw new UnsupportedOperationException("Not implemented yet");
-    //    result.setPaths(paths);
-    //    result.setTagsList(tagsList);
-    //    result.setDataTypes(types);
-    //    ctx.setResult(result);
+    result.setPaths(paths);
+    result.setDataTypes(types);
+    ctx.setResult(result);
   }
 
   private void parseOldTagsFromHeader(Header header, InsertStatement insertStatement)

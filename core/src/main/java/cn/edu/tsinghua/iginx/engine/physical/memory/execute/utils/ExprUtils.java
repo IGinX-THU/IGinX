@@ -712,13 +712,13 @@ public class ExprUtils {
 
     newChildren.add(0, new ConstantExpression(constantValue.getValue()));
     newOps.add(0, Operator.PLUS);
-    multipleExpression.setChildren(newChildren);
-    multipleExpression.setOps(newOps);
+    MultipleExpression res =
+        new MultipleExpression(newChildren, newOps, multipleExpression.getAlias());
 
     if (newChildren.size() == 1) {
       return newChildren.get(0);
     }
-    return multipleExpression;
+    return res;
   }
 
   /**

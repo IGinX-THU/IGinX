@@ -34,9 +34,9 @@ import org.apache.arrow.vector.dictionary.DictionaryProvider;
 import org.apache.arrow.vector.types.pojo.Field;
 import org.apache.arrow.vector.types.pojo.Schema;
 
-public class ScalarExpressions {
+public class ScalarExpressionUtils {
 
-  private ScalarExpressions() {}
+  private ScalarExpressionUtils() {}
 
   public static Field getOutputField(
       BufferAllocator allocator, ScalarExpression<?> expression, Schema inputSchema)
