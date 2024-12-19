@@ -270,7 +270,8 @@ public class SQLSessionIT {
 
   @Test
   public void testCountPoints() {
-    if (isScaling) return;
+    Assume.assumeFalse(isScaling);
+
     String statement = "COUNT POINTS;";
     String expected = "Points num: 60000\n";
     executor.executeAndCompare(statement, expected);
@@ -278,9 +279,9 @@ public class SQLSessionIT {
 
   @Test
   public void testShowColumns() {
-    if (!isAbleToShowColumns || isScaling) {
-      return;
-    }
+    Assume.assumeTrue(isAbleToShowColumns);
+    Assume.assumeFalse(isScaling);
+
     String statement = "SHOW COLUMNS us.*;";
     String expected =
         "Columns:\n"
@@ -1636,7 +1637,9 @@ public class SQLSessionIT {
   }
 
   @Test
-  public void testAggregateQueryWithNullValues() {
+  public void testAggregateQueryWithoutNullValues() {
+    Assume.assumeFalse(isOptimizerOpen);
+
     String insert = "insert into test(key, a) values (0, 1), (1, 2), (2, 3);";
     executor.execute(insert);
     insert = "insert into test(key, b) values (3, 1), (4, 2), (5, 3);";
@@ -1679,6 +1682,40 @@ public class SQLSessionIT {
             + "+-----------+-----------+-------------+-------------+\n"
             + "|        2.0|          6|            0|            3|\n"
             + "+-----------+-----------+-------------+-------------+\n"
+            + "Total line number = 1\n";
+    executor.executeAndCompare(query, expected);
+  }
+
+  @Test
+  public void testAggregateQueryWithNullValues() {
+    Assume.assumeTrue(isOptimizerOpen);
+
+    String insert = "insert into test(key, a) values (0, 1), (1, 2), (2, 3);";
+    executor.execute(insert);
+    insert = "insert into test(key, b) values (3, 1), (4, 2), (5, 3);";
+    executor.execute(insert);
+
+    String query = "select avg(*), sum(*), count(*) from test where key < 3;";
+    // key<3时，avg(test.b)和sum(test.b)的值是null
+    String expected =
+        "ResultSets:\n"
+            + "+-----------+-----------+-----------+-----------+-------------+-------------+\n"
+            + "|avg(test.a)|avg(test.b)|sum(test.a)|sum(test.b)|count(test.a)|count(test.b)|\n"
+            + "+-----------+-----------+-----------+-----------+-------------+-------------+\n"
+            + "|        2.0|       null|          6|       null|            3|            0|\n"
+            + "+-----------+-----------+-----------+-----------+-------------+-------------+\n"
+            + "Total line number = 1\n";
+    executor.executeAndCompare(query, expected);
+
+    query = "select avg(*), sum(*), count(*) from test where key > 2;";
+    // key>2时，avg(test.a)和sum(test.a)的值是null
+    expected =
+        "ResultSets:\n"
+            + "+-----------+-----------+-----------+-----------+-------------+-------------+\n"
+            + "|avg(test.a)|avg(test.b)|sum(test.a)|sum(test.b)|count(test.a)|count(test.b)|\n"
+            + "+-----------+-----------+-----------+-----------+-------------+-------------+\n"
+            + "|       null|        2.0|       null|          6|            0|            3|\n"
+            + "+-----------+-----------+-----------+-----------+-------------+-------------+\n"
             + "Total line number = 1\n";
     executor.executeAndCompare(query, expected);
   }
@@ -1807,16 +1844,6 @@ public class SQLSessionIT {
       String expected = expectedList.get(i);
       executor.executeAndCompare(String.format(statement, type, type), expected);
     }
-
-    if (isScaling || !isOptimizerOpen) {
-      return;
-    }
-
-    statement =
-        "explain SELECT avg(s1), count(s4) FROM us.d1 OVER WINDOW (size 100 IN (0, 1000) SLIDE 50);";
-    assertTrue(
-        Arrays.stream(executor.execute(statement).split("\\n"))
-            .anyMatch(s -> s.contains("Downsample") && s.contains("avg") && s.contains("count")));
   }
 
   @Test
@@ -2414,9 +2441,8 @@ public class SQLSessionIT {
 
   @Test
   public void testDelete() {
-    if (!isAbleToDelete) {
-      return;
-    }
+    Assume.assumeTrue(isAbleToDelete);
+
     String delete = "DELETE FROM us.d1.s1 WHERE key > 105 AND key < 115;";
     executor.execute(delete);
 
@@ -2511,9 +2537,8 @@ public class SQLSessionIT {
 
   @Test
   public void testMultiRangeDelete() {
-    if (!isAbleToDelete) {
-      return;
-    }
+    Assume.assumeTrue(isAbleToDelete);
+
     String delete =
         "DELETE FROM us.d1.s1 WHERE key > 105 AND key < 115 OR key >= 120 AND key <= 230;";
     executor.execute(delete);
@@ -2573,9 +2598,8 @@ public class SQLSessionIT {
 
   @Test
   public void testCrossRangeDelete() {
-    if (!isAbleToDelete) {
-      return;
-    }
+    Assume.assumeTrue(isAbleToDelete);
+
     String delete =
         "DELETE FROM us.d1.s1 WHERE key > 205 AND key < 215 OR key >= 210 AND key <= 230;";
     executor.execute(delete);
@@ -2771,24 +2795,6 @@ public class SQLSessionIT {
             + "|        2.0|          4|   3.1|     2|  val1|\n"
             + "|        2.0|          2|   5.1|     2|  val3|\n"
             + "+-----------+-----------+------+------+------+\n"
-            + "Total line number = 5\n";
-    executor.executeAndCompare(query, expected);
-
-    if (isScaling || !isOptimizerOpen) {
-      return;
-    }
-    query = "explain select avg(a), sum(b), c, b, d from test group by c, b, d order by c, b, d;";
-    expected =
-        "ResultSets:\n"
-            + "+------------------+----------------+-----------------------------------------------------------------------------------------------------------------------------------+\n"
-            + "|      Logical Tree|   Operator Type|                                                                                                                      Operator Info|\n"
-            + "+------------------+----------------+-----------------------------------------------------------------------------------------------------------------------------------+\n"
-            + "|RemoveNullColumn  |RemoveNullColumn|                                                                                                                   RemoveNullColumn|\n"
-            + "|  +--Reorder      |         Reorder|                                                                                Order: avg(test.a),sum(test.b),test.c,test.b,test.d|\n"
-            + "|    +--Sort       |            Sort|                                                                                SortBy: test.c,test.b,test.d, SortType: ASC,ASC,ASC|\n"
-            + "|      +--GroupBy  |         GroupBy|GroupByCols: test.c,test.b,test.d, FuncList(Name, FuncType): (avg, System),(sum, System), MappingType: SetMapping isDistinct: false|\n"
-            + "|        +--Project|         Project|                                                                   Patterns: test.a,test.b,test.c,test.d, Target DU: unit0000000002|\n"
-            + "+------------------+----------------+-----------------------------------------------------------------------------------------------------------------------------------+\n"
             + "Total line number = 5\n";
     executor.executeAndCompare(query, expected);
   }
@@ -6071,9 +6077,8 @@ public class SQLSessionIT {
 
   @Test
   public void testDateFormat() {
-    if (!isAbleToDelete) {
-      return;
-    }
+    Assume.assumeTrue(isAbleToDelete);
+
     String insert = "INSERT INTO us.d2(key, date) VALUES (%s, %s);";
     List<String> dateFormats =
         Arrays.asList(
@@ -6342,9 +6347,7 @@ public class SQLSessionIT {
 
   @Test
   public void testChinesePath() {
-    if (!isSupportChinesePath) {
-      return;
-    }
+    Assume.assumeTrue(isSupportChinesePath);
 
     // Chinese path
     String insert = "INSERT INTO 测试.前缀(key, 后缀) VALUES (1, 1), (2, 2), (3, 3), (4, 4), (5, 5);";
@@ -6368,9 +6371,7 @@ public class SQLSessionIT {
 
   @Test
   public void testNumericalPath() {
-    if (!isSupportNumericalPath) {
-      return;
-    }
+    Assume.assumeTrue(isSupportNumericalPath);
 
     // numerical path
     String insert =
@@ -6449,9 +6450,7 @@ public class SQLSessionIT {
 
   @Test
   public void testSpecialCharacterPath() {
-    if (!isSupportSpecialCharacterPath) {
-      return;
-    }
+    Assume.assumeTrue(isSupportSpecialCharacterPath);
 
     // IGinX SQL 路径中支持的合法字符
     String insert =
@@ -6502,9 +6501,9 @@ public class SQLSessionIT {
 
   @Test
   public void testMixSpecialPath() {
-    if (!isSupportChinesePath || !isSupportNumericalPath || !isSupportSpecialCharacterPath) {
-      return;
-    }
+    Assume.assumeTrue(isSupportChinesePath);
+    Assume.assumeTrue(isSupportNumericalPath);
+    Assume.assumeTrue(isSupportSpecialCharacterPath);
 
     // mix path
     String insert =
@@ -6588,8 +6587,97 @@ public class SQLSessionIT {
   }
 
   @Test
-  public void testExplain() {
-    if (isScaling) return;
+  public void testExplainWithOptimization() {
+    Assume.assumeFalse(isScaling);
+    Assume.assumeTrue(isOptimizerOpen);
+
+    String explain = "explain select max(s2), min(s1) from us.d1;";
+    String expected =
+        "ResultSets:\n"
+            + "+-----------------+-------------+--------------------------------------------------------------------------------------------------+\n"
+            + "|     Logical Tree|Operator Type|                                                                                     Operator Info|\n"
+            + "+-----------------+-------------+--------------------------------------------------------------------------------------------------+\n"
+            + "|Reorder          |      Reorder|                                                                Order: max(us.d1.s2),min(us.d1.s1)|\n"
+            + "|  +--SetTransform| SetTransform|FuncList(Name, FuncType): (max, System), (min, System), MappingType: SetMapping, isDistinct: false|\n"
+            + "|    +--Project   |      Project|                                            Patterns: us.d1.s1,us.d1.s2, Target DU: unit0000000000|\n"
+            + "+-----------------+-------------+--------------------------------------------------------------------------------------------------+\n"
+            + "Total line number = 3\n";
+    executor.executeAndCompare(explain, expected);
+
+    explain = "explain select s1 from us.d1 where s1 > 10 and s1 < 100;";
+    expected =
+        "ResultSets:\n"
+            + "+----------------+-------------+---------------------------------------------+\n"
+            + "|    Logical Tree|Operator Type|                                Operator Info|\n"
+            + "+----------------+-------------+---------------------------------------------+\n"
+            + "|Reorder         |      Reorder|                              Order: us.d1.s1|\n"
+            + "|  +--Project    |      Project|                           Patterns: us.d1.s1|\n"
+            + "|    +--Select   |       Select|    Filter: (us.d1.s1 > 10 && us.d1.s1 < 100)|\n"
+            + "|      +--Project|      Project|Patterns: us.d1.s1, Target DU: unit0000000000|\n"
+            + "+----------------+-------------+---------------------------------------------+\n"
+            + "Total line number = 4\n";
+    executor.executeAndCompare(explain, expected);
+
+    explain = "explain select avg(a), sum(b), c, b, d from test group by c, b, d order by c, b, d;";
+    expected =
+        "ResultSets:\n"
+            + "+----------------+-------------+-----------------------------------------------------------------------------------------------------------------------------------+\n"
+            + "|    Logical Tree|Operator Type|                                                                                                                      Operator Info|\n"
+            + "+----------------+-------------+-----------------------------------------------------------------------------------------------------------------------------------+\n"
+            + "|Reorder         |      Reorder|                                                                                Order: avg(test.a),sum(test.b),test.c,test.b,test.d|\n"
+            + "|  +--Sort       |         Sort|                                                                                SortBy: test.c,test.b,test.d, SortType: ASC,ASC,ASC|\n"
+            + "|    +--GroupBy  |      GroupBy|GroupByCols: test.c,test.b,test.d, FuncList(Name, FuncType): (avg, System),(sum, System), MappingType: SetMapping isDistinct: false|\n"
+            + "|      +--Project|      Project|                                                                   Patterns: test.a,test.b,test.c,test.d, Target DU: unit0000000002|\n"
+            + "+----------------+-------------+-----------------------------------------------------------------------------------------------------------------------------------+\n"
+            + "Total line number = 4\n";
+    executor.executeAndCompare(explain, expected);
+
+    explain = "explain SELECT first(s1), last(s2), first(s3), last(s4) from us.d1;";
+    expected =
+        "ResultSets:\n"
+            + "+---------------------+----------------+----------------------------------------------------------------------------------------------------------------+\n"
+            + "|         Logical Tree|   Operator Type|                                                                                                   Operator Info|\n"
+            + "+---------------------+----------------+----------------------------------------------------------------------------------------------------------------+\n"
+            + "|Reorder              |         Reorder|                                                                                               Order: path,value|\n"
+            + "|  +--MappingTransform|MappingTransform|FuncList(Name, FuncType): (first, System), (last, System), (first, System), (last, System), MappingType: Mapping|\n"
+            + "|    +--Join          |            Join|                                                                                                     JoinBy: key|\n"
+            + "|      +--Project     |         Project|                                                 Patterns: us.d1.s1,us.d1.s2,us.d1.s3, Target DU: unit0000000000|\n"
+            + "|      +--Project     |         Project|                                                                   Patterns: us.d1.s4, Target DU: unit0000000001|\n"
+            + "+---------------------+----------------+----------------------------------------------------------------------------------------------------------------+\n"
+            + "Total line number = 5\n";
+    executor.executeAndCompare(explain, expected);
+
+    explain = "explain SELECT count(s1), avg(s2) from us.d1;";
+    expected =
+        "ResultSets:\n"
+            + "+-----------------+-------------+----------------------------------------------------------------------------------------------------+\n"
+            + "|     Logical Tree|Operator Type|                                                                                       Operator Info|\n"
+            + "+-----------------+-------------+----------------------------------------------------------------------------------------------------+\n"
+            + "|Reorder          |      Reorder|                                                                Order: count(us.d1.s1),avg(us.d1.s2)|\n"
+            + "|  +--SetTransform| SetTransform|FuncList(Name, FuncType): (count, System), (avg, System), MappingType: SetMapping, isDistinct: false|\n"
+            + "|    +--Project   |      Project|                                              Patterns: us.d1.s1,us.d1.s2, Target DU: unit0000000000|\n"
+            + "+-----------------+-------------+----------------------------------------------------------------------------------------------------+\n"
+            + "Total line number = 3\n";
+    executor.executeAndCompare(explain, expected);
+
+    explain =
+        "explain SELECT avg(s1), count(s4) FROM us.d1 OVER WINDOW (size 100 IN (0, 1000) SLIDE 50);";
+    assertTrue(
+        Arrays.stream(executor.execute(explain).split("\\n"))
+            .anyMatch(s -> s.contains("Downsample") && s.contains("avg") && s.contains("count")));
+
+    explain = "explain physical select max(s2), min(s1) from us.d1;";
+    LOGGER.info(executor.execute(explain));
+
+    explain = "explain physical select s1 from us.d1 where s1 > 10 and s1 < 100;";
+    LOGGER.info(executor.execute(explain));
+  }
+
+  @Test
+  public void testExplainWithoutOptimization() {
+    Assume.assumeFalse(isScaling);
+    Assume.assumeFalse(isOptimizerOpen);
+
     String explain = "explain select max(s2), min(s1) from us.d1;";
     String expected =
         "ResultSets:\n"
@@ -6619,6 +6707,51 @@ public class SQLSessionIT {
             + "Total line number = 5\n";
     executor.executeAndCompare(explain, expected);
 
+    explain = "explain select avg(a), sum(b), c, b, d from test group by c, b, d order by c, b, d;";
+    expected =
+        "ResultSets:\n"
+            + "+------------------+----------------+-----------------------------------------------------------------------------------------------------------------------------------+\n"
+            + "|      Logical Tree|   Operator Type|                                                                                                                      Operator Info|\n"
+            + "+------------------+----------------+-----------------------------------------------------------------------------------------------------------------------------------+\n"
+            + "|RemoveNullColumn  |RemoveNullColumn|                                                                                                                   RemoveNullColumn|\n"
+            + "|  +--Reorder      |         Reorder|                                                                                Order: avg(test.a),sum(test.b),test.c,test.b,test.d|\n"
+            + "|    +--Sort       |            Sort|                                                                                SortBy: test.c,test.b,test.d, SortType: ASC,ASC,ASC|\n"
+            + "|      +--GroupBy  |         GroupBy|GroupByCols: test.c,test.b,test.d, FuncList(Name, FuncType): (avg, System),(sum, System), MappingType: SetMapping isDistinct: false|\n"
+            + "|        +--Project|         Project|                                                                   Patterns: test.a,test.b,test.c,test.d, Target DU: unit0000000002|\n"
+            + "+------------------+----------------+-----------------------------------------------------------------------------------------------------------------------------------+\n"
+            + "Total line number = 5\n";
+    executor.executeAndCompare(explain, expected);
+
+    explain = "explain SELECT first(s1), last(s2), first(s3), last(s4) from us.d1;";
+    expected =
+        "ResultSets:\n"
+            + "+-----------------------+----------------+----------------------------------------------------------------------------------------------------------------+\n"
+            + "|           Logical Tree|   Operator Type|                                                                                                   Operator Info|\n"
+            + "+-----------------------+----------------+----------------------------------------------------------------------------------------------------------------+\n"
+            + "|RemoveNullColumn       |RemoveNullColumn|                                                                                                RemoveNullColumn|\n"
+            + "|  +--Reorder           |         Reorder|                                                                                               Order: path,value|\n"
+            + "|    +--MappingTransform|MappingTransform|FuncList(Name, FuncType): (first, System), (last, System), (first, System), (last, System), MappingType: Mapping|\n"
+            + "|      +--Join          |            Join|                                                                                                     JoinBy: key|\n"
+            + "|        +--Project     |         Project|                                                 Patterns: us.d1.s1,us.d1.s2,us.d1.s3, Target DU: unit0000000000|\n"
+            + "|        +--Project     |         Project|                                                                   Patterns: us.d1.s4, Target DU: unit0000000001|\n"
+            + "+-----------------------+----------------+----------------------------------------------------------------------------------------------------------------+\n"
+            + "Total line number = 6\n";
+    executor.executeAndCompare(explain, expected);
+
+    explain = "explain SELECT count(s1), avg(s2) from us.d1;";
+    expected =
+        "ResultSets:\n"
+            + "+-------------------+----------------+----------------------------------------------------------------------------------------------------+\n"
+            + "|       Logical Tree|   Operator Type|                                                                                       Operator Info|\n"
+            + "+-------------------+----------------+----------------------------------------------------------------------------------------------------+\n"
+            + "|RemoveNullColumn   |RemoveNullColumn|                                                                                    RemoveNullColumn|\n"
+            + "|  +--Reorder       |         Reorder|                                                                Order: count(us.d1.s1),avg(us.d1.s2)|\n"
+            + "|    +--SetTransform|    SetTransform|FuncList(Name, FuncType): (count, System), (avg, System), MappingType: SetMapping, isDistinct: false|\n"
+            + "|      +--Project   |         Project|                                              Patterns: us.d1.s1,us.d1.s2, Target DU: unit0000000000|\n"
+            + "+-------------------+----------------+----------------------------------------------------------------------------------------------------+\n"
+            + "Total line number = 4\n";
+    executor.executeAndCompare(explain, expected);
+
     explain = "explain physical select max(s2), min(s1) from us.d1;";
     LOGGER.info(executor.execute(explain));
 
@@ -6628,9 +6761,9 @@ public class SQLSessionIT {
 
   @Test
   public void testDeleteColumns() {
-    if (!isAbleToDelete || isScaling) {
-      return;
-    }
+    Assume.assumeTrue(isAbleToDelete);
+    Assume.assumeFalse(isScaling);
+
     String showColumns = "SHOW COLUMNS us.*;";
     String expected =
         "Columns:\n"
@@ -6689,7 +6822,9 @@ public class SQLSessionIT {
 
   @Test
   public void testClearData() throws SessionException {
-    if (!isAbleToClearData || isScaling) return;
+    Assume.assumeTrue(isAbleToClearData);
+    Assume.assumeFalse(isScaling);
+
     clearData();
 
     String countPoints = "COUNT POINTS;";
@@ -6703,9 +6838,9 @@ public class SQLSessionIT {
 
   @Test
   public void testConcurrentDeleteSinglePath() {
-    if (!isAbleToDelete || isScaling) {
-      return;
-    }
+    Assume.assumeTrue(isAbleToDelete);
+    Assume.assumeFalse(isScaling);
+
     String deleteFormat = "DELETE FROM us.d1.s1 WHERE key >= %d AND key < %d;";
     int start = 1000, range = 50;
 
@@ -6749,9 +6884,9 @@ public class SQLSessionIT {
 
   @Test
   public void testConcurrentDeleteSinglePathWithOverlap() {
-    if (!isAbleToDelete || isScaling) {
-      return;
-    }
+    Assume.assumeTrue(isAbleToDelete);
+    Assume.assumeFalse(isScaling);
+
     String deleteFormat = "DELETE FROM * WHERE key >= %d AND key < %d;";
     int start = 1000, range = 70;
 
@@ -6776,9 +6911,9 @@ public class SQLSessionIT {
 
   @Test
   public void testConcurrentDeleteMultiPath() {
-    if (!isAbleToDelete || isScaling) {
-      return;
-    }
+    Assume.assumeTrue(isAbleToDelete);
+    Assume.assumeFalse(isScaling);
+
     String deleteFormat = "DELETE FROM * WHERE key >= %d AND key < %d;";
     int start = 1000, range = 50;
 
@@ -6803,9 +6938,9 @@ public class SQLSessionIT {
 
   @Test
   public void testConcurrentDeleteMultiPathWithOverlap() {
-    if (!isAbleToDelete || isScaling) {
-      return;
-    }
+    Assume.assumeTrue(isAbleToDelete);
+    Assume.assumeFalse(isScaling);
+
     String deleteFormat = "DELETE FROM * WHERE key >= %d AND key < %d;";
     int start = 1000, range = 70;
 
@@ -6830,9 +6965,8 @@ public class SQLSessionIT {
 
   @Test
   public void testConcurrentInsert() {
-    if (isScaling) {
-      return;
-    }
+    Assume.assumeFalse(isScaling);
+
     int start = 20000, range = 50;
 
     List<String> insertStmts = new ArrayList<>();
@@ -6856,9 +6990,8 @@ public class SQLSessionIT {
 
   @Test
   public void testConcurrentInsertWithOverlap() {
-    if (isScaling) {
-      return;
-    }
+    Assume.assumeFalse(isScaling);
+
     int start = 20000, range = 70;
 
     List<String> insertStmts = new ArrayList<>();
@@ -6882,9 +7015,8 @@ public class SQLSessionIT {
 
   @Test
   public void testBaseInfoConcurrentQuery() {
-    if (isScaling) {
-      return;
-    }
+    Assume.assumeFalse(isScaling);
+
     List<Pair<String, String>> statementsAndExpectRes =
         Arrays.asList(
             new Pair<>(
@@ -7159,22 +7291,6 @@ public class SQLSessionIT {
             + "+---------------+-------------+\n"
             + "Total line number = 1\n";
     executor.executeAndCompare(query, expect);
-
-    if (!isScaling) {
-      query = "explain SELECT count(s1), avg(s2) from us.d1;";
-      expect =
-          "ResultSets:\n"
-              + "+-------------------+----------------+----------------------------------------------------------------------------------------------------+\n"
-              + "|       Logical Tree|   Operator Type|                                                                                       Operator Info|\n"
-              + "+-------------------+----------------+----------------------------------------------------------------------------------------------------+\n"
-              + "|RemoveNullColumn   |RemoveNullColumn|                                                                                    RemoveNullColumn|\n"
-              + "|  +--Reorder       |         Reorder|                                                                Order: count(us.d1.s1),avg(us.d1.s2)|\n"
-              + "|    +--SetTransform|    SetTransform|FuncList(Name, FuncType): (count, System), (avg, System), MappingType: SetMapping, isDistinct: false|\n"
-              + "|      +--Project   |         Project|                                              Patterns: us.d1.s1,us.d1.s2, Target DU: unit0000000000|\n"
-              + "+-------------------+----------------+----------------------------------------------------------------------------------------------------+\n"
-              + "Total line number = 4\n";
-      executor.executeAndCompare(query, expect);
-    }
   }
 
   @Test
@@ -7203,24 +7319,6 @@ public class SQLSessionIT {
             + "+-----+--------+-------+\n"
             + "Total line number = 3\n";
     executor.executeAndCompare(query, expect);
-
-    if (!isScaling && isOptimizerOpen) {
-      query = "explain SELECT first(s1), last(s2), first(s3), last(s4) from us.d1;";
-      expect =
-          "ResultSets:\n"
-              + "+-----------------------+----------------+----------------------------------------------------------------------------------------------------------------+\n"
-              + "|           Logical Tree|   Operator Type|                                                                                                   Operator Info|\n"
-              + "+-----------------------+----------------+----------------------------------------------------------------------------------------------------------------+\n"
-              + "|RemoveNullColumn       |RemoveNullColumn|                                                                                                RemoveNullColumn|\n"
-              + "|  +--Reorder           |         Reorder|                                                                                               Order: path,value|\n"
-              + "|    +--MappingTransform|MappingTransform|FuncList(Name, FuncType): (first, System), (last, System), (first, System), (last, System), MappingType: Mapping|\n"
-              + "|      +--Join          |            Join|                                                                                                     JoinBy: key|\n"
-              + "|        +--Project     |         Project|                                                 Patterns: us.d1.s1,us.d1.s2,us.d1.s3, Target DU: unit0000000000|\n"
-              + "|        +--Project     |         Project|                                                                   Patterns: us.d1.s4, Target DU: unit0000000001|\n"
-              + "+-----------------------+----------------+----------------------------------------------------------------------------------------------------------------+\n"
-              + "Total line number = 6\n";
-      executor.executeAndCompare(query, expect);
-    }
   }
 
   @Test
