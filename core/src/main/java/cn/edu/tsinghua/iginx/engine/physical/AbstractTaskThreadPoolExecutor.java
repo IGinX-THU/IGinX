@@ -36,7 +36,8 @@ public class AbstractTaskThreadPoolExecutor extends ThreadPoolExecutor {
 
   private final Map<Thread, PythonInterpreter> threadInterpreterMap = new ConcurrentHashMap<>();
 
-  private static final PythonInterpreterConfig config = FunctionManager.getInstance().getConfig();
+  // 默认使用FunctionManager中的config
+  protected final PythonInterpreterConfig config;
 
   private static class TaskThreadFactory implements ThreadFactory {
     private final ThreadFactory defaultFactory = Executors.defaultThreadFactory();
@@ -47,7 +48,7 @@ public class AbstractTaskThreadPoolExecutor extends ThreadPoolExecutor {
       thread.setUncaughtExceptionHandler(
           (t, e) -> {
             // 线程异常退出时，手动清除threadlocal里的interpreter但暂不关闭，留待线程池完全关闭时一起回收
-            LOGGER.error("Uncaught exception in thread: " + t.getName(), e);
+            LOGGER.error("Uncaught exception in thread: {}", t.getName(), e);
             ThreadInterpreterManager.cleanupInterpreter();
           });
       return thread;
@@ -63,6 +64,19 @@ public class AbstractTaskThreadPoolExecutor extends ThreadPoolExecutor {
         TimeUnit.MILLISECONDS,
         new LinkedBlockingQueue<>(),
         new TaskThreadFactory());
+    this.config = FunctionManager.getInstance().getConfig();
+  }
+
+  /** 创建固定大小线程池，使用LinkedBlockingQueue, 并指定interpreter config */
+  public AbstractTaskThreadPoolExecutor(int poolSize, PythonInterpreterConfig config) {
+    super(
+        poolSize,
+        poolSize,
+        0L,
+        TimeUnit.MILLISECONDS,
+        new LinkedBlockingQueue<>(),
+        new TaskThreadFactory());
+    this.config = config;
   }
 
   /** 创建参数自定义的线程池 */
@@ -73,6 +87,7 @@ public class AbstractTaskThreadPoolExecutor extends ThreadPoolExecutor {
       TimeUnit unit,
       BlockingQueue<Runnable> queue) {
     super(corePoolSize, maximumPoolSize, keepAliveTime, unit, queue, new TaskThreadFactory());
+    this.config = FunctionManager.getInstance().getConfig();
   }
 
   /** 为每个线程创建interpreter，并将其保存到threadlocal中 */

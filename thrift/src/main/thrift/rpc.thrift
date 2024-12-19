@@ -392,7 +392,7 @@ struct ExecuteSqlResp {
     21: optional list<RegisterTaskInfo> registerTaskInfos
     22: optional i64 jobId
     23: optional JobState jobState
-    24: optional list<i64> jobIdList
+    24: optional map<JobState, list<i64>> jobStateMap
     25: optional map<string, string> configs
     26: optional string loadCsvPath
     27: optional list<i64> sessionIDList
@@ -588,7 +588,7 @@ struct ShowEligibleJobReq {
 
 struct ShowEligibleJobResp {
     1: required Status status
-    2: required list<i64> jobIdList
+    2: required map<JobState, list<i64>> jobStateMap
 }
 
 struct CancelTransformJobReq {

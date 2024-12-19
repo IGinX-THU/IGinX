@@ -205,6 +205,8 @@ public class ConfigDescriptor {
           Integer.parseInt(properties.getProperty("transformTaskThreadPoolSize", "10")));
       config.setTransformMaxRetryTimes(
           Integer.parseInt(properties.getProperty("transformMaxRetryTimes", "3")));
+      config.setDefaultTransformJobDir(
+          properties.getProperty("defaultScheduledTransformJobDir", "transform_jobs"));
 
       config.setNeedInitBasicUDFFunctions(
           Boolean.parseBoolean(properties.getProperty("needInitBasicUDFFunctions", "false")));
@@ -343,6 +345,8 @@ public class ConfigDescriptor {
         EnvUtils.loadEnv("transformTaskThreadPoolSize", config.getTransformTaskThreadPoolSize()));
     config.setTransformMaxRetryTimes(
         EnvUtils.loadEnv("transformMaxRetryTimes", config.getTransformMaxRetryTimes()));
+    config.setDefaultTransformJobDir(
+        EnvUtils.loadEnv("defaultScheduledTransformJobDir", config.getDefaultTransformJobDir()));
     config.setNeedInitBasicUDFFunctions(
         EnvUtils.loadEnv("needInitBasicUDFFunctions", config.isNeedInitBasicUDFFunctions()));
     config.setHistoricalPrefixList(

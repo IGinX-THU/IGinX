@@ -863,11 +863,17 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
   @Override
   public Statement visitShowEligibleJobStatement(ShowEligibleJobStatementContext ctx) {
-    JobState jobState = JobState.JOB_UNKNOWN;
-    if (ctx.jobStatus().FINISHED() != null) {
+    JobState jobState = null;
+    if (ctx.jobStatus() == null) {
+      return new ShowEligibleJobStatement(jobState);
+    } else if (ctx.jobStatus().UNKNOWN() != null) {
+      jobState = JobState.JOB_UNKNOWN;
+    } else if (ctx.jobStatus().FINISHED() != null) {
       jobState = JobState.JOB_FINISHED;
     } else if (ctx.jobStatus().CREATED() != null) {
       jobState = JobState.JOB_CREATED;
+    } else if (ctx.jobStatus().IDLE() != null) {
+      jobState = JobState.JOB_IDLE;
     } else if (ctx.jobStatus().RUNNING() != null) {
       jobState = JobState.JOB_RUNNING;
     } else if (ctx.jobStatus().FAILING() != null) {
