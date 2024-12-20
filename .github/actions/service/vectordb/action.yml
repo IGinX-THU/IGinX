@@ -1,0 +1,79 @@
+name: "milvus"
+description: "stop, clean and start milvus in order"
+inputs:
+    stop:
+        description: "whether to stop"
+        required: true
+    clean:
+        description: "whether to clean"
+        required: true
+    start:
+        description: "whether to start"
+        required: true
+    ports:
+        description: "ports to run on"
+        required: false
+        default: "19530"
+
+runs:
+    using: "composite"
+    steps:
+        - if: fromJSON(inputs.stop) || fromJSON(inputs.clean)
+          name: unimplemented
+          shell: bash
+          run: exit 1
+
+        - name: Setup docker compose
+          uses: ./.github/actions/dockerCompose
+
+        - if: fromJSON(inputs.start)
+          name: Create Config for milvus docker compose
+          shell: bash
+          working-directory: ${{ github.workspace }}
+          run: |
+              for port in ${{ inputs.ports }}; do
+                mkdir -p $port
+                cp -f docker/milvus/docker-compose.yml $port/docker-compose-$port.yml
+                sed -i"" -e "s/19530:19530/$port:19530/g" $port/docker-compose-$port.yml
+                sed -i"" -e "s/\/volumes/\/volumes$port/g" $port/docker-compose-$port.yml
+                sed -i"" -e "s/name: milvus/name: milvus$port/g" $port/docker-compose-$port.yml
+              done
+              echo "docker-compose.yml created successfully"
+
+        - if: fromJSON(inputs.start) && runner.os != 'Windows'
+          name: Start milvus
+          shell: bash
+          working-directory: ${{ github.workspace }}
+          run: |
+              for port in ${{ inputs.ports }}; do
+                sudo chown -R $(whoami) $port/
+                sudo nohup docker-compose -f $port/docker-compose-$port.yml up -d
+              done
+              sleep 10
+              docker ps -a
+
+        - if: fromJSON(inputs.start) && runner.os == 'Windows'
+          name: Start milvus on Windows
+          shell: wsl-run {0}
+          working-directory: ${{ github.workspace }}
+          run: |
+              for port in ${{ inputs.ports }}; do
+                sudo chown -R $(whoami) $port/
+                sudo nohup docker-compose -f $port/docker-compose-$port.yml up -d
+              done
+              sleep 30
+              docker ps -a
+
+        - if: runner.os == 'macOS'
+          name: replace host
+          shell: bash
+          working-directory: ${{ github.workspace }}
+          run: |
+              MILVUS_HOST="192.168.106.2"
+              echo "MILVUS_HOST=${MILVUS_HOST}"
+              sed -i"" -e "s/127.0.0.1/${MILVUS_HOST}/g" test/src/test/java/cn/edu/tsinghua/iginx/integration/expansion/BaseCapacityExpansionIT.java
+              sed -i"" -e "s/Session(\"${MILVUS_HOST}/Session(\"127.0.0.1/g" test/src/test/java/cn/edu/tsinghua/iginx/integration/expansion/BaseCapacityExpansionIT.java
+              sed -i"" -e "s/127.0.0.1/${MILVUS_HOST}/g" test/src/test/java/cn/edu/tsinghua/iginx/integration/expansion/vectordb/VectorDBHistoryDataGenerator.java
+              sed -i"" -e "s/127.0.0.1#19530/${MILVUS_HOST}#19530/g" test/src/test/resources/testConfig.properties
+              sed -i"" -e "s/127.0.0.1#19530/${MILVUS_HOST}#19530/g" conf/config.properties
+              sleep 60
