@@ -23,15 +23,16 @@ import cn.edu.tsinghua.iginx.thrift.DataFlowType;
 import cn.edu.tsinghua.iginx.thrift.JobState;
 import cn.edu.tsinghua.iginx.transform.api.Runner;
 import cn.edu.tsinghua.iginx.transform.api.Stage;
-import cn.edu.tsinghua.iginx.transform.driver.PemjaDriver;
 import cn.edu.tsinghua.iginx.transform.exception.UnknownDataFlowException;
+import cn.edu.tsinghua.iginx.transform.exec.tools.TransformJobListener;
+import cn.edu.tsinghua.iginx.transform.exec.tools.TransformTriggerListener;
 import cn.edu.tsinghua.iginx.transform.pojo.BatchStage;
 import cn.edu.tsinghua.iginx.transform.pojo.Job;
 import cn.edu.tsinghua.iginx.transform.pojo.StreamStage;
-import cn.edu.tsinghua.iginx.transform.pojo.TransformJobFinishListener;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import org.quartz.*;
 import org.quartz.impl.StdSchedulerFactory;
 import org.slf4j.Logger;
@@ -88,20 +89,25 @@ public class JobRunner implements Runner {
   public void run() {
     // idle: waiting for scheduler to fire jobs
     job.setState(JobState.JOB_IDLE);
-    ExecutorService executor = new WorkerThreadPoolExecutor(1, PemjaDriver.getPythonConfig());
-    executor.submit(
-        // 新起一个线程
-        () -> {
-          try {
-            scheduler.getListenerManager().addTriggerListener(new TransformJobFinishListener());
-            LOGGER.info("Starting scheduler...");
-            scheduler.start(); // 启动调度器
-            LOGGER.info("Scheduler started");
-          } catch (SchedulerException e) {
-            LOGGER.error("Failed to start scheduler", e);
-            job.setState(JobState.JOB_FAILED);
-          }
-        });
+    ExecutorService executor = Executors.newSingleThreadExecutor();
+    try {
+      scheduler.getListenerManager().addJobListener(new TransformJobListener());
+      scheduler.getListenerManager().addTriggerListener(new TransformTriggerListener());
+      executor.submit(
+          () -> {
+            try {
+              LOGGER.info("Starting scheduler...");
+              scheduler.start();
+              LOGGER.info("Scheduler started");
+            } catch (Exception e) {
+              LOGGER.error("Failed to start scheduler", e);
+              job.setState(JobState.JOB_FAILED);
+            }
+          });
+    } catch (Exception e) {
+      LOGGER.error("Failed to setup job listener", e);
+      job.setState(JobState.JOB_FAILED);
+    }
   }
 
   @Override

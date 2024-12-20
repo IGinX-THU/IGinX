@@ -41,6 +41,7 @@ import com.icegreen.greenmail.util.ServerSetupTest;
 import java.io.*;
 import java.io.FileReader;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -99,6 +100,8 @@ public class TransformIT {
   private static final String QUERY_SQL_1 = "SELECT s2 FROM us.d1 WHERE key >= 14800;";
 
   private static final String QUERY_SQL_2 = "SELECT s1, s2 FROM us.d1 WHERE key < 200;";
+
+  private static final String QUERY_SQL_3 = "SELECT s1, s2 FROM us.d1 WHERE key < 10;";
 
   private static final Map<String, String> TASK_MAP = new HashMap<>();
 
@@ -193,7 +196,7 @@ public class TransformIT {
   private static void dropTask(String task) throws SessionException {
     SessionExecuteSqlResult result = session.executeSql(SHOW_REGISTER_TASK_SQL);
     for (RegisterTaskInfo info : result.getRegisterTaskInfos()) {
-      if (info.getClassName().equals(task)) {
+      if (info.getName().equals(task)) {
         session.executeSql(String.format(DROP_SQL_FORMATTER, task));
       }
     }
@@ -202,6 +205,12 @@ public class TransformIT {
   private void registerTask(String task) throws SessionException {
     dropTask(task);
     session.executeSql(String.format(CREATE_SQL_FORMATTER, task, task, TASK_MAP.get(task)));
+  }
+
+  private void registerTask(String task, String className, String filename)
+      throws SessionException {
+    dropTask(task);
+    session.executeSql(String.format(CREATE_SQL_FORMATTER, task, className, filename));
   }
 
   /**
@@ -589,6 +598,88 @@ public class TransformIT {
       LOGGER.error("Transform:  execute fail. Caused by:", e);
       fail();
     }
+  }
+
+  @Test
+  public void commitAndUpdateUDFTest() {
+    LOGGER.info("commitAndUpdateUDFTest");
+    try {
+      dropAllTask();
+      // at first, increase() will add 1
+      String task = "increase",
+          className = "AddOneTransformer",
+          filename = OUTPUT_DIR_PREFIX + File.separator + "transformer_add_one.py";
+      registerTask(task, className, filename);
+
+      List<TaskInfo> taskInfoList = new ArrayList<>();
+
+      TaskInfo iginxTask = new TaskInfo(TaskType.IginX, DataFlowType.Stream);
+      iginxTask.setSqlList(Collections.singletonList(QUERY_SQL_3));
+
+      TaskInfo pyTask = new TaskInfo(TaskType.Python, DataFlowType.Stream);
+      pyTask.setPyTaskName("increase");
+
+      taskInfoList.add(iginxTask);
+      taskInfoList.add(pyTask);
+
+      String schedule = "every 10 second";
+
+      long jobId = session.commitTransformJob(taskInfoList, ExportType.IginX, "", schedule);
+      // make the script add 2 now
+      alterPythonScriptWithReplace(filename, "+ 1", "+ 2");
+      try {
+        Thread.sleep(3000); // sleep 3s for 1st execution to complete.
+        SessionExecuteSqlResult queryResult1 = session.executeSql("SELECT * FROM transform;");
+
+        // then, increase() will add 2
+        registerTask(task, className, filename);
+
+        Thread.sleep(10000); // sleep 10s for 2nd execution to complete.
+        SessionExecuteSqlResult queryResult2 = session.executeSql("SELECT * FROM transform;");
+        // 2nd result will be appended from 11th line
+
+        verifyIncreaseResult(queryResult1, 1, 0, 10);
+        verifyIncreaseResult(queryResult2, 2, 10, 10);
+      } finally {
+        session.cancelTransformJob(jobId);
+        alterPythonScriptWithReplace(filename, "+ 2", "+ 1");
+        dropTask("increase");
+      }
+    } catch (SessionException | InterruptedException | IOException e) {
+      LOGGER.error("Transform:  execute fail. Caused by:", e);
+      fail();
+    }
+  }
+
+  private void verifyIncreaseResult(
+      SessionExecuteSqlResult queryResult, int increment, int offset, int lineCount) {
+    queryResult.print(false, "");
+    int timeIndex = queryResult.getPaths().indexOf("transform.key");
+    int s1Index = queryResult.getPaths().indexOf("transform.us.d1.s1");
+    int s2Index = queryResult.getPaths().indexOf("transform.us.d1.s2");
+    if (needCompareResult) {
+      assertNotEquals(-1, timeIndex);
+      assertNotEquals(-1, s1Index);
+      assertNotEquals(-1, s2Index);
+    }
+    long index = 0;
+    for (int i = offset; i < queryResult.getValues().size(); i++) {
+      List<Object> row = queryResult.getValues().get(i);
+      assertEquals(index + increment, row.get(timeIndex));
+      assertEquals(index + increment, row.get(s1Index));
+      assertEquals(index + increment + 1, row.get(s2Index));
+      index++;
+    }
+    assertEquals(lineCount, index);
+  }
+
+  // have to modify file content because UDF script name is usually not allowed to change
+  private void alterPythonScriptWithReplace(String filePath, String oldStr, String newStr)
+      throws IOException {
+    final Path path = Paths.get(filePath);
+    String content = new String(Files.readAllBytes(path));
+    content = content.replace(oldStr, newStr);
+    Files.write(path, content.getBytes());
   }
 
   @Test

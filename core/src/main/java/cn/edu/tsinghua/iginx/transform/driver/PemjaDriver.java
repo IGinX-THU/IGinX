@@ -40,7 +40,7 @@ public class PemjaDriver {
   private static final String PATH =
       String.join(File.separator, config.getDefaultUDFDir(), "python_scripts");
 
-  private static final String PY_SUFFIX = ".py";
+  protected static final String PY_SUFFIX = ".py";
 
   private static PemjaDriver instance;
 

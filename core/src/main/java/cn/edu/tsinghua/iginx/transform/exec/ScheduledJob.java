@@ -25,12 +25,13 @@ import cn.edu.tsinghua.iginx.transform.exception.TransformException;
 import cn.edu.tsinghua.iginx.transform.pojo.Job;
 import java.util.ArrayList;
 import java.util.List;
+import org.quartz.DisallowConcurrentExecution;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
-import org.quartz.SchedulerException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@DisallowConcurrentExecution
 public class ScheduledJob implements org.quartz.Job {
   private static final Logger LOGGER = LoggerFactory.getLogger(ScheduledJob.class);
 
@@ -52,12 +53,12 @@ public class ScheduledJob implements org.quartz.Job {
       }
       if (job.getActive().compareAndSet(true, false)) {
         // wait for next execution
-        // if a trigger has finished all execution, TransformJobFinishListener will handle work
+        // if a trigger has finished all execution, TransformTriggerListener will handle work
         // left.
         job.setState(JobState.JOB_IDLE);
         job.setException(null);
       }
-    } catch (TransformException | SchedulerException e) {
+    } catch (Exception e) {
       if (job.getActive().compareAndSet(true, false)) {
         job.setState(JobState.JOB_FAILING);
         job.setException(e);

@@ -90,6 +90,8 @@ public class StreamStageRunner implements Runner {
     }
 
     List<Task> taskList = streamStage.getTaskList();
+    pemjaWorkerList.clear();
+    this.writer = streamStage.getExportWriter();
     for (int i = taskList.size() - 1; i >= 0; i--) {
       Task task = taskList.get(i);
       if (task.isPythonTask()) {

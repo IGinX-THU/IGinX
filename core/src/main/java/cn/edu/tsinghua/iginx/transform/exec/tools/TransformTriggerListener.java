@@ -17,24 +17,25 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package cn.edu.tsinghua.iginx.transform.pojo;
+package cn.edu.tsinghua.iginx.transform.exec.tools;
 
 import cn.edu.tsinghua.iginx.thrift.JobState;
 import cn.edu.tsinghua.iginx.transform.exception.TransformException;
 import cn.edu.tsinghua.iginx.transform.exec.TransformJobManager;
+import cn.edu.tsinghua.iginx.transform.pojo.Job;
 import org.quartz.JobExecutionContext;
 import org.quartz.Trigger;
 import org.quartz.listeners.TriggerListenerSupport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class TransformJobFinishListener extends TriggerListenerSupport {
+public class TransformTriggerListener extends TriggerListenerSupport {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(TransformJobFinishListener.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(TransformTriggerListener.class);
 
   @Override
   public String getName() {
-    return "JobFinishListener";
+    return "TransformTriggerListener";
   }
 
   @Override
