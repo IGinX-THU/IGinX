@@ -583,7 +583,7 @@ struct QueryTransformJobStatusResp {
 
 struct ShowEligibleJobReq {
     1: required i64 sessionId
-    2: required JobState jobState
+    2: optional JobState jobState
 }
 
 struct ShowEligibleJobResp {

@@ -204,7 +204,39 @@ public class TransformIT {
     session.executeSql(String.format(CREATE_SQL_FORMATTER, task, task, TASK_MAP.get(task)));
   }
 
-  private void verifyJobState(long jobId) throws SessionException, InterruptedException {
+  /**
+   * verity job state instantly without waiting
+   *
+   * @param expectedState specified: check whether job is in this state; null: check all status
+   */
+  private void verifyJobState(long jobId, JobState expectedState) throws SessionException {
+    LOGGER.info(
+        "Querying job({})'s state(expected:{} )...",
+        jobId,
+        expectedState == null ? "Any" : expectedState);
+    Map<JobState, List<Long>> jobStateListMap = session.showEligibleJob(null);
+    for (Map.Entry<JobState, List<Long>> entry : jobStateListMap.entrySet()) {
+      if (expectedState != null && entry.getKey() != expectedState) {
+        // skip unwanted states
+        continue;
+      }
+      for (Long jobId2 : entry.getValue()) {
+        if (jobId == jobId2) {
+          LOGGER.info("Query succeeded.");
+          return;
+        }
+      }
+    }
+    // not found
+    LOGGER.error(
+        "Job({}) is not found in list of \"{}\" state.",
+        jobId,
+        expectedState == null ? "Any" : expectedState);
+    fail();
+  }
+
+  /** will wait until job finishes/failed/closed and check whether finished */
+  private void verifyJobFinishedBlocked(long jobId) throws SessionException, InterruptedException {
     LOGGER.info("job is {}", jobId);
     JobState jobState = JobState.JOB_CREATED;
     while (!jobState.equals(JobState.JOB_CLOSED)
@@ -276,7 +308,7 @@ public class TransformIT {
     try {
       long jobId = session.commitTransformJob(taskInfoList, ExportType.Log, "");
 
-      verifyJobState(jobId);
+      verifyJobFinishedBlocked(jobId);
     } catch (SessionException | InterruptedException e) {
       LOGGER.error("Transform:  execute fail. Caused by:", e);
       fail();
@@ -292,7 +324,7 @@ public class TransformIT {
           session.executeSql(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
 
       long jobId = result.getJobId();
-      verifyJobState(jobId);
+      verifyJobFinishedBlocked(jobId);
     } catch (SessionException | InterruptedException e) {
       LOGGER.error("Transform:  execute fail. Caused by:", e);
       fail();
@@ -314,7 +346,11 @@ public class TransformIT {
       session.executeSql(String.format(insertSQL, "col0"));
 
       long jobId = result.getJobId();
-      verifyJobState(jobId);
+      // job can be queried in all/idle jobs
+      verifyJobState(result.getJobId(), null);
+      verifyJobState(result.getJobId(), JobState.JOB_IDLE);
+
+      verifyJobFinishedBlocked(jobId);
       // job will finish after 10 seconds
 
       // check whether new column is in job result
@@ -353,6 +389,9 @@ public class TransformIT {
         // add col1, col2 and verify res are changed
         for (int i = 1; i < 3; i++) {
           session.executeSql(String.format(insertSQL, "col" + i));
+          // job can be queried in all/idle jobs
+          verifyJobState(result.getJobId(), null);
+          verifyJobState(result.getJobId(), JobState.JOB_IDLE);
           Thread.sleep(10000L); // sleep 10s to make sure next try is triggered.
           LOGGER.info("Verifying " + i + "th try...");
           fileResultContains(outputFileName, "col" + i);
@@ -428,7 +467,7 @@ public class TransformIT {
       Thread.sleep(8000L); // verify result after 10s
       fileResultContains(outputFileName, "col0");
 
-      verifyJobState(jobId);
+      verifyJobFinishedBlocked(jobId);
     } catch (SessionException | InterruptedException e) {
       LOGGER.error("Transform:  execute fail. Caused by:", e);
       fail();
@@ -464,7 +503,7 @@ public class TransformIT {
           OUTPUT_DIR_PREFIX + File.separator + "export_file_multiple_sql_statements.txt";
       long jobId = session.commitTransformJob(taskInfoList, ExportType.File, outputFileName);
 
-      verifyJobState(jobId);
+      verifyJobFinishedBlocked(jobId);
       verifyMultipleSqlStatements(outputFileName);
     } catch (SessionException | InterruptedException | IOException e) {
       LOGGER.error("Transform:  execute fail. Caused by:", e);
@@ -484,7 +523,7 @@ public class TransformIT {
           session.executeSql(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
       long jobId = result.getJobId();
 
-      verifyJobState(jobId);
+      verifyJobFinishedBlocked(jobId);
       verifyMultipleSqlStatements(outputFileName);
     } catch (SessionException | InterruptedException | IOException e) {
       LOGGER.error("Transform:  execute fail. Caused by:", e);
@@ -538,7 +577,7 @@ public class TransformIT {
           OUTPUT_DIR_PREFIX + File.separator + "export_file_single_python_job.txt";
       long jobId = session.commitTransformJob(taskInfoList, ExportType.File, outputFileName);
 
-      verifyJobState(jobId);
+      verifyJobFinishedBlocked(jobId);
       verifySinglePythonJob(outputFileName);
     } catch (SessionException | InterruptedException | IOException e) {
       LOGGER.error("Transform:  execute fail. Caused by:", e);
@@ -560,7 +599,7 @@ public class TransformIT {
           session.executeSql(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
       long jobId = result.getJobId();
 
-      verifyJobState(jobId);
+      verifyJobFinishedBlocked(jobId);
       verifySinglePythonJob(outputFileName);
     } catch (SessionException | InterruptedException | IOException e) {
       LOGGER.error("Transform:  execute fail. Caused by:", e);
@@ -620,7 +659,7 @@ public class TransformIT {
           OUTPUT_DIR_PREFIX + File.separator + "export_file_multiple_python_jobs.txt";
       long jobId = session.commitTransformJob(taskInfoList, ExportType.File, outputFileName);
 
-      verifyJobState(jobId);
+      verifyJobFinishedBlocked(jobId);
       verifyMultiplePythonJobs(outputFileName);
     } catch (SessionException | InterruptedException | IOException e) {
       LOGGER.error("Transform:  execute fail. Caused by:", e);
@@ -644,7 +683,7 @@ public class TransformIT {
           session.executeSql(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
       long jobId = result.getJobId();
 
-      verifyJobState(jobId);
+      verifyJobFinishedBlocked(jobId);
       verifyMultiplePythonJobs(outputFileName);
     } catch (SessionException | InterruptedException | IOException e) {
       LOGGER.error("Transform:  execute fail. Caused by:", e);
@@ -667,7 +706,7 @@ public class TransformIT {
           session.executeSql(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
       long jobId = result.getJobId();
 
-      verifyJobState(jobId);
+      verifyJobFinishedBlocked(jobId);
 
       SessionExecuteSqlResult queryResult = session.executeSql("SELECT * FROM transform;");
       int timeIndex = queryResult.getPaths().indexOf("transform.key");
@@ -714,7 +753,7 @@ public class TransformIT {
           session.executeSql(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
       long jobId = result.getJobId();
 
-      verifyJobState(jobId);
+      verifyJobFinishedBlocked(jobId);
 
       SessionExecuteSqlResult queryResult = session.executeSql("SELECT * FROM transform;");
       SessionExecuteSqlResult oriResult = session.executeSql("select * from pics;");
@@ -814,7 +853,7 @@ public class TransformIT {
           OUTPUT_DIR_PREFIX + File.separator + "export_file_mixed_python_jobs.txt";
       long jobId = session.commitTransformJob(taskInfoList, ExportType.File, outputFileName);
 
-      verifyJobState(jobId);
+      verifyJobFinishedBlocked(jobId);
       verifyMixedPythonJobs(outputFileName);
     } catch (SessionException | InterruptedException | IOException e) {
       LOGGER.error("Transform:  execute fail. Caused by:", e);
@@ -838,7 +877,7 @@ public class TransformIT {
           session.executeSql(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
       long jobId = result.getJobId();
 
-      verifyJobState(jobId);
+      verifyJobFinishedBlocked(jobId);
       verifyMixedPythonJobs(outputFileName);
     } catch (SessionException | InterruptedException | IOException e) {
       LOGGER.error("Transform:  execute fail. Caused by:", e);
@@ -871,7 +910,7 @@ public class TransformIT {
           session.executeSql(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
       long jobId = result.getJobId();
 
-      verifyJobState(jobId);
+      verifyJobFinishedBlocked(jobId);
       verifyMixedPythonJobs(outputFileName);
     } catch (SessionException | InterruptedException | IOException e) {
       LOGGER.error("Transform:  execute fail. Caused by:", e);
@@ -1000,7 +1039,7 @@ public class TransformIT {
           session.executeSql(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
 
       long jobId = result.getJobId();
-      verifyJobState(jobId);
+      verifyJobFinishedBlocked(jobId);
 
       assertEquals(2, greenMail.getReceivedMessages().length);
       assertEquals("Job " + jobId + " is created", greenMail.getReceivedMessages()[0].getSubject());

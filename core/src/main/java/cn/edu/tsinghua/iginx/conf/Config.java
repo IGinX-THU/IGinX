@@ -905,4 +905,12 @@ public class Config {
   public void setRuleBasedOptimizer(String ruleBasedOptimizer) {
     this.ruleBasedOptimizer = ruleBasedOptimizer;
   }
+
+  public String getDefaultScheduledTransformJobDir() {
+    return defaultScheduledTransformJobDir;
+  }
+
+  public void setDefaultScheduledTransformJobDir(String defaultScheduledTransformJobDir) {
+    this.defaultScheduledTransformJobDir = defaultScheduledTransformJobDir;
+  }
 }

@@ -43,7 +43,7 @@ public class ShowEligibleJobStatement extends SystemStatement {
 
   @Override
   public void execute(RequestContext ctx) throws StatementExecutionException {
-    ShowEligibleJobReq req = new ShowEligibleJobReq(ctx.getSessionId(), jobState);
+    ShowEligibleJobReq req = new ShowEligibleJobReq(ctx.getSessionId()).setJobState(jobState);
     ShowEligibleJobResp resp = worker.showEligibleJob(req);
     Map<JobState, List<Long>> jobStateMap = resp.getJobStateMap();
 

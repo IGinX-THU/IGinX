@@ -1152,7 +1152,8 @@ public class Session {
 
   /** { jobState : [jobId, jobId,...]} */
   public Map<JobState, List<Long>> showEligibleJob(JobState jobState) throws SessionException {
-    ShowEligibleJobReq req = new ShowEligibleJobReq(sessionId, jobState);
+    ShowEligibleJobReq req = new ShowEligibleJobReq(sessionId);
+    req.setJobState(jobState);
     Reference<ShowEligibleJobResp> ref = new Reference<>();
     executeWithCheck(() -> (ref.resp = client.showEligibleJob(req)).status);
     return ref.resp.getJobStateMap();
