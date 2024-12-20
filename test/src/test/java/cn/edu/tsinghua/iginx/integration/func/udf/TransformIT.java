@@ -36,6 +36,8 @@ import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import cn.edu.tsinghua.iginx.thrift.*;
 import cn.edu.tsinghua.iginx.utils.*;
 import cn.hutool.core.collection.CollectionUtil;
+import com.icegreen.greenmail.junit4.GreenMailRule;
+import com.icegreen.greenmail.util.ServerSetupTest;
 import java.io.*;
 import java.io.FileReader;
 import java.nio.file.Files;
@@ -45,6 +47,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import javax.mail.MessagingException;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.*;
 import org.slf4j.Logger;
@@ -982,5 +985,30 @@ public class TransformIT {
       fail();
     }
     assertTrue(contains);
+  }
+
+  @Rule public final GreenMailRule greenMail = new GreenMailRule(ServerSetupTest.SMTPS);
+
+  @Test
+  public void commitSingleSqlStatementByYamlWithEmailTest() throws MessagingException {
+    LOGGER.info("commitSingleSqlStatementByYamlWithSingleEmailNotificationTest");
+    try {
+      greenMail.setUser("from@localhost", "password");
+      String yamlFileName =
+          OUTPUT_DIR_PREFIX + File.separator + "TransformSingleSqlStatementWithEmail.yaml";
+      SessionExecuteSqlResult result =
+          session.executeSql(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
+
+      long jobId = result.getJobId();
+      verifyJobState(jobId);
+
+      assertEquals(2, greenMail.getReceivedMessages().length);
+      assertEquals("Job " + jobId + " is created", greenMail.getReceivedMessages()[0].getSubject());
+      assertEquals(
+          "Job " + jobId + " is finished", greenMail.getReceivedMessages()[1].getSubject());
+    } catch (SessionException | InterruptedException e) {
+      LOGGER.error("Transform:  execute fail. Caused by:", e);
+      fail();
+    }
   }
 }

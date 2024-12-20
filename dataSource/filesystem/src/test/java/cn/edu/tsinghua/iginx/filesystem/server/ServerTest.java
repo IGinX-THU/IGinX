@@ -35,7 +35,7 @@ class ServerTest {
   private final ExecutorService executorService = Executors.newSingleThreadExecutor();
 
   public ServerTest() {
-    address = new InetSocketAddress("127.0.0.1", 6667);
+    address = new InetSocketAddress("127.0.0.1", 6668);
   }
 
   private Server server;

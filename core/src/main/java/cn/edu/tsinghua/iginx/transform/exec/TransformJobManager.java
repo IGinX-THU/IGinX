@@ -21,7 +21,6 @@ package cn.edu.tsinghua.iginx.transform.exec;
 
 import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
-import cn.edu.tsinghua.iginx.notice.EmailNotifier;
 import cn.edu.tsinghua.iginx.thrift.CommitTransformJobReq;
 import cn.edu.tsinghua.iginx.thrift.JobState;
 import cn.edu.tsinghua.iginx.thrift.TaskType;
@@ -101,7 +100,6 @@ public class TransformJobManager {
         LOGGER.error("retry process, executed times: {}", (processCnt + 1));
       }
     }
-    EmailNotifier.getInstance().send(job);
   }
 
   private void process(Job job) throws Exception {
