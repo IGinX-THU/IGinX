@@ -309,6 +309,9 @@ public class TransformIT {
       long jobId = session.commitTransformJob(taskInfoList, ExportType.Log, "");
 
       verifyJobFinishedBlocked(jobId);
+
+      // additional test: cancel finished job
+      redundantCancellationTest(jobId);
     } catch (SessionException | InterruptedException e) {
       LOGGER.error("Transform:  execute fail. Caused by:", e);
       fail();
@@ -399,6 +402,9 @@ public class TransformIT {
       } finally {
         cancelJob(jobId);
         assertTrue(Files.deleteIfExists(Paths.get(outputFileName)));
+
+        // additional test: cancel closed job
+        redundantCancellationTest(jobId);
       }
     } catch (SessionException | InterruptedException e) {
       LOGGER.error("Transform:  execute fail. Caused by:", e);
@@ -913,6 +919,44 @@ public class TransformIT {
       verifyJobFinishedBlocked(jobId);
       verifyMixedPythonJobs(outputFileName);
     } catch (SessionException | InterruptedException | IOException e) {
+      LOGGER.error("Transform:  execute fail. Caused by:", e);
+      fail();
+    }
+  }
+
+  public void redundantCancellationTest(long jobId) {
+    // On cancelling finished/closed/failed jobs, user should be notified of jobs' states.
+    LOGGER.info("redundantCancellationTest");
+    try {
+      JobState state = session.queryTransformJobStatus(jobId);
+      LOGGER.info("job({}) is in state:{}. Trying to cancel it...", jobId, state);
+      String info = "null";
+      switch (state) {
+        case JOB_FINISHED:
+          info = "has finished";
+          break;
+        case JOB_FAILED:
+          info = "has failed";
+          break;
+        case JOB_CLOSED:
+          info = "has closed";
+          break;
+        default:
+          LOGGER.error("expecting finished/closed/failed state.");
+          fail();
+      }
+      try {
+        session.cancelTransformJob(jobId);
+        fail(); // should throw exception.
+      } catch (SessionException e) {
+        String msg = e.getMessage();
+        if (msg != null && msg.contains(info)) {
+          LOGGER.info("successfully passed cancellation error message");
+        } else {
+          fail();
+        }
+      }
+    } catch (SessionException e) {
       LOGGER.error("Transform:  execute fail. Caused by:", e);
       fail();
     }
