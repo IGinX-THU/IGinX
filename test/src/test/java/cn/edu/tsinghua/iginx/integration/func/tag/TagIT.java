@@ -64,6 +64,7 @@ public class TagIT {
     isAbleToClearData = true;
     session = new Session("127.0.0.1", 6888, "root", "root");
     session.openSession();
+    session.executeSql("SET RULES AllowNullColumnRule=off;");
   }
 
   @AfterClass
