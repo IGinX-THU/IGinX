@@ -1,5 +1,4 @@
 name: "Capacity-Expansion-Test"
-
 on:
     workflow_call:
         inputs:
@@ -28,6 +27,11 @@ on:
                 type: string
                 required: false
                 default: '["IoTDB12", "InfluxDB", "FileSystem", "PostgreSQL", "Redis", "MongoDB", "MySQL"]'
+            close-optimizer:
+                description: "Whether to close the optimizer"
+                type: string
+                required: false
+                default: "false"
 
 env:
     FUNCTEST: NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,SessionIT,SessionPoolIT,CompactionIT,TimePrecisionIT,PySessionIT
@@ -75,6 +79,13 @@ jobs:
               run: |
                   mvn clean package -DskipTests -P-format -q
 
+            - name: Change IGinX config
+              uses: ./.github/actions/confWriter
+              with:
+                  DB-name: ${{ matrix.DB-name }}
+                  Close-Optimizer: ${{ inputs.close-optimizer }}
+                  Metadata: ${{ matrix.metadata }}
+
               # 第 1 阶段测试开始==========================================
             - name: Prepare CapExp environment oriHasDataExpHasData
               uses: ./.github/actions/capacityExpansionUnionTest
@@ -97,7 +108,6 @@ jobs:
               shell: bash
               run: |
                   mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
-
             # 第 2 阶段测试开始==========================================
             - name: Prepare CapExp environment oriNoDataExpNoData
               uses: ./.github/actions/capacityExpansionUnionTest

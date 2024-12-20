@@ -180,11 +180,22 @@ public class FileSystemStorage implements IStorage {
 
   @Override
   public boolean testConnection(StorageEngineMeta meta) {
+    Config rawConfig;
+    try {
+      rawConfig = toConfig(meta);
+    } catch (StorageInitializationException e) {
+      LOGGER.error("Cannot initialize file system storage with {}", meta, e);
+      return false;
+    }
+    FileSystemConfig fileSystemConfig = FileSystemConfig.of(rawConfig);
+    if (fileSystemConfig.isServe()) {
+      return true;
+    }
     try (TTransport transport = new TSocket(meta.getIp(), meta.getPort())) {
       transport.open();
       return true;
     } catch (TException e) {
-      LOGGER.error("Cannot establish thrift server on {}, {}", meta.getIp(), meta.getPort());
+      LOGGER.error("Cannot establish thrift server on {}, {}", meta.getIp(), meta.getPort(), e);
       return false;
     }
   }
