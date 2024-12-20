@@ -42,6 +42,10 @@ public class ThreadInterpreterManager {
     }
   }
 
+  public static boolean isInterpreterSet() {
+    return interpreterThreadLocal.get() != null;
+  }
+
   public static void setInterpreter(@NotNull PythonInterpreter interpreter) {
     interpreterThreadLocal.set(interpreter);
   }

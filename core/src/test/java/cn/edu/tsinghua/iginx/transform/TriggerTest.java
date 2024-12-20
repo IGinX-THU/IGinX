@@ -27,6 +27,7 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Logger;
 import org.junit.Test;
 import org.quartz.CronTrigger;
 import org.quartz.DateBuilder;
@@ -35,6 +36,8 @@ import org.quartz.impl.triggers.CalendarIntervalTriggerImpl;
 import org.quartz.impl.triggers.SimpleTriggerImpl;
 
 public class TriggerTest {
+
+  private static final Logger LOGGER = Logger.getLogger(TriggerTest.class.getName());
 
   private static final SimpleDateFormat DATE_TIME_FORMAT =
       new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
@@ -96,7 +99,7 @@ public class TriggerTest {
 
   @Test
   public void testEveryTriggerWithDateTimeBounds() throws ParseException {
-    String schedule = "every 10 minute starts '2099-02-03 12:00:00' ends '2099-02-04 12:00:00'";
+    String schedule = "every 10 minute starts '2099-02-03 12:00:00' ends '2099-02-04 12:00:40'";
     Date expectedStartTime = DATE_TIME_FORMAT.parse("2099-02-03 12:00:00");
     Date expectedEndTime = DATE_TIME_FORMAT.parse("2099-02-04 12:00:00");
 
@@ -106,6 +109,10 @@ public class TriggerTest {
     assertEquals(600000L, ((SimpleTriggerImpl) trigger).getRepeatInterval());
     assertEquals(expectedStartTime, trigger.getStartTime());
     assertEquals(expectedEndTime, trigger.getEndTime());
+    Date endDate = trigger.getEndTime();
+    LOGGER.info(endDate.toString());
+    endDate = trigger.getFinalFireTime();
+    LOGGER.info(endDate.toString());
   }
 
   @Test

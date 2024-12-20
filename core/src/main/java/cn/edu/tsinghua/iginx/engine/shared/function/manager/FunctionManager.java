@@ -40,6 +40,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import lombok.Getter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pemja.core.PythonInterpreter;
@@ -62,9 +63,9 @@ public class FunctionManager {
 
   private final PythonInterpreterConfig INTERPRETER_CONFIG;
 
-  private final PythonInterpreter interpreter;
+  @Getter private final PythonInterpreter interpreter;
 
-  private static final String PythonCMD = "python";
+  private static final String PythonCMD = config.getPythonCMD();
 
   private FunctionManager() {
     this.functions = new HashMap<>();
@@ -245,10 +246,6 @@ public class FunctionManager {
     } else {
       LOGGER.warn("No requirement document provided for python module {}.", rootPath);
     }
-  }
-
-  public PythonInterpreter getInterpreter() {
-    return interpreter;
   }
 
   public boolean hasFunction(String identifier) {

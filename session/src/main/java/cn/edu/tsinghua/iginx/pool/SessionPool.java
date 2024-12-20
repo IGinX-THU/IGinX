@@ -1281,8 +1281,8 @@ public class SessionPool {
     return ret;
   }
 
-  public List<Long> showEligibleJob(JobState jobState) throws SessionException {
-    List<Long> ret = null;
+  public Map<JobState, List<Long>> showEligibleJob(JobState jobState) throws SessionException {
+    Map<JobState, List<Long>> ret = null;
     for (int i = 0; i < RETRY; i++) {
       Session session = getSession();
       try {
