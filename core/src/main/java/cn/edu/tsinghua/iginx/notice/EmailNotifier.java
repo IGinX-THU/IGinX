@@ -62,7 +62,7 @@ public class EmailNotifier {
   }
 
   public void sendEmail(String subject, String content) throws EmailException {
-    LOGGER.debug("Email notification is disabled. Subject: {}, Content: {}", subject, content);
+    LOGGER.debug("Send email notification, Subject: {}, Content: {}", subject, content);
 
     Email email = new SimpleEmail();
     email.setSSLOnConnect(true);
