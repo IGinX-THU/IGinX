@@ -514,11 +514,15 @@ public class TransformIT {
     taskInfoList.add(iginxTask);
 
     try {
+      SessionExecuteSqlResult res = session.executeSql("select count(*) from *;");
+      res.print(false, "");
       String outputFileName =
           OUTPUT_DIR_PREFIX + File.separator + "export_file_multiple_sql_statements.txt";
       long jobId = session.commitTransformJob(taskInfoList, ExportType.File, outputFileName);
 
       verifyJobFinishedBlocked(jobId);
+      res = session.executeSql("select count(*) from *;");
+      res.print(false, "");
       verifyMultipleSqlStatements(outputFileName);
     } catch (SessionException | InterruptedException | IOException e) {
       LOGGER.error("Transform:  execute fail. Caused by:", e);
@@ -534,11 +538,15 @@ public class TransformIT {
           OUTPUT_DIR_PREFIX + File.separator + "TransformMultipleSqlStatements.yaml";
       String outputFileName =
           OUTPUT_DIR_PREFIX + File.separator + "export_file_multiple_sql_statements_by_yaml.txt";
+      SessionExecuteSqlResult res = session.executeSql("select count(*) from *;");
+      res.print(false, "");
       SessionExecuteSqlResult result =
           session.executeSql(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
       long jobId = result.getJobId();
 
       verifyJobFinishedBlocked(jobId);
+      res = session.executeSql("select count(*) from *;");
+      res.print(false, "");
       verifyMultipleSqlStatements(outputFileName);
     } catch (SessionException | InterruptedException | IOException e) {
       LOGGER.error("Transform:  execute fail. Caused by:", e);
