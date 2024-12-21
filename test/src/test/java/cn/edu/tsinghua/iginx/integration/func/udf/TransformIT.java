@@ -128,6 +128,13 @@ public class TransformIT {
     }
     session = new Session("127.0.0.1", 6888, "root", "root");
     session.openSession();
+
+    SessionExecuteSqlResult res = session.executeSql("show cluster info;");
+    res.print(false, "");
+    res = session.executeSql("show columns;");
+    res.print(false, "");
+    res = session.executeSql("select count(*) from *");
+    res.print(false, "");
   }
 
   @AfterClass
@@ -138,7 +145,7 @@ public class TransformIT {
   }
 
   @Before
-  public void insertData() {
+  public void insertData() throws SessionException {
     List<String> pathList =
         new ArrayList<String>() {
           {
@@ -180,6 +187,13 @@ public class TransformIT {
         dummyNoData);
     dummyNoData = false;
     Controller.after(session);
+
+    SessionExecuteSqlResult res = session.executeSql("show cluster info;");
+    res.print(false, "");
+    res = session.executeSql("show columns;");
+    res.print(false, "");
+    res = session.executeSql("select count(*) from *");
+    res.print(false, "");
   }
 
   @After
