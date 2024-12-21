@@ -93,6 +93,11 @@ jobs:
                   DB-name: ${{ matrix.DB-name }}
                   Test-Way: oriHasDataExpHasData
 
+            - name: oriHasDataExpHasData IT
+              shell: bash
+              run: |
+                mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriHasDataExpHasData -DfailIfNoTests=false -P-format
+
             - name: Clear history data
               uses: ./.github/actions/dbWriter
               with:

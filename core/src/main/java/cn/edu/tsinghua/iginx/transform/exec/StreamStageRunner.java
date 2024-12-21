@@ -108,9 +108,12 @@ public class StreamStageRunner implements Runner {
       RequestContext context = contextBuilder.build(req);
       executor.execute(context);
       if (context.getResult().getStatus().code != RpcUtils.SUCCESS.code) {
-        throw new TransformException(
-            "Unexpected error occurred during iginx task stage: "
-                + context.getResult().getStatus().getMessage());
+        if (!context.getWarningMsg().contains("overlapped keys")) {
+          // ignore overlapped keys warning
+          throw new TransformException(
+                  "Unexpected error occurred during iginx task stage: "
+                          + context.getResult().getStatus().getMessage());
+        }
       }
     }
 
@@ -118,9 +121,12 @@ public class StreamStageRunner implements Runner {
     RequestContext context = contextBuilder.build(req);
     executor.execute(context);
     if (context.getResult().getStatus().code != RpcUtils.SUCCESS.code) {
-      throw new TransformException(
-          "Unexpected error occurred during iginx task stage: "
-              + context.getResult().getStatus().getMessage());
+      if (!context.getWarningMsg().contains("overlapped keys")) {
+        // ignore overlapped keys warning
+        throw new TransformException(
+                "Unexpected error occurred during iginx task stage: "
+                        + context.getResult().getStatus().getMessage());
+      }
     }
     return context.getResult().getResultStream();
   }
