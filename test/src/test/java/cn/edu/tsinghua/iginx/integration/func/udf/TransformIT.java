@@ -575,6 +575,7 @@ public class TransformIT {
       final Path path = Paths.get(outputFileName);
       String content = new String(Files.readAllBytes(path));
       LOGGER.error("verifyMultipleSqlStatements failed, file content: \n{}\n", content, e);
+      throw e;
     }
   }
 

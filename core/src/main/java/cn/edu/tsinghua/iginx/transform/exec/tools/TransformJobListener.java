@@ -20,10 +20,7 @@
 package cn.edu.tsinghua.iginx.transform.exec.tools;
 
 import cn.edu.tsinghua.iginx.engine.shared.function.manager.ThreadInterpreterManager;
-import cn.edu.tsinghua.iginx.thrift.JobState;
 import cn.edu.tsinghua.iginx.transform.driver.PemjaDriver;
-import cn.edu.tsinghua.iginx.transform.exception.TransformException;
-import cn.edu.tsinghua.iginx.transform.exec.TransformJobManager;
 import cn.edu.tsinghua.iginx.transform.pojo.Job;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
