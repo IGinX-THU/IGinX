@@ -96,7 +96,7 @@ jobs:
             - name: oriHasDataExpHasData IT
               shell: bash
               run: |
-                mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriHasDataExpHasData -DfailIfNoTests=false -P-format
+                  mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriHasDataExpHasData -DfailIfNoTests=false -P-format
 
             - name: Clear history data
               uses: ./.github/actions/dbWriter
