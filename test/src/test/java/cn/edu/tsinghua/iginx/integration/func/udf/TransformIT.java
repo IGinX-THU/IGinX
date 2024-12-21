@@ -180,19 +180,6 @@ public class TransformIT {
         dummyNoData);
     dummyNoData = false;
     Controller.after(session);
-
-    LOGGER.info("show cluster info;");
-    SessionExecuteSqlResult res = session.executeSql("show cluster info;");
-    res.print(false, "");
-    LOGGER.info("show columns;");
-    res = session.executeSql("show columns;");
-    res.print(false, "");
-    LOGGER.info("select count(*) from *;");
-    res = session.executeSql("select count(*) from *;");
-    res.print(false, "");
-    LOGGER.info("select s2 from us.d1 where key > 14800;");
-    res = session.executeSql("select s2 from us.d1 where key > 14800;");
-    res.print(false, "");
   }
 
   @After

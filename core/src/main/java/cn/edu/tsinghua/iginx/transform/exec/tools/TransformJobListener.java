@@ -40,6 +40,7 @@ public class TransformJobListener implements JobListener {
   @Override
   public void jobToBeExecuted(JobExecutionContext context) {
     if (!ThreadInterpreterManager.isInterpreterSet()) {
+      // will only execute once
       PythonInterpreter interpreter = new PythonInterpreter(PemjaDriver.getPythonConfig());
       ThreadInterpreterManager.setInterpreter(interpreter);
     }
