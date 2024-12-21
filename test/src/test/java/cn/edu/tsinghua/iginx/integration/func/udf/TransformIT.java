@@ -133,7 +133,7 @@ public class TransformIT {
     res.print(false, "");
     res = session.executeSql("show columns;");
     res.print(false, "");
-    res = session.executeSql("select count(*) from *");
+    res = session.executeSql("select count(*) from *;");
     res.print(false, "");
   }
 
@@ -192,7 +192,7 @@ public class TransformIT {
     res.print(false, "");
     res = session.executeSql("show columns;");
     res.print(false, "");
-    res = session.executeSql("select count(*) from *");
+    res = session.executeSql("select count(*) from *;");
     res.print(false, "");
   }
 
