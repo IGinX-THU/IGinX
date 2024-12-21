@@ -34,7 +34,7 @@ on:
                 default: "false"
 
 env:
-    FUNCTEST: TransformIT#verifyMultipleSqlStatements
+    FUNCTEST: TransformIT
 
 jobs:
     DB-CE:
