@@ -56,14 +56,7 @@ public class TransformJobListener implements JobListener {
     if (jobException != null) {
       Job job = (Job) context.getMergedJobDataMap().get("job");
       LOGGER.error("Job {} execution failed", job.getJobId(), jobException);
-      job.setState(JobState.JOB_FAILED);
       job.setException(jobException);
-
-      try {
-        TransformJobManager.getInstance().removeFailedScheduleJob(job.getJobId());
-      } catch (TransformException | InterruptedException e) {
-        LOGGER.error("Failed to remove failed job {}", job.getJobId(), e);
-      }
     }
   }
 }
