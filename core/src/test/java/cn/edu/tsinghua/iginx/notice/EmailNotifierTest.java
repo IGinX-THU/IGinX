@@ -32,6 +32,7 @@ import java.util.Collections;
 import javax.mail.MessagingException;
 import javax.mail.internet.MimeMessage;
 import org.apache.commons.mail.EmailException;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -62,6 +63,9 @@ public class EmailNotifierTest {
   @Test
   public void testSendEmail() throws MessagingException, EmailException {
     emailNotifier.sendEmail("subject", "body");
+
+    Assert.assertTrue(greenMail.waitForIncomingEmail(10 * 1000, 1));
+
     assertEquals(1, greenMail.getReceivedMessages().length);
     MimeMessage mimeMessage = greenMail.getReceivedMessages()[0];
 
@@ -81,6 +85,9 @@ public class EmailNotifierTest {
     job.setState(JobState.JOB_FINISHED);
     job.setEndTime(1716384072743L);
     emailNotifier.send(job);
+
+    Assert.assertTrue(greenMail.waitForIncomingEmail(10 * 1000, 1));
+
     assertEquals(1, greenMail.getReceivedMessages().length);
     MimeMessage mimeMessage = greenMail.getReceivedMessages()[0];
 
@@ -102,6 +109,9 @@ public class EmailNotifierTest {
     job.setState(JobState.JOB_FINISHED);
     job.setEndTime(1716384072743L);
     emailNotifier.send(job);
+
+    Assert.assertTrue(greenMail.waitForIncomingEmail(10 * 1000, 1));
+
     assertEquals(1, greenMail.getReceivedMessages().length);
     MimeMessage mimeMessage = greenMail.getReceivedMessages()[0];
 
