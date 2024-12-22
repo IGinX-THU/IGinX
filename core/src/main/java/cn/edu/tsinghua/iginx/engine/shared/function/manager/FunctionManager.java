@@ -63,7 +63,7 @@ public class FunctionManager {
 
   private final PythonInterpreterConfig INTERPRETER_CONFIG;
 
-  @Getter private final PythonInterpreter interpreter;
+  private final PythonInterpreter interpreter;
 
   private static final String PythonCMD = config.getPythonCMD();
 
@@ -246,6 +246,10 @@ public class FunctionManager {
     } else {
       LOGGER.warn("No requirement document provided for python module {}.", rootPath);
     }
+  }
+
+  public PythonInterpreter getInterpreter() {
+    return interpreter;
   }
 
   public boolean hasFunction(String identifier) {
