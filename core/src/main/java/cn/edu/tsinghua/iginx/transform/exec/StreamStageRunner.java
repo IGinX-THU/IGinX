@@ -39,6 +39,7 @@ import cn.edu.tsinghua.iginx.transform.pojo.PythonTask;
 import cn.edu.tsinghua.iginx.transform.pojo.StreamStage;
 import cn.edu.tsinghua.iginx.transform.pojo.Task;
 import cn.edu.tsinghua.iginx.transform.utils.Mutex;
+import cn.edu.tsinghua.iginx.utils.RpcUtils;
 import java.util.ArrayList;
 import java.util.List;
 import org.slf4j.Logger;
@@ -89,6 +90,8 @@ public class StreamStageRunner implements Runner {
     }
 
     List<Task> taskList = streamStage.getTaskList();
+    pemjaWorkerList.clear();
+    this.writer = streamStage.getExportWriter();
     for (int i = taskList.size() - 1; i >= 0; i--) {
       Task task = taskList.get(i);
       if (task.isPythonTask()) {
@@ -99,16 +102,40 @@ public class StreamStageRunner implements Runner {
     }
   }
 
-  private RowStream getRowStream(long sessionId, List<String> sqlList) {
+  private RowStream getRowStream(long sessionId, List<String> sqlList) throws TransformException {
     for (int i = 0; i < sqlList.size() - 1; i++) {
       ExecuteStatementReq req = new ExecuteStatementReq(sessionId, sqlList.get(i));
       RequestContext context = contextBuilder.build(req);
       executor.execute(context);
+      if (context.getResult().getStatus().code != RpcUtils.SUCCESS.code) {
+        if (!context.getWarningMsg().contains("overlapped keys")) {
+          throw new TransformException(
+              "Unexpected error occurred during iginx task stage: "
+                  + context.getResult().getStatus().getMessage());
+        } else {
+          // warn about overlapped keys but continue job
+          LOGGER.warn(
+              "Result of IGinX query task in transform job contains overlapped keys! Query: {}",
+              sqlList.get(i));
+        }
+      }
     }
 
     ExecuteStatementReq req = new ExecuteStatementReq(sessionId, sqlList.get(sqlList.size() - 1));
     RequestContext context = contextBuilder.build(req);
     executor.execute(context);
+    if (context.getResult().getStatus().code != RpcUtils.SUCCESS.code) {
+      if (!context.getWarningMsg().contains("overlapped keys")) {
+        throw new TransformException(
+            "Unexpected error occurred during iginx task stage: "
+                + context.getResult().getStatus().getMessage());
+      } else {
+        // warn about overlapped keys but continue job
+        LOGGER.warn(
+            "Result of IGinX query task in transform job contains overlapped keys! Query: {}",
+            sqlList.get(sqlList.size() - 1));
+      }
+    }
     return context.getResult().getResultStream();
   }
 

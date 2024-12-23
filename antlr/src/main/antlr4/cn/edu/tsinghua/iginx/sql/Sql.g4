@@ -47,7 +47,7 @@ statement
    | COMMIT TRANSFORM JOB filePath = stringLiteral # commitTransformJobStatement
    | SHOW TRANSFORM JOB STATUS jobId = INT # showJobStatusStatement
    | CANCEL TRANSFORM JOB jobId = INT # cancelJobStatement
-   | SHOW jobStatus TRANSFORM JOB # showEligibleJobStatement
+   | SHOW (jobStatus)? TRANSFORM JOBS # showEligibleJobStatement
    | REMOVE STORAGEENGINE removedStorageEngine (COMMA removedStorageEngine)* # removeStorageEngineStatement
    | SET CONFIG configName = stringLiteral configValue = stringLiteral # setConfigStatement
    | SHOW CONFIG (configName = stringLiteral)? # showConfigStatement
@@ -479,6 +479,7 @@ jobStatus
    : UNKNOWN
    | FINISHED
    | CREATED
+   | IDLE
    | RUNNING
    | FAILING
    | FAILED
@@ -535,6 +536,7 @@ keyWords
    | FUNCTIONS
    | COMMIT
    | JOB
+   | JOBS
    | STATUS
    | AS
    | udfType
@@ -848,6 +850,10 @@ JOB
    : J O B
    ;
 
+JOBS
+   : J O B S
+   ;
+
 STATUS
    : S T A T U S
    ;
@@ -914,6 +920,10 @@ FUNCTIONS
 
 CREATED
    : C R E A T E D
+   ;
+
+IDLE
+   : I D L E
    ;
 
 RUNNING

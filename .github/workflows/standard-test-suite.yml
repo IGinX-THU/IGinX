@@ -36,7 +36,6 @@ jobs:
         with:
             metadata-matrix: '["zookeeper"]'
             close-optimizer: "true"
-
     remote-test:
         uses: ./.github/workflows/remote-test.yml
         with:
