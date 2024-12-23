@@ -31,7 +31,7 @@ class RowSumTransformer:
             row_sum = 0
             for num in row[1:]:
                 row_sum += num
-            ret[index][0] = row[0]
+            ret[index][0] = row.iloc[0]
             ret[index][1] = row_sum
 
         df = pd.DataFrame(ret, columns=['key', 'sum'])
