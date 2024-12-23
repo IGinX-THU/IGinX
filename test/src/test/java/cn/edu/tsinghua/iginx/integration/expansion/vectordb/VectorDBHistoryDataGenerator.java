@@ -99,14 +99,14 @@ public class VectorDBHistoryDataGenerator extends BaseHistoryDataGenerator {
   }
 
   private void createOrAlterDynamicCollections(
-          MilvusClientV2 client,
-          String databaseName,
-          List<String> paths,
-          List<Map<String, String>> tagsList,
-          List<DataType> dataTypeList,
-          String vectorFieldName,
-          DataType idType)
-          throws InterruptedException, UnsupportedEncodingException {
+      MilvusClientV2 client,
+      String databaseName,
+      List<String> paths,
+      List<Map<String, String>> tagsList,
+      List<DataType> dataTypeList,
+      String vectorFieldName,
+      DataType idType)
+      throws InterruptedException, UnsupportedEncodingException {
     Map<String, Set<String>> collectionToFields = new HashMap<>();
     Map<String, Map<String, DataType>> fieldToType = new HashMap<>();
     Set<String> collections = new HashSet<>();
@@ -121,29 +121,28 @@ public class VectorDBHistoryDataGenerator extends BaseHistoryDataGenerator {
         tags = tagsList.get(i);
       }
       Pair<String, String> collectionAndField =
-              PathUtils.getCollectionAndFieldByPath(path, tags, true);
+          PathUtils.getCollectionAndFieldByPath(path, tags, true);
       collectionToFields
-              .computeIfAbsent(collectionAndField.getK(), k -> new HashSet<>())
-              .add(collectionAndField.getV());
+          .computeIfAbsent(collectionAndField.getK(), k -> new HashSet<>())
+          .add(collectionAndField.getV());
       fieldToType
-              .computeIfAbsent(collectionAndField.getK(), s -> new HashMap<>())
-              .put(collectionAndField.getV(), dataTypeList.get(i));
+          .computeIfAbsent(collectionAndField.getK(), s -> new HashMap<>())
+          .put(collectionAndField.getV(), dataTypeList.get(i));
     }
 
     for (String collection : collectionToFields.keySet()) {
       if (!collections.contains(collection)) {
         MilvusClientUtils.createDynamicCollection(
-                client,
-                databaseName,
-                collection,
-                idType,
-                collectionToFields.get(collection),
-                fieldToType.get(collection),
-                vectorFieldName);
+            client,
+            databaseName,
+            collection,
+            idType,
+            collectionToFields.get(collection),
+            fieldToType.get(collection),
+            vectorFieldName);
       }
     }
   }
-
 
   @Override
   public void writeHistoryData(
@@ -156,12 +155,12 @@ public class VectorDBHistoryDataGenerator extends BaseHistoryDataGenerator {
   }
 
   public void writeHistoryData(
-          int port,
-          List<String> pathList,
-          List<DataType> dataTypeList,
-          List keyList,
-          List<List<Object>> valuesList,
-          String vectorFieldName) {
+      int port,
+      List<String> pathList,
+      List<DataType> dataTypeList,
+      List keyList,
+      List<List<Object>> valuesList,
+      String vectorFieldName) {
     writeHistoryData(port, pathList, dataTypeList, keyList, valuesList, vectorFieldName, null);
   }
 
@@ -237,14 +236,12 @@ public class VectorDBHistoryDataGenerator extends BaseHistoryDataGenerator {
                   row.addProperty(MILVUS_PRIMARY_FIELD_NAME, String.valueOf(id++));
                 }
               }
-              if (vectorValuesList != null && vectorValuesList.size() > i){
+              if (vectorValuesList != null && vectorValuesList.size() > i) {
+                row.add(vectorFieldName, new Gson().toJsonTree(vectorValuesList.get(i)));
+              } else {
                 row.add(
-                        vectorFieldName,
-                        new Gson().toJsonTree(vectorValuesList.get(i)));
-              }else {
-                row.add(
-                        vectorFieldName,
-                        new Gson().toJsonTree(CommonUtils.generateFloatVector(DEFAULT_DIMENSION)));
+                    vectorFieldName,
+                    new Gson().toJsonTree(CommonUtils.generateFloatVector(DEFAULT_DIMENSION)));
               }
               data.add(row);
             }
@@ -262,13 +259,13 @@ public class VectorDBHistoryDataGenerator extends BaseHistoryDataGenerator {
   }
 
   public void writeDynamicData(
-          int port,
-          List<String> pathList,
-          List<DataType> dataTypeList,
-          List keyList,
-          List<List<Object>> valuesList,
-          String vectorFieldName,
-          List<List<Float>> vectorValuesList) {
+      int port,
+      List<String> pathList,
+      List<DataType> dataTypeList,
+      List keyList,
+      List<List<Object>> valuesList,
+      String vectorFieldName,
+      List<List<Float>> vectorValuesList) {
     if (StringUtils.isEmpty(vectorFieldName)) {
       vectorFieldName = MILVUS_VECTOR_FIELD_NAME;
     }
@@ -281,18 +278,18 @@ public class VectorDBHistoryDataGenerator extends BaseHistoryDataGenerator {
         String tableName = path.substring(path.indexOf(SEPARATOR) + 1, path.lastIndexOf(SEPARATOR));
 
         Map<String, List<Integer>> tablesToColumnIndexes =
-                databaseToTablesToColumnIndexes.computeIfAbsent(databaseName, x -> new HashMap<>());
+            databaseToTablesToColumnIndexes.computeIfAbsent(databaseName, x -> new HashMap<>());
         List<Integer> columnIndexes =
-                tablesToColumnIndexes.computeIfAbsent(tableName, x -> new ArrayList<>());
+            tablesToColumnIndexes.computeIfAbsent(tableName, x -> new ArrayList<>());
         columnIndexes.add(i);
       }
 
       for (Map.Entry<String, Map<String, List<Integer>>> entry :
-              databaseToTablesToColumnIndexes.entrySet()) {
+          databaseToTablesToColumnIndexes.entrySet()) {
         String databaseName = entry.getKey();
         try {
           client.createDatabase(
-                  CreateDatabaseReq.builder().databaseName(NameUtils.escape(databaseName)).build());
+              CreateDatabaseReq.builder().databaseName(NameUtils.escape(databaseName)).build());
           LOGGER.info("create database : {}", databaseName);
         } catch (Exception e) {
           LOGGER.info("database {} exists!", databaseName);
@@ -305,7 +302,7 @@ public class VectorDBHistoryDataGenerator extends BaseHistoryDataGenerator {
         for (Map.Entry<String, List<Integer>> item : entry.getValue().entrySet()) {
           String collectionName = item.getKey();
           createOrAlterDynamicCollections(
-                  client, databaseName, pathList, null, dataTypeList, vectorFieldName, idType);
+              client, databaseName, pathList, null, dataTypeList, vectorFieldName, idType);
           int id = 0;
           List<JsonObject> data = new ArrayList<>();
           for (int i = 0; i < valuesList.size(); i++) {
@@ -316,8 +313,8 @@ public class VectorDBHistoryDataGenerator extends BaseHistoryDataGenerator {
               String path = pathList.get(index);
               String columnName = path.substring(path.lastIndexOf(SEPARATOR) + 1);
               added =
-                      MilvusClientUtils.addProperty(
-                              row, columnName, values.get(index), dataTypeList.get(index));
+                  MilvusClientUtils.addProperty(
+                      row, columnName, values.get(index), dataTypeList.get(index));
             }
             if (added) {
               if (keyList != null && keyList.size() > i) {
@@ -333,14 +330,12 @@ public class VectorDBHistoryDataGenerator extends BaseHistoryDataGenerator {
                   row.addProperty(MILVUS_PRIMARY_FIELD_NAME, String.valueOf(id++));
                 }
               }
-              if (vectorValuesList != null && vectorValuesList.size() > i){
+              if (vectorValuesList != null && vectorValuesList.size() > i) {
+                row.add(vectorFieldName, new Gson().toJsonTree(vectorValuesList.get(i)));
+              } else {
                 row.add(
-                        vectorFieldName,
-                        new Gson().toJsonTree(vectorValuesList.get(i)));
-              }else {
-                row.add(
-                        vectorFieldName,
-                        new Gson().toJsonTree(CommonUtils.generateFloatVector(DEFAULT_DIMENSION)));
+                    vectorFieldName,
+                    new Gson().toJsonTree(CommonUtils.generateFloatVector(DEFAULT_DIMENSION)));
               }
               data.add(row);
             }
@@ -357,7 +352,6 @@ public class VectorDBHistoryDataGenerator extends BaseHistoryDataGenerator {
     }
   }
 
-
   @Override
   public void writeHistoryData(
       int port, List<String> pathList, List<DataType> dataTypeList, List<List<Object>> valuesList) {
@@ -373,28 +367,45 @@ public class VectorDBHistoryDataGenerator extends BaseHistoryDataGenerator {
         Arrays.asList("key1", "key2"),
         Constant.READ_ONLY_FLOAT_VALUES_LIST,
         "vector",
-        Arrays.asList(Arrays.asList(1.0f, 2.0f), Arrays.asList(3.0f, 4.0f))
-    );
+        Arrays.asList(Arrays.asList(1.0f, 2.0f), Arrays.asList(3.0f, 4.0f)));
 
     writeHistoryData(
         Constant.readOnlyPort,
-        Arrays.asList("d1.c1.i","d1.c1.b","d1.c1.f","d1.c1.s"),
+        Arrays.asList("d1.c1.i", "d1.c1.b", "d1.c1.f", "d1.c1.s"),
         Arrays.asList(DataType.LONG, DataType.BOOLEAN, DataType.FLOAT, DataType.BINARY),
-        Arrays.asList(1L,2L,3L,4L,5L),
-        Arrays.asList(Arrays.asList(0L,true,0.1,"1st"),Arrays.asList(1L,false,1.1,"2nd"),Arrays.asList(2L,true,2.1,"3th"),Arrays.asList(3L,false,3.1,"4th"),Arrays.asList(4L,true,4.1,"5th")),
+        Arrays.asList(1L, 2L, 3L, 4L, 5L),
+        Arrays.asList(
+            Arrays.asList(0L, true, 0.1, "1st"),
+            Arrays.asList(1L, false, 1.1, "2nd"),
+            Arrays.asList(2L, true, 2.1, "3th"),
+            Arrays.asList(3L, false, 3.1, "4th"),
+            Arrays.asList(4L, true, 4.1, "5th")),
         "vector",
-        Arrays.asList(Arrays.asList(0.0f, 1.1f), Arrays.asList(1.1f, 2.2f), Arrays.asList(2.2f, 3.3f), Arrays.asList(3.3f, 4.4f), Arrays.asList(4.4f, 5.5f))
-    );
+        Arrays.asList(
+            Arrays.asList(0.0f, 1.1f),
+            Arrays.asList(1.1f, 2.2f),
+            Arrays.asList(2.2f, 3.3f),
+            Arrays.asList(3.3f, 4.4f),
+            Arrays.asList(4.4f, 5.5f)));
 
     writeDynamicData(
         Constant.readOnlyPort,
-        Arrays.asList("d2.c1.i","d2.c1.b","d2.c1.f","d2.c1.s"),
+        Arrays.asList("d2.c1.i", "d2.c1.b", "d2.c1.f", "d2.c1.s"),
         Arrays.asList(DataType.LONG, DataType.BOOLEAN, DataType.FLOAT, DataType.BINARY),
-        Arrays.asList(1L,2L,3L,4L,5L),
-        Arrays.asList(Arrays.asList(0L,true,0.1,"1st"),Arrays.asList(1L,false,1.1,"2nd"),Arrays.asList(2L,true,2.1,"3th"),Arrays.asList(3L,false,3.1,"4th"),Arrays.asList(4L,true,4.1,"5th")),
+        Arrays.asList(1L, 2L, 3L, 4L, 5L),
+        Arrays.asList(
+            Arrays.asList(0L, true, 0.1, "1st"),
+            Arrays.asList(1L, false, 1.1, "2nd"),
+            Arrays.asList(2L, true, 2.1, "3th"),
+            Arrays.asList(3L, false, 3.1, "4th"),
+            Arrays.asList(4L, true, 4.1, "5th")),
         "vector",
-        Arrays.asList(Arrays.asList(0.0f, 1.1f), Arrays.asList(1.1f, 2.2f), Arrays.asList(2.2f, 3.3f), Arrays.asList(3.3f, 4.4f), Arrays.asList(4.4f, 5.5f))
-    );
+        Arrays.asList(
+            Arrays.asList(0.0f, 1.1f),
+            Arrays.asList(1.1f, 2.2f),
+            Arrays.asList(2.2f, 3.3f),
+            Arrays.asList(3.3f, 4.4f),
+            Arrays.asList(4.4f, 5.5f)));
   }
 
   @Override
