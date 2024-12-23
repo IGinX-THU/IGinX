@@ -655,6 +655,9 @@ public class IginxWorker implements IService.Iface {
   public ExecuteSqlResp executeSql(ExecuteSqlReq req) {
     StatementExecutor executor = StatementExecutor.getInstance();
     RequestContext ctx = contextBuilder.build(req);
+    if (req.isSetRemoteSession()) {
+      ctx.setRemoteSession(req.isRemoteSession());
+    }
     executor.execute(ctx);
     return ctx.getResult().getExecuteSqlResp();
   }
@@ -847,7 +850,7 @@ public class IginxWorker implements IService.Iface {
     StatementExecutor executor = StatementExecutor.getInstance();
     RequestContext ctx = contextBuilder.build(req);
     ctx.setUDFModuleByteBuffer(req.udfFile);
-    ctx.setRemoteUDF(req.isRemote);
+    ctx.setRemoteSession(req.isRemote);
     executor.execute(ctx);
     return ctx.getResult().getLoadUDFResp();
   }

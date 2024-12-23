@@ -294,7 +294,7 @@ public class TransformJobManager {
       JobState jobState = job.getState();
       if (jobState.equals(JobState.JOB_RUNNING) || jobState.equals(JobState.JOB_CREATED)) {
         for (Task task : job.getTaskList()) {
-          if (task.getTaskType().equals(TaskType.Python)) {
+          if (task.getTaskType().equals(TaskType.PYTHON)) {
             PythonTask pythonTask = (PythonTask) task;
             if (pythonTask.getPyTaskName().equals(taskName)) {
               return true;

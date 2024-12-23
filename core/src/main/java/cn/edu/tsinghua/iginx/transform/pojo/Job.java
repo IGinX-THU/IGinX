@@ -23,9 +23,6 @@ import cn.edu.tsinghua.iginx.notice.EmailNotifier;
 import cn.edu.tsinghua.iginx.thrift.*;
 import cn.edu.tsinghua.iginx.transform.api.Stage;
 import cn.edu.tsinghua.iginx.transform.data.*;
-import cn.edu.tsinghua.iginx.utils.EmailFromYAML;
-import cn.edu.tsinghua.iginx.utils.JobFromYAML;
-import cn.edu.tsinghua.iginx.utils.TaskFromYAML;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -71,10 +68,10 @@ public class Job {
     active = new AtomicBoolean(false);
 
     exportType = req.getExportType();
-    if (exportType.equals(ExportType.File)) {
+    if (exportType.equals(ExportType.FILE)) {
       needExport = true;
       writer = new FileAppendWriter(req.getFileName());
-    } else if (exportType.equals(ExportType.IginX)) {
+    } else if (exportType.equals(ExportType.IGINX)) {
       needExport = true;
       writer = new IginXWriter(req.getSessionId());
     } else {
@@ -95,7 +92,7 @@ public class Job {
       Task task = TaskFactory.getTask(info);
       taskList.add(task);
 
-      if (task.getDataFlowType().equals(DataFlowType.Batch)) {
+      if (task.getDataFlowType().equals(DataFlowType.BATCH)) {
         if (!stageTasks.isEmpty()) {
           stage =
               new StreamStage(
@@ -125,81 +122,18 @@ public class Job {
       // no schedule information provided. job will be fired instantly
       trigger = TriggerBuilder.newTrigger().startNow().build();
     }
-  }
 
-  public Job(long id, long sessionId, JobFromYAML jobFromYAML) {
-    this.jobId = id;
-    this.sessionId = sessionId;
-    this.state = JobState.JOB_CREATED;
-    active = new AtomicBoolean(false);
-
-    String exportType = jobFromYAML.getExportType().toLowerCase().trim();
-    if (exportType.equals("file")) {
-      this.exportType = ExportType.File;
-      this.needExport = true;
-      this.writer = new FileAppendWriter(jobFromYAML.getExportFile());
-    } else if (exportType.equals("iginx")) {
-      this.exportType = ExportType.IginX;
-      this.needExport = true;
-      this.writer = new IginXWriter(sessionId);
-    } else {
-      this.exportType = ExportType.Log;
-      this.needExport = false;
-      this.writer = new LogWriter();
-    }
-    stopOnFailure = jobFromYAML.isStopOnFailure();
-
-    taskList = new ArrayList<>();
-    stageList = new ArrayList<>();
-    Stage stage = null;
-    List<Task> stageTasks = new ArrayList<>();
-    for (int i = 0; i < jobFromYAML.getTaskList().size(); i++) {
-      TaskFromYAML taskFromYAML = jobFromYAML.getTaskList().get(i);
-      Task task = TaskFactory.getTask(taskFromYAML);
-      taskList.add(task);
-
-      if (task.getDataFlowType().equals(DataFlowType.Batch)) {
-        if (!stageTasks.isEmpty()) {
-          stage =
-              new StreamStage(
-                  sessionId, stage, new ArrayList<>(stageTasks), new CollectionWriter());
-          stageList.add(stage);
-          stageTasks.clear();
-        }
-        if (i == jobFromYAML.getTaskList().size() - 1) {
-          stage = new BatchStage(stage, task, writer);
-        } else {
-          stage = new BatchStage(stage, task, new CollectionWriter());
-        }
-        stageList.add(stage);
-      } else {
-        stageTasks.add(task);
-      }
-    }
-    if (!stageTasks.isEmpty()) {
-      stage = new StreamStage(sessionId, stage, new ArrayList<>(stageTasks), writer);
-      stageList.add(stage);
-    }
-
-    if (jobFromYAML.getSchedule() != null && !jobFromYAML.getSchedule().isEmpty()) {
-      trigger = JobScheduleTriggerMaker.getTrigger(jobFromYAML.getSchedule());
-      scheduled = true;
-      scheduleStr = jobFromYAML.getSchedule();
-    } else {
-      trigger = TriggerBuilder.newTrigger().startNow().build();
-    }
-
-    if (jobFromYAML.getNotification() != null) {
-      EmailFromYAML emailFromYAML = jobFromYAML.getNotification().getEmail();
-      if (emailFromYAML != null) {
+    if (req.getNotification() != null) {
+      Email email = req.getNotification().getEmail();
+      if (email != null) {
         notifier =
             new EmailNotifier(
-                emailFromYAML.getHostName(),
-                emailFromYAML.getSmtpPort(),
-                emailFromYAML.getUserName(),
-                emailFromYAML.getPassword(),
-                emailFromYAML.getFrom(),
-                emailFromYAML.getTo());
+                email.getHostName(),
+                email.getSmtpPort(),
+                email.getUsername(),
+                email.getPassword(),
+                email.getFromAddr(),
+                email.getToAddrs());
       }
     }
   }

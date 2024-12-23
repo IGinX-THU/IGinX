@@ -68,4 +68,8 @@ public class RpcUtils {
     status.setMessage(msg);
     return status;
   }
+
+  public static Status ErrorStatus(String msg) {
+    return RpcUtils.status(StatusCode.STATEMENT_EXECUTION_ERROR, msg);
+  }
 }

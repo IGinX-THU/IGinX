@@ -28,6 +28,7 @@ import cn.edu.tsinghua.iginx.utils.JobFromYAML;
 import cn.edu.tsinghua.iginx.utils.RpcUtils;
 import cn.edu.tsinghua.iginx.utils.SnowFlakeUtils;
 import cn.edu.tsinghua.iginx.utils.YAMLReader;
+import java.io.File;
 import java.io.FileNotFoundException;
 
 public class CommitTransformJobStatement extends SystemStatement {
@@ -43,12 +44,18 @@ public class CommitTransformJobStatement extends SystemStatement {
 
   @Override
   public void execute(RequestContext ctx) throws StatementExecutionException {
+    File file = new File(path);
+    if (ctx.isRemoteSession() || !file.isAbsolute()) {
+      ctx.setResult(new Result(RpcUtils.SUCCESS));
+      ctx.getResult().setJobYamlPath(path);
+      return;
+    }
     try {
       YAMLReader reader = new YAMLReader(path);
       JobFromYAML jobFromYAML = reader.getJobFromYAML();
 
       long id = SnowFlakeUtils.getInstance().nextId();
-      Job job = new Job(id, ctx.getSessionId(), jobFromYAML);
+      Job job = new Job(id, jobFromYAML.toCommitTransformJobReq(ctx.getSessionId()));
 
       long jobId = manager.commitJob(job);
       if (jobId < 0) {
@@ -59,7 +66,8 @@ public class CommitTransformJobStatement extends SystemStatement {
         ctx.setResult(result);
       }
     } catch (FileNotFoundException e) {
-      ctx.setResult(new Result(RpcUtils.FAILURE));
+      String errMsg = "Cannot find file in path:" + path;
+      ctx.setResult(new Result(RpcUtils.ErrorStatus(errMsg)));
     }
   }
 }
