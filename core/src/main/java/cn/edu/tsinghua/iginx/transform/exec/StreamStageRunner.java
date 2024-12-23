@@ -108,9 +108,16 @@ public class StreamStageRunner implements Runner {
       RequestContext context = contextBuilder.build(req);
       executor.execute(context);
       if (context.getResult().getStatus().code != RpcUtils.SUCCESS.code) {
-        throw new TransformException(
-            "Unexpected error occurred during iginx task stage: "
-                + context.getResult().getStatus().getMessage());
+        if (!context.getWarningMsg().contains("overlapped keys")) {
+          throw new TransformException(
+              "Unexpected error occurred during iginx task stage: "
+                  + context.getResult().getStatus().getMessage());
+        } else {
+          // warn about overlapped keys but continue job
+          LOGGER.warn(
+              "Result of IGinX query task in transform job contains overlapped keys! Query: {}",
+              sqlList.get(i));
+        }
       }
     }
 
@@ -118,9 +125,16 @@ public class StreamStageRunner implements Runner {
     RequestContext context = contextBuilder.build(req);
     executor.execute(context);
     if (context.getResult().getStatus().code != RpcUtils.SUCCESS.code) {
-      throw new TransformException(
-          "Unexpected error occurred during iginx task stage: "
-              + context.getResult().getStatus().getMessage());
+      if (!context.getWarningMsg().contains("overlapped keys")) {
+        throw new TransformException(
+            "Unexpected error occurred during iginx task stage: "
+                + context.getResult().getStatus().getMessage());
+      } else {
+        // warn about overlapped keys but continue job
+        LOGGER.warn(
+            "Result of IGinX query task in transform job contains overlapped keys! Query: {}",
+            sqlList.get(sqlList.size() - 1));
+      }
     }
     return context.getResult().getResultStream();
   }

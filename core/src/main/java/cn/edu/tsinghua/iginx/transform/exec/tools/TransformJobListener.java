@@ -20,10 +20,7 @@
 package cn.edu.tsinghua.iginx.transform.exec.tools;
 
 import cn.edu.tsinghua.iginx.engine.shared.function.manager.ThreadInterpreterManager;
-import cn.edu.tsinghua.iginx.thrift.JobState;
 import cn.edu.tsinghua.iginx.transform.driver.PemjaDriver;
-import cn.edu.tsinghua.iginx.transform.exception.TransformException;
-import cn.edu.tsinghua.iginx.transform.exec.TransformJobManager;
 import cn.edu.tsinghua.iginx.transform.pojo.Job;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
@@ -43,6 +40,7 @@ public class TransformJobListener implements JobListener {
   @Override
   public void jobToBeExecuted(JobExecutionContext context) {
     if (!ThreadInterpreterManager.isInterpreterSet()) {
+      // will only execute once
       PythonInterpreter interpreter = new PythonInterpreter(PemjaDriver.getPythonConfig());
       ThreadInterpreterManager.setInterpreter(interpreter);
     }
@@ -56,14 +54,7 @@ public class TransformJobListener implements JobListener {
     if (jobException != null) {
       Job job = (Job) context.getMergedJobDataMap().get("job");
       LOGGER.error("Job {} execution failed", job.getJobId(), jobException);
-      job.setState(JobState.JOB_FAILED);
       job.setException(jobException);
-
-      try {
-        TransformJobManager.getInstance().removeFailedScheduleJob(job.getJobId());
-      } catch (TransformException | InterruptedException e) {
-        LOGGER.error("Failed to remove failed job {}", job.getJobId(), e);
-      }
     }
   }
 }

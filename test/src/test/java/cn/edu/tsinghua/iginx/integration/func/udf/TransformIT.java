@@ -547,27 +547,36 @@ public class TransformIT {
   }
 
   private void verifyMultipleSqlStatements(String outputFileName) throws IOException {
-    BufferedReader reader = new BufferedReader(new FileReader(outputFileName));
-    String line = reader.readLine();
-    String[] parts = line.split(",");
+    try {
+      BufferedReader reader = new BufferedReader(new FileReader(outputFileName));
+      String line = reader.readLine();
+      String[] parts = line.split(",");
 
-    if (!needCompareResult) {
-      return;
+      if (!needCompareResult) {
+        return;
+      }
+      assertEquals(GlobalConstant.KEY_NAME, parts[0]);
+      assertEquals("us.d1.s2", parts[1]);
+
+      int index = 0;
+      while ((line = reader.readLine()) != null) {
+        parts = line.split(",");
+        assertEquals(14800 + index, Long.parseLong(parts[0]));
+        assertEquals(14800 + index + 1, Long.parseLong(parts[1]));
+        index++;
+      }
+      reader.close();
+
+      assertEquals(300, index);
+      assertTrue(Files.deleteIfExists(Paths.get(outputFileName)));
+    } catch (IOException e) {
+      throw e;
+    } catch (Exception e) {
+      final Path path = Paths.get(outputFileName);
+      String content = new String(Files.readAllBytes(path));
+      LOGGER.error("verifyMultipleSqlStatements failed, file content: \n{}\n", content, e);
+      throw e;
     }
-    assertEquals(GlobalConstant.KEY_NAME, parts[0]);
-    assertEquals("us.d1.s2", parts[1]);
-
-    int index = 0;
-    while ((line = reader.readLine()) != null) {
-      parts = line.split(",");
-      assertEquals(14800 + index, Long.parseLong(parts[0]));
-      assertEquals(14800 + index + 1, Long.parseLong(parts[1]));
-      index++;
-    }
-    reader.close();
-
-    assertEquals(300, index);
-    assertTrue(Files.deleteIfExists(Paths.get(outputFileName)));
   }
 
   @Test
@@ -1175,6 +1184,8 @@ public class TransformIT {
 
       long jobId = result.getJobId();
       verifyJobFinishedBlocked(jobId);
+
+      Assert.assertTrue(greenMail.waitForIncomingEmail(10 * 1000, 2));
 
       assertEquals(2, greenMail.getReceivedMessages().length);
       assertEquals("Job " + jobId + " is created", greenMail.getReceivedMessages()[0].getSubject());
