@@ -34,10 +34,10 @@ on:
                 required: false
                 default: "false"
             timeout-minutes:
-              description: "The timeout minutes for the job"
-              type: number
-              required: false
-              default: 35
+                description: "The timeout minutes for the job"
+                type: number
+                required: false
+                default: 35
 
 jobs:
     TPC-H-Test:

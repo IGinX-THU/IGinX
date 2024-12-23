@@ -28,10 +28,10 @@ on:
                 required: false
                 default: '["IoTDB12", "FileSystem"]'
             timeout-minutes:
-              description: "The timeout minutes for the job"
-              type: number
-              required: false
-              default: 30
+                description: "The timeout minutes for the job"
+                type: number
+                required: false
+                default: 30
 
 env:
     FUNCTEST: RemoteUDFIT

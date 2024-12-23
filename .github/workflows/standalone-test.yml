@@ -29,10 +29,10 @@ on:
                 required: false
                 default: '["IoTDB12", "InfluxDB", "FileSystem", "PostgreSQL", "Redis", "MongoDB", "MySQL"]'
             timeout-minutes:
-              description: "The timeout minutes for the job"
-              type: number
-              required: false
-              default: 40
+                description: "The timeout minutes for the job"
+                type: number
+                required: false
+                default: 40
 
 jobs:
     Union-DB-Test:
