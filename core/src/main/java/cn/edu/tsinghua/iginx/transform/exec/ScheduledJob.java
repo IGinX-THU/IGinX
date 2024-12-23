@@ -41,9 +41,10 @@ public class ScheduledJob implements org.quartz.Job {
     List<Runner> runnerList = (List<Runner>) context.getMergedJobDataMap().get("runnerList");
 
     job.setState(JobState.JOB_RUNNING);
+    boolean stopOnFailure = job.isStopOnFailure();
     if (!job.getActive().compareAndSet(false, true)) {
-      throw unscheduleAllException(
-          "Cannot set active status of job: " + job.getJobId() + ".", null);
+      throw getJobException(
+          "Cannot set active status of job: " + job.getJobId() + ".", null, stopOnFailure);
     }
     try {
       for (Runner runner : runnerList) {
@@ -60,7 +61,7 @@ public class ScheduledJob implements org.quartz.Job {
       }
     } catch (Exception e) {
       if (job.getActive().compareAndSet(true, false)) {
-        job.setState(JobState.JOB_FAILING);
+        job.setState(stopOnFailure ? JobState.JOB_FAILING : JobState.JOB_PARTIALLY_FAILING);
         job.setException(e);
         List<Exception> closeExceptions = new ArrayList<>();
         for (Runner runner : runnerList) {
@@ -75,21 +76,27 @@ public class ScheduledJob implements org.quartz.Job {
         // Quartz will automatically unschedule
         // all triggers associated with this job
         // so that it does not run again
-        throw unscheduleAllException(
-            "Unexpected error occurred during execution of job: " + job.getJobId(), e);
+        throw getJobException(
+            "Unexpected error occurred during execution of job: " + job.getJobId(),
+            e,
+            stopOnFailure);
       }
-      throw unscheduleAllException("Cannot set active status of job: " + job.getJobId() + ".", e);
+      throw getJobException(
+          "Cannot set active status of job: " + job.getJobId() + ".", e, stopOnFailure);
     }
   }
 
-  private JobExecutionException unscheduleAllException(String message, Exception e) {
+  private JobExecutionException getJobException(
+      String message, Exception e, boolean stopOnFailure) {
     JobExecutionException e2;
     if (e == null) {
       e2 = new JobExecutionException(message);
     } else {
       e2 = new JobExecutionException(message, e);
     }
-    e2.setUnscheduleAllTriggers(true);
+    if (stopOnFailure) {
+      e2.setUnscheduleAllTriggers(true);
+    }
     return e2;
   }
 }

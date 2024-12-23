@@ -44,7 +44,12 @@ public class RpcUtils {
 
   public static Status JOB_FINISHED = new Status(StatusCode.JOB_FINISHED.getStatusCode());
   public static Status JOB_CREATED = new Status(StatusCode.JOB_CREATED.getStatusCode());
+  public static Status JOB_IDLE = new Status(StatusCode.JOB_IDLE.getStatusCode());
   public static Status JOB_RUNNING = new Status(StatusCode.JOB_RUNNING.getStatusCode());
+  public static Status JOB_PARTIALLY_FAILING =
+      new Status(StatusCode.JOB_PARTIALLY_FAILING.getStatusCode());
+  public static Status JOB_PARTIALLY_FAILED =
+      new Status(StatusCode.JOB_PARTIALLY_FAILED.getStatusCode());
   public static Status JOB_FAILING = new Status(StatusCode.JOB_FAILING.getStatusCode());
   public static Status JOB_FAILED = new Status(StatusCode.JOB_FAILED.getStatusCode());
   public static Status JOB_CLOSING = new Status(StatusCode.JOB_CLOSING.getStatusCode());

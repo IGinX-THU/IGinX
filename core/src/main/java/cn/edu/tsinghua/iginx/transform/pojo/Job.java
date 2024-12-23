@@ -62,6 +62,7 @@ public class Job {
   private boolean scheduled = false;
   private String scheduleStr = null;
   private final Trigger trigger;
+  private boolean stopOnFailure = true;
 
   public Job(long id, CommitTransformJobReq req) {
     jobId = id;
@@ -79,6 +80,10 @@ public class Job {
     } else {
       needExport = false;
       writer = new LogWriter();
+    }
+
+    if (req.isSetStopOnFailure()) {
+      stopOnFailure = req.isStopOnFailure();
     }
 
     taskList = new ArrayList<>();
@@ -142,6 +147,7 @@ public class Job {
       this.needExport = false;
       this.writer = new LogWriter();
     }
+    stopOnFailure = jobFromYAML.isStopOnFailure();
 
     taskList = new ArrayList<>();
     stageList = new ArrayList<>();
@@ -203,6 +209,7 @@ public class Job {
     switch (state) {
       case JOB_FINISHED:
       case JOB_FAILED:
+      case JOB_PARTIALLY_FAILED:
         try {
           sendEmail();
         } catch (Exception e) {

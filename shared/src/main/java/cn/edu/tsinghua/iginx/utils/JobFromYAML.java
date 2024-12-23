@@ -28,6 +28,7 @@ public class JobFromYAML {
   private String exportType;
   private String schedule;
   private NotificationFromYAML notification;
+  private boolean stopOnFailure = true;
 
   public JobFromYAML() {}
 
@@ -69,5 +70,13 @@ public class JobFromYAML {
 
   public void setNotification(NotificationFromYAML notification) {
     this.notification = notification;
+  }
+
+  public boolean isStopOnFailure() {
+    return stopOnFailure;
+  }
+
+  public void setStopOnFailure(boolean stopOnFailure) {
+    this.stopOnFailure = stopOnFailure;
   }
 }

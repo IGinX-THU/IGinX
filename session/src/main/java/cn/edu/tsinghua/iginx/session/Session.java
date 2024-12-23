@@ -1123,11 +1123,21 @@ public class Session {
 
   public long commitTransformJob(
       List<TaskInfo> taskInfoList, ExportType exportType, String fileName) throws SessionException {
-    return commitTransformJob(taskInfoList, exportType, fileName, null);
+    return commitTransformJob(taskInfoList, exportType, fileName, null, true);
   }
 
   public long commitTransformJob(
       List<TaskInfo> taskInfoList, ExportType exportType, String fileName, String schedule)
+      throws SessionException {
+    return commitTransformJob(taskInfoList, exportType, fileName, schedule, true);
+  }
+
+  public long commitTransformJob(
+      List<TaskInfo> taskInfoList,
+      ExportType exportType,
+      String fileName,
+      String schedule,
+      boolean stopOnFailure)
       throws SessionException {
     CommitTransformJobReq req = new CommitTransformJobReq(sessionId, taskInfoList, exportType);
     if (fileName != null) {
@@ -1137,6 +1147,8 @@ public class Session {
     if (schedule != null) {
       req.setSchedule(schedule);
     }
+
+    req.setStopOnFailure(stopOnFailure);
 
     Reference<CommitTransformJobResp> ref = new Reference<>();
     executeWithCheck(() -> (ref.resp = client.commitTransformJob(req)).status);

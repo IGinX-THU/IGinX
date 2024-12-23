@@ -168,6 +168,28 @@ public class TransformJobManager {
         if (!job.getActive().compareAndSet(true, false)) {
           throw new TransformException("Cannot set active status of job with id: " + jobId + ".");
         }
+      case JOB_PARTIALLY_FAILING:
+        // wait for job to finish clean up
+        try {
+          long waitTime = 10 * 1000; // 10 seconds max waiting time
+          while (job.getState() == JobState.JOB_PARTIALLY_FAILING && waitTime > 0) {
+            waitTime -= 1000;
+            Thread.sleep(1000);
+          }
+          if (job.getState() == JobState.JOB_PARTIALLY_FAILED) {
+            throw new TransformException(
+                "One execution of job with id: "
+                    + jobId
+                    + " is still failing after 10 seconds. Please check server.");
+          }
+        } catch (InterruptedException e) {
+          throw new TransformException(
+              "One execution of job with id: "
+                  + jobId
+                  + " is failing or failed yet cannot be removed. Please check server.",
+              e);
+        }
+      case JOB_PARTIALLY_FAILED:
       case JOB_IDLE:
         // reorder as Normal run: [set-ING,] close, set-ED, remove[, set end time, log time cost].
         job.setState(JobState.JOB_CLOSING);
@@ -198,21 +220,21 @@ public class TransformJobManager {
   }
 
   /** 当任务的所有执行周期都结束，将其信息删除 */
-  public void removeFinishedScheduleJob(long jobID) throws TransformException {
-    Pair<Job, JobRunner> pair = getJobAndRunner(jobID);
+  public void removeFinishedScheduleJob(long jobId) throws TransformException {
+    Pair<Job, JobRunner> pair = getJobAndRunner(jobId);
     Job job = pair.k;
     JobRunner runner = pair.v;
     if (job.getState() == JobState.JOB_FINISHED) {
-      jobRunnerMap.remove(jobID);
+      jobRunnerMap.remove(jobId);
       runner.close();
       return;
     }
     throw new TransformException(
-        "Job with id: " + jobID + "did not finish correctly. Current state: " + job.getState());
+        "Job with id: " + jobId + "did not finish correctly. Current state: " + job.getState());
   }
 
-  public void removeFailedScheduleJob(long jobID) throws TransformException, InterruptedException {
-    Pair<Job, JobRunner> pair = getJobAndRunner(jobID);
+  public void removeFailedScheduleJob(long jobId) throws TransformException, InterruptedException {
+    Pair<Job, JobRunner> pair = getJobAndRunner(jobId);
     Job job = pair.k;
     JobRunner runner = pair.v;
     long waitTime = 10 * 1000; // 10 seconds max waiting time
@@ -222,25 +244,25 @@ public class TransformJobManager {
     }
     if (job.getState() == JobState.JOB_FAILING) {
       throw new TransformException(
-          "Job with id: " + jobID + " is still failing after 10 seconds. Please check server.");
+          "Job with id: " + jobId + " is still failing after 10 seconds. Please check server.");
     }
     if (job.getState() == JobState.JOB_FAILED) {
-      jobRunnerMap.remove(jobID);
+      jobRunnerMap.remove(jobId);
       runner.close();
     } else {
       throw new TransformException(
-          "Job with id: " + jobID + "is supposed to be FAILED. Current state: " + job.getState());
+          "Job with id: " + jobId + "is supposed to be FAILED. Current state: " + job.getState());
     }
   }
 
-  private Pair<Job, JobRunner> getJobAndRunner(long jobID) throws TransformException {
-    Job job = jobMap.get(jobID);
+  private Pair<Job, JobRunner> getJobAndRunner(long jobId) throws TransformException {
+    Job job = jobMap.get(jobId);
     if (job == null) {
-      throw new TransformException("No job with id: " + jobID + " exists.");
+      throw new TransformException("No job with id: " + jobId + " exists.");
     }
-    JobRunner runner = jobRunnerMap.get(jobID);
+    JobRunner runner = jobRunnerMap.get(jobId);
     if (runner == null) {
-      throw new TransformException("No job runner with id: " + jobID + " exists.");
+      throw new TransformException("No job runner with id: " + jobId + " exists.");
     }
     return new Pair<>(job, runner);
   }

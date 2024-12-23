@@ -424,6 +424,78 @@ public class TransformIT {
     }
   }
 
+  @Test
+  public void commitContinueOnFailureTest() {
+    LOGGER.info("commitContinueOnFailureTest");
+    try {
+      List<TaskInfo> taskInfoList = new ArrayList<>();
+
+      TaskInfo iginxTask = new TaskInfo(TaskType.IginX, DataFlowType.Stream);
+      iginxTask.setSqlList(Collections.singletonList("SELECT s1, s2 FROM us.d1 WHERE key < 10;"));
+
+      TaskInfo pyTask = new TaskInfo(TaskType.Python, DataFlowType.Stream);
+      pyTask.setPyTaskName("RowSumTransformer"); // at 1st try, udf is not registered.
+
+      taskInfoList.add(iginxTask);
+      taskInfoList.add(pyTask);
+
+      String schedule = "every 10 second";
+
+      String outputFileName =
+          OUTPUT_DIR_PREFIX + File.separator + "export_file_continue_on_failure.txt";
+      long jobId =
+          session.commitTransformJob(
+              taskInfoList, ExportType.File, outputFileName, schedule, false);
+
+      try {
+        testContinueOnFailure(jobId, outputFileName);
+      } finally {
+        cancelJob(jobId);
+      }
+    } catch (SessionException | InterruptedException | IOException e) {
+      LOGGER.error("Transform:  execute fail. Caused by:", e);
+      fail();
+    }
+  }
+
+  @Test
+  public void commitContinueOnFailureByYamlTest() {
+    // same step as commitContinueOnFailureTest but by yaml
+    LOGGER.info("commitContinueOnFailureByYamlTest");
+    try {
+      String yamlFileName =
+          OUTPUT_DIR_PREFIX + File.separator + "TransformScheduledEvery10sWrong.yaml";
+      SessionExecuteSqlResult result =
+          session.executeSql(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
+
+      long jobId = result.getJobId();
+      String outputFileName =
+          OUTPUT_DIR_PREFIX + File.separator + "export_file_continue_on_failure.txt";
+      try {
+        testContinueOnFailure(jobId, outputFileName);
+      } finally {
+        cancelJob(jobId);
+      }
+    } catch (SessionException | InterruptedException | IOException e) {
+      LOGGER.error("Transform:  execute fail. Caused by:", e);
+      fail();
+    }
+  }
+
+  private void testContinueOnFailure(long jobId, String outputFileName)
+      throws InterruptedException, SessionException, IOException {
+    Thread.sleep(3000L); // wait for 1st try to fail
+    verifyJobState(jobId, null);
+    verifyJobState(jobId, JobState.JOB_PARTIALLY_FAILED);
+
+    // register udf before 2nd try
+    String task = "RowSumTransformer";
+    registerTask(task);
+
+    Thread.sleep(10000L);
+    verifySinglePythonJob(outputFileName, 10); // verify 2nd try result
+  }
+
   @Ignore // this test takes too much time(> 1 minute) because the smallest time unit in cron is
   // minute. This test has been tested locally before committed
   @Test
@@ -602,7 +674,7 @@ public class TransformIT {
       long jobId = session.commitTransformJob(taskInfoList, ExportType.File, outputFileName);
 
       verifyJobFinishedBlocked(jobId);
-      verifySinglePythonJob(outputFileName);
+      verifySinglePythonJob(outputFileName, 200);
     } catch (SessionException | InterruptedException | IOException e) {
       LOGGER.error("Transform:  execute fail. Caused by:", e);
       fail();
@@ -706,14 +778,15 @@ public class TransformIT {
       long jobId = result.getJobId();
 
       verifyJobFinishedBlocked(jobId);
-      verifySinglePythonJob(outputFileName);
+      verifySinglePythonJob(outputFileName, 200);
     } catch (SessionException | InterruptedException | IOException e) {
       LOGGER.error("Transform:  execute fail. Caused by:", e);
       fail();
     }
   }
 
-  private void verifySinglePythonJob(String outputFileName) throws IOException {
+  private void verifySinglePythonJob(String outputFileName, int expectedLineCount)
+      throws IOException {
     BufferedReader reader = new BufferedReader(new FileReader(outputFileName));
     String line = reader.readLine();
     String[] parts = line.split(",");
@@ -733,7 +806,7 @@ public class TransformIT {
     }
     reader.close();
 
-    assertEquals(200, index);
+    assertEquals(expectedLineCount, index);
     assertTrue(Files.deleteIfExists(Paths.get(outputFileName)));
   }
 

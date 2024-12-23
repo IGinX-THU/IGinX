@@ -122,6 +122,8 @@ enum JobState {
     JOB_CREATED,
     JOB_IDLE,
     JOB_RUNNING,
+    JOB_PARTIALLY_FAILING,
+    JOB_PARTIALLY_FAILED,
     JOB_FAILING,
     JOB_FAILED,
     JOB_CLOSING,
@@ -564,6 +566,7 @@ struct CommitTransformJobReq {
     3: required ExportType exportType
     4: optional string fileName
     5: optional string schedule
+    6: optional bool stopOnFailure
 }
 
 struct CommitTransformJobResp {
