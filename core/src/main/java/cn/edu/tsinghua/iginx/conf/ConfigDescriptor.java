@@ -205,10 +205,8 @@ public class ConfigDescriptor {
           Integer.parseInt(properties.getProperty("transformTaskThreadPoolSize", "10")));
       config.setTransformMaxRetryTimes(
           Integer.parseInt(properties.getProperty("transformMaxRetryTimes", "3")));
-
       config.setNeedInitBasicUDFFunctions(
           Boolean.parseBoolean(properties.getProperty("needInitBasicUDFFunctions", "false")));
-
       config.setHistoricalPrefixList(properties.getProperty("historicalPrefixList", ""));
       config.setExpectedStorageUnitNum(
           Integer.parseInt(properties.getProperty("expectedStorageUnitNum", "0")));

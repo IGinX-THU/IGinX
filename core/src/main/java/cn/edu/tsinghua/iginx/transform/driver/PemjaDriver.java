@@ -21,6 +21,7 @@ package cn.edu.tsinghua.iginx.transform.driver;
 
 import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
+import cn.edu.tsinghua.iginx.engine.shared.function.manager.ThreadInterpreterManager;
 import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
 import cn.edu.tsinghua.iginx.metadata.entity.TransformTaskMeta;
@@ -39,7 +40,7 @@ public class PemjaDriver {
   private static final String PATH =
       String.join(File.separator, config.getDefaultUDFDir(), "python_scripts");
 
-  private static final String PY_SUFFIX = ".py";
+  protected static final String PY_SUFFIX = ".py";
 
   private static PemjaDriver instance;
 
@@ -56,6 +57,14 @@ public class PemjaDriver {
     return instance;
   }
 
+  public static PythonInterpreterConfig getPythonConfig() {
+    String pythonCMD = config.getPythonCMD();
+    return PythonInterpreterConfig.newBuilder()
+        .setPythonExec(pythonCMD)
+        .addPythonPaths(PATH)
+        .build();
+  }
+
   public PemjaWorker createWorker(PythonTask task, Writer writer) {
     String identifier = task.getPyTaskName();
     TransformTaskMeta taskMeta = metaManager.getTransformTask(identifier);
@@ -67,19 +76,15 @@ public class PemjaDriver {
           String.format("UDF %s not registered in node ip=%s", identifier, config.getIp()));
     }
 
-    String pythonCMD = config.getPythonCMD();
-    PythonInterpreterConfig config =
-        PythonInterpreterConfig.newBuilder().setPythonExec(pythonCMD).addPythonPaths(PATH).build();
-
-    PythonInterpreter interpreter = new PythonInterpreter(config);
+    PythonInterpreter interpreter = ThreadInterpreterManager.getInterpreter();
     String fileName = taskMeta.getFileName();
     String moduleName = fileName.substring(0, fileName.indexOf(PY_SUFFIX));
     String className = taskMeta.getClassName();
 
-    // init the python udf
-    interpreter.exec(String.format("import %s", moduleName));
-    interpreter.exec(String.format("t = %s.%s()", moduleName, className));
+    // to fail fast
+    // importlib is used to update python scripts
+    interpreter.exec(String.format("import %s; import importlib", moduleName));
 
-    return new PemjaWorker(identifier, interpreter, writer);
+    return new PemjaWorker(identifier, moduleName, className, interpreter, writer);
   }
 }
