@@ -27,6 +27,11 @@ on:
                 type: string
                 required: false
                 default: '["IoTDB12", "InfluxDB", "FileSystem", "PostgreSQL", "Redis", "MongoDB", "MySQL"]'
+            timeout-minutes:
+                description: "The timeout minutes for the job"
+                type: number
+                required: false
+                default: 120
             close-optimizer:
                 description: "Whether to close the optimizer"
                 type: string
@@ -38,7 +43,7 @@ env:
 
 jobs:
     DB-CE:
-        timeout-minutes: 120
+        timeout-minutes: ${{ inputs.timeout-minutes }}
         strategy:
             fail-fast: false
             matrix:
