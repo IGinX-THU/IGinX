@@ -38,6 +38,7 @@ jobs:
             close-optimizer: "true"
 
     remote-test:
+        uses: ./.github/workflows/remote-test.yml
         with:
             metadata-matrix: '["zookeeper"]'
     assembly-test:
