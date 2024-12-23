@@ -21,3 +21,17 @@ runs:
           shell: bash
           run: |
               "${GITHUB_WORKSPACE}/.github/actions/dbLog/dbLog.sh" ${{ inputs.DB-name }}
+
+        - if: ${{ inputs.DB-name == 'VectorDB' && runner.os != 'Windows' }}
+          name: Show Milvus Log
+          working-directory: ${{ github.workspace }}
+          shell: bash
+          run: |
+            docker-compose -f 19530/docker-compose-19530.yml logs | tail -n 2000
+
+        - if: ${{ inputs.DB-name == 'VectorDB' && runner.os == 'Windows' }}
+          name: Show Milvus Log on Windows
+          working-directory: ${{ github.workspace }}
+          shell: wsl-run {0}
+          run: |
+            docker-compose -f 19530/docker-compose-19530.yml logs | tail -n 2000

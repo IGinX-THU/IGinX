@@ -250,6 +250,60 @@ public class MilvusClientUtils {
             .build());
   }
 
+  public static void createDynamicCollection(
+          MilvusClientV2 client,
+          String databaseName,
+          String collectionName,
+          DataType idType,
+          Set<String> fieldsToAdd,
+          Map<String, DataType> fieldTypes,
+          String vectorFieldName)
+          throws InterruptedException, UnsupportedEncodingException {
+    useDatabase(client, databaseName);
+    io.milvus.v2.common.DataType milvusIdType = DataTransformer.toMilvusDataType(idType);
+    CreateCollectionReq.CreateCollectionReqBuilder builder =
+            CreateCollectionReq.builder()
+                    .idType(milvusIdType)
+                    .collectionName(NameUtils.escape(collectionName))
+                    .consistencyLevel(ConsistencyLevel.STRONG)
+                    .enableDynamicField(true)
+                    .dimension(DEFAULT_DIMENSION);
+
+    CreateCollectionReq.CollectionSchema schema =
+            CreateCollectionReq.CollectionSchema.builder().enableDynamicField(true).build();
+    schema.addField(
+            AddFieldReq.builder()
+                    .fieldName(MILVUS_PRIMARY_FIELD_NAME)
+                    .isPrimaryKey(true)
+                    .dataType(milvusIdType)
+                    .build());
+    schema.addField(
+            AddFieldReq.builder()
+                    .fieldName(vectorFieldName)
+                    .dataType(io.milvus.v2.common.DataType.FloatVector)
+                    .dimension(DEFAULT_DIMENSION)
+                    .build());
+
+    List<IndexParam> indexes = new ArrayList<>();
+    Map<String, Object> extraParams = new HashMap<>();
+    extraParams.put("nlist", MILVUS_INDEX_PARAM_NLIST);
+    indexes.add(
+            IndexParam.builder()
+                    .fieldName(vectorFieldName)
+                    .indexType(DEFAULT_INDEX_TYPE)
+                    .metricType(DEFAULT_METRIC_TYPE)
+                    .extraParams(extraParams)
+                    .build());
+
+    client.createCollection(
+            builder
+                    .collectionSchema(schema)
+                    .primaryFieldName(MILVUS_PRIMARY_FIELD_NAME)
+                    .vectorFieldName(vectorFieldName)
+                    .indexParams(indexes)
+                    .build());
+  }
+
   public static void createCollection(
       MilvusClientV2 client,
       String databaseName,
