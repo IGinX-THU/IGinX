@@ -23,11 +23,7 @@ import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.DataArea;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Delete;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Insert;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
-import cn.edu.tsinghua.iginx.engine.shared.operator.SetTransform;
+import cn.edu.tsinghua.iginx.engine.shared.operator.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
@@ -55,6 +51,25 @@ public interface IStorage {
   /** 对叠加分片带谓词下推的查询 */
   TaskExecuteResult executeProjectDummyWithSelect(
       Project project, Select select, DataArea dataArea);
+
+  /** 询问底层是否支持带AGG的查询 */
+  default boolean isSupportProjectWithAgg(Operator agg, DataArea dataArea, boolean isDummy) {
+    return false;
+  }
+
+  /** 对非叠加分片带Agg带谓词下推的查询 */
+  TaskExecuteResult executeProjectWithAggSelect(
+      Project project, Select select, Operator agg, DataArea dataArea);
+
+  /** 对叠加分片带Agg带谓词下推的查询 */
+  TaskExecuteResult executeProjectDummyWithAggSelect(
+      Project project, Select select, Operator agg, DataArea dataArea);
+
+  /** 对非叠加分片带Agg的查询 */
+  TaskExecuteResult executeProjectWithAgg(Project project, Operator agg, DataArea dataArea);
+
+  /** 对叠加分片带Agg的查询 */
+  TaskExecuteResult executeProjectDummyWithAgg(Project project, Operator agg, DataArea dataArea);
 
   default boolean isSupportProjectWithSetTransform(SetTransform setTransform, DataArea dataArea) {
     return false;

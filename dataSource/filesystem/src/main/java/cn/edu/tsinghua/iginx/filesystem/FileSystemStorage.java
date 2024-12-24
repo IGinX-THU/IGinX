@@ -180,11 +180,22 @@ public class FileSystemStorage implements IStorage {
 
   @Override
   public boolean testConnection(StorageEngineMeta meta) {
+    Config rawConfig;
+    try {
+      rawConfig = toConfig(meta);
+    } catch (StorageInitializationException e) {
+      LOGGER.error("Cannot initialize file system storage with {}", meta, e);
+      return false;
+    }
+    FileSystemConfig fileSystemConfig = FileSystemConfig.of(rawConfig);
+    if (fileSystemConfig.isServe()) {
+      return true;
+    }
     try (TTransport transport = new TSocket(meta.getIp(), meta.getPort())) {
       transport.open();
       return true;
     } catch (TException e) {
-      LOGGER.error("Cannot establish thrift server on {}, {}", meta.getIp(), meta.getPort());
+      LOGGER.error("Cannot establish thrift server on {}, {}", meta.getIp(), meta.getPort(), e);
       return false;
     }
   }
@@ -214,6 +225,29 @@ public class FileSystemStorage implements IStorage {
   public TaskExecuteResult executeProjectDummyWithSelect(
       Project project, Select select, DataArea dataArea) {
     return executeQuery(unitOfDummy(), getDataTargetOf(select, project, dataArea), null);
+  }
+
+  @Override
+  public TaskExecuteResult executeProjectWithAggSelect(
+      Project project, Select select, Operator agg, DataArea dataArea) {
+    return null;
+  }
+
+  @Override
+  public TaskExecuteResult executeProjectDummyWithAggSelect(
+      Project project, Select select, Operator agg, DataArea dataArea) {
+    return null;
+  }
+
+  @Override
+  public TaskExecuteResult executeProjectWithAgg(Project project, Operator agg, DataArea dataArea) {
+    return null;
+  }
+
+  @Override
+  public TaskExecuteResult executeProjectDummyWithAgg(
+      Project project, Operator agg, DataArea dataArea) {
+    return null;
   }
 
   @Override

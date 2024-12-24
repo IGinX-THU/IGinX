@@ -1039,30 +1039,32 @@ public class UDFIT {
     ret = tool.execute(query);
     expected =
         "ResultSets:\n"
-            + "+-----------------+-------------+----------------------------------------------------------------------------------------+\n"
-            + "|     Logical Tree|Operator Type|                                                                           Operator Info|\n"
-            + "+-----------------+-------------+----------------------------------------------------------------------------------------+\n"
-            + "|Reorder          |      Reorder|                                                               Order: test.a,cos(test.a)|\n"
-            + "|  +--RowTransform| RowTransform|FuncList(Name, FuncType): (arithmetic_expr, System), (cos, UDF), MappingType: RowMapping|\n"
-            + "|    +--Project   |      Project|                                                                        Patterns: test.a|\n"
-            + "|      +--Project |      Project|                                             Patterns: test.a, Target DU: unit0000000002|\n"
-            + "+-----------------+-------------+----------------------------------------------------------------------------------------+\n"
-            + "Total line number = 4\n";
+            + "+-------------------+----------------+----------------------------------------------------------------------------------------+\n"
+            + "|       Logical Tree|   Operator Type|                                                                           Operator Info|\n"
+            + "+-------------------+----------------+----------------------------------------------------------------------------------------+\n"
+            + "|RemoveNullColumn   |RemoveNullColumn|                                                                        RemoveNullColumn|\n"
+            + "|  +--Reorder       |         Reorder|                                                               Order: test.a,cos(test.a)|\n"
+            + "|    +--RowTransform|    RowTransform|FuncList(Name, FuncType): (arithmetic_expr, System), (cos, UDF), MappingType: RowMapping|\n"
+            + "|      +--Project   |         Project|                                                                        Patterns: test.a|\n"
+            + "|        +--Project |         Project|                                             Patterns: test.a, Target DU: unit0000000002|\n"
+            + "+-------------------+----------------+----------------------------------------------------------------------------------------+\n"
+            + "Total line number = 5\n";
     assertEquals(expected, ret.getResultInString(false, ""));
 
     query = "explain select cos(a), pow(b, 2) from test;";
     ret = tool.execute(query);
     expected =
         "ResultSets:\n"
-            + "+-----------------+-------------+-------------------------------------------------------------------------+\n"
-            + "|     Logical Tree|Operator Type|                                                            Operator Info|\n"
-            + "+-----------------+-------------+-------------------------------------------------------------------------+\n"
-            + "|Reorder          |      Reorder|                                                                 Order: *|\n"
-            + "|  +--RowTransform| RowTransform|FuncList(Name, FuncType): (cos, UDF), (pow, UDF), MappingType: RowMapping|\n"
-            + "|    +--Project   |      Project|                                                  Patterns: test.b,test.a|\n"
-            + "|      +--Project |      Project|                       Patterns: test.a,test.b, Target DU: unit0000000002|\n"
-            + "+-----------------+-------------+-------------------------------------------------------------------------+\n"
-            + "Total line number = 4\n";
+            + "+-------------------+----------------+-------------------------------------------------------------------------+\n"
+            + "|       Logical Tree|   Operator Type|                                                            Operator Info|\n"
+            + "+-------------------+----------------+-------------------------------------------------------------------------+\n"
+            + "|RemoveNullColumn   |RemoveNullColumn|                                                         RemoveNullColumn|\n"
+            + "|  +--Reorder       |         Reorder|                                                                 Order: *|\n"
+            + "|    +--RowTransform|    RowTransform|FuncList(Name, FuncType): (cos, UDF), (pow, UDF), MappingType: RowMapping|\n"
+            + "|      +--Project   |         Project|                                                  Patterns: test.b,test.a|\n"
+            + "|        +--Project |         Project|                       Patterns: test.a,test.b, Target DU: unit0000000002|\n"
+            + "+-------------------+----------------+-------------------------------------------------------------------------+\n"
+            + "Total line number = 5\n";
     assertEquals(expected, ret.getResultInString(false, ""));
   }
 
@@ -1407,5 +1409,67 @@ public class UDFIT {
         LOGGER.error("Fail to recover requirement.txt .", ee);
       }
     }
+  }
+
+  @Test
+  public void tensorUDFTest() {
+    String name = "tensorTest";
+    String filePath =
+        String.join(
+            File.separator,
+            System.getProperty("user.dir"),
+            "src",
+            "test",
+            "resources",
+            "udf",
+            "tensor_test.py");
+    String statement = String.format(SINGLE_UDF_REGISTER_SQL, "udsf", name, "TensorTest", filePath);
+    tool.executeReg(statement);
+    assertTrue(tool.isUDFRegistered(name));
+    taskToBeRemoved.add(name);
+
+    statement = "select " + name + "(s1) from us.d1 where s1 < 10;";
+    SessionExecuteSqlResult ret = tool.execute(statement);
+    String expected =
+        "ResultSets:\n"
+            + "+--------------------+\n"
+            + "|tensorTest(us.d1.s1)|\n"
+            + "+--------------------+\n"
+            + "|                 0.0|\n"
+            + "+--------------------+\n"
+            + "Total line number = 1\n";
+    assertEquals(expected, ret.getResultInString(false, ""));
+
+    // test twice to ensure
+    statement = "select " + name + "(s1) from us.d1 where s1 < 10;";
+    ret = tool.execute(statement);
+    expected =
+        "ResultSets:\n"
+            + "+--------------------+\n"
+            + "|tensorTest(us.d1.s1)|\n"
+            + "+--------------------+\n"
+            + "|                 0.0|\n"
+            + "+--------------------+\n"
+            + "Total line number = 1\n";
+    assertEquals(expected, ret.getResultInString(false, ""));
+  }
+
+  @Test
+  public void testUDFColumnPruning() {
+    String statement = "SELECT cos(s1), cos(s2) FROM us.d1 LIMIT 5;";
+    String expected =
+        "ResultSets:\n"
+            + "+---+-------------------+-------------------+\n"
+            + "|key|      cos(us.d1.s1)|      cos(us.d1.s2)|\n"
+            + "+---+-------------------+-------------------+\n"
+            + "|  0|                1.0| 0.5403023058681398|\n"
+            + "|  1| 0.5403023058681398|-0.4161468365471424|\n"
+            + "|  2|-0.4161468365471424|-0.9899924966004454|\n"
+            + "|  3|-0.9899924966004454|-0.6536436208636119|\n"
+            + "|  4|-0.6536436208636119|0.28366218546322625|\n"
+            + "+---+-------------------+-------------------+\n"
+            + "Total line number = 5\n";
+
+    assertEquals(expected, tool.execute(statement).getResultInString(false, ""));
   }
 }

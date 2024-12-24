@@ -35,11 +35,11 @@ public class Constant {
   public static final String IGINX_DATA_PATH_PREFIX_NAME = "iginx_";
 
   // port
-  public static int oriPort = 6667;
+  public static int oriPort = 6668;
 
-  public static int expPort = 6668;
+  public static int expPort = 6669;
 
-  public static int readOnlyPort = 6669;
+  public static int readOnlyPort = 6670;
 
   public static int oriPortIginx = 6888;
 
@@ -145,9 +145,9 @@ public class Constant {
   public static final Map<Integer, Integer> PORT_TO_RESTPORT =
       new HashMap<Integer, Integer>() {
         {
-          put(oriPort, 6666);
-          put(expPort, 6665);
-          put(readOnlyPort, 6664);
+          put(oriPort, 7888);
+          put(expPort, 7889);
+          put(readOnlyPort, 7890);
         }
       };
 

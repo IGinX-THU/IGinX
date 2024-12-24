@@ -39,7 +39,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.TimeZone;
 import org.junit.AfterClass;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -91,7 +90,6 @@ public class TPCHDataGeneratorIT {
     session.closeSession();
   }
 
-  @Before
   public void prepare() {
     List<String> tableList =
         Arrays.asList(
@@ -193,7 +191,10 @@ public class TPCHDataGeneratorIT {
     for (int i = 0; i < 8; i++) {
       insertTable(tableList.get(i), fieldsList.get(i), typesList.get(i));
     }
+  }
 
+  @Test
+  public void registerUDF() {
     List<List<String>> UDFInfos = new ArrayList<>();
     UDFInfos.add(Arrays.asList("UDTF", "extractYear", "UDFExtractYear", "udtf_extract_year.py"));
     // 注册UDF函数
@@ -304,6 +305,7 @@ public class TPCHDataGeneratorIT {
   // 插入TPC-H测试中的临时表
   @Test
   public void insertTmpTable() {
+    prepare();
     for (int queryId : queryIds) {
       String sqlString = null;
       try {

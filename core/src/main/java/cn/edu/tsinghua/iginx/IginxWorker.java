@@ -48,6 +48,7 @@ import cn.edu.tsinghua.iginx.metadata.IMetaManager;
 import cn.edu.tsinghua.iginx.metadata.entity.*;
 import cn.edu.tsinghua.iginx.resource.QueryResourceManager;
 import cn.edu.tsinghua.iginx.thrift.*;
+import cn.edu.tsinghua.iginx.transform.exception.TransformException;
 import cn.edu.tsinghua.iginx.transform.exec.TransformJobManager;
 import cn.edu.tsinghua.iginx.utils.*;
 import java.io.File;
@@ -242,7 +243,7 @@ public class IginxWorker implements IService.Iface {
   }
 
   @Override
-  public Status removeHistoryDataSource(RemoveHistoryDataSourceReq req) {
+  public Status removeStorageEngine(RemoveStorageEngineReq req) {
     if (!sessionManager.checkSession(req.getSessionId(), AuthType.Cluster)) {
       return RpcUtils.ACCESS_DENY;
     }
@@ -890,15 +891,19 @@ public class IginxWorker implements IService.Iface {
   @Override
   public ShowEligibleJobResp showEligibleJob(ShowEligibleJobReq req) {
     TransformJobManager manager = TransformJobManager.getInstance();
-    List<Long> jobIdList = manager.showEligibleJob(req.getJobState());
-    return new ShowEligibleJobResp(RpcUtils.SUCCESS, jobIdList);
+    Map<JobState, List<Long>> jobStateMap = manager.showEligibleJob(req.getJobState());
+    return new ShowEligibleJobResp(RpcUtils.SUCCESS, jobStateMap);
   }
 
   @Override
   public Status cancelTransformJob(CancelTransformJobReq req) {
     TransformJobManager manager = TransformJobManager.getInstance();
-    boolean success = manager.cancel(req.getJobId());
-    return success ? RpcUtils.SUCCESS : RpcUtils.FAILURE;
+    try {
+      boolean success = manager.cancel(req.getJobId());
+      return success ? RpcUtils.SUCCESS : RpcUtils.FAILURE;
+    } catch (TransformException e) {
+      return new Status(RpcUtils.FAILURE).setMessage(e.getMessage());
+    }
   }
 
   @Override
@@ -963,7 +968,8 @@ public class IginxWorker implements IService.Iface {
     List<TransformTaskMeta> transformTaskMetas = new ArrayList<>();
     for (UDFClassPair p : pairs) {
       TransformTaskMeta transformTaskMeta = metaManager.getTransformTask(p.name.trim());
-      if (transformTaskMeta != null && transformTaskMeta.getIpSet().contains(config.getIp())) {
+      if (transformTaskMeta != null
+          && transformTaskMeta.containsIpPort(config.getIp(), config.getPort())) {
         errorMsg = String.format("Function %s already exist", transformTaskMeta);
         LOGGER.error(errorMsg);
         return RpcUtils.FAILURE.setMessage(errorMsg);
@@ -1034,15 +1040,24 @@ public class IginxWorker implements IService.Iface {
       type = singleType ? req.getTypes().get(0) : req.getTypes().get(i);
       transformTaskMeta = transformTaskMetas.get(i);
       if (transformTaskMeta != null) {
-        transformTaskMeta.addIp(config.getIp());
+        transformTaskMeta.addIpPort(config.getIp(), config.getPort());
         metaManager.updateTransformTask(transformTaskMeta);
       } else {
+        LOGGER.debug(
+            "Registering {} task: {} as {} in {}; iginx: {}:{}",
+            type,
+            pairs.get(i).classPath,
+            pairs.get(i).name,
+            fileName,
+            config.getIp(),
+            config.getPort());
         metaManager.addTransformTask(
             new TransformTaskMeta(
                 pairs.get(i).name,
                 pairs.get(i).classPath,
                 fileName,
-                new HashSet<>(Collections.singletonList(config.getIp())),
+                config.getIp(),
+                config.getPort(),
                 type));
       }
     }
@@ -1077,7 +1092,7 @@ public class IginxWorker implements IService.Iface {
       return RpcUtils.FAILURE.setMessage(errorMsg);
     }
 
-    if (!transformTaskMeta.getIpSet().contains(config.getIp())) {
+    if (!transformTaskMeta.containsIpPort(config.getIp(), config.getPort())) {
       errorMsg = String.format("Function exists in node: %s", config.getIp());
       LOGGER.error(errorMsg);
       return RpcUtils.FAILURE.setMessage(errorMsg);
@@ -1131,15 +1146,18 @@ public class IginxWorker implements IService.Iface {
   public GetRegisterTaskInfoResp getRegisterTaskInfo(GetRegisterTaskInfoReq req) {
     List<TransformTaskMeta> taskMetaList = metaManager.getTransformTasks();
     List<RegisterTaskInfo> taskInfoList = new ArrayList<>();
+    List<IpPortPair> ipPortPairs;
     for (TransformTaskMeta taskMeta : taskMetaList) {
-      StringJoiner joiner = new StringJoiner(",");
-      taskMeta.getIpSet().forEach(joiner::add);
+      ipPortPairs =
+          taskMeta.getIpPortSet().stream()
+              .map(p -> new IpPortPair(p.getK(), p.getV()))
+              .collect(Collectors.toList());
       RegisterTaskInfo taskInfo =
           new RegisterTaskInfo(
               taskMeta.getName(),
               taskMeta.getClassName(),
               taskMeta.getFileName(),
-              joiner.toString(),
+              ipPortPairs,
               taskMeta.getType());
       taskInfoList.add(taskInfo);
     }

@@ -37,6 +37,8 @@ public class OuterJoin extends AbstractJoin {
 
   private final boolean isNaturalJoin;
 
+  private final boolean isJoinByKey;
+
   public OuterJoin(
       Source sourceA,
       Source sourceB,
@@ -53,6 +55,7 @@ public class OuterJoin extends AbstractJoin {
         outerJoinType,
         filter,
         joinColumns,
+        false,
         false,
         JoinAlgType.HashJoin,
         new ArrayList<>());
@@ -77,6 +80,7 @@ public class OuterJoin extends AbstractJoin {
         filter,
         joinColumns,
         isNaturalJoin,
+        false,
         joinAlgType,
         new ArrayList<>());
   }
@@ -90,6 +94,32 @@ public class OuterJoin extends AbstractJoin {
       Filter filter,
       List<String> joinColumns,
       boolean isNaturalJoin,
+      boolean isJoinByKey,
+      JoinAlgType joinAlgType) {
+    this(
+        sourceA,
+        sourceB,
+        prefixA,
+        prefixB,
+        outerJoinType,
+        filter,
+        joinColumns,
+        isNaturalJoin,
+        isJoinByKey,
+        joinAlgType,
+        new ArrayList<>());
+  }
+
+  public OuterJoin(
+      Source sourceA,
+      Source sourceB,
+      String prefixA,
+      String prefixB,
+      OuterJoinType outerJoinType,
+      Filter filter,
+      List<String> joinColumns,
+      boolean isNaturalJoin,
+      boolean isJoinByKey,
       JoinAlgType joinAlgType,
       List<String> extraJoinPrefix) {
     super(OperatorType.OuterJoin, sourceA, sourceB, prefixA, prefixB, joinAlgType, extraJoinPrefix);
@@ -101,6 +131,7 @@ public class OuterJoin extends AbstractJoin {
       this.joinColumns = new ArrayList<>();
     }
     this.isNaturalJoin = isNaturalJoin;
+    this.isJoinByKey = isJoinByKey;
   }
 
   public OuterJoinType getOuterJoinType() {
@@ -123,6 +154,10 @@ public class OuterJoin extends AbstractJoin {
     return isNaturalJoin;
   }
 
+  public boolean isJoinByKey() {
+    return isJoinByKey;
+  }
+
   public void setFilter(Filter filter) {
     this.filter = filter;
   }
@@ -143,6 +178,7 @@ public class OuterJoin extends AbstractJoin {
         filter.copy(),
         new ArrayList<>(joinColumns),
         isNaturalJoin,
+        isJoinByKey,
         getJoinAlgType(),
         new ArrayList<>(getExtraJoinPrefix()));
   }
@@ -158,12 +194,14 @@ public class OuterJoin extends AbstractJoin {
         filter.copy(),
         new ArrayList<>(joinColumns),
         isNaturalJoin,
+        isJoinByKey,
         getJoinAlgType(),
         new ArrayList<>(getExtraJoinPrefix()));
   }
 
   @Override
   public String getInfo() {
+    // TODO
     StringBuilder builder = new StringBuilder();
     builder.append("PrefixA: ").append(getPrefixA());
     builder.append(", PrefixB: ").append(getPrefixB());
@@ -202,6 +240,7 @@ public class OuterJoin extends AbstractJoin {
         && filter.equals(that.filter)
         && joinColumns.equals(that.joinColumns)
         && isNaturalJoin == that.isNaturalJoin
+        && isJoinByKey == that.isJoinByKey
         && getExtraJoinPrefix().equals(that.getExtraJoinPrefix());
   }
 }

@@ -53,6 +53,7 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
+import cn.edu.tsinghua.iginx.engine.shared.expr.KeyExpression;
 import cn.edu.tsinghua.iginx.engine.shared.function.*;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.Max;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.Min;
@@ -142,6 +143,8 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
         return executeGroupBy((GroupBy) operator, table);
       case AddSequence:
         return executeAddSequence((AddSequence) operator, table);
+      case RemoveNullColumn:
+        return executeRemoveNullColumn(table);
       case Distinct:
         return executeDistinct((Distinct) operator, table);
       case ValueToSelectedPath:
@@ -568,6 +571,44 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     return new Table(newHeader, targetRows);
   }
 
+  private RowStream executeRemoveNullColumn(Table table) {
+    Header header = table.getHeader();
+    int fieldSize = header.getFieldSize();
+    List<Row> rows = table.getRows();
+
+    List<Integer> remainIndexes = new ArrayList<>();
+    for (int i = 0; i < fieldSize; i++) {
+      int finalI = i;
+      boolean isEmptyColumn = rows.stream().allMatch(row -> row.getValue(finalI) == null);
+      if (!isEmptyColumn) {
+        remainIndexes.add(finalI);
+      }
+    }
+
+    int remainColumnSize = remainIndexes.size();
+    if (remainColumnSize == fieldSize) { // 没有空列
+      return table;
+    } else if (remainIndexes.isEmpty()) { // 全是空列
+      return rows.isEmpty() ? table : Table.EMPTY_TABLE;
+    }
+
+    List<Field> newFields = new ArrayList<>(remainColumnSize);
+    for (int index : remainIndexes) {
+      newFields.add(header.getField(index));
+    }
+    Header newHeader = new Header(header.getKey(), newFields);
+
+    List<Row> newRows = new ArrayList<>();
+    for (Row row : rows) {
+      Object[] values = new Object[remainColumnSize];
+      for (int i = 0; i < remainColumnSize; i++) {
+        values[i] = row.getValue(remainIndexes.get(i));
+      }
+      newRows.add(new Row(newHeader, row.getKey(), values));
+    }
+    return new Table(newHeader, newRows);
+  }
+
   private RowStream executeValueToSelectedPath(ValueToSelectedPath operator, Table table) {
     String prefix = operator.getPrefix();
     boolean prefixIsEmpty = prefix.isEmpty();
@@ -620,57 +661,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     }
     // 目前只支持使用时间戳和顺序
     if (join.getJoinBy().equals(Constants.KEY)) {
-      // 检查时间戳
-      if (!headerA.hasKey() || !headerB.hasKey()) {
-        throw new InvalidOperatorParameterException(
-            "row streams for join operator by key should have key.");
-      }
-      List<Field> newFields = new ArrayList<>();
-      newFields.addAll(headerA.getFields());
-      newFields.addAll(headerB.getFields());
-      Header newHeader = new Header(Field.KEY, newFields);
-      List<Row> newRows = new ArrayList<>();
-
-      int index1 = 0, index2 = 0;
-      while (index1 < tableA.getRowSize() && index2 < tableB.getRowSize()) {
-        Row rowA = tableA.getRow(index1), rowB = tableB.getRow(index2);
-        Object[] values = new Object[newHeader.getFieldSize()];
-        long timestamp;
-        if (rowA.getKey() == rowB.getKey()) {
-          timestamp = rowA.getKey();
-          System.arraycopy(rowA.getValues(), 0, values, 0, headerA.getFieldSize());
-          System.arraycopy(
-              rowB.getValues(), 0, values, headerA.getFieldSize(), headerB.getFieldSize());
-          index1++;
-          index2++;
-        } else if (rowA.getKey() < rowB.getKey()) {
-          timestamp = rowA.getKey();
-          System.arraycopy(rowA.getValues(), 0, values, 0, headerA.getFieldSize());
-          index1++;
-        } else {
-          timestamp = rowB.getKey();
-          System.arraycopy(
-              rowB.getValues(), 0, values, headerA.getFieldSize(), headerB.getFieldSize());
-          index2++;
-        }
-        newRows.add(new Row(newHeader, timestamp, values));
-      }
-
-      for (; index1 < tableA.getRowSize(); index1++) {
-        Row rowA = tableA.getRow(index1);
-        Object[] values = new Object[newHeader.getFieldSize()];
-        System.arraycopy(rowA.getValues(), 0, values, 0, headerA.getFieldSize());
-        newRows.add(new Row(newHeader, rowA.getKey(), values));
-      }
-
-      for (; index2 < tableB.getRowSize(); index2++) {
-        Row rowB = tableB.getRow(index2);
-        Object[] values = new Object[newHeader.getFieldSize()];
-        System.arraycopy(
-            rowB.getValues(), 0, values, headerA.getFieldSize(), headerB.getFieldSize());
-        newRows.add(new Row(newHeader, rowB.getKey(), values));
-      }
-      return new Table(newHeader, newRows);
+      return executeJoinByKey(tableA, tableB, true, true);
     } else if (join.getJoinBy().equals(Constants.ORDINAL)) {
       if (headerA.hasKey() || headerB.hasKey()) {
         throw new InvalidOperatorParameterException(
@@ -738,6 +729,17 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
 
   private RowStream executeInnerJoin(InnerJoin innerJoin, Table tableA, Table tableB)
       throws PhysicalException {
+    if (innerJoin.isJoinByKey()) {
+      Sort sortByKey =
+          new Sort(
+              EmptySource.EMPTY_SOURCE,
+              Collections.singletonList(new KeyExpression(KEY)),
+              Collections.singletonList(Sort.SortType.ASC));
+      tableA = transformToTable(executeSort(sortByKey, tableA));
+      tableB = transformToTable(executeSort(sortByKey, tableB));
+      return executeJoinByKey(tableA, tableB, false, false);
+    }
+
     switch (innerJoin.getJoinAlgType()) {
       case NestedLoopJoin:
         return executeNestedLoopInnerJoin(innerJoin, tableA, tableB);
@@ -748,6 +750,76 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
       default:
         throw new PhysicalException("Unknown join algorithm type: " + innerJoin.getJoinAlgType());
     }
+  }
+
+  private RowStream executeJoinByKey(Table tableA, Table tableB, boolean isLeft, boolean isRight)
+      throws PhysicalException {
+    Header headerA = tableA.getHeader();
+    Header headerB = tableB.getHeader();
+    // 检查时间戳
+    if (!headerA.hasKey() || !headerB.hasKey()) {
+      throw new InvalidOperatorParameterException(
+          "row streams for join operator by key should have key.");
+    }
+    List<Field> newFields = new ArrayList<>();
+    newFields.addAll(headerA.getFields());
+    newFields.addAll(headerB.getFields());
+    Header newHeader = new Header(Field.KEY, newFields);
+    List<Row> newRows = new ArrayList<>();
+
+    int index1 = 0, index2 = 0;
+    while (index1 < tableA.getRowSize() && index2 < tableB.getRowSize()) {
+      Row rowA = tableA.getRow(index1), rowB = tableB.getRow(index2);
+      Object[] values = new Object[newHeader.getFieldSize()];
+      long timestamp;
+      if (rowA.getKey() == rowB.getKey()) {
+        timestamp = rowA.getKey();
+        System.arraycopy(rowA.getValues(), 0, values, 0, headerA.getFieldSize());
+        System.arraycopy(
+            rowB.getValues(), 0, values, headerA.getFieldSize(), headerB.getFieldSize());
+        index1++;
+        index2++;
+      } else if (rowA.getKey() < rowB.getKey()) {
+        index1++;
+        if (!isLeft) { // 内连接和右连接不保留该结果
+          continue;
+        }
+        timestamp = rowA.getKey();
+        System.arraycopy(rowA.getValues(), 0, values, 0, headerA.getFieldSize());
+      } else {
+        index2++;
+        if (!isRight) { // 内连接和左连接不保留该结果
+          continue;
+        }
+        timestamp = rowB.getKey();
+        System.arraycopy(
+            rowB.getValues(), 0, values, headerA.getFieldSize(), headerB.getFieldSize());
+      }
+      newRows.add(new Row(newHeader, timestamp, values));
+    }
+
+    // 左连接和全连接才保留该结果
+    if (isLeft) {
+      for (; index1 < tableA.getRowSize(); index1++) {
+        Row rowA = tableA.getRow(index1);
+        Object[] values = new Object[newHeader.getFieldSize()];
+        System.arraycopy(rowA.getValues(), 0, values, 0, headerA.getFieldSize());
+        newRows.add(new Row(newHeader, rowA.getKey(), values));
+      }
+    }
+
+    // 右连接和全连接才保留该结果
+    if (isRight) {
+      for (; index2 < tableB.getRowSize(); index2++) {
+        Row rowB = tableB.getRow(index2);
+        Object[] values = new Object[newHeader.getFieldSize()];
+        System.arraycopy(
+            rowB.getValues(), 0, values, headerA.getFieldSize(), headerB.getFieldSize());
+        newRows.add(new Row(newHeader, rowB.getKey(), values));
+      }
+    }
+
+    return new Table(newHeader, newRows);
   }
 
   private RowStream executeNestedLoopInnerJoin(InnerJoin innerJoin, Table tableA, Table tableB)
@@ -1147,6 +1219,19 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
 
   private RowStream executeOuterJoin(OuterJoin outerJoin, Table tableA, Table tableB)
       throws PhysicalException {
+    if (outerJoin.isJoinByKey()) {
+      Sort sortByKey =
+          new Sort(
+              EmptySource.EMPTY_SOURCE,
+              Collections.singletonList(new KeyExpression(KEY)),
+              Collections.singletonList(Sort.SortType.ASC));
+      tableA = transformToTable(executeSort(sortByKey, tableA));
+      tableB = transformToTable(executeSort(sortByKey, tableB));
+      boolean isLeft = outerJoin.getOuterJoinType() != OuterJoinType.RIGHT;
+      boolean isRight = outerJoin.getOuterJoinType() != OuterJoinType.LEFT;
+      return executeJoinByKey(tableA, tableB, isLeft, isRight);
+    }
+
     switch (outerJoin.getJoinAlgType()) {
       case NestedLoopJoin:
         return executeNestedLoopOuterJoin(outerJoin, tableA, tableB);

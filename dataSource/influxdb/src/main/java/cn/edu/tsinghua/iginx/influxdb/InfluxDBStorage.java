@@ -25,6 +25,7 @@ import static com.influxdb.client.domain.WritePrecision.NS;
 import cn.edu.tsinghua.iginx.engine.logical.utils.LogicalFilterUtils;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.StorageInitializationException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils;
 import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.DataArea;
@@ -35,16 +36,14 @@ import cn.edu.tsinghua.iginx.engine.shared.data.write.BitmapView;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.ColumnDataView;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.RowDataView;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Delete;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Insert;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
+import cn.edu.tsinghua.iginx.engine.shared.expr.*;
+import cn.edu.tsinghua.iginx.engine.shared.operator.*;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilterType;
 import cn.edu.tsinghua.iginx.influxdb.exception.InfluxDBException;
 import cn.edu.tsinghua.iginx.influxdb.exception.InfluxDBTaskExecuteFailureException;
-import cn.edu.tsinghua.iginx.influxdb.query.entity.InfluxDBHistoryQueryRowStream;
 import cn.edu.tsinghua.iginx.influxdb.query.entity.InfluxDBQueryRowStream;
 import cn.edu.tsinghua.iginx.influxdb.query.entity.InfluxDBSchema;
 import cn.edu.tsinghua.iginx.influxdb.tools.FilterTransformer;
@@ -73,6 +72,7 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -427,7 +427,8 @@ public class InfluxDBStorage implements IStorage {
             project.getTagFilter(),
             filter,
             keyInterval.getStartKey(),
-            keyInterval.getEndKey());
+            keyInterval.getEndKey(),
+            false);
 
     List<FluxTable> tables = client.getQueryApi().query(statement, organization.getId());
     InfluxDBQueryRowStream rowStream = new InfluxDBQueryRowStream(tables, project, filter);
@@ -443,24 +444,52 @@ public class InfluxDBStorage implements IStorage {
     Filter filter = select.getFilter();
     getBucketQueriesForExecuteDummy(project, bucketQueries, tagFilter);
 
-    Map<String, List<FluxTable>> bucketQueryResults = new HashMap<>();
+    List<FluxTable> tables = new ArrayList<>();
+    List<String> BucketNames = new ArrayList<>();
     for (String bucket : bucketQueries.keySet()) {
       String statement =
           generateQueryStatement(
               bucket,
               project.getPatterns(),
               project.getTagFilter(),
-              filter,
+              cutBucketForDummyFilter(filter.copy()),
               keyInterval.getStartKey(),
-              keyInterval.getEndKey());
+              keyInterval.getEndKey(),
+              true);
 
       LOGGER.info("execute query: {}", statement);
-      bucketQueryResults.put(bucket, client.getQueryApi().query(statement, organization.getId()));
+      for (FluxTable table : client.getQueryApi().query(statement, organization.getId())) {
+        tables.add(table);
+        BucketNames.add(bucket);
+      }
     }
 
-    InfluxDBHistoryQueryRowStream rowStream =
-        new InfluxDBHistoryQueryRowStream(bucketQueryResults, project.getPatterns(), filter);
+    InfluxDBQueryRowStream rowStream =
+        new InfluxDBQueryRowStream(tables, project, filter, BucketNames);
     return new TaskExecuteResult(rowStream);
+  }
+
+  @Override
+  public TaskExecuteResult executeProjectWithAggSelect(
+      Project project, Select select, Operator agg, DataArea dataArea) {
+    return null;
+  }
+
+  @Override
+  public TaskExecuteResult executeProjectDummyWithAggSelect(
+      Project project, Select select, Operator agg, DataArea dataArea) {
+    return null;
+  }
+
+  @Override
+  public TaskExecuteResult executeProjectWithAgg(Project project, Operator agg, DataArea dataArea) {
+    return null;
+  }
+
+  @Override
+  public TaskExecuteResult executeProjectDummyWithAgg(
+      Project project, Operator agg, DataArea dataArea) {
+    return null;
   }
 
   @Override
@@ -481,7 +510,8 @@ public class InfluxDBStorage implements IStorage {
             project.getTagFilter(),
             null,
             keyInterval.getStartKey(),
-            keyInterval.getEndKey());
+            keyInterval.getEndKey(),
+            false);
 
     List<FluxTable> tables = client.getQueryApi().query(statement, organization.getId());
     InfluxDBQueryRowStream rowStream = new InfluxDBQueryRowStream(tables, project, null);
@@ -498,7 +528,8 @@ public class InfluxDBStorage implements IStorage {
     long startKey = keyInterval.getStartKey();
     long endKey = keyInterval.getEndKey();
 
-    Map<String, List<FluxTable>> bucketQueryResults = new HashMap<>();
+    List<FluxTable> tables = new ArrayList<>();
+    List<String> BucketNames = new ArrayList<>();
     for (String bucket : bucketQueries.keySet()) {
       String statement =
           String.format(
@@ -508,11 +539,14 @@ public class InfluxDBStorage implements IStorage {
         statement += String.format(" |> filter(fn: (r) => %s)", bucketQueries.get(bucket));
       }
       LOGGER.info("execute query: {}", statement);
-      bucketQueryResults.put(bucket, client.getQueryApi().query(statement, organization.getId()));
+      for (FluxTable table : client.getQueryApi().query(statement, organization.getId())) {
+        tables.add(table);
+        BucketNames.add(bucket);
+      }
     }
 
-    InfluxDBHistoryQueryRowStream rowStream =
-        new InfluxDBHistoryQueryRowStream(bucketQueryResults, project.getPatterns(), null);
+    InfluxDBQueryRowStream rowStream =
+        new InfluxDBQueryRowStream(tables, project, null, BucketNames);
     return new TaskExecuteResult(rowStream);
   }
 
@@ -557,14 +591,16 @@ public class InfluxDBStorage implements IStorage {
       TagFilter tagFilter,
       Filter filter,
       long startTime,
-      long endTime) {
+      long endTime,
+      boolean isDummy) {
     String statement = String.format(QUERY_DATA, bucketName, startTime, endTime);
     if (paths.size() != 1 || !paths.get(0).equals("*")) {
       StringBuilder filterStr = new StringBuilder(" |> filter(fn: (r) => ");
       filterStr.append('('); // make the or statement together
       for (int i = 0; i < paths.size(); i++) {
         String path = paths.get(i);
-        InfluxDBSchema schema = new InfluxDBSchema(path);
+        if (isDummy && path.indexOf('.') == path.lastIndexOf('.')) continue;
+        InfluxDBSchema schema = new InfluxDBSchema(path, null, isDummy);
         if (i != 0) {
           filterStr.append(" or ");
         }
@@ -623,7 +659,12 @@ public class InfluxDBStorage implements IStorage {
       statement += filterStr;
     }
 
-    if (filter != null) {
+    // TODO：filter中的path有多个tag时暂未实现下推
+    List<String> filterPaths = FilterUtils.getAllPathsFromFilter(filter);
+    List<Column> columns = getColumns(new HashSet<>(filterPaths), tagFilter);
+    boolean hasMultiTags = hasMultiTags(columns);
+
+    if (filter != null && !hasMultiTags) {
       boolean patternHasMeasurementWildCards = false;
       for (String path : paths) {
         if (path.startsWith("*")) {
@@ -685,6 +726,107 @@ public class InfluxDBStorage implements IStorage {
 
     LOGGER.info("generate query: {}", statement);
     return statement;
+  }
+
+  private boolean hasMultiTags(List<Column> columns) {
+    Map<String, List<Map<String, String>>> tagsMap = new HashMap<>();
+    for (Column column : columns) {
+      String path = column.getPath();
+      if (!tagsMap.containsKey(path)) {
+        tagsMap.put(path, new ArrayList<>(Collections.singletonList(column.getTags())));
+      } else if (!tagsMap.get(path).contains(column.getTags())) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private Filter cutBucketForDummyFilter(Filter filter) {
+    filter.accept(
+        new FilterVisitor() {
+          @Override
+          public void visit(AndFilter filter) {}
+
+          @Override
+          public void visit(OrFilter filter) {}
+
+          @Override
+          public void visit(NotFilter filter) {}
+
+          @Override
+          public void visit(KeyFilter filter) {}
+
+          @Override
+          public void visit(ValueFilter filter) {
+            String path = filter.getPath();
+            filter.setPath(path.substring(path.indexOf(".") + 1));
+          }
+
+          @Override
+          public void visit(PathFilter filter) {
+            String pathA = filter.getPathA();
+            String pathB = filter.getPathB();
+            filter.setPathA(pathA.substring(pathA.indexOf(".") + 1));
+            filter.setPathB(pathB.substring(pathB.indexOf(".") + 1));
+          }
+
+          @Override
+          public void visit(BoolFilter filter) {}
+
+          @Override
+          public void visit(ExprFilter filter) {
+            List<Expression> expressions = new ArrayList<>();
+            expressions.add(filter.getExpressionA());
+            expressions.add(filter.getExpressionB());
+            for (Expression expr : expressions) {
+              expr.accept(
+                  new ExpressionVisitor() {
+                    @Override
+                    public void visit(BaseExpression expression) {
+                      String path = expression.getPathName();
+                      expression.setPathName(path.substring(path.indexOf(".") + 1));
+                    }
+
+                    @Override
+                    public void visit(BinaryExpression expression) {}
+
+                    @Override
+                    public void visit(BracketExpression expression) {}
+
+                    @Override
+                    public void visit(ConstantExpression expression) {}
+
+                    @Override
+                    public void visit(FromValueExpression expression) {}
+
+                    @Override
+                    public void visit(FuncExpression expression) {}
+
+                    @Override
+                    public void visit(MultipleExpression expression) {}
+
+                    @Override
+                    public void visit(UnaryExpression expression) {}
+
+                    @Override
+                    public void visit(CaseWhenExpression expression) {}
+
+                    @Override
+                    public void visit(KeyExpression expression) {}
+
+                    @Override
+                    public void visit(SequenceExpression expression) {}
+                  });
+            }
+          }
+
+          @Override
+          public void visit(InFilter filter) {
+            String path = filter.getPath();
+            filter.setPath(path.substring(path.indexOf(".") + 1));
+          }
+        });
+    return filter;
   }
 
   private Filter setTrueByMeasurement(Filter filter, String measurementName) {
@@ -987,7 +1129,7 @@ public class InfluxDBStorage implements IStorage {
           for (String tableField : tableFields) {
             for (Map.Entry<String, List<String>> entry : fieldMap.entrySet()) {
               String path = entry.getKey();
-              InfluxDBSchema schema = new InfluxDBSchema(path);
+              InfluxDBSchema schema = new InfluxDBSchema(path, null);
               String measurement = schema.getMeasurement();
               String field = schema.getField();
               if (measurement.equals(tableMeasurement) || measurement.equals("*")) {

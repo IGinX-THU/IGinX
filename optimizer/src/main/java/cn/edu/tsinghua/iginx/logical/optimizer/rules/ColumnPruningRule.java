@@ -72,6 +72,7 @@ public class ColumnPruningRule extends Rule {
         "ColumnPruningRule",
         "ColumnPruningRule",
         operand(AbstractOperator.class, any()),
+        -1,
         RuleStrategy.ONCE);
   }
 
@@ -434,7 +435,7 @@ public class ColumnPruningRule extends Rule {
             newColumns.add(column);
           }
         }
-        columns.clear();
+        columns.remove(functionCall.getFunctionStr());
         columns.addAll(newColumns);
       } else {
         List<String> columnNames = functionCall.getParams().getPaths();

@@ -30,7 +30,7 @@ import java.util.stream.Collectors;
 
 public class FunctionParams {
 
-  private final List<String> paths;
+  private List<String> paths;
 
   private final List<Expression> expressions;
 
@@ -79,6 +79,10 @@ public class FunctionParams {
 
   public List<String> getPaths() {
     return paths;
+  }
+
+  public void updatePaths() {
+    this.paths = expressions.stream().map(Expression::getColumnName).collect(Collectors.toList());
   }
 
   public List<Object> getArgs() {

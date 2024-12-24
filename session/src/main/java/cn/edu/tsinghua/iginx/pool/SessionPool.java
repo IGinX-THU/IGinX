@@ -484,17 +484,17 @@ public class SessionPool {
     }
   }
 
-  public void removeHistoryDataSource(List<RemovedStorageEngineInfo> removedStorageEngineList)
+  public void removeStorageEngine(List<RemovedStorageEngineInfo> removedStorageEngineList)
       throws SessionException {
     for (int i = 0; i < RETRY; i++) {
       Session session = getSession();
       try {
-        session.removeHistoryDataSource(removedStorageEngineList);
+        session.removeStorageEngine(removedStorageEngineList);
         putBack(session);
         return;
       } catch (SessionException e) {
         // TException means the connection is broken, remove it and get a new one.
-        LOGGER.warn("removeHistoryDataSource failed", e);
+        LOGGER.warn("remove storage engine failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
       } catch (RuntimeException e) {
         putBack(session);
@@ -1281,8 +1281,8 @@ public class SessionPool {
     return ret;
   }
 
-  public List<Long> showEligibleJob(JobState jobState) throws SessionException {
-    List<Long> ret = null;
+  public Map<JobState, List<Long>> showEligibleJob(JobState jobState) throws SessionException {
+    Map<JobState, List<Long>> ret = null;
     for (int i = 0; i < RETRY; i++) {
       Session session = getSession();
       try {

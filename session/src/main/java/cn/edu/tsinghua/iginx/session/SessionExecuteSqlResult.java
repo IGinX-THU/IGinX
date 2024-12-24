@@ -44,7 +44,7 @@ public class SessionExecuteSqlResult {
   private List<RegisterTaskInfo> registerTaskInfos;
   private long jobId;
   private JobState jobState;
-  private List<Long> jobIdList;
+  private Map<JobState, List<Long>> jobStateMap;
   private Map<String, String> configs;
   private String loadCsvPath;
   private String UDFModulePath;
@@ -105,7 +105,7 @@ public class SessionExecuteSqlResult {
         this.jobState = resp.getJobState();
         break;
       case ShowEligibleJob:
-        this.jobIdList = resp.getJobIdList();
+        this.jobStateMap = resp.getJobStateMap();
         break;
       case ShowConfig:
         this.configs = resp.getConfigs();
@@ -210,9 +210,9 @@ public class SessionExecuteSqlResult {
       case CountPoints:
         return "Points num: " + pointsNum + "\n";
       case CommitTransformJob:
-        return "job id: " + jobId;
+        return "job id: " + jobId + "\n";
       case ShowJobStatus:
-        return "Job status: " + jobState;
+        return "Job status: " + jobState + "\n";
       default:
         return "No data to print." + "\n";
     }
@@ -369,15 +369,19 @@ public class SessionExecuteSqlResult {
       builder.append("Functions info:").append("\n");
       List<List<String>> cache = new ArrayList<>();
       cache.add(
-          new ArrayList<>(Arrays.asList("NAME", "CLASS_NAME", "FILE_NAME", "IP", "UDF_TYPE")));
+          new ArrayList<>(Arrays.asList("NAME", "CLASS_NAME", "FILE_NAME", "IP:PORT", "UDF_TYPE")));
       for (RegisterTaskInfo info : registerTaskInfos) {
+        StringJoiner joiner = new StringJoiner(", ");
+        for (IpPortPair p : info.getIpPortPair()) {
+          joiner.add(String.format("%s:%d", p.getIp(), p.getPort()));
+        }
         cache.add(
             new ArrayList<>(
                 Arrays.asList(
                     info.getName(),
                     info.getClassName(),
                     info.getFileName(),
-                    info.getIp(),
+                    joiner.toString(),
                     info.getType().toString())));
       }
       builder.append(FormatUtils.formatResult(cache));
@@ -451,12 +455,15 @@ public class SessionExecuteSqlResult {
   private String buildShowEligibleJobResult() {
     StringBuilder builder = new StringBuilder();
 
-    if (jobIdList != null) {
+    if (jobStateMap != null) {
       builder.append("Transform Id List:").append("\n");
       List<List<String>> cache = new ArrayList<>();
-      cache.add(new ArrayList<>(Collections.singletonList("JobIdList")));
-      for (long jobId : jobIdList) {
-        cache.add(new ArrayList<>(Collections.singletonList(String.valueOf(jobId))));
+      cache.add(new ArrayList<>(Arrays.asList("Job State", "JobIdList")));
+      for (Map.Entry<JobState, List<Long>> entry : jobStateMap.entrySet()) {
+        JobState state = entry.getKey();
+        for (long jobId : entry.getValue()) {
+          cache.add(new ArrayList<>(Arrays.asList(state.toString(), String.valueOf(jobId))));
+        }
       }
       builder.append(FormatUtils.formatResult(cache));
     }
@@ -471,15 +478,19 @@ public class SessionExecuteSqlResult {
 
     if (registerTaskInfos != null && !registerTaskInfos.isEmpty()) {
       resList.add(
-          new ArrayList<>(Arrays.asList("NAME", "CLASS_NAME", "FILE_NAME", "IP", "UDF_TYPE")));
+          new ArrayList<>(Arrays.asList("NAME", "CLASS_NAME", "FILE_NAME", "IP:PORT", "UDF_TYPE")));
       for (RegisterTaskInfo info : registerTaskInfos) {
+        StringJoiner joiner = new StringJoiner(", ");
+        for (IpPortPair p : info.getIpPortPair()) {
+          joiner.add(String.format("%s:%d", p.getIp(), p.getPort()));
+        }
         resList.add(
             new ArrayList<>(
                 Arrays.asList(
                     info.getName(),
                     info.getClassName(),
                     info.getFileName(),
-                    info.getIp(),
+                    joiner.toString(),
                     info.getType().toString())));
       }
     }

@@ -27,11 +27,26 @@ on:
                 description: "The database to run the test on"
                 type: string
                 required: false
-                default: '["IoTDB12", "InfluxDB", "FileSystem", "PostgreSQL", "Redis", "MongoDB", "MySQL"]'
+                default: '["InfluxDB", "FileSystem", "PostgreSQL", "Redis", "MongoDB", "MySQL"]'
+            close-optimizer:
+                description: "Whether to close the optimizer"
+                type: string
+                required: false
+                default: "false"
+            timeout-minutes:
+                description: "The timeout minutes for the job"
+                type: number
+                required: false
+                default: 35
+            agg-pushdown-matrix:
+                description: "The database which support agg push down"
+                type: string
+                required: false
+                default: '["PostgreSQL"]'
 
 jobs:
     TPC-H-Test:
-        timeout-minutes: 35
+        timeout-minutes: ${{ inputs.timeout-minutes }}
         strategy:
             fail-fast: false
             matrix:
@@ -75,21 +90,24 @@ jobs:
                     systeminfo | findstr /C:"Total Physical Memory"
                   fi
 
-            - name: Download TPC-H Data
-              shell: bash
-              run: |
-                  wget https://github.com/IGinX-THU/IGinX-resources/raw/main/resources/tpc.7z
-                  sudo apt-get install p7zip-full
-                  7za x tpc.7z
-                  ls tpc
-
-            - name: Run ZooKeeper
+            - name: Run ZooKeeper1
               uses: ./.github/actions/zookeeperRunner
+
+            - name: Run ZooKeeper2
+              uses: ./.github/actions/zookeeperRunner
+              with:
+                  port: 2182
 
             - name: Run DB
               uses: ./.github/actions/dbRunner
               with:
                   DB-name: ${{ matrix.DB-name }}
+                  IoTDB12-ports: 6667 6668 6669
+                  InfluxDB-ports: 8086 8087 8088
+                  MongoDB-ports: 27017 27018 27019
+                  MySQL-ports: 3306 3307 3308
+                  PostgreSQL-ports: 5432 5433 5434
+                  Redis-ports: 6379 6380 6381
 
             - name: Get Old Version IGinX
               shell: bash
@@ -101,26 +119,46 @@ jobs:
                   cp -f test/src/test/resources/testConfig.properties IGinX/test/src/test/resources/testConfig.properties
             # 新增tpc-h查询测试时，旧版本代码中没有这些查询，需从新分支复制过去，添加完所有的tpc_h测试后可删除这些复制命令
 
+            - name: Download TPC-H Data
+              shell: bash
+              run: |
+                  wget https://github.com/IGinX-THU/IGinX-resources/raw/main/resources/tpc.7z
+                  sudo apt-get install p7zip-full
+                  7za x tpc.7z
+                  ls tpc
+                  cp -r tpc IGinX/tpc
+                  ls IGinX/tpc
+
+            # let old iginx use second database service
+            - name: Find second port for DB
+              id: find-port
+              uses: ./.github/actions/service/portMapper
+              with:
+                  DB-name: ${{ matrix.DB-name }}
+
             - name: Rewrite DB Conf in Old IGinX
               uses: ./.github/actions/dbConfWriter
               with:
                   DB-name: ${{ matrix.DB-name }}
                   Root-Dir-Path: "IGinX"
+                  DB-port: ${{ steps.find-port.outputs.port2 }}
 
             - name: Install Old IGinX with Maven
               shell: bash
               run: |
                   cd IGinX
                   mvn clean package -DskipTests -P-format -q
-                  cp -rf ${GITHUB_WORKSPACE}/test/src/test/resources/tpch/udf/* core/target/iginx-core-${VERSION}/udf_funcs/python_scripts/
 
             - name: Change Old IGinX Config
               uses: ./.github/actions/confWriter
               with:
                   DB-name: ${{ matrix.DB-name }}
-                  Set-Filter-Fragment-OFF: "true"
+                  Open-Optimizer: "true"
+                  Close-Optimizer: ${{ inputs.close-optimizer }}
                   Metadata: ${{ matrix.metadata }}
                   Root-Dir-Path: "IGinX"
+                  zookeeper-port: "2182"
+                  Set-AggPushDown-OFF: ${{ toJSON(!contains(inputs.agg-pushdown-matrix, matrix.DB-name)) }}
 
             - name: Install New IGinX with Maven
               shell: bash
@@ -130,8 +168,9 @@ jobs:
               uses: ./.github/actions/confWriter
               with:
                   DB-name: ${{ matrix.DB-name }}
-                  Set-Filter-Fragment-OFF: "true"
+                  Close-Optimizer: ${{ inputs.close-optimizer }}
                   Metadata: ${{ matrix.metadata }}
+                  Set-AggPushDown-OFF: ${{ toJSON(!contains(inputs.agg-pushdown-matrix, matrix.DB-name)) }}
 
             - name: Insert Data into DB
               uses: ./.github/actions/tpchDataWriter
