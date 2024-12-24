@@ -192,7 +192,12 @@ public class MilvusStorage implements IStorage {
 
       for (int i = 0; i < taskCount; i++) {
         try {
-          completionService.take();
+          Future<UpsertResp> resp = completionService.take();
+          if (resp != null && resp.get() != null) {
+            LOGGER.info("upsert result: " + resp.get());
+          }else{
+            LOGGER.error("upsert error");
+          }
         } catch (Exception e) {
           LOGGER.error("unexpected error: ", e);
           return e;
