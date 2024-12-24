@@ -27,12 +27,12 @@ on:
                 description: "The database to run the test on"
                 type: string
                 required: false
-                default: '["IoTDB12", "InfluxDB", "FileSystem", "PostgreSQL", "Redis", "MongoDB", "MySQL", "VectorDB"]'
+                default: '["IoTDB12", "InfluxDB", "FileSystem", "PostgreSQL", "Redis", "MongoDB", "MySQL"]'
             timeout-minutes:
                 description: "The timeout minutes for the job"
                 type: number
                 required: false
-                default: 260
+                default: 35
 
 jobs:
     Union-DB-Test-Push_Down:

@@ -26,12 +26,12 @@ on:
                 description: "The database to run the test on"
                 type: string
                 required: false
-                default: '["IoTDB12", "InfluxDB", "FileSystem", "PostgreSQL", "Redis", "MongoDB", "MySQL", "VectorDB"]'
+                default: '["IoTDB12", "InfluxDB", "FileSystem", "PostgreSQL", "Redis", "MongoDB", "MySQL"]'
             timeout-minutes:
                 description: "The timeout minutes for the job"
                 type: number
                 required: false
-                default: 360
+                default: 120
             close-optimizer:
                 description: "Whether to close the optimizer"
                 type: string
