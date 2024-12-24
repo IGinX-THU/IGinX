@@ -266,10 +266,10 @@ $ ./sbin/start_iginx.sh
 
 ```shell
 May 27, 2021 8:32:19 AM org.glassfish.grizzly.http.server.NetworkListener start
-INFO: Started listener bound to [127.0.0.1:6666]
+INFO: Started listener bound to [127.0.0.1:7888]
 May 27, 2021 8:32:19 AM org.glassfish.grizzly.http.server.HttpServer start
 INFO: [HttpServer] Started.
-08:32:19.446 [Thread-0] INFO cn.edu.tsinghua.iginx.rest.RestServer - Iginx REST server has been available at http://127.0.0.1:6666/.
+08:32:19.446 [Thread-0] INFO cn.edu.tsinghua.iginx.rest.RestServer - Iginx REST server has been available at http://127.0.0.1:7888/.
 ```
 
 ## 访问 IGinX
@@ -308,7 +308,7 @@ INFO: [HttpServer] Started.
 使用如下的命令即可向数据库中插入数据：
 
 ```shell
-$ curl -XPOST -H'Content-Type: application/json' -d @insert.json http://127.0.0.1:6666/api/v1/datapoints
+$ curl -XPOST -H'Content-Type: application/json' -d @insert.json http://127.0.0.1:7888/api/v1/datapoints
 ```
 
 在插入数据后，还可以使用 RESTful 接口查询刚刚写入的数据。
@@ -337,7 +337,7 @@ $ curl -XPOST -H'Content-Type: application/json' -d @insert.json http://127.0.0.
 使用如下的命令查询数据：
 
 ```shell
-$ curl -XPOST -H'Content-Type: application/json' -d @query.json http://127.0.0.1:6666/api/v1/datapoints/query
+$ curl -XPOST -H'Content-Type: application/json' -d @query.json http://127.0.0.1:7888/api/v1/datapoints/query
 ```
 
 命令会返回刚刚插入的数据点信息：

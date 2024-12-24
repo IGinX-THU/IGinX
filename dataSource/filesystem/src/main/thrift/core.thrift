@@ -36,6 +36,7 @@ enum RawFilterType {
     And,
     Or,
     Not,
+    In
 }
 
 enum RawFilterOp {
@@ -58,6 +59,13 @@ enum RawFilterOp {
     UNKNOWN,
 }
 
+enum RawFilterInOp {
+    IN,
+    NOT_IN,
+    IN_AND,
+    NOT_IN_AND
+}
+
 struct RawValue {
     1: required rpc.DataType dataType
     2: optional bool boolV
@@ -78,6 +86,8 @@ struct RawFilter {
     7: optional string pathB
     8: optional string path
     9: optional RawValue value
+    10: optional RawFilterInOp inOp
+    11: optional set<RawValue> array
 }
 
 struct RawHeader {

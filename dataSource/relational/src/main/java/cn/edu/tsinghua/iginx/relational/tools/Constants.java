@@ -19,9 +19,6 @@
  */
 package cn.edu.tsinghua.iginx.relational.tools;
 
-import java.util.HashMap;
-import java.util.Map;
-
 public abstract class Constants {
   public static final String TAGKV_EQUAL = "=";
 
@@ -45,12 +42,5 @@ public abstract class Constants {
   public static final String DROP_COLUMN_STATEMENT =
       "ALTER TABLE %s DROP COLUMN %s;"; // TODO to be deleted
 
-  public static final Map<String, String> metaPathMap = new HashMap<>();
-
-  // relative path to <module>/resources
-  static {
-    metaPathMap.put("mysql", "mysql-meta-template.properties");
-    metaPathMap.put("postgresql", "postgresql-meta-template.properties");
-    metaPathMap.put("oracle", "oracle-meta-template.properties");
-  }
+  public static final String META_TEMPLATE_SUFFIX = "-meta.properties";
 }

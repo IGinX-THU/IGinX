@@ -1,4 +1,3 @@
-#!/bin/sh
 #
 # IGinX - the polystore system with high performance
 # Copyright (C) Tsinghua University
@@ -16,18 +15,19 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
- 
 
-set -e
+import torch
+import numpy as np
 
-sh -c "chmod +x .github/scripts/dataSources/startup/iotdb12.sh"
+class TensorTest():
+    """
+    测试用的UDF，注意调用时data只能有一列
+    """
+    def __init__(self):
+        pass
 
-sh -c "chmod +x .github/scripts/dataSources/startup/influxdb.sh"
-
-sh -c ".github/scripts/dataSources/startup/iotdb12.sh 6667"
-
-sh -c ".github/scripts/dataSources/startup/influxdb.sh"
-
-set -i "s/storageEngineList/#storageEngineList/g" conf/config.properties
-
-echo "storageEngineList=127.0.0.1#6667#iotdb12#username=root#password=root#sessionPoolSize=50#has_data=false#is_read_only=false,127.0.0.1#8086#influxdb#url=http://localhost:8086/#token=testToken#organization=testOrg#has_data=false" >> conf/config.properties
+    def transform(self, data, args, kvargs):
+        some_zeros = np.zeros(40)
+        tensor = torch.tensor(some_zeros)
+        res = [[f"tensorTest({data[0][1]})"], ["DOUBLE"], [tensor[0].item()]]
+        return res

@@ -71,7 +71,7 @@ enum SqlType {
     ShowJobStatus,
     CancelJob,
     ShowEligibleJob,
-    RemoveHistoryDataSource,
+    RemoveStorageEngine,
     SetConfig,
     ShowConfig,
     Compact,
@@ -392,7 +392,7 @@ struct ExecuteSqlResp {
     21: optional list<RegisterTaskInfo> registerTaskInfos
     22: optional i64 jobId
     23: optional JobState jobState
-    24: optional list<i64> jobIdList
+    24: optional map<JobState, list<i64>> jobStateMap
     25: optional map<string, string> configs
     26: optional string loadCsvPath
     27: optional list<i64> sessionIDList
@@ -583,12 +583,12 @@ struct QueryTransformJobStatusResp {
 
 struct ShowEligibleJobReq {
     1: required i64 sessionId
-    2: required JobState jobState
+    2: optional JobState jobState
 }
 
 struct ShowEligibleJobResp {
     1: required Status status
-    2: required list<i64> jobIdList
+    2: required map<JobState, list<i64>> jobStateMap
 }
 
 struct CancelTransformJobReq {
@@ -699,7 +699,7 @@ struct RemovedStorageEngineInfo {
     4: required string dataPrefix
 }
 
-struct RemoveHistoryDataSourceReq {
+struct RemoveStorageEngineReq {
     1: required i64 sessionId
     2: required list<RemovedStorageEngineInfo> removedStorageEngineInfoList
 }
@@ -751,7 +751,7 @@ service IService {
 
     Status alterStorageEngine(1: AlterStorageEngineReq req);
 
-    Status removeHistoryDataSource(1: RemoveHistoryDataSourceReq req);
+    Status removeStorageEngine(1: RemoveStorageEngineReq req);
 
     AggregateQueryResp aggregateQuery(1: AggregateQueryReq req);
 
