@@ -172,6 +172,9 @@ public class OptimizerIT {
 
   @Before
   public void closeAllRules() {
+    if (!isOptimizerOpen) {
+      return;
+    }
     StringBuilder sb = new StringBuilder();
     for (String rule : ruleList) {
       sb.append(" ").append(rule).append("=off,");
@@ -182,6 +185,7 @@ public class OptimizerIT {
 
   @After
   public void openAllRules() {
+    if (!isOptimizerOpen) return;
     StringBuilder sb = new StringBuilder();
     for (String rule : ruleList) {
       sb.append(" ").append(rule).append("=on,");
@@ -284,7 +288,6 @@ public class OptimizerIT {
 
   @Test
   public void testFilterPushDownExplain() {
-    // 临时修改
     if (!isOptimizerOpen) {
       LOGGER.info("Skip SQLSessionIT.testFilterPushDownExplain because optimizer is not open");
       return;
@@ -1818,7 +1821,7 @@ public class OptimizerIT {
 
   @Test
   public void testAggPushdown() {
-    if (isScaling) return;
+    if (isScaling || !isOptimizerOpen) return;
     String insert = "INSERT INTO test(key, a.a, a.b, a.c, b.a, b.b, b.c)";
     insert +=
         " VALUES (1, 1, 1.1, true, 1, 1.1, true), (2, 2, 2.2, false, 2, 2.2, false), (3, 1, 2.2, true, 1, 1.1, true), (4, 2, 1.1, false, 2, 2.2, false);";
