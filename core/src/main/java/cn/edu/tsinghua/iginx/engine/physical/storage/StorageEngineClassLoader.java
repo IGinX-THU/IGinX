@@ -81,8 +81,8 @@ public class StorageEngineClassLoader extends ClassLoader {
     }
     try {
       classMap.put(name, clazz);
-    }catch (Exception e){
-      //e.printStackTrace();
+    } catch (Exception e) {
+      // e.printStackTrace();
     }
     return clazz;
   }

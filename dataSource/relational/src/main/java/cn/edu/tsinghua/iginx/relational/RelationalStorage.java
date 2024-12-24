@@ -199,7 +199,7 @@ public class RelationalStorage implements IStorage {
                 password,
                 meta.getIp(),
                 meta.getPort(),
-                relationalMeta.getDefaultDatabaseName()); // TODO 这里必须指定数据库，应该配置里指定
+                relationalMeta.getDefaultDatabaseName());
         break;
       default:
         connUrl =
@@ -1755,7 +1755,7 @@ public class RelationalStorage implements IStorage {
                   getQuotName(storageUnit),
                   getQuotName(tableName),
                   getQuotName(KEY_NAME),
-                  relationalMeta.getDataTypeTransformer().toEngineType(dataType),
+                  relationalMeta.getDataTypeTransformer().toEngineType(DataType.LONG),
                   getQuotName(columnName),
                   relationalMeta.getDataTypeTransformer().toEngineType(dataType),
                   getQuotName(KEY_NAME));

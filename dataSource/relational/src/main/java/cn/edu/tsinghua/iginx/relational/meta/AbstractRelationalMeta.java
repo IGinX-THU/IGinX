@@ -29,7 +29,7 @@ public abstract class AbstractRelationalMeta {
 
   protected StorageEngineMeta meta;
 
-  protected static final String DROP_DATABASE_STATEMENT = "DROP DATABASE IF EXISTS %s;";
+  //  protected static final String DROP_DATABASE_STATEMENT = "DROP DATABASE IF EXISTS %s;";
 
   public AbstractRelationalMeta(StorageEngineMeta meta) {
     this.meta = meta;
@@ -82,34 +82,34 @@ public abstract class AbstractRelationalMeta {
    *
    * @return Update的SQL语句
    */
-  public String getUpdateStatement() {
-    return "UPDATE %s SET %s = null WHERE ("
-        + getQuote()
-        + KEY_NAME
-        + getQuote()
-        + " >= %d AND "
-        + getQuote()
-        + KEY_NAME
-        + getQuote()
-        + " < %d);";
-  }
+  //  public String getUpdateStatement() {
+  //    return "UPDATE %s SET %s = null WHERE ("
+  //        + getQuote()
+  //        + KEY_NAME
+  //        + getQuote()
+  //        + " >= %d AND "
+  //        + getQuote()
+  //        + KEY_NAME
+  //        + getQuote()
+  //        + " < %d);";
+  //  }
 
   /**
    * 获取query的SQL语句
    *
    * @return query的SQL语句
    */
-  public String getQueryStatement() {
-    return "SELECT "
-        + getQuote()
-        + KEY_NAME
-        + getQuote()
-        + ", %s FROM %s %s ORDER BY "
-        + getQuote()
-        + KEY_NAME
-        + getQuote()
-        + ";";
-  }
+  //  public String getQueryStatement() {
+  //    return "SELECT "
+  //        + getQuote()
+  //        + KEY_NAME
+  //        + getQuote()
+  //        + ", %s FROM %s %s ORDER BY "
+  //        + getQuote()
+  //        + KEY_NAME
+  //        + getQuote()
+  //        + ";";
+  //  }
 
   /**
    * 获取通过concat生成key的query的SQL语句
@@ -120,17 +120,18 @@ public abstract class AbstractRelationalMeta {
     return "SELECT %s AS " + getQuote() + KEY_NAME + getQuote() + ", %s FROM %s %s ORDER BY %s";
   }
 
-  public String getCreateTableStatement() {
-    return "CREATE TABLE %s ("
-        + getQuote()
-        + KEY_NAME
-        + getQuote()
-        + " %s NOT NULL, %s %s, PRIMARY KEY("
-        + getQuote()
-        + KEY_NAME
-        + getQuote()
-        + "))"; // TODO 删掉 ；
-  }
+  public abstract String getCreateTableStatement();
+  //  public String getCreateTableStatement() {
+  //    return "CREATE TABLE %s ("
+  //        + getQuote()
+  //        + KEY_NAME
+  //        + getQuote()
+  //        + " %s NOT NULL, %s %s, PRIMARY KEY("
+  //        + getQuote()
+  //        + KEY_NAME
+  //        + getQuote()
+  //        + "))"; // TODO 删掉 ；
+  //  }
 
   public abstract String getDropDatabaseStatement();
 
