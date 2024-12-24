@@ -421,6 +421,7 @@ public class TransformIT {
   public void commitContinueOnFailureTest() {
     LOGGER.info("commitContinueOnFailureTest");
     try {
+      dropAllTask();
       List<TaskInfo> taskInfoList = new ArrayList<>();
 
       TaskInfo iginxTask = new TaskInfo(TaskType.IGINX, DataFlowType.STREAM);
@@ -456,6 +457,7 @@ public class TransformIT {
     // same step as commitContinueOnFailureTest but by yaml
     LOGGER.info("commitContinueOnFailureByYamlTest");
     try {
+      dropAllTask();
       String yamlFileName =
           OUTPUT_DIR_PREFIX + File.separator + "TransformScheduledEvery10sWrong.yaml";
       long jobId = session.commitTransformJob(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
