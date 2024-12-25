@@ -48,7 +48,6 @@ public class SQLSessionIT {
 
   // host info
   protected static String defaultTestHost = "127.0.0.1";
-//      protected static String defaultTestHost = "192.168.56.101";
   protected static int defaultTestPort = 6888;
   protected static String defaultTestUser = "root";
   protected static String defaultTestPass = "root";
@@ -251,11 +250,8 @@ public class SQLSessionIT {
 
   @After
   public void clearData() {
-      try {
-          String clearData = "CLEAR DATA;";
-          executor.execute(clearData);
-      } catch (Exception ignoreException) {
-      }
+    String clearData = "CLEAR DATA;";
+    executor.execute(clearData);
   }
 
   @Test
@@ -538,7 +534,7 @@ public class SQLSessionIT {
             + "Total line number = 5\n";
     executor.executeAndCompare(query, expected);
     StringBuilder builder = new StringBuilder();
-    if(runningEngine.equals("Oracle")){
+    if (runningEngine.equals("Oracle")) {
       int size = (int) (220 - startKey);
       for (int i = 0; i < size; i++) {
         builder.append("INSERT INTO us.d2(key, s1) VALUES ");
@@ -547,11 +543,11 @@ public class SQLSessionIT {
         builder.append(i + 5);
         builder.append(");");
 
-      insert = builder.toString();
-      executor.execute(insert);
+        insert = builder.toString();
+        executor.execute(insert);
         builder.setLength(0);
       }
-    }else{
+    } else {
       builder.append("INSERT INTO us.d2(key, s1) VALUES ");
       int size = (int) (endKey - startKey);
       for (int i = 0; i < size; i++) {
@@ -1035,7 +1031,8 @@ public class SQLSessionIT {
             + "Total line number = 1\n";
     executor.executeAndCompare(statement, expected);
 
-    statement = "SELECT a, COUNT(b), AVG(b), SUM(b), MIN(b), MAX(b) FROM test GROUP BY a ORDER BY a;";
+    statement =
+        "SELECT a, COUNT(b), AVG(b), SUM(b), MIN(b), MAX(b) FROM test GROUP BY a ORDER BY a;";
     expected =
         "ResultSets:\n"
             + "+------+-------------+------------------+-----------+-----------+-----------+\n"
