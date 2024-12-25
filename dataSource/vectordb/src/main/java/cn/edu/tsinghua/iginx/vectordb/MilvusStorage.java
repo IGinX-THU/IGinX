@@ -212,8 +212,8 @@ public class MilvusStorage implements IStorage {
 
   @Override
   public boolean testConnection(StorageEngineMeta meta) {
-    try (MilvusPoolClient milvusClient = new MilvusPoolClient(this.milvusConnectPool)) {
-      milvusClient.getClient().getServerVersion();
+    try (MilvusClient client = new MilvusClient(meta)) {
+      LOGGER.info("milvus test connection is successful.");
       return true;
     } catch (Exception e) {
       this.pathSystemMap = new ConcurrentHashMap<>();

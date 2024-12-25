@@ -61,7 +61,7 @@ public class Constants {
 
   public static final long DEFAULT_MILVUS_CONNECT_TIMEOUT = 30000L;
 
-  public static final int DEFAULT_MIN_IDLE = 5;
+  public static final int DEFAULT_MIN_IDLE = 1;
 
   /** 数据库连接协议的键。 用于指定连接字符串中的协议类型，例如 "http" 或 "grpc"。 */
   public static final String DB_PROTOCOL = "protocol";

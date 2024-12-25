@@ -28,6 +28,10 @@ runs:
           shell: bash
           run: |
               docker-compose -f 19530/docker-compose-19530.yml logs
+              ls volumes19530
+              du -sh volumes19530
+              du -sh volumes19530/etcd
+              du -sh volumes19530/milvus
 
         - if: ${{ inputs.DB-name == 'VectorDB' && runner.os == 'Windows' }}
           name: Show Milvus Log on Windows
