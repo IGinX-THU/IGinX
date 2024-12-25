@@ -58,26 +58,25 @@ public class TransformTriggerListener extends TriggerListenerSupport {
       Trigger trigger,
       JobExecutionContext context,
       Trigger.CompletedExecutionInstruction triggerInstructionCode) {
-    if (trigger.getNextFireTime() == null) {
-      // 触发器的所有执行结束
-      Job job = (Job) context.getMergedJobDataMap().get("job");
-      Exception jobException = job.getException();
-      if (jobException != null) {
-        job.setState(JobState.JOB_FAILED);
-        LOGGER.error("Job {} has failed. Detailed information:", job.getJobId(), jobException);
-        try {
-          TransformJobManager.getInstance().removeFailedScheduleJob(job.getJobId());
-        } catch (TransformException | InterruptedException e) {
-          throw new RuntimeException(e);
-        }
-      } else {
-        job.setState(JobState.JOB_FINISHED);
-        LOGGER.info("Job {} has completed all executions.", job.getJobId());
-        try {
-          TransformJobManager.getInstance().removeFinishedScheduleJob(job.getJobId());
-        } catch (TransformException e) {
-          throw new RuntimeException(e);
-        }
+    Job job = (Job) context.getMergedJobDataMap().get("job");
+    Exception jobException = job.getException();
+    if (jobException != null) {
+      // failed in this execution
+      job.setState(JobState.JOB_FAILED);
+      LOGGER.error("Job {} has failed. Detailed information:", job.getJobId(), jobException);
+      try {
+        TransformJobManager.getInstance().removeFailedScheduleJob(job.getJobId());
+      } catch (TransformException | InterruptedException e) {
+        throw new RuntimeException(e);
+      }
+    } else if (trigger.getNextFireTime() == null) {
+      // whole schedule completes
+      job.setState(JobState.JOB_FINISHED);
+      LOGGER.info("Job {} has completed all executions.", job.getJobId());
+      try {
+        TransformJobManager.getInstance().removeFinishedScheduleJob(job.getJobId());
+      } catch (TransformException e) {
+        throw new RuntimeException(e);
       }
     }
   }

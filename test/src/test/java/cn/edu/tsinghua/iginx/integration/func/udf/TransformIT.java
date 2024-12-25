@@ -236,11 +236,13 @@ public class TransformIT {
         }
       }
     }
+    JobState state = session.queryTransformJobStatus(jobId);
     // not found
     LOGGER.error(
-        "Job({}) is not found in list of \"{}\" state.",
+        "Job({}) is not found in list of \"{}\" state. Current state: {}",
         jobId,
-        expectedState == null ? "Any" : expectedState);
+        expectedState == null ? "Any" : expectedState,
+        state);
     fail();
   }
 
@@ -414,6 +416,32 @@ public class TransformIT {
     } catch (IOException e) {
       LOGGER.error("Fail to delete result file: {}", outputFileName, e);
       fail();
+    }
+  }
+
+  @Test
+  public void commitStopOnFailureTest() {
+    LOGGER.info("commitStopOnFailureTest");
+    try {
+      dropAllTask();
+      List<TaskInfo> taskInfoList = new ArrayList<>();
+
+      TaskInfo iginxTask = new TaskInfo(TaskType.IginX, DataFlowType.Stream);
+      iginxTask.setSqlList(Collections.singletonList("SELECT s1, s2 FROM us.d1 WHERE key < 10;"));
+
+      TaskInfo pyTask = new TaskInfo(TaskType.Python, DataFlowType.Stream);
+      pyTask.setPyTaskName("RowSumTransformer"); // not registered, job should fail
+
+      taskInfoList.add(iginxTask);
+      taskInfoList.add(pyTask);
+
+      String schedule = "every 10 second";
+      long jobId = session.commitTransformJob(taskInfoList, ExportType.Log, "", schedule);
+
+      Thread.sleep(1000); // triggered
+      verifyJobState(jobId, JobState.JOB_FAILED); // verify failed
+    } catch (SessionException | InterruptedException e) {
+      LOGGER.error("Transform:  execute fail. Caused by:", e);
     }
   }
 
@@ -1089,7 +1117,7 @@ public class TransformIT {
           info = "has closed";
           break;
         default:
-          LOGGER.error("expecting finished/closed/failed state.");
+          LOGGER.error("expecting finished/closed/failed state, got:{}", state);
           fail();
       }
       try {

@@ -144,6 +144,7 @@ public class Job {
       case JOB_FINISHED:
       case JOB_FAILED:
       case JOB_PARTIALLY_FAILED:
+      case JOB_CLOSED:
         try {
           sendEmail();
         } catch (Exception e) {
