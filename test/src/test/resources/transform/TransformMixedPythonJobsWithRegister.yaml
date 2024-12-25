@@ -1,30 +1,24 @@
 ---
-exportFile: test/src/test/resources/transform/export_file_mixed_python_jobs_with_register_by_yaml.txt
-exportType: file
-notification: null
-schedule: null
 taskList:
-- dataFlowType: stream
-  pyTaskName: null
+- taskType: "iginx"
+  dataFlowType: "stream"
+  timeout: 10000000
   sqlList:
-  - CREATE FUNCTION TRANSFORM "RowSumTransformer" FROM "RowSumTransformer" IN "E:\IGinX_Lab\local\IGinX\test\src\test\resources\transform\transformer_row_sum.py";
-  - CREATE FUNCTION TRANSFORM "AddOneTransformer" FROM "AddOneTransformer" IN "E:\IGinX_Lab\local\IGinX\test\src\test\resources\transform\transformer_add_one.py";
-  - CREATE FUNCTION TRANSFORM "SumTransformer" FROM "SumTransformer" IN "E:\IGinX_Lab\local\IGinX\test\src\test\resources\transform\transformer_sum.py";
-  - SELECT s1, s2 FROM us.d1 WHERE key < 200;
-  taskType: iginx
+  - "CREATE FUNCTION TRANSFORM \"RowSumTransformer\" FROM \"RowSumTransformer\" IN \"src/test/resources/transform/transformer_row_sum.py\";"
+  - "CREATE FUNCTION TRANSFORM \"AddOneTransformer\" FROM \"AddOneTransformer\" IN \"src/test/resources/transform/transformer_add_one.py\";"
+  - "CREATE FUNCTION TRANSFORM \"SumTransformer\" FROM \"SumTransformer\" IN \"src/test/resources/transform/transformer_sum.py\";"
+  - "SELECT s1, s2 FROM us.d1 WHERE key < 200;"
+- taskType: "python"
+  dataFlowType: "stream"
   timeout: 10000000
-- dataFlowType: stream
-  pyTaskName: AddOneTransformer
-  sqlList: null
-  taskType: python
+  pyTaskName: "AddOneTransformer"
+- taskType: "python"
+  dataFlowType: "batch"
   timeout: 10000000
-- dataFlowType: batch
-  pyTaskName: SumTransformer
-  sqlList: null
-  taskType: python
+  pyTaskName: "SumTransformer"
+- taskType: "python"
+  dataFlowType: "stream"
   timeout: 10000000
-- dataFlowType: stream
-  pyTaskName: RowSumTransformer
-  sqlList: null
-  taskType: python
-  timeout: 10000000
+  pyTaskName: "RowSumTransformer"
+exportType: "file"
+exportFile: "test/src/test/resources/transform/export_file_mixed_python_jobs_with_register_by_yaml.txt"
