@@ -27,7 +27,7 @@ runs:
           working-directory: ${{ github.workspace }}
           shell: bash
           run: |
-              docker-compose -f 19530/docker-compose-19530.yml logs
+              docker-compose -f 19530/docker-compose-19530.yml logs | tail -f -n 30000
               ls volumes19530
               du -sh volumes19530
               du -sh volumes19530/etcd

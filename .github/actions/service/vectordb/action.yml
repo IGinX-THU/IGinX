@@ -34,6 +34,9 @@ runs:
               for port in ${{ inputs.ports }}; do
                 mkdir -p $port
                 mkdir -p volumes$port
+                mkdir -p volumes$port/etcd
+                mkdir -p volumes$port/minio
+                mkdir -p volumes$port/milvus
                 cp -f docker/milvus/docker-compose.yml $port/docker-compose-$port.yml
                 sed -i"" -e "s/19530:19530/$port:19530/g" $port/docker-compose-$port.yml
                 sed -i"" -e "s/\/volumes/\/volumes$port/g" $port/docker-compose-$port.yml
