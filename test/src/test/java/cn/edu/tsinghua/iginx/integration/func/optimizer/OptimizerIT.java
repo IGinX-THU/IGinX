@@ -171,6 +171,7 @@ public class OptimizerIT {
 
   @Before
   public void closeAllRules() {
+    Assume.assumeTrue(isOptimizerOpen);
     StringBuilder sb = new StringBuilder();
     for (String rule : ruleList) {
       sb.append(" ").append(rule).append("=off,");
@@ -182,6 +183,7 @@ public class OptimizerIT {
 
   @After
   public void openAllRules() {
+    Assume.assumeTrue(isOptimizerOpen);
     StringBuilder sb = new StringBuilder();
     for (String rule : ruleList) {
       sb.append(" ").append(rule).append("=on,");
@@ -189,6 +191,7 @@ public class OptimizerIT {
     String statement = "set rules" + sb.substring(0, sb.length() - 1) + ";";
     executor.execute(statement);
     executor.execute("SET RULES FragmentPruningByFilterRule=off;");
+    executor.execute("SET RULES AllowNullColumnRule=off;");
   }
 
   private void generateData(long start, long end) {
