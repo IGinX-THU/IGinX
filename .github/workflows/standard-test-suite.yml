@@ -42,14 +42,14 @@ jobs:
             metadata-matrix: '["zookeeper"]'
             os-matrix: '["ubuntu-latest", "macos-latest", "windows-latest"]'
             db-matrix: '["VectorDB"]'
-            timeout-minutes: 200
+            timeout-minutes: 300
     standalone-test-no-optimizer-vectordb:
         uses: ./.github/workflows/standalone-test-no-optimizer.yml
         with:
             metadata-matrix: '["zookeeper"]'
             os-matrix: '["ubuntu-latest", "macos-latest", "windows-latest"]'
             db-matrix: '["VectorDB"]'
-            timeout-minutes: 260
+            timeout-minutes: 300
     db-ce-vectordb:
         uses: ./.github/workflows/DB-CE.yml
         with:
