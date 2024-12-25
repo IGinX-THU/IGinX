@@ -29,27 +29,32 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class TPCHRegressionNewIT {
+public class TPCHOldIT {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(TPCHRegressionNewIT.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(TPCHOldIT.class);
 
-  // host info
-  protected static String defaultTestHost = "127.0.0.1";
-  protected static int defaultTestPort = 6888;
-  protected static String defaultTestUser = "root";
-  protected static String defaultTestPass = "root";
+  protected final Session session = new Session("127.0.0.1", 6888);
 
-  protected static Session session;
+  @Before
+  public void setUp() throws SessionException, IOException, ParseException {
+    session.openSession();
+    session.executeSql("CLEAR DATA;");
+    TPCHUtils.insert(session);
+  }
+
+  @After
+  public void tearDown() throws SessionException {
+    session.executeSql("CLEAR DATA;");
+    session.closeSession();
+  }
 
   static final String FAILED_QUERY_ID_PATH =
       "src/test/resources/tpch/runtimeInfo/failedQueryIds.txt";
@@ -57,7 +62,7 @@ public class TPCHRegressionNewIT {
   static final String ITERATION_TIMES_PATH =
       "src/test/resources/tpch/runtimeInfo/iterationTimes.txt";
 
-  static final String MAIN_TIME_COSTS_PATH = "src/test/resources/tpch/runtimeInfo/oldTimeCosts.txt";
+  static final String OLD_TIME_COSTS_PATH = "src/test/resources/tpch/runtimeInfo/oldTimeCosts.txt";
 
   static final String NEW_TIME_COSTS_PATH = "src/test/resources/tpch/runtimeInfo/newTimeCosts.txt";
 
@@ -77,7 +82,7 @@ public class TPCHRegressionNewIT {
   // 是否需要验证正确性
   boolean needValidate;
 
-  public TPCHRegressionNewIT() {
+  public TPCHOldIT() {
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
     List<String> lines = TPCHUtils.getLinesFromFile(ITERATION_TIMES_PATH);
     iterationTimes = Integer.parseInt(lines.get(0));
@@ -96,21 +101,10 @@ public class TPCHRegressionNewIT {
     REGRESSION_THRESHOLD = conf.getRegressionThreshold();
   }
 
-  @BeforeClass
-  public static void setUp() throws SessionException {
-    session = new Session(defaultTestHost, defaultTestPort, defaultTestUser, defaultTestPass);
-    session.openSession();
-  }
-
-  @AfterClass
-  public static void tearDown() throws SessionException {
-    session.closeSession();
-  }
-
   @Test
-  public void testNewBranch() {
+  public void test() {
     if (queryIds.isEmpty()) {
-      LOGGER.info("No query remain, skip test new branch.");
+      LOGGER.info("No query remain, skip test main branch.");
       return;
     }
     LOGGER.info("QueryIds remain: {}", queryIds);
@@ -121,14 +115,14 @@ public class TPCHRegressionNewIT {
     }
 
     List<Integer> failedQueryIds = new ArrayList<>();
-    List<List<Long>> oldTimeCosts = TPCHUtils.readTimeCostsFromFile(MAIN_TIME_COSTS_PATH);
+    List<List<Long>> oldTimeCosts = TPCHUtils.readTimeCostsFromFile(OLD_TIME_COSTS_PATH);
     List<List<Long>> newTimeCosts = TPCHUtils.readTimeCostsFromFile(NEW_TIME_COSTS_PATH);
     double ratio = 1 + REGRESSION_THRESHOLD;
     for (int queryId : queryIds) {
       long timeCost = TPCHUtils.executeTPCHQuery(session, queryId, needValidate);
-      newTimeCosts.get(queryId - 1).add(timeCost);
+      oldTimeCosts.get(queryId - 1).add(timeCost);
       LOGGER.info(
-          "Successfully execute TPC-H query {} in new branch in iteration {}, time cost: {}ms",
+          "Successfully execute TPC-H query {} in old branch in iteration {}, time cost: {}ms",
           queryId,
           iterationTimes,
           timeCost);
@@ -136,7 +130,7 @@ public class TPCHRegressionNewIT {
       // 新旧分支查询次数不相同
       if (oldTimeCosts.get(queryId - 1).size() != newTimeCosts.get(queryId - 1).size()) {
         LOGGER.error(
-            "Query {} run {} times in main branch, but {} times in new branch, please check.",
+            "Query {} run {} times in old branch, but {} times in new branch, please check.",
             queryId,
             oldTimeCosts.get(queryId - 1).size(),
             newTimeCosts.get(queryId - 1).size());
@@ -171,7 +165,7 @@ public class TPCHRegressionNewIT {
       writeOKtoFile();
     }
 
-    TPCHUtils.clearAndRewriteTimeCostsToFile(newTimeCosts, NEW_TIME_COSTS_PATH);
+    TPCHUtils.clearAndRewriteTimeCostsToFile(oldTimeCosts, OLD_TIME_COSTS_PATH);
     clearAndRewriteFailedQueryIdsToFile(failedQueryIds);
     updateIterationTimes();
   }

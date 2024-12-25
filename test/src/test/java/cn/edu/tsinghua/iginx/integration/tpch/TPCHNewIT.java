@@ -23,26 +23,35 @@ import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.session.Session;
+import java.io.IOException;
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
-import org.junit.AfterClass;
+import org.junit.After;
 import org.junit.Assert;
-import org.junit.BeforeClass;
+import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class TPCHRegressionMainIT {
+public class TPCHNewIT {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(TPCHRegressionMainIT.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(TPCHNewIT.class);
 
-  // host info
-  protected static String defaultTestHost = "127.0.0.1";
-  protected static int defaultTestPort = 6888;
-  protected static String defaultTestUser = "root";
-  protected static String defaultTestPass = "root";
+  protected final Session session = new Session("127.0.0.1", 6888);
 
-  protected static Session session;
+  @Before
+  public void setUp() throws SessionException, IOException, ParseException {
+    session.openSession();
+    session.executeSql("CLEAR DATA;");
+    TPCHUtils.insert(session);
+  }
+
+  @After
+  public void tearDown() throws SessionException {
+    session.executeSql("CLEAR DATA;");
+    session.closeSession();
+  }
 
   static final String FAILED_QUERY_ID_PATH =
       "src/test/resources/tpch/runtimeInfo/failedQueryIds.txt";
@@ -50,7 +59,7 @@ public class TPCHRegressionMainIT {
   static final String ITERATION_TIMES_PATH =
       "src/test/resources/tpch/runtimeInfo/iterationTimes.txt";
 
-  static final String MAIN_TIME_COSTS_PATH = "src/test/resources/tpch/runtimeInfo/oldTimeCosts.txt";
+  static final String NEW_TIME_COSTS_PATH = "src/test/resources/tpch/runtimeInfo/newTimeCosts.txt";
 
   // 最大重复测试次数
   int MAX_REPETITIONS_NUM;
@@ -63,7 +72,7 @@ public class TPCHRegressionMainIT {
   // 是否需要验证正确性
   boolean needValidate;
 
-  public TPCHRegressionMainIT() {
+  public TPCHNewIT() {
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
     List<String> lines = TPCHUtils.getLinesFromFile(ITERATION_TIMES_PATH);
     iterationTimes = Integer.parseInt(lines.get(0));
@@ -81,21 +90,10 @@ public class TPCHRegressionMainIT {
     MAX_REPETITIONS_NUM = conf.getMaxRepetitionsNum();
   }
 
-  @BeforeClass
-  public static void setUp() throws SessionException {
-    session = new Session(defaultTestHost, defaultTestPort, defaultTestUser, defaultTestPass);
-    session.openSession();
-  }
-
-  @AfterClass
-  public static void tearDown() throws SessionException {
-    session.closeSession();
-  }
-
   @Test
-  public void testMainBranch() {
+  public void test() {
     if (queryIds.isEmpty()) {
-      LOGGER.info("No query remain, skip test main branch.");
+      LOGGER.info("No query remain, skip test new branch.");
       return;
     }
     LOGGER.info("QueryIds remain: {}", queryIds);
@@ -105,14 +103,14 @@ public class TPCHRegressionMainIT {
       Assert.fail();
     }
 
-    List<List<Long>> timeCosts = TPCHUtils.readTimeCostsFromFile(MAIN_TIME_COSTS_PATH);
+    List<List<Long>> timeCosts = TPCHUtils.readTimeCostsFromFile(NEW_TIME_COSTS_PATH);
     for (int queryId : queryIds) {
       long timeCost = TPCHUtils.executeTPCHQuery(session, queryId, needValidate);
       timeCosts.get(queryId - 1).add(timeCost);
       System.out.printf(
-          "Successfully execute TPC-H query %d in main branch in iteration %d, time cost: %dms%n",
+          "Successfully execute TPC-H query %d in new branch in iteration %d, time cost: %dms%n",
           queryId, iterationTimes, timeCost);
     }
-    TPCHUtils.clearAndRewriteTimeCostsToFile(timeCosts, MAIN_TIME_COSTS_PATH);
+    TPCHUtils.clearAndRewriteTimeCostsToFile(timeCosts, NEW_TIME_COSTS_PATH);
   }
 }

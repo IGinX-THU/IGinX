@@ -142,23 +142,6 @@ runs:
                 exit 1
               fi
 
-        - if: inputs.Open-Optimizer=='true'
-          name: Change push_down
-          shell: bash
-          run: |
-              if [ "$RUNNER_OS" == "Linux" ]; then
-                  sudo sed -i 's/enablePushDown=false/enablePushDown=true/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-                  sed -i 's/Rule=off/Rule=on/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-              elif [ "$RUNNER_OS" == "Windows" ]; then
-                  sed -i 's/enablePushDown=false/enablePushDown=true/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-                  sed -i 's/Rule=off/Rule=on/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-              elif [ "$RUNNER_OS" == "macOS" ]; then
-                sudo sed -i '' 's/enablePushDown=false/enablePushDown=true/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-                sed -i '' 's/Rule=off/Rule=on/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-              else
-                echo "$RUNNER_OS is not supported"
-                exit 1
-              fi
         - if: inputs.Close-Optimizer=='true'
           name: Close-All-Optimizer
           shell: bash

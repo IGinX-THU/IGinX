@@ -19,25 +19,19 @@
  */
 package cn.edu.tsinghua.iginx.integration.tpch;
 
+import static cn.edu.tsinghua.iginx.integration.tpch.TPCHUtils.FieldType.*;
+
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
-import java.util.Scanner;
-import java.util.TimeZone;
+import java.util.*;
 import java.util.stream.Collectors;
 import org.junit.Assert;
 import org.slf4j.Logger;
@@ -46,6 +40,181 @@ import org.slf4j.LoggerFactory;
 public class TPCHUtils {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(TPCHUtils.class);
+
+  private static final String DATA_DIR =
+      System.getProperty("user.dir") + "/../tpc/TPC-H V3.0.1/data";
+
+  enum FieldType {
+    NUM,
+    STR,
+    DATE
+  }
+
+  public static void insert(Session session) throws IOException, SessionException, ParseException {
+    insertTable(
+        session,
+        "region",
+        Arrays.asList("r_regionkey", "r_name", "r_comment"),
+        Arrays.asList(NUM, STR, STR));
+
+    insertTable(
+        session,
+        "nation",
+        Arrays.asList("n_nationkey", "n_name", "n_regionkey", "n_comment"),
+        Arrays.asList(NUM, STR, NUM, STR));
+
+    insertTable(
+        session,
+        "supplier",
+        Arrays.asList(
+            "s_suppkey", "s_name", "s_address", "s_nationkey", "s_phone", "s_acctbal", "s_comment"),
+        Arrays.asList(NUM, STR, STR, NUM, STR, NUM, STR));
+
+    insertTable(
+        session,
+        "part",
+        Arrays.asList(
+            "p_partkey",
+            "p_name",
+            "p_mfgr",
+            "p_brand",
+            "p_type",
+            "p_size",
+            "p_container",
+            "p_retailprice",
+            "p_comment"),
+        Arrays.asList(NUM, STR, STR, STR, STR, NUM, STR, NUM, STR));
+
+    insertTable(
+        session,
+        "partsupp",
+        Arrays.asList("ps_partkey", "ps_suppkey", "ps_availqty", "ps_supplycost", "ps_comment"),
+        Arrays.asList(NUM, NUM, NUM, NUM, STR));
+
+    insertTable(
+        session,
+        "customer",
+        Arrays.asList(
+            "c_custkey",
+            "c_name",
+            "c_address",
+            "c_nationkey",
+            "c_phone",
+            "c_acctbal",
+            "c_mktsegment",
+            "c_comment"),
+        Arrays.asList(NUM, STR, STR, NUM, STR, NUM, STR, STR));
+
+    insertTable(
+        session,
+        "orders",
+        Arrays.asList(
+            "o_orderkey",
+            "o_custkey",
+            "o_orderstatus",
+            "o_totalprice",
+            "o_orderdate",
+            "o_orderpriority",
+            "o_clerk",
+            "o_shippriority",
+            "o_comment"),
+        Arrays.asList(NUM, NUM, STR, NUM, DATE, STR, STR, NUM, STR));
+
+    insertTable(
+        session,
+        "lineitem",
+        Arrays.asList(
+            "l_orderkey",
+            "l_partkey",
+            "l_suppkey",
+            "l_linenumber",
+            "l_quantity",
+            "l_extendedprice",
+            "l_discount",
+            "l_tax",
+            "l_returnflag",
+            "l_linestatus",
+            "l_shipdate",
+            "l_commitdate",
+            "l_receiptdate",
+            "l_shipinstruct",
+            "l_shipmode",
+            "l_comment"),
+        Arrays.asList(
+            NUM, NUM, NUM, NUM, NUM, NUM, NUM, NUM, STR, STR, DATE, DATE, DATE, STR, STR, STR));
+  }
+
+  private static void insertTable(
+      Session session, String table, List<String> fields, List<FieldType> types)
+      throws IOException, SessionException, ParseException {
+    LOGGER.info("Inserting TPC-H table [{}].", table);
+
+    StringBuilder builder = new StringBuilder("INSERT INTO ");
+    builder.append(table);
+    builder.append("(key, ");
+    for (String field : fields) {
+      builder.append(field);
+      builder.append(", ");
+    }
+    builder.setLength(builder.length() - 2);
+    builder.append(") VALUES ");
+    String insertPrefix = builder.toString();
+
+    long count = 0;
+    try (BufferedReader br =
+        new BufferedReader(new FileReader(String.format("%s/%s.tbl", DATA_DIR, table)))) {
+      StringBuilder sb = new StringBuilder(insertPrefix);
+      String line;
+      while ((line = br.readLine()) != null) {
+        String[] items = line.split("\\|");
+        sb.append("(");
+        sb.append(count); // 插入自增key列
+        count++;
+        sb.append(", ");
+        assert fields.size() == items.length;
+        for (int i = 0; i < items.length; i++) {
+          switch (types.get(i)) {
+            case NUM:
+              sb.append(items[i]);
+              sb.append(", ");
+              break;
+            case STR: // 字符串类型在外面需要包一层引号
+              sb.append("\"");
+              sb.append(items[i]);
+              sb.append("\", ");
+              break;
+            case DATE: // 日期类型需要转为时间戳
+              SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+              dateFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
+              long time = dateFormat.parse(items[i]).getTime();
+              sb.append(time);
+              sb.append(", ");
+              break;
+            default:
+              break;
+          }
+        }
+        sb.setLength(sb.length() - 2);
+        sb.append("), ");
+
+        // 每次最多插入10000条数据
+        if (count % 10000 == 0) {
+          sb.setLength(sb.length() - 2);
+          sb.append(";");
+          session.executeSql(sb.toString());
+          sb = new StringBuilder(insertPrefix);
+        }
+      }
+      // 插入剩余数据
+      if (sb.length() != insertPrefix.length()) {
+        sb.setLength(sb.length() - 2);
+        sb.append(";");
+        session.executeSql(sb.toString());
+      }
+    }
+
+    LOGGER.info("Insert {} records into table [{}].", count, table);
+  }
 
   public static String readSqlFileAsString(String filePath) throws IOException {
     StringBuilder contentBuilder = new StringBuilder();
