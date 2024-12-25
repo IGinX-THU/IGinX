@@ -203,6 +203,7 @@ public class Job {
     switch (state) {
       case JOB_FINISHED:
       case JOB_FAILED:
+      case JOB_CLOSED:
         try {
           sendEmail();
         } catch (Exception e) {
