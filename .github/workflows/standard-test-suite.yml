@@ -1,11 +1,12 @@
 name: Standard Test Suite
 
 on:
-    pull_request: # when a PR is opened or reopened
-        types: [opened, reopened]
-        branches:
-            - main
-
+#    pull_request: # when a PR is opened or reopened
+#        types: [opened, reopened]
+#        branches:
+#            - main
+    push:
+        branches: [ "dev-oracle" ]
 concurrency:
     group: "${{ github.workflow }}-${{ github.ref }}"
     cancel-in-progress: true
