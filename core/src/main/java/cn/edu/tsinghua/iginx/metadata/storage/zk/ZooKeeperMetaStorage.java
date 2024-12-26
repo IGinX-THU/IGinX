@@ -31,6 +31,7 @@ import cn.edu.tsinghua.iginx.metadata.exception.MetaStorageException;
 import cn.edu.tsinghua.iginx.metadata.hook.*;
 import cn.edu.tsinghua.iginx.metadata.storage.IMetaStorage;
 import cn.edu.tsinghua.iginx.metadata.utils.ReshardStatus;
+import cn.edu.tsinghua.iginx.transform.pojo.TriggerDescriptor;
 import cn.edu.tsinghua.iginx.utils.JsonUtils;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.math.BigDecimal;
@@ -48,6 +49,7 @@ import org.apache.curator.framework.recipes.locks.InterProcessMutex;
 import org.apache.curator.retry.RetryForever;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
+import org.quartz.Trigger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -113,6 +115,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
   private TimeSeriesChangeHook timeSeriesChangeHook = null;
   private VersionChangeHook versionChangeHook = null;
   private TransformChangeHook transformChangeHook = null;
+  private JobTriggerChangeHook jobTriggerChangeHook = null;
   private ReshardStatusChangeHook reshardStatusChangeHook = null;
   private ReshardCounterChangeHook reshardCounterChangeHook = null;
   private MaxActiveEndKeyStatisticsChangeHook maxActiveEndKeyStatisticsChangeHook = null;
@@ -126,6 +129,8 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
   protected TreeCache versionCache;
 
   private TreeCache transformCache;
+
+  private TreeCache jobTriggerCache;
 
   public ZooKeeperMetaStorage() {
     client =
@@ -1531,6 +1536,130 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
       } catch (Exception e) {
         throw new MetaStorageException(
             "get error when release interprocess lock for " + TRANSFORM_LOCK_NODE, e);
+      }
+    }
+  }
+
+  @Override
+  public List<TriggerDescriptor> loadJobTrigger() throws MetaStorageException {
+    InterProcessMutex mutex = new InterProcessMutex(this.client, JOB_TRIGGER_LOCK_NODE);
+    try {
+      mutex.acquire();
+      List<TriggerDescriptor> descriptors = new ArrayList<>();
+      if (this.client.checkExists().forPath(JOB_TRIGGER_LOCK_NODE) == null) {
+        // 当前还没有数据，创建父节点，然后不需要解析数据
+        client
+                .create()
+                .creatingParentsIfNeeded()
+                .withMode(CreateMode.PERSISTENT)
+                .forPath(JOB_TRIGGER_LOCK_NODE);
+      } else {
+        List<String> triggerNames = this.client.getChildren().forPath(JOB_TRIGGER_LOCK_NODE);
+        for (String name : triggerNames) {
+          byte[] data = this.client.getData().forPath(JOB_TRIGGER_LOCK_NODE + "/" + name);
+          TriggerDescriptor descriptor = JsonUtils.fromJson(data, TriggerDescriptor.class);
+          if (descriptor == null) {
+            LOGGER.error("resolve data from {}/{} error", JOB_TRIGGER_LOCK_NODE, name);
+            continue;
+          }
+          descriptors.add(descriptor);
+        }
+      }
+      registerJobTriggerListener();
+      return descriptors;
+    } catch (Exception e) {
+      throw new MetaStorageException("get error when load job triggers", e);
+    } finally {
+      try {
+        mutex.release();
+      } catch (Exception e) {
+        throw new MetaStorageException(
+                "get error when release interprocess lock for " + JOB_TRIGGER_LOCK_NODE, e);
+      }
+    }
+  }
+
+  private void registerJobTriggerListener() throws Exception {
+    this.jobTriggerCache = new TreeCache(this.client, JOB_TRIGGER_LOCK_NODE);
+    TreeCacheListener listener =
+            (curatorFramework, event) -> {
+              if (jobTriggerChangeHook == null) {
+                return;
+              }
+              TriggerDescriptor descriptor;
+              switch (event.getType()) {
+                case NODE_ADDED:
+                case NODE_UPDATED:
+                  if (event.getData() == null
+                          || event.getData().getPath() == null
+                          || event.getData().getPath().equals(JOB_TRIGGER_LOCK_NODE)) {
+                    return; // 前缀事件，非含数据的节点的变化，不需要处理
+                  }
+                  descriptor = JsonUtils.fromJson(event.getData().getData(), TriggerDescriptor.class);
+                  if (descriptor != null) {
+                    jobTriggerChangeHook.onChange(descriptor.getName(), descriptor);
+                  } else {
+                    LOGGER.error("resolve job trigger from zookeeper error");
+                  }
+                  break;
+                case NODE_REMOVED:
+                  String path = event.getData().getPath();
+                  String[] pathParts = path.split("/");
+                  String name = pathParts[pathParts.length - 1];
+                  jobTriggerChangeHook.onChange(name, null);
+                  break;
+                default:
+                  break;
+              }
+            };
+    this.jobTriggerCache.getListenable().addListener(listener);
+    this.jobTriggerCache.start();
+  }
+
+  @Override
+  public void registerJobTriggerChangeHook(JobTriggerChangeHook hook) {
+    jobTriggerChangeHook = hook;
+  }
+
+
+  @Override
+  public void storeJobTrigger(TriggerDescriptor descriptor) throws MetaStorageException {
+    InterProcessMutex mutex = new InterProcessMutex(this.client, JOB_TRIGGER_LOCK_NODE);
+    try {
+      mutex.acquire();
+      this.client
+              .create()
+              .creatingParentsIfNeeded()
+              .withMode(CreateMode.PERSISTENT)
+              .forPath(
+                      JOB_TRIGGER_LOCK_NODE + "/" + descriptor.getName(),
+                      JsonUtils.toJson(descriptor));
+    } catch (Exception e) {
+      throw new MetaStorageException("get error when saving job trigger", e);
+    } finally {
+      try {
+        mutex.release();
+      } catch (Exception e) {
+        throw new MetaStorageException(
+                "get error when release interprocess lock for " + JOB_TRIGGER_LOCK_NODE, e);
+      }
+    }
+  }
+
+  @Override
+  public void dropJobTrigger(String name) throws MetaStorageException {
+    InterProcessMutex mutex = new InterProcessMutex(this.client, JOB_TRIGGER_LOCK_NODE);
+    try {
+      mutex.acquire();
+      this.client.delete().forPath(JOB_TRIGGER_LOCK_NODE + "/" + name);
+    } catch (Exception e) {
+      throw new MetaStorageException("get error when drop job trigger", e);
+    } finally {
+      try {
+        mutex.release();
+      } catch (Exception e) {
+        throw new MetaStorageException(
+                "get error when release interprocess lock for " + JOB_TRIGGER_LOCK_NODE, e);
       }
     }
   }

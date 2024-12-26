@@ -45,6 +45,7 @@ import cn.edu.tsinghua.iginx.sql.statement.InsertStatement;
 import cn.edu.tsinghua.iginx.thrift.AuthType;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.thrift.UserType;
+import cn.edu.tsinghua.iginx.transform.pojo.TriggerDescriptor;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.SnowFlakeUtils;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
@@ -52,6 +53,7 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -115,6 +117,7 @@ public class DefaultMetaManager implements IMetaManager {
       initPolicy();
       initUser();
       initTransform();
+      initJobTrigger();
       initMaxActiveEndKeyStatistics();
       initReshardStatus();
       initReshardCounter();
@@ -397,6 +400,21 @@ public class DefaultMetaManager implements IMetaManager {
         }));
     for (TransformTaskMeta task : storage.loadTransformTask()) {
       cache.addOrUpdateTransformTask(task);
+    }
+  }
+
+  private void initJobTrigger() throws MetaStorageException {
+    storage.registerJobTriggerChangeHook(
+            ((name, descriptor) -> {
+              if (descriptor == null) {
+                cache.dropJobTrigger(name);
+              } else {
+                cache.addOrUpdateJobTrigger(descriptor);
+              }
+            })
+    );
+    for (TriggerDescriptor descriptor : storage.loadJobTrigger()) {
+      cache.addOrUpdateJobTrigger(descriptor);
     }
   }
 
@@ -1463,6 +1481,34 @@ public class DefaultMetaManager implements IMetaManager {
   @Override
   public List<TransformTaskMeta> getTransformTasksByModule(String moduleName) {
     return cache.getTransformTasksByModule(moduleName);
+  }
+
+  public boolean storeJobTrigger(TriggerDescriptor descriptor) {
+    try {
+      storage.storeJobTrigger(descriptor);
+      cache.addOrUpdateJobTrigger(descriptor);
+      return true;
+    } catch (MetaStorageException e) {
+      LOGGER.error("add transform task error: ", e);
+      return false;
+    }
+  }
+
+  @Override
+  public boolean dropJobTrigger(String name) {
+    try {
+      cache.dropJobTrigger(name);
+      storage.dropJobTrigger(name);
+      return true;
+    } catch (MetaStorageException e) {
+      LOGGER.error("drop transform task error: ", e);
+      return false;
+    }
+  }
+
+  @Override
+  public List<TriggerDescriptor> getJobTriggers() {
+    return cache.getJobTriggers();
   }
 
   @Override

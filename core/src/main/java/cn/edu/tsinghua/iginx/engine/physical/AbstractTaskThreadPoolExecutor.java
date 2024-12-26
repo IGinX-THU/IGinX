@@ -34,8 +34,6 @@ public class AbstractTaskThreadPoolExecutor extends ThreadPoolExecutor {
   private static final Logger LOGGER =
       LoggerFactory.getLogger(AbstractTaskThreadPoolExecutor.class);
 
-  private final Map<Thread, PythonInterpreter> threadInterpreterMap = new ConcurrentHashMap<>();
-
   // 默认使用FunctionManager中的config
   protected final PythonInterpreterConfig config;
 
@@ -47,9 +45,7 @@ public class AbstractTaskThreadPoolExecutor extends ThreadPoolExecutor {
       Thread thread = defaultFactory.newThread(r);
       thread.setUncaughtExceptionHandler(
           (t, e) -> {
-            // 线程异常退出时，手动清除threadlocal里的interpreter但暂不关闭，留待线程池完全关闭时一起回收
             LOGGER.error("Uncaught exception in thread: {}", t.getName(), e);
-            ThreadInterpreterManager.cleanupInterpreter();
           });
       return thread;
     }
@@ -94,22 +90,20 @@ public class AbstractTaskThreadPoolExecutor extends ThreadPoolExecutor {
   @Override
   protected void beforeExecute(Thread t, Runnable r) {
     super.beforeExecute(t, r);
-    threadInterpreterMap.computeIfAbsent(t, k -> new PythonInterpreter(config));
-    ThreadInterpreterManager.setInterpreter(threadInterpreterMap.get(t));
+    ThreadInterpreterManager.setConfig(this.config);
   }
 
-  /** 每次执行后，线程清除threadlocal，但interpreter保存在map中以备下次使用 */
   @Override
   protected void afterExecute(Runnable r, Throwable t) {
     super.afterExecute(r, t);
-    ThreadInterpreterManager.cleanupInterpreter();
   }
 
   /** 所有线程已被关闭，线程池退出前关闭所有interpreter资源 */
   @Override
   protected void terminated() {
     super.terminated();
-    threadInterpreterMap.values().forEach(PythonInterpreter::close);
-    threadInterpreterMap.clear();
+    if (ThreadInterpreterManager.isInterpreterSet()) {
+      ThreadInterpreterManager.getInterpreter().close();
+    }
   }
 }

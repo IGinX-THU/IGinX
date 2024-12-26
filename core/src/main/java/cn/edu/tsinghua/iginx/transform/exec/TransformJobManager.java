@@ -21,6 +21,9 @@ package cn.edu.tsinghua.iginx.transform.exec;
 
 import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
+import cn.edu.tsinghua.iginx.engine.shared.Result;
+import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
+import cn.edu.tsinghua.iginx.metadata.IMetaManager;
 import cn.edu.tsinghua.iginx.thrift.CommitTransformJobReq;
 import cn.edu.tsinghua.iginx.thrift.JobState;
 import cn.edu.tsinghua.iginx.thrift.TaskType;
@@ -29,8 +32,16 @@ import cn.edu.tsinghua.iginx.transform.exception.TransformException;
 import cn.edu.tsinghua.iginx.transform.pojo.Job;
 import cn.edu.tsinghua.iginx.transform.pojo.PythonTask;
 import cn.edu.tsinghua.iginx.transform.pojo.Task;
+import cn.edu.tsinghua.iginx.transform.pojo.TriggerDescriptor;
+import cn.edu.tsinghua.iginx.utils.JobFromYAML;
 import cn.edu.tsinghua.iginx.utils.Pair;
+import cn.edu.tsinghua.iginx.utils.RpcUtils;
 import cn.edu.tsinghua.iginx.utils.SnowFlakeUtils;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -38,11 +49,19 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+
+import cn.edu.tsinghua.iginx.utils.YAMLReader;
+import cn.edu.tsinghua.iginx.utils.YAMLWriter;
+import org.quartz.Trigger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static cn.edu.tsinghua.iginx.transform.pojo.TriggerDescriptor.toTriggerDescriptor;
+
 public class TransformJobManager {
   private static final Logger LOGGER = LoggerFactory.getLogger(TransformJobManager.class);
+
+  private static final IMetaManager metaManager = DefaultMetaManager.getInstance();
 
   private final Map<Long, Job> jobMap;
 
@@ -56,10 +75,45 @@ public class TransformJobManager {
 
   private static final Config config = ConfigDescriptor.getInstance().getConfig();
 
+  private static final String JobYamlDir = config.getDefaultScheduledTransformJobDir();
+
   private TransformJobManager() {
     this.jobMap = new ConcurrentHashMap<>();
     this.jobRunnerMap = new ConcurrentHashMap<>();
     this.threadPool = Executors.newFixedThreadPool(config.getTransformTaskThreadPoolSize());
+    initScheduledJobs();
+  }
+
+  private void initScheduledJobs() {
+    List<TriggerDescriptor> descriptors = metaManager.getJobTriggers();
+    String path;
+    for (TriggerDescriptor descriptor : descriptors) {
+      Trigger trigger = TriggerDescriptor.fromTriggerDescriptor(descriptor);
+      path = String.join(File.separator, JobYamlDir, descriptor.getName() + ".yaml");
+      if (trigger == null) {
+        LOGGER.error("Illegal trigger descriptor or all executions have been missed: {}. Trigger will be removed.", descriptor);
+        metaManager.dropJobTrigger(descriptor.getName());
+        try {
+          Files.deleteIfExists(Paths.get(path));
+        } catch (IOException e) {
+          LOGGER.error("Cannot delete yaml file {}", path, e);
+        }
+        continue;
+      }
+      try {
+        YAMLReader reader = new YAMLReader(path);
+        JobFromYAML jobFromYAML = reader.getJobFromYAML();
+
+        long id = SnowFlakeUtils.getInstance().nextId();
+        Job job = new Job(id, jobFromYAML.toCommitTransformJobReq(-1), trigger);
+        long jobId = commitJob(job);
+        if (jobId < 0) {
+          LOGGER.error("Cannot initialize job, jobId is less than 0");
+        }
+      } catch (IOException e) {
+        LOGGER.error("Cannot read yaml file: {}", path);
+      }
+    }
   }
 
   public static TransformJobManager getInstance() {
@@ -83,6 +137,11 @@ public class TransformJobManager {
     if (checker.check(job)) {
       jobMap.put(job.getJobId(), job);
       threadPool.submit(() -> processWithRetry(job, config.getTransformMaxRetryTimes()));
+      if (job.isScheduled()) {
+        // save the trigger in meta and job as yaml
+        saveJobAsYaml(job.getJobId());
+        metaManager.storeJobTrigger(getJobTriggerDescriptor(job.getJobId()));
+      }
       return job.getJobId();
     } else {
       LOGGER.error("Committed job is illegal.");
@@ -195,7 +254,7 @@ public class TransformJobManager {
         job.setState(JobState.JOB_CLOSING);
         runner.close();
         job.setState(JobState.JOB_CLOSED);
-        jobRunnerMap.remove(jobId);
+        removeJob(jobId);
         job.setEndTime(System.currentTimeMillis());
         LOGGER.info("Job id={} cost {} ms.", job.getJobId(), job.getEndTime() - job.getStartTime());
         return true;
@@ -225,7 +284,7 @@ public class TransformJobManager {
     Job job = pair.k;
     JobRunner runner = pair.v;
     if (job.getState() == JobState.JOB_FINISHED) {
-      jobRunnerMap.remove(jobId);
+      removeJob(jobId);
       runner.close();
       return;
     }
@@ -247,7 +306,7 @@ public class TransformJobManager {
           "Job with id: " + jobId + " is still failing after 10 seconds. Please check server.");
     }
     if (job.getState() == JobState.JOB_FAILED) {
-      jobRunnerMap.remove(jobId);
+      removeJob(jobId);
       runner.close();
     } else {
       throw new TransformException(
@@ -304,5 +363,36 @@ public class TransformJobManager {
       }
     }
     return false;
+  }
+
+  private void removeJob(long jobId) {
+    jobRunnerMap.remove(jobId);
+
+    Job job = jobMap.get(jobId);
+    if (job.isScheduled()) {
+      String path = String.join(File.separator, JobYamlDir, job.getName() + ".yaml");
+      try {
+        metaManager.dropJobTrigger(job.getName());
+        Files.deleteIfExists(Paths.get(path));
+      } catch (IOException e) {
+        LOGGER.error("Cannot delete yaml file {}", path, e);
+      }
+    }
+  }
+
+  public void saveJobAsYaml(long jobId) {
+    Job job = jobMap.get(jobId);
+    String yamlFileName = String.join(File.separator, JobYamlDir, jobId + ".yaml");
+    YAMLWriter writer = new YAMLWriter();
+    try {
+      writer.writeJobIntoYAML(new File(yamlFileName), job.toYaml());
+    } catch (IOException e) {
+      LOGGER.error("Cannot write yaml file {}",yamlFileName, e);
+    }
+  }
+
+  public TriggerDescriptor getJobTriggerDescriptor(long jobId) {
+    Job job = jobMap.get(jobId);
+    return toTriggerDescriptor(job.getTrigger());
   }
 }

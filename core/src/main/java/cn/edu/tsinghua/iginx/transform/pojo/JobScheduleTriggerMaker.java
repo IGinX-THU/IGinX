@@ -22,6 +22,7 @@ package cn.edu.tsinghua.iginx.transform.pojo;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.Calendar;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.validation.constraints.NotNull;
@@ -32,9 +33,9 @@ import org.slf4j.LoggerFactory;
 public class JobScheduleTriggerMaker {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(JobScheduleTriggerMaker.class);
-  private static final SimpleDateFormat DATE_TIME_FORMAT =
+  protected static final SimpleDateFormat DATE_TIME_FORMAT =
       new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-  private static final SimpleDateFormat TIME_FORMAT = new SimpleDateFormat("HH:mm:ss");
+  protected static final SimpleDateFormat TIME_FORMAT = new SimpleDateFormat("HH:mm:ss");
   private static final String weekdayRegex =
       "(mon|tue|wed|thu|fri|sat|sun|monday|tuesday|wednesday|thursday|friday|saturday|sunday)";
 
@@ -43,7 +44,7 @@ public class JobScheduleTriggerMaker {
           "(?i)^every\\s+(\\d+)\\s+(second|minute|hour|day|month|year)(?:\\s+starts\\s+'([^']+)')?(?:\\s+ends\\s+'([^']+)')?$");
 
   private static final Pattern everyWeekdayPattern =
-      Pattern.compile(String.format("(?i)^every ((?:%s,?)+)$", weekdayRegex));
+      Pattern.compile(String.format("(?i)^every(?:\\s+'(\\d{2}:\\d{2}:\\d{2})'\\s+at)?\\s+((?:%s,?)+)$", weekdayRegex));
 
   private static final Pattern afterPattern =
       Pattern.compile("(?i)^after\\s+(\\d+)\\s+(second|minute|hour|day|month|year)$");
@@ -85,7 +86,7 @@ public class JobScheduleTriggerMaker {
   }
 
   /**
-   * 根据调度字符串生成 Quartz Trigger。调度字符串大致可分为以下四种：
+   * 根据调度字符串生成 Quartz Trigger，jobId将成为trigger名字。调度字符串大致可分为以下四种：
    *
    * <h3>1. Recurring Execution</h3>
    *
@@ -100,7 +101,7 @@ public class JobScheduleTriggerMaker {
    *       specified time on the same day
    *   <li>{@code every 3 minute starts '13:00:00'} - Executes every 3 minutes starting from the
    *       specified time indefinitely
-   *   <li>{@code every mon,wed} - Executes every Monday and Wednesday
+   *   <li>{@code every '13:00:00' on mon,wed} - Executes every Monday and Wednesday
    * </ul>
    *
    * <h3>2. Delayed Execution</h3>
@@ -135,32 +136,36 @@ public class JobScheduleTriggerMaker {
    * @param jobSchedule 调度字符串，控制任务执行的时间
    * @return 返回在指定时间触发的Quartz触发器
    */
-  public static Trigger getTrigger(@NotNull String jobSchedule) {
+  public static Trigger getTrigger(@NotNull String jobSchedule, long jobId) {
     // corn in quartz is not case-sensitive
     jobSchedule = jobSchedule.trim().toLowerCase();
+    TriggerBuilder<Trigger> triggerBuilder = TriggerBuilder.newTrigger().withIdentity(String.valueOf(jobId));
     now = new Date();
     if (jobSchedule.isEmpty()) {
       throw new IllegalArgumentException("Job schedule indicator string is empty.");
     }
     if (jobSchedule.startsWith("every")) {
       if (jobSchedule.matches(String.valueOf(everyWeekdayPattern))) {
-        return everyWeeklyTrigger(jobSchedule);
+        triggerBuilder.withDescription(TriggerDescriptor.TriggerType.CRON.toString());
+        return everyWeeklyTrigger(triggerBuilder, jobSchedule);
       }
-      return everyTrigger(jobSchedule);
+      return everyTrigger(triggerBuilder, jobSchedule);
     } else if (jobSchedule.startsWith("after")) {
-      return afterTrigger(jobSchedule);
+      triggerBuilder.withDescription(TriggerDescriptor.TriggerType.AFTER.toString());
+      return afterTrigger(triggerBuilder, jobSchedule);
     } else if (jobSchedule.startsWith("at")) {
-      return atTrigger(jobSchedule);
+      triggerBuilder.withDescription(TriggerDescriptor.TriggerType.AT.toString());
+      return atTrigger(triggerBuilder, jobSchedule);
     } else if (jobSchedule.matches("\\(.*\\)")) {
-      return cronTrigger(jobSchedule);
+      triggerBuilder.withDescription(TriggerDescriptor.TriggerType.CRON.toString());
+      return cronTrigger(triggerBuilder, jobSchedule);
     }
 
     throw new IllegalArgumentException("Invalid time format: " + jobSchedule);
   }
 
-  private static Trigger everyTrigger(String jobSchedule) {
+  private static Trigger everyTrigger(TriggerBuilder<Trigger> triggerBuilder, String jobSchedule) {
     Matcher nomalEverymatcher = everyPattern.matcher(jobSchedule);
-    TriggerBuilder<Trigger> triggerBuilder = TriggerBuilder.newTrigger();
 
     if (nomalEverymatcher.matches()) {
       int intervalValue = Integer.parseInt(nomalEverymatcher.group(1));
@@ -263,60 +268,72 @@ public class JobScheduleTriggerMaker {
     return triggerBuilder.build();
   }
 
-  private static Trigger everyWeeklyTrigger(String jobSchedule) {
+  /** use cron to build */
+  private static Trigger everyWeeklyTrigger(TriggerBuilder<Trigger> triggerBuilder, String jobSchedule) {
     Matcher matcher = everyWeekdayPattern.matcher(jobSchedule);
     if (matcher.matches()) {
-      String daysString = matcher.group(1);
+      String time = matcher.group(1);
+      if (time == null) {
+        throw new IllegalArgumentException("Specific time should be given in schedule string:" + jobSchedule);
+      }
+      String[] timeParts = time.split(":");
+      if (timeParts.length != 3) {
+        throw new IllegalArgumentException("Invalid time format(should be without date): " + time);
+      }
+      int hour = Integer.parseInt(timeParts[0]);
+      int minute = Integer.parseInt(timeParts[1]);
+      int second = Integer.parseInt(timeParts[2]);
+      String daysString = matcher.group(2);
       String[] daysArray = daysString.split(",");
-      Set<Integer> daysOfWeek = new HashSet<>();
+      Set<String> daysOfWeek = new TreeSet<>();
 
       for (String day : daysArray) {
         day = day.trim().toLowerCase(Locale.ROOT);
         switch (day) {
           case "mon":
           case "monday":
-            daysOfWeek.add(DateBuilder.MONDAY);
+            daysOfWeek.add("mon");
             break;
           case "tue":
           case "tuesday":
-            daysOfWeek.add(DateBuilder.TUESDAY);
+            daysOfWeek.add("tue");
             break;
           case "wed":
           case "wednesday":
-            daysOfWeek.add(DateBuilder.WEDNESDAY);
+            daysOfWeek.add("wed");
             break;
           case "thu":
           case "thursday":
-            daysOfWeek.add(DateBuilder.THURSDAY);
+            daysOfWeek.add("thu");
             break;
           case "fri":
           case "friday":
-            daysOfWeek.add(DateBuilder.FRIDAY);
+            daysOfWeek.add("fri");
             break;
           case "sat":
           case "saturday":
-            daysOfWeek.add(DateBuilder.SATURDAY);
+            daysOfWeek.add("sat");
             break;
           case "sun":
           case "sunday":
-            daysOfWeek.add(DateBuilder.SUNDAY);
+            daysOfWeek.add("sun");
             break;
           default:
             throw new IllegalArgumentException("Invalid day of the week: " + day);
         }
       }
-      return TriggerBuilder.newTrigger()
+      // ?: any day of month; *: every month
+      String cronString = second + " " + minute + " " + hour + " ? * " + String.join(",", daysOfWeek);
+      return triggerBuilder
           .withSchedule(
-              DailyTimeIntervalScheduleBuilder.dailyTimeIntervalSchedule()
-                  .onDaysOfTheWeek(daysOfWeek.toArray(new Integer[0])))
+              CronScheduleBuilder.cronSchedule(cronString))
           .build();
     }
     throw new IllegalArgumentException("Invalid weekly format: " + jobSchedule);
   }
 
-  private static Trigger afterTrigger(String jobSchedule) {
+  private static Trigger afterTrigger(TriggerBuilder<Trigger> triggerBuilder, String jobSchedule) {
     Matcher afterMatcher = afterPattern.matcher(jobSchedule);
-    TriggerBuilder<Trigger> triggerBuilder = TriggerBuilder.newTrigger();
 
     if (afterMatcher.matches()) {
       int intervalValue = Integer.parseInt(afterMatcher.group(1));
@@ -362,10 +379,15 @@ public class JobScheduleTriggerMaker {
       throw new IllegalArgumentException(
           "Error parsing schedule string " + jobSchedule + ". Please refer to manual.");
     }
-    return triggerBuilder.build();
+    return triggerBuilder
+            .withSchedule(
+                    SimpleScheduleBuilder.simpleSchedule()
+                            .withMisfireHandlingInstructionFireNow()
+                            .withRepeatCount(0))
+            .build();
   }
 
-  private static Trigger atTrigger(String jobSchedule) {
+  private static Trigger atTrigger(TriggerBuilder<Trigger> triggerBuilder, String jobSchedule) {
     Matcher atMatcher = atPattern.matcher(jobSchedule);
 
     if (atMatcher.matches()) {
@@ -378,7 +400,7 @@ public class JobScheduleTriggerMaker {
           LOGGER.error(errMsg);
           throw new IllegalArgumentException(errMsg);
         }
-        return TriggerBuilder.newTrigger()
+        return triggerBuilder
             .startAt(atDate)
             .withSchedule(
                 SimpleScheduleBuilder.simpleSchedule()
@@ -397,7 +419,7 @@ public class JobScheduleTriggerMaker {
     }
   }
 
-  private static Trigger cronTrigger(String jobSchedule) {
+  private static Trigger cronTrigger(TriggerBuilder<Trigger> triggerBuilder, String jobSchedule) {
     String cronExpression = jobSchedule.substring(1, jobSchedule.length() - 1);
     if (cronExpression.isEmpty()) {
       errMsg = "Cron string is empty. Please provide a valid corn expression.";
@@ -412,7 +434,7 @@ public class JobScheduleTriggerMaker {
       LOGGER.error(errMsg);
       throw new IllegalArgumentException(errMsg);
     }
-    return TriggerBuilder.newTrigger()
+    return triggerBuilder
         .withSchedule(CronScheduleBuilder.cronSchedule(cronExpression))
         .build();
   }

@@ -26,6 +26,7 @@ import cn.edu.tsinghua.iginx.metadata.hook.StorageUnitHook;
 import cn.edu.tsinghua.iginx.policy.simple.ColumnCalDO;
 import cn.edu.tsinghua.iginx.sql.statement.InsertStatement;
 import cn.edu.tsinghua.iginx.thrift.AuthType;
+import cn.edu.tsinghua.iginx.transform.pojo.TriggerDescriptor;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.List;
 import java.util.Map;
@@ -212,6 +213,12 @@ public interface IMetaManager {
   List<TransformTaskMeta> getTransformTasks();
 
   List<TransformTaskMeta> getTransformTasksByModule(String moduleName);
+
+  boolean storeJobTrigger(TriggerDescriptor jobTriggerDescriptor);
+
+  boolean dropJobTrigger(String name);
+
+  List<TriggerDescriptor> getJobTriggers();
 
   void updateFragmentRequests(
       Map<FragmentMeta, Long> writeRequestsMap, Map<FragmentMeta, Long> readRequestsMap)

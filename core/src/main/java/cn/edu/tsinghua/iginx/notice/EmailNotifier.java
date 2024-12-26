@@ -26,12 +26,15 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Date;
 import java.util.List;
+
+import lombok.Data;
 import org.apache.commons.mail.Email;
 import org.apache.commons.mail.EmailException;
 import org.apache.commons.mail.SimpleEmail;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@Data
 public class EmailNotifier {
   private static final Logger LOGGER = LoggerFactory.getLogger(EmailNotifier.class);
 

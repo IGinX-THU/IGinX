@@ -21,6 +21,7 @@ package cn.edu.tsinghua.iginx.transform;
 
 import static org.junit.Assert.*;
 
+import cn.edu.tsinghua.iginx.sql.statement.SystemStatement;
 import cn.edu.tsinghua.iginx.transform.pojo.JobScheduleTriggerMaker;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -41,7 +42,16 @@ public class TriggerTest {
   private static final SimpleDateFormat TIME_FORMAT = new SimpleDateFormat("HH:mm:ss");
 
   private Trigger make(String schedule) {
-    return JobScheduleTriggerMaker.getTrigger(schedule);
+    return JobScheduleTriggerMaker.getTrigger(schedule, 0);
+  }
+
+  @Test
+  public void testEveryWeeklyTrigger() {
+    String schedule = "every '12:00:05' at mon,tue";
+    Trigger trigger = make(schedule);
+    assertNotNull(trigger);
+    assertTrue(trigger instanceof CronTrigger);
+    assertEquals("5 0 12 ? * mon,tue", ((CronTrigger) trigger).getCronExpression().toLowerCase());
   }
 
   @Test

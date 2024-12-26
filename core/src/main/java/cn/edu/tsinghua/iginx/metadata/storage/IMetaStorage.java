@@ -24,6 +24,7 @@ import cn.edu.tsinghua.iginx.metadata.entity.*;
 import cn.edu.tsinghua.iginx.metadata.exception.MetaStorageException;
 import cn.edu.tsinghua.iginx.metadata.hook.*;
 import cn.edu.tsinghua.iginx.metadata.utils.ReshardStatus;
+import cn.edu.tsinghua.iginx.transform.pojo.TriggerDescriptor;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.List;
 import java.util.Map;
@@ -121,6 +122,14 @@ public interface IMetaStorage {
   void updateTransformTask(TransformTaskMeta transformTask) throws MetaStorageException;
 
   void dropTransformTask(String name) throws MetaStorageException;
+
+  void registerJobTriggerChangeHook(JobTriggerChangeHook hook);
+
+  void storeJobTrigger(TriggerDescriptor descriptor) throws MetaStorageException;
+
+  void dropJobTrigger(String name) throws MetaStorageException;
+
+  List<TriggerDescriptor> loadJobTrigger() throws MetaStorageException;
 
   void updateTimeseriesLoad(Map<String, Long> timeseriesLoadMap) throws Exception;
 

@@ -62,12 +62,18 @@ public class TransformTriggerListener extends TriggerListenerSupport {
     Exception jobException = job.getException();
     if (jobException != null) {
       // failed in this execution
-      job.setState(JobState.JOB_FAILED);
-      LOGGER.error("Job {} has failed. Detailed information:", job.getJobId(), jobException);
-      try {
-        TransformJobManager.getInstance().removeFailedScheduleJob(job.getJobId());
-      } catch (TransformException | InterruptedException e) {
-        throw new RuntimeException(e);
+      if (job.isStopOnFailure()) {
+        job.setState(JobState.JOB_FAILED);
+        LOGGER.error("Job {} has failed. Detailed information:", job.getJobId(), jobException);
+        try {
+          TransformJobManager.getInstance().removeFailedScheduleJob(job.getJobId());
+        } catch (TransformException | InterruptedException e) {
+          throw new RuntimeException(e);
+        }
+      } else {
+        // failed but continue to next execution
+        LOGGER.error("One execution of job {} failed.", job.getJobId(), jobException);
+        job.setState(JobState.JOB_PARTIALLY_FAILED);
       }
     } else if (trigger.getNextFireTime() == null) {
       // whole schedule completes

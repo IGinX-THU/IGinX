@@ -426,17 +426,17 @@ public class TransformIT {
       dropAllTask();
       List<TaskInfo> taskInfoList = new ArrayList<>();
 
-      TaskInfo iginxTask = new TaskInfo(TaskType.IginX, DataFlowType.Stream);
+      TaskInfo iginxTask = new TaskInfo(TaskType.IGINX, DataFlowType.STREAM);
       iginxTask.setSqlList(Collections.singletonList("SELECT s1, s2 FROM us.d1 WHERE key < 10;"));
 
-      TaskInfo pyTask = new TaskInfo(TaskType.Python, DataFlowType.Stream);
+      TaskInfo pyTask = new TaskInfo(TaskType.PYTHON, DataFlowType.STREAM);
       pyTask.setPyTaskName("RowSumTransformer"); // not registered, job should fail
 
       taskInfoList.add(iginxTask);
       taskInfoList.add(pyTask);
 
       String schedule = "every 10 second";
-      long jobId = session.commitTransformJob(taskInfoList, ExportType.Log, "", schedule);
+      long jobId = session.commitTransformJob(taskInfoList, ExportType.LOG, "", schedule);
 
       Thread.sleep(1000); // triggered
       verifyJobState(jobId, JobState.JOB_FAILED); // verify failed

@@ -54,12 +54,7 @@ public class TransformJobListener implements JobListener {
   public void jobWasExecuted(JobExecutionContext context, JobExecutionException jobException) {
     if (jobException != null) {
       Job job = (Job) context.getMergedJobDataMap().get("job");
-      LOGGER.error("Job {} execution failed", job.getJobId(), jobException);
       job.setException(jobException);
-      if (!job.isStopOnFailure())
-        // failed but continue to next execution
-        // if stopOnFailure, state will be set to FAILED in trigger listener
-        job.setState(JobState.JOB_PARTIALLY_FAILED);
     }
   }
 }
