@@ -1,0 +1,52 @@
+name: "oracle"
+description: "setup oracle"
+inputs:
+    version:
+        description: "oracle version"
+        required: false
+        default: "19c"
+
+runs:
+    using: "composite"
+    steps:
+      - id: base
+        name: Initialize Setup Configuration
+        uses: ./.github/actions/setup/tool
+        with:
+          tool: oracle
+          version: ${{ inputs.version }}
+
+      - name: Restore oracle Cache
+        id: restore
+        uses: actions/cache/restore@v3
+        with:
+          path: ${{ steps.base.outputs.cache-path }}
+          key: ${{ steps.base.outputs.cache-key }}
+        shell: bash
+        run: |
+          ehco ${{ steps.base.outputs.cache-path }}
+          ehco ${{ steps.base.outputs.cache-key }}
+
+      - name: Download and Install Oracle JDBC Driver
+        if: steps.restore.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          wget https://download.oracle.com/otn-pub/otn_software/jdbc/236/ojdbc8.jar
+          mvn install:install-file \
+          -DgroupId=com.oracle \
+          -DartifactId=ojdbc8 \
+          -Dversion=19.3.0.0 \
+          -Dpackaging=jar \
+          -Dfile=ojdbc8.jar
+
+      - name: Download Oracle Database Docker image
+        shell: bash
+        run: |
+          docker pull registry.cn-hangzhou.aliyuncs.com/zhuyijun/oracle:19c
+
+      - name: Save oracle Cache
+        if: steps.restore.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v3
+        with:
+          path: ${{ steps.base.outputs.cache-path }}
+          key: ${{ steps.base.outputs.cache-key }}

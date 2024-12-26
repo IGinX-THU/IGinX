@@ -29,7 +29,10 @@ inputs:
         description: "Redis ports"
         required: false
         default: 6379
-
+    Oracle-ports:
+      description: "Oracle ports"
+      required: false
+      default: 1521
 runs:
     using: "composite" # Mandatory parameter
     steps:
@@ -196,3 +199,20 @@ runs:
                   s/chunk_size_in_bytes=1048576/chunk_size_in_bytes=8/g
                   s/write.buffer.size=104857600/write.buffer.size=1048576/g
                   s/client.connectPool.maxTotal=100/client.connectPool.maxTotal=2/g
+
+        - if: inputs.DB-name=='Oracle'
+          name: Setup DB
+          uses: ./.github/actions/setup/oracle
+
+        - if: inputs.DB-name == 'Oracle'
+          name: Start MySQL Service
+          uses: ./.github/actions/service/oracle
+          with:
+            ports: ${{ inputs.Oracle-ports }}
+
+        - if: inputs.DB-name == 'Oracle'
+          name: Modify IGinX Config
+          uses: ./.github/actions/edit
+          with:
+              paths: conf/config.properties
+              statements: s|^#storageEngineList=127.0.0.1#1521#relational#engine=oracle#username=system#password=system#has_data=false|g

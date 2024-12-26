@@ -1,0 +1,39 @@
+name: "oracle"
+description: "stop, clean and start mysql in order"
+inputs:
+    ports:
+        description: The server port to listen on.
+        default: "1521"
+        required: false
+
+runs:
+    using: "composite"
+    steps:
+        - name: Start Oracle container
+          shell: bash
+          working-directory: ${{ github.action_path }}
+          run: |
+              for port in ${{ inputs.ports }}; do
+                docker run -d --name oracle19c -p $port:1521 \
+                -e ORACLE_SID=ORCL -e ORACLE_PDB=ORCLPDB -e ORACLE_PWD=123456 \
+                -e ORACLE_EDITION=standard -e ORACLE_CHARACTERSET=AL32UTF8 \
+                registry.cn-hangzhou.aliyuncs.com/zhuyijun/oracle:19c
+              done
+
+        - name: Verify Oracle Database is running
+          shell: bash
+          env:
+              container_name: oracle19c
+          run: |
+            docker ps 
+            sleep 10
+            while true; do
+            log_output=$(docker logs "$container_name" 2>&1 | grep -i "XDB initialized." || true)
+            if [ -z "$log_output" ]; then
+              echo "'XDB initialized' not found in the logs, retrying in 10 seconds..."
+              sleep 10
+            else
+              echo "'XDB initialized.' found in the logs, continuing."
+              break
+            fi
+            done
