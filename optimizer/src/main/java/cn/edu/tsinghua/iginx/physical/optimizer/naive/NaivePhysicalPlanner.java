@@ -253,7 +253,10 @@ public class NaivePhysicalPlanner {
   public PhysicalTask<?> construct(Project operator, RequestContext context) {
     PhysicalTask<?> sourceTask = fetch(operator.getSource(), context);
     if (sourceTask.getType() == TaskType.Storage) {
-      return reConstruct((StoragePhysicalTask) sourceTask, context, false, operator);
+      StoragePhysicalTask sourceStorageTask = (StoragePhysicalTask) sourceTask;
+      if (sourceStorageTask.getOperators().isEmpty()) {
+        return reConstruct(sourceStorageTask, context, false, operator);
+      }
     }
     return new PipelineMemoryPhysicalTask(
         convert(sourceTask, context, BatchStream.class),

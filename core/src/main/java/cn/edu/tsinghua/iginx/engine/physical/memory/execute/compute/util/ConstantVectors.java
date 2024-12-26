@@ -184,14 +184,14 @@ public class ConstantVectors {
     setOne(vector.getValidityBuffer(), 0, valueCount);
   }
 
-  private static void setAllWithoutValidity(@WillNotClose BaseFixedWidthVector vector, int value) {
+  private static void setAllWithoutValidity(@WillNotClose FixedWidthVector vector, int value) {
     ArrowBuf dataBuffer = vector.getDataBuffer();
     for (long i = 0; i < vector.getValueCount(); i++) {
       dataBuffer.setInt(i * 4, value);
     }
   }
 
-  private static void setAllWithoutValidity(@WillNotClose BaseFixedWidthVector vector, long value) {
+  private static void setAllWithoutValidity(@WillNotClose FixedWidthVector vector, long value) {
     ArrowBuf dataBuffer = vector.getDataBuffer();
     for (long i = 0; i < vector.getValueCount(); i++) {
       dataBuffer.setLong(i * 8, value);

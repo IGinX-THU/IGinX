@@ -162,7 +162,13 @@ public class BatchStreamToRowStreamWrapper implements RowStream {
       int rowCount) {
     List<Row> rows = new ArrayList<>();
     for (int rowIndex = 0; rowIndex < rowCount; rowIndex++) {
-      int selectionIndex = selection == null ? rowIndex : (int) selection.getValueAsLong(rowIndex);
+      int selectionIndex = rowIndex;
+      if (selection != null) {
+        if (selection.getField().isNullable() && selection.isNull(rowIndex)) {
+          continue;
+        }
+        selectionIndex = (int) selection.getValueAsLong(rowIndex);
+      }
       Object[] values = new Object[valueVectors.length];
       for (int columnIndex = 0; columnIndex < valueVectors.length; columnIndex++) {
         int valueRowIndex;
