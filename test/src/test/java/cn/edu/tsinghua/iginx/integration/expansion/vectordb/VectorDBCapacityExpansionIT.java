@@ -206,6 +206,17 @@ public class VectorDBCapacityExpansionIT extends BaseCapacityExpansionIT {
             + "+---+------------+-------+\n"
             + "Total line number = 3\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
+
+    statement = "select * from d1.c1 where b = false and f > 2 and i < 5;";
+    expect =
+        "ResultSets:\n"
+            + "+---+-------+-------+-------+-------+------------+\n"
+            + "|key|d1.c1.b|d1.c1.f|d1.c1.i|d1.c1.s|d1.c1.vector|\n"
+            + "+---+-------+-------+-------+-------+------------+\n"
+            + "|  4|  false|    3.1|      3|    4th|  [3.3, 4.4]|\n"
+            + "+---+-------+-------+-------+-------+------------+\n"
+            + "Total line number = 1\n";
+    SQLTestTools.executeAndCompare(session, statement, expect);
   }
 
   private void testDynamicAndFilter() {
