@@ -13,10 +13,6 @@ inputs:
         description: "the way to test"
         required: false
         default: clearData
-    Read-Only:
-        description: "make the storage engine read-only"
-        required: false
-        default: "false"
     Has-Data:
         description: "does the storage engine has data"
         required: false
@@ -59,15 +55,13 @@ runs:
 
         - name: Set if-CapExp
           shell: bash
-          run: |
-              echo "${{ inputs.if-CapExp }}" > ${{ inputs.Root-Dir-Path }}/test/src/test/resources/isScaling.txt
+          run: echo "${{ inputs.if-CapExp }}" > ${{ inputs.Root-Dir-Path }}/test/src/test/resources/isScaling.txt
 
         - if: inputs.if-CapExp=='true'
           name: Change has_data
           shell: bash
           run: |
-              echo "${{ inputs.Test-Way }}" > ${{ inputs.Root-Dir-Path }}/test/src/test/resources/dbce-test-way.txt 
-              if [[ "${{ inputs.Test-Way }}" == "oriHasDataExpHasData" || "${{ inputs.Test-Way }}" == "oriHasDataExpNoData" ]]; then
+              if [[ "${{ inputs.Test-Way }}" == "oriHasDataExpHasData" || "${{ inputs.Test-Way }}" == "oriHasDataExpNoData" || "${{ inputs.Test-Way }}" == "testReadOnly"]]; then
                 if [[ "$RUNNER_OS" == "Linux" || "$RUNNER_OS" == "Windows" ]]; then
                   sed -i "s/has_data=false/has_data=true/g" ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
                 elif [ "$RUNNER_OS" == "macOS" ]; then
@@ -116,7 +110,7 @@ runs:
                 exit 1
               fi
 
-        - if: inputs.Read-Only=='true'
+        - if: inputs.Test-Way == 'testReadOnly'
           name: Change is_read_only
           shell: bash
           run: |
