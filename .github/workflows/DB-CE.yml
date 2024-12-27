@@ -96,7 +96,7 @@ jobs:
                   Close-Optimizer: ${{ inputs.close-optimizer }}
                   Metadata: ${{ matrix.metadata }}
                   if-CapExp: true
-                  Test-Way: ${{ inputs.Test-Way }}
+                  Test-Way: ${{ matrix.test-way }}
 
             - name: Write DB history data
               shell: bash
