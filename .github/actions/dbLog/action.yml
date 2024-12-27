@@ -27,7 +27,7 @@ runs:
           working-directory: ${{ github.workspace }}
           shell: bash
           run: |
-              docker-compose -f 19530/docker-compose-19530.yml logs | tail -f -n 30000
+              docker-compose -f 19530/docker-compose-19530.yml logs | grep -v "[INFO]"
               ls volumes19530
               du -sh volumes19530
               du -sh volumes19530/etcd
@@ -38,4 +38,4 @@ runs:
           working-directory: ${{ github.workspace }}
           shell: wsl-run {0}
           run: |
-              docker-compose -f 19530/docker-compose-19530.yml logs
+              docker-compose -f 19530/docker-compose-19530.yml logs | grep -v "[INFO]"
