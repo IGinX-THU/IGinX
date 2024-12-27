@@ -95,6 +95,7 @@ jobs:
                   DB-name: ${{ matrix.DB-name }}
                   Close-Optimizer: ${{ inputs.close-optimizer }}
                   Metadata: ${{ matrix.metadata }}
+                  Read-Only: "${{ matrix.test-way == 'testReadOnly' }}"
                   if-CapExp: true
                   Test-Way: ${{ matrix.test-way }}
 

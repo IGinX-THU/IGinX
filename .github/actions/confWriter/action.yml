@@ -13,6 +13,10 @@ inputs:
         description: "the way to test"
         required: false
         default: clearData
+    Read-Only:
+        description: "make the storage engine read-only"
+        required: false
+        default: "false"
     Has-Data:
         description: "does the storage engine has data"
         required: false
@@ -53,9 +57,12 @@ runs:
           run: |
               cp -f "${{ inputs.Root-Dir-Path }}/conf/config.properties" "${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties"
 
-        - name: Set if-CapExp
+        - name: Set Test Environment
           shell: bash
-          run: echo "${{ inputs.if-CapExp }}" > ${{ inputs.Root-Dir-Path }}/test/src/test/resources/isScaling.txt
+          run: |
+              echo "${{ inputs.DB-name }}" > ${{ inputs.Root-Dir-Path }}/test/src/test/resources/DBName.txt
+              echo "${{ inputs.if-CapExp }}" > ${{ inputs.Root-Dir-Path }}/test/src/test/resources/isScaling.txt
+              echo "${{ inputs.Test-Way }}" > ${{ inputs.Root-Dir-Path }}/test/src/test/resources/dbce-test-way.txt
 
         - if: inputs.if-CapExp=='true'
           name: Change has_data
@@ -74,11 +81,6 @@ runs:
                   sed -i "" "s/has_data=true/has_data=false/" ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
                 fi
               fi
-
-        - name: Set DB-name
-          shell: bash
-          run: |
-              echo "${{ inputs.DB-name }}" > ${{ inputs.Root-Dir-Path }}/test/src/test/resources/DBName.txt
 
         - if: inputs.zookeeper-port!='2181'
           name: Change Zookeeper Port
@@ -110,7 +112,7 @@ runs:
                 exit 1
               fi
 
-        - if: inputs.Test-Way == 'testReadOnly'
+        - if: inputs.Read-Only=='true'
           name: Change is_read_only
           shell: bash
           run: |
