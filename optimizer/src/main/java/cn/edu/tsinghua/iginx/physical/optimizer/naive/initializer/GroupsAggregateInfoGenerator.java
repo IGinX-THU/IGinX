@@ -90,7 +90,7 @@ public class GroupsAggregateInfoGenerator
 
   private static List<ScalarExpression<?>> generateGroupKeyExpressions(
       List<String> groupByCols, BatchSchema inputSchema) {
-    List<Integer> groupKeyIndexes = Schemas.matchPattern(inputSchema.raw(), groupByCols);
+    List<Integer> groupKeyIndexes = Schemas.matchPatternIgnoreKey(inputSchema.raw(), groupByCols);
     return groupKeyIndexes.stream().map(FieldNode::new).collect(Collectors.toList());
   }
 }
