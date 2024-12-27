@@ -95,7 +95,7 @@ public class AggregateInfoGenerator implements UnaryExecutorFactory<AggregateUna
     }
     List<ScalarExpression<?>> scalarExpressions = new ArrayList<>();
     if (!call.isNeedPreRowTransform()) {
-      List<Integer> matchedIndexes = Schemas.matchPattern(inputSchema.raw(), path);
+      List<Integer> matchedIndexes = Schemas.matchPatternIgnoreKey(inputSchema.raw(), path);
       for (int index : matchedIndexes) {
         scalarExpressions.add(new FieldNode(index));
       }
@@ -109,7 +109,7 @@ public class AggregateInfoGenerator implements UnaryExecutorFactory<AggregateUna
       Schema schema =
           ScalarExpressionUtils.getOutputSchema(
               context.getAllocator(), preRowTransform, inputSchema.raw());
-      List<Integer> matchedIndexes = Schemas.matchPattern(schema, path);
+      List<Integer> matchedIndexes = Schemas.matchPatternIgnoreKey(schema, path);
       for (int index : matchedIndexes) {
         scalarExpressions.add(preRowTransform.get(index));
       }

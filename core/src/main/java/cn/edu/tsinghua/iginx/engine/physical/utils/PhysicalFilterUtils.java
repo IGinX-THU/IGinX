@@ -113,8 +113,8 @@ public class PhysicalFilterUtils {
 
   private static PredicateExpression construct(
       PathFilter filter, ExecutorContext context, Schema inputSchema) throws ComputeException {
-    List<Integer> pathAs = Schemas.matchPattern(inputSchema, filter.getPathA());
-    List<Integer> pathBs = Schemas.matchPattern(inputSchema, filter.getPathB());
+    List<Integer> pathAs = Schemas.matchPatternIgnoreKey(inputSchema, filter.getPathA());
+    List<Integer> pathBs = Schemas.matchPatternIgnoreKey(inputSchema, filter.getPathB());
     if (pathAs.isEmpty() || pathBs.isEmpty()) {
       throw new ComputeException("Trying to compare non-existing path(s).");
     }
@@ -205,7 +205,7 @@ public class PhysicalFilterUtils {
 
   private static PredicateExpression construct(
       ValueFilter filter, ExecutorContext context, Schema inputSchema) throws ComputeException {
-    List<Integer> paths = Schemas.matchPattern(inputSchema, filter.getPath());
+    List<Integer> paths = Schemas.matchPatternIgnoreKey(inputSchema, filter.getPath());
     if (paths.isEmpty()) {
       throw new ComputeException("Path not found: " + filter.getPath() + " in " + inputSchema);
     }
@@ -291,7 +291,7 @@ public class PhysicalFilterUtils {
 
   private static PredicateExpression construct(
       InFilter filter, ExecutorContext context, Schema inputSchema) throws ComputeException {
-    List<Integer> paths = Schemas.matchPattern(inputSchema, filter.getPath());
+    List<Integer> paths = Schemas.matchPatternIgnoreKey(inputSchema, filter.getPath());
     if (paths.isEmpty()) {
       throw new ComputeException("Path not found: " + filter.getPath() + " in " + inputSchema);
     }
@@ -368,10 +368,14 @@ public class PhysicalFilterUtils {
       BatchSchema rightSchema,
       Map<Pair<Integer, Integer>, Pair<Op, Boolean>> pathPairOps) {
 
-    List<Integer> leftAMatchedIndices = Schemas.matchPattern(leftSchema.raw(), filter.getPathA());
-    List<Integer> leftBMatchedIndices = Schemas.matchPattern(leftSchema.raw(), filter.getPathB());
-    List<Integer> rightAMatchedIndices = Schemas.matchPattern(rightSchema.raw(), filter.getPathA());
-    List<Integer> rightBMatchedIndices = Schemas.matchPattern(rightSchema.raw(), filter.getPathB());
+    List<Integer> leftAMatchedIndices =
+        Schemas.matchPatternIgnoreKey(leftSchema.raw(), filter.getPathA());
+    List<Integer> leftBMatchedIndices =
+        Schemas.matchPatternIgnoreKey(leftSchema.raw(), filter.getPathB());
+    List<Integer> rightAMatchedIndices =
+        Schemas.matchPatternIgnoreKey(rightSchema.raw(), filter.getPathA());
+    List<Integer> rightBMatchedIndices =
+        Schemas.matchPatternIgnoreKey(rightSchema.raw(), filter.getPathB());
 
     if (leftAMatchedIndices.size() == 1 && rightBMatchedIndices.size() == 1) {
       pathPairOps.put(

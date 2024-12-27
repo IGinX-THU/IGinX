@@ -71,7 +71,7 @@ public class PhysicalExpressionUtils {
   private static ScalarExpression<?> getPhysicalExpression(
       ExecutorContext context, Schema inputSchema, BaseExpression expr, boolean setAlias)
       throws ComputeException {
-    List<Integer> indexes = Schemas.matchPattern(inputSchema, expr.getColumnName());
+    List<Integer> indexes = Schemas.matchPatternIgnoreKey(inputSchema, expr.getColumnName());
     if (indexes.isEmpty()) {
       throw new ComputeException(
           "Column not found: " + expr.getColumnName() + " in " + inputSchema);
@@ -97,7 +97,11 @@ public class PhysicalExpressionUtils {
     if (indexes.size() > 1) {
       throw new ComputeException("Ambiguous key in " + inputSchema);
     }
-    return new FieldNode(indexes.get(0), expr.getColumnName());
+    if (setAlias) {
+      return new FieldNode(indexes.get(0), expr.getColumnName());
+    } else {
+      return new FieldNode(indexes.get(0));
+    }
   }
 
   private static ScalarExpression<?> getPhysicalExpression(
@@ -197,7 +201,7 @@ public class PhysicalExpressionUtils {
       ExecutorContext context, Schema inputSchema, FuncExpression expr, boolean setAlias)
       throws ComputeException {
     String columnName = expr.getColumnName();
-    List<Integer> matchedIndexes = Schemas.matchPattern(inputSchema, columnName);
+    List<Integer> matchedIndexes = Schemas.matchPatternIgnoreKey(inputSchema, columnName);
     if (!matchedIndexes.isEmpty()) {
       if (matchedIndexes.size() > 1) {
         throw new ComputeException("Ambiguous column: " + columnName + " in " + inputSchema);
@@ -322,7 +326,7 @@ public class PhysicalExpressionUtils {
     }
     if (!needPreRowTransform) {
       for (String path : params.getPaths()) {
-        List<Integer> matchedIndexes = Schemas.matchPattern(inputSchema, path);
+        List<Integer> matchedIndexes = Schemas.matchPatternIgnoreKey(inputSchema, path);
         if (matchedIndexes.isEmpty()) {
           throw new ComputeException("Column not found: " + path + " in " + inputSchema);
         } else if (matchedIndexes.size() > 1) {
@@ -343,7 +347,7 @@ public class PhysicalExpressionUtils {
           ScalarExpressionUtils.getOutputSchema(
               context.getAllocator(), preRowTransform, inputSchema);
       for (String path : params.getPaths()) {
-        List<Integer> matchedIndexes = Schemas.matchPattern(schema, path);
+        List<Integer> matchedIndexes = Schemas.matchPatternIgnoreKey(schema, path);
         if (matchedIndexes.isEmpty()) {
           throw new ComputeException("Column not found: " + path + " in " + inputSchema);
         } else if (matchedIndexes.size() > 1) {
