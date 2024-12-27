@@ -81,6 +81,9 @@ public class IginxWorker implements IService.Iface {
 
   private final StatementExecutor executor = StatementExecutor.getInstance();
 
+  // to init scheduled jobs
+  private final TransformJobManager transformJobManager = TransformJobManager.getInstance();
+
   private static final Config config = ConfigDescriptor.getInstance().getConfig();
 
   private IginxWorker() {

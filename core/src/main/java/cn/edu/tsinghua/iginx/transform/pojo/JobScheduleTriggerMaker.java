@@ -149,6 +149,7 @@ public class JobScheduleTriggerMaker {
         triggerBuilder.withDescription(TriggerDescriptor.TriggerType.CRON.toString());
         return everyWeeklyTrigger(triggerBuilder, jobSchedule);
       }
+      triggerBuilder.withDescription(TriggerDescriptor.TriggerType.EVERY.toString());
       return everyTrigger(triggerBuilder, jobSchedule);
     } else if (jobSchedule.startsWith("after")) {
       triggerBuilder.withDescription(TriggerDescriptor.TriggerType.AFTER.toString());

@@ -34,6 +34,7 @@ import cn.edu.tsinghua.iginx.transform.pojo.PythonTask;
 import cn.edu.tsinghua.iginx.transform.pojo.Task;
 import cn.edu.tsinghua.iginx.transform.pojo.TriggerDescriptor;
 import cn.edu.tsinghua.iginx.utils.JobFromYAML;
+import cn.edu.tsinghua.iginx.utils.JsonUtils;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.RpcUtils;
 import cn.edu.tsinghua.iginx.utils.SnowFlakeUtils;
@@ -46,6 +47,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -100,12 +102,17 @@ public class TransformJobManager {
         }
         continue;
       }
+      if (!descriptor.equals(Objects.requireNonNull(toTriggerDescriptor(trigger)))) {
+        // in type.EVERY trigger, start time might be updated
+        metaManager.updateJobTrigger(TriggerDescriptor.toTriggerDescriptor(trigger));
+      }
       try {
         YAMLReader reader = new YAMLReader(path);
         JobFromYAML jobFromYAML = reader.getJobFromYAML();
 
         long id = SnowFlakeUtils.getInstance().nextId();
         Job job = new Job(id, jobFromYAML.toCommitTransformJobReq(-1), trigger);
+        job.setMetaStored(true);
         long jobId = commitJob(job);
         if (jobId < 0) {
           LOGGER.error("Cannot initialize job, jobId is less than 0");
@@ -137,7 +144,7 @@ public class TransformJobManager {
     if (checker.check(job)) {
       jobMap.put(job.getJobId(), job);
       threadPool.submit(() -> processWithRetry(job, config.getTransformMaxRetryTimes()));
-      if (job.isScheduled()) {
+      if (job.isScheduled() && !job.isMetaStored()) {
         // save the trigger in meta and job as yaml
         saveJobAsYaml(job.getJobId());
         metaManager.storeJobTrigger(getJobTriggerDescriptor(job.getJobId()));

@@ -346,6 +346,11 @@ public class MetaManagerMock implements IMetaManager {
   }
 
   @Override
+  public boolean updateJobTrigger(TriggerDescriptor jobTriggerDescriptor) {
+    return false;
+  }
+
+  @Override
   public boolean dropJobTrigger(String name) {
     return false;
   }

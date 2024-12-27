@@ -129,6 +129,8 @@ public interface IMetaStorage {
 
   void dropJobTrigger(String name) throws MetaStorageException;
 
+  void updateJobTrigger(TriggerDescriptor jobTriggerDescriptor) throws MetaStorageException;
+
   List<TriggerDescriptor> loadJobTrigger() throws MetaStorageException;
 
   void updateTimeseriesLoad(Map<String, Long> timeseriesLoadMap) throws Exception;

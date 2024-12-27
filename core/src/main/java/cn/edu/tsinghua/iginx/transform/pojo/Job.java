@@ -68,6 +68,8 @@ public class Job {
   private final Trigger trigger;
   private boolean stopOnFailure = true;
 
+  private boolean metaStored = false;
+
   public Job(long id, CommitTransformJobReq req) {
     this(id, req, null);
   }

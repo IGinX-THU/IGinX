@@ -353,6 +353,11 @@ public class MetaManagerWrapper implements IMetaManager {
   }
 
   @Override
+  public boolean updateJobTrigger(TriggerDescriptor jobTriggerDescriptor) {
+    return metaManager.updateJobTrigger(jobTriggerDescriptor);
+  }
+
+  @Override
   public boolean dropJobTrigger(String name) {
     return metaManager.dropJobTrigger(name);
   }

@@ -2289,9 +2289,9 @@ public class ETCDMetaStorage implements IMetaStorage {
               this.client
                       .getKVClient()
                       .get(
-                              ByteSequence.from(JOB_TRIGGER_LOCK_NODE.getBytes()),
+                              ByteSequence.from(JOB_TRIGGER_NODE_PREFIX.getBytes()),
                               GetOption.newBuilder()
-                                      .withPrefix(ByteSequence.from(JOB_TRIGGER_LOCK_NODE.getBytes()))
+                                      .withPrefix(ByteSequence.from(JOB_TRIGGER_NODE_PREFIX.getBytes()))
                                       .build())
                       .get();
       if (response.getCount() != 0L) {
@@ -2345,15 +2345,19 @@ public class ETCDMetaStorage implements IMetaStorage {
     }
   }
 
+  @Override
+  public void storeJobTrigger(TriggerDescriptor jobTriggerDescriptor) throws MetaStorageException {
+    updateJobTrigger(jobTriggerDescriptor);
+  }
 
   @Override
-  public void storeJobTrigger(TriggerDescriptor descriptor) throws MetaStorageException {
+  public void updateJobTrigger(TriggerDescriptor descriptor) throws MetaStorageException {
     try {
       lockJobTrigger();
       this.client
               .getKVClient()
               .put(
-                      ByteSequence.from((JOB_TRIGGER_LOCK_NODE + descriptor.getName()).getBytes()),
+                      ByteSequence.from((JOB_TRIGGER_NODE_PREFIX + descriptor.getName()).getBytes()),
                       ByteSequence.from(JsonUtils.toJson(descriptor)))
               .get();
     } catch (ExecutionException | InterruptedException e) {
@@ -2375,7 +2379,7 @@ public class ETCDMetaStorage implements IMetaStorage {
       lockJobTrigger();
       this.client
               .getKVClient()
-              .delete(ByteSequence.from((JOB_TRIGGER_LOCK_NODE + name).getBytes()))
+              .delete(ByteSequence.from((JOB_TRIGGER_NODE_PREFIX + name).getBytes()))
               .get();
     } catch (ExecutionException | InterruptedException e) {
       LOGGER.error("got error when remove job trigger: ", e);

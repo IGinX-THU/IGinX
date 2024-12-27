@@ -1546,20 +1546,20 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
     try {
       mutex.acquire();
       List<TriggerDescriptor> descriptors = new ArrayList<>();
-      if (this.client.checkExists().forPath(JOB_TRIGGER_LOCK_NODE) == null) {
+      if (this.client.checkExists().forPath(JOB_TRIGGER_NODE_PREFIX) == null) {
         // 当前还没有数据，创建父节点，然后不需要解析数据
         client
                 .create()
                 .creatingParentsIfNeeded()
                 .withMode(CreateMode.PERSISTENT)
-                .forPath(JOB_TRIGGER_LOCK_NODE);
+                .forPath(JOB_TRIGGER_NODE_PREFIX);
       } else {
-        List<String> triggerNames = this.client.getChildren().forPath(JOB_TRIGGER_LOCK_NODE);
+        List<String> triggerNames = this.client.getChildren().forPath(JOB_TRIGGER_NODE_PREFIX);
         for (String name : triggerNames) {
-          byte[] data = this.client.getData().forPath(JOB_TRIGGER_LOCK_NODE + "/" + name);
+          byte[] data = this.client.getData().forPath(JOB_TRIGGER_NODE_PREFIX + "/" + name);
           TriggerDescriptor descriptor = JsonUtils.fromJson(data, TriggerDescriptor.class);
           if (descriptor == null) {
-            LOGGER.error("resolve data from {}/{} error", JOB_TRIGGER_LOCK_NODE, name);
+            LOGGER.error("resolve data from {}/{} error", JOB_TRIGGER_NODE_PREFIX, name);
             continue;
           }
           descriptors.add(descriptor);
@@ -1580,7 +1580,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
   }
 
   private void registerJobTriggerListener() throws Exception {
-    this.jobTriggerCache = new TreeCache(this.client, JOB_TRIGGER_LOCK_NODE);
+    this.jobTriggerCache = new TreeCache(this.client, JOB_TRIGGER_NODE_PREFIX);
     TreeCacheListener listener =
             (curatorFramework, event) -> {
               if (jobTriggerChangeHook == null) {
@@ -1592,7 +1592,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
                 case NODE_UPDATED:
                   if (event.getData() == null
                           || event.getData().getPath() == null
-                          || event.getData().getPath().equals(JOB_TRIGGER_LOCK_NODE)) {
+                          || event.getData().getPath().equals(JOB_TRIGGER_NODE_PREFIX)) {
                     return; // 前缀事件，非含数据的节点的变化，不需要处理
                   }
                   descriptor = JsonUtils.fromJson(event.getData().getData(), TriggerDescriptor.class);
@@ -1632,7 +1632,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
               .creatingParentsIfNeeded()
               .withMode(CreateMode.PERSISTENT)
               .forPath(
-                      JOB_TRIGGER_LOCK_NODE + "/" + descriptor.getName(),
+                      JOB_TRIGGER_NODE_PREFIX + "/" + descriptor.getName(),
                       JsonUtils.toJson(descriptor));
     } catch (Exception e) {
       throw new MetaStorageException("get error when saving job trigger", e);
@@ -1651,9 +1651,31 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
     InterProcessMutex mutex = new InterProcessMutex(this.client, JOB_TRIGGER_LOCK_NODE);
     try {
       mutex.acquire();
-      this.client.delete().forPath(JOB_TRIGGER_LOCK_NODE + "/" + name);
+      this.client.delete().forPath(JOB_TRIGGER_NODE_PREFIX + "/" + name);
     } catch (Exception e) {
       throw new MetaStorageException("get error when drop job trigger", e);
+    } finally {
+      try {
+        mutex.release();
+      } catch (Exception e) {
+        throw new MetaStorageException(
+                "get error when release interprocess lock for " + JOB_TRIGGER_LOCK_NODE, e);
+      }
+    }
+  }
+
+  @Override
+  public void updateJobTrigger(TriggerDescriptor jobTriggerDescriptor) throws MetaStorageException {
+    InterProcessMutex mutex = new InterProcessMutex(this.client, JOB_TRIGGER_LOCK_NODE);
+    try {
+      mutex.acquire();
+      this.client
+              .setData()
+              .forPath(
+                      JOB_TRIGGER_NODE_PREFIX + "/" + jobTriggerDescriptor.getName(),
+                      JsonUtils.toJson(jobTriggerDescriptor));
+    } catch (Exception e) {
+      throw new MetaStorageException("get error when updateing job trigger", e);
     } finally {
       try {
         mutex.release();

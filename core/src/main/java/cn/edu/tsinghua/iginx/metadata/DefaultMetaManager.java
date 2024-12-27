@@ -1489,7 +1489,7 @@ public class DefaultMetaManager implements IMetaManager {
       cache.addOrUpdateJobTrigger(descriptor);
       return true;
     } catch (MetaStorageException e) {
-      LOGGER.error("add transform task error: ", e);
+      LOGGER.error("add job trigger error: ", e);
       return false;
     }
   }
@@ -1501,7 +1501,19 @@ public class DefaultMetaManager implements IMetaManager {
       storage.dropJobTrigger(name);
       return true;
     } catch (MetaStorageException e) {
-      LOGGER.error("drop transform task error: ", e);
+      LOGGER.error("drop job trigger error: ", e);
+      return false;
+    }
+  }
+
+  @Override
+  public boolean updateJobTrigger(TriggerDescriptor jobTriggerDescriptor) {
+    try {
+      storage.updateJobTrigger(jobTriggerDescriptor);
+      cache.addOrUpdateJobTrigger(jobTriggerDescriptor);
+      return true;
+    } catch (MetaStorageException e) {
+      LOGGER.error("update job trigger error: ", e);
       return false;
     }
   }

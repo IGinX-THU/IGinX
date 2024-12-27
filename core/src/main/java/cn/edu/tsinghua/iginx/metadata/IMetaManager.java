@@ -216,6 +216,8 @@ public interface IMetaManager {
 
   boolean storeJobTrigger(TriggerDescriptor jobTriggerDescriptor);
 
+  boolean updateJobTrigger(TriggerDescriptor jobTriggerDescriptor);
+
   boolean dropJobTrigger(String name);
 
   List<TriggerDescriptor> getJobTriggers();

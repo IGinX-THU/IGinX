@@ -1,5 +1,6 @@
 package cn.edu.tsinghua.iginx.transform.pojo;
 
+import cn.edu.tsinghua.iginx.utils.JsonUtils;
 import lombok.Data;
 import org.quartz.CronScheduleBuilder;
 import org.quartz.CronTrigger;
@@ -12,6 +13,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Calendar;
 import java.util.Date;
+import java.util.Objects;
 
 @Data
 public class TriggerDescriptor {
@@ -24,46 +26,30 @@ public class TriggerDescriptor {
     CRON
   }
 
-  public TriggerType type;
+  private TriggerType type;
   // common
-  protected String name;
-  protected String group;
-  protected String description;
-  protected Date startDate;
-  protected Date endDate;
+  private String name;
+  private String group;
+  private String description;
+  private Date startDate;
+  private Date endDate;
 
-  // every-weekly has been converted to cron in TriggerMaker
-  @Data
-  public static class EveryTriggerDescriptor extends TriggerDescriptor {
-    public TriggerType type = TriggerType.EVERY;
+  // every
+  private Long repeatInterval;
 
-    private Long repeatInterval;
-  }
-
-  @Data
-  public static class AfterAtTriggerDescriptor extends TriggerDescriptor {
-    public TriggerType type = TriggerType.AFTER;
-  }
-
-  @Data
-  public static class CronTriggerDescriptor extends TriggerDescriptor {
-    public TriggerType type = TriggerType.CRON;
-
-    private String cronExpression;
-  }
-
-
+  // cron
+  private String cronExpression;
 
   public static TriggerDescriptor toTriggerDescriptor(Trigger trigger) {
     TriggerDescriptor triggerDescriptor = getInitDescriptor(trigger);
     switch (TriggerDescriptor.TriggerType.valueOf(trigger.getDescription())) {
       case EVERY:
-        return toEveryTriggerDescriptor((TriggerDescriptor.EveryTriggerDescriptor) triggerDescriptor, (SimpleTriggerImpl) trigger);
+        return toEveryTriggerDescriptor(triggerDescriptor, (SimpleTriggerImpl) trigger);
       case AFTER:
       case AT:
-        return toAfterAtTriggerDescriptor((TriggerDescriptor.AfterAtTriggerDescriptor) triggerDescriptor, (SimpleTriggerImpl) trigger);
+        return toAfterAtTriggerDescriptor(triggerDescriptor, (SimpleTriggerImpl) trigger);
       case CRON:
-        return toCronTriggerDescriptor((TriggerDescriptor.CronTriggerDescriptor) triggerDescriptor, (CronTrigger) trigger);
+        return toCronTriggerDescriptor(triggerDescriptor, (CronTrigger) trigger);
       default:
         LOGGER.error("Invalid trigger type:{}", trigger.getDescription());
         return null;
@@ -77,52 +63,56 @@ public class TriggerDescriptor {
     descriptor.setStartDate(trigger.getStartTime());
     descriptor.setEndDate(trigger.getEndTime());
     descriptor.setDescription(trigger.getDescription());
+    descriptor.setType(TriggerType.valueOf(trigger.getDescription()));
     return descriptor;
   }
 
-  private static EveryTriggerDescriptor toEveryTriggerDescriptor(EveryTriggerDescriptor descriptor, SimpleTriggerImpl trigger) {
+  private static TriggerDescriptor toEveryTriggerDescriptor(TriggerDescriptor descriptor, SimpleTriggerImpl trigger) {
     descriptor.setRepeatInterval(trigger.getRepeatInterval());
     return descriptor;
   }
 
-  private static TriggerDescriptor toAfterAtTriggerDescriptor(AfterAtTriggerDescriptor descriptor, SimpleTriggerImpl trigger) {
+  private static TriggerDescriptor toAfterAtTriggerDescriptor(TriggerDescriptor descriptor, SimpleTriggerImpl trigger) {
     // start date is all we need
     return descriptor;
   }
 
-  private static CronTriggerDescriptor toCronTriggerDescriptor(CronTriggerDescriptor descriptor, CronTrigger trigger) {
+  private static TriggerDescriptor toCronTriggerDescriptor(TriggerDescriptor descriptor, CronTrigger trigger) {
     descriptor.setCronExpression(trigger.getCronExpression());
     return descriptor;
   }
 
   public static Trigger fromTriggerDescriptor(TriggerDescriptor descriptor) {
     TriggerBuilder<Trigger> builder = TriggerBuilder.newTrigger()
-            .withIdentity(descriptor.getName(), descriptor.getGroup());
-    builder.startAt(descriptor.startDate);
-    builder.endAt(descriptor.getEndDate());
+            .withIdentity(descriptor.getName(), descriptor.getGroup())
+            .withDescription(descriptor.getDescription());
     switch (descriptor.getType()) {
       case EVERY:
-        return fromEveryTriggerDescriptor(builder, (EveryTriggerDescriptor) descriptor);
+        return fromEveryTriggerDescriptor(builder, descriptor);
       case AFTER:
       case AT:
         return fromAfterAtTriggerDescriptor(builder, descriptor);
       case CRON:
-        return fromCronTriggerDescriptor(builder, (CronTriggerDescriptor) descriptor);
+        return fromCronTriggerDescriptor(builder, descriptor);
       default:
         LOGGER.error("Invalid descriptor type:{}", descriptor.getType());
         return null;
     }
   }
 
-  private static Trigger fromEveryTriggerDescriptor(TriggerBuilder<Trigger> builder, EveryTriggerDescriptor descriptor) {
+  private static Trigger fromEveryTriggerDescriptor(TriggerBuilder<Trigger> builder, TriggerDescriptor descriptor) {
     Calendar now = Calendar.getInstance();
-    if (descriptor.endDate != null && now.before(descriptor.endDate)) {
+    if (descriptor.endDate != null && now.getTime().after(descriptor.endDate)) {
       LOGGER.warn("trigger({}) is supposed to end at {} before current time.", descriptor.getName(), descriptor.getEndDate());
       return null;
     }
     Date start = descriptor.startDate;
+    if (start == null) {
+      LOGGER.error("trigger({}) should set start date.", descriptor.getName());
+      return null;
+    }
     long interval = descriptor.getRepeatInterval();
-    if (now.after(start)) {
+    if (now.getTime().after(start)) {
       // past executions
       long elapsedTime = now.getTime().getTime() - start.getTime();
       long missedExecutions = elapsedTime / interval;
@@ -130,7 +120,7 @@ public class TriggerDescriptor {
       // next time should be:
       start = new Date(start.getTime() + (missedExecutions + 1) * interval);
     }
-    return builder.startAt(start).withSchedule(
+    return builder.startAt(start).endAt(descriptor.getEndDate()).withSchedule(
                     SimpleScheduleBuilder.simpleSchedule()
                             .withIntervalInMilliseconds(interval)
                             .withMisfireHandlingInstructionFireNow()
@@ -140,7 +130,7 @@ public class TriggerDescriptor {
 
   private static Trigger fromAfterAtTriggerDescriptor(TriggerBuilder<Trigger> builder, TriggerDescriptor descriptor) {
     Calendar now = Calendar.getInstance();
-    if (now.before(descriptor.startDate)) {
+    if (now.getTime().after(descriptor.startDate)) {
       LOGGER.warn("trigger({}) is supposed to start at {} before current time.", descriptor.getName(), descriptor.startDate);
       return null;
     }
@@ -152,29 +142,14 @@ public class TriggerDescriptor {
             .build();
   }
 
-  private static Trigger fromCronTriggerDescriptor(TriggerBuilder<Trigger> builder, CronTriggerDescriptor descriptor) {
+  private static Trigger fromCronTriggerDescriptor(TriggerBuilder<Trigger> builder, TriggerDescriptor descriptor) {
     return builder.withSchedule(CronScheduleBuilder.cronSchedule(descriptor.getCronExpression())).build();
   }
 
   public TriggerDescriptor copy() {
-    TriggerDescriptor copy;
-    if (this instanceof EveryTriggerDescriptor) {
-      EveryTriggerDescriptor newCopy = new EveryTriggerDescriptor();
-      newCopy.setRepeatInterval(((EveryTriggerDescriptor) this).getRepeatInterval());
-      copy = newCopy;
-    }
-    else if (this instanceof AfterAtTriggerDescriptor) {
-      copy = new AfterAtTriggerDescriptor();
-    }
-    else if (this instanceof CronTriggerDescriptor) {
-      CronTriggerDescriptor newCopy = new CronTriggerDescriptor();
-      newCopy.setCronExpression(((CronTriggerDescriptor) this).getCronExpression());
-      copy = newCopy;
-    }
-    else {
-      LOGGER.warn("Unknown TriggerDescriptor type: {}", this.getClass().getName());
-      copy = new TriggerDescriptor();
-    }
+    TriggerDescriptor copy = new TriggerDescriptor();
+    copy.setRepeatInterval(this.repeatInterval);
+    copy.setCronExpression(this.cronExpression);
     copy.setType(this.type);
     copy.setName(this.name);
     copy.setGroup(this.group);
@@ -188,4 +163,14 @@ public class TriggerDescriptor {
     }
     return copy;
   }
+
+  public boolean equals(TriggerDescriptor that) {
+    return that.type == this.type && that.name.equals(this.name) && that.group.equals(this.group)
+            && that.description.equals(this.description)
+            && Objects.equals(that.startDate, this.startDate)
+            && Objects.equals(that.endDate, this.endDate)
+            && Objects.equals(that.repeatInterval, this.repeatInterval)
+            && Objects.equals(that.cronExpression, this.cronExpression);
+  }
+
 }
