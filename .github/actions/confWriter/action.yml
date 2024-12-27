@@ -61,7 +61,7 @@ runs:
           name: Change has_data
           shell: bash
           run: |
-              if [[ "${{ inputs.Test-Way }}" == "oriHasDataExpHasData" || "${{ inputs.Test-Way }}" == "oriHasDataExpNoData" || "${{ inputs.Test-Way }}" == "testReadOnly"]]; then
+              if [[ "${{ inputs.Test-Way }}" == "oriHasDataExpHasData" || "${{ inputs.Test-Way }}" == "oriHasDataExpNoData" || "${{ inputs.Test-Way }}" == "testReadOnly" ]]; then
                 if [[ "$RUNNER_OS" == "Linux" || "$RUNNER_OS" == "Windows" ]]; then
                   sed -i "s/has_data=false/has_data=true/g" ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
                 elif [ "$RUNNER_OS" == "macOS" ]; then
