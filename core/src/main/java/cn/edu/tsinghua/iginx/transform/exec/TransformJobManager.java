@@ -79,6 +79,10 @@ public class TransformJobManager {
     this.jobRunnerMap = new ConcurrentHashMap<>();
     this.threadPool = Executors.newFixedThreadPool(config.getTransformTaskThreadPoolSize());
     initScheduledJobs();
+    File file = new File(JobYamlDir);
+    if (!file.exists()) {
+      file.mkdirs();
+    }
   }
 
   private void initScheduledJobs() {
