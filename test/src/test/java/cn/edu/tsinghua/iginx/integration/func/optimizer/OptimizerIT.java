@@ -22,7 +22,6 @@ package cn.edu.tsinghua.iginx.integration.func.optimizer;
 import static cn.edu.tsinghua.iginx.integration.controller.Controller.SUPPORT_KEY;
 import static cn.edu.tsinghua.iginx.integration.controller.Controller.clearAllData;
 import static org.junit.Assert.*;
-import static org.junit.Assert.assertTrue;
 
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
@@ -33,7 +32,9 @@ import cn.edu.tsinghua.iginx.pool.SessionPool;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -1736,15 +1737,59 @@ public class OptimizerIT {
     String openRule = "SET RULES AllowNullColumnRule=on;";
     String closeRule = "SET RULES AllowNullColumnRule=off;";
     String statement = "SELECT * FROM us.d1 WHERE s1 = 1;";
+    executor.execute("insert into test(key, a) values (0, 1), (1, 2), (2, 3);");
+    executor.execute("insert into test(key, b) values (3, 1), (4, 2), (5, 3);");
 
     executor.execute(openRule);
     String openExplain = executor.execute("EXPLAIN " + statement);
     LOGGER.info("openExplain: \n" + openExplain);
     Assert.assertFalse(openExplain.contains("RemoveNullColumn"));
 
+    executor.executeAndCompare(
+        "select avg(*), sum(*), count(*) from test where key < 3;",
+        "ResultSets:\n"
+            + "+-----------+-----------+-----------+-----------+-------------+-------------+\n"
+            + "|avg(test.a)|avg(test.b)|sum(test.a)|sum(test.b)|count(test.a)|count(test.b)|\n"
+            + "+-----------+-----------+-----------+-----------+-------------+-------------+\n"
+            + "|        2.0|       null|          6|       null|            3|            0|\n"
+            + "+-----------+-----------+-----------+-----------+-------------+-------------+\n"
+            + "Total line number = 1\n");
+
+    executor.executeAndCompare(
+        "select avg(*), sum(*), count(*) from test where key > 2;",
+        "ResultSets:\n"
+            + "+-----------+-----------+-----------+-----------+-------------+-------------+\n"
+            + "|avg(test.a)|avg(test.b)|sum(test.a)|sum(test.b)|count(test.a)|count(test.b)|\n"
+            + "+-----------+-----------+-----------+-----------+-------------+-------------+\n"
+            + "|       null|        2.0|       null|          6|            0|            3|\n"
+            + "+-----------+-----------+-----------+-----------+-------------+-------------+\n"
+            + "Total line number = 1\n");
+
     executor.execute(closeRule);
     String closeExplain = executor.execute("EXPLAIN " + statement);
     LOGGER.info("closeExplain: \n" + closeExplain);
     Assert.assertTrue(closeExplain.contains("RemoveNullColumn"));
+
+    executor.executeAndCompare(
+        "select avg(*), sum(*), count(*) from test where key < 3;",
+        "ResultSets:\n"
+            + "+-----------+-----------+-------------+-------------+\n"
+            + "|avg(test.a)|sum(test.a)|count(test.a)|count(test.b)|\n"
+            + "+-----------+-----------+-------------+-------------+\n"
+            + "|        2.0|          6|            3|            0|\n"
+            + "+-----------+-----------+-------------+-------------+\n"
+            + "Total line number = 1\n");
+
+    executor.executeAndCompare(
+        "select avg(*), sum(*), count(*) from test where key > 2;",
+        "ResultSets:\n"
+            + "+-----------+-----------+-------------+-------------+\n"
+            + "|avg(test.b)|sum(test.b)|count(test.a)|count(test.b)|\n"
+            + "+-----------+-----------+-------------+-------------+\n"
+            + "|        2.0|          6|            0|            3|\n"
+            + "+-----------+-----------+-------------+-------------+\n"
+            + "Total line number = 1\n");
+
+    executor.execute("delete columns test.a,test.b;");
   }
 }
