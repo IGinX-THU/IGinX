@@ -53,7 +53,6 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -405,14 +404,13 @@ public class DefaultMetaManager implements IMetaManager {
 
   private void initJobTrigger() throws MetaStorageException {
     storage.registerJobTriggerChangeHook(
-            ((name, descriptor) -> {
-              if (descriptor == null) {
-                cache.dropJobTrigger(name);
-              } else {
-                cache.addOrUpdateJobTrigger(descriptor);
-              }
-            })
-    );
+        ((name, descriptor) -> {
+          if (descriptor == null) {
+            cache.dropJobTrigger(name);
+          } else {
+            cache.addOrUpdateJobTrigger(descriptor);
+          }
+        }));
     for (TriggerDescriptor descriptor : storage.loadJobTrigger()) {
       cache.addOrUpdateJobTrigger(descriptor);
     }

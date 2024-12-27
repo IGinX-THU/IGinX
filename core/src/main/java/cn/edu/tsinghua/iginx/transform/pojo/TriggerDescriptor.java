@@ -1,6 +1,8 @@
 package cn.edu.tsinghua.iginx.transform.pojo;
 
-import cn.edu.tsinghua.iginx.utils.JsonUtils;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.Objects;
 import lombok.Data;
 import org.quartz.CronScheduleBuilder;
 import org.quartz.CronTrigger;
@@ -10,10 +12,6 @@ import org.quartz.TriggerBuilder;
 import org.quartz.impl.triggers.SimpleTriggerImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.Calendar;
-import java.util.Date;
-import java.util.Objects;
 
 @Data
 public class TriggerDescriptor {
@@ -67,23 +65,27 @@ public class TriggerDescriptor {
     return descriptor;
   }
 
-  private static TriggerDescriptor toEveryTriggerDescriptor(TriggerDescriptor descriptor, SimpleTriggerImpl trigger) {
+  private static TriggerDescriptor toEveryTriggerDescriptor(
+      TriggerDescriptor descriptor, SimpleTriggerImpl trigger) {
     descriptor.setRepeatInterval(trigger.getRepeatInterval());
     return descriptor;
   }
 
-  private static TriggerDescriptor toAfterAtTriggerDescriptor(TriggerDescriptor descriptor, SimpleTriggerImpl trigger) {
+  private static TriggerDescriptor toAfterAtTriggerDescriptor(
+      TriggerDescriptor descriptor, SimpleTriggerImpl trigger) {
     // start date is all we need
     return descriptor;
   }
 
-  private static TriggerDescriptor toCronTriggerDescriptor(TriggerDescriptor descriptor, CronTrigger trigger) {
+  private static TriggerDescriptor toCronTriggerDescriptor(
+      TriggerDescriptor descriptor, CronTrigger trigger) {
     descriptor.setCronExpression(trigger.getCronExpression());
     return descriptor;
   }
 
   public static Trigger fromTriggerDescriptor(TriggerDescriptor descriptor) {
-    TriggerBuilder<Trigger> builder = TriggerBuilder.newTrigger()
+    TriggerBuilder<Trigger> builder =
+        TriggerBuilder.newTrigger()
             .withIdentity(descriptor.getName(), descriptor.getGroup())
             .withDescription(descriptor.getDescription());
     switch (descriptor.getType()) {
@@ -100,10 +102,14 @@ public class TriggerDescriptor {
     }
   }
 
-  private static Trigger fromEveryTriggerDescriptor(TriggerBuilder<Trigger> builder, TriggerDescriptor descriptor) {
+  private static Trigger fromEveryTriggerDescriptor(
+      TriggerBuilder<Trigger> builder, TriggerDescriptor descriptor) {
     Calendar now = Calendar.getInstance();
     if (descriptor.endDate != null && now.getTime().after(descriptor.endDate)) {
-      LOGGER.warn("trigger({}) is supposed to end at {} before current time.", descriptor.getName(), descriptor.getEndDate());
+      LOGGER.warn(
+          "trigger({}) is supposed to end at {} before current time.",
+          descriptor.getName(),
+          descriptor.getEndDate());
       return null;
     }
     Date start = descriptor.startDate;
@@ -120,30 +126,41 @@ public class TriggerDescriptor {
       // next time should be:
       start = new Date(start.getTime() + (missedExecutions + 1) * interval);
     }
-    return builder.startAt(start).endAt(descriptor.getEndDate()).withSchedule(
-                    SimpleScheduleBuilder.simpleSchedule()
-                            .withIntervalInMilliseconds(interval)
-                            .withMisfireHandlingInstructionFireNow()
-                            .repeatForever())
-            .build();
+    return builder
+        .startAt(start)
+        .endAt(descriptor.getEndDate())
+        .withSchedule(
+            SimpleScheduleBuilder.simpleSchedule()
+                .withIntervalInMilliseconds(interval)
+                .withMisfireHandlingInstructionFireNow()
+                .repeatForever())
+        .build();
   }
 
-  private static Trigger fromAfterAtTriggerDescriptor(TriggerBuilder<Trigger> builder, TriggerDescriptor descriptor) {
+  private static Trigger fromAfterAtTriggerDescriptor(
+      TriggerBuilder<Trigger> builder, TriggerDescriptor descriptor) {
     Calendar now = Calendar.getInstance();
     if (now.getTime().after(descriptor.startDate)) {
-      LOGGER.warn("trigger({}) is supposed to start at {} before current time.", descriptor.getName(), descriptor.startDate);
+      LOGGER.warn(
+          "trigger({}) is supposed to start at {} before current time.",
+          descriptor.getName(),
+          descriptor.startDate);
       return null;
     }
-    return builder.startAt(descriptor.startDate)
-            .withSchedule(
-                    SimpleScheduleBuilder.simpleSchedule()
-                            .withMisfireHandlingInstructionFireNow()
-                            .withRepeatCount(0))
-            .build();
+    return builder
+        .startAt(descriptor.startDate)
+        .withSchedule(
+            SimpleScheduleBuilder.simpleSchedule()
+                .withMisfireHandlingInstructionFireNow()
+                .withRepeatCount(0))
+        .build();
   }
 
-  private static Trigger fromCronTriggerDescriptor(TriggerBuilder<Trigger> builder, TriggerDescriptor descriptor) {
-    return builder.withSchedule(CronScheduleBuilder.cronSchedule(descriptor.getCronExpression())).build();
+  private static Trigger fromCronTriggerDescriptor(
+      TriggerBuilder<Trigger> builder, TriggerDescriptor descriptor) {
+    return builder
+        .withSchedule(CronScheduleBuilder.cronSchedule(descriptor.getCronExpression()))
+        .build();
   }
 
   public TriggerDescriptor copy() {
@@ -165,12 +182,13 @@ public class TriggerDescriptor {
   }
 
   public boolean equals(TriggerDescriptor that) {
-    return that.type == this.type && that.name.equals(this.name) && that.group.equals(this.group)
-            && that.description.equals(this.description)
-            && Objects.equals(that.startDate, this.startDate)
-            && Objects.equals(that.endDate, this.endDate)
-            && Objects.equals(that.repeatInterval, this.repeatInterval)
-            && Objects.equals(that.cronExpression, this.cronExpression);
+    return that.type == this.type
+        && that.name.equals(this.name)
+        && that.group.equals(this.group)
+        && that.description.equals(this.description)
+        && Objects.equals(that.startDate, this.startDate)
+        && Objects.equals(that.endDate, this.endDate)
+        && Objects.equals(that.repeatInterval, this.repeatInterval)
+        && Objects.equals(that.cronExpression, this.cronExpression);
   }
-
 }

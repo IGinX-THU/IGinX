@@ -29,8 +29,6 @@ import cn.edu.tsinghua.iginx.sql.statement.InsertStatement;
 import cn.edu.tsinghua.iginx.thrift.AuthType;
 import cn.edu.tsinghua.iginx.transform.pojo.TriggerDescriptor;
 import cn.edu.tsinghua.iginx.utils.Pair;
-
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;

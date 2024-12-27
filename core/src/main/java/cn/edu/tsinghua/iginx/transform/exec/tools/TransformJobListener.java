@@ -20,19 +20,14 @@
 package cn.edu.tsinghua.iginx.transform.exec.tools;
 
 import cn.edu.tsinghua.iginx.engine.shared.function.manager.ThreadInterpreterManager;
-import cn.edu.tsinghua.iginx.thrift.JobState;
 import cn.edu.tsinghua.iginx.transform.driver.PemjaDriver;
 import cn.edu.tsinghua.iginx.transform.pojo.Job;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
 import org.quartz.JobListener;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import pemja.core.PythonInterpreter;
 
 public class TransformJobListener implements JobListener {
-  private static final Logger LOGGER = LoggerFactory.getLogger(TransformJobListener.class);
-
   @Override
   public String getName() {
     return "JobExceptionListener";

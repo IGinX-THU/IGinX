@@ -23,14 +23,13 @@ import cn.edu.tsinghua.iginx.notice.EmailNotifier;
 import cn.edu.tsinghua.iginx.thrift.*;
 import cn.edu.tsinghua.iginx.transform.api.Stage;
 import cn.edu.tsinghua.iginx.transform.data.*;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
-
 import cn.edu.tsinghua.iginx.utils.EmailFromYAML;
 import cn.edu.tsinghua.iginx.utils.JobFromYAML;
 import cn.edu.tsinghua.iginx.utils.NotificationFromYAML;
 import cn.edu.tsinghua.iginx.utils.TaskFromYAML;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.Data;
 import org.apache.commons.mail.EmailException;
 import org.quartz.Trigger;
@@ -76,10 +75,9 @@ public class Job {
 
   /**
    * When trigger is not null, this scheduled job's trigger is restored from meta by the name of
-   * job's first id. Job yaml file is also stored as first_id.yaml in a specified dir.
-   * So we make first id its name. When job automatically restarts after IGinX restarts, the name
-   * remains but id will be renewed.
-   * SessionId will be -1 if this job is restored, not commited.
+   * job's first id. Job yaml file is also stored as first_id.yaml in a specified dir. So we make
+   * first id its name. When job automatically restarts after IGinX restarts, the name remains but
+   * id will be renewed. SessionId will be -1 if this job is restored, not commited.
    */
   public Job(long id, CommitTransformJobReq req, Trigger trigger) {
     jobId = id;

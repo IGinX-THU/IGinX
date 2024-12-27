@@ -22,7 +22,6 @@ package cn.edu.tsinghua.iginx.transform.pojo;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
-import java.util.Calendar;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.validation.constraints.NotNull;
@@ -44,7 +43,9 @@ public class JobScheduleTriggerMaker {
           "(?i)^every\\s+(\\d+)\\s+(second|minute|hour|day|month|year)(?:\\s+starts\\s+'([^']+)')?(?:\\s+ends\\s+'([^']+)')?$");
 
   private static final Pattern everyWeekdayPattern =
-      Pattern.compile(String.format("(?i)^every(?:\\s+'(\\d{2}:\\d{2}:\\d{2})'\\s+at)?\\s+((?:%s,?)+)$", weekdayRegex));
+      Pattern.compile(
+          String.format(
+              "(?i)^every(?:\\s+'(\\d{2}:\\d{2}:\\d{2})'\\s+at)?\\s+((?:%s,?)+)$", weekdayRegex));
 
   private static final Pattern afterPattern =
       Pattern.compile("(?i)^after\\s+(\\d+)\\s+(second|minute|hour|day|month|year)$");
@@ -139,7 +140,8 @@ public class JobScheduleTriggerMaker {
   public static Trigger getTrigger(@NotNull String jobSchedule, long jobId) {
     // corn in quartz is not case-sensitive
     jobSchedule = jobSchedule.trim().toLowerCase();
-    TriggerBuilder<Trigger> triggerBuilder = TriggerBuilder.newTrigger().withIdentity(String.valueOf(jobId));
+    TriggerBuilder<Trigger> triggerBuilder =
+        TriggerBuilder.newTrigger().withIdentity(String.valueOf(jobId));
     now = new Date();
     if (jobSchedule.isEmpty()) {
       throw new IllegalArgumentException("Job schedule indicator string is empty.");
@@ -270,12 +272,14 @@ public class JobScheduleTriggerMaker {
   }
 
   /** use cron to build */
-  private static Trigger everyWeeklyTrigger(TriggerBuilder<Trigger> triggerBuilder, String jobSchedule) {
+  private static Trigger everyWeeklyTrigger(
+      TriggerBuilder<Trigger> triggerBuilder, String jobSchedule) {
     Matcher matcher = everyWeekdayPattern.matcher(jobSchedule);
     if (matcher.matches()) {
       String time = matcher.group(1);
       if (time == null) {
-        throw new IllegalArgumentException("Specific time should be given in schedule string:" + jobSchedule);
+        throw new IllegalArgumentException(
+            "Specific time should be given in schedule string:" + jobSchedule);
       }
       String[] timeParts = time.split(":");
       if (timeParts.length != 3) {
@@ -324,11 +328,9 @@ public class JobScheduleTriggerMaker {
         }
       }
       // ?: any day of month; *: every month
-      String cronString = second + " " + minute + " " + hour + " ? * " + String.join(",", daysOfWeek);
-      return triggerBuilder
-          .withSchedule(
-              CronScheduleBuilder.cronSchedule(cronString))
-          .build();
+      String cronString =
+          second + " " + minute + " " + hour + " ? * " + String.join(",", daysOfWeek);
+      return triggerBuilder.withSchedule(CronScheduleBuilder.cronSchedule(cronString)).build();
     }
     throw new IllegalArgumentException("Invalid weekly format: " + jobSchedule);
   }
@@ -381,11 +383,11 @@ public class JobScheduleTriggerMaker {
           "Error parsing schedule string " + jobSchedule + ". Please refer to manual.");
     }
     return triggerBuilder
-            .withSchedule(
-                    SimpleScheduleBuilder.simpleSchedule()
-                            .withMisfireHandlingInstructionFireNow()
-                            .withRepeatCount(0))
-            .build();
+        .withSchedule(
+            SimpleScheduleBuilder.simpleSchedule()
+                .withMisfireHandlingInstructionFireNow()
+                .withRepeatCount(0))
+        .build();
   }
 
   private static Trigger atTrigger(TriggerBuilder<Trigger> triggerBuilder, String jobSchedule) {
@@ -435,9 +437,7 @@ public class JobScheduleTriggerMaker {
       LOGGER.error(errMsg);
       throw new IllegalArgumentException(errMsg);
     }
-    return triggerBuilder
-        .withSchedule(CronScheduleBuilder.cronSchedule(cronExpression))
-        .build();
+    return triggerBuilder.withSchedule(CronScheduleBuilder.cronSchedule(cronExpression)).build();
   }
 
   /**

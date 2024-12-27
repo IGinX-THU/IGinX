@@ -26,7 +26,6 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Date;
 import java.util.List;
-
 import lombok.Data;
 import org.apache.commons.mail.Email;
 import org.apache.commons.mail.EmailException;

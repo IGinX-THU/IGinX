@@ -1008,7 +1008,7 @@ public class DefaultMetaCache implements IMetaCache {
   @Override
   public List<TriggerDescriptor> getJobTriggers() {
     return jobTriggerMetaMap.values().stream()
-            .map(TriggerDescriptor::copy)
-            .collect(Collectors.toList());
+        .map(TriggerDescriptor::copy)
+        .collect(Collectors.toList());
   }
 }

@@ -19,9 +19,10 @@
  */
 package cn.edu.tsinghua.iginx.transform.exec;
 
+import static cn.edu.tsinghua.iginx.transform.pojo.TriggerDescriptor.toTriggerDescriptor;
+
 import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
-import cn.edu.tsinghua.iginx.engine.shared.Result;
 import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
 import cn.edu.tsinghua.iginx.thrift.CommitTransformJobReq;
@@ -34,11 +35,10 @@ import cn.edu.tsinghua.iginx.transform.pojo.PythonTask;
 import cn.edu.tsinghua.iginx.transform.pojo.Task;
 import cn.edu.tsinghua.iginx.transform.pojo.TriggerDescriptor;
 import cn.edu.tsinghua.iginx.utils.JobFromYAML;
-import cn.edu.tsinghua.iginx.utils.JsonUtils;
 import cn.edu.tsinghua.iginx.utils.Pair;
-import cn.edu.tsinghua.iginx.utils.RpcUtils;
 import cn.edu.tsinghua.iginx.utils.SnowFlakeUtils;
-
+import cn.edu.tsinghua.iginx.utils.YAMLReader;
+import cn.edu.tsinghua.iginx.utils.YAMLWriter;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -51,14 +51,9 @@ import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-
-import cn.edu.tsinghua.iginx.utils.YAMLReader;
-import cn.edu.tsinghua.iginx.utils.YAMLWriter;
 import org.quartz.Trigger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static cn.edu.tsinghua.iginx.transform.pojo.TriggerDescriptor.toTriggerDescriptor;
 
 public class TransformJobManager {
   private static final Logger LOGGER = LoggerFactory.getLogger(TransformJobManager.class);
@@ -93,7 +88,9 @@ public class TransformJobManager {
       Trigger trigger = TriggerDescriptor.fromTriggerDescriptor(descriptor);
       path = String.join(File.separator, JobYamlDir, descriptor.getName() + ".yaml");
       if (trigger == null) {
-        LOGGER.error("Illegal trigger descriptor or all executions have been missed: {}. Trigger will be removed.", descriptor);
+        LOGGER.error(
+            "Illegal trigger descriptor or all executions have been missed: {}. Trigger will be removed.",
+            descriptor);
         metaManager.dropJobTrigger(descriptor.getName());
         try {
           Files.deleteIfExists(Paths.get(path));
@@ -394,7 +391,7 @@ public class TransformJobManager {
     try {
       writer.writeJobIntoYAML(new File(yamlFileName), job.toYaml());
     } catch (IOException e) {
-      LOGGER.error("Cannot write yaml file {}",yamlFileName, e);
+      LOGGER.error("Cannot write yaml file {}", yamlFileName, e);
     }
   }
 

@@ -21,12 +21,10 @@ package cn.edu.tsinghua.iginx.engine.physical;
 
 import cn.edu.tsinghua.iginx.engine.shared.function.manager.FunctionManager;
 import cn.edu.tsinghua.iginx.engine.shared.function.manager.ThreadInterpreterManager;
-import java.util.Map;
 import java.util.concurrent.*;
 import javax.validation.constraints.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pemja.core.PythonInterpreter;
 import pemja.core.PythonInterpreterConfig;
 
 /** wrapped thread pool for memory/storage tasks */

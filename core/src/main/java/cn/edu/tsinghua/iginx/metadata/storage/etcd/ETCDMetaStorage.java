@@ -2279,30 +2279,29 @@ public class ETCDMetaStorage implements IMetaStorage {
     }
   }
 
-
   @Override
   public List<TriggerDescriptor> loadJobTrigger() throws MetaStorageException {
     try {
       lockJobTrigger();
       Map<String, TriggerDescriptor> triggerMap = new HashMap<>();
       GetResponse response =
-              this.client
-                      .getKVClient()
-                      .get(
-                              ByteSequence.from(JOB_TRIGGER_NODE_PREFIX.getBytes()),
-                              GetOption.newBuilder()
-                                      .withPrefix(ByteSequence.from(JOB_TRIGGER_NODE_PREFIX.getBytes()))
-                                      .build())
-                      .get();
+          this.client
+              .getKVClient()
+              .get(
+                  ByteSequence.from(JOB_TRIGGER_NODE_PREFIX.getBytes()),
+                  GetOption.newBuilder()
+                      .withPrefix(ByteSequence.from(JOB_TRIGGER_NODE_PREFIX.getBytes()))
+                      .build())
+              .get();
       if (response.getCount() != 0L) {
         response
-                .getKvs()
-                .forEach(
-                        e -> {
-                          TriggerDescriptor descriptor =
-                                  JsonUtils.fromJson(e.getValue().getBytes(), TriggerDescriptor.class);
-                          triggerMap.put(descriptor.getName(), descriptor);
-                        });
+            .getKvs()
+            .forEach(
+                e -> {
+                  TriggerDescriptor descriptor =
+                      JsonUtils.fromJson(e.getValue().getBytes(), TriggerDescriptor.class);
+                  triggerMap.put(descriptor.getName(), descriptor);
+                });
       }
       return new ArrayList<>(triggerMap.values());
     } catch (ExecutionException | InterruptedException e) {
@@ -2325,8 +2324,8 @@ public class ETCDMetaStorage implements IMetaStorage {
       jobTriggerLeaseLock.lock();
       jobTriggerLease = client.getLeaseClient().grant(MAX_LOCK_TIME).get().getID();
       client
-              .getLockClient()
-              .lock(ByteSequence.from(JOB_TRIGGER_LOCK_NODE.getBytes()), jobTriggerLease);
+          .getLockClient()
+          .lock(ByteSequence.from(JOB_TRIGGER_LOCK_NODE.getBytes()), jobTriggerLease);
     } catch (Exception e) {
       jobTriggerLeaseLock.unlock();
       throw new MetaStorageException("acquire job trigger mutex error: ", e);
@@ -2355,11 +2354,11 @@ public class ETCDMetaStorage implements IMetaStorage {
     try {
       lockJobTrigger();
       this.client
-              .getKVClient()
-              .put(
-                      ByteSequence.from((JOB_TRIGGER_NODE_PREFIX + descriptor.getName()).getBytes()),
-                      ByteSequence.from(JsonUtils.toJson(descriptor)))
-              .get();
+          .getKVClient()
+          .put(
+              ByteSequence.from((JOB_TRIGGER_NODE_PREFIX + descriptor.getName()).getBytes()),
+              ByteSequence.from(JsonUtils.toJson(descriptor)))
+          .get();
     } catch (ExecutionException | InterruptedException e) {
       LOGGER.error("got error when storing job trigger: ", e);
       throw new MetaStorageException(e);
@@ -2378,9 +2377,9 @@ public class ETCDMetaStorage implements IMetaStorage {
     try {
       lockJobTrigger();
       this.client
-              .getKVClient()
-              .delete(ByteSequence.from((JOB_TRIGGER_NODE_PREFIX + name).getBytes()))
-              .get();
+          .getKVClient()
+          .delete(ByteSequence.from((JOB_TRIGGER_NODE_PREFIX + name).getBytes()))
+          .get();
     } catch (ExecutionException | InterruptedException e) {
       LOGGER.error("got error when remove job trigger: ", e);
       throw new MetaStorageException(e);

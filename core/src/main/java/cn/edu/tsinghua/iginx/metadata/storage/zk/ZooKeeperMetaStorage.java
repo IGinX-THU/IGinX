@@ -49,7 +49,6 @@ import org.apache.curator.framework.recipes.locks.InterProcessMutex;
 import org.apache.curator.retry.RetryForever;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
-import org.quartz.Trigger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -1549,10 +1548,10 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
       if (this.client.checkExists().forPath(JOB_TRIGGER_NODE_PREFIX) == null) {
         // 当前还没有数据，创建父节点，然后不需要解析数据
         client
-                .create()
-                .creatingParentsIfNeeded()
-                .withMode(CreateMode.PERSISTENT)
-                .forPath(JOB_TRIGGER_NODE_PREFIX);
+            .create()
+            .creatingParentsIfNeeded()
+            .withMode(CreateMode.PERSISTENT)
+            .forPath(JOB_TRIGGER_NODE_PREFIX);
       } else {
         List<String> triggerNames = this.client.getChildren().forPath(JOB_TRIGGER_NODE_PREFIX);
         for (String name : triggerNames) {
@@ -1574,7 +1573,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
         mutex.release();
       } catch (Exception e) {
         throw new MetaStorageException(
-                "get error when release interprocess lock for " + JOB_TRIGGER_LOCK_NODE, e);
+            "get error when release interprocess lock for " + JOB_TRIGGER_LOCK_NODE, e);
       }
     }
   }
@@ -1582,36 +1581,36 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
   private void registerJobTriggerListener() throws Exception {
     this.jobTriggerCache = new TreeCache(this.client, JOB_TRIGGER_NODE_PREFIX);
     TreeCacheListener listener =
-            (curatorFramework, event) -> {
-              if (jobTriggerChangeHook == null) {
-                return;
+        (curatorFramework, event) -> {
+          if (jobTriggerChangeHook == null) {
+            return;
+          }
+          TriggerDescriptor descriptor;
+          switch (event.getType()) {
+            case NODE_ADDED:
+            case NODE_UPDATED:
+              if (event.getData() == null
+                  || event.getData().getPath() == null
+                  || event.getData().getPath().equals(JOB_TRIGGER_NODE_PREFIX)) {
+                return; // 前缀事件，非含数据的节点的变化，不需要处理
               }
-              TriggerDescriptor descriptor;
-              switch (event.getType()) {
-                case NODE_ADDED:
-                case NODE_UPDATED:
-                  if (event.getData() == null
-                          || event.getData().getPath() == null
-                          || event.getData().getPath().equals(JOB_TRIGGER_NODE_PREFIX)) {
-                    return; // 前缀事件，非含数据的节点的变化，不需要处理
-                  }
-                  descriptor = JsonUtils.fromJson(event.getData().getData(), TriggerDescriptor.class);
-                  if (descriptor != null) {
-                    jobTriggerChangeHook.onChange(descriptor.getName(), descriptor);
-                  } else {
-                    LOGGER.error("resolve job trigger from zookeeper error");
-                  }
-                  break;
-                case NODE_REMOVED:
-                  String path = event.getData().getPath();
-                  String[] pathParts = path.split("/");
-                  String name = pathParts[pathParts.length - 1];
-                  jobTriggerChangeHook.onChange(name, null);
-                  break;
-                default:
-                  break;
+              descriptor = JsonUtils.fromJson(event.getData().getData(), TriggerDescriptor.class);
+              if (descriptor != null) {
+                jobTriggerChangeHook.onChange(descriptor.getName(), descriptor);
+              } else {
+                LOGGER.error("resolve job trigger from zookeeper error");
               }
-            };
+              break;
+            case NODE_REMOVED:
+              String path = event.getData().getPath();
+              String[] pathParts = path.split("/");
+              String name = pathParts[pathParts.length - 1];
+              jobTriggerChangeHook.onChange(name, null);
+              break;
+            default:
+              break;
+          }
+        };
     this.jobTriggerCache.getListenable().addListener(listener);
     this.jobTriggerCache.start();
   }
@@ -1621,19 +1620,17 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
     jobTriggerChangeHook = hook;
   }
 
-
   @Override
   public void storeJobTrigger(TriggerDescriptor descriptor) throws MetaStorageException {
     InterProcessMutex mutex = new InterProcessMutex(this.client, JOB_TRIGGER_LOCK_NODE);
     try {
       mutex.acquire();
       this.client
-              .create()
-              .creatingParentsIfNeeded()
-              .withMode(CreateMode.PERSISTENT)
-              .forPath(
-                      JOB_TRIGGER_NODE_PREFIX + "/" + descriptor.getName(),
-                      JsonUtils.toJson(descriptor));
+          .create()
+          .creatingParentsIfNeeded()
+          .withMode(CreateMode.PERSISTENT)
+          .forPath(
+              JOB_TRIGGER_NODE_PREFIX + "/" + descriptor.getName(), JsonUtils.toJson(descriptor));
     } catch (Exception e) {
       throw new MetaStorageException("get error when saving job trigger", e);
     } finally {
@@ -1641,7 +1638,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
         mutex.release();
       } catch (Exception e) {
         throw new MetaStorageException(
-                "get error when release interprocess lock for " + JOB_TRIGGER_LOCK_NODE, e);
+            "get error when release interprocess lock for " + JOB_TRIGGER_LOCK_NODE, e);
       }
     }
   }
@@ -1659,7 +1656,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
         mutex.release();
       } catch (Exception e) {
         throw new MetaStorageException(
-                "get error when release interprocess lock for " + JOB_TRIGGER_LOCK_NODE, e);
+            "get error when release interprocess lock for " + JOB_TRIGGER_LOCK_NODE, e);
       }
     }
   }
@@ -1670,10 +1667,10 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
     try {
       mutex.acquire();
       this.client
-              .setData()
-              .forPath(
-                      JOB_TRIGGER_NODE_PREFIX + "/" + jobTriggerDescriptor.getName(),
-                      JsonUtils.toJson(jobTriggerDescriptor));
+          .setData()
+          .forPath(
+              JOB_TRIGGER_NODE_PREFIX + "/" + jobTriggerDescriptor.getName(),
+              JsonUtils.toJson(jobTriggerDescriptor));
     } catch (Exception e) {
       throw new MetaStorageException("get error when updateing job trigger", e);
     } finally {
@@ -1681,7 +1678,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
         mutex.release();
       } catch (Exception e) {
         throw new MetaStorageException(
-                "get error when release interprocess lock for " + JOB_TRIGGER_LOCK_NODE, e);
+            "get error when release interprocess lock for " + JOB_TRIGGER_LOCK_NODE, e);
       }
     }
   }
