@@ -53,7 +53,7 @@ runs:
           run: |
               echo "pandas" >> requirements.txt
               echo "numpy" >> requirements.txt
-              echo "pemjax==0.1.0" >> requirements.txt
+              echo "pemjax" >> requirements.txt
               echo "thrift" >> requirements.txt
               echo "fastparquet" >> requirements.txt
               echo "tqdm" >> requirements.txt

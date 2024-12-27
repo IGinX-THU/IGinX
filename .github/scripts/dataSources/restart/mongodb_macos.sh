@@ -20,7 +20,7 @@
 
 set -e
 PORT=$1
-cd "$SERVICE_DIR_MAC/mongodb/"
+cd ".github/actions/service/mongodb/"
 PID_FILE="$PORT/mongodb.pid"
 nohup mongod --port $PORT --dbpath $PORT --logpath $PORT/mongodb.log > /dev/null 2>&1 &
 echo $! > "$PID_FILE"

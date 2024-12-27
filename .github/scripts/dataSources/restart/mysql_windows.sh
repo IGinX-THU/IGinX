@@ -18,7 +18,7 @@
 #
 
 port=$1
-cd "$SERVICE_DIR_WIN/mysql"
+cd ".github/actions/service/mysql"
 mysqld --defaults-file="$port.ini" &
 sleep 2
 

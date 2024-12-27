@@ -22,7 +22,7 @@ set -e
 
 PORT=$1
 current_dir=$(pwd)
-cd "$SERVICE_DIR_WIN/redis"
-redis-server --port $PORT --dir "$SERVICE_DIR_WIN/redis/$PORT" --daemonize yes --pidfile "$SERVICE_DIR_WIN/redis/$PORT/redis.pid"
+cd ".github/actions/service/redis"
+redis-server --port $PORT --dir "$PORT" --daemonize yes --pidfile "$PORT/redis.pid"
 cd $current_dir
 
