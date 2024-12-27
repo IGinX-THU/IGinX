@@ -98,12 +98,12 @@ jobs:
                   if-CapExp: true
                   Test-Way: ${{ matrix.test-way }}
 
-            - name: Start IGinX
-              uses: ./.github/actions/iginxRunner
-
             - name: Write DB history data
               shell: bash
               run: mvn test -q -Dtest=${{ matrix.DB-name }}HistoryDataGenerator#${{ matrix.test-way }} -DfailIfNoTests=false -P-format
+
+            - name: Start IGinX
+              uses: ./.github/actions/iginxRunner
 
             - name: ${{ matrix.test-way }} IT
               shell: bash
