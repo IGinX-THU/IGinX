@@ -338,7 +338,7 @@ When connecting to relational databases such as PostgreSQL and MySQL, you can co
 | Configuration item |          Description           | Default value |
 |--------------------|--------------------------------|---------------|
 | restIp             | rest-bound ip                  | 0.0.0.0       |
-| restPort           | rest bound port                | 6666          |
+| restPort           | rest bound port                | 7888          |
 | enableRestService  | Whether to enable rest service | true          |
 
 #### Metadata Configuration
@@ -386,7 +386,7 @@ Create the file insert.json and add the following to it:
 Use the following command to insert data into the database:
 
 ```shell
-$ curl -XPOST -H'Content-Type: application/json' -d @insert.json http://127.0.0.1:6666/api/v1/datapoints
+$ curl -XPOST -H'Content-Type: application/json' -d @insert.json http://127.0.0.1:7888/api/v1/datapoints
 ```
 
 After inserting data, you can also query the data just written using the RESTful interface.
@@ -415,7 +415,7 @@ Create a file query.json and write the following data to it:
 Use the following command to query the data:
 
 ```shell
-$ curl -XPOST -H'Content-Type: application/json' -d @query.json http://127.0.0.1:6666/api/v1/datapoints/query
+$ curl -XPOST -H'Content-Type: application/json' -d @query.json http://127.0.0.1:7888/api/v1/datapoints/query
 ```
 
 The command will return information about the data point just inserted:

@@ -136,7 +136,7 @@ public class StorageManager {
         if (!storageMap.containsKey(id)) {
           // 启动一个派发线程池
           ThreadPoolExecutor dispatcher =
-              new ThreadPoolExecutor(
+              new StorageTaskThreadPoolExecutor(
                   ConfigDescriptor.getInstance()
                       .getConfig()
                       .getPhysicalTaskThreadPoolSizePerStorage(),

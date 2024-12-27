@@ -27,11 +27,21 @@ on:
                 description: "The database to run the test on"
                 type: string
                 required: false
-                default: '["IoTDB12", "InfluxDB", "FileSystem", "PostgreSQL", "Redis", "MongoDB", "MySQL"]'
+                default: '["InfluxDB", "FileSystem", "PostgreSQL", "Redis", "MongoDB", "MySQL"]'
+            close-optimizer:
+                description: "Whether to close the optimizer"
+                type: string
+                required: false
+                default: "false"
+            timeout-minutes:
+                description: "The timeout minutes for the job"
+                type: number
+                required: false
+                default: 35
 
 jobs:
     TPC-H-Test:
-        timeout-minutes: 35
+        timeout-minutes: ${{ inputs.timeout-minutes }}
         strategy:
             fail-fast: false
             matrix:
@@ -87,6 +97,12 @@ jobs:
               uses: ./.github/actions/dbRunner
               with:
                   DB-name: ${{ matrix.DB-name }}
+                  IoTDB12-ports: 6667 6668 6669
+                  InfluxDB-ports: 8086 8087 8088
+                  MongoDB-ports: 27017 27018 27019
+                  MySQL-ports: 3306 3307 3308
+                  PostgreSQL-ports: 5432 5433 5434
+                  Redis-ports: 6379 6380 6381
 
             - name: Get Old Version IGinX
               shell: bash
@@ -132,7 +148,8 @@ jobs:
               uses: ./.github/actions/confWriter
               with:
                   DB-name: ${{ matrix.DB-name }}
-                  Set-Filter-Fragment-OFF: "true"
+                  Open-Optimizer: "true"
+                  Close-Optimizer: ${{ inputs.close-optimizer }}
                   Metadata: ${{ matrix.metadata }}
                   Root-Dir-Path: "IGinX"
                   zookeeper-port: "2182"
@@ -145,7 +162,7 @@ jobs:
               uses: ./.github/actions/confWriter
               with:
                   DB-name: ${{ matrix.DB-name }}
-                  Set-Filter-Fragment-OFF: "true"
+                  Close-Optimizer: ${{ inputs.close-optimizer }}
                   Metadata: ${{ matrix.metadata }}
 
             - name: Insert Data into DB

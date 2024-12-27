@@ -21,7 +21,6 @@ package cn.edu.tsinghua.iginx.transform.exec;
 
 import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
-import cn.edu.tsinghua.iginx.notice.EmailNotifier;
 import cn.edu.tsinghua.iginx.thrift.CommitTransformJobReq;
 import cn.edu.tsinghua.iginx.thrift.JobState;
 import cn.edu.tsinghua.iginx.thrift.TaskType;
@@ -30,8 +29,10 @@ import cn.edu.tsinghua.iginx.transform.exception.TransformException;
 import cn.edu.tsinghua.iginx.transform.pojo.Job;
 import cn.edu.tsinghua.iginx.transform.pojo.PythonTask;
 import cn.edu.tsinghua.iginx.transform.pojo.Task;
+import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.SnowFlakeUtils;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -99,7 +100,6 @@ public class TransformJobManager {
         LOGGER.error("retry process, executed times: {}", (processCnt + 1));
       }
     }
-    EmailNotifier.getInstance().send(job);
   }
 
   private void process(Job job) throws Exception {
@@ -120,14 +120,34 @@ public class TransformJobManager {
     }
   }
 
-  public boolean cancel(long jobId) {
+  public boolean cancel(long jobId) throws TransformException {
     Job job = jobMap.get(jobId);
     if (job == null) {
-      return false;
+      throw new TransformException("Job with id: " + jobId + " is not found.");
     }
     JobRunner runner = jobRunnerMap.get(jobId);
     if (runner == null) {
-      return false;
+      // job finished/failed/closed
+      JobState jobState = queryJobState(jobId);
+      String err;
+      switch (jobState) {
+        case JOB_FINISHED:
+          err = "Job with id: " + jobId + " has finished.";
+          break;
+        case JOB_FAILED:
+          err = "Job with id: " + jobId + " has failed.";
+          break;
+        case JOB_CLOSED:
+          err = "Job with id: " + jobId + " has closed.";
+          break;
+        default:
+          err =
+              "Runner of unfinished job with id: "
+                  + jobId
+                  + " is not found. Please check server log.";
+          break;
+      }
+      throw new TransformException(err);
     }
     // Since job state is set to FINISHED/FAILING/FAILED before runner removed from
     // jobRunnerMap,
@@ -146,7 +166,7 @@ public class TransformJobManager {
       case JOB_CREATED:
         // atomic guard
         if (!job.getActive().compareAndSet(true, false)) {
-          return false;
+          throw new TransformException("Cannot set active status of job with id: " + jobId + ".");
         }
       case JOB_IDLE:
         // reorder as Normal run: [set-ING,] close, set-ED, remove[, set end time, log time cost].
@@ -157,12 +177,63 @@ public class TransformJobManager {
         job.setEndTime(System.currentTimeMillis());
         LOGGER.info("Job id={} cost {} ms.", job.getJobId(), job.getEndTime() - job.getStartTime());
         return true;
+      case JOB_FAILED:
+      case JOB_FAILING:
+        try {
+          removeFailedScheduleJob(jobId);
+        } catch (Exception e) {
+          throw new TransformException(
+              "Job with id: " + jobId + " is failing or failed yet cannot be removed.", e);
+        }
+        // automatically remove failed tasks, but throw warning
+        throw new TransformException("Job had failed and was removed.");
+      case JOB_CLOSING:
+      case JOB_CLOSED:
+        // this job had received cancellation request and didn't finish yet.
+        // finish: job runner should be null
+        throw new TransformException("Job is still closing. Please query again later.");
       default:
         return false;
     }
   }
 
+  /** 当任务的所有执行周期都结束，将其信息删除 */
   public void removeFinishedScheduleJob(long jobID) throws TransformException {
+    Pair<Job, JobRunner> pair = getJobAndRunner(jobID);
+    Job job = pair.k;
+    JobRunner runner = pair.v;
+    if (job.getState() == JobState.JOB_FINISHED) {
+      jobRunnerMap.remove(jobID);
+      runner.close();
+      return;
+    }
+    throw new TransformException(
+        "Job with id: " + jobID + "did not finish correctly. Current state: " + job.getState());
+  }
+
+  public void removeFailedScheduleJob(long jobID) throws TransformException, InterruptedException {
+    Pair<Job, JobRunner> pair = getJobAndRunner(jobID);
+    Job job = pair.k;
+    JobRunner runner = pair.v;
+    long waitTime = 10 * 1000; // 10 seconds max waiting time
+    while (job.getState() == JobState.JOB_FAILING && waitTime > 0) {
+      waitTime -= 1000;
+      Thread.sleep(1000);
+    }
+    if (job.getState() == JobState.JOB_FAILING) {
+      throw new TransformException(
+          "Job with id: " + jobID + " is still failing after 10 seconds. Please check server.");
+    }
+    if (job.getState() == JobState.JOB_FAILED) {
+      jobRunnerMap.remove(jobID);
+      runner.close();
+    } else {
+      throw new TransformException(
+          "Job with id: " + jobID + "is supposed to be FAILED. Current state: " + job.getState());
+    }
+  }
+
+  private Pair<Job, JobRunner> getJobAndRunner(long jobID) throws TransformException {
     Job job = jobMap.get(jobID);
     if (job == null) {
       throw new TransformException("No job with id: " + jobID + " exists.");
@@ -171,13 +242,7 @@ public class TransformJobManager {
     if (runner == null) {
       throw new TransformException("No job runner with id: " + jobID + " exists.");
     }
-    if (job.getState() == JobState.JOB_FINISHED) {
-      jobRunnerMap.remove(jobID);
-      runner.close();
-      return;
-    }
-    throw new TransformException(
-        "Job with id: " + jobID + "did not finish correctly. Current state: " + job.getState());
+    return new Pair<>(job, runner);
   }
 
   public JobState queryJobState(long jobId) {
@@ -188,14 +253,18 @@ public class TransformJobManager {
     }
   }
 
-  public List<Long> showEligibleJob(JobState jobState) {
-    List<Long> jobIdList = new ArrayList<>();
+  public HashMap<JobState, List<Long>> showEligibleJob(JobState jobState) {
+    // jobState = null: show all jobs
+    HashMap<JobState, List<Long>> jobStateMap = new HashMap<>();
     for (Job job : jobMap.values()) {
-      if (job.getState().equals(jobState)) {
-        jobIdList.add(job.getJobId());
+      if (jobState == null || job.getState().equals(jobState)) {
+        if (!jobStateMap.containsKey(job.getState())) {
+          jobStateMap.put(job.getState(), new ArrayList<>());
+        }
+        jobStateMap.get(job.getState()).add(job.getJobId());
       }
     }
-    return jobIdList;
+    return jobStateMap;
   }
 
   public boolean isRegisterTaskRunning(String taskName) {

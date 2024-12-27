@@ -1,5 +1,4 @@
 name: "Capacity-Expansion-Test"
-
 on:
     workflow_call:
         inputs:
@@ -28,13 +27,23 @@ on:
                 type: string
                 required: false
                 default: '["IoTDB12", "InfluxDB", "FileSystem", "PostgreSQL", "Redis", "MongoDB", "MySQL"]'
+            timeout-minutes:
+                description: "The timeout minutes for the job"
+                type: number
+                required: false
+                default: 120
+            close-optimizer:
+                description: "Whether to close the optimizer"
+                type: string
+                required: false
+                default: "false"
 
 env:
     FUNCTEST: NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,SessionIT,SessionPoolIT,CompactionIT,TimePrecisionIT,PySessionIT
 
 jobs:
     DB-CE:
-        timeout-minutes: 120
+        timeout-minutes: ${{ inputs.timeout-minutes }}
         strategy:
             fail-fast: false
             matrix:
@@ -63,11 +72,24 @@ jobs:
               uses: ./.github/actions/dbRunner
               with:
                   DB-name: ${{ matrix.DB-name }}
+                  IoTDB12-ports: 6667 6668 6669
+                  InfluxDB-ports: 8086 8087 8088
+                  MongoDB-ports: 27017 27018 27019
+                  MySQL-ports: 3306 3307 3308
+                  PostgreSQL-ports: 5432 5433 5434
+                  Redis-ports: 6379 6380 6381
 
             - name: Install IGinX with Maven
               shell: bash
               run: |
                   mvn clean package -DskipTests -P-format -q
+
+            - name: Change IGinX config
+              uses: ./.github/actions/confWriter
+              with:
+                  DB-name: ${{ matrix.DB-name }}
+                  Close-Optimizer: ${{ inputs.close-optimizer }}
+                  Metadata: ${{ matrix.metadata }}
 
               # 第 1 阶段测试开始==========================================
             - name: Prepare CapExp environment oriHasDataExpHasData

@@ -1142,11 +1142,13 @@ public class Session {
     return ref.resp.getJobState();
   }
 
-  public List<Long> showEligibleJob(JobState jobState) throws SessionException {
-    ShowEligibleJobReq req = new ShowEligibleJobReq(sessionId, jobState);
+  /** { jobState : [jobId, jobId,...]} */
+  public Map<JobState, List<Long>> showEligibleJob(JobState jobState) throws SessionException {
+    ShowEligibleJobReq req = new ShowEligibleJobReq(sessionId);
+    req.setJobState(jobState);
     Reference<ShowEligibleJobResp> ref = new Reference<>();
     executeWithCheck(() -> (ref.resp = client.showEligibleJob(req)).status);
-    return ref.resp.getJobIdList();
+    return ref.resp.getJobStateMap();
   }
 
   public void cancelTransformJob(long jobId) throws SessionException {
@@ -1164,11 +1166,10 @@ public class Session {
     return new CurveMatchResult(ref.resp.getMatchedKey(), ref.resp.getMatchedPath());
   }
 
-  public void removeHistoryDataSource(List<RemovedStorageEngineInfo> removedStorageEngineList)
+  public void removeStorageEngine(List<RemovedStorageEngineInfo> removedStorageEngineList)
       throws SessionException {
-    RemoveHistoryDataSourceReq req =
-        new RemoveHistoryDataSourceReq(sessionId, removedStorageEngineList);
-    executeWithCheck(() -> client.removeHistoryDataSource(req));
+    RemoveStorageEngineReq req = new RemoveStorageEngineReq(sessionId, removedStorageEngineList);
+    executeWithCheck(() -> client.removeStorageEngine(req));
   }
 
   public String getUsername() {

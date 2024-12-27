@@ -19,7 +19,6 @@
  */
 package cn.edu.tsinghua.iginx.transform.driver;
 
-import static cn.edu.tsinghua.iginx.transform.utils.Constants.UDF_CLASS;
 import static cn.edu.tsinghua.iginx.transform.utils.Constants.UDF_FUNC;
 
 import cn.edu.tsinghua.iginx.conf.Config;
@@ -41,14 +40,25 @@ public class PemjaWorker {
 
   private final String identifier;
 
+  private final String moduleName;
+
+  private final String className;
+
   private final PythonInterpreter interpreter;
 
   private final Writer writer;
 
   private static final Config config = ConfigDescriptor.getInstance().getConfig();
 
-  public PemjaWorker(String identifier, PythonInterpreter interpreter, Writer writer) {
+  public PemjaWorker(
+      String identifier,
+      String moduleName,
+      String className,
+      PythonInterpreter interpreter,
+      Writer writer) {
     this.identifier = identifier;
+    this.moduleName = moduleName;
+    this.className = className;
     this.interpreter = interpreter;
     this.writer = writer;
   }
@@ -78,7 +88,14 @@ public class PemjaWorker {
               }
             });
 
-    List<Object> res = (List<Object>) interpreter.invokeMethod(UDF_CLASS, UDF_FUNC, data);
+    // no need to use a new thread because the whole job is running on a seperated
+    // thread(scheduler).
+    // reload module in case of script modification
+    interpreter.exec("import importlib;importlib.reload(" + moduleName + ")");
+    // use unique name in shared interpreter
+    String obj = (moduleName + className).replace(".", "a");
+    interpreter.exec(String.format("%s = %s.%s()", obj, moduleName, className));
+    List<Object> res = (List<Object>) interpreter.invokeMethod(obj, UDF_FUNC, data);
 
     try {
       PemjaReader reader = new PemjaReader(res, config.getBatchSize());
@@ -97,11 +114,10 @@ public class PemjaWorker {
     return identifier;
   }
 
-  public PythonInterpreter getInterpreter() {
-    return interpreter;
-  }
-
   public Writer getWriter() {
     return writer;
   }
+
+  /** leave for future */
+  public void close() {}
 }
