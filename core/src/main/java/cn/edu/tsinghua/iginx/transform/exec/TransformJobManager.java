@@ -89,6 +89,10 @@ public class TransformJobManager {
     List<TriggerDescriptor> descriptors = metaManager.getJobTriggers();
     String path;
     for (TriggerDescriptor descriptor : descriptors) {
+      if (!descriptor.getIp().equals(config.getIp()) || descriptor.getPort() != config.getPort()) {
+        // not on this iginx node
+        continue;
+      }
       Trigger trigger = TriggerDescriptor.fromTriggerDescriptor(descriptor);
       path = String.join(File.separator, JobYamlDir, descriptor.getName() + ".yaml");
       if (trigger == null) {

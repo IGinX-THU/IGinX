@@ -19,6 +19,8 @@
  */
 package cn.edu.tsinghua.iginx.transform.pojo;
 
+import cn.edu.tsinghua.iginx.conf.Config;
+import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Objects;
@@ -36,6 +38,8 @@ import org.slf4j.LoggerFactory;
 public class TriggerDescriptor {
   private static final Logger LOGGER = LoggerFactory.getLogger(TriggerDescriptor.class);
 
+  private static final Config config = ConfigDescriptor.getInstance().getConfig();
+
   public enum TriggerType {
     EVERY,
     AFTER,
@@ -50,6 +54,9 @@ public class TriggerDescriptor {
   private String description;
   private Date startDate;
   private Date endDate;
+
+  private String ip;
+  private int port;
 
   // every
   private Long repeatInterval;
@@ -81,6 +88,9 @@ public class TriggerDescriptor {
     descriptor.setEndDate(trigger.getEndTime());
     descriptor.setDescription(trigger.getDescription());
     descriptor.setType(TriggerType.valueOf(trigger.getDescription()));
+
+    descriptor.setIp(config.getIp());
+    descriptor.setPort(config.getPort());
     return descriptor;
   }
 
@@ -190,6 +200,8 @@ public class TriggerDescriptor {
     copy.setName(this.name);
     copy.setGroup(this.group);
     copy.setDescription(this.description);
+    copy.setIp(this.ip);
+    copy.setPort(this.port);
     // ensure deep copy
     if (this.startDate != null) {
       copy.setStartDate(new Date(this.startDate.getTime()));
@@ -205,6 +217,8 @@ public class TriggerDescriptor {
         && that.name.equals(this.name)
         && that.group.equals(this.group)
         && that.description.equals(this.description)
+        && that.ip.equals(this.ip)
+        && that.port == this.port
         && Objects.equals(that.startDate, this.startDate)
         && Objects.equals(that.endDate, this.endDate)
         && Objects.equals(that.repeatInterval, this.repeatInterval)
