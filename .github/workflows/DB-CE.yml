@@ -114,7 +114,6 @@ jobs:
               run: mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#${{ matrix.test-way }} -DfailIfNoTests=false -P-format
 
             - name: Clear history data
-              #              if: ${{ matrix.test-way != 'testReadOnly' }}
               shell: bash
               run: mvn test -q -Dtest=${{ matrix.DB-name }}HistoryDataGenerator#clearHistoryData -DfailIfNoTests=false -P-format
 
