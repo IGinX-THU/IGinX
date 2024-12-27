@@ -71,7 +71,7 @@ enum SqlType {
     ShowJobStatus,
     CancelJob,
     ShowEligibleJob,
-    RemoveStorageEngine,
+    RemoveHistoryDataSource,
     SetConfig,
     ShowConfig,
     Compact,
@@ -243,12 +243,6 @@ struct DeleteDataInColumnsReq {
     7: optional TimePrecision timePrecision
 }
 
-struct QueryDataSet {
-    1: required binary keys
-    2: required list<binary> valuesList
-    3: required list<binary> bitmapList
-}
-
 struct QueryDataReq {
     1: required i64 sessionId
     2: required list<string> paths
@@ -261,10 +255,7 @@ struct QueryDataReq {
 
 struct QueryDataResp {
     1: required Status status
-    2: optional list<string> paths
-    3: optional list<map<string, string>> tagsList
-    4: optional list<DataType> dataTypeList
-    5: optional QueryDataSet queryDataSet
+    2: optional list<binary> queryArrowData
 }
 
 struct AddStorageEnginesReq {
@@ -298,11 +289,7 @@ struct AggregateQueryReq {
 
 struct AggregateQueryResp {
     1: required Status status
-    2: optional list<string> paths
-    3: optional list<map<string, string>> tagsList
-    4: optional list<DataType> dataTypeList
-    5: optional binary keys
-    6: optional binary valuesList
+    2: optional list<binary> queryArrowData
 }
 
 struct LastQueryReq {
@@ -316,10 +303,7 @@ struct LastQueryReq {
 
 struct LastQueryResp {
     1: required Status status
-    2: optional list<string> paths
-    3: optional list<map<string, string>> tagsList
-    4: optional list<DataType> dataTypeList
-    5: optional QueryDataSet queryDataSet
+    2: optional list<binary> queryArrowData
 }
 
 struct DownsampleQueryReq {
@@ -336,10 +320,7 @@ struct DownsampleQueryReq {
 
 struct DownsampleQueryResp {
     1: required Status status
-    2: optional list<string> paths
-    3: optional list<map<string, string>> tagsList
-    4: optional list<DataType> dataTypeList
-    5: optional QueryDataSet queryDataSet
+    2: optional list<binary> queryArrowData
 }
 
 struct ShowColumnsReq {
@@ -371,36 +352,33 @@ struct ExecuteSqlReq {
 struct ExecuteSqlResp {
     1: required Status status
     2: required SqlType type
-    3: optional list<string> paths
-    4: optional list<map<string, string>> tagsList
+    3: optional list<binary> queryArrowData
+    4: optional list<string> paths
     5: optional list<DataType> dataTypeList
-    6: optional QueryDataSet queryDataSet
-    7: optional binary keys
-    8: optional binary valuesList
-    9: optional i32 replicaNum
-    10: optional i64 pointsNum;
-    11: optional AggregateType aggregateType
-    12: optional string parseErrorMsg
-    13: optional i32 limit
-    14: optional i32 offset
-    15: optional string orderByPath
-    16: optional bool ascending
-    17: optional list<IginxInfo> iginxInfos
-    18: optional list<StorageEngineInfo> storageEngineInfos
-    19: optional list<MetaStorageInfo>  metaStorageInfos
-    20: optional LocalMetaStorageInfo localMetaStorageInfo
-    21: optional list<RegisterTaskInfo> registerTaskInfos
-    22: optional i64 jobId
-    23: optional JobState jobState
-    24: optional map<JobState, list<i64>> jobStateMap
-    25: optional map<string, string> configs
-    26: optional string loadCsvPath
-    27: optional list<i64> sessionIDList
-    28: optional map<string, bool> rules
-    29: optional string UDFModulePath
-    30: optional list<string> usernames
-    31: optional list<UserType> userTypes
-    32: optional list<set<AuthType>> auths
+    6: optional i32 replicaNum
+    7: optional i64 pointsNum;
+    8: optional AggregateType aggregateType
+    9: optional string parseErrorMsg
+    10: optional i32 limit
+    11: optional i32 offset
+    12: optional string orderByPath
+    13: optional bool ascending
+    14: optional list<IginxInfo> iginxInfos
+    15: optional list<StorageEngineInfo> storageEngineInfos
+    16: optional list<MetaStorageInfo>  metaStorageInfos
+    17: optional LocalMetaStorageInfo localMetaStorageInfo
+    18: optional list<RegisterTaskInfo> registerTaskInfos
+    19: optional i64 jobId
+    20: optional JobState jobState
+    21: optional list<i64> jobIdList
+    22: optional map<string, string> configs
+    23: optional string loadCsvPath
+    24: optional list<i64> sessionIDList
+    25: optional map<string, bool> rules
+    26: optional string UDFModulePath
+    27: optional list<string> usernames
+    28: optional list<UserType> userTypes
+    29: optional list<set<AuthType>> auths
 }
 
 struct UpdateUserReq {
@@ -489,6 +467,7 @@ struct ExecuteStatementResp {
     8: optional string warningMsg;
     9: optional string exportStreamDir
     10: optional ExportCSV exportCSV
+    11: optional list<binary> queryArrowData
 }
 
 struct ExportCSV {
@@ -522,6 +501,7 @@ struct FetchResultsResp {
     1: required Status status
     2: required bool hasMoreResults
     3: optional QueryDataSetV2 queryDataSet
+    4: optional list<binary> queryArrowData
 }
 
 struct LoadCSVReq {
@@ -583,12 +563,12 @@ struct QueryTransformJobStatusResp {
 
 struct ShowEligibleJobReq {
     1: required i64 sessionId
-    2: optional JobState jobState
+    2: required JobState jobState
 }
 
 struct ShowEligibleJobResp {
     1: required Status status
-    2: required map<JobState, list<i64>> jobStateMap
+    2: required list<i64> jobIdList
 }
 
 struct CancelTransformJobReq {
@@ -699,7 +679,7 @@ struct RemovedStorageEngineInfo {
     4: required string dataPrefix
 }
 
-struct RemoveStorageEngineReq {
+struct RemoveHistoryDataSourceReq {
     1: required i64 sessionId
     2: required list<RemovedStorageEngineInfo> removedStorageEngineInfoList
 }
@@ -751,7 +731,7 @@ service IService {
 
     Status alterStorageEngine(1: AlterStorageEngineReq req);
 
-    Status removeStorageEngine(1: RemoveStorageEngineReq req);
+    Status removeHistoryDataSource(1: RemoveHistoryDataSourceReq req);
 
     AggregateQueryResp aggregateQuery(1: AggregateQueryReq req);
 
