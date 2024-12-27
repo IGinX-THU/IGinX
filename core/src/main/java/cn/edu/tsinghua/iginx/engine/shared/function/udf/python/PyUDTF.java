@@ -19,9 +19,6 @@
  */
 package cn.edu.tsinghua.iginx.engine.shared.function.udf.python;
 
-import static cn.edu.tsinghua.iginx.engine.shared.Constants.UDF_CLASS;
-import static cn.edu.tsinghua.iginx.engine.shared.Constants.UDF_FUNC;
-
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpression;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
@@ -36,9 +33,7 @@ import cn.edu.tsinghua.iginx.engine.shared.function.udf.utils.DataUtils;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.utils.RowUtils;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.BlockingQueue;
 import org.apache.arrow.vector.types.pojo.Schema;
-import pemja.core.PythonInterpreter;
 
 public class PyUDTF extends PyUDF implements UDTF {
 
