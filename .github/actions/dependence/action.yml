@@ -68,6 +68,7 @@ runs:
 
         - if: inputs.scope=='all'
           name: Install Python dependencies
+          shell: bash
           run: pip install -r requirements.txt
 
         - name: Set up JDK ${{ inputs.java }}
