@@ -19,4 +19,4 @@
 
 set -e
 PORT=$1
-redis-cli -p $PORT shutdown
+redis-cli -p $PORT shutdown save
