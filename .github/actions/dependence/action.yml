@@ -49,6 +49,7 @@ runs:
 
         - if: inputs.scope=='all'
           name: Write Python dependencies to requirements.txt
+          shell: bash
           run: |
               echo "pandas" >> requirements.txt
               echo "numpy" >> requirements.txt
