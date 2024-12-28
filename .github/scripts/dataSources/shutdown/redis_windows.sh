@@ -18,5 +18,5 @@
 #
 
 set -e
-port=$1
+PORT=$1
 redis-cli -p $PORT shutdown
