@@ -81,7 +81,9 @@ public class Job {
    */
   public Job(long id, CommitTransformJobReq req, Trigger trigger) {
     jobId = id;
-    sessionId = req.getSessionId();
+    sessionId = 0;
+    // job should not be bound to a session which could end rapidly.
+    // session id = 0 means empty context
     state = JobState.JOB_CREATED;
     active = new AtomicBoolean(false);
 
@@ -92,7 +94,7 @@ public class Job {
       exportFile = req.getFileName();
     } else if (exportType.equals(ExportType.IGINX)) {
       needExport = true;
-      writer = new IginXWriter(req.getSessionId());
+      writer = new IginXWriter(sessionId);
     } else {
       needExport = false;
       writer = new LogWriter();

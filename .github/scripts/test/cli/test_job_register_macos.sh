@@ -24,7 +24,7 @@ cp -f test/src/test/resources/transform/TransformMultiplePythonJobsWithExportToI
 
 ls client/target/iginx-client-$1/sbin
 
-COMMAND='commit transform job "'"TransformMultiplePythonJobsWithExportToIginx.yaml"'";select count(*) from *;'
+COMMAND='commit transform job "'"TransformMultiplePythonJobsWithExportToIginx.yaml"'";'
 
 cd client/target/iginx-client-$1/sbin
 
@@ -34,7 +34,7 @@ result=$(sh -c "echo '$COMMAND' | xargs -0 -t -I F sh start_cli.sh -e 'F'")
 
 if [[ $result =~ 'id' ]]; then
   echo success
-  sleep 5
+  sleep 3
 else
   echo 'Error: failed to commit job.'
   echo $result
