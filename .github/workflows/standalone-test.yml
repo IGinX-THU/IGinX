@@ -98,6 +98,23 @@ jobs:
                     "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_py_register_macos.sh" ${VERSION}
                   fi
 
+            - name: Run Transform Job test
+              if: always()
+              shell: bash
+              run: |
+                  mvn test -q -Dtest=TransformJobPathIT#registerFunctions -DfailIfNoTests=false -P-format
+                  if [ "$RUNNER_OS" == "Linux" ]; then
+                    chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_job_register.sh"
+                    "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_job_register.sh" ${VERSION}
+                  elif [ "$RUNNER_OS" == "Windows" ]; then
+                    chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_job_register_windows.sh"
+                    "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_job_register_windows.sh" ${VERSION}
+                  elif [ "$RUNNER_OS" == "macOS" ]; then
+                    chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_job_register_macos.sh"
+                    "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_job_register_macos.sh" ${VERSION}
+                  fi
+                  mvn test -q -Dtest=TransformJobPathIT#verifyResult -DfailIfNoTests=false -P-format
+
             - name: set client test context
               uses: ./.github/actions/context
               with:

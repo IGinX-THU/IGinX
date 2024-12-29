@@ -1069,6 +1069,28 @@ public class TransformIT {
   }
 
   @Test
+  public void commitMixedPythonJobsByYaml2Test() {
+    LOGGER.info("commitMixedPythonJobsByYaml2Test");
+    try {
+      String[] taskList = {"AddOneTransformer"};
+      for (String task : taskList) {
+        registerTask(task);
+      }
+
+      String yamlFileName = OUTPUT_DIR_PREFIX + File.separator + "TransformMixedPythonJobs2.yaml";
+      String outputFileName =
+          OUTPUT_DIR_PREFIX + File.separator + "export_file_mixed_python_jobs_by_yaml.txt";
+      long jobId = session.commitTransformJob(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
+
+      verifyJobFinishedBlocked(jobId);
+      //      verifyMixedPythonJobs(outputFileName);
+    } catch (SessionException | InterruptedException e) {
+      LOGGER.error("Transform:  execute fail. Caused by:", e);
+      fail();
+    }
+  }
+
+  @Test
   public void commitMixedPythonJobsByYamlWithRegisterTest() {
     LOGGER.info("commitMixedPythonJobsByYamlWithRegisterTest");
     try {
