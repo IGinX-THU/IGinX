@@ -808,12 +808,14 @@ public class RelationalStorage implements IStorage {
     } else {
       // 不支持全连接，就要用Left Join+Union来模拟全连接
       StringBuilder allColumns = new StringBuilder();
-      fullColumnList.forEach(
-          columnList ->
-              columnList.forEach(
-                  column ->
-                      allColumns.append(
-                          String.format("%s AS %s, ", column, column.replaceAll("`\\.`", ".")))));
+      for (List<String> columnList : fullColumnList) {
+        for (String column : columnList) {
+          if (!column.contains(" AS ")) {
+            column = String.format("%s AS %s, ", column, column.replaceAll("`\\.`", "."));
+          }
+          allColumns.append(column).append(", ");
+        }
+      }
       allColumns.delete(allColumns.length() - 2, allColumns.length());
 
       fullTableName.append("(");
@@ -1214,9 +1216,6 @@ public class RelationalStorage implements IStorage {
   @Override
   public boolean isSupportProjectWithAgg(Operator agg, DataArea dataArea, boolean isDummy) {
     if (agg.getType() != OperatorType.GroupBy && agg.getType() != OperatorType.SetTransform) {
-      return false;
-    }
-    if (!engineName.equalsIgnoreCase("postgresql")) {
       return false;
     }
     List<FunctionCall> functionCalls = OperatorUtils.getFunctionCallList(agg);
