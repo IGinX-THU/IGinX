@@ -42,7 +42,7 @@ on:
                 description: "The database which support agg push down"
                 type: string
                 required: false
-                default: '["PostgreSQL"]'
+                default: '["PostgreSQL"， "MYSQL"]'
 
 jobs:
     TPC-H-Test:
