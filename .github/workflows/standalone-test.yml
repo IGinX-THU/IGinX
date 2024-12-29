@@ -27,12 +27,16 @@ on:
                 description: "The database to run the test on"
                 type: string
                 required: false
-                default: '["dm"]'
-#              '["IoTDB12", "InfluxDB", "FileSystem", "PostgreSQL", "Redis", "MongoDB", "MySQL", "dm"]'
+                default: '["IoTDB12", "InfluxDB", "FileSystem", "PostgreSQL", "Redis", "MongoDB", "MySQL"]'
+            timeout-minutes:
+                description: "The timeout minutes for the job"
+                type: number
+                required: false
+                default: 40
 
 jobs:
     Union-DB-Test:
-        timeout-minutes: 40
+        timeout-minutes: ${{ inputs.timeout-minutes }}
         strategy:
             fail-fast: false
             matrix:
@@ -59,18 +63,6 @@ jobs:
               uses: ./.github/actions/dbRunner
               with:
                   DB-name: ${{ matrix.DB-name }}
-
-            - name: Download and Install DM JDBC Driver
-              run: |
-                  wget -O JAVA_Mybatis.zip https://github.com/IGinX-THU/IGinX-resources/raw/main/resources/JAVA_Mybatis.zip
-                  unzip JAVA_Mybatis.zip -d JAVA_Mybatis
-                  mvn install:install-file \
-                  -DgroupId=com.dm \
-                  -DartifactId=DmJdbcDriver \
-                  -Dversion=1.8.0 \
-                  -Dpackaging=jar \
-                  -Dfile=JAVA_Mybatis/JAVA_Mybatis/DmJdbcDriver18.jar
-              shell: bash
 
             - name: Install IGinX with Maven
               shell: bash

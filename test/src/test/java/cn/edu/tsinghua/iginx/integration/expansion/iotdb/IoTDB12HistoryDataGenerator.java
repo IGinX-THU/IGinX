@@ -22,11 +22,7 @@ package cn.edu.tsinghua.iginx.integration.expansion.iotdb;
 import cn.edu.tsinghua.iginx.integration.expansion.BaseHistoryDataGenerator;
 import cn.edu.tsinghua.iginx.integration.expansion.constant.Constant;
 import cn.edu.tsinghua.iginx.thrift.DataType;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import org.apache.iotdb.rpc.IoTDBConnectionException;
 import org.apache.iotdb.rpc.StatementExecutionException;
 import org.apache.iotdb.session.Session;
@@ -52,7 +48,11 @@ public class IoTDB12HistoryDataGenerator extends BaseHistoryDataGenerator {
         }
       };
 
-  public IoTDB12HistoryDataGenerator() {}
+  public IoTDB12HistoryDataGenerator() {
+    Constant.oriPort = 6667;
+    Constant.expPort = 6668;
+    Constant.readOnlyPort = 6669;
+  }
 
   public void writeHistoryData(
       int port,

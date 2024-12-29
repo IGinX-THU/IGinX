@@ -980,25 +980,22 @@ public class IoTDBStorage implements IStorage {
         DataType inType = inFilter.getValues().stream().findFirst().get().getDataType();
         String inPath = inFilter.getPath();
 
-        if (inPath.contains("*")) {
-          List<String> matchedPath =
-              getMatchPath(inPath, inType, columns, columns2Fragment, storageUnit);
-          if (matchedPath.size() == 0) {
-            return null;
-          }
-
+        List<String> inMatchedPaths =
+            getMatchPath(inPath, inType, columns, columns2Fragment, storageUnit);
+        if (inMatchedPaths.size() == 1) {
+          return new InFilter(inMatchedPaths.get(0), inFilter.getInOp(), inFilter.getValues());
+        } else if (inMatchedPaths.isEmpty()) {
+          return null;
+        } else {
           List<Filter> newFilters = new ArrayList<>();
-          for (String p : matchedPath) {
+          for (String p : inMatchedPaths) {
             newFilters.add(new InFilter(p, inFilter.getInOp(), inFilter.getValues()));
           }
-
           if (inFilter.getInOp().isOrOp()) {
             return new OrFilter(newFilters);
           } else {
             return new AndFilter(newFilters);
           }
-        } else {
-          return filter;
         }
       default:
         return null;
@@ -1033,7 +1030,11 @@ public class IoTDBStorage implements IStorage {
 
       Matcher matcher = pattern.matcher(columnName);
       if (matcher.find()) {
-        matchedPath.add(TagKVUtils.toFullName(columnName, col.getTags()));
+        if (storageUnit.isEmpty()) {
+          matchedPath.add(columnName);
+        } else {
+          matchedPath.add(TagKVUtils.toFullName(columnName, col.getTags()));
+        }
       }
     }
 

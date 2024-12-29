@@ -22,7 +22,6 @@ package cn.edu.tsinghua.iginx.mongodb.dummy;
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.io.StringWriter;
-import java.math.BigDecimal;
 import java.text.DateFormat;
 import java.util.HashMap;
 import java.util.Map;
@@ -35,7 +34,6 @@ import org.bson.codecs.EncoderContext;
 import org.bson.codecs.configuration.CodecRegistries;
 import org.bson.codecs.configuration.CodecRegistry;
 import org.bson.json.*;
-import org.bson.types.Decimal128;
 
 class TypeUtils {
 
@@ -172,20 +170,7 @@ class TypeUtils {
     }
   }
 
-  public static BsonValue convertTo(BsonValue value, BsonType type) {
-    if (value.getBsonType().equals(type)) {
-      return value;
-    }
-    switch (type) {
-      case UNDEFINED:
-        return new BsonUndefined();
-      case NULL:
-        return new BsonNull();
-      case MIN_KEY:
-        return new BsonMinKey();
-      case MAX_KEY:
-        return new BsonMaxKey();
-    }
+  public static Object convertTo(BsonValue value, DataType type) {
     switch (value.getBsonType()) {
       case REGULAR_EXPRESSION:
         return convertTo(((BsonRegularExpression) value).getPattern(), type);
@@ -213,7 +198,7 @@ class TypeUtils {
     throw new IllegalArgumentException("can't convert " + value + " to " + type);
   }
 
-  private static BsonValue convertTo(String s, BsonType type) {
+  private static Object convertTo(String s, DataType type) {
     if (s.isEmpty() || s.equals("null")) {
       return null;
     }
@@ -225,26 +210,16 @@ class TypeUtils {
           return new BsonBoolean(false);
         }
         break;
-      case INT32:
-        return new BsonInt32((int) convertToTimestamp(s));
-      case INT64:
-        return new BsonInt64(convertToTimestamp(s));
-      case DATE_TIME:
-        return new BsonDateTime(convertToTimestamp(s));
-      case TIMESTAMP:
-        return new BsonTimestamp(convertToTimestamp(s));
+      case INTEGER:
+        return (int) convertToTimestamp(s);
+      case LONG:
+        return convertToTimestamp(s);
+      case FLOAT:
+        return Float.parseFloat(s);
       case DOUBLE:
-        return new BsonDouble(Double.parseDouble(s));
-      case DECIMAL128:
-        return new BsonDecimal128(Decimal128.parse(s));
-      case STRING:
-        return new BsonString(s);
-      case REGULAR_EXPRESSION:
-        return new BsonRegularExpression(s);
-      case SYMBOL:
-        return new BsonSymbol(s);
+        return Double.parseDouble(s);
       case BINARY:
-        return new BsonBinary(s.getBytes());
+        return s.getBytes();
     }
     throw new IllegalArgumentException("can't convert \"" + s + "\" to " + type);
   }
@@ -257,52 +232,42 @@ class TypeUtils {
     }
   }
 
-  private static BsonValue convertTo(long number, BsonType type) {
+  private static Object convertTo(long number, DataType type) {
     switch (type) {
       case BOOLEAN:
-        return new BsonBoolean(number != 0);
-      case INT32:
-        return new BsonInt32((int) number);
-      case INT64:
-        return new BsonInt64(number);
-      case DATE_TIME:
-        return new BsonDateTime(number);
-      case TIMESTAMP:
-        return new BsonTimestamp(number);
+        return number != 0;
+      case INTEGER:
+        return (int) number;
+      case LONG:
+        return number;
+      case FLOAT:
+        return (float) number;
       case DOUBLE:
-        return new BsonDouble((double) number);
-      case DECIMAL128:
-        return new BsonDecimal128(new Decimal128(BigDecimal.valueOf(number)));
-      case STRING:
-        return new BsonString(String.valueOf(number));
-      case REGULAR_EXPRESSION:
-        return new BsonRegularExpression(String.valueOf(number));
-      case SYMBOL:
-        return new BsonSymbol(String.valueOf(number));
+        return (double) number;
+      case BINARY:
+        return String.valueOf(number).getBytes();
+      default:
+        throw new IllegalArgumentException("can't convert " + number + " to " + type);
     }
-    throw new IllegalArgumentException("can't convert " + number + " to " + type);
   }
 
-  private static BsonValue convertTo(double number, BsonType type) {
+  private static Object convertTo(double number, DataType type) {
     switch (type) {
       case BOOLEAN:
-        return new BsonBoolean(number != 0);
-      case INT32:
-        return new BsonInt32((int) number);
-      case INT64:
-        return new BsonInt64((long) number);
+        return number != 0;
+      case INTEGER:
+        return (int) number;
+      case LONG:
+        return (long) number;
+      case FLOAT:
+        return (float) number;
       case DOUBLE:
-        return new BsonDouble(number);
-      case DECIMAL128:
-        return new BsonDecimal128(new Decimal128(BigDecimal.valueOf(number)));
-      case STRING:
-        return new BsonString(String.valueOf(number));
-      case REGULAR_EXPRESSION:
-        return new BsonRegularExpression(String.valueOf(number));
-      case SYMBOL:
-        return new BsonSymbol(String.valueOf(number));
+        return number;
+      case BINARY:
+        return String.valueOf(number).getBytes();
+      default:
+        throw new IllegalArgumentException("can't convert " + number + " to " + type);
     }
-    throw new IllegalArgumentException("can't convert " + number + " to " + type);
   }
 
   public static Object convertToNotBinaryWithIgnore(BsonValue value, DataType type) {
@@ -312,13 +277,10 @@ class TypeUtils {
     try {
       switch (type) {
         case BOOLEAN:
-          return convertTo(value, BsonType.BOOLEAN).asBoolean().getValue();
         case INTEGER:
-          return convertTo(value, BsonType.INT32).asInt32().getValue();
         case LONG:
-          return convertTo(value, BsonType.INT64).asInt64().getValue();
         case DOUBLE:
-          return convertTo(value, BsonType.DOUBLE).asDouble().getValue();
+          return convertTo(value, type);
         default:
           return null;
       }

@@ -200,12 +200,6 @@
             </exclusions>
         </dependency>
         <dependency>
-            <groupId>com.icegreen</groupId>
-            <artifactId>greenmail-junit4</artifactId>
-            <version>1.6.15</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>org.quartz-scheduler</groupId>
             <artifactId>quartz</artifactId>
             <version>2.3.2</version>

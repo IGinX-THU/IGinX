@@ -863,23 +863,44 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
   @Override
   public Statement visitShowEligibleJobStatement(ShowEligibleJobStatementContext ctx) {
-    JobState jobState = JobState.JOB_UNKNOWN;
-    if (ctx.jobStatus().FINISHED() != null) {
-      jobState = JobState.JOB_FINISHED;
-    } else if (ctx.jobStatus().CREATED() != null) {
-      jobState = JobState.JOB_CREATED;
-    } else if (ctx.jobStatus().RUNNING() != null) {
-      jobState = JobState.JOB_RUNNING;
-    } else if (ctx.jobStatus().FAILING() != null) {
-      jobState = JobState.JOB_FAILING;
-    } else if (ctx.jobStatus().FAILED() != null) {
-      jobState = JobState.JOB_FAILED;
-    } else if (ctx.jobStatus().CLOSING() != null) {
-      jobState = JobState.JOB_CLOSING;
-    } else if (ctx.jobStatus().CLOSED() != null) {
-      jobState = JobState.JOB_CLOSED;
+    if (ctx.jobStatus() == null) {
+      return new ShowEligibleJobStatement(null);
+    } else {
+      JobState jobState;
+      switch (ctx.jobStatus().getText().toUpperCase()) {
+        case "UNKNOWN":
+          jobState = JobState.JOB_UNKNOWN;
+          break;
+        case "FINISHED":
+          jobState = JobState.JOB_FINISHED;
+          break;
+        case "CREATED":
+          jobState = JobState.JOB_CREATED;
+          break;
+        case "IDLE":
+          jobState = JobState.JOB_IDLE;
+          break;
+        case "RUNNING":
+          jobState = JobState.JOB_RUNNING;
+          break;
+        case "FAILING":
+          jobState = JobState.JOB_FAILING;
+          break;
+        case "FAILED":
+          jobState = JobState.JOB_FAILED;
+          break;
+        case "CLOSING":
+          jobState = JobState.JOB_CLOSING;
+          break;
+        case "CLOSED":
+          jobState = JobState.JOB_CLOSED;
+          break;
+        default:
+          throw new SQLParserException(
+              "Illegal job state. Accept: UNKNOWN/FINISHED/CREATED/IDLE/RUNNING/FAILING/FAILED/CLOSING/CLOSED");
+      }
+      return new ShowEligibleJobStatement(jobState);
     }
-    return new ShowEligibleJobStatement(jobState);
   }
 
   @Override

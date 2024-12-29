@@ -282,7 +282,7 @@ IGinX is now in service......
 使用如下的命令即可向数据库中插入数据：
 
 ```shell
-$ curl -XPOST -H'Content-Type: application/json' -d @insert.json http://127.0.0.1:6666/api/v1/datapoints
+$ curl -XPOST -H'Content-Type: application/json' -d @insert.json http://127.0.0.1:7888/api/v1/datapoints
 ```
 
 在插入数据后，还可以使用 RESTful 接口查询刚刚写入的数据。
@@ -311,7 +311,7 @@ $ curl -XPOST -H'Content-Type: application/json' -d @insert.json http://127.0.0.
 使用如下的命令查询数据：
 
 ```shell
-$ curl -XPOST -H'Content-Type: application/json' -d @query.json http://127.0.0.1:6666/api/v1/datapoints/query
+$ curl -XPOST -H'Content-Type: application/json' -d @query.json http://127.0.0.1:7888/api/v1/datapoints/query
 ```
 
 命令会返回刚刚插入的数据点信息：

@@ -57,7 +57,12 @@ public class FragmentPruningByFilterRule extends Rule {
      *            |
      *           Any
      */
-    super("FragmentPruningByFilterRule", operand(Select.class, any()));
+    super(
+        "FragmentPruningByFilterRule",
+        "FragmentPruningByFilterRule",
+        operand(Select.class, any()),
+        1,
+        RuleStrategy.FIXED_POINT);
   }
 
   private static final IMetaManager metaManager = MetaManagerWrapper.getInstance();
@@ -223,6 +228,7 @@ public class FragmentPruningByFilterRule extends Rule {
 
   private boolean hasTimeRangeOverlap(FragmentMeta meta, List<KeyRange> keyRanges) {
     KeyInterval interval = meta.getKeyInterval();
+    if (keyRanges.isEmpty()) return true;
     for (KeyRange range : keyRanges) {
       if (interval.getStartKey() > range.getEndKey()
           || interval.getEndKey() < range.getBeginKey()) {
