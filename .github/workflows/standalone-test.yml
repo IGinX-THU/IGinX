@@ -102,7 +102,7 @@ jobs:
               if: always()
               shell: bash
               run: |
-                  mvn test -q -Dtest=TransformJobPathIT#registerFunctions -DfailIfNoTests=false -P-format
+                  mvn test -q -Dtest=TransformJobPathIT#prepare -DfailIfNoTests=false -P-format
                   if [ "$RUNNER_OS" == "Linux" ]; then
                     chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_job_register.sh"
                     "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_job_register.sh" ${VERSION}

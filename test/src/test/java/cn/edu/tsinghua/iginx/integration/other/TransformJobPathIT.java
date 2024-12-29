@@ -25,9 +25,14 @@ import static org.junit.Assert.assertNotEquals;
 import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.exception.SessionException;
+import cn.edu.tsinghua.iginx.integration.controller.Controller;
+import cn.edu.tsinghua.iginx.integration.func.session.InsertAPIType;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
+import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.io.File;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -85,8 +90,44 @@ public class TransformJobPathIT {
     session.closeSession();
   }
 
+  public void insertData() {
+    List<String> pathList =
+        new ArrayList<String>() {
+          {
+            add("us.d1.s1");
+            add("us.d1.s2");
+          }
+        };
+    List<DataType> dataTypeList =
+        new ArrayList<DataType>() {
+          {
+            add(DataType.LONG);
+            add(DataType.LONG);
+          }
+        };
+    List<Long> keyList = new ArrayList<>();
+    List<List<Object>> valuesList = new ArrayList<>();
+    for (int i = 0; i < 200; i++) {
+      keyList.add((long) i);
+      valuesList.add(Arrays.asList((long) i, (long) i + 1));
+    }
+    Controller.writeRowsData(
+        session,
+        pathList,
+        keyList,
+        dataTypeList,
+        valuesList,
+        new ArrayList<>(),
+        InsertAPIType.Row,
+        false);
+    Controller.after(session);
+  }
+
   @Test
-  public void registerFunctions() throws SessionException {
+  public void prepare() throws SessionException {
+    insertData();
+    SessionExecuteSqlResult result = session.executeSql("select count(*) from *;");
+    result.print(false, "");
     for (String task : TASK_MAP.keySet()) {
       session.executeSql(String.format(CREATE_SQL_FORMATTER, task, task, TASK_MAP.get(task)));
     }
