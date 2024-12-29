@@ -32,8 +32,9 @@ sh -c "chmod +x start_cli.sh"
 
 result=$(sh -c "echo '$COMMAND' | xargs -0 -t -I F sh start_cli.sh -e 'F'")
 
-if [[ $result =~ 'id=' ]]; then
+if [[ $result =~ 'id' ]]; then
   echo success
+  sleep 3
 else
   echo 'Error: failed to commit job.'
   echo $result

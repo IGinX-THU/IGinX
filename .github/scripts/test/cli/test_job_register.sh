@@ -34,8 +34,9 @@ bash -c "chmod +x start_cli.sh"
 
 result=$(bash -c "echo '$COMMAND' | xargs -0 -t -i ${SCRIPT_COMMAND}")
 
-if [[ $result =~ 'id=' ]]; then
+if [[ $result =~ 'id' ]]; then
   echo success
+  sleep 3
 else
   echo 'Error: failed to commit job.'
   echo $result

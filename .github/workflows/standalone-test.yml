@@ -119,7 +119,7 @@ jobs:
               if: always()
               shell: bash
               run: |
-                cat iginx-*.log
+                  cat iginx-*.log
 
             - name: set client test context
               uses: ./.github/actions/context
