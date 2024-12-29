@@ -34,7 +34,7 @@ result=$(sh -c "echo '$COMMAND' | xargs -0 -t -I F sh start_cli.sh -e 'F'")
 
 if [[ $result =~ 'id' ]]; then
   echo success
-  sleep 3
+  sleep 5
 else
   echo 'Error: failed to commit job.'
   echo $result

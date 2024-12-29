@@ -32,7 +32,7 @@ result=$(bash -c "./start_cli.bat -e '$COMMAND'")
 
 if [[ $result =~ 'id' ]]; then
   echo success
-  sleep 3
+  sleep 5
 else
   echo 'Error: failed to commit job.'
   echo $result
