@@ -147,11 +147,18 @@ public class TransformJobPathIT {
   @Test
   public void verifyResult() throws SessionException {
     SessionExecuteSqlResult queryResult = session.executeSql("SELECT * FROM transform;");
+    queryResult.print(false, "");
     int timeIndex = queryResult.getPaths().indexOf("transform.key");
     int sumIndex = queryResult.getPaths().indexOf("transform.sum");
     assertNotEquals(-1, timeIndex);
     assertNotEquals(-1, sumIndex);
 
     verifyMultiplePythonJobs(queryResult, timeIndex, sumIndex);
+
+    // clean up
+    session.executeSql("clear data;");
+    for (String task : TASK_MAP.keySet()) {
+      session.executeSql(String.format("DROP FUNCTION \"%s\";", task));
+    }
   }
 }
