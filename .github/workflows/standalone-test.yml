@@ -115,6 +115,12 @@ jobs:
                   fi
                   mvn test -q -Dtest=TransformJobPathIT#verifyResult -DfailIfNoTests=false -P-format
 
+            - name: Show IGinX log
+              if: always()
+              shell: bash
+              run: |
+                cat iginx-*.log
+
             - name: set client test context
               uses: ./.github/actions/context
               with:
