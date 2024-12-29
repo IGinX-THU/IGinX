@@ -30,7 +30,7 @@ cd client/target/iginx-client-$1/sbin
 
 result=$(bash -c "./start_cli.bat -e '$COMMAND'")
 
-if [[ $result =~ 'success' ]]; then
+if [[ $result =~ 'id=' ]]; then
   echo success
 else
   echo 'Error: failed to commit job.'
