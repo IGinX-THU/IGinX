@@ -24,7 +24,7 @@ cp -f test/src/test/resources/transform/TransformMultiplePythonJobsWithExportToI
 
 ls client/target/iginx-client-$1/sbin
 
-COMMAND='commit transform job "'"TransformMultiplePythonJobsWithExportToIginx.yaml"'";'
+COMMAND='commit transform job "'"TransformMultiplePythonJobsWithExportToIginx.yaml"'";select count(*) from *;'
 
 cd client/target/iginx-client-$1/sbin
 
