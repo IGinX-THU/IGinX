@@ -811,7 +811,7 @@ public class RelationalStorage implements IStorage {
       for (List<String> columnList : fullColumnList) {
         for (String column : columnList) {
           if (!column.contains(" AS ")) {
-            column = String.format("%s AS %s, ", column, column.replaceAll("`\\.`", "."));
+            column = String.format("%s AS %s", column, column.replaceAll("`\\.`", "."));
           }
           allColumns.append(column).append(", ");
         }
@@ -1427,8 +1427,11 @@ public class RelationalStorage implements IStorage {
                 "%s(%s)", functionName, exprToIGinX(ExprUtils.copy(expr)).getColumnName());
         fullName2Name.put(IGinXTagKVName, functionCall.getFunctionStr());
 
+        String format =
+            functionName.equalsIgnoreCase("avg") ? "%s(CAST(%s AS DECIMAL(34, 16)))" : "%s(%s)";
+
         sqlColumnsStr.append(
-            String.format("%s(%s)", functionName, exprAdapt(ExprUtils.copy(expr)).getColumnName()));
+            String.format(format, functionName, exprAdapt(ExprUtils.copy(expr)).getColumnName()));
         sqlColumnsStr.append(" AS ");
         sqlColumnsStr.append(quote).append(IGinXTagKVName).append(quote);
         sqlColumnsStr.append(", ");
