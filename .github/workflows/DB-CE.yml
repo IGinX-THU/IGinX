@@ -31,7 +31,7 @@ on:
                 description: "The timeout minutes for the job"
                 type: number
                 required: false
-                default: 120
+                default: 35
             close-optimizer:
                 description: "Whether to close the optimizer"
                 type: string
@@ -52,6 +52,12 @@ jobs:
                 os: ${{ fromJSON(inputs.os-matrix) }}
                 metadata: ${{ fromJSON(inputs.metadata-matrix) }}
                 DB-name: ${{ fromJSON(inputs.db-matrix) }}
+                test-way:
+                    - "oriHasDataExpHasData"
+                    - "oriNoDataExpNoData"
+                    - "oriHasDataExpNoData"
+                    - "oriNoDataExpHasData"
+                    - "testReadOnly"
         runs-on: ${{ matrix.os }}
         env:
             METADATA_STORAGE: ${{ matrix.metadata }}
@@ -82,8 +88,7 @@ jobs:
 
             - name: Install IGinX with Maven
               shell: bash
-              run: |
-                  mvn clean package -DskipTests -P-format -q
+              run: mvn clean package -DskipTests -P-format -q
 
             - name: Change IGinX config
               uses: ./.github/actions/confWriter
@@ -91,122 +96,37 @@ jobs:
                   DB-name: ${{ matrix.DB-name }}
                   Close-Optimizer: ${{ inputs.close-optimizer }}
                   Metadata: ${{ matrix.metadata }}
+                  Read-Only: "${{ matrix.test-way == 'testReadOnly' }}"
+                  if-CapExp: true
+                  Test-Way: ${{ matrix.test-way }}
 
-              # 第 1 阶段测试开始==========================================
-            - name: Prepare CapExp environment oriHasDataExpHasData
-              uses: ./.github/actions/capacityExpansionUnionTest
-              with:
-                  DB-name: ${{ matrix.DB-name }}
-                  Test-Way: oriHasDataExpHasData
-
-            - name: oriHasDataExpHasData IT
+            - name: Write DB history data
               shell: bash
-              run: |
-                  mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriHasDataExpHasData -DfailIfNoTests=false -P-format
+              run: mvn test -q -Dtest=${{ matrix.DB-name }}HistoryDataGenerator#${{ matrix.test-way }} -DfailIfNoTests=false -P-format
 
-            - name: Clear history data
-              uses: ./.github/actions/dbWriter
-              with:
-                  DB-name: ${{ matrix.DB-name }}
-                  Test-Way: clearHistoryData
+            - name: Start IGinX
+              uses: ./.github/actions/iginxRunner
 
-            - name: oriHasDataExpHasData Normal IT
-              shell: bash
-              run: |
-                  mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
-
-            # 第 2 阶段测试开始==========================================
-            - name: Prepare CapExp environment oriNoDataExpNoData
-              uses: ./.github/actions/capacityExpansionUnionTest
-              with:
-                  DB-name: ${{ matrix.DB-name }}
-                  Test-Way: oriNoDataExpNoData
-
-            - name: oriNoDataExpNoData IT
-              shell: bash
-              run: |
-                  mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriNoDataExpNoData -DfailIfNoTests=false -P-format
-
-            - name: Clear history data
-              uses: ./.github/actions/dbWriter
-              with:
-                  DB-name: ${{ matrix.DB-name }}
-                  Test-Way: clearHistoryData
-
-            - name: oriNoDataExpNoData Normal IT
-              shell: bash
-              run: |
-                  mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
-
-            # 第 3 阶段测试开始==========================================
-            - name: Prepare CapExp environment oriHasDataExpNoData
-              uses: ./.github/actions/capacityExpansionUnionTest
-              with:
-                  DB-name: ${{ matrix.DB-name }}
-                  Test-Way: oriHasDataExpNoData
-
-            - name: oriHasDataExpNoData IT
-              shell: bash
-              run: |
-                  mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriHasDataExpNoData -DfailIfNoTests=false -P-format
-
-            - name: Clear history data
-              uses: ./.github/actions/dbWriter
-              with:
-                  DB-name: ${{ matrix.DB-name }}
-                  Test-Way: clearHistoryData
-
-            - name: oriHasDataExpNoData Normal IT
-              shell: bash
-              run: |
-                  mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
-
-            # 第 4 阶段测试开始==========================================
-            - name: Prepare CapExp environment oriNoDataExpHasData
-              uses: ./.github/actions/capacityExpansionUnionTest
-              with:
-                  DB-name: ${{ matrix.DB-name }}
-                  Test-Way: oriNoDataExpHasData
-
-            - name: oriNoDataExpHasData IT
-              shell: bash
-              run: |
-                  mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriNoDataExpHasData -DfailIfNoTests=false -P-format
-
-            - name: Clear history data
-              uses: ./.github/actions/dbWriter
-              with:
-                  DB-name: ${{ matrix.DB-name }}
-                  Test-Way: clearHistoryData
-
-            - name: oriNoDataExpHasData Normal IT
-              shell: bash
-              run: |
-                  mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
-
-            # 测试只读节点===============================================
-            - name: Prepare CapExp environment for testReadOnly
-              uses: ./.github/actions/capacityExpansionUnionTest
-              with:
-                  DB-name: ${{ matrix.DB-name }}
-                  Test-Way: oriHasDataExpHasData
-                  Read-Only: true
-
-            - name: Run testReadOnly
+            - name: ${{ matrix.test-way }} IT
               shell: bash
               env:
                   SERVICE_DIR: "/home/runner/work/IGinX/IGinX/.github/actions/service"
                   SERVICE_DIR_MAC: "/Users/runner/work/IGinX/IGinX/.github/actions/service"
                   SERVICE_DIR_WIN: "/d/a/IGinX/IGinX/.github/actions/service"
-              run: |
-                  mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#testReadOnly -DfailIfNoTests=false -P-format
-                  mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
+              run: mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#${{ matrix.test-way }} -DfailIfNoTests=false -P-format
+
+            - name: Clear history data
+              shell: bash
+              run: mvn test -q -Dtest=${{ matrix.DB-name }}HistoryDataGenerator#clearHistoryData -DfailIfNoTests=false -P-format
+
+            - name: ${{ matrix.test-way }} Normal IT
+              shell: bash
+              run: mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
 
             - name: Show IGinX log
               if: always()
               shell: bash
-              run: |
-                  cat iginx-*.log
+              run: cat iginx-*.log
 
             - if: always()
               name: Show DB Logs on Windows

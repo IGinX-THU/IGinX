@@ -17,18 +17,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-
 set -e
-
 PORT=$1
-
-pid=$(sudo lsof -t -i:$PORT)
-
-if [ -z "$pid" ]; then
-  echo "No process is running on port $PORT."
-  exit 0
-else
-  echo "Killing process $pid running on port $PORT."
-  sudo kill -9 $pid
-  echo "Process $pid has been killed."
-fi
+redis-cli -p $PORT shutdown save
