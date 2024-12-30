@@ -1427,8 +1427,12 @@ public class RelationalStorage implements IStorage {
                 "%s(%s)", functionName, exprToIGinX(ExprUtils.copy(expr)).getColumnName());
         fullName2Name.put(IGinXTagKVName, functionCall.getFunctionStr());
 
-        String format =
-            functionName.equalsIgnoreCase("avg") ? "%s(CAST(%s AS DECIMAL(34, 16)))" : "%s(%s)";
+        String format = "%s(%s)";
+        // 如果是avg函数，且参数是base类型，在mysql下小数位数仅有5位，需要转换为decimal来补齐
+        if (functionName.equalsIgnoreCase(Avg.AVG)
+            && param.getType() == Expression.ExpressionType.Base) {
+          format = "%s(CAST(%s AS DECIMAL(34, 16)))";
+        }
 
         sqlColumnsStr.append(
             String.format(format, functionName, exprAdapt(ExprUtils.copy(expr)).getColumnName()));
