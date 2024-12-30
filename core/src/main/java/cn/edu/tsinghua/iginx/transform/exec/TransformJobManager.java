@@ -112,6 +112,7 @@ public class TransformJobManager {
         metaManager.updateJobTrigger(TriggerDescriptor.toTriggerDescriptor(trigger));
       }
       try {
+        LOGGER.debug("Reading existing job from yaml:{}.", new File(path).getCanonicalPath());
         YAMLReader reader = new YAMLReader(path);
         JobFromYAML jobFromYAML = reader.getJobFromYAML();
 
@@ -397,6 +398,7 @@ public class TransformJobManager {
     String yamlFileName = String.join(File.separator, JobYamlDir, jobId + ".yaml");
     YAMLWriter writer = new YAMLWriter();
     try {
+      LOGGER.debug("Writing job {} into yaml:{}.", jobId, new File(yamlFileName).getCanonicalPath());
       writer.writeJobIntoYAML(new File(yamlFileName), job.toYaml());
     } catch (IOException e) {
       LOGGER.error("Cannot write yaml file {}", yamlFileName, e);

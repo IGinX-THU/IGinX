@@ -152,7 +152,6 @@ jobs:
             # TODO: extract it to a separate job to test
             # large image export only tested in FileSystem
             - name: Test Client Export File
-              if: always()
               shell: bash
               run: |
                   if [[ "${{ matrix.DB-name }}" == "FileSystem" ]]; then
