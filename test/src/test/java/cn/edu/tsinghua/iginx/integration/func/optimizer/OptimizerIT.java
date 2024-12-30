@@ -1441,7 +1441,7 @@ public class OptimizerIT {
     assertTrue(executor.execute("EXPLAIN " + statement).contains("isDistinct: false"));
     assertEquals(closeResult, executor.execute(statement));
 
-    statement = "SELECT max(distinct s1) FROM us.d1 GROUP BY s2;";
+    statement = "SELECT max(distinct s1) FROM us.d1 GROUP BY s2 ORDER BY s2;";
     executor.execute(closeRule);
     assertTrue(executor.execute("EXPLAIN " + statement).contains("isDistinct: true"));
     closeResult = executor.execute(statement);
@@ -1458,7 +1458,8 @@ public class OptimizerIT {
     assertTrue(executor.execute("EXPLAIN " + statement).contains("isDistinct: true"));
     assertEquals(closeResult, executor.execute(statement));
 
-    statement = "SELECT avg(distinct s1), count(distinct s2) FROM us.d1 GROUP BY s2, s3;";
+    statement =
+        "SELECT avg(distinct s1), count(distinct s2) FROM us.d1 GROUP BY s2, s3 ORDER BY s2, s3;";
     executor.execute(closeRule);
     assertTrue(executor.execute("EXPLAIN " + statement).contains("isDistinct: true"));
     closeResult = executor.execute(statement);

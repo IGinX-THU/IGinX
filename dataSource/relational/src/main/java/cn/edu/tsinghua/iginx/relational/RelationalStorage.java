@@ -538,7 +538,9 @@ public class RelationalStorage implements IStorage {
     char quote = relationalMeta.getQuote();
     for (Map.Entry<String, String> entry : tableNameToColumnNames.entrySet()) {
       String tableName = entry.getKey();
-      firstTable = tableName;
+      if (firstTable.isEmpty()) {
+        firstTable = tableName;
+      }
       tableNames.add(tableName);
       List<String> fullColumnNames = new ArrayList<>(Arrays.asList(entry.getValue().split(", ")));
 
@@ -568,7 +570,7 @@ public class RelationalStorage implements IStorage {
 
     StringBuilder fullColumnNames = new StringBuilder();
     fullColumnNames.append(
-        RelationSchema.getQuoteFullName(tableNames.get(0), KEY_NAME, relationalMeta.getQuote()));
+        RelationSchema.getQuoteFullName(firstTable, KEY_NAME, relationalMeta.getQuote()));
     for (List<String> columnNames : fullColumnNamesList) {
       for (String columnName : columnNames) {
         fullColumnNames.append(", ").append(columnName);
