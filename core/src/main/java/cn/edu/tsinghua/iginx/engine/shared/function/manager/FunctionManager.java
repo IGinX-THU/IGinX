@@ -52,8 +52,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pemja.core.PythonInterpreter;
@@ -62,8 +60,6 @@ import pemja.core.PythonInterpreterConfig;
 public class FunctionManager {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(FunctionManager.class);
-
-  private static final int INTERPRETER_NUM = 5;
 
   private final Map<String, Function> functions;
 
@@ -76,12 +72,27 @@ public class FunctionManager {
   private static final String PATH =
       String.join(File.separator, config.getDefaultUDFDir(), "python_scripts");
 
+  private final PythonInterpreterConfig INTERPRETER_CONFIG;
+
+  private final PythonInterpreter interpreter;
+
+  private static final String PythonCMD = config.getPythonCMD();
+
   private FunctionManager() {
     this.functions = new HashMap<>();
+    this.INTERPRETER_CONFIG =
+        PythonInterpreterConfig.newBuilder().setPythonExec(PythonCMD).addPythonPaths(PATH).build();
+    // 这是主线程的interpreter，用于删除UDF，UDF运行时使用线程池
+    this.interpreter = new PythonInterpreter(getConfig());
+    ThreadInterpreterManager.setInterpreter(interpreter);
     this.initSystemFunctions();
     if (config.isNeedInitBasicUDFFunctions()) {
       this.initBasicUDFFunctions();
     }
+  }
+
+  public PythonInterpreterConfig getConfig() {
+    return INTERPRETER_CONFIG;
   }
 
   public static FunctionManager getInstance() {
@@ -186,7 +197,11 @@ public class FunctionManager {
   public void removeFunction(String identifier) {
     if (functions.containsKey(identifier)) {
       PyUDF function = (PyUDF) functions.get(identifier);
-      function.close();
+      try {
+        function.close(identifier, interpreter);
+      } catch (Exception e) {
+        LOGGER.error("Failed to remove UDF {}.", identifier, e);
+      }
     }
     functions.remove(identifier);
   }
@@ -202,10 +217,6 @@ public class FunctionManager {
           String.format("UDF %s not registered in node ip=%s", identifier, config.getIp()));
     }
 
-    String pythonCMD = config.getPythonCMD();
-    PythonInterpreterConfig config =
-        PythonInterpreterConfig.newBuilder().setPythonExec(pythonCMD).addPythonPaths(PATH).build();
-
     String fileName = taskMeta.getFileName();
     String moduleName;
     String className = taskMeta.getClassName();
@@ -219,31 +230,19 @@ public class FunctionManager {
       className = className.substring(className.lastIndexOf(".") + 1);
     }
 
-    // init the python udf
-    BlockingQueue<PythonInterpreter> queue = new LinkedBlockingQueue<>();
-    for (int i = 0; i < INTERPRETER_NUM; i++) {
-      PythonInterpreter interpreter = new PythonInterpreter(config);
-      interpreter.exec(String.format("import %s", moduleName));
-      interpreter.exec(String.format("t = %s.%s()", moduleName, className));
-      queue.add(interpreter);
-    }
-
     if (taskMeta.getType().equals(UDFType.UDAF)) {
-      PyUDAF udaf = new PyUDAF(queue, identifier, moduleName);
+      PyUDAF udaf = new PyUDAF(identifier, moduleName, className);
       functions.put(identifier, udaf);
       return udaf;
     } else if (taskMeta.getType().equals(UDFType.UDTF)) {
-      PyUDTF udtf = new PyUDTF(queue, identifier, moduleName);
+      PyUDTF udtf = new PyUDTF(identifier, moduleName, className);
       functions.put(identifier, udtf);
       return udtf;
     } else if (taskMeta.getType().equals(UDFType.UDSF)) {
-      PyUDSF udsf = new PyUDSF(queue, identifier, moduleName);
+      PyUDSF udsf = new PyUDSF(identifier, moduleName, className);
       functions.put(identifier, udsf);
       return udsf;
     } else {
-      while (!queue.isEmpty()) {
-        queue.poll().close();
-      }
       throw new IllegalArgumentException(
           String.format("UDF %s registered in type %s", identifier, taskMeta.getType()));
     }
@@ -254,10 +253,14 @@ public class FunctionManager {
     String reqFilePath = String.join(File.separator, PATH, rootPath, "requirements.txt");
     File file = new File(reqFilePath);
     if (file.exists()) {
-      runCommand(config.getPythonCMD(), "-m", "pip", "install", "-r", reqFilePath);
+      runCommand(PythonCMD, "-m", "pip", "install", "-r", reqFilePath);
     } else {
       LOGGER.warn("No requirement document provided for python module {}.", rootPath);
     }
+  }
+
+  public PythonInterpreter getInterpreter() {
+    return interpreter;
   }
 
   public boolean hasFunction(String identifier) {

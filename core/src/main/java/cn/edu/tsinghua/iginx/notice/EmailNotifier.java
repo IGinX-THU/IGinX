@@ -19,13 +19,13 @@
  */
 package cn.edu.tsinghua.iginx.notice;
 
-import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.thrift.JobState;
 import cn.edu.tsinghua.iginx.transform.pojo.Job;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Date;
+import java.util.List;
 import org.apache.commons.mail.Email;
 import org.apache.commons.mail.EmailException;
 import org.apache.commons.mail.SimpleEmail;
@@ -34,84 +34,62 @@ import org.slf4j.LoggerFactory;
 
 public class EmailNotifier {
   private static final Logger LOGGER = LoggerFactory.getLogger(EmailNotifier.class);
-  private static final EmailNotifier INSTANCE = new EmailNotifier();
 
-  boolean mailEnable;
-  private final String mailHost;
-  private final int mailPort;
-  private final String mailUsername;
-  private final String mailPassword;
-  private final String mailSender;
-  private final String recipients;
-  private final String iginxHost;
-  private final int iginxPort;
+  private final String hostName;
+  private final String smtpPort;
+  private final String username;
+  private final String password;
+  private final String from;
+  private final List<String> to;
 
-  public static EmailNotifier getInstance() {
-    return INSTANCE;
-  }
-
-  public EmailNotifier() {
-    this(ConfigDescriptor.getInstance().getConfig());
-  }
-
-  public EmailNotifier(Config config) {
-    this(
-        config.isEnableEmailNotification(),
-        config.getMailSmtpHost(),
-        config.getMailSmtpPort(),
-        config.getMailSmtpUser(),
-        config.getMailSmtpPassword(),
-        config.getMailSender(),
-        config.getMailRecipient(),
-        config.getIp(),
-        config.getPort());
+  static {
+    System.setProperty("mail.smtp.ssl.trust", "*");
   }
 
   public EmailNotifier(
-      boolean mailEnable,
-      String mailHost,
-      int mailPort,
-      String mailUsername,
-      String mailPassword,
-      String mailSender,
-      String mailRecipient,
-      String iginxHost,
-      int iginxPort) {
-    this.mailEnable = mailEnable;
-    this.mailHost = mailHost;
-    this.mailPort = mailPort;
-    this.mailUsername = mailUsername;
-    this.mailPassword = mailPassword;
-    this.mailSender = mailSender;
-    this.recipients = mailRecipient;
-    this.iginxHost = iginxHost;
-    this.iginxPort = iginxPort;
+      String hostName,
+      String smtpPort,
+      String username,
+      String password,
+      String from,
+      List<String> to) {
+    this.hostName = hostName;
+    this.smtpPort = smtpPort;
+    this.username = username;
+    this.password = password;
+    this.from = from;
+    this.to = to;
   }
 
-  void sendEmail(String subject, String content) {
-    if (!mailEnable) {
-      LOGGER.debug("Email notification is disabled. Subject: {}, Content: {}", subject, content);
-      return;
-    }
+  public void sendEmail(String subject, String content) throws EmailException {
+    LOGGER.debug("Send email notification, Subject: {}, Content: {}", subject, content);
 
-    try {
-      Email email = new SimpleEmail();
-      email.setHostName(mailHost);
-      email.setSslSmtpPort(String.valueOf(mailPort));
-      email.setSSLOnConnect(true);
-      email.setAuthentication(mailUsername, mailPassword);
-      email.setFrom(mailSender);
-      email.setSubject(subject);
-      email.setMsg(content);
-      email.addTo(recipients.split(","));
-      email.send();
-      LOGGER.info("Email notification sent. Subject: {}", subject);
-    } catch (EmailException e) {
-      LOGGER.error("Failed to send email notification. Subject: {}", subject, e);
+    Email email = new SimpleEmail();
+    email.setSSLOnConnect(true);
+    email.setStartTLSEnabled(true);
+    if (hostName != null) {
+      email.setHostName(hostName);
     }
+    if (smtpPort != null) {
+      email.setStartTLSEnabled(true);
+      email.setSslSmtpPort(smtpPort);
+    }
+    if (username != null && password != null) {
+      email.setAuthentication(username, password);
+    }
+    if (from != null) {
+      email.setFrom(from);
+    }
+    email.setSubject(subject);
+    email.setMsg(content);
+    if (to != null) {
+      email.addTo(to.toArray(new String[0]));
+    }
+    email.send();
+    LOGGER.info("Email notification sent. Subject: {}", subject);
   }
 
-  public void send(Job job) {
+  public void send(Job job) throws EmailException {
     JobState jobState = job.getState();
     String jobStateStr = jobState.name().split("_")[1].toLowerCase();
     String subject = String.format("Job %d is %s", job.getJobId(), jobStateStr);
@@ -124,8 +102,14 @@ public class EmailNotifier {
     if (endTime != 0) {
       content.append("Job End Time: ").append(new Date(endTime)).append("\n");
     }
-    content.append("IGinX Host: ").append(iginxHost).append("\n");
-    content.append("IGinX Port: ").append(iginxPort).append("\n");
+    content
+        .append("IGinX Host: ")
+        .append(ConfigDescriptor.getInstance().getConfig().getIp())
+        .append("\n");
+    content
+        .append("IGinX Port: ")
+        .append(ConfigDescriptor.getInstance().getConfig().getPort())
+        .append("\n");
 
     Exception e = job.getException();
     if (e != null) {
@@ -137,5 +121,27 @@ public class EmailNotifier {
     }
 
     sendEmail(subject, content.toString());
+  }
+
+  @Override
+  public String toString() {
+    return "EmailNotifier{"
+        + "hostname='"
+        + hostName
+        + '\''
+        + ", smtpPort="
+        + smtpPort
+        + ", username='"
+        + username
+        + '\''
+        + ", password='"
+        + password
+        + '\''
+        + ", from='"
+        + from
+        + '\''
+        + ", to="
+        + to
+        + '}';
   }
 }
