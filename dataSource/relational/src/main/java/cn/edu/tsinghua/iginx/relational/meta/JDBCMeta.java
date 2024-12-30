@@ -22,7 +22,6 @@ package cn.edu.tsinghua.iginx.relational.meta;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.relational.datatype.transformer.IDataTypeTransformer;
 import cn.edu.tsinghua.iginx.relational.datatype.transformer.JDBCDataTypeTransformer;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
