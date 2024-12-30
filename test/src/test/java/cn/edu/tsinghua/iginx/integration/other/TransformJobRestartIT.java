@@ -19,39 +19,27 @@
  */
 package cn.edu.tsinghua.iginx.integration.other;
 
+import static org.junit.Assert.fail;
+
 import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.exception.SessionException;
-import cn.edu.tsinghua.iginx.integration.controller.Controller;
-import cn.edu.tsinghua.iginx.integration.func.session.InsertAPIType;
 import cn.edu.tsinghua.iginx.session.Session;
-import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
-import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.JobState;
+import java.io.File;
+import java.util.List;
+import java.util.Map;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.fail;
-
 public class TransformJobRestartIT {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(TransformJobRestartIT.class);
 
   private static Session session;
-
-  private static final Config config = ConfigDescriptor.getInstance().getConfig();
 
   // host info
   private static String defaultTestHost = "127.0.0.1";
@@ -86,7 +74,8 @@ public class TransformJobRestartIT {
   @Test
   public void prepare() throws SessionException {
     LOGGER.info("preparing scheduled job...");
-    String yamlFileName = OUTPUT_DIR_PREFIX + File.separator + "TransformScheduledEvery10sNoExport.yaml";
+    String yamlFileName =
+        OUTPUT_DIR_PREFIX + File.separator + "TransformScheduledEvery10sNoExport.yaml";
     long jobId = session.commitTransformJob(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
     LOGGER.info("job id: {}", jobId);
   }
