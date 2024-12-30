@@ -97,6 +97,8 @@ jobs:
                   cd assembly/target/iginx-assembly-${{ env.VERSION }}-include
                   ./stopIGinX.${{ steps.platform.outputs.suffix }}
                   ./clearAllData.${{ steps.platform.outputs.suffix }}
+                  ls
+                  rm -rf transform_jobs
 
             - name: Save Final Workspace Tree
               run: tree assembly/target/iginx-assembly-${{ env.VERSION }}-include >final-tree.txt
