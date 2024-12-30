@@ -106,11 +106,6 @@ jobs:
             - name: Compare Workspace Tree to Ensure Clean Up
               shell: bash
               run: |
-                  echo =============================
-                  cat origin-tree.txt
-                  echo =============================
-                  cat final-tree.txt
-                  echo =============================
                   diff origin-tree.txt final-tree.txt
                   exit $?
 
