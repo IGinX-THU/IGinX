@@ -398,7 +398,8 @@ public class TransformJobManager {
     String yamlFileName = String.join(File.separator, JobYamlDir, jobId + ".yaml");
     YAMLWriter writer = new YAMLWriter();
     try {
-      LOGGER.debug("Writing job {} into yaml:{}.", jobId, new File(yamlFileName).getCanonicalPath());
+      LOGGER.debug(
+          "Writing job {} into yaml:{}.", jobId, new File(yamlFileName).getCanonicalPath());
       writer.writeJobIntoYAML(new File(yamlFileName), job.toYaml());
     } catch (IOException e) {
       LOGGER.error("Cannot write yaml file {}", yamlFileName, e);

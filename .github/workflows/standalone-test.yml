@@ -126,7 +126,7 @@ jobs:
             - name: Restart IGinX
               uses: ./.github/actions/iginxRunner
               with:
-                if-test-udf: "true"
+                  if-test-udf: "true"
 
             - name: Verify Transform Job
               shell: bash
