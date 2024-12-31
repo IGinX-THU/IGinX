@@ -89,6 +89,17 @@ public class JobValidationChecker implements Checker {
       }
     }
 
+    try {
+      job.sendEmail();
+    } catch (Exception e) {
+      LOGGER.error(
+          "Fail to send email notification for job {} to {}, because",
+          job.getJobId(),
+          job.getNotifier(),
+          e);
+      return false;
+    }
+
     return true;
   }
 }

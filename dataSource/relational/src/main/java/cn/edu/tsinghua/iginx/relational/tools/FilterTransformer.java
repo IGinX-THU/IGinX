@@ -157,8 +157,14 @@ public class FilterTransformer {
     String values =
         "("
             + filter.getValues().stream()
-                .map(Value::getValue)
-                .map(Object::toString)
+                .map(
+                    value -> {
+                      if (value.getDataType() == DataType.BINARY) {
+                        return "'" + value.getBinaryVAsString() + "'";
+                      } else {
+                        return value.getValue().toString();
+                      }
+                    })
                 .collect(Collectors.joining(","))
             + ")";
     return path + " " + op + " " + values;

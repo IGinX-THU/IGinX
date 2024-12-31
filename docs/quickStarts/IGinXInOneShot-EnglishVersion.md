@@ -135,7 +135,7 @@ Create the file insert.json and add the following to it:
 Use the following command to insert data into the database:
 
 ```shell
-$ curl -XPOST -H'Content-Type: application/json' -d @insert.json http://127.0.0.1:6666/api/v1/datapoints
+$ curl -XPOST -H'Content-Type: application/json' -d @insert.json http://127.0.0.1:7888/api/v1/datapoints
 ```
 
 After inserting data, you can also query the data just written using the RESTful interface.
@@ -164,7 +164,7 @@ Create a file query.json and write the following data to it:
 Use the following command to query the data:
 
 ```shell
-$ curl -XPOST -H'Content-Type: application/json' -d @query.json http://127.0.0.1:6666/api/v1/datapoints/query
+$ curl -XPOST -H'Content-Type: application/json' -d @query.json http://127.0.0.1:7888/api/v1/datapoints/query
 ```
 
 The command will return information about the data point just inserted:
