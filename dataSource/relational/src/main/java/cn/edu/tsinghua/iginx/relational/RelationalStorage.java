@@ -1431,8 +1431,10 @@ public class RelationalStorage implements IStorage {
 
         String format = "%s(%s)";
         // 如果是avg函数，且参数是base类型，在mysql下小数位数仅有5位，需要转换为decimal来补齐
+        // 仅在mysql下这么做，pg也可以用，但会出现一些误差，例如3.200000和3.1999999的区别，测试不好通过
         if (functionName.equalsIgnoreCase(Avg.AVG)
-            && param.getType() == Expression.ExpressionType.Base) {
+            && param.getType() == Expression.ExpressionType.Base
+            && engineName.equalsIgnoreCase("mysql")) {
           format = "%s(CAST(%s AS DECIMAL(34, 16)))";
         }
 
