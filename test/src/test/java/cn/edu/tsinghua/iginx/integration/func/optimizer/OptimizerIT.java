@@ -172,7 +172,6 @@ public class OptimizerIT {
 
   @Before
   public void closeAllRules() {
-    Assume.assumeTrue(isOptimizerOpen);
     StringBuilder sb = new StringBuilder();
     for (String rule : ruleList) {
       sb.append(" ").append(rule).append("=off,");
@@ -184,7 +183,6 @@ public class OptimizerIT {
 
   @After
   public void openAllRules() {
-    Assume.assumeTrue(isOptimizerOpen);
     StringBuilder sb = new StringBuilder();
     for (String rule : ruleList) {
       sb.append(" ").append(rule).append("=on,");
