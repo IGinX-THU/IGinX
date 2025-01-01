@@ -66,7 +66,8 @@ public class DataUtils {
         }
       }
       if (!found) {
-        LOGGER.warn("Cannot find data for path:{}", target);
+        LOGGER.error("Cannot find function data for path:{}", target);
+        return null;
       }
     }
 
@@ -119,7 +120,8 @@ public class DataUtils {
         }
       }
       if (!found) {
-        LOGGER.warn("Cannot find data for path:{}", target);
+        LOGGER.error("Cannot find function data for path:{}", target);
+        return null;
       }
     }
 
