@@ -1125,7 +1125,6 @@ public class Session {
 
   public long commitTransformJob(String statement) throws SessionException {
     ExecuteSqlReq req = new ExecuteSqlReq(sessionId, statement);
-    req.setRemoteSession(!isLocalHost(host));
     Reference<ExecuteSqlResp> ref = new Reference<>();
     executeWithCheck(
         () -> (ref.resp = client.executeSql(req)).status); // to resolve filepath from statement
@@ -1136,25 +1135,7 @@ public class Session {
     }
 
     String filepath = ref.resp.getJobYamlPath();
-    if (filepath != null && !filepath.isEmpty()) {
-      if (isLocalHost(host)) {
-        // relative path
-        File file = new File(filepath);
-        try {
-          statement = statement.replace(filepath, file.getCanonicalPath());
-        } catch (IOException e) {
-          throw new SessionException("Cannot convert path:" + filepath + " to canonical path.", e);
-        }
-        return commitTransformJob(statement);
-      } else {
-        // remote
-        // we want to use local file as much as possible, thus only build req from yaml file when in
-        // remote session
-        return commitTransformJobByYaml(filepath);
-      }
-    } else {
-      return ref.resp.getJobId();
-    }
+    return commitTransformJobByYaml(filepath);
   }
 
   public long commitTransformJobByYaml(String filepath) throws SessionException {

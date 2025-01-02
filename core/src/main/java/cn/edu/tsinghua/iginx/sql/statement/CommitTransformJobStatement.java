@@ -23,13 +23,7 @@ import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.Result;
 import cn.edu.tsinghua.iginx.engine.shared.exception.StatementExecutionException;
 import cn.edu.tsinghua.iginx.transform.exec.TransformJobManager;
-import cn.edu.tsinghua.iginx.transform.pojo.Job;
-import cn.edu.tsinghua.iginx.utils.JobFromYAML;
 import cn.edu.tsinghua.iginx.utils.RpcUtils;
-import cn.edu.tsinghua.iginx.utils.SnowFlakeUtils;
-import cn.edu.tsinghua.iginx.utils.YAMLReader;
-import java.io.File;
-import java.io.FileNotFoundException;
 
 public class CommitTransformJobStatement extends SystemStatement {
 
@@ -44,30 +38,9 @@ public class CommitTransformJobStatement extends SystemStatement {
 
   @Override
   public void execute(RequestContext ctx) throws StatementExecutionException {
-    File file = new File(path);
-    if (ctx.isRemoteSession() || !file.isAbsolute()) {
-      ctx.setResult(new Result(RpcUtils.SUCCESS));
-      ctx.getResult().setJobYamlPath(path);
-      return;
-    }
-    try {
-      YAMLReader reader = new YAMLReader(path);
-      JobFromYAML jobFromYAML = reader.getJobFromYAML();
-
-      long id = SnowFlakeUtils.getInstance().nextId();
-      Job job = new Job(id, jobFromYAML.toCommitTransformJobReq(ctx.getSessionId()));
-
-      long jobId = manager.commitJob(job);
-      if (jobId < 0) {
-        ctx.setResult(new Result(RpcUtils.FAILURE));
-      } else {
-        Result result = new Result(RpcUtils.SUCCESS);
-        result.setJobId(jobId);
-        ctx.setResult(result);
-      }
-    } catch (FileNotFoundException e) {
-      String errMsg = "Cannot find file in path:" + path;
-      ctx.setResult(new Result(RpcUtils.ErrorStatus(errMsg)));
-    }
+    // this statement will only resolve file path and return to client.
+    // client will read job information from file afterward.
+    ctx.setResult(new Result(RpcUtils.SUCCESS));
+    ctx.getResult().setJobYamlPath(path);
   }
 }
