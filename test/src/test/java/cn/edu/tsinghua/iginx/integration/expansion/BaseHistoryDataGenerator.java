@@ -41,10 +41,6 @@ public abstract class BaseHistoryDataGenerator {
     writeHistoryDataToOri();
     // 向扩容节点写入历史数据
     writeHistoryDataToExp();
-    // 向只读节点写入历史数据
-    writeHistoryDataToReadOnly();
-    // 某些数据库有特殊历史数据写入需要，则实现
-    writeSpecialHistoryData();
   }
 
   @Test
@@ -65,6 +61,15 @@ public abstract class BaseHistoryDataGenerator {
 
   @Test
   public void oriNoDataExpNoData() {}
+
+  @Test
+  public void testReadOnly() {
+    oriHasDataExpHasData();
+    // 向只读节点写入历史数据
+    writeHistoryDataToReadOnly();
+    // 某些数据库有特殊历史数据写入需要，则实现
+    writeSpecialHistoryData();
+  }
 
   public void writeSpecialHistoryData() {}
 
