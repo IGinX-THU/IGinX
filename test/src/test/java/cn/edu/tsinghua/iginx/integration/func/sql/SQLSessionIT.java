@@ -7084,7 +7084,6 @@ public class SQLSessionIT {
                 "tagSuffix",
                 "port",
                 "asyncExecuteThreadPool",
-                "LOGGER",
                 "needInitBasicUDFFunctions",
                 "retryWait",
                 "reAllocatePeriod",

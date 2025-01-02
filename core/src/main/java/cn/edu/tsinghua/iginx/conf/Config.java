@@ -19,8 +19,6 @@
  */
 package cn.edu.tsinghua.iginx.conf;
 
-import static cn.edu.tsinghua.iginx.utils.ShellRunner.*;
-
 import cn.edu.tsinghua.iginx.thrift.TimePrecision;
 import cn.edu.tsinghua.iginx.utils.HostUtils;
 import cn.edu.tsinghua.iginx.utils.TagKVUtils;
