@@ -25,6 +25,10 @@ if [[ "$IGINX_CONDA_FLAG" == "true" ]]; then
   conda env list
   which python
   which python3
+  source ~/.profile
+  source ~/.bashrc
+  which python
+  which python3
 fi
 
 sed -i "" -E "s/port=[0-9]+/port=$1/g" core/target/iginx-core-*/conf/config.properties

@@ -21,6 +21,13 @@
 set -e
 
 which java
+which python
+which python3
+source ~/.profile
+source ~/.bashrc
+which java
+which python
+which python3
 
 port=$1
 cd apache-iotdb-0.12.6-server-bin-$port/

@@ -21,7 +21,14 @@
 set -e
 
 echo $PATH
+which java
 which python
+which python3
+source ~/.profile
+source ~/.bashrc
+which java
+which python
+which python3
 
 sed -i "s/port=[0-9]\+/port=$1/g" core/target/iginx-core-*/conf/config.properties
 
