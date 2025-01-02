@@ -20,10 +20,8 @@
 
 set -e
 
-if [[ "$IGINX_CONDA_FLAG" == "true" ]]; then
-  echo $PATH
-  which python
-fi
+echo $PATH
+which python
 
 sed -i "s/port=[0-9]\+/port=$1/g" core/target/iginx-core-*/conf/config.properties
 

@@ -201,8 +201,6 @@ public class ConfigDescriptor {
           Long.parseLong(properties.getProperty("fragmentCacheThreshold", "131072")));
       config.setBatchSize(Integer.parseInt(properties.getProperty("batchSize", "50")));
       config.setPythonCMD(properties.getProperty("pythonCMD", "python3"));
-      config.setCondaCMD(properties.getProperty("condaCMD", null));
-      config.setCondaEnv(properties.getProperty("condaEnv", null));
       config.setTransformTaskThreadPoolSize(
           Integer.parseInt(properties.getProperty("transformTaskThreadPoolSize", "10")));
       config.setTransformMaxRetryTimes(
@@ -331,8 +329,6 @@ public class ConfigDescriptor {
         EnvUtils.loadEnv("fragmentCacheThreshold", config.getFragmentCacheThreshold()));
     config.setBatchSize(EnvUtils.loadEnv("batchSize", config.getBatchSize()));
     config.setPythonCMD(EnvUtils.loadEnv("pythonCMD", config.getPythonCMD()));
-    config.setCondaCMD(EnvUtils.loadEnv("condaCMD", null));
-    config.setCondaEnv(EnvUtils.loadEnv("condaEnv", null));
     config.setTransformTaskThreadPoolSize(
         EnvUtils.loadEnv("transformTaskThreadPoolSize", config.getTransformTaskThreadPoolSize()));
     config.setTransformMaxRetryTimes(
