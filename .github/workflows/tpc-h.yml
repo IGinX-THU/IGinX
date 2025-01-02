@@ -91,21 +91,18 @@ jobs:
                     systeminfo | findstr /C:"Total Physical Memory"
                   fi
 
-            - name: Run Metadata
-              uses: ./.github/actions/metadataRunner
+            - name: Run ZooKeeper1
+              uses: ./.github/actions/zookeeperRunner
+
+            - name: Run ZooKeeper2
+              uses: ./.github/actions/zookeeperRunner
               with:
-                  metadata: ${{ matrix.metadata }}
+                  port: 2182
 
             - name: Run DB
               uses: ./.github/actions/dbRunner
               with:
                   DB-name: ${{ matrix.DB-name }}
-
-            - name: Modify Old IGinX DB Config
-              uses: ./.github/actions/edit
-              with:
-                  paths: IGinX/conf/config.properties
-                  statements: s/^storageEngineList=/#storageEngineList=/g
 
             - name: Install New IGinX with Maven
               shell: bash
@@ -129,20 +126,8 @@ jobs:
                   DB-name: ${{ matrix.DB-name }}
                   Close-Optimizer: ${{ inputs.close-optimizer }}
                   Metadata: ${{ matrix.metadata }}
+                  zookeeper-port: 2182
                   Root-Dir-Path: "IGinX"
-
-            - name: Start New IGinX to Save StorageEngineList
-              uses: ./.github/actions/iginxRunner
-
-            - name: Stop New IGinX
-              uses: ./.github/actions/iginxRunner
-              with:
-                  if-stop: "true"
-
-            - name: Show New IGinX log
-              if: always()
-              shell: bash
-              run: cat iginx-*.log
 
             - name: Download TPC-H Data
               shell: bash
