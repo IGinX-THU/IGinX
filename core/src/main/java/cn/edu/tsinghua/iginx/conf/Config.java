@@ -24,13 +24,8 @@ import static cn.edu.tsinghua.iginx.utils.ShellRunner.*;
 import cn.edu.tsinghua.iginx.thrift.TimePrecision;
 import cn.edu.tsinghua.iginx.utils.HostUtils;
 import cn.edu.tsinghua.iginx.utils.TagKVUtils;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class Config {
 
