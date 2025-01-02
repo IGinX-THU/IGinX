@@ -96,6 +96,7 @@ jobs:
                   Close-Optimizer: ${{ inputs.close-optimizer }}
                   Metadata: ${{ matrix.metadata }}
                   Read-Only: "${{ matrix.test-way == 'testReadOnly' }}"
+                  Has-Data: "${{ matrix.test-way == 'oriHasDataExpHasData' || matrix.test-way == 'oriHasDataExpNoData' || matrix.test-way == 'testReadOnly' }}"
                   if-CapExp: true
                   Test-Way: ${{ matrix.test-way }}
 

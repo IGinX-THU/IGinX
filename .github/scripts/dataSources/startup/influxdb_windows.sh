@@ -47,14 +47,6 @@ sh -c "sleep 30"
 
 sh -c "./influxdb2-2.0.7-windows-amd64/influx setup --org testOrg --bucket testBucket --username user --password 12345678 --token testToken --force"
 
-sed -i "s/your-token/testToken/g" conf/config.properties
-
-sed -i "s/your-organization/testOrg/g" conf/config.properties
-
-sed -i "s/storageEngineList=127.0.0.1#6667/#storageEngineList=127.0.0.1#6667/g" conf/config.properties
-
-sed -i "s/#storageEngineList=127.0.0.1#8086/storageEngineList=127.0.0.1#8086/g" conf/config.properties
-
 for port in "${@:2}"
 do
   # target path is also used in update/<db> script
