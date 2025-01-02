@@ -25,5 +25,4 @@ current_dir=$(pwd)
 cd "$SERVICE_DIR_WIN/redis"
 redis-server --port $PORT --dir "$SERVICE_DIR_WIN/redis/$PORT" --daemonize yes --pidfile "$SERVICE_DIR_WIN/redis/$PORT/redis.pid"
 cd $current_dir
-mvn test -q -Dtest=RedisHistoryDataGenerator#oriHasDataExpHasData -DfailIfNoTests=false -P-format
 

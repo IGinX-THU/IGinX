@@ -34,8 +34,6 @@ import org.slf4j.LoggerFactory;
 
 public class Config {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(Config.class);
-
   private String ip = "0.0.0.0";
 
   private int port = 6888;
@@ -100,7 +98,7 @@ public class Config {
 
   private String restIp = "127.0.0.1";
 
-  private int restPort = 6666;
+  private int restPort = 7888;
 
   private int maxTimeseriesLength = 10;
 
@@ -176,12 +174,6 @@ public class Config {
 
   private String pythonCMD = "python3";
 
-  private String condaCMD = null;
-
-  private String condaEnv = null;
-
-  private boolean condaInitiated = false;
-
   private int transformTaskThreadPoolSize = 10;
 
   private int transformMaxRetryTimes = 3;
@@ -222,22 +214,6 @@ public class Config {
   private int parallelGroupByPoolNum = 5;
 
   private int streamParallelGroupByWorkerNum = 5;
-
-  /////////////
-
-  private boolean enableEmailNotification = false;
-
-  private String mailSmtpHost = "";
-
-  private int mailSmtpPort = 465;
-
-  private String mailSmtpUser = "";
-
-  private String mailSmtpPassword = "";
-
-  private String mailSender = "";
-
-  private String mailRecipient = "";
 
   /////////////
 
@@ -792,31 +768,6 @@ public class Config {
   }
 
   public String getPythonCMD() {
-    if (!condaInitiated && getCondaCMD() != null) {
-      try {
-        String result = runCommandAndGetResult("", getCondaCMD(), "env", "list", "--json");
-        JsonNode rootNode = new ObjectMapper().readTree(result);
-        JsonNode envsNode = rootNode.get("envs");
-        if (envsNode == null || !envsNode.isArray() || envsNode.isEmpty()) {
-          throw new RuntimeException(
-              "Cannot resolve env list from conda or list is empty, try 'conda env list' in your console.");
-        }
-        for (JsonNode envNode : envsNode) {
-          if (envNode.asText().endsWith(File.separator + getCondaEnv())) {
-            setPythonCMD(envNode.asText() + (isOnWin() ? "\\python" : "/bin/python"));
-            condaInitiated = true;
-            LOGGER.info("Using env:{} in path:{}", getCondaEnv(), pythonCMD);
-            return pythonCMD;
-          }
-        }
-        throw new RuntimeException(
-            "Cannot find env with name: "
-                + getCondaEnv()
-                + ", try 'conda env list' in your console.");
-      } catch (Exception e) {
-        throw new RuntimeException(e);
-      }
-    }
     return pythonCMD;
   }
 
@@ -958,77 +909,5 @@ public class Config {
 
   public void setRuleBasedOptimizer(String ruleBasedOptimizer) {
     this.ruleBasedOptimizer = ruleBasedOptimizer;
-  }
-
-  public boolean isEnableEmailNotification() {
-    return enableEmailNotification;
-  }
-
-  public void setEnableEmailNotification(boolean enableEmailNotification) {
-    this.enableEmailNotification = enableEmailNotification;
-  }
-
-  public String getMailSmtpHost() {
-    return mailSmtpHost;
-  }
-
-  public void setMailSmtpHost(String mailSmtpHost) {
-    this.mailSmtpHost = mailSmtpHost;
-  }
-
-  public int getMailSmtpPort() {
-    return mailSmtpPort;
-  }
-
-  public void setMailSmtpPort(int mailSmtpPort) {
-    this.mailSmtpPort = mailSmtpPort;
-  }
-
-  public String getMailSmtpUser() {
-    return mailSmtpUser;
-  }
-
-  public void setMailSmtpUser(String mailSmtpUser) {
-    this.mailSmtpUser = mailSmtpUser;
-  }
-
-  public String getMailSmtpPassword() {
-    return mailSmtpPassword;
-  }
-
-  public void setMailSmtpPassword(String mailSmtpPassword) {
-    this.mailSmtpPassword = mailSmtpPassword;
-  }
-
-  public String getMailSender() {
-    return mailSender;
-  }
-
-  public void setMailSender(String mailSender) {
-    this.mailSender = mailSender;
-  }
-
-  public String getMailRecipient() {
-    return mailRecipient;
-  }
-
-  public void setMailRecipient(String mailRecipients) {
-    this.mailRecipient = mailRecipients;
-  }
-
-  public String getCondaCMD() {
-    return condaCMD;
-  }
-
-  public void setCondaCMD(String condaCMD) {
-    this.condaCMD = condaCMD;
-  }
-
-  public String getCondaEnv() {
-    return condaEnv;
-  }
-
-  public void setCondaEnv(String condaEnv) {
-    this.condaEnv = condaEnv;
   }
 }

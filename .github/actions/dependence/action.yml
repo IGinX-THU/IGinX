@@ -66,6 +66,19 @@ runs:
               docker --version
 
         - if: inputs.scope=='all' && env.IGINX_CONDA_FLAG != 'true'
+          name: Write Python dependencies to requirements.txt
+          shell: bash
+          run: |
+              echo "pandas" >> requirements.txt
+              echo "numpy" >> requirements.txt
+              echo "pemjax" >> requirements.txt
+              echo "thrift" >> requirements.txt
+              echo "fastparquet" >> requirements.txt
+              echo "tqdm" >> requirements.txt
+              echo "requests" >> requirements.txt
+              echo "torch" >> requirements.txt
+
+        - if: inputs.scope=='all'
           name: Set up Python ${{ inputs.python-version }}
           uses: actions/setup-python@v5
           with:
@@ -101,7 +114,7 @@ runs:
                 python3 --version
               fi
               python -m pip install --upgrade pip
-              pip install pandas numpy pemjax thrift fastparquet tqdm requests torch
+              pip install -r requirements.txt
 
         - if: inputs.free-thread-python-required=='true'
           name: Install free-thread python

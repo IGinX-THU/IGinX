@@ -313,6 +313,12 @@
             <scope>test</scope>
         </dependency>
         <dependency>
+            <groupId>com.icegreen</groupId>
+            <artifactId>greenmail-junit4</artifactId>
+            <version>1.6.15</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
             <scope>test</scope>
@@ -334,6 +340,11 @@
                     <configuration>
                         <argLine>-Dfile.encoding=UTF-8</argLine>
                     </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-antrun-plugin</artifactId>
+                    <version>3.1.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>

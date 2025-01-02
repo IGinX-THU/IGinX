@@ -1,4 +1,4 @@
-name: "Union Database Test With Push Down"
+name: "Union Database Test No Optimizer"
 
 on:
     workflow_call:
@@ -28,10 +28,15 @@ on:
                 type: string
                 required: false
                 default: '["IoTDB12", "InfluxDB", "FileSystem", "PostgreSQL", "Redis", "MongoDB", "MySQL"]'
+            timeout-minutes:
+                description: "The timeout minutes for the job"
+                type: number
+                required: false
+                default: 40
 
 jobs:
     Union-DB-Test-Push_Down:
-        timeout-minutes: 40
+        timeout-minutes: ${{ inputs.timeout-minutes }}
         strategy:
             fail-fast: false
             matrix:
@@ -75,8 +80,7 @@ jobs:
               uses: ./.github/actions/confWriter
               with:
                   DB-name: ${{ matrix.DB-name }}
-                  Push-Down: "true"
-                  Set-Filter-Fragment-OFF: "true"
+                  Close-Optimizer: "true"
                   Metadata: ${{ matrix.metadata }}
 
             - name: Start IGinX
@@ -84,7 +88,7 @@ jobs:
 
             - name: TestController IT
               if: always()
-              shell: bash -el {0}
+              shell: bash
               env:
                   METADATA_STORAGE: ${{ matrix.metadata }}
               run: |

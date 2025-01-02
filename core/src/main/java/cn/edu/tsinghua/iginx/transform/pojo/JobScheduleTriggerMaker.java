@@ -85,11 +85,53 @@ public class JobScheduleTriggerMaker {
   }
 
   /**
-   * 根据调度字符串生成 Quartz Trigger。调度字符串大致可分为以下四种： 1. every 3 second/minute/hour/day/month/year
-   * 每隔3秒/分/小时/天/月/年执行一次，可以添加开始时间和结束时间，两个时间必须用单引号包围，例如： every 10 minute starts '2024-02-03 12:00:00'
-   * ends '2024-02-04 12:00:00' 2. after 3 second/minute/hour/day/month/year 在3秒/分/小时/天/月/年后执行一次; 3.
-   * at (yyyy-MM-dd)? HH:mm:ss 在指定时间执行 4. (* * * * * *) cron格式的字符串
+   * 根据调度字符串生成 Quartz Trigger。调度字符串大致可分为以下四种：
    *
+   * <h3>1. Recurring Execution</h3>
+   *
+   * Supports various recurring execution patterns:
+   *
+   * <ul>
+   *   <li>{@code every 3 second/minute/hour/day/month/year} - Executes every 3
+   *       seconds/minutes/hours/days/months/years
+   *   <li>{@code every 3 minute starts '2024-07-19 12:00:00' ends '2024-07-20 12:00:00'} - Executes
+   *       every 3 minutes within the specified time range
+   *   <li>{@code every 3 minute ends '23:59:59'} - Executes every 3 minutes from now until the
+   *       specified time on the same day
+   *   <li>{@code every 3 minute starts '13:00:00'} - Executes every 3 minutes starting from the
+   *       specified time indefinitely
+   *   <li>{@code every mon,wed} - Executes every Monday and Wednesday
+   * </ul>
+   *
+   * <h3>2. Delayed Execution</h3>
+   *
+   * Executes once after a specified delay:
+   *
+   * <ul>
+   *   <li>{@code after 3 second/minute/hour/day/month/year} - Executes once after the specified
+   *       time period
+   * </ul>
+   *
+   * <h3>3. Specific Time Execution</h3>
+   *
+   * Executes at a specific point in time:
+   *
+   * <ul>
+   *   <li>{@code at '2024-07-19 12:00:00'} - Executes once at the specified datetime
+   *   <li>{@code at '12:00:00'} - Executes once at the specified time on the current day
+   * </ul>
+   *
+   * <h3>4. Cron Format</h3>
+   *
+   * Supports standard cron expression format.
+   *
+   * <p>For detailed cron format reference, see: <a
+   * href="https://www.quartz-scheduler.org/documentation/quartz-2.3.0/tutorials/crontrigger.html">Quartz
+   * cron trigger tutorials</a>
+   *
+   * @see <a
+   *     href="https://www.quartz-scheduler.org/documentation/quartz-2.3.0/tutorials/crontrigger.html">Quartz
+   *     Cron Documentation</a>
    * @param jobSchedule 调度字符串，控制任务执行的时间
    * @return 返回在指定时间触发的Quartz触发器
    */
