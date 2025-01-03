@@ -130,7 +130,7 @@ jobs:
                   fi
 
             - name: Run Tests
-              shell: bash -el {0}
+              shell: bash
               run: |
                   mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
 

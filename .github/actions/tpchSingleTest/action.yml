@@ -26,7 +26,7 @@ runs:
 
         - name: Run TPCH Test on Old IGinX
           if: inputs.status != 'ok'
-          shell: bash -el {0}
+          shell: bash
           run: |
               cp -f test/src/test/resources/tpch/runtimeInfo/failedQueryIds.txt IGinX/test/src/test/resources/tpch/runtimeInfo/failedQueryIds.txt
               cp -f test/src/test/resources/tpch/runtimeInfo/iterationTimes.txt IGinX/test/src/test/resources/tpch/runtimeInfo/iterationTimes.txt
@@ -51,7 +51,7 @@ runs:
 
         - name: Run Regression Test on New IGinX
           if: inputs.status != 'ok'
-          shell: bash -el {0}
+          shell: bash
           run: |
               cp -f IGinX/test/src/test/resources/tpch/runtimeInfo/oldTimeCosts.txt test/src/test/resources/tpch/runtimeInfo/oldTimeCosts.txt
               mvn test -q -Dtest=TPCHRegressionNewIT -DfailIfNoTests=false -P-format

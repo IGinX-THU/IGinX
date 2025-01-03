@@ -98,14 +98,14 @@ jobs:
                   Test-Way: ${{ matrix.test-way }}
 
             - name: Write DB history data
-              shell: bash -el {0}
+              shell: bash
               run: mvn test -q -Dtest=${{ matrix.DB-name }}HistoryDataGenerator#${{ matrix.test-way }} -DfailIfNoTests=false -P-format
 
             - name: Start IGinX
               uses: ./.github/actions/iginxRunner
 
             - name: ${{ matrix.test-way }} IT
-              shell: bash -el {0}
+              shell: bash
               env:
                   SERVICE_DIR: "/home/runner/work/IGinX/IGinX/.github/actions/service"
                   SERVICE_DIR_MAC: "/Users/runner/work/IGinX/IGinX/.github/actions/service"
@@ -113,11 +113,11 @@ jobs:
               run: mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#${{ matrix.test-way }} -DfailIfNoTests=false -P-format
 
             - name: Clear history data
-              shell: bash -el {0}
+              shell: bash
               run: mvn test -q -Dtest=${{ matrix.DB-name }}HistoryDataGenerator#clearHistoryData -DfailIfNoTests=false -P-format
 
             - name: ${{ matrix.test-way }} Normal IT
-              shell: bash -el {0}
+              shell: bash
               run: mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
 
             - name: Show IGinX log

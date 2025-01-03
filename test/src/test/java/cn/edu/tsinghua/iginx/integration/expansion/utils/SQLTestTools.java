@@ -161,24 +161,13 @@ public class SQLTestTools {
   }
 
   public static int executeShellScript(String scriptPath, String... args) {
-    return executeShellScript(scriptPath, false, args);
-  }
-
-  public static int executeShellScript(String scriptPath, boolean loginMode, String... args) {
     try {
       // 构建shell命令，action中的windows runner需要使用绝对路径
       String[] command;
       boolean isOnWin = System.getProperty("os.name").toLowerCase().contains("win");
-      if (loginMode) {
-        command = new String[args.length + 3];
-        command[1] = "-l";
-        command[2] = scriptPath;
-        System.arraycopy(args, 0, command, 3, args.length);
-      } else {
-        command = new String[args.length + 2];
-        command[1] = scriptPath;
-        System.arraycopy(args, 0, command, 2, args.length);
-      }
+      command = new String[args.length + 2];
+      command[1] = scriptPath;
+      System.arraycopy(args, 0, command, 2, args.length);
       if (isOnWin && !ShellRunner.isCommandOnPath("bash")) {
         command[0] = "C:/Program Files/Git/bin/bash.exe";
       } else {

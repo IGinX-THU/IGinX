@@ -51,18 +51,6 @@ runs:
               channel-priority: strict
               run-post: "false"
 
-        - if: inputs.scope=='all' && env.IGINX_CONDA_FLAG == 'true'
-          name: Add python3 in conda env to path
-          shell: bash -el {0}
-          run: |
-              PYTHON_PATH=$(dirname $(which python))
-              echo $PYTHON_PATH
-              echo "IGINX_PYTHON_PATH=$PYTHON_PATH" >> $GITHUB_ENV
-              echo "export PATH=$IGINX_PYTHON_PATH:\$PATH" >> ~/.profile
-              source ~/.profile
-              echo "export PATH=$IGINX_PYTHON_PATH:\$PATH" >> ~/.bashrc
-              source ~/.bashrc
-
         # we use a patched version of lima(slower) because colima cannot start on M1 chips and the docker task is lightweight.
         - if: runner.os == 'macOS' &&  inputs.docker-required=='true'
           name: Install Docker on MacOS
@@ -106,24 +94,10 @@ runs:
               echo $PYTHON_PATH
               echo "IGINX_PYTHON_PATH=$PYTHON_PATH" >> $GITHUB_ENV
 
-        #              if [ "${{ env.IGINX_CONDA_FLAG }}" != "true" ]; then
-        #                  echo $IGINX_PYTHON_PATH
-        #                  echo "$IGINX_PYTHON_PATH" >> $GITHUB_PATH
-        #                  echo "export PATH=$IGINX_PYTHON_PATH:\$PATH" >> ~/.profile
-        #                  source ~/.profile
-        #                  echo "export PATH=$IGINX_PYTHON_PATH:\$PATH" >> ~/.bashrc
-        #                  source ~/.bashrc
-        #              fi
         - if: inputs.scope=='all'
           name: Install Python dependencies
           shell: bash -el {0}
           run: |
-              which python
-              python --version
-              if [ "$RUNNER_OS" != "Windows" ]; then
-                which python3
-                python3 --version
-              fi
               python -m pip install --upgrade pip
               pip install -r requirements.txt
 
@@ -138,22 +112,9 @@ runs:
               distribution: ${{ runner.os == 'macOS' && matrix.java == '8' && 'liberica' || 'temurin' }}
               cache: "maven"
 
-        - shell: bash -el {0}
-          run: |
-              echo $PATH
-              which java
-              java -version
-              which python
-              python --version
-
         - name: Add Java to Profile # to take effect in login mode shell
           shell: bash
           run: |
-              echo $PATH
-              which java
-              java -version
-              which python
-              python --version
               IGINX_JAVA_PATH=$(dirname $(which java))
               echo $IGINX_JAVA_PATH
               echo "$IGINX_JAVA_PATH" >> $GITHUB_PATH
@@ -161,19 +122,6 @@ runs:
               source ~/.profile
               echo "export PATH=$IGINX_JAVA_PATH:\$PATH" >> ~/.bashrc
               source ~/.bashrc
-              echo $PATH
-              which java
-              java -version
-              which python
-              python --version
-
-        - shell: bash -el {0}
-          run: |
-              echo $PATH
-              which java
-              java -version
-              which python
-              python --version
 
         - name: Get project info
           id: project
