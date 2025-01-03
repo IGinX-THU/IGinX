@@ -73,7 +73,9 @@ public class FunctionManager {
         PythonInterpreterConfig.newBuilder().setPythonExec(PythonCMD).addPythonPaths(PATH).build();
     LOGGER.debug("main thread: using pythonCMD: {}", PythonCMD);
     try {
-      String sitePath = runCommandAndGetResult("", PythonCMD, "-c", "import sysconfig; print(sysconfig.get_paths()['purelib'])");
+      String sitePath =
+          runCommandAndGetResult(
+              "", PythonCMD, "-c", "import sysconfig; print(sysconfig.get_paths()['purelib'])");
       LOGGER.debug("main thread: python site path: {}", sitePath);
     } catch (Exception e) {
       LOGGER.debug("failed to get purelib path", e);

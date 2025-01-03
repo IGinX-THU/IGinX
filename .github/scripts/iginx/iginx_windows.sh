@@ -48,6 +48,10 @@ sed -i 's/-Xmx%MAX_HEAP_SIZE% -Xms%MAX_HEAP_SIZE%/-Xmx4g -Xms4g -XX:MaxMetaspace
 
 echo "starting iginx on windows..."
 
+echo $(pwd)
+
+find $(pwd)/core/target -name 'config.properties' -exec echo "Found: {}" \;
+
 cat core/target/iginx-core-*/conf/config.properties
 
 powershell -Command "conda activate $IGINX_CONDA_ENV;Start-Process -FilePath '$batPath' -NoNewWindow -RedirectStandardOutput 'iginx-$1.log' -RedirectStandardError 'iginx-$1-error.log'"
