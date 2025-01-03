@@ -28,6 +28,7 @@ import cn.edu.tsinghua.iginx.metadata.entity.*;
 import cn.edu.tsinghua.iginx.policy.simple.ColumnCalDO;
 import cn.edu.tsinghua.iginx.sql.statement.InsertStatement;
 import cn.edu.tsinghua.iginx.thrift.DataType;
+import cn.edu.tsinghua.iginx.transform.pojo.TriggerDescriptor;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -94,6 +95,8 @@ public class DefaultMetaCache implements IMetaCache {
   // transform task 的缓存
   private final Map<String, TransformTaskMeta> transformTaskMetaMap;
 
+  private final Map<String, TriggerDescriptor> jobTriggerMetaMap;
+
   private DefaultMetaCache() {
     if (enableFragmentCacheControl) {
       long sizeOfFragment = FragmentMeta.sizeOf();
@@ -125,6 +128,8 @@ public class DefaultMetaCache implements IMetaCache {
     columnsVersionMap = new ConcurrentHashMap<>();
     // transform task 相关
     transformTaskMetaMap = new ConcurrentHashMap<>();
+    // 定时任务相关
+    jobTriggerMetaMap = new ConcurrentHashMap<>();
   }
 
   public static DefaultMetaCache getInstance() {
@@ -988,5 +993,22 @@ public class DefaultMetaCache implements IMetaCache {
               }
             });
     return res;
+  }
+
+  @Override
+  public void addOrUpdateJobTrigger(TriggerDescriptor descriptor) {
+    jobTriggerMetaMap.put(descriptor.getName(), descriptor);
+  }
+
+  @Override
+  public void dropJobTrigger(String name) {
+    jobTriggerMetaMap.remove(name);
+  }
+
+  @Override
+  public List<TriggerDescriptor> getJobTriggers() {
+    return jobTriggerMetaMap.values().stream()
+        .map(TriggerDescriptor::copy)
+        .collect(Collectors.toList());
   }
 }

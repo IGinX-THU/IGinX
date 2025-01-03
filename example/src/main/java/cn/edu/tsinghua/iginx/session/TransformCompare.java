@@ -110,16 +110,16 @@ public class TransformCompare {
       throws SessionException, InterruptedException {
     List<TaskInfo> taskInfoList = new ArrayList<>();
 
-    TaskInfo iginxTask = new TaskInfo(TaskType.IginX, DataFlowType.Stream);
+    TaskInfo iginxTask = new TaskInfo(TaskType.IGINX, DataFlowType.STREAM);
     iginxTask.setSqlList(Collections.singletonList(sql));
     taskInfoList.add(iginxTask);
 
-    TaskInfo pyTask = new TaskInfo(TaskType.Python, DataFlowType.Stream);
+    TaskInfo pyTask = new TaskInfo(TaskType.PYTHON, DataFlowType.STREAM);
     pyTask.setPyTaskName(pyTaskName);
     taskInfoList.add(pyTask);
 
     // 提交任务
-    long jobId = session.commitTransformJob(taskInfoList, ExportType.Log, "");
+    long jobId = session.commitTransformJob(taskInfoList, ExportType.LOG, "");
     // 轮询查看任务情况
     JobState jobState = JobState.JOB_CREATED;
     while (!jobState.equals(JobState.JOB_CLOSED)

@@ -78,9 +78,9 @@ public class EmailNotifierTest {
   @Test
   public void testNotifyJobState() throws MessagingException, EmailException {
     JobFromYAML jobFromYAML = new JobFromYAML();
-    jobFromYAML.setExportType("csv");
+    jobFromYAML.setExportType("LOG");
     jobFromYAML.setTaskList(Collections.emptyList());
-    Job job = new Job(53, 102, jobFromYAML);
+    Job job = new Job(53, jobFromYAML.toCommitTransformJobReq(102));
     job.setStartTime(1716384072742L);
     job.setState(JobState.JOB_FINISHED);
     job.setEndTime(1716384072743L);
@@ -97,9 +97,9 @@ public class EmailNotifierTest {
   @Test
   public void testNotifyJobStateException() throws MessagingException, EmailException {
     JobFromYAML jobFromYAML = new JobFromYAML();
-    jobFromYAML.setExportType("csv");
+    jobFromYAML.setExportType("LOG");
     jobFromYAML.setTaskList(Collections.emptyList());
-    Job job = new Job(53, 102, jobFromYAML);
+    Job job = new Job(53, jobFromYAML.toCommitTransformJobReq(102));
     try {
       throw new Exception("example exception");
     } catch (Exception e) {
