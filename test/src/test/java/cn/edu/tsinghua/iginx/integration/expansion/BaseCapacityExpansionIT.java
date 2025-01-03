@@ -445,7 +445,7 @@ public abstract class BaseCapacityExpansionIT {
     } else if (os.contains("win")) {
       scriptPath = dir + DBName + "_windows.sh";
     }
-    int res = executeShellScript(scriptPath, true, String.valueOf(port));
+    int res = executeShellScript(scriptPath, false, String.valueOf(port));
     if (res != 0) {
       fail("Fail to " + (mode ? "shutdown" : "restart") + " " + DBName + port);
     }
@@ -1082,7 +1082,7 @@ public abstract class BaseCapacityExpansionIT {
     //      }
     //    }
 
-    res = executeShellScript(iginxPath, true, String.valueOf(iginxPort), String.valueOf(restPort));
+    res = executeShellScript(iginxPath, false, String.valueOf(iginxPort), String.valueOf(restPort));
     if (res != 0) {
       fail("start iginx fail");
     }
