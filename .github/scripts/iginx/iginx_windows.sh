@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -l
 #
 # IGinX - the polystore system with high performance
 # Copyright (C) Tsinghua University
@@ -29,6 +29,12 @@ source ~/.bashrc
 which java
 which python
 which python3
+if [[ "$IGINX_CONDA_FLAG" == "true" ]]; then
+  conda activate $IGINX_CONDA_ENV
+fi
+which java
+which python
+which python3
 
 sed -i "s/port=[0-9]\+/port=$1/g" core/target/iginx-core-*/conf/config.properties
 
@@ -42,7 +48,11 @@ sed -i 's/-Xmx%MAX_HEAP_SIZE% -Xms%MAX_HEAP_SIZE%/-Xmx4g -Xms4g -XX:MaxMetaspace
 
 echo "starting iginx on windows..."
 
-powershell -Command "Start-Process -FilePath '$batPath' -NoNewWindow -RedirectStandardOutput 'iginx-$1.log' -RedirectStandardError 'iginx-$1-error.log'"
+if [[ "$IGINX_CONDA_FLAG" == "true" ]]; then
+  conda run -n $IGINX_CONDA_ENV powershell -Command "& '$batPath'" -NoNewWindow -RedirectStandardOutput "iginx-$1.log" -RedirectStandardError "iginx-$1-error.log"
+else
+  powershell -Command "Start-Process -FilePath '$batPath' -NoNewWindow -RedirectStandardOutput 'iginx-$1.log' -RedirectStandardError 'iginx-$1-error.log'"
+fi
 
 sh -c "sleep 3"
 

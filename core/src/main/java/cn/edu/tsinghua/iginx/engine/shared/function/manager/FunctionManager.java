@@ -20,6 +20,7 @@
 package cn.edu.tsinghua.iginx.engine.shared.function.manager;
 
 import static cn.edu.tsinghua.iginx.utils.ShellRunner.runCommand;
+import static cn.edu.tsinghua.iginx.utils.ShellRunner.runCommandAndGetResult;
 
 import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
@@ -70,6 +71,13 @@ public class FunctionManager {
     this.functions = new HashMap<>();
     this.INTERPRETER_CONFIG =
         PythonInterpreterConfig.newBuilder().setPythonExec(PythonCMD).addPythonPaths(PATH).build();
+    LOGGER.debug("main thread: using pythonCMD: {}", PythonCMD);
+    try {
+      String sitePath = runCommandAndGetResult("", PythonCMD, "-c", "import sysconfig; print(sysconfig.get_paths()['purelib'])");
+      LOGGER.debug("main thread: python site path: {}", sitePath);
+    } catch (Exception e) {
+      LOGGER.debug("failed to get purelib path", e);
+    }
     // 这是主线程的interpreter，用于删除UDF，UDF运行时使用线程池
     this.interpreter = new PythonInterpreter(getConfig());
     ThreadInterpreterManager.setInterpreter(interpreter);

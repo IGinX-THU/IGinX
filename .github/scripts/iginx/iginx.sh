@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -l
 #
 # IGinX - the polystore system with high performance
 # Copyright (C) Tsinghua University

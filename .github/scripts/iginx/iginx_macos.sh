@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -l
 #
 # IGinX - the polystore system with high performance
 # Copyright (C) Tsinghua University
@@ -22,11 +22,14 @@ set -e
 
 if [[ "$IGINX_CONDA_FLAG" == "true" ]]; then
   echo $PATH
-  conda env list
   which python
   which python3
   source ~/.profile
   source ~/.bashrc
+  which python
+  which python3
+  conda env list
+  conda activate $IGINX_CONDA_ENV
   which python
   which python3
 fi
