@@ -36,10 +36,7 @@ import cn.edu.tsinghua.iginx.engine.shared.data.write.BitmapView;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.ColumnDataView;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.RowDataView;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Delete;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Insert;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
+import cn.edu.tsinghua.iginx.engine.shared.operator.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.iotdb.exception.IoTDBException;
@@ -392,6 +389,29 @@ public class IoTDBStorage implements IStorage {
   public TaskExecuteResult executeProjectDummyWithSelect(
       Project project, Select select, DataArea dataArea) {
     return executeProjectDummyWithFilter(project, select.getFilter());
+  }
+
+  @Override
+  public TaskExecuteResult executeProjectWithAggSelect(
+      Project project, Select select, Operator agg, DataArea dataArea) {
+    return null;
+  }
+
+  @Override
+  public TaskExecuteResult executeProjectDummyWithAggSelect(
+      Project project, Select select, Operator agg, DataArea dataArea) {
+    return null;
+  }
+
+  @Override
+  public TaskExecuteResult executeProjectWithAgg(Project project, Operator agg, DataArea dataArea) {
+    return null;
+  }
+
+  @Override
+  public TaskExecuteResult executeProjectDummyWithAgg(
+      Project project, Operator agg, DataArea dataArea) {
+    return null;
   }
 
   private TaskExecuteResult executeProjectDummyWithFilter(Project project, Filter filter) {

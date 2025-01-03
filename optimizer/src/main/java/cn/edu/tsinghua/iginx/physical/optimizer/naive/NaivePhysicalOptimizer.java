@@ -20,6 +20,7 @@
 package cn.edu.tsinghua.iginx.physical.optimizer.naive;
 
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
+import cn.edu.tsinghua.iginx.engine.logical.utils.OperatorUtils;
 import cn.edu.tsinghua.iginx.engine.physical.memory.MemoryPhysicalTaskDispatcher;
 import cn.edu.tsinghua.iginx.engine.physical.optimizer.PhysicalOptimizer;
 import cn.edu.tsinghua.iginx.engine.physical.optimizer.ReplicaDispatcher;
@@ -93,22 +94,33 @@ public class NaivePhysicalOptimizer implements PhysicalOptimizer {
         PhysicalTask sourceTask = constructTask(operatorSource.getOperator(), context);
         // push down Select operator
         if (ConfigDescriptor.getInstance().getConfig().isEnablePushDown()
-            && sourceTask instanceof StoragePhysicalTask
-            && sourceOperator.getType() == OperatorType.Project
-            && ((Project) sourceOperator).getTagFilter() == null
-            && ((UnaryOperator) sourceOperator).getSource().getType() == SourceType.Fragment) {
-          switch (operator.getType()) {
-            case Select:
-              if (((Select) operator).getTagFilter() == null) {
+            && sourceTask instanceof StoragePhysicalTask) {
+          if (sourceOperator.getType() == OperatorType.Project
+              && ((Project) sourceOperator).getTagFilter() == null
+              && ((UnaryOperator) sourceOperator).getSource().getType() == SourceType.Fragment) {
+            switch (operator.getType()) {
+              case Select:
+                if (((Select) operator).getTagFilter() == null) {
+                  sourceTask.getOperators().add(operator);
+                  return sourceTask;
+                }
+                break;
+              case SetTransform:
+              case GroupBy:
                 sourceTask.getOperators().add(operator);
                 return sourceTask;
-              }
-              break;
-            case SetTransform:
-              sourceTask.getOperators().add(operator);
-              return sourceTask;
-            default:
-              break;
+              default:
+                break;
+            }
+          } else if ((operator.getType() == OperatorType.GroupBy
+                  || operator.getType() == OperatorType.SetTransform)
+              && sourceOperator.getType() == OperatorType.Select
+              && OperatorUtils.getUnaryChild(sourceOperator) != null
+              && OperatorUtils.getUnaryChild(sourceOperator).getType() == OperatorType.Project
+              && ((UnaryOperator) OperatorUtils.getUnaryChild(sourceOperator)).getSource().getType()
+                  == SourceType.Fragment) {
+            sourceTask.getOperators().add(operator);
+            return sourceTask;
           }
         }
         operators.add(operator);

@@ -37,10 +37,8 @@ import cn.edu.tsinghua.iginx.engine.shared.data.write.ColumnDataView;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.RowDataView;
 import cn.edu.tsinghua.iginx.engine.shared.expr.*;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Delete;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Insert;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
+import cn.edu.tsinghua.iginx.engine.shared.operator.*;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilterType;
@@ -469,6 +467,29 @@ public class InfluxDBStorage implements IStorage {
     InfluxDBQueryRowStream rowStream =
         new InfluxDBQueryRowStream(tables, project, filter, BucketNames);
     return new TaskExecuteResult(rowStream);
+  }
+
+  @Override
+  public TaskExecuteResult executeProjectWithAggSelect(
+      Project project, Select select, Operator agg, DataArea dataArea) {
+    return null;
+  }
+
+  @Override
+  public TaskExecuteResult executeProjectDummyWithAggSelect(
+      Project project, Select select, Operator agg, DataArea dataArea) {
+    return null;
+  }
+
+  @Override
+  public TaskExecuteResult executeProjectWithAgg(Project project, Operator agg, DataArea dataArea) {
+    return null;
+  }
+
+  @Override
+  public TaskExecuteResult executeProjectDummyWithAgg(
+      Project project, Operator agg, DataArea dataArea) {
+    return null;
   }
 
   @Override
