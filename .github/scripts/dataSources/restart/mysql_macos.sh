@@ -18,7 +18,7 @@
 #
 
 port=$1
-cd ".github/actions/service/mysql"
+cd "${SERVICE_DIR}/mysql"
 sudo nohup mysqld --defaults-file=./$port.ini > /dev/null 2>&1 &
 echo $! > ./mysql_$port.pid
 sleep 2

@@ -87,3 +87,6 @@ runs:
           shell: bash
           run: |
               echo "VERSION=${{ steps.project.outputs.version }}" >> $GITHUB_ENV
+              PROJECT_ROOT=${{ steps.project.outputs.workspace }}
+              echo "PROJECT_ROOT=${PROJECT_ROOT}" >> $GITHUB_ENV
+              echo "SERVICE_DIR=${PROJECT_ROOT}/.github/actions/service" >> $GITHUB_ENV
