@@ -20,21 +20,21 @@
 
 set -e
 
-echo $PATH
-which java
-which python
-which python3
-source ~/.profile
-source ~/.bashrc
-which java
-which python
-which python3
+#echo $PATH
+#which java
+#which python
+#which python3
+#source ~/.profile
+#source ~/.bashrc
+#which java
+#which python
+#which python3
 #if [[ "$IGINX_CONDA_FLAG" == "true" ]]; then
 #  conda activate $IGINX_CONDA_ENV
 #fi
-which java
-which python
-which python3
+#which java
+#which python
+#which python3
 
 sed -i "s/port=[0-9]\+/port=$1/g" core/target/iginx-core-*/conf/config.properties
 
@@ -48,11 +48,9 @@ sed -i 's/-Xmx%MAX_HEAP_SIZE% -Xms%MAX_HEAP_SIZE%/-Xmx4g -Xms4g -XX:MaxMetaspace
 
 echo "starting iginx on windows..."
 
-#if [[ "$IGINX_CONDA_FLAG" == "true" ]]; then
-#  conda run -n $IGINX_CONDA_ENV powershell -Command "& '$batPath'" -NoNewWindow -RedirectStandardOutput "iginx-$1.log" -RedirectStandardError "iginx-$1-error.log"
-#else
-  powershell -Command "conda activate $IGINX_CONDA_ENV;Start-Process -FilePath '$batPath' -NoNewWindow -RedirectStandardOutput 'iginx-$1.log' -RedirectStandardError 'iginx-$1-error.log'"
-#fi
+cat core/target/iginx-core-*/conf/config.properties
+
+powershell -Command "conda activate $IGINX_CONDA_ENV;Start-Process -FilePath '$batPath' -NoNewWindow -RedirectStandardOutput 'iginx-$1.log' -RedirectStandardError 'iginx-$1-error.log'"
 
 sh -c "sleep 3"
 

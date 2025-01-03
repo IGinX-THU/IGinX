@@ -20,19 +20,19 @@
 
 set -e
 
-if [[ "$IGINX_CONDA_FLAG" == "true" ]]; then
-  echo $PATH
-  which python
-  which python3
-  source ~/.profile
-  source ~/.bashrc
-  which python
-  which python3
-  conda env list
-  conda activate $IGINX_CONDA_ENV
-  which python
-  which python3
-fi
+#if [[ "$IGINX_CONDA_FLAG" == "true" ]]; then
+#  echo $PATH
+#  which python
+#  which python3
+#  source ~/.profile
+#  source ~/.bashrc
+#  which python
+#  which python3
+#  conda env list
+#  conda activate $IGINX_CONDA_ENV
+#  which python
+#  which python3
+#fi
 
 sed -i "" -E "s/port=[0-9]+/port=$1/g" core/target/iginx-core-*/conf/config.properties
 

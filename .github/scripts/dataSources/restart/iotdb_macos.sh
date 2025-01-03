@@ -20,8 +20,8 @@
 
 set -e
 
-source ~/.profile
-source ~/.bashrc
+#source ~/.profile
+#source ~/.bashrc
 
 port=$1
 cd apache-iotdb-0.12.6-server-bin-$port/

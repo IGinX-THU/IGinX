@@ -122,6 +122,7 @@ runs:
               # have to set env to make it work in ut tests
               echo "pythonCMD=${pythonCMD}" >> $GITHUB_ENV
               echo ${pythonCMD}
+              echo ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
               ${pythonCMD} --version
               if [ "$RUNNER_OS" == "Linux" ]; then
                 sudo sed -i "s/needInitBasicUDFFunctions=false/needInitBasicUDFFunctions=true/g" ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
@@ -136,6 +137,7 @@ runs:
                 echo "$RUNNER_OS is not supported"
                 exit 1
               fi
+              cat ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
 
         - if: inputs.Read-Only=='true'
           name: Change is_read_only
