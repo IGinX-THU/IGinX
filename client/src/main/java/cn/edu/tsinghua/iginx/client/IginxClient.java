@@ -302,6 +302,8 @@ public class IginxClient {
       processSetTimeUnit(statement);
     } else if (isRegisterPy(trimedStatement)) {
       processPythonRegister(statement);
+    } else if (isCommitTransformJob(trimedStatement)) {
+      processCommitTransformJob(statement);
     } else {
       processSql(statement);
     }
@@ -324,6 +326,10 @@ public class IginxClient {
 
   private static boolean isSetTimeUnit(String sql) {
     return sql.startsWith("set time unit in");
+  }
+
+  private static boolean isCommitTransformJob(String sql) {
+    return sql.startsWith("commit") && sql.contains("transform") && sql.contains("job");
   }
 
   private static void processPythonRegister(String sql) {
@@ -355,6 +361,15 @@ public class IginxClient {
     }
     timestampPrecision = args[4];
     System.out.printf("Current time unit: %s\n", timestampPrecision);
+  }
+
+  private static void processCommitTransformJob(String sql) {
+    try {
+      long id = session.commitTransformJob(sql);
+      System.out.println("job id: " + id);
+    } catch (SessionException e) {
+      System.out.println(e.getMessage());
+    }
   }
 
   private static boolean isSetTimeUnit() {

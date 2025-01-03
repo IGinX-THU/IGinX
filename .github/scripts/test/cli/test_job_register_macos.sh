@@ -16,12 +16,27 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-
+ 
 
 set -e
 
-PORT=$1
-current_dir=$(pwd)
-cd "$SERVICE_DIR/redis"
-redis-server --port $PORT --dir "$SERVICE_DIR/redis/$PORT" --daemonize yes --pidfile "$SERVICE_DIR/redis/$PORT/redis.pid"
-cd $current_dir
+cp -f test/src/test/resources/transform/TransformMultiplePythonJobsWithExportToIginx.yaml client/target/iginx-client-$1/sbin/TransformMultiplePythonJobsWithExportToIginx.yaml
+
+ls client/target/iginx-client-$1/sbin
+
+COMMAND='commit transform job "'"TransformMultiplePythonJobsWithExportToIginx.yaml"'";'
+
+cd client/target/iginx-client-$1/sbin
+
+sh -c "chmod +x start_cli.sh"
+
+result=$(sh -c "echo '$COMMAND' | xargs -0 -t -I F sh start_cli.sh -e 'F'")
+
+if [[ $result =~ 'id' ]]; then
+  echo success
+  sleep 3
+else
+  echo 'Error: failed to commit job.'
+  echo $result
+  exit 1
+fi
