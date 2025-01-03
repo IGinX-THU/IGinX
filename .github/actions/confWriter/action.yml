@@ -74,18 +74,6 @@ runs:
               paths: ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-*/conf/config.properties
               statements: s/pythonCMD=python3/pythonCMD=python/g
 
-        - name: Set Read-Only
-          uses: ./.github/actions/edit
-          with:
-              paths: ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-*/conf/config.properties
-              statements: s/is_read_only=[^#]*/is_read_only=${{ inputs.Read-Only }}/g
-
-        - name: Set Has-Data
-          uses: ./.github/actions/edit
-          with:
-              paths: ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-*/conf/config.properties
-              statements: s/has_data=[^#]*/has_data=${{ inputs.Has-Data }}/g
-
         - name: Close All Optimizer
           uses: ./.github/actions/edit
           with:
@@ -198,6 +186,18 @@ runs:
                   s/chunk_size_in_bytes=[0-9]*/chunk_size_in_bytes=8/g
                   s/write.buffer.size=[0-9]*/write.buffer.size=1048576/g
                   s/client.connectPool.maxTotal=[0-9]*/client.connectPool.maxTotal=2/g
+
+        - name: Set Read-Only
+          uses: ./.github/actions/edit
+          with:
+              paths: ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-*/conf/config.properties
+              statements: s/is_read_only=[^#]*/is_read_only=${{ inputs.Read-Only }}/g
+
+        - name: Set Has-Data
+          uses: ./.github/actions/edit
+          with:
+              paths: ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-*/conf/config.properties
+              statements: s/has_data=[^#]*/has_data=${{ inputs.Has-Data }}/g
 
         - name: Show Config
           shell: bash
