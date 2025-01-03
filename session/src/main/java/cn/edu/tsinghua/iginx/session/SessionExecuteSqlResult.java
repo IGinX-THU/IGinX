@@ -45,6 +45,7 @@ public class SessionExecuteSqlResult {
   private long jobId;
   private JobState jobState;
   private Map<JobState, List<Long>> jobStateMap;
+  private String jobYamlPath;
   private Map<String, String> configs;
   private String loadCsvPath;
   private String UDFModulePath;
@@ -100,6 +101,7 @@ public class SessionExecuteSqlResult {
         break;
       case CommitTransformJob:
         this.jobId = resp.getJobId();
+        this.jobYamlPath = resp.getJobYamlPath();
         break;
       case ShowJobStatus:
         this.jobState = resp.getJobState();
@@ -606,6 +608,10 @@ public class SessionExecuteSqlResult {
 
   public JobState getJobState() {
     return jobState;
+  }
+
+  public String getJobYamlPath() {
+    return jobYamlPath;
   }
 
   public List<RegisterTaskInfo> getRegisterTaskInfos() {

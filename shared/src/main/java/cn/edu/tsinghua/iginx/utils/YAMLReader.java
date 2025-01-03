@@ -42,6 +42,9 @@ public class YAMLReader {
     this.path = path;
     this.yaml = new Yaml(new Constructor(JobFromYAML.class, new LoaderOptions()));
     this.file = new File(path);
+    if (!file.exists()) {
+      throw new FileNotFoundException(file.getAbsolutePath());
+    }
   }
 
   public String normalize(String conf) {
@@ -81,7 +84,9 @@ public class YAMLReader {
       LOGGER.error("Fail to find file, path={}", filePath);
     } finally {
       try {
-        in.close();
+        if (in != null) {
+          in.close();
+        }
       } catch (IOException e) {
         LOGGER.error("Fail to close the file, path={}", filePath);
       }
