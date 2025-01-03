@@ -61,16 +61,14 @@ public class FunctionManager {
   private static final String PATH =
       String.join(File.separator, config.getDefaultUDFDir(), "python_scripts");
 
-  private final PythonInterpreterConfig INTERPRETER_CONFIG;
+  private PythonInterpreterConfig INTERPRETER_CONFIG;
 
-  private final PythonInterpreter interpreter;
+  private PythonInterpreter interpreter;
 
   private static final String PythonCMD = config.getPythonCMD();
 
   private FunctionManager() {
     this.functions = new HashMap<>();
-    this.INTERPRETER_CONFIG =
-        PythonInterpreterConfig.newBuilder().setPythonExec(PythonCMD).addPythonPaths(PATH).build();
     LOGGER.debug("main thread: using pythonCMD: {}", PythonCMD);
     try {
       String sitePath =
@@ -80,9 +78,6 @@ public class FunctionManager {
     } catch (Exception e) {
       LOGGER.debug("failed to get purelib path", e);
     }
-    // 这是主线程的interpreter，用于删除UDF，UDF运行时使用线程池
-    this.interpreter = new PythonInterpreter(getConfig());
-    ThreadInterpreterManager.setInterpreter(interpreter);
     this.initSystemFunctions();
     if (config.isNeedInitBasicUDFFunctions()) {
       this.initBasicUDFFunctions();
@@ -90,7 +85,22 @@ public class FunctionManager {
   }
 
   public PythonInterpreterConfig getConfig() {
+    if (INTERPRETER_CONFIG == null) {
+      this.INTERPRETER_CONFIG =
+          PythonInterpreterConfig.newBuilder()
+              .setPythonExec(PythonCMD)
+              .addPythonPaths(PATH)
+              .build();
+    }
     return INTERPRETER_CONFIG;
+  }
+
+  public PythonInterpreter getInterpreter() {
+    if (interpreter == null) {
+      ThreadInterpreterManager.setConfig(getConfig());
+      interpreter = ThreadInterpreterManager.getInterpreter();
+    }
+    return interpreter;
   }
 
   public static FunctionManager getInstance() {
@@ -255,10 +265,6 @@ public class FunctionManager {
     } else {
       LOGGER.warn("No requirement document provided for python module {}.", rootPath);
     }
-  }
-
-  public PythonInterpreter getInterpreter() {
-    return interpreter;
   }
 
   public boolean hasFunction(String identifier) {

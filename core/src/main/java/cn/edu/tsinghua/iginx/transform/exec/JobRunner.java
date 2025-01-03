@@ -57,10 +57,10 @@ public class JobRunner implements Runner {
     for (Stage stage : job.getStageList()) {
       DataFlowType dataFlowType = stage.getStageType();
       switch (dataFlowType) {
-        case Batch:
+        case BATCH:
           runnerList.add(new BatchStageRunner((BatchStage) stage));
           break;
-        case Stream:
+        case STREAM:
           runnerList.add(new StreamStageRunner((StreamStage) stage));
           break;
         default:

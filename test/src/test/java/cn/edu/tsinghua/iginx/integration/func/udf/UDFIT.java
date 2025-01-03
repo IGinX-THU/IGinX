@@ -177,9 +177,7 @@ public class UDFIT {
   // drop unwanted UDFs no matter what
   @After
   public void dropTasks() {
-    for (String name : taskToBeRemoved) {
-      tool.execute(String.format(DROP_SQL, name));
-    }
+    tool.dropTasks(taskToBeRemoved);
     taskToBeRemoved.clear();
   }
 

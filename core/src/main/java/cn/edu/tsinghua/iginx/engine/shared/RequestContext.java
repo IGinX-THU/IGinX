@@ -62,7 +62,7 @@ public class RequestContext {
 
   private ByteBuffer UDFModuleByteBuffer;
 
-  private boolean isRemoteUDF;
+  private boolean isRemoteSession;
 
   private String warningMsg;
 

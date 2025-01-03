@@ -17,42 +17,20 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package cn.edu.tsinghua.iginx.exception;
+package cn.edu.tsinghua.iginx.transform.exec;
 
-public enum StatusCode {
-  WRONG_USERNAME_OR_PASSWORD(100),
-  ACCESS_DENY(101),
+import cn.edu.tsinghua.iginx.engine.physical.AbstractTaskThreadPoolExecutor;
+import pemja.core.PythonInterpreterConfig;
 
-  SUCCESS_STATUS(200),
-  PARTIAL_SUCCESS(204),
+public class WorkerThreadPoolExecutor extends AbstractTaskThreadPoolExecutor {
 
-  REDIRECT(300),
-
-  SESSION_ERROR(400),
-  STATEMENT_EXECUTION_ERROR(401),
-  STATEMENT_PARSE_ERROR(402),
-
-  SYSTEM_ERROR(500),
-  SERVICE_UNAVAILABLE(503),
-
-  JOB_FINISHED(600),
-  JOB_CREATED(601),
-  JOB_IDLE(602),
-  JOB_RUNNING(603),
-  JOB_PARTIALLY_FAILING(604),
-  JOB_PARTIALLY_FAILED(605),
-  JOB_FAILING(606),
-  JOB_FAILED(607),
-  JOB_CLOSING(608),
-  JOB_CLOSED(609);
-
-  private int statusCode;
-
-  StatusCode(int statusCode) {
-    this.statusCode = statusCode;
-  }
-
-  public int getStatusCode() {
-    return statusCode;
+  /**
+   * 创建固定大小线程池，使用LinkedBlockingQueue, 并指定interpreter config
+   *
+   * @param poolSize 线程池大小
+   * @param config python解释器设置
+   */
+  public WorkerThreadPoolExecutor(int poolSize, PythonInterpreterConfig config) {
+    super(poolSize, config);
   }
 }

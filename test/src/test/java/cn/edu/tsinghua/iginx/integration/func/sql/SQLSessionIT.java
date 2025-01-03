@@ -7096,6 +7096,7 @@ public class SQLSessionIT {
                 "statisticsLogInterval",
                 "enableMemoryControl",
                 "retryCount",
+                "defaultScheduledTransformJobDir",
                 "tagNameAnnotation",
                 "etcdEndpoints",
                 "mqttPayloadFormatter",
