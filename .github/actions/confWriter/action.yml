@@ -182,7 +182,7 @@ runs:
           uses: ./.github/actions/edit
           with:
               paths: ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-*/conf/config.properties
-              statements: s|^#storageEngineList=127.0.0.1#3306#relational#engine=mysql|storageEngineList=127.0.0.1#3306#relational#engine=mysql|g
+              statements: s|^#storageEngineList=127.0.0.1#3306#relational#engine=mysql.*$|storageEngineList=127.0.0.1#3306#relational#engine=mysql#username=root#has_data=false|g
 
         - if: inputs.DB-name == 'FileSystem'
           name: Modify IGinX Config
