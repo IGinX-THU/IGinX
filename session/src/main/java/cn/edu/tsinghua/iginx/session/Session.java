@@ -26,6 +26,7 @@ import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.thrift.*;
 import cn.edu.tsinghua.iginx.utils.*;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.security.InvalidParameterException;
@@ -1073,13 +1074,14 @@ public class Session {
 
   public LoadUDFResp executeRegisterTask(String statement, boolean isRemote)
       throws SessionException {
-    LoadUDFReq req = new LoadUDFReq(sessionId, statement, isRemote);
-    Reference<LoadUDFResp> ref = new Reference<>();
-    executeWithCheck(() -> (ref.resp = client.loadUDF(req)).status);
+    ExecuteSqlReq req = new ExecuteSqlReq(sessionId, statement);
+    req.setRemoteSession(isRemote);
+    Reference<ExecuteSqlResp> ref = new Reference<>();
+    executeWithCheck(() -> (ref.resp = client.executeSql(req)).status);
 
-    LoadUDFResp res = ref.resp;
+    ExecuteSqlResp res = ref.resp;
     String parseErrorMsg = res.getParseErrorMsg();
-    if (parseErrorMsg != null && !parseErrorMsg.equals("")) {
+    if (parseErrorMsg != null && !parseErrorMsg.isEmpty()) {
       return new LoadUDFResp(RpcUtils.FAILURE.setMessage(parseErrorMsg));
     }
     String path = res.getUDFModulePath();
@@ -1121,13 +1123,51 @@ public class Session {
     executeWithCheck(() -> client.closeStatement(req));
   }
 
+  public long commitTransformJob(String statement) throws SessionException {
+    ExecuteSqlReq req = new ExecuteSqlReq(sessionId, statement);
+    Reference<ExecuteSqlResp> ref = new Reference<>();
+    executeWithCheck(
+        () -> (ref.resp = client.executeSql(req)).status); // to resolve filepath from statement
+
+    String parseErrorMsg = ref.resp.getParseErrorMsg();
+    if (parseErrorMsg != null && !parseErrorMsg.isEmpty()) {
+      throw new SessionException(parseErrorMsg);
+    }
+
+    String filepath = ref.resp.getJobYamlPath();
+    return commitTransformJobByYaml(filepath);
+  }
+
+  public long commitTransformJobByYaml(String filepath) throws SessionException {
+    try {
+      YAMLReader yamlReader = new YAMLReader(filepath);
+      JobFromYAML jobFromYAML = yamlReader.getJobFromYAML();
+      CommitTransformJobReq req = jobFromYAML.toCommitTransformJobReq(sessionId);
+      Reference<CommitTransformJobResp> ref = new Reference<>();
+      executeWithCheck(() -> (ref.resp = client.commitTransformJob(req)).status);
+      return ref.resp.getJobId();
+    } catch (FileNotFoundException e) {
+      throw new InvalidParameterException(filepath + " does not exist!");
+    }
+  }
+
   public long commitTransformJob(
       List<TaskInfo> taskInfoList, ExportType exportType, String fileName) throws SessionException {
-    return commitTransformJob(taskInfoList, exportType, fileName, null);
+    return commitTransformJob(taskInfoList, exportType, fileName, null, true);
   }
 
   public long commitTransformJob(
       List<TaskInfo> taskInfoList, ExportType exportType, String fileName, String schedule)
+      throws SessionException {
+    return commitTransformJob(taskInfoList, exportType, fileName, schedule, true);
+  }
+
+  public long commitTransformJob(
+      List<TaskInfo> taskInfoList,
+      ExportType exportType,
+      String fileName,
+      String schedule,
+      boolean stopOnFailure)
       throws SessionException {
     CommitTransformJobReq req = new CommitTransformJobReq(sessionId, taskInfoList, exportType);
     if (fileName != null) {
@@ -1137,6 +1177,8 @@ public class Session {
     if (schedule != null) {
       req.setSchedule(schedule);
     }
+
+    req.setStopOnFailure(stopOnFailure);
 
     Reference<CommitTransformJobResp> ref = new Reference<>();
     executeWithCheck(() -> (ref.resp = client.commitTransformJob(req)).status);
