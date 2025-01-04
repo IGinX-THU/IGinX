@@ -108,10 +108,6 @@ jobs:
 
             - name: ${{ matrix.test-way }} IT
               shell: bash
-              env:
-                  SERVICE_DIR: "/home/runner/work/IGinX/IGinX/.github/actions/service"
-                  SERVICE_DIR_MAC: "/Users/runner/work/IGinX/IGinX/.github/actions/service"
-                  SERVICE_DIR_WIN: "/d/a/IGinX/IGinX/.github/actions/service"
               run: mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#${{ matrix.test-way }} -DfailIfNoTests=false -P-format
 
             - name: Clear history data
