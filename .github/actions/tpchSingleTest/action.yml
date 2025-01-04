@@ -14,7 +14,7 @@ runs:
     steps:
         - name: Start Old IGinX
           if: inputs.status != 'ok'
-          shell: bash
+          shell: bash -el {0}
           run: |
               cd IGinX/core/target/iginx-core-${VERSION}
               pwd

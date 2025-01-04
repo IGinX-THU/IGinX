@@ -46,7 +46,9 @@ sed -i"" -e "s/write.buffer.size=104857600/write.buffer.size=1048576/g" $7
 
 sed -i"" -e "s/client.connectPool.maxTotal=100/client.connectPool.maxTotal=2/g" $7
 
-if [ "$8" = "etcd" ]; then
+sed -i"" -e "s|pythonCMD=python3|pythonCMD=$8|g" $7
+
+if [ "$9" = "etcd" ]; then
   sed -i"" -e 's/^metaStorage=.*$/metaStorage=etcd/g' $7
   sed -i"" -e 's/^zookeeperConnectionString=/#zookeeperConnectionString=/g' $7
   sed -i"" -e 's/^#etcdEndpoints=/etcdEndpoints=/g' $7
