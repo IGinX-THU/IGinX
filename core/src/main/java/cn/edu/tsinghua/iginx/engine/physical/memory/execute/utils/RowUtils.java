@@ -699,7 +699,15 @@ public class RowUtils {
           // min和max无需去重
           if (!function.getIdentifier().equals(Max.MAX)
               && !function.getIdentifier().equals(Min.MIN)) {
-            transformedGroup = removeDuplicateRows(transformedGroup);
+            try (Table t = RowUtils.project(tmpHeader, transformedGroup, params.getPaths())) {
+              transformedGroup = removeDuplicateRows(t.getRows());
+              tmpHeader = t.getHeader();
+            } catch (PhysicalException e) {
+              LOGGER.error(
+                  "encounter error when execute distinct in set mapping function {}",
+                  function.getIdentifier(),
+                  e);
+            }
           }
         }
 
@@ -755,7 +763,7 @@ public class RowUtils {
                             transformedGroup.addAll(tmp.getRows());
                           } catch (PhysicalException e) {
                             LOGGER.error(
-                                "encounter error when execute set mapping function parameters");
+                                "encounter error when execute set mapping function parameters", e);
                           }
                         } else {
                           transformedGroup = group;
@@ -769,11 +777,15 @@ public class RowUtils {
                           // min和max无需去重
                           if (!function.getIdentifier().equals(Max.MAX)
                               && !function.getIdentifier().equals(Min.MIN)) {
-                            try {
-                              transformedGroup = removeDuplicateRows(transformedGroup);
+                            try (Table t =
+                                RowUtils.project(tmpHeader, transformedGroup, params.getPaths())) {
+                              transformedGroup = removeDuplicateRows(t.getRows());
+                              tmpHeader = t.getHeader();
                             } catch (PhysicalException e) {
                               LOGGER.error(
-                                  "encounter error when execute distinct in set mapping function");
+                                  "encounter error when execute distinct in set mapping function {}",
+                                  function.getIdentifier(),
+                                  e);
                             }
                           }
                         }
@@ -788,7 +800,10 @@ public class RowUtils {
                             }
                           }
                         } catch (Exception e) {
-                          LOGGER.error("encounter error when execute set mapping function ");
+                          LOGGER.error(
+                              "encounter error when execute set mapping function {}.",
+                              function.getIdentifier(),
+                              e);
                         }
                       });
               latch.countDown();
@@ -959,6 +974,20 @@ public class RowUtils {
           }
           return 0;
         });
+  }
+
+  public static Table project(Header header, List<Row> rows, List<String> patterns) {
+    Header targetHeader = header.projectedHeader(patterns, false);
+    List<Field> targetFields = targetHeader.getFields();
+    List<Row> targetRows = new ArrayList<>();
+    for (Row row : rows) {
+      Object[] objects = new Object[targetFields.size()];
+      for (int i = 0; i < targetFields.size(); i++) {
+        objects[i] = row.getValue(targetFields.get(i));
+      }
+      targetRows.add(new Row(targetHeader, row.getKey(), objects));
+    }
+    return new Table(targetHeader, targetRows);
   }
 
   public static List<Row> removeDuplicateRows(List<Row> rows) throws PhysicalException {
