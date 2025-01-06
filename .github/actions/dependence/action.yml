@@ -93,7 +93,8 @@ runs:
               PYTHON_PATH=$(dirname $(which python))
               echo $PYTHON_PATH
               echo "IGINX_PYTHON_PATH=$PYTHON_PATH" >> $GITHUB_ENV
-              echo "PATH=$PYTHON_PATH:$PATH" >> $GITHUB_ENV
+              echo "export PATH=$PYTHON_PATH:\$PATH" >> ~/.profile
+              source ~/.profile
               echo $PATH
 
         - if: inputs.scope=='all'
