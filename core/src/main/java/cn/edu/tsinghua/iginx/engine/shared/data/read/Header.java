@@ -19,6 +19,7 @@
  */
 package cn.edu.tsinghua.iginx.engine.shared.data.read;
 
+import static cn.edu.tsinghua.iginx.engine.shared.Constants.KEY;
 import static cn.edu.tsinghua.iginx.engine.shared.Constants.RESERVED_COLS;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
@@ -130,6 +131,35 @@ public final class Header {
     return Objects.equals(key, header.key)
         && Objects.equals(fields, header.fields)
         && Objects.equals(indexMap, header.indexMap);
+  }
+
+  /**
+   * 根据Project算子的patterns和isRemainKey计算投影后的header
+   *
+   * @param patterns Project算子参数
+   * @param isRemainKey Project算子参数
+   * @return 投影后的header
+   */
+  public Header projectedHeader(List<String> patterns, boolean isRemainKey) {
+    List<Field> targetFields = new ArrayList<>();
+    for (Field field : fields) {
+      if (isRemainKey && field.getName().endsWith("." + KEY)) {
+        targetFields.add(field);
+        continue;
+      }
+      for (String pattern : patterns) {
+        if (!StringUtils.isPattern(pattern)) {
+          if (pattern.equals(field.getName())) {
+            targetFields.add(field);
+          }
+        } else {
+          if (Pattern.matches(StringUtils.reformatPath(pattern), field.getName())) {
+            targetFields.add(field);
+          }
+        }
+      }
+    }
+    return new Header(key, targetFields);
   }
 
   /**
