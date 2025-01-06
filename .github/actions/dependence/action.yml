@@ -110,22 +110,37 @@ runs:
           uses: ./.github/actions/service/freeThreadPython
 
         - name: Set up JDK ${{ inputs.java }}
+          if: env.IGINX_CONDA_FLAG != 'true'
           uses: actions/setup-java@v4
           with:
               java-version: ${{ inputs.java }}
               distribution: ${{ runner.os == 'macOS' && matrix.java == '8' && 'liberica' || 'temurin' }}
               cache: "maven"
 
-        - name: Add Java to Profile # to take effect in login mode shell
+        - name: Set up JDK ${{ inputs.java }}
+          if: env.IGINX_CONDA_FLAG == 'true'
+          shell: bash -el {0}
+          run: |
+            conda install -c conda-forge openjdk=${{ inputs.java }}
+            echo "JAVA_HOME=$CONDA_PREFIX" >> $GITHUB_ENV
+
+        - name: Check Java & Python Version
+          if: env.IGINX_CONDA_FLAG != 'true'
           shell: bash
           run: |
-              IGINX_JAVA_PATH=$(dirname $(which java))
-              echo $IGINX_JAVA_PATH
-              echo "$IGINX_JAVA_PATH" >> $GITHUB_PATH
-              echo "export PATH=$IGINX_JAVA_PATH:\$PATH" >> ~/.profile
-              source ~/.profile
-              echo "export PATH=$IGINX_JAVA_PATH:\$PATH" >> ~/.bashrc
-              source ~/.bashrc
+              java -version
+              which java
+              python --version
+              which python
+
+        - name: Check Java & Python Version
+          if: env.IGINX_CONDA_FLAG == 'true'
+          shell: bash -el {0}
+          run: |
+            java -version
+            which java
+            python --version
+            which python
 
         - name: Get project info
           id: project
