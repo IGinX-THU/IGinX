@@ -77,7 +77,7 @@ runs:
               echo "requests" >> requirements.txt
               echo "torch" >> requirements.txt
 
-        - if: inputs.scope=='all'
+        - if: inputs.scope=='all' && env.IGINX_CONDA_FLAG != 'true'
           name: Set up Python ${{ inputs.python-version }}
           uses: actions/setup-python@v5
           with:
@@ -93,6 +93,10 @@ runs:
               PYTHON_PATH=$(dirname $(which python))
               echo $PYTHON_PATH
               echo "IGINX_PYTHON_PATH=$PYTHON_PATH" >> $GITHUB_ENV
+              echo "export PATH=$IGINX_PYTHON_PATH:\$PATH" >> ~/.profile
+              source ~/.profile
+              echo "export PATH=$IGINX_PYTHON_PATH:\$PATH" >> ~/.bashrc
+              source ~/.bashrc
 
         - if: inputs.scope=='all'
           name: Install Python dependencies
