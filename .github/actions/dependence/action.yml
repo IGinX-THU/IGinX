@@ -97,11 +97,13 @@ runs:
               source ~/.profile
               echo "export PATH=$IGINX_PYTHON_PATH:\$PATH" >> ~/.bashrc
               source ~/.bashrc
+              echo $PATH
 
         - if: inputs.scope=='all'
           name: Install Python dependencies
           shell: bash -el {0}
           run: |
+              echo $PATH
               python -m pip install --upgrade pip
               pip install -r requirements.txt
 
@@ -121,10 +123,8 @@ runs:
           shell: bash -el {0}
           run: |
             conda install -c conda-forge openjdk=${{ inputs.java }}
-            echo "JAVA_HOME=$CONDA_PREFIX" >> $GITHUB_ENV
 
         - name: Check Java & Python Version
-          if: env.IGINX_CONDA_FLAG != 'true'
           shell: bash
           run: |
               java -version
@@ -133,7 +133,6 @@ runs:
               which python
 
         - name: Check Java & Python Version
-          if: env.IGINX_CONDA_FLAG == 'true'
           shell: bash -el {0}
           run: |
             java -version
