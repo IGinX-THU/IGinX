@@ -71,5 +71,9 @@ runs:
           id: get
           shell: bash
           run: |
-              STATUS=$(cat test/src/test/resources/tpch/runtimeInfo/status.txt)
-              echo "status=$STATUS" >> $GITHUB_OUTPUT
+              if [ -f test/src/test/resources/tpch/runtimeInfo/status.txt ]; then
+                  STATUS=$(cat test/src/test/resources/tpch/runtimeInfo/status.txt)
+                  echo "status=$STATUS" >> $GITHUB_OUTPUT
+              else  
+                  echo "status=unfinished" >> $GITHUB_OUTPUT
+              fi

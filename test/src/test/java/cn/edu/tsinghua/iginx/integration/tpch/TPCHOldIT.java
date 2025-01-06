@@ -23,12 +23,10 @@ import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.session.Session;
+import com.google.common.collect.ArrayListMultimap;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -56,25 +54,13 @@ public class TPCHOldIT {
     session.closeSession();
   }
 
-  static final String FAILED_QUERY_ID_PATH =
-      "src/test/resources/tpch/runtimeInfo/failedQueryIds.txt";
-
-  static final String ITERATION_TIMES_PATH =
-      "src/test/resources/tpch/runtimeInfo/iterationTimes.txt";
-
-  static final String OLD_TIME_COSTS_PATH = "src/test/resources/tpch/runtimeInfo/oldTimeCosts.txt";
-
-  static final String NEW_TIME_COSTS_PATH = "src/test/resources/tpch/runtimeInfo/newTimeCosts.txt";
-
-  static final String STATUS_PATH = "src/test/resources/tpch/runtimeInfo/status.txt";
-
   // 最大重复测试次数
   int MAX_REPETITIONS_NUM;
 
   // 回归阈值
   double REGRESSION_THRESHOLD;
 
-  List<Integer> queryIds;
+  List<String> queryIds;
 
   // 当前查询次数
   int iterationTimes;
@@ -82,19 +68,10 @@ public class TPCHOldIT {
   // 是否需要验证正确性
   boolean needValidate;
 
-  public TPCHOldIT() {
+  public TPCHOldIT() throws IOException {
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
-    List<String> lines = TPCHUtils.getLinesFromFile(ITERATION_TIMES_PATH);
-    iterationTimes = Integer.parseInt(lines.get(0));
-    if (iterationTimes == 1) {
-      queryIds = conf.getQueryIds();
-    } else {
-      lines = TPCHUtils.getLinesFromFile(FAILED_QUERY_ID_PATH);
-      queryIds = new ArrayList<>();
-      for (String line : lines) {
-        queryIds.add(Integer.parseInt(line));
-      }
-    }
+    iterationTimes = TPCHUtils.getIterationTimesFromFile();
+    queryIds = TPCHUtils.getFailedQueryIdsFromFile();
     // 第一次查询需要验证查询结果正确性
     needValidate = iterationTimes == 1;
     MAX_REPETITIONS_NUM = conf.getMaxRepetitionsNum();
@@ -102,7 +79,7 @@ public class TPCHOldIT {
   }
 
   @Test
-  public void test() {
+  public void test() throws IOException {
     if (queryIds.isEmpty()) {
       LOGGER.info("No query remain, skip test main branch.");
       return;
@@ -114,13 +91,15 @@ public class TPCHOldIT {
       Assert.fail();
     }
 
-    List<Integer> failedQueryIds = new ArrayList<>();
-    List<List<Long>> oldTimeCosts = TPCHUtils.readTimeCostsFromFile(OLD_TIME_COSTS_PATH);
-    List<List<Long>> newTimeCosts = TPCHUtils.readTimeCostsFromFile(NEW_TIME_COSTS_PATH);
+    List<String> failedQueryIds = new ArrayList<>();
+    ArrayListMultimap<String, Long> oldTimeCosts =
+        TPCHUtils.readTimeCostsFromFile(TPCHUtils.OLD_TIME_COSTS_PATH);
+    ArrayListMultimap<String, Long> newTimeCosts =
+        TPCHUtils.readTimeCostsFromFile(TPCHUtils.NEW_TIME_COSTS_PATH);
     double ratio = 1 + REGRESSION_THRESHOLD;
-    for (int queryId : queryIds) {
+    for (String queryId : queryIds) {
       long timeCost = TPCHUtils.executeTPCHQuery(session, queryId, needValidate);
-      oldTimeCosts.get(queryId - 1).add(timeCost);
+      oldTimeCosts.get(queryId).add(timeCost);
       LOGGER.info(
           "Successfully execute TPC-H query {} in old branch in iteration {}, time cost: {}ms",
           queryId,
@@ -128,18 +107,18 @@ public class TPCHOldIT {
           timeCost);
 
       // 新旧分支查询次数不相同
-      if (oldTimeCosts.get(queryId - 1).size() != newTimeCosts.get(queryId - 1).size()) {
+      if (oldTimeCosts.get(queryId).size() != newTimeCosts.get(queryId).size()) {
         LOGGER.error(
             "Query {} run {} times in old branch, but {} times in new branch, please check.",
             queryId,
-            oldTimeCosts.get(queryId - 1).size(),
-            newTimeCosts.get(queryId - 1).size());
+            oldTimeCosts.get(queryId).size(),
+            newTimeCosts.get(queryId).size());
         Assert.fail();
       }
 
       // 与主分支运行结果进行比较
-      long oldTimeCostMedian = getMedian(oldTimeCosts.get(queryId - 1));
-      long newTimeCostMedian = getMedian(newTimeCosts.get(queryId - 1));
+      long oldTimeCostMedian = getMedian(oldTimeCosts.get(queryId));
+      long newTimeCostMedian = getMedian(newTimeCosts.get(queryId));
       if (oldTimeCostMedian * ratio < newTimeCostMedian) {
         if (iterationTimes >= MAX_REPETITIONS_NUM) {
           LOGGER.error(
@@ -165,9 +144,9 @@ public class TPCHOldIT {
       writeOKtoFile();
     }
 
-    TPCHUtils.clearAndRewriteTimeCostsToFile(oldTimeCosts, OLD_TIME_COSTS_PATH);
-    clearAndRewriteFailedQueryIdsToFile(failedQueryIds);
-    updateIterationTimes();
+    TPCHUtils.clearAndRewriteTimeCostsToFile(oldTimeCosts, TPCHUtils.OLD_TIME_COSTS_PATH);
+    TPCHUtils.clearAndRewriteFailedQueryIdsToFile(failedQueryIds);
+    TPCHUtils.rewriteIterationTimes(iterationTimes + 1);
   }
 
   private long getMedian(List<Long> array) {
@@ -179,7 +158,7 @@ public class TPCHOldIT {
   }
 
   private void writeOKtoFile() {
-    try (FileWriter fileWriter = new FileWriter(STATUS_PATH);
+    try (FileWriter fileWriter = new FileWriter(TPCHUtils.STATUS_PATH);
         BufferedWriter bufferedWriter = new BufferedWriter(fileWriter)) {
       // 清空文件内容
       fileWriter.write("");
@@ -187,48 +166,7 @@ public class TPCHOldIT {
       // 重新写入内容
       bufferedWriter.write("ok");
     } catch (IOException e) {
-      LOGGER.error("Write to file {} fail. Caused by:", STATUS_PATH, e);
-      Assert.fail();
-    }
-  }
-
-  private void clearAndRewriteFailedQueryIdsToFile(List<Integer> failedQueryIds) {
-    Path path = Paths.get(FAILED_QUERY_ID_PATH);
-    if (!Files.exists(path)) {
-      try {
-        Files.createFile(path);
-      } catch (IOException e) {
-        LOGGER.error("Failed to create file {}. Caused by: ", FAILED_QUERY_ID_PATH, e);
-        Assert.fail();
-      }
-    }
-    try (FileWriter fileWriter = new FileWriter(String.valueOf(path));
-        BufferedWriter bufferedWriter = new BufferedWriter(fileWriter)) {
-      // 清空文件内容
-      fileWriter.write("");
-      fileWriter.flush();
-      // 重新写入内容
-      for (int failedQueryId : failedQueryIds) {
-        bufferedWriter.write(String.valueOf(failedQueryId));
-        bufferedWriter.newLine();
-      }
-    } catch (IOException e) {
-      LOGGER.error("Write to file {} fail. Caused by:", path.getFileName(), e);
-      Assert.fail();
-    }
-  }
-
-  private void updateIterationTimes() {
-    iterationTimes++;
-    try (FileWriter fileWriter = new FileWriter(ITERATION_TIMES_PATH);
-        BufferedWriter bufferedWriter = new BufferedWriter(fileWriter)) {
-      // 清空文件内容
-      fileWriter.write("");
-      fileWriter.flush();
-      // 重新写入内容
-      bufferedWriter.write(String.valueOf(iterationTimes));
-    } catch (IOException e) {
-      LOGGER.error("Write to file {} fail. Caused by:", ITERATION_TIMES_PATH, e);
+      LOGGER.error("Write to file {} fail. Caused by:", TPCHUtils.STATUS_PATH, e);
       Assert.fail();
     }
   }

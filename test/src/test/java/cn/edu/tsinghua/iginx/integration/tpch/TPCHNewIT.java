@@ -23,9 +23,9 @@ import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.session.Session;
+import com.google.common.collect.ArrayListMultimap;
 import java.io.IOException;
 import java.text.ParseException;
-import java.util.ArrayList;
 import java.util.List;
 import org.junit.After;
 import org.junit.Assert;
@@ -53,18 +53,10 @@ public class TPCHNewIT {
     session.closeSession();
   }
 
-  static final String FAILED_QUERY_ID_PATH =
-      "src/test/resources/tpch/runtimeInfo/failedQueryIds.txt";
-
-  static final String ITERATION_TIMES_PATH =
-      "src/test/resources/tpch/runtimeInfo/iterationTimes.txt";
-
-  static final String NEW_TIME_COSTS_PATH = "src/test/resources/tpch/runtimeInfo/newTimeCosts.txt";
-
   // 最大重复测试次数
   int MAX_REPETITIONS_NUM;
 
-  List<Integer> queryIds;
+  List<String> queryIds;
 
   // 当前查询次数
   int iterationTimes;
@@ -72,26 +64,17 @@ public class TPCHNewIT {
   // 是否需要验证正确性
   boolean needValidate;
 
-  public TPCHNewIT() {
+  public TPCHNewIT() throws IOException {
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
-    List<String> lines = TPCHUtils.getLinesFromFile(ITERATION_TIMES_PATH);
-    iterationTimes = Integer.parseInt(lines.get(0));
-    if (iterationTimes == 1) {
-      queryIds = conf.getQueryIds();
-    } else {
-      lines = TPCHUtils.getLinesFromFile(FAILED_QUERY_ID_PATH);
-      queryIds = new ArrayList<>();
-      for (String line : lines) {
-        queryIds.add(Integer.parseInt(line));
-      }
-    }
+    iterationTimes = TPCHUtils.getIterationTimesFromFile();
+    queryIds = TPCHUtils.getFailedQueryIdsFromFile();
     // 第一次查询需要验证查询结果正确性
     needValidate = iterationTimes == 1;
     MAX_REPETITIONS_NUM = conf.getMaxRepetitionsNum();
   }
 
   @Test
-  public void test() {
+  public void test() throws IOException {
     if (queryIds.isEmpty()) {
       LOGGER.info("No query remain, skip test new branch.");
       return;
@@ -103,14 +86,15 @@ public class TPCHNewIT {
       Assert.fail();
     }
 
-    List<List<Long>> timeCosts = TPCHUtils.readTimeCostsFromFile(NEW_TIME_COSTS_PATH);
-    for (int queryId : queryIds) {
+    ArrayListMultimap<String, Long> timeCosts =
+        TPCHUtils.readTimeCostsFromFile(TPCHUtils.NEW_TIME_COSTS_PATH);
+    for (String queryId : queryIds) {
       long timeCost = TPCHUtils.executeTPCHQuery(session, queryId, needValidate);
-      timeCosts.get(queryId - 1).add(timeCost);
+      timeCosts.get(queryId).add(timeCost);
       System.out.printf(
-          "Successfully execute TPC-H query %d in new branch in iteration %d, time cost: %dms%n",
+          "Successfully execute TPC-H query %s in new branch in iteration %d, time cost: %dms%n",
           queryId, iterationTimes, timeCost);
     }
-    TPCHUtils.clearAndRewriteTimeCostsToFile(timeCosts, NEW_TIME_COSTS_PATH);
+    TPCHUtils.clearAndRewriteTimeCostsToFile(timeCosts, TPCHUtils.NEW_TIME_COSTS_PATH);
   }
 }

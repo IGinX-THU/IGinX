@@ -22,11 +22,15 @@ package cn.edu.tsinghua.iginx.integration.tpch;
 import static cn.edu.tsinghua.iginx.integration.tpch.TPCHUtils.FieldType.*;
 
 import cn.edu.tsinghua.iginx.exception.SessionException;
+import cn.edu.tsinghua.iginx.integration.controller.Controller;
+import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
+import com.google.common.collect.ArrayListMultimap;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.ParseException;
@@ -43,6 +47,17 @@ public class TPCHUtils {
 
   private static final String DATA_DIR =
       System.getProperty("user.dir") + "/../tpc/TPC-H V3.0.1/data";
+  static final String FAILED_QUERY_ID_PATH =
+      "src/test/resources/tpch/runtimeInfo/failedQueryIds.txt";
+
+  static final String ITERATION_TIMES_PATH =
+      "src/test/resources/tpch/runtimeInfo/iterationTimes.txt";
+
+  static final String OLD_TIME_COSTS_PATH = "src/test/resources/tpch/runtimeInfo/oldTimeCosts.txt";
+
+  static final String NEW_TIME_COSTS_PATH = "src/test/resources/tpch/runtimeInfo/newTimeCosts.txt";
+
+  static final String STATUS_PATH = "src/test/resources/tpch/runtimeInfo/status.txt";
 
   enum FieldType {
     NUM,
@@ -227,41 +242,68 @@ public class TPCHUtils {
     return contentBuilder.toString();
   }
 
-  public static List<List<Long>> readTimeCostsFromFile(String filename) {
-    List<String> lines = getLinesFromFile(filename);
-    assert lines.size() == 22;
-
-    // TPC-H一共有22条查询
-    List<List<Long>> timeCosts = new ArrayList<>(22);
-    for (int i = 0; i < 22; i++) {
-      List<Long> tmp = new ArrayList<>();
-      String[] lineArray = lines.get(i).split(",");
-      for (String str : lineArray) {
-        if (!str.isEmpty()) {
-          tmp.add(Long.parseLong(str));
-        }
+  public static ArrayListMultimap<String, Long> readTimeCostsFromFile(String filename)
+      throws IOException {
+    Properties properties = new Properties();
+    try (InputStream in = Files.newInputStream(Paths.get(filename))) {
+      properties.load(in);
+    } catch (NoSuchFileException ignored) {
+      return ArrayListMultimap.create();
+    }
+    ArrayListMultimap<String, Long> timeCosts = ArrayListMultimap.create();
+    for (String key : properties.stringPropertyNames()) {
+      String[] values = properties.getProperty(key).split(",");
+      for (String value : values) {
+        timeCosts.put(key, Long.parseLong(value));
       }
-      timeCosts.add(tmp);
     }
     return timeCosts;
   }
 
-  public static void clearAndRewriteTimeCostsToFile(List<List<Long>> timeCosts, String filename) {
-    try (FileWriter fileWriter = new FileWriter(filename);
-        BufferedWriter bufferedWriter = new BufferedWriter(fileWriter)) {
-      // 清空文件内容
-      fileWriter.write("");
-      fileWriter.flush();
-      // 重新写入内容
-      for (List<Long> timeCost : timeCosts) {
-        bufferedWriter.write(
-            timeCost.stream().map(String::valueOf).collect(Collectors.joining(",")));
-        bufferedWriter.newLine();
-      }
-    } catch (IOException e) {
-      LOGGER.error("Write to file {} fail. Caused by:", filename, e);
-      Assert.fail();
+  public static void clearAndRewriteTimeCostsToFile(
+      ArrayListMultimap<String, Long> timeCosts, String filename) throws IOException {
+    Properties properties = new Properties();
+    for (Map.Entry<String, Collection<Long>> entry : timeCosts.asMap().entrySet()) {
+      String key = entry.getKey();
+      Collection<Long> values = entry.getValue();
+      String value = values.stream().map(Object::toString).collect(Collectors.joining(","));
+      properties.setProperty(key, value);
     }
+    try (OutputStream out = Files.newOutputStream(Paths.get(filename))) {
+      properties.store(out, null);
+    }
+  }
+
+  public static List<String> getFailedQueryIdsFromFile() throws IOException {
+    Path path = Paths.get(FAILED_QUERY_ID_PATH);
+    try {
+      return Files.readAllLines(path);
+    } catch (NoSuchFileException ignored) {
+      ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
+      return conf.getQueryIds();
+    }
+  }
+
+  public static void clearAndRewriteFailedQueryIdsToFile(List<String> failedQueryIds)
+      throws IOException {
+    Path path = Paths.get(FAILED_QUERY_ID_PATH);
+    Files.write(path, failedQueryIds);
+  }
+
+  public static int getIterationTimesFromFile() throws IOException {
+    try {
+      List<String> lines = Files.readAllLines(Paths.get(ITERATION_TIMES_PATH));
+      assert lines.size() == 1;
+      return Integer.parseInt(lines.get(0));
+    } catch (NoSuchFileException ignored) {
+      return 1;
+    }
+  }
+
+  public static void rewriteIterationTimes(long iterationTimes) throws IOException {
+    Files.write(
+        Paths.get(TPCHUtils.ITERATION_TIMES_PATH),
+        Collections.singleton(String.valueOf(iterationTimes)));
   }
 
   public static List<String> getLinesFromFile(String fileName) {
@@ -276,7 +318,7 @@ public class TPCHUtils {
     return lines;
   }
 
-  public static long executeTPCHQuery(Session session, int queryId, boolean needValidate) {
+  public static long executeTPCHQuery(Session session, String queryId, boolean needValidate) {
     String sqlString = null;
     try {
       sqlString =
@@ -302,7 +344,7 @@ public class TPCHUtils {
     return cost;
   }
 
-  private static void validate(SessionExecuteSqlResult result, int queryId) {
+  private static void validate(SessionExecuteSqlResult result, String queryId) {
     List<List<Object>> values = result.getValues();
     List<List<String>> answers = csvReader("src/test/resources/tpch/sf0.1/q" + queryId + ".csv");
     if (values.size() != answers.size()) {
