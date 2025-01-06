@@ -87,7 +87,7 @@ jobs:
 
             - name: Run UDF path test
               if: always()
-              shell: bash
+              shell: bash -el {0}
               run: |
                   mvn test -q -Dtest=UDFPathIT -DfailIfNoTests=false -P-format
                   if [ "$RUNNER_OS" == "Linux" ]; then
@@ -105,7 +105,7 @@ jobs:
             # 1. test relative path
             # 2. prepare for restart test
             - name: Run Transform Job tests
-              shell: bash
+              shell: bash -el {0}
               run: |
                   mvn test -q -Dtest=TransformJobPathIT#prepare -DfailIfNoTests=false -P-format
                   if [ "$RUNNER_OS" == "Linux" ]; then
@@ -132,7 +132,7 @@ jobs:
                   if-test-udf: "true"
 
             - name: Verify Transform Job
-              shell: bash
+              shell: bash -el {0}
               run: |
                   mvn test -q -Dtest=TransformJobRestartIT#verifyJobExists -DfailIfNoTests=false -P-format
 
@@ -157,7 +157,7 @@ jobs:
             # TODO: extract it to a separate job to test
             # large image export only tested in FileSystem
             - name: Test Client Export File
-              shell: bash
+              shell: bash -el {0}
               run: |
                   if [[ "${{ matrix.DB-name }}" == "FileSystem" ]]; then
                       mvn test -q -Dtest=ExportFileIT -DfailIfNoTests=false -P-format
@@ -179,7 +179,7 @@ jobs:
 
             - name: Test Client Import File
               if: always()
-              shell: bash
+              shell: bash -el {0}
               run: |
                   mvn test -q -Dtest=ImportFileIT -DfailIfNoTests=false -P-format
 
@@ -191,7 +191,7 @@ jobs:
 
             - name: TestController IT
               if: always()
-              shell: bash
+              shell: bash -el {0}
               env:
                   METADATA_STORAGE: ${{ matrix.metadata }}
               run: |
@@ -217,7 +217,7 @@ jobs:
 
             - name: FilterFragmentRuleTest IT
               if: always()
-              shell: bash
+              shell: bash -el {0}
               run: |
                   chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/test_union.sh"
                   mvn test -q -Dtest=SQLSessionIT#testFilterFragmentOptimizer -DfailIfNoTests=false -P-format

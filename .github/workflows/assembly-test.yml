@@ -76,7 +76,7 @@ jobs:
                   fi
 
             - name: Run Tests
-              shell: bash
+              shell: bash -el {0}
               run: mvn test -Dtest=${{ env.FUNCTEST }} -DfailIfNoTests=false -P-format
 
             - name: Check Whether Logs Contains Error

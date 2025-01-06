@@ -71,7 +71,7 @@ jobs:
 
             - name: TestMixCluster
               if: always()
-              shell: bash
+              shell: bash -el {0}
               run: |
                   mvn test -q -Dtest=MixClusterShowColumnsRegressionTest -DfailIfNoTests=false -P-format
 
