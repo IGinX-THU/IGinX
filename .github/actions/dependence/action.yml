@@ -93,10 +93,7 @@ runs:
               PYTHON_PATH=$(dirname $(which python))
               echo $PYTHON_PATH
               echo "IGINX_PYTHON_PATH=$PYTHON_PATH" >> $GITHUB_ENV
-              echo "export PATH=$IGINX_PYTHON_PATH:\$PATH" >> ~/.profile
-              source ~/.profile
-              echo "export PATH=$IGINX_PYTHON_PATH:\$PATH" >> ~/.bashrc
-              source ~/.bashrc
+              echo "PATH=$PYTHON_PATH:$PATH" >> $GITHUB_ENV
               echo $PATH
 
         - if: inputs.scope=='all'
@@ -117,12 +114,6 @@ runs:
               java-version: ${{ inputs.java }}
               distribution: ${{ runner.os == 'macOS' && matrix.java == '8' && 'liberica' || 'temurin' }}
               cache: "maven"
-
-        - name: Set up JDK ${{ inputs.java }} in conda
-          if: env.IGINX_CONDA_FLAG == 'true'
-          shell: bash -el {0}
-          run: |
-            conda install -c conda-forge openjdk=${{ inputs.java }}
 
         - name: Check Java & Python Version
           shell: bash
