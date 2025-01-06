@@ -110,14 +110,13 @@ runs:
           uses: ./.github/actions/service/freeThreadPython
 
         - name: Set up JDK ${{ inputs.java }}
-          if: env.IGINX_CONDA_FLAG != 'true'
           uses: actions/setup-java@v4
           with:
               java-version: ${{ inputs.java }}
               distribution: ${{ runner.os == 'macOS' && matrix.java == '8' && 'liberica' || 'temurin' }}
               cache: "maven"
 
-        - name: Set up JDK ${{ inputs.java }}
+        - name: Set up JDK ${{ inputs.java }} in conda
           if: env.IGINX_CONDA_FLAG == 'true'
           shell: bash -el {0}
           run: |
