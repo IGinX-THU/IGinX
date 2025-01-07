@@ -27,6 +27,7 @@ import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.io.MoreFiles;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -269,7 +270,9 @@ public class TPCHUtils {
       String value = values.stream().map(Object::toString).collect(Collectors.joining(","));
       properties.setProperty(key, value);
     }
-    try (OutputStream out = Files.newOutputStream(Paths.get(filename))) {
+    Path path = Paths.get(filename);
+    MoreFiles.createParentDirectories(path);
+    try (OutputStream out = Files.newOutputStream(path)) {
       properties.store(out, null);
     }
   }
@@ -287,6 +290,7 @@ public class TPCHUtils {
   public static void clearAndRewriteFailedQueryIdsToFile(List<String> failedQueryIds)
       throws IOException {
     Path path = Paths.get(FAILED_QUERY_ID_PATH);
+    MoreFiles.createParentDirectories(path);
     Files.write(path, failedQueryIds);
   }
 
@@ -301,21 +305,9 @@ public class TPCHUtils {
   }
 
   public static void rewriteIterationTimes(long iterationTimes) throws IOException {
-    Files.write(
-        Paths.get(TPCHUtils.ITERATION_TIMES_PATH),
-        Collections.singleton(String.valueOf(iterationTimes)));
-  }
-
-  public static List<String> getLinesFromFile(String fileName) {
-    Path filePath = Paths.get(fileName);
-    List<String> lines = null;
-    try {
-      lines = Files.readAllLines(filePath);
-    } catch (IOException e) {
-      LOGGER.error("Read file {} fail. Caused by:", filePath, e);
-      Assert.fail();
-    }
-    return lines;
+    Path path = Paths.get(ITERATION_TIMES_PATH);
+    MoreFiles.createParentDirectories(path);
+    Files.write(path, Collections.singleton(String.valueOf(iterationTimes)));
   }
 
   public static long executeTPCHQuery(Session session, String queryId, boolean needValidate) {
