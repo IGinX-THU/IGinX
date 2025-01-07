@@ -72,17 +72,17 @@ public class Transform {
     }
 
     public Transform.Builder exportToLog() {
-      this.exportType = ExportType.Log;
+      this.exportType = ExportType.LOG;
       return this;
     }
 
     public Transform.Builder exportToIginX() {
-      this.exportType = ExportType.IginX;
+      this.exportType = ExportType.IGINX;
       return this;
     }
 
     public Transform.Builder exportToFile(String fileName) {
-      this.exportType = ExportType.File;
+      this.exportType = ExportType.FILE;
       this.fileName = fileName;
       return this;
     }

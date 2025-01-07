@@ -25,13 +25,9 @@ import cn.edu.tsinghua.iginx.transform.pojo.Job;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
 import org.quartz.JobListener;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import pemja.core.PythonInterpreter;
 
 public class TransformJobListener implements JobListener {
-  private static final Logger LOGGER = LoggerFactory.getLogger(TransformJobListener.class);
-
   @Override
   public String getName() {
     return "JobExceptionListener";
@@ -53,7 +49,6 @@ public class TransformJobListener implements JobListener {
   public void jobWasExecuted(JobExecutionContext context, JobExecutionException jobException) {
     if (jobException != null) {
       Job job = (Job) context.getMergedJobDataMap().get("job");
-      LOGGER.error("Job {} execution failed", job.getJobId(), jobException);
       job.setException(jobException);
     }
   }

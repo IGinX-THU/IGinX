@@ -25,6 +25,7 @@ REMOVE_DIRS=(
 	include/apache-zookeeper/logs
 	sbin/data
 	sbin/logs
+	sbin/transform_jobs
 )
 
 for folder in ${REMOVE_DIRS[@]}; do

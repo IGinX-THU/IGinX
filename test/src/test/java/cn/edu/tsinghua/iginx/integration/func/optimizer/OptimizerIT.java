@@ -22,7 +22,6 @@ package cn.edu.tsinghua.iginx.integration.func.optimizer;
 import static cn.edu.tsinghua.iginx.integration.controller.Controller.SUPPORT_KEY;
 import static cn.edu.tsinghua.iginx.integration.controller.Controller.clearAllData;
 import static org.junit.Assert.*;
-import static org.junit.Assert.assertTrue;
 
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
@@ -33,7 +32,9 @@ import cn.edu.tsinghua.iginx.pool.SessionPool;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -104,9 +105,8 @@ public class OptimizerIT {
 
     String rules = executor.execute("SHOW RULES;");
     this.isOptimizerOpen = rules.contains("FilterPushDownRule|    ON|");
-    if (isOptimizerOpen) {
-      ruleList = getRuleList();
-    }
+    Assume.assumeTrue(isOptimizerOpen);
+    ruleList = getRuleList();
   }
 
   @BeforeClass
@@ -181,6 +181,7 @@ public class OptimizerIT {
     }
     String statement = "set rules" + sb.substring(0, sb.length() - 1) + ";";
     executor.execute(statement);
+    executor.execute("SET RULES AllowNullColumnRule=on;");
   }
 
   @After
@@ -192,6 +193,8 @@ public class OptimizerIT {
     }
     String statement = "set rules" + sb.substring(0, sb.length() - 1) + ";";
     executor.execute(statement);
+    executor.execute("SET RULES FragmentPruningByFilterRule=off;");
+    executor.execute("SET RULES AllowNullColumnRule=off;");
   }
 
   private void generateData(long start, long end) {
@@ -248,11 +251,6 @@ public class OptimizerIT {
 
   @Test
   public void testModifyRules() {
-    if (!isOptimizerOpen) {
-      LOGGER.info("Skip SQLSessionIT.testModifyRules because optimizer is not open");
-      return;
-    }
-
     String statement, expected;
     statement = "show rules;";
 
@@ -705,29 +703,16 @@ public class OptimizerIT {
         expectRes = expectRes.replaceAll("&mark\\d+", "&mark").replaceAll(" ", "");
       }
 
-      assertEquals(res, expectRes);
+      assertEquals(expectRes, res);
     }
   }
 
   @Test
   public void testFilterFragmentOptimizer() {
+    Assume.assumeFalse(isScaling);
+
     String policy = executor.execute("SHOW CONFIG \"policyClassName\";");
-    if (!policy.contains("KeyRangeTestPolicy")) {
-      LOGGER.info(
-          "Skip SQLSessionIT.testFilterFragmentOptimizer because policy is not KeyRangeTestPolicy");
-      return;
-    }
-
-    if (!isOptimizerOpen) {
-      LOGGER.info(
-          "Skip SQLSessionIT.testFilterFragmentOptimizer because optimizer is not remove_not,filter_fragment");
-      return;
-    }
-
-    if (isScaling) {
-      LOGGER.info("Skip SQLSessionIT.testFilterFragmentOptimizer because it is scaling test");
-      return;
-    }
+    Assume.assumeTrue(policy.contains("KeyRangeTestPolicy"));
 
     String insert =
         "INSERT INTO us.d2(key, c) VALUES (1, \"asdas\"), (2, \"sadaa\"), (3, \"sadada\"), (4, \"asdad\"), (5, \"deadsa\"), (6, \"dasda\"), (7, \"asdsad\"), (8, \"frgsa\"), (9, \"asdad\");";
@@ -924,11 +909,7 @@ public class OptimizerIT {
 
   @Test
   public void testColumnPruningAndFragmentPruning() {
-    if (!isOptimizerOpen || isScaling) {
-      LOGGER.info(
-          "Skip SQLSessionIT.testColumnPruningAndFragmentPruning because scaling test or filter push down test");
-      return;
-    }
+    Assume.assumeFalse(isScaling);
 
     StringBuilder insert =
         new StringBuilder(
@@ -1201,11 +1182,6 @@ public class OptimizerIT {
 
   @Test
   public void testConstantPropagation() {
-    if (!isOptimizerOpen) {
-      LOGGER.info("Skip SQLSessionIT.testConstantPropagation because filter push down test");
-      return;
-    }
-
     String openRule = "SET RULES ConstantPropagationRule=on;";
     String closeRule = "SET RULES ConstantPropagationRule=off;";
 
@@ -1260,10 +1236,6 @@ public class OptimizerIT {
   /** 对常量折叠进行测试，因为RowTransform常量折叠和Filter常量折叠使用的代码都是公共的，所以这里只测试更好对比结果的RowTransform常量折叠 */
   @Test
   public void testConstantFolding() {
-    if (!isOptimizerOpen) {
-      LOGGER.info("Skip SQLSessionIT.testConstantFolding because optimizer is closed");
-      return;
-    }
     String openRule = "SET RULES ConstantFoldingRule=on;";
     String closeRule = "SET RULES ConstantFoldingRule=off;";
 
@@ -1381,10 +1353,6 @@ public class OptimizerIT {
 
   @Test
   public void testDistinctEliminate() {
-    if (!isOptimizerOpen) {
-      LOGGER.info("Skip SQLSessionIT.testDistinctEliminate because optimizer is closed");
-      return;
-    }
     // 插入数据
     StringBuilder insert = new StringBuilder();
     insert.append("INSERT INTO us.d2 (key, s1, s2) VALUES ");
@@ -1470,11 +1438,8 @@ public class OptimizerIT {
 
   @Test
   public void testJoinFactorizationRule() {
-    if (!isOptimizerOpen || isScaling) {
-      LOGGER.info(
-          "Skip SQLSessionIT.testJoinFactorizationRule because optimizer is closed or scaling test");
-      return;
-    }
+    Assume.assumeFalse(isScaling);
+
     String openRule = "SET RULES JoinFactorizationRule=on;";
     String closeRule = "SET RULES JoinFactorizationRule=off;";
 
@@ -1688,11 +1653,6 @@ public class OptimizerIT {
 
   @Test
   public void testOuterJoinEliminate() {
-    if (!isOptimizerOpen) {
-      LOGGER.info("Skip SQLSessionIT.testOuterJoinEliminate because optimizer is closed");
-      return;
-    }
-
     StringBuilder insert = new StringBuilder();
     insert.append("INSERT INTO us (key, d2.s1, d2.s2, d3.s1, d3.s2) VALUES ");
     int rows = 15000;
@@ -1746,11 +1706,6 @@ public class OptimizerIT {
 
   @Test
   public void testInFilterTransformRule() {
-    if (!isOptimizerOpen) {
-      LOGGER.info("Skip SQLSessionIT.testInFilterTransformRule because optimizer is closed");
-      return;
-    }
-
     // 插入数据
     StringBuilder insert = new StringBuilder();
     insert.append("INSERT INTO us.d2 (key, s1, s2) VALUES ");
@@ -2190,5 +2145,67 @@ public class OptimizerIT {
     //    closeRes = executor.execute(statement);
     //    executor.execute(closeRule);
     //    assertEquals(openRes, closeRes);
+
+  }
+  
+  @Test
+  public void testAllowNullColumnRule() {
+    String openRule = "SET RULES AllowNullColumnRule=on;";
+    String closeRule = "SET RULES AllowNullColumnRule=off;";
+    String statement = "SELECT * FROM us.d1 WHERE s1 = 1;";
+    executor.execute("insert into test(key, a) values (0, 1), (1, 2), (2, 3);");
+    executor.execute("insert into test(key, b) values (3, 1), (4, 2), (5, 3);");
+
+    executor.execute(openRule);
+    String openExplain = executor.execute("EXPLAIN " + statement);
+    LOGGER.info("openExplain: \n" + openExplain);
+    Assert.assertFalse(openExplain.contains("RemoveNullColumn"));
+
+    executor.executeAndCompare(
+        "select avg(*), sum(*), count(*) from test where key < 3;",
+        "ResultSets:\n"
+            + "+-----------+-----------+-----------+-----------+-------------+-------------+\n"
+            + "|avg(test.a)|avg(test.b)|sum(test.a)|sum(test.b)|count(test.a)|count(test.b)|\n"
+            + "+-----------+-----------+-----------+-----------+-------------+-------------+\n"
+            + "|        2.0|       null|          6|       null|            3|            0|\n"
+            + "+-----------+-----------+-----------+-----------+-------------+-------------+\n"
+            + "Total line number = 1\n");
+
+    executor.executeAndCompare(
+        "select avg(*), sum(*), count(*) from test where key > 2;",
+        "ResultSets:\n"
+            + "+-----------+-----------+-----------+-----------+-------------+-------------+\n"
+            + "|avg(test.a)|avg(test.b)|sum(test.a)|sum(test.b)|count(test.a)|count(test.b)|\n"
+            + "+-----------+-----------+-----------+-----------+-------------+-------------+\n"
+            + "|       null|        2.0|       null|          6|            0|            3|\n"
+            + "+-----------+-----------+-----------+-----------+-------------+-------------+\n"
+            + "Total line number = 1\n");
+
+    executor.execute(closeRule);
+    String closeExplain = executor.execute("EXPLAIN " + statement);
+    LOGGER.info("closeExplain: \n" + closeExplain);
+    Assert.assertTrue(closeExplain.contains("RemoveNullColumn"));
+
+    executor.executeAndCompare(
+        "select avg(*), sum(*), count(*) from test where key < 3;",
+        "ResultSets:\n"
+            + "+-----------+-----------+-------------+-------------+\n"
+            + "|avg(test.a)|sum(test.a)|count(test.a)|count(test.b)|\n"
+            + "+-----------+-----------+-------------+-------------+\n"
+            + "|        2.0|          6|            3|            0|\n"
+            + "+-----------+-----------+-------------+-------------+\n"
+            + "Total line number = 1\n");
+
+    executor.executeAndCompare(
+        "select avg(*), sum(*), count(*) from test where key > 2;",
+        "ResultSets:\n"
+            + "+-----------+-----------+-------------+-------------+\n"
+            + "|avg(test.b)|sum(test.b)|count(test.a)|count(test.b)|\n"
+            + "+-----------+-----------+-------------+-------------+\n"
+            + "|        2.0|          6|            0|            3|\n"
+            + "+-----------+-----------+-------------+-------------+\n"
+            + "Total line number = 1\n");
+
+    executor.execute("delete columns test.a,test.b;");
   }
 }

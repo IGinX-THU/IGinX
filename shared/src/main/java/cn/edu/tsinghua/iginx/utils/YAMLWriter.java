@@ -59,7 +59,6 @@ public class YAMLWriter {
    * @param job job to dump
    */
   public void writeJobIntoYAML(File file, JobFromYAML job) throws IOException {
-    assert file.exists() && file.isFile();
     try (BufferedWriter bw = new BufferedWriter(new FileWriter(file))) {
       yaml.dump(job, bw);
     }
