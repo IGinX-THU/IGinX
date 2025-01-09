@@ -37,7 +37,7 @@ sh -c "mkdir influxdb2-2.0.7-windows-amd64/.influxdbv2"
 
 sh -c "mkdir influxdb2-2.0.7-windows-amd64/logs"
 
-arguments="-ArgumentList 'run', '--bolt-path=influxdb2-2.0.7-windows-amd64/.influxdbv2/influxd.bolt', '--engine-path=influxdb2-2.0.7-windows-amd64/.influxdbv2/engine', '--http-bind-address=:8086', '--query-memory-bytes=300971520'"
+arguments="-ArgumentList 'run', '--bolt-path=influxdb2-2.0.7-windows-amd64/.influxdbv2/influxd.bolt', '--engine-path=influxdb2-2.0.7-windows-amd64/.influxdbv2/engine', '--http-bind-address=:8086'"
 
 redirect="-RedirectStandardOutput 'influxdb2-2.0.7-windows-amd64/logs/db.log' -RedirectStandardError 'influxdb2-2.0.7-windows-amd64/logs/db-error.log'"
 
@@ -54,7 +54,7 @@ do
 
   pathPrefix="influxdb2-2.0.7-windows-amd64-$port"
 
-  arguments="-ArgumentList 'run', '--bolt-path=$pathPrefix/.influxdbv2/influxd.bolt', '--engine-path=$pathPrefix/.influxdbv2/engine', '--http-bind-address=:$port', '--query-memory-bytes=20971520'"
+  arguments="-ArgumentList 'run', '--bolt-path=$pathPrefix/.influxdbv2/influxd.bolt', '--engine-path=$pathPrefix/.influxdbv2/engine', '--http-bind-address=:$port'"
 
   redirect="-RedirectStandardOutput '$pathPrefix/logs/db.log' -RedirectStandardError '$pathPrefix/logs/db-error.log'"
 
