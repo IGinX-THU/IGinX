@@ -438,7 +438,7 @@ public class TransformIT {
       String schedule = "every 10 second";
       long jobId = session.commitTransformJob(taskInfoList, ExportType.LOG, "", schedule);
 
-      Thread.sleep(1000); // triggered
+      Thread.sleep(5000); // triggered
       verifyJobState(jobId, JobState.JOB_FAILED); // verify failed
     } catch (SessionException | InterruptedException e) {
       LOGGER.error("Transform:  execute fail. Caused by:", e);
