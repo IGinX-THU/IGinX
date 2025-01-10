@@ -74,7 +74,11 @@ public class Constant {
 
   public static final String TRANSFORM_NODE_PREFIX = "/transform";
 
+  public static final String JOB_TRIGGER_NODE_PREFIX = "/trigger";
+
   public static final String TRANSFORM_LOCK_NODE = "/lock/transform";
+
+  public static final String JOB_TRIGGER_LOCK_NODE = "/lock/trigger";
 
   public static final String USER_NODE_PREFIX = "/user";
 

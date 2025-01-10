@@ -102,19 +102,19 @@ enum UserType {
 }
 
 enum ExportType {
-    Log,
-    File,
-    IginX
+    LOG,
+    FILE,
+    IGINX
 }
 
 enum TaskType {
-    IginX,
-    Python
+    IGINX,
+    PYTHON
 }
 
 enum DataFlowType {
-    Batch,
-    Stream
+    BATCH,
+    STREAM
 }
 
 enum JobState {
@@ -123,6 +123,8 @@ enum JobState {
     JOB_CREATED,
     JOB_IDLE,
     JOB_RUNNING,
+    JOB_PARTIALLY_FAILING,
+    JOB_PARTIALLY_FAILED,
     JOB_FAILING,
     JOB_FAILED,
     JOB_CLOSING,
@@ -367,6 +369,7 @@ struct GetReplicaNumResp {
 struct ExecuteSqlReq {
     1: required i64 sessionId
     2: required string statement
+    3: optional bool remoteSession
 }
 
 struct ExecuteSqlResp {
@@ -394,14 +397,15 @@ struct ExecuteSqlResp {
     22: optional i64 jobId
     23: optional JobState jobState
     24: optional map<JobState, list<i64>> jobStateMap
-    25: optional map<string, string> configs
-    26: optional string loadCsvPath
-    27: optional list<i64> sessionIDList
-    28: optional map<string, bool> rules
-    29: optional string UDFModulePath
-    30: optional list<string> usernames
-    31: optional list<UserType> userTypes
-    32: optional list<set<AuthType>> auths
+    25: optional string jobYamlPath
+    26: optional map<string, string> configs
+    27: optional string loadCsvPath
+    28: optional list<i64> sessionIDList
+    29: optional map<string, bool> rules
+    30: optional string UDFModulePath
+    31: optional list<string> usernames
+    32: optional list<UserType> userTypes
+    33: optional list<set<AuthType>> auths
 }
 
 struct UpdateUserReq {
@@ -565,6 +569,21 @@ struct CommitTransformJobReq {
     3: required ExportType exportType
     4: optional string fileName
     5: optional string schedule
+    6: optional bool stopOnFailure
+    7: optional Notification notification
+}
+
+struct Notification {
+    1: optional Email email
+}
+
+struct Email {
+    1: required string hostName
+    2: required string smtpPort
+    3: required string username
+    4: required string password
+    5: required string fromAddr
+    6: required list<string> toAddrs
 }
 
 struct CommitTransformJobResp {

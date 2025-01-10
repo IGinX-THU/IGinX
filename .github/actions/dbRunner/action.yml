@@ -37,15 +37,6 @@ inputs:
 runs:
     using: "composite" # Mandatory parameter
     steps:
-        - id: project
-          uses: ./.github/actions/project
-
-        - name: Modify IGinX Config
-          uses: ./.github/actions/edit
-          with:
-              paths: conf/config.properties
-              statements: s/^storageEngineList=/#storageEngineList=/g
-
         - if: inputs.DB-name=='InfluxDB' || inputs.DB-name=='Mix-IoTDB12-InfluxDB'
           name: Setup DB
           uses: ./.github/actions/setup/influxdb
@@ -90,19 +81,6 @@ runs:
                 exit 1
               fi
 
-        - if: inputs.DB-name=='Mix-IoTDB12-InfluxDB'
-          name: Modify IGinX Config
-          uses: ./.github/actions/edit
-          with:
-              paths: conf/config.properties
-              statements: s/storageEngineList/#storageEngineList/g
-
-        - if: inputs.DB-name=='Mix-IoTDB12-InfluxDB'
-          name: Run DB
-          shell: bash
-          run: |
-              echo "storageEngineList=127.0.0.1#6667#iotdb12#username=root#password=root#sessionPoolSize=50#has_data=false#is_read_only=false,127.0.0.1#8086#influxdb#url=http://localhost:8086/#token=testToken#organization=testOrg#has_data=false" >> conf/config.properties
-
         - if: inputs.DB-name=='MongoDB'
           name: Setup DB
           uses: ./.github/actions/setup/mongodb
@@ -115,13 +93,6 @@ runs:
               clean: false
               start: true
               ports: ${{ inputs.MongoDB-ports }}
-
-        - if: inputs.DB-name=='MongoDB'
-          name: Modify IGinX Config
-          uses: ./.github/actions/edit
-          with:
-              paths: conf/config.properties
-              statements: s/^#storageEngineList=127.0.0.1#27017/storageEngineList=127.0.0.1#27017/g
 
         - if: inputs.DB-name=='Redis'
           name: Setup DB
@@ -136,13 +107,6 @@ runs:
               start: true
               ports: ${{ inputs.Redis-ports }}
 
-        - if: inputs.DB-name=='Redis'
-          name: Modify IGinX Config
-          uses: ./.github/actions/edit
-          with:
-              paths: conf/config.properties
-              statements: s/^#storageEngineList=127.0.0.1#6379/storageEngineList=127.0.0.1#6379/g
-
         - if: inputs.DB-name=='PostgreSQL'
           name: Setup DB
           uses: ./.github/actions/setup/postgresql
@@ -155,13 +119,6 @@ runs:
               clean: false
               start: true
               ports: ${{ inputs.PostgreSQL-ports }}
-
-        - if: inputs.DB-name=='PostgreSQL'
-          name: Modify IGinX Config
-          uses: ./.github/actions/edit
-          with:
-              paths: conf/config.properties
-              statements: s/^#storageEngineList=127.0.0.1#5432#relational#engine=postgresql/storageEngineList=127.0.0.1#5432#relational#engine=postgresql/g
 
         - if: inputs.DB-name=='MySQL'
           name: Setup DB
@@ -188,38 +145,3 @@ runs:
               clean: false
               start: true
               ports: ${{ inputs.VectorDB-ports }}
-
-        - if: inputs.DB-name=='VectorDB'
-          name: Modify IGinX Config
-          uses: ./.github/actions/edit
-          with:
-              paths: conf/config.properties
-              statements: s/^#storageEngineList=127.0.0.1#19530/storageEngineList=127.0.0.1#19530/g
-
-        - if: inputs.DB-name=='VectorDB'
-          name: Modify IGinX Config
-          uses: ./.github/actions/edit
-          with:
-              paths: conf/config.properties
-              statements: s/^#storageEngineList=192.168.106.2#19530/storageEngineList=192.168.106.2#19530/g
-
-        - if: inputs.DB-name=='FileSystem'
-          name: Run DB
-          shell: bash
-          run: |
-              cp -f "${GITHUB_WORKSPACE}/conf/config.properties" "${GITHUB_WORKSPACE}/conf/config.properties.bak"
-
-        - if: inputs.DB-name == 'FileSystem'
-          name: Modify IGinX Config
-          uses: ./.github/actions/edit
-          with:
-              paths: conf/config.properties
-              statements: |
-                  s/^#storageEngineList=127.0.0.1#[0-9]*#filesystem/storageEngineList=127.0.0.1#6668#filesystem/g
-                  s#dir=data#dir=${{ steps.project.outputs.workspace }}/test/iginx_mn#g
-                  s#dummy_dir=dummy#dummy_dir=${{ steps.project.outputs.workspace }}/test/mn#g
-                  s/data.config.write.buffer.size=104857600/data.config.write.buffer.size=1048576/g
-                  s/dummy.struct=LegacyFilesystem/dummy.struct=LegacyParquet/g
-                  s/chunk_size_in_bytes=1048576/chunk_size_in_bytes=8/g
-                  s/write.buffer.size=104857600/write.buffer.size=1048576/g
-                  s/client.connectPool.maxTotal=100/client.connectPool.maxTotal=2/g
