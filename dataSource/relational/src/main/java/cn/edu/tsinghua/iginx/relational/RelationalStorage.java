@@ -610,7 +610,7 @@ public class RelationalStorage implements IStorage {
                   relationalMeta.getQueryTableStatement(),
                   getQuotName(KEY_NAME),
                   quotColumnNames,
-                  getTableNameByDB(databaseName,tableName),
+                  getTableNameByDB(databaseName, tableName),
                   filterStr.isEmpty() ? "" : "WHERE " + filterStr,
                   getQuotName(KEY_NAME));
 
@@ -754,12 +754,12 @@ public class RelationalStorage implements IStorage {
     StringBuilder fullTableName = new StringBuilder();
     if (relationalMeta.isSupportFullJoin()) {
       // 支持全连接，就直接用全连接连接各个表
-      fullTableName.append(getTableNameByDB(databaseName,tableNames.get(0)));
+      fullTableName.append(getTableNameByDB(databaseName, tableNames.get(0)));
       for (int i = 1; i < tableNames.size(); i++) {
         fullTableName.insert(0, "(");
         fullTableName
             .append(" FULL OUTER JOIN ")
-            .append(getTableNameByDB(databaseName,tableNames.get(i)))
+            .append(getTableNameByDB(databaseName, tableNames.get(i)))
             .append(" ON ");
         for (int j = 0; j < i; j++) {
           fullTableName
@@ -1443,7 +1443,7 @@ public class RelationalStorage implements IStorage {
               statement =
                   String.format(
                       relationalMeta.getAlterTableDropColumnStatement(),
-                      getTableNameByDB(databaseName,tableName),
+                      getTableNameByDB(databaseName, tableName),
                       getQuotName(columnName));
               LOGGER.info("[Delete] execute delete: {}", statement);
               try {
@@ -1464,7 +1464,7 @@ public class RelationalStorage implements IStorage {
               statement =
                   String.format(
                       relationalMeta.getDeleteTableStatement(),
-                      getTableNameByDB(databaseName,tableName),
+                      getTableNameByDB(databaseName, tableName),
                       getQuotName(columnName),
                       getQuotName(KEY_NAME),
                       keyRange.getBeginKey(),
@@ -1819,7 +1819,7 @@ public class RelationalStorage implements IStorage {
           String statement =
               String.format(
                   relationalMeta.getCreateTableStatement(),
-                  getTableNameByDB(storageUnit,tableName),
+                  getTableNameByDB(storageUnit, tableName),
                   getQuotName(KEY_NAME),
                   relationalMeta.getDataTypeTransformer().toEngineType(DataType.LONG),
                   getQuotName(columnName),
@@ -1832,7 +1832,7 @@ public class RelationalStorage implements IStorage {
             String statement =
                 String.format(
                     relationalMeta.getAlterTableAddColumnStatement(),
-                    getTableNameByDB(storageUnit,tableName),
+                    getTableNameByDB(storageUnit, tableName),
                     getQuotName(columnName),
                     relationalMeta.getDataTypeTransformer().toEngineType(dataType));
             LOGGER.info("[Create] execute create: {}", statement);
@@ -2249,7 +2249,7 @@ public class RelationalStorage implements IStorage {
                     relationalMeta.getQueryTableStatement(),
                     getQuotName(KEY_NAME),
                     1,
-                    getQuotName(databaseName) + SEPARATOR + getQuotName(tableName),
+                    getTableNameByDB(databaseName, tableName),
                     " WHERE "
                         + getQuotName(KEY_NAME)
                         + "IN ("
@@ -2279,8 +2279,7 @@ public class RelationalStorage implements IStorage {
           conn.prepareStatement(
               String.format(
                   relationalMeta.getInsertTableStatement(),
-                  getQuotName(databaseName),
-                  getQuotName(tableName),
+                  getTableNameByDB(databaseName, tableName),
                   getQuotName(KEY_NAME) + "," + partStr,
                   placeHolder.append("?")));
       conn.setAutoCommit(false); // 关闭自动提交
@@ -2325,8 +2324,7 @@ public class RelationalStorage implements IStorage {
           conn.prepareStatement(
               String.format(
                   relationalMeta.getUpdateTableStatement(),
-                  getQuotName(databaseName),
-                  getQuotName(tableName),
+                  getTableNameByDB(databaseName, tableName),
                   placeHolder.substring(0, placeHolder.length() - 1),
                   getQuotName(KEY_NAME),
                   "?"));
@@ -2403,11 +2401,13 @@ public class RelationalStorage implements IStorage {
     }
   }
 
-  private String getTableNameByDB(String databaseName, String name){
+  private String getTableNameByDB(String databaseName, String name) {
     String engineName = meta.getExtraParams().get("engine");
-    if(engineName.equals("oracle")){
+    if (engineName.equals("oracle")) {
       name = getQuotName(databaseName) + SEPARATOR + getQuotName(name);
+    } else {
+      name = getQuotName(name);
     }
-    return getQuotName(name);
+    return name;
   }
 }
