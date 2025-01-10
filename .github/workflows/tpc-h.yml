@@ -27,7 +27,7 @@ on:
                 description: "The database to run the test on"
                 type: string
                 required: false
-                default: '["InfluxDB", "FileSystem", "PostgreSQL", "Redis", "MongoDB", "MySQL"]'
+                default: '["IoTDB12", "InfluxDB", "FileSystem", "PostgreSQL", "Redis", "MongoDB", "MySQL"]'
             close-optimizer:
                 description: "Whether to close the optimizer"
                 type: string
@@ -37,7 +37,7 @@ on:
                 description: "The timeout minutes for the job"
                 type: number
                 required: false
-                default: 35
+                default: 60
 
 jobs:
     TPC-H-Test:
@@ -52,7 +52,13 @@ jobs:
                 DB-name: ${{ fromJSON(inputs.db-matrix) }}
         runs-on: ${{ matrix.os }}
         steps:
-            - uses: actions/checkout@v4
+            - name: Get New Version IGinX
+              uses: actions/checkout@v4
+            - name: Get Old Version IGinX
+              uses: actions/checkout@v4
+              with:
+                  ref: main
+                  path: IGinX
             - name: Environment dependence
               uses: ./.github/actions/dependence
               with:
@@ -97,22 +103,31 @@ jobs:
               uses: ./.github/actions/dbRunner
               with:
                   DB-name: ${{ matrix.DB-name }}
-                  IoTDB12-ports: 6667 6668 6669
-                  InfluxDB-ports: 8086 8087 8088
-                  MongoDB-ports: 27017 27018 27019
-                  MySQL-ports: 3306 3307 3308
-                  PostgreSQL-ports: 5432 5433 5434
-                  Redis-ports: 6379 6380 6381
 
-            - name: Get Old Version IGinX
+            - name: Install New IGinX with Maven
               shell: bash
-              run: |
-                  git clone https://github.com/IGinX-THU/IGinX.git
-                  cp -rf test/src/test/resources/tpch/queries/* IGinX/test/src/test/resources/tpch/queries/
-                  cp -rf test/src/test/resources/tpch/sf0.1/* IGinX/test/src/test/resources/tpch/sf0.1/
-                  cp -rf test/src/test/resources/tpch/udf/* IGinX/test/src/test/resources/tpch/udf/
-                  cp -f test/src/test/resources/testConfig.properties IGinX/test/src/test/resources/testConfig.properties
-            # 新增tpc-h查询测试时，旧版本代码中没有这些查询，需从新分支复制过去，添加完所有的tpc_h测试后可删除这些复制命令
+              run: mvn clean package -DskipTests -P-format
+
+            - name: Install Old IGinX with Maven
+              working-directory: IGinX
+              shell: bash
+              run: mvn clean package -DskipTests -P-format
+
+            - name: Change New IGinX Config
+              uses: ./.github/actions/confWriter
+              with:
+                  DB-name: ${{ matrix.DB-name }}
+                  Close-Optimizer: ${{ inputs.close-optimizer }}
+                  Metadata: ${{ matrix.metadata }}
+
+            - name: Change Old IGinX Config
+              uses: ./.github/actions/confWriter
+              with:
+                  DB-name: ${{ matrix.DB-name }}
+                  Close-Optimizer: ${{ inputs.close-optimizer }}
+                  Metadata: ${{ matrix.metadata }}
+                  zookeeper-port: 2182
+                  Root-Dir-Path: "IGinX"
 
             - name: Download TPC-H Data
               shell: bash
@@ -123,52 +138,6 @@ jobs:
                   ls tpc
                   cp -r tpc IGinX/tpc
                   ls IGinX/tpc
-
-            # let old iginx use second database service
-            - name: Find second port for DB
-              id: find-port
-              uses: ./.github/actions/service/portMapper
-              with:
-                  DB-name: ${{ matrix.DB-name }}
-
-            - name: Rewrite DB Conf in Old IGinX
-              uses: ./.github/actions/dbConfWriter
-              with:
-                  DB-name: ${{ matrix.DB-name }}
-                  Root-Dir-Path: "IGinX"
-                  DB-port: ${{ steps.find-port.outputs.port2 }}
-
-            - name: Install Old IGinX with Maven
-              shell: bash
-              run: |
-                  cd IGinX
-                  mvn clean package -DskipTests -P-format -q
-
-            - name: Change Old IGinX Config
-              uses: ./.github/actions/confWriter
-              with:
-                  DB-name: ${{ matrix.DB-name }}
-                  Open-Optimizer: "true"
-                  Close-Optimizer: ${{ inputs.close-optimizer }}
-                  Metadata: ${{ matrix.metadata }}
-                  Root-Dir-Path: "IGinX"
-                  zookeeper-port: "2182"
-
-            - name: Install New IGinX with Maven
-              shell: bash
-              run: mvn clean package -DskipTests -P-format -q
-
-            - name: Change New IGinX Config
-              uses: ./.github/actions/confWriter
-              with:
-                  DB-name: ${{ matrix.DB-name }}
-                  Close-Optimizer: ${{ inputs.close-optimizer }}
-                  Metadata: ${{ matrix.metadata }}
-
-            - name: Insert Data into DB
-              uses: ./.github/actions/tpchDataWriter
-              with:
-                  DB-name: ${{ matrix.DB-name }}
 
             - name: Run 1st Regression Test
               id: test1

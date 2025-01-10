@@ -52,5 +52,4 @@ jobs:
         with:
             os-matrix: '["ubuntu-latest"]'
             metadata-matrix: '["zookeeper"]'
-            db-matrix: '["IoTDB12", "InfluxDB", "FileSystem", "PostgreSQL", "Redis", "MongoDB", "MySQL"]'
             close-optimizer: "true"

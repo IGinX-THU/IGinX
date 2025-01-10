@@ -20,31 +20,29 @@
 
 set -e
 
-cp -f conf/config.properties.bak $7
-
 sed -i"" -e "s/^storageEngineList/#storageEngineList/" $7
 
 sed -i"" -e "s/^#storageEngineList=127.0.0.1#[0-9]*#filesystem/storageEngineList=127.0.0.1#$1#filesystem/g" $7
 
-sed -i"" -e "s/#iginx_port=6888#/#iginx_port=$2#/g" $7
+sed -i"" -e "s/#iginx_port=[0-9]*/#iginx_port=$2/g" $7
 
-sed -i"" -e "s/enablePushDown=true/enablePushDown=false/g" $7
+sed -i"" -e "s/enablePushDown=[^#]*/enablePushDown=false/g" $7
 
-sed -i"" -e "s#dummy_dir=dummy#dummy_dir=$3#g" $7
+sed -i"" -e "s|#dummy_dir=[^#]*|#dummy_dir=$3|g" $7
 
-sed -i"" -e "s#dir=data#dir=$4#g" $7
+sed -i"" -e "s|#dir=[^#]*|#dir=$4|g" $7
 
-sed -i"" -e "s/#has_data=false#/#has_data=$5#/g" $7
+sed -i"" -e "s/#has_data=[^#]*/#has_data=$5/g" $7
 
-sed -i"" -e "s/#is_read_only=false/#is_read_only=$6/g" $7
+sed -i"" -e "s/#is_read_only=[^#]*/#is_read_only=$6/g" $7
 
-sed -i"" -e "s/dummy.struct=LegacyFilesystem/dummy.struct=LegacyParquet/g" $7
+sed -i"" -e "s/#dummy.struct=[^#]*/#dummy.struct=LegacyParquet/g" $7
 
-sed -i"" -e "s#chunk_size_in_bytes=1048576#chunk_size_in_bytes=8#g" $7
+sed -i"" -e "s/#chunk_size_in_bytes=[0-9]*/#chunk_size_in_bytes=8/g" $7
 
-sed -i"" -e "s/write.buffer.size=104857600/write.buffer.size=1048576/g" $7
+sed -i"" -e "s/#write.buffer.size=[0-9]*/#write.buffer.size=1048576/g" $7
 
-sed -i"" -e "s/client.connectPool.maxTotal=100/client.connectPool.maxTotal=2/g" $7
+sed -i"" -e "s/#client.connectPool.maxTotal=[0-9]*/#client.connectPool.maxTotal=2/g" $7
 
 if [ "$8" = "etcd" ]; then
   sed -i"" -e 's/^metaStorage=.*$/metaStorage=etcd/g' $7
