@@ -30,9 +30,9 @@ inputs:
         required: false
         default: 6379
     Oracle-ports:
-      description: "Oracle ports"
-      required: false
-      default: 1521
+        description: "Oracle ports"
+        required: false
+        default: 1521
 
 runs:
     using: "composite" # Mandatory parameter
@@ -209,11 +209,11 @@ runs:
           name: Start Oracle Service
           uses: ./.github/actions/service/oracle
           with:
-            ports: ${{ inputs.Oracle-ports }}
+              ports: ${{ inputs.Oracle-ports }}
 
         - if: inputs.DB-name == 'Oracle'
           name: Modify IGinX Config
           uses: ./.github/actions/edit
           with:
-            paths: conf/config.properties
-            statements: s/^#storageEngineList=127.0.0.1#1521#relational#engine=oracle#has_data=false#username=system#password=Oracle123/storageEngineList=127.0.0.1#1521#relational#engine=oracle#has_data=false#username=system#password=Oracle123/g
+              paths: conf/config.properties
+              statements: s/^#storageEngineList=127.0.0.1#1521#relational#engine=oracle#has_data=false#username=system#password=Oracle123/storageEngineList=127.0.0.1#1521#relational#engine=oracle#has_data=false#username=system#password=Oracle123/g
