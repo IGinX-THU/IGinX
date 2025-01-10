@@ -364,7 +364,7 @@ public class RelationalStorage implements IStorage {
               databaseName,
               engineName.equals("oracle") ? databaseName : relationalMeta.getSchemaPattern(),
               tableName,
-              columnNamePattern); // TODO
+              columnNamePattern);
       List<ColumnField> columnFields = new ArrayList<>();
       while (rs.next()) {
         String columnName = rs.getString("COLUMN_NAME");
@@ -610,7 +610,7 @@ public class RelationalStorage implements IStorage {
                   relationalMeta.getQueryTableStatement(),
                   getQuotName(KEY_NAME),
                   quotColumnNames,
-                  getQuotName(databaseName) + "." + getQuotName(tableName),
+                  getTableNameByDB(databaseName,tableName),
                   filterStr.isEmpty() ? "" : "WHERE " + filterStr,
                   getQuotName(KEY_NAME));
 
@@ -754,17 +754,12 @@ public class RelationalStorage implements IStorage {
     StringBuilder fullTableName = new StringBuilder();
     if (relationalMeta.isSupportFullJoin()) {
       // 支持全连接，就直接用全连接连接各个表
-      fullTableName
-          .append(getQuotName(databaseName))
-          .append(SEPARATOR)
-          .append(getQuotName(tableNames.get(0)));
+      fullTableName.append(getTableNameByDB(databaseName,tableNames.get(0)));
       for (int i = 1; i < tableNames.size(); i++) {
         fullTableName.insert(0, "(");
         fullTableName
             .append(" FULL OUTER JOIN ")
-            .append(getQuotName(databaseName))
-            .append(SEPARATOR)
-            .append(getQuotName(tableNames.get(i)))
+            .append(getTableNameByDB(databaseName,tableNames.get(i)))
             .append(" ON ");
         for (int j = 0; j < i; j++) {
           fullTableName
@@ -1448,8 +1443,7 @@ public class RelationalStorage implements IStorage {
               statement =
                   String.format(
                       relationalMeta.getAlterTableDropColumnStatement(),
-                      getQuotName(databaseName),
-                      getQuotName(tableName),
+                      getTableNameByDB(databaseName,tableName),
                       getQuotName(columnName));
               LOGGER.info("[Delete] execute delete: {}", statement);
               try {
@@ -1470,8 +1464,7 @@ public class RelationalStorage implements IStorage {
               statement =
                   String.format(
                       relationalMeta.getDeleteTableStatement(),
-                      getQuotName(databaseName),
-                      getQuotName(tableName),
+                      getTableNameByDB(databaseName,tableName),
                       getQuotName(columnName),
                       getQuotName(KEY_NAME),
                       keyRange.getBeginKey(),
@@ -1826,8 +1819,7 @@ public class RelationalStorage implements IStorage {
           String statement =
               String.format(
                   relationalMeta.getCreateTableStatement(),
-                  getQuotName(storageUnit),
-                  getQuotName(tableName),
+                  getTableNameByDB(storageUnit,tableName),
                   getQuotName(KEY_NAME),
                   relationalMeta.getDataTypeTransformer().toEngineType(DataType.LONG),
                   getQuotName(columnName),
@@ -1840,8 +1832,7 @@ public class RelationalStorage implements IStorage {
             String statement =
                 String.format(
                     relationalMeta.getAlterTableAddColumnStatement(),
-                    getQuotName(storageUnit),
-                    getQuotName(tableName),
+                    getTableNameByDB(storageUnit,tableName),
                     getQuotName(columnName),
                     relationalMeta.getDataTypeTransformer().toEngineType(dataType));
             LOGGER.info("[Create] execute create: {}", statement);
@@ -2078,7 +2069,6 @@ public class RelationalStorage implements IStorage {
       Map<String, Pair<String, List<String>>> tableToColumnEntries,
       String databaseName)
       throws SQLException {
-    String engineName = meta.getExtraParams().get("engine");
     for (Map.Entry<String, Pair<String, List<String>>> entry : tableToColumnEntries.entrySet()) {
       String tableName = entry.getKey();
       String columnNames = entry.getValue().k.substring(0, entry.getValue().k.length() - 2);
@@ -2411,5 +2401,13 @@ public class RelationalStorage implements IStorage {
           stmt.setString(index, value);
         }
     }
+  }
+
+  private String getTableNameByDB(String databaseName, String name){
+    String engineName = meta.getExtraParams().get("engine");
+    if(engineName.equals("oracle")){
+      name = getQuotName(databaseName) + SEPARATOR + getQuotName(name);
+    }
+    return getQuotName(name);
   }
 }
