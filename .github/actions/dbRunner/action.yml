@@ -130,13 +130,6 @@ runs:
           with:
               ports: ${{ inputs.MySQL-ports }}
 
-        - if: inputs.DB-name == 'MySQL'
-          name: Modify IGinX Config
-          uses: ./.github/actions/edit
-          with:
-              paths: conf/config.properties
-              statements: s|^#storageEngineList=127.0.0.1#3306#relational#engine=mysql#username=root#password=mysql#has_data=false#meta_properties_path=your-meta-properties-path|storageEngineList=127.0.0.1#3306#relational#engine=mysql#username=root#has_data=false|g
-
         - if: inputs.DB-name=='VectorDB'
           name: Run Milvus DB
           uses: ./.github/actions/service/vectordb
