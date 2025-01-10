@@ -88,6 +88,7 @@ jobs:
             os-matrix: '["ubuntu-latest"]'
             metadata-matrix: '["zookeeper"]'
             db-matrix: '["VectorDB"]'
+            functest: "NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,CompactionIT,TimePrecisionIT,PySessionIT"
             timeout-minutes: 360
     tpc-h-regression-test-no-optimizer-vectordb:
         uses: ./.github/workflows/tpc-h.yml
@@ -96,4 +97,5 @@ jobs:
             metadata-matrix: '["zookeeper"]'
             db-matrix: '["VectorDB"]'
             close-optimizer: "true"
+            functest: "NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,CompactionIT,TimePrecisionIT,PySessionIT"
             timeout-minutes: 360

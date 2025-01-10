@@ -717,19 +717,19 @@ public class TransformIT {
       taskInfoList.add(iginxTask);
       taskInfoList.add(pyTask);
 
-      String schedule = "every 10 second";
+      String schedule = "every 20 second";
 
       long jobId = session.commitTransformJob(taskInfoList, ExportType.IGINX, "", schedule);
       // make the script add 2 now
       alterPythonScriptWithReplace(filename, "+ 1", "+ 2");
       try {
-        Thread.sleep(3000); // sleep 3s for 1st execution to complete.
+        Thread.sleep(13000); // sleep 13s for 1st execution to complete.
         SessionExecuteSqlResult queryResult1 = session.executeSql("SELECT * FROM transform;");
 
         // then, increase() will add 2
         registerTask(task, className, filename);
 
-        Thread.sleep(10000); // sleep 10s for 2nd execution to complete.
+        Thread.sleep(20000); // sleep 20s for 2nd execution to complete.
         SessionExecuteSqlResult queryResult2 = session.executeSql("SELECT * FROM transform;");
         // 2nd result will be appended from 11th line
 

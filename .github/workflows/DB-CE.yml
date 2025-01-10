@@ -37,9 +37,11 @@ on:
                 type: string
                 required: false
                 default: "false"
-
-env:
-    FUNCTEST: NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,SessionIT,SessionPoolIT,CompactionIT,TimePrecisionIT,PySessionIT
+            functest:
+                description: "Testcases to run"
+                type: string
+                required: false
+                default: "NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,SessionIT,SessionPoolIT,CompactionIT,TimePrecisionIT,PySessionIT"
 
 jobs:
     DB-CE:
@@ -118,7 +120,7 @@ jobs:
 
             - name: ${{ matrix.test-way }} Normal IT
               shell: bash
-              run: mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
+              run: mvn test -q -Dtest=${{ inputs.functest }} -DfailIfNoTests=false -P-format
 
             - name: Show IGinX log
               if: always()
