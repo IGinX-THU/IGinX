@@ -24,15 +24,18 @@ import static cn.edu.tsinghua.iginx.relational.tools.Constants.*;
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.relational.meta.AbstractRelationalMeta;
+import cn.edu.tsinghua.iginx.relational.meta.JDBCMeta;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.util.stream.Collectors;
 
 public class FilterTransformer {
 
   AbstractRelationalMeta relationalMeta;
+  String engine;
 
   public FilterTransformer(AbstractRelationalMeta relationalMeta) {
     this.relationalMeta = relationalMeta;
+    this.engine = ((JDBCMeta) relationalMeta).getStorageEngineMeta().getExtraParams().get("engine");
   }
 
   public String toString(Filter filter) {
@@ -112,13 +115,26 @@ public class FilterTransformer {
       default:
         // postgresql does not support "==" but uses "=" instead
         op = Op.op2StrWithoutAndOr(filter.getOp()).replace("==", "=");
-        value =
-            filter.getValue().getDataType() == DataType.BINARY
-                ? "'" + filter.getValue().getBinaryVAsString() + "'"
-                : filter.getValue().getValue();
+        if (filter.getValue().getDataType() == DataType.BINARY) {
+          value = "'" + filter.getValue().getBinaryVAsString() + "'";
+        } else if (engine.equals("oracle")
+            && filter.getValue().getDataType()
+                == DataType.BOOLEAN) { // oracle not support boolean type before 23ai
+          value = filter.getValue().getBoolV() ? "1" : "0";
+        } else {
+          value = filter.getValue().getValue();
+        }
         break;
     }
-    return path + " " + op + " " + value;
+    if (engine.equals("oracle")
+        && (filter.getOp() == Op.LIKE
+            || filter.getOp() == Op.LIKE_AND
+            || filter.getOp() == Op.NOT_LIKE
+            || filter.getOp() == Op.NOT_LIKE_AND)) {
+      return op + " (" + path + "," + value + ")";
+    } else {
+      return path + " " + op + " " + value;
+    }
   }
 
   private String toString(OrFilter filter) {
@@ -161,6 +177,9 @@ public class FilterTransformer {
                     value -> {
                       if (value.getDataType() == DataType.BINARY) {
                         return "'" + value.getBinaryVAsString() + "'";
+                      } else if (engine.equals("oracle")
+                          && value.getDataType() == DataType.BOOLEAN) {
+                        return value.getBoolV() ? "1" : "0";
                       } else {
                         return value.getValue().toString();
                       }

@@ -69,10 +69,12 @@ public class PySessionIT {
 
   private static boolean isAbleToDelete = true;
   private static PythonInterpreter interpreter;
+  protected static String runningEngine;
 
   public PySessionIT() {
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
     DBConf dbConf = conf.loadDBConf(conf.getStorageType());
+    runningEngine = conf.getStorageType();
     isAbleToDelete = dbConf.getEnumValue(DBConf.DBConfType.isAbleToDelete);
     PythonInterpreterConfig config =
         PythonInterpreterConfig.newBuilder().setPythonExec(pythonCMD).addPythonPaths(PATH).build();
@@ -498,6 +500,19 @@ public class PySessionIT {
             + "5    5      b''      b''     b'b'      b''\n"
             + "6    6      b''      b''      b''     b'c'\n"
             + "7    7     b'Q'     b'W'     b'E'     b'R'\n";
+    if (runningEngine.equals("Oracle")) { // oracle 传入空字符串时默认存成NULL
+      expected =
+          "LoadCSVResp(status=Status(code=200, message=None, subStatus=None), columns=['test.a.a', 'test.a.b', 'test.b.b', 'test.c.c'], recordsNum=4, parseErrorMsg=None)\n"
+              + "   key test.a.a test.a.b test.b.b test.c.c\n"
+              + "0    0     b'a'     b'b'     None     None\n"
+              + "1    1     None     None     b'b'     None\n"
+              + "2    2     None     None     None     b'c'\n"
+              + "3    3     b'Q'     b'W'     b'E'     b'R'\n"
+              + "4    4     b'a'     b'b'     None     None\n"
+              + "5    5     None     None     b'b'     None\n"
+              + "6    6     None     None     None     b'c'\n"
+              + "7    7     b'Q'     b'W'     b'E'     b'R'\n";
+    }
     assertEquals(expected, result);
   }
 
