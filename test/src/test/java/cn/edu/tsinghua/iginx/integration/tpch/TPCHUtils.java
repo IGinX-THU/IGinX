@@ -19,25 +19,24 @@
  */
 package cn.edu.tsinghua.iginx.integration.tpch;
 
+import static cn.edu.tsinghua.iginx.integration.tpch.TPCHUtils.FieldType.*;
+
 import cn.edu.tsinghua.iginx.exception.SessionException;
+import cn.edu.tsinghua.iginx.integration.controller.Controller;
+import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.io.MoreFiles;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
-import java.util.Scanner;
-import java.util.TimeZone;
+import java.util.*;
 import java.util.stream.Collectors;
 import org.junit.Assert;
 import org.slf4j.Logger;
@@ -46,6 +45,192 @@ import org.slf4j.LoggerFactory;
 public class TPCHUtils {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(TPCHUtils.class);
+
+  private static final String DATA_DIR =
+      System.getProperty("user.dir") + "/../tpc/TPC-H V3.0.1/data";
+  static final String FAILED_QUERY_ID_PATH =
+      "src/test/resources/tpch/runtimeInfo/failedQueryIds.txt";
+
+  static final String ITERATION_TIMES_PATH =
+      "src/test/resources/tpch/runtimeInfo/iterationTimes.txt";
+
+  static final String OLD_TIME_COSTS_PATH = "src/test/resources/tpch/runtimeInfo/oldTimeCosts.txt";
+
+  static final String NEW_TIME_COSTS_PATH = "src/test/resources/tpch/runtimeInfo/newTimeCosts.txt";
+
+  static final String STATUS_PATH = "src/test/resources/tpch/runtimeInfo/status.txt";
+
+  enum FieldType {
+    NUM,
+    STR,
+    DATE
+  }
+
+  public static void insert(Session session) throws IOException, SessionException, ParseException {
+    insertTable(
+        session,
+        "region",
+        Arrays.asList("r_regionkey", "r_name", "r_comment"),
+        Arrays.asList(NUM, STR, STR));
+
+    insertTable(
+        session,
+        "nation",
+        Arrays.asList("n_nationkey", "n_name", "n_regionkey", "n_comment"),
+        Arrays.asList(NUM, STR, NUM, STR));
+
+    insertTable(
+        session,
+        "supplier",
+        Arrays.asList(
+            "s_suppkey", "s_name", "s_address", "s_nationkey", "s_phone", "s_acctbal", "s_comment"),
+        Arrays.asList(NUM, STR, STR, NUM, STR, NUM, STR));
+
+    insertTable(
+        session,
+        "part",
+        Arrays.asList(
+            "p_partkey",
+            "p_name",
+            "p_mfgr",
+            "p_brand",
+            "p_type",
+            "p_size",
+            "p_container",
+            "p_retailprice",
+            "p_comment"),
+        Arrays.asList(NUM, STR, STR, STR, STR, NUM, STR, NUM, STR));
+
+    insertTable(
+        session,
+        "partsupp",
+        Arrays.asList("ps_partkey", "ps_suppkey", "ps_availqty", "ps_supplycost", "ps_comment"),
+        Arrays.asList(NUM, NUM, NUM, NUM, STR));
+
+    insertTable(
+        session,
+        "customer",
+        Arrays.asList(
+            "c_custkey",
+            "c_name",
+            "c_address",
+            "c_nationkey",
+            "c_phone",
+            "c_acctbal",
+            "c_mktsegment",
+            "c_comment"),
+        Arrays.asList(NUM, STR, STR, NUM, STR, NUM, STR, STR));
+
+    insertTable(
+        session,
+        "orders",
+        Arrays.asList(
+            "o_orderkey",
+            "o_custkey",
+            "o_orderstatus",
+            "o_totalprice",
+            "o_orderdate",
+            "o_orderpriority",
+            "o_clerk",
+            "o_shippriority",
+            "o_comment"),
+        Arrays.asList(NUM, NUM, STR, NUM, DATE, STR, STR, NUM, STR));
+
+    insertTable(
+        session,
+        "lineitem",
+        Arrays.asList(
+            "l_orderkey",
+            "l_partkey",
+            "l_suppkey",
+            "l_linenumber",
+            "l_quantity",
+            "l_extendedprice",
+            "l_discount",
+            "l_tax",
+            "l_returnflag",
+            "l_linestatus",
+            "l_shipdate",
+            "l_commitdate",
+            "l_receiptdate",
+            "l_shipinstruct",
+            "l_shipmode",
+            "l_comment"),
+        Arrays.asList(
+            NUM, NUM, NUM, NUM, NUM, NUM, NUM, NUM, STR, STR, DATE, DATE, DATE, STR, STR, STR));
+  }
+
+  private static void insertTable(
+      Session session, String table, List<String> fields, List<FieldType> types)
+      throws IOException, SessionException, ParseException {
+    LOGGER.info("Inserting TPC-H table [{}].", table);
+
+    StringBuilder builder = new StringBuilder("INSERT INTO ");
+    builder.append(table);
+    builder.append("(key, ");
+    for (String field : fields) {
+      builder.append(field);
+      builder.append(", ");
+    }
+    builder.setLength(builder.length() - 2);
+    builder.append(") VALUES ");
+    String insertPrefix = builder.toString();
+
+    long count = 0;
+    try (BufferedReader br =
+        new BufferedReader(new FileReader(String.format("%s/%s.tbl", DATA_DIR, table)))) {
+      StringBuilder sb = new StringBuilder(insertPrefix);
+      String line;
+      while ((line = br.readLine()) != null) {
+        String[] items = line.split("\\|");
+        sb.append("(");
+        sb.append(count); // 插入自增key列
+        count++;
+        sb.append(", ");
+        assert fields.size() == items.length;
+        for (int i = 0; i < items.length; i++) {
+          switch (types.get(i)) {
+            case NUM:
+              sb.append(items[i]);
+              sb.append(", ");
+              break;
+            case STR: // 字符串类型在外面需要包一层引号
+              sb.append("\"");
+              sb.append(items[i]);
+              sb.append("\", ");
+              break;
+            case DATE: // 日期类型需要转为时间戳
+              SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+              dateFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
+              long time = dateFormat.parse(items[i]).getTime();
+              sb.append(time);
+              sb.append(", ");
+              break;
+            default:
+              break;
+          }
+        }
+        sb.setLength(sb.length() - 2);
+        sb.append("), ");
+
+        // 每次最多插入10000条数据
+        if (count % 10000 == 0) {
+          sb.setLength(sb.length() - 2);
+          sb.append(";");
+          session.executeSql(sb.toString());
+          sb = new StringBuilder(insertPrefix);
+        }
+      }
+      // 插入剩余数据
+      if (sb.length() != insertPrefix.length()) {
+        sb.setLength(sb.length() - 2);
+        sb.append(";");
+        session.executeSql(sb.toString());
+      }
+    }
+
+    LOGGER.info("Insert {} records into table [{}].", count, table);
+  }
 
   public static String readSqlFileAsString(String filePath) throws IOException {
     StringBuilder contentBuilder = new StringBuilder();
@@ -58,56 +243,74 @@ public class TPCHUtils {
     return contentBuilder.toString();
   }
 
-  public static List<List<Long>> readTimeCostsFromFile(String filename) {
-    List<String> lines = getLinesFromFile(filename);
-    assert lines.size() == 22;
-
-    // TPC-H一共有22条查询
-    List<List<Long>> timeCosts = new ArrayList<>(22);
-    for (int i = 0; i < 22; i++) {
-      List<Long> tmp = new ArrayList<>();
-      String[] lineArray = lines.get(i).split(",");
-      for (String str : lineArray) {
-        if (!str.isEmpty()) {
-          tmp.add(Long.parseLong(str));
-        }
+  public static ArrayListMultimap<String, Long> readTimeCostsFromFile(String filename)
+      throws IOException {
+    Properties properties = new Properties();
+    try (InputStream in = Files.newInputStream(Paths.get(filename))) {
+      properties.load(in);
+    } catch (NoSuchFileException ignored) {
+      return ArrayListMultimap.create();
+    }
+    ArrayListMultimap<String, Long> timeCosts = ArrayListMultimap.create();
+    for (String key : properties.stringPropertyNames()) {
+      String[] values = properties.getProperty(key).split(",");
+      for (String value : values) {
+        timeCosts.put(key, Long.parseLong(value));
       }
-      timeCosts.add(tmp);
     }
     return timeCosts;
   }
 
-  public static void clearAndRewriteTimeCostsToFile(List<List<Long>> timeCosts, String filename) {
-    try (FileWriter fileWriter = new FileWriter(filename);
-        BufferedWriter bufferedWriter = new BufferedWriter(fileWriter)) {
-      // 清空文件内容
-      fileWriter.write("");
-      fileWriter.flush();
-      // 重新写入内容
-      for (List<Long> timeCost : timeCosts) {
-        bufferedWriter.write(
-            timeCost.stream().map(String::valueOf).collect(Collectors.joining(",")));
-        bufferedWriter.newLine();
-      }
-    } catch (IOException e) {
-      LOGGER.error("Write to file {} fail. Caused by:", filename, e);
-      Assert.fail();
+  public static void clearAndRewriteTimeCostsToFile(
+      ArrayListMultimap<String, Long> timeCosts, String filename) throws IOException {
+    Properties properties = new Properties();
+    for (Map.Entry<String, Collection<Long>> entry : timeCosts.asMap().entrySet()) {
+      String key = entry.getKey();
+      Collection<Long> values = entry.getValue();
+      String value = values.stream().map(Object::toString).collect(Collectors.joining(","));
+      properties.setProperty(key, value);
+    }
+    Path path = Paths.get(filename);
+    MoreFiles.createParentDirectories(path);
+    try (OutputStream out = Files.newOutputStream(path)) {
+      properties.store(out, null);
     }
   }
 
-  public static List<String> getLinesFromFile(String fileName) {
-    Path filePath = Paths.get(fileName);
-    List<String> lines = null;
+  public static List<String> getFailedQueryIdsFromFile() throws IOException {
+    Path path = Paths.get(FAILED_QUERY_ID_PATH);
     try {
-      lines = Files.readAllLines(filePath);
-    } catch (IOException e) {
-      LOGGER.error("Read file {} fail. Caused by:", filePath, e);
-      Assert.fail();
+      return Files.readAllLines(path);
+    } catch (NoSuchFileException ignored) {
+      ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
+      return conf.getQueryIds();
     }
-    return lines;
   }
 
-  public static long executeTPCHQuery(Session session, int queryId, boolean needValidate) {
+  public static void clearAndRewriteFailedQueryIdsToFile(List<String> failedQueryIds)
+      throws IOException {
+    Path path = Paths.get(FAILED_QUERY_ID_PATH);
+    MoreFiles.createParentDirectories(path);
+    Files.write(path, failedQueryIds);
+  }
+
+  public static int getIterationTimesFromFile() throws IOException {
+    try {
+      List<String> lines = Files.readAllLines(Paths.get(ITERATION_TIMES_PATH));
+      assert lines.size() == 1;
+      return Integer.parseInt(lines.get(0));
+    } catch (NoSuchFileException ignored) {
+      return 1;
+    }
+  }
+
+  public static void rewriteIterationTimes(long iterationTimes) throws IOException {
+    Path path = Paths.get(ITERATION_TIMES_PATH);
+    MoreFiles.createParentDirectories(path);
+    Files.write(path, Collections.singleton(String.valueOf(iterationTimes)));
+  }
+
+  public static long executeTPCHQuery(Session session, String queryId, boolean needValidate) {
     String sqlString = null;
     try {
       sqlString =
@@ -133,7 +336,7 @@ public class TPCHUtils {
     return cost;
   }
 
-  private static void validate(SessionExecuteSqlResult result, int queryId) {
+  private static void validate(SessionExecuteSqlResult result, String queryId) {
     List<List<Object>> values = result.getValues();
     List<List<String>> answers = csvReader("src/test/resources/tpch/sf0.1/q" + queryId + ".csv");
     if (values.size() != answers.size()) {
