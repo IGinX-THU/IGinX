@@ -30,9 +30,9 @@ inputs:
         required: false
         default: 6379
     Oracle-ports:
-      description: "Oracle ports"
-      required: false
-      default: 1521
+        description: "Oracle ports"
+        required: false
+        default: 1521
 
 runs:
     using: "composite" # Mandatory parameter

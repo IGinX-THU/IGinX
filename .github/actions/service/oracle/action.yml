@@ -1,14 +1,14 @@
 name: "oracle"
 description: "stop, clean and start mysql in order"
 inputs:
-  ports:
-    description: The server port to listen on.
-    default: "1521"
-    required: false
-  version:
-    description: oracle db version.
-    default: "oracle23"
-    required: false
+    ports:
+        description: The server port to listen on.
+        default: "1521"
+        required: false
+    version:
+        description: oracle db version.
+        default: "oracle23"
+        required: false
 runs:
     using: "composite"
     steps:
