@@ -2323,6 +2323,13 @@ public class RelationalStorage implements IStorage {
   @Override
   public Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage(String dataPrefix)
       throws PhysicalException {
+    if (relationalMeta.isSupportInformationSchema() && dataPrefix == null) {
+      try {
+        return new Pair<>(getBoundaryFromInformationSchema(), KeyInterval.getDefaultKeyInterval());
+      } catch (SQLException e) {
+        throw new RelationalTaskExecuteFailureException(e.toString(), e);
+      }
+    }
     ColumnsInterval columnsInterval;
     List<String> paths = new ArrayList<>();
     try {
@@ -2358,6 +2365,82 @@ public class RelationalStorage implements IStorage {
     }
 
     return new Pair<>(columnsInterval, KeyInterval.getDefaultKeyInterval());
+  }
+
+  private ColumnsInterval getBoundaryFromInformationSchema()
+      throws PhysicalException, SQLException {
+    StringBuilder sqlGetDBBuilder = new StringBuilder();
+    sqlGetDBBuilder.append("SELECT min(datname), max(datname)");
+    sqlGetDBBuilder
+        .append(" FROM ( ")
+        .append(
+            relationalMeta.getDatabaseQuerySql(),
+            0,
+            relationalMeta.getDatabaseQuerySql().length() - 1)
+        .append(" )");
+    sqlGetDBBuilder
+        .append(" WHERE datname NOT IN ('")
+        .append(relationalMeta.getDefaultDatabaseName())
+        .append("'");
+    for (String systemDatabaseName : relationalMeta.getSystemDatabaseName()) {
+      sqlGetDBBuilder.append(", '").append(systemDatabaseName).append("'");
+    }
+    sqlGetDBBuilder.append(")");
+
+    String sqlGetDB = sqlGetDBBuilder.toString();
+
+    LOGGER.debug("[Query] execute query: {}", sqlGetDB);
+
+    try (Connection conn = getConnection(relationalMeta.getDefaultDatabaseName());
+        Statement statement = conn.createStatement();
+        ResultSet rs = statement.executeQuery(sqlGetDB)) {
+      if (rs.next()) {
+        String minDatabaseName = rs.getString(1);
+        String maxDatabaseName = rs.getString(2);
+        if (minDatabaseName != null && maxDatabaseName != null) {
+          return getBoundaryFromInformationSchemaInCatalog(minDatabaseName, maxDatabaseName);
+        }
+      }
+      throw new RelationalTaskExecuteFailureException("no data!");
+    }
+  }
+
+  private ColumnsInterval getBoundaryFromInformationSchemaInCatalog(String minDb, String maxDb)
+      throws SQLException, RelationalTaskExecuteFailureException {
+    String conditionStatement =
+        relationalMeta.getSchemaPattern() == null
+            ? ""
+            : " WHERE table_schema LIKE '" + relationalMeta.getSchemaPattern() + "'";
+    String sqlMin =
+        "SELECT table_catalog, table_name, column_name FROM information_schema.columns"
+            + conditionStatement
+            + " ORDER BY table_catalog, table_name, column_name LIMIT 1";
+    String sqlMax =
+        "SELECT table_catalog, table_name, column_name FROM information_schema.columns"
+            + conditionStatement
+            + " ORDER BY table_catalog DESC, table_name DESC, column_name DESC LIMIT 1";
+
+    String minPath;
+    try (Connection conn = getConnection(minDb);
+        Statement statement = conn.createStatement();
+        ResultSet rs = statement.executeQuery(sqlMin)) {
+      if (rs.next()) {
+        minPath = rs.getString(1) + SEPARATOR + rs.getString(2) + SEPARATOR + rs.getString(3);
+      } else {
+        minPath = minDb;
+      }
+    }
+    String maxPath;
+    try (Connection conn = getConnection(maxDb);
+        Statement statement = conn.createStatement();
+        ResultSet rs = statement.executeQuery(sqlMax)) {
+      if (rs.next()) {
+        maxPath = rs.getString(1) + SEPARATOR + rs.getString(2) + SEPARATOR + rs.getString(3);
+      } else {
+        maxPath = maxDb;
+      }
+    }
+    return new ColumnsInterval(minPath, StringUtils.nextString(maxPath));
   }
 
   private List<Pattern> getRegexPatternByName(
