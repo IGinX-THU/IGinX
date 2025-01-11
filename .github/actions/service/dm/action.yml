@@ -1,0 +1,33 @@
+name: "dm"
+description: "stop, clean and start dm in order"
+inputs:
+  ports:
+    description: The server port to listen on.
+    default: "5236"
+    required: false
+
+runs:
+  using: "composite"
+  steps:
+    # Step 1: 停止数据库服务
+    - if: fromJSON(inputs.stop)
+      name: Stop DM Database
+      shell: bash
+      run: |
+        ${inputs.dm_home}/bin/dmctl -h 127.0.0.1 -P ${inputs.dm_port} STOPDB dm.ini
+
+    # Step 2: 清理数据文件
+    - if: fromJSON(inputs.clean)
+      name: Clean DM Data Directory
+      shell: bash
+      run: |
+        rm -rf ${inputs.dm_data}/*
+
+    # Step 3: 启动数据库服务
+    - if: fromJSON(inputs.start)
+      name: Start DM Database
+      shell: bash
+      run: |
+        mkdir -p ${inputs.dm_data}
+        ${inputs.dm_home}/bin/dminit PATH=${inputs.dm_data} FILE_NAME=dm.ini
+        ${inputs.dm_home}/bin/dmserver dm.ini -noconsole

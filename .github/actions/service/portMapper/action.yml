@@ -58,6 +58,11 @@ runs:
                   echo "port2=6380" >> $GITHUB_OUTPUT
                   echo "port3=6381" >> $GITHUB_OUTPUT
                   ;;
+                "Dm")
+                  echo "port1=5236" >> $GITHUB_OUTPUT
+                  echo "port2=5237" >> $GITHUB_OUTPUT
+                  echo "port3=5238" >> $GITHUB_OUTPUT
+                  ;;
                 *)
                   echo "port1=0" >> $GITHUB_OUTPUT
                   echo "port2=0" >> $GITHUB_OUTPUT

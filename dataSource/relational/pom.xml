@@ -39,8 +39,8 @@
             <artifactId>postgresql</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.dm</groupId>
-            <artifactId>DmJdbcDriver</artifactId>
+            <groupId>dm.jdbc</groupId>
+            <artifactId>DmJdbcDriver8</artifactId>
             <version>1.8.0</version>
         </dependency>
         <dependency>
