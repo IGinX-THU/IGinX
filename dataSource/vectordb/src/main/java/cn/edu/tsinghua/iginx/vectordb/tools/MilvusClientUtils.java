@@ -44,8 +44,10 @@ import io.milvus.v2.service.database.request.CreateDatabaseReq;
 import io.milvus.v2.service.database.request.DropDatabaseReq;
 import io.milvus.v2.service.index.request.CreateIndexReq;
 import io.milvus.v2.service.vector.request.*;
+import io.milvus.v2.service.vector.request.data.FloatVec;
 import io.milvus.v2.service.vector.response.DeleteResp;
 import io.milvus.v2.service.vector.response.QueryResp;
+import io.milvus.v2.service.vector.response.SearchResp;
 import io.milvus.v2.service.vector.response.UpsertResp;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
@@ -596,31 +598,10 @@ public class MilvusClientUtils {
     }
     List<Pair<Long, Long>> keyRanges = FilterUtils.keyRangesFrom(filter);
     String expr;
-
-    if (isDummy(databaseName) || keyRanges == null || keyRanges.size() < 1) {
-      if (describeCollectionResp != null
-          && describeCollectionResp.getCollectionSchema().getField(primaryFieldName).getDataType()
-              == io.milvus.v2.common.DataType.VarChar) {
-        expr = primaryFieldName + ">=''";
-      } else {
-        expr = primaryFieldName + ">=0";
-      }
-    } else {
-      if (!FilterUtils.filterContainsType(
-          Arrays.asList(FilterType.Value, FilterType.Path), filter)) {
-        expr =
-            new FilterTransformer(primaryFieldName)
-                .toString(FilterUtils.expandFilter(filter, primaryFieldName));
-      } else {
-        expr = primaryFieldName + ">=0";
-      }
-    }
-
     Map<String, DataType> pathToDataType = new HashMap<>();
-    QueryIteratorReq.QueryIteratorReqBuilder queryIteratorReqBuilder =
-        buildQueryIteratorReq(databaseName, collectionNameEscaped, expr, fieldsEscaped);
+
     Map<String, Map<Long, Object>> pathToMap =
-        iteratorQuery(
+        vectorSearch(
             client,
             databaseName,
             collectionName,
@@ -629,8 +610,45 @@ public class MilvusClientUtils {
             primaryFieldName,
             fieldsEscaped,
             deletedFields,
-            queryIteratorReqBuilder,
-            pathToDataType);
+            describeCollectionResp,
+            pathToDataType,
+            filter);
+
+    if (pathToMap == null) {
+      if (isDummy(databaseName) || keyRanges == null || keyRanges.size() < 1) {
+        if (describeCollectionResp != null
+            && describeCollectionResp.getCollectionSchema().getField(primaryFieldName).getDataType()
+                == io.milvus.v2.common.DataType.VarChar) {
+          expr = primaryFieldName + ">=''";
+        } else {
+          expr = primaryFieldName + ">=0";
+        }
+      } else {
+        if (!FilterUtils.filterContainsType(
+            Arrays.asList(FilterType.Value, FilterType.Path), filter)) {
+          expr =
+              new FilterTransformer(primaryFieldName)
+                  .toString(FilterUtils.expandFilter(filter, primaryFieldName));
+        } else {
+          expr = primaryFieldName + ">=0";
+        }
+      }
+
+      QueryIteratorReq.QueryIteratorReqBuilder queryIteratorReqBuilder =
+          buildQueryIteratorReq(databaseName, collectionNameEscaped, expr, fieldsEscaped);
+      pathToMap =
+          iteratorQuery(
+              client,
+              databaseName,
+              collectionName,
+              patterns,
+              pathSystem,
+              primaryFieldName,
+              fieldsEscaped,
+              deletedFields,
+              queryIteratorReqBuilder,
+              pathToDataType);
+    }
 
     for (String field : fields) {
       String path = PathUtils.getPathUnescaped(databaseName, collectionName, field);
@@ -656,6 +674,129 @@ public class MilvusClientUtils {
       columns.add(column);
     }
     return columns;
+  }
+
+  public static Map<String, Map<Long, Object>> vectorSearch(
+      MilvusClientV2 client,
+      String databaseName,
+      String collectionName,
+      List<String> patterns,
+      PathSystem pathSystem,
+      String primaryFieldName,
+      List<String> fieldsEscaped,
+      Set<String> deletedFields,
+      DescribeCollectionResp describeCollectionResp,
+      Map<String, DataType> pathToDataType,
+      Filter filter)
+      throws UnsupportedEncodingException {
+    String collectionNameEscaped;
+    if (isDummy(databaseName) && !isDummyEscape) {
+      collectionNameEscaped = collectionName;
+    } else {
+      collectionNameEscaped = NameUtils.escape(collectionName);
+    }
+
+    if (isDummy(databaseName) && describeCollectionResp != null && filter != null) {
+      List<String> vectorFields = describeCollectionResp.getVectorFieldNames();
+      Set<String> vectorFieldsSet = new HashSet<>();
+      for (String field : vectorFields) {
+        vectorFieldsSet.add(
+            PathUtils.getPathUnescaped(databaseName, collectionName, NameUtils.unescape(field)));
+      }
+      if (filter.getType().equals(FilterType.And)) {
+        List<Filter> andChildren = ((AndFilter) filter).getChildren();
+        for (Filter child : andChildren) {
+          if (child.getType().equals(FilterType.Value)) {
+            ValueFilter valueFilter = (ValueFilter) child;
+            if (vectorFieldsSet.contains(valueFilter.getPath())) {
+              String value = valueFilter.getValue().getAsString();
+              if (value == null) {
+                andChildren.remove(child);
+                continue;
+              }
+              FloatVec queryVector = new FloatVec(JsonUtils.stringToArray(value));
+              SearchReq searchReq =
+                  SearchReq.builder()
+                      .collectionName(collectionNameEscaped)
+                      .data(Collections.singletonList(queryVector))
+                      .outputFields(fieldsEscaped)
+                      .topK(1)
+                      .build();
+              SearchResp searchResp = client.search(searchReq);
+
+              Map<String, Map<Long, Object>> pathToMap = new HashMap<>();
+              if (searchResp != null
+                  && searchResp.getSearchResults() != null
+                  && searchResp.getSearchResults().size() > 0) {
+                List<SearchResp.SearchResult> searchResults = searchResp.getSearchResults().get(0);
+
+                Set<String> matchedKeys = new HashSet<>();
+                Set<String> notMatchedKeys = new HashSet<>();
+
+                for (SearchResp.SearchResult searchResult : searchResults) {
+                  Map<String, Object> entity = searchResult.getEntity();
+                  for (String key : entity.keySet()) {
+                    if (key.equals(primaryFieldName) || key.equals(MILVUS_DYNAMIC_FIELD_NAME)) {
+                      continue;
+                    }
+                    if (deletedFields.contains(NameUtils.unescape(key))) {
+                      continue;
+                    }
+
+                    String path;
+                    if (isDummy(databaseName) && !isDummyEscape) {
+                      path = PathUtils.getPathUnescaped(databaseName, collectionName, key);
+                    } else {
+                      path =
+                          PathUtils.getPathUnescaped(
+                              databaseName, collectionName, NameUtils.unescape(key));
+                    }
+
+                    if (isDummy(databaseName) && patterns != null) {
+                      if (matchedKeys.contains(key)) {
+                      } else if (notMatchedKeys.contains(key)) {
+                        continue;
+                      } else {
+                        if (PathUtils.match(path, patterns)) {
+                          matchedKeys.add(key);
+                        } else {
+                          notMatchedKeys.add(key);
+                          continue;
+                        }
+                      }
+                    }
+
+                    long keyValue;
+                    if (searchResult.getId() instanceof String) {
+                      keyValue = stringToKey((String) searchResult.getId());
+                    } else {
+                      keyValue = (Long) searchResult.getId();
+                    }
+
+                    DataType type = pathToDataType.get(path);
+                    if (type == null) {
+                      if (PathUtils.getPathSystem(client, pathSystem).getColumn(path) != null) {
+                        type = pathSystem.getColumn(path).getDataType();
+                      } else {
+                        type = DataTransformer.fromObject(entity.get(key));
+                      }
+                      pathToDataType.put(path, type);
+                    }
+
+                    pathToMap
+                        .computeIfAbsent(path, k -> new HashMap<>())
+                        .put(keyValue, objToDeterminedType(entity.get(key), type));
+                  }
+                }
+              }
+              andChildren.remove(child);
+              return pathToMap;
+            }
+          }
+        }
+      }
+    }
+    return null;
   }
 
   public static List<String> escapeList(List<String> list, String databaseName) {

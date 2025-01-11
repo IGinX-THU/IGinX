@@ -318,6 +318,17 @@ public class VectorDBCapacityExpansionIT extends BaseCapacityExpansionIT {
             + "Total line number = 1\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
 
+    statement = "select vector, s from d2.c1 where vector='[2.2, 3.3]';";
+    expect =
+        "ResultSets:\n"
+            + "+---+------------+-------+\n"
+            + "|key|d2.c1.vector|d2.c1.s|\n"
+            + "+---+------------+-------+\n"
+            + "|  3|  [2.2, 3.3]|    3th|\n"
+            + "+---+------------+-------+\n"
+            + "Total line number = 1\n";
+    SQLTestTools.executeAndCompare(session, statement, expect);
+
     statement = "select vector, s from d2.c1 where (s = '2nd' or s LIKE '.*th') and s != '4th';";
     expect =
         "ResultSets:\n"

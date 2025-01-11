@@ -11,4 +11,4 @@ taskList:
 exportType: "file"
 exportFile: "test/src/test/resources/transform/export_file_continue_on_failure.txt"
 stopOnFailure: "false"
-schedule: "every 10 second"
+schedule: "every 20 second"

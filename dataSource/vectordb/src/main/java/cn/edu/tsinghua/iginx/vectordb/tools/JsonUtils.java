@@ -25,6 +25,8 @@ import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
 import com.google.gson.reflect.TypeToken;
 import java.lang.reflect.Type;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 public class JsonUtils {
@@ -57,5 +59,20 @@ public class JsonUtils {
     Gson gson = new Gson();
     String jsonString = gson.toJson(map);
     return JsonParser.parseString(jsonString).getAsJsonObject();
+  }
+
+  public static List<Float> stringToArray(String str) {
+    if (!(str.length() > 2) || str.charAt(0) != '[' || str.charAt(str.length() - 1) != ']') {
+      return null;
+    }
+    try {
+      List<Float> result = new ArrayList<>();
+      for (String s : str.substring(1, str.length() - 1).split(",")) {
+        result.add(Float.parseFloat(s.trim()));
+      }
+      return result;
+    } catch (NumberFormatException e) {
+      return null;
+    }
   }
 }

@@ -504,7 +504,7 @@ public class TransformIT {
 
   private void testContinueOnFailure(long jobId, String outputFileName)
       throws InterruptedException, SessionException, IOException {
-    Thread.sleep(3000L); // wait for 1st try to fail
+    Thread.sleep(13000L); // wait for 1st try to fail
     verifyJobState(jobId, null);
     verifyJobState(jobId, JobState.JOB_PARTIALLY_FAILED);
 
@@ -512,7 +512,7 @@ public class TransformIT {
     String task = "RowSumTransformer";
     registerTask(task);
 
-    Thread.sleep(10000L);
+    Thread.sleep(20000L);
     verifySinglePythonJob(outputFileName, 10); // verify 2nd try result
   }
 
