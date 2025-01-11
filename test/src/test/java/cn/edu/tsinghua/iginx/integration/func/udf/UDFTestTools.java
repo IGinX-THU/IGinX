@@ -114,6 +114,23 @@ public class UDFTestTools {
     return res;
   }
 
+  void dropTasks(List<String> names) {
+    LOGGER.info("Drop Tasks: names={}", names);
+    SessionExecuteSqlResult res;
+    try {
+      res = session.executeSql(SHOW_FUNCTION_SQL);
+      for (RegisterTaskInfo info : res.getRegisterTaskInfos()) {
+        for (String name : names) {
+          if (info.getName().equals(name)) {
+            session.executeSql(String.format(DROP_SQL, name));
+          }
+        }
+      }
+    } catch (SessionException e) {
+      LOGGER.error("Execution failed.", e);
+    }
+  }
+
   // execute a statement and expect failure.
   void executeFail(String statement) {
     LOGGER.info("Execute Statement: \"{}\"", statement);

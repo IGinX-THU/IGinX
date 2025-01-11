@@ -883,6 +883,12 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         case "RUNNING":
           jobState = JobState.JOB_RUNNING;
           break;
+        case "PARTIALLY_FAILING":
+          jobState = JobState.JOB_PARTIALLY_FAILING;
+          break;
+        case "PARTIALLY_FAILED":
+          jobState = JobState.JOB_PARTIALLY_FAILED;
+          break;
         case "FAILING":
           jobState = JobState.JOB_FAILING;
           break;
@@ -897,7 +903,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
           break;
         default:
           throw new SQLParserException(
-              "Illegal job state. Accept: UNKNOWN/FINISHED/CREATED/IDLE/RUNNING/FAILING/FAILED/CLOSING/CLOSED");
+              "Illegal job state. Accept: UNKNOWN/FINISHED/CREATED/IDLE/RUNNING/PARTIALLY_FAILING/PARTIALLY_FAILED/FAILING/FAILED/CLOSING/CLOSED");
       }
       return new ShowEligibleJobStatement(jobState);
     }

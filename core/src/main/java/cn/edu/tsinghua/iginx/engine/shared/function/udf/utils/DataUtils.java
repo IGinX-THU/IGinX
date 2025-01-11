@@ -28,16 +28,20 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.regex.Pattern;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DataUtils {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(DataUtils.class);
 
   public static List<List<Object>> dataFromTable(Table table, List<String> paths) {
     List<Object> colNames = new ArrayList<>(Collections.singletonList("key"));
     List<Object> colTypes = new ArrayList<>(Collections.singletonList(DataType.LONG.toString()));
     List<Integer> indices = new ArrayList<>();
 
-    flag:
     for (String target : paths) {
+      boolean found = false;
       if (StringUtils.isPattern(target)) {
         Pattern pattern = Pattern.compile(StringUtils.reformatPath(target));
         for (int i = 0; i < table.getHeader().getFieldSize(); i++) {
@@ -46,6 +50,7 @@ public class DataUtils {
             colNames.add(field.getName());
             colTypes.add(field.getType().toString());
             indices.add(i);
+            found = true;
           }
         }
       } else {
@@ -55,9 +60,14 @@ public class DataUtils {
             colNames.add(field.getName());
             colTypes.add(field.getType().toString());
             indices.add(i);
-            continue flag;
+            found = true;
+            break;
           }
         }
+      }
+      if (!found) {
+        LOGGER.error("Cannot find function data for path:{}", target);
+        return null;
       }
     }
 
@@ -84,8 +94,8 @@ public class DataUtils {
     List<Object> colTypes = new ArrayList<>(Collections.singletonList(DataType.LONG.toString()));
     List<Object> rowData = new ArrayList<>(Collections.singletonList(row.getKey()));
 
-    flag:
     for (String target : paths) {
+      boolean found = false;
       if (StringUtils.isPattern(target)) {
         Pattern pattern = Pattern.compile(StringUtils.reformatPath(target));
         for (int i = 0; i < row.getHeader().getFieldSize(); i++) {
@@ -94,6 +104,7 @@ public class DataUtils {
             colNames.add(field.getName());
             colTypes.add(field.getType().toString());
             rowData.add(row.getValues()[i]);
+            found = true;
           }
         }
       } else {
@@ -103,9 +114,14 @@ public class DataUtils {
             colNames.add(field.getName());
             colTypes.add(field.getType().toString());
             rowData.add(row.getValues()[i]);
-            continue flag;
+            found = true;
+            break;
           }
         }
+      }
+      if (!found) {
+        LOGGER.error("Cannot find function data for path:{}", target);
+        return null;
       }
     }
 

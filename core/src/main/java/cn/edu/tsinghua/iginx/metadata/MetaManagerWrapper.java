@@ -27,6 +27,7 @@ import cn.edu.tsinghua.iginx.metadata.hook.StorageUnitHook;
 import cn.edu.tsinghua.iginx.policy.simple.ColumnCalDO;
 import cn.edu.tsinghua.iginx.sql.statement.InsertStatement;
 import cn.edu.tsinghua.iginx.thrift.AuthType;
+import cn.edu.tsinghua.iginx.transform.pojo.TriggerDescriptor;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.List;
 import java.util.Map;
@@ -342,6 +343,26 @@ public class MetaManagerWrapper implements IMetaManager {
   @Override
   public List<TransformTaskMeta> getTransformTasksByModule(String moduleName) {
     return metaManager.getTransformTasksByModule(moduleName);
+  }
+
+  @Override
+  public boolean storeJobTrigger(TriggerDescriptor jobTriggerDescriptor) {
+    return metaManager.storeJobTrigger(jobTriggerDescriptor);
+  }
+
+  @Override
+  public boolean updateJobTrigger(TriggerDescriptor jobTriggerDescriptor) {
+    return metaManager.updateJobTrigger(jobTriggerDescriptor);
+  }
+
+  @Override
+  public boolean dropJobTrigger(String name) {
+    return metaManager.dropJobTrigger(name);
+  }
+
+  @Override
+  public List<TriggerDescriptor> getJobTriggers() {
+    return metaManager.getJobTriggers();
   }
 
   @Override

@@ -58,11 +58,11 @@ public class TransformTriggerListener extends TriggerListenerSupport {
       Trigger trigger,
       JobExecutionContext context,
       Trigger.CompletedExecutionInstruction triggerInstructionCode) {
-    if (trigger.getNextFireTime() == null) {
-      // 触发器的所有执行结束
-      Job job = (Job) context.getMergedJobDataMap().get("job");
-      Exception jobException = job.getException();
-      if (jobException != null) {
+    Job job = (Job) context.getMergedJobDataMap().get("job");
+    Exception jobException = job.getException();
+    if (jobException != null) {
+      // failed in this execution
+      if (job.isStopOnFailure()) {
         job.setState(JobState.JOB_FAILED);
         LOGGER.error("Job {} has failed. Detailed information:", job.getJobId(), jobException);
         try {
@@ -71,13 +71,18 @@ public class TransformTriggerListener extends TriggerListenerSupport {
           throw new RuntimeException(e);
         }
       } else {
-        job.setState(JobState.JOB_FINISHED);
-        LOGGER.info("Job {} has completed all executions.", job.getJobId());
-        try {
-          TransformJobManager.getInstance().removeFinishedScheduleJob(job.getJobId());
-        } catch (TransformException e) {
-          throw new RuntimeException(e);
-        }
+        // failed but continue to next execution
+        LOGGER.error("One execution of job {} failed.", job.getJobId(), jobException);
+        job.setState(JobState.JOB_PARTIALLY_FAILED);
+      }
+    } else if (trigger.getNextFireTime() == null) {
+      // whole schedule completes
+      job.setState(JobState.JOB_FINISHED);
+      LOGGER.info("Job {} has completed all executions.", job.getJobId());
+      try {
+        TransformJobManager.getInstance().removeFinishedScheduleJob(job.getJobId());
+      } catch (TransformException e) {
+        throw new RuntimeException(e);
       }
     }
   }

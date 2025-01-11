@@ -23,6 +23,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import javax.validation.constraints.NotNull;
 import pemja.core.PythonInterpreter;
+import pemja.core.PythonInterpreterConfig;
 
 /**
  * 管理线程上的interpreter，存到ThreadLocal中以便随时随地取用
@@ -31,15 +32,15 @@ import pemja.core.PythonInterpreter;
  */
 public class ThreadInterpreterManager {
   private static final ThreadLocal<PythonInterpreter> interpreterThreadLocal = new ThreadLocal<>();
+  private static final ThreadLocal<PythonInterpreterConfig> configThreadLocal = new ThreadLocal<>();
 
   @NotNull
   public static PythonInterpreter getInterpreter() {
     PythonInterpreter interpreter = interpreterThreadLocal.get();
-    if (interpreter != null) {
-      return interpreter;
-    } else {
-      throw new RuntimeException("Python interpreter not set.");
+    if (interpreter == null) {
+      setInterpreter(new PythonInterpreter(configThreadLocal.get()));
     }
+    return interpreterThreadLocal.get();
   }
 
   public static boolean isInterpreterSet() {
@@ -50,6 +51,10 @@ public class ThreadInterpreterManager {
     interpreterThreadLocal.set(interpreter);
   }
 
+  public static void setConfig(@NotNull PythonInterpreterConfig config) {
+    configThreadLocal.set(config);
+  }
+
   public static void executeWithInterpreter(Consumer<PythonInterpreter> action) {
     PythonInterpreter interpreter = getInterpreter();
     action.accept(interpreter);
@@ -58,13 +63,5 @@ public class ThreadInterpreterManager {
   public static <T> T executeWithInterpreterAndReturn(Function<PythonInterpreter, T> action) {
     PythonInterpreter interpreter = getInterpreter();
     return action.apply(interpreter);
-  }
-
-  /** 从threadlocal中移除interpreter */
-  public static void cleanupInterpreter() {
-    PythonInterpreter interpreter = interpreterThreadLocal.get();
-    if (interpreter != null) {
-      interpreterThreadLocal.remove();
-    }
   }
 }
