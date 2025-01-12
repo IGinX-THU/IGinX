@@ -47,7 +47,7 @@ public class Constants {
   public static final int DEFAULT_MAX_TOTAL_PER_KEY = 20;
 
   /** 默认池配置参数：池中所有键的最大总连接数。 */
-  public static final int DEFAULT_MAX_TOTAL = 20;
+  public static final int DEFAULT_MAX_TOTAL = 50;
 
   /** 默认池配置参数：获取连接的最大等待时间（秒）。 */
   public static final long DEFAULT_MAX_BLOCK_WAIT_DURATION = 5L;

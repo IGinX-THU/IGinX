@@ -44,7 +44,7 @@ public class MilvusConnectPoolConfig {
   private Integer minIdle = 4;
 
   /** 最大总数 */
-  private Integer maxTotal = 20;
+  private Integer maxTotal = 50;
 
   /** 连接协议 */
   private String protocol;
