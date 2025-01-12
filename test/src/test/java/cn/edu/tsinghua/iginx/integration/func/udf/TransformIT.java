@@ -461,7 +461,7 @@ public class TransformIT {
       taskInfoList.add(iginxTask);
       taskInfoList.add(pyTask);
 
-      String schedule = "every 10 second";
+      String schedule = "every 20 second";
 
       String outputFileName =
           OUTPUT_DIR_PREFIX + File.separator + "export_file_continue_on_failure.txt";
