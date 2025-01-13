@@ -47,5 +47,7 @@ do
 
   sudo sh -c 'which java; java -version; echo $JAVA_HOME'
 
+  sh -c 'which java; java -version; echo $JAVA_HOME'
+
   sudo sh -c "cd apache-iotdb-0.12.6-server-bin-$port/; nohup sbin/start-server.sh &"
 done
