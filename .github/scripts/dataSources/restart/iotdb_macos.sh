@@ -20,10 +20,6 @@
 
 set -e
 
-which java
-
-java -version
-
 port=$1
 cd apache-iotdb-0.12.6-server-bin-$port/
 sudo sysctl -w kern.ipc.somaxconn=65535
