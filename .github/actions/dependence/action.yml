@@ -93,8 +93,11 @@ runs:
               PYTHON_PATH=$(dirname $(which python))
               echo $PYTHON_PATH
               echo "IGINX_PYTHON_PATH=$PYTHON_PATH" >> $GITHUB_ENV
+              echo $PYTHON_PATH >> $GITHUB_PATH
               echo "export PATH=$PYTHON_PATH:\$PATH" >> ~/.profile
               source ~/.profile
+              echo "export PATH=$PYTHON_PATH:\$PATH" >> ~/.bachrc
+              source ~/.bachrc
               echo $PATH
 
         - if: inputs.scope=='all'
@@ -102,6 +105,7 @@ runs:
           shell: bash -el {0}
           run: |
               echo $PATH
+              which python
               python -m pip install --upgrade pip
               pip install -r requirements.txt
 

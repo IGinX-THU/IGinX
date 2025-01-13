@@ -72,6 +72,7 @@ runs:
           name: Run DB
           shell: bash
           run: |
+              java -version
               if [ "$RUNNER_OS" == "Linux" ]; then
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/startup/iotdb12.sh"
                 "${GITHUB_WORKSPACE}/.github/scripts/dataSources/startup/iotdb12.sh" ${{ inputs.IoTDB12-ports }}

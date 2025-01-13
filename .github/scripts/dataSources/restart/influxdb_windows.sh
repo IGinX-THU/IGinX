@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # IGinX - the polystore system with high performance
 # Copyright (C) Tsinghua University
@@ -29,3 +29,8 @@ redirect="-RedirectStandardOutput '$pathPrefix/logs/db.log' -RedirectStandardErr
 
 powershell -command "Start-Process -FilePath 'influxdb2-2.0.7-windows-amd64-$port/influxd' $arguments -NoNewWindow $redirect"
 sleep 3
+
+sudo lsof -i:$port
+if [ $? -eq 1 ]; then
+    echo "No process is listening on port $port"
+fi

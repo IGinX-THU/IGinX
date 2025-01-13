@@ -219,6 +219,11 @@ public class UDFIT {
     taskToBeRemoved.add(udfName);
 
     tool.execute(String.format(DROP_SQL, udfName));
+    try {
+      Thread.sleep(1000); // needed in some tests(redis no+no yes+no)
+    } catch (InterruptedException e) {
+      LOGGER.error("Thread sleep error.", e);
+    }
     // dropped udf cannot be queried
     assertFalse(tool.isUDFRegistered(udfName));
     taskToBeRemoved.clear();
