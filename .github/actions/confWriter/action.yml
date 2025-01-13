@@ -68,29 +68,29 @@ runs:
         - name: Change UDF conf
           uses: ./.github/actions/edit
           with:
-            paths: ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-*/conf/config.properties
-            statements: s/needInitBasicUDFFunctions=false/needInitBasicUDFFunctions=true/g
+              paths: ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-*/conf/config.properties
+              statements: s/needInitBasicUDFFunctions=false/needInitBasicUDFFunctions=true/g
 
         - name: Find PythonCMD && Set Free-threading Support ENV
           id: find_python_cmd
           shell: bash -el {0}
           run: |
-            if [[ "${{ inputs.use-free-thread-python }}" == "true" && "$RUNNER_OS" != "Windows" ]]; then
-              pythonCMD='python3.13t'
-              echo "TORCH_SUPPORTED=false" >> $GITHUB_ENV
-            elif [[ "${{ inputs.use-free-thread-python }}" == "true" && "$RUNNER_OS" == "Windows" ]]; then
-              pythonPath=$(echo "$FT_PYTHON_PATH" | sed 's/\\/\//g')
-              pythonCMD="${pythonPath}/python3.13t.exe"
-              echo "TORCH_SUPPORTED=false" >> $GITHUB_ENV
-            elif [ "$RUNNER_OS" == "Windows" ]; then
-              pythonCMD=python
-            else
-              pythonCMD=python3
-            fi
-            # have to set env to make it work in ut tests
-            echo "pythonCMD=${pythonCMD}" >> $GITHUB_ENV
-            echo "pythonCMD=${pythonCMD}" >> $GITHUB_OUTPUT
-            echo ${pythonCMD}
+              if [[ "${{ inputs.use-free-thread-python }}" == "true" && "$RUNNER_OS" != "Windows" ]]; then
+                pythonCMD='python3.13t'
+                echo "TORCH_SUPPORTED=false" >> $GITHUB_ENV
+              elif [[ "${{ inputs.use-free-thread-python }}" == "true" && "$RUNNER_OS" == "Windows" ]]; then
+                pythonPath=$(echo "$FT_PYTHON_PATH" | sed 's/\\/\//g')
+                pythonCMD="${pythonPath}/python3.13t.exe"
+                echo "TORCH_SUPPORTED=false" >> $GITHUB_ENV
+              elif [ "$RUNNER_OS" == "Windows" ]; then
+                pythonCMD=python
+              else
+                pythonCMD=python3
+              fi
+              # have to set env to make it work in ut tests
+              echo "pythonCMD=${pythonCMD}" >> $GITHUB_ENV
+              echo "pythonCMD=${pythonCMD}" >> $GITHUB_OUTPUT
+              echo ${pythonCMD}
 
         - name: Change Python CMD
           uses: ./.github/actions/edit

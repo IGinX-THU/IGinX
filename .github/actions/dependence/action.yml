@@ -129,10 +129,10 @@ runs:
           if: env.IGINX_CONDA_FLAG != 'true'
           shell: bash -el {0}
           run: |
-            java -version
-            which java
-            python --version
-            which python
+              java -version
+              which java
+              python --version
+              which python
 
         - name: Get project info
           id: project
