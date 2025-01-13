@@ -318,7 +318,7 @@ public class VectorDBCapacityExpansionIT extends BaseCapacityExpansionIT {
             + "Total line number = 1\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
 
-    statement = "select vector, s from d2.c1 where vector='[2.2, 3.3]';";
+    statement = "select vector, s from d2.c1 where vector='[2.2, 3.3]' limit 1;";
     expect =
         "ResultSets:\n"
             + "+---+------------+-------+\n"

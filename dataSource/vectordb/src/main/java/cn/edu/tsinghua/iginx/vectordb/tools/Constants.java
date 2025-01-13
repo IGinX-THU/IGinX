@@ -33,6 +33,7 @@ public class Constants {
 
   public static final String MAX_IDLE = "maxIdle";
   public static final String MIN_IDLE = "minIdle";
+  public static final String TOP_K = "topk";
 
   /** 池配置参数：获取连接的最大等待时间。 */
   public static final String MAX_BLOCK_WAIT_DURATION = "maxBlockWaitDuration";
@@ -62,6 +63,8 @@ public class Constants {
   public static final long DEFAULT_MILVUS_CONNECT_TIMEOUT = 30000L;
 
   public static final int DEFAULT_MIN_IDLE = 1;
+
+  public static final int DEFAULT_TOP_K = 3;
 
   /** 数据库连接协议的键。 用于指定连接字符串中的协议类型，例如 "http" 或 "grpc"。 */
   public static final String DB_PROTOCOL = "protocol";

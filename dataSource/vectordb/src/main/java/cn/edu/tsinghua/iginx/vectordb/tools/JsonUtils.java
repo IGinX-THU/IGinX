@@ -28,8 +28,12 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class JsonUtils {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(JsonUtils.class);
 
   public static Map<String, Object> jsonToMap(String jsonString) {
     try {
@@ -63,6 +67,7 @@ public class JsonUtils {
 
   public static List<Float> stringToArray(String str) {
     if (!(str.length() > 2) || str.charAt(0) != '[' || str.charAt(str.length() - 1) != ']') {
+      LOGGER.error("vector data is improperly formatted : " + str);
       return null;
     }
     try {
@@ -72,6 +77,7 @@ public class JsonUtils {
       }
       return result;
     } catch (NumberFormatException e) {
+      LOGGER.error("vector data is improperly formatted : " + str, e);
       return null;
     }
   }

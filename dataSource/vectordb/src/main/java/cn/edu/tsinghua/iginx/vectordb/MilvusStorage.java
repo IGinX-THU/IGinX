@@ -76,6 +76,8 @@ public class MilvusStorage implements IStorage {
     return pathSystemMap;
   }
 
+  private int topK = 1;
+
   /**
    * 构造函数，用于初始化 MilvusStorage 实例。
    *
@@ -93,6 +95,7 @@ public class MilvusStorage implements IStorage {
         Integer.parseInt(params.getOrDefault(MAX_TOTAL, String.valueOf(DEFAULT_MAX_TOTAL)));
     int maxIdle = Integer.parseInt(params.getOrDefault(MAX_IDLE, String.valueOf(DEFAULT_MAX_IDLE)));
     int minIdle = Integer.parseInt(params.getOrDefault(MIN_IDLE, String.valueOf(DEFAULT_MIN_IDLE)));
+    topK = Integer.parseInt(params.getOrDefault(TOP_K, String.valueOf(DEFAULT_TOP_K)));
 
     MilvusConnectPoolConfig config =
         new MilvusConnectPoolConfig(
@@ -269,7 +272,8 @@ public class MilvusStorage implements IStorage {
                     new ArrayList<>(fields),
                     filter,
                     null,
-                    pathSystem);
+                    pathSystem,
+                    topK);
               }
             };
         completionService.submit(task);
@@ -342,7 +346,8 @@ public class MilvusStorage implements IStorage {
                     new ArrayList<>(fields),
                     filter,
                     finalPatterns,
-                    pathSystem);
+                    pathSystem,
+                    topK);
               }
             };
         completionService.submit(task);

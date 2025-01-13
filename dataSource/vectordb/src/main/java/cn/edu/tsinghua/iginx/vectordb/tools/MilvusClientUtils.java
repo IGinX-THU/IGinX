@@ -557,7 +557,8 @@ public class MilvusClientUtils {
       List<String> fields,
       Filter filter,
       List<String> patterns,
-      PathSystem pathSystem)
+      PathSystem pathSystem,
+      int topK)
       throws InterruptedException, UnsupportedEncodingException {
     String collectionNameEscaped;
     if (isDummy(databaseName) && !isDummyEscape) {
@@ -612,7 +613,8 @@ public class MilvusClientUtils {
             deletedFields,
             describeCollectionResp,
             pathToDataType,
-            filter);
+            filter,
+            topK);
 
     if (pathToMap == null) {
       if (isDummy(databaseName) || keyRanges == null || keyRanges.size() < 1) {
@@ -687,7 +689,8 @@ public class MilvusClientUtils {
       Set<String> deletedFields,
       DescribeCollectionResp describeCollectionResp,
       Map<String, DataType> pathToDataType,
-      Filter filter)
+      Filter filter,
+      int topK)
       throws UnsupportedEncodingException {
     String collectionNameEscaped;
     if (isDummy(databaseName) && !isDummyEscape) {
@@ -711,7 +714,6 @@ public class MilvusClientUtils {
             if (vectorFieldsSet.contains(valueFilter.getPath())) {
               String value = valueFilter.getValue().getAsString();
               if (value == null) {
-                andChildren.remove(child);
                 continue;
               }
               FloatVec queryVector = new FloatVec(JsonUtils.stringToArray(value));
@@ -720,9 +722,16 @@ public class MilvusClientUtils {
                       .collectionName(collectionNameEscaped)
                       .data(Collections.singletonList(queryVector))
                       .outputFields(fieldsEscaped)
-                      .topK(1)
+                      .topK(topK)
                       .build();
               SearchResp searchResp = client.search(searchReq);
+              String vectorField =
+                  valueFilter
+                      .getPath()
+                      .substring(
+                          valueFilter.getPath().indexOf(collectionName)
+                              + collectionName.length()
+                              + 1);
 
               Map<String, Map<Long, Object>> pathToMap = new HashMap<>();
               if (searchResp != null
@@ -735,6 +744,11 @@ public class MilvusClientUtils {
 
                 for (SearchResp.SearchResult searchResult : searchResults) {
                   Map<String, Object> entity = searchResult.getEntity();
+                  if (!value.equals(
+                      objToDeterminedType(
+                          entity.get(NameUtils.escape(vectorField)), DataType.BINARY))) {
+                    break;
+                  }
                   for (String key : entity.keySet()) {
                     if (key.equals(primaryFieldName) || key.equals(MILVUS_DYNAMIC_FIELD_NAME)) {
                       continue;
@@ -782,14 +796,12 @@ public class MilvusClientUtils {
                       }
                       pathToDataType.put(path, type);
                     }
-
                     pathToMap
                         .computeIfAbsent(path, k -> new HashMap<>())
                         .put(keyValue, objToDeterminedType(entity.get(key), type));
                   }
                 }
               }
-              andChildren.remove(child);
               return pathToMap;
             }
           }
