@@ -20,6 +20,10 @@
 
 set -e
 
+which java
+
+java -version
+
 if [ $# -lt 1 ]; then
   exit 0
 fi

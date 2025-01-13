@@ -20,6 +20,10 @@
 
 set -e
 
+which java
+
+java -version
+
 sh -c "cp -r $IOTDB_ROOT/ apache-iotdb-0.12.6-server-bin"
 
 sh -c "echo ========================="

@@ -93,17 +93,20 @@ runs:
               PYTHON_PATH=$(dirname $(which python))
               echo $PYTHON_PATH
               echo "IGINX_PYTHON_PATH=$PYTHON_PATH" >> $GITHUB_ENV
-              echo $PYTHON_PATH >> $GITHUB_PATH
-              echo "export PATH=$PYTHON_PATH:\$PATH" >> ~/.profile
-              source ~/.profile
-              echo "export PATH=$PYTHON_PATH:\$PATH" >> ~/.bachrc
-              source ~/.bachrc
-              echo $PATH
+#              echo $PYTHON_PATH >> $GITHUB_PATH
+#              echo "export PATH=$PYTHON_PATH:\$PATH" >> ~/.profile
+#              source ~/.profile
+#              echo "export PATH=$PYTHON_PATH:\$PATH" >> ~/.bachrc
+#              source ~/.bachrc
+#              echo $PATH
 
         - if: inputs.scope=='all'
           name: Install Python dependencies
           shell: bash -el {0}
           run: |
+              if [ ! -z "$IGINX_PYTHON_PATH" ]; then
+                export PATH="$IGINX_PYTHON_PATH:$PATH"
+              fi
               echo $PATH
               which python
               python -m pip install --upgrade pip
