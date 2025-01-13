@@ -39,5 +39,5 @@ do
 
   sh -c "sudo sed -i '' 's/6667/$port/' apache-iotdb-0.12.6-server-bin-$port/conf/iotdb-engine.properties"
 
-  sh -c "cd apache-iotdb-0.12.6-server-bin-$port/; nohup sbin/start-server.sh &"
+  sudo -E sh -c "cd apache-iotdb-0.12.6-server-bin-$port/; nohup sbin/start-server.sh &"
 done
