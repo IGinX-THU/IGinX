@@ -22,6 +22,6 @@ set -e
 
 PGDATA=$1
 
-pg_ctl -D ".github/actions/service/postgresql/${PGDATA}" stop
+pg_ctl -D "${SERVICE_DIR}/postgresql/${PGDATA}" stop
 
 lsof -i:$1

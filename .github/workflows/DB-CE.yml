@@ -98,6 +98,7 @@ jobs:
                   Close-Optimizer: ${{ inputs.close-optimizer }}
                   Metadata: ${{ matrix.metadata }}
                   Read-Only: "${{ matrix.test-way == 'testReadOnly' }}"
+                  Has-Data: "${{ matrix.test-way == 'oriHasDataExpHasData' || matrix.test-way == 'oriHasDataExpNoData' || matrix.test-way == 'testReadOnly' }}"
                   if-CapExp: true
                   Test-Way: ${{ matrix.test-way }}
 
@@ -110,10 +111,6 @@ jobs:
 
             - name: ${{ matrix.test-way }} IT
               shell: bash -el {0}
-              env:
-                  SERVICE_DIR: "/home/runner/work/IGinX/IGinX/.github/actions/service"
-                  SERVICE_DIR_MAC: "/Users/runner/work/IGinX/IGinX/.github/actions/service"
-                  SERVICE_DIR_WIN: "/d/a/IGinX/IGinX/.github/actions/service"
               run: mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#${{ matrix.test-way }} -DfailIfNoTests=false -P-format
 
             - name: Clear history data

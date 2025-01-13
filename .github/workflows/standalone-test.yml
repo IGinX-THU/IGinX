@@ -76,7 +76,6 @@ jobs:
               uses: ./.github/actions/confWriter
               with:
                   DB-name: ${{ matrix.DB-name }}
-                  Set-Filter-Fragment-OFF: "true"
                   Metadata: ${{ matrix.metadata }}
 
             # start udf path test first to avoid being effected
@@ -207,6 +206,8 @@ jobs:
             - name: Change IGinX config
               uses: ./.github/actions/confWriter
               with:
+                  DB-name: ${{ matrix.DB-name }}
+                  Metadata: ${{ matrix.metadata }}
                   Set-Key-Range-Test-Policy: "true"
 
             - name: clean metadata and restart IGinX

@@ -32,7 +32,7 @@ inputs:
     Root-Dir-Path:
         description: "the path of IGinX root directory"
         required: false
-        default: "${GITHUB_WORKSPACE}"
+        default: "."
     use-free-thread-python:
         description: "use python3.13 free-threading mode"
         required: false
@@ -49,17 +49,8 @@ inputs:
 runs:
     using: "composite" # Mandatory parameter
     steps:
-        - if: inputs.DB-name=='FileSystem'
-          name: save config for FileSystem
-          shell: bash
-          run: |
-              cp -f "${{ inputs.Root-Dir-Path }}/conf/config.properties" "${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties"
-
-        - if: inputs.DB-name=='FileSystem'
-          name: save config for FileSystem
-          shell: bash
-          run: |
-              cp -f "${{ inputs.Root-Dir-Path }}/conf/config.properties" "${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties"
+        - id: project
+          uses: ./.github/actions/project
 
         - name: Set Test Environment
           shell: bash
@@ -68,199 +59,171 @@ runs:
               echo "${{ inputs.if-CapExp }}" > ${{ inputs.Root-Dir-Path }}/test/src/test/resources/isScaling.txt
               echo "${{ inputs.Test-Way }}" > ${{ inputs.Root-Dir-Path }}/test/src/test/resources/dbce-test-way.txt
 
-        - if: inputs.if-CapExp=='true'
-          name: Change has_data
-          shell: bash
-          run: |
-              if [[ "${{ inputs.Test-Way }}" == "oriHasDataExpHasData" || "${{ inputs.Test-Way }}" == "oriHasDataExpNoData" || "${{ inputs.Test-Way }}" == "testReadOnly" ]]; then
-                if [[ "$RUNNER_OS" == "Linux" || "$RUNNER_OS" == "Windows" ]]; then
-                  sed -i "s/has_data=false/has_data=true/g" ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-                elif [ "$RUNNER_OS" == "macOS" ]; then
-                  sed -i "" "s/has_data=false/has_data=true/" ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-                fi
-              elif [[ "${{ inputs.Test-Way }}" == "oriNoDataExpHasData" || "${{ inputs.Test-Way }}" == "oriNoDataExpNoData" ]]; then
-                if [[ "$RUNNER_OS" == "Linux" || "$RUNNER_OS" == "Windows" ]]; then
-                  sed -i "s/has_data=true/has_data=false/g" ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-                elif [ "$RUNNER_OS" == "macOS" ]; then
-                  sed -i "" "s/has_data=true/has_data=false/" ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-                fi
-              fi
-
-        - if: inputs.zookeeper-port!='2181'
-          name: Change Zookeeper Port
-          shell: bash
-          run: |
-              if [ "$RUNNER_OS" == "Linux" ]; then
-                sudo sed -i 's/zookeeperConnectionString=127.0.0.1:2181/zookeeperConnectionString=127.0.0.1:${{ inputs.zookeeper-port }}/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-              elif [ "$RUNNER_OS" == "Windows" ]; then
-                sed -i 's/zookeeperConnectionString=127.0.0.1:2181/zookeeperConnectionString=127.0.0.1:${{ inputs.zookeeper-port }}/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-              elif [ "$RUNNER_OS" == "macOS" ]; then
-                sudo sed -i '' 's/zookeeperConnectionString=127.0.0.1:2181/zookeeperConnectionString=127.0.0.1:${{ inputs.zookeeper-port }}/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-              else
-                echo "$RUNNER_OS is not supported"
-                exit 1
-              fi
+        - name: Change Zookeeper Port
+          uses: ./.github/actions/edit
+          with:
+              paths: ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-*/conf/config.properties
+              statements: s/zookeeperConnectionString=127.0.0.1:[0-9]*/zookeeperConnectionString=127.0.0.1:${{ inputs.zookeeper-port }}/g
 
         - name: Change UDF conf
+          uses: ./.github/actions/edit
+          with:
+            paths: ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-*/conf/config.properties
+            statements: s/needInitBasicUDFFunctions=false/needInitBasicUDFFunctions=true/g
+
+        - name: Find PythonCMD && Set Free-threading Support ENV
+          id: find_python_cmd
           shell: bash -el {0}
           run: |
-              if [[ "${{ inputs.use-free-thread-python }}" == "true" && "$RUNNER_OS" != "Windows" ]]; then
-                pythonCMD='python3.13t'
-                echo "TORCH_SUPPORTED=false" >> $GITHUB_ENV
-              elif [[ "${{ inputs.use-free-thread-python }}" == "true" && "$RUNNER_OS" == "Windows" ]]; then
-                pythonPath=$(echo "$FT_PYTHON_PATH" | sed 's/\\/\//g')
-                pythonCMD="${pythonPath}/python3.13t.exe"
-                echo "TORCH_SUPPORTED=false" >> $GITHUB_ENV
-              elif [ "$RUNNER_OS" == "Windows" ]; then
-                pythonCMD=python
-              else
-                pythonCMD=python3
-              fi
-              # have to set env to make it work in ut tests
-              echo "pythonCMD=${pythonCMD}" >> $GITHUB_ENV
-              echo ${pythonCMD}
-              if [ "$RUNNER_OS" == "Linux" ]; then
-                sudo sed -i "s/needInitBasicUDFFunctions=false/needInitBasicUDFFunctions=true/g" ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-                sudo sed -i "s|pythonCMD=python3|pythonCMD=${pythonCMD}|g" ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-              elif [ "$RUNNER_OS" == "Windows" ]; then
-                sed -i "s/needInitBasicUDFFunctions=false/needInitBasicUDFFunctions=true/g" ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-                sed -i "s|pythonCMD=python3|pythonCMD=${pythonCMD}|g" ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-              elif [ "$RUNNER_OS" == "macOS" ]; then
-                sudo sed -i "" "s/needInitBasicUDFFunctions=false/needInitBasicUDFFunctions=true/" ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-                sudo sed -i "" "s|pythonCMD=python3|pythonCMD=${pythonCMD}|" ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-              else
-                echo "$RUNNER_OS is not supported"
-                exit 1
-              fi
+            if [[ "${{ inputs.use-free-thread-python }}" == "true" && "$RUNNER_OS" != "Windows" ]]; then
+              pythonCMD='python3.13t'
+              echo "TORCH_SUPPORTED=false" >> $GITHUB_ENV
+            elif [[ "${{ inputs.use-free-thread-python }}" == "true" && "$RUNNER_OS" == "Windows" ]]; then
+              pythonPath=$(echo "$FT_PYTHON_PATH" | sed 's/\\/\//g')
+              pythonCMD="${pythonPath}/python3.13t.exe"
+              echo "TORCH_SUPPORTED=false" >> $GITHUB_ENV
+            elif [ "$RUNNER_OS" == "Windows" ]; then
+              pythonCMD=python
+            else
+              pythonCMD=python3
+            fi
+            # have to set env to make it work in ut tests
+            echo "pythonCMD=${pythonCMD}" >> $GITHUB_ENV
+            echo "pythonCMD=${pythonCMD}" >> $GITHUB_OUTPUT
+            echo ${pythonCMD}
 
-        - if: inputs.Read-Only=='true'
-          name: Change is_read_only
-          shell: bash
-          run: |
-              if [ "$RUNNER_OS" == "Linux" ]; then
-                sudo sed -i 's/is_read_only=false/is_read_only=true/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-              elif [ "$RUNNER_OS" == "Windows" ]; then
-                sed -i 's/is_read_only=false/is_read_only=true/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-              elif [ "$RUNNER_OS" == "macOS" ]; then
-                sudo sed -i '' 's/is_read_only=false/is_read_only=true/' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-              else
-                echo "$RUNNER_OS is not supported"
-                exit 1
-              fi
+        - name: Change Python CMD
+          uses: ./.github/actions/edit
+          with:
+              paths: ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-*/conf/config.properties
+              statements: s|pythonCMD=python3|pythonCMD=${{ steps.find_python_cmd.outputs.pythonCMD }}|g
 
-        - if: inputs.Has-Data=='true'
-          name: Set Has-Data
-          shell: bash
-          run: |
-              if [ "$RUNNER_OS" == "Linux" ]; then
-                sudo sed -i 's/has_data=false/has_data=true/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-              elif [ "$RUNNER_OS" == "Windows" ]; then
-                sed -i 's/has_data=false/has_data=true/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-              elif [ "$RUNNER_OS" == "macOS" ]; then
-                sudo sed -i '' 's/has_data=false/has_data=true/' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-              else
-                echo "$RUNNER_OS is not supported"
-                exit 1
-              fi
-
-        - if: inputs.Open-Optimizer=='true'
-          name: Change push_down
-          shell: bash
-          run: |
-              if [ "$RUNNER_OS" == "Linux" ]; then
-                  sudo sed -i 's/enablePushDown=false/enablePushDown=true/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-                  sed -i 's/Rule=off/Rule=on/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-              elif [ "$RUNNER_OS" == "Windows" ]; then
-                  sed -i 's/enablePushDown=false/enablePushDown=true/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-                  sed -i 's/Rule=off/Rule=on/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-              elif [ "$RUNNER_OS" == "macOS" ]; then
-                sudo sed -i '' 's/enablePushDown=false/enablePushDown=true/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-                sed -i '' 's/Rule=off/Rule=on/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-              else
-                echo "$RUNNER_OS is not supported"
-                exit 1
-              fi
         - if: inputs.Close-Optimizer=='true'
-          name: Close-All-Optimizer
-          shell: bash
-          run: |
-              if [ "$RUNNER_OS" == "Linux" ]; then
-                sudo sed -i 's/Rule=on/Rule=off/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-                sudo sed -i 's/enablePushDown=true/enablePushDown=false/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-                sudo sed -i 's/ColumnPruningRule=off/ColumnPruningRule=on/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-              elif [ "$RUNNER_OS" == "Windows" ]; then
-                sed -i 's/Rule=on/Rule=off/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-                sed -i 's/enablePushDown=true/enablePushDown=false/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-                sed -i 's/ColumnPruningRule=off/ColumnPruningRule=on/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-              elif [ "$RUNNER_OS" == "macOS" ]; then
-                sudo sed -i '' 's/Rule=on/Rule=off/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-                sudo sed -i '' 's/enablePushDown=true/enablePushDown=false/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-                sudo sed -i '' 's/ColumnPruningRule=off/ColumnPruningRule=on/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-              else
-                echo "$RUNNER_OS is not supported"
-                exit 1
-              fi
+          name: Close All Optimizer
+          uses: ./.github/actions/edit
+          with:
+              paths: ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-*/conf/config.properties
+              statements: |
+                  s/Rule=on/Rule=off/g
+                  s/enablePushDown=true/enablePushDown=false/g
+                  s/ColumnPruningRule=off/ColumnPruningRule=on/g
+
         - if: inputs.Set-Key-Range-Test-Policy=='true'
           name: Change KeyRangeTestPolicy
-          shell: bash
-          run: |
-              if [ "$RUNNER_OS" == "Linux" ]; then
-                  sudo sed -i 's/policyClassName=cn.edu.tsinghua.iginx.policy.naive.NaivePolicy/policyClassName=cn.edu.tsinghua.iginx.policy.test.KeyRangeTestPolicy/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-              elif [ "$RUNNER_OS" == "Windows" ]; then
-                sed -i 's/policyClassName=cn.edu.tsinghua.iginx.policy.naive.NaivePolicy/policyClassName=cn.edu.tsinghua.iginx.policy.test.KeyRangeTestPolicy/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-              elif [ "$RUNNER_OS" == "macOS" ]; then
-                  sudo sed -i '' 's/policyClassName=cn.edu.tsinghua.iginx.policy.naive.NaivePolicy/policyClassName=cn.edu.tsinghua.iginx.policy.test.KeyRangeTestPolicy/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-              else
-                  echo "$RUNNER_OS is not supported"
-                  exit 1
-              fi
-        - name: Change Log conf
-          shell: bash
-          run: |
-              if [ "$RUNNER_OS" == "Linux" ]; then
-                sudo sed -i 's/^logger.iginx.level=.*$/logger.iginx.level=debug/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/log4j2.properties
-              elif [ "$RUNNER_OS" == "Windows" ]; then
-                sed -i 's/^logger.iginx.level=.*$/logger.iginx.level=debug/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/log4j2.properties
-              elif [ "$RUNNER_OS" == "macOS" ]; then
-                sudo sed -i '' 's/^logger.iginx.level=.*$/logger.iginx.level=debug/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/log4j2.properties
-              else
-                echo "$RUNNER_OS is not supported"
-                exit 1
-              fi
+          uses: ./.github/actions/edit
+          with:
+              paths: ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-*/conf/config.properties
+              statements: s/policyClassName=.*$/policyClassName=cn.edu.tsinghua.iginx.policy.test.KeyRangeTestPolicy/g
+
+        - name: Change Log Conf
+          uses: ./.github/actions/edit
+          with:
+              paths: ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-*/conf/config.properties
+              statements: s/logger.iginx.level=.*$/logger.iginx.level=debug/g
+
         - name: Change File Permission
-          shell: bash
-          run: |
-              if [ "$RUNNER_OS" == "Linux" ]; then
-                sudo sed -i 's/^default.transformerRule.include=.*$/default.transformerRule.include=glob:**.denied/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/file-permission.properties
-                sudo sed -i 's/^default.transformerRule.write=.*$/default.transformerRule.write=false/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/file-permission.properties
-              elif [ "$RUNNER_OS" == "Windows" ]; then
-                sed -i 's/^default.transformerRule.include=.*$/default.transformerRule.include=glob:**.denied/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/file-permission.properties
-                sed -i 's/^default.transformerRule.write=.*$/default.transformerRule.write=false/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/file-permission.properties
-              elif [ "$RUNNER_OS" == "macOS" ]; then
-                sudo sed -i '' 's/^default.transformerRule.include=.*$/default.transformerRule.include=glob:**.denied/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/file-permission.properties
-                sudo sed -i '' 's/^default.transformerRule.write=.*$/default.transformerRule.write=false/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/file-permission.properties
-              else
-                echo "$RUNNER_OS is not supported"
-                exit 1
-              fi
+          uses: ./.github/actions/edit
+          with:
+              paths: ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-*/conf/file-permission.properties
+              statements: |
+                  s/^default.transformerRule.include=.*$/default.transformerRule.include=glob:**.denied/g
+                  s/^default.transformerRule.write=.*$/default.transformerRule.write=false/g
 
         - if: inputs.Metadata=='etcd'
-          name: Change metadata to ETCD
+          name: Change Metadata to ETCD
+          uses: ./.github/actions/edit
+          with:
+              paths: ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-*/conf/config.properties
+              statements: |
+                  s/^metaStorage=.*$/metaStorage=etcd/g
+                  s/^zookeeperConnectionString=/#zookeeperConnectionString=/g
+                  s/^#etcdEndpoints=/etcdEndpoints=/g
+
+        - name: Hidden All IGinX StorageEngineList
+          uses: ./.github/actions/edit
+          with:
+              paths: ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-*/conf/config.properties
+              statements: s/^storageEngineList=/#storageEngineList=/g
+
+        - if: inputs.DB-name=='InfluxDB'
+          name: Change InfluxDB Config
+          uses: ./.github/actions/edit
+          with:
+              paths: ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-*/conf/config.properties
+              statements: |
+                  s/your-token/testToken/g
+                  s/your-organization/testOrg/g
+                  s/#storageEngineList=127.0.0.1#8086#influxdb/storageEngineList=127.0.0.1#8086#influxdb/g
+
+        - if: inputs.DB-name=='IoTDB12'
+          name: Change IoTDB12 Config
+          uses: ./.github/actions/edit
+          with:
+              paths: ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-*/conf/config.properties
+              statements: s/#storageEngineList=127.0.0.1#6667#iotdb12/storageEngineList=127.0.0.1#6667#iotdb12/g
+
+        - if: inputs.DB-name=='Mix-IoTDB12-InfluxDB'
+          name: Change Mix-IoTDB12-InfluxDB Config
+          uses: ./.github/actions/edit
+          with:
+              paths: ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-*/conf/config.properties
+              statements: $astorageEngineList=127.0.0.1#6667#iotdb12#username=root#password=root#sessionPoolSize=50#has_data=false#is_read_only=false,127.0.0.1#8086#influxdb#url=http://localhost:8086/#token=testToken#organization=testOrg#has_data=false
+
+        - if: inputs.DB-name=='MongoDB'
+          name: Change MongoDB Config
+          uses: ./.github/actions/edit
+          with:
+              paths: ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-*/conf/config.properties
+              statements: s/^#storageEngineList=127.0.0.1#27017/storageEngineList=127.0.0.1#27017/g
+
+        - if: inputs.DB-name=='Redis'
+          name: Change Redis Config
+          uses: ./.github/actions/edit
+          with:
+              paths: ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-*/conf/config.properties
+              statements: s/^#storageEngineList=127.0.0.1#6379/storageEngineList=127.0.0.1#6379/g
+
+        - if: inputs.DB-name=='PostgreSQL'
+          name: Change PostgreSQL Config
+          uses: ./.github/actions/edit
+          with:
+              paths: ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-*/conf/config.properties
+              statements: s/^#storageEngineList=127.0.0.1#5432#relational#engine=postgresql/storageEngineList=127.0.0.1#5432#relational#engine=postgresql/g
+
+        - if: inputs.DB-name == 'MySQL'
+          name: Change MySQL Config
+          uses: ./.github/actions/edit
+          with:
+              paths: ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-*/conf/config.properties
+              statements: s|^#storageEngineList=127.0.0.1#3306#relational#engine=mysql.*$|storageEngineList=127.0.0.1#3306#relational#engine=mysql#username=root#has_data=false|g
+
+        - if: inputs.DB-name == 'FileSystem'
+          name: Modify IGinX Config
+          uses: ./.github/actions/edit
+          with:
+              paths: ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-*/conf/config.properties
+              statements: |
+                  s/^#storageEngineList=127.0.0.1#[0-9]*#filesystem/storageEngineList=127.0.0.1#6668#filesystem/g
+                  s|dir=[^#]*|dir=${{ steps.project.outputs.workspace }}/test/iginx_mn|g
+                  s|dummy_dir=[^#]*|dummy_dir=${{ steps.project.outputs.workspace }}/test/mn|g
+                  s/data.config.write.buffer.size=[0-9]*/data.config.write.buffer.size=1048576/g
+                  s/dummy.struct=[^#]*/dummy.struct=LegacyParquet/g
+                  s/chunk_size_in_bytes=[0-9]*/chunk_size_in_bytes=8/g
+                  s/write.buffer.size=[0-9]*/write.buffer.size=1048576/g
+                  s/client.connectPool.maxTotal=[0-9]*/client.connectPool.maxTotal=2/g
+
+        - name: Set Read-Only
+          uses: ./.github/actions/edit
+          with:
+              paths: ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-*/conf/config.properties
+              statements: s/is_read_only=[^#]*/is_read_only=${{ inputs.Read-Only }}/g
+
+        - name: Set Has-Data
+          uses: ./.github/actions/edit
+          with:
+              paths: ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-*/conf/config.properties
+              statements: s/has_data=[^#]*/has_data=${{ inputs.Has-Data }}/g
+
+        - name: Show Config
           shell: bash
-          run: |
-              if [ "$RUNNER_OS" == "Linux" ]; then
-                sudo sed -i 's/^metaStorage=.*$/metaStorage=etcd/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-                sudo sed -i 's/^zookeeperConnectionString=/#zookeeperConnectionString=/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-                sudo sed -i 's/^#etcdEndpoints=/etcdEndpoints=/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-              elif [ "$RUNNER_OS" == "Windows" ]; then
-                sed -i 's/^metaStorage=.*$/metaStorage=etcd/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-                sed -i 's/^zookeeperConnectionString=/#zookeeperConnectionString=/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-                sed -i 's/^#etcdEndpoints=/etcdEndpoints=/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-              elif [ "$RUNNER_OS" == "macOS" ]; then
-                sudo sed -i '' 's/^metaStorage=.*$/metaStorage=etcd/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-                sudo sed -i '' 's/^zookeeperConnectionString=$/#zookeeperConnectionString=/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-                sudo sed -i '' 's/^#etcdEndpoints=/etcdEndpoints=/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-              else
-                echo "$RUNNER_OS is not supported"
-                exit 1
-              fi
+          run: cat ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-*/conf/config.properties
