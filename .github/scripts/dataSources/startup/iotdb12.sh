@@ -24,6 +24,8 @@ which java
 
 java -version
 
+echo $JAVA_HOME
+
 sh -c "cp -r $IOTDB_ROOT/ apache-iotdb-0.12.6-server-bin"
 
 sh -c "echo ========================="
@@ -42,6 +44,8 @@ do
   sh -c "sudo sed -i 's/# wal_buffer_size=16777216/wal_buffer_size=167772160/g' apache-iotdb-0.12.6-server-bin-$port/conf/iotdb-engine.properties"
 
   sh -c "sudo sed -i 's/6667/$port/g' apache-iotdb-0.12.6-server-bin-$port/conf/iotdb-engine.properties"
+
+  sudo sh -c 'which java; java -version; echo $JAVA_HOME'
 
   sudo sh -c "cd apache-iotdb-0.12.6-server-bin-$port/; nohup sbin/start-server.sh &"
 done

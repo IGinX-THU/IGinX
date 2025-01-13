@@ -24,6 +24,8 @@ which java
 
 java -version
 
+echo $JAVA_HOME
+
 sh -c "cp -r $IOTDB_ROOT/ apache-iotdb-0.12.6-server-bin"
 
 sh -c "echo ========================="
