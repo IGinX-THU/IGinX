@@ -394,7 +394,7 @@ public abstract class BaseCapacityExpansionIT {
 
     String newParams =
         updatedParams.entrySet().stream()
-            .map(entry -> entry.getKey() + ":" + entry.getValue())
+            .map(entry -> entry.getKey() + "=" + entry.getValue())
             .collect(Collectors.joining(", "));
     session.executeSql(String.format(ALTER_ENGINE_STRING, id, newParams));
 
