@@ -110,33 +110,33 @@ public abstract class BaseCapacityExpansionIT {
       statement.append(", \"");
       statement.append(type.name());
       statement.append("\", \"");
-      statement.append("has_data:");
+      statement.append("has_data=");
       statement.append(hasData);
-      statement.append(", is_read_only:");
+      statement.append(", is_read_only=");
       statement.append(isReadOnly);
       if (this instanceof InfluxDBCapacityExpansionIT) {
-        statement.append(", url:http://localhost:");
+        statement.append(", url=http://localhost:");
         statement.append(port);
         statement.append("/");
       }
       if (IS_EMBEDDED) {
-        statement.append(String.format(", dummy_dir:%s/", DBCE_PARQUET_FS_TEST_DIR));
+        statement.append(String.format(", dummy_dir=%s/", DBCE_PARQUET_FS_TEST_DIR));
         statement.append(PORT_TO_ROOT.get(port));
         statement.append(
-            String.format(", dir:%s/" + IGINX_DATA_PATH_PREFIX_NAME, DBCE_PARQUET_FS_TEST_DIR));
+            String.format(", dir=%s/" + IGINX_DATA_PATH_PREFIX_NAME, DBCE_PARQUET_FS_TEST_DIR));
         statement.append(PORT_TO_ROOT.get(port));
-        statement.append(", iginx_port:").append(oriPortIginx);
+        statement.append(", iginx_port=").append(oriPortIginx);
       }
       if (extraParams != null) {
         statement.append(", ");
         statement.append(extraParams);
       }
       if (dataPrefix != null) {
-        statement.append(", data_prefix:");
+        statement.append(", data_prefix=");
         statement.append(dataPrefix);
       }
       if (schemaPrefix != null) {
-        statement.append(", schema_prefix:");
+        statement.append(", schema_prefix=");
         statement.append(schemaPrefix);
       }
       statement.append("\");");
