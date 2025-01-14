@@ -359,10 +359,10 @@ class Iface(object):
         """
         pass
 
-    def uploadFileChunk(self, chunk):
+    def uploadFileChunk(self, req):
         """
         Parameters:
-         - chunk
+         - req
 
         """
         pass
@@ -1655,19 +1655,19 @@ class Client(Iface):
             return result.success
         raise TApplicationException(TApplicationException.MISSING_RESULT, "setRules failed: unknown result")
 
-    def uploadFileChunk(self, chunk):
+    def uploadFileChunk(self, req):
         """
         Parameters:
-         - chunk
+         - req
 
         """
-        self.send_uploadFileChunk(chunk)
+        self.send_uploadFileChunk(req)
         return self.recv_uploadFileChunk()
 
-    def send_uploadFileChunk(self, chunk):
+    def send_uploadFileChunk(self, req):
         self._oprot.writeMessageBegin('uploadFileChunk', TMessageType.CALL, self._seqid)
         args = uploadFileChunk_args()
-        args.chunk = chunk
+        args.req = req
         args.write(self._oprot)
         self._oprot.writeMessageEnd()
         self._oprot.trans.flush()
@@ -2681,7 +2681,7 @@ class Processor(Iface, TProcessor):
         iprot.readMessageEnd()
         result = uploadFileChunk_result()
         try:
-            result.success = self._handler.uploadFileChunk(args.chunk)
+            result.success = self._handler.uploadFileChunk(args.req)
             msg_type = TMessageType.REPLY
         except TTransport.TTransportException:
             raise
@@ -7704,13 +7704,13 @@ setRules_result.thrift_spec = (
 class uploadFileChunk_args(object):
     """
     Attributes:
-     - chunk
+     - req
 
     """
 
 
-    def __init__(self, chunk=None,):
-        self.chunk = chunk
+    def __init__(self, req=None,):
+        self.req = req
 
     def read(self, iprot):
         if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
@@ -7723,8 +7723,8 @@ class uploadFileChunk_args(object):
                 break
             if fid == 1:
                 if ftype == TType.STRUCT:
-                    self.chunk = UploadFileReq()
-                    self.chunk.read(iprot)
+                    self.req = UploadFileReq()
+                    self.req.read(iprot)
                 else:
                     iprot.skip(ftype)
             else:
@@ -7737,9 +7737,9 @@ class uploadFileChunk_args(object):
             oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
             return
         oprot.writeStructBegin('uploadFileChunk_args')
-        if self.chunk is not None:
-            oprot.writeFieldBegin('chunk', TType.STRUCT, 1)
-            self.chunk.write(oprot)
+        if self.req is not None:
+            oprot.writeFieldBegin('req', TType.STRUCT, 1)
+            self.req.write(oprot)
             oprot.writeFieldEnd()
         oprot.writeFieldStop()
         oprot.writeStructEnd()
@@ -7760,7 +7760,7 @@ class uploadFileChunk_args(object):
 all_structs.append(uploadFileChunk_args)
 uploadFileChunk_args.thrift_spec = (
     None,  # 0
-    (1, TType.STRUCT, 'chunk', [UploadFileReq, None], None, ),  # 1
+    (1, TType.STRUCT, 'req', [UploadFileReq, None], None, ),  # 1
 )
 
 

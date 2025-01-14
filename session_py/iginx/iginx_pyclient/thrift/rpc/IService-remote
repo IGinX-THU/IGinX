@@ -64,7 +64,7 @@ if len(sys.argv) <= 1 or sys.argv[1] == '--help':
     print('  ShowSessionIDResp showSessionID(ShowSessionIDReq req)')
     print('  ShowRulesResp showRules(ShowRulesReq req)')
     print('  Status setRules(SetRulesReq req)')
-    print('  UploadFileResp uploadFileChunk(UploadFileReq chunk)')
+    print('  UploadFileResp uploadFileChunk(UploadFileReq req)')
     print('')
     sys.exit(0)
 

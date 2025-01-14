@@ -59,7 +59,7 @@ from .thrift.rpc.ttypes import (
     DebugInfoReq,
     LoadCSVReq,
 
-    StorageEngine, DataType, FileChunk,
+    StorageEngine, DataType, FileChunk, UploadFileReq,
 )
 from .time_series import TimeSeries
 from .utils.bitmap import Bitmap
@@ -541,7 +541,9 @@ class Session(object):
                     data=chunk,
                     chunkSize=len(chunk)
                 )
-                self.__client.uploadChunk(chunk_data)
+                req = UploadFileReq(sessionId=self.__session_id, fileChunk=chunk_data)
+                resp = self.__client.uploadFileChunk(req)
+                Session.verify_status(resp.status)
                 offset += len(chunk)
 
         req = LoadCSVReq(sessionId=self.__session_id, statement=statement, csvFileName=filename)

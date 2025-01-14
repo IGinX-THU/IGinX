@@ -844,5 +844,5 @@ service IService {
 
     Status setRules(1: SetRulesReq req);
 
-    UploadFileResp uploadFileChunk(1: UploadFileReq chunk);
+    UploadFileResp uploadFileChunk(1: UploadFileReq req);
 }
