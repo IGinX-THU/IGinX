@@ -1356,8 +1356,17 @@ public class IginxWorker implements IService.Iface {
   public UploadFileResp uploadFileChunk(UploadFileReq req) {
     FileChunk chunk = req.getFileChunk();
     Status status = new Status();
+
+    String filename = chunk.fileName;
+    if (filename.contains("..") || filename.contains("/") || filename.contains("\\")) {
+      status.setCode(RpcUtils.FAILURE.code);
+      status.setMessage("Invalid filename");
+      return new UploadFileResp(status);
+    }
+
+    String filepath = String.join(File.separator, System.getProperty("java.io.tmpdir"), filename);
     try {
-      File file = new File(System.getProperty("java.io.tmpdir") + chunk.fileName);
+      File file = new File(filepath);
       try (RandomAccessFile raf = new RandomAccessFile(file, "rw")) {
         raf.seek(chunk.offset);
         raf.write(chunk.data.array());

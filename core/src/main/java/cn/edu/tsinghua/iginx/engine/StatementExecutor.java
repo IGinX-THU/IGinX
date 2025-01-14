@@ -475,7 +475,9 @@ public class StatementExecutor {
       String keyCol)
       throws IOException {
     final int BATCH_SIZE = config.getBatchSizeImportCsv();
-    File tmpCSV = new File(System.getProperty("java.io.tmpdir") + ctx.getLoadCSVFileName());
+    String filepath =
+        String.join(File.separator, System.getProperty("java.io.tmpdir"), ctx.getLoadCSVFileName());
+    File tmpCSV = new File(filepath);
     long count = 0;
     LOGGER.info("Begin to load data from csv file: {}", tmpCSV.getCanonicalPath());
     try {
