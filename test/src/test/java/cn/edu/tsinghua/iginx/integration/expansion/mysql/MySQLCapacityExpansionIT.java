@@ -42,7 +42,7 @@ public class MySQLCapacityExpansionIT extends BaseCapacityExpansionIT {
   public MySQLCapacityExpansionIT() {
     super(
         StorageEngineType.relational,
-        "engine:mysql, username:root",
+        "engine=mysql, username=root",
         new MySQLHistoryDataGenerator());
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
     DBConf dbConf = conf.loadDBConf(conf.getStorageType());
