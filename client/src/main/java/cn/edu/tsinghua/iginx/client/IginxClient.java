@@ -634,10 +634,12 @@ public class IginxClient {
 
     File file = new File(path);
     if (!file.exists()) {
-      throw new InvalidParameterException(path + " does not exist!");
+      System.out.println(path + " does not exist!");
+      return;
     }
     if (!file.isFile()) {
-      throw new InvalidParameterException(path + " is not a file!");
+      System.out.println(path + " is not a file!");
+      return;
     }
 
     long offset = 0;

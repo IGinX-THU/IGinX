@@ -31,3 +31,9 @@ sed -i "1ikey,d m,b,[c],a" "test/src/test/resources/fileReadAndWrite/csv/test1"
 COMMAND1='LOAD DATA FROM INFILE "'"test/src/test/resources/fileReadAndWrite/csv/test1"'" AS CSV INTO t1 at 10;'
 
 bash -c "client/target/iginx-client-$1/sbin/start_cli.bat -e '$COMMAND1'"
+
+COMMAND2='LOAD DATA FROM INFILE "'"bigcsv/test_bigcsv.csv"'" AS CSV INTO bigcsv;'
+
+bash -c "client/target/iginx-client-$1/sbin/start_cli.bat -e '$COMMAND2'"
+
+sleep 90
