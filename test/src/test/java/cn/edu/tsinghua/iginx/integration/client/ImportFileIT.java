@@ -103,7 +103,7 @@ public class ImportFileIT {
     String expected =
         "ResultSets:\n"
             + "+----------------------+\n"
-            + "|COUNT(bigcsv.test_c33)|\n"
+            + "|count(bigcsv.test_c33)|\n"
             + "+----------------------+\n"
             + "|                120000|\n"
             + "+----------------------+\n"
