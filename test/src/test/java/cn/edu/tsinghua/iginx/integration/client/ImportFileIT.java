@@ -87,10 +87,11 @@ public class ImportFileIT {
             + "+---+------+----+----+------+\n"
             + "Total line number = 5\n";
     executor.executeAndCompare(query, expected);
+
+    testLoadBigCsv();
   }
 
-  @Test
-  public void testLoadBigCsv() {
+  private void testLoadBigCsv() {
     String statement = "SHOW COLUMNS bigcsv.*;";
     String ret = executor.execute(statement);
     if (!ret.contains("Total line number = 100")) {
