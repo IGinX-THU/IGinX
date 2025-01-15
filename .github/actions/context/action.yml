@@ -65,15 +65,19 @@ runs:
           shell: bash
           run: |
               wget https://github.com/IGinX-THU/IGinX-resources/raw/main/resources/bigcsv.7z
-              sudo apt-get install p7zip-full
-              7za x bigcsv.7z
               if [ "$RUNNER_OS" == "Linux" ]; then
+            sudo apt-get install p7zip-full
+            7za x bigcsv.7z
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_infile.sh"
                 "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_infile.sh" ${VERSION}
               elif [ "$RUNNER_OS" == "Windows" ]; then
+            choco install 7zip -y
+            7z x bigcsv.7z
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_infile_windows.sh"
                 "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_infile_windows.sh" ${VERSION}
               elif [ "$RUNNER_OS" == "macOS" ]; then
+            brew install p7zip
+            7z x bigcsv.7z
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_infile_macos.sh"
                 "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_infile_macos.sh" ${VERSION}
               fi

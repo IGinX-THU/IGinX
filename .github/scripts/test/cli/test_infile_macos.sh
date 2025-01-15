@@ -30,6 +30,4 @@ sh -c "sed -i '' '1s/^/key,d m,b,[c],a\n/' test/src/test/resources/fileReadAndWr
 
 sh -c "echo 'LOAD DATA FROM INFILE "'"test/src/test/resources/fileReadAndWrite/csv/test1"'" AS CSV INTO t1 AT 10;' | xargs -0 -t -I F sh client/target/iginx-client-$1/sbin/start_cli.sh -e 'F'"
 
-sh -c "echo 'LOAD DATA FROM INFILE "'"bigcsv/test_bigcsv.csv"'" AS CSV INTO bigcsv;' | xargs -0 -t -I F sh client/target/iginx-client-$1/sbin/start_cli.sh -e 'F'"
-
-sleep 90
+sh -c "echo 'LOAD DATA FROM INFILE "'"test_bigcsv.csv"'" AS CSV INTO bigcsv;' | xargs -0 -t -I F sh client/target/iginx-client-$1/sbin/start_cli.sh -e 'F'"

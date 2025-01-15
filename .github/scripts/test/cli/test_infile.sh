@@ -36,8 +36,6 @@ COMMAND1='LOAD DATA FROM INFILE "'"test/src/test/resources/fileReadAndWrite/csv/
 
 bash -c "echo '$COMMAND1' | xargs -0 -t -i ${SCRIPT_COMMAND}"
 
-COMMAND2='LOAD DATA FROM INFILE "'"bigcsv/test_bigcsv.csv"'" AS CSV INTO bigcsv;'
+COMMAND2='LOAD DATA FROM INFILE "'"test_bigcsv.csv"'" AS CSV INTO bigcsv;'
 
 bash -c "echo '$COMMAND2' | xargs -0 -t -i ${SCRIPT_COMMAND}"
-
-sleep 90

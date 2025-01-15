@@ -32,8 +32,6 @@ COMMAND1='LOAD DATA FROM INFILE "'"test/src/test/resources/fileReadAndWrite/csv/
 
 bash -c "client/target/iginx-client-$1/sbin/start_cli.bat -e '$COMMAND1'"
 
-COMMAND2='LOAD DATA FROM INFILE "'"bigcsv/test_bigcsv.csv"'" AS CSV INTO bigcsv;'
+COMMAND2='LOAD DATA FROM INFILE "'"test_bigcsv.csv"'" AS CSV INTO bigcsv;'
 
 bash -c "client/target/iginx-client-$1/sbin/start_cli.bat -e '$COMMAND2'"
-
-sleep 90
