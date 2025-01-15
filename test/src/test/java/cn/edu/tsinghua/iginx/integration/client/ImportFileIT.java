@@ -99,9 +99,15 @@ public class ImportFileIT {
       assertTrue(ret.contains("Total line number = 100"));
     }
 
-    statement = "COUNT POINTS;";
-    // t.* has 20 points, t1.* has 20 points, bigcsv.* has 12000000 points
-    String expected = "Points num: 12000040\n";
+    statement = "SELECT COUNT(test_c33) FROM bigcsv";
+    String expected =
+        "ResultSets:\n"
+            + "+----------------------+\n"
+            + "|COUNT(bigcsv.test_c33)|\n"
+            + "+----------------------+\n"
+            + "|                120000|\n"
+            + "+----------------------+\n"
+            + "Total line number = 1\n";
     executor.executeAndCompare(statement, expected);
 
     statement = "SELECT test_c0, test_c99 FROM bigcsv WHERE key > 119996;";
