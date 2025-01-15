@@ -51,9 +51,6 @@ jobs:
                 metadata: ${{ fromJSON(inputs.metadata-matrix) }}
                 DB-name: ${{ fromJSON(inputs.db-matrix) }}
         runs-on: ${{ matrix.os }}
-        env:
-            IGINX_CONDA_ENV: "iginxEnv"
-            IGINX_CONDA_FLAG: "true"
         steps:
             - name: Get New Version IGinX
               uses: actions/checkout@v4
@@ -67,6 +64,8 @@ jobs:
               with:
                   python-version: ${{ matrix.python-version }}
                   java: ${{ matrix.java }}
+                  iginx-conda-flag: "true"
+                  iginx-conda-env: "iginxEnv"
 
             - name: Display System Info
               shell: bash

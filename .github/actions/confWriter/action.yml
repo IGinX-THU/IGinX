@@ -75,17 +75,21 @@ runs:
           id: find_python_cmd
           shell: bash -el {0}
           run: |
-              if [[ "${{ inputs.use-free-thread-python }}" == "true" && "$RUNNER_OS" != "Windows" ]]; then
-                pythonCMD='python3.13t'
-                echo "TORCH_SUPPORTED=false" >> $GITHUB_ENV
-              elif [[ "${{ inputs.use-free-thread-python }}" == "true" && "$RUNNER_OS" == "Windows" ]]; then
-                pythonPath=$(echo "$FT_PYTHON_PATH" | sed 's/\\/\//g')
-                pythonCMD="${pythonPath}/python3.13t.exe"
-                echo "TORCH_SUPPORTED=false" >> $GITHUB_ENV
-              elif [ "$RUNNER_OS" == "Windows" ]; then
-                pythonCMD=python
+              if [[ "${{ inputs.use-free-thread-python }}" == "true" ]]; then
+                  if [ "$RUNNER_OS" == "Windows" ]; then
+                      pythonPath=$(echo "$FT_PYTHON_PATH" | sed 's/\\/\//g')
+                      pythonCMD="${pythonPath}/python3.13t.exe"
+                      echo "TORCH_SUPPORTED=false" >> $GITHUB_ENV
+                  else
+                      pythonCMD='python3.13t'
+                      echo "TORCH_SUPPORTED=false" >> $GITHUB_ENV
+                  fi
               else
-                pythonCMD=python3
+                  if [ "$RUNNER_OS" == "Windows" ]; then
+                      pythonCMD=python
+                  else
+                      pythonCMD=python3
+                  fi
               fi
               # have to set env to make it work in ut tests
               echo "pythonCMD=${pythonCMD}" >> $GITHUB_ENV

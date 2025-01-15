@@ -42,6 +42,7 @@ import java.util.List;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.After;
 import org.junit.AfterClass;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -1417,10 +1418,8 @@ public class UDFIT {
   @Test
   public void tensorUDFTest() {
     boolean torchSupported = System.getenv().getOrDefault("TORCH_SUPPORTED", "true").equals("true");
-    if (!torchSupported) {
-      LOGGER.warn("tensorUDFTest is skipped because pytorch is not supported(python>3.12).");
-      return;
-    }
+    Assume.assumeTrue(
+        "tensorUDFTest is skipped because pytorch is not supported(python>3.12).", torchSupported);
     String name = "tensorTest";
     String filePath =
         String.join(

@@ -143,6 +143,11 @@ public class PySessionIT {
     }
   }
 
+  private boolean pythonNewerThan313() {
+    interpreter.exec("import sys; is_supported = sys.version_info < (3, 13)");
+    return (boolean) interpreter.get("is_supported");
+  }
+
   @Test
   public void testAQuery() {
     String result = "";
@@ -314,12 +319,9 @@ public class PySessionIT {
   @Test
   public void testAddStorageEngine() {
     String output = "";
-    interpreter.exec("import sys; tooNew = sys.version_info >= (3, 13);");
-    if ((boolean) interpreter.get("tooNew")) {
-      // if python >=3.13, fastparquet is not supported.
-      LOGGER.info("Test ignored: python >= 3.13, fastparquet is not supported.");
-      return;
-    }
+    // if python >=3.13, fastparquet is not supported(for now).
+    Assume.assumeTrue(
+        "Test skipped: Python >= 3.13, fastparquet is not supported.", pythonNewerThan313());
     try {
       LOGGER.info("add storage engine");
       output = runPythonScript("addStorageEngine");

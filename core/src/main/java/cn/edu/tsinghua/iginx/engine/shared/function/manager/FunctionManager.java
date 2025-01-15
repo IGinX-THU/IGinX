@@ -70,13 +70,15 @@ public class FunctionManager {
   private FunctionManager() {
     this.functions = new HashMap<>();
     LOGGER.debug("main thread: using pythonCMD: {}", PythonCMD);
-    try {
-      String sitePath =
-          runCommandAndGetResult(
-              "", PythonCMD, "-c", "import sysconfig; print(sysconfig.get_paths()['purelib'])");
-      LOGGER.debug("main thread: python site path: {}", sitePath);
-    } catch (Exception e) {
-      LOGGER.debug("failed to get purelib path", e);
+    if (LOGGER.isDebugEnabled()) {
+      try {
+        String sitePath =
+            runCommandAndGetResult(
+                "", PythonCMD, "-c", "import sysconfig; print(sysconfig.get_paths()['purelib'])");
+        LOGGER.debug("main thread: python site path: {}", sitePath);
+      } catch (Exception e) {
+        LOGGER.debug("failed to get purelib path", e);
+      }
     }
     this.initSystemFunctions();
     if (config.isNeedInitBasicUDFFunctions()) {

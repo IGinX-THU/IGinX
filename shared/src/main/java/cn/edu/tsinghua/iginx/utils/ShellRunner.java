@@ -79,8 +79,6 @@ public class ShellRunner {
         throw new Exception(
             "process exited with value: " + i + "; command: " + Arrays.toString(command));
       }
-    } catch (IOException | SecurityException e) {
-      throw new Exception("run command failed: " + e.getMessage());
     } finally {
       if (p != null) {
         p.destroy();
@@ -111,8 +109,6 @@ public class ShellRunner {
             "process exited with value: " + i + "; command: " + Arrays.toString(command));
       }
       return result.toString();
-    } catch (IOException | SecurityException e) {
-      throw new Exception("run command failed: " + e.getMessage());
     } finally {
       if (p != null) {
         p.destroy();

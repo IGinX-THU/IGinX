@@ -26,6 +26,13 @@ inputs:
         description: "is free-threading python needed"
         required: false
         default: "false"
+    iginx-conda-flag:
+        description: "whether to use conda"
+        required: false
+        default: "false"
+    iginx-conda-env:
+        description: "conda env name"
+        required: false
 
 runs:
     using: "composite"
@@ -41,13 +48,13 @@ runs:
         # after this setup, every shell using login mode will be in conda env
         # conda should be set at very beginning because this action will delete ~/.bashrc & ~/.bash_profile
         # and regenerate them by initializing conda
-        - if: inputs.scope=='all' && env.IGINX_CONDA_FLAG == 'true'
+        - if: inputs.scope=='all' && inputs.iginx-conda-flag == 'true'
           name: Setup Miniconda
           uses: conda-incubator/setup-miniconda@v3.1.0
           with:
               miniconda-version: ${{ inputs.conda-version }}
               python-version: ${{ inputs.python-version }}
-              activate-environment: ${{ env.IGINX_CONDA_ENV }}
+              activate-environment: ${{ inputs.iginx-conda-env }}
               channel-priority: strict
               run-post: "false"
 
@@ -77,7 +84,7 @@ runs:
               echo "requests" >> requirements.txt
               echo "torch" >> requirements.txt
 
-        - if: inputs.scope=='all' && env.IGINX_CONDA_FLAG != 'true'
+        - if: inputs.scope=='all' && inputs.iginx-conda-flag != 'true'
           name: Set up Python ${{ inputs.python-version }}
           uses: actions/setup-python@v5
           with:
@@ -86,7 +93,7 @@ runs:
 
         # when using login mode shell, setup-python does not take effect.
         # thus manually add python path to PATH
-        - if: inputs.scope=='all' && env.IGINX_CONDA_FLAG != 'true'
+        - if: inputs.scope=='all' && inputs.iginx-conda-flag != 'true'
           name: Add System Python to PATH
           shell: bash
           run: |
@@ -125,14 +132,17 @@ runs:
               python --version
               which python
 
-        - name: Check Java & Python Version in Conda
-          if: env.IGINX_CONDA_FLAG != 'true'
+        - name: Check Java & Python Version in Conda and set conda env name
+          if: inputs.iginx-conda-flag == 'true'
           shell: bash -el {0}
           run: |
               java -version
               which java
               python --version
               which python
+              # to access conda env in scripts
+              echo "IGINX_CONDA_ENV=${{ inputs.iginx-conda-env }}" >> $GITHUB_ENV
+              echo "IGINX_CONDA_FLAG=${{ inputs.iginx-conda-flag }}" >> $GITHUB_ENV
 
         - name: Get project info
           id: project
