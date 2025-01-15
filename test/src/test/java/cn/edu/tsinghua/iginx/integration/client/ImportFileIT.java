@@ -94,7 +94,7 @@ public class ImportFileIT {
     String statement = "SHOW COLUMNS bigcsv.*;";
     String ret = executor.execute(statement);
     if (!ret.contains("Total line number = 100")) {
-      LOGGER.debug(ret);
+      LOGGER.info(ret);
       assertTrue(ret.contains("Total line number = 100"));
     }
 
