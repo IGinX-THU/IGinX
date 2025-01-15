@@ -99,7 +99,7 @@ public class ImportFileIT {
       assertTrue(ret.contains("Total line number = 100"));
     }
 
-    statement = "SELECT COUNT(test_c33) FROM bigcsv";
+    statement = "SELECT COUNT(test_c33) FROM bigcsv;";
     String expected =
         "ResultSets:\n"
             + "+----------------------+\n"
