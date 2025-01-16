@@ -177,8 +177,8 @@ runs:
           name: Modify IGinX Config
           uses: ./.github/actions/edit
           with:
-            paths: ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-*/conf/config.properties
-            statements: s/^#storageEngineList=127.0.0.1#1521#relational#engine=oracle#username=system#password=Oracle123#has_data=false/storageEngineList=127.0.0.1#1521#relational#engine=oracle#username=system#password=Oracle123#has_data=false/g
+              paths: ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-*/conf/config.properties
+              statements: s/^#storageEngineList=127.0.0.1#1521#relational#engine=oracle#username=system#password=Oracle123#has_data=false/storageEngineList=127.0.0.1#1521#relational#engine=oracle#username=system#password=Oracle123#has_data=false/g
 
         - if: inputs.DB-name == 'FileSystem'
           name: Modify IGinX Config
