@@ -24,9 +24,7 @@ public enum Operator {
   MINUS,
   STAR, // 乘法展示, ×
   DIV, // 除法展示, ÷
-  MOD,
-  CAL_STAR, // 乘法计算,*，目前只在对接层使用
-  CAL_DIV; // 除法计算,/
+  MOD;
 
   public static String operatorToString(Operator operator) {
     switch (operator) {
@@ -40,12 +38,19 @@ public enum Operator {
         return "÷";
       case MOD:
         return "%";
-      case CAL_DIV:
-        return "/";
-      case CAL_STAR:
-        return "*";
       default:
         return "";
+    }
+  }
+
+  public static String operatorToCalString(Operator operator) {
+    switch (operator) {
+      case STAR:
+        return "*";
+      case DIV:
+        return "/";
+      default:
+        return operatorToString(operator);
     }
   }
 

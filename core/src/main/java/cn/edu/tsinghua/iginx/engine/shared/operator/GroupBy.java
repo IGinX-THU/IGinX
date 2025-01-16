@@ -56,6 +56,11 @@ public class GroupBy extends AbstractUnaryOperator {
     return groupByCols;
   }
 
+  public void setGroupByExpression(int i, Expression expression) {
+    groupByExpressions.set(i, expression);
+    groupByCols.set(i, expression.getColumnName());
+  }
+
   public void updateGroupByCols() {
     groupByCols.clear();
     groupByCols.addAll(

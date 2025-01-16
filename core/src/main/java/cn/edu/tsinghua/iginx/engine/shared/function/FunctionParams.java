@@ -75,6 +75,7 @@ public class FunctionParams {
 
   public void setExpression(int i, Expression expression) {
     expressions.set(i, expression);
+    paths.set(i, expression.getColumnName());
   }
 
   public List<String> getPaths() {

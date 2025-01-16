@@ -1439,7 +1439,8 @@ public class RelationalStorage implements IStorage {
         }
 
         sqlColumnsStr.append(
-            String.format(format, functionName, exprAdapt(ExprUtils.copy(expr)).getColumnName()));
+            String.format(
+                format, functionName, exprAdapt(ExprUtils.copy(expr)).getCalColumnName()));
         sqlColumnsStr.append(" AS ");
         sqlColumnsStr.append(quote).append(IGinXTagKVName).append(quote);
         sqlColumnsStr.append(", ");
@@ -1449,7 +1450,7 @@ public class RelationalStorage implements IStorage {
     for (Expression expr : gbc) {
       String originColumnStr = quote + expr.getColumnName() + quote;
       sqlColumnsStr
-          .append(exprAdapt(ExprUtils.copy(expr)).getColumnName())
+          .append(exprAdapt(ExprUtils.copy(expr)).getCalColumnName())
           .append(" AS ")
           .append(originColumnStr)
           .append(", ");
@@ -1461,7 +1462,7 @@ public class RelationalStorage implements IStorage {
       statement +=
           " GROUP BY "
               + gbc.stream()
-                  .map(e -> exprAdapt(ExprUtils.copy(e)).getColumnName())
+                  .map(e -> exprAdapt(ExprUtils.copy(e)).getCalColumnName())
                   .collect(Collectors.joining(", "));
     }
     statement += ";";
@@ -1470,7 +1471,7 @@ public class RelationalStorage implements IStorage {
 
   /**
    * 表达式适配下推到PG的形式 1.将baseExpression转换为QuoteBaseExpression，以让其在SQL中被引号包裹
-   * 如果SQL使用了JOIN,那列名形如`table.column`，如果没有，则形如`table`.`column` 2.乘和除从×和÷转换为*和/
+   * 如果SQL使用了JOIN,那列名形如`table.column`，如果没有，则形如`table`.`column`
    */
   private Expression exprAdapt(Expression expr) {
     if (expr instanceof BaseExpression) {
@@ -1492,14 +1493,6 @@ public class RelationalStorage implements IStorage {
               expression.setRightExpression(
                   new QuoteBaseExpressionDecorator(
                       (BaseExpression) expression.getRightExpression(), relationalMeta.getQuote()));
-            }
-
-            if (expression.getOp().equals(cn.edu.tsinghua.iginx.engine.shared.expr.Operator.STAR)) {
-              expression.setOp(cn.edu.tsinghua.iginx.engine.shared.expr.Operator.CAL_STAR);
-            } else if (expression
-                .getOp()
-                .equals(cn.edu.tsinghua.iginx.engine.shared.expr.Operator.DIV)) {
-              expression.setOp(cn.edu.tsinghua.iginx.engine.shared.expr.Operator.CAL_DIV);
             }
           }
 
@@ -1546,17 +1539,6 @@ public class RelationalStorage implements IStorage {
                             relationalMeta.getQuote()));
               }
             }
-            expression
-                .getOps()
-                .replaceAll(
-                    op -> {
-                      if (op.equals(cn.edu.tsinghua.iginx.engine.shared.expr.Operator.STAR)) {
-                        return cn.edu.tsinghua.iginx.engine.shared.expr.Operator.CAL_STAR;
-                      } else if (op.equals(cn.edu.tsinghua.iginx.engine.shared.expr.Operator.DIV)) {
-                        return cn.edu.tsinghua.iginx.engine.shared.expr.Operator.CAL_DIV;
-                      }
-                      return op;
-                    });
           }
 
           @Override
@@ -2657,9 +2639,7 @@ public class RelationalStorage implements IStorage {
           @Override
           public void visit(BinaryExpression expression) {
             isDouble[0] |=
-                expression.getOp() == cn.edu.tsinghua.iginx.engine.shared.expr.Operator.DIV
-                    || expression.getOp()
-                        == cn.edu.tsinghua.iginx.engine.shared.expr.Operator.CAL_DIV;
+                expression.getOp() == cn.edu.tsinghua.iginx.engine.shared.expr.Operator.DIV;
           }
 
           @Override
@@ -2681,10 +2661,7 @@ public class RelationalStorage implements IStorage {
           public void visit(MultipleExpression expression) {
             isDouble[0] |=
                 expression.getOps().stream()
-                    .anyMatch(
-                        op ->
-                            op == cn.edu.tsinghua.iginx.engine.shared.expr.Operator.DIV
-                                || op == cn.edu.tsinghua.iginx.engine.shared.expr.Operator.CAL_DIV);
+                    .anyMatch(op -> op == cn.edu.tsinghua.iginx.engine.shared.expr.Operator.DIV);
           }
 
           @Override

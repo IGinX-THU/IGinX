@@ -23,6 +23,10 @@ public interface Expression {
 
   String getColumnName();
 
+  default String getCalColumnName() {
+    return getColumnName();
+  }
+
   ExpressionType getType();
 
   boolean hasAlias();

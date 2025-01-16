@@ -53,6 +53,11 @@ public class UnaryExpression implements Expression {
   }
 
   @Override
+  public String getCalColumnName() {
+    return Operator.operatorToCalString(operator) + " " + expression.getColumnName();
+  }
+
+  @Override
   public ExpressionType getType() {
     return ExpressionType.Unary;
   }

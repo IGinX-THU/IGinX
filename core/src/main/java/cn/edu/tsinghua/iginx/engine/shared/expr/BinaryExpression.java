@@ -72,6 +72,15 @@ public class BinaryExpression implements Expression {
   }
 
   @Override
+  public String getCalColumnName() {
+    return leftExpression.getColumnName()
+        + " "
+        + Operator.operatorToCalString(op)
+        + " "
+        + rightExpression.getColumnName();
+  }
+
+  @Override
   public ExpressionType getType() {
     return ExpressionType.Binary;
   }
