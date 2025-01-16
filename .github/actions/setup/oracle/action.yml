@@ -13,13 +13,9 @@ runs:
           name: Install Docker on MacOS
           shell: bash
           run: |
-              brew update
-              brew install docker qemu
-              brew install colima
-              LIMACTL_PATH=$(brew --prefix)/bin/limactl
-              sudo curl -L -o $LIMACTL_PATH https://github.com/mikekazakov/lima-nohvf/raw/master/limactl && sudo chmod +x $LIMACTL_PATH
-              colima start --network-address --arch arm64 --vm-type=qemu
-              docker --version
+              brew update 
+              brew install colima docker qemu
+              colima start --arch x86_64 --vm-type=vz --vz-rosetta --mount-type=virtiofs --memory 6 --cpu 2
         - if: runner.os == 'Linux' || runner.os == 'macOS'
           name: Download and Install Oracle JDBC Driver
           shell: bash
