@@ -22,21 +22,45 @@ runs:
               brew update
               brew install docker
 
-        - name: Download DM Database Docker image and Run DM Database container
+        - if: runner.os == 'Linux' || runner.os == 'macOS'
+          name: Download and Install dm JDBC Driver
+          shell: bash
+          run: |
+              wget https://download.dameng.com/eco/adapter/resource/jdbc/jdbc-20240918.zip            
+              unzip jdbc-20240918.zip
+              mvn install:install-file 
+              -DgroupId=dm.jdbc \
+              -DartifactId=DmJdbcDriver8 \
+              -Dversion=1.0 \
+              -Dpackaging=jar \ 
+              -Dfile=jdbc-20240918/DmJdbcDriver8.jar            
+
+        - if: runner.os == 'Windows'
+          name: Download and Install dm JDBC Driver
+          shell: wsl
+          run: |
+              wsl wget https://download.dameng.com/eco/adapter/resource/jdbc/jdbc-20240918.zip            
+              wsl unzip jdbc-20240918.zip
+              mvn install:install-file 
+                -DgroupId=dm.jdbc \
+                -DartifactId=DmJdbcDriver8 \
+                -Dversion=1.0 \
+                -Dpackaging=jar \ 
+                -Dfile=jdbc-20240918/DmJdbcDriver8.jar   
+
+        - if: runner.os == 'Linux' || runner.os == 'macOS'
+          name: Download dm Database Docker image and Run dm Database container
+          shell: bash
           run: |
               wget https://github.com/IGinX-THU/IGinX-resources/raw/refs/heads/main/resources/dm8_20241022_x86_rh6_64_single.tar
               docker load -i dm8_20241022_x86_rh6_64_single.tar
-              docker run -d -p 5236:5236 --restart=always --name=dm8_test \
-              --privileged=true \
-              -e LD_LIBRARY_PATH=/opt/dmdbms/bin \
-              -e PAGE_SIZE=16 \
-              -e EXTENT_SIZE=32 \
-              -e LOG_SIZE=1024 \
-              -e UNICODE_FLAG=1  \
-              -e INSTANCE_NAME=dm8_test \
-              -v /opt/data:/opt/dmdbms/data \
-              dm8_single:dm8_20241022_rev244896_x86_rh6_64
-          shell: bash
+            
+        - if: runner.os == 'Windows'
+          name: Download dm Database Docker image and Run dm Database container
+          shell: wsl
+          run: |
+              wsl wget https://github.com/IGinX-THU/IGinX-resources/raw/refs/heads/main/resources/dm8_20241022_x86_rh6_64_single.tar
+              docker load -i dm8_20241022_x86_rh6_64_single.tar
 
         - name: Verify DM Database is running
           run: |

@@ -1,0 +1,17 @@
+name: Test DM Action
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test-dm-action:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Test DM action
+        uses: ./.github/actions/service/dm  # 指向本地的 action
+        with:
+          ports: "5236 5237"
+          version: "dm8_test"

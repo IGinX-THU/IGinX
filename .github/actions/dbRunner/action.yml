@@ -29,6 +29,10 @@ inputs:
         description: "Redis ports"
         required: false
         default: 6379
+    dm-ports:
+        description: "dm ports"
+        required: false
+        default: 5236
 
 runs:
     using: "composite" # Mandatory parameter
@@ -125,3 +129,16 @@ runs:
           uses: ./.github/actions/service/mysql
           with:
               ports: ${{ inputs.MySQL-ports }}
+
+        - if: inputs.DB-name=='dm'
+          name: Setup DB
+          uses: ./.github/actions/setup/dm
+
+        - if: inputs.DB-name=='dm'
+          name: Run DB
+          uses: ./.github/actions/service/dm
+          with:
+              stop: false
+              clean: false
+              start: true
+              ports: ${{ inputs.dm-ports }}
