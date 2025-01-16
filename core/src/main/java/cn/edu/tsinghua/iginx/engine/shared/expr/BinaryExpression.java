@@ -73,11 +73,11 @@ public class BinaryExpression implements Expression {
 
   @Override
   public String getCalColumnName() {
-    return leftExpression.getColumnName()
+    return leftExpression.getCalColumnName()
         + " "
         + Operator.operatorToCalString(op)
         + " "
-        + rightExpression.getColumnName();
+        + rightExpression.getCalColumnName();
   }
 
   @Override

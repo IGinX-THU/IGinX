@@ -47,6 +47,11 @@ public class BracketExpression implements Expression {
   }
 
   @Override
+  public String getCalColumnName() {
+    return "(" + expression.getCalColumnName() + ")";
+  }
+
+  @Override
   public ExpressionType getType() {
     return ExpressionType.Bracket;
   }
