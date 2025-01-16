@@ -39,6 +39,8 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.BoolFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
+import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import cn.edu.tsinghua.iginx.filesystem.common.AbstractConfig;
 import cn.edu.tsinghua.iginx.filesystem.common.Configs;
 import cn.edu.tsinghua.iginx.filesystem.common.FileSystemException;
@@ -241,20 +243,25 @@ public class FileSystemStorage implements IStorage {
 
   @Override
   public TaskExecuteResult executeProjectWithAgg(Project project, Operator agg, DataArea dataArea) {
-    return null;
+    DataArea reshapedDataArea =
+        new DataArea(dataArea.getStorageUnit(), KeyInterval.getDefaultKeyInterval());
+
+    return executeQuery(
+        unitOf(dataArea), getDataTargetOf(project, reshapedDataArea), AggregateType.COUNT);
   }
 
   @Override
-  public TaskExecuteResult executeProjectDummyWithAgg(
-      Project project, Operator agg, DataArea dataArea) {
-    return null;
-  }
-
-  @Override
-  public boolean isSupportProjectWithSetTransform(SetTransform setTransform, DataArea dataArea) {
+  public boolean isSupportProjectWithAgg(Operator agg, DataArea dataArea, boolean isDummy) {
     if (!isLegacyParquet) {
       return false;
     }
+
+    if (isDummy) return false;
+    if (agg.getType() != OperatorType.SetTransform) return false;
+    if (((OperatorSource) ((UnaryOperator) agg).getSource()).getOperator().getType()
+        == OperatorType.Select) return false;
+
+    SetTransform setTransform = (SetTransform) agg;
 
     // just push down in full column fragment
     KeyInterval keyInterval = dataArea.getKeyInterval();
@@ -284,17 +291,9 @@ public class FileSystemStorage implements IStorage {
   }
 
   @Override
-  public TaskExecuteResult executeProjectWithSetTransform(
-      Project project, SetTransform setTransform, DataArea dataArea) {
-    if (!isSupportProjectWithSetTransform(setTransform, dataArea)) {
-      throw new IllegalArgumentException("unsupported set transform");
-    }
-
-    DataArea reshapedDataArea =
-        new DataArea(dataArea.getStorageUnit(), KeyInterval.getDefaultKeyInterval());
-
-    return executeQuery(
-        unitOf(dataArea), getDataTargetOf(project, reshapedDataArea), AggregateType.COUNT);
+  public TaskExecuteResult executeProjectDummyWithAgg(
+      Project project, Operator agg, DataArea dataArea) {
+    return null;
   }
 
   @Override

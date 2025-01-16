@@ -71,15 +71,6 @@ public interface IStorage {
   /** 对叠加分片带Agg的查询 */
   TaskExecuteResult executeProjectDummyWithAgg(Project project, Operator agg, DataArea dataArea);
 
-  default boolean isSupportProjectWithSetTransform(SetTransform setTransform, DataArea dataArea) {
-    return false;
-  }
-
-  default TaskExecuteResult executeProjectWithSetTransform(
-      Project project, SetTransform setTransform, DataArea dataArea) {
-    throw new UnsupportedOperationException();
-  }
-
   /** 对非叠加分片删除数据 */
   TaskExecuteResult executeDelete(Delete delete, DataArea dataArea);
 
