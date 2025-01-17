@@ -15,7 +15,7 @@ runs:
           run: |
               brew update 
               brew install colima docker qemu
-              colima start --arch x86_64 --vm-type=vz --vz-rosetta --mount-type=virtiofs --memory 6 --cpu 2
+              colima start --arch x86_64 --vm-type=vz --vz-rosetta --mount-type=virtiofs --memory 5
         - if: runner.os == 'Linux' || runner.os == 'macOS'
           name: Download and Install Oracle JDBC Driver
           shell: bash

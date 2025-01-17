@@ -24,17 +24,15 @@ runs:
           id: oracleContainer
           shell: bash
           run: |
-              docker ps
-              sleep 10
               for port in ${{ inputs.ports }}; do
                 while true; do
                   log_output=$(docker logs "${{ inputs.version }}-$port" 2>&1 | grep -i "DATABASE IS READY TO USE" || true)
                   if [ -z "$log_output" ]; then
-                    echo "'XDB initialized' not found in the logs, retrying in 100 seconds..."
+                    echo "oracle service not started, retry in 10 seconds..."
                     docker logs --tail 10 ${{ inputs.version }}-$port
-                    sleep 30
+                    sleep 10
                   else
-                    echo "'XDB initialized.' found in the logs, continuing."
+                    echo "oracle service started."
                     break
                   fi
                 done
@@ -51,17 +49,15 @@ runs:
           id: oracleContainerWin
           shell: wsl-run {0}
           run: |
-              docker ps
-              sleep 10
               for port in ${{ inputs.ports }}; do
                 while true; do
                 log_output=$(docker logs "${{ inputs.version }}-$port" 2>&1 | grep -i "DATABASE IS READY TO USE" || true)
                 if [ -z "$log_output" ]; then
-                  echo "'XDB initialized' not found in the logs, retrying in 100 seconds..."
+                  echo "oracle service not started, retry in 10 seconds..."
                   docker logs --tail 10 ${{ inputs.version }}-$port
-                  sleep 30
+                  sleep 10
                 else
-                  echo "'XDB initialized.' found in the logs, continuing."
+                  echo "oracle service started."
                   break
                 fi
                 done
