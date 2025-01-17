@@ -107,12 +107,6 @@ public class RelationalStorage implements IStorage {
 
     try {
       Statement stmt = connection.createStatement();
-      //      stmt.execute(String.format(CREATE_DATABASE_STATEMENT, databaseName));
-      //      LOGGER.info("create database {}", databaseName);
-      //      LOGGER.info(
-      //          "create database statement: {}",
-      //          String.format(relationalMeta.getCreateDatabaseStatement(),
-      // getQuotName(databaseName)));
       stmt.execute(
           String.format(relationalMeta.getCreateDatabaseStatement(), getQuotName(databaseName)));
       stmt.close();
@@ -398,8 +392,6 @@ public class RelationalStorage implements IStorage {
       }
       String colPattern;
 
-      LOGGER.info("get columns with patterns: {}", patterns);
-      LOGGER.info("database names: {}", getDatabaseNames());
       // non-dummy
       for (String databaseName : getDatabaseNames()) {
         if ((extraParams.get("has_data") == null || extraParams.get("has_data").equals("false"))
@@ -565,11 +557,6 @@ public class RelationalStorage implements IStorage {
           && !(tableNameToColumnNames.size() > 1
               && filterContainsType(Arrays.asList(FilterType.Value, FilterType.Path), filter))) {
         for (Map.Entry<String, String> entry : tableNameToColumnNames.entrySet()) {
-          LOGGER.error("table name: {}", entry.getKey());
-          LOGGER.error("column names: {}", entry.getValue());
-          LOGGER.error("filter: {}", filter.toString());
-          LOGGER.error("quote column names: {}", getQuotColumnNames(entry.getValue()));
-          LOGGER.error("filerStr: {}", filterTransformer.toString(expandFilter));
           String tableName = entry.getKey();
           String quotColumnNames = getQuotColumnNames(entry.getValue());
           tableNames.add(tableName);
@@ -1764,8 +1751,6 @@ public class RelationalStorage implements IStorage {
       RelationSchema schema = new RelationSchema(path, relationalMeta.getQuote());
       String tableName = schema.getTableName();
       String columnName = schema.getColumnName();
-      LOGGER.info("create or alter table: {} {}", tableName, columnName);
-      LOGGER.info("dataType: {}", dataType);
 
       try {
         Statement stmt = conn.createStatement();
@@ -2114,16 +2099,10 @@ public class RelationalStorage implements IStorage {
   private List<Pair<String, String>> determineDeletedPaths(
       List<String> paths, TagFilter tagFilter) {
     try {
-      LOGGER.error("determineDeletedPaths: {}", paths);
       List<Column> columns = getColumns(null, null);
       List<Pair<String, String>> deletedPaths = new ArrayList<>();
-
       for (Column column : columns) {
-        LOGGER.error("column: {}", column);
         for (String path : paths) {
-          LOGGER.error("path: {}", path);
-          LOGGER.error("reformatPath: {}", StringUtils.reformatPath(path));
-          LOGGER.error("columnPath: {}", column.getPath());
           if (Pattern.matches(StringUtils.reformatPath(path), column.getPath())) {
             if (tagFilter != null && !TagKVUtils.match(column.getTags(), tagFilter)) {
               continue;
@@ -2132,7 +2111,6 @@ public class RelationalStorage implements IStorage {
             RelationSchema schema = new RelationSchema(fullPath, relationalMeta.getQuote());
             String tableName = schema.getTableName();
             String columnName = toFullName(schema.getColumnName(), column.getTags());
-            LOGGER.error("tableName: {}, columnName: {}", tableName, columnName);
             deletedPaths.add(new Pair<>(tableName, columnName));
             break;
           }

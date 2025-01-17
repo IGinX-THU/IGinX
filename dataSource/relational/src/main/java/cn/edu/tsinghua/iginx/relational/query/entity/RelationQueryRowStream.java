@@ -130,10 +130,6 @@ public class RelationQueryRowStream implements RowStream {
       for (int j = 1; j <= resultSetMetaData.getColumnCount(); j++) {
         columnName = resultSetMetaData.getColumnName(j);
         typeName = resultSetMetaData.getColumnTypeName(j);
-        LOGGER.info("columnName: " + columnName + " typeName: " + typeName);
-        LOGGER.info("resultSetMetaData.getColumnCount(): " + resultSetMetaData.getColumnCount());
-        LOGGER.info("tableNames.size(): " + tableNames.size());
-        LOGGER.info("TableNames: " + tableNames);
         if (engine.equals("dm")) { // TODO 需要重构
           tableName = tableNames.get(i);
         } else {
@@ -306,7 +302,6 @@ public class RelationQueryRowStream implements RowStream {
               }
               cachedValues[startIndex + j] = tempValue;
             }
-            LOGGER.info("tableNameSet: " + tableNameSet);
             if (isDummy) {
               // 在Dummy查询的Join操作中，key列的值是由多个Join表的所有列的值拼接而成的，但实际上的Key列仅由一个表的所有列的值拼接而成
               // 所以在这里需要将key列的值截断为一个表的所有列的值，因为能合并在一行里的不同表的数据一定是key相同的
@@ -329,7 +324,6 @@ public class RelationQueryRowStream implements RowStream {
         }
         startIndex = endIndex;
       }
-      LOGGER.info("cachedKeys: " + Arrays.toString(cachedKeys));
       if (hasNext) {
         key = Arrays.stream(cachedKeys).min().getAsLong();
         startIndex = 0;
