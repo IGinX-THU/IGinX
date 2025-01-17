@@ -226,7 +226,6 @@ public class RelationalStorage implements IStorage {
     }
 
     String metaFileName = engine.toLowerCase() + META_TEMPLATE_SUFFIX;
-    LOGGER.info("loading engine '{}' default properties from class path: {}", engine, metaFileName);
     URL url = getClass().getClassLoader().getResource(metaFileName);
     if (url == null) {
       throw new IOException("cannot find default meta properties file: " + metaFileName);
@@ -552,7 +551,6 @@ public class RelationalStorage implements IStorage {
 
       String statement;
       // 如果table>1的情况下存在Value或Path Filter，说明filter的匹配需要跨table，此时需要将所有table join到一起进行查询
-      LOGGER.error("filter: {}", filter.toString());
       if (!filter.toString().contains("*")
           && !(tableNameToColumnNames.size() > 1
               && filterContainsType(Arrays.asList(FilterType.Value, FilterType.Path), filter))) {
@@ -568,9 +566,6 @@ public class RelationalStorage implements IStorage {
                   getQuotName(databaseName) + "." + getQuotName(tableName),
                   filterStr.isEmpty() ? "" : "WHERE " + filterStr,
                   getQuotName(KEY_NAME));
-          //                  getQuotName(tableName),
-          //                  filterStr.isEmpty() ? "" : "WHERE " + filterStr);
-          LOGGER.error("statement: {}", statement);
           ResultSet rs = null;
           try {
             stmt = conn.createStatement();
@@ -1323,8 +1318,6 @@ public class RelationalStorage implements IStorage {
       String columnName;
       List<String> tables;
 
-      LOGGER.info("delete: {}", delete);
-      LOGGER.info("keyRanges: {}", delete.getKeyRanges());
       if (delete.getKeyRanges() == null || delete.getKeyRanges().isEmpty()) {
         if (paths.size() == 1 && paths.get(0).equals("*") && delete.getTagFilter() == null) {
           closeConnection(databaseName);
@@ -1394,7 +1387,6 @@ public class RelationalStorage implements IStorage {
         }
       } else {
         deletedPaths = determineDeletedPaths(paths, delete.getTagFilter());
-        LOGGER.info("deletedPaths: {}", deletedPaths);
         for (Pair<String, String> pair : deletedPaths) {
           tableName = pair.k;
           columnName = pair.v;
