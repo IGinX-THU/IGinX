@@ -43,7 +43,6 @@ class DataType(object):
     FLOAT = 3
     DOUBLE = 4
     BINARY = 5
-    STRING = 6
 
     _VALUES_TO_NAMES = {
         0: "BOOLEAN",
@@ -52,7 +51,6 @@ class DataType(object):
         3: "FLOAT",
         4: "DOUBLE",
         5: "BINARY",
-        6: "STRING",
     }
 
     _NAMES_TO_VALUES = {
@@ -62,7 +60,6 @@ class DataType(object):
         "FLOAT": 3,
         "DOUBLE": 4,
         "BINARY": 5,
-        "STRING": 6,
     }
 
 

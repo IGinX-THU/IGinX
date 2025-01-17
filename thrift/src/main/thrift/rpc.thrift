@@ -27,7 +27,6 @@ enum DataType {
     FLOAT,
     DOUBLE,
     BINARY,
-    STRING,
 }
 
 enum StorageEngineType {

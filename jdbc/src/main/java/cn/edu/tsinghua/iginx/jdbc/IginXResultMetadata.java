@@ -74,8 +74,6 @@ public class IginXResultMetadata implements ResultSetMetaData {
         return Types.DOUBLE;
       case BINARY:
         return Types.VARCHAR;
-      case STRING:
-        return Types.LONGVARCHAR;
       default:
         return Types.NULL;
     }
