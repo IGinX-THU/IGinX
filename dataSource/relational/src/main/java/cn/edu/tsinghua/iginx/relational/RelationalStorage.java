@@ -120,7 +120,7 @@ public class RelationalStorage implements IStorage {
     } catch (SQLException ignored) {
     }
 
-    // oracle只能针对实例建立连接，databaseName在oracle中是user/schema
+    // oracle只能针对实例（SID）建立连接，databaseName在oracle中对应的是user/schema
     if (engineName.equals("oracle")) {
       databaseName = relationalMeta.getDefaultDatabaseName();
     }
@@ -144,7 +144,7 @@ public class RelationalStorage implements IStorage {
       config.addDataSourceProperty(
           "prepStmtCacheSize", meta.getExtraParams().getOrDefault("prep_stmt_cache_size", "250"));
       config.setLeakDetectionThreshold(
-          Long.parseLong(meta.getExtraParams().getOrDefault("leak_detection_threshold", "50000")));
+          Long.parseLong(meta.getExtraParams().getOrDefault("leak_detection_threshold", "2500")));
       config.setConnectionTimeout(
           Long.parseLong(meta.getExtraParams().getOrDefault("connection_timeout", "30000")));
       config.setIdleTimeout(
