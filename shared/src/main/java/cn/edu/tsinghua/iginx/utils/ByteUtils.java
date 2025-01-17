@@ -24,11 +24,8 @@ import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class ByteUtils {
-  private static final Logger LOGGER = LoggerFactory.getLogger(ByteUtils.class);
 
   public static byte booleanToByte(boolean x) {
     if (x) {
@@ -240,8 +237,6 @@ public class ByteUtils {
       if (value == null) {
         continue;
       }
-      LOGGER.info("value: {}", value);
-      LOGGER.info("dataType: {}", dataType);
       switch (dataType) {
         case BOOLEAN:
           buffer.put(booleanToByte((boolean) value));
