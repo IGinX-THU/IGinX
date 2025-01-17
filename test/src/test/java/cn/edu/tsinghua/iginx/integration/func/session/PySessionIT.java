@@ -320,7 +320,7 @@ public class PySessionIT {
   public void testAddStorageEngine() {
     String output = "";
     // if python >=3.13, fastparquet is not supported(for now).
-    Assume.assumeTrue(
+    Assume.assumeFalse(
         "Test skipped: Python >= 3.13, fastparquet is not supported.", pythonNewerThan313());
     try {
       LOGGER.info("add storage engine");
