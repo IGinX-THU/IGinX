@@ -62,7 +62,6 @@ import cn.edu.tsinghua.iginx.utils.StringUtils;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import com.zaxxer.hikari.pool.HikariPool;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URISyntaxException;
@@ -78,7 +77,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -110,7 +108,7 @@ public class RelationalStorage implements IStorage {
     try {
       Statement stmt = connection.createStatement();
       stmt.execute(
-              String.format(relationalMeta.getCreateDatabaseStatement(), getQuotName(databaseName)));
+          String.format(relationalMeta.getCreateDatabaseStatement(), getQuotName(databaseName)));
       stmt.close();
     } catch (SQLException ignored) {
     }
@@ -131,20 +129,20 @@ public class RelationalStorage implements IStorage {
       config.setUsername(meta.getExtraParams().get(USERNAME));
       config.setPassword(meta.getExtraParams().get(PASSWORD));
       config.addDataSourceProperty(
-              "prepStmtCacheSize", meta.getExtraParams().getOrDefault("prep_stmt_cache_size", "250"));
+          "prepStmtCacheSize", meta.getExtraParams().getOrDefault("prep_stmt_cache_size", "250"));
       config.setLeakDetectionThreshold(
-              Long.parseLong(meta.getExtraParams().getOrDefault("leak_detection_threshold", "2500")));
+          Long.parseLong(meta.getExtraParams().getOrDefault("leak_detection_threshold", "2500")));
       config.setConnectionTimeout(
-              Long.parseLong(meta.getExtraParams().getOrDefault("connection_timeout", "30000")));
+          Long.parseLong(meta.getExtraParams().getOrDefault("connection_timeout", "30000")));
       config.setIdleTimeout(
-              Long.parseLong(meta.getExtraParams().getOrDefault("idle_timeout", "10000")));
+          Long.parseLong(meta.getExtraParams().getOrDefault("idle_timeout", "10000")));
       config.setMaximumPoolSize(
-              Integer.parseInt(meta.getExtraParams().getOrDefault("maximum_pool_size", "20")));
+          Integer.parseInt(meta.getExtraParams().getOrDefault("maximum_pool_size", "20")));
       config.setMinimumIdle(
-              Integer.parseInt(meta.getExtraParams().getOrDefault("minimum_idle", "1")));
+          Integer.parseInt(meta.getExtraParams().getOrDefault("minimum_idle", "1")));
       config.addDataSourceProperty(
-              "prepStmtCacheSqlLimit",
-              meta.getExtraParams().getOrDefault("prep_stmt_cache_sql_limit", "2048"));
+          "prepStmtCacheSqlLimit",
+          meta.getExtraParams().getOrDefault("prep_stmt_cache_sql_limit", "2048"));
 
       HikariDataSource newDataSource = new HikariDataSource(config);
       connectionPoolMap.put(databaseName, newDataSource);
@@ -185,12 +183,12 @@ public class RelationalStorage implements IStorage {
     String password = extraParams.get(PASSWORD);
     engineName = extraParams.get("engine");
     String connUrl =
-            password == null
-                    ? String.format(
-                    "jdbc:%s://%s:%s/?user=%s", engineName, meta.getIp(), meta.getPort(), username)
-                    : String.format(
-                    "jdbc:%s://%s:%s/?user=%s&password=%s",
-                    engineName, meta.getIp(), meta.getPort(), username, password);
+        password == null
+            ? String.format(
+                "jdbc:%s://%s:%s/?user=%s", engineName, meta.getIp(), meta.getPort(), username)
+            : String.format(
+                "jdbc:%s://%s:%s/?user=%s&password=%s",
+                engineName, meta.getIp(), meta.getPort(), username, password);
     try {
       connection = DriverManager.getConnection(connUrl);
       Statement statement = connection.createStatement();
@@ -216,7 +214,7 @@ public class RelationalStorage implements IStorage {
   }
 
   private Properties getProperties(String engine, @Nullable String propertiesPath)
-          throws URISyntaxException, IOException {
+      throws URISyntaxException, IOException {
     if (propertiesPath != null) {
       try (InputStream propertiesIS = Files.newInputStream(Paths.get(propertiesPath))) {
         Properties properties = new Properties();
@@ -247,12 +245,12 @@ public class RelationalStorage implements IStorage {
     String password = extraParams.get(PASSWORD);
     String engine = meta.getExtraParams().get("engine");
     String connUrl =
-            password == null
-                    ? String.format(
-                    "jdbc:%s://%s:%s/?user=%s", engine, meta.getIp(), meta.getPort(), username)
-                    : String.format(
-                    "jdbc:%s://%s:%s/?user=%s&password=%s",
-                    engine, meta.getIp(), meta.getPort(), username, password);
+        password == null
+            ? String.format(
+                "jdbc:%s://%s:%s/?user=%s", engine, meta.getIp(), meta.getPort(), username)
+            : String.format(
+                "jdbc:%s://%s:%s/?user=%s&password=%s",
+                engine, meta.getIp(), meta.getPort(), username, password);
 
     try {
       Class.forName(relationalMeta.getDriverClass());
@@ -281,7 +279,7 @@ public class RelationalStorage implements IStorage {
       while (rs.next()) {
         String databaseName = rs.getString("DATNAME");
         if (relationalMeta.getSystemDatabaseName().contains(databaseName)
-                || relationalMeta.getDefaultDatabaseName().equals(databaseName)) {
+            || relationalMeta.getDefaultDatabaseName().equals(databaseName)) {
           continue;
         }
         databaseNames.add(databaseName);
@@ -301,15 +299,15 @@ public class RelationalStorage implements IStorage {
       Connection conn = getConnection(databaseName);
       if (conn == null) {
         throw new RelationalTaskExecuteFailureException(
-                "cannot connect to database " + databaseName);
+            "cannot connect to database " + databaseName);
       }
       DatabaseMetaData databaseMetaData = conn.getMetaData();
       ResultSet rs =
-              databaseMetaData.getTables(
-                      databaseName,
-                      relationalMeta.getSchemaPattern(),
-                      tablePattern,
-                      new String[]{"TABLE"});
+          databaseMetaData.getTables(
+              databaseName,
+              relationalMeta.getSchemaPattern(),
+              tablePattern,
+              new String[] {"TABLE"});
       List<String> tableNames = new ArrayList<>();
 
       while (rs.next()) {
@@ -326,17 +324,17 @@ public class RelationalStorage implements IStorage {
   }
 
   private List<ColumnField> getColumns(
-          String databaseName, String tableName, String columnNamePattern) {
+      String databaseName, String tableName, String columnNamePattern) {
     try {
       Connection conn = getConnection(databaseName);
       if (conn == null) {
         throw new RelationalTaskExecuteFailureException(
-                "cannot connect to database " + databaseName);
+            "cannot connect to database " + databaseName);
       }
       DatabaseMetaData databaseMetaData = conn.getMetaData();
       ResultSet rs =
-              databaseMetaData.getColumns(
-                      databaseName, relationalMeta.getSchemaPattern(), tableName, columnNamePattern);
+          databaseMetaData.getColumns(
+              databaseName, relationalMeta.getSchemaPattern(), tableName, columnNamePattern);
       List<ColumnField> columnFields = new ArrayList<>();
       while (rs.next()) {
         String columnName = rs.getString("COLUMN_NAME");
@@ -383,7 +381,7 @@ public class RelationalStorage implements IStorage {
 
   @Override
   public List<Column> getColumns(Set<String> patterns, TagFilter tagFilter)
-          throws RelationalTaskExecuteFailureException {
+      throws RelationalTaskExecuteFailureException {
     List<Column> columns = new ArrayList<>();
     Map<String, String> extraParams = meta.getExtraParams();
     try {
@@ -397,13 +395,13 @@ public class RelationalStorage implements IStorage {
       // non-dummy
       for (String databaseName : getDatabaseNames()) {
         if ((extraParams.get("has_data") == null || extraParams.get("has_data").equals("false"))
-                && !databaseName.startsWith(DATABASE_PREFIX)) {
+            && !databaseName.startsWith(DATABASE_PREFIX)) {
           continue;
         }
         boolean isDummy =
-                extraParams.get("has_data") != null
-                        && extraParams.get("has_data").equalsIgnoreCase("true")
-                        && !databaseName.startsWith(DATABASE_PREFIX);
+            extraParams.get("has_data") != null
+                && extraParams.get("has_data").equalsIgnoreCase("true")
+                && !databaseName.startsWith(DATABASE_PREFIX);
         if (isDummy) {
           // find pattern that match <databaseName>.* to avoid creating databases after.
           if (patterns == null || patterns.size() == 0) {
@@ -412,7 +410,7 @@ public class RelationalStorage implements IStorage {
           for (String p : patterns) {
             // dummy path starts with <bucketName>.
             if (Pattern.matches(
-                    StringUtils.reformatPath(p.substring(0, p.indexOf("."))), databaseName)) {
+                StringUtils.reformatPath(p.substring(0, p.indexOf("."))), databaseName)) {
               patternList.add(p);
             }
           }
@@ -445,11 +443,11 @@ public class RelationalStorage implements IStorage {
                 continue;
               }
               columns.add(
-                      new Column(
-                              columnName,
-                              relationalMeta.getDataTypeTransformer().fromEngineType(typeName),
-                              nameAndTags.v,
-                              isDummy));
+                  new Column(
+                      columnName,
+                      relationalMeta.getDataTypeTransformer().fromEngineType(typeName),
+                      nameAndTags.v,
+                      isDummy));
             }
           }
         }
@@ -483,11 +481,11 @@ public class RelationalStorage implements IStorage {
                 continue;
               }
               columns.add(
-                      new Column(
-                              columnName,
-                              relationalMeta.getDataTypeTransformer().fromEngineType(typeName),
-                              nameAndTags.v,
-                              true));
+                  new Column(
+                      columnName,
+                      relationalMeta.getDataTypeTransformer().fromEngineType(typeName),
+                      nameAndTags.v,
+                      true));
             }
           }
         }
@@ -502,10 +500,10 @@ public class RelationalStorage implements IStorage {
   public TaskExecuteResult executeProject(Project project, DataArea dataArea) {
     KeyInterval keyInterval = dataArea.getKeyInterval();
     Filter filter =
-            new AndFilter(
-                    Arrays.asList(
-                            new KeyFilter(Op.GE, keyInterval.getStartKey()),
-                            new KeyFilter(Op.L, keyInterval.getEndKey())));
+        new AndFilter(
+            Arrays.asList(
+                new KeyFilter(Op.GE, keyInterval.getStartKey()),
+                new KeyFilter(Op.L, keyInterval.getEndKey())));
     return executeProjectWithFilter(project, filter, dataArea);
   }
 
@@ -513,10 +511,10 @@ public class RelationalStorage implements IStorage {
   public TaskExecuteResult executeProjectDummy(Project project, DataArea dataArea) {
     KeyInterval keyInterval = dataArea.getKeyInterval();
     Filter filter =
-            new AndFilter(
-                    Arrays.asList(
-                            new KeyFilter(Op.GE, keyInterval.getStartKey()),
-                            new KeyFilter(Op.L, keyInterval.getEndKey())));
+        new AndFilter(
+            Arrays.asList(
+                new KeyFilter(Op.GE, keyInterval.getStartKey()),
+                new KeyFilter(Op.L, keyInterval.getEndKey())));
     return executeProjectDummyWithFilter(project, filter);
   }
 
@@ -527,19 +525,19 @@ public class RelationalStorage implements IStorage {
 
   @Override
   public TaskExecuteResult executeProjectWithSelect(
-          Project project, Select select, DataArea dataArea) {
+      Project project, Select select, DataArea dataArea) {
     return executeProjectWithFilter(project, select.getFilter(), dataArea);
   }
 
   private TaskExecuteResult executeProjectWithFilter(
-          Project project, Filter filter, DataArea dataArea) {
+      Project project, Filter filter, DataArea dataArea) {
     try {
       String databaseName = dataArea.getStorageUnit();
       Connection conn = getConnection(databaseName);
       if (conn == null) {
         return new TaskExecuteResult(
-                new RelationalTaskExecuteFailureException(
-                        String.format("cannot connect to database %s", databaseName)));
+            new RelationalTaskExecuteFailureException(
+                String.format("cannot connect to database %s", databaseName)));
       }
 
       List<String> databaseNameList = new ArrayList<>();
@@ -547,7 +545,7 @@ public class RelationalStorage implements IStorage {
       Statement stmt;
 
       Map<String, String> tableNameToColumnNames =
-              splitAndMergeQueryPatterns(databaseName, project.getPatterns());
+          splitAndMergeQueryPatterns(databaseName, project.getPatterns());
       List<String> tableNames = new ArrayList<>();
 
       Filter expandFilter = expandFilter(filter.copy(), tableNameToColumnNames);
@@ -556,7 +554,7 @@ public class RelationalStorage implements IStorage {
       // 如果table>1的情况下存在Value或Path Filter，说明filter的匹配需要跨table，此时需要将所有table join到一起进行查询
       LOGGER.error("filter: {}", filter.toString());
       if (!filter.toString().contains("*")
-              && !(tableNameToColumnNames.size() > 1
+          && !(tableNameToColumnNames.size() > 1
               && filterContainsType(Arrays.asList(FilterType.Value, FilterType.Path), filter))) {
         for (Map.Entry<String, String> entry : tableNameToColumnNames.entrySet()) {
           String tableName = entry.getKey();
@@ -564,12 +562,12 @@ public class RelationalStorage implements IStorage {
           tableNames.add(tableName);
           String filterStr = filterTransformer.toString(expandFilter);
           statement =
-                  String.format(
-                          relationalMeta.getQueryStatement(),
-                          quotColumnNames,
-                          getQuotName(databaseName) + "." + getQuotName(tableName),
-                          filterStr.isEmpty() ? "" : "WHERE " + filterStr,
-                          getQuotName(KEY_NAME));
+              String.format(
+                  relationalMeta.getQueryStatement(),
+                  quotColumnNames,
+                  getQuotName(databaseName) + "." + getQuotName(tableName),
+                  filterStr.isEmpty() ? "" : "WHERE " + filterStr,
+                  getQuotName(KEY_NAME));
           //                  getQuotName(tableName),
           //                  filterStr.isEmpty() ? "" : "WHERE " + filterStr);
           LOGGER.error("statement: {}", statement);
@@ -595,18 +593,18 @@ public class RelationalStorage implements IStorage {
           String tableName = entry.getKey();
           tableNames.add(tableName);
           List<String> fullColumnNames =
-                  new ArrayList<>(Arrays.asList(entry.getValue().split(", ")));
+              new ArrayList<>(Arrays.asList(entry.getValue().split(", ")));
 
           // 将columnNames中的列名加上tableName前缀
           fullColumnNames.replaceAll(
-                  s -> RelationSchema.getQuoteFullName(tableName, s, relationalMeta.getQuote()));
+              s -> RelationSchema.getQuoteFullName(tableName, s, relationalMeta.getQuote()));
           fullColumnNamesList.add(fullColumnNames);
         }
 
         StringBuilder fullColumnNames = new StringBuilder();
         fullColumnNames.append(
-                RelationSchema.getQuoteFullName(
-                        tableNames.get(0), KEY_NAME, relationalMeta.getQuote()));
+            RelationSchema.getQuoteFullName(
+                tableNames.get(0), KEY_NAME, relationalMeta.getQuote()));
         for (List<String> columnNames : fullColumnNamesList) {
           for (String columnName : columnNames) {
             fullColumnNames.append(", ").append(columnName);
@@ -619,24 +617,24 @@ public class RelationalStorage implements IStorage {
         String fullColumnNamesStr = fullColumnNames.toString();
         String filterStr = filterTransformer.toString(expandFilter);
         String orderByKey =
-                RelationSchema.getQuoteFullName(tableNames.get(0), KEY_NAME, relationalMeta.getQuote());
+            RelationSchema.getQuoteFullName(tableNames.get(0), KEY_NAME, relationalMeta.getQuote());
         if (!relationalMeta.isSupportFullJoin()) {
           // 如果不支持full join,需要为left join + union模拟的full join表起别名，同时select、where、order by的部分都要调整
           fullColumnNamesStr = fullColumnNamesStr.replaceAll("`\\.`", ".");
           filterStr = filterStr.replaceAll("`\\.`", ".");
           filterStr =
-                  filterStr.replace(
-                          getQuotName(KEY_NAME), getQuotName(tableNames.get(0) + SEPARATOR + KEY_NAME));
+              filterStr.replace(
+                  getQuotName(KEY_NAME), getQuotName(tableNames.get(0) + SEPARATOR + KEY_NAME));
           orderByKey = orderByKey.replaceAll("`\\.`", ".");
         }
         statement =
-                String.format(
-                        //                QUERY_STATEMENT_WITHOUT_KEYNAME,
-                        relationalMeta.getQueryTableWithoutKeyStatement(),
-                        fullColumnNamesStr,
-                        fullTableName,
-                        filterStr.isEmpty() ? "" : "WHERE " + filterStr,
-                        orderByKey);
+            String.format(
+                //                QUERY_STATEMENT_WITHOUT_KEYNAME,
+                relationalMeta.getQueryTableWithoutKeyStatement(),
+                fullColumnNamesStr,
+                fullTableName,
+                filterStr.isEmpty() ? "" : "WHERE " + filterStr,
+                orderByKey);
 
         ResultSet rs = null;
         try {
@@ -653,22 +651,22 @@ public class RelationalStorage implements IStorage {
       }
 
       RowStream rowStream =
-              new ClearEmptyRowStreamWrapper(
-                      new RelationQueryRowStream(
-                              databaseNameList,
-                              tableNames,
-                              resultSets,
-                              false,
-                              filter,
-                              project.getTagFilter(),
-                              Collections.singletonList(conn),
-                              relationalMeta));
+          new ClearEmptyRowStreamWrapper(
+              new RelationQueryRowStream(
+                  databaseNameList,
+                  tableNames,
+                  resultSets,
+                  false,
+                  filter,
+                  project.getTagFilter(),
+                  Collections.singletonList(conn),
+                  relationalMeta));
       return new TaskExecuteResult(rowStream);
     } catch (SQLException e) {
       LOGGER.error("unexpected error: ", e);
       return new TaskExecuteResult(
-              new RelationalTaskExecuteFailureException(
-                      String.format("execute project task in %s failure", engineName), e));
+          new RelationalTaskExecuteFailureException(
+              String.format("execute project task in %s failure", engineName), e));
     }
   }
 
@@ -680,18 +678,18 @@ public class RelationalStorage implements IStorage {
       for (int i = 1; i < tableNames.size(); i++) {
         fullTableName.insert(0, "(");
         fullTableName
-                .append(" FULL OUTER JOIN ")
-                .append(getQuotName(tableNames.get(i)))
-                .append(" ON ");
+            .append(" FULL OUTER JOIN ")
+            .append(getQuotName(tableNames.get(i)))
+            .append(" ON ");
         for (int j = 0; j < i; j++) {
           fullTableName
-                  .append(
-                          RelationSchema.getQuoteFullName(
-                                  tableNames.get(i), KEY_NAME, relationalMeta.getQuote()))
-                  .append(" = ")
-                  .append(
-                          RelationSchema.getQuoteFullName(
-                                  tableNames.get(j), KEY_NAME, relationalMeta.getQuote()));
+              .append(
+                  RelationSchema.getQuoteFullName(
+                      tableNames.get(i), KEY_NAME, relationalMeta.getQuote()))
+              .append(" = ")
+              .append(
+                  RelationSchema.getQuoteFullName(
+                      tableNames.get(j), KEY_NAME, relationalMeta.getQuote()));
 
           if (j != i - 1) {
             fullTableName.append(" AND ");
@@ -703,35 +701,35 @@ public class RelationalStorage implements IStorage {
       // 不支持全连接，就要用Left Join+Union来模拟全连接
       StringBuilder allColumns = new StringBuilder();
       fullColumnList.forEach(
-              columnList ->
-                      columnList.forEach(
-                              column ->
-                                      allColumns.append(
-                                              String.format("%s AS %s, ", column, column.replaceAll("`\\.`", ".")))));
+          columnList ->
+              columnList.forEach(
+                  column ->
+                      allColumns.append(
+                          String.format("%s AS %s, ", column, column.replaceAll("`\\.`", ".")))));
       allColumns.delete(allColumns.length() - 2, allColumns.length());
 
       fullTableName.append("(");
       for (int i = 0; i < tableNames.size(); i++) {
 
         String keyStr =
-                String.format(
-                        "%s.%s AS %s",
-                        getQuotName(tableNames.get(i)),
-                        getQuotName(KEY_NAME),
-                        getQuotName(tableNames.get(i) + SEPARATOR + KEY_NAME));
+            String.format(
+                "%s.%s AS %s",
+                getQuotName(tableNames.get(i)),
+                getQuotName(KEY_NAME),
+                getQuotName(tableNames.get(i) + SEPARATOR + KEY_NAME));
         fullTableName.append(
-                String.format(
-                        "SELECT %s FROM %s", keyStr + ", " + allColumns, getQuotName(tableNames.get(i))));
+            String.format(
+                "SELECT %s FROM %s", keyStr + ", " + allColumns, getQuotName(tableNames.get(i))));
         for (int j = 0; j < tableNames.size(); j++) {
           if (i != j) {
             fullTableName.append(
-                    String.format(
-                            " LEFT JOIN %s ON %s.%s = %s.%s",
-                            getQuotName(tableNames.get(j)),
-                            getQuotName(tableNames.get(i)),
-                            getQuotName(KEY_NAME),
-                            getQuotName(tableNames.get(j)),
-                            getQuotName(KEY_NAME)));
+                String.format(
+                    " LEFT JOIN %s ON %s.%s = %s.%s",
+                    getQuotName(tableNames.get(j)),
+                    getQuotName(tableNames.get(i)),
+                    getQuotName(KEY_NAME),
+                    getQuotName(tableNames.get(j)),
+                    getQuotName(KEY_NAME)));
           }
         }
         if (i != tableNames.size() - 1) {
@@ -782,7 +780,7 @@ public class RelationalStorage implements IStorage {
   }
 
   private String getDummyFullJoinTables(
-          List<String> tableNames, Map<String, List<String>> allColumnNameForTable) {
+      List<String> tableNames, Map<String, List<String>> allColumnNameForTable) {
     StringBuilder fullTableName = new StringBuilder();
     if (relationalMeta.isSupportFullJoin()) {
       // table之间用FULL OUTER JOIN ON concat(table1所有列) = concat(table2所有列)
@@ -791,15 +789,15 @@ public class RelationalStorage implements IStorage {
       for (int i = 1; i < tableNames.size(); i++) {
         fullTableName.insert(0, "(");
         fullTableName
-                .append(" FULL OUTER JOIN ")
-                .append(getQuotName(tableNames.get(i)))
-                .append(" ON ");
+            .append(" FULL OUTER JOIN ")
+            .append(getQuotName(tableNames.get(i)))
+            .append(" ON ");
         for (int j = 0; j < i; j++) {
           fullTableName.append(
-                  String.format(
-                          "%s = %s",
-                          buildConcat(allColumnNameForTable.get(tableNames.get(i))),
-                          buildConcat(allColumnNameForTable.get(tableNames.get(j)))));
+              String.format(
+                  "%s = %s",
+                  buildConcat(allColumnNameForTable.get(tableNames.get(i))),
+                  buildConcat(allColumnNameForTable.get(tableNames.get(j)))));
           if (j != i - 1) {
             fullTableName.append(" AND ");
           }
@@ -810,29 +808,29 @@ public class RelationalStorage implements IStorage {
       // 不支持全连接，就要用Left Join+Union来模拟全连接
       char quote = relationalMeta.getQuote();
       String allColumns =
-              tableNames.stream()
-                      .map(allColumnNameForTable::get)
-                      .flatMap(List::stream)
-                      .map(s -> s + " AS " + s.replaceAll(quote + "\\." + quote, "."))
-                      .collect(Collectors.joining(", "));
+          tableNames.stream()
+              .map(allColumnNameForTable::get)
+              .flatMap(List::stream)
+              .map(s -> s + " AS " + s.replaceAll(quote + "\\." + quote, "."))
+              .collect(Collectors.joining(", "));
 
       fullTableName.append("(");
       for (int i = 0; i < tableNames.size(); i++) {
         String keyStr =
-                String.format(
-                        "%s AS %s",
-                        getQuotName(KEY_NAME), getQuotName(tableNames.get(i) + SEPARATOR + KEY_NAME));
+            String.format(
+                "%s AS %s",
+                getQuotName(KEY_NAME), getQuotName(tableNames.get(i) + SEPARATOR + KEY_NAME));
         fullTableName.append(
-                String.format(
-                        "SELECT %s FROM %s", keyStr + ", " + allColumns, getQuotName(tableNames.get(i))));
+            String.format(
+                "SELECT %s FROM %s", keyStr + ", " + allColumns, getQuotName(tableNames.get(i))));
         for (int j = 0; j < tableNames.size(); j++) {
           if (i != j) {
             fullTableName.append(
-                    String.format(
-                            " LEFT JOIN %s ON %s = %s",
-                            getQuotName(tableNames.get(j)),
-                            buildConcat(allColumnNameForTable.get(tableNames.get(i))),
-                            buildConcat(allColumnNameForTable.get(tableNames.get(j)))));
+                String.format(
+                    " LEFT JOIN %s ON %s = %s",
+                    getQuotName(tableNames.get(j)),
+                    buildConcat(allColumnNameForTable.get(tableNames.get(i))),
+                    buildConcat(allColumnNameForTable.get(tableNames.get(j)))));
           }
         }
         if (i != tableNames.size() - 1) {
@@ -852,18 +850,18 @@ public class RelationalStorage implements IStorage {
       List<String> fullColumnNames = new ArrayList<>(Arrays.asList(entry.getValue().split(", ")));
       // 将columnNames中的列名加上tableName前缀
       fullColumnNames.replaceAll(
-              s -> RelationSchema.getQuoteFullName(entry.getKey(), s, relationalMeta.getQuote()));
+          s -> RelationSchema.getQuoteFullName(entry.getKey(), s, relationalMeta.getQuote()));
       fullColumnNamesList.add(fullColumnNames);
     }
     // 把fullColumnNamesList中的列名全部用removeFullColumnNameQuote去掉引号
     fullColumnNamesList.replaceAll(
-            columnNames -> {
-              List<String> newColumnNames = new ArrayList<>();
-              for (String columnName : columnNames) {
-                newColumnNames.add(removeFullColumnNameQuote(columnName));
-              }
-              return newColumnNames;
-            });
+        columnNames -> {
+          List<String> newColumnNames = new ArrayList<>();
+          for (String columnName : columnNames) {
+            newColumnNames.add(removeFullColumnNameQuote(columnName));
+          }
+          return newColumnNames;
+        });
     filter = expandFilter(filter, fullColumnNamesList);
     filter = LogicalFilterUtils.mergeTrue(filter);
     return filter;
@@ -940,15 +938,15 @@ public class RelationalStorage implements IStorage {
             return new BoolFilter(true);
           } else if (matchedPath.size() == 1) {
             return new PathFilter(
-                    matchedPath.get(0),
-                    ((PathFilter) filter).getOp(),
-                    ((PathFilter) filter).getPathB());
+                matchedPath.get(0),
+                ((PathFilter) filter).getOp(),
+                ((PathFilter) filter).getPathB());
           } else {
             List<Filter> andPathChildren = new ArrayList<>();
             for (String matched : matchedPath) {
               andPathChildren.add(
-                      new PathFilter(
-                              matched, ((PathFilter) filter).getOp(), ((PathFilter) filter).getPathB()));
+                  new PathFilter(
+                      matched, ((PathFilter) filter).getOp(), ((PathFilter) filter).getPathB()));
             }
             if (Op.isOrOp(((PathFilter) filter).getOp())) {
               filter = new OrFilter(andPathChildren);
@@ -968,15 +966,15 @@ public class RelationalStorage implements IStorage {
             return new BoolFilter(true);
           } else if (matchedPath.size() == 1) {
             return new PathFilter(
-                    ((PathFilter) filter).getPathA(),
-                    ((PathFilter) filter).getOp(),
-                    matchedPath.get(0));
+                ((PathFilter) filter).getPathA(),
+                ((PathFilter) filter).getOp(),
+                matchedPath.get(0));
           } else {
             List<Filter> andPathChildren = new ArrayList<>();
             for (String matched : matchedPath) {
               andPathChildren.add(
-                      new PathFilter(
-                              ((PathFilter) filter).getPathA(), ((PathFilter) filter).getOp(), matched));
+                  new PathFilter(
+                      ((PathFilter) filter).getPathA(), ((PathFilter) filter).getOp(), matched));
             }
             if (Op.isOrOp(((ValueFilter) filter).getOp())) {
               return new OrFilter(andPathChildren);
@@ -1012,8 +1010,8 @@ public class RelationalStorage implements IStorage {
 
   private String removeFullColumnNameQuote(String fullColumnName) {
     return fullColumnName
-            .substring(1, fullColumnName.length() - 1)
-            .replace(relationalMeta.getQuote() + "." + relationalMeta.getQuote(), ".");
+        .substring(1, fullColumnName.length() - 1)
+        .replace(relationalMeta.getQuote() + "." + relationalMeta.getQuote(), ".");
   }
 
   private Filter cutFilterDatabaseNameForDummy(Filter filter, String databaseName) {
@@ -1028,14 +1026,14 @@ public class RelationalStorage implements IStorage {
         return new OrFilter(orChildren);
       case Not:
         return new NotFilter(
-                cutFilterDatabaseNameForDummy(((NotFilter) filter).getChild(), databaseName));
+            cutFilterDatabaseNameForDummy(((NotFilter) filter).getChild(), databaseName));
       case Value:
         String path = ((ValueFilter) filter).getPath();
         if (path.startsWith(databaseName + SEPARATOR)) {
           return new ValueFilter(
-                  path.substring(databaseName.length() + 1),
-                  ((ValueFilter) filter).getOp(),
-                  ((ValueFilter) filter).getValue());
+              path.substring(databaseName.length() + 1),
+              ((ValueFilter) filter).getOp(),
+              ((ValueFilter) filter).getValue());
         }
         break;
       case In:
@@ -1043,9 +1041,9 @@ public class RelationalStorage implements IStorage {
         String inPath = inFilter.getPath();
         if (inPath.startsWith(databaseName + SEPARATOR)) {
           return new InFilter(
-                  inPath.substring(databaseName.length() + 1),
-                  inFilter.getInOp(),
-                  inFilter.getValues());
+              inPath.substring(databaseName.length() + 1),
+              inFilter.getInOp(),
+              inFilter.getValues());
         }
         break;
       case Path:
@@ -1071,7 +1069,7 @@ public class RelationalStorage implements IStorage {
   }
 
   private Map<String, List<String>> getAllColumnNameForTable(
-          String databaseName, Map<String, String> tableNameToColumnNames) throws SQLException {
+      String databaseName, Map<String, String> tableNameToColumnNames) throws SQLException {
     Map<String, List<String>> allColumnNameForTable = new HashMap<>();
     for (Map.Entry<String, String> entry : tableNameToColumnNames.entrySet()) {
       String tableName = entry.getKey();
@@ -1082,16 +1080,16 @@ public class RelationalStorage implements IStorage {
 
         if (allColumnNameForTable.containsKey(tableName)) {
           allColumnNameForTable
-                  .get(tableName)
-                  .add(
-                          RelationSchema.getQuoteFullName(
-                                  tableName, columnName, relationalMeta.getQuote()));
+              .get(tableName)
+              .add(
+                  RelationSchema.getQuoteFullName(
+                      tableName, columnName, relationalMeta.getQuote()));
           continue;
         }
 
         List<String> columnNames = new ArrayList<>();
         columnNames.add(
-                RelationSchema.getQuoteFullName(tableName, columnName, relationalMeta.getQuote()));
+            RelationSchema.getQuoteFullName(tableName, columnName, relationalMeta.getQuote()));
         allColumnNameForTable.put(tableName, columnNames);
       }
     }
@@ -1100,7 +1098,7 @@ public class RelationalStorage implements IStorage {
 
   @Override
   public TaskExecuteResult executeProjectDummyWithSelect(
-          Project project, Select select, DataArea dataArea) {
+      Project project, Select select, DataArea dataArea) {
     Filter filter = select.getFilter();
     return executeProjectDummyWithFilter(project, filter);
   }
@@ -1116,7 +1114,7 @@ public class RelationalStorage implements IStorage {
       String statement;
 
       Map<String, Map<String, String>> splitResults =
-              splitAndMergeHistoryQueryPatterns(project.getPatterns());
+          splitAndMergeHistoryQueryPatterns(project.getPatterns());
       for (Map.Entry<String, Map<String, String>> splitEntry : splitResults.entrySet()) {
         Map<String, String> tableNameToColumnNames = splitEntry.getValue();
         String databaseName = splitEntry.getKey();
@@ -1128,11 +1126,11 @@ public class RelationalStorage implements IStorage {
 
         // 这里获取所有table的所有列名，用于concat时生成key列。
         Map<String, List<String>> allColumnNameForTable =
-                getAllColumnNameForTable(databaseName, tableNameToColumnNames);
+            getAllColumnNameForTable(databaseName, tableNameToColumnNames);
 
         // 如果table没有带通配符，那直接简单构建起查询语句即可
         if (!filter.toString().contains("*")
-                && !(tableNameToColumnNames.size() > 1
+            && !(tableNameToColumnNames.size() > 1
                 && filterContainsType(Arrays.asList(FilterType.Value, FilterType.Path), filter))) {
           Filter expandFilter = expandFilter(filter.copy(), tableNameToColumnNames);
           for (Map.Entry<String, String> entry : splitEntry.getValue().entrySet()) {
@@ -1140,21 +1138,21 @@ public class RelationalStorage implements IStorage {
             String fullQuotColumnNames = getQuotColumnNames(entry.getValue());
             List<String> fullPathList = Arrays.asList(entry.getValue().split(", "));
             fullPathList.replaceAll(
-                    s -> RelationSchema.getQuoteFullName(tableName, s, relationalMeta.getQuote()));
+                s -> RelationSchema.getQuoteFullName(tableName, s, relationalMeta.getQuote()));
             String filterStr =
-                    filterTransformer.toString(
-                            dummyFilterSetTrueByColumnNames(
-                                    cutFilterDatabaseNameForDummy(expandFilter.copy(), databaseName),
-                                    fullPathList));
+                filterTransformer.toString(
+                    dummyFilterSetTrueByColumnNames(
+                        cutFilterDatabaseNameForDummy(expandFilter.copy(), databaseName),
+                        fullPathList));
             String concatKey = buildConcat(fullPathList);
             statement =
-                    String.format(
-                            relationalMeta.getConcatQueryStatement(),
-                            concatKey,
-                            fullQuotColumnNames,
-                            getQuotName(tableName),
-                            filterStr.isEmpty() ? "" : "WHERE " + filterStr,
-                            concatKey);
+                String.format(
+                    relationalMeta.getConcatQueryStatement(),
+                    concatKey,
+                    fullQuotColumnNames,
+                    getQuotName(tableName),
+                    filterStr.isEmpty() ? "" : "WHERE " + filterStr,
+                    concatKey);
 
             try {
               stmt = conn.createStatement();
@@ -1183,53 +1181,53 @@ public class RelationalStorage implements IStorage {
             fullColumnNamesList.add(columnNames);
 
             List<String> fullColumnNames =
-                    new ArrayList<>(Arrays.asList(entry.getValue().split(", ")));
+                new ArrayList<>(Arrays.asList(entry.getValue().split(", ")));
             fullColumnNames.replaceAll(
-                    s -> RelationSchema.getQuoteFullName(tableName, s, relationalMeta.getQuote()));
+                s -> RelationSchema.getQuoteFullName(tableName, s, relationalMeta.getQuote()));
             fullQuoteColumnNamesList.add(fullColumnNames);
           }
 
           String fullTableName = getDummyFullJoinTables(tableNames, allColumnNameForTable);
 
           Filter copyFilter =
-                  dummyFilterSetTrueByColumnNames(
-                          cutFilterDatabaseNameForDummy(filter.copy(), databaseName),
-                          fullColumnNamesList.stream().flatMap(List::stream).collect(Collectors.toList()));
+              dummyFilterSetTrueByColumnNames(
+                  cutFilterDatabaseNameForDummy(filter.copy(), databaseName),
+                  fullColumnNamesList.stream().flatMap(List::stream).collect(Collectors.toList()));
 
           copyFilter = expandFilter(copyFilter, tableNameToColumnNames);
 
           String filterStr = filterTransformer.toString(copyFilter);
           String orderByKey =
-                  buildConcat(
-                          fullQuoteColumnNamesList.stream()
-                                  .flatMap(List::stream)
-                                  .collect(Collectors.toList()));
+              buildConcat(
+                  fullQuoteColumnNamesList.stream()
+                      .flatMap(List::stream)
+                      .collect(Collectors.toList()));
           if (!relationalMeta.isSupportFullJoin()) {
             // 如果不支持full join,需要为left join + union模拟的full join表起别名，同时select、where、order by的部分都要调整
             char quote = relationalMeta.getQuote();
             fullQuoteColumnNamesList.forEach(
-                    columnNames ->
-                            columnNames.replaceAll(s -> s.replaceAll(quote + "\\." + quote, ".")));
+                columnNames ->
+                    columnNames.replaceAll(s -> s.replaceAll(quote + "\\." + quote, ".")));
             filterStr = filterStr.replaceAll("`\\.`", ".");
             filterStr =
-                    filterStr.replace(
-                            getQuotName(KEY_NAME), getQuotName(tableNames.get(0) + SEPARATOR + KEY_NAME));
+                filterStr.replace(
+                    getQuotName(KEY_NAME), getQuotName(tableNames.get(0) + SEPARATOR + KEY_NAME));
             orderByKey = getQuotName(tableNames.get(0) + SEPARATOR + KEY_NAME);
           }
 
           statement =
-                  String.format(
-                          relationalMeta.getConcatQueryStatement(),
-                          buildConcat(
-                                  fullQuoteColumnNamesList.stream()
-                                          .flatMap(List::stream)
-                                          .collect(Collectors.toList())),
-                          fullQuoteColumnNamesList.stream()
-                                  .flatMap(List::stream)
-                                  .collect(Collectors.joining(", ")),
-                          fullTableName,
-                          filterStr.isEmpty() ? "" : "WHERE " + filterStr,
-                          orderByKey);
+              String.format(
+                  relationalMeta.getConcatQueryStatement(),
+                  buildConcat(
+                      fullQuoteColumnNamesList.stream()
+                          .flatMap(List::stream)
+                          .collect(Collectors.toList())),
+                  fullQuoteColumnNamesList.stream()
+                      .flatMap(List::stream)
+                      .collect(Collectors.joining(", ")),
+                  fullTableName,
+                  filterStr.isEmpty() ? "" : "WHERE " + filterStr,
+                  orderByKey);
 
           try {
             stmt = conn.createStatement();
@@ -1246,21 +1244,21 @@ public class RelationalStorage implements IStorage {
       }
 
       RowStream rowStream =
-              new ClearEmptyRowStreamWrapper(
-                      new RelationQueryRowStream(
-                              databaseNameList,
-                              resultSets,
-                              true,
-                              filter,
-                              project.getTagFilter(),
-                              connList,
-                              relationalMeta));
+          new ClearEmptyRowStreamWrapper(
+              new RelationQueryRowStream(
+                  databaseNameList,
+                  resultSets,
+                  true,
+                  filter,
+                  project.getTagFilter(),
+                  connList,
+                  relationalMeta));
       return new TaskExecuteResult(rowStream);
     } catch (SQLException e) {
       LOGGER.error("unexpected error: ", e);
       return new TaskExecuteResult(
-              new RelationalTaskExecuteFailureException(
-                      String.format("execute project task in %s failure", engineName), e));
+          new RelationalTaskExecuteFailureException(
+              String.format("execute project task in %s failure", engineName), e));
     }
   }
 
@@ -1276,7 +1274,7 @@ public class RelationalStorage implements IStorage {
         return new OrFilter(orChildren);
       case Not:
         return new NotFilter(
-                dummyFilterSetTrueByColumnNames(((NotFilter) filter).getChild(), columnNameList));
+            dummyFilterSetTrueByColumnNames(((NotFilter) filter).getChild(), columnNameList));
       case Value:
         String path = ((ValueFilter) filter).getPath();
         if (!path.contains("*") && !columnNameList.contains(path)) {
@@ -1287,7 +1285,7 @@ public class RelationalStorage implements IStorage {
         String pathA = ((PathFilter) filter).getPathA();
         String pathB = ((PathFilter) filter).getPathB();
         if ((!pathA.contains("*") && !columnNameList.contains(pathA))
-                || (!pathB.contains("*") && !columnNameList.contains(pathB))) {
+            || (!pathB.contains("*") && !columnNameList.contains(pathB))) {
           return new BoolFilter(true);
         }
         break;
@@ -1313,8 +1311,8 @@ public class RelationalStorage implements IStorage {
       Connection conn = getConnection(databaseName);
       if (conn == null) {
         return new TaskExecuteResult(
-                new RelationalTaskExecuteFailureException(
-                        String.format("cannot connect to database %s", databaseName)));
+            new RelationalTaskExecuteFailureException(
+                String.format("cannot connect to database %s", databaseName)));
       }
 
       Statement stmt = conn.createStatement();
@@ -1331,7 +1329,7 @@ public class RelationalStorage implements IStorage {
         if (paths.size() == 1 && paths.get(0).equals("*") && delete.getTagFilter() == null) {
           closeConnection(databaseName);
           Connection defaultConn =
-                  getConnection(relationalMeta.getDefaultDatabaseName()); // 正在使用的数据库无法被删除，因此需要切换到默认数据库
+              getConnection(relationalMeta.getDefaultDatabaseName()); // 正在使用的数据库无法被删除，因此需要切换到默认数据库
           String DefaultDatabaseName = relationalMeta.getDefaultDatabaseName();
           if (defaultConn != null) {
             if (DefaultDatabaseName.equals("DAMENG")) {
@@ -1343,8 +1341,8 @@ public class RelationalStorage implements IStorage {
                 tables = getTables(databaseName, tableName);
                 if (!tables.isEmpty()) {
                   statement =
-                          String.format(
-                                  DROP_COLUMN_STATEMENT, getQuotName(tableName), getQuotName(columnName));
+                      String.format(
+                          DROP_COLUMN_STATEMENT, getQuotName(tableName), getQuotName(columnName));
                   LOGGER.info("[Delete] execute delete: {}", statement);
                   try {
                     stmt.execute(statement); // 删除列
@@ -1356,8 +1354,8 @@ public class RelationalStorage implements IStorage {
             } else {
               stmt = defaultConn.createStatement();
               statement =
-                      String.format(
-                              relationalMeta.getDropDatabaseStatement(), getQuotName(databaseName));
+                  String.format(
+                      relationalMeta.getDropDatabaseStatement(), getQuotName(databaseName));
               LOGGER.info("[Delete] execute delete: {}", statement);
               stmt.execute(statement); // 删除数据库
               stmt.close();
@@ -1366,10 +1364,10 @@ public class RelationalStorage implements IStorage {
             return new TaskExecuteResult(null, null);
           } else {
             return new TaskExecuteResult(
-                    new RelationalTaskExecuteFailureException(
-                            String.format(
-                                    "cannot connect to database %s", relationalMeta.getDefaultDatabaseName()),
-                            new SQLException()));
+                new RelationalTaskExecuteFailureException(
+                    String.format(
+                        "cannot connect to database %s", relationalMeta.getDefaultDatabaseName()),
+                    new SQLException()));
           }
         } else {
           deletedPaths = determineDeletedPaths(paths, delete.getTagFilter());
@@ -1379,12 +1377,12 @@ public class RelationalStorage implements IStorage {
             tables = getTables(databaseName, tableName);
             if (!tables.isEmpty()) {
               statement =
-                      String.format(
-                              //                      DROP_COLUMN_STATEMENT,
-                              relationalMeta.getAlterTableDropColumnStatement(),
-                              getQuotName(databaseName),
-                              getQuotName(tableName),
-                              getQuotName(columnName));
+                  String.format(
+                      //                      DROP_COLUMN_STATEMENT,
+                      relationalMeta.getAlterTableDropColumnStatement(),
+                      getQuotName(databaseName),
+                      getQuotName(tableName),
+                      getQuotName(columnName));
               LOGGER.info("[Delete] execute delete: {}", statement);
               try {
                 stmt.execute(statement); // 删除列
@@ -1403,16 +1401,16 @@ public class RelationalStorage implements IStorage {
           if (!getColumns(databaseName, tableName, columnName).isEmpty()) {
             for (KeyRange keyRange : delete.getKeyRanges()) {
               statement =
-                      String.format(
-                              //                          relationalMeta.getUpdateStatement(),
-                              relationalMeta.getUpdateTableStatement(),
-                              getQuotName(databaseName),
-                              getQuotName(tableName),
-                              getQuotName(columnName),
-                              getQuotName(KEY_NAME),
-                              keyRange.getBeginKey(),
-                              getQuotName(KEY_NAME),
-                              keyRange.getEndKey());
+                  String.format(
+                      //                          relationalMeta.getUpdateStatement(),
+                      relationalMeta.getUpdateTableStatement(),
+                      getQuotName(databaseName),
+                      getQuotName(tableName),
+                      getQuotName(columnName),
+                      getQuotName(KEY_NAME),
+                      keyRange.getBeginKey(),
+                      getQuotName(KEY_NAME),
+                      keyRange.getEndKey());
               LOGGER.info("[Delete] execute delete: {}", statement);
               stmt.execute(statement); // 将目标列的目标范围的值置为空
             }
@@ -1425,8 +1423,8 @@ public class RelationalStorage implements IStorage {
     } catch (SQLException e) {
       LOGGER.error("unexpected error: ", e);
       return new TaskExecuteResult(
-              new RelationalTaskExecuteFailureException(
-                      String.format("execute delete task in %s failure", engineName), e));
+          new RelationalTaskExecuteFailureException(
+              String.format("execute delete task in %s failure", engineName), e));
     }
   }
 
@@ -1438,8 +1436,8 @@ public class RelationalStorage implements IStorage {
     Connection conn = getConnection(databaseName);
     if (conn == null) {
       return new TaskExecuteResult(
-              new RelationalTaskExecuteFailureException(
-                      String.format("cannot connect to database %s", databaseName)));
+          new RelationalTaskExecuteFailureException(
+              String.format("cannot connect to database %s", databaseName)));
     }
     Exception e = null;
     switch (dataView.getRawDataType()) {
@@ -1459,16 +1457,16 @@ public class RelationalStorage implements IStorage {
     }
     if (e != null) {
       return new TaskExecuteResult(
-              null,
-              new RelationalException(
-                      String.format("execute insert task in %s failure", engineName), e));
+          null,
+          new RelationalException(
+              String.format("execute insert task in %s failure", engineName), e));
     }
     return new TaskExecuteResult(null, null);
   }
 
   @Override
   public Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage(String dataPrefix)
-          throws PhysicalException {
+      throws PhysicalException {
     ColumnsInterval columnsInterval;
     List<String> paths = new ArrayList<>();
     try {
@@ -1500,21 +1498,21 @@ public class RelationalStorage implements IStorage {
       columnsInterval = new ColumnsInterval(dataPrefix);
     } else {
       columnsInterval =
-              new ColumnsInterval(paths.get(0), StringUtils.nextString(paths.get(paths.size() - 1)));
+          new ColumnsInterval(paths.get(0), StringUtils.nextString(paths.get(paths.size() - 1)));
     }
 
     return new Pair<>(columnsInterval, KeyInterval.getDefaultKeyInterval());
   }
 
   private List<Pattern> getRegexPatternByName(
-          String tableName, String columnNames, boolean isDummy) {
+      String tableName, String columnNames, boolean isDummy) {
     // 我们输入例如test%，是希望匹配到test或test.abc这样的表，但是不希望匹配到test1这样的表，但语法不支持，因此在这里做一下过滤
     String tableNameRegex = tableName;
     tableNameRegex = StringUtils.reformatPath(tableNameRegex);
     tableNameRegex = tableNameRegex.replace("%", ".*");
     if (tableNameRegex.endsWith(".*")
-            && !tableNameRegex.endsWith(SEPARATOR + ".*")
-            && !tableNameRegex.equals(".*")) {
+        && !tableNameRegex.endsWith(SEPARATOR + ".*")
+        && !tableNameRegex.equals(".*")) {
       tableNameRegex = tableNameRegex.substring(0, tableNameRegex.length() - 2);
       tableNameRegex += "(\\" + SEPARATOR + ".*)?";
     }
@@ -1539,7 +1537,7 @@ public class RelationalStorage implements IStorage {
   }
 
   private Map<String, String> splitAndMergeQueryPatterns(String databaseName, List<String> patterns)
-          throws SQLException {
+      throws SQLException {
     // table name -> column names
     // 1 -> n
     Map<String, String> tableNameToColumnNames = new HashMap<>();
@@ -1579,7 +1577,7 @@ public class RelationalStorage implements IStorage {
       List<ColumnField> columnFieldList;
       if (relationalMeta.jdbcSupportSpecialChar()) {
         columnFieldList =
-                getColumns(databaseName, reformatForJDBC(tableName), reformatForJDBC(columnNames));
+            getColumns(databaseName, reformatForJDBC(tableName), reformatForJDBC(columnNames));
       } else {
         columnFieldList = getColumns(databaseName, "%", "%");
       }
@@ -1595,7 +1593,7 @@ public class RelationalStorage implements IStorage {
         }
 
         if (!tableNamePattern.matcher(curTableName).find()
-                || !columnNamePattern.matcher(curColumnNames).find()) {
+            || !columnNamePattern.matcher(curColumnNames).find()) {
           continue;
         }
 
@@ -1603,9 +1601,9 @@ public class RelationalStorage implements IStorage {
           curColumnNames = tableNameToColumnNames.get(curTableName) + ", " + curColumnNames;
           // 此处需要去重
           List<String> columnNamesList =
-                  new ArrayList<>(Arrays.asList(tableNameToColumnNames.get(curTableName).split(", ")));
+              new ArrayList<>(Arrays.asList(tableNameToColumnNames.get(curTableName).split(", ")));
           List<String> newColumnNamesList =
-                  new ArrayList<>(Arrays.asList(curColumnNames.split(", ")));
+              new ArrayList<>(Arrays.asList(curColumnNames.split(", ")));
           for (String newColumnName : newColumnNamesList) {
             if (!columnNamesList.contains(newColumnName)) {
               columnNamesList.add(newColumnName);
@@ -1621,15 +1619,13 @@ public class RelationalStorage implements IStorage {
     return tableNameToColumnNames;
   }
 
-  /**
-   * JDBC中的路径中的 . 不需要转义
-   */
+  /** JDBC中的路径中的 . 不需要转义 */
   private String reformatForJDBC(String path) {
     return StringUtils.reformatPath(path).replace("\\.", ".");
   }
 
   private Map<String, Map<String, String>> splitAndMergeHistoryQueryPatterns(List<String> patterns)
-          throws SQLException {
+      throws SQLException {
     // <database name, <table name, column names>>
     List<String> databases = getDatabaseNames();
     Map<String, Map<String, String>> splitResults = new HashMap<>();
@@ -1677,7 +1673,7 @@ public class RelationalStorage implements IStorage {
               continue;
             }
             List<ColumnField> columnFieldList =
-                    getColumns(tempDatabaseName, tempTableName, columnNames);
+                getColumns(tempDatabaseName, tempTableName, columnNames);
             for (ColumnField columnField : columnFieldList) {
               String tempColumnNames = columnField.columnName;
               if (!columnNamePattern.matcher(tempColumnNames).find()) {
@@ -1687,7 +1683,7 @@ public class RelationalStorage implements IStorage {
               if (splitResults.containsKey(tempDatabaseName)) {
                 tableNameToColumnNames = splitResults.get(tempDatabaseName);
                 tempColumnNames =
-                        tableNameToColumnNames.get(tempTableName) + ", " + tempColumnNames;
+                    tableNameToColumnNames.get(tempTableName) + ", " + tempColumnNames;
               }
               tableNameToColumnNames.put(tempTableName, tempColumnNames);
               splitResults.put(tempDatabaseName, tableNameToColumnNames);
@@ -1704,7 +1700,7 @@ public class RelationalStorage implements IStorage {
           tableName = columnField.tableName;
           columnNames = columnField.columnName;
           if (!tableNamePattern.matcher(tableName).find()
-                  || !columnNamePattern.matcher(columnNames).find()) {
+              || !columnNamePattern.matcher(columnNames).find()) {
             continue;
           }
           if (tableNameToColumnNames.containsKey(tableName)) {
@@ -1740,11 +1736,11 @@ public class RelationalStorage implements IStorage {
   }
 
   private void createOrAlterTables(
-          Connection conn,
-          String storageUnit,
-          List<String> paths,
-          List<Map<String, String>> tagsList,
-          List<DataType> dataTypeList) {
+      Connection conn,
+      String storageUnit,
+      List<String> paths,
+      List<Map<String, String>> tagsList,
+      List<DataType> dataTypeList) {
     for (int i = 0; i < paths.size(); i++) {
       String path = paths.get(i);
       Map<String, String> tags = new HashMap<>();
@@ -1763,21 +1759,21 @@ public class RelationalStorage implements IStorage {
         columnName = toFullName(columnName, tags);
         if (tables.isEmpty()) {
           String statement =
-                  String.format(
-                          relationalMeta.getCreateTableStatement(),
-                          getQuotName(tableName),
-                          getQuotName(columnName),
-                          relationalMeta.getDataTypeTransformer().toEngineType(dataType));
+              String.format(
+                  relationalMeta.getCreateTableStatement(),
+                  getQuotName(tableName),
+                  getQuotName(columnName),
+                  relationalMeta.getDataTypeTransformer().toEngineType(dataType));
           LOGGER.info("[Create] execute create: {}", statement);
           stmt.execute(statement);
         } else {
           if (getColumns(storageUnit, tableName, columnName).isEmpty()) {
             String statement =
-                    String.format(
-                            ADD_COLUMN_STATEMENT,
-                            getQuotName(tableName),
-                            getQuotName(columnName),
-                            relationalMeta.getDataTypeTransformer().toEngineType(dataType));
+                String.format(
+                    ADD_COLUMN_STATEMENT,
+                    getQuotName(tableName),
+                    getQuotName(columnName),
+                    relationalMeta.getDataTypeTransformer().toEngineType(dataType));
             LOGGER.info("[Create] execute create: {}", statement);
             stmt.execute(statement);
           }
@@ -1790,18 +1786,18 @@ public class RelationalStorage implements IStorage {
   }
 
   private Exception insertNonAlignedRowRecords(
-          Connection conn, String databaseName, RowDataView data) {
+      Connection conn, String databaseName, RowDataView data) {
     int batchSize = Math.min(data.getKeySize(), BATCH_SIZE);
     try {
       Statement stmt = conn.createStatement();
 
       // 创建表
       createOrAlterTables(
-              conn, databaseName, data.getPaths(), data.getTagsList(), data.getDataTypeList());
+          conn, databaseName, data.getPaths(), data.getTagsList(), data.getDataTypeList());
 
       // 插入数据
       Map<String, Pair<String, List<String>>> tableToColumnEntries =
-              new HashMap<>(); // <表名, <列名，值列表>>
+          new HashMap<>(); // <表名, <列名，值列表>>
       int cnt = 0;
       boolean firstRound = true;
       while (cnt < data.getKeySize()) {
@@ -1829,9 +1825,9 @@ public class RelationalStorage implements IStorage {
             if (bitmapView.get(j)) {
               if (dataType == DataType.BINARY) {
                 value =
-                        "'"
-                                + new String((byte[]) data.getValue(i, index), StandardCharsets.UTF_8)
-                                + "'";
+                    "'"
+                        + new String((byte[]) data.getValue(i, index), StandardCharsets.UTF_8)
+                        + "'";
               } else {
                 value = data.getValue(i, index).toString();
               }
@@ -1896,18 +1892,18 @@ public class RelationalStorage implements IStorage {
   }
 
   private Exception insertNonAlignedColumnRecords(
-          Connection conn, String databaseName, ColumnDataView data) {
+      Connection conn, String databaseName, ColumnDataView data) {
     int batchSize = Math.min(data.getKeySize(), BATCH_SIZE);
     try {
       Statement stmt = conn.createStatement();
 
       // 创建表
       createOrAlterTables(
-              conn, databaseName, data.getPaths(), data.getTagsList(), data.getDataTypeList());
+          conn, databaseName, data.getPaths(), data.getTagsList(), data.getDataTypeList());
 
       // 插入数据
       Map<String, Pair<String, List<String>>> tableToColumnEntries =
-              new HashMap<>(); // <表名, <列名，值列表>>
+          new HashMap<>(); // <表名, <列名，值列表>>
       Map<Integer, Integer> pathIndexToBitmapIndex = new HashMap<>();
       int cnt = 0;
       boolean firstRound = true;
@@ -1939,9 +1935,9 @@ public class RelationalStorage implements IStorage {
             if (bitmapView.get(j)) {
               if (dataType == DataType.BINARY) {
                 value =
-                        "'"
-                                + new String((byte[]) data.getValue(i, index), StandardCharsets.UTF_8)
-                                + "'";
+                    "'"
+                        + new String((byte[]) data.getValue(i, index), StandardCharsets.UTF_8)
+                        + "'";
               } else {
                 value = data.getValue(i, index).toString();
               }
@@ -1990,7 +1986,7 @@ public class RelationalStorage implements IStorage {
 
         executeBatchInsert(stmt, tableToColumnEntries);
         for (Map.Entry<String, Pair<String, List<String>>> entry :
-                tableToColumnEntries.entrySet()) {
+            tableToColumnEntries.entrySet()) {
           entry.getValue().v.clear();
         }
 
@@ -2007,8 +2003,8 @@ public class RelationalStorage implements IStorage {
   }
 
   private void executeBatchInsert(
-          Statement stmt, Map<String, Pair<String, List<String>>> tableToColumnEntries)
-          throws SQLException {
+      Statement stmt, Map<String, Pair<String, List<String>>> tableToColumnEntries)
+      throws SQLException {
     for (Map.Entry<String, Pair<String, List<String>>> entry : tableToColumnEntries.entrySet()) {
       String tableName = entry.getKey();
       String columnNames = entry.getValue().k.substring(0, entry.getValue().k.length() - 2);
@@ -2084,10 +2080,10 @@ public class RelationalStorage implements IStorage {
             continue;
           }
           statement.append(
-                  String.format(
-                          relationalMeta.getUpsertConflictStatement(),
-                          getQuotName(part),
-                          getQuotName(part)));
+              String.format(
+                  relationalMeta.getUpsertConflictStatement(),
+                  getQuotName(part),
+                  getQuotName(part)));
           statement.append(", ");
         }
 
@@ -2101,7 +2097,7 @@ public class RelationalStorage implements IStorage {
   }
 
   private List<Pair<String, String>> determineDeletedPaths(
-          List<String> paths, TagFilter tagFilter) {
+      List<String> paths, TagFilter tagFilter) {
     try {
       List<Column> columns = getColumns(null, null);
       List<Pair<String, String>> deletedPaths = new ArrayList<>();
