@@ -42,6 +42,10 @@ jobs:
             metadata-matrix: '["zookeeper"]'
     assembly-test:
         uses: ./.github/workflows/assembly-test.yml
+    free-thread-test:
+        uses: ./.github/workflows/free-thread-test.yml
+        with:
+            metadata-matrix: '["zookeeper"]'
     tpc-h-regression-test:
         uses: ./.github/workflows/tpc-h.yml
         with:
