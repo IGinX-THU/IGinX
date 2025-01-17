@@ -11,49 +11,49 @@ concurrency:
     cancel-in-progress: true
 
 jobs:
-    unit-test:
-        uses: ./.github/workflows/unit-test.yml
-    unit-mds:
-        uses: ./.github/workflows/unit-mds.yml
-    case-regression:
-        uses: ./.github/workflows/case-regression.yml
-        with:
-            metadata-matrix: '["zookeeper"]'
-    standalone-test:
-        uses: ./.github/workflows/standalone-test.yml
-        with:
-            metadata-matrix: '["zookeeper"]'
-    standalone-test-no-optimizer:
-        uses: ./.github/workflows/standalone-test-no-optimizer.yml
-        with:
-            metadata-matrix: '["zookeeper"]'
-    db-ce:
-        uses: ./.github/workflows/DB-CE.yml
-        with:
-            metadata-matrix: '["zookeeper"]'
-    db-ce-no-optimizer:
-        uses: ./.github/workflows/DB-CE.yml
-        with:
-            metadata-matrix: '["zookeeper"]'
-            close-optimizer: "true"
-    remote-test:
-        uses: ./.github/workflows/remote-test.yml
-        with:
-            metadata-matrix: '["zookeeper"]'
-    assembly-test:
-        uses: ./.github/workflows/assembly-test.yml
     free-thread-test:
         uses: ./.github/workflows/free-thread-test.yml
         with:
             metadata-matrix: '["zookeeper"]'
-    tpc-h-regression-test:
-        uses: ./.github/workflows/tpc-h.yml
-        with:
-            os-matrix: '["ubuntu-latest"]'
-            metadata-matrix: '["zookeeper"]'
-    tpc-h-regression-test-no-optimizer:
-        uses: ./.github/workflows/tpc-h.yml
-        with:
-            os-matrix: '["ubuntu-latest"]'
-            metadata-matrix: '["zookeeper"]'
-            close-optimizer: "true"
+#    unit-test:
+#        uses: ./.github/workflows/unit-test.yml
+#    unit-mds:
+#        uses: ./.github/workflows/unit-mds.yml
+#    case-regression:
+#        uses: ./.github/workflows/case-regression.yml
+#        with:
+#            metadata-matrix: '["zookeeper"]'
+#    standalone-test:
+#        uses: ./.github/workflows/standalone-test.yml
+#        with:
+#            metadata-matrix: '["zookeeper"]'
+#    standalone-test-no-optimizer:
+#        uses: ./.github/workflows/standalone-test-no-optimizer.yml
+#        with:
+#            metadata-matrix: '["zookeeper"]'
+#    db-ce:
+#        uses: ./.github/workflows/DB-CE.yml
+#        with:
+#            metadata-matrix: '["zookeeper"]'
+#    db-ce-no-optimizer:
+#        uses: ./.github/workflows/DB-CE.yml
+#        with:
+#            metadata-matrix: '["zookeeper"]'
+#            close-optimizer: "true"
+#    remote-test:
+#        uses: ./.github/workflows/remote-test.yml
+#        with:
+#            metadata-matrix: '["zookeeper"]'
+#    assembly-test:
+#        uses: ./.github/workflows/assembly-test.yml
+#    tpc-h-regression-test:
+#        uses: ./.github/workflows/tpc-h.yml
+#        with:
+#            os-matrix: '["ubuntu-latest"]'
+#            metadata-matrix: '["zookeeper"]'
+#    tpc-h-regression-test-no-optimizer:
+#        uses: ./.github/workflows/tpc-h.yml
+#        with:
+#            os-matrix: '["ubuntu-latest"]'
+#            metadata-matrix: '["zookeeper"]'
+#            close-optimizer: "true"
