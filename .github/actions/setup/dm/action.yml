@@ -9,19 +9,6 @@ inputs:
 runs:
     using: "composite"
     steps:
-        #        - if: runner.os == 'Windows'
-        #          name: Set up Docker on Windows
-        #          shell: cmd
-        #          run: |
-        #              "C:\Program Files\Docker\Docker\DockerCli.exe" -SwitchLinuxEngine
-
-        - if: runner.os == 'macOS'
-          name: Set up Docker on macOS
-          shell: bash
-          run: |
-              brew update
-              brew install docker
-
         - if: runner.os == 'Linux' || runner.os == 'macOS'
           name: Download and Install dm JDBC Driver
           shell: bash
