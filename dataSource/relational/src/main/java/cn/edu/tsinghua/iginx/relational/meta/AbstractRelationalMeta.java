@@ -94,17 +94,6 @@ public abstract class AbstractRelationalMeta {
         + getQuote()
         + " < %d);";
   }
-  //  public String getUpdateStatement() {
-  //    return "UPDATE %s SET %s = null WHERE ("
-  //        + getQuote()
-  //        + KEY_NAME
-  //        + getQuote()
-  //        + " >= %d AND "
-  //        + getQuote()
-  //        + KEY_NAME
-  //        + getQuote()
-  //        + " < %d);";
-  //  }
 
   /**
    * 获取query的SQL语句
@@ -122,17 +111,6 @@ public abstract class AbstractRelationalMeta {
         + getQuote()
         + ";";
   }
-  //  public String getQueryStatement() {
-  //    return "SELECT "
-  //        + getQuote()
-  //        + KEY_NAME
-  //        + getQuote()
-  //        + ", %s FROM %s %s ORDER BY "
-  //        + getQuote()
-  //        + KEY_NAME
-  //        + getQuote()
-  //        + ";";
-  //  }
 
   /**
    * 获取通过concat生成key的query的SQL语句
