@@ -36,21 +36,15 @@ runs:
                 -Dfile=jdbc-20240918/DmJdbcDriver8.jar   
 
         - if: runner.os == 'Linux' || runner.os == 'macOS'
-          name: Download dm Database Docker image and Run dm Database container
+          name: Download dm Database Docker image and Load dm Database container
           shell: bash
           run: |
               wget https://github.com/IGinX-THU/IGinX-resources/raw/refs/heads/main/resources/dm8_20241022_x86_rh6_64_single.tar
               docker load -i dm8_20241022_x86_rh6_64_single.tar
             
         - if: runner.os == 'Windows'
-          name: Download dm Database Docker image and Run dm Database container
+          name: Download dm Database Docker image and Load dm Database container
           shell: wsl
           run: |
               wsl wget https://github.com/IGinX-THU/IGinX-resources/raw/refs/heads/main/resources/dm8_20241022_x86_rh6_64_single.tar
               docker load -i dm8_20241022_x86_rh6_64_single.tar
-
-        - name: Verify DM Database is running
-          run: |
-              sleep 20
-              docker ps
-          shell: bash
