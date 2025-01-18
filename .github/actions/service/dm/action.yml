@@ -17,7 +17,17 @@ runs:
           shell: bash
           run: |
               for port in ${{ inputs.ports }}; do
-                docker run -d -p $port:5236 --restart=always --name=${{ inputs.version }}-$port --privileged=true -e LD_LIBRARY_PATH=/opt/dmdbms/bin -e PAGE_SIZE=16 -e EXTENT_SIZE=32 -e LOG_SIZE=1024 -e UNICODE_FLAG=1  -e INSTANCE_NAME=dm8_test -v /opt/data:/opt/dmdbms/data dm8_single:dm8_20241022_rev244896_x86_rh6_64
+                docker run -d -p $port:5236 --restart=always \
+                  --name=${{ inputs.version }}-$port \
+                  --privileged=true \
+                  -e LD_LIBRARY_PATH=/opt/dmdbms/bin \
+                  -e PAGE_SIZE=16 \
+                  -e EXTENT_SIZE=32 \
+                  -e LOG_SIZE=1024 \
+                  -e UNICODE_FLAG=1 \
+                  -e INSTANCE_NAME=dm8_test \
+                  -v /opt/data:/opt/dmdbms/data \
+                  dm8_single:dm8_20241022_rev244896_x86_rh6_64
               done
         - if: runner.os == 'Linux' || runner.os == 'macOS'
           name: Verify dm Database is running
@@ -44,7 +54,16 @@ runs:
           shell: wsl-run {0}
           run: |
               for port in ${{ inputs.ports }}; do
-                wsl docker run -d -p $port:5236 --restart=always --name=${{ inputs.version }}-$port --privileged=true -e LD_LIBRARY_PATH=/opt/dmdbms/bin -e PAGE_SIZE=16 -e EXTENT_SIZE=32 -e LOG_SIZE=1024 -e UNICODE_FLAG=1  -e INSTANCE_NAME=dm8_test -v /mnt/c/opt/data:/opt/dmdbms/data dm8_single:dm8_20241022_rev244896_x86_rh6_64
+                docker run -d -p $port:5236 --restart=always \ 
+                  --name=${{ inputs.version }}-$port \
+                  -e LD_LIBRARY_PATH=/opt/dmdbms/bin \
+                  -e PAGE_SIZE=16 \
+                  -e EXTENT_SIZE=32 \
+                  -e LOG_SIZE=1024 \
+                  -e UNICODE_FLAG=1 \
+                  -e INSTANCE_NAME=dm8_test \
+                  -v mnt/c/opt/data:/opt/dmdbms/data \
+                  dm8_single:dm8_20241022_rev244896_x86_rh6_64
               done
         - if: runner.os == 'Windows'
           name: Verify dm Database is running
