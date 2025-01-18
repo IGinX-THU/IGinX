@@ -23,7 +23,6 @@ import static cn.edu.tsinghua.iginx.relational.tools.Constants.KEY_NAME;
 
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.relational.datatype.transformer.IDataTypeTransformer;
-
 import java.util.List;
 
 public abstract class AbstractRelationalMeta {
@@ -86,14 +85,14 @@ public abstract class AbstractRelationalMeta {
    */
   public String getUpdateStatement() {
     return "UPDATE %s SET %s = null WHERE ("
-            + getQuote()
-            + KEY_NAME
-            + getQuote()
-            + " >= %d AND "
-            + getQuote()
-            + KEY_NAME
-            + getQuote()
-            + " < %d);";
+        + getQuote()
+        + KEY_NAME
+        + getQuote()
+        + " >= %d AND "
+        + getQuote()
+        + KEY_NAME
+        + getQuote()
+        + " < %d);";
   }
   //  public String getUpdateStatement() {
   //    return "UPDATE %s SET %s = null WHERE ("
@@ -114,14 +113,14 @@ public abstract class AbstractRelationalMeta {
    */
   public String getQueryStatement() {
     return "SELECT "
-            + getQuote()
-            + KEY_NAME
-            + getQuote()
-            + ", %s FROM %s %s ORDER BY "
-            + getQuote()
-            + KEY_NAME
-            + getQuote()
-            + ";";
+        + getQuote()
+        + KEY_NAME
+        + getQuote()
+        + ", %s FROM %s %s ORDER BY "
+        + getQuote()
+        + KEY_NAME
+        + getQuote()
+        + ";";
   }
   //  public String getQueryStatement() {
   //    return "SELECT "
@@ -146,14 +145,14 @@ public abstract class AbstractRelationalMeta {
 
   public String getCreateTableStatement() {
     return "CREATE TABLE %s ("
-            + getQuote()
-            + KEY_NAME
-            + getQuote()
-            + " BIGINT NOT NULL, %s %s, PRIMARY KEY("
-            + getQuote()
-            + KEY_NAME
-            + getQuote()
-            + "));";
+        + getQuote()
+        + KEY_NAME
+        + getQuote()
+        + " BIGINT NOT NULL, %s %s, PRIMARY KEY("
+        + getQuote()
+        + KEY_NAME
+        + getQuote()
+        + "));";
   }
 
   public abstract String getDropDatabaseStatement();
@@ -200,9 +199,7 @@ public abstract class AbstractRelationalMeta {
    */
   public abstract String getUpsertConflictStatement();
 
-  /**
-   * 是否支持Full Join
-   */
+  /** 是否支持Full Join */
   public abstract boolean isSupportFullJoin();
 
   /**
@@ -219,8 +216,6 @@ public abstract class AbstractRelationalMeta {
    */
   public abstract String getNotRegexpOp();
 
-  /**
-   * jdbc获取元数据是否支持反斜杠的识别
-   */
+  /** jdbc获取元数据是否支持反斜杠的识别 */
   public abstract boolean jdbcSupportSpecialChar();
 }

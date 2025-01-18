@@ -20,7 +20,7 @@ runs:
               -DartifactId=DmJdbcDriver8 \
               -Dversion=1.0 \
               -Dpackaging=jar \ 
-              -Dfile=jdbc-20240918/DmJdbcDriver8.jar            
+              -Dfile=jdbc-20240918/DmJdbcDriver8.jar
 
         - if: runner.os == 'Windows'
           name: Download and Install dm JDBC Driver
@@ -33,7 +33,7 @@ runs:
                 -DartifactId=DmJdbcDriver8 \
                 -Dversion=1.0 \
                 -Dpackaging=jar \ 
-                -Dfile=jdbc-20240918/DmJdbcDriver8.jar   
+                -Dfile=jdbc-20240918/DmJdbcDriver8.jar
 
         - if: runner.os == 'Linux' || runner.os == 'macOS'
           name: Download dm Database Docker image and Load dm Database container
@@ -41,7 +41,7 @@ runs:
           run: |
               wget https://github.com/IGinX-THU/IGinX-resources/raw/refs/heads/main/resources/dm8_20241022_x86_rh6_64_single.tar
               docker load -i dm8_20241022_x86_rh6_64_single.tar
-            
+
         - if: runner.os == 'Windows'
           name: Download dm Database Docker image and Load dm Database container
           shell: wsl

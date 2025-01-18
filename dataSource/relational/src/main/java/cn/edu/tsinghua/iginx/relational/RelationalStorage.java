@@ -472,11 +472,7 @@ public class RelationalStorage implements IStorage {
                 continue;
               }
               Pair<String, Map<String, String>> nameAndTags = splitFullName(columnName);
-              if (databaseName.equals("DAMENG")) {
-                columnName = tableName + SEPARATOR + nameAndTags.k;
-              } else {
-                columnName = databaseName + SEPARATOR + tableName + SEPARATOR + nameAndTags.k;
-              }
+              columnName = databaseName + SEPARATOR + tableName + SEPARATOR + nameAndTags.k;
               if (tagFilter != null && !TagKVUtils.match(nameAndTags.v, tagFilter)) {
                 continue;
               }
@@ -546,7 +542,6 @@ public class RelationalStorage implements IStorage {
 
       Map<String, String> tableNameToColumnNames =
           splitAndMergeQueryPatterns(databaseName, project.getPatterns());
-      List<String> tableNames = new ArrayList<>();
 
       Filter expandFilter = expandFilter(filter.copy(), tableNameToColumnNames);
 
@@ -558,7 +553,6 @@ public class RelationalStorage implements IStorage {
         for (Map.Entry<String, String> entry : tableNameToColumnNames.entrySet()) {
           String tableName = entry.getKey();
           String quotColumnNames = getQuotColumnNames(entry.getValue());
-          tableNames.add(tableName);
           String filterStr = filterTransformer.toString(expandFilter);
           statement =
               String.format(
@@ -584,6 +578,7 @@ public class RelationalStorage implements IStorage {
       }
       // table中带有了通配符，将所有table都join到一起进行查询，以便输入filter.
       else if (!tableNameToColumnNames.isEmpty()) {
+        List<String> tableNames = new ArrayList<>();
         List<List<String>> fullColumnNamesList = new ArrayList<>();
         for (Map.Entry<String, String> entry : tableNameToColumnNames.entrySet()) {
           String tableName = entry.getKey();
@@ -650,7 +645,6 @@ public class RelationalStorage implements IStorage {
           new ClearEmptyRowStreamWrapper(
               new RelationQueryRowStream(
                   databaseNameList,
-                  tableNames,
                   resultSets,
                   false,
                   filter,

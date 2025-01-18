@@ -19,17 +19,16 @@
  */
 package cn.edu.tsinghua.iginx.relational.meta;
 
+import static cn.edu.tsinghua.iginx.relational.tools.Constants.CREATE_DATABASE_STATEMENT;
+import static cn.edu.tsinghua.iginx.relational.tools.Constants.DROP_COLUMN_STATEMENT;
+
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.relational.datatype.transformer.DmDataTypeTransformer;
 import cn.edu.tsinghua.iginx.relational.datatype.transformer.IDataTypeTransformer;
 import cn.edu.tsinghua.iginx.relational.datatype.transformer.JDBCDataTypeTransformer;
-
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
-
-import static cn.edu.tsinghua.iginx.relational.tools.Constants.CREATE_DATABASE_STATEMENT;
-import static cn.edu.tsinghua.iginx.relational.tools.Constants.DROP_COLUMN_STATEMENT;
 
 public class JDBCMeta extends AbstractRelationalMeta {
   private final char quote;
@@ -84,11 +83,17 @@ public class JDBCMeta extends AbstractRelationalMeta {
     systemDatabaseName = Arrays.asList(properties.getProperty("system_databases").split(","));
     databaseQuerySql = properties.getProperty("database_query_sql");
     databaseDropStatement = properties.getProperty("drop_database_statement");
-    databaseCreateStatement = properties.containsKey("create_database_statement") ? properties.getProperty("create_database_statement") : CREATE_DATABASE_STATEMENT;
+    databaseCreateStatement =
+        properties.containsKey("create_database_statement")
+            ? properties.getProperty("create_database_statement")
+            : CREATE_DATABASE_STATEMENT;
     grantPrivilegesStatement = properties.getProperty("grant_privileges_statement");
     createTableStatement = properties.getProperty("create_table_statement");
     alterTableAddColumnStatement = properties.getProperty("alter_table_add_column_statement");
-    alterTableDropColumnStatement = properties.containsKey("alter_table_drop_column_statement") ? properties.getProperty("alter_table_drop_column_statement") : DROP_COLUMN_STATEMENT;
+    alterTableDropColumnStatement =
+        properties.containsKey("alter_table_drop_column_statement")
+            ? properties.getProperty("alter_table_drop_column_statement")
+            : DROP_COLUMN_STATEMENT;
     queryTableStatement = properties.getProperty("query_table_statement");
     queryTableWithoutKeyStatement = properties.getProperty("query_table_without_key_statement");
     updateTableStatement = properties.getProperty("update_table_statement");
@@ -100,7 +105,7 @@ public class JDBCMeta extends AbstractRelationalMeta {
     regexpOp = properties.getProperty("regex_like_symbol");
     notRegexOp = properties.getProperty("not_regex_like_symbol");
     jdbcSupportBackslash =
-            Boolean.parseBoolean(properties.getProperty("jdbc_support_special_char"));
+        Boolean.parseBoolean(properties.getProperty("jdbc_support_special_char"));
   }
 
   @Override

@@ -41,18 +41,18 @@ public class DmDataTypeTransformer implements IDataTypeTransformer {
     } else if (dataType.equalsIgnoreCase("BIGINT")) {
       return LONG;
     } else if (dataType.equalsIgnoreCase("INT")
-            || dataType.equalsIgnoreCase("SMALLINT")
-            || dataType.equalsIgnoreCase("NUMERIC")) {
+        || dataType.equalsIgnoreCase("SMALLINT")
+        || dataType.equalsIgnoreCase("NUMERIC")) {
       return INTEGER;
     } else if (dataType.equalsIgnoreCase("FLOAT")) { // from getColumns api
       return DOUBLE;
     } else if (dataType.equalsIgnoreCase("DOUBLE")) {
       return DOUBLE;
     } else if (dataType.equalsIgnoreCase("VARCHAR")
-            || dataType.equalsIgnoreCase("CHAR")
-            || dataType.equalsIgnoreCase("NCHAR")
-            || dataType.equalsIgnoreCase("NVARCHAR")
-            || dataType.equalsIgnoreCase("TEXT")) {
+        || dataType.equalsIgnoreCase("CHAR")
+        || dataType.equalsIgnoreCase("NCHAR")
+        || dataType.equalsIgnoreCase("NVARCHAR")
+        || dataType.equalsIgnoreCase("TEXT")) {
       return BINARY;
     } else {
       LOGGER.error("column type {} is not supported", dataType);
