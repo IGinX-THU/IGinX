@@ -73,7 +73,7 @@ jobs:
 
             - name: TestController IT
               if: always()
-              shell: bash -el {0}
+              shell: bash
               env:
                   METADATA_STORAGE: ${{ matrix.metadata }}
               run: |
