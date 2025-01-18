@@ -13,11 +13,9 @@ runs:
     using: "composite"
     steps:
         - if: runner.os == 'Linux' || runner.os == 'macOS'
-          name: Download DM Database Docker image and Run DM Database container
+          name: Run dm Database container
           shell: bash
           run: |
-              wget https://github.com/IGinX-THU/IGinX-resources/raw/refs/heads/main/resources/dm8_20241022_x86_rh6_64_single.tar
-              docker load -i dm8_20241022_x86_rh6_64_single.tar
               for port in ${{ inputs.ports }}; do
                 docker run -d -p $port:5236 --restart=always --name=${{ inputs.version }}-$port --privileged=true -e LD_LIBRARY_PATH=/opt/dmdbms/bin -e PAGE_SIZE=16 -e EXTENT_SIZE=32 -e LOG_SIZE=1024 -e UNICODE_FLAG=1  -e INSTANCE_NAME=dm8_test -v /opt/data:/opt/dmdbms/data dm8_single:dm8_20241022_rev244896_x86_rh6_64
               done
@@ -42,7 +40,7 @@ runs:
                 done
               done
         - if: runner.os == 'Windows'
-          name: Download dm Database Docker image and Run DM Database container
+          name: Run dm Database container
           shell: wsl-run {0}
           run: |
               for port in ${{ inputs.ports }}; do
