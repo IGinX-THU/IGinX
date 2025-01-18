@@ -226,6 +226,7 @@ public class RelationalStorage implements IStorage {
     }
 
     String metaFileName = engine.toLowerCase() + META_TEMPLATE_SUFFIX;
+    LOGGER.info("loading engine '{}' default properties from class path: {}", engine, metaFileName);
     URL url = getClass().getClassLoader().getResource(metaFileName);
     if (url == null) {
       throw new IOException("cannot find default meta properties file: " + metaFileName);

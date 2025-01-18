@@ -28,6 +28,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 
+import static cn.edu.tsinghua.iginx.relational.tools.Constants.CREATE_DATABASE_STATEMENT;
+import static cn.edu.tsinghua.iginx.relational.tools.Constants.DROP_COLUMN_STATEMENT;
+
 public class JDBCMeta extends AbstractRelationalMeta {
   private final char quote;
   private final String defaultDatabaseName;
@@ -81,11 +84,11 @@ public class JDBCMeta extends AbstractRelationalMeta {
     systemDatabaseName = Arrays.asList(properties.getProperty("system_databases").split(","));
     databaseQuerySql = properties.getProperty("database_query_sql");
     databaseDropStatement = properties.getProperty("drop_database_statement");
-    databaseCreateStatement = properties.getProperty("create_database_statement");
+    databaseCreateStatement = properties.containsKey("create_database_statement") ? properties.getProperty("create_database_statement") : CREATE_DATABASE_STATEMENT;
     grantPrivilegesStatement = properties.getProperty("grant_privileges_statement");
     createTableStatement = properties.getProperty("create_table_statement");
     alterTableAddColumnStatement = properties.getProperty("alter_table_add_column_statement");
-    alterTableDropColumnStatement = properties.getProperty("alter_table_drop_column_statement");
+    alterTableDropColumnStatement = properties.containsKey("alter_table_drop_column_statement") ? properties.getProperty("alter_table_drop_column_statement") : DROP_COLUMN_STATEMENT;
     queryTableStatement = properties.getProperty("query_table_statement");
     queryTableWithoutKeyStatement = properties.getProperty("query_table_without_key_statement");
     updateTableStatement = properties.getProperty("update_table_statement");
