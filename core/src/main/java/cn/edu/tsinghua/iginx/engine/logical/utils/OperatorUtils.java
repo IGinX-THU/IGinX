@@ -186,7 +186,7 @@ public class OperatorUtils {
     }
     AbstractJoin applyCopy = (AbstractJoin) apply.copy();
 
-    Operator left = ((OperatorSource) apply.getSourceA()).getOperator();
+    Operator left = ((OperatorSource) applyCopy.getSourceA()).getOperator();
     addCorVarsToLeft(left, correlatedVariables);
     Operator operatorA =
         new Project(new OperatorSource(left), correlatedVariables, null, false, true);
@@ -250,7 +250,8 @@ public class OperatorUtils {
                     StringUtils.getLongestCommonPrefix(project.getPatterns());
                 for (String corVar : corVars) {
                   if (StringUtils.hasCommonPrefix(longestCommonPrefix, corVar)
-                      && !project.getPatterns().contains(corVar)) {
+                      && project.getPatterns().stream()
+                          .noneMatch(pattern -> StringUtils.match(corVar, pattern))) {
                     project.getPatterns().add(corVar);
                   }
                 }

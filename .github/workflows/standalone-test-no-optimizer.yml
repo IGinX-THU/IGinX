@@ -35,7 +35,7 @@ on:
                 default: 35
 
 jobs:
-    Union-DB-Test-Push_Down:
+    Union-DB-Test-No-Optimizer:
         timeout-minutes: ${{ inputs.timeout-minutes }}
         strategy:
             fail-fast: false
