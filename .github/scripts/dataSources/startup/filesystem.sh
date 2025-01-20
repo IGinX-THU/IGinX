@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # IGinX - the polystore system with high performance
 # Copyright (C) Tsinghua University
@@ -44,7 +44,9 @@ sed -i"" -e "s/#write.buffer.size=[0-9]*/#write.buffer.size=1048576/g" $7
 
 sed -i"" -e "s/#client.connectPool.maxTotal=[0-9]*/#client.connectPool.maxTotal=2/g" $7
 
-if [ "$8" = "etcd" ]; then
+sed -i"" -e "s|pythonCMD=python3|pythonCMD=$8|g" $7
+
+if [ "$9" = "etcd" ]; then
   sed -i"" -e 's/^metaStorage=.*$/metaStorage=etcd/g' $7
   sed -i"" -e 's/^zookeeperConnectionString=/#zookeeperConnectionString=/g' $7
   sed -i"" -e 's/^#etcdEndpoints=/etcdEndpoints=/g' $7

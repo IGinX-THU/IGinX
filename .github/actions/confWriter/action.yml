@@ -33,6 +33,10 @@ inputs:
         description: "the path of IGinX root directory"
         required: false
         default: "."
+    use-free-thread-python:
+        description: "use python3.13 free-threading mode"
+        required: false
+        default: "false"
     zookeeper-port:
         description: "zookeeper service port"
         required: false
@@ -67,12 +71,36 @@ runs:
               paths: ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-*/conf/config.properties
               statements: s/needInitBasicUDFFunctions=false/needInitBasicUDFFunctions=true/g
 
+        - name: Find PythonCMD && Set Free-threading Support ENV
+          id: find_python_cmd
+          shell: bash -el {0}
+          run: |
+              if [[ "${{ inputs.use-free-thread-python }}" == "true" ]]; then
+                  if [ "$RUNNER_OS" == "Windows" ]; then
+                      pythonPath=$(echo "$FT_PYTHON_PATH" | sed 's/\\/\//g')
+                      pythonCMD="${pythonPath}/python3.13t.exe"
+                      echo "TORCH_SUPPORTED=false" >> $GITHUB_ENV
+                  else
+                      pythonCMD='python3.13t'
+                      echo "TORCH_SUPPORTED=false" >> $GITHUB_ENV
+                  fi
+              else
+                  if [ "$RUNNER_OS" == "Windows" ]; then
+                      pythonCMD=python
+                  else
+                      pythonCMD=python3
+                  fi
+              fi
+              # have to set env to make it work in ut tests
+              echo "pythonCMD=${pythonCMD}" >> $GITHUB_ENV
+              echo "pythonCMD=${pythonCMD}" >> $GITHUB_OUTPUT
+              echo ${pythonCMD}
+
         - name: Change Python CMD
-          if: runner.os == 'Windows'
           uses: ./.github/actions/edit
           with:
               paths: ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-*/conf/config.properties
-              statements: s/pythonCMD=python3/pythonCMD=python/g
+              statements: s|pythonCMD=python3|pythonCMD=${{ steps.find_python_cmd.outputs.pythonCMD }}|g
 
         - if: inputs.Close-Optimizer=='true'
           name: Close All Optimizer
