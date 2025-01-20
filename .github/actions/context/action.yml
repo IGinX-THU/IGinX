@@ -80,16 +80,14 @@ runs:
           shell: bash
           run: |
               wget https://github.com/IGinX-THU/IGinX-resources/raw/main/resources/bigcsv.7z
+              7za x bigcsv.7z
               if [ "$RUNNER_OS" == "Linux" ]; then
-                7za x bigcsv.7z
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_infile.sh"
                 "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_infile.sh" ${VERSION}
               elif [ "$RUNNER_OS" == "Windows" ]; then
-                7za x bigcsv.7z
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_infile_windows.sh"
                 "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_infile_windows.sh" ${VERSION}
               elif [ "$RUNNER_OS" == "macOS" ]; then
-                7za x bigcsv.7z
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_infile_macos.sh"
                 "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_infile_macos.sh" ${VERSION}
               fi
