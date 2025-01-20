@@ -12,7 +12,7 @@ on:
                 description: "The python version to run the test on"
                 type: string
                 required: false
-                default: '["3.9"]'
+                default: '["3.11"]'
             os-matrix:
                 description: "The operating system to run the test on"
                 type: string
@@ -32,7 +32,7 @@ on:
                 description: "The timeout minutes for the job"
                 type: number
                 required: false
-                default: 35
+                default: 40
 
 jobs:
     Union-DB-Test-Push_Down:
@@ -53,6 +53,8 @@ jobs:
               with:
                   python-version: ${{ matrix.python-version }}
                   java: ${{ matrix.java }}
+                  iginx-conda-flag: "true"
+                  iginx-conda-env: "iginxEnv"
 
             - if: runner.os == 'Windows'
               name: Set JAVA_OPTS
@@ -85,7 +87,7 @@ jobs:
 
             - name: TestController IT
               if: always()
-              shell: bash
+              shell: bash -el {0}
               env:
                   METADATA_STORAGE: ${{ matrix.metadata }}
               run: |

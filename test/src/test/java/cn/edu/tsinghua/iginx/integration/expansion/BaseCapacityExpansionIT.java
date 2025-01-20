@@ -24,6 +24,7 @@ import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.*;
 import static cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools.executeShellScript;
 import static org.junit.Assert.*;
 
+import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.expansion.filesystem.FileSystemCapacityExpansionIT;
@@ -1025,6 +1026,7 @@ public abstract class BaseCapacityExpansionIT {
             String.valueOf(hasData),
             String.valueOf(isReadOnly),
             "core/target/iginx-core-*/conf/config.properties",
+            ConfigDescriptor.getInstance().getConfig().getPythonCMD(),
             metadataStorage);
     if (res != 0) {
       fail("change config file fail");

@@ -20,6 +20,7 @@
 package cn.edu.tsinghua.iginx.engine.shared.function.manager;
 
 import static cn.edu.tsinghua.iginx.utils.ShellRunner.runCommand;
+import static cn.edu.tsinghua.iginx.utils.ShellRunner.runCommandAndGetResult;
 
 import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
@@ -68,6 +69,17 @@ public class FunctionManager {
 
   private FunctionManager() {
     this.functions = new HashMap<>();
+    LOGGER.debug("main thread: using pythonCMD: {}", PythonCMD);
+    if (LOGGER.isDebugEnabled()) {
+      try {
+        String sitePath =
+            runCommandAndGetResult(
+                "", PythonCMD, "-c", "import sysconfig; print(sysconfig.get_paths()['purelib'])");
+        LOGGER.debug("main thread: python site path: {}", sitePath);
+      } catch (Exception e) {
+        LOGGER.debug("failed to get purelib path", e);
+      }
+    }
     this.initSystemFunctions();
     if (config.isNeedInitBasicUDFFunctions()) {
       this.initBasicUDFFunctions();

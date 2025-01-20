@@ -1,4 +1,4 @@
-name: "Bug Regression Test"
+name: "Free-threading Python Test"
 
 on:
     workflow_call:
@@ -8,11 +8,6 @@ on:
                 type: string
                 required: false
                 default: '["8"]'
-            python-matrix:
-                description: "The python version to run the test on"
-                type: string
-                required: false
-                default: '["3.11"]'
             os-matrix:
                 description: "The operating system to run the test on"
                 type: string
@@ -23,27 +18,32 @@ on:
                 type: string
                 required: false
                 default: '["zookeeper", "etcd"]'
+            db-matrix:
+                description: "The database to run the test on"
+                type: string
+                required: false
+                default: '["IoTDB12", "FileSystem"]'
 
 jobs:
-    MixCluster-ShowTimeseries:
-        timeout-minutes: 15
+    Free-threading-Python-Test:
+        timeout-minutes: 40
         strategy:
             fail-fast: false
             matrix:
                 java: ${{ fromJSON(inputs.java-matrix) }}
-                python-version: ${{ fromJSON(inputs.python-matrix) }}
                 os: ${{ fromJSON(inputs.os-matrix) }}
                 metadata: ${{ fromJSON(inputs.metadata-matrix) }}
+                DB-name: ${{ fromJSON(inputs.db-matrix) }}
         runs-on: ${{ matrix.os }}
         steps:
             - uses: actions/checkout@v4
+              # use free-threading python instead of stable version
             - name: Environment dependence
               uses: ./.github/actions/dependence
               with:
-                  python-version: ${{ matrix.python-version }}
                   java: ${{ matrix.java }}
-                  iginx-conda-flag: "true"
-                  iginx-conda-env: "iginxEnv"
+                  free-thread-python-required: "true"
+                  scope: "only-java"
 
             - name: Run Metadata
               uses: ./.github/actions/metadataRunner
@@ -53,26 +53,32 @@ jobs:
             - name: Run DB
               uses: ./.github/actions/dbRunner
               with:
-                  DB-name: "Mix-IoTDB12-InfluxDB"
+                  DB-name: ${{ matrix.DB-name }}
 
             - name: Install IGinX with Maven
               shell: bash
               run: |
                   mvn clean package -DskipTests -P-format -q
 
-            - name: Write Conf
+            - name: Change IGinX config
               uses: ./.github/actions/confWriter
               with:
+                  DB-name: ${{ matrix.DB-name }}
+                  Set-Filter-Fragment-OFF: "true"
                   Metadata: ${{ matrix.metadata }}
+                  use-free-thread-python: "true"
 
             - name: Start IGinX
               uses: ./.github/actions/iginxRunner
 
-            - name: TestMixCluster
+            - name: TestController IT
               if: always()
-              shell: bash -el {0}
+              shell: bash
+              env:
+                  METADATA_STORAGE: ${{ matrix.metadata }}
               run: |
-                  mvn test -q -Dtest=MixClusterShowColumnsRegressionTest -DfailIfNoTests=false -P-format
+                  chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/test_union.sh"
+                  mvn test -q -Dtest=Controller -DfailIfNoTests=false -P-format
 
             - name: Show IGinX log
               if: always()
