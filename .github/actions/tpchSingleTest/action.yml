@@ -18,12 +18,12 @@ runs:
 
         - name: Run SQL Warmup on New IGinX
           if: inputs.status != 'ok'
-          shell: bash
+          shell: bash -el {0}
           run: mvn test -q -Dtest=SQLWarmupIT -DfailIfNoTests=false -P-format
 
         - name: Run TPCH Test on New IGinX
           if: inputs.status != 'ok'
-          shell: bash
+          shell: bash -el {0}
           run: mvn test -q -Dtest=TPCHNewIT -DfailIfNoTests=false -P-format
 
         - name: Show New IGinX log
@@ -39,7 +39,7 @@ runs:
 
         - name: Start Old IGinX
           if: inputs.status != 'ok'
-          shell: bash
+          shell: bash -el {0}
           working-directory: IGinX
           run: |
               chmod +x core/target/iginx-core-*/sbin/start_iginx.sh
@@ -48,12 +48,12 @@ runs:
 
         - name: Run SQL Warmup on Old IGinX
           if: inputs.status != 'ok'
-          shell: bash
+          shell: bash -el {0}
           run: mvn test -q -Dtest=SQLWarmupIT -DfailIfNoTests=false -P-format
 
         - name: Run TPCH Test on Old IGinX
           if: inputs.status != 'ok'
-          shell: bash
+          shell: bash -el {0}
           run: mvn test -q -Dtest=TPCHOldIT -DfailIfNoTests=false -P-format
 
         - name: Show Old IGinX log

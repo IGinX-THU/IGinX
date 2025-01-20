@@ -12,7 +12,7 @@ on:
                 description: "The python version to run the test on"
                 type: string
                 required: false
-                default: '["3.9"]'
+                default: '["3.11"]'
             os-matrix:
                 description: "The operating system to run the test on"
                 type: string
@@ -32,7 +32,7 @@ on:
                 description: "The timeout minutes for the job"
                 type: number
                 required: false
-                default: 40
+                default: 45
 
 jobs:
     Union-DB-Test:
@@ -53,6 +53,8 @@ jobs:
               with:
                   python-version: ${{ matrix.python-version }}
                   java: ${{ matrix.java }}
+                  iginx-conda-flag: "true"
+                  iginx-conda-env: "iginxEnv"
 
             - name: Run Metadata
               uses: ./.github/actions/metadataRunner
@@ -83,7 +85,7 @@ jobs:
 
             - name: Run UDF path test
               if: always()
-              shell: bash
+              shell: bash -el {0}
               run: |
                   mvn test -q -Dtest=UDFPathIT -DfailIfNoTests=false -P-format
                   if [ "$RUNNER_OS" == "Linux" ]; then
@@ -101,7 +103,7 @@ jobs:
             # 1. test relative path
             # 2. prepare for restart test
             - name: Run Transform Job tests
-              shell: bash
+              shell: bash -el {0}
               run: |
                   mvn test -q -Dtest=TransformJobPathIT#prepare -DfailIfNoTests=false -P-format
                   if [ "$RUNNER_OS" == "Linux" ]; then
@@ -128,7 +130,7 @@ jobs:
                   if-test-udf: "true"
 
             - name: Verify Transform Job
-              shell: bash
+              shell: bash -el {0}
               run: |
                   mvn test -q -Dtest=TransformJobRestartIT#verifyJobExists -DfailIfNoTests=false -P-format
 
@@ -153,7 +155,7 @@ jobs:
             # TODO: extract it to a separate job to test
             # large image export only tested in FileSystem
             - name: Test Client Export File
-              shell: bash
+              shell: bash -el {0}
               run: |
                   if [[ "${{ matrix.DB-name }}" == "FileSystem" ]]; then
                       mvn test -q -Dtest=ExportFileIT -DfailIfNoTests=false -P-format
@@ -175,7 +177,7 @@ jobs:
 
             - name: Test Client Import File
               if: always()
-              shell: bash
+              shell: bash -el {0}
               run: |
                   mvn test -q -Dtest=ImportFileIT -DfailIfNoTests=false -P-format
 
@@ -187,7 +189,7 @@ jobs:
 
             - name: TestController IT
               if: always()
-              shell: bash
+              shell: bash -el {0}
               env:
                   METADATA_STORAGE: ${{ matrix.metadata }}
               run: |
@@ -215,7 +217,7 @@ jobs:
 
             - name: FilterFragmentRuleTest IT
               if: always()
-              shell: bash
+              shell: bash -el {0}
               run: |
                   chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/test_union.sh"
                   mvn test -q -Dtest=SQLSessionIT#testFilterFragmentOptimizer -DfailIfNoTests=false -P-format

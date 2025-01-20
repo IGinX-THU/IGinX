@@ -12,7 +12,7 @@ on:
                 description: "The python version to run the test on"
                 type: string
                 required: false
-                default: '["3.9"]'
+                default: '["3.11"]'
             os-matrix:
                 description: "The operating system to run the test on"
                 type: string
@@ -64,6 +64,8 @@ jobs:
               with:
                   python-version: ${{ matrix.python-version }}
                   java: ${{ matrix.java }}
+                  iginx-conda-flag: "true"
+                  iginx-conda-env: "iginxEnv"
 
             - name: Display System Info
               shell: bash
