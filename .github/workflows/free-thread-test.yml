@@ -79,7 +79,7 @@ jobs:
                   METADATA_STORAGE: ${{ matrix.metadata }}
               run: |
                   chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/test_union.sh"
-                  mvn test -q -Dtest=Controller -DfailIfNoTests=false -P-format
+                  mvn test -DargLine="--add-opens=java.base/java.nio=org.apache.arrow.memory.core,ALL-UNNAMED" -q -Dtest=Controller -DfailIfNoTests=false -P-format
 
             - name: Show IGinX log
               if: always()
