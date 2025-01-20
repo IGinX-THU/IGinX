@@ -74,6 +74,7 @@ jobs:
             - name: TestController IT
               if: always()
               shell: bash
+              timeout-minutes: 10
               env:
                   METADATA_STORAGE: ${{ matrix.metadata }}
               run: |
