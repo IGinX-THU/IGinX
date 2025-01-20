@@ -26,7 +26,7 @@ sed -i "" -E "s/#iginx_port=[0-9]+#/#iginx_port=$1#/g" core/target/iginx-core-*/
 
 sed -i "" -E "s/restPort=[0-9]+/restPort=$2/g" core/target/iginx-core-*/conf/config.properties
 
-export JAVA_HOME=$JAVA_HOME_8_ARM64
+export JAVA_HOME=$(/usr/libexec/java_home -v 1.8)
 
 echo "JAVA_HOME is set to $JAVA_HOME"
 
