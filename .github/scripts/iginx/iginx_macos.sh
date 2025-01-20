@@ -28,7 +28,7 @@ sed -i "" -E "s/restPort=[0-9]+/restPort=$2/g" core/target/iginx-core-*/conf/con
 
 sh -c "chmod +x core/target/iginx-core-*/sbin/start_iginx.sh"
 
-sh -c "nohup core/target/iginx-core-*/sbin/start_iginx.sh > iginx-$1.log 2>&1 &"
+sudo -E sh -c "nohup core/target/iginx-core-*/sbin/start_iginx.sh > iginx-$1.log 2>&1 &"
 
 sh -c "sleep 3"
 
