@@ -30,6 +30,8 @@ sh -c "chmod +x core/target/iginx-core-*/sbin/start_iginx.sh"
 
 echo $JAVA_HOME
 
+echo $JAVA_HOME_8_ARM64
+
 sudo -E sh -c "nohup core/target/iginx-core-*/sbin/start_iginx.sh > iginx-$1.log 2>&1 &"
 
 sh -c "sleep 3"
