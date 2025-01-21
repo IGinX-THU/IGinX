@@ -35,3 +35,7 @@ bash -c "sed -i '1ikey,d m,b,[c],a' 'test/src/test/resources/fileReadAndWrite/cs
 COMMAND1='LOAD DATA FROM INFILE "'"test/src/test/resources/fileReadAndWrite/csv/test1"'" AS CSV INTO t1 AT 10;'
 
 bash -c "echo '$COMMAND1' | xargs -0 -t -i ${SCRIPT_COMMAND}"
+
+COMMAND2='LOAD DATA FROM INFILE "'"test_bigcsv.csv"'" AS CSV INTO bigcsv;'
+
+bash -c "echo '$COMMAND2' | xargs -0 -t -i ${SCRIPT_COMMAND}"

@@ -38,10 +38,10 @@ public class IoTDB12CapacityExpansionIT extends BaseCapacityExpansionIT {
   public IoTDB12CapacityExpansionIT() {
     super(
         iotdb12,
-        "username:root, password:root, sessionPoolSize:20",
+        "username=root, password=root, sessionPoolSize=20",
         new IoTDB12HistoryDataGenerator());
-    wrongExtraParams.add("username:root, password:wrong, sessionPoolSize:20");
-    wrongExtraParams.add("username:wrong, password:root, sessionPoolSize:20");
+    wrongExtraParams.add("username=root, password=wrong, sessionPoolSize=20");
+    wrongExtraParams.add("username=wrong, password=root, sessionPoolSize=20");
     updatedParams.put("password", "newPassword");
   }
 

@@ -54,7 +54,7 @@ public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
   public static String getAddStorageParams(Map<String, String> params) {
     StringJoiner joiner = new StringJoiner(",");
     for (Map.Entry<String, String> entry : params.entrySet()) {
-      joiner.add(entry.getKey() + ":" + entry.getValue());
+      joiner.add(entry.getKey() + "=" + entry.getValue());
     }
     return joiner.toString();
   }

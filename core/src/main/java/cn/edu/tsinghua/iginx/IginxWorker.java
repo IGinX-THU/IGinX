@@ -53,6 +53,7 @@ import cn.edu.tsinghua.iginx.transform.exec.TransformJobManager;
 import cn.edu.tsinghua.iginx.utils.*;
 import java.io.File;
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.file.*;
 import java.util.*;
@@ -843,7 +844,7 @@ public class IginxWorker implements IService.Iface {
   public LoadCSVResp loadCSV(LoadCSVReq req) {
     StatementExecutor executor = StatementExecutor.getInstance();
     RequestContext ctx = contextBuilder.build(req);
-    ctx.setLoadCSVFileByteBuffer(req.csvFile);
+    ctx.setLoadCSVFileName(req.csvFileName);
     executor.execute(ctx);
     return ctx.getResult().getLoadCSVResp();
   }
@@ -1349,5 +1350,38 @@ public class IginxWorker implements IService.Iface {
 
     // 强制转换为接口类型
     return (IRuleCollection) enumInstance;
+  }
+
+  @Override
+  public UploadFileResp uploadFileChunk(UploadFileReq req) {
+    FileChunk chunk = req.getFileChunk();
+    Status status = new Status();
+
+    String filename = chunk.fileName;
+    if (filename.contains("..") || filename.contains("/") || filename.contains("\\")) {
+      status.setCode(RpcUtils.FAILURE.code);
+      status.setMessage("Invalid filename");
+      return new UploadFileResp(status);
+    }
+
+    String filepath = String.join(File.separator, System.getProperty("java.io.tmpdir"), filename);
+    try {
+      File file = new File(filepath);
+      try (RandomAccessFile raf = new RandomAccessFile(file, "rw")) {
+        raf.seek(chunk.offset);
+        raf.write(chunk.data.array());
+        LOGGER.debug(
+            "write {} bytes to file {} at offset {}",
+            chunk.data.array().length,
+            file,
+            chunk.offset);
+      }
+      status.setCode(RpcUtils.SUCCESS.code);
+      return new UploadFileResp(status);
+    } catch (IOException e) {
+      status.setCode(RpcUtils.FAILURE.code);
+      status.setMessage("File chunk upload failed. Caused by: " + e.getMessage());
+      return new UploadFileResp(status);
+    }
   }
 }
