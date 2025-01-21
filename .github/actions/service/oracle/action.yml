@@ -1,0 +1,64 @@
+name: "oracle"
+description: "stop, clean and start mysql in order"
+inputs:
+    ports:
+        description: The server port to listen on.
+        default: "1521"
+        required: false
+    version:
+        description: oracle db version.
+        default: "oracle23"
+        required: false
+runs:
+    using: "composite"
+    steps:
+        - if: runner.os == 'Linux' || runner.os == 'macOS'
+          name: Start Oracle container
+          shell: bash
+          run: |
+              for port in ${{ inputs.ports }}; do
+                 docker run -d --name ${{ inputs.version }}-$port -p $port:1521 -e ORACLE_PDB=ORCLPDB -e ORACLE_PWD=Oracle123 container-registry.oracle.com/database/free:23.5.0.0-lite
+              done
+        - if: runner.os == 'Linux' || runner.os == 'macOS'
+          name: Verify Oracle Database is running
+          id: oracleContainer
+          shell: bash
+          run: |
+              for port in ${{ inputs.ports }}; do
+                while true; do
+                  log_output=$(docker logs "${{ inputs.version }}-$port" 2>&1 | grep -i "DATABASE IS READY TO USE" || true)
+                  if [ -z "$log_output" ]; then
+                    echo "oracle service not started, retry in 10 seconds..."
+                    docker logs --tail 10 ${{ inputs.version }}-$port
+                    sleep 10
+                  else
+                    echo "oracle service started."
+                    break
+                  fi
+                done
+              done
+        - if: runner.os == 'Windows'
+          name: Start Oracle container
+          shell: wsl-run {0}
+          run: |
+              for port in ${{ inputs.ports }}; do
+                 docker run -d --name "${{ inputs.version }}-$port" -p $port:1521 -e ORACLE_PDB=ORCLPDB -e ORACLE_PWD=Oracle123 container-registry.oracle.com/database/free:23.5.0.0-lite                
+              done
+        - if: runner.os == 'Windows'
+          name: Verify Oracle Database is running
+          id: oracleContainerWin
+          shell: wsl-run {0}
+          run: |
+              for port in ${{ inputs.ports }}; do
+                while true; do
+                log_output=$(docker logs "${{ inputs.version }}-$port" 2>&1 | grep -i "DATABASE IS READY TO USE" || true)
+                if [ -z "$log_output" ]; then
+                  echo "oracle service not started, retry in 10 seconds..."
+                  docker logs --tail 10 ${{ inputs.version }}-$port
+                  sleep 10
+                else
+                  echo "oracle service started."
+                  break
+                fi
+                done
+              done

@@ -155,3 +155,27 @@ runs:
               PROJECT_ROOT=${{ steps.project.outputs.workspace }}
               echo "PROJECT_ROOT=${PROJECT_ROOT}" >> $GITHUB_ENV
               echo "SERVICE_DIR=${PROJECT_ROOT}/.github/actions/service" >> $GITHUB_ENV
+
+        - if: runner.os == 'Linux' || runner.os == 'macOS'
+          name: Download and Install Oracle JDBC Driver
+          shell: bash
+          run: |
+              wget https://download.oracle.com/otn-pub/otn_software/jdbc/236/ojdbc8.jar
+              mvn install:install-file \
+              -DgroupId=com.oracle \
+              -DartifactId=ojdbc8 \
+              -Dversion=19.3.0.0 \
+              -Dpackaging=jar \
+              -Dfile=ojdbc8.jar
+              rm -rf ojdbc8.jar
+        - if: runner.os == 'Windows'
+          name: Download and Install Oracle JDBC Driver
+          shell: cmd
+          run: |
+              curl -L -O https://download.oracle.com/otn-pub/otn_software/jdbc/236/ojdbc8.jar
+              mvn install:install-file ^
+              -DgroupId=com.oracle ^
+              -DartifactId=ojdbc8 ^
+              -Dversion=19.3.0.0 ^
+              -Dpackaging=jar ^
+              -Dfile=ojdbc8.jar

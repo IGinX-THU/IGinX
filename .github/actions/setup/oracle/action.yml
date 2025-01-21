@@ -1,0 +1,66 @@
+name: "oracle"
+description: "setup oracle"
+inputs:
+    version:
+        description: "oracle version"
+        required: false
+        default: "23"
+
+runs:
+    using: "composite"
+    steps:
+        - if: runner.os == 'macOS'
+          name: Install Docker on MacOS
+          shell: bash
+          run: |
+              brew update 
+              brew install colima docker qemu
+              colima start --arch x86_64 --vm-type=vz --vz-rosetta --mount-type=virtiofs --memory 5
+        - if: runner.os == 'Linux' || runner.os == 'macOS'
+          name: Download and Install Oracle JDBC Driver
+          shell: bash
+          run: |
+              wget https://download.oracle.com/otn-pub/otn_software/jdbc/236/ojdbc8.jar
+              mvn install:install-file \
+              -DgroupId=com.oracle \
+              -DartifactId=ojdbc8 \
+              -Dversion=19.3.0.0 \
+              -Dpackaging=jar \
+              -Dfile=ojdbc8.jar
+              rm -rf ojdbc8.jar
+        - if: runner.os == 'Windows'
+          name: Download and Install Oracle JDBC Driver
+          shell: cmd
+          run: |
+              curl -L -O https://download.oracle.com/otn-pub/otn_software/jdbc/236/ojdbc8.jar
+              mvn install:install-file ^
+              -DgroupId=com.oracle ^
+              -DartifactId=ojdbc8 ^
+              -Dversion=19.3.0.0 ^
+              -Dpackaging=jar ^
+              -Dfile=ojdbc8.jar
+        - if: runner.os == 'Linux' || runner.os == 'macOS'
+          name: Download Oracle Database Docker image
+          shell: bash
+          run: |
+              docker --version
+              docker pull container-registry.oracle.com/database/free:23.5.0.0-lite
+        - if: runner.os == 'Windows'
+          uses: vedantmgoyal9/setup-wsl2@main
+
+        - if: runner.os == 'Windows'
+          run: apt update && apt upgrade -y
+          shell: wsl-run {0}
+
+        - if: runner.os == 'Windows'
+          name: Install Docker
+          shell: wsl-run {0}
+          run: |
+              sudo apt install apt-transport-https ca-certificates curl software-properties-common -y
+              curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+              sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable"
+              sudo apt update
+              sudo apt install docker-ce docker-ce-cli containerd.io -y
+              sudo service docker start
+              docker --version
+              docker pull container-registry.oracle.com/database/free:23.5.0.0-lite

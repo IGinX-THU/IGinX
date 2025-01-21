@@ -23,6 +23,7 @@ import static cn.edu.tsinghua.iginx.constant.GlobalConstant.SEPARATOR;
 import static cn.edu.tsinghua.iginx.relational.tools.Constants.*;
 import static cn.edu.tsinghua.iginx.relational.tools.TagKVUtils.splitFullName;
 import static cn.edu.tsinghua.iginx.relational.tools.TagKVUtils.toFullName;
+import static cn.edu.tsinghua.iginx.thrift.DataType.BINARY;
 
 import cn.edu.tsinghua.iginx.engine.logical.utils.LogicalFilterUtils;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
@@ -33,6 +34,7 @@ import cn.edu.tsinghua.iginx.engine.physical.storage.domain.DataArea;
 import cn.edu.tsinghua.iginx.engine.physical.storage.utils.TagKVUtils;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
+import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.ClearEmptyRowStreamWrapper;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.BitmapView;
@@ -68,7 +70,6 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.*;
 import java.util.*;
@@ -76,6 +77,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -105,17 +107,29 @@ public class RelationalStorage implements IStorage {
       return null;
     }
 
-    try {
-      Statement stmt = connection.createStatement();
-      stmt.execute(String.format(CREATE_DATABASE_STATEMENT, databaseName));
-      stmt.close();
+    try (Statement stmt = connection.createStatement()) {
+      stmt.execute(
+          String.format(relationalMeta.getCreateDatabaseStatement(), getQuotName(databaseName)));
+      if (engineName.equals("oracle")) {
+        stmt.execute(
+            String.format(relationalMeta.getGrantPrivilegesStatement(), getQuotName(databaseName)));
+      }
+      LOGGER.info(
+          "[Create] execute create : {} ",
+          String.format(relationalMeta.getCreateDatabaseStatement(), getQuotName(databaseName)));
     } catch (SQLException ignored) {
+    }
+
+    // oracle只能针对实例（SID）建立连接，databaseName在oracle中对应的是user/schema
+    if (engineName.equals("oracle")) {
+      databaseName = relationalMeta.getDefaultDatabaseName();
     }
 
     HikariDataSource dataSource = connectionPoolMap.get(databaseName);
     if (dataSource != null) {
       try {
-        return dataSource.getConnection();
+        Connection conn = dataSource.getConnection();
+        return conn;
       } catch (SQLException e) {
         LOGGER.error("Cannot get connection for database {}", databaseName, e);
         dataSource.close();
@@ -163,7 +177,49 @@ public class RelationalStorage implements IStorage {
   protected String getUrl(String databaseName, StorageEngineMeta meta) {
     Map<String, String> extraParams = meta.getExtraParams();
     String engine = extraParams.get("engine");
-    return String.format("jdbc:%s://%s:%s/%s", engine, meta.getIp(), meta.getPort(), databaseName);
+    String url;
+    switch (engine) {
+      case "oracle":
+        url =
+            String.format(
+                "jdbc:oracle:thin:@//%s:%d/%s",
+                meta.getIp(), meta.getPort(), relationalMeta.getDefaultDatabaseName());
+        break;
+      default:
+        url =
+            String.format("jdbc:%s://%s:%s/%s", engine, meta.getIp(), meta.getPort(), databaseName);
+    }
+    return url;
+  }
+
+  public String getConnectUrl() {
+    Map<String, String> extraParams = meta.getExtraParams();
+    String username = extraParams.get(USERNAME);
+    String password = extraParams.get(PASSWORD);
+    String engine = extraParams.get("engine");
+    String connUrl;
+    switch (engine) {
+      case "oracle":
+        connUrl =
+            String.format(
+                "jdbc:%s:thin:%s/%s@%s:%d/%s",
+                engine,
+                username,
+                password,
+                meta.getIp(),
+                meta.getPort(),
+                relationalMeta.getDefaultDatabaseName());
+        break;
+      default:
+        connUrl =
+            password == null
+                ? String.format(
+                    "jdbc:%s://%s:%s/?user=%s", engine, meta.getIp(), meta.getPort(), username)
+                : String.format(
+                    "jdbc:%s://%s:%s/?user=%s&password=%s",
+                    engine, meta.getIp(), meta.getPort(), username, password);
+    }
+    return connUrl;
   }
 
   public RelationalStorage(StorageEngineMeta meta) throws StorageInitializationException {
@@ -177,19 +233,9 @@ public class RelationalStorage implements IStorage {
       throw new StorageInitializationException("cannot connect to " + meta.toString());
     }
     filterTransformer = new FilterTransformer(relationalMeta);
-    Map<String, String> extraParams = meta.getExtraParams();
-    String username = extraParams.get(USERNAME);
-    String password = extraParams.get(PASSWORD);
-    engineName = extraParams.get("engine");
-    String connUrl =
-        password == null
-            ? String.format(
-                "jdbc:%s://%s:%s/?user=%s", engineName, meta.getIp(), meta.getPort(), username)
-            : String.format(
-                "jdbc:%s://%s:%s/?user=%s&password=%s",
-                engineName, meta.getIp(), meta.getPort(), username, password);
+    engineName = meta.getExtraParams().get("engine");
     try {
-      connection = DriverManager.getConnection(connUrl);
+      connection = DriverManager.getConnection(getConnectUrl());
       Statement statement = connection.createStatement();
       statement.close();
     } catch (SQLException e) {
@@ -239,21 +285,9 @@ public class RelationalStorage implements IStorage {
 
   @Override
   public boolean testConnection(StorageEngineMeta meta) {
-    Map<String, String> extraParams = meta.getExtraParams();
-    String username = extraParams.get(USERNAME);
-    String password = extraParams.get(PASSWORD);
-    String engine = meta.getExtraParams().get("engine");
-    String connUrl =
-        password == null
-            ? String.format(
-                "jdbc:%s://%s:%s/?user=%s", engine, meta.getIp(), meta.getPort(), username)
-            : String.format(
-                "jdbc:%s://%s:%s/?user=%s&password=%s",
-                engine, meta.getIp(), meta.getPort(), username, password);
-
     try {
       Class.forName(relationalMeta.getDriverClass());
-      DriverManager.getConnection(connUrl);
+      DriverManager.getConnection(getConnectUrl());
       return true;
     } catch (SQLException | ClassNotFoundException e) {
       return false;
@@ -298,7 +332,7 @@ public class RelationalStorage implements IStorage {
       ResultSet rs =
           databaseMetaData.getTables(
               databaseName,
-              relationalMeta.getSchemaPattern(),
+              engineName.equals("oracle") ? databaseName : relationalMeta.getSchemaPattern(),
               tablePattern,
               new String[] {"TABLE"});
       List<String> tableNames = new ArrayList<>();
@@ -327,13 +361,17 @@ public class RelationalStorage implements IStorage {
       DatabaseMetaData databaseMetaData = conn.getMetaData();
       ResultSet rs =
           databaseMetaData.getColumns(
-              databaseName, relationalMeta.getSchemaPattern(), tableName, columnNamePattern);
+              databaseName,
+              engineName.equals("oracle") ? databaseName : relationalMeta.getSchemaPattern(),
+              tableName,
+              columnNamePattern);
       List<ColumnField> columnFields = new ArrayList<>();
       while (rs.next()) {
         String columnName = rs.getString("COLUMN_NAME");
         String columnType = rs.getString("TYPE_NAME");
         String columnTable = rs.getString("TABLE_NAME");
-        columnFields.add(new ColumnField(columnTable, columnName, columnType));
+        int columnSize = rs.getInt("COLUMN_SIZE");
+        columnFields.add(new ColumnField(columnTable, columnName, columnType, columnSize));
       }
       rs.close();
       conn.close();
@@ -427,6 +465,7 @@ public class RelationalStorage implements IStorage {
             for (ColumnField columnField : columnFieldList) {
               String columnName = columnField.columnName;
               String typeName = columnField.columnType;
+              int columnSize = columnField.columnSize;
               if (columnName.equals(KEY_NAME)) { // key 列不显示
                 continue;
               }
@@ -438,7 +477,9 @@ public class RelationalStorage implements IStorage {
               columns.add(
                   new Column(
                       columnName,
-                      relationalMeta.getDataTypeTransformer().fromEngineType(typeName),
+                      relationalMeta
+                          .getDataTypeTransformer()
+                          .fromEngineType(typeName, String.valueOf(columnSize)),
                       nameAndTags.v,
                       isDummy));
             }
@@ -461,6 +502,7 @@ public class RelationalStorage implements IStorage {
             for (ColumnField columnField : columnFieldList) {
               String columnName = columnField.columnName;
               String typeName = columnField.columnType;
+              int columnSize = columnField.columnSize;
               if (columnName.equals(KEY_NAME)) { // key 列不显示
                 continue;
               }
@@ -472,7 +514,9 @@ public class RelationalStorage implements IStorage {
               columns.add(
                   new Column(
                       columnName,
-                      relationalMeta.getDataTypeTransformer().fromEngineType(typeName),
+                      relationalMeta
+                          .getDataTypeTransformer()
+                          .fromEngineType(typeName, String.valueOf(columnSize)),
                       nameAndTags.v,
                       true));
             }
@@ -518,6 +562,18 @@ public class RelationalStorage implements IStorage {
     return executeProjectWithFilter(project, select.getFilter(), dataArea);
   }
 
+  private List<String> getColumnNamesWithTable(
+      String tableName, String columnStr, boolean withKeyCol) {
+    List<String> fullColumnNames = new ArrayList<>();
+    if (withKeyCol) {
+      fullColumnNames.add(KEY_NAME);
+    }
+    fullColumnNames.addAll(Arrays.asList(columnStr.split(", ")));
+    // 将columnNames中的列名加上tableName前缀
+    fullColumnNames.replaceAll(s -> RelationSchema.getFullName(tableName, s));
+    return fullColumnNames;
+  }
+
   private TaskExecuteResult executeProjectWithFilter(
       Project project, Filter filter, DataArea dataArea) {
     try {
@@ -535,7 +591,8 @@ public class RelationalStorage implements IStorage {
 
       Map<String, String> tableNameToColumnNames =
           splitAndMergeQueryPatterns(databaseName, project.getPatterns());
-
+      // 按列顺序加上表名
+      List<List<String>> tableColumnNames = new ArrayList<>();
       Filter expandFilter = expandFilter(filter.copy(), tableNameToColumnNames);
 
       String statement;
@@ -545,14 +602,17 @@ public class RelationalStorage implements IStorage {
               && filterContainsType(Arrays.asList(FilterType.Value, FilterType.Path), filter))) {
         for (Map.Entry<String, String> entry : tableNameToColumnNames.entrySet()) {
           String tableName = entry.getKey();
+          tableColumnNames.add(getColumnNamesWithTable(tableName, entry.getValue(), true));
           String quotColumnNames = getQuotColumnNames(entry.getValue());
           String filterStr = filterTransformer.toString(expandFilter);
           statement =
               String.format(
-                  relationalMeta.getQueryStatement(),
+                  relationalMeta.getQueryTableStatement(),
+                  getQuotName(KEY_NAME),
                   quotColumnNames,
-                  getQuotName(tableName),
-                  filterStr.isEmpty() ? "" : "WHERE " + filterStr);
+                  getTableNameByDB(databaseName, tableName),
+                  filterStr.isEmpty() ? "" : "WHERE " + filterStr,
+                  getQuotName(KEY_NAME));
 
           ResultSet rs = null;
           try {
@@ -571,49 +631,56 @@ public class RelationalStorage implements IStorage {
       }
       // table中带有了通配符，将所有table都join到一起进行查询，以便输入filter.
       else if (!tableNameToColumnNames.isEmpty()) {
-        List<String> tableNames = new ArrayList<>();
         List<List<String>> fullColumnNamesList = new ArrayList<>();
+        int firstTalbe = 1; // 只取第一个table的Key列放入结果集中
+        String firstTableName = "";
+        List<String> tmpList = new ArrayList<>();
         for (Map.Entry<String, String> entry : tableNameToColumnNames.entrySet()) {
           String tableName = entry.getKey();
-          tableNames.add(tableName);
+          if (firstTalbe == 1) {
+            firstTableName = tableName;
+          }
           List<String> fullColumnNames =
               new ArrayList<>(Arrays.asList(entry.getValue().split(", ")));
-
+          tmpList.addAll(getColumnNamesWithTable(tableName, entry.getValue(), firstTalbe++ == 1));
           // 将columnNames中的列名加上tableName前缀
           fullColumnNames.replaceAll(
               s -> RelationSchema.getQuoteFullName(tableName, s, relationalMeta.getQuote()));
           fullColumnNamesList.add(fullColumnNames);
         }
-
+        tableColumnNames.add(tmpList);
         StringBuilder fullColumnNames = new StringBuilder();
         fullColumnNames.append(
-            RelationSchema.getQuoteFullName(
-                tableNames.get(0), KEY_NAME, relationalMeta.getQuote()));
+            RelationSchema.getQuoteFullName(firstTableName, KEY_NAME, relationalMeta.getQuote()));
         for (List<String> columnNames : fullColumnNamesList) {
           for (String columnName : columnNames) {
             fullColumnNames.append(", ").append(columnName);
           }
         }
-
         // 将所有表进行full join
-        String fullTableName = getFullJoinTables(tableNames, fullColumnNamesList);
+        String fullTableName =
+            getFullJoinTables(
+                databaseName,
+                tableNameToColumnNames.keySet().stream().collect(Collectors.toList()),
+                fullColumnNamesList);
 
         String fullColumnNamesStr = fullColumnNames.toString();
+        keyFilterAddTableName(expandFilter, firstTableName);
         String filterStr = filterTransformer.toString(expandFilter);
         String orderByKey =
-            RelationSchema.getQuoteFullName(tableNames.get(0), KEY_NAME, relationalMeta.getQuote());
+            RelationSchema.getQuoteFullName(firstTableName, KEY_NAME, relationalMeta.getQuote());
         if (!relationalMeta.isSupportFullJoin()) {
           // 如果不支持full join,需要为left join + union模拟的full join表起别名，同时select、where、order by的部分都要调整
           fullColumnNamesStr = fullColumnNamesStr.replaceAll("`\\.`", ".");
           filterStr = filterStr.replaceAll("`\\.`", ".");
           filterStr =
               filterStr.replace(
-                  getQuotName(KEY_NAME), getQuotName(tableNames.get(0) + SEPARATOR + KEY_NAME));
+                  getQuotName(KEY_NAME), getQuotName(firstTableName + SEPARATOR + KEY_NAME));
           orderByKey = orderByKey.replaceAll("`\\.`", ".");
         }
         statement =
             String.format(
-                QUERY_STATEMENT_WITHOUT_KEYNAME,
+                relationalMeta.getQueryTableWithoutKeyStatement(),
                 fullColumnNamesStr,
                 fullTableName,
                 filterStr.isEmpty() ? "" : "WHERE " + filterStr,
@@ -637,6 +704,7 @@ public class RelationalStorage implements IStorage {
           new ClearEmptyRowStreamWrapper(
               new RelationQueryRowStream(
                   databaseNameList,
+                  tableColumnNames,
                   resultSets,
                   false,
                   filter,
@@ -652,16 +720,46 @@ public class RelationalStorage implements IStorage {
     }
   }
 
-  private String getFullJoinTables(List<String> tableNames, List<List<String>> fullColumnList) {
+  private void keyFilterAddTableName(Filter filter, String tableName) {
+    switch (filter.getType()) {
+      case Or:
+        List<Filter> orChildren = ((OrFilter) filter).getChildren();
+        orChildren.replaceAll(child -> keyFilter2ValueFilter(child, tableName));
+        orChildren.forEach(child -> keyFilterAddTableName(child, tableName));
+        break;
+      case And:
+        List<Filter> andChildren = ((AndFilter) filter).getChildren();
+        andChildren.replaceAll(child -> keyFilter2ValueFilter(child, tableName));
+        andChildren.forEach(child -> keyFilterAddTableName(child, tableName));
+        break;
+      case Not:
+        NotFilter notFilter = (NotFilter) filter;
+        notFilter.setChild(keyFilter2ValueFilter(notFilter.getChild(), tableName));
+        keyFilterAddTableName(notFilter.getChild(), tableName);
+        break;
+    }
+  }
+
+  private Filter keyFilter2ValueFilter(Filter filter, String tableName) {
+    if (filter.getType() != FilterType.Key) {
+      return filter;
+    }
+    KeyFilter keyFilter = (KeyFilter) filter;
+    return new ValueFilter(
+        tableName + SEPARATOR + KEY_NAME, keyFilter.getOp(), new Value(keyFilter.getValue()));
+  }
+
+  private String getFullJoinTables(
+      String databaseName, List<String> tableNames, List<List<String>> fullColumnList) {
     StringBuilder fullTableName = new StringBuilder();
     if (relationalMeta.isSupportFullJoin()) {
       // 支持全连接，就直接用全连接连接各个表
-      fullTableName.append(getQuotName(tableNames.get(0)));
+      fullTableName.append(getTableNameByDB(databaseName, tableNames.get(0)));
       for (int i = 1; i < tableNames.size(); i++) {
         fullTableName.insert(0, "(");
         fullTableName
             .append(" FULL OUTER JOIN ")
-            .append(getQuotName(tableNames.get(i)))
+            .append(getTableNameByDB(databaseName, tableNames.get(i)))
             .append(" ON ");
         for (int j = 0; j < i; j++) {
           fullTableName
@@ -1311,14 +1409,24 @@ public class RelationalStorage implements IStorage {
           Connection defaultConn =
               getConnection(relationalMeta.getDefaultDatabaseName()); // 正在使用的数据库无法被删除，因此需要切换到默认数据库
           if (defaultConn != null) {
-            stmt = defaultConn.createStatement();
-            statement = String.format(relationalMeta.getDropDatabaseStatement(), databaseName);
-            LOGGER.info("[Delete] execute delete: {}", statement);
-            stmt.execute(statement); // 删除数据库
-            stmt.close();
-            defaultConn.close();
+            try {
+              stmt = defaultConn.createStatement();
+              statement =
+                  String.format(
+                      relationalMeta.getDropDatabaseStatement(), getQuotName(databaseName));
+              LOGGER.info("[Delete] execute delete: {}", statement);
+              stmt.execute(statement); // 删除数据库
+            } catch (Exception ignoreExcetpion) {
+              // add try-catch for dbs which do not support "DROP DATABASE IF EXISTS %s" grammar,
+              // e.g.oracle
+            } finally {
+              stmt.close();
+              defaultConn.close();
+              conn.close();
+            }
             return new TaskExecuteResult(null, null);
           } else {
+            conn.close();
             return new TaskExecuteResult(
                 new RelationalTaskExecuteFailureException(
                     String.format(
@@ -1334,7 +1442,9 @@ public class RelationalStorage implements IStorage {
             if (!tables.isEmpty()) {
               statement =
                   String.format(
-                      DROP_COLUMN_STATEMENT, getQuotName(tableName), getQuotName(columnName));
+                      relationalMeta.getAlterTableDropColumnStatement(),
+                      getTableNameByDB(databaseName, tableName),
+                      getQuotName(columnName));
               LOGGER.info("[Delete] execute delete: {}", statement);
               try {
                 stmt.execute(statement); // 删除列
@@ -1353,10 +1463,12 @@ public class RelationalStorage implements IStorage {
             for (KeyRange keyRange : delete.getKeyRanges()) {
               statement =
                   String.format(
-                      relationalMeta.getUpdateStatement(),
-                      getQuotName(tableName),
+                      relationalMeta.getDeleteTableStatement(),
+                      getTableNameByDB(databaseName, tableName),
                       getQuotName(columnName),
+                      getQuotName(KEY_NAME),
                       keyRange.getBeginKey(),
+                      getQuotName(KEY_NAME),
                       keyRange.getEndKey());
               LOGGER.info("[Delete] execute delete: {}", statement);
               stmt.execute(statement); // 将目标列的目标范围的值置为空
@@ -1707,17 +1819,20 @@ public class RelationalStorage implements IStorage {
           String statement =
               String.format(
                   relationalMeta.getCreateTableStatement(),
-                  getQuotName(tableName),
+                  getTableNameByDB(storageUnit, tableName),
+                  getQuotName(KEY_NAME),
+                  relationalMeta.getDataTypeTransformer().toEngineType(DataType.LONG),
                   getQuotName(columnName),
-                  relationalMeta.getDataTypeTransformer().toEngineType(dataType));
+                  relationalMeta.getDataTypeTransformer().toEngineType(dataType),
+                  getQuotName(KEY_NAME));
           LOGGER.info("[Create] execute create: {}", statement);
           stmt.execute(statement);
         } else {
           if (getColumns(storageUnit, tableName, columnName).isEmpty()) {
             String statement =
                 String.format(
-                    ADD_COLUMN_STATEMENT,
-                    getQuotName(tableName),
+                    relationalMeta.getAlterTableAddColumnStatement(),
+                    getTableNameByDB(storageUnit, tableName),
                     getQuotName(columnName),
                     relationalMeta.getDataTypeTransformer().toEngineType(dataType));
             LOGGER.info("[Create] execute create: {}", statement);
@@ -1769,7 +1884,7 @@ public class RelationalStorage implements IStorage {
 
             String value = "null";
             if (bitmapView.get(j)) {
-              if (dataType == DataType.BINARY) {
+              if (dataType == BINARY) {
                 value =
                     "'"
                         + new String((byte[]) data.getValue(i, index), StandardCharsets.UTF_8)
@@ -1821,7 +1936,7 @@ public class RelationalStorage implements IStorage {
           }
         }
 
-        executeBatchInsert(stmt, tableToColumnEntries);
+        executeBatchInsert(conn, stmt, tableToColumnEntries, databaseName);
         for (Pair<String, List<String>> columnEntries : tableToColumnEntries.values()) {
           columnEntries.v.clear();
         }
@@ -1879,7 +1994,7 @@ public class RelationalStorage implements IStorage {
           for (int j = cnt; j < cnt + size; j++) {
             String value = "null";
             if (bitmapView.get(j)) {
-              if (dataType == DataType.BINARY) {
+              if (dataType == BINARY) {
                 value =
                     "'"
                         + new String((byte[]) data.getValue(i, index), StandardCharsets.UTF_8)
@@ -1930,7 +2045,7 @@ public class RelationalStorage implements IStorage {
           }
         }
 
-        executeBatchInsert(stmt, tableToColumnEntries);
+        executeBatchInsert(conn, stmt, tableToColumnEntries, databaseName);
         for (Map.Entry<String, Pair<String, List<String>>> entry :
             tableToColumnEntries.entrySet()) {
           entry.getValue().v.clear();
@@ -1949,7 +2064,10 @@ public class RelationalStorage implements IStorage {
   }
 
   private void executeBatchInsert(
-      Statement stmt, Map<String, Pair<String, List<String>>> tableToColumnEntries)
+      Connection conn,
+      Statement stmt,
+      Map<String, Pair<String, List<String>>> tableToColumnEntries,
+      String databaseName)
       throws SQLException {
     for (Map.Entry<String, Pair<String, List<String>>> entry : tableToColumnEntries.entrySet()) {
       String tableName = entry.getKey();
@@ -1957,44 +2075,50 @@ public class RelationalStorage implements IStorage {
       List<String> values = entry.getValue().v;
       String[] parts = columnNames.split(", ");
       boolean hasMultipleRows = parts.length != 1;
-
-      // INSERT INTO XXX ("key", XXX, ...) VALUES (XXX, XXX, ...), (XXX, XXX, ...), ...,
-      // (XXX,
-      // XXX, ...) ON CONFLICT ("key") DO UPDATE SET (XXX, ...) = (excluded.XXX, ...);
       StringBuilder statement = new StringBuilder();
-      statement.append("INSERT INTO ");
-      statement.append(getQuotName(tableName));
-      statement.append(" (");
-      statement.append(getQuotName(KEY_NAME));
-      statement.append(", ");
-      String fullColumnNames = getQuotColumnNames(columnNames);
-      statement.append(fullColumnNames);
+      if (engineName.equals("oracle")) {
+        Map<String, ColumnField> columnMap = getColumnMap(databaseName, tableName);
+        this.batchInsert(conn, databaseName, tableName, columnMap, parts, values);
+      } else {
+        // INSERT INTO XXX ("key", XXX, ...) VALUES (XXX, XXX, ...), (XXX, XXX, ...), ...,
+        // (XXX,
+        // XXX, ...) ON CONFLICT ("key") DO UPDATE SET (XXX, ...) = (excluded.XXX, ...);
 
-      statement.append(") VALUES ");
-      for (String value : values) {
-        statement.append("(");
-        statement.append(value, 0, value.length() - 2);
-        statement.append("), ");
-      }
-      statement.delete(statement.length() - 2, statement.length());
-
-      statement.append(relationalMeta.getUpsertStatement());
-
-      for (String part : parts) {
-        if (part.equals(KEY_NAME)) {
-          continue;
-        }
-        statement.append(
-            String.format(
-                relationalMeta.getUpsertConflictStatement(), getQuotName(part), getQuotName(part)));
+        statement.append("INSERT INTO ");
+        statement.append(getQuotName(tableName));
+        statement.append(" (");
+        statement.append(getQuotName(KEY_NAME));
         statement.append(", ");
+        String fullColumnNames = getQuotColumnNames(columnNames);
+        statement.append(fullColumnNames);
+
+        statement.append(") VALUES ");
+        for (String value : values) {
+          statement.append("(");
+          statement.append(value, 0, value.length() - 2);
+          statement.append("), ");
+        }
+        statement.delete(statement.length() - 2, statement.length());
+
+        statement.append(relationalMeta.getUpsertStatement());
+
+        for (String part : parts) {
+          if (part.equals(KEY_NAME)) {
+            continue;
+          }
+          statement.append(
+              String.format(
+                  relationalMeta.getUpsertConflictStatement(),
+                  getQuotName(part),
+                  getQuotName(part)));
+          statement.append(", ");
+        }
+
+        statement.delete(statement.length() - 2, statement.length());
+
+        statement.append(";");
+        stmt.addBatch(statement.toString());
       }
-
-      statement.delete(statement.length() - 2, statement.length());
-
-      statement.append(";");
-
-      stmt.addBatch(statement.toString());
     }
     stmt.executeBatch();
   }
@@ -2048,5 +2172,242 @@ public class RelationalStorage implements IStorage {
     } catch (SQLException e) {
       throw new RelationalException(e);
     }
+  }
+
+  private String getQuotSelectStatements(
+      Map<String, ColumnField> columnMap, String[] parts, List<String> values) {
+    List<String> tempTable = new ArrayList<>();
+    StringBuilder SelectStatements = new StringBuilder();
+    for (String value : values) {
+      SelectStatements.append("SELECT ");
+      String[] val = value.substring(0, value.length() - 2).split(", ");
+      SelectStatements.append(val[0]);
+      SelectStatements.append(" ");
+      SelectStatements.append(getQuotName(KEY_NAME));
+      SelectStatements.append(", ");
+      for (int i = 0; i < parts.length; i++) {
+        if (columnMap.containsKey(parts[i])
+            && columnMap.get(parts[i]).columnType.equals("NUMBER")
+            && columnMap.get(parts[i]).columnSize == 1) {
+          SelectStatements.append(val[i + 1].equalsIgnoreCase("true") ? 1 : 0);
+        } else {
+          SelectStatements.append(val[i + 1]);
+        }
+        SelectStatements.append(" ");
+        SelectStatements.append(getQuotName(parts[i]));
+        SelectStatements.append(", ");
+      }
+      SelectStatements.delete(SelectStatements.length() - 2, SelectStatements.length());
+      SelectStatements.append(" FROM dual ");
+      tempTable.add(SelectStatements.toString());
+      SelectStatements.setLength(0);
+    }
+    return String.join(" UNION ALL ", tempTable);
+  }
+
+  public Map<String, ColumnField> getColumnMap(String databaseName, String tableName) {
+    List<ColumnField> columnFieldList = getColumns(databaseName, tableName, null);
+    return columnFieldList.stream()
+        .collect(Collectors.toMap(ColumnField::getColumnName, field -> field));
+  }
+
+  private void batchInsert(
+      Connection conn,
+      String databaseName,
+      String tableName,
+      Map<String, ColumnField> columnMap,
+      String[] parts,
+      List<String> values) {
+    // String selectSql = "SELECT %s FROM %s.%s WHERE %s IN (%s)";
+    //    String insertSql = "INSERT INTO %s.%s ( %s ) VALUES ( %s )";
+    //    String updateSql = "UPDATE %s.%s SET %s WHERE %s = %s";
+    Map<String, String[]> valueMap =
+        values.stream()
+            .collect(
+                Collectors.toMap(
+                    value -> value.substring(0, value.length() - 2).split(", ")[0],
+                    value -> value.substring(0, value.length() - 2).split(", ")));
+    List<String> allKeys = new ArrayList<>(valueMap.keySet());
+    List<String> insertKeys = new ArrayList<>();
+    List<String> updateKeys = new ArrayList<>();
+    try {
+      StringBuilder placeHolder = new StringBuilder();
+
+      int start = 0, end = 0, step = 0;
+
+      while (end < allKeys.size()) {
+        step = Math.min(allKeys.size() - end, 500);
+        end += step;
+        IntStream.range(start, end)
+            .forEach(
+                i -> {
+                  placeHolder.append("?,");
+                });
+        PreparedStatement selectStmt =
+            conn.prepareStatement(
+                String.format(
+                    relationalMeta.getQueryTableStatement(),
+                    getQuotName(KEY_NAME),
+                    1,
+                    getTableNameByDB(databaseName, tableName),
+                    " WHERE "
+                        + getQuotName(KEY_NAME)
+                        + "IN ("
+                        + placeHolder.substring(0, placeHolder.length() - 1)
+                        + ")",
+                    getQuotName(KEY_NAME)));
+        for (int i = 0; i < end - start; i++) {
+          selectStmt.setString(i + 1, allKeys.get(start + i));
+        }
+        ResultSet resultSet = selectStmt.executeQuery();
+        while (resultSet.next()) {
+          updateKeys.add(resultSet.getString(1));
+        }
+        start = end;
+        placeHolder.setLength(0);
+        resultSet.close();
+        selectStmt.close();
+      }
+      insertKeys =
+          allKeys.stream().filter(item -> !updateKeys.contains(item)).collect(Collectors.toList());
+
+      // insert
+      placeHolder.setLength(0);
+      Arrays.stream(parts).forEach(part -> placeHolder.append("?,"));
+      String partStr = Arrays.stream(parts).map(this::getQuotName).collect(Collectors.joining(","));
+      PreparedStatement insertStmt =
+          conn.prepareStatement(
+              String.format(
+                  relationalMeta.getInsertTableStatement(),
+                  getTableNameByDB(databaseName, tableName),
+                  getQuotName(KEY_NAME) + "," + partStr,
+                  placeHolder.append("?")));
+      conn.setAutoCommit(false); // 关闭自动提交
+      for (int i = 0; i < insertKeys.size(); i++) {
+        String[] vals = valueMap.get(insertKeys.get(i));
+        insertStmt.setString(1, vals[0]);
+        for (int j = 0; j < parts.length; j++) {
+          if (!columnMap.containsKey(parts[j])) {
+            break;
+          }
+          if (columnMap.get(parts[j]).columnType.equals("NUMBER")) {
+            int columnSize = columnMap.get(parts[j]).columnSize;
+            if (columnSize == 1) {
+              setValue(insertStmt, j + 2, vals[j + 1], Types.BOOLEAN);
+            } else if (columnSize >= 1 && columnSize <= 10) {
+              setValue(insertStmt, j + 2, vals[j + 1], Types.INTEGER);
+            } else if (columnSize == 38) {
+              setValue(insertStmt, j + 2, vals[j + 1], Types.DOUBLE);
+            } else {
+              setValue(insertStmt, j + 2, vals[j + 1], Types.BIGINT);
+            }
+          } else if (columnMap.get(parts[j]).columnType.equals("FLOAT")) {
+            setValue(insertStmt, j + 2, vals[j + 1], Types.FLOAT);
+          } else {
+            setValue(insertStmt, j + 2, vals[j + 1], Types.VARCHAR);
+          }
+        }
+        insertStmt.addBatch();
+        if (i % 500 == 0) { // 每1000条数据执行一次批处理
+          insertStmt.executeBatch(); // 执行批处理
+          insertStmt.clearBatch();
+        }
+      }
+      insertStmt.executeBatch();
+      insertStmt.close();
+      conn.commit();
+
+      // upadte  String updateSql = "UPDATE %s.%s SET %s WHERE %s = %s";
+      placeHolder.setLength(0);
+      Arrays.stream(parts).forEach(part -> placeHolder.append(getQuotName(part)).append("=?,"));
+      PreparedStatement updateStmt =
+          conn.prepareStatement(
+              String.format(
+                  relationalMeta.getUpdateTableStatement(),
+                  getTableNameByDB(databaseName, tableName),
+                  placeHolder.substring(0, placeHolder.length() - 1),
+                  getQuotName(KEY_NAME),
+                  "?"));
+      for (int i = 0; i < updateKeys.size(); i++) {
+        String[] vals = valueMap.get(updateKeys.get(i));
+        for (int j = 0; j < parts.length; j++) {
+          if (!columnMap.containsKey(parts[j])) {
+            break;
+          }
+          if (columnMap.get(parts[j]).columnType.equals("NUMBER")) {
+            int columnSize = columnMap.get(parts[j]).columnSize;
+            if (columnSize == 1) {
+              setValue(updateStmt, j + 1, vals[j + 1], Types.BOOLEAN);
+            } else if (columnSize >= 1 && columnSize <= 10) {
+              setValue(updateStmt, j + 1, vals[j + 1], Types.INTEGER);
+            } else if (columnSize == 38) {
+              setValue(updateStmt, j + 1, vals[j + 1], Types.DOUBLE);
+            } else {
+              setValue(updateStmt, j + 1, vals[j + 1], Types.BIGINT);
+            }
+          } else if (columnMap.get(parts[j]).columnType.equals("FLOAT")) {
+            setValue(updateStmt, j + 1, vals[j + 1], Types.FLOAT);
+          } else {
+            setValue(updateStmt, j + 1, vals[j + 1], Types.VARCHAR);
+          }
+        }
+        updateStmt.setString(parts.length + 1, vals[0]);
+        updateStmt.addBatch();
+        if (i % 500 == 0) { // 每500条数据执行一次批处理
+          updateStmt.executeBatch();
+          updateStmt.clearBatch();
+        }
+      }
+      updateStmt.executeBatch();
+      updateStmt.close();
+      conn.commit();
+    } catch (SQLException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  private void setValue(PreparedStatement stmt, int index, String value, int types)
+      throws SQLException {
+    if (value.equals("null")) {
+      if (Types.BOOLEAN == types) {
+        stmt.setNull(index, Types.INTEGER);
+      } else {
+        stmt.setNull(index, types);
+      }
+      return;
+    }
+    switch (types) {
+      case Types.BOOLEAN:
+        stmt.setInt(index, value.equalsIgnoreCase("true") ? 1 : 0);
+        break;
+      case Types.INTEGER:
+        stmt.setInt(index, Integer.parseInt(value));
+        break;
+      case Types.BIGINT:
+        stmt.setLong(index, Long.parseLong(value));
+        break;
+      case Types.FLOAT:
+        stmt.setFloat(index, Float.parseFloat(value));
+        break;
+      case Types.DOUBLE:
+        stmt.setDouble(index, Double.parseDouble(value));
+        break;
+      default:
+        if (value.startsWith("'") && value.endsWith("'")) { // 处理空字符串'', 非空字符串包含特殊字符的情况'""'
+          stmt.setString(index, value.substring(1, value.length() - 1));
+        } else {
+          stmt.setString(index, value);
+        }
+    }
+  }
+
+  private String getTableNameByDB(String databaseName, String name) {
+    String engineName = meta.getExtraParams().get("engine");
+    if (engineName.equals("oracle")) {
+      name = getQuotName(databaseName) + SEPARATOR + getQuotName(name);
+    } else {
+      name = getQuotName(name);
+    }
+    return name;
   }
 }
