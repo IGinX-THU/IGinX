@@ -2063,20 +2063,20 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
   private Map<String, String> parseExtra(StringLiteralContext ctx) {
     Map<String, String> map = new HashMap<>();
     String extra = ctx.getText().trim();
-    if (extra.length() == 0 || extra.equals(SQLConstant.DOUBLE_QUOTES)) {
+    if (extra.isEmpty()
+        || extra.equals(SQLConstant.DOUBLE_QUOTES)
+        || extra.equals(SQLConstant.SINGLE_QUOTES)) {
       return map;
     }
     extra = extra.substring(1, extra.length() - 1);
     String[] kvStr = extra.split(SQLConstant.COMMA);
     for (String kv : kvStr) {
-      String[] kvArray = kv.split(SQLConstant.COLON);
+      String[] kvArray = kv.split(SQLConstant.EQUAL);
       if (kvArray.length != 2) {
-        if (kv.contains("url")) {
-          map.put("url", kv.substring(kv.indexOf(":") + 1));
-        } else if (kv.contains("dir")) {
+        if (kv.contains("dir")) {
           // for windows absolute path
-          String dirType = kv.substring(0, kv.indexOf(":")).trim();
-          String dirPath = kv.substring(kv.indexOf(":") + 1).trim();
+          String dirType = kv.substring(0, kv.indexOf(SQLConstant.EQUAL)).trim();
+          String dirPath = kv.substring(kv.indexOf(SQLConstant.EQUAL) + 1).trim();
           map.put(dirType, dirPath);
         }
         continue;

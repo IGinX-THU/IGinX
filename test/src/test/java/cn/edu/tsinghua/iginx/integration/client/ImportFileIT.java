@@ -19,6 +19,8 @@
  */
 package cn.edu.tsinghua.iginx.integration.client;
 
+import static org.junit.Assert.assertTrue;
+
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.tool.MultiConnection;
 import cn.edu.tsinghua.iginx.integration.tool.SQLExecutor;
@@ -27,8 +29,12 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ImportFileIT {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(ImportFileIT.class);
 
   protected static SQLExecutor executor;
 
@@ -81,5 +87,40 @@ public class ImportFileIT {
             + "+---+------+----+----+------+\n"
             + "Total line number = 5\n";
     executor.executeAndCompare(query, expected);
+
+    testLoadBigCsv();
+  }
+
+  private void testLoadBigCsv() {
+    String statement = "SHOW COLUMNS bigcsv.*;";
+    String ret = executor.execute(statement);
+    if (!ret.contains("Total line number = 100")) {
+      LOGGER.info(ret);
+      assertTrue(ret.contains("Total line number = 100"));
+    }
+
+    statement = "SELECT COUNT(test_c33) FROM bigcsv;";
+    String expected =
+        "ResultSets:\n"
+            + "+----------------------+\n"
+            + "|count(bigcsv.test_c33)|\n"
+            + "+----------------------+\n"
+            + "|                120000|\n"
+            + "+----------------------+\n"
+            + "Total line number = 1\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "SELECT test_c0, test_c99 FROM bigcsv WHERE key > 119996;";
+    expected =
+        "ResultSets:\n"
+            + "+------+--------------+---------------+\n"
+            + "|   key|bigcsv.test_c0|bigcsv.test_c99|\n"
+            + "+------+--------------+---------------+\n"
+            + "|119997|    gHH3VRCeqV|     JwBz3cs51P|\n"
+            + "|119998|    9kKtsslw5L|     ja5wByfKIu|\n"
+            + "|119999|    m9DGS5q36W|     UY5geS31Nu|\n"
+            + "+------+--------------+---------------+\n"
+            + "Total line number = 3\n";
+    executor.executeAndCompare(statement, expected);
   }
 }
