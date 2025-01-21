@@ -21,6 +21,7 @@
 import csv
 import logging
 import os.path
+import time
 from datetime import datetime
 
 import pandas as pd
@@ -58,7 +59,7 @@ from .thrift.rpc.ttypes import (
     DebugInfoReq,
     LoadCSVReq,
 
-    StorageEngine, DataType,
+    StorageEngine, DataType, FileChunk, UploadFileReq,
 )
 from .time_series import TimeSeries
 from .utils.bitmap import Bitmap
@@ -529,11 +530,23 @@ class Session(object):
         if not path.endswith(".csv"):
             raise ValueError(f"The file name must end with [.csv], {path} doesn't satisfy the requirement!")
 
+        chunk_size = 1024 * 1024
+        filename = str(time.time() * 1000) + ".csv"
         with open(file, 'rb') as f:
-            bytes_content = f.read()  # 读取文件内容为bytes
+            offset = 0
+            while chunk := f.read(chunk_size):
+                chunk_data = FileChunk(
+                    fileName=filename,
+                    offset=offset,
+                    data=chunk,
+                    chunkSize=len(chunk)
+                )
+                req = UploadFileReq(sessionId=self.__session_id, fileChunk=chunk_data)
+                resp = self.__client.uploadFileChunk(req)
+                Session.verify_status(resp.status)
+                offset += len(chunk)
 
-        csv_content = bytes_content
-        req = LoadCSVReq(sessionId=self.__session_id, statement=statement, csvFile=csv_content)
+        req = LoadCSVReq(sessionId=self.__session_id, statement=statement, csvFileName=filename)
         resp = self.__client.loadCSV(req)
         Session.verify_status(resp.status)
         return resp

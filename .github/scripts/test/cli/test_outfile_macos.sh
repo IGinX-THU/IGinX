@@ -53,7 +53,7 @@ for file in test/src/test/resources/fileReadAndWrite/byteDummy/*; do
     mv "$file" "${file}.ext"
 done
 
-bash -c "echo 'ADD STORAGEENGINE ("'"127.0.0.1"'", 6670, "'"filesystem"'", "'"dummy_dir:test/src/test/resources/fileReadAndWrite/byteDummy,iginx_port:6888,has_data:true,is_read_only:true"'");show columns byteDummy.*;' | ${SCRIPT_COMMAND}"
+bash -c "echo 'ADD STORAGEENGINE ("'"127.0.0.1"'", 6670, "'"filesystem"'", "'"dummy_dir=test/src/test/resources/fileReadAndWrite/byteDummy,iginx_port=6888,has_data=true,is_read_only=true"'");show columns byteDummy.*;' | ${SCRIPT_COMMAND}"
 
 bash -c "echo 'select * from byteDummy into outfile "'"test/src/test/resources/fileReadAndWrite/byteStreamExport"'" as stream;' | ${SCRIPT_COMMAND}"
 

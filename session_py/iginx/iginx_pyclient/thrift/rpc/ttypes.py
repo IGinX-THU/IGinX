@@ -6297,15 +6297,15 @@ class LoadCSVReq(object):
     Attributes:
      - sessionId
      - statement
-     - csvFile
+     - csvFileName
 
     """
 
 
-    def __init__(self, sessionId=None, statement=None, csvFile=None,):
+    def __init__(self, sessionId=None, statement=None, csvFileName=None,):
         self.sessionId = sessionId
         self.statement = statement
-        self.csvFile = csvFile
+        self.csvFileName = csvFileName
 
     def read(self, iprot):
         if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
@@ -6328,7 +6328,7 @@ class LoadCSVReq(object):
                     iprot.skip(ftype)
             elif fid == 3:
                 if ftype == TType.STRING:
-                    self.csvFile = iprot.readBinary()
+                    self.csvFileName = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
                 else:
                     iprot.skip(ftype)
             else:
@@ -6349,9 +6349,9 @@ class LoadCSVReq(object):
             oprot.writeFieldBegin('statement', TType.STRING, 2)
             oprot.writeString(self.statement.encode('utf-8') if sys.version_info[0] == 2 else self.statement)
             oprot.writeFieldEnd()
-        if self.csvFile is not None:
-            oprot.writeFieldBegin('csvFile', TType.STRING, 3)
-            oprot.writeBinary(self.csvFile)
+        if self.csvFileName is not None:
+            oprot.writeFieldBegin('csvFileName', TType.STRING, 3)
+            oprot.writeString(self.csvFileName.encode('utf-8') if sys.version_info[0] == 2 else self.csvFileName)
             oprot.writeFieldEnd()
         oprot.writeFieldStop()
         oprot.writeStructEnd()
@@ -6361,8 +6361,8 @@ class LoadCSVReq(object):
             raise TProtocolException(message='Required field sessionId is unset!')
         if self.statement is None:
             raise TProtocolException(message='Required field statement is unset!')
-        if self.csvFile is None:
-            raise TProtocolException(message='Required field csvFile is unset!')
+        if self.csvFileName is None:
+            raise TProtocolException(message='Required field csvFileName is unset!')
         return
 
     def __repr__(self):
@@ -9464,6 +9464,237 @@ class SetRulesReq(object):
 
     def __ne__(self, other):
         return not (self == other)
+
+
+class FileChunk(object):
+    """
+    Attributes:
+     - fileName
+     - offset
+     - data
+     - chunkSize
+
+    """
+
+
+    def __init__(self, fileName=None, offset=None, data=None, chunkSize=None,):
+        self.fileName = fileName
+        self.offset = offset
+        self.data = data
+        self.chunkSize = chunkSize
+
+    def read(self, iprot):
+        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
+            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
+            return
+        iprot.readStructBegin()
+        while True:
+            (fname, ftype, fid) = iprot.readFieldBegin()
+            if ftype == TType.STOP:
+                break
+            if fid == 1:
+                if ftype == TType.STRING:
+                    self.fileName = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 2:
+                if ftype == TType.I64:
+                    self.offset = iprot.readI64()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 3:
+                if ftype == TType.STRING:
+                    self.data = iprot.readBinary()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 4:
+                if ftype == TType.I64:
+                    self.chunkSize = iprot.readI64()
+                else:
+                    iprot.skip(ftype)
+            else:
+                iprot.skip(ftype)
+            iprot.readFieldEnd()
+        iprot.readStructEnd()
+
+    def write(self, oprot):
+        if oprot._fast_encode is not None and self.thrift_spec is not None:
+            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
+            return
+        oprot.writeStructBegin('FileChunk')
+        if self.fileName is not None:
+            oprot.writeFieldBegin('fileName', TType.STRING, 1)
+            oprot.writeString(self.fileName.encode('utf-8') if sys.version_info[0] == 2 else self.fileName)
+            oprot.writeFieldEnd()
+        if self.offset is not None:
+            oprot.writeFieldBegin('offset', TType.I64, 2)
+            oprot.writeI64(self.offset)
+            oprot.writeFieldEnd()
+        if self.data is not None:
+            oprot.writeFieldBegin('data', TType.STRING, 3)
+            oprot.writeBinary(self.data)
+            oprot.writeFieldEnd()
+        if self.chunkSize is not None:
+            oprot.writeFieldBegin('chunkSize', TType.I64, 4)
+            oprot.writeI64(self.chunkSize)
+            oprot.writeFieldEnd()
+        oprot.writeFieldStop()
+        oprot.writeStructEnd()
+
+    def validate(self):
+        if self.fileName is None:
+            raise TProtocolException(message='Required field fileName is unset!')
+        if self.offset is None:
+            raise TProtocolException(message='Required field offset is unset!')
+        if self.data is None:
+            raise TProtocolException(message='Required field data is unset!')
+        if self.chunkSize is None:
+            raise TProtocolException(message='Required field chunkSize is unset!')
+        return
+
+    def __repr__(self):
+        L = ['%s=%r' % (key, value)
+             for key, value in self.__dict__.items()]
+        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+    def __ne__(self, other):
+        return not (self == other)
+
+
+class UploadFileReq(object):
+    """
+    Attributes:
+     - sessionId
+     - fileChunk
+
+    """
+
+
+    def __init__(self, sessionId=None, fileChunk=None,):
+        self.sessionId = sessionId
+        self.fileChunk = fileChunk
+
+    def read(self, iprot):
+        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
+            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
+            return
+        iprot.readStructBegin()
+        while True:
+            (fname, ftype, fid) = iprot.readFieldBegin()
+            if ftype == TType.STOP:
+                break
+            if fid == 1:
+                if ftype == TType.I64:
+                    self.sessionId = iprot.readI64()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 2:
+                if ftype == TType.STRUCT:
+                    self.fileChunk = FileChunk()
+                    self.fileChunk.read(iprot)
+                else:
+                    iprot.skip(ftype)
+            else:
+                iprot.skip(ftype)
+            iprot.readFieldEnd()
+        iprot.readStructEnd()
+
+    def write(self, oprot):
+        if oprot._fast_encode is not None and self.thrift_spec is not None:
+            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
+            return
+        oprot.writeStructBegin('UploadFileReq')
+        if self.sessionId is not None:
+            oprot.writeFieldBegin('sessionId', TType.I64, 1)
+            oprot.writeI64(self.sessionId)
+            oprot.writeFieldEnd()
+        if self.fileChunk is not None:
+            oprot.writeFieldBegin('fileChunk', TType.STRUCT, 2)
+            self.fileChunk.write(oprot)
+            oprot.writeFieldEnd()
+        oprot.writeFieldStop()
+        oprot.writeStructEnd()
+
+    def validate(self):
+        if self.sessionId is None:
+            raise TProtocolException(message='Required field sessionId is unset!')
+        if self.fileChunk is None:
+            raise TProtocolException(message='Required field fileChunk is unset!')
+        return
+
+    def __repr__(self):
+        L = ['%s=%r' % (key, value)
+             for key, value in self.__dict__.items()]
+        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+    def __ne__(self, other):
+        return not (self == other)
+
+
+class UploadFileResp(object):
+    """
+    Attributes:
+     - status
+
+    """
+
+
+    def __init__(self, status=None,):
+        self.status = status
+
+    def read(self, iprot):
+        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
+            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
+            return
+        iprot.readStructBegin()
+        while True:
+            (fname, ftype, fid) = iprot.readFieldBegin()
+            if ftype == TType.STOP:
+                break
+            if fid == 1:
+                if ftype == TType.STRUCT:
+                    self.status = Status()
+                    self.status.read(iprot)
+                else:
+                    iprot.skip(ftype)
+            else:
+                iprot.skip(ftype)
+            iprot.readFieldEnd()
+        iprot.readStructEnd()
+
+    def write(self, oprot):
+        if oprot._fast_encode is not None and self.thrift_spec is not None:
+            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
+            return
+        oprot.writeStructBegin('UploadFileResp')
+        if self.status is not None:
+            oprot.writeFieldBegin('status', TType.STRUCT, 1)
+            self.status.write(oprot)
+            oprot.writeFieldEnd()
+        oprot.writeFieldStop()
+        oprot.writeStructEnd()
+
+    def validate(self):
+        if self.status is None:
+            raise TProtocolException(message='Required field status is unset!')
+        return
+
+    def __repr__(self):
+        L = ['%s=%r' % (key, value)
+             for key, value in self.__dict__.items()]
+        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+    def __ne__(self, other):
+        return not (self == other)
 all_structs.append(Status)
 Status.thrift_spec = (
     None,  # 0
@@ -9884,7 +10115,7 @@ LoadCSVReq.thrift_spec = (
     None,  # 0
     (1, TType.I64, 'sessionId', None, None, ),  # 1
     (2, TType.STRING, 'statement', 'UTF8', None, ),  # 2
-    (3, TType.STRING, 'csvFile', 'BINARY', None, ),  # 3
+    (3, TType.STRING, 'csvFileName', 'UTF8', None, ),  # 3
 )
 all_structs.append(LoadCSVResp)
 LoadCSVResp.thrift_spec = (
@@ -10128,6 +10359,25 @@ SetRulesReq.thrift_spec = (
     None,  # 0
     (1, TType.I64, 'sessionId', None, None, ),  # 1
     (2, TType.MAP, 'rulesChange', (TType.STRING, 'UTF8', TType.BOOL, None, False), None, ),  # 2
+)
+all_structs.append(FileChunk)
+FileChunk.thrift_spec = (
+    None,  # 0
+    (1, TType.STRING, 'fileName', 'UTF8', None, ),  # 1
+    (2, TType.I64, 'offset', None, None, ),  # 2
+    (3, TType.STRING, 'data', 'BINARY', None, ),  # 3
+    (4, TType.I64, 'chunkSize', None, None, ),  # 4
+)
+all_structs.append(UploadFileReq)
+UploadFileReq.thrift_spec = (
+    None,  # 0
+    (1, TType.I64, 'sessionId', None, None, ),  # 1
+    (2, TType.STRUCT, 'fileChunk', [FileChunk, None], None, ),  # 2
+)
+all_structs.append(UploadFileResp)
+UploadFileResp.thrift_spec = (
+    None,  # 0
+    (1, TType.STRUCT, 'status', [Status, None], None, ),  # 1
 )
 fix_spec(all_structs)
 del all_structs
