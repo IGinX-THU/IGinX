@@ -12,7 +12,7 @@ on:
                 description: "The python version to run the test on"
                 type: string
                 required: false
-                default: '["3.9"]'
+                default: '["3.11"]'
             os-matrix:
                 description: "The operating system to run the test on"
                 type: string

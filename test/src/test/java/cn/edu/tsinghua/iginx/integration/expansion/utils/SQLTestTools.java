@@ -166,13 +166,13 @@ public class SQLTestTools {
       String[] command;
       boolean isOnWin = System.getProperty("os.name").toLowerCase().contains("win");
       command = new String[args.length + 2];
-      if (isOnWin && !ShellRunner.isCommandOnPath("sh")) {
-        command[0] = "C:/Program Files/Git/bin/sh.exe";
-      } else {
-        command[0] = "sh";
-      }
       command[1] = scriptPath;
       System.arraycopy(args, 0, command, 2, args.length);
+      if (isOnWin && !ShellRunner.isCommandOnPath("bash")) {
+        command[0] = "C:/Program Files/Git/bin/bash.exe";
+      } else {
+        command[0] = "bash";
+      }
       // 创建进程并执行命令
       LOGGER.info("exe shell : {}", Arrays.toString(command));
       ProcessBuilder processBuilder = new ProcessBuilder(command);

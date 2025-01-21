@@ -42,6 +42,7 @@ import java.util.List;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.After;
 import org.junit.AfterClass;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -219,6 +220,11 @@ public class UDFIT {
     taskToBeRemoved.add(udfName);
 
     tool.execute(String.format(DROP_SQL, udfName));
+    try {
+      Thread.sleep(1000); // needed in some tests(redis no+no yes+no)
+    } catch (InterruptedException e) {
+      LOGGER.error("Thread sleep error.", e);
+    }
     // dropped udf cannot be queried
     assertFalse(tool.isUDFRegistered(udfName));
     taskToBeRemoved.clear();
@@ -1411,6 +1417,9 @@ public class UDFIT {
 
   @Test
   public void tensorUDFTest() {
+    boolean torchSupported = System.getenv().getOrDefault("TORCH_SUPPORTED", "true").equals("true");
+    Assume.assumeTrue(
+        "tensorUDFTest is skipped because pytorch is not supported(python>3.12).", torchSupported);
     String name = "tensorTest";
     String filePath =
         String.join(

@@ -1,4 +1,4 @@
-name: "Union Database Test No Optimizer"
+name: "Free-threading Python Test"
 
 on:
     workflow_call:
@@ -8,11 +8,6 @@ on:
                 type: string
                 required: false
                 default: '["8"]'
-            python-matrix:
-                description: "The python version to run the test on"
-                type: string
-                required: false
-                default: '["3.11"]'
             os-matrix:
                 description: "The operating system to run the test on"
                 type: string
@@ -27,38 +22,28 @@ on:
                 description: "The database to run the test on"
                 type: string
                 required: false
-                default: '["IoTDB12", "InfluxDB", "FileSystem", "PostgreSQL", "Redis", "MongoDB", "MySQL"]'
-            timeout-minutes:
-                description: "The timeout minutes for the job"
-                type: number
-                required: false
-                default: 40
+                default: '["IoTDB12", "FileSystem"]'
 
 jobs:
-    Union-DB-Test-No-Optimizer:
-        timeout-minutes: ${{ inputs.timeout-minutes }}
+    Free-threading-Python-Test:
+        timeout-minutes: 40
         strategy:
             fail-fast: false
             matrix:
                 java: ${{ fromJSON(inputs.java-matrix) }}
-                python-version: ${{ fromJSON(inputs.python-matrix) }}
                 os: ${{ fromJSON(inputs.os-matrix) }}
                 metadata: ${{ fromJSON(inputs.metadata-matrix) }}
                 DB-name: ${{ fromJSON(inputs.db-matrix) }}
         runs-on: ${{ matrix.os }}
         steps:
             - uses: actions/checkout@v4
+              # use free-threading python instead of stable version
             - name: Environment dependence
               uses: ./.github/actions/dependence
               with:
-                  python-version: ${{ matrix.python-version }}
                   java: ${{ matrix.java }}
-                  iginx-conda-flag: "true"
-                  iginx-conda-env: "iginxEnv"
-
-            - if: runner.os == 'Windows'
-              name: Set JAVA_OPTS
-              run: echo "JAVA_OPTS=-Xmx4g -Xmx2g" >> $GITHUB_ENV
+                  free-thread-python-required: "true"
+                  scope: "only-java"
 
             - name: Run Metadata
               uses: ./.github/actions/metadataRunner
@@ -79,26 +64,21 @@ jobs:
               uses: ./.github/actions/confWriter
               with:
                   DB-name: ${{ matrix.DB-name }}
-                  Close-Optimizer: "true"
+                  Set-Filter-Fragment-OFF: "true"
                   Metadata: ${{ matrix.metadata }}
+                  use-free-thread-python: "true"
 
             - name: Start IGinX
               uses: ./.github/actions/iginxRunner
 
             - name: TestController IT
               if: always()
-              shell: bash -el {0}
+              shell: bash
               env:
                   METADATA_STORAGE: ${{ matrix.metadata }}
               run: |
                   chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/test_union.sh"
                   mvn test -q -Dtest=Controller -DfailIfNoTests=false -P-format
-
-            - name: Show test result
-              if: always()
-              shell: bash
-              run: |
-                  cat ${GITHUB_WORKSPACE}/test/src/test/resources/testResult.txt
 
             - name: Show IGinX log
               if: always()

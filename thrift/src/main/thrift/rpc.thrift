@@ -531,7 +531,7 @@ struct FetchResultsResp {
 struct LoadCSVReq {
     1: required i64 sessionId
     2: required string statement
-    3: required binary csvFile
+    3: required string csvFileName
 }
 
 struct LoadCSVResp {
@@ -746,6 +746,22 @@ struct SetRulesReq {
     2: required map<string, bool> rulesChange
 }
 
+struct FileChunk {
+    1: required string fileName;
+    2: required i64 offset;
+    3: required binary data;
+    4: required i64 chunkSize;
+}
+
+struct UploadFileReq {
+    1: required i64 sessionId
+    2: required FileChunk fileChunk
+}
+
+struct UploadFileResp {
+    1: required Status status
+}
+
 service IService {
 
     OpenSessionResp openSession(1: OpenSessionReq req);
@@ -827,4 +843,6 @@ service IService {
     ShowRulesResp showRules(1: ShowRulesReq req);
 
     Status setRules(1: SetRulesReq req);
+
+    UploadFileResp uploadFileChunk(1: UploadFileReq req);
 }
