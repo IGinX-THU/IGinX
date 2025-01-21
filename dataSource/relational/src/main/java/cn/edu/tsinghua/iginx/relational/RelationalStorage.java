@@ -1310,6 +1310,12 @@ public class RelationalStorage implements IStorage {
   }
 
   @Override
+  public boolean isSupportProjectWithAggSelect(
+      Operator agg, Select select, DataArea dataArea, boolean isDummy) {
+    return isSupportProjectWithAgg(agg, dataArea, isDummy) && isSupportProjectWithSelect();
+  }
+
+  @Override
   public TaskExecuteResult executeProjectWithAggSelect(
       Project project, Select select, Operator agg, DataArea dataArea) {
     List<FunctionCall> functionCalls = OperatorUtils.getFunctionCallList(agg);

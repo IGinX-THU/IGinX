@@ -168,8 +168,11 @@ public class StoragePhysicalTaskExecutor {
                                               && (operators.get(2).getType() == OperatorType.GroupBy
                                                   || operators.get(2).getType()
                                                       == OperatorType.SetTransform))
-                                          && pair.k.isSupportProjectWithAgg(
-                                              operators.get(2), dataArea, isDummyStorageUnit);
+                                          && pair.k.isSupportProjectWithAggSelect(
+                                              operators.get(2),
+                                              (Select) operators.get(1),
+                                              dataArea,
+                                              isDummyStorageUnit);
                                   if (isDummyStorageUnit) {
                                     if (needAggSelectPushDown) {
                                       result =

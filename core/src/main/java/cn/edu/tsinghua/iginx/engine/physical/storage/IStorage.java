@@ -52,8 +52,13 @@ public interface IStorage {
   TaskExecuteResult executeProjectDummyWithSelect(
       Project project, Select select, DataArea dataArea);
 
-  /** 询问底层是否支持带AGG的查询 */
+  /** 询问底层是否支持仅带AGG的查询 */
   default boolean isSupportProjectWithAgg(Operator agg, DataArea dataArea, boolean isDummy) {
+    return false;
+  }
+
+  default boolean isSupportProjectWithAggSelect(
+      Operator agg, Select select, DataArea dataArea, boolean isDummy) {
     return false;
   }
 
