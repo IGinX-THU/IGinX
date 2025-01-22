@@ -20,10 +20,10 @@
 package cn.edu.tsinghua.iginx.relational.meta;
 
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
+import cn.edu.tsinghua.iginx.relational.datatype.transformer.DmDataTypeTransformer;
 import cn.edu.tsinghua.iginx.relational.datatype.transformer.IDataTypeTransformer;
 import cn.edu.tsinghua.iginx.relational.datatype.transformer.JDBCDataTypeTransformer;
 import cn.edu.tsinghua.iginx.relational.datatype.transformer.OracleLDataTypeTransformer;
-import cn.edu.tsinghua.iginx.relational.datatype.transformer.DmDataTypeTransformer;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
