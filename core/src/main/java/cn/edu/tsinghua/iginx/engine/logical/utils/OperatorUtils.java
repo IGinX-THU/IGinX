@@ -188,6 +188,7 @@ public class OperatorUtils {
 
     Operator left = ((OperatorSource) applyCopy.getSourceA()).getOperator();
     addCorVarsToLeft(left, correlatedVariables);
+    Operator leftCopy = left.copy();
     Operator operatorA =
         new Project(new OperatorSource(left), correlatedVariables, null, false, true);
     applyCopy.setSourceA(new OperatorSource(operatorA));
@@ -218,7 +219,7 @@ public class OperatorUtils {
     if (apply.getType() == OperatorType.CrossJoin) {
       apply =
           new InnerJoin(
-              new OperatorSource(left.copy()),
+              new OperatorSource(leftCopy),
               new OperatorSource(right),
               apply.getPrefixA(),
               apply.getPrefixB(),
@@ -229,7 +230,7 @@ public class OperatorUtils {
               JoinAlgType.HashJoin,
               correlatedVariables);
     } else {
-      apply.setSourceA(new OperatorSource(left.copy()));
+      apply.setSourceA(new OperatorSource(leftCopy));
       apply.setSourceB(new OperatorSource(right));
       apply.setExtraJoinPrefix(correlatedVariables);
       apply.setJoinAlgType(JoinAlgType.HashJoin);
