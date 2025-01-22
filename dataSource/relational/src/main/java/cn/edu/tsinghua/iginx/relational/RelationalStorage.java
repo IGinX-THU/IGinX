@@ -121,7 +121,8 @@ public class RelationalStorage implements IStorage {
     }
 
     // oracle只能针对实例（SID）建立连接，databaseName在oracle中对应的是user/schema
-    if (engineName.equals("oracle")) {
+    // dameng只能针对实例（SID）建立连接，databaseName在dameng中对应的是user/schema
+    if (engineName.equals("oracle") || engineName.equals("dameng")) {
       databaseName = relationalMeta.getDefaultDatabaseName();
     }
 
@@ -332,7 +333,7 @@ public class RelationalStorage implements IStorage {
       ResultSet rs =
           databaseMetaData.getTables(
               databaseName,
-              engineName.equals("oracle") ? databaseName : relationalMeta.getSchemaPattern(),
+              engineName.equals("oracle") || engineName.equals("dameng") ? databaseName : relationalMeta.getSchemaPattern(),
               tablePattern,
               new String[] {"TABLE"});
       List<String> tableNames = new ArrayList<>();
@@ -362,7 +363,7 @@ public class RelationalStorage implements IStorage {
       ResultSet rs =
           databaseMetaData.getColumns(
               databaseName,
-              engineName.equals("oracle") ? databaseName : relationalMeta.getSchemaPattern(),
+              engineName.equals("oracle") || engineName.equals("dameng") ? databaseName : relationalMeta.getSchemaPattern(),
               tableName,
               columnNamePattern);
       List<ColumnField> columnFields = new ArrayList<>();
@@ -2076,7 +2077,7 @@ public class RelationalStorage implements IStorage {
       String[] parts = columnNames.split(", ");
       boolean hasMultipleRows = parts.length != 1;
       StringBuilder statement = new StringBuilder();
-      if (engineName.equals("oracle")) {
+      if (engineName.equals("oracle") || engineName.equals("dameng")) {
         Map<String, ColumnField> columnMap = getColumnMap(databaseName, tableName);
         this.batchInsert(conn, databaseName, tableName, columnMap, parts, values);
       } else {
@@ -2403,7 +2404,7 @@ public class RelationalStorage implements IStorage {
 
   private String getTableNameByDB(String databaseName, String name) {
     String engineName = meta.getExtraParams().get("engine");
-    if (engineName.equals("oracle")) {
+    if (engineName.equals("oracle") || engineName.equals("dameng")) {
       name = getQuotName(databaseName) + SEPARATOR + getQuotName(name);
     } else {
       name = getQuotName(name);

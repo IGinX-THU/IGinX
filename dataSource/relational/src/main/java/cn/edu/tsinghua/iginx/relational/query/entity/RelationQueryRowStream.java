@@ -153,7 +153,7 @@ public class RelationQueryRowStream implements RowStream {
       for (int j = 1; j <= resultSetMetaData.getColumnCount(); j++) {
         columnName = resultSetMetaData.getColumnName(j);
         typeName = resultSetMetaData.getColumnTypeName(j);
-        if (engine.equals("oracle")) {
+        if (engine.equals("oracle") || engine.equals("dameng")) {
           tableName = this.getTableName(tableColumnNames.get(i).get(j - 1));
           columnSize = resultSetMetaData.getPrecision(j);
           columnClassName = resultSetMetaData.getColumnClassName(j);
@@ -417,7 +417,7 @@ public class RelationQueryRowStream implements RowStream {
       return resultSet.getObject(columnName);
     }
     ResultSetMetaData resultSetMetaData = resultSet.getMetaData();
-    if (engine.equals("oracle")) {
+    if (engine.equals("oracle") || engine.equals("dameng")) {
       int i =
           this.tableColumnNames
               .get(resultSets.indexOf(resultSet))
