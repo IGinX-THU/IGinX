@@ -45,10 +45,10 @@ public abstract class IndexedChunk extends Chunk {
   @Override
   public synchronized Snapshot snapshot(BufferAllocator allocator) {
     Snapshot snapshot = super.snapshot(allocator);
-    if (ArrowVectors.isSorted(snapshot.keys)) {
+    IntVector indexes = indexOf(snapshot, allocator);
+    if (indexes == null) {
       return snapshot;
     }
-    IntVector indexes = indexOf(snapshot, allocator);
     return new IndexedSnapshot(snapshot, indexes);
   }
 
@@ -69,6 +69,7 @@ public abstract class IndexedChunk extends Chunk {
     super.close();
   }
 
+  @Nullable
   protected abstract IntVector indexOf(Snapshot snapshot, BufferAllocator allocator);
 
   protected abstract void updateIndex(Snapshot data, int offset);
