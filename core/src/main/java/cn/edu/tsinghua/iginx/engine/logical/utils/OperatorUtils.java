@@ -218,7 +218,7 @@ public class OperatorUtils {
     if (apply.getType() == OperatorType.CrossJoin) {
       apply =
           new InnerJoin(
-              new OperatorSource(left),
+              new OperatorSource(left.copy()),
               new OperatorSource(right),
               apply.getPrefixA(),
               apply.getPrefixB(),
@@ -229,7 +229,7 @@ public class OperatorUtils {
               JoinAlgType.HashJoin,
               correlatedVariables);
     } else {
-      apply.setSourceA(new OperatorSource(left));
+      apply.setSourceA(new OperatorSource(left.copy()));
       apply.setSourceB(new OperatorSource(right));
       apply.setExtraJoinPrefix(correlatedVariables);
       apply.setJoinAlgType(JoinAlgType.HashJoin);
