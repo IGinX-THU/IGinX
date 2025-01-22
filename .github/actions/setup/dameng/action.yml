@@ -1,0 +1,69 @@
+name: "Dameng"
+description: "setup Dameng"
+inputs:
+    version:
+        description: "Dameng version"
+        required: false
+        default: "dm8"
+
+runs:
+    using: "composite"
+    steps:
+        - if: runner.os == 'macOS'
+          name: Install Docker on MacOS
+          shell: bash
+          run: |
+              brew update 
+              brew install colima docker qemu
+              colima start --arch x86_64 --vm-type=vz --vz-rosetta --mount-type=virtiofs --memory 5
+
+        - if: runner.os == 'Windows'
+          name: Install Docker
+          shell: wsl-run {0}
+          run: |
+              sudo apt install apt-transport-https ca-certificates curl software-properties-common -y
+              curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+              sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable"
+              sudo apt update
+              sudo apt install docker-ce docker-ce-cli containerd.io -y
+              sudo service docker start
+              docker --version
+              docker pull container-registry.oracle.com/database/free:23.5.0.0-lite
+
+        - if: runner.os == 'Linux' || runner.os == 'macOS'
+          name: Download and Install Dameng JDBC Driver
+          shell: bash
+          run: |
+              wget https://github.com/LeanMaX/IGinX-resources/raw/refs/heads/master/DmJdbcDriver8.jar
+              mvn install:install-file \
+              -DgroupId=dm.jdbc \
+              -DartifactId=DmJdbcDriver8 \
+              -Dversion=1.0 \
+              -Dpackaging=jar \
+              -Dfile=DmJdbcDriver8.jar
+
+        - if: runner.os == 'Windows'
+          name: Download and Install Dameng JDBC Driver
+          shell: cmd
+          run: |
+              curl -L -o DmJdbcDriver8.jar https://github.com/LeanMaX/IGinX-resources/raw/refs/heads/master/DmJdbcDriver8.jar
+              mvn install:install-file ^
+              -DgroupId=dm.jdbc ^
+              -DartifactId=DmJdbcDriver8 ^
+              -Dversion=1.0 ^
+              -Dpackaging=jar ^
+              -Dfile=DmJdbcDriver8.jar
+
+        - if: runner.os == 'Linux' || runner.os == 'macOS'
+          name: Download Dameng Database Docker image and Load Dameng Database container
+          shell: bash
+          run: |
+              wget https://github.com/IGinX-THU/IGinX-resources/raw/refs/heads/main/resources/dm8_20241022_x86_rh6_64_single.tar
+              docker load -i dm8_20241022_x86_rh6_64_single.tar
+
+        - if: runner.os == 'Windows'
+          name: Download Dameng Database Docker image and Load Dameng Database container
+          shell: cmd
+          run: |
+              curl -L -o https://github.com/IGinX-THU/IGinX-resources/raw/refs/heads/main/resources/dm8_20241022_x86_rh6_64_single.tar
+              docker load -i dm8_20241022_x86_rh6_64_single.tar

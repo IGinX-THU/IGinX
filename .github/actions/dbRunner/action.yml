@@ -33,6 +33,10 @@ inputs:
         description: "Oracle ports"
         required: false
         default: 1521
+    Dameng-ports:
+        description: "Dameng ports"
+        required: false
+        default: 5236
 
 runs:
     using: "composite" # Mandatory parameter
@@ -142,3 +146,13 @@ runs:
           uses: ./.github/actions/service/oracle
           with:
               ports: ${{ inputs.Oracle-ports }}
+
+        - if: inputs.DB-name=='Dameng'
+          name: Setup Dameng
+          uses: ./.github/actions/setup/dameng
+
+        - if: inputs.DB-name=='Dameng'
+          name: Start Dameng Service
+          uses: ./.github/actions/service/dameng
+          with:
+              ports: ${{ inputs.Dameng-ports }}

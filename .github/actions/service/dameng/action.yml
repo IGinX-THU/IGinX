@@ -1,0 +1,87 @@
+name: "Dameng"
+description: "stop, clean and start Dameng in order"
+inputs:
+    ports:
+        description: The server port to listen on.
+        default: "5236"
+        required: false
+    version:
+        description: Dameng db version.
+        default: "dm8"
+        required: false
+runs:
+    using: "composite"
+    steps:
+        - if: runner.os == 'Linux' || runner.os == 'macOS'
+          name: Run Dameng Database container
+          shell: bash
+          run: |
+              for port in ${{ inputs.ports }}; do
+                docker run -d -p $port:5236 --restart=always \
+                  --name=${{ inputs.version }}-$port \
+                  --privileged=true \
+                  -e LD_LIBRARY_PATH=/opt/dmdbms/bin \
+                  -e PAGE_SIZE=16 \
+                  -e EXTENT_SIZE=32 \
+                  -e LOG_SIZE=1024 \
+                  -e UNICODE_FLAG=1 \
+                  -e INSTANCE_NAME=dm8_test \
+                  -v /opt/data:/opt/dmdbms/data \
+                  dm8_single:dm8_20241022_rev244896_x86_rh6_64
+              done
+        - if: runner.os == 'Linux' || runner.os == 'macOS'
+          name: Verify Dameng Database is running
+          id: dmContainer
+          shell: bash
+          run: |
+              docker ps
+              sleep 10
+              for port in ${{ inputs.ports }}; do
+                while true; do
+                  log_output=$(docker logs "${{ inputs.version }}-$port" 2>&1 | grep -i "Database started successfully" || true)
+                  if [ -z "$log_output" ]; then
+                    echo "'Database started successfully' not found in the logs, retrying in 100 seconds..."
+                    docker logs --tail 10 ${{ inputs.version }}-$port
+                    sleep 30
+                  else
+                    echo "'Database started successfully.' found in the logs, continuing."
+                    break
+                  fi
+                done
+              done
+        - if: runner.os == 'Windows'
+          name: Run Dameng Database container
+          shell: wsl-run {0}
+          run: |
+              for port in ${{ inputs.ports }}; do
+                docker run -d -p $port:5236 --restart=always \ 
+                  --name=${{ inputs.version }}-$port \
+                  -e LD_LIBRARY_PATH=/opt/dmdbms/bin \
+                  -e PAGE_SIZE=16 \
+                  -e EXTENT_SIZE=32 \
+                  -e LOG_SIZE=1024 \
+                  -e UNICODE_FLAG=1 \
+                  -e INSTANCE_NAME=dm8_test \
+                  -v mnt/c/opt/data:/opt/dmdbms/data \
+                  dm8_single:dm8_20241022_rev244896_x86_rh6_64
+              done
+        - if: runner.os == 'Windows'
+          name: Verify Dameng Database is running
+          id: dmContainerWin
+          shell: wsl-run {0}
+          run: |
+              docker ps
+              sleep 10
+              for port in ${{ inputs.ports }}; do
+                while true; do
+                  log_output=$(docker logs "${{ inputs.version }}-$port" 2>&1 | grep -i "Database started successfully" || true)
+                  if [ -z "$log_output" ]; then
+                    echo "'Database started successfully' not found in the logs, retrying in 100 seconds..."
+                    docker logs --tail 10 ${{ inputs.version }}-$port
+                    sleep 30
+                  else
+                    echo "'Database started successfully.' found in the logs, continuing."
+                    break
+                  fi
+                done
+              done
