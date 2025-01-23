@@ -119,7 +119,7 @@ public class FilterTransformer {
           value = "'" + filter.getValue().getBinaryVAsString() + "'";
         } else if (engine.equals("oracle")
             && filter.getValue().getDataType()
-                == DataType.BOOLEAN) { // oracle not support boolean type before 23ai
+                == DataType.BOOLEAN) {
           value = filter.getValue().getBoolV() ? "1" : "0";
         } else {
           value = filter.getValue().getValue();

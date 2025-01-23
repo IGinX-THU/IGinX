@@ -23,7 +23,7 @@ public class ColumnField {
   public String tableName;
   public String columnName;
   public String columnType;
-  public int columnSize; // for oracle
+  public int columnSize; // used to identify data types from jdbc RestResult api for oracle
 
   public ColumnField(String tableName, String columnName, String columnType) {
     this.tableName = tableName;

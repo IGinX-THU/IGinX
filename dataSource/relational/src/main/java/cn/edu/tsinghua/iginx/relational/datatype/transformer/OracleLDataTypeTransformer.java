@@ -73,7 +73,7 @@ public class OracleLDataTypeTransformer implements IDataTypeTransformer {
       case FLOAT:
         return "FLOAT";
       case DOUBLE:
-        return "NUMBER(38, 10)"; // "NUMBER(38, 10)";FLOAT
+        return "NUMBER(38, 10)";
       case BINARY:
       default:
         return "VARCHAR2(4000)";

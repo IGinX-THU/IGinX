@@ -128,8 +128,7 @@ public class RelationalStorage implements IStorage {
     HikariDataSource dataSource = connectionPoolMap.get(databaseName);
     if (dataSource != null) {
       try {
-        Connection conn = dataSource.getConnection();
-        return conn;
+        return dataSource.getConnection();
       } catch (SQLException e) {
         LOGGER.error("Cannot get connection for database {}", databaseName, e);
         dataSource.close();
@@ -2174,37 +2173,6 @@ public class RelationalStorage implements IStorage {
     }
   }
 
-  private String getQuotSelectStatements(
-      Map<String, ColumnField> columnMap, String[] parts, List<String> values) {
-    List<String> tempTable = new ArrayList<>();
-    StringBuilder SelectStatements = new StringBuilder();
-    for (String value : values) {
-      SelectStatements.append("SELECT ");
-      String[] val = value.substring(0, value.length() - 2).split(", ");
-      SelectStatements.append(val[0]);
-      SelectStatements.append(" ");
-      SelectStatements.append(getQuotName(KEY_NAME));
-      SelectStatements.append(", ");
-      for (int i = 0; i < parts.length; i++) {
-        if (columnMap.containsKey(parts[i])
-            && columnMap.get(parts[i]).columnType.equals("NUMBER")
-            && columnMap.get(parts[i]).columnSize == 1) {
-          SelectStatements.append(val[i + 1].equalsIgnoreCase("true") ? 1 : 0);
-        } else {
-          SelectStatements.append(val[i + 1]);
-        }
-        SelectStatements.append(" ");
-        SelectStatements.append(getQuotName(parts[i]));
-        SelectStatements.append(", ");
-      }
-      SelectStatements.delete(SelectStatements.length() - 2, SelectStatements.length());
-      SelectStatements.append(" FROM dual ");
-      tempTable.add(SelectStatements.toString());
-      SelectStatements.setLength(0);
-    }
-    return String.join(" UNION ALL ", tempTable);
-  }
-
   public Map<String, ColumnField> getColumnMap(String databaseName, String tableName) {
     List<ColumnField> columnFieldList = getColumns(databaseName, tableName, null);
     return columnFieldList.stream()
@@ -2218,9 +2186,6 @@ public class RelationalStorage implements IStorage {
       Map<String, ColumnField> columnMap,
       String[] parts,
       List<String> values) {
-    // String selectSql = "SELECT %s FROM %s.%s WHERE %s IN (%s)";
-    //    String insertSql = "INSERT INTO %s.%s ( %s ) VALUES ( %s )";
-    //    String updateSql = "UPDATE %s.%s SET %s WHERE %s = %s";
     Map<String, String[]> valueMap =
         values.stream()
             .collect(

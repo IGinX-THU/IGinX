@@ -500,7 +500,8 @@ public class PySessionIT {
             + "5    5      b''      b''     b'b'      b''\n"
             + "6    6      b''      b''      b''     b'c'\n"
             + "7    7     b'Q'     b'W'     b'E'     b'R'\n";
-    if (runningEngine.equals("Oracle")) { // oracle 传入空字符串时默认存成NULL
+    // oracle的VARCHAR2字段默认将空字符串和NULL存成NULL
+    if (runningEngine.equals("Oracle")) {
       expected =
           "LoadCSVResp(status=Status(code=200, message=None, subStatus=None), columns=['test.a.a', 'test.a.b', 'test.b.b', 'test.c.c'], recordsNum=4, parseErrorMsg=None)\n"
               + "   key test.a.a test.a.b test.b.b test.c.c\n"

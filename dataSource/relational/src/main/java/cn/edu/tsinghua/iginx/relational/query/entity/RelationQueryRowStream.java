@@ -422,7 +422,6 @@ public class RelationQueryRowStream implements RowStream {
           this.tableColumnNames
               .get(resultSets.indexOf(resultSet))
               .indexOf(RelationSchema.getFullName(tableName, columnName));
-      // LOGGER.info("{}-{}-{}-{}-{}",resultSet.getObject(1),resultSet.getObject(2),resultSet.getObject(3),resultSet.getObject(4),resultSet.getObject(5));
       return resultSet.getObject(i + 1);
     }
     for (int j = 1; j <= resultSetMetaData.getColumnCount(); j++) {
