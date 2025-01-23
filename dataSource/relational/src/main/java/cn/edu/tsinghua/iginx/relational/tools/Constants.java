@@ -34,13 +34,5 @@ public abstract class Constants {
 
   public static final String DATABASE_PREFIX = "unit";
 
-  public static final String CREATE_DATABASE_STATEMENT = "CREATE DATABASE %s;";
-
-  public static final String QUERY_STATEMENT_WITHOUT_KEYNAME = "SELECT %s FROM %s %s ORDER BY %s;";
-
-  public static final String ADD_COLUMN_STATEMENT = "ALTER TABLE %s ADD COLUMN %s %s;";
-
-  public static final String DROP_COLUMN_STATEMENT = "ALTER TABLE %s DROP COLUMN %s;";
-
   public static final String META_TEMPLATE_SUFFIX = "-meta.properties";
 }

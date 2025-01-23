@@ -37,5 +37,22 @@ else
 
     sh -c "chmod +x iginx-core-$1/sbin/start_iginx.sh"
 
-    sh -c "nohup iginx-core-$1/sbin/start_iginx.sh > ../../iginx-u.log 2>&1 &"
+    sh -c "nohup iginx-core-$1/sbin/start_iginx.sh > ../../iginx-udf.log 2>&1 &"
 fi
+
+log_file="../../iginx-udf.log"
+timeout=30
+interval=2
+
+elapsed_time=0
+while [ $elapsed_time -lt $timeout ]; do
+  last_lines=$(tail -n 20 "$log_file")
+  if echo "$last_lines" | grep -q "IGinX is now in service......"; then
+    echo "IGinX started"
+    exit 0
+  fi
+  sleep $interval
+  echo "sleep $interval seconds,waiting iginx start complete"
+  elapsed_time=$((elapsed_time + interval))
+done
+echo "IGinX not started"
