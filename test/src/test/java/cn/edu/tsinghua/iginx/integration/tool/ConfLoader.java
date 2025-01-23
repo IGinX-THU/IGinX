@@ -127,14 +127,8 @@ public class ConfLoader {
     return getTestProperty(DBCE_TEST_WAY, DEFAULT_DBCE_TEST_WAY);
   }
 
-  public List<Integer> getQueryIds() {
-    String input = properties.getProperty("query_ids");
-    String[] split = input.split(",");
-    List<Integer> list = new ArrayList<>();
-    for (String s : split) {
-      list.add(Integer.parseInt(s));
-    }
-    return list;
+  public List<String> getQueryIds() {
+    return Arrays.asList(properties.getProperty("query_ids").split(","));
   }
 
   public int getMaxRepetitionsNum() {

@@ -34,7 +34,7 @@ public class BatchStage implements Stage {
   private final ExportWriter exportWriter;
 
   public BatchStage(Stage beforeStage, Task task, ExportWriter exportWriter) {
-    this.dataFlowType = DataFlowType.Batch;
+    this.dataFlowType = DataFlowType.BATCH;
     this.beforeStage = beforeStage;
     this.task = task;
     this.exportWriter = exportWriter;

@@ -44,14 +44,14 @@ public class PostgreSQLCapacityExpansionIT extends BaseCapacityExpansionIT {
   public PostgreSQLCapacityExpansionIT() {
     super(
         StorageEngineType.relational,
-        "engine:postgresql, username:postgres, password:postgres",
+        "engine=postgresql, username=postgres, password=postgres",
         new PostgreSQLHistoryDataGenerator());
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
     DBConf dbConf = conf.loadDBConf(conf.getStorageType());
     Constant.oriPort = dbConf.getDBCEPortMap().get(Constant.ORI_PORT_NAME);
     Constant.expPort = dbConf.getDBCEPortMap().get(Constant.EXP_PORT_NAME);
     Constant.readOnlyPort = dbConf.getDBCEPortMap().get(Constant.READ_ONLY_PORT_NAME);
-    wrongExtraParams.add("username:wrong, password:postgres");
+    wrongExtraParams.add("username=wrong, password=postgres");
     // wrong password situation cannot be tested because trust mode is used
 
     updatedParams.put("password", "newPassword");

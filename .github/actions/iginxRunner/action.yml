@@ -16,7 +16,7 @@ runs:
         # TODO: use iginx binaries in assembly rather than core
         - if: inputs.if-test-udf=='true'
           name: Test UDF Path
-          shell: bash
+          shell: bash -el {0}
           run: |
               if [ "$RUNNER_OS" == "Linux" ]; then
                 sudo sed -i 's/needInitBasicUDFFunctions=false/needInitBasicUDFFunctions=true/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
@@ -34,8 +34,9 @@ runs:
 
         - if: inputs.if-test-udf=='false' && inputs.if-stop=='false'
           name: Start IGinX
-          shell: bash
+          shell: bash -el {0}
           run: |
+              which python
               if [ "$RUNNER_OS" == "Linux" ]; then
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx.sh"
                 "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx.sh" 6888 7888

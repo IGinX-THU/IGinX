@@ -12,7 +12,7 @@ on:
                 description: "The python version to run the test on"
                 type: string
                 required: false
-                default: '["3.9"]'
+                default: '["3.11"]'
             os-matrix:
                 description: "The operating system to run the test on"
                 type: string
@@ -32,7 +32,7 @@ on:
                 description: "The timeout minutes for the job"
                 type: number
                 required: false
-                default: 40
+                default: 45
 
 jobs:
     Union-DB-Test:
@@ -53,6 +53,8 @@ jobs:
               with:
                   python-version: ${{ matrix.python-version }}
                   java: ${{ matrix.java }}
+                  iginx-conda-flag: "true"
+                  iginx-conda-env: "iginxEnv"
 
             - name: Run Metadata
               uses: ./.github/actions/metadataRunner
@@ -73,7 +75,6 @@ jobs:
               uses: ./.github/actions/confWriter
               with:
                   DB-name: ${{ matrix.DB-name }}
-                  Set-Filter-Fragment-OFF: "true"
                   Metadata: ${{ matrix.metadata }}
 
             # start udf path test first to avoid being effected
@@ -84,7 +85,7 @@ jobs:
 
             - name: Run UDF path test
               if: always()
-              shell: bash
+              shell: bash -el {0}
               run: |
                   mvn test -q -Dtest=UDFPathIT -DfailIfNoTests=false -P-format
                   if [ "$RUNNER_OS" == "Linux" ]; then
@@ -97,6 +98,47 @@ jobs:
                     chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_py_register_macos.sh"
                     "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_py_register_macos.sh" ${VERSION}
                   fi
+
+            # two steps:
+            # 1. test relative path
+            # 2. prepare for restart test
+            - name: Run Transform Job tests
+              shell: bash -el {0}
+              run: |
+                  mvn test -q -Dtest=TransformJobPathIT#prepare -DfailIfNoTests=false -P-format
+                  if [ "$RUNNER_OS" == "Linux" ]; then
+                    chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_job_register.sh"
+                    "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_job_register.sh" ${VERSION}
+                  elif [ "$RUNNER_OS" == "Windows" ]; then
+                    chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_job_register_windows.sh"
+                    "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_job_register_windows.sh" ${VERSION}
+                  elif [ "$RUNNER_OS" == "macOS" ]; then
+                    chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_job_register_macos.sh"
+                    "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_job_register_macos.sh" ${VERSION}
+                  fi
+                  mvn test -q -Dtest=TransformJobPathIT#verifyResult -DfailIfNoTests=false -P-format
+                  mvn test -q -Dtest=TransformJobRestartIT#prepare -DfailIfNoTests=false -P-format
+
+            - name: Stop IGinX
+              uses: ./.github/actions/iginxRunner
+              with:
+                  if-stop: true
+
+            - name: Restart IGinX
+              uses: ./.github/actions/iginxRunner
+              with:
+                  if-test-udf: "true"
+
+            - name: Verify Transform Job
+              shell: bash -el {0}
+              run: |
+                  mvn test -q -Dtest=TransformJobRestartIT#verifyJobExists -DfailIfNoTests=false -P-format
+
+            - name: Show IGinX log
+              if: always()
+              shell: bash
+              run: |
+                  cat iginx-*.log
 
             - name: set client test context
               uses: ./.github/actions/context
@@ -113,8 +155,7 @@ jobs:
             # TODO: extract it to a separate job to test
             # large image export only tested in FileSystem
             - name: Test Client Export File
-              if: always()
-              shell: bash
+              shell: bash -el {0}
               run: |
                   if [[ "${{ matrix.DB-name }}" == "FileSystem" ]]; then
                       mvn test -q -Dtest=ExportFileIT -DfailIfNoTests=false -P-format
@@ -136,7 +177,7 @@ jobs:
 
             - name: Test Client Import File
               if: always()
-              shell: bash
+              shell: bash -el {0}
               run: |
                   mvn test -q -Dtest=ImportFileIT -DfailIfNoTests=false -P-format
 
@@ -148,7 +189,7 @@ jobs:
 
             - name: TestController IT
               if: always()
-              shell: bash
+              shell: bash -el {0}
               env:
                   METADATA_STORAGE: ${{ matrix.metadata }}
               run: |
@@ -164,6 +205,8 @@ jobs:
             - name: Change IGinX config
               uses: ./.github/actions/confWriter
               with:
+                  DB-name: ${{ matrix.DB-name }}
+                  Metadata: ${{ matrix.metadata }}
                   Set-Key-Range-Test-Policy: "true"
 
             - name: clean metadata and restart IGinX
@@ -174,7 +217,7 @@ jobs:
 
             - name: FilterFragmentRuleTest IT
               if: always()
-              shell: bash
+              shell: bash -el {0}
               run: |
                   chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/test_union.sh"
                   mvn test -q -Dtest=SQLSessionIT#testFilterFragmentOptimizer -DfailIfNoTests=false -P-format

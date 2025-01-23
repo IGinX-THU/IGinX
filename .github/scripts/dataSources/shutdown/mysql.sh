@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # IGinX - the polystore system with high performance
 # Copyright (C) Tsinghua University
@@ -27,7 +27,7 @@
 #fi
 
 port=$1
-PID_FILE="$SERVICE_DIR/mysql/mysql_$port.pid"
+PID_FILE="${SERVICE_DIR}/mysql/mysql_$port.pid"
 
 PID=$(cat "$PID_FILE")
 if kill -0 $PID 2>/dev/null; then

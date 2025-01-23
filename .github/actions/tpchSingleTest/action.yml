@@ -12,52 +12,22 @@ outputs:
 runs:
     using: "composite"
     steps:
-        - name: Start Old IGinX
-          if: inputs.status != 'ok'
-          shell: bash
-          run: |
-              cd IGinX/core/target/iginx-core-${VERSION}
-              pwd
-              export IGINX_HOME=$PWD
-              echo "IGinX home path: $IGINX_HOME"
-              cd ..
-              chmod +x iginx-core-${VERSION}/sbin/start_iginx.sh
-              nohup iginx-core-${VERSION}/sbin/start_iginx.sh > ../../iginx-${VERSION}.log 2>&1 &
-
-        - name: Run TPCH Test on Old IGinX
-          if: inputs.status != 'ok'
-          shell: bash
-          run: |
-              cp -f test/src/test/resources/tpch/runtimeInfo/failedQueryIds.txt IGinX/test/src/test/resources/tpch/runtimeInfo/failedQueryIds.txt
-              cp -f test/src/test/resources/tpch/runtimeInfo/iterationTimes.txt IGinX/test/src/test/resources/tpch/runtimeInfo/iterationTimes.txt
-              cd IGinX
-              mvn test -q -Dtest=TPCHRegressionMainIT -DfailIfNoTests=false -P-format
-
-        - name: Show Old IGinX log
-          if: always()
-          shell: bash
-          run: cat IGinX/iginx-*.log
-
-        - name: Stop Old IGinX
-          if: inputs.status != 'ok'
-          uses: ./.github/actions/iginxRunner
-          with:
-              version: ${VERSION}
-              if-stop: "true"
-
         - name: Start New IGinX
           if: inputs.status != 'ok'
           uses: ./.github/actions/iginxRunner
 
-        - name: Run Regression Test on New IGinX
+        - name: Run SQL Warmup on New IGinX
           if: inputs.status != 'ok'
-          shell: bash
-          run: |
-              cp -f IGinX/test/src/test/resources/tpch/runtimeInfo/oldTimeCosts.txt test/src/test/resources/tpch/runtimeInfo/oldTimeCosts.txt
-              mvn test -q -Dtest=TPCHRegressionNewIT -DfailIfNoTests=false -P-format
+          shell: bash -el {0}
+          run: mvn test -q -Dtest=SQLWarmupIT -DfailIfNoTests=false -P-format
+
+        - name: Run TPCH Test on New IGinX
+          if: inputs.status != 'ok'
+          shell: bash -el {0}
+          run: mvn test -q -Dtest=TPCHNewIT -DfailIfNoTests=false -P-format
 
         - name: Show New IGinX log
-          if: always()
+          if: always() && inputs.status != 'ok'
           shell: bash
           run: cat iginx-*.log
 
@@ -65,12 +35,45 @@ runs:
           if: inputs.status != 'ok'
           uses: ./.github/actions/iginxRunner
           with:
-              version: ${VERSION}
+              if-stop: "true"
+
+        - name: Start Old IGinX
+          if: inputs.status != 'ok'
+          shell: bash -el {0}
+          working-directory: IGinX
+          run: |
+              chmod +x core/target/iginx-core-*/sbin/start_iginx.sh
+              nohup core/target/iginx-core-*/sbin/start_iginx.sh > iginx-$1.log 2>&1 &
+              sleep 30
+
+        - name: Run SQL Warmup on Old IGinX
+          if: inputs.status != 'ok'
+          shell: bash -el {0}
+          run: mvn test -q -Dtest=SQLWarmupIT -DfailIfNoTests=false -P-format
+
+        - name: Run TPCH Test on Old IGinX
+          if: inputs.status != 'ok'
+          shell: bash -el {0}
+          run: mvn test -q -Dtest=TPCHOldIT -DfailIfNoTests=false -P-format
+
+        - name: Show Old IGinX log
+          if: always() && inputs.status != 'ok'
+          shell: bash
+          run: cat IGinX/iginx-*.log
+
+        - name: Stop Old IGinX
+          if: inputs.status != 'ok'
+          uses: ./.github/actions/iginxRunner
+          with:
               if-stop: "true"
 
         - name: Get Test Result
           id: get
           shell: bash
           run: |
-              STATUS=$(cat test/src/test/resources/tpch/runtimeInfo/status.txt)
-              echo "status=$STATUS" >> $GITHUB_OUTPUT
+              if [ -f test/src/test/resources/tpch/runtimeInfo/status.txt ]; then
+                  STATUS=$(cat test/src/test/resources/tpch/runtimeInfo/status.txt)
+                  echo "status=$STATUS" >> $GITHUB_OUTPUT
+              else  
+                  echo "status=unfinished" >> $GITHUB_OUTPUT
+              fi

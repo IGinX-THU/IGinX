@@ -28,9 +28,9 @@ public class TaskFactory {
   public static Task getTask(TaskInfo info) {
     TaskType taskType = info.getTaskType();
 
-    if (taskType.equals(TaskType.IginX)) {
+    if (taskType.equals(TaskType.IGINX)) {
       return new IginXTask(info);
-    } else if (taskType.equals(TaskType.Python)) {
+    } else if (taskType.equals(TaskType.PYTHON)) {
       return new PythonTask(info);
     } else {
       throw new IllegalArgumentException("Unknown task type: " + taskType.toString());

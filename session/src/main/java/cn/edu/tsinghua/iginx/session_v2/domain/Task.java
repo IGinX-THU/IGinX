@@ -106,15 +106,15 @@ public class Task {
     }
 
     public Task.Builder sql(String sql) {
-      Arguments.checkTaskType(TaskType.IginX, taskType);
-      this.taskType = TaskType.IginX;
+      Arguments.checkTaskType(TaskType.IGINX, taskType);
+      this.taskType = TaskType.IGINX;
       this.sqlList.add(sql);
       return this;
     }
 
     public Task.Builder pyTaskName(String pyTaskName) {
-      Arguments.checkTaskType(TaskType.Python, taskType);
-      this.taskType = TaskType.Python;
+      Arguments.checkTaskType(TaskType.PYTHON, taskType);
+      this.taskType = TaskType.PYTHON;
       this.pyTaskName = pyTaskName;
       return this;
     }

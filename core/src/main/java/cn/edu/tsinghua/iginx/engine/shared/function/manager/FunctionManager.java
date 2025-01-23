@@ -20,24 +20,13 @@
 package cn.edu.tsinghua.iginx.engine.shared.function.manager;
 
 import static cn.edu.tsinghua.iginx.utils.ShellRunner.runCommand;
+import static cn.edu.tsinghua.iginx.utils.ShellRunner.runCommandAndGetResult;
 
 import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.engine.shared.function.Function;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionUtils;
-import cn.edu.tsinghua.iginx.engine.shared.function.system.ArithmeticExpr;
-import cn.edu.tsinghua.iginx.engine.shared.function.system.Avg;
-import cn.edu.tsinghua.iginx.engine.shared.function.system.Count;
-import cn.edu.tsinghua.iginx.engine.shared.function.system.Extract;
-import cn.edu.tsinghua.iginx.engine.shared.function.system.First;
-import cn.edu.tsinghua.iginx.engine.shared.function.system.FirstValue;
-import cn.edu.tsinghua.iginx.engine.shared.function.system.Last;
-import cn.edu.tsinghua.iginx.engine.shared.function.system.LastValue;
-import cn.edu.tsinghua.iginx.engine.shared.function.system.Max;
-import cn.edu.tsinghua.iginx.engine.shared.function.system.Min;
-import cn.edu.tsinghua.iginx.engine.shared.function.system.Ratio;
-import cn.edu.tsinghua.iginx.engine.shared.function.system.SubString;
-import cn.edu.tsinghua.iginx.engine.shared.function.system.Sum;
+import cn.edu.tsinghua.iginx.engine.shared.function.system.*;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.python.PyUDAF;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.python.PyUDF;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.python.PyUDSF;
@@ -72,19 +61,25 @@ public class FunctionManager {
   private static final String PATH =
       String.join(File.separator, config.getDefaultUDFDir(), "python_scripts");
 
-  private final PythonInterpreterConfig INTERPRETER_CONFIG;
+  private PythonInterpreterConfig INTERPRETER_CONFIG;
 
-  private final PythonInterpreter interpreter;
+  private PythonInterpreter interpreter;
 
   private static final String PythonCMD = config.getPythonCMD();
 
   private FunctionManager() {
     this.functions = new HashMap<>();
-    this.INTERPRETER_CONFIG =
-        PythonInterpreterConfig.newBuilder().setPythonExec(PythonCMD).addPythonPaths(PATH).build();
-    // 这是主线程的interpreter，用于删除UDF，UDF运行时使用线程池
-    this.interpreter = new PythonInterpreter(getConfig());
-    ThreadInterpreterManager.setInterpreter(interpreter);
+    LOGGER.debug("main thread: using pythonCMD: {}", PythonCMD);
+    if (LOGGER.isDebugEnabled()) {
+      try {
+        String sitePath =
+            runCommandAndGetResult(
+                "", PythonCMD, "-c", "import sysconfig; print(sysconfig.get_paths()['purelib'])");
+        LOGGER.debug("main thread: python site path: {}", sitePath);
+      } catch (Exception e) {
+        LOGGER.debug("failed to get purelib path", e);
+      }
+    }
     this.initSystemFunctions();
     if (config.isNeedInitBasicUDFFunctions()) {
       this.initBasicUDFFunctions();
@@ -92,7 +87,22 @@ public class FunctionManager {
   }
 
   public PythonInterpreterConfig getConfig() {
+    if (INTERPRETER_CONFIG == null) {
+      this.INTERPRETER_CONFIG =
+          PythonInterpreterConfig.newBuilder()
+              .setPythonExec(PythonCMD)
+              .addPythonPaths(PATH)
+              .build();
+    }
     return INTERPRETER_CONFIG;
+  }
+
+  public PythonInterpreter getInterpreter() {
+    if (interpreter == null) {
+      ThreadInterpreterManager.setConfig(getConfig());
+      interpreter = ThreadInterpreterManager.getInterpreter();
+    }
+    return interpreter;
   }
 
   public static FunctionManager getInstance() {
@@ -257,10 +267,6 @@ public class FunctionManager {
     } else {
       LOGGER.warn("No requirement document provided for python module {}.", rootPath);
     }
-  }
-
-  public PythonInterpreter getInterpreter() {
-    return interpreter;
   }
 
   public boolean hasFunction(String identifier) {
