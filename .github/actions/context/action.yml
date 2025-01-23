@@ -61,9 +61,26 @@ runs:
               fi
 
         - if: inputs.shell=='client-after'
+          name: Install wget and 7zip
+          shell: bash
+          run: |
+              if [ "$RUNNER_OS" == "Linux" ]; then
+                sudo apt-get install -y p7zip-full
+                sudo apt-get install -y wget
+              elif [ "$RUNNER_OS" == "Windows" ]; then
+                choco install 7zip -y
+                choco install wget -y
+              elif [ "$RUNNER_OS" == "macOS" ]; then
+                brew install p7zip
+                brew install wget
+              fi
+
+        - if: inputs.shell=='client-after'
           name: Pre Test Client Import File
           shell: bash
           run: |
+              wget https://github.com/IGinX-THU/IGinX-resources/raw/main/resources/bigcsv.7z
+              7z x bigcsv.7z
               if [ "$RUNNER_OS" == "Linux" ]; then
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_infile.sh"
                 "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_infile.sh" ${VERSION}

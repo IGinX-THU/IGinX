@@ -45,6 +45,8 @@ public abstract class PyUDF implements Function {
   public void close(String funcName, PythonInterpreter interpreter) {
     try {
       interpreter.exec(String.format("import sys; sys.modules.pop('%s', None)", moduleName));
+    } catch (NullPointerException e) {
+      LOGGER.error("Did not find module {} for function {}", moduleName, funcName);
     } catch (Exception e) {
       LOGGER.error("Remove module for udf {} failed:", funcName, e);
     }

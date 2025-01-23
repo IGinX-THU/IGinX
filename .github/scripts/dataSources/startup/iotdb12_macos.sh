@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # IGinX - the polystore system with high performance
 # Copyright (C) Tsinghua University
@@ -37,5 +37,5 @@ do
 
   sh -c "sudo sed -i '' 's/6667/$port/' apache-iotdb-0.12.6-server-bin-$port/conf/iotdb-engine.properties"
 
-  sudo sh -c "cd apache-iotdb-0.12.6-server-bin-$port/; nohup sbin/start-server.sh &"
+  sudo -E sh -c "cd apache-iotdb-0.12.6-server-bin-$port/; nohup sbin/start-server.sh &"
 done

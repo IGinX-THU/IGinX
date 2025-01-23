@@ -99,7 +99,9 @@ public class StorageManager {
       return null;
     } finally {
       try {
-        storage.release();
+        if (storage != null) {
+          storage.release();
+        }
       } catch (Exception e) {
         LOGGER.error("release session pool failure!", e);
       }

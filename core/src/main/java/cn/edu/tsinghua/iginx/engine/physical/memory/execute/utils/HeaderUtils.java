@@ -260,7 +260,9 @@ public class HeaderUtils {
         }
         if (joinPathA == null || joinPathB == null) {
           throw new InvalidOperatorParameterException(
-              "filter: " + filter + " can't be used in hash join.");
+              String.format(
+                  "filter: %s can't be used in hash join, headerA: %s, headerB: %s.",
+                  filter, headerA, headerB));
         }
       }
     }

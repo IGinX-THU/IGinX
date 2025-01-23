@@ -69,7 +69,6 @@ import cn.edu.tsinghua.iginx.thrift.Status;
 import cn.edu.tsinghua.iginx.utils.*;
 import cn.hutool.core.io.CharsetDetector;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.lang.reflect.InvocationTargetException;
@@ -452,7 +451,7 @@ public class StatementExecutor {
 
     if (Objects.requireNonNull(importFile.getType()) == FileType.CSV) {
       ImportCsv importCsv = (ImportCsv) importFile;
-      if (ctx.getLoadCSVFileByteBuffer() == null) {
+      if (ctx.getLoadCSVFileName() == null || ctx.getLoadCSVFileName().isEmpty()) {
         ctx.setResult(new Result(RpcUtils.SUCCESS));
         ctx.getResult().setLoadCSVPath(importCsv.getFilepath());
       } else {
@@ -476,20 +475,11 @@ public class StatementExecutor {
       String keyCol)
       throws IOException {
     final int BATCH_SIZE = config.getBatchSizeImportCsv();
-    File tmpCSV = File.createTempFile("temp", ".csv");
-
-    try (FileOutputStream fos = new FileOutputStream(tmpCSV)) {
-      fos.write(ctx.getLoadCSVFileByteBuffer().array());
-      fos.flush();
-    } catch (IOException e) {
-      throw new RuntimeException(
-          "Encounter an error when writing file "
-              + tmpCSV.getCanonicalPath()
-              + ", because "
-              + e.getMessage());
-    }
-
+    String filepath =
+        String.join(File.separator, System.getProperty("java.io.tmpdir"), ctx.getLoadCSVFileName());
+    File tmpCSV = new File(filepath);
     long count = 0;
+    LOGGER.info("Begin to load data from csv file: {}", tmpCSV.getCanonicalPath());
     try {
       CSVParser parser =
           importCsv
@@ -662,6 +652,7 @@ public class StatementExecutor {
         insertStatement.setBitmaps(bitmaps);
 
         // do the actual insert
+        LOGGER.info("Inserting {} rows, {} rows completed", recordsSize, count);
         RequestContext subInsertContext = new RequestContext(ctx.getSessionId(), insertStatement);
         process(subInsertContext);
 

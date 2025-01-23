@@ -58,7 +58,7 @@ public class RequestContext {
 
   private PhysicalTask physicalTree;
 
-  private ByteBuffer loadCSVFileByteBuffer;
+  private String loadCSVFileName;
 
   private ByteBuffer UDFModuleByteBuffer;
 

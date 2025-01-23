@@ -43,9 +43,15 @@ public class NoIndexChunk extends IndexedChunk {
 
   @Override
   protected IntVector indexOf(Snapshot snapshot, BufferAllocator allocator) {
+    if (tombstone.get(0).isEmpty()) {
+      if (ArrowVectors.isStrictlyOrdered(snapshot.keys)) {
+        return null;
+      }
+    }
+
     IntVector indexes = ArrowVectors.stableSortIndexes(snapshot.keys, allocator);
     ArrowVectors.dedupSortedIndexes(snapshot.keys, indexes);
-    if (!tombstone.isEmpty()) {
+    if (!tombstone.get(0).isEmpty()) {
       ArrowVectors.filter(indexes, i -> !isDeleted(snapshot, i));
     }
     return indexes;
@@ -69,6 +75,6 @@ public class NoIndexChunk extends IndexedChunk {
   @Override
   protected void deleteIndex(RangeSet<Long> rangeSet) {
     tombstone.computeIfAbsent(valueCount, k -> TreeRangeSet.create()).addAll(rangeSet);
-    tombstone.values().forEach(r -> r.removeAll(rangeSet));
+    tombstone.values().forEach(r -> r.addAll(rangeSet));
   }
 }

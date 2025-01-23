@@ -1059,9 +1059,15 @@ public class Session {
     return new Pair<>(ref.resp.getQueryDataSet(), ref.resp.isHasMoreResults());
   }
 
-  public Pair<List<String>, Long> executeLoadCSV(String statement, ByteBuffer csvFile)
+  public void uploadFileChunk(FileChunk chunk) throws SessionException {
+    UploadFileReq req = new UploadFileReq(sessionId, chunk);
+    Reference<UploadFileResp> ref = new Reference<>();
+    executeWithCheck(() -> (ref.resp = client.uploadFileChunk(req)).status);
+  }
+
+  public Pair<List<String>, Long> executeLoadCSV(String statement, String fileName)
       throws SessionException {
-    LoadCSVReq req = new LoadCSVReq(sessionId, statement, csvFile);
+    LoadCSVReq req = new LoadCSVReq(sessionId, statement, fileName);
     Reference<LoadCSVResp> ref = new Reference<>();
     executeWithCheck(() -> (ref.resp = client.loadCSV(req)).status);
 
