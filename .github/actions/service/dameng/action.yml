@@ -38,13 +38,13 @@ runs:
               sleep 10
               for port in ${{ inputs.ports }}; do
                 while true; do
-                  log_output=$(docker logs "${{ inputs.version }}-$port" 2>&1 | grep -i "Database started successfully" || true)
+                  log_output=$(docker logs "${{ inputs.version }}-$port" 2>&1 | grep -i "DM Database is OK" || true)
                   if [ -z "$log_output" ]; then
-                    echo "'Database started successfully' not found in the logs, retrying in 100 seconds..."
+                    echo "'DM Database is OK' not found in the logs, retrying in 100 seconds..."
                     docker logs --tail 10 ${{ inputs.version }}-$port
                     sleep 30
                   else
-                    echo "'Database started successfully.' found in the logs, continuing."
+                    echo "'DM Database is OK.' found in the logs, continuing."
                     break
                   fi
                 done
@@ -74,13 +74,13 @@ runs:
               sleep 10
               for port in ${{ inputs.ports }}; do
                 while true; do
-                  log_output=$(docker logs "${{ inputs.version }}-$port" 2>&1 | grep -i "Database started successfully" || true)
+                  log_output=$(docker logs "${{ inputs.version }}-$port" 2>&1 | grep -i "DM Database is OK" || true)
                   if [ -z "$log_output" ]; then
-                    echo "'Database started successfully' not found in the logs, retrying in 100 seconds..."
+                    echo "'DM Database is OK' not found in the logs, retrying in 100 seconds..."
                     docker logs --tail 10 ${{ inputs.version }}-$port
                     sleep 30
                   else
-                    echo "'Database started successfully.' found in the logs, continuing."
+                    echo "'DM Database is OK.' found in the logs, continuing."
                     break
                   fi
                 done
