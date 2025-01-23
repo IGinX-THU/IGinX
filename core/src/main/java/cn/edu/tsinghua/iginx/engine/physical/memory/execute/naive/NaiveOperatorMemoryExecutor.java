@@ -186,7 +186,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     }
   }
 
-  private Table transformToTable(RowStream stream) throws PhysicalException {
+  public static Table transformToTable(RowStream stream) throws PhysicalException {
     if (stream instanceof Table) {
       return (Table) stream;
     }
@@ -2157,7 +2157,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
         context = tableB.getContext();
       }
       if (context != null && containOverlappedKeys) {
-        context.setWarningMsg("The query results contain overlapped keys.");
+        context.addWarningMessage("The query results contain overlapped keys.");
       }
       table.setContext(context);
 

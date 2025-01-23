@@ -190,20 +190,6 @@ public class Job {
     if (emailNotifier != null) {
       emailNotifier.send(this);
     }
-
-    if (jobFromYAML.getNotification() != null) {
-      EmailFromYAML emailFromYAML = jobFromYAML.getNotification().getEmail();
-      if (emailFromYAML != null) {
-        notifier =
-            new EmailNotifier(
-                emailFromYAML.getHostName(),
-                emailFromYAML.getSmtpPort(),
-                emailFromYAML.getUserName(),
-                emailFromYAML.getPassword(),
-                emailFromYAML.getFrom(),
-                emailFromYAML.getTo());
-      }
-    }
   }
 
   @Override
