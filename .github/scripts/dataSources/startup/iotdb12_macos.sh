@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # IGinX - the polystore system with high performance
 # Copyright (C) Tsinghua University
@@ -28,8 +28,6 @@ sh -c "ls apache-iotdb-0.12.6-server-bin"
 
 sh -c "sudo sed -i '' 's/^# compaction_strategy=.*$/compaction_strategy=NO_COMPACTION/' apache-iotdb-0.12.6-server-bin/conf/iotdb-engine.properties"
 
-sh -c "sudo sed -i '' 's/#storageEngineList=127.0.0.1#6667#iotdb12/storageEngineList=127.0.0.1#6667#iotdb12/g' conf/config.properties"
-
 for port in "$@"
 do
   # target path is also used in update/<db> script
@@ -39,5 +37,5 @@ do
 
   sh -c "sudo sed -i '' 's/6667/$port/' apache-iotdb-0.12.6-server-bin-$port/conf/iotdb-engine.properties"
 
-  sudo sh -c "cd apache-iotdb-0.12.6-server-bin-$port/; nohup sbin/start-server.sh &"
+  sudo -E sh -c "cd apache-iotdb-0.12.6-server-bin-$port/; nohup sbin/start-server.sh &"
 done

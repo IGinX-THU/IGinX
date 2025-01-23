@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # IGinX - the polystore system with high performance
 # Copyright (C) Tsinghua University
@@ -22,7 +22,7 @@ set -e
 port=$1
 cd apache-iotdb-0.12.6-server-bin-$port/
 sudo sysctl -w net.core.somaxconn=65535
-sudo sh -c "nohup sbin/start-server.sh >run.log 2>&1 &"
+sudo -E sh -c "nohup sbin/start-server.sh >run.log 2>&1 &"
 
 sleep 3
 sudo lsof -i:$port

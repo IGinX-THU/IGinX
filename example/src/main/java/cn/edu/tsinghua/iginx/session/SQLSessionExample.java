@@ -60,7 +60,7 @@ public class SQLSessionExample {
 
   private static final String deleteColumns = "DELETE COLUMNS us.d1.s2, us.d1.s4;";
   private static final String addStorageEngines =
-      "ADD STORAGEENGINE (\"127.0.0.1\", 6667, \"iotdb12\", \"username: root, password: root\"), (\"127.0.0.1\", 6668, \"influxdb\", \"key: val\");";
+      "ADD STORAGEENGINE (\"127.0.0.1\", 6667, \"iotdb12\", \"username=root, password=root\"), (\"127.0.0.1\", 6668, \"influxdb\", \"key=val\");";
 
   private static final String countPoints = "COUNT POINTS;";
   private static final String showReplication = "SHOW REPLICA NUMBER;";

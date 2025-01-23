@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # IGinX - the polystore system with high performance
 # Copyright (C) Tsinghua University
@@ -18,7 +18,7 @@
 #
 
 port=$1
-cd "$SERVICE_DIR_MAC/mysql"
+cd "${SERVICE_DIR}/mysql"
 sudo nohup mysqld --defaults-file=./$port.ini > /dev/null 2>&1 &
 echo $! > ./mysql_$port.pid
 sleep 2

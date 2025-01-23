@@ -368,4 +368,48 @@ public class StringUtils {
     }
     return target;
   }
+
+  public static String getLongestCommonPrefix(List<String> patterns) {
+    if (patterns == null || patterns.isEmpty()) {
+      return "";
+    }
+    int minLen = Integer.MAX_VALUE;
+    for (String str : patterns) {
+      minLen = Math.min(minLen, str.length());
+    }
+    int low = 0, high = minLen;
+    while (low < high) {
+      int mid = (high - low + 1) / 2 + low;
+      if (isCommonPrefix(patterns, mid)) {
+        low = mid;
+      } else {
+        high = mid - 1;
+      }
+    }
+    String prefix = patterns.get(0).substring(0, low);
+    int lastDotIndex = prefix.lastIndexOf(".");
+    return lastDotIndex != -1 ? prefix.substring(0, lastDotIndex) : "";
+  }
+
+  private static boolean isCommonPrefix(List<String> patterns, int length) {
+    String prefix = patterns.get(0).substring(0, length);
+    for (String str : patterns) {
+      if (!str.startsWith(prefix)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  public static boolean hasCommonPrefix(String prefix, String pattern) {
+    while (!pattern.startsWith(prefix)) {
+      int lastDotIndex = prefix.lastIndexOf(".");
+      if (lastDotIndex != -1) {
+        prefix = prefix.substring(0, lastDotIndex);
+      } else {
+        return false;
+      }
+    }
+    return true;
+  }
 }

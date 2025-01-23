@@ -72,6 +72,7 @@ public class Result {
 
   private long jobId;
   private Map<JobState, List<Long>> jobStateMap;
+  private String jobYamlPath;
 
   private Map<String, String> configs;
 
@@ -152,6 +153,7 @@ public class Result {
     resp.setJobId(jobId);
     resp.setJobState(jobState);
     resp.setJobStateMap(jobStateMap);
+    resp.setJobYamlPath(jobYamlPath);
     resp.setConfigs(configs);
     // INFILE AS CSV
     resp.setLoadCsvPath(loadCSVPath);

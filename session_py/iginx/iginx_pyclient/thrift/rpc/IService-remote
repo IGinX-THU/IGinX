@@ -64,6 +64,7 @@ if len(sys.argv) <= 1 or sys.argv[1] == '--help':
     print('  ShowSessionIDResp showSessionID(ShowSessionIDReq req)')
     print('  ShowRulesResp showRules(ShowRulesReq req)')
     print('  Status setRules(SetRulesReq req)')
+    print('  UploadFileResp uploadFileChunk(UploadFileReq req)')
     print('')
     sys.exit(0)
 
@@ -382,6 +383,12 @@ elif cmd == 'setRules':
         print('setRules requires 1 args')
         sys.exit(1)
     pp.pprint(client.setRules(eval(args[0]),))
+
+elif cmd == 'uploadFileChunk':
+    if len(args) != 1:
+        print('uploadFileChunk requires 1 args')
+        sys.exit(1)
+    pp.pprint(client.uploadFileChunk(eval(args[0]),))
 
 else:
     print('Unrecognized method %s' % cmd)

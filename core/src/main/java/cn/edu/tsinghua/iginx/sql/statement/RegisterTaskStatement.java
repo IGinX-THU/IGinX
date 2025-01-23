@@ -58,8 +58,8 @@ public class RegisterTaskStatement extends SystemStatement {
   public void execute(RequestContext ctx) throws StatementExecutionException {
     File file = new File(filePath);
     // in two conditions we need extra information: remote && no buffer; local && relative filepath
-    if ((ctx.getUDFModuleByteBuffer() == null && ctx.isRemoteUDF())
-        || (!ctx.isRemoteUDF() && !file.isAbsolute())) {
+    if ((ctx.getUDFModuleByteBuffer() == null && ctx.isRemoteSession())
+        || (!ctx.isRemoteSession() && !file.isAbsolute())) {
       ctx.setResult(new Result(RpcUtils.SUCCESS));
       ctx.getResult().setUDFModulePath(filePath);
       return;
@@ -79,7 +79,7 @@ public class RegisterTaskStatement extends SystemStatement {
             pairs,
             types,
             ctx.getUDFModuleByteBuffer(),
-            ctx.isRemoteUDF());
+            ctx.isRemoteSession());
     status = worker.registerTask(req);
     ctx.setResult(new Result(status));
     ctx.getResult().setUDFModulePath(filePath);
