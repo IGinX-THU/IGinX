@@ -139,4 +139,4 @@ runs:
           name: Start Oracle Service
           uses: ./.github/actions/service/oracle
           with:
-            ports: ${{ inputs.Oracle-ports }}
+              ports: ${{ inputs.Oracle-ports }}
