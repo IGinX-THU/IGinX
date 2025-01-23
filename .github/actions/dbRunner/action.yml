@@ -38,6 +38,7 @@ inputs:
         description: "Oracle ports"
         required: false
         default: 1521
+
 runs:
     using: "composite" # Mandatory parameter
     steps:
