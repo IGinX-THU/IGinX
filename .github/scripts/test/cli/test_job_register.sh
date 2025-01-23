@@ -20,12 +20,12 @@
 
 set -e
 
-<<<<<<<< HEAD:.github/scripts/dataSources/restart/postgresql_macos.sh
+<<<<<<<< HEAD:.github/scripts/dataSources/restart/postgresql_windows.sh
 PGDATA=$1
 
-pg_ctl -D ".github/actions/service/postgresql/${PGDATA}" start
+pg_ctl -D "${SERVICE_DIR}/postgresql/${PGDATA}" start
 
-lsof -i:$1
+netstat -ano | grep ":$1"
 ========
 cp -f test/src/test/resources/transform/TransformMultiplePythonJobsWithExportToIginx.yaml client/target/iginx-client-$1/sbin/TransformMultiplePythonJobsWithExportToIginx.yaml
 

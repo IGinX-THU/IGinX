@@ -65,21 +65,6 @@ runs:
               paths: ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-*/conf/config.properties
               statements: s/zookeeperConnectionString=127.0.0.1:[0-9]*/zookeeperConnectionString=127.0.0.1:${{ inputs.zookeeper-port }}/g
 
-        - if: inputs.zookeeper-port!='2181'
-          name: Change Zookeeper Port
-          shell: bash
-          run: |
-              if [ "$RUNNER_OS" == "Linux" ]; then
-                sudo sed -i 's/zookeeperConnectionString=127.0.0.1:2181/zookeeperConnectionString=127.0.0.1:${{ inputs.zookeeper-port }}/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-              elif [ "$RUNNER_OS" == "Windows" ]; then
-                sed -i 's/zookeeperConnectionString=127.0.0.1:2181/zookeeperConnectionString=127.0.0.1:${{ inputs.zookeeper-port }}/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-              elif [ "$RUNNER_OS" == "macOS" ]; then
-                sudo sed -i '' 's/zookeeperConnectionString=127.0.0.1:2181/zookeeperConnectionString=127.0.0.1:${{ inputs.zookeeper-port }}/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-              else
-                echo "$RUNNER_OS is not supported"
-                exit 1
-              fi
-
         - name: Change UDF conf
           uses: ./.github/actions/edit
           with:
