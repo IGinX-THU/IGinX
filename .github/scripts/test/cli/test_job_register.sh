@@ -16,17 +16,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-
+ 
 
 set -e
 
-<<<<<<<< HEAD:.github/scripts/dataSources/restart/postgresql_windows.sh
-PGDATA=$1
-
-pg_ctl -D "${SERVICE_DIR}/postgresql/${PGDATA}" start
-
-netstat -ano | grep ":$1"
-========
 cp -f test/src/test/resources/transform/TransformMultiplePythonJobsWithExportToIginx.yaml client/target/iginx-client-$1/sbin/TransformMultiplePythonJobsWithExportToIginx.yaml
 
 ls client/target/iginx-client-$1/sbin
@@ -49,4 +42,3 @@ else
   echo $result
   exit 1
 fi
->>>>>>>> main:.github/scripts/test/cli/test_job_register.sh
