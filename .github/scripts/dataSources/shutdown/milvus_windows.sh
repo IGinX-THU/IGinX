@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # IGinX - the polystore system with high performance
 # Copyright (C) Tsinghua University
@@ -24,6 +24,6 @@ pwd
 
 wsl docker-compose -f $port/docker-compose-$port.yml down
 
-sleep 5
+sleep 10
 
 wsl docker ps
