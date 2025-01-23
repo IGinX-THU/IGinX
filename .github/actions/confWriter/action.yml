@@ -110,7 +110,6 @@ runs:
               statements: |
                   s/Rule=on/Rule=off/g
                   s/enablePushDown=true/enablePushDown=false/g
-                  s/ColumnPruningRule=off/ColumnPruningRule=on/g
 
         - if: inputs.Set-Key-Range-Test-Policy=='true'
           name: Change KeyRangeTestPolicy

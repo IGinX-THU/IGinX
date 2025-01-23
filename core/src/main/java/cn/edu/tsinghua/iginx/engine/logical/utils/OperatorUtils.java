@@ -40,6 +40,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.PathFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.JoinAlgType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OuterJoinType;
+import cn.edu.tsinghua.iginx.engine.shared.operator.visitor.OperatorVisitor;
 import cn.edu.tsinghua.iginx.engine.shared.source.ConstantSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.FragmentSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
@@ -185,8 +186,11 @@ public class OperatorUtils {
     }
     AbstractJoin applyCopy = (AbstractJoin) apply.copy();
 
+    Operator left = ((OperatorSource) applyCopy.getSourceA()).getOperator();
+    addCorVarsToLeft(left, correlatedVariables);
+    Operator leftCopy = left.copy();
     Operator operatorA =
-        new Project(applyCopy.getSourceA(), correlatedVariables, null, false, true);
+        new Project(new OperatorSource(left), correlatedVariables, null, false, true);
     applyCopy.setSourceA(new OperatorSource(operatorA));
     applyCopy.setPrefixA(null);
     if (applyCopy.getType() == OperatorType.MarkJoin) {
@@ -215,7 +219,7 @@ public class OperatorUtils {
     if (apply.getType() == OperatorType.CrossJoin) {
       apply =
           new InnerJoin(
-              apply.getSourceA(),
+              new OperatorSource(leftCopy),
               new OperatorSource(right),
               apply.getPrefixA(),
               apply.getPrefixB(),
@@ -226,11 +230,49 @@ public class OperatorUtils {
               JoinAlgType.HashJoin,
               correlatedVariables);
     } else {
+      apply.setSourceA(new OperatorSource(leftCopy));
       apply.setSourceB(new OperatorSource(right));
       apply.setExtraJoinPrefix(correlatedVariables);
       apply.setJoinAlgType(JoinAlgType.HashJoin);
     }
     return apply;
+  }
+
+  private static void addCorVarsToLeft(Operator root, List<String> correlatedVariables) {
+    root.accept(
+        new OperatorVisitor() {
+          private List<String> corVars = new ArrayList<>(correlatedVariables);
+
+          @Override
+          public void visit(UnaryOperator unaryOperator) {
+            switch (unaryOperator.getType()) {
+              case Project:
+                Project project = (Project) unaryOperator;
+                String longestCommonPrefix =
+                    StringUtils.getLongestCommonPrefix(project.getPatterns());
+                for (String corVar : corVars) {
+                  if (StringUtils.hasCommonPrefix(longestCommonPrefix, corVar)
+                      && project.getPatterns().stream()
+                          .noneMatch(pattern -> StringUtils.match(corVar, pattern))) {
+                    project.getPatterns().add(corVar);
+                  }
+                }
+                break;
+              case Rename:
+                Rename rename = (Rename) unaryOperator;
+                corVars = PathUtils.recoverRenamedPatterns(rename.getAliasList(), corVars);
+                break;
+              default:
+                break;
+            }
+          }
+
+          @Override
+          public void visit(BinaryOperator binaryOperator) {}
+
+          @Override
+          public void visit(MultipleOperator multipleOperator) {}
+        });
   }
 
   private static Operator pushDownApply(Operator root, List<String> correlatedVariables) {
