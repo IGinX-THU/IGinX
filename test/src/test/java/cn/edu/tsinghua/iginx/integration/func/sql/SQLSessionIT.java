@@ -3189,7 +3189,7 @@ public class SQLSessionIT {
     executor.executeAndCompare(query, expected);
 
     query =
-        "select test1.d, sum(avg_a) from test1 join (select d, avg(a) as avg_a from test2 group by d) on test1.d = test2.d group by test1.d;";
+        "select test1.d, sum(avg_a) from test1 join (select d, avg(a) as avg_a from test2 group by d) on test1.d = test2.d group by test1.d order by test1.d desc;";
     expected =
         "ResultSets:\n"
             + "+-------+----------+\n"
@@ -7000,7 +7000,7 @@ public class SQLSessionIT {
                     + "+---+------------+----------+-------------+-------------+\n"
                     + "Total line number = 7\n"),
             new Pair<>(
-                "select avg(test1.a), test2.d from test1 join test2 on test1.a = test2.a group by test2.d;",
+                "select avg(test1.a), test2.d from test1 join test2 on test1.a = test2.a group by test2.d order by test2.d desc;",
                 "ResultSets:\n"
                     + "+------------+-------+\n"
                     + "|avg(test1.a)|test2.d|\n"
@@ -7012,7 +7012,7 @@ public class SQLSessionIT {
                     + "+------------+-------+\n"
                     + "Total line number = 4\n"),
             new Pair<>(
-                "select avg(test1.a), max(test1.c), test2.d from test1 join test2 on test1.a = test2.a group by test2.d;",
+                "select avg(test1.a), max(test1.c), test2.d from test1 join test2 on test1.a = test2.a group by test2.d order by test2.d desc;",
                 "ResultSets:\n"
                     + "+------------+------------+-------+\n"
                     + "|avg(test1.a)|max(test1.c)|test2.d|\n"
@@ -7024,7 +7024,7 @@ public class SQLSessionIT {
                     + "+------------+------------+-------+\n"
                     + "Total line number = 4\n"),
             new Pair<>(
-                "select avg(test1.a), max(test1.c), test2.d from test1 join test2 on test1.a = test2.a group by test2.d having max(test1.c) > 3.5;",
+                "select avg(test1.a), max(test1.c), test2.d from test1 join test2 on test1.a = test2.a group by test2.d having max(test1.c) > 3.5 order by test2.d desc;",
                 "ResultSets:\n"
                     + "+------------+------------+-------+\n"
                     + "|avg(test1.a)|max(test1.c)|test2.d|\n"
@@ -7152,6 +7152,7 @@ public class SQLSessionIT {
                 "maxTimeseriesLength",
                 "batchSize",
                 "parallelGroupByPoolSize",
+                "pipelineParallelism",
                 "username"));
 
     assertEquals(expectedConfigNames, configs.keySet());
