@@ -16,19 +16,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-
+ 
 
 set -e
 
-<<<<<<<< HEAD:.github/scripts/dataSources/restart/redis_windows.sh
-PORT=$1
-current_dir=$(pwd)
-cd "$SERVICE_DIR_WIN/redis"
-redis-server --port $PORT --dir "$SERVICE_DIR_WIN/redis/$PORT" --daemonize yes --pidfile "$SERVICE_DIR_WIN/redis/$PORT/redis.pid"
-cd $current_dir
-mvn test -q -Dtest=RedisHistoryDataGenerator#oriHasDataExpHasData -DfailIfNoTests=false -P-format
-
-========
 cp -f test/src/test/resources/transform/TransformMultiplePythonJobsWithExportToIginx.yaml client/target/iginx-client-$1/sbin/TransformMultiplePythonJobsWithExportToIginx.yaml
 
 ls client/target/iginx-client-$1/sbin
@@ -47,4 +38,3 @@ else
   echo $result
   exit 1
 fi
->>>>>>>> main:.github/scripts/test/cli/test_job_register_windows.sh
