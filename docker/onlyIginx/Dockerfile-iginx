@@ -4,7 +4,7 @@ WORKDIR /root/iginx
 RUN mvn clean package -DskipTests -P-format
 
 FROM openjdk:11-jre-slim
-COPY --from=builder /root/iginx/core/target/iginx-core-0.8.0 /iginx
+COPY --from=builder /root/iginx/core/target/iginx-core-0.9.0-SNAPSHOT /iginx
 # 安装 Python 3.8, pip 并安装所需的 Python 包
 
 RUN apt-get update && \
