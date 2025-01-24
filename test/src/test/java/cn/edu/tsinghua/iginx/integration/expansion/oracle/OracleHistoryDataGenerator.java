@@ -34,10 +34,10 @@ public class OracleHistoryDataGenerator extends BaseHistoryDataGenerator {
   private static final char SEPARATOR = '.';
 
   private static final String QUERY_DATABASES_STATEMENT =
-      "select distinct s.owner as DATNAME from dba_segments s where s.tablespace_name ='USERS'";
+          "SELECT username  as DATNAME FROM DBA_USERS WHERE CREATED > TO_DATE('2025-01-01', 'YYYY-MM-DD')";
 
   private static final String CREATE_DATABASE_STATEMENT =
-      "CREATE USER %s DEFAULT TABLESPACE users TEMPORARY TABLESPACE temp";
+          "CREATE USER %s";
 
   private static final String GRANT_DATABASE_STATEMENT =
       "GRANT CREATE SESSION,CREATE TABLE,RESOURCE,UNLIMITED TABLESPACE TO %s";
@@ -64,7 +64,7 @@ public class OracleHistoryDataGenerator extends BaseHistoryDataGenerator {
       // TODO 获取docker container 虚拟IP 172.17.0.2
       url =
           String.format(
-              "jdbc:oracle:thin:system/Oracle123@172.17.0.2:%d/%s",
+              "jdbc:oracle:thin:system/Oracle123@127.0.0.1:%d/%s",
               port, databaseName == null ? "ORCLPDB" : databaseName);
       Class.forName("oracle.jdbc.driver.OracleDriver");
       return DriverManager.getConnection(url);
@@ -111,11 +111,11 @@ public class OracleHistoryDataGenerator extends BaseHistoryDataGenerator {
         String grantDatabaseSql =
             String.format(GRANT_DATABASE_STATEMENT, getQuotName(databaseName));
         try {
-          LOGGER.info("create database with stmt: {}", createDatabaseSql);
+          LOGGER.info("create database with stmt: {} {}", port,  createDatabaseSql);
           stmt.execute(createDatabaseSql);
           stmt.execute(grantDatabaseSql);
         } catch (SQLException e) {
-          LOGGER.info("database {} exists!", databaseName);
+          LOGGER.info("database {} {} exists!", port, databaseName);
         }
         stmt.close();
 
