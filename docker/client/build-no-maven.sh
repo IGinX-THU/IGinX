@@ -19,4 +19,4 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
-docker build --file Dockerfile-no-maven -t iginx-client:0.8.0-SNAPSHOT ../../client
+docker build --file Dockerfile-no-maven -t iginx-client:0.8.0 ../../client

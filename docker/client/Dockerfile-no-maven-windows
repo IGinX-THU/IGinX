@@ -2,7 +2,7 @@
 FROM mcr.microsoft.com/windows/servercore:ltsc2022
 COPY . C:/iginx
 WORKDIR C:/iginx
-COPY ./target/iginx-client-0.8.0-SNAPSHOT/ C:/iginx_client
+COPY ./target/iginx-client-0.8.0/ C:/iginx_client
 
 # 设置环境变量
 USER ContainerAdministrator
