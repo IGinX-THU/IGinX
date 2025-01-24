@@ -24,7 +24,6 @@ import static org.junit.Assert.*;
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
-import cn.edu.tsinghua.iginx.utils.ShellRunner;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
