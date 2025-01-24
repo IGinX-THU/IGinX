@@ -121,15 +121,20 @@ public class RelationalStorage implements IStorage {
     }
 
     // oracle只能针对实例（SID）建立连接，databaseName在oracle中对应的是user/schema
-    // dameng只能针对实例（SID）建立连接，databaseName在dameng中对应的是user/schema
-    if (engineName.equals("oracle") || engineName.equals("dameng")) {
+    if (engineName.equals("oracle")) {
       databaseName = relationalMeta.getDefaultDatabaseName();
     }
 
     HikariDataSource dataSource = connectionPoolMap.get(databaseName);
     if (dataSource != null) {
       try {
-        Connection conn = dataSource.getConnection();
+        Connection conn;
+        if (engineName.equals("dameng")) {
+          // 使用username和password连接
+          conn = DriverManager.getConnection(getUrl(databaseName, meta));
+        } else {
+          conn = dataSource.getConnection();
+        }
         return conn;
       } catch (SQLException e) {
         LOGGER.error("Cannot get connection for database {}", databaseName, e);
@@ -185,6 +190,15 @@ public class RelationalStorage implements IStorage {
             String.format(
                 "jdbc:oracle:thin:@//%s:%d/%s",
                 meta.getIp(), meta.getPort(), relationalMeta.getDefaultDatabaseName());
+        break;
+      case "dameng":
+        url =
+            String.format(
+                "jdbc:dm://%s:%s/?user=%s&password=%s",
+                meta.getIp(),
+                meta.getPort(),
+                extraParams.get("username"),
+                extraParams.get("password"));
         break;
       default:
         url =

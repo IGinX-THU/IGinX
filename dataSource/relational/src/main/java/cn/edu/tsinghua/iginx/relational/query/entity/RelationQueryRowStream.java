@@ -327,6 +327,8 @@ public class RelationQueryRowStream implements RowStream {
                 } else {
                   if (value instanceof BigDecimal) {
                     tempValue = ((BigDecimal) value).intValue() == 1;
+                  } else if (value instanceof Byte) {
+                    tempValue = ((Byte) value) == 1;
                   } else {
                     tempValue = ((int) value) == 1;
                   }
