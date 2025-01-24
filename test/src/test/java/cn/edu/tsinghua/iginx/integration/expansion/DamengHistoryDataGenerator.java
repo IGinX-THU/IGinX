@@ -53,9 +53,7 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
 
   private Connection connect(int port, boolean useSystemDatabase, String databaseName) {
     try {
-      String url =
-          String.format(
-              "jdbc:dm://172.17.0.2:%d/%s", port, databaseName == null ? "DMDB" : databaseName);
+      String url = String.format("jdbc:dm://127.0.0.1:%d", port);
       Class.forName("dm.jdbc.driver.DmDriver");
       return DriverManager.getConnection(url, "SYSDBA", "SYSDBA001");
     } catch (SQLException | ClassNotFoundException e) {
