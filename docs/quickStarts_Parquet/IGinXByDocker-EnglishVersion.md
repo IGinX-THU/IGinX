@@ -250,7 +250,7 @@ The following words are displayed to indicate that the image was built successfu
 => [builder 2/4] COPY . /root/iginx                                                                               1.3s
 => [builder 3/4] WORKDIR /root/iginx                                                                              0.1s
 => [builder 4/4] RUN mvn clean package -DskipTests -P passFormat                                                876.3s
-=> [stage-1 2/2] COPY --from=builder /root/iginx/core/target/iginx-core-0.8.0-SNAPSHOT /iginx                     0.2s
+=> [stage-1 2/2] COPY --from=builder /root/iginx/core/target/iginx-core-0.8.0 /iginx                     0.2s
 => exporting to image                                                                                             0.5s
 => => exporting layers                                                                                            0.5s
 => => writing image sha256:e738348598c9db601dbf39c7a8ca9e1396c5ff51769afeb0fe3da12e2fdcd73a                       0.0s
