@@ -180,7 +180,7 @@ The following words are displayed, indicating that the IGinX build is successful
 
 ```shell
 [INFO] ------------------------------------------------------------------------
-[INFO] Reactor Summary for IGinX 0.7.2:
+[INFO] Reactor Summary for IGinX 0.8.0-SNAPSHOT:
 [INFO]
 [INFO] IGinX .............................................. SUCCESS [ 20.674 s]
 [INFO] IGinX Thrift ....................................... SUCCESS [01:18 min]
@@ -266,10 +266,10 @@ The following display of words means the IGinX installation was successful：
 
 ```shell
 May 27, 2021 8:32:19 AM org.glassfish.grizzly.http.server.NetworkListener start
-INFO: Started listener bound to [127.0.0.1:6666]
+INFO: Started listener bound to [127.0.0.1:7888]
 May 27, 2021 8:32:19 AM org.glassfish.grizzly.http.server.HttpServer start
 INFO: [HttpServer] Started.
-08:32:19.446 [Thread-0] INFO cn.edu.tsinghua.iginx.rest.RestServer - IGinX REST server has been available at http://127.0.0.1:6666/.
+08:32:19.446 [Thread-0] INFO cn.edu.tsinghua.iginx.rest.RestServer - IGinX REST server has been available at http://127.0.0.1:7888/.
 ```
 
 ## Using IGinX
@@ -308,7 +308,7 @@ Create a file insert.json and add the following into it:
 Insert data into the database using the following command:
 
 ```shell
-$ curl -XPOST -H'Content-Type: application/json' -d @insert.json http://127.0.0.1:6666/api/v1/datapoints
+$ curl -XPOST -H'Content-Type: application/json' -d @insert.json http://127.0.0.1:7888/api/v1/datapoints
 ```
 
 After inserting data, you can also query the data just written using the RESTful interface.
@@ -337,7 +337,7 @@ Create a file query.json and write the following data into it:
 Enter the following command to query the data:
 
 ```shell
-$ curl -XPOST -H'Content-Type: application/json' -d @query.json http://127.0.0.1:6666/api/v1/datapoints/query
+$ curl -XPOST -H'Content-Type: application/json' -d @query.json http://127.0.0.1:7888/api/v1/datapoints/query
 ```
 
 The command will return information about the data point just inserted:
@@ -566,3 +566,45 @@ session.closeSession();
 ```
 
 For the full version of the code, please refer to: https://github.com/IGinX-THU/IGinX/blob/main/example/src/main/java/cn/edu/tsinghua/iginx/session/IoTDBSessionExample.java
+
+## FAQ
+
+### Unable to find parquet-file dependency
+
+When compiling IGinX with Maven, you may encounter the following error:
+
+```
+The following artifacts could not be resolved: cn.edu.tsinghua.iginx:parquet-file
+```
+
+This is because the parquet-file dependency required by IGinX is not published to the Maven Central Repository but is hosted on GitHub Pages. Therefore, we need to add the following repository address to the pom.xml file:
+
+```xml
+<repositories>
+    <repository>
+        <id>parquet-file</id>
+        <name>IGinX GitHub repository</name>
+        <url>https://iginx-thu.github.io/Parquet/maven-repo</url>
+    </repository>
+</repositories>
+```
+
+If you have configured a mirror, for example:
+
+```xml
+<mirror>
+    <id>aliyunmaven</id>
+    <mirrorof>central</mirrorOf>
+    <name>Aliyun Public Repository</name>
+    <url>https://maven.aliyun.com/repository/central</url>
+</mirror>
+```
+
+Note that the value of mirrorOf is central, which means that only when accessing the Maven Central Repository will the Aliyun mirror be used.
+If you configure it as *, it means that all Maven repositories will use the Aliyun mirror, which will cause the parquet-file dependency required
+by IGinX to fail to download.
+
+If you are unable to download the dependency due to network issues, you can try using a proxy.
+Additionally, you can manually download the dependency and then use Maven's install command to install it to
+the local repository. For more details, see: https://maven.apache.org/guides/mini/guide-3rd-party-jars-local.html
+

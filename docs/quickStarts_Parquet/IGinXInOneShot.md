@@ -90,7 +90,7 @@ You can now test IGinX. Have fun!~
 ```json
 [
   {
-    "name": "archive_file_tracked",
+    "name": "archive_file.tracked",
     "datapoints": [
         [1359788400000, 123.3],
         [1359788300000, 13.2 ],
@@ -102,7 +102,7 @@ You can now test IGinX. Have fun!~
     }
   },
   {
-      "name": "archive_file_search",
+      "name": "archive_file.search",
       "timestamp": 1359786400000,
       "value": 321,
       "tags": {
@@ -115,7 +115,7 @@ You can now test IGinX. Have fun!~
 使用如下的命令即可向数据库中插入数据：
 
 ```shell
-$ curl -XPOST -H'Content-Type: application/json' -d @insert.json http://127.0.0.1:6666/api/v1/datapoints
+$ curl -XPOST -H'Content-Type: application/json' -d @insert.json http://127.0.0.1:7888/api/v1/datapoints
 ```
 
 在插入数据后，还可以使用 RESTful 接口查询刚刚写入的数据。
@@ -132,10 +132,10 @@ $ curl -XPOST -H'Content-Type: application/json' -d @insert.json http://127.0.0.
 	"time_zone": "Asia/Kabul",
 	"metrics": [
 		{
-		"name": "archive_file_tracked"
+		"name": "archive_file.tracked"
 		},
 		{
-		"name": "archive_file_search"
+		"name": "archive_file.search"
 		}
 	]
 }
@@ -144,7 +144,7 @@ $ curl -XPOST -H'Content-Type: application/json' -d @insert.json http://127.0.0.
 使用如下的命令查询数据：
 
 ```shell
-$ curl -XPOST -H'Content-Type: application/json' -d @query.json http://127.0.0.1:6666/api/v1/datapoints/query
+$ curl -XPOST -H'Content-Type: application/json' -d @query.json http://127.0.0.1:7888/api/v1/datapoints/query
 ```
 
 命令会返回刚刚插入的数据点信息：
@@ -156,7 +156,7 @@ $ curl -XPOST -H'Content-Type: application/json' -d @query.json http://127.0.0.1
             "sample_size": 3,
             "results": [
                 {
-                    "name": "archive_file_tracked",
+                    "name": "archive_file.tracked",
                     "group_by": [
                         {
                             "name": "type",
@@ -192,7 +192,7 @@ $ curl -XPOST -H'Content-Type: application/json' -d @query.json http://127.0.0.1
             "sample_size": 1,
             "results": [
                 {
-                    "name": "archive_file_search",
+                    "name": "archive_file.search",
                     "group_by": [
                         {
                             "name": "type",
