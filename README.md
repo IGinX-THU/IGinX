@@ -18,7 +18,7 @@ IGinX is open for new team members or contributions. If you would like to join o
 
 ## License
 
-[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+[![License: LGPL v3](https://img.shields.io/badge/License-LGPLv3-blue.svg)](https://www.gnu.org/licenses/lgpl-3.0)
 © 2023 (Tsinghua University).
 
 Please note that this refers to the middleware pieces of the IGinX system.
