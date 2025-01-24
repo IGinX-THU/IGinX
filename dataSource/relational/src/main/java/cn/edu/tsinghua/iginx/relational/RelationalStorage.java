@@ -211,6 +211,12 @@ public class RelationalStorage implements IStorage {
                 meta.getPort(),
                 relationalMeta.getDefaultDatabaseName());
         break;
+      case "dameng":
+        connUrl =
+            String.format(
+                "jdbc:dm://%s:%s/?user=%s&password=%s",
+                meta.getIp(), meta.getPort(), username, password);
+        break;
       default:
         connUrl =
             password == null
