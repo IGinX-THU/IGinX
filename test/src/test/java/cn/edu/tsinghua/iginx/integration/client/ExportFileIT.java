@@ -29,8 +29,11 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ExportFileIT {
+  private static final Logger LOGGER = LoggerFactory.getLogger(ExportFileIT.class);
 
   @Test
   public void checkExportByteStream() {
@@ -46,6 +49,7 @@ public class ExportFileIT {
     assertTrue(dirFile.exists());
     assertTrue(dirFile.isDirectory());
     List<String> filenames = Arrays.asList(Objects.requireNonNull(dirFile.list()));
+    LOGGER.info("Files in directory: {}", filenames);
     assertEquals(filenames.size(), 4);
 
     filenames.sort(String::compareTo);

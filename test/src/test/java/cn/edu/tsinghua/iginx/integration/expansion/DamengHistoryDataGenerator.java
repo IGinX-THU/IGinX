@@ -187,7 +187,7 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
         LOGGER.info("Dropping database {} on 127.0.0.1:{}...", databaseName, port);
       }
 
-//      dropDatabaseStatement.executeBatch();
+      //      dropDatabaseStatement.executeBatch();
 
       dropDatabaseStatement.close();
       databaseSet.close();
@@ -239,7 +239,8 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
       LOGGER.error("cannot connect to 127.0.0.1:{}!", port);
       return;
     }
-    try (Statement stmt = conn.createStatement(); ResultSet resultSet = stmt.executeQuery(query)) {
+    try (Statement stmt = conn.createStatement();
+        ResultSet resultSet = stmt.executeQuery(query)) {
       while (resultSet.next()) {
         int sid = resultSet.getInt("sess_id");
         LOGGER.info("Killing session with SID: {}", sid);
