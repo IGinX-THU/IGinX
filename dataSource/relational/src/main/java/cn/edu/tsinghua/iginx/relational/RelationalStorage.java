@@ -322,21 +322,27 @@ public class RelationalStorage implements IStorage {
    */
   private List<String> getDatabaseNames() throws SQLException {
     List<String> databaseNames = new ArrayList<>();
-    Connection conn = getConnection(relationalMeta.getDefaultDatabaseName());
-    Statement statement = conn.createStatement();
-    ResultSet rs = statement.executeQuery(relationalMeta.getDatabaseQuerySql());
-    while (rs.next()) {
-      String databaseName = rs.getString("DATNAME");
-      if (relationalMeta.getSystemDatabaseName().contains(databaseName)
-          || relationalMeta.getDefaultDatabaseName().equals(databaseName)) {
-        continue;
+    String DefaultDatabaseName = relationalMeta.getDefaultDatabaseName();
+    if (DefaultDatabaseName.equals("DAMENG")) {
+      databaseNames.add(DefaultDatabaseName);
+      return databaseNames;
+    } else {
+      Connection conn = getConnection(relationalMeta.getDefaultDatabaseName());
+      Statement statement = conn.createStatement();
+      ResultSet rs = statement.executeQuery(relationalMeta.getDatabaseQuerySql());
+      while (rs.next()) {
+        String databaseName = rs.getString("DATNAME");
+        if (relationalMeta.getSystemDatabaseName().contains(databaseName)
+            || relationalMeta.getDefaultDatabaseName().equals(databaseName)) {
+          continue;
+        }
+        databaseNames.add(databaseName);
       }
-      databaseNames.add(databaseName);
+      rs.close();
+      statement.close();
+      conn.close();
+      return databaseNames;
     }
-    rs.close();
-    statement.close();
-    conn.close();
-    return databaseNames;
   }
 
   private List<String> getTables(String databaseName, String tablePattern) {
@@ -482,7 +488,6 @@ public class RelationalStorage implements IStorage {
             tableAndColPattern.put(table, "%");
           }
         }
-
         for (String tableName : tableAndColPattern.keySet()) {
           colPattern = tableAndColPattern.get(tableName);
           for (String colName : colPattern.split(", ")) {
