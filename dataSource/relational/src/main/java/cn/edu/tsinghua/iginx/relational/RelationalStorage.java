@@ -2332,7 +2332,7 @@ public class RelationalStorage implements IStorage {
             }
           } else if (columnMap.get(parts[j]).columnType.equals("FLOAT")) {
             setValue(insertStmt, j + 2, vals[j + 1], Types.FLOAT);
-          } else if (columnMap.get(parts[j]).columnType.equals("BYTE")) {
+          } else if (columnMap.get(parts[j]).columnType.equals("TINYINT")) {
             setValue(insertStmt, j + 2, vals[j + 1], Types.BOOLEAN);
           } else {
             setValue(insertStmt, j + 2, vals[j + 1], Types.VARCHAR);
@@ -2378,7 +2378,7 @@ public class RelationalStorage implements IStorage {
             }
           } else if (columnMap.get(parts[j]).columnType.equals("FLOAT")) {
             setValue(updateStmt, j + 1, vals[j + 1], Types.FLOAT);
-          } else if (columnMap.get(parts[j]).columnType.equals("BYTE")) {
+          } else if (columnMap.get(parts[j]).columnType.equals("TINYINT")) {
             setValue(updateStmt, j + 1, vals[j + 1], Types.BOOLEAN);
           } else {
             setValue(updateStmt, j + 1, vals[j + 1], Types.VARCHAR);
