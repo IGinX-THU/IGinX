@@ -33,11 +33,9 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
   private static final char SEPARATOR = '.';
 
   private static final String QUERY_DATABASES_STATEMENT =
-      "SELECT SCHEMA_NAME FROM DBA_SCHEMAS WHERE SCHEMA_NAME NOT IN ('SYSDBA', 'SYSAUDITOR')";
+      "select distinct object_name TABLE_SCHEMA from all_objects where object_type='SCH' AND OWNER='SYSDBA';";
 
   private static final String CREATE_DATABASE_STATEMENT = "CREATE SCHEMA %s";
-
-  private static final String GRANT_DATABASE_STATEMENT = "GRANT CONNECT, RESOURCE TO %s";
 
   private static final String CREATE_TABLE_STATEMENT = "CREATE TABLE %s.%s (%s)";
 
@@ -53,7 +51,7 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
 
   private Connection connect(int port, boolean useSystemDatabase, String databaseName) {
     try {
-      String url = String.format("jdbc:dm://127.0.0.1:%d", port);
+      String url = String.format("jdbc:dm://172.17.0.2:%d", port);
       Class.forName("dm.jdbc.driver.DmDriver");
       return DriverManager.getConnection(url, "SYSDBA", "SYSDBA001");
     } catch (SQLException | ClassNotFoundException e) {
@@ -96,12 +94,9 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
         Statement stmt = connection.createStatement();
         String createDatabaseSql =
             String.format(CREATE_DATABASE_STATEMENT, getQuotName(databaseName));
-        String grantDatabaseSql =
-            String.format(GRANT_DATABASE_STATEMENT, getQuotName(databaseName));
         try {
           LOGGER.info("create database with stmt: {}", createDatabaseSql);
           stmt.execute(createDatabaseSql);
-          stmt.execute(grantDatabaseSql);
         } catch (SQLException e) {
           LOGGER.info("database {} exists!", databaseName);
         }
@@ -171,20 +166,28 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
       Statement stmt = conn.createStatement();
 
       // 查询达梦数据库的所有数据库
-      ResultSet databaseSet = stmt.executeQuery("SELECT NAME FROM SYS.DATABASES");
+      ResultSet databaseSet = stmt.executeQuery(QUERY_DATABASES_STATEMENT);
       Statement dropDatabaseStatement = conn.createStatement();
 
       while (databaseSet.next()) {
-        String databaseName = databaseSet.getString("NAME");
+        String databaseName = databaseSet.getString("TABLE_SCHEMA");
+
+        // 过滤系统数据库
+        if (databaseName.equals("SYSDBA")) {
+          continue;
+        }
+
+        // 获取所有连接并终止它们
+        terminateConnectionsForDatabase(databaseName, port);
 
         // 先终止所有连接，才能删除数据库
         dropDatabaseStatement.addBatch(
-            String.format("DROP DATABASE %s FORCE", getQuotName(databaseName)));
+            String.format(DROP_DATABASE_STATEMENT, getQuotName(databaseName)));
 
         LOGGER.info("Dropping database {} on 127.0.0.1:{}...", databaseName, port);
       }
 
-      dropDatabaseStatement.executeBatch();
+//      dropDatabaseStatement.executeBatch();
 
       dropDatabaseStatement.close();
       databaseSet.close();
@@ -225,5 +228,27 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
 
   private static String getQuotName(String name) {
     return "\"" + name + "\"";
+  }
+
+  // 终止所有连接的逻辑
+  private void terminateConnectionsForDatabase(String databaseName, int port) throws SQLException {
+    String query = String.format("SELECT sess_id FROM v$sessions;");
+    Connection conn = null;
+    conn = connect(port, true, null);
+    if (conn == null) {
+      LOGGER.error("cannot connect to 127.0.0.1:{}!", port);
+      return;
+    }
+    try (Statement stmt = conn.createStatement(); ResultSet resultSet = stmt.executeQuery(query)) {
+      while (resultSet.next()) {
+        int sid = resultSet.getInt("sess_id");
+        LOGGER.info("Killing session with SID: {}", sid);
+        String killQuery = String.format("sp_close_session(%d)", sid);
+        try (Statement killStmt = conn.createStatement()) {
+          killStmt.execute(killQuery);
+          LOGGER.info("Killed session with SID: {}", sid);
+        }
+      }
+    }
   }
 }
