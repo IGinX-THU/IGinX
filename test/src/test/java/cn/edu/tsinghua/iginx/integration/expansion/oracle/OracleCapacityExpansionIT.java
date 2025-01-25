@@ -19,72 +19,108 @@
  */
 package cn.edu.tsinghua.iginx.integration.expansion.oracle;
 
+import static cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools.executeShellScript;
+import static org.junit.Assert.fail;
+
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.expansion.BaseCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.constant.Constant;
-import cn.edu.tsinghua.iginx.integration.expansion.mysql.MySQLHistoryDataGenerator;
+import cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.integration.tool.DBConf;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools.executeShellScript;
-import static org.junit.Assert.fail;
-
 public class OracleCapacityExpansionIT extends BaseCapacityExpansionIT {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(OracleCapacityExpansionIT.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(OracleCapacityExpansionIT.class);
+  private static final String oldPass = "Oracle123";
+  private static final String newPass = "newPassword";
 
-    public OracleCapacityExpansionIT() {
-        super(
-                StorageEngineType.relational,
-                "engine=oracle, username=system",
-                new MySQLHistoryDataGenerator());
-        ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
-        DBConf dbConf = conf.loadDBConf(conf.getStorageType());
-        Constant.oriPort = dbConf.getDBCEPortMap().get(Constant.ORI_PORT_NAME);
-        Constant.expPort = dbConf.getDBCEPortMap().get(Constant.EXP_PORT_NAME);
-        Constant.readOnlyPort = dbConf.getDBCEPortMap().get(Constant.READ_ONLY_PORT_NAME);
-        updatedParams.put("password", "newPassword");
-    }
+  public OracleCapacityExpansionIT() {
+    super(
+        StorageEngineType.relational,
+        "engine=oracle, username=system, password=" + oldPass,
+        new OracleHistoryDataGenerator());
+    ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
+    DBConf dbConf = conf.loadDBConf(conf.getStorageType());
+    Constant.oriPort = dbConf.getDBCEPortMap().get(Constant.ORI_PORT_NAME);
+    Constant.expPort = dbConf.getDBCEPortMap().get(Constant.EXP_PORT_NAME);
+    Constant.readOnlyPort = dbConf.getDBCEPortMap().get(Constant.READ_ONLY_PORT_NAME);
+    updatedParams.put("password", newPass);
+  }
 
-    @Override
-    protected void updateParams(int port) {
-        changeParams(port, null, "newPassword");
-    }
+  @Override
+  protected void updateParams(int port) {
+    changeParams(port, newPass);
+  }
 
-    @Override
-    protected void restoreParams(int port) {
-        changeParams(port, "newPassword", null);
-    }
+  @Override
+  protected void restoreParams(int port) {
+    changeParams(port, oldPass);
+  }
 
-    @Override
-    protected void shutdownDatabase(int port) {
-        shutOrRestart(port, true, "oralce");
-    }
+  @Override
+  protected void shutdownDatabase(int port) {
+    shutOrRestart(port, true, "oracle");
+  }
 
-    @Override
-    protected void startDatabase(int port) {
-        shutOrRestart(port, false, "oralce");
-    }
+  @Override
+  protected void startDatabase(int port) {
+    shutOrRestart(port, false, "oracle");
+  }
 
-    private void changeParams(int port, String oldPw, String newPw) {
-        String scriptPath = updateParamsScriptDir + "oralce.sh";
-        String mode = oldPw == null ? "set" : "unset";
-        // 脚本参数：对应端口，模式（是在无密码条件下设置密码，还是在有密码条件下去掉密码），需要设置的密码/需要被去掉的密码
-        int res =
-                executeShellScript(scriptPath, String.valueOf(port), mode, oldPw == null ? newPw : oldPw);
-        if (res != 0) {
-            fail("Fail to update mysql params.");
-        }
+  private void changeParams(int port, String newPw) {
+    String scriptPath = updateParamsScriptDir + "oracle.sh";
+    int res = executeShellScript(scriptPath, String.valueOf(port), newPw);
+    if (res != 0) {
+      fail("Fail to update oracle params.");
     }
-    protected void shutOrRestart(int port, boolean mode, String DBName) {
-        String dir = mode ? shutdownScriptDir : restartScriptDir;
-        String scriptPath = dir + DBName + ".sh";
-        int res = executeShellScript(scriptPath, String.valueOf(port));
-        if (res != 0) {
-            fail("Fail to " + (mode ? "shutdown" : "restart") + " " + DBName + port);
-        }
+  }
+
+  protected void shutOrRestart(int port, boolean mode, String DBName) {
+    String dir = mode ? shutdownScriptDir : restartScriptDir;
+    String scriptPath = dir + DBName + ".sh";
+    int res = executeShellScript(scriptPath, String.valueOf(port));
+    if (res != 0) {
+      fail("Fail to " + (mode ? "shutdown" : "restart") + " " + DBName + port);
     }
+  }
+
+  @Override
+  protected void testPathOverlappedDataNotOverlapped() throws SessionException {
+    // before
+    String statement = "select status from mn.wf01.wt01;";
+    String expected =
+        "ResultSets:\n"
+            + "+-----------------+-------------------+\n"
+            + "|              key|mn.wf01.wt01.status|\n"
+            + "+-----------------+-------------------+\n"
+            + "|32690615153702352|           11111111|\n"
+            + "|33357770565002400|           22222222|\n"
+            + "+-----------------+-------------------+\n"
+            + "Total line number = 2\n";
+    SQLTestTools.executeAndCompare(session, statement, expected);
+
+    String insert =
+        "insert into mn.wf01.wt01 (key, status) values (10, 33333333), (100, 44444444);";
+    session.executeSql(insert);
+
+    // after
+    statement = "select status from mn.wf01.wt01;";
+    expected =
+        "ResultSets:\n"
+            + "+-----------------+-------------------+\n"
+            + "|              key|mn.wf01.wt01.status|\n"
+            + "+-----------------+-------------------+\n"
+            + "|               10|           33333333|\n"
+            + "|              100|           44444444|\n"
+            + "|32690615153702352|           11111111|\n"
+            + "|33357770565002400|           22222222|\n"
+            + "+-----------------+-------------------+\n"
+            + "Total line number = 4\n";
+    SQLTestTools.executeAndCompare(session, statement, expected);
+  }
 }

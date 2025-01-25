@@ -89,26 +89,6 @@ public class RelationQueryRowStream implements RowStream {
 
   public RelationQueryRowStream(
       List<String> databaseNameList,
-      List<ResultSet> resultSets,
-      boolean isDummy,
-      Filter filter,
-      TagFilter tagFilter,
-      List<Connection> connList,
-      AbstractRelationalMeta relationalMeta)
-      throws SQLException {
-    this(
-        databaseNameList,
-        Collections.emptyList(),
-        resultSets,
-        isDummy,
-        filter,
-        tagFilter,
-        connList,
-        relationalMeta);
-  }
-
-  public RelationQueryRowStream(
-      List<String> databaseNameList,
       List<List<String>> tableColumnNames,
       List<ResultSet> resultSets,
       boolean isDummy,

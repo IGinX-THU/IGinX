@@ -17,21 +17,11 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-# usage:.sh <port> <mode>:set/unset <password>
 CONTAINER_NAME="oracle23-$1"  # 容器名称
 DATABASE_USER="system"
 
-if [ $2 = "set" ]; then
-    # set password when there was none
-    docker exec -it $CONTAINER_NAME bash -c "
+docker exec $CONTAINER_NAME bash -c "
       sqlplus -s / as sysdba <<EOF
-      ALTER USER $DATABASE_USER IDENTIFIED BY $3;
+      ALTER USER $DATABASE_USER IDENTIFIED BY $2;
       EXIT;
     EOF"
-else
-   docker exec -it $CONTAINER_NAME bash -c "
-         sqlplus -s / as sysdba <<EOF
-         ALTER USER $DATABASE_USER IDENTIFIED BY NULL;
-         EXIT;
-       EOF"
-fi

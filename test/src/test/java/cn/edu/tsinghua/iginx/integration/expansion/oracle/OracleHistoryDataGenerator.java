@@ -34,10 +34,9 @@ public class OracleHistoryDataGenerator extends BaseHistoryDataGenerator {
   private static final char SEPARATOR = '.';
 
   private static final String QUERY_DATABASES_STATEMENT =
-          "SELECT username  as DATNAME FROM DBA_USERS WHERE CREATED > TO_DATE('2025-01-01', 'YYYY-MM-DD')";
+      "SELECT username  as DATNAME FROM DBA_USERS WHERE CREATED > TO_DATE('2025-01-01', 'YYYY-MM-DD')";
 
-  private static final String CREATE_DATABASE_STATEMENT =
-          "CREATE USER %s";
+  private static final String CREATE_DATABASE_STATEMENT = "CREATE USER %s";
 
   private static final String GRANT_DATABASE_STATEMENT =
       "GRANT CREATE SESSION,CREATE TABLE,RESOURCE,UNLIMITED TABLESPACE TO %s";
@@ -111,7 +110,7 @@ public class OracleHistoryDataGenerator extends BaseHistoryDataGenerator {
         String grantDatabaseSql =
             String.format(GRANT_DATABASE_STATEMENT, getQuotName(databaseName));
         try {
-          LOGGER.info("create database with stmt: {} {}", port,  createDatabaseSql);
+          LOGGER.info("create database with stmt: {} {}", port, createDatabaseSql);
           stmt.execute(createDatabaseSql);
           stmt.execute(grantDatabaseSql);
         } catch (SQLException e) {
@@ -255,7 +254,7 @@ public class OracleHistoryDataGenerator extends BaseHistoryDataGenerator {
       case FLOAT:
         return "FLOAT";
       case DOUBLE:
-        return "FLOAT";
+        return "NUMBER(38, 10)";
       case BINARY:
       default:
         return "VARCHAR2(4000)";
