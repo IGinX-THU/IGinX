@@ -94,6 +94,7 @@ public class SQLExecutor {
 
   public String execute(String statement) {
     SessionExecuteSqlResult res = getSessionExecuteSqlResult(statement);
+    LOGGER.info("Statement: \"{}\" execute success.", statement);
     if (res == null) {
       return "";
     }

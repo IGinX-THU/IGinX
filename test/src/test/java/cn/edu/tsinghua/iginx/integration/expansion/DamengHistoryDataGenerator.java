@@ -33,7 +33,7 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
   private static final char SEPARATOR = '.';
 
   private static final String QUERY_DATABASES_STATEMENT =
-      "select distinct object_name TABLE_SCHEMA from all_objects where object_type='SCH' AND OWNER='SYSDBA';";
+      "SELECT DISTINCT object_name TABLE_SCHEMA FROM all_objects WHERE object_type='SCH' AND OWNER='SYSDBA';";
 
   private static final String CREATE_DATABASE_STATEMENT = "CREATE SCHEMA %s";
 

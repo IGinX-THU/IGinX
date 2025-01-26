@@ -114,14 +114,11 @@ public class RelationalStorage implements IStorage {
         stmt.execute(
             String.format(relationalMeta.getGrantPrivilegesStatement(), getQuotName(databaseName)));
       }
-      LOGGER.info(
-          "[Create] execute create : {} ",
-          String.format(relationalMeta.getCreateDatabaseStatement(), getQuotName(databaseName)));
     } catch (SQLException ignored) {
     }
 
     // oracle只能针对实例（SID）建立连接，databaseName在oracle中对应的是user/schema
-    if (engineName.equals("oracle") || engineName.equals("dameng")) {
+    if (engineName.equals("oracle")) {
       databaseName = relationalMeta.getDefaultDatabaseName();
     }
 
@@ -323,26 +320,27 @@ public class RelationalStorage implements IStorage {
   private List<String> getDatabaseNames() throws SQLException {
     List<String> databaseNames = new ArrayList<>();
     String DefaultDatabaseName = relationalMeta.getDefaultDatabaseName();
-    if (DefaultDatabaseName.equals("DAMENG")) {
-      databaseNames.add(DefaultDatabaseName);
-      return databaseNames;
-    } else {
-      Connection conn = getConnection(relationalMeta.getDefaultDatabaseName());
-      Statement statement = conn.createStatement();
-      ResultSet rs = statement.executeQuery(relationalMeta.getDatabaseQuerySql());
-      while (rs.next()) {
-        String databaseName = rs.getString("DATNAME");
-        if (relationalMeta.getSystemDatabaseName().contains(databaseName)
-            || relationalMeta.getDefaultDatabaseName().equals(databaseName)) {
-          continue;
-        }
-        databaseNames.add(databaseName);
+    //    if (DefaultDatabaseName.equals("DAMENG")) {
+    //      databaseNames.add(DefaultDatabaseName);
+    //      return databaseNames;
+    //    } else {
+    Connection conn = getConnection(relationalMeta.getDefaultDatabaseName());
+    Statement statement = conn.createStatement();
+    ResultSet rs = statement.executeQuery(relationalMeta.getDatabaseQuerySql());
+    while (rs.next()) {
+      String databaseName =
+          engineName.equals("dameng") ? rs.getString("TABLE_SCHEMA") : rs.getString("DATNAME");
+      if (relationalMeta.getSystemDatabaseName().contains(databaseName)
+          || relationalMeta.getDefaultDatabaseName().equals(databaseName)) {
+        continue;
       }
-      rs.close();
-      statement.close();
-      conn.close();
-      return databaseNames;
+      databaseNames.add(databaseName);
     }
+    rs.close();
+    statement.close();
+    conn.close();
+    return databaseNames;
+    //    }
   }
 
   private List<String> getTables(String databaseName, String tablePattern) {
@@ -365,6 +363,7 @@ public class RelationalStorage implements IStorage {
               tablePattern,
               new String[] {"TABLE"});
       List<String> tableNames = new ArrayList<>();
+      LOGGER.info("get tables from database: {}", databaseName);
 
       while (rs.next()) {
         tableNames.add(rs.getString("TABLE_NAME"));
