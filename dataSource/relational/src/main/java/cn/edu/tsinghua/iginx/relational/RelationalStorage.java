@@ -143,7 +143,7 @@ public class RelationalStorage implements IStorage {
       config.addDataSourceProperty(
           "prepStmtCacheSize", meta.getExtraParams().getOrDefault("prep_stmt_cache_size", "250"));
       config.setLeakDetectionThreshold(
-          Long.parseLong(meta.getExtraParams().getOrDefault("leak_detection_threshold", "2500")));
+          Long.parseLong(meta.getExtraParams().getOrDefault("leak_detection_threshold", "50000")));
       config.setConnectionTimeout(
           Long.parseLong(meta.getExtraParams().getOrDefault("connection_timeout", "30000")));
       config.setIdleTimeout(
@@ -2211,10 +2211,12 @@ public class RelationalStorage implements IStorage {
       List<String> values) {
     Map<String, String[]> valueMap =
         values.stream()
+                .map(value -> value.substring(0,value.length() - 2))
+                .map(RelationalStorage::splitByCommaWithQuotes)
             .collect(
                 Collectors.toMap(
-                    value -> value.substring(0, value.length() - 2).split(", ")[0],
-                    value -> value.substring(0, value.length() - 2).split(", ")));
+                        arr -> arr[0],
+                        arr -> arr));
     List<String> allKeys = new ArrayList<>(valueMap.keySet());
     List<String> insertKeys = new ArrayList<>();
     List<String> updateKeys = new ArrayList<>();
@@ -2397,5 +2399,43 @@ public class RelationalStorage implements IStorage {
       name = getQuotName(name);
     }
     return name;
+  }
+
+  public static String[] splitByCommaWithQuotes(String input) {
+    // 引号中不包含逗号时，使用split方式返回
+    String regex = "(['\"])(.*?)\\1";
+    Pattern pattern = Pattern.compile(regex);
+    Matcher matcher = pattern.matcher(input);
+    boolean containsCommaWithQuotes = false;
+    while (matcher.find()) {
+      if(matcher.group().contains(",")){
+        LOGGER.debug("Found: {} :: {}" + matcher.group(),input);
+        containsCommaWithQuotes = true;
+        break;
+      }
+    }
+    if(!containsCommaWithQuotes){
+      return Arrays.stream(input.split(",")).map(String::trim).toArray(String[]::new);
+    }
+
+    List<String> resultList = new ArrayList<>();
+    StringBuilder currentPart = new StringBuilder();
+    boolean insideQuotes = false;
+    for (int i = 0; i < input.length(); i++) {
+      char c = input.charAt(i);
+      if (c == ',' && !insideQuotes) {
+        resultList.add(currentPart.toString().trim());
+        currentPart.setLength(0);
+      } else if (c == '\'' || c == '\"') {
+        insideQuotes = !insideQuotes;
+        currentPart.append(c);
+      } else {
+        currentPart.append(c);
+      }
+    }
+    if (currentPart.length() > 0) {
+      resultList.add(currentPart.toString().trim());
+    }
+    return resultList.toArray(new String[0]);
   }
 }
