@@ -212,7 +212,6 @@ public class MultiConnection {
   }
 
   public SessionExecuteSqlResult executeSql(String statement) throws SessionException {
-    LOGGER.info("Execute Statement: \"{}\"", statement);
     if (session != null) {
       return session.executeSql(statement);
     }
