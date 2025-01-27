@@ -120,11 +120,6 @@ public class RelationalStorage implements IStorage {
     } catch (SQLException ignored) {
     }
 
-    // oracle只能针对实例（SID）建立连接，databaseName在oracle中对应的是user/schema
-    if (engineName.equals("oracle")) {
-      databaseName = relationalMeta.getDefaultDatabaseName();
-    }
-
     HikariDataSource dataSource = connectionPoolMap.get(databaseName);
     if (dataSource != null) {
       try {
@@ -143,9 +138,9 @@ public class RelationalStorage implements IStorage {
       config.addDataSourceProperty(
           "prepStmtCacheSize", meta.getExtraParams().getOrDefault("prep_stmt_cache_size", "250"));
       config.setLeakDetectionThreshold(
-          Long.parseLong(meta.getExtraParams().getOrDefault("leak_detection_threshold", "50000")));
+          Long.parseLong(meta.getExtraParams().getOrDefault("leak_detection_threshold", "60000")));
       config.setConnectionTimeout(
-          Long.parseLong(meta.getExtraParams().getOrDefault("connection_timeout", "30000")));
+          Long.parseLong(meta.getExtraParams().getOrDefault("connection_timeout", "50000")));
       config.setIdleTimeout(
           Long.parseLong(meta.getExtraParams().getOrDefault("idle_timeout", "10000")));
       config.setMaximumPoolSize(
@@ -2211,12 +2206,9 @@ public class RelationalStorage implements IStorage {
       List<String> values) {
     Map<String, String[]> valueMap =
         values.stream()
-                .map(value -> value.substring(0,value.length() - 2))
-                .map(RelationalStorage::splitByCommaWithQuotes)
-            .collect(
-                Collectors.toMap(
-                        arr -> arr[0],
-                        arr -> arr));
+            .map(value -> value.substring(0, value.length() - 2))
+            .map(RelationalStorage::splitByCommaWithQuotes)
+            .collect(Collectors.toMap(arr -> arr[0], arr -> arr));
     List<String> allKeys = new ArrayList<>(valueMap.keySet());
     List<String> insertKeys = new ArrayList<>();
     List<String> updateKeys = new ArrayList<>();
@@ -2408,13 +2400,13 @@ public class RelationalStorage implements IStorage {
     Matcher matcher = pattern.matcher(input);
     boolean containsCommaWithQuotes = false;
     while (matcher.find()) {
-      if(matcher.group().contains(",")){
-        LOGGER.debug("Found: {} :: {}" + matcher.group(),input);
+      if (matcher.group().contains(",")) {
+        LOGGER.debug("Found: {} :: {}" + matcher.group(), input);
         containsCommaWithQuotes = true;
         break;
       }
     }
-    if(!containsCommaWithQuotes){
+    if (!containsCommaWithQuotes) {
       return Arrays.stream(input.split(",")).map(String::trim).toArray(String[]::new);
     }
 

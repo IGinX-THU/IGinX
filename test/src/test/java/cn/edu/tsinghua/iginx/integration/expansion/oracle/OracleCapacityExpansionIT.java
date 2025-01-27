@@ -37,7 +37,7 @@ public class OracleCapacityExpansionIT extends BaseCapacityExpansionIT {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(OracleCapacityExpansionIT.class);
   private static final String oldPass = "Oracle123";
-  private static final String newPass = "newPassword";
+  private static final String newPass = "Oracle123"; // 新密码保持不变，因为oracle密码错误次数过多会锁定账号
 
   public OracleCapacityExpansionIT() {
     super(
