@@ -43,7 +43,6 @@ public class NoPushDownStrategy extends PushDownStrategy {
             : storage.executeProject(project, dataArea);
 
     List<Operator> remainingOperators = getRemainingOperators(operators, 1);
-    executeRemainingOperators(remainingOperators, result, requestContext);
-    return result;
+    return executeRemainingOperators(remainingOperators, result, requestContext);
   }
 }

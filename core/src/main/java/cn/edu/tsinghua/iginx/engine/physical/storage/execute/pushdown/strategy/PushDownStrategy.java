@@ -45,7 +45,7 @@ public abstract class PushDownStrategy {
       boolean isDummyStorageUnit,
       RequestContext context);
 
-  protected void executeRemainingOperators(
+  protected TaskExecuteResult executeRemainingOperators(
       List<Operator> remainingOperators, TaskExecuteResult result, RequestContext context) {
     OperatorMemoryExecutor executor =
         OperatorMemoryExecutorFactory.getInstance().getMemoryExecutor();
@@ -63,6 +63,8 @@ public abstract class PushDownStrategy {
         }
       }
     }
+
+    return result;
   }
 
   protected static List<Operator> getRemainingOperators(List<Operator> operators, int startIndex) {

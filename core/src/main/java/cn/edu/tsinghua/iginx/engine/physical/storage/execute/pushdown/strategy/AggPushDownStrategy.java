@@ -42,7 +42,6 @@ public class AggPushDownStrategy extends PushDownStrategy {
             : storage.executeProjectWithAgg(project, operators.get(1), dataArea);
 
     List<Operator> remainingOperators = getRemainingOperators(operators, 2);
-    executeRemainingOperators(remainingOperators, result, requestContext);
-    return result;
+    return executeRemainingOperators(remainingOperators, result, requestContext);
   }
 }

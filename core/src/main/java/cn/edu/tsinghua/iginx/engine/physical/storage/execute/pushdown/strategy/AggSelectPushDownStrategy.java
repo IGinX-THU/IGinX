@@ -45,7 +45,6 @@ public class AggSelectPushDownStrategy extends PushDownStrategy {
                 project, (Select) operators.get(1), operators.get(2), dataArea);
 
     List<Operator> remainingOperators = getRemainingOperators(operators, 3);
-    executeRemainingOperators(remainingOperators, result, requestContext);
-    return result;
+    return executeRemainingOperators(remainingOperators, result, requestContext);
   }
 }
