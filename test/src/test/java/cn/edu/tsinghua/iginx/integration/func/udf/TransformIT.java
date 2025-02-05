@@ -438,7 +438,7 @@ public class TransformIT {
       String schedule = "every 10 second";
       long jobId = session.commitTransformJob(taskInfoList, ExportType.LOG, "", schedule);
 
-      Thread.sleep(1000); // triggered
+      Thread.sleep(5000); // triggered
       verifyJobState(jobId, JobState.JOB_FAILED); // verify failed
     } catch (SessionException | InterruptedException e) {
       LOGGER.error("Transform:  execute fail. Caused by:", e);
@@ -461,7 +461,7 @@ public class TransformIT {
       taskInfoList.add(iginxTask);
       taskInfoList.add(pyTask);
 
-      String schedule = "every 10 second";
+      String schedule = "every 20 second";
 
       String outputFileName =
           OUTPUT_DIR_PREFIX + File.separator + "export_file_continue_on_failure.txt";
@@ -504,7 +504,7 @@ public class TransformIT {
 
   private void testContinueOnFailure(long jobId, String outputFileName)
       throws InterruptedException, SessionException, IOException {
-    Thread.sleep(3000L); // wait for 1st try to fail
+    Thread.sleep(13000L); // wait for 1st try to fail
     verifyJobState(jobId, null);
     verifyJobState(jobId, JobState.JOB_PARTIALLY_FAILED);
 
@@ -512,7 +512,7 @@ public class TransformIT {
     String task = "RowSumTransformer";
     registerTask(task);
 
-    Thread.sleep(10000L);
+    Thread.sleep(20000L);
     verifySinglePythonJob(outputFileName, 10); // verify 2nd try result
   }
 
@@ -717,19 +717,19 @@ public class TransformIT {
       taskInfoList.add(iginxTask);
       taskInfoList.add(pyTask);
 
-      String schedule = "every 10 second";
+      String schedule = "every 20 second";
 
       long jobId = session.commitTransformJob(taskInfoList, ExportType.IGINX, "", schedule);
       // make the script add 2 now
       alterPythonScriptWithReplace(filename, "+ 1", "+ 2");
       try {
-        Thread.sleep(3000); // sleep 3s for 1st execution to complete.
+        Thread.sleep(13000); // sleep 13s for 1st execution to complete.
         SessionExecuteSqlResult queryResult1 = session.executeSql("SELECT * FROM transform;");
 
         // then, increase() will add 2
         registerTask(task, className, filename);
 
-        Thread.sleep(10000); // sleep 10s for 2nd execution to complete.
+        Thread.sleep(20000); // sleep 20s for 2nd execution to complete.
         SessionExecuteSqlResult queryResult2 = session.executeSql("SELECT * FROM transform;");
         // 2nd result will be appended from 11th line
 
