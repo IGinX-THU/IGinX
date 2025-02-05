@@ -45,6 +45,10 @@ inputs:
         description: "close all optimizer"
         required: false
         default: "false"
+    Set-ColumnPruning-ON:
+        description: "set ColumnPruningRule ON"
+        required: false
+        default: "false"
 
 runs:
     using: "composite" # Mandatory parameter
@@ -132,6 +136,14 @@ runs:
                   echo "$RUNNER_OS is not supported"
                   exit 1
               fi
+
+        - if: inputs.Set-ColumnPruning-ON=='true'
+          name: Set ColumnPruningRule ON
+          uses: ./.github/actions/edit
+          with:
+              paths: ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-*/conf/config.properties
+              statements: |
+                  s/ColumnPruningRule=off/ColumnPruningRule=on/g
 
         - if: inputs.Set-AggPushDown-OFF=='true'
           name: Set AggPushDownRule OFF
