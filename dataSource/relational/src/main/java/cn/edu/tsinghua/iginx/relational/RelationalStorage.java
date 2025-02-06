@@ -363,7 +363,6 @@ public class RelationalStorage implements IStorage {
               tablePattern,
               new String[] {"TABLE"});
       List<String> tableNames = new ArrayList<>();
-      LOGGER.info("get tables from database: {}", databaseName);
 
       while (rs.next()) {
         tableNames.add(rs.getString("TABLE_NAME"));
