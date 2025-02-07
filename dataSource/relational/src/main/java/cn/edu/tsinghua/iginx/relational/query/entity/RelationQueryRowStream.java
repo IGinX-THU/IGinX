@@ -27,12 +27,14 @@ import static cn.edu.tsinghua.iginx.relational.tools.TagKVUtils.splitFullName;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.RowFetchException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils;
 import cn.edu.tsinghua.iginx.engine.physical.storage.utils.TagKVUtils;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.FilterType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.relational.meta.AbstractRelationalMeta;
 import cn.edu.tsinghua.iginx.relational.tools.RelationSchema;
@@ -89,6 +91,8 @@ public class RelationQueryRowStream implements RowStream {
 
   private Map<String, DataType> sumResType; // 记录聚合下推的sum的返回类型（需要提前计算，因为PG会统一返回小数）
 
+  private boolean needFilter = false;
+
   public RelationQueryRowStream(
       List<String> databaseNameList,
       List<ResultSet> resultSets,
@@ -143,6 +147,10 @@ public class RelationQueryRowStream implements RowStream {
     this.resultSetSizes = new int[resultSets.size()];
     this.fieldToColumnName = new HashMap<>();
     this.resultSetHasColumnWithTheSameName = new ArrayList<>();
+
+    needFilter =
+        (!isAgg && resultSets.size() != 1)
+            || FilterUtils.getFilterType(filter).contains(FilterType.Expr);
 
     for (int i = 0; i < resultSets.size(); i++) {
       ResultSetMetaData resultSetMetaData = resultSets.get(i).getMetaData();
@@ -385,7 +393,7 @@ public class RelationQueryRowStream implements RowStream {
         }
         cachedRow = new Row(header, key, values);
         // Agg状态下，所有表join在一起，不需要后过滤
-        if (!isAgg && !validate(filter, cachedRow)) {
+        if (needFilter && !validate(filter, cachedRow)) {
           continue;
         }
       } else {
