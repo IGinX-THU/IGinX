@@ -566,6 +566,9 @@ public class RelationalStorage implements IStorage {
           fullColumnNames.stream()
               .map(s -> RelationSchema.getFullName(tableName, s))
               .collect(Collectors.toList()));
+      fullColumnNamesListForExpandFilter
+          .get(fullColumnNamesListForExpandFilter.size() - 1)
+          .add(RelationSchema.getFullName(tableName, KEY_NAME));
     }
 
     StringBuilder fullColumnNames = new StringBuilder();
