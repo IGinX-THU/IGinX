@@ -1753,18 +1753,18 @@ public class RelationalStorage implements IStorage {
         if (!filter.toString().contains("*")
             && !(tableNameToColumnNames.size() > 1
                 && filterContainsType(Arrays.asList(FilterType.Value, FilterType.Path), filter))) {
-          Filter expandFilter = expandFilter(filter.copy(), tableNameToColumnNames);
+          Filter expandFilter =
+              expandFilter(
+                  cutFilterDatabaseNameForDummy(filter.copy(), databaseName),
+                  tableNameToColumnNames);
           for (Map.Entry<String, String> entry : splitEntry.getValue().entrySet()) {
             String tableName = entry.getKey();
             String fullQuotColumnNames = getQuotColumnNames(entry.getValue());
             List<String> fullPathList = Arrays.asList(entry.getValue().split(", "));
-            fullPathList.replaceAll(
-                s -> RelationSchema.getQuoteFullName(tableName, s, relationalMeta.getQuote()));
+            fullPathList.replaceAll(s -> RelationSchema.getFullName(tableName, s));
             String filterStr =
                 filterTransformer.toString(
-                    dummyFilterSetTrueByColumnNames(
-                        cutFilterDatabaseNameForDummy(expandFilter.copy(), databaseName),
-                        fullPathList));
+                    dummyFilterSetTrueByColumnNames(expandFilter.copy(), fullPathList));
             String concatKey = buildConcat(fullPathList);
             statement =
                 String.format(
