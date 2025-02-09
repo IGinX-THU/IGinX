@@ -148,7 +148,7 @@ public class RelationQueryRowStream implements RowStream {
     this.fieldToColumnName = new HashMap<>();
     this.resultSetHasColumnWithTheSameName = new ArrayList<>();
 
-    needFilter = !isAgg && resultSets.size() != 1;
+    needFilter = (!isAgg && resultSets.size() != 1) || isDummy;
     Set<FilterType> filterTypes = FilterUtils.getFilterType(filter);
     needFilter |= filterTypes.contains(FilterType.Expr);
 
