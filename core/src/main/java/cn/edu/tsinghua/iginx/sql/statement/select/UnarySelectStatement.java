@@ -23,6 +23,8 @@ import static cn.edu.tsinghua.iginx.sql.SQLConstant.DOT;
 import static cn.edu.tsinghua.iginx.sql.SQLConstant.L_PARENTHESES;
 import static cn.edu.tsinghua.iginx.sql.SQLConstant.R_PARENTHESES;
 
+import cn.edu.tsinghua.iginx.engine.logical.utils.OperatorUtils;
+import cn.edu.tsinghua.iginx.engine.logical.utils.PathUtils;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils;
 import cn.edu.tsinghua.iginx.engine.shared.expr.*;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionUtils;
@@ -252,6 +254,7 @@ public class UnarySelectStatement extends SelectStatement {
   public Set<String> getPathSet() {
     Set<String> pathSet = new HashSet<>();
     pathSet.addAll(selectClause.getPathSet());
+    pathSet.addAll(fromClause.getPathSet());
     pathSet.addAll(whereClause.getPathSet());
     pathSet.addAll(groupByClause.getPathSet());
     pathSet.addAll(havingClause.getPathSet());
@@ -261,6 +264,10 @@ public class UnarySelectStatement extends SelectStatement {
 
   public void addSelectPath(String path) {
     selectClause.addPath(path);
+  }
+
+  public void addFromPath(String path) {
+    fromClause.addPath(path);
   }
 
   public void addGroupByPath(String path) {
@@ -609,7 +616,7 @@ public class UnarySelectStatement extends SelectStatement {
   }
 
   public String getOriginPath(String path) {
-    if (path.startsWith(MarkJoin.MARK_PREFIX)) {
+    if (path.equals("*") || path.startsWith(MarkJoin.MARK_PREFIX)) {
       return path;
     }
     for (FromPart fromPart : getFromParts()) {
@@ -625,6 +632,8 @@ public class UnarySelectStatement extends SelectStatement {
           } else {
             return path;
           }
+        } else if (OperatorUtils.covers(path, pattern)) {
+          return PathUtils.recoverRenamedPattern(fromPart.getAliasList(), path);
         }
       }
     }

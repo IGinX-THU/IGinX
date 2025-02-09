@@ -443,7 +443,7 @@ public class QueryGenerator extends AbstractGenerator {
                   } else {
                     pathList =
                         pathSet.stream()
-                            .filter(path -> path.startsWith(pathFromPart.getPrefix() + "."))
+                            .filter(path -> path.startsWith(pathFromPart.getOriginPrefix() + "."))
                             .collect(Collectors.toList());
                   }
                   root = filterAndMergeFragments(selectStatement, pathList);
