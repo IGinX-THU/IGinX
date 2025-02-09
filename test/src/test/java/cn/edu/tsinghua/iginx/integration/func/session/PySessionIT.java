@@ -143,7 +143,7 @@ public class PySessionIT {
     }
   }
 
-  private boolean pythonNewerThan313() {
+  public static boolean pythonNewerThan313() {
     interpreter.exec("import sys; tooNew = sys.version_info >= (3, 13);");
     return (boolean) interpreter.get("tooNew");
   }

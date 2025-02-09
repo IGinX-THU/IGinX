@@ -17,11 +17,12 @@ runs:
               run-post: "false"
 
         # currently we can only install free-thread python 3.13 by conda-forge. latest miniconda only supports 3.12
+        # thus in action steps afterward, remember to 'conda activate $ENV_NAME' at start if conda should be used
         - name: Check channels & install python3.13
           shell: bash -el {0}
           run: |
               conda config --show channels
-              conda create -n ${{ inputs.iginx-conda-env }} python=3.13 python-freethreading -c conda-forge
+              conda create -n ${{ inputs.iginx-conda-env }} python=3.13 python-freethreading -c conda-forge -q
               conda activate ${{ inputs.iginx-conda-env }}
               python -VV
               python -c "import sys;print(sys._is_gil_enabled())"

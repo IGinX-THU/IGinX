@@ -21,6 +21,7 @@ package cn.edu.tsinghua.iginx.integration.func.udf;
 
 import static cn.edu.tsinghua.iginx.integration.controller.Controller.SUPPORT_KEY;
 import static cn.edu.tsinghua.iginx.integration.controller.Controller.clearAllData;
+import static cn.edu.tsinghua.iginx.integration.func.session.PySessionIT.pythonNewerThan313;
 import static org.junit.Assert.*;
 
 import cn.edu.tsinghua.iginx.exception.SessionException;
@@ -1417,9 +1418,8 @@ public class UDFIT {
 
   @Test
   public void tensorUDFTest() {
-    boolean torchSupported = System.getenv().getOrDefault("TORCH_SUPPORTED", "true").equals("true");
-    Assume.assumeTrue(
-        "tensorUDFTest is skipped because pytorch is not supported(python>3.12).", torchSupported);
+    Assume.assumeFalse(
+        "tensorUDFTest is skipped because pytorch is not supported(python>3.12).", pythonNewerThan313());
     String name = "tensorTest";
     String filePath =
         String.join(
