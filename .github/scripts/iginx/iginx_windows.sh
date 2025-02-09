@@ -32,6 +32,7 @@ sed -i 's/-Xmx%MAX_HEAP_SIZE% -Xms%MAX_HEAP_SIZE%/-Xmx4g -Xms4g -XX:MaxMetaspace
 
 echo "starting iginx on windows..."
 
+python -VV
 if [ -n "$3" ]; then
   # 第三个参数如果存在，就是需要激活的conda环境名
   powershell -Command "conda activate $3;Start-Process -FilePath '$batPath' -NoNewWindow -RedirectStandardOutput 'iginx-$1.log' -RedirectStandardError 'iginx-$1-error.log'"

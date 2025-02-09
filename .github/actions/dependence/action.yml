@@ -117,7 +117,7 @@ runs:
           name: Install free-thread python
           uses: ./.github/actions/service/freeThreadConda
           with:
-            iginx-conda-env: "iginxEnv"
+              iginx-conda-env: "iginxEnv"
 
         - name: Set up JDK ${{ inputs.java }}
           uses: actions/setup-java@v4

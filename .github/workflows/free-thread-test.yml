@@ -36,8 +36,8 @@ jobs:
                 DB-name: ${{ fromJSON(inputs.db-matrix) }}
         runs-on: ${{ matrix.os }}
         env:
-          # only used in this workflow file
-          IGINX_CONDA_ENV: "iginxEnv"
+            # only used in this workflow file
+            IGINX_CONDA_ENV: "iginxEnv"
         steps:
             - uses: actions/checkout@v4
               # use free-threading python instead of stable version
@@ -76,8 +76,8 @@ jobs:
             - name: Start IGinX
               uses: ./.github/actions/iginxRunner
               with:
-                activate-conda-flag: "true"
-                iginx-conda-env:  ${{ env.IGINX_CONDA_ENV }}
+                  activate-conda-flag: "true"
+                  iginx-conda-env: ${{ env.IGINX_CONDA_ENV }}
 
             - name: TestController IT
               if: always()

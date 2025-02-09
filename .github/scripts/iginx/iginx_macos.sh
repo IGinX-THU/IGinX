@@ -32,9 +32,10 @@ echo "JAVA_HOME is set to $JAVA_HOME"
 
 sh -c "chmod +x core/target/iginx-core-*/sbin/start_iginx.sh"
 
+python -VV
 if [ -n "$3" ]; then
     # 使用 bash, 第一个脚本参数指定了需要激活的环境名
-    bash -c "conda activate $3 && nohup core/target/iginx-core-*/sbin/start_iginx.sh > iginx-$1.log 2>&1 &"
+    bash -c "source $CONDA/etc/profile.d/conda.sh && conda activate $3 && nohup core/target/iginx-core-*/sbin/start_iginx.sh > iginx-$1.log 2>&1 &"
 else
     sh -c "nohup core/target/iginx-core-*/sbin/start_iginx.sh > iginx-$1.log 2>&1 &"
 fi

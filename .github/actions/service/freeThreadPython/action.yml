@@ -1,13 +1,13 @@
 name: "Install_Free-thread_Python"
 description: "Install Free-thread Python"
 inputs:
-  iginx-conda-flag:
-    description: "whether to use conda"
-    required: false
-    default: "false"
-  iginx-conda-env:
-    description: "conda env name"
-    required: false
+    iginx-conda-flag:
+        description: "whether to use conda"
+        required: false
+        default: "false"
+    iginx-conda-env:
+        description: "conda env name"
+        required: false
 
 runs:
     using: "composite"

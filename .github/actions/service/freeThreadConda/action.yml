@@ -1,35 +1,35 @@
 name: "Install_Free-thread_Python in Conda"
 description: "Install Free-thread Python in Conda"
 inputs:
-  iginx-conda-env:
-    description: "conda env name"
-    required: false
+    iginx-conda-env:
+        description: "conda env name"
+        required: false
 
 runs:
-  using: "composite"
-  steps:
-    # this step creates env test(default python version) which will not be used
-    - uses: conda-incubator/setup-miniconda@v3
-      with:
-        channels: conda-forge
-        channel-priority: flexible
-        conda-remove-defaults: "true"
-        run-post: "false"
+    using: "composite"
+    steps:
+        # this step creates env test(default python version) which will not be used
+        - uses: conda-incubator/setup-miniconda@v3
+          with:
+              channels: conda-forge
+              channel-priority: flexible
+              conda-remove-defaults: "true"
+              run-post: "false"
 
-    # currently we can only install free-thread python 3.13 by conda-forge. latest miniconda only supports 3.12
-    - name: Check channels & install python3.13
-      shell: bash -el {0}
-      run: |
-        conda config --show channels
-        conda create -n ${{ inputs.iginx-conda-env }} python=3.13 python-freethreading -c conda-forge
-        conda activate ${{ inputs.iginx-conda-env }}
-        python -VV
-        python -c "import sys;print(sys._is_gil_enabled())"
-        curl -L -O https://github.com/IGinX-THU/IGinX-resources/raw/refs/heads/main/resources/python/pandas-3.0.0.dev0+1654.g32a97a969a-cp313-cp313t-win_amd64.whl
-        ls -l
-        if [ "$RUNNER_OS" == "Windows" ]; then
-         python -m pip install numpy thrift pemjax
-         python -m pip install pandas*.whl
-        else
-         python -m pip install pandas==2.2.3 numpy thrift pemjax
-        fi
+        # currently we can only install free-thread python 3.13 by conda-forge. latest miniconda only supports 3.12
+        - name: Check channels & install python3.13
+          shell: bash -el {0}
+          run: |
+              conda config --show channels
+              conda create -n ${{ inputs.iginx-conda-env }} python=3.13 python-freethreading -c conda-forge
+              conda activate ${{ inputs.iginx-conda-env }}
+              python -VV
+              python -c "import sys;print(sys._is_gil_enabled())"
+              curl -L -O https://github.com/IGinX-THU/IGinX-resources/raw/refs/heads/main/resources/python/pandas-3.0.0.dev0+1654.g32a97a969a-cp313-cp313t-win_amd64.whl
+              ls -l
+              if [ "$RUNNER_OS" == "Windows" ]; then
+               python -m pip install numpy thrift pemjax
+               python -m pip install pandas*.whl
+              else
+               python -m pip install pandas==2.2.3 numpy thrift pemjax
+              fi
