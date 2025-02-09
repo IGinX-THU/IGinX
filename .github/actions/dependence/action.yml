@@ -116,6 +116,9 @@ runs:
         - if: inputs.free-thread-python-required=='true'
           name: Install free-thread python
           uses: ./.github/actions/service/freeThreadPython
+          with:
+            iginx-conda-flag: "true"
+            iginx-conda-env: "iginxEnv"
 
         - name: Set up JDK ${{ inputs.java }}
           uses: actions/setup-java@v4
