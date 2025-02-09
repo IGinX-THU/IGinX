@@ -16,23 +16,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-<<<<<<<< HEAD:.github/scripts/dataSources/restart/redis_windows.sh
-
-========
->>>>>>>> refs/heads/main:.github/scripts/dataSources/restart/milvus_windows.sh
 
 set -e
 port=$1
 
-<<<<<<<< HEAD:.github/scripts/dataSources/restart/redis_windows.sh
-PORT=$1
-current_dir=$(pwd)
-cd "$SERVICE_DIR_WIN/redis"
-redis-server --port $PORT --dir "$SERVICE_DIR_WIN/redis/$PORT" --daemonize yes --pidfile "$SERVICE_DIR_WIN/redis/$PORT/redis.pid"
-cd $current_dir
-mvn test -q -Dtest=RedisHistoryDataGenerator#oriHasDataExpHasData -DfailIfNoTests=false -P-format
-
-========
 pwd
 
 wsl docker-compose -f $port/docker-compose-$port.yml up -d
@@ -40,4 +27,3 @@ wsl docker-compose -f $port/docker-compose-$port.yml up -d
 sleep 30
 
 docker ps
->>>>>>>> refs/heads/main:.github/scripts/dataSources/restart/milvus_windows.sh
