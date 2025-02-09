@@ -10,7 +10,7 @@ Navigate to the IGinX directory and execute the following command to build the I
 mvn clean package -DskipTests -P get-jar-with-dependencies
 ```
 
-Upon successful compilation, you will find the `zeppelin-iginx-0.8.0-SNAPSHOT-jar-with-dependencies.jar` package in the `IGinX/zeppelin-interpreter/target/` directory. We will need this package for the next steps of deploying Zeppelin.
+Upon successful compilation, you will find the `zeppelin-iginx-0.9.0-SNAPSHOT-jar-with-dependencies.jar` package in the `IGinX/zeppelin-interpreter/target/` directory. We will need this package for the next steps of deploying Zeppelin.
 
 ## Deploying Zeppelin
 
@@ -56,7 +56,7 @@ export JAVA_HOME=
 
 #### Integrating IGinX Zeppelin Interpreter
 
-In the `zeppelin-0.10.1-bin-netinst/interpreter/` folder, create a new folder named `IGinX`. Place the compiled `zeppelin-iginx-0.8.0-SNAPSHOT-jar-with-dependencies.jar` package inside this folder.
+In the `zeppelin-0.10.1-bin-netinst/interpreter/` folder, create a new folder named `IGinX`. Place the compiled `zeppelin-iginx-0.9.0-SNAPSHOT-jar-with-dependencies.jar` package inside this folder.
 
 #### Starting IGinX
 
@@ -86,7 +86,7 @@ Before deploying Zeppelin, start IGinX.
 
 Prepare a folder to place the IGinX Zeppelin Interpreter. For example, let's name the folder `zeppelin-interpreter` with the absolute path `~/code/zeppelin-interpreter/`.
 
-Place the `zeppelin-iginx-0.8.0-SNAPSHOT-jar-with-dependencies.jar` package inside this prepared `zeppelin-interpreter` folder.
+Place the `zeppelin-iginx-0.9.0-SNAPSHOT-jar-with-dependencies.jar` package inside this prepared `zeppelin-interpreter` folder.
 
 #### Starting Docker Container Using Commands
 

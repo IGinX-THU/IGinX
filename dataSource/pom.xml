@@ -40,10 +40,12 @@
         <module>mongodb</module>
         <module>redis</module>
         <module>relational</module>
+        <module>vectordb</module>
     </modules>
 
     <properties>
         <maven.deploy.skip>true</maven.deploy.skip>
+        <milvus.version>2.4.7</milvus.version>
     </properties>
 
     <dependencies>
@@ -105,6 +107,7 @@
                             <phase>package</phase>
                             <configuration>
                                 <target>
+                                    <delete file="target/${project.artifactId}-${project.version}/driver/${project.artifactId}/milvus-sdk-java-${milvus.version}.jar"/>
                                     <copy todir="../../core/target/iginx-core-${project.version}/driver">
                                         <fileset dir="target/${project.artifactId}-${project.version}/driver"/>
                                     </copy>
