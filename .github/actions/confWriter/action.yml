@@ -75,6 +75,9 @@ runs:
           id: find_python_cmd
           shell: bash -el {0}
           run: |
+              if [[ "${{ inputs.use-free-thread-python }}" == "true" ]]; then
+                  echo "TORCH_SUPPORTED=false" >> $GITHUB_ENV
+              else
               if [ "$RUNNER_OS" == "Windows" ]; then
                   pythonCMD=python
               else
