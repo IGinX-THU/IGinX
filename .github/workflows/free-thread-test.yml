@@ -35,6 +35,9 @@ jobs:
                 metadata: ${{ fromJSON(inputs.metadata-matrix) }}
                 DB-name: ${{ fromJSON(inputs.db-matrix) }}
         runs-on: ${{ matrix.os }}
+        env:
+          # only used in this workflow file
+          IGINX_CONDA_ENV: "iginxEnv"
         steps:
             - uses: actions/checkout@v4
               # use free-threading python instead of stable version
@@ -44,6 +47,8 @@ jobs:
                   java: ${{ matrix.java }}
                   free-thread-python-required: "true"
                   scope: "only-java"
+                  iginx-conda-flag: "true"
+                  iginx-conda-env: ${{ env.IGINX_CONDA_ENV }}
 
             - name: Run Metadata
               uses: ./.github/actions/metadataRunner
@@ -70,13 +75,17 @@ jobs:
 
             - name: Start IGinX
               uses: ./.github/actions/iginxRunner
+              with:
+                activate-conda-flag: "true"
+                iginx-conda-env:  ${{ env.IGINX_CONDA_ENV }}
 
             - name: TestController IT
               if: always()
-              shell: bash
+              shell: bash -el {0}
               env:
                   METADATA_STORAGE: ${{ matrix.metadata }}
               run: |
+                  conda activate ${{ env.IGINX_CONDA_ENV }}
                   chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/test_union.sh"
                   mvn test -q -Dtest=Controller -DfailIfNoTests=false -P-format
 

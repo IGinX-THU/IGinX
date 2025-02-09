@@ -12,29 +12,6 @@ inputs:
 runs:
     using: "composite"
     steps:
-        # this step creates
-        - if: inputs.iginx-conda-flag == 'true'
-          uses: conda-incubator/setup-miniconda@v3
-          with:
-            channels: conda-forge
-            channel-priority: flexible
-            conda-remove-defaults: "true"
-            run-post: "false"
-
-        - if: inputs.iginx-conda-flag == 'true'
-          name: Env List & install python3.13
-          shell: bash -el {0}
-          run: |
-            conda config --show channels
-            conda list
-            conda env list
-            conda create -n ${{ inputs.iginx-conda-env }} python=3.13 python-freethreading -c conda-forge
-            conda activate ${{ inputs.iginx-conda-env }}
-            python -VV
-            python -c "import sys;print(sys._is_gil_enabled())"
-            conda env list
-            
-
         - name: Set Python variables
           id: set-python-vars
           shell: bash
