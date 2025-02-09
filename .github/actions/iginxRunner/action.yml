@@ -49,25 +49,13 @@ runs:
               fi
               if [ "$RUNNER_OS" == "Linux" ]; then
                   chmod +x "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx.sh"
-                  if [ "${{ inputs.activate-conda-flag }}" == "true" ]; then
-                      "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx.sh" 6888 7888 "${{ inputs.iginx-conda-env }}"
-                  else
-                      "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx.sh" 6888 7888
-                  fi
+                  "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx.sh" 6888 7888
               elif [ "$RUNNER_OS" == "Windows" ]; then
                   chmod +x "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx_windows.sh"
-                  if [ "${{ inputs.activate-conda-flag }}" == "true" ]; then
-                      "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx_windows.sh" 6888 7888 "${{ inputs.iginx-conda-env }}"
-                  else
-                      "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx_windows.sh" 6888 7888
-                  fi
+                  "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx_windows.sh" 6888 7888
               elif [ "$RUNNER_OS" == "macOS" ]; then
                   chmod +x "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx_macos.sh"
-                  if [ "${{ inputs.activate-conda-flag }}" == "true" ]; then
-                      "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx_macos.sh" 6888 7888 "${{ inputs.iginx-conda-env }}"
-                  else
-                      "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx_macos.sh" 6888 7888
-                  fi
+                  "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx_macos.sh" 6888 7888
               fi
 
         - if: inputs.if-test-udf=='false' && inputs.if-stop=='true'

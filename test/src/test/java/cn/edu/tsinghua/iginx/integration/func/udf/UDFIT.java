@@ -1419,7 +1419,8 @@ public class UDFIT {
   @Test
   public void tensorUDFTest() {
     Assume.assumeFalse(
-        "tensorUDFTest is skipped because pytorch is not supported(python>3.12).", pythonNewerThan313());
+        "tensorUDFTest is skipped because pytorch is not supported(python>3.12).",
+        pythonNewerThan313());
     String name = "tensorTest";
     String filePath =
         String.join(
