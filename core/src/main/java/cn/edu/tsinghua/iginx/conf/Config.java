@@ -24,6 +24,7 @@ import cn.edu.tsinghua.iginx.utils.HostUtils;
 import cn.edu.tsinghua.iginx.utils.TagKVUtils;
 import java.util.ArrayList;
 import java.util.List;
+import org.apache.arrow.vector.BaseValueVector;
 
 public class Config {
 
@@ -209,6 +210,12 @@ public class Config {
   private int streamParallelGroupByWorkerNum = 5;
 
   private int pipelineParallelism = 5;
+
+  /////////////
+
+  private int executionBatchRowCount = BaseValueVector.INITIAL_VALUE_ALLOCATION;
+
+  private int groupByInitialGroupBufferCapacity = BaseValueVector.INITIAL_VALUE_ALLOCATION >> 7;
 
   /////////////
 
@@ -912,5 +919,21 @@ public class Config {
 
   public void setRuleBasedOptimizer(String ruleBasedOptimizer) {
     this.ruleBasedOptimizer = ruleBasedOptimizer;
+  }
+
+  public int getExecutionBatchRowCount() {
+    return executionBatchRowCount;
+  }
+
+  public void setExecutionBatchRowCount(int executionBatchRowCount) {
+    this.executionBatchRowCount = executionBatchRowCount;
+  }
+
+  public int getGroupByInitialGroupBufferCapacity() {
+    return groupByInitialGroupBufferCapacity;
+  }
+
+  public void setGroupByInitialGroupBufferCapacity(int groupByInitialGroupBufferCapacity) {
+    this.groupByInitialGroupBufferCapacity = groupByInitialGroupBufferCapacity;
   }
 }

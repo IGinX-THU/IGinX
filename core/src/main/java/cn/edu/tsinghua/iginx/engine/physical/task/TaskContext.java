@@ -35,5 +35,5 @@ public interface TaskContext {
 
   void addWarningMessage(String message);
 
-  int groupByInitialGroupBufferCapacity();
+  int getGroupByInitialGroupBufferCapacity();
 }

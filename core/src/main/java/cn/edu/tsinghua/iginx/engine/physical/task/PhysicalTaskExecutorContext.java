@@ -53,7 +53,7 @@ public class PhysicalTaskExecutorContext implements ExecutorContext {
   }
 
   @Override
-  public int groupByInitialGroupBufferCapacity() {
-    return task.getContext().groupByInitialGroupBufferCapacity();
+  public int getGroupByInitialGroupBufferCapacity() {
+    return task.getContext().getGroupByInitialGroupBufferCapacity();
   }
 }
