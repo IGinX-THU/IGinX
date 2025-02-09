@@ -952,20 +952,16 @@ public class OptimizerIT {
 
     String expect2 =
         "ResultSets:\n"
-            + "+--------------------+-------------+-------------------------------------------------------------------------------+\n"
-            + "|        Logical Tree|Operator Type|                                                                  Operator Info|\n"
-            + "+--------------------+-------------+-------------------------------------------------------------------------------+\n"
-            + "|Reorder             |      Reorder|                                                                Order: test.a.a|\n"
-            + "|  +--Project        |      Project|                                                             Patterns: test.a.a|\n"
-            + "|    +--InnerJoin    |    InnerJoin|PrefixA: test.a, PrefixB: us.d1, IsNatural: false, Filter: test.a.b == us.d1.s1|\n"
-            + "|      +--Project    |      Project|                         Patterns: test.a.a,test.a.b, Target DU: unit0000000002|\n"
-            + "|      +--Join       |         Join|                                                                    JoinBy: key|\n"
-            + "|        +--Join     |         Join|                                                                    JoinBy: key|\n"
-            + "|          +--Project|      Project|                                  Patterns: us.d1.s1, Target DU: unit0000000000|\n"
-            + "|          +--Project|      Project|                                  Patterns: us.d1.s1, Target DU: unit0000000001|\n"
-            + "|        +--Project  |      Project|                                  Patterns: us.d1.s1, Target DU: unit0000000002|\n"
-            + "+--------------------+-------------+-------------------------------------------------------------------------------+\n"
-            + "Total line number = 9\n";
+            + "+----------------+-------------+-------------------------------------------------------------------------------+\n"
+            + "|    Logical Tree|Operator Type|                                                                  Operator Info|\n"
+            + "+----------------+-------------+-------------------------------------------------------------------------------+\n"
+            + "|Reorder         |      Reorder|                                                                Order: test.a.a|\n"
+            + "|  +--Project    |      Project|                                                             Patterns: test.a.a|\n"
+            + "|    +--InnerJoin|    InnerJoin|PrefixA: test.a, PrefixB: us.d1, IsNatural: false, Filter: test.a.b == us.d1.s1|\n"
+            + "|      +--Project|      Project|                         Patterns: test.a.a,test.a.b, Target DU: unit0000000002|\n"
+            + "|      +--Project|      Project|                                  Patterns: us.d1.s1, Target DU: unit0000000000|\n"
+            + "+----------------+-------------+-------------------------------------------------------------------------------+\n"
+            + "Total line number = 5\n";
     executor.executeAndCompare(sql2, expect2);
 
     String expect3 =
