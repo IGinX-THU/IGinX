@@ -7024,7 +7024,7 @@ public class SQLSessionIT {
                     + "+------------+------------+-------+\n"
                     + "Total line number = 4\n"),
             new Pair<>(
-                "select avg(test1.a), max(test1.c), test2.d from test1 join test2 on test1.a = test2.a group by test2.d having max(test1.c) > 3.5;",
+                "select avg(test1.a), max(test1.c), test2.d from test1 join test2 on test1.a = test2.a group by test2.d having max(test1.c) > 3.5 order by test2.d desc;",
                 "ResultSets:\n"
                     + "+------------+------------+-------+\n"
                     + "|avg(test1.a)|max(test1.c)|test2.d|\n"

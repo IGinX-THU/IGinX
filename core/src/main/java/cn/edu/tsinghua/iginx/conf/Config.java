@@ -221,6 +221,10 @@ public class Config {
 
   /////////////
 
+  private int pipelineParallelism = 5;
+
+  /////////////
+
   private int batchSizeImportCsv = 10000;
 
   private boolean isUTTestEnv = false; // 是否是单元测试环境
