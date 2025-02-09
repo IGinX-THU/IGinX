@@ -64,11 +64,11 @@ public class RequestContext implements TaskContext {
 
   private PhysicalTask<BatchStream> physicalTree;
 
-  private ByteBuffer loadCSVFileByteBuffer;
+  private String loadCSVFileName;
 
   private ByteBuffer UDFModuleByteBuffer;
 
-  private boolean isRemoteUDF;
+  private boolean isRemoteSession;
 
   private BufferAllocator allocator;
 

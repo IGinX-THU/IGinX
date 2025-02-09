@@ -38,7 +38,7 @@ public class InfluxDBCapacityExpansionIT extends BaseCapacityExpansionIT {
   public InfluxDBCapacityExpansionIT() {
     super(
         influxdb,
-        "username:user, password:12345678, token:testToken, organization:testOrg",
+        "username=user, password=12345678, token=testToken, organization=testOrg",
         new InfluxDBHistoryDataGenerator());
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
     DBConf dbConf = conf.loadDBConf(conf.getStorageType());
@@ -46,7 +46,7 @@ public class InfluxDBCapacityExpansionIT extends BaseCapacityExpansionIT {
     Constant.expPort = dbConf.getDBCEPortMap().get(Constant.EXP_PORT_NAME);
     Constant.readOnlyPort = dbConf.getDBCEPortMap().get(Constant.READ_ONLY_PORT_NAME);
     wrongExtraParams.add(
-        "username:user, password:12345678, token:testToken, organization:wrongOrg");
+        "username=user, password=12345678, token=testToken, organization=wrongOrg");
     updatedParams.put("organization", "newOrg");
   }
 

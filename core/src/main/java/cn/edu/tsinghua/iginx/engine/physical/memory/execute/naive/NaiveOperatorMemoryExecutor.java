@@ -92,10 +92,8 @@ import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Bitmap;
 import cn.edu.tsinghua.iginx.utils.Pair;
-import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
-import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -218,40 +216,18 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
   }
 
   private RowStream executeProjectFromOperator(Project project, Table table) {
-    List<String> patterns = project.getPatterns();
-    Header header = table.getHeader();
-    List<Field> targetFields = new ArrayList<>();
-
-    for (Field field : header.getFields()) {
-      if (project.isRemainKey() && field.getName().endsWith(KEY)) {
-        targetFields.add(field);
-        continue;
-      }
-      for (String pattern : patterns) {
-        if (!StringUtils.isPattern(pattern)) {
-          if (pattern.equals(field.getName())) {
-            targetFields.add(field);
-          }
-        } else {
-          if (Pattern.matches(StringUtils.reformatPath(pattern), field.getName())) {
-            targetFields.add(field);
-          }
-        }
-      }
-    }
-    Header targetHeader = new Header(header.getKey(), targetFields);
+    Header targetHeader =
+        table.getHeader().projectedHeader(project.getPatterns(), project.isRemainKey());
+    List<Field> targetFields = targetHeader.getFields();
     List<Row> targetRows = new ArrayList<>();
+    table.reset();
     while (table.hasNext()) {
       Row row = table.next();
       Object[] objects = new Object[targetFields.size()];
       for (int i = 0; i < targetFields.size(); i++) {
         objects[i] = row.getValue(targetFields.get(i));
       }
-      if (header.hasKey()) {
-        targetRows.add(new Row(targetHeader, row.getKey(), objects));
-      } else {
-        targetRows.add(new Row(targetHeader, objects));
-      }
+      targetRows.add(new Row(targetHeader, row.getKey(), objects));
     }
     return new Table(targetHeader, targetRows);
   }
@@ -308,6 +284,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
       FunctionParams params = functionCall.getParams();
 
       Table functable = RowUtils.preRowTransform(table, rowTransformMap, functionCall);
+      Header tmpHeader = functable.getHeader();
       TreeMap<Long, List<Row>> groups = RowUtils.computeDownsampleGroup(downsample, functable);
 
       // <<window_start, window_end> row>
@@ -325,12 +302,20 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
           // min和max无需去重
           if (!function.getIdentifier().equals(Max.MAX)
               && !function.getIdentifier().equals(Min.MIN)) {
-            group = removeDuplicateRows(group);
+            try (Table t = RowUtils.project(tmpHeader, group, params.getPaths())) {
+              group = removeDuplicateRows(t.getRows());
+              tmpHeader = t.getHeader();
+            } catch (PhysicalException e) {
+              LOGGER.error(
+                  "encounter error when execute distinct in set mapping function {}",
+                  function.getIdentifier(),
+                  e);
+            }
           }
         }
 
         try {
-          Row row = function.transform(new Table(functable.getHeader(), group), params);
+          Row row = function.transform(new Table(tmpHeader, group), params);
           if (row != null) {
             transformedRawRows.add(new Pair<>(new Pair<>(windowStartKey, windowEndKey), row));
           }
@@ -397,7 +382,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
             functable = distinctMap.get(params.getPaths());
           } else {
             Distinct distinct = new Distinct(EmptySource.EMPTY_SOURCE, params.getPaths());
-            functable = transformToTable(executeDistinct(distinct, table));
+            functable = transformToTable(executeDistinct(distinct, functable));
             distinctMap.put(params.getPaths(), functable);
           }
         }

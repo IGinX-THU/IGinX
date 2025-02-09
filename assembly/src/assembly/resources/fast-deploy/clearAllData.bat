@@ -25,8 +25,9 @@ set folders[1]="include\apache-zookeeper\data"
 set folders[2]="include\apache-zookeeper\logs"
 set folders[3]="sbin\data"
 set folders[4]="sbin\logs"
+set folders[5]="sbin\transform_jobs"
 
-for /l %%i in (1,1,4) do (
+for /l %%i in (1,1,5) do (
 	IF EXIST !folders[%%i]! (
 		RD /S /Q !folders[%%i]!
 	) ELSE (

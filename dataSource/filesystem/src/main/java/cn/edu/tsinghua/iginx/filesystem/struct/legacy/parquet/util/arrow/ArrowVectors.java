@@ -116,7 +116,7 @@ public class ArrowVectors {
     return (V) vector.getTransferPair(allocator).getTo();
   }
 
-  public static boolean isSorted(ValueVector vector) {
+  public static boolean isStrictlyOrdered(ValueVector vector) {
     VectorValueComparator<ValueVector> comparator =
         DefaultVectorComparators.createDefaultComparator(vector);
     comparator.attachVector(vector);

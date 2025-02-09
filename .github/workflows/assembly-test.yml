@@ -11,7 +11,7 @@ on:
                 description: "The python version to run the test on"
                 type: string
                 required: false
-                default: '["3.9"]'
+                default: '["3.11"]'
             os-matrix:
                 description: "The operating system to run the test on"
                 type: string
@@ -76,7 +76,7 @@ jobs:
                   fi
 
             - name: Run Tests
-              shell: bash
+              shell: bash -el {0}
               run: mvn test -Dtest=${{ env.FUNCTEST }} -DfailIfNoTests=false -P-format
 
             - name: Check Whether Logs Contains Error

@@ -46,24 +46,24 @@ public class Task {
     String type = info.getTaskType().toLowerCase().trim();
     switch (type) {
       case "iginx":
-        taskType = TaskType.IginX;
+        taskType = TaskType.IGINX;
         break;
       case "python":
-        taskType = TaskType.Python;
+        taskType = TaskType.PYTHON;
         break;
       default:
         throw new IllegalArgumentException("Unknown task type: " + type);
     }
 
-    dataFlowType = DataFlowType.Stream;
+    dataFlowType = DataFlowType.STREAM;
     if (info.getDataFlowType() != null) {
       type = info.getDataFlowType().toLowerCase().trim();
       switch (type) {
         case "batch":
-          dataFlowType = DataFlowType.Batch;
+          dataFlowType = DataFlowType.BATCH;
           break;
         case "stream":
-          dataFlowType = DataFlowType.Stream;
+          dataFlowType = DataFlowType.STREAM;
           break;
         default:
           throw new IllegalArgumentException("Unknown data flow type: " + type);
@@ -107,6 +107,6 @@ public class Task {
   }
 
   public boolean isPythonTask() {
-    return taskType.equals(TaskType.Python);
+    return taskType.equals(TaskType.PYTHON);
   }
 }

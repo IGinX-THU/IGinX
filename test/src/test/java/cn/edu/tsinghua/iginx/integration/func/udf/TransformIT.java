@@ -236,11 +236,13 @@ public class TransformIT {
         }
       }
     }
+    JobState state = session.queryTransformJobStatus(jobId);
     // not found
     LOGGER.error(
-        "Job({}) is not found in list of \"{}\" state.",
+        "Job({}) is not found in list of \"{}\" state. Current state: {}",
         jobId,
-        expectedState == null ? "Any" : expectedState);
+        expectedState == null ? "Any" : expectedState,
+        state);
     fail();
   }
 
@@ -290,7 +292,7 @@ public class TransformIT {
     List<String> sqlList = new ArrayList<>();
     sqlList.add(QUERY_SQL_2);
 
-    TaskInfo iginxTask = new TaskInfo(TaskType.IginX, DataFlowType.Stream);
+    TaskInfo iginxTask = new TaskInfo(TaskType.IGINX, DataFlowType.STREAM);
     iginxTask.setSqlList(sqlList);
 
     List<TaskInfo> taskInfoList = new ArrayList<>();
@@ -298,7 +300,7 @@ public class TransformIT {
 
     try {
       String outputFileName = OUTPUT_DIR_PREFIX + File.separator + "output.denied";
-      session.commitTransformJob(taskInfoList, ExportType.File, outputFileName);
+      session.commitTransformJob(taskInfoList, ExportType.FILE, outputFileName);
       fail("Export file without permission should fail.");
     } catch (SessionException e) {
       assertEquals(RpcUtils.ACCESS_DENY.message, e.getMessage());
@@ -310,12 +312,12 @@ public class TransformIT {
     LOGGER.info("commitSingleSqlStatementTest");
     List<TaskInfo> taskInfoList = new ArrayList<>();
 
-    TaskInfo iginxTask = new TaskInfo(TaskType.IginX, DataFlowType.Stream);
+    TaskInfo iginxTask = new TaskInfo(TaskType.IGINX, DataFlowType.STREAM);
     iginxTask.setSqlList(Collections.singletonList(SHOW_TIME_SERIES_SQL));
     taskInfoList.add(iginxTask);
 
     try {
-      long jobId = session.commitTransformJob(taskInfoList, ExportType.Log, "");
+      long jobId = session.commitTransformJob(taskInfoList, ExportType.LOG, "");
 
       verifyJobFinishedBlocked(jobId);
 
@@ -332,10 +334,7 @@ public class TransformIT {
     LOGGER.info("commitSingleSqlStatementByYamlTest");
     try {
       String yamlFileName = OUTPUT_DIR_PREFIX + File.separator + "TransformSingleSqlStatement.yaml";
-      SessionExecuteSqlResult result =
-          session.executeSql(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
-
-      long jobId = result.getJobId();
+      long jobId = session.commitTransformJob(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
       verifyJobFinishedBlocked(jobId);
     } catch (SessionException | InterruptedException e) {
       LOGGER.error("Transform:  execute fail. Caused by:", e);
@@ -349,18 +348,16 @@ public class TransformIT {
     String outputFileName = OUTPUT_DIR_PREFIX + File.separator + "export_file_after_10_s.txt";
     try {
       String yamlFileName = OUTPUT_DIR_PREFIX + File.separator + "TransformScheduledAfter10s.yaml";
-      SessionExecuteSqlResult result =
-          session.executeSql(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
+      long jobId = session.commitTransformJob(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
 
       Thread.sleep(3000L); // sleep 3s to delay insertion
       String insertSQL = "insert into scheduleData(key, %s) values(1, 2);";
       // add col0
       session.executeSql(String.format(insertSQL, "col0"));
 
-      long jobId = result.getJobId();
       // job can be queried in all/idle jobs
-      verifyJobState(result.getJobId(), null);
-      verifyJobState(result.getJobId(), JobState.JOB_IDLE);
+      verifyJobState(jobId, null);
+      verifyJobState(jobId, JobState.JOB_IDLE);
 
       verifyJobFinishedBlocked(jobId);
       // job will finish after 10 seconds
@@ -389,9 +386,7 @@ public class TransformIT {
       String yamlFileName = OUTPUT_DIR_PREFIX + File.separator + "TransformScheduledEvery10s.yaml";
       // add col0
       session.executeSql(String.format(insertSQL, "col0"));
-      SessionExecuteSqlResult result =
-          session.executeSql(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
-      long jobId = result.getJobId();
+      long jobId = session.commitTransformJob(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
       try {
 
         Thread.sleep(3000L); // sleep 3s to make sure first try is triggered.
@@ -402,8 +397,8 @@ public class TransformIT {
         for (int i = 1; i < 3; i++) {
           session.executeSql(String.format(insertSQL, "col" + i));
           // job can be queried in all/idle jobs
-          verifyJobState(result.getJobId(), null);
-          verifyJobState(result.getJobId(), JobState.JOB_IDLE);
+          verifyJobState(jobId, null);
+          verifyJobState(jobId, JobState.JOB_IDLE);
           Thread.sleep(10000L); // sleep 10s to make sure next try is triggered.
           LOGGER.info("Verifying " + i + "th try...");
           fileResultContains(outputFileName, "col" + i);
@@ -424,6 +419,103 @@ public class TransformIT {
     }
   }
 
+  @Test
+  public void commitStopOnFailureTest() {
+    LOGGER.info("commitStopOnFailureTest");
+    try {
+      dropAllTask();
+      List<TaskInfo> taskInfoList = new ArrayList<>();
+
+      TaskInfo iginxTask = new TaskInfo(TaskType.IGINX, DataFlowType.STREAM);
+      iginxTask.setSqlList(Collections.singletonList("SELECT s1, s2 FROM us.d1 WHERE key < 10;"));
+
+      TaskInfo pyTask = new TaskInfo(TaskType.PYTHON, DataFlowType.STREAM);
+      pyTask.setPyTaskName("RowSumTransformer"); // not registered, job should fail
+
+      taskInfoList.add(iginxTask);
+      taskInfoList.add(pyTask);
+
+      String schedule = "every 10 second";
+      long jobId = session.commitTransformJob(taskInfoList, ExportType.LOG, "", schedule);
+
+      Thread.sleep(5000); // triggered
+      verifyJobState(jobId, JobState.JOB_FAILED); // verify failed
+    } catch (SessionException | InterruptedException e) {
+      LOGGER.error("Transform:  execute fail. Caused by:", e);
+    }
+  }
+
+  @Test
+  public void commitContinueOnFailureTest() {
+    LOGGER.info("commitContinueOnFailureTest");
+    try {
+      dropAllTask();
+      List<TaskInfo> taskInfoList = new ArrayList<>();
+
+      TaskInfo iginxTask = new TaskInfo(TaskType.IGINX, DataFlowType.STREAM);
+      iginxTask.setSqlList(Collections.singletonList("SELECT s1, s2 FROM us.d1 WHERE key < 10;"));
+
+      TaskInfo pyTask = new TaskInfo(TaskType.PYTHON, DataFlowType.STREAM);
+      pyTask.setPyTaskName("RowSumTransformer"); // at 1st try, udf is not registered.
+
+      taskInfoList.add(iginxTask);
+      taskInfoList.add(pyTask);
+
+      String schedule = "every 20 second";
+
+      String outputFileName =
+          OUTPUT_DIR_PREFIX + File.separator + "export_file_continue_on_failure.txt";
+      long jobId =
+          session.commitTransformJob(
+              taskInfoList, ExportType.FILE, outputFileName, schedule, false);
+
+      try {
+        testContinueOnFailure(jobId, outputFileName);
+      } finally {
+        cancelJob(jobId);
+      }
+    } catch (SessionException | InterruptedException | IOException e) {
+      LOGGER.error("Transform:  execute fail. Caused by:", e);
+      fail();
+    }
+  }
+
+  @Test
+  public void commitContinueOnFailureByYamlTest() {
+    // same step as commitContinueOnFailureTest but by yaml
+    LOGGER.info("commitContinueOnFailureByYamlTest");
+    try {
+      dropAllTask();
+      String yamlFileName =
+          OUTPUT_DIR_PREFIX + File.separator + "TransformScheduledEvery10sWrong.yaml";
+      long jobId = session.commitTransformJob(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
+      String outputFileName =
+          OUTPUT_DIR_PREFIX + File.separator + "export_file_continue_on_failure.txt";
+      try {
+        testContinueOnFailure(jobId, outputFileName);
+      } finally {
+        cancelJob(jobId);
+      }
+    } catch (SessionException | InterruptedException | IOException e) {
+      LOGGER.error("Transform:  execute fail. Caused by:", e);
+      fail();
+    }
+  }
+
+  private void testContinueOnFailure(long jobId, String outputFileName)
+      throws InterruptedException, SessionException, IOException {
+    Thread.sleep(13000L); // wait for 1st try to fail
+    verifyJobState(jobId, null);
+    verifyJobState(jobId, JobState.JOB_PARTIALLY_FAILED);
+
+    // register udf before 2nd try
+    String task = "RowSumTransformer";
+    registerTask(task);
+
+    Thread.sleep(20000L);
+    verifySinglePythonJob(outputFileName, 10); // verify 2nd try result
+  }
+
   @Ignore // this test takes too much time(> 1 minute) because the smallest time unit in cron is
   // minute. This test has been tested locally before committed
   @Test
@@ -434,9 +526,7 @@ public class TransformIT {
     try {
       String insertSQL = "insert into scheduleData(key, %s) values(1, 2);";
       String yamlFileName = OUTPUT_DIR_PREFIX + File.separator + "TransformScheduledCron.yaml";
-      SessionExecuteSqlResult result =
-          session.executeSql(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
-      long jobId = result.getJobId();
+      long jobId = session.commitTransformJob(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
       try {
         // add col0
         session.executeSql(String.format(insertSQL, "col0"));
@@ -472,9 +562,7 @@ public class TransformIT {
           tenSecondsLater.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
       appendFile(new File(yamlFileName), "\nschedule: \"at '" + formattedDateTime + "'\"");
 
-      SessionExecuteSqlResult result =
-          session.executeSql(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
-      long jobId = result.getJobId();
+      long jobId = session.commitTransformJob(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
       Thread.sleep(2000L); // add new data after 2s, before job is triggered.
       // add col0
       session.executeSql(String.format(insertSQL, "col0"));
@@ -497,7 +585,7 @@ public class TransformIT {
     LOGGER.info("commitMultipleSqlStatementsTest");
     List<TaskInfo> taskInfoList = new ArrayList<>();
 
-    TaskInfo iginxTask = new TaskInfo(TaskType.IginX, DataFlowType.Stream);
+    TaskInfo iginxTask = new TaskInfo(TaskType.IGINX, DataFlowType.STREAM);
     List<String> sqlList = new ArrayList<>();
     String insertStrPrefix = "INSERT INTO us.d1 (key, s2) values ";
     StringBuilder builder = new StringBuilder(insertStrPrefix);
@@ -516,7 +604,7 @@ public class TransformIT {
     try {
       String outputFileName =
           OUTPUT_DIR_PREFIX + File.separator + "export_file_multiple_sql_statements.txt";
-      long jobId = session.commitTransformJob(taskInfoList, ExportType.File, outputFileName);
+      long jobId = session.commitTransformJob(taskInfoList, ExportType.FILE, outputFileName);
 
       verifyJobFinishedBlocked(jobId);
       verifyMultipleSqlStatements(outputFileName);
@@ -534,9 +622,7 @@ public class TransformIT {
           OUTPUT_DIR_PREFIX + File.separator + "TransformMultipleSqlStatements.yaml";
       String outputFileName =
           OUTPUT_DIR_PREFIX + File.separator + "export_file_multiple_sql_statements_by_yaml.txt";
-      SessionExecuteSqlResult result =
-          session.executeSql(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
-      long jobId = result.getJobId();
+      long jobId = session.commitTransformJob(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
 
       verifyJobFinishedBlocked(jobId);
       verifyMultipleSqlStatements(outputFileName);
@@ -588,10 +674,10 @@ public class TransformIT {
 
       List<TaskInfo> taskInfoList = new ArrayList<>();
 
-      TaskInfo iginxTask = new TaskInfo(TaskType.IginX, DataFlowType.Stream);
+      TaskInfo iginxTask = new TaskInfo(TaskType.IGINX, DataFlowType.STREAM);
       iginxTask.setSqlList(Collections.singletonList(QUERY_SQL_2));
 
-      TaskInfo pyTask = new TaskInfo(TaskType.Python, DataFlowType.Stream);
+      TaskInfo pyTask = new TaskInfo(TaskType.PYTHON, DataFlowType.STREAM);
       pyTask.setPyTaskName("RowSumTransformer");
 
       taskInfoList.add(iginxTask);
@@ -599,10 +685,10 @@ public class TransformIT {
 
       String outputFileName =
           OUTPUT_DIR_PREFIX + File.separator + "export_file_single_python_job.txt";
-      long jobId = session.commitTransformJob(taskInfoList, ExportType.File, outputFileName);
+      long jobId = session.commitTransformJob(taskInfoList, ExportType.FILE, outputFileName);
 
       verifyJobFinishedBlocked(jobId);
-      verifySinglePythonJob(outputFileName);
+      verifySinglePythonJob(outputFileName, 200);
     } catch (SessionException | InterruptedException | IOException e) {
       LOGGER.error("Transform:  execute fail. Caused by:", e);
       fail();
@@ -622,28 +708,28 @@ public class TransformIT {
 
       List<TaskInfo> taskInfoList = new ArrayList<>();
 
-      TaskInfo iginxTask = new TaskInfo(TaskType.IginX, DataFlowType.Stream);
+      TaskInfo iginxTask = new TaskInfo(TaskType.IGINX, DataFlowType.STREAM);
       iginxTask.setSqlList(Collections.singletonList(QUERY_SQL_3));
 
-      TaskInfo pyTask = new TaskInfo(TaskType.Python, DataFlowType.Stream);
+      TaskInfo pyTask = new TaskInfo(TaskType.PYTHON, DataFlowType.STREAM);
       pyTask.setPyTaskName("increase");
 
       taskInfoList.add(iginxTask);
       taskInfoList.add(pyTask);
 
-      String schedule = "every 10 second";
+      String schedule = "every 20 second";
 
-      long jobId = session.commitTransformJob(taskInfoList, ExportType.IginX, "", schedule);
+      long jobId = session.commitTransformJob(taskInfoList, ExportType.IGINX, "", schedule);
       // make the script add 2 now
       alterPythonScriptWithReplace(filename, "+ 1", "+ 2");
       try {
-        Thread.sleep(3000); // sleep 3s for 1st execution to complete.
+        Thread.sleep(13000); // sleep 13s for 1st execution to complete.
         SessionExecuteSqlResult queryResult1 = session.executeSql("SELECT * FROM transform;");
 
         // then, increase() will add 2
         registerTask(task, className, filename);
 
-        Thread.sleep(10000); // sleep 10s for 2nd execution to complete.
+        Thread.sleep(20000); // sleep 20s for 2nd execution to complete.
         SessionExecuteSqlResult queryResult2 = session.executeSql("SELECT * FROM transform;");
         // 2nd result will be appended from 11th line
 
@@ -701,19 +787,18 @@ public class TransformIT {
       String yamlFileName = OUTPUT_DIR_PREFIX + File.separator + "TransformSinglePythonJob.yaml";
       String outputFileName =
           OUTPUT_DIR_PREFIX + File.separator + "export_file_single_python_job_by_yaml.txt";
-      SessionExecuteSqlResult result =
-          session.executeSql(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
-      long jobId = result.getJobId();
+      long jobId = session.commitTransformJob(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
 
       verifyJobFinishedBlocked(jobId);
-      verifySinglePythonJob(outputFileName);
+      verifySinglePythonJob(outputFileName, 200);
     } catch (SessionException | InterruptedException | IOException e) {
       LOGGER.error("Transform:  execute fail. Caused by:", e);
       fail();
     }
   }
 
-  private void verifySinglePythonJob(String outputFileName) throws IOException {
+  private void verifySinglePythonJob(String outputFileName, int expectedLineCount)
+      throws IOException {
     BufferedReader reader = new BufferedReader(new FileReader(outputFileName));
     String line = reader.readLine();
     String[] parts = line.split(",");
@@ -733,7 +818,7 @@ public class TransformIT {
     }
     reader.close();
 
-    assertEquals(200, index);
+    assertEquals(expectedLineCount, index);
     assertTrue(Files.deleteIfExists(Paths.get(outputFileName)));
   }
 
@@ -748,13 +833,13 @@ public class TransformIT {
 
       List<TaskInfo> taskInfoList = new ArrayList<>();
 
-      TaskInfo iginxTask = new TaskInfo(TaskType.IginX, DataFlowType.Stream);
+      TaskInfo iginxTask = new TaskInfo(TaskType.IGINX, DataFlowType.STREAM);
       iginxTask.setSqlList(Collections.singletonList(QUERY_SQL_2));
 
-      TaskInfo addOnePyTask = new TaskInfo(TaskType.Python, DataFlowType.Stream);
+      TaskInfo addOnePyTask = new TaskInfo(TaskType.PYTHON, DataFlowType.STREAM);
       addOnePyTask.setPyTaskName("AddOneTransformer");
 
-      TaskInfo rowSumPyTask = new TaskInfo(TaskType.Python, DataFlowType.Stream);
+      TaskInfo rowSumPyTask = new TaskInfo(TaskType.PYTHON, DataFlowType.STREAM);
       rowSumPyTask.setPyTaskName("RowSumTransformer");
 
       taskInfoList.add(iginxTask);
@@ -763,7 +848,7 @@ public class TransformIT {
 
       String outputFileName =
           OUTPUT_DIR_PREFIX + File.separator + "export_file_multiple_python_jobs.txt";
-      long jobId = session.commitTransformJob(taskInfoList, ExportType.File, outputFileName);
+      long jobId = session.commitTransformJob(taskInfoList, ExportType.FILE, outputFileName);
 
       verifyJobFinishedBlocked(jobId);
       verifyMultiplePythonJobs(outputFileName);
@@ -785,9 +870,7 @@ public class TransformIT {
       String yamlFileName = OUTPUT_DIR_PREFIX + File.separator + "TransformMultiplePythonJobs.yaml";
       String outputFileName =
           OUTPUT_DIR_PREFIX + File.separator + "export_file_multiple_python_jobs_by_yaml.txt";
-      SessionExecuteSqlResult result =
-          session.executeSql(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
-      long jobId = result.getJobId();
+      long jobId = session.commitTransformJob(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
 
       verifyJobFinishedBlocked(jobId);
       verifyMultiplePythonJobs(outputFileName);
@@ -808,9 +891,7 @@ public class TransformIT {
 
       String yamlFileName =
           OUTPUT_DIR_PREFIX + File.separator + "TransformMultiplePythonJobsWithExportToIginx.yaml";
-      SessionExecuteSqlResult result =
-          session.executeSql(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
-      long jobId = result.getJobId();
+      long jobId = session.commitTransformJob(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
 
       verifyJobFinishedBlocked(jobId);
 
@@ -855,9 +936,7 @@ public class TransformIT {
 
       String yamlFileName =
           OUTPUT_DIR_PREFIX + File.separator + "TransformBinaryExportToIginx.yaml";
-      SessionExecuteSqlResult result =
-          session.executeSql(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
-      long jobId = result.getJobId();
+      long jobId = session.commitTransformJob(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
 
       verifyJobFinishedBlocked(jobId);
 
@@ -938,16 +1017,16 @@ public class TransformIT {
 
       List<TaskInfo> taskInfoList = new ArrayList<>();
 
-      TaskInfo iginxTask = new TaskInfo(TaskType.IginX, DataFlowType.Stream);
+      TaskInfo iginxTask = new TaskInfo(TaskType.IGINX, DataFlowType.STREAM);
       iginxTask.setSqlList(Collections.singletonList(QUERY_SQL_2));
 
-      TaskInfo addOnePyTask = new TaskInfo(TaskType.Python, DataFlowType.Stream);
+      TaskInfo addOnePyTask = new TaskInfo(TaskType.PYTHON, DataFlowType.STREAM);
       addOnePyTask.setPyTaskName("AddOneTransformer");
 
-      TaskInfo sumPyTask = new TaskInfo(TaskType.Python, DataFlowType.Batch);
+      TaskInfo sumPyTask = new TaskInfo(TaskType.PYTHON, DataFlowType.BATCH);
       sumPyTask.setPyTaskName("SumTransformer");
 
-      TaskInfo rowSumPyTask = new TaskInfo(TaskType.Python, DataFlowType.Stream);
+      TaskInfo rowSumPyTask = new TaskInfo(TaskType.PYTHON, DataFlowType.STREAM);
       rowSumPyTask.setPyTaskName("RowSumTransformer");
 
       taskInfoList.add(iginxTask);
@@ -957,7 +1036,7 @@ public class TransformIT {
 
       String outputFileName =
           OUTPUT_DIR_PREFIX + File.separator + "export_file_mixed_python_jobs.txt";
-      long jobId = session.commitTransformJob(taskInfoList, ExportType.File, outputFileName);
+      long jobId = session.commitTransformJob(taskInfoList, ExportType.FILE, outputFileName);
 
       verifyJobFinishedBlocked(jobId);
       verifyMixedPythonJobs(outputFileName);
@@ -979,9 +1058,7 @@ public class TransformIT {
       String yamlFileName = OUTPUT_DIR_PREFIX + File.separator + "TransformMixedPythonJobs.yaml";
       String outputFileName =
           OUTPUT_DIR_PREFIX + File.separator + "export_file_mixed_python_jobs_by_yaml.txt";
-      SessionExecuteSqlResult result =
-          session.executeSql(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
-      long jobId = result.getJobId();
+      long jobId = session.commitTransformJob(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
 
       verifyJobFinishedBlocked(jobId);
       verifyMixedPythonJobs(outputFileName);
@@ -1012,9 +1089,7 @@ public class TransformIT {
       YAMLWriter writer = new YAMLWriter();
       writer.writeJobIntoYAML(new File(yamlFileName), job);
 
-      SessionExecuteSqlResult result =
-          session.executeSql(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
-      long jobId = result.getJobId();
+      long jobId = session.commitTransformJob(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
 
       verifyJobFinishedBlocked(jobId);
       verifyMixedPythonJobs(outputFileName);
@@ -1042,7 +1117,7 @@ public class TransformIT {
           info = "has closed";
           break;
         default:
-          LOGGER.error("expecting finished/closed/failed state.");
+          LOGGER.error("expecting finished/closed/failed state, got:{}", state);
           fail();
       }
       try {
@@ -1123,16 +1198,16 @@ public class TransformIT {
 
       List<TaskInfo> taskInfoList = new ArrayList<>();
 
-      TaskInfo iginxTask = new TaskInfo(TaskType.IginX, DataFlowType.Stream);
+      TaskInfo iginxTask = new TaskInfo(TaskType.IGINX, DataFlowType.STREAM);
       iginxTask.setSqlList(Collections.singletonList(QUERY_SQL_2));
 
-      TaskInfo sleepPyTask = new TaskInfo(TaskType.Python, DataFlowType.Stream);
+      TaskInfo sleepPyTask = new TaskInfo(TaskType.PYTHON, DataFlowType.STREAM);
       sleepPyTask.setPyTaskName("SleepTransformer");
 
       taskInfoList.add(iginxTask);
       taskInfoList.add(sleepPyTask);
 
-      long jobId = session.commitTransformJob(taskInfoList, ExportType.Log, "");
+      long jobId = session.commitTransformJob(taskInfoList, ExportType.LOG, "");
       LOGGER.info("job is {}", jobId);
       JobState jobState = session.queryTransformJobStatus(jobId);
       LOGGER.info("job {} state is {}", jobId, jobState.toString());
@@ -1179,10 +1254,8 @@ public class TransformIT {
       greenMail.setUser("from@localhost", "password");
       String yamlFileName =
           OUTPUT_DIR_PREFIX + File.separator + "TransformSingleSqlStatementWithEmail.yaml";
-      SessionExecuteSqlResult result =
-          session.executeSql(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
+      long jobId = session.commitTransformJob(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
 
-      long jobId = result.getJobId();
       verifyJobFinishedBlocked(jobId);
 
       Assert.assertTrue(greenMail.waitForIncomingEmail(10 * 1000, 2));

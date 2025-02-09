@@ -908,26 +908,30 @@ public class SQLSessionIT {
     executor.execute(insert);
 
     insert =
+        "INSERT INTO test(key, c) values (1, \"aa\"), (2, \"aa\"), (3, \"bb\"), (4, \"bb\"), (5, \"bb\"), (6, \"bb\"), (7, \"bb\"), (8, \"bb\"), (9, \"bb\"), (10, \"bb\");";
+    executor.execute(insert);
+
+    insert =
         "INSERT INTO t(key, a, b) values (1, 1, 1), (2, 1, 1), (3, 1, 2), (4, 2, 1), (5, 2, 2), (6, 3, 1);";
     executor.execute(insert);
 
     String statement = "SELECT * FROM test;";
     String expected =
         "ResultSets:\n"
-            + "+---+------+------+\n"
-            + "|key|test.a|test.b|\n"
-            + "+---+------+------+\n"
-            + "|  1|     1|     1|\n"
-            + "|  2|     2|     1|\n"
-            + "|  3|     2|     2|\n"
-            + "|  4|     3|     1|\n"
-            + "|  5|     3|     2|\n"
-            + "|  6|     3|     1|\n"
-            + "|  7|     4|     1|\n"
-            + "|  8|     4|     2|\n"
-            + "|  9|     4|     3|\n"
-            + "| 10|     4|     1|\n"
-            + "+---+------+------+\n"
+            + "+---+------+------+------+\n"
+            + "|key|test.a|test.b|test.c|\n"
+            + "+---+------+------+------+\n"
+            + "|  1|     1|     1|    aa|\n"
+            + "|  2|     2|     1|    aa|\n"
+            + "|  3|     2|     2|    bb|\n"
+            + "|  4|     3|     1|    bb|\n"
+            + "|  5|     3|     2|    bb|\n"
+            + "|  6|     3|     1|    bb|\n"
+            + "|  7|     4|     1|    bb|\n"
+            + "|  8|     4|     2|    bb|\n"
+            + "|  9|     4|     3|    bb|\n"
+            + "| 10|     4|     1|    bb|\n"
+            + "+---+------+------+------+\n"
             + "Total line number = 10\n";
     executor.executeAndCompare(statement, expected);
 
@@ -1019,6 +1023,17 @@ public class SQLSessionIT {
             + "Total line number = 1\n";
     executor.executeAndCompare(statement, expected);
 
+    statement = "SELECT COUNT(DISTINCT a), COUNT(DISTINCT b) FROM test;";
+    expected =
+        "ResultSets:\n"
+            + "+----------------------+----------------------+\n"
+            + "|count(distinct test.a)|count(distinct test.b)|\n"
+            + "+----------------------+----------------------+\n"
+            + "|                     4|                     3|\n"
+            + "+----------------------+----------------------+\n"
+            + "Total line number = 1\n";
+    executor.executeAndCompare(statement, expected);
+
     statement = "SELECT a, COUNT(b), AVG(b), SUM(b), MIN(b), MAX(b) FROM test GROUP BY a;";
     expected =
         "ResultSets:\n"
@@ -1046,6 +1061,18 @@ public class SQLSessionIT {
             + "|     4|                     3|                 2.0|                   6|                   1|                   3|\n"
             + "+------+----------------------+--------------------+--------------------+--------------------+--------------------+\n"
             + "Total line number = 4\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "SELECT c, COUNT(DISTINCT a), COUNT(DISTINCT b) FROM test GROUP BY c;";
+    expected =
+        "ResultSets:\n"
+            + "+------+----------------------+----------------------+\n"
+            + "|test.c|count(distinct test.a)|count(distinct test.b)|\n"
+            + "+------+----------------------+----------------------+\n"
+            + "|    bb|                     3|                     3|\n"
+            + "|    aa|                     2|                     1|\n"
+            + "+------+----------------------+----------------------+\n"
+            + "Total line number = 2\n";
     executor.executeAndCompare(statement, expected);
 
     statement =
@@ -1077,6 +1104,22 @@ public class SQLSessionIT {
             + "|  7|           7|         8|                     1|                 4.0|                   4|                   4|                   4|\n"
             + "|  9|           9|        10|                     1|                 4.0|                   4|                   4|                   4|\n"
             + "+---+------------+----------+----------------------+--------------------+--------------------+--------------------+--------------------+\n"
+            + "Total line number = 5\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement =
+        "SELECT COUNT(DISTINCT a), COUNT(DISTINCT b) FROM test OVER WINDOW (size 2 IN (0, 10]);";
+    expected =
+        "ResultSets:\n"
+            + "+---+------------+----------+----------------------+----------------------+\n"
+            + "|key|window_start|window_end|count(distinct test.a)|count(distinct test.b)|\n"
+            + "+---+------------+----------+----------------------+----------------------+\n"
+            + "|  1|           1|         2|                     2|                     1|\n"
+            + "|  3|           3|         4|                     2|                     2|\n"
+            + "|  5|           5|         6|                     1|                     2|\n"
+            + "|  7|           7|         8|                     1|                     2|\n"
+            + "|  9|           9|        10|                     1|                     2|\n"
+            + "+---+------------+----------+----------------------+----------------------+\n"
             + "Total line number = 5\n";
     executor.executeAndCompare(statement, expected);
   }
@@ -7096,6 +7139,7 @@ public class SQLSessionIT {
                 "statisticsLogInterval",
                 "enableMemoryControl",
                 "retryCount",
+                "defaultScheduledTransformJobDir",
                 "tagNameAnnotation",
                 "etcdEndpoints",
                 "mqttPayloadFormatter",

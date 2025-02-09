@@ -172,6 +172,8 @@ public class Config {
 
   private int transformMaxRetryTimes = 3;
 
+  private String defaultScheduledTransformJobDir = "transform_jobs";
+
   private boolean needInitBasicUDFFunctions = true;
 
   private List<String> udfList = new ArrayList<>();
@@ -919,6 +921,14 @@ public class Config {
 
   public void setRuleBasedOptimizer(String ruleBasedOptimizer) {
     this.ruleBasedOptimizer = ruleBasedOptimizer;
+  }
+
+  public String getDefaultScheduledTransformJobDir() {
+    return defaultScheduledTransformJobDir;
+  }
+
+  public void setDefaultScheduledTransformJobDir(String defaultScheduledTransformJobDir) {
+    this.defaultScheduledTransformJobDir = defaultScheduledTransformJobDir;
   }
 
   public int getExecutionBatchRowCount() {
