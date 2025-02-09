@@ -66,6 +66,10 @@
             <groupId>cn.edu.tsinghua</groupId>
             <artifactId>redis</artifactId>
         </dependency>
+        <dependency>
+            <groupId>cn.edu.tsinghua</groupId>
+            <artifactId>vectordb</artifactId>
+        </dependency>
     </dependencies>
 
     <repositories>

@@ -29,6 +29,10 @@ inputs:
         description: "Redis ports"
         required: false
         default: 6379
+    VectorDB-ports:
+        description: "VectorDB ports"
+        required: false
+        default: 19530
 
 runs:
     using: "composite" # Mandatory parameter
@@ -127,3 +131,12 @@ runs:
           uses: ./.github/actions/service/mysql
           with:
               ports: ${{ inputs.MySQL-ports }}
+
+        - if: inputs.DB-name=='VectorDB'
+          name: Run Milvus DB
+          uses: ./.github/actions/service/vectordb
+          with:
+              stop: false
+              clean: false
+              start: true
+              ports: ${{ inputs.VectorDB-ports }}
