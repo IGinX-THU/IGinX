@@ -22,6 +22,11 @@ package cn.edu.tsinghua.iginx.relational.meta;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.relational.datatype.transformer.IDataTypeTransformer;
 import cn.edu.tsinghua.iginx.relational.datatype.transformer.JDBCDataTypeTransformer;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
@@ -74,6 +79,33 @@ public class JDBCMeta extends AbstractRelationalMeta {
     notRegexOp = properties.getProperty("not_regex_like_symbol");
     jdbcSupportBackslash =
         Boolean.parseBoolean(properties.getProperty("jdbc_support_special_char"));
+  }
+
+  public JDBCMeta(StorageEngineMeta meta, String propertiesPath) throws IOException {
+    this(meta, getPropertiesFromPath(propertiesPath));
+  }
+
+  private static Properties getPropertiesFromPath(String propertiesPath) throws IOException {
+    Properties properties = new Properties();
+    File file = new File(propertiesPath);
+    if (!file.exists()) {
+      throw new IOException(String.format("Properties file %s not found", file.getAbsolutePath()));
+    }
+    try (InputStream inputStream = Files.newInputStream(Paths.get(propertiesPath))) {
+      properties.load(inputStream);
+    }
+    return properties;
+  }
+
+  public JDBCMeta(StorageEngineMeta meta, InputStream propertiesIS) throws IOException {
+    this(meta, getPropertiesFromInputStream(propertiesIS));
+  }
+
+  private static Properties getPropertiesFromInputStream(InputStream propertiesIS)
+      throws IOException {
+    Properties properties = new Properties();
+    properties.load(propertiesIS);
+    return properties;
   }
 
   @Override

@@ -3569,12 +3569,12 @@ public class SQLSessionIT {
             + "+--------+--------+----------+--------+--------+----------+--------+--------+----------+\n"
             + "|       3|     3.1|         2|       3|     bbb|         2|     bbb|   false|         4|\n"
             + "|       5|     5.1|         3|       5|     ddd|         4|     ddd|    true|         1|\n"
-            + "|    null|    null|      null|       2|     aaa|         1|     aaa|    true|         3|\n"
-            + "|    null|    null|      null|       4|     ccc|         3|     ccc|    true|         5|\n"
-            + "|    null|    null|      null|       6|     eee|         5|     eee|   false|         2|\n"
             + "|       1|     1.1|         1|    null|    null|      null|    null|    null|      null|\n"
             + "|       7|     7.1|         4|    null|    null|      null|    null|    null|      null|\n"
             + "|       9|     9.1|         5|    null|    null|      null|    null|    null|      null|\n"
+            + "|    null|    null|      null|       2|     aaa|         1|     aaa|    true|         3|\n"
+            + "|    null|    null|      null|       4|     ccc|         3|     ccc|    true|         5|\n"
+            + "|    null|    null|      null|       6|     eee|         5|     eee|   false|         2|\n"
             + "+--------+--------+----------+--------+--------+----------+--------+--------+----------+\n"
             + "Total line number = 8\n";
     executor.executeAndCompare(statement, expected);
@@ -7152,6 +7152,8 @@ public class SQLSessionIT {
                 "maxTimeseriesLength",
                 "batchSize",
                 "parallelGroupByPoolSize",
+                "executionBatchRowCount",
+                "groupByInitialGroupBufferCapacity",
                 "pipelineParallelism",
                 "username"));
 
