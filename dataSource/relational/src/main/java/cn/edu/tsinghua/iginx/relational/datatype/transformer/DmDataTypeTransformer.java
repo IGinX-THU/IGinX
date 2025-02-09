@@ -36,16 +36,18 @@ public class DmDataTypeTransformer implements IDataTypeTransformer {
 
   @Override
   public DataType fromEngineType(String dataType, String... parameters) {
+    LOGGER.error("column type {} is not supported", dataType);
     if (dataType.equalsIgnoreCase("BYTE") || dataType.equalsIgnoreCase("TINYINT")) {
       return BOOLEAN;
     } else if (dataType.equalsIgnoreCase("BIGINT")) {
       return LONG;
     } else if (dataType.equalsIgnoreCase("INT")
         || dataType.equalsIgnoreCase("SMALLINT")
-        || dataType.equalsIgnoreCase("NUMERIC")) {
+        || dataType.equalsIgnoreCase("NUMERIC")
+        || dataType.equalsIgnoreCase("INTEGER")) {
       return INTEGER;
     } else if (dataType.equalsIgnoreCase("FLOAT")) { // from getColumns api
-      return DOUBLE;
+      return FLOAT;
     } else if (dataType.equalsIgnoreCase("DOUBLE PRECISION")
         || dataType.equalsIgnoreCase("DOUBLE")) {
       return DOUBLE;
