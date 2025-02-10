@@ -29,8 +29,6 @@ public abstract class AbstractRelationalMeta {
 
   protected StorageEngineMeta meta;
 
-  protected static final String DROP_DATABASE_STATEMENT = "DROP DATABASE IF EXISTS %s;";
-
   public AbstractRelationalMeta(StorageEngineMeta meta) {
     this.meta = meta;
   }
@@ -78,40 +76,6 @@ public abstract class AbstractRelationalMeta {
   public abstract char getQuote();
 
   /**
-   * 获取Update的SQL语句
-   *
-   * @return Update的SQL语句
-   */
-  public String getUpdateStatement() {
-    return "UPDATE %s SET %s = null WHERE ("
-        + getQuote()
-        + KEY_NAME
-        + getQuote()
-        + " >= %d AND "
-        + getQuote()
-        + KEY_NAME
-        + getQuote()
-        + " < %d);";
-  }
-
-  /**
-   * 获取query的SQL语句
-   *
-   * @return query的SQL语句
-   */
-  public String getQueryStatement() {
-    return "SELECT "
-        + getQuote()
-        + KEY_NAME
-        + getQuote()
-        + ", %s FROM %s %s ORDER BY "
-        + getQuote()
-        + KEY_NAME
-        + getQuote()
-        + ";";
-  }
-
-  /**
    * 获取通过concat生成key的query的SQL语句
    *
    * @return 通过concat生成key的query的SQL语句
@@ -120,19 +84,27 @@ public abstract class AbstractRelationalMeta {
     return "SELECT %s AS " + getQuote() + KEY_NAME + getQuote() + ", %s FROM %s %s ORDER BY %s";
   }
 
-  public String getCreateTableStatement() {
-    return "CREATE TABLE %s ("
-        + getQuote()
-        + KEY_NAME
-        + getQuote()
-        + " BIGINT NOT NULL, %s %s, PRIMARY KEY("
-        + getQuote()
-        + KEY_NAME
-        + getQuote()
-        + "));";
-  }
+  public abstract String getCreateTableStatement();
 
   public abstract String getDropDatabaseStatement();
+
+  public abstract String getCreateDatabaseStatement();
+
+  public abstract String getGrantPrivilegesStatement();
+
+  public abstract String getAlterTableAddColumnStatement();
+
+  public abstract String getAlterTableDropColumnStatement();
+
+  public abstract String getQueryTableStatement();
+
+  public abstract String getQueryTableWithoutKeyStatement();
+
+  public abstract String getInsertTableStatement();
+
+  public abstract String getUpdateTableStatement();
+
+  public abstract String getDeleteTableStatement();
 
   /**
    * 在使用JDBC时元数据查询时，是否需要引号
