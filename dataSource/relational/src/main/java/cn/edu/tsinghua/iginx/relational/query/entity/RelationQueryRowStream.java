@@ -96,8 +96,11 @@ public class RelationQueryRowStream implements RowStream {
 
   private String engine;
 
+  private final List<List<String>> tableColumnNames;
+
   public RelationQueryRowStream(
       List<String> databaseNameList,
+      List<List<String>> tableColumnNames,
       List<ResultSet> resultSets,
       boolean isDummy,
       Filter filter,
@@ -107,6 +110,7 @@ public class RelationQueryRowStream implements RowStream {
       throws SQLException {
     this(
         databaseNameList,
+        tableColumnNames,
         resultSets,
         isDummy,
         filter,
@@ -120,6 +124,7 @@ public class RelationQueryRowStream implements RowStream {
 
   public RelationQueryRowStream(
       List<String> databaseNameList,
+      List<List<String>> tableColumnNames,
       List<ResultSet> resultSets,
       boolean isDummy,
       Filter filter,
@@ -135,6 +140,7 @@ public class RelationQueryRowStream implements RowStream {
     this.filter = filter;
     this.connList = connList;
     this.relationalMeta = relationalMeta;
+    this.tableColumnNames = tableColumnNames;
     this.isAgg = isAgg;
     this.sumResType = sumResType;
 
@@ -163,10 +169,21 @@ public class RelationQueryRowStream implements RowStream {
       Set<String> columnNameSet = new HashSet<>(); // 用于检查该resultSet中是否有同名的column
 
       int cnt = 0;
+      String tableName = "";
+      String columnName = "";
+      String typeName = "";
+      int columnSize = 0;
+      String columnClassName = "";
       for (int j = 1; j <= resultSetMetaData.getColumnCount(); j++) {
-        String tableName = resultSetMetaData.getTableName(j);
-        String columnName = resultSetMetaData.getColumnName(j);
-        String typeName = resultSetMetaData.getColumnTypeName(j);
+        columnName = resultSetMetaData.getColumnName(j);
+        typeName = resultSetMetaData.getColumnTypeName(j);
+        if (engine.equals("oracle")) {
+          tableName = this.getTableName(tableColumnNames.get(i).get(j - 1));
+          columnSize = resultSetMetaData.getPrecision(j);
+          columnClassName = resultSetMetaData.getColumnClassName(j);
+        } else {
+          tableName = resultSetMetaData.getTableName(j);
+        }
 
         if (j == 1 && columnName.contains(KEY_NAME) && columnName.contains(SEPARATOR)) {
           isPushDown = true;
@@ -189,7 +206,9 @@ public class RelationQueryRowStream implements RowStream {
         }
         Pair<String, Map<String, String>> namesAndTags = splitFullName(columnName);
         Field field;
-        DataType type = relationalMeta.getDataTypeTransformer().fromEngineType(typeName);
+        DataType type =                   relationalMeta
+            .getDataTypeTransformer()
+            .fromEngineType(typeName, String.valueOf(columnSize), columnClassName);
         if (isAgg
             && sumResType != null
             && sumResType.containsKey(fullName2Name.getOrDefault(columnName, columnName))) {
@@ -350,9 +369,21 @@ public class RelationQueryRowStream implements RowStream {
                     tempValue = ((Byte) value) == 1;
                   } else if (value instanceof Long) {
                     tempValue = ((long) value) == 1;
+                  } else if (value instanceof BigDecimal) {
+                    tempValue = ((BigDecimal) value).intValue() == 1;
                   } else {
                     tempValue = ((int) value) == 1;
                   }
+                }
+              } else if (value instanceof BigDecimal) {
+                if (header.getField(startIndex + j).getType() == DataType.INTEGER) {
+                  tempValue = ((BigDecimal) value).intValue();
+                } else if (header.getField(startIndex + j).getType() == DataType.FLOAT) {
+                  tempValue = ((BigDecimal) value).floatValue();
+                } else if (header.getField(startIndex + j).getType() == DataType.DOUBLE) {
+                  tempValue = ((BigDecimal) value).doubleValue();
+                } else {
+                  tempValue = ((BigDecimal) value).longValue();
                 }
               } else {
                 tempValue = value;
@@ -432,6 +463,13 @@ public class RelationQueryRowStream implements RowStream {
       return resultSet.getObject(columnName);
     }
     ResultSetMetaData resultSetMetaData = resultSet.getMetaData();
+    if (engine.equals("oracle")) {
+      int i =
+          this.tableColumnNames
+              .get(resultSets.indexOf(resultSet))
+              .indexOf(RelationSchema.getFullName(tableName, columnName));
+      return resultSet.getObject(i + 1);
+    }
     for (int j = 1; j <= resultSetMetaData.getColumnCount(); j++) {
       String tempColumnName = resultSetMetaData.getColumnName(j);
       String tempTableName = resultSetMetaData.getTableName(j);
@@ -441,5 +479,9 @@ public class RelationQueryRowStream implements RowStream {
       }
     }
     return null;
+  }
+
+  private String getTableName(String fullColumnName) {
+    return fullColumnName.substring(0, fullColumnName.lastIndexOf(SEPARATOR));
   }
 }

@@ -27,12 +27,12 @@ on:
                 description: "The database to run the test on"
                 type: string
                 required: false
-                default: '["IoTDB12", "InfluxDB", "FileSystem", "PostgreSQL", "Redis", "MongoDB", "MySQL"]'
+                default: '["IoTDB12", "InfluxDB", "FileSystem", "PostgreSQL", "Redis", "MongoDB", "MySQL", "Oracle"]'
             timeout-minutes:
                 description: "The timeout minutes for the job"
                 type: number
                 required: false
-                default: 45
+                default: 100
 
 jobs:
     Union-DB-Test:
@@ -116,8 +116,8 @@ jobs:
                     chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_job_register_macos.sh"
                     "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_job_register_macos.sh" ${VERSION}
                   fi
-                  mvn test -q -Dtest=TransformJobPathIT#verifyResult -DfailIfNoTests=false -P-format
                   mvn test -q -Dtest=TransformJobRestartIT#prepare -DfailIfNoTests=false -P-format
+                  mvn test -q -Dtest=TransformJobPathIT#verifyResult -DfailIfNoTests=false -P-format
 
             - name: Stop IGinX
               uses: ./.github/actions/iginxRunner

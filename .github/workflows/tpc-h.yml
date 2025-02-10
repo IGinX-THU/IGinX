@@ -27,7 +27,7 @@ on:
                 description: "The database to run the test on"
                 type: string
                 required: false
-                default: '["IoTDB12", "InfluxDB", "FileSystem", "PostgreSQL", "Redis", "MongoDB", "MySQL", "Dameng"]'
+                default: '["IoTDB12", "InfluxDB", "FileSystem", "PostgreSQL", "Redis", "MongoDB", "MySQL", "Dameng", "Oracle"]'
             close-optimizer:
                 description: "Whether to close the optimizer"
                 type: string
@@ -37,12 +37,12 @@ on:
                 description: "The timeout minutes for the job"
                 type: number
                 required: false
-                default: 60
+                default: 100
             agg-pushdown-matrix:
                 description: "The database which support agg push down"
                 type: string
                 required: false
-                default: '["PostgreSQL", "MYSQL", "Dameng"]'
+                default: '["PostgreSQL", "MYSQL", "Dameng", "Oracle"]'
 
 jobs:
     TPC-H-Test:
