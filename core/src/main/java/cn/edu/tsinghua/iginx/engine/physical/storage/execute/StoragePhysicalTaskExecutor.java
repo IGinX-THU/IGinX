@@ -146,7 +146,6 @@ public class StoragePhysicalTaskExecutor {
                               boolean isDummyStorageUnit = task.isDummyStorageUnit();
                               DataArea dataArea =
                                   new DataArea(storageUnit, fragmentMeta.getKeyInterval());
-                              List<Operator> remainingOperators = new ArrayList<>();
                               switch (op.getType()) {
                                 case Project:
                                   PushDownStrategy strategy =

@@ -1762,10 +1762,14 @@ public class RelationalStorage implements IStorage {
             String fullQuotColumnNames = getQuotColumnNames(entry.getValue());
             List<String> fullPathList = Arrays.asList(entry.getValue().split(", "));
             fullPathList.replaceAll(s -> RelationSchema.getFullName(tableName, s));
+            List<String> fullQuotePathList = Arrays.asList(entry.getValue().split(", "));
+            fullQuotePathList.replaceAll(
+                s -> RelationSchema.getQuoteFullName(tableName, s, relationalMeta.getQuote()));
+
             String filterStr =
                 filterTransformer.toString(
                     dummyFilterSetTrueByColumnNames(expandFilter.copy(), fullPathList));
-            String concatKey = buildConcat(fullPathList);
+            String concatKey = buildConcat(fullQuotePathList);
             statement =
                 String.format(
                     relationalMeta.getConcatQueryStatement(),
