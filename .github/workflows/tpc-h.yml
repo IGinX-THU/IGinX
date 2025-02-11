@@ -37,7 +37,7 @@ on:
                 description: "The timeout minutes for the job"
                 type: number
                 required: false
-                default: 60
+                default: 100
 
 jobs:
     TPC-H-Test:
