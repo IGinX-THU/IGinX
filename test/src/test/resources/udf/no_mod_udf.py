@@ -29,13 +29,3 @@ class NoModUDF():
                 continue  # skip key
             data[0][i] = f"no_mod({element})"
         return data
-
-
-if __name__ == '__main__':
-    t = NoModUDF()
-    res = t.transform([
-        ["key", "str"],
-        ["LONG", "BINARY"],
-        [0, "this"]
-    ], [], {})
-    print(res)
