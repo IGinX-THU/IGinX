@@ -161,8 +161,8 @@ IoTDB 是 Apache 推出的时序数据库，具体安装方式如下：
 
 ```shell
 $ cd ~
-$ wget https://mirrors.bfsu.edu.cn/apache/iotdb/0.12.0/apache-iotdb-0.12.0-server-bin.zip
-$ unzip apache-iotdb-0.12.0-server-bin.zip
+$ wget https://github.com/IGinX-THU/IGinX-resources/raw/main/resources/apache-iotdb-0.12.6-server-bin.zip
+$ unzip apache-iotdb-0.12.6-server-bin.zip
 ```
 
 ### IGinX 安装
@@ -180,7 +180,7 @@ $ mvn clean install -Dmaven.test.skip=true
 
 ```shell
 [INFO] ------------------------------------------------------------------------
-[INFO] Reactor Summary for IGinX 0.6.0-SNAPSHOT:
+[INFO] Reactor Summary for IGinX 0.9.0-SNAPSHOT:
 [INFO]
 [INFO] IGinX .............................................. SUCCESS [ 20.674 s]
 [INFO] IGinX Thrift ....................................... SUCCESS [01:18 min]
@@ -217,7 +217,7 @@ $ mvn clean install -Dmaven.test.skip=true
 
 ```shell
 $ cd ~
-$ cd apache-iotdb-0.12.0-server-bin/
+$ cd apache-iotdb-0.12.6-server-bin/
 $ ./sbin/start-server.sh
 ```
 
@@ -257,7 +257,7 @@ Starting zookeeper ... STARTED
 
 ```shell
 $ cd ~
-$ cd IGinX/core/target/iginx-core-0.6.0-SNAPSHOT
+$ cd IGinX/core/target/iginx-core-0.9.0-SNAPSHOT
 $ chmod +x sbin/start_iginx.sh # 为启动脚本添加启动权限
 $ ./sbin/start_iginx.sh
 ```
@@ -266,10 +266,10 @@ $ ./sbin/start_iginx.sh
 
 ```shell
 May 27, 2021 8:32:19 AM org.glassfish.grizzly.http.server.NetworkListener start
-INFO: Started listener bound to [127.0.0.1:6666]
+INFO: Started listener bound to [127.0.0.1:7888]
 May 27, 2021 8:32:19 AM org.glassfish.grizzly.http.server.HttpServer start
 INFO: [HttpServer] Started.
-08:32:19.446 [Thread-0] INFO cn.edu.tsinghua.iginx.rest.RestServer - Iginx REST server has been available at http://127.0.0.1:6666/.
+08:32:19.446 [Thread-0] INFO cn.edu.tsinghua.iginx.rest.RestServer - Iginx REST server has been available at http://127.0.0.1:7888/.
 ```
 
 ## 访问 IGinX
@@ -308,7 +308,7 @@ INFO: [HttpServer] Started.
 使用如下的命令即可向数据库中插入数据：
 
 ```shell
-$ curl -XPOST -H'Content-Type: application/json' -d @insert.json http://127.0.0.1:6666/api/v1/datapoints
+$ curl -XPOST -H'Content-Type: application/json' -d @insert.json http://127.0.0.1:7888/api/v1/datapoints
 ```
 
 在插入数据后，还可以使用 RESTful 接口查询刚刚写入的数据。
@@ -337,7 +337,7 @@ $ curl -XPOST -H'Content-Type: application/json' -d @insert.json http://127.0.0.
 使用如下的命令查询数据：
 
 ```shell
-$ curl -XPOST -H'Content-Type: application/json' -d @query.json http://127.0.0.1:6666/api/v1/datapoints/query
+$ curl -XPOST -H'Content-Type: application/json' -d @query.json http://127.0.0.1:7888/api/v1/datapoints/query
 ```
 
 命令会返回刚刚插入的数据点信息：
@@ -421,15 +421,15 @@ RPC 接口最常见的用法。
 
 下面是一个简短的使用教程。
 
-由于目前 IGinX 0.5.1 版本还未发布到 maven 中央仓库，因此如需使用的话，需要手动安装到本地的 maven 仓库。具体安装方式如下：
+由于目前 IGinX的jar包还未发布到 maven 中央仓库，因此如需使用的话，需要手动安装到本地的 maven 仓库。具体安装方式如下：
 
 ```shell
-# 下载 IGinX 0.5.1 release 版本源码包
-$ wget https://github.com/IGinX-THU/IGinX/archive/refs/tags/release/v0.5.1.tar.gz
+# 下载 IGinX 最新release 版本源码包
+$ wget https://github.com/IGinX-THU/IGinX/archive/refs/tags/v0.7.0.zip
 # 解压源码包
-$ tar -zxvf v0.5.1.tar.gz
+$ tar -zxvf v0.7.0.tar.gz
 # 进入项目主目录
-$ cd IGinX-rc-v0.5.1
+$ cd IGinX-rc-v0.7.0
 # 安装到本地 maven 仓库
 $ mvn clean install -DskipTests
 ```
@@ -440,7 +440,7 @@ $ mvn clean install -DskipTests
 <dependency>
   	<groupId>cn.edu.tsinghua</groupId>
   	<artifactId>iginx-core</artifactId>
-  	<version>0.6.0-SNAPSHOT</version>
+  	<version>0.7.0</version>
 </dependency>
 ```
 
@@ -561,3 +561,42 @@ session.closeSession();
 ```
 
 完整版使用代码可以参考：https://github.com/IGinX-THU/IGinX/blob/main/example/src/main/java/cn/edu/tsinghua/iginx/session/IoTDBSessionExample.java
+
+## 常见问题
+
+### 找不到 parquet-file 依赖
+
+在使用 Maven 编译 IGinX 时，可能会遇到如下的错误：
+
+```shell
+The following artifacts could not be resolved: cn.edu.tsinghua.iginx:parquet-file
+```
+
+这是因为 IGinX 依赖的 parquet-file 依赖并未发布到 Maven 中央仓库，而是托管在了 GitHub Pages 中。因此，我们在 pom.xml 文件中添加如下的仓库地址：
+
+```xml
+<repositories>
+    <repository>
+        <id>parquet-file</id>
+        <name>IGinX GitHub repository</name>
+        <url>https://iginx-thu.github.io/Parquet/maven-repo</url>
+    </repository>
+</repositories>
+```
+
+如果你配置了镜像源，例如：
+
+```xml
+<mirror>
+    <id>aliyunmaven</id>
+    <mirrorof>central</mirrorOf>
+    <name>阿里云公共仓库</name>
+    <url>https://maven.aliyun.com/repository/central</url>
+</mirror>
+```
+
+注意，这里的 mirrorOf 的值为 central，表示只有在访问 Maven 中央仓库时才会使用阿里云的镜像源。
+如果你配置为 *，则表示所有的 Maven 仓库都会使用阿里云的镜像源，这会造成 IGinX 依赖的 parquet-file 依赖无法下载。
+
+如果由于网络原因无法下载依赖，可以尝试使用代理的方式解决。 此外，还可以手动下载依赖，然后使用 Maven 的 install 命令将其安装到本地仓库，
+详见：https://maven.apache.org/guides/mini/guide-3rd-party-jars-local.html

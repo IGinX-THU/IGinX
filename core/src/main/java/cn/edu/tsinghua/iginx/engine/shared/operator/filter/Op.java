@@ -1,20 +1,21 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 package cn.edu.tsinghua.iginx.engine.shared.operator.filter;
 
@@ -29,6 +30,7 @@ public enum Op {
   E,
   NE,
   LIKE,
+  NOT_LIKE,
   // and op: [10, 19]
   GE_AND(10),
   G_AND,
@@ -36,7 +38,8 @@ public enum Op {
   L_AND,
   E_AND,
   NE_AND,
-  LIKE_AND;
+  LIKE_AND,
+  NOT_LIKE_AND;
 
   private int value;
 
@@ -80,6 +83,9 @@ public enum Op {
         return GE;
       case LIKE:
       case LIKE_AND:
+        return NOT_LIKE;
+      case NOT_LIKE:
+      case NOT_LIKE_AND:
         return LIKE;
       default:
         return op;
@@ -101,6 +107,8 @@ public enum Op {
       case L:
         return GE_AND;
       case LIKE:
+        return NOT_LIKE_AND;
+      case NOT_LIKE:
         return LIKE_AND;
       case NE_AND:
         return E;
@@ -115,6 +123,8 @@ public enum Op {
       case L_AND:
         return GE;
       case LIKE_AND:
+        return NOT_LIKE;
+      case NOT_LIKE_AND:
         return LIKE;
       default:
         return op;
@@ -171,6 +181,9 @@ public enum Op {
       case "like":
       case "|like":
         return LIKE;
+      case "not like":
+      case "not |like":
+        return NOT_LIKE;
       case "&=":
       case "&==":
         return E_AND;
@@ -187,6 +200,8 @@ public enum Op {
         return LE_AND;
       case "&like":
         return LIKE_AND;
+      case "not &like":
+        return NOT_LIKE_AND;
       default:
         throw new SQLParserException(String.format("Not support comparison operator %s", op));
     }
@@ -208,6 +223,8 @@ public enum Op {
         return "!=";
       case LIKE:
         return "like";
+      case NOT_LIKE:
+        return "not like";
       case GE_AND:
         return "&>=";
       case G_AND:
@@ -222,6 +239,8 @@ public enum Op {
         return "&!=";
       case LIKE_AND:
         return "&like";
+      case NOT_LIKE_AND:
+        return "not &like";
       default:
         return "";
     }
@@ -235,7 +254,7 @@ public enum Op {
    */
   public static String op2StrWithoutAndOr(Op op) {
     String opStr = Op.op2Str(op);
-    if (opStr.startsWith("&")) {
+    if (opStr.contains("&")) {
       return opStr.substring(1);
     }
     return opStr;
@@ -245,8 +264,8 @@ public enum Op {
     return op.equals(E) || op.equals(E_AND);
   }
 
-  public static boolean isLikeOp(Op op) {
-    return op.equals(LIKE) || op.equals(LIKE_AND);
+  public static boolean isNotEqualOp(Op op) {
+    return op.equals(NE) || op.equals(NE_AND);
   }
 
   public static boolean isOrOp(Op op) {

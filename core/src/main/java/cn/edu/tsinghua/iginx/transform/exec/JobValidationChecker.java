@@ -1,3 +1,22 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ */
 package cn.edu.tsinghua.iginx.transform.exec;
 
 import cn.edu.tsinghua.iginx.thrift.DataFlowType;
@@ -37,12 +56,12 @@ public class JobValidationChecker implements Checker {
     }
 
     Task firstTask = taskList.get(0);
-    if (!firstTask.getTaskType().equals(TaskType.IginX)) {
+    if (!firstTask.getTaskType().equals(TaskType.IGINX)) {
       LOGGER.error("The first task must be IginX task.");
       return false;
     }
 
-    if (!firstTask.getDataFlowType().equals(DataFlowType.Stream)) {
+    if (!firstTask.getDataFlowType().equals(DataFlowType.STREAM)) {
       LOGGER.error("The IginX task must be stream.");
       return false;
     }
@@ -63,11 +82,22 @@ public class JobValidationChecker implements Checker {
 
     if (taskList.size() > 1) {
       for (int i = 1; i < taskList.size(); i++) {
-        if (taskList.get(i).getTaskType().equals(TaskType.IginX)) {
+        if (taskList.get(i).getTaskType().equals(TaskType.IGINX)) {
           LOGGER.error("2-n tasks must be python tasks.");
           return false;
         }
       }
+    }
+
+    try {
+      job.sendEmail();
+    } catch (Exception e) {
+      LOGGER.error(
+          "Fail to send email notification for job {} to {}, because",
+          job.getJobId(),
+          job.getNotifier(),
+          e);
+      return false;
     }
 
     return true;

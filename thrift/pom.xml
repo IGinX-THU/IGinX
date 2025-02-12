@@ -1,4 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+    IGinX - the polystore system with high performance
+    Copyright (C) Tsinghua University
+    TSIGinX@gmail.com
+
+    This program is free software; you can redistribute it and/or
+    modify it under the terms of the GNU Lesser General Public
+    License as published by the Free Software Foundation; either
+    version 3 of the License, or (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    Lesser General Public License for more details.
+
+    You should have received a copy of the GNU Lesser General Public License
+    along with this program; if not, write to the Free Software Foundation,
+    Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+-->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
@@ -7,14 +28,12 @@
         <groupId>cn.edu.tsinghua</groupId>
         <artifactId>iginx</artifactId>
         <version>${revision}</version>
-        <relativePath>../pom.xml</relativePath>
     </parent>
 
     <artifactId>iginx-thrift</artifactId>
     <name>IGinX Thrift</name>
 
     <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <thrift.version>0.16.0</thrift.version>
     </properties>
 
@@ -40,104 +59,45 @@
         <pluginManagement>
             <plugins>
                 <plugin>
-                    <groupId>org.eclipse.m2e</groupId>
-                    <artifactId>lifecycle-mapping</artifactId>
-                    <version>1.0.0</version>
-                    <configuration>
-                        <lifecycleMappingMetadata>
-                            <pluginExecutions>
-                                <pluginExecution>
-                                    <pluginExecutionFilter>
-                                        <groupId>org.apache.thrift.tools</groupId>
-                                        <artifactId>maven-thrift-plugin</artifactId>
-                                        <versionRange>[0.1.10,)</versionRange>
-                                        <goals>
-                                            <goal>compile</goal>
-                                        </goals>
-                                    </pluginExecutionFilter>
-                                    <action>
-                                        <execute>
-                                            <runOnIncremental>false</runOnIncremental>
-                                        </execute>
-                                    </action>
-                                </pluginExecution>
-                            </pluginExecutions>
-                        </lifecycleMappingMetadata>
-                    </configuration>
+                    <groupId>org.apache.thrift</groupId>
+                    <artifactId>thrift-maven-plugin</artifactId>
+                    <executions>
+                        <execution>
+                            <id>generate-thrift-sources-java</id>
+                            <goals>
+                                <goal>compile</goal>
+                            </goals>
+                            <phase>generate-sources</phase>
+                            <configuration>
+                                <generator>java</generator>
+                            </configuration>
+                        </execution>
+                        <execution>
+                            <id>generate-thrift-sources-python</id>
+                            <goals>
+                                <goal>compile</goal>
+                            </goals>
+                            <phase>generate-sources</phase>
+                            <configuration>
+                                <generator>py</generator>
+                                <outputDirectory>${project.build.directory}/py</outputDirectory>
+                            </configuration>
+                        </execution>
+                        <!--                    <execution>-->
+                        <!--                        <id>generate-thrift-sources-go</id>-->
+                        <!--                        <phase>generate-sources</phase>-->
+                        <!--                        <goals>-->
+                        <!--                            <goal>compile</goal>-->
+                        <!--                        </goals>-->
+                        <!--                        <configuration>-->
+                        <!--                            <generator>go</generator>-->
+                        <!--                            <outputDirectory>${project.build.directory}/generated-sources/thrift</outputDirectory>-->
+                        <!--                        </configuration>-->
+                        <!--                    </execution>-->
+                    </executions>
                 </plugin>
             </plugins>
         </pluginManagement>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.8.1</version>
-                <configuration>
-                    <source>8</source>
-                    <target>8</target>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.thrift.tools</groupId>
-                <artifactId>maven-thrift-plugin</artifactId>
-                <version>0.1.11</version>
-                <executions>
-                    <execution>
-                        <id>generate-thrift-sources-java</id>
-                        <goals>
-                            <goal>compile</goal>
-                        </goals>
-                        <phase>generate-sources</phase>
-                        <configuration>
-                            <generator>java</generator>
-                            <outputDirectory>${project.build.directory}/generated-sources/thrift</outputDirectory>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>generate-thrift-sources-python</id>
-                        <goals>
-                            <goal>compile</goal>
-                        </goals>
-                        <phase>generate-sources</phase>
-                        <configuration>
-                            <generator>py</generator>
-                            <outputDirectory>${project.build.directory}/generated-sources/py</outputDirectory>
-                        </configuration>
-                    </execution>
-                    <!--                    <execution>-->
-                    <!--                        <id>generate-thrift-sources-go</id>-->
-                    <!--                        <phase>generate-sources</phase>-->
-                    <!--                        <goals>-->
-                    <!--                            <goal>compile</goal>-->
-                    <!--                        </goals>-->
-                    <!--                        <configuration>-->
-                    <!--                            <generator>go</generator>-->
-                    <!--                            <outputDirectory>${project.build.directory}/generated-sources/thrift</outputDirectory>-->
-                    <!--                        </configuration>-->
-                    <!--                    </execution>-->
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>build-helper-maven-plugin</artifactId>
-                <version>3.2.0</version>
-                <executions>
-                    <execution>
-                        <id>add-source</id>
-                        <goals>
-                            <goal>add-source</goal>
-                        </goals>
-                        <phase>generate-sources</phase>
-                        <configuration>
-                            <sources>
-                                <source>${project.build.directory}/generated-sources/thrift</source>
-                                <source>${project.build.directory}/generated-sources/py</source>
-                            </sources>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-        </plugins>
     </build>
 
     <profiles>
@@ -154,7 +114,7 @@
             <id>thrift-generation</id>
             <activation>
                 <file>
-                    <exists>src/main/proto</exists>
+                    <exists>src/main/thrift</exists>
                 </file>
             </activation>
             <properties>
@@ -214,34 +174,30 @@
                         </executions>
                     </plugin>
                     <plugin>
-                        <groupId>org.apache.thrift.tools</groupId>
-                        <artifactId>maven-thrift-plugin</artifactId>
-                        <version>0.1.11</version>
+                        <groupId>org.apache.thrift</groupId>
+                        <artifactId>thrift-maven-plugin</artifactId>
+                        <configuration>
+                            <thriftExecutable>${thrift.exec.absolute.path}</thriftExecutable>
+                        </configuration>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-antrun-plugin</artifactId>
                         <executions>
                             <execution>
-                                <id>generate-thrift-sources-java</id>
+                                <id>copy-py-thrift</id>
                                 <goals>
-                                    <goal>compile</goal>
+                                    <goal>run</goal>
                                 </goals>
                                 <phase>generate-sources</phase>
                                 <configuration>
-                                    <generator>java</generator>
-                                    <!--                                    <generator>py</generator>-->
-                                    <!--                                    <generator>go</generator>-->
-                                    <thriftExecutable>${thrift.exec.absolute.path}</thriftExecutable>
-                                    <thriftSourceRoot>src/main/proto</thriftSourceRoot>
-                                </configuration>
-                            </execution>
-                            <execution>
-                                <id>generate-thrift-sources-python</id>
-                                <goals>
-                                    <goal>compile</goal>
-                                </goals>
-                                <phase>generate-sources</phase>
-                                <configuration>
-                                    <generator>py</generator>
-                                    <thriftExecutable>${thrift.exec.absolute.path}</thriftExecutable>
-                                    <thriftSourceRoot>src/main/proto</thriftSourceRoot>
+                                    <target>
+                                        <copy todir="../session_py/iginx/iginx_pyclient/thrift">
+                                            <fileset dir="target/py/iginx/thrift">
+                                                <include name="**/*"/>
+                                            </fileset>
+                                        </copy>
+                                    </target>
                                 </configuration>
                             </execution>
                         </executions>

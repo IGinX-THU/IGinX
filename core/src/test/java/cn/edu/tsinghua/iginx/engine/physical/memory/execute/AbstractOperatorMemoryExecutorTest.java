@@ -1,23 +1,26 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute;
 
+import static cn.edu.tsinghua.iginx.engine.shared.Constants.WINDOW_END_COL;
+import static cn.edu.tsinghua.iginx.engine.shared.Constants.WINDOW_START_COL;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -25,13 +28,14 @@ import static org.junit.Assert.fail;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.InvalidOperatorParameterException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
-import cn.edu.tsinghua.iginx.engine.shared.Constants;
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
+import cn.edu.tsinghua.iginx.engine.shared.expr.BaseExpression;
+import cn.edu.tsinghua.iginx.engine.shared.expr.KeyExpression;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.Avg;
@@ -63,6 +67,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.ValueFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.JoinAlgType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OuterJoinType;
 import cn.edu.tsinghua.iginx.engine.shared.source.EmptySource;
+import cn.edu.tsinghua.iginx.sql.SQLConstant;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -2173,7 +2178,9 @@ public abstract class AbstractOperatorMemoryExecutorTest {
     Table table = generateTableForUnaryOperator(true);
     Sort sort =
         new Sort(
-            EmptySource.EMPTY_SOURCE, Collections.singletonList(Constants.KEY), Sort.SortType.ASC);
+            EmptySource.EMPTY_SOURCE,
+            Collections.singletonList(new KeyExpression(SQLConstant.KEY)),
+            Collections.singletonList(Sort.SortType.ASC));
     RowStream stream = getExecutor().executeUnaryOperator(sort, table, null);
     assertEquals(table.getHeader(), stream.getHeader());
     int index = 0;
@@ -2192,7 +2199,9 @@ public abstract class AbstractOperatorMemoryExecutorTest {
     Table copyTable = generateTableForUnaryOperator(true);
     Sort sort =
         new Sort(
-            EmptySource.EMPTY_SOURCE, Collections.singletonList(Constants.KEY), Sort.SortType.DESC);
+            EmptySource.EMPTY_SOURCE,
+            Collections.singletonList(new KeyExpression(SQLConstant.KEY)),
+            Collections.singletonList(Sort.SortType.DESC));
     RowStream stream = getExecutor().executeUnaryOperator(sort, copyTable, null);
     assertEquals(table.getHeader(), stream.getHeader());
     int index = table.getRowSize();
@@ -2250,7 +2259,8 @@ public abstract class AbstractOperatorMemoryExecutorTest {
   public void testDownsample() throws PhysicalException {
     Table table = generateTableForUnaryOperator(true);
 
-    FunctionParams params = new FunctionParams(Collections.singletonList("a.a.b"));
+    FunctionParams params =
+        new FunctionParams(Collections.singletonList(new BaseExpression("a.a.b")));
 
     Downsample downsample =
         new Downsample(
@@ -2263,9 +2273,11 @@ public abstract class AbstractOperatorMemoryExecutorTest {
 
     Header targetHeader = stream.getHeader();
     assertTrue(targetHeader.hasKey());
-    assertEquals(1, targetHeader.getFields().size());
-    assertEquals("avg(a.a.b)", targetHeader.getFields().get(0).getFullName());
-    assertEquals(DataType.DOUBLE, targetHeader.getFields().get(0).getType());
+    assertEquals(3, targetHeader.getFields().size());
+    assertEquals(WINDOW_START_COL, targetHeader.getFields().get(0).getFullName());
+    assertEquals(WINDOW_END_COL, targetHeader.getFields().get(1).getFullName());
+    assertEquals("avg(a.a.b)", targetHeader.getFields().get(2).getFullName());
+    assertEquals(DataType.DOUBLE, targetHeader.getFields().get(2).getType());
 
     int index = 0;
     while (stream.hasNext()) {
@@ -2276,7 +2288,7 @@ public abstract class AbstractOperatorMemoryExecutorTest {
         sum += (int) table.getRow(index + cnt).getValue("a.a.b");
         cnt++;
       }
-      assertEquals(sum * 1.0 / cnt, (double) targetRow.getValue(0), 0.01);
+      assertEquals(sum * 1.0 / cnt, (double) targetRow.getValue(2), 0.01);
       index += cnt;
     }
     assertEquals(table.getRowSize(), index);
@@ -2286,7 +2298,8 @@ public abstract class AbstractOperatorMemoryExecutorTest {
   public void testDownsampleWithoutTimestamp() throws PhysicalException {
     Table table = generateTableForUnaryOperator(false);
 
-    FunctionParams params = new FunctionParams(Collections.singletonList("a.a.b"));
+    FunctionParams params =
+        new FunctionParams(Collections.singletonList(new BaseExpression("a.a.b")));
 
     Downsample downsample =
         new Downsample(
@@ -2303,7 +2316,8 @@ public abstract class AbstractOperatorMemoryExecutorTest {
   public void testMappingTransform() throws PhysicalException {
     Table table = generateTableForUnaryOperator(false);
 
-    FunctionParams params = new FunctionParams(Collections.singletonList("a.a.b"));
+    FunctionParams params =
+        new FunctionParams(Collections.singletonList(new BaseExpression("a.a.b")));
 
     MappingTransform mappingTransform =
         new MappingTransform(
@@ -2334,7 +2348,8 @@ public abstract class AbstractOperatorMemoryExecutorTest {
   public void testSetTransform() throws PhysicalException {
     Table table = generateTableForUnaryOperator(false);
 
-    FunctionParams params = new FunctionParams(Collections.singletonList("a.a.b"));
+    FunctionParams params =
+        new FunctionParams(Collections.singletonList(new BaseExpression("a.a.b")));
 
     SetTransform setTransform =
         new SetTransform(

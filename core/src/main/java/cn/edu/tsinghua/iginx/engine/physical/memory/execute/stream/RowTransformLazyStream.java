@@ -1,42 +1,38 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.stream;
 
-import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils.combineMultipleColumns;
-
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
-import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
-import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
-import cn.edu.tsinghua.iginx.engine.shared.function.RowMappingFunction;
+import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
+import cn.edu.tsinghua.iginx.engine.shared.function.MappingType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.RowTransform;
-import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.ArrayList;
 import java.util.List;
 
 public class RowTransformLazyStream extends UnaryLazyStream {
 
-  private final RowTransform rowTransform;
-
-  private final List<Pair<RowMappingFunction, FunctionParams>> functionAndParamslist;
+  private final List<FunctionCall> functionCallList;
 
   private Row nextRow;
 
@@ -44,15 +40,18 @@ public class RowTransformLazyStream extends UnaryLazyStream {
 
   public RowTransformLazyStream(RowTransform rowTransform, RowStream stream) {
     super(stream);
-    this.rowTransform = rowTransform;
-    this.functionAndParamslist = new ArrayList<>();
+    this.functionCallList = new ArrayList<>();
     rowTransform
         .getFunctionCallList()
         .forEach(
             functionCall -> {
-              this.functionAndParamslist.add(
-                  new Pair<>(
-                      (RowMappingFunction) functionCall.getFunction(), functionCall.getParams()));
+              if (functionCall == null || functionCall.getFunction() == null) {
+                throw new IllegalArgumentException("function shouldn't be null");
+              }
+              if (functionCall.getFunction().getMappingType() != MappingType.RowMapping) {
+                throw new IllegalArgumentException("function should be row mapping function");
+              }
+              this.functionCallList.add(functionCall);
             });
   }
 
@@ -69,33 +68,9 @@ public class RowTransformLazyStream extends UnaryLazyStream {
 
   private Row calculateNext() throws PhysicalException {
     while (stream.hasNext()) {
-      List<Row> columnList = new ArrayList<>();
-      functionAndParamslist.forEach(
-          pair -> {
-            RowMappingFunction function = pair.k;
-            FunctionParams params = pair.v;
-            Row column = null;
-            try {
-              // 分别计算每个表达式得到相应的结果
-              column = function.transform(stream.next(), params);
-            } catch (Exception e) {
-              try {
-                throw new PhysicalTaskExecuteFailureException(
-                    "encounter error when execute row mapping function "
-                        + function.getIdentifier()
-                        + ".",
-                    e);
-              } catch (PhysicalTaskExecuteFailureException ex) {
-                throw new RuntimeException(ex);
-              }
-            }
-            if (column != null) {
-              columnList.add(column);
-            }
-          });
-      // 如果计算结果都不为空，将计算结果合并成一行
-      if (columnList.size() == functionAndParamslist.size()) {
-        return combineMultipleColumns(columnList);
+      Row row = RowUtils.calRowTransform(stream.next(), functionCallList, false);
+      if (!row.equals(Row.EMPTY_ROW)) {
+        return row;
       }
     }
     return null;

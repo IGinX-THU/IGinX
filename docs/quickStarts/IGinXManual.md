@@ -133,19 +133,19 @@ IoTDB 是 Apache 推出的时序数据库，具体安装方式如下：
 
 ```shell
 $ cd ~
-$ wget https://mirrors.bfsu.edu.cn/apache/iotdb/0.12.0/apache-iotdb-0.12.0-server-bin.zip
-$ unzip apache-iotdb-0.12.0-server-bin.zip
+$ wget https://github.com/IGinX-THU/IGinX-resources/raw/main/resources/apache-iotdb-0.12.6-server-bin.zip
+$ unzip apache-iotdb-0.12.6-server-bin.zip
 ```
 
 ### 下载二进制可执行文件
 
-直接访问 [IGinX 项目](https://github.com/IGinX-THU/IGinX)下载 [IGinX 项目发布包](https://github.com/IGinX-THU/IGinX/releases/download/release%2Fv0.5.1/IGinX-release-v0.5.1-bin.tar.gz)
+直接访问 [IGinX 项目](https://github.com/IGinX-THU/IGinX)下载 [IGinX 项目发布包](https://github.com/IGinX-THU/IGinX/releases/download/v0.7.0/IGinX-Server-0.7.0.tar.gz)
 即可
 
 ```shell
 $ cd ~
-$ wget https://github.com/IGinX-THU/IGinX/releases/download/release%2Fv0.5.1/IGinX-release-v0.5.1-bin.tar.gz
-$ tar -zxvf IGinX-release-v0.5.1-bin.tar.gz
+$ wget https://github.com/IGinX-THU/IGinX/releases/download/v0.7.0/IGinX-Server-0.7.0.tar.gz
+$ tar -zxvf IGinX-Server-0.7.0.tar.gz
 ```
 
 ### 使用源码编译
@@ -171,7 +171,7 @@ $ mvn clean install -Dmaven.test.skip=true
 
 ```shell
 $ cd ~
-$ cd apache-iotdb-0.12.0-server-bin/
+$ cd apache-iotdb-0.12.6-server-bin/
 $ ./sbin/start-server.sh
 ```
 
@@ -189,7 +189,7 @@ $ ./sbin/start-server.sh
 
 #### 启动 ZooKeeper
 
-如果您采取的是 0.5.1 的二进制安装包，或者在配置文件中指定 ZooKeeper 为元数据管理存储后端，需要启动ZooKeeper。否则，**直接跳过此步骤**
+如果您采取的是IGinX的快速部署安装包，或者在配置文件中指定 ZooKeeper 为元数据管理存储后端，需要启动ZooKeeper。否则，**直接跳过此步骤**
 
 ```shell
 $ cd ~
@@ -211,7 +211,7 @@ Starting zookeeper ... STARTED
 
 ```shell
 $ cd ~
-$ cd IGinX-release-v0.5.1-bin
+$ cd IGinX-Server-0.7.0
 $ chmod +x startIginX.sh # 为启动脚本添加启动权限
 $ ./startIginX.sh
 ```
@@ -239,7 +239,7 @@ IGinX 元数据存储管理现在有 ZooKeeper 存储、写本地文件两种方
 
 ```shell
 $ cd ~
-$ cd apache-iotdb-0.12.0-server-bin/
+$ cd apache-iotdb-0.12.6-server-bin/
 $ ./sbin/start-server.sh # 启动实例一 127.0.0.1: 6667
 ```
 
@@ -320,12 +320,24 @@ IGinX、Rest、元数据管理三方面配置。
 | statisticsCollectorClassName | 统计信息收集类              | cn.edu.tsinghua.iginx.statistics.StatisticsCollector                                                                                                                                                                                                                                                                                  |
 | statisticsLogInterval        | 统计信息打印间隔，单位毫秒        | 1000                                                                                                                                                                                                                                                                                                                                  |
 
+连接PostgreSQL、MySQL等关系数据库时，可在storageEngineList处配置HikariDataSource连接池的参数
+
+|            配置项            |        描述        |  默认值  |
+|---------------------------|------------------|-------|
+| connection_timeout        | 连接超时时间（单位：毫秒）    | 30000 |
+| idle_timeout              | 空闲连接超时时间（单位：毫秒）  | 10000 |
+| maximum_pool_size         | 连接池中的最大连接数       | 20    |
+| minimum_idle              | 连接池中的最小空闲连接数     | 1     |
+| leak_detection_threshold  | 检测连接泄漏的阈值（单位：毫秒） | 2500  |
+| prep_stmt_cache_size      | SQL预编译对象缓存个数     | 250   |
+| prep_stmt_cache_sql_limit | SQL预编译对象缓存个数上限   | 2048  |
+
 #### Rest 配置
 
 |        配置项        |      描述      |   默认值   |
 |-------------------|--------------|---------|
 | restIp            | rest 绑定的 ip  | 0.0.0.0 |
-| restPort          | rest 绑定的端口   | 6666    |
+| restPort          | rest 绑定的端口   | 7888    |
 | enableRestService | 是否启用 rest 服务 | true    |
 
 #### 元数据配置
@@ -372,7 +384,7 @@ IGinX、Rest、元数据管理三方面配置。
 使用如下的命令即可向数据库中插入数据：
 
 ```shell
-$ curl -XPOST -H'Content-Type: application/json' -d @insert.json http://127.0.0.1:6666/api/v1/datapoints
+$ curl -XPOST -H'Content-Type: application/json' -d @insert.json http://127.0.0.1:7888/api/v1/datapoints
 ```
 
 在插入数据后，还可以使用 RESTful 接口查询刚刚写入的数据。
@@ -401,7 +413,7 @@ $ curl -XPOST -H'Content-Type: application/json' -d @insert.json http://127.0.0.
 使用如下的命令查询数据：
 
 ```shell
-$ curl -XPOST -H'Content-Type: application/json' -d @query.json http://127.0.0.1:6666/api/v1/datapoints/query
+$ curl -XPOST -H'Content-Type: application/json' -d @query.json http://127.0.0.1:7888/api/v1/datapoints/query
 ```
 
 命令会返回刚刚插入的数据点信息：
@@ -485,15 +497,15 @@ RPC 接口最常见的用法。
 
 下面是一个简短的使用教程。
 
-由于目前 IGinX 0.5.1 版本还未发布到 maven 中央仓库，因此如需使用的话，需要手动安装到本地的 maven 仓库。具体安装方式如下：
+由于目前 IGinX jar包还未发布到 maven 中央仓库，因此如需使用的话，需要手动安装到本地的 maven 仓库。具体安装方式如下：
 
 ```shell
-# 下载 IGinX 0.5.1 release 版本源码包
-$ wget https://github.com/IGinX-THU/IGinX/archive/refs/tags/release/v0.5.1.tar.gz
+# 下载 IGinX 最新release 版本源码包
+$ wget https://github.com/IGinX-THU/IGinX/archive/refs/tags/v0.7.0.tar.gz
 # 解压源码包
-$ tar -zxvf v0.5.1.tar.gz
+$ tar -zxvf v0.7.0.tar.gz
 # 进入项目主目录
-$ cd IGinX-release-v0.5.1
+$ cd IGinX-release-v0.7.0
 # 安装到本地 maven 仓库
 $ mvn clean install -DskipTests
 ```
@@ -504,7 +516,7 @@ $ mvn clean install -DskipTests
 <dependency>
   	<groupId>cn.edu.tsinghua</groupId>
   	<artifactId>iginx-core</artifactId>
-  	<version>0.6.0-SNAPSHOT</version>
+  	<version>0.7.0</version>
 </dependency>
 ```
 
@@ -641,7 +653,7 @@ session.closeSession();
             <dependency>
                 <groupId>cn.edu.tsinghua</groupId>
                 <artifactId>iginx-session</artifactId>
-                <version>0.5.1</version>
+                <version>0.7.0</version>
             </dependency>
         </dependencies>
 

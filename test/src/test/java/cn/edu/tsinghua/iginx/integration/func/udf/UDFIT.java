@@ -1,20 +1,21 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 package cn.edu.tsinghua.iginx.integration.func.udf;
 
@@ -41,6 +42,7 @@ import java.util.List;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.After;
 import org.junit.AfterClass;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -176,16 +178,14 @@ public class UDFIT {
   // drop unwanted UDFs no matter what
   @After
   public void dropTasks() {
-    for (String name : taskToBeRemoved) {
-      tool.execute(String.format(DROP_SQL, name));
-    }
+    tool.dropTasks(taskToBeRemoved);
     taskToBeRemoved.clear();
   }
 
   @Test
   public void baseTests() {
     String udtfSQLFormat = "SELECT %s(s1) FROM us.d1 WHERE key < 200;";
-    String udafSQLFormat = "SELECT %s(s1) FROM us.d1 OVER (RANGE 50 IN [0, 200));";
+    String udafSQLFormat = "SELECT %s(s1) FROM us.d1 OVER WINDOW (size 50 IN [0, 200));";
     String udsfSQLFormat = "SELECT %s(s1) FROM us.d1 WHERE key < 50;";
 
     SessionExecuteSqlResult ret = tool.execute(SHOW_FUNCTION_SQL);
@@ -220,6 +220,11 @@ public class UDFIT {
     taskToBeRemoved.add(udfName);
 
     tool.execute(String.format(DROP_SQL, udfName));
+    try {
+      Thread.sleep(1000); // needed in some tests(redis no+no yes+no)
+    } catch (InterruptedException e) {
+      LOGGER.error("Thread sleep error.", e);
+    }
     // dropped udf cannot be queried
     assertFalse(tool.isUDFRegistered(udfName));
     taskToBeRemoved.clear();
@@ -253,6 +258,45 @@ public class UDFIT {
       compareResult(1, ret.getValues().get(i).size());
       double expected = expectedValues.get(i);
       double actual = (double) ret.getValues().get(i).get(0);
+      compareResult(expected, actual, delta);
+    }
+  }
+
+  @Test
+  public void testNestedUDF() {
+    String statement = "SELECT arccos(cos(s1)) FROM us.d1 WHERE s1 < 4;";
+    SessionExecuteSqlResult ret = tool.execute(statement);
+    compareResult(Collections.singletonList("arccos(cos(us.d1.s1))"), ret.getPaths());
+    compareResult(new long[] {0L, 1L, 2L, 3L}, ret.getKeys());
+    List<Double> expectedValues = Arrays.asList(0.0, 1.0, 2.0, 3.0);
+    for (int i = 0; i < ret.getValues().size(); i++) {
+      compareResult(1, ret.getValues().get(i).size());
+      double expected = expectedValues.get(i);
+      double actual = (double) ret.getValues().get(i).get(0);
+      compareResult(expected, actual, delta);
+    }
+
+    statement = "SELECT sum(cos(s1)), avg(cos(s1)) FROM us.d1 WHERE s1 < 10;";
+    ret = tool.execute(statement);
+    compareResult(Arrays.asList("sum(cos(us.d1.s1))", "avg(cos(us.d1.s1))"), ret.getPaths());
+    assertEquals(1, ret.getValues().size());
+    expectedValues = Arrays.asList(0.42162378262054656, 0.042162378262054656);
+    assertEquals(2, ret.getValues().get(0).size());
+    for (int i = 0; i < 2; i++) {
+      double expected = expectedValues.get(i);
+      double actual = (double) ret.getValues().get(0).get(i);
+      compareResult(expected, actual, delta);
+    }
+
+    statement = "SELECT avg(s1), cos(avg(s1)) FROM us.d1 WHERE s1 < 10;";
+    ret = tool.execute(statement);
+    compareResult(Arrays.asList("avg(us.d1.s1)", "cos(avg(us.d1.s1))"), ret.getPaths());
+    assertEquals(1, ret.getValues().size());
+    expectedValues = Arrays.asList(4.5, -0.2107957994307797);
+    assertEquals(2, ret.getValues().get(0).size());
+    for (int i = 0; i < 2; i++) {
+      double expected = expectedValues.get(i);
+      double actual = (double) ret.getValues().get(0).get(i);
       compareResult(expected, actual, delta);
     }
   }
@@ -480,6 +524,35 @@ public class UDFIT {
             + "+---+-------+-------+-------+\n"
             + "Total line number = 6\n";
     assertEquals(expected, ret.getResultInString(false, ""));
+
+    query = "SELECT * FROM test WHERE pow(s1 + s2, 2) - 5 > 30;";
+    ret = tool.execute(query);
+    expected =
+        "ResultSets:\n"
+            + "+---+-------+-------+-------+\n"
+            + "|key|test.s1|test.s2|test.s3|\n"
+            + "+---+-------+-------+-------+\n"
+            + "|  3|      4|      3|      1|\n"
+            + "|  4|      9|      7|      5|\n"
+            + "|  5|      3|      6|      2|\n"
+            + "|  6|      6|      4|      2|\n"
+            + "+---+-------+-------+-------+\n"
+            + "Total line number = 4\n";
+    assertEquals(expected, ret.getResultInString(false, ""));
+
+    query = "SELECT * FROM test WHERE multiply(s1, s2 + s3) > 20;";
+    ret = tool.execute(query);
+    expected =
+        "ResultSets:\n"
+            + "+---+-------+-------+-------+\n"
+            + "|key|test.s1|test.s2|test.s3|\n"
+            + "+---+-------+-------+-------+\n"
+            + "|  4|      9|      7|      5|\n"
+            + "|  5|      3|      6|      2|\n"
+            + "|  6|      6|      4|      2|\n"
+            + "+---+-------+-------+-------+\n"
+            + "Total line number = 3\n";
+    assertEquals(expected, ret.getResultInString(false, ""));
   }
 
   @Test
@@ -640,6 +713,81 @@ public class UDFIT {
   }
 
   @Test
+  public void testUDFGroupByAndOrderByExpr() {
+    String insert =
+        "INSERT INTO test(key, s1, s2) VALUES (1, 2, 3), (2, 3, 1), (3, 2, 3), (4, 3, 7), (5, 3, 6), (6, 0, 4);";
+    tool.execute(insert);
+
+    List<Double> cosTestS1AfterGroupByExpectedValues =
+        Arrays.asList(-0.9899924966004454, -0.4161468365471424, 1.0);
+    List<Long> sumTestS2AfterGroupByExpectedValues = Arrays.asList(14L, 6L, 4L);
+
+    String query = "SELECT cos(s1), sum(s2) FROM test GROUP BY cos(s1) ORDER BY cos(s1);";
+    SessionExecuteSqlResult ret = tool.execute(query);
+    compareResult(2, ret.getPaths().size());
+    compareResult("cos(test.s1)", ret.getPaths().get(0));
+    compareResult("sum(test.s2)", ret.getPaths().get(1));
+    for (int i = 0; i < ret.getValues().size(); i++) {
+      compareResult(2, ret.getValues().get(i).size());
+      double expectedCosS1 = cosTestS1AfterGroupByExpectedValues.get(i);
+      double actualCosS1 = (double) ret.getValues().get(i).get(0);
+      compareResult(expectedCosS1, actualCosS1, delta);
+      long expectedSumS2 = sumTestS2AfterGroupByExpectedValues.get(i);
+      long actualSumS2 = (long) ret.getValues().get(i).get(1);
+      assertEquals(expectedSumS2, actualSumS2);
+    }
+
+    query = "SELECT cos(s1) AS a, sum(s2) FROM test GROUP BY a ORDER BY a;";
+    ret = tool.execute(query);
+    compareResult(2, ret.getPaths().size());
+    compareResult("a", ret.getPaths().get(0));
+    compareResult("sum(test.s2)", ret.getPaths().get(1));
+    for (int i = 0; i < ret.getValues().size(); i++) {
+      compareResult(2, ret.getValues().get(i).size());
+      double expectedCosS1 = cosTestS1AfterGroupByExpectedValues.get(i);
+      double actualCosS1 = (double) ret.getValues().get(i).get(0);
+      compareResult(expectedCosS1, actualCosS1, delta);
+      long expectedSumS2 = sumTestS2AfterGroupByExpectedValues.get(i);
+      long actualSumS2 = (long) ret.getValues().get(i).get(1);
+      assertEquals(expectedSumS2, actualSumS2);
+    }
+
+    query = "SELECT s1, s2 FROM test ORDER BY cos(s1);";
+    ret = tool.execute(query);
+    String expected =
+        "ResultSets:\n"
+            + "+---+-------+-------+\n"
+            + "|key|test.s1|test.s2|\n"
+            + "+---+-------+-------+\n"
+            + "|  2|      3|      1|\n"
+            + "|  4|      3|      7|\n"
+            + "|  5|      3|      6|\n"
+            + "|  1|      2|      3|\n"
+            + "|  3|      2|      3|\n"
+            + "|  6|      0|      4|\n"
+            + "+---+-------+-------+\n"
+            + "Total line number = 6\n";
+    compareResult(expected, ret.getResultInString(false, ""));
+
+    query = "SELECT s1, s2 FROM test ORDER BY pow(s2, 2);";
+    ret = tool.execute(query);
+    expected =
+        "ResultSets:\n"
+            + "+---+-------+-------+\n"
+            + "|key|test.s1|test.s2|\n"
+            + "+---+-------+-------+\n"
+            + "|  2|      3|      1|\n"
+            + "|  1|      2|      3|\n"
+            + "|  3|      2|      3|\n"
+            + "|  6|      0|      4|\n"
+            + "|  5|      3|      6|\n"
+            + "|  4|      3|      7|\n"
+            + "+---+-------+-------+\n"
+            + "Total line number = 6\n";
+    compareResult(expected, ret.getResultInString(false, ""));
+  }
+
+  @Test
   public void testUDFWithArgs() {
     String insert =
         "INSERT INTO test(key, s1, s2) VALUES (1, 2, 3), (2, 3, 1), (3, 4, 3), (4, 9, 7), (5, 3, 6), (6, 6, 4);";
@@ -779,6 +927,17 @@ public class UDFIT {
     compareResult(expected, ret.getResultInString(false, ""));
   }
 
+  @Test
+  public void testErrorClause() {
+    String errClause = "select s1, s2, count(s3) from us.d1 group by reverse_rows(s1);";
+    tool.executeAndCompareErrMsg(
+        errClause, "GROUP BY column can not use SetToSet/SetToRow functions.");
+
+    errClause = "select s1, s2, count(s3) from us.d1 group by s1, s2 order by transpose(s1);";
+    tool.executeAndCompareErrMsg(
+        errClause, "ORDER BY column can not use SetToSet/SetToRow functions.");
+  }
+
   void compareResult(Object expected, Object actual) {
     if (!needCompareResult) {
       return;
@@ -880,18 +1039,36 @@ public class UDFIT {
       return;
     }
 
+    query = "explain select a, cos(a) from test;";
+    ret = tool.execute(query);
+    expected =
+        "ResultSets:\n"
+            + "+-------------------+----------------+----------------------------------------------------------------------------------------+\n"
+            + "|       Logical Tree|   Operator Type|                                                                           Operator Info|\n"
+            + "+-------------------+----------------+----------------------------------------------------------------------------------------+\n"
+            + "|RemoveNullColumn   |RemoveNullColumn|                                                                        RemoveNullColumn|\n"
+            + "|  +--Reorder       |         Reorder|                                                               Order: test.a,cos(test.a)|\n"
+            + "|    +--RowTransform|    RowTransform|FuncList(Name, FuncType): (arithmetic_expr, System), (cos, UDF), MappingType: RowMapping|\n"
+            + "|      +--Project   |         Project|                                                                        Patterns: test.a|\n"
+            + "|        +--Project |         Project|                                             Patterns: test.a, Target DU: unit0000000002|\n"
+            + "+-------------------+----------------+----------------------------------------------------------------------------------------+\n"
+            + "Total line number = 5\n";
+    assertEquals(expected, ret.getResultInString(false, ""));
+
     query = "explain select cos(a), pow(b, 2) from test;";
     ret = tool.execute(query);
     expected =
         "ResultSets:\n"
-            + "+-----------------+-------------+-------------------------------------------------------------------------+\n"
-            + "|     Logical Tree|Operator Type|                                                            Operator Info|\n"
-            + "+-----------------+-------------+-------------------------------------------------------------------------+\n"
-            + "|Reorder          |      Reorder|                                                                 Order: *|\n"
-            + "|  +--RowTransform| RowTransform|FuncList(Name, FuncType): (cos, UDF), (pow, UDF), MappingType: RowMapping|\n"
-            + "|    +--Project   |      Project|                       Patterns: test.a,test.b, Target DU: unit0000000002|\n"
-            + "+-----------------+-------------+-------------------------------------------------------------------------+\n"
-            + "Total line number = 3\n";
+            + "+-------------------+----------------+-------------------------------------------------------------------------+\n"
+            + "|       Logical Tree|   Operator Type|                                                            Operator Info|\n"
+            + "+-------------------+----------------+-------------------------------------------------------------------------+\n"
+            + "|RemoveNullColumn   |RemoveNullColumn|                                                         RemoveNullColumn|\n"
+            + "|  +--Reorder       |         Reorder|                                                                 Order: *|\n"
+            + "|    +--RowTransform|    RowTransform|FuncList(Name, FuncType): (cos, UDF), (pow, UDF), MappingType: RowMapping|\n"
+            + "|      +--Project   |         Project|                                                  Patterns: test.b,test.a|\n"
+            + "|        +--Project |         Project|                       Patterns: test.a,test.b, Target DU: unit0000000002|\n"
+            + "+-------------------+----------------+-------------------------------------------------------------------------+\n"
+            + "Total line number = 5\n";
     assertEquals(expected, ret.getResultInString(false, ""));
   }
 
@@ -1236,5 +1413,70 @@ public class UDFIT {
         LOGGER.error("Fail to recover requirement.txt .", ee);
       }
     }
+  }
+
+  @Test
+  public void tensorUDFTest() {
+    boolean torchSupported = System.getenv().getOrDefault("TORCH_SUPPORTED", "true").equals("true");
+    Assume.assumeTrue(
+        "tensorUDFTest is skipped because pytorch is not supported(python>3.12).", torchSupported);
+    String name = "tensorTest";
+    String filePath =
+        String.join(
+            File.separator,
+            System.getProperty("user.dir"),
+            "src",
+            "test",
+            "resources",
+            "udf",
+            "tensor_test.py");
+    String statement = String.format(SINGLE_UDF_REGISTER_SQL, "udsf", name, "TensorTest", filePath);
+    tool.executeReg(statement);
+    assertTrue(tool.isUDFRegistered(name));
+    taskToBeRemoved.add(name);
+
+    statement = "select " + name + "(s1) from us.d1 where s1 < 10;";
+    SessionExecuteSqlResult ret = tool.execute(statement);
+    String expected =
+        "ResultSets:\n"
+            + "+--------------------+\n"
+            + "|tensorTest(us.d1.s1)|\n"
+            + "+--------------------+\n"
+            + "|                 0.0|\n"
+            + "+--------------------+\n"
+            + "Total line number = 1\n";
+    assertEquals(expected, ret.getResultInString(false, ""));
+
+    // test twice to ensure
+    statement = "select " + name + "(s1) from us.d1 where s1 < 10;";
+    ret = tool.execute(statement);
+    expected =
+        "ResultSets:\n"
+            + "+--------------------+\n"
+            + "|tensorTest(us.d1.s1)|\n"
+            + "+--------------------+\n"
+            + "|                 0.0|\n"
+            + "+--------------------+\n"
+            + "Total line number = 1\n";
+    assertEquals(expected, ret.getResultInString(false, ""));
+  }
+
+  @Test
+  public void testUDFColumnPruning() {
+    String statement = "SELECT cos(s1), cos(s2) FROM us.d1 LIMIT 5;";
+    String expected =
+        "ResultSets:\n"
+            + "+---+-------------------+-------------------+\n"
+            + "|key|      cos(us.d1.s1)|      cos(us.d1.s2)|\n"
+            + "+---+-------------------+-------------------+\n"
+            + "|  0|                1.0| 0.5403023058681398|\n"
+            + "|  1| 0.5403023058681398|-0.4161468365471424|\n"
+            + "|  2|-0.4161468365471424|-0.9899924966004454|\n"
+            + "|  3|-0.9899924966004454|-0.6536436208636119|\n"
+            + "|  4|-0.6536436208636119|0.28366218546322625|\n"
+            + "+---+-------------------+-------------------+\n"
+            + "Total line number = 5\n";
+
+    assertEquals(expected, tool.execute(statement).getResultInString(false, ""));
   }
 }

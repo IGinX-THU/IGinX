@@ -1,20 +1,21 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 package cn.edu.tsinghua.iginx.metadata.storage.etcd;
 
@@ -29,6 +30,7 @@ import cn.edu.tsinghua.iginx.metadata.exception.MetaStorageException;
 import cn.edu.tsinghua.iginx.metadata.hook.*;
 import cn.edu.tsinghua.iginx.metadata.storage.IMetaStorage;
 import cn.edu.tsinghua.iginx.metadata.utils.ReshardStatus;
+import cn.edu.tsinghua.iginx.transform.pojo.TriggerDescriptor;
 import cn.edu.tsinghua.iginx.utils.JsonUtils;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import io.etcd.jetcd.*;
@@ -72,6 +74,7 @@ public class ETCDMetaStorage implements IMetaStorage {
   private final Lock fragmentLeaseLock = new ReentrantLock();
   private final Lock userLeaseLock = new ReentrantLock();
   private final Lock transformLeaseLock = new ReentrantLock();
+  private final Lock jobTriggerLeaseLock = new ReentrantLock();
   private final Lock fragmentRequestsCounterLeaseLock = new ReentrantLock();
   private final Lock fragmentHeatCounterLeaseLock = new ReentrantLock();
   private final Lock timeseriesHeatCounterLeaseLock = new ReentrantLock();
@@ -99,7 +102,10 @@ public class ETCDMetaStorage implements IMetaStorage {
   private long userLease = -1L;
   private Watch.Watcher transformWatcher;
   private TransformChangeHook transformChangeHook = null;
+  private JobTriggerChangeHook jobTriggerChangeHook = null;
   private long transformLease = -1L;
+
+  private long jobTriggerLease = -1L;
 
   private long fragmentRequestsCounterLease = -1L;
 
@@ -122,7 +128,7 @@ public class ETCDMetaStorage implements IMetaStorage {
   private final int STORAGE_ENGINE_NODE_LENGTH = 10;
 
   private String generateID(String prefix, long idLength, long val) {
-    return String.format(prefix + "%0" + idLength + "d", (int) val);
+    return String.format(prefix + "%0" + idLength + "d", val);
   }
 
   public ETCDMetaStorage() {
@@ -2270,6 +2276,120 @@ public class ETCDMetaStorage implements IMetaStorage {
     }
     if (transformChangeHook != null) {
       transformChangeHook.onChange(name, null);
+    }
+  }
+
+  @Override
+  public List<TriggerDescriptor> loadJobTrigger() throws MetaStorageException {
+    try {
+      lockJobTrigger();
+      Map<String, TriggerDescriptor> triggerMap = new HashMap<>();
+      GetResponse response =
+          this.client
+              .getKVClient()
+              .get(
+                  ByteSequence.from(JOB_TRIGGER_NODE_PREFIX.getBytes()),
+                  GetOption.newBuilder()
+                      .withPrefix(ByteSequence.from(JOB_TRIGGER_NODE_PREFIX.getBytes()))
+                      .build())
+              .get();
+      if (response.getCount() != 0L) {
+        response
+            .getKvs()
+            .forEach(
+                e -> {
+                  TriggerDescriptor descriptor =
+                      JsonUtils.fromJson(e.getValue().getBytes(), TriggerDescriptor.class);
+                  triggerMap.put(descriptor.getName(), descriptor);
+                });
+      }
+      return new ArrayList<>(triggerMap.values());
+    } catch (ExecutionException | InterruptedException e) {
+      LOGGER.error("got error when load job triggers: ", e);
+      throw new MetaStorageException(e);
+    } finally {
+      if (jobTriggerLease != -1) {
+        releaseJobTrigger();
+      }
+    }
+  }
+
+  @Override
+  public void registerJobTriggerChangeHook(JobTriggerChangeHook hook) {
+    jobTriggerChangeHook = hook;
+  }
+
+  private void lockJobTrigger() throws MetaStorageException {
+    try {
+      jobTriggerLeaseLock.lock();
+      jobTriggerLease = client.getLeaseClient().grant(MAX_LOCK_TIME).get().getID();
+      client
+          .getLockClient()
+          .lock(ByteSequence.from(JOB_TRIGGER_LOCK_NODE.getBytes()), jobTriggerLease);
+    } catch (Exception e) {
+      jobTriggerLeaseLock.unlock();
+      throw new MetaStorageException("acquire job trigger mutex error: ", e);
+    }
+  }
+
+  private void releaseJobTrigger() throws MetaStorageException {
+    try {
+      client.getLockClient().unlock(ByteSequence.from(JOB_TRIGGER_LOCK_NODE.getBytes())).get();
+      client.getLeaseClient().revoke(jobTriggerLease).get();
+      jobTriggerLease = -1L;
+    } catch (Exception e) {
+      throw new MetaStorageException("release job trigger mutex error: ", e);
+    } finally {
+      jobTriggerLeaseLock.unlock();
+    }
+  }
+
+  @Override
+  public void storeJobTrigger(TriggerDescriptor jobTriggerDescriptor) throws MetaStorageException {
+    updateJobTrigger(jobTriggerDescriptor);
+  }
+
+  @Override
+  public void updateJobTrigger(TriggerDescriptor descriptor) throws MetaStorageException {
+    try {
+      lockJobTrigger();
+      this.client
+          .getKVClient()
+          .put(
+              ByteSequence.from((JOB_TRIGGER_NODE_PREFIX + descriptor.getName()).getBytes()),
+              ByteSequence.from(JsonUtils.toJson(descriptor)))
+          .get();
+    } catch (ExecutionException | InterruptedException e) {
+      LOGGER.error("got error when storing job trigger: ", e);
+      throw new MetaStorageException(e);
+    } finally {
+      if (jobTriggerLease != -1) {
+        releaseTransform();
+      }
+    }
+    if (jobTriggerChangeHook != null) {
+      jobTriggerChangeHook.onChange(descriptor.getName(), descriptor);
+    }
+  }
+
+  @Override
+  public void dropJobTrigger(String name) throws MetaStorageException {
+    try {
+      lockJobTrigger();
+      this.client
+          .getKVClient()
+          .delete(ByteSequence.from((JOB_TRIGGER_NODE_PREFIX + name).getBytes()))
+          .get();
+    } catch (ExecutionException | InterruptedException e) {
+      LOGGER.error("got error when remove job trigger: ", e);
+      throw new MetaStorageException(e);
+    } finally {
+      if (jobTriggerLease != -1) {
+        releaseJobTrigger();
+      }
+    }
+    if (jobTriggerChangeHook != null) {
+      jobTriggerChangeHook.onChange(name, null);
     }
   }
 

@@ -1,20 +1,21 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 package cn.edu.tsinghua.iginx.client;
 
@@ -27,29 +28,19 @@ import cn.edu.tsinghua.iginx.session.QueryDataSet;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import cn.edu.tsinghua.iginx.thrift.ExportCSV;
+import cn.edu.tsinghua.iginx.thrift.FileChunk;
 import cn.edu.tsinghua.iginx.thrift.LoadUDFResp;
 import cn.edu.tsinghua.iginx.utils.FormatUtils;
 import cn.edu.tsinghua.iginx.utils.Pair;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
+import java.io.*;
+import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.InvalidParameterException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import org.apache.commons.cli.*;
 import org.apache.commons.csv.CSVPrinter;
-import org.apache.commons.io.FileUtils;
 import org.jline.reader.Completer;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
@@ -217,7 +208,7 @@ public class IginxClient {
 
       if (execute.equals("")) {
         echoStarting();
-        displayLogo("0.6.0-SNAPSHOT");
+        displayLogo(loadClientVersion());
 
         String command;
         while (true) {
@@ -249,6 +240,23 @@ public class IginxClient {
     } catch (Exception e) {
       System.out.println(IGINX_CLI_PREFIX + "exit cli with error " + e.getMessage());
     }
+  }
+
+  private static String loadClientVersion() {
+    URL url =
+        IginxClient.class.getResource(
+            "/META-INF/maven/cn.edu.tsinghua/iginx-client/pom.properties");
+    if (url != null) {
+      Properties properties = new Properties();
+      try {
+        properties.load(url.openStream());
+        return properties.getProperty("version");
+      } catch (Exception e) {
+        System.err.println("Failed to load version: " + e);
+      }
+    }
+
+    return "unknown";
   }
 
   private static boolean processCommand(String command) throws SessionException, IOException {
@@ -294,6 +302,8 @@ public class IginxClient {
       processSetTimeUnit(statement);
     } else if (isRegisterPy(trimedStatement)) {
       processPythonRegister(statement);
+    } else if (isCommitTransformJob(trimedStatement)) {
+      processCommitTransformJob(statement);
     } else {
       processSql(statement);
     }
@@ -316,6 +326,10 @@ public class IginxClient {
 
   private static boolean isSetTimeUnit(String sql) {
     return sql.startsWith("set time unit in");
+  }
+
+  private static boolean isCommitTransformJob(String sql) {
+    return sql.startsWith("commit") && sql.contains("transform") && sql.contains("job");
   }
 
   private static void processPythonRegister(String sql) {
@@ -349,6 +363,15 @@ public class IginxClient {
     System.out.printf("Current time unit: %s\n", timestampPrecision);
   }
 
+  private static void processCommitTransformJob(String sql) {
+    try {
+      long id = session.commitTransformJob(sql);
+      System.out.println("job id: " + id);
+    } catch (SessionException e) {
+      System.out.println(e.getMessage());
+    }
+  }
+
   private static boolean isSetTimeUnit() {
     return !timestampPrecision.equals("");
   }
@@ -376,6 +399,7 @@ public class IginxClient {
         case ShowJobStatus:
         case ShowSessionID:
         case ShowRules:
+        case ShowUser:
           res.print(false, "");
           break;
         case GetReplicaNum:
@@ -559,8 +583,9 @@ public class IginxClient {
 
     String path = exportCSV.getExportCsvPath();
     if (!path.endsWith(".csv")) {
-      throw new InvalidParameterException(
+      System.out.println(
           "The file name must end with [.csv], " + path + " doesn't satisfy the requirement!");
+      return;
     }
 
     File file = new File(path);
@@ -568,7 +593,8 @@ public class IginxClient {
     Files.deleteIfExists(Paths.get(file.getPath()));
     Files.createFile(Paths.get(file.getPath()));
     if (!file.isFile()) {
-      throw new InvalidParameterException(path + " is not a file!");
+      System.out.println(path + " is not a file!");
+      return;
     }
 
     try {
@@ -586,14 +612,17 @@ public class IginxClient {
       printer.flush();
       printer.close();
     } catch (IOException e) {
-      throw new RuntimeException(
+      System.out.println(
           "Encounter an error when writing csv file " + path + ", because " + e.getMessage());
+      return;
     }
     res.close();
     System.out.println("Successfully write csv file: \"" + file.getAbsolutePath() + "\".");
   }
 
-  private static void processLoadCsv(String sql) throws SessionException, IOException {
+  private static void processLoadCsv(String sql) throws SessionException {
+    int CHUNK_SIZE = 1024 * 1024;
+
     SessionExecuteSqlResult res = session.executeSql(sql);
     String path = res.getLoadCsvPath();
 
@@ -605,15 +634,40 @@ public class IginxClient {
 
     File file = new File(path);
     if (!file.exists()) {
-      throw new InvalidParameterException(path + " does not exist!");
+      System.out.println(path + " does not exist!");
+      return;
     }
     if (!file.isFile()) {
-      throw new InvalidParameterException(path + " is not a file!");
+      System.out.println(path + " is not a file!");
+      return;
     }
 
-    byte[] bytes = FileUtils.readFileToByteArray(file);
-    ByteBuffer csvFile = ByteBuffer.wrap(bytes);
-    Pair<List<String>, Long> pair = session.executeLoadCSV(sql, csvFile);
+    long offset = 0;
+    String fileName = System.currentTimeMillis() + ".csv";
+    try (RandomAccessFile raf = new RandomAccessFile(file, "r")) {
+      raf.seek(offset);
+      byte[] buffer = new byte[CHUNK_SIZE];
+      int bytesRead;
+      while ((bytesRead = raf.read(buffer)) != -1) {
+        byte[] dataToSend;
+        if (bytesRead < CHUNK_SIZE) { // 如果最后一块小于 CHUNK_SIZE，只发送实际读取的部分
+          dataToSend = new byte[bytesRead];
+          System.arraycopy(buffer, 0, dataToSend, 0, bytesRead);
+        } else {
+          dataToSend = buffer;
+        }
+        ByteBuffer data = ByteBuffer.wrap(dataToSend);
+        FileChunk chunk = new FileChunk(fileName, offset, data, bytesRead);
+        session.uploadFileChunk(chunk);
+        offset += bytesRead;
+      }
+    } catch (IOException e) {
+      System.out.println(
+          "Encounter an error when reading file " + path + ", because " + e.getMessage());
+      return;
+    }
+
+    Pair<List<String>, Long> pair = session.executeLoadCSV(sql, fileName);
     List<String> columns = pair.k;
     long recordsNum = pair.v;
 
@@ -671,7 +725,7 @@ public class IginxClient {
             Arrays.asList("show", "functions"),
             Arrays.asList("show", "sessionid"),
             Arrays.asList("show", "rules"),
-            Arrays.asList("remove", "historydatasource"));
+            Arrays.asList("remove", "storageengine"));
     addArgumentCompleters(iginxCompleters, withoutNullCompleters, false);
 
     List<String> singleCompleters = Arrays.asList("quit", "exit");

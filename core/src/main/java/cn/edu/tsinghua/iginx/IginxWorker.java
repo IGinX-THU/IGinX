@@ -1,20 +1,21 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 package cn.edu.tsinghua.iginx;
 
@@ -36,7 +37,7 @@ import cn.edu.tsinghua.iginx.conf.Constants;
 import cn.edu.tsinghua.iginx.engine.ContextBuilder;
 import cn.edu.tsinghua.iginx.engine.StatementExecutor;
 import cn.edu.tsinghua.iginx.engine.distributedquery.worker.SubPlanExecutor;
-import cn.edu.tsinghua.iginx.engine.logical.optimizer.rules.RuleCollection;
+import cn.edu.tsinghua.iginx.engine.logical.optimizer.IRuleCollection;
 import cn.edu.tsinghua.iginx.engine.physical.PhysicalEngineImpl;
 import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
 import cn.edu.tsinghua.iginx.engine.physical.storage.StorageManager;
@@ -48,10 +49,12 @@ import cn.edu.tsinghua.iginx.metadata.IMetaManager;
 import cn.edu.tsinghua.iginx.metadata.entity.*;
 import cn.edu.tsinghua.iginx.resource.QueryResourceManager;
 import cn.edu.tsinghua.iginx.thrift.*;
+import cn.edu.tsinghua.iginx.transform.exception.TransformException;
 import cn.edu.tsinghua.iginx.transform.exec.TransformJobManager;
 import cn.edu.tsinghua.iginx.utils.*;
 import java.io.File;
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.file.*;
 import java.util.*;
@@ -80,10 +83,13 @@ public class IginxWorker implements IService.Iface {
 
   private final StatementExecutor executor = StatementExecutor.getInstance();
 
+  // to init scheduled jobs
+  private final TransformJobManager transformJobManager = TransformJobManager.getInstance();
+
   private static final Config config = ConfigDescriptor.getInstance().getConfig();
 
   private IginxWorker() {
-    // if there are new local parquets/file systems in conf, add them to cluster.
+    // if there are new local filesystem in conf, add them to cluster.
     if (!addLocalStorageEngineMetas()) {
       LOGGER.error("there are no valid storage engines!");
       System.exit(-1);
@@ -109,7 +115,7 @@ public class IginxWorker implements IService.Iface {
       metaFromConf.setExtraParams(extraParams);
       boolean hasAdded = false;
       for (StorageEngineMeta meta : metaManager.getStorageEngineList()) {
-        if (isDuplicated(metaFromConf, meta)) {
+        if (metaFromConf.equals(meta)) {
           hasAdded = true;
           break;
         }
@@ -242,7 +248,7 @@ public class IginxWorker implements IService.Iface {
   }
 
   @Override
-  public Status removeHistoryDataSource(RemoveHistoryDataSourceReq req) {
+  public Status removeStorageEngine(RemoveStorageEngineReq req) {
     if (!sessionManager.checkSession(req.getSessionId(), AuthType.Cluster)) {
       return RpcUtils.ACCESS_DENY;
     }
@@ -279,24 +285,22 @@ public class IginxWorker implements IService.Iface {
       if (storageEngineMeta == null
           || storageEngineMeta.getDummyFragment() == null
           || storageEngineMeta.getDummyStorageUnit() == null) {
-        LOGGER.error("dummy storage engine {} does not exist.", info);
-        status.addToSubStatus(RpcUtils.FAILURE);
+        partialFailAndLog(status, String.format("dummy storage engine %s does not exist.", info));
         continue;
       }
       if (!storageEngineMeta.isHasData()) {
-        LOGGER.error("dummy storage engine {} has no data.", info);
-        status.addToSubStatus(RpcUtils.FAILURE);
+        partialFailAndLog(status, String.format("dummy storage engine %s has no data.", info));
         continue;
       }
       if (!storageEngineMeta.isReadOnly()) {
-        LOGGER.error("dummy storage engine {} is not read-only.", info);
-        status.addToSubStatus(RpcUtils.FAILURE);
+        partialFailAndLog(status, String.format("dummy storage engine %s is not read-only.", info));
         continue;
       }
       // 更新 zk 以及缓存中的元数据信息
       if (!metaManager.removeDummyStorageEngine(storageEngineMeta.getId())) {
-        LOGGER.error("unexpected error during removing dummy storage engine {}.", info);
-        status.addToSubStatus(RpcUtils.FAILURE);
+        partialFailAndLog(
+            status,
+            String.format("unexpected error during removing dummy storage engine %s.", info));
       }
     }
 
@@ -327,34 +331,36 @@ public class IginxWorker implements IService.Iface {
       int port = storageEngine.getPort();
       StorageEngineType type = storageEngine.getType();
       Map<String, String> extraParams = storageEngine.getExtraParams();
-      boolean hasData = Boolean.parseBoolean(extraParams.getOrDefault(Constants.HAS_DATA, "false"));
+      // 仅add时，默认为true
+      boolean hasData = Boolean.parseBoolean(extraParams.getOrDefault(Constants.HAS_DATA, "true"));
       String dataPrefix = null;
       if (hasData && extraParams.containsKey(Constants.DATA_PREFIX)) {
         dataPrefix = extraParams.get(Constants.DATA_PREFIX);
       }
+      // 仅add时，默认为true
       boolean readOnly =
-          Boolean.parseBoolean(extraParams.getOrDefault(Constants.IS_READ_ONLY, "false"));
+          Boolean.parseBoolean(extraParams.getOrDefault(Constants.IS_READ_ONLY, "true"));
 
       if (!isValidHost(ip)) { // IP 不合法
-        LOGGER.error("ip {} is invalid.", ip);
-        status.addToSubStatus(RpcUtils.FAILURE);
+        partialFailAndLog(status, String.format("ip %s is invalid.", ip));
         continue;
       }
-      if (isEmbeddedStorageEngine(type) && !isLocalHost(ip)) {
-        status.setCode(StatusCode.REDIRECT.getStatusCode());
-        status.setMessage(ip + ":" + extraParams.get("iginx_port"));
-        LOGGER.warn("redirect to {}:{}.", ip, extraParams.get("iginx_port"));
-        return status;
+      if (isEmbeddedStorageEngine(type) && !isLocalHost(ip)) { // 非本地的文件系统引擎不可注册
+        partialFailAndLog(
+            status, String.format("redirect to %s:%s.", ip, extraParams.get("iginx_port")));
+        continue;
       }
       if (!hasData & readOnly) { // 无意义的存储引擎：不带数据且只读
-        LOGGER.error("normal storage engine {} should not be read-only.", storageEngine);
-        status.addToSubStatus(RpcUtils.FAILURE);
+        partialFailAndLog(
+            status,
+            String.format("normal storage engine %s should not be read-only.", storageEngine));
         continue;
       }
-      if (!checkEmbeddedStorageExtraParams(type, extraParams)) {
-        LOGGER.error(
-            "missing params or providing invalid ones for {} in statement.", storageEngine);
-        status.addToSubStatus(RpcUtils.FAILURE);
+      if (!checkEmbeddedStorageExtraParams(type, extraParams)) { // 参数不合法
+        partialFailAndLog(
+            status,
+            String.format(
+                "missing params or providing invalid ones for %s in statement.", storageEngine));
         continue;
       }
       String schemaPrefix = extraParams.get(Constants.SCHEMA_PREFIX);
@@ -375,11 +381,13 @@ public class IginxWorker implements IService.Iface {
 
     if (status.isSetSubStatus()) {
       if (status.subStatus.size() == storageEngines.size()) {
-        status.setCode(RpcUtils.FAILURE.code); // 所有请求均失败
-        status.setMessage("add storage engines failed");
+        status
+            .setCode(RpcUtils.FAILURE.code)
+            .setMessage("No valid engine can be registered. Detailed information:\n");
+        appendFullMsg(status);
         return status;
       } else {
-        status.setCode(RpcUtils.PARTIAL_SUCCESS.code); // 部分请求失败
+        status.setCode(RpcUtils.PARTIAL_SUCCESS.code); // 部分请求失败，message待后续处理时设置
       }
     }
 
@@ -399,24 +407,59 @@ public class IginxWorker implements IService.Iface {
     // 检测是否与已有的存储引擎冲突
     if (!hasChecked) {
       List<StorageEngineMeta> currentStorageEngines = metaManager.getStorageEngineList();
-      List<StorageEngineMeta> duplicatedStorageEngines = new ArrayList<>();
+      List<StorageEngineMeta> storageEnginesToBeRemoved = new ArrayList<>();
       for (StorageEngineMeta storageEngine : storageEngineMetas) {
         for (StorageEngineMeta currentStorageEngine : currentStorageEngines) {
-          if (isDuplicated(storageEngine, currentStorageEngine)) {
-            duplicatedStorageEngines.add(storageEngine);
-            LOGGER.error("repeatedly add storage engine {}.", storageEngine);
-            status.addToSubStatus(RpcUtils.FAILURE);
+          if (storageEngine.equals(currentStorageEngine)) {
+            // 存在相同数据库
+            storageEnginesToBeRemoved.add(storageEngine);
+            partialFailAndLog(
+                status, String.format("repeatedly add storage engine %s.", storageEngine));
             break;
+          } else if (storageEngine.isSameAddress(currentStorageEngine)) {
+            LOGGER.debug(
+                "same address engine {} for new engine {}.", currentStorageEngine, storageEngine);
+            // 已有相同IP、端口的数据库
+            if (StorageManager.testEngineConnection(currentStorageEngine)) {
+              LOGGER.debug("old engine can be connected");
+              // 已有的数据库仍可连接
+              if (currentStorageEngine.contains(storageEngine)) {
+                // 已有数据库能够覆盖新注册的数据库，拒绝注册
+                storageEnginesToBeRemoved.add(storageEngine);
+                partialFailAndLog(
+                    status,
+                    String.format(
+                        "engine:%s would not be registered: duplicate data coverage detected. Please check existing engines.",
+                        storageEngine));
+              }
+            } else {
+              LOGGER.debug("old engine cannot be connected");
+              // 已有的数据库无法连接了，若是只读，直接删除
+              if (currentStorageEngine.isReadOnly() && currentStorageEngine.isHasData()) {
+                metaManager.removeDummyStorageEngine(currentStorageEngine.getId());
+                LOGGER.warn(
+                    "Existing dummy Storage engine {} cannot be connected and will be removed.",
+                    currentStorageEngine);
+              } else {
+                // 并非只读，需要手动操作，拒绝注册同地址引擎
+                storageEnginesToBeRemoved.add(storageEngine);
+                partialFailAndLog(
+                    status,
+                    String.format(
+                        "Existing Storage engine %s cannot be connected. New engine %s will not be registered.",
+                        currentStorageEngine, storageEngine));
+              }
+            }
           }
         }
       }
-      if (!duplicatedStorageEngines.isEmpty()) {
-        storageEngineMetas.removeAll(duplicatedStorageEngines);
-        if (!storageEngineMetas.isEmpty()) {
-          status.setCode(RpcUtils.PARTIAL_SUCCESS.code);
-        } else {
-          status.setCode(RpcUtils.FAILURE.code);
-          status.setMessage("repeatedly add storage engine");
+      if (!storageEnginesToBeRemoved.isEmpty()) {
+        storageEngineMetas.removeAll(storageEnginesToBeRemoved);
+        if (storageEngineMetas.isEmpty()) {
+          status
+              .setCode(RpcUtils.FAILURE.code)
+              .setMessage("No valid engine can be registered. Detailed information:\n");
+          appendFullMsg(status);
           return;
         }
       }
@@ -427,7 +470,19 @@ public class IginxWorker implements IService.Iface {
           .get(storageEngineMetas.size() - 1)
           .setNeedReAllocate(true); // 如果这批节点不是只读的话，每一批最后一个是 true，表示需要进行扩容
     }
-    for (StorageEngineMeta meta : storageEngineMetas) {
+
+    Iterator<StorageEngineMeta> iterator = storageEngineMetas.iterator();
+    while (iterator.hasNext()) {
+      // 首先去掉ip不合要求的本地引擎（本地引擎必须在同地址的IGinX节点注册）
+      StorageEngineMeta meta = iterator.next();
+      if (isEmbeddedStorageEngine(meta.getStorageEngine())) {
+        if (!isLocal(meta)) {
+          partialFailAndLog(status, String.format("storage engine %s needs to be local.", meta));
+          iterator.remove();
+          continue;
+        }
+      }
+      // 然后设置dummy信息
       if (meta.isHasData()) {
         String dataPrefix = meta.getDataPrefix();
         String schemaPrefix = meta.getSchemaPrefix();
@@ -435,12 +490,13 @@ public class IginxWorker implements IService.Iface {
         Pair<ColumnsInterval, KeyInterval> boundary =
             StorageManager.getBoundaryOfStorage(meta, dataPrefix);
         if (boundary == null) {
-          status.setCode(RpcUtils.FAILURE.code);
-          status.setMessage(
+          partialFailAndLog(
+              status,
               String.format(
-                  "Failed to process dummy storage engine %s. Please check params:%s;%s.",
+                  "Failed to read data in dummy storage engine %s. Please check params:%s;%s.",
                   meta.getStorageEngine(), meta, meta.getExtraParams()));
-          return;
+          iterator.remove();
+          continue;
         }
         LOGGER.info("boundary for {}: {}", meta, boundary);
         FragmentMeta dummyFragment;
@@ -459,80 +515,105 @@ public class IginxWorker implements IService.Iface {
       }
     }
 
-    // init local parquet/file system before adding to meta
-    // exclude remote parquet/file system
-    List<StorageEngineMeta> localMetas = new ArrayList<>();
-    List<StorageEngineMeta> otherMetas = new ArrayList<>();
-    for (StorageEngineMeta meta : storageEngineMetas) {
-      if (isEmbeddedStorageEngine(meta.getStorageEngine())) {
-        if (!isLocal(meta)) {
-          LOGGER.error("storage engine {} needs to be local.", meta);
-          status.addToSubStatus(RpcUtils.FAILURE);
-        } else {
-          localMetas.add(meta);
-        }
-      } else {
-        otherMetas.add(meta);
-      }
-    }
-
-    // TODO: 下面两个循环疑似可以合并在一起
+    iterator = storageEngineMetas.iterator();
     StorageManager storageManager = PhysicalEngineImpl.getInstance().getStorageManager();
-    for (StorageEngineMeta meta : otherMetas) {
+    while (iterator.hasNext()) {
+      StorageEngineMeta meta = iterator.next();
+      // 为什么本地文件系统必须先init instance，再加入meta，storageManager：当数据源信息被加入meta，集群内其他节点都会立刻去尝试连接本地文件引擎的服务
+      // 因此必须先init开启服务，然后在加入meta时获取唯一数据源id，再将id和引擎送入storageManager进行登记
+      // 其他类型的引擎也需要先init初始化，以在修改元数据前确保引擎可用
       IStorage storage = StorageManager.initStorageInstance(meta);
       if (storage == null) {
-        status.addToSubStatus(
-            RpcUtils.status(
-                StatusCode.STATEMENT_EXECUTION_ERROR,
-                String.format("init storage engine %s failed", meta)));
+        partialFailAndLog(status, String.format("init storage engine %s failed", meta));
+        iterator.remove();
         continue;
       }
       if (!metaManager.addStorageEngines(Collections.singletonList(meta))) {
-        LOGGER.error("add storage engine {} failed.", meta);
-        status.addToSubStatus(RpcUtils.FAILURE);
-        continue;
-      }
-      storageManager.addStorage(meta, storage);
-    }
-    for (StorageEngineMeta meta : localMetas) {
-      IStorage storage = StorageManager.initStorageInstance(meta);
-      if (storage == null) {
-        status.addToSubStatus(
-            RpcUtils.status(
-                StatusCode.STATEMENT_EXECUTION_ERROR,
-                String.format("init storage engine %s failed", meta)));
-        continue;
-      }
-      if (!metaManager.addStorageEngines(Collections.singletonList(meta))) {
-        LOGGER.error("add storage engine {} failed.", meta);
-        status.addToSubStatus(RpcUtils.FAILURE);
+        partialFailAndLog(status, String.format("add storage engine %s failed.", meta));
+        iterator.remove();
         continue;
       }
       storageManager.addStorage(meta, storage);
     }
     if (status.isSetSubStatus()) {
-      status.setCode(RpcUtils.FAILURE.code);
-      status.setMessage("add storage engines failed");
+      if (storageEngineMetas.isEmpty()) {
+        // 所有请求均失败
+        status
+            .setCode(RpcUtils.FAILURE.code)
+            .setMessage("No valid engine can be registered. Detailed information:\n");
+        appendFullMsg(status);
+      } else {
+        // 部分请求失败
+        status
+            .setCode(RpcUtils.PARTIAL_SUCCESS.code)
+            .setMessage("Some of the engines cannot be registered. Detailed information:\n");
+        appendFullMsg(status);
+      }
     }
   }
 
-  private boolean isDuplicated(StorageEngineMeta engine1, StorageEngineMeta engine2) {
-    if (!engine1.getStorageEngine().equals(engine2.getStorageEngine())) {
-      return false;
+  /** add failed sub status and log the message */
+  private static void partialFailAndLog(Status status, String errMsg) {
+    LOGGER.error(errMsg);
+    status.addToSubStatus(
+        new Status(StatusCode.STATEMENT_EXECUTION_ERROR.getStatusCode()).setMessage(errMsg));
+  }
+
+  /** append messages of sub status to the message of main status */
+  private static void appendFullMsg(Status status) {
+    StringBuilder msg = new StringBuilder(status.getMessage());
+    for (Status subStatus : status.getSubStatus()) {
+      msg.append("* ").append(subStatus.getMessage()).append("\n");
     }
-    if (engine1.getPort() != engine2.getPort()) {
-      return false;
+    status.setMessage(String.valueOf(msg));
+  }
+
+  /** This function is only for read-only dummy, temporarily */
+  @Override
+  public Status alterStorageEngine(AlterStorageEngineReq req) {
+    if (!sessionManager.checkSession(req.getSessionId(), AuthType.Cluster)) {
+      return RpcUtils.ACCESS_DENY;
     }
-    if (!Objects.equals(engine1.getDataPrefix(), engine2.getDataPrefix())) {
-      return false;
+    Status status = new Status(RpcUtils.SUCCESS.code);
+    long targetId = req.getEngineId();
+    Map<String, String> newParams = req.getNewParams();
+    StorageEngineMeta targetMeta = metaManager.getStorageEngine(targetId);
+    if (targetMeta == null) {
+      status.setCode(RpcUtils.FAILURE.code);
+      status.setMessage("No engine found with id:" + targetId);
+      return status;
     }
-    if (!Objects.equals(engine1.getSchemaPrefix(), engine2.getSchemaPrefix())) {
-      return false;
+    if (!targetMeta.isHasData() || !targetMeta.isReadOnly()) {
+      status.setCode(RpcUtils.FAILURE.code);
+      status.setMessage(
+          "Only read-only & dummy engines' params can be altered. Engine with id("
+              + targetId
+              + ") cannot be altered.");
+      return status;
     }
-    if (isLocalHost(engine1.getIp()) && isLocalHost(engine2.getIp())) { // 都是本机IP
-      return true;
+
+    // update meta info
+    if (newParams.remove(Constants.IP) != null
+        || newParams.remove(Constants.PORT) != null
+        || newParams.remove(Constants.DATA_PREFIX) != null
+        || newParams.remove(Constants.SCHEMA_PREFIX) != null) {
+      status.setCode(RpcUtils.FAILURE.code);
+      status.setMessage(
+          "IP, port, type, data_prefix, schema_prefix cannot be altered. Removing and adding new engine is recommended.");
+      return status;
     }
-    return engine1.getIp().equals(engine2.getIp());
+    targetMeta.updateExtraParams(newParams);
+
+    // remove, then add
+    if (!metaManager.removeDummyStorageEngine(targetId)) {
+      LOGGER.error("unexpected error during removing dummy storage engine {}.", targetMeta);
+      status.setCode(RpcUtils.FAILURE.code);
+      status.setMessage("unexpected error occurred. Please check server log.");
+      return status;
+    }
+
+    addStorageEngineMetas(Collections.singletonList(targetMeta), status, true);
+    return status;
   }
 
   @Override
@@ -579,6 +660,9 @@ public class IginxWorker implements IService.Iface {
   public ExecuteSqlResp executeSql(ExecuteSqlReq req) {
     StatementExecutor executor = StatementExecutor.getInstance();
     RequestContext ctx = contextBuilder.build(req);
+    if (req.isSetRemoteSession()) {
+      ctx.setRemoteSession(req.isRemoteSession());
+    }
     executor.execute(ctx);
     LOGGER.info("total cost time: " + (ctx.getEndTime() - ctx.getStartTime()));
     ExecuteSqlResp resp = ctx.getResult().getExecuteSqlResp();
@@ -772,7 +856,7 @@ public class IginxWorker implements IService.Iface {
   public LoadCSVResp loadCSV(LoadCSVReq req) {
     StatementExecutor executor = StatementExecutor.getInstance();
     RequestContext ctx = contextBuilder.build(req);
-    ctx.setLoadCSVFileByteBuffer(req.csvFile);
+    ctx.setLoadCSVFileName(req.csvFileName);
     executor.execute(ctx);
     return ctx.getResult().getLoadCSVResp();
   }
@@ -782,7 +866,7 @@ public class IginxWorker implements IService.Iface {
     StatementExecutor executor = StatementExecutor.getInstance();
     RequestContext ctx = contextBuilder.build(req);
     ctx.setUDFModuleByteBuffer(req.udfFile);
-    ctx.setRemoteUDF(req.isRemote);
+    ctx.setRemoteSession(req.isRemote);
     executor.execute(ctx);
     return ctx.getResult().getLoadUDFResp();
   }
@@ -826,15 +910,19 @@ public class IginxWorker implements IService.Iface {
   @Override
   public ShowEligibleJobResp showEligibleJob(ShowEligibleJobReq req) {
     TransformJobManager manager = TransformJobManager.getInstance();
-    List<Long> jobIdList = manager.showEligibleJob(req.getJobState());
-    return new ShowEligibleJobResp(RpcUtils.SUCCESS, jobIdList);
+    Map<JobState, List<Long>> jobStateMap = manager.showEligibleJob(req.getJobState());
+    return new ShowEligibleJobResp(RpcUtils.SUCCESS, jobStateMap);
   }
 
   @Override
   public Status cancelTransformJob(CancelTransformJobReq req) {
     TransformJobManager manager = TransformJobManager.getInstance();
-    boolean success = manager.cancel(req.getJobId());
-    return success ? RpcUtils.SUCCESS : RpcUtils.FAILURE;
+    try {
+      boolean success = manager.cancel(req.getJobId());
+      return success ? RpcUtils.SUCCESS : RpcUtils.FAILURE;
+    } catch (TransformException e) {
+      return new Status(RpcUtils.FAILURE).setMessage(e.getMessage());
+    }
   }
 
   @Override
@@ -899,7 +987,8 @@ public class IginxWorker implements IService.Iface {
     List<TransformTaskMeta> transformTaskMetas = new ArrayList<>();
     for (UDFClassPair p : pairs) {
       TransformTaskMeta transformTaskMeta = metaManager.getTransformTask(p.name.trim());
-      if (transformTaskMeta != null && transformTaskMeta.getIpSet().contains(config.getIp())) {
+      if (transformTaskMeta != null
+          && transformTaskMeta.containsIpPort(config.getIp(), config.getPort())) {
         errorMsg = String.format("Function %s already exist", transformTaskMeta);
         LOGGER.error(errorMsg);
         return RpcUtils.FAILURE.setMessage(errorMsg);
@@ -970,15 +1059,24 @@ public class IginxWorker implements IService.Iface {
       type = singleType ? req.getTypes().get(0) : req.getTypes().get(i);
       transformTaskMeta = transformTaskMetas.get(i);
       if (transformTaskMeta != null) {
-        transformTaskMeta.addIp(config.getIp());
+        transformTaskMeta.addIpPort(config.getIp(), config.getPort());
         metaManager.updateTransformTask(transformTaskMeta);
       } else {
+        LOGGER.debug(
+            "Registering {} task: {} as {} in {}; iginx: {}:{}",
+            type,
+            pairs.get(i).classPath,
+            pairs.get(i).name,
+            fileName,
+            config.getIp(),
+            config.getPort());
         metaManager.addTransformTask(
             new TransformTaskMeta(
                 pairs.get(i).name,
                 pairs.get(i).classPath,
                 fileName,
-                new HashSet<>(Collections.singletonList(config.getIp())),
+                config.getIp(),
+                config.getPort(),
                 type));
       }
     }
@@ -1013,7 +1111,7 @@ public class IginxWorker implements IService.Iface {
       return RpcUtils.FAILURE.setMessage(errorMsg);
     }
 
-    if (!transformTaskMeta.getIpSet().contains(config.getIp())) {
+    if (!transformTaskMeta.containsIpPort(config.getIp(), config.getPort())) {
       errorMsg = String.format("Function exists in node: %s", config.getIp());
       LOGGER.error(errorMsg);
       return RpcUtils.FAILURE.setMessage(errorMsg);
@@ -1054,6 +1152,7 @@ public class IginxWorker implements IService.Iface {
         FileUtils.deleteFileOrDir(file);
       }
       metaManager.dropTransformTask(name);
+      FunctionManager.getInstance().removeFunction(name);
       LOGGER.info("Register file has been dropped, path={}", filePath);
       return RpcUtils.SUCCESS;
     } catch (IOException e) {
@@ -1066,15 +1165,18 @@ public class IginxWorker implements IService.Iface {
   public GetRegisterTaskInfoResp getRegisterTaskInfo(GetRegisterTaskInfoReq req) {
     List<TransformTaskMeta> taskMetaList = metaManager.getTransformTasks();
     List<RegisterTaskInfo> taskInfoList = new ArrayList<>();
+    List<IpPortPair> ipPortPairs;
     for (TransformTaskMeta taskMeta : taskMetaList) {
-      StringJoiner joiner = new StringJoiner(",");
-      taskMeta.getIpSet().forEach(joiner::add);
+      ipPortPairs =
+          taskMeta.getIpPortSet().stream()
+              .map(p -> new IpPortPair(p.getK(), p.getV()))
+              .collect(Collectors.toList());
       RegisterTaskInfo taskInfo =
           new RegisterTaskInfo(
               taskMeta.getName(),
               taskMeta.getClassName(),
               taskMeta.getFileName(),
-              joiner.toString(),
+              ipPortPairs,
               taskMeta.getType());
       taskInfoList.add(taskInfo);
     }
@@ -1227,12 +1329,71 @@ public class IginxWorker implements IService.Iface {
 
   @Override
   public ShowRulesResp showRules(ShowRulesReq req) {
-    return new ShowRulesResp(RpcUtils.SUCCESS, RuleCollection.getInstance().getRulesInfo());
+    try {
+      IRuleCollection ruleCollection = getRuleCollection();
+      return new ShowRulesResp(RpcUtils.SUCCESS, ruleCollection.getRulesInfo());
+    } catch (Exception e) {
+      LOGGER.error("show rules failed: ", e);
+      return new ShowRulesResp(RpcUtils.FAILURE, null);
+    }
   }
 
   @Override
   public Status setRules(SetRulesReq req) {
     Map<String, Boolean> rulesChange = req.getRulesChange();
-    return RuleCollection.getInstance().setRules(rulesChange) ? RpcUtils.SUCCESS : RpcUtils.FAILURE;
+    try {
+      getRuleCollection().setRules(rulesChange);
+      return RpcUtils.SUCCESS;
+    } catch (Exception e) {
+      LOGGER.error("set rules failed: ", e);
+      return RpcUtils.FAILURE;
+    }
+  }
+
+  private IRuleCollection getRuleCollection()
+      throws ClassNotFoundException, NoSuchFieldException, IllegalAccessException {
+    // 获取接口的类加载器
+    ClassLoader classLoader = IRuleCollection.class.getClassLoader();
+    // 加载枚举类
+    Class<?> ruleCollectionClass =
+        classLoader.loadClass("cn.edu.tsinghua.iginx.logical.optimizer.rules.RuleCollection");
+    // get INSTANCE static field
+    Object enumInstance = ruleCollectionClass.getField("INSTANCE").get(null);
+
+    // 强制转换为接口类型
+    return (IRuleCollection) enumInstance;
+  }
+
+  @Override
+  public UploadFileResp uploadFileChunk(UploadFileReq req) {
+    FileChunk chunk = req.getFileChunk();
+    Status status = new Status();
+
+    String filename = chunk.fileName;
+    if (filename.contains("..") || filename.contains("/") || filename.contains("\\")) {
+      status.setCode(RpcUtils.FAILURE.code);
+      status.setMessage("Invalid filename");
+      return new UploadFileResp(status);
+    }
+
+    String filepath = String.join(File.separator, System.getProperty("java.io.tmpdir"), filename);
+    try {
+      File file = new File(filepath);
+      try (RandomAccessFile raf = new RandomAccessFile(file, "rw")) {
+        raf.seek(chunk.offset);
+        raf.write(chunk.data.array());
+        LOGGER.debug(
+            "write {} bytes to file {} at offset {}",
+            chunk.data.array().length,
+            file,
+            chunk.offset);
+      }
+      status.setCode(RpcUtils.SUCCESS.code);
+      return new UploadFileResp(status);
+    } catch (IOException e) {
+      status.setCode(RpcUtils.FAILURE.code);
+      status.setMessage("File chunk upload failed. Caused by: " + e.getMessage());
+      return new UploadFileResp(status);
+    }
   }
 }

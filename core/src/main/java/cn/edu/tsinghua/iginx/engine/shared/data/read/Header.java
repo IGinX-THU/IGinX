@@ -1,23 +1,30 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 package cn.edu.tsinghua.iginx.engine.shared.data.read;
 
+import static cn.edu.tsinghua.iginx.engine.shared.Constants.KEY;
+import static cn.edu.tsinghua.iginx.engine.shared.Constants.RESERVED_COLS;
+
+import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
+import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
+import cn.edu.tsinghua.iginx.engine.shared.Constants;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.util.*;
@@ -102,7 +109,7 @@ public final class Header {
       List<Integer> indexList = new ArrayList<>();
       fields.forEach(
           field -> {
-            if (Pattern.matches(StringUtils.reformatPath(pattern), field.getFullName())) {
+            if (Pattern.matches(StringUtils.reformatPath(pattern), field.getName())) {
               indexList.add(indexOf(field.getFullName()));
             }
           });
@@ -113,7 +120,7 @@ public final class Header {
 
   @Override
   public String toString() {
-    return "Header{" + "time=" + key + ", fields=" + fields + '}';
+    return "Header{" + "key=" + key + ", fields=" + fields + '}';
   }
 
   @Override
@@ -126,53 +133,127 @@ public final class Header {
         && Objects.equals(indexMap, header.indexMap);
   }
 
-  public Header renamedHeader(Map<String, String> aliasMap, List<String> ignorePatterns) {
+  /**
+   * 根据Project算子的patterns和isRemainKey计算投影后的header
+   *
+   * @param patterns Project算子参数
+   * @param isRemainKey Project算子参数
+   * @return 投影后的header
+   */
+  public Header projectedHeader(List<String> patterns, boolean isRemainKey) {
+    List<Field> targetFields = new ArrayList<>();
+    for (Field field : fields) {
+      if (isRemainKey && field.getName().endsWith("." + KEY)) {
+        targetFields.add(field);
+        continue;
+      }
+      for (String pattern : patterns) {
+        if (!StringUtils.isPattern(pattern)) {
+          if (pattern.equals(field.getName())) {
+            targetFields.add(field);
+          }
+        } else {
+          if (Pattern.matches(StringUtils.reformatPath(pattern), field.getName())) {
+            targetFields.add(field);
+          }
+        }
+      }
+    }
+    return new Header(key, targetFields);
+  }
+
+  /**
+   * 根据Rename算子的aliasList和ignorePatterns计算重命名后的header和要升级成key列的普通列的下标
+   *
+   * @param aliasList Rename算子参数
+   * @param ignorePatterns Rename算子参数
+   * @return pair.k表示重命名后的header;pair.v表示要升级成key列的普通列的下标,为-1时表示没有列需要升级成key列
+   */
+  public Pair<Header, Integer> renamedHeader(
+      List<Pair<String, String>> aliasList, List<String> ignorePatterns) throws PhysicalException {
     List<Field> newFields = new ArrayList<>();
-    fields.forEach(
-        field -> {
-          // 如果列名在ignorePatterns中，对该列不执行rename
-          for (String ignorePattern : ignorePatterns) {
-            if (StringUtils.match(field.getName(), ignorePattern)) {
-              newFields.add(field);
-              return;
-            }
+    int size = getFieldSize();
+    int colIndex = -1;
+    scanFields:
+    for (int i = 0; i < size; i++) {
+      Field field = fields.get(i);
+      // 如果列名在ignorePatterns中，对该列不执行rename
+      boolean ignore = false;
+      for (String ignorePattern : ignorePatterns) {
+        if (StringUtils.match(field.getName(), ignorePattern)) {
+          newFields.add(field);
+          ignore = true;
+          break;
+        }
+      }
+      if (ignore) {
+        continue;
+      }
+      String alias = "";
+      for (Pair<String, String> pair : aliasList) {
+        String oldPattern = pair.k;
+        String newPattern = pair.v;
+        if (oldPattern.equals("*") && newPattern.endsWith(".*")) {
+          String newPrefix = newPattern.substring(0, newPattern.length() - 1);
+          alias = newPrefix + field.getName();
+        } else if (oldPattern.endsWith(".*") && newPattern.endsWith(".*")) {
+          String oldPrefix = oldPattern.substring(0, oldPattern.length() - 1);
+          String newPrefix = newPattern.substring(0, newPattern.length() - 1);
+          if (field.getName().startsWith(oldPrefix)) {
+            alias = field.getName().replaceFirst(oldPrefix, newPrefix);
           }
-          String alias = "";
-          for (String oldPattern : aliasMap.keySet()) {
-            String newPattern = aliasMap.get(oldPattern);
-            if (oldPattern.equals("*") && newPattern.endsWith(".*")) {
-              String newPrefix = newPattern.substring(0, newPattern.length() - 1);
-              alias = newPrefix + field.getName();
-            } else if (oldPattern.endsWith(".*") && newPattern.endsWith(".*")) {
-              String oldPrefix = oldPattern.substring(0, oldPattern.length() - 1);
-              String newPrefix = newPattern.substring(0, newPattern.length() - 1);
-              if (field.getName().startsWith(oldPrefix)) {
-                alias = field.getName().replaceFirst(oldPrefix, newPrefix);
-              }
-              break;
-            } else if (oldPattern.equals(field.getFullName())) {
-              alias = newPattern;
-              break;
-            } else {
-              if (StringUtils.match(field.getName(), oldPattern)) {
-                if (newPattern.endsWith("." + oldPattern)) {
-                  String prefix =
-                      newPattern.substring(0, newPattern.length() - oldPattern.length());
-                  alias = prefix + field.getName();
-                } else {
-                  alias = newPattern;
-                }
-                break;
-              }
+          break;
+        } else if (oldPattern.equals(field.getName())) {
+          if (newPattern.equals(Constants.KEY)) {
+            if (colIndex != -1) {
+              throw new PhysicalTaskExecuteFailureException(
+                  "only one column can transform to key in each select");
             }
+            colIndex = i;
+            continue scanFields;
           }
-          if (alias.isEmpty()) {
-            newFields.add(field);
-          } else {
+          alias = newPattern;
+          Set<Map<String, String>> tagSet = new HashSet<>();
+          Field nextField = i < size - 1 ? fields.get(i + 1) : null;
+          tagSet.add(field.getTags());
+          // 处理同一列但不同tag的情况
+          while (nextField != null
+              && oldPattern.equals(nextField.getName())
+              && !tagSet.contains(nextField.getTags())) {
             newFields.add(new Field(alias, field.getType(), field.getTags()));
+            field = nextField;
+            i++;
+            nextField = i < size - 1 ? fields.get(i + 1) : null;
+            tagSet.add(field.getTags());
           }
-        });
-    return new Header(getKey(), newFields);
+          aliasList.remove(pair);
+          break;
+        } else {
+          if (StringUtils.match(field.getName(), oldPattern)) {
+            if (newPattern.endsWith("." + oldPattern)) {
+              String prefix = newPattern.substring(0, newPattern.length() - oldPattern.length());
+              alias = prefix + field.getName();
+            } else {
+              alias = newPattern;
+            }
+            break;
+          }
+        }
+      }
+      if (alias.isEmpty()) {
+        newFields.add(field);
+      } else {
+        newFields.add(new Field(alias, field.getType(), field.getTags()));
+      }
+    }
+
+    Header newHeader;
+    if (!hasKey() && colIndex != -1) {
+      newHeader = new Header(Field.KEY, newFields);
+    } else {
+      newHeader = new Header(getKey(), newFields);
+    }
+    return new Pair<>(newHeader, colIndex);
   }
 
   public static class ReorderedHeaderWrapped {
@@ -211,6 +292,15 @@ public final class Header {
       List<String> patterns, List<Boolean> isPyUDFList) {
     List<Field> targetFields = new ArrayList<>();
     Map<Integer, Integer> reorderMap = new HashMap<>();
+
+    // 保留关键字列
+    for (int i = 0; i < fields.size(); i++) {
+      Field field = getField(i);
+      if (RESERVED_COLS.contains(field.getName())) {
+        reorderMap.put(targetFields.size(), i);
+        targetFields.add(field);
+      }
+    }
 
     for (int index = 0; index < patterns.size(); index++) {
       String pattern = patterns.get(index);

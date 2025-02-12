@@ -11,3 +11,28 @@ jobs:
               shell: bash
               run: |
                   mvn clean spotless:check
+    license:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v3 # v2 minimum required
+            - name: Check license headers
+              shell: bash
+              run: |
+                  mvn clean license:check
+    py-session:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: actions/setup-java@v4
+              with:
+                  java-version: 8
+                  distribution: temurin
+                  cache: maven
+            - name: remove py-session thrift
+              working-directory: session_py
+              run: rm -rf iginx/iginx_pyclient/thrift
+            - name: generate py-session thrift
+              run: mvn clean compile -pl thrift,session_py -DskipTests
+            - name: check py-session difference
+              working-directory: session_py
+              run: git diff --minimal --exit-code

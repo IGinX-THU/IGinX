@@ -1,20 +1,21 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils;
 
@@ -33,17 +34,23 @@ import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
+import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
+import cn.edu.tsinghua.iginx.engine.shared.expr.KeyExpression;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
+import cn.edu.tsinghua.iginx.engine.shared.function.FunctionUtils;
 import cn.edu.tsinghua.iginx.engine.shared.function.MappingFunction;
+import cn.edu.tsinghua.iginx.engine.shared.function.RowMappingFunction;
 import cn.edu.tsinghua.iginx.engine.shared.function.SetMappingFunction;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.First;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.Last;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.Max;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.Min;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Downsample;
 import cn.edu.tsinghua.iginx.engine.shared.operator.GroupBy;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
+import cn.edu.tsinghua.iginx.sql.utils.ExpressionUtils;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.*;
@@ -87,11 +94,22 @@ public class RowUtils {
   }
 
   public static Row combineMultipleColumns(List<Row> columnList) {
+    return combineMultipleColumns(columnList, true);
+  }
+
+  public static Row combineMultipleColumns(List<Row> columnList, boolean remainKey) {
     if (columnList == null || columnList.isEmpty()) {
       return Row.EMPTY_ROW;
     }
+
+    Row row = columnList.get(0);
     if (columnList.size() == 1) {
-      return columnList.get(0);
+      if (remainKey) {
+        return row;
+      } else {
+        Header headerNoKey = new Header(row.getHeader().getFields());
+        return new Row(headerNoKey, row.getValues());
+      }
     }
 
     List<Field> fields = new ArrayList<>();
@@ -100,9 +118,14 @@ public class RowUtils {
       fields.addAll(cols.getHeader().getFields());
       valuesCombine.addAll(Arrays.asList(cols.getValues()));
     }
-    Header newHeader =
-        columnList.get(0).getHeader().hasKey() ? new Header(Field.KEY, fields) : new Header(fields);
-    return new Row(newHeader, columnList.get(0).getKey(), valuesCombine.toArray());
+
+    if (remainKey) {
+      Header newHeader =
+          row.getHeader().hasKey() ? new Header(Field.KEY, fields) : new Header(fields);
+      return new Row(newHeader, row.getKey(), valuesCombine.toArray());
+    } else {
+      return new Row(new Header(fields), valuesCombine.toArray());
+    }
   }
 
   public static boolean isEqualRow(Row row1, Row row2, boolean compareKey)
@@ -548,6 +571,47 @@ public class RowUtils {
     return true;
   }
 
+  public static TreeMap<Long, List<Row>> computeDownsampleGroup(
+      Downsample downsample, Table table) {
+    List<Row> rows = table.getRows();
+    long bias = downsample.getKeyRange().getActualBeginKey();
+    long endKey = downsample.getKeyRange().getActualEndKey();
+    if (downsample.notSetInterval()) {
+      if (table.getRowSize() <= 0) {
+        return new TreeMap<>();
+      }
+      bias = table.getRow(0).getKey();
+      endKey = table.getRow(table.getRowSize() - 1).getKey();
+    }
+    long precision = downsample.getPrecision();
+    long slideDistance = downsample.getSlideDistance();
+    // startKey + (n - 1) * slideDistance + precision - 1 >= endKey
+    long n = (int) (Math.ceil((double) (endKey - bias - precision + 1) / slideDistance) + 1);
+
+    TreeMap<Long, List<Row>> groups = new TreeMap<>();
+    if (precision == slideDistance) {
+      for (Row row : rows) {
+        long timestamp = row.getKey() - (row.getKey() - bias) % precision;
+        groups.compute(timestamp, (k, v) -> v == null ? new ArrayList<>() : v).add(row);
+      }
+    } else {
+      HashMap<Long, Long> timestamps = new HashMap<>();
+      for (long i = 0; i < n; i++) {
+        timestamps.put(i, bias + i * slideDistance);
+      }
+      for (Row row : rows) {
+        long rowTimestamp = row.getKey();
+        for (long i = 0; i < n; i++) {
+          if (rowTimestamp - timestamps.get(i) >= 0
+              && rowTimestamp - timestamps.get(i) < precision) {
+            groups.compute(timestamps.get(i), (k, v) -> v == null ? new ArrayList<>() : v).add(row);
+          }
+        }
+      }
+    }
+    return groups;
+  }
+
   public static List<Row> cacheGroupByResult(GroupBy groupBy, Table table)
       throws PhysicalException {
     List<String> cols = groupBy.getGroupByCols();
@@ -613,9 +677,19 @@ public class RowUtils {
       SetMappingFunction function = (SetMappingFunction) functionCall.getFunction();
       FunctionParams params = functionCall.getParams();
 
+      Header tmpHeader = header;
       boolean hasAddedFields = false;
       for (Map.Entry<GroupByKey, List<Row>> entry : groups.entrySet()) {
         List<Row> group = entry.getValue();
+        List<Row> transformedGroup;
+        if (functionCall.isNeedPreRowTransform()) {
+          List<FunctionCall> list = FunctionUtils.getArithFunctionCalls(params.getExpressions());
+          Table tmp = RowUtils.calRowTransform(new Table(header, group), list);
+          tmpHeader = tmp.getHeader();
+          transformedGroup = tmp.getRows();
+        } else {
+          transformedGroup = group;
+        }
 
         if (params.isDistinct()) {
           if (!isCanUseSetQuantifierFunction(function.getIdentifier())) {
@@ -625,12 +699,20 @@ public class RowUtils {
           // min和max无需去重
           if (!function.getIdentifier().equals(Max.MAX)
               && !function.getIdentifier().equals(Min.MIN)) {
-            group = removeDuplicateRows(group);
+            try (Table t = RowUtils.project(tmpHeader, transformedGroup, params.getPaths())) {
+              transformedGroup = removeDuplicateRows(t.getRows());
+              tmpHeader = t.getHeader();
+            } catch (PhysicalException e) {
+              LOGGER.error(
+                  "encounter error when execute distinct in set mapping function {}",
+                  function.getIdentifier(),
+                  e);
+            }
           }
         }
 
         try {
-          Row row = function.transform(new Table(header, group), params);
+          Row row = function.transform(new Table(tmpHeader, transformedGroup), params);
           if (row != null) {
             entry.getKey().getFuncRet().addAll(Arrays.asList(row.getValues()));
             if (!hasAddedFields) {
@@ -670,6 +752,22 @@ public class RowUtils {
                   .forEach(
                       entry -> {
                         List<Row> group = entry.getValue();
+                        Header tmpHeader = header;
+                        List<Row> transformedGroup = new ArrayList<>();
+                        if (functionCall.isNeedPreRowTransform()) {
+                          List<FunctionCall> list =
+                              FunctionUtils.getArithFunctionCalls(params.getExpressions());
+                          try {
+                            Table tmp = RowUtils.calRowTransform(new Table(header, group), list);
+                            tmpHeader = tmp.getHeader();
+                            transformedGroup.addAll(tmp.getRows());
+                          } catch (PhysicalException e) {
+                            LOGGER.error(
+                                "encounter error when execute set mapping function parameters", e);
+                          }
+                        } else {
+                          transformedGroup = group;
+                        }
 
                         if (params.isDistinct()) {
                           if (!isCanUseSetQuantifierFunction(function.getIdentifier())) {
@@ -679,16 +777,22 @@ public class RowUtils {
                           // min和max无需去重
                           if (!function.getIdentifier().equals(Max.MAX)
                               && !function.getIdentifier().equals(Min.MIN)) {
-                            try {
-                              group = removeDuplicateRows(group);
+                            try (Table t =
+                                RowUtils.project(tmpHeader, transformedGroup, params.getPaths())) {
+                              transformedGroup = removeDuplicateRows(t.getRows());
+                              tmpHeader = t.getHeader();
                             } catch (PhysicalException e) {
-                              throw new RuntimeException(e);
+                              LOGGER.error(
+                                  "encounter error when execute distinct in set mapping function {}",
+                                  function.getIdentifier(),
+                                  e);
                             }
                           }
                         }
 
                         try {
-                          Row row = function.transform(new Table(header, group), params);
+                          Row row =
+                              function.transform(new Table(tmpHeader, transformedGroup), params);
                           if (row != null) {
                             entry.getKey().getFuncRet().addAll(Arrays.asList(row.getValues()));
                             if (hasAddedFields.compareAndSet(false, true)) {
@@ -696,7 +800,10 @@ public class RowUtils {
                             }
                           }
                         } catch (Exception e) {
-                          LOGGER.error("encounter error when execute set mapping function ");
+                          LOGGER.error(
+                              "encounter error when execute set mapping function {}.",
+                              function.getIdentifier(),
+                              e);
                         }
                       });
               latch.countDown();
@@ -785,7 +892,7 @@ public class RowUtils {
                   try {
                     return FilterUtils.validate(filter, row);
                   } catch (PhysicalException e) {
-                    LOGGER.error("execute parallel filter error, cause by: ", e.getCause());
+                    LOGGER.error("execute parallel filter error, cause by: ", e);
                     return false;
                   }
                 })
@@ -804,7 +911,7 @@ public class RowUtils {
                 try {
                   return FilterUtils.validate(filter, row);
                 } catch (PhysicalException e) {
-                  LOGGER.error("execute sequence filter error, cause by: ", e.getCause());
+                  LOGGER.error("execute sequence filter error, cause by: ", e);
                   return false;
                 }
               })
@@ -812,7 +919,7 @@ public class RowUtils {
     }
   }
 
-  public static void sortRows(List<Row> rows, boolean asc, List<String> sortByCols)
+  public static void sortRows(List<Row> rows, List<Boolean> ascendingList, List<String> sortByCols)
       throws PhysicalTaskExecuteFailureException {
     if (rows == null || rows.isEmpty()) {
       return;
@@ -844,12 +951,15 @@ public class RowUtils {
         (a, b) -> {
           if (finalHasKey) {
             int cmp =
-                asc ? Long.compare(a.getKey(), b.getKey()) : Long.compare(b.getKey(), a.getKey());
+                ascendingList.get(0)
+                    ? Long.compare(a.getKey(), b.getKey())
+                    : Long.compare(b.getKey(), a.getKey());
             if (cmp != 0) {
               return cmp;
             }
           }
           for (int i = 0; i < indexList.size(); i++) {
+            boolean asc = finalHasKey ? ascendingList.get(i + 1) : ascendingList.get(i);
             int cmp =
                 asc
                     ? ValueUtils.compare(
@@ -864,6 +974,20 @@ public class RowUtils {
           }
           return 0;
         });
+  }
+
+  public static Table project(Header header, List<Row> rows, List<String> patterns) {
+    Header targetHeader = header.projectedHeader(patterns, false);
+    List<Field> targetFields = targetHeader.getFields();
+    List<Row> targetRows = new ArrayList<>();
+    for (Row row : rows) {
+      Object[] objects = new Object[targetFields.size()];
+      for (int i = 0; i < targetFields.size(); i++) {
+        objects[i] = row.getValue(targetFields.get(i));
+      }
+      targetRows.add(new Row(targetHeader, row.getKey(), objects));
+    }
+    return new Table(targetHeader, targetRows);
   }
 
   public static List<Row> removeDuplicateRows(List<Row> rows) throws PhysicalException {
@@ -945,7 +1069,11 @@ public class RowUtils {
     } else {
       // PriorityQueue中的Pair，k为行，v为表格在tableList中的索引（即记录该行所属的table）
       PriorityQueue<Pair<Row, Integer>> queue =
-          new PriorityQueue<>(Comparator.comparingLong(p -> p.k.getKey()));
+          new PriorityQueue<>(
+              (p1, p2) ->
+                  p1.k.getKey() == p2.k.getKey()
+                      ? Integer.compare(p1.v, p2.v)
+                      : Long.compare(p1.k.getKey(), p2.k.getKey()));
 
       // 初始化优先队列
       for (int i = 0; i < tableList.size(); i++) {
@@ -1103,6 +1231,108 @@ public class RowUtils {
     return new Table(newHeader, newRows);
   }
 
+  public static Row calRowTransform(Row row, List<FunctionCall> functionCallList)
+      throws PhysicalException {
+    return calRowTransform(row, functionCallList, true);
+  }
+
+  /**
+   * 计算单行RowTransform的结果
+   *
+   * @param row 输入行
+   * @param functionCallList RowTransform的FunctionCall列表
+   * @param check 是否需要检查FunctionCall列表是否全为RowTransform
+   * @return 计算结果输出行
+   * @throws PhysicalException 当FunctionCall列表中有非RowTransform时，抛出异常；当执行RowTransform时出错时，抛出异常
+   */
+  public static Row calRowTransform(Row row, List<FunctionCall> functionCallList, boolean check)
+      throws PhysicalException {
+    if (check) {
+      for (FunctionCall functionCall : functionCallList) {
+        if (!(functionCall.getFunction() instanceof RowMappingFunction)) {
+          throw new PhysicalTaskExecuteFailureException(
+              "function: "
+                  + functionCall.getFunction().getIdentifier()
+                  + " is not a row mapping function");
+        }
+      }
+    }
+
+    Map<List<String>, Row> rowTransformMap = new HashMap<>();
+    List<Row> columnList = new ArrayList<>();
+    boolean remainKey = true;
+    for (FunctionCall functionCall : functionCallList) {
+      RowMappingFunction function = (RowMappingFunction) functionCall.getFunction();
+      FunctionParams params = functionCall.getParams();
+      if (remainKey) { // 若有KeyExpression，则表示将key列降级为普通列，返回结果将没有key列
+        remainKey =
+            params.getExpressions().stream()
+                .noneMatch(expression -> expression instanceof KeyExpression);
+      }
+
+      Row tmp = row;
+      if (functionCall.isNeedPreRowTransform()) {
+        List<FunctionCall> list = FunctionUtils.getFunctionCalls(params.getExpressions());
+        if (rowTransformMap.containsKey(params.getPaths())) {
+          tmp = rowTransformMap.get(params.getPaths());
+        } else {
+          tmp = calRowTransform(row, list);
+          rowTransformMap.put(params.getPaths(), tmp);
+        }
+      }
+
+      try {
+        // 分别计算每个表达式得到相应的结果
+        Row column = function.transform(tmp, params);
+        if (column != null) {
+          columnList.add(column);
+        }
+      } catch (Exception e) {
+        throw new PhysicalTaskExecuteFailureException(
+            "encounter error when execute row mapping function " + function.getIdentifier() + ".",
+            e);
+      }
+    }
+    // 如果存在functionCall计算结果为空，抛出异常
+    if (columnList.size() != functionCallList.size()) {
+      throw new PhysicalTaskExecuteFailureException(
+          "encounter error when execute row mapping functions: " + functionCallList);
+    }
+    return combineMultipleColumns(columnList, remainKey);
+  }
+
+  /**
+   * 计算表格RowTransform的结果
+   *
+   * @param table 输入表
+   * @param functionCallList RowTransform的FunctionCall列表
+   * @return 计算结果输出表格
+   * @throws PhysicalException 当FunctionCall列表中有非RowTransform时，抛出异常；当执行RowTransform时出错时，抛出异常
+   */
+  public static Table calRowTransform(Table table, List<FunctionCall> functionCallList)
+      throws PhysicalException {
+    for (FunctionCall functionCall : functionCallList) {
+      if (!(functionCall.getFunction() instanceof RowMappingFunction)) {
+        throw new PhysicalTaskExecuteFailureException(
+            "function: "
+                + functionCall.getFunction().getIdentifier()
+                + " is not a row mapping function");
+      }
+    }
+    List<Row> rows = new ArrayList<>();
+    while (table.hasNext()) {
+      Row current = table.next();
+      rows.add(calRowTransform(current, functionCallList, false));
+    }
+    // 重置table的迭代器，以便下次使用
+    table.reset();
+    if (rows.isEmpty()) {
+      return Table.EMPTY_TABLE;
+    }
+    Header header = rows.get(0).getHeader();
+    return new Table(header, rows);
+  }
+
   /**
    * 计算多个MappingTransform的结果
    *
@@ -1114,6 +1344,8 @@ public class RowUtils {
   public static Table calMappingTransform(Table table, List<FunctionCall> functionCallList)
       throws PhysicalException {
     List<Table> tableList = new ArrayList<>();
+    Map<List<String>, Table> rowTransformMap = new HashMap<>();
+
     for (FunctionCall functionCall : functionCallList) {
       FunctionParams params = functionCall.getParams();
       if (!(functionCall.getFunction() instanceof MappingFunction)) {
@@ -1123,9 +1355,10 @@ public class RowUtils {
                 + " is not a mapping function");
       }
       MappingFunction function = (MappingFunction) functionCall.getFunction();
+      Table input = preRowTransform(table, rowTransformMap, functionCall);
 
       try {
-        Table functable = (Table) function.transform(table, params);
+        Table functable = (Table) function.transform(input, params);
         if (functable != null) {
           tableList.add(functable);
         }
@@ -1154,5 +1387,53 @@ public class RowUtils {
     } else {
       return RowUtils.joinMultipleTablesByOrdinal(tableList);
     }
+  }
+
+  public static Table preRowTransform(
+      Table table, Map<List<String>, Table> rowTransformMap, FunctionCall functionCall)
+      throws PhysicalException {
+    if (!functionCall.isNeedPreRowTransform()) {
+      return table;
+    }
+    Table ret;
+    FunctionParams params = functionCall.getParams();
+    List<FunctionCall> list = FunctionUtils.getArithFunctionCalls(params.getExpressions());
+    if (rowTransformMap.containsKey(params.getPaths())) {
+      ret = rowTransformMap.get(params.getPaths());
+    } else {
+      ret = RowUtils.calRowTransform(table, list);
+      rowTransformMap.put(params.getPaths(), ret);
+    }
+    return ret;
+  }
+
+  public static Row buildConstRow(List<Expression> expressions) throws PhysicalException {
+    List<Field> fields = new ArrayList<>();
+    Object[] values = new Object[expressions.size()];
+
+    for (int i = 0; i < expressions.size(); i++) {
+      Expression expression = expressions.get(i);
+      if (!ExpressionUtils.isConstantArithmeticExpr(expression)) {
+        throw new PhysicalException("expression is not constant: " + expression.getColumnName());
+      }
+      Value value = ExprUtils.calculateExpr(null, expression);
+      values[i] = value.getValue();
+      fields.add(new Field(expression.getColumnName(), value.getDataType()));
+    }
+
+    Header header = new Header(fields);
+    return new Row(header, values);
+  }
+
+  public static Row transformColumnToKey(Header header, Row row, int colIndex) {
+    long key = ValueUtils.transformToLong(row.getAsValue(colIndex));
+    Object[] oldValues = row.getValues();
+    Object[] newValues = new Object[header.getFieldSize()];
+    System.arraycopy(oldValues, 0, newValues, 0, colIndex);
+    if (colIndex < oldValues.length - 1) {
+      System.arraycopy(
+          oldValues, colIndex + 1, newValues, colIndex, header.getFieldSize() - colIndex);
+    }
+    return new Row(header, key, newValues);
   }
 }

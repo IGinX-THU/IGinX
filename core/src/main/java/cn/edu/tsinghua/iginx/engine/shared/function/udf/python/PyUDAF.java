@@ -1,7 +1,23 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ */
 package cn.edu.tsinghua.iginx.engine.shared.function.udf.python;
-
-import static cn.edu.tsinghua.iginx.engine.shared.Constants.UDF_CLASS;
-import static cn.edu.tsinghua.iginx.engine.shared.Constants.UDF_FUNC;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.Table;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
@@ -15,19 +31,15 @@ import cn.edu.tsinghua.iginx.engine.shared.function.udf.utils.DataUtils;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.utils.RowUtils;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.BlockingQueue;
-import pemja.core.PythonInterpreter;
 
-public class PyUDAF implements UDAF {
+public class PyUDAF extends PyUDF implements UDAF {
 
   private static final String PY_UDAF = "py_udaf";
 
-  private final BlockingQueue<PythonInterpreter> interpreters;
-
   private final String funcName;
 
-  public PyUDAF(BlockingQueue<PythonInterpreter> interpreter, String funcName) {
-    this.interpreters = interpreter;
+  public PyUDAF(String funcName, String moduleName, String className) {
+    super(moduleName, className);
     this.funcName = funcName;
   }
 
@@ -52,7 +64,6 @@ public class PyUDAF implements UDAF {
       throw new IllegalArgumentException("unexpected params for PyUDAF.");
     }
 
-    PythonInterpreter interpreter = interpreters.take();
     List<List<Object>> data = DataUtils.dataFromTable(table, params.getPaths());
     if (data == null) {
       return Row.EMPTY_ROW;
@@ -61,13 +72,11 @@ public class PyUDAF implements UDAF {
     List<Object> args = params.getArgs();
     Map<String, Object> kvargs = params.getKwargs();
 
-    List<List<Object>> res =
-        (List<List<Object>>) interpreter.invokeMethod(UDF_CLASS, UDF_FUNC, data, args, kvargs);
+    List<List<Object>> res = invokePyUDF(data, args, kvargs);
 
     if (res == null || res.size() < 3) {
       return Row.EMPTY_ROW;
     }
-    interpreters.add(interpreter);
 
     // [["key", col1, col2 ....],
     // ["LONG", type1, type2 ...],

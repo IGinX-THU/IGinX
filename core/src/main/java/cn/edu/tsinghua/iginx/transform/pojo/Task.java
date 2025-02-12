@@ -1,3 +1,22 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ */
 package cn.edu.tsinghua.iginx.transform.pojo;
 
 import cn.edu.tsinghua.iginx.thrift.DataFlowType;
@@ -27,24 +46,24 @@ public class Task {
     String type = info.getTaskType().toLowerCase().trim();
     switch (type) {
       case "iginx":
-        taskType = TaskType.IginX;
+        taskType = TaskType.IGINX;
         break;
       case "python":
-        taskType = TaskType.Python;
+        taskType = TaskType.PYTHON;
         break;
       default:
         throw new IllegalArgumentException("Unknown task type: " + type);
     }
 
-    dataFlowType = DataFlowType.Stream;
+    dataFlowType = DataFlowType.STREAM;
     if (info.getDataFlowType() != null) {
       type = info.getDataFlowType().toLowerCase().trim();
       switch (type) {
         case "batch":
-          dataFlowType = DataFlowType.Batch;
+          dataFlowType = DataFlowType.BATCH;
           break;
         case "stream":
-          dataFlowType = DataFlowType.Stream;
+          dataFlowType = DataFlowType.STREAM;
           break;
         default:
           throw new IllegalArgumentException("Unknown data flow type: " + type);
@@ -88,6 +107,6 @@ public class Task {
   }
 
   public boolean isPythonTask() {
-    return taskType.equals(TaskType.Python);
+    return taskType.equals(TaskType.PYTHON);
   }
 }

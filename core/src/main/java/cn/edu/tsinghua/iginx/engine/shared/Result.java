@@ -1,3 +1,22 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ */
 package cn.edu.tsinghua.iginx.engine.shared;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
@@ -13,10 +32,7 @@ import cn.edu.tsinghua.iginx.utils.Bitmap;
 import cn.edu.tsinghua.iginx.utils.ByteUtils;
 import cn.edu.tsinghua.iginx.utils.RpcUtils;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import lombok.Data;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,7 +66,8 @@ public class Result {
   private RowStream resultStream;
 
   private long jobId;
-  private List<Long> jobIdList;
+  private Map<JobState, List<Long>> jobStateMap;
+  private String jobYamlPath;
 
   private Map<String, String> configs;
 
@@ -67,6 +84,10 @@ public class Result {
   private List<Long> sessionIDs;
 
   private Map<String, Boolean> rules;
+
+  private List<String> usernames;
+  private List<UserType> userTypes;
+  private List<Set<AuthType>> auths;
 
   public Result(Status status) {
     this.status = status;
@@ -170,7 +191,8 @@ public class Result {
     resp.setRegisterTaskInfos(registerTaskInfos);
     resp.setJobId(jobId);
     resp.setJobState(jobState);
-    resp.setJobIdList(jobIdList);
+    resp.setJobStateMap(jobStateMap);
+    resp.setJobYamlPath(jobYamlPath);
     resp.setConfigs(configs);
     // INFILE AS CSV
     resp.setLoadCsvPath(loadCSVPath);
@@ -178,6 +200,10 @@ public class Result {
     resp.setRules(rules);
     // import udf
     resp.setUDFModulePath(UDFModulePath);
+    // SHOW USER
+    resp.setUsernames(usernames);
+    resp.setUserTypes(userTypes);
+    resp.setAuths(auths);
     return resp;
   }
 

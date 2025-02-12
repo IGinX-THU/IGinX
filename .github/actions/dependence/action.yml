@@ -4,7 +4,7 @@ inputs:
     python-version:
         description: "python version"
         required: false
-        default: 3.9
+        default: 3.11
     java:
         description: "java version"
         required: false
@@ -18,6 +18,21 @@ inputs:
         required: false
         default: all
         # all: setup all
+    docker-required:
+        description: "is docker needed in this test"
+        required: false
+        default: "false"
+    free-thread-python-required:
+        description: "is free-threading python needed"
+        required: false
+        default: "false"
+    iginx-conda-flag:
+        description: "whether to use conda"
+        required: false
+        default: "false"
+    iginx-conda-env:
+        description: "conda env name"
+        required: false
 
 runs:
     using: "composite"
@@ -30,33 +45,113 @@ runs:
               tzutil /s "China Standard Time"
               echo "JAVA_OPTS=-Xmx4g -Xms2g" >> %GITHUB_ENV%
 
-        - if: runner.os == 'macOS'
+        # after this setup, every shell using login mode will be in conda env
+        # conda should be set at very beginning because this action will delete ~/.bashrc & ~/.bash_profile
+        # and regenerate them by initializing conda
+        - if: inputs.scope=='all' && inputs.iginx-conda-flag == 'true'
+          name: Setup Miniconda
+          uses: conda-incubator/setup-miniconda@v3.1.0
+          with:
+              miniconda-version: ${{ inputs.conda-version }}
+              python-version: ${{ inputs.python-version }}
+              activate-environment: ${{ inputs.iginx-conda-env }}
+              channel-priority: strict
+              run-post: "false"
+
+        # we use a patched version of lima(slower) because colima cannot start on M1 chips and the docker task is lightweight.
+        - if: runner.os == 'macOS' &&  inputs.docker-required=='true'
           name: Install Docker on MacOS
           shell: bash
           run: |
               brew update
-              brew install docker colima
-              colima version
-              colima start --cpu 3 --memory 6 --disk 100 --vm-type=qemu --mount-type=sshfs --dns=1.1.1.1
+              brew install docker qemu
+              brew install colima
+              LIMACTL_PATH=$(brew --prefix)/bin/limactl
+              sudo curl -L -o $LIMACTL_PATH https://github.com/mikekazakov/lima-nohvf/raw/master/limactl && sudo chmod +x $LIMACTL_PATH
+              colima start --network-address --arch arm64 --vm-type=qemu
               docker --version
 
         - if: inputs.scope=='all'
+          name: Write Python dependencies to requirements.txt
+          shell: bash
+          run: |
+              echo "pandas" >> requirements.txt
+              echo "numpy" >> requirements.txt
+              echo "pemjax" >> requirements.txt
+              echo "thrift" >> requirements.txt
+              echo "fastparquet" >> requirements.txt
+              echo "tqdm" >> requirements.txt
+              echo "requests" >> requirements.txt
+              echo "torch" >> requirements.txt
+
+        - if: inputs.scope=='all' && inputs.iginx-conda-flag != 'true'
           name: Set up Python ${{ inputs.python-version }}
           uses: actions/setup-python@v5
           with:
               python-version: ${{ inputs.python-version }}
               cache: "pip" # caching pip dependencies
 
-        - if: inputs.scope=='all'
-          name: Install Python dependencies
+        # when using login mode shell, setup-python does not take effect.
+        # thus manually add python path to PATH
+        - if: inputs.scope=='all' && inputs.iginx-conda-flag != 'true'
+          name: Add System Python to PATH
           shell: bash
           run: |
+              PYTHON_PATH=$(dirname $(which python))
+              echo $PYTHON_PATH
+              echo "IGINX_PYTHON_PATH=$PYTHON_PATH" >> $GITHUB_ENV
+
+        - if: inputs.scope=='all'
+          name: Install Python dependencies
+          shell: bash -el {0}
+          run: |
+              if [ ! -z "$IGINX_PYTHON_PATH" ]; then
+                export PATH="$IGINX_PYTHON_PATH:$PATH"
+              fi
+              echo $PATH
+              which python
               python -m pip install --upgrade pip
-              pip install pandas numpy pemjax==0.1.0 thrift fastparquet
+              pip install -r requirements.txt
+
+        - if: inputs.free-thread-python-required=='true'
+          name: Install free-thread python
+          uses: ./.github/actions/service/freeThreadPython
 
         - name: Set up JDK ${{ inputs.java }}
           uses: actions/setup-java@v4
           with:
               java-version: ${{ inputs.java }}
-              distribution: "temurin"
+              distribution: ${{ runner.os == 'macOS' && matrix.java == '8' && 'liberica' || 'temurin' }}
               cache: "maven"
+
+        - name: Check Java & Python Version
+          shell: bash
+          run: |
+              java -version
+              which java
+              python --version
+              which python
+
+        - name: Check Java & Python Version in Conda and set conda env name
+          if: inputs.iginx-conda-flag == 'true'
+          shell: bash -el {0}
+          run: |
+              java -version
+              which java
+              python --version
+              which python
+              # to access conda env in scripts
+              echo "IGINX_CONDA_ENV=${{ inputs.iginx-conda-env }}" >> $GITHUB_ENV
+              echo "IGINX_CONDA_FLAG=${{ inputs.iginx-conda-flag }}" >> $GITHUB_ENV
+
+        - name: Get project info
+          id: project
+          uses: ./.github/actions/project
+
+        - name: Set up environment variable
+          shell: bash
+          run: |
+              echo "VERSION=${{ steps.project.outputs.version }}" >> $GITHUB_ENV
+              PROJECT_ROOT=${{ steps.project.outputs.workspace }}
+              echo "PROJECT_ROOT=${PROJECT_ROOT}" >> $GITHUB_ENV
+              echo "SERVICE_DIR=${PROJECT_ROOT}/.github/actions/service" >> $GITHUB_ENV

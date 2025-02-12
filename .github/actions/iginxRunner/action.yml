@@ -1,10 +1,6 @@
 name: "iginx-runner"
 description: "iginx runner"
 inputs:
-    version:
-        description: "iginx runner version"
-        required: false
-        default: 0.6.0-SNAPSHOT
     if-stop:
         description: "to stop the iginx"
         required: false
@@ -13,12 +9,14 @@ inputs:
         description: "to test UDF path detection"
         required: false
         default: "false"
+
 runs:
     using: "composite" # Mandatory parameter
     steps:
+        # TODO: use iginx binaries in assembly rather than core
         - if: inputs.if-test-udf=='true'
           name: Test UDF Path
-          shell: bash
+          shell: bash -el {0}
           run: |
               if [ "$RUNNER_OS" == "Linux" ]; then
                 sudo sed -i 's/needInitBasicUDFFunctions=false/needInitBasicUDFFunctions=true/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
@@ -36,17 +34,18 @@ runs:
 
         - if: inputs.if-test-udf=='false' && inputs.if-stop=='false'
           name: Start IGinX
-          shell: bash
+          shell: bash -el {0}
           run: |
+              which python
               if [ "$RUNNER_OS" == "Linux" ]; then
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx.sh" 6888 6666
+                "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx.sh" 6888 7888
               elif [ "$RUNNER_OS" == "Windows" ]; then
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx_windows.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx_windows.sh" 6888 6666
+                "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx_windows.sh" 6888 7888
               elif [ "$RUNNER_OS" == "macOS" ]; then
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx_macos.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx_macos.sh" 6888 6666
+                "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx_macos.sh" 6888 7888
               fi
 
         - if: inputs.if-test-udf=='false' && inputs.if-stop=='true'

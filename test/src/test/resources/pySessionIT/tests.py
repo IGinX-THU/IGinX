@@ -1,21 +1,20 @@
-# Licensed to the Apache Software Foundation (ASF) under one
-# or more contributor license agreements.  See the NOTICE file
-# distributed with this work for additional information
-# regarding copyright ownership.  The ASF licenses this file
-# to you under the Apache License, Version 2.0 (the
-# "License"); you may not use this file except in compliance
-# with the License.  You may obtain a copy of the License at
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+# IGinX - the polystore system with high performance
+# Copyright (C) Tsinghua University
 #
-# Unless required by applicable law or agreed to in writing,
-# software distributed under the License is distributed on an
-# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-# KIND, either express or implied.  See the License for the
-# specific language governing permissions and limitations
-# under the License.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
-
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
 # 无法单独执行，用来测试PySessionIT
 import sys, traceback
 sys.path.append('../session_py/')  # 将上一级目录添加到Python模块搜索路径中
@@ -59,31 +58,19 @@ class Tests:
             self.session.add_storage_engine(
                 "127.0.0.1",
                 6670,
-                StorageEngineType.parquet,
+                StorageEngineType.filesystem,
                 {
-                    "dir": f"{os.getcwd()}/pq/data",
                     "dummy_dir": f"{os.getcwd()}/pq/dummy",
                     "iginx_port": "6888",
                     "has_data": "true",
                     "is_read_only": "true",
-                    "thrift_timeout": "30000",
-                    "thrift_pool_max_size": "10",
-                    "thrift_pool_min_evictable_idle_time_millis": "600000",
-                    "write_buffer_size": "104857600",
-                    "write_batch_size": "1048576",
-                    "flusher_permits": "16",
-                    "cache.capacity": "1073741824",
-                    "cache.timeout": "PT1H",
-                    "cache.soft_values": "false",
-                    "parquet.row_group_size": "134217728",
-                    "parquet.page_size": "8192"
                 }
             )
             # 输出所有存储引擎
             cluster_info = self.session.get_cluster_info()
             retStr += str(cluster_info) + "\n"
             # 删除加入的存储引擎
-            self.session.execute_sql('REMOVE HISTORYDATASOURCE  ("127.0.0.1", 6670, "", "");')
+            self.session.execute_sql('REMOVE STORAGEENGINE  ("127.0.0.1", 6670, "", "");')
             # 删除后输出所有存储引擎
             cluster_info = self.session.get_cluster_info()
             retStr += str(cluster_info) + "\n"
@@ -91,24 +78,12 @@ class Tests:
             pq_engine = StorageEngine(
                 "127.0.0.1",
                 6670,
-                StorageEngineType.parquet,
+                StorageEngineType.filesystem,
                 {
-                    "dir": f"{os.getcwd()}/pq/data",
                     "dummy_dir": f"{os.getcwd()}/pq/dummy",
                     "iginx_port": "6888",
                     "has_data": "true",
                     "is_read_only": "true",
-                    "thrift_timeout": "30000",
-                    "thrift_pool_max_size": "10",
-                    "thrift_pool_min_evictable_idle_time_millis": "600000",
-                    "write_buffer_size": "104857600",
-                    "write_batch_size": "1048576",
-                    "flusher_permits": "16",
-                    "cache.capacity": "1073741824",
-                    "cache.timeout": "PT1H",
-                    "cache.soft_values": "false",
-                    "parquet.row_group_size": "134217728",
-                    "parquet.page_size": "8192"
                 }
             )
             fs_engine = StorageEngine(
@@ -116,16 +91,10 @@ class Tests:
                 6671,
                 StorageEngineType.filesystem,
                 {
-                    "dir": f"{os.getcwd()}/fs/data",
                     "dummy_dir": f"{os.getcwd()}/fs/dummy",
                     "iginx_port": "6888",
                     "has_data": "true",
                     "is_read_only": "true",
-                    "thrift_timeout": "5000",
-                    "thrift_pool_max_size": "100",
-                    "memory_pool_size": "100",
-                    "chunk_size_in_bytes": "1048576",
-                    "thrift_pool_min_evictable_idle_time_millis": "600000"
                 }
             )
             self.session.batch_add_storage_engine([pq_engine, fs_engine])
@@ -133,8 +102,8 @@ class Tests:
             cluster_info = self.session.get_cluster_info()
             retStr += str(cluster_info) + "\n"
             # 删除加入的存储引擎
-            self.session.execute_sql('REMOVE HISTORYDATASOURCE  ("127.0.0.1", 6670, "", "");')
-            self.session.execute_sql('REMOVE HISTORYDATASOURCE  ("127.0.0.1", 6671, "", "");')
+            self.session.execute_sql('REMOVE STORAGEENGINE  ("127.0.0.1", 6670, "", "");')
+            self.session.execute_sql('REMOVE STORAGEENGINE  ("127.0.0.1", 6671, "", "");')
             # 删除新建的parquet文件
             os.remove('pq/dummy/example.parquet')
             # 删除新建的文件夹
@@ -265,15 +234,31 @@ class Tests:
                 return retStr
 
     def downsampleQuery(self):
+        import pandas as pd
         try:
             dataset = self.session.downsample_query(["test.*"], start_time=0, end_time=10, type=AggregateType.COUNT,
                                                precision=3)
+            pd.set_option('display.max_columns', None)
+            pd.set_option('display.max_rows', None)
             retStr = str(dataset.to_df()) + "\n"
         except Exception as e:
             print(e)
             exit(1)
 
 
+        return retStr
+
+    def downsampleQueryNoInterval(self):
+        import pandas as pd
+        try:
+            dataset = self.session.downsample_query_no_interval(["test.*"], type=AggregateType.COUNT,
+                                                    precision=3)
+            pd.set_option('display.max_columns', None)
+            pd.set_option('display.max_rows', None)
+            retStr = str(dataset.to_df()) + "\n"
+        except Exception as e:
+            print(e)
+            exit(1)
         return retStr
 
     def exportToFile(self):
@@ -378,6 +363,35 @@ class Tests:
         finally:
 
             return ""
+
+    def insertDF(self):
+        try:
+            import pandas as pd
+            data = {
+                'key': list(range(10, 20)),
+                'value1': ['A']*10,
+                'value2': [1.1]*10
+            }
+
+            df = pd.DataFrame(data)
+            self.session.insert_df(df, "dftestdata")
+            data = {
+                'key': list(range(10, 20)),
+                'dftestdata.value3': ['B']*10,
+                'dftestdata.value4': [2.2]*10
+            }
+
+            df = pd.DataFrame(data)
+            self.session.insert_df(df)
+
+            dataset = self.session.query(["dftestdata.*"], 0, 1000)
+            pd.set_option('display.max_columns', None)
+            pd.set_option('display.max_rows', None)
+            retStr = dataset.to_df().to_string(index=False) + "\n"
+            return retStr
+        except Exception as e:
+            print(e)
+            exit(1)
 
     def lastQuery(self):
         retStr = ""

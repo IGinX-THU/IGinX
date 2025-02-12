@@ -1,24 +1,26 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 package cn.edu.tsinghua.iginx.session;
 
-import static cn.edu.tsinghua.iginx.utils.ByteUtils.*;
+import static cn.edu.tsinghua.iginx.utils.ByteUtils.getLongArrayFromByteBuffer;
+import static cn.edu.tsinghua.iginx.utils.ByteUtils.getValuesFromBufferAndBitmaps;
 
 import cn.edu.tsinghua.iginx.constant.GlobalConstant;
 import cn.edu.tsinghua.iginx.thrift.*;
@@ -42,11 +44,15 @@ public class SessionExecuteSqlResult {
   private List<RegisterTaskInfo> registerTaskInfos;
   private long jobId;
   private JobState jobState;
-  private List<Long> jobIdList;
+  private Map<JobState, List<Long>> jobStateMap;
+  private String jobYamlPath;
   private Map<String, String> configs;
   private String loadCsvPath;
   private String UDFModulePath;
   private List<Long> sessionIDs;
+  private List<String> usernames;
+  private List<UserType> userTypes;
+  private List<Set<AuthType>> auths;
 
   private Map<String, Boolean> rules;
 
@@ -97,24 +103,34 @@ public class SessionExecuteSqlResult {
         break;
       case CommitTransformJob:
         this.jobId = resp.getJobId();
+        this.jobYamlPath = resp.getJobYamlPath();
         break;
       case ShowJobStatus:
         this.jobState = resp.getJobState();
         break;
       case ShowEligibleJob:
-        this.jobIdList = resp.getJobIdList();
+        this.jobStateMap = resp.getJobStateMap();
         break;
       case ShowConfig:
         this.configs = resp.getConfigs();
         break;
       case LoadCsv:
         this.loadCsvPath = resp.getLoadCsvPath();
+        break;
       case RegisterTask:
         this.UDFModulePath = resp.getUDFModulePath();
+        break;
       case ShowSessionID:
         this.sessionIDs = resp.getSessionIDList();
+        break;
       case ShowRules:
         this.rules = resp.getRules();
+        break;
+      case ShowUser:
+        this.usernames = resp.getUsernames();
+        this.userTypes = resp.getUserTypes();
+        this.auths = resp.getAuths();
+        break;
       default:
         break;
     }
@@ -192,14 +208,16 @@ public class SessionExecuteSqlResult {
         return buildShowConfigResult();
       case ShowRules:
         return buildShowRulesResult();
+      case ShowUser:
+        return buildShowUserResult();
       case GetReplicaNum:
         return "Replica num: " + replicaNum + "\n";
       case CountPoints:
         return "Points num: " + pointsNum + "\n";
       case CommitTransformJob:
-        return "job id: " + jobId;
+        return "job id: " + jobId + "\n";
       case ShowJobStatus:
-        return "Job status: " + jobState;
+        return "Job status: " + jobState + "\n";
       default:
         return "No data to print." + "\n";
     }
@@ -299,7 +317,7 @@ public class SessionExecuteSqlResult {
       }
 
       List<Object> rowData = values.get(i);
-      boolean isNull = true; // TODO 该行除系统级时间序列之外全部为空
+      boolean isNull = !rowData.isEmpty();
       for (int j = 0; j < rowData.size(); j++) {
         if (j == annotationPathIndex) {
           continue;
@@ -405,15 +423,19 @@ public class SessionExecuteSqlResult {
       builder.append("Functions info:").append("\n");
       List<List<String>> cache = new ArrayList<>();
       cache.add(
-          new ArrayList<>(Arrays.asList("NAME", "CLASS_NAME", "FILE_NAME", "IP", "UDF_TYPE")));
+          new ArrayList<>(Arrays.asList("NAME", "CLASS_NAME", "FILE_NAME", "IP:PORT", "UDF_TYPE")));
       for (RegisterTaskInfo info : registerTaskInfos) {
+        StringJoiner joiner = new StringJoiner(", ");
+        for (IpPortPair p : info.getIpPortPair()) {
+          joiner.add(String.format("%s:%d", p.getIp(), p.getPort()));
+        }
         cache.add(
             new ArrayList<>(
                 Arrays.asList(
                     info.getName(),
                     info.getClassName(),
                     info.getFileName(),
-                    info.getIp(),
+                    joiner.toString(),
                     info.getType().toString())));
       }
       builder.append(FormatUtils.formatResult(cache));
@@ -465,15 +487,37 @@ public class SessionExecuteSqlResult {
     return builder.toString();
   }
 
+  private String buildShowUserResult() {
+    if (sqlType != SqlType.ShowUser) {
+      throw new IllegalStateException("sqlType is not ShowUser");
+    }
+    StringBuilder builder = new StringBuilder();
+    builder.append("User Info:").append("\n");
+    List<List<String>> cache = new ArrayList<>();
+    cache.add(new ArrayList<>(Arrays.asList("name", "type", "auths")));
+    for (int i = 0; i < usernames.size(); i++) {
+      cache.add(
+          new ArrayList<>(
+              Arrays.asList(
+                  usernames.get(i), userTypes.get(i).toString(), auths.get(i).toString())));
+    }
+    builder.append(FormatUtils.formatResult(cache));
+
+    return builder.toString();
+  }
+
   private String buildShowEligibleJobResult() {
     StringBuilder builder = new StringBuilder();
 
-    if (jobIdList != null) {
+    if (jobStateMap != null) {
       builder.append("Transform Id List:").append("\n");
       List<List<String>> cache = new ArrayList<>();
-      cache.add(new ArrayList<>(Collections.singletonList("JobIdList")));
-      for (long jobId : jobIdList) {
-        cache.add(new ArrayList<>(Collections.singletonList(String.valueOf(jobId))));
+      cache.add(new ArrayList<>(Arrays.asList("Job State", "JobIdList")));
+      for (Map.Entry<JobState, List<Long>> entry : jobStateMap.entrySet()) {
+        JobState state = entry.getKey();
+        for (long jobId : entry.getValue()) {
+          cache.add(new ArrayList<>(Arrays.asList(state.toString(), String.valueOf(jobId))));
+        }
       }
       builder.append(FormatUtils.formatResult(cache));
     }
@@ -488,15 +532,19 @@ public class SessionExecuteSqlResult {
 
     if (registerTaskInfos != null && !registerTaskInfos.isEmpty()) {
       resList.add(
-          new ArrayList<>(Arrays.asList("NAME", "CLASS_NAME", "FILE_NAME", "IP", "UDF_TYPE")));
+          new ArrayList<>(Arrays.asList("NAME", "CLASS_NAME", "FILE_NAME", "IP:PORT", "UDF_TYPE")));
       for (RegisterTaskInfo info : registerTaskInfos) {
+        StringJoiner joiner = new StringJoiner(", ");
+        for (IpPortPair p : info.getIpPortPair()) {
+          joiner.add(String.format("%s:%d", p.getIp(), p.getPort()));
+        }
         resList.add(
             new ArrayList<>(
                 Arrays.asList(
                     info.getName(),
                     info.getClassName(),
                     info.getFileName(),
-                    info.getIp(),
+                    joiner.toString(),
                     info.getType().toString())));
       }
     }
@@ -612,6 +660,10 @@ public class SessionExecuteSqlResult {
 
   public JobState getJobState() {
     return jobState;
+  }
+
+  public String getJobYamlPath() {
+    return jobYamlPath;
   }
 
   public List<RegisterTaskInfo> getRegisterTaskInfos() {

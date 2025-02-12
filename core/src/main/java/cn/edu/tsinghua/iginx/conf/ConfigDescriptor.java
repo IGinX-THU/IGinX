@@ -1,20 +1,21 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 package cn.edu.tsinghua.iginx.conf;
 
@@ -86,8 +87,7 @@ public class ConfigDescriptor {
       config.setDatabaseClassNames(
           properties.getProperty(
               "databaseClassNames",
-              "iotdb12=cn.edu.tsinghua.iginx.iotdb.IoTDBStorage,influxdb=cn.edu.tsinghua.iginx.influxdb.InfluxDBStorage,parquet=cn.edu.tsinghua.iginx.parquet.ParquetStorage,relational=cn.edu.tsinghua.iginx.relational.RelationAbstractStorage,mongodb=cn.edu.tsinghua.iginx.mongodb.MongoDBStorage,redis=cn.edu.tsinghua.iginx.redis.RedisStorage"));
-      // ,opentsdb=cn.edu.tsinghua.iginx.opentsdb.OpenTSDBStorage,timescaledb=cn.edu.tsinghua.iginx.timescaledb.TimescaleDBStorage
+              "iotdb12=cn.edu.tsinghua.iginx.iotdb.IoTDBStorage,influxdb=cn.edu.tsinghua.iginx.influxdb.InfluxDBStorage,relational=cn.edu.tsinghua.iginx.relational.RelationalStorage,mongodb=cn.edu.tsinghua.iginx.mongodb.MongoDBStorage,redis=cn.edu.tsinghua.iginx.redis.RedisStorage,filesystem=cn.edu.tsinghua.iginx.filesystem.FileSystemStorage"));
 
       config.setPolicyClassName(
           properties.getProperty(
@@ -126,7 +126,7 @@ public class ConfigDescriptor {
           Integer.parseInt(properties.getProperty("statisticsLogInterval", "5000")));
 
       config.setRestIp(properties.getProperty("restIp", "127.0.0.1"));
-      config.setRestPort(Integer.parseInt(properties.getProperty("restPort", "6666")));
+      config.setRestPort(Integer.parseInt(properties.getProperty("restPort", "7888")));
 
       config.setDisorderMargin(Long.parseLong(properties.getProperty("disorderMargin", "10")));
       config.setAsyncRestThreadPool(
@@ -205,10 +205,10 @@ public class ConfigDescriptor {
           Integer.parseInt(properties.getProperty("transformTaskThreadPoolSize", "10")));
       config.setTransformMaxRetryTimes(
           Integer.parseInt(properties.getProperty("transformMaxRetryTimes", "3")));
-
+      config.setDefaultScheduledTransformJobDir(
+          properties.getProperty("defaultScheduledTransformJobDir", "transform_jobs"));
       config.setNeedInitBasicUDFFunctions(
           Boolean.parseBoolean(properties.getProperty("needInitBasicUDFFunctions", "false")));
-
       config.setHistoricalPrefixList(properties.getProperty("historicalPrefixList", ""));
       config.setExpectedStorageUnitNum(
           Integer.parseInt(properties.getProperty("expectedStorageUnitNum", "0")));
@@ -236,17 +236,8 @@ public class ConfigDescriptor {
           properties.getProperty(
               "ruleBasedOptimizer",
               "NotFilterRemoveRule=on,FragmentPruningByFilterRule=on,ColumnPruningRule=on,FragmentPruningByPatternRule=on"));
-      properties.getProperty("ruleBasedOptimizer", "RemoveNotRule=on,FilterFragmentRule=on");
       config.setDistributedQueryTriggerThreshold(
           Integer.parseInt(properties.getProperty("distributedQueryTriggerThreshold", "3")));
-      config.setEnableEmailNotification(
-          Boolean.parseBoolean(properties.getProperty("enableEmailNotification", "false")));
-      config.setMailSmtpHost(properties.getProperty("mailSmtpHost", ""));
-      config.setMailSmtpPort(Integer.parseInt(properties.getProperty("mailSmtpPort", "465")));
-      config.setMailSmtpUser(properties.getProperty("mailSmtpUser", ""));
-      config.setMailSmtpPassword(properties.getProperty("mailSmtpPassword", ""));
-      config.setMailSender(properties.getProperty("mailSender", ""));
-      config.setMailRecipient(properties.getProperty("mailRecipient", ""));
     } catch (IOException e) {
       config.setUTTestEnv(true);
       config.setNeedInitBasicUDFFunctions(false);
@@ -348,6 +339,9 @@ public class ConfigDescriptor {
         EnvUtils.loadEnv("transformTaskThreadPoolSize", config.getTransformTaskThreadPoolSize()));
     config.setTransformMaxRetryTimes(
         EnvUtils.loadEnv("transformMaxRetryTimes", config.getTransformMaxRetryTimes()));
+    config.setDefaultScheduledTransformJobDir(
+        EnvUtils.loadEnv(
+            "defaultScheduledTransformJobDir", config.getDefaultScheduledTransformJobDir()));
     config.setNeedInitBasicUDFFunctions(
         EnvUtils.loadEnv("needInitBasicUDFFunctions", config.isNeedInitBasicUDFFunctions()));
     config.setHistoricalPrefixList(
@@ -378,14 +372,6 @@ public class ConfigDescriptor {
     config.setDistributedQueryTriggerThreshold(
         EnvUtils.loadEnv(
             "distributedQueryTriggerThreshold", config.getDistributedQueryTriggerThreshold()));
-    config.setEnableEmailNotification(
-        Boolean.parseBoolean(EnvUtils.loadEnv("enableEmailNotification", "false")));
-    config.setMailSmtpHost(EnvUtils.loadEnv("mailSmtpHost", ""));
-    config.setMailSmtpPort(Integer.parseInt(EnvUtils.loadEnv("mailSmtpPort", "465")));
-    config.setMailSmtpUser(EnvUtils.loadEnv("mailSmtpUser", ""));
-    config.setMailSmtpPassword(EnvUtils.loadEnv("mailSmtpPassword", ""));
-    config.setMailSender(EnvUtils.loadEnv("mailSender", ""));
-    config.setMailRecipient(EnvUtils.loadEnv("mailRecipient", ""));
   }
 
   private void loadUDFListFromFile() {

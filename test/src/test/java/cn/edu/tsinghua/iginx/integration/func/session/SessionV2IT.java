@@ -1,5 +1,26 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ */
 package cn.edu.tsinghua.iginx.integration.func.session;
 
+import static cn.edu.tsinghua.iginx.engine.shared.Constants.WINDOW_END_COL;
+import static cn.edu.tsinghua.iginx.engine.shared.Constants.WINDOW_START_COL;
 import static cn.edu.tsinghua.iginx.integration.controller.Controller.SUPPORT_KEY;
 import static cn.edu.tsinghua.iginx.thrift.StorageEngineType.influxdb;
 import static org.junit.Assert.*;
@@ -616,6 +637,22 @@ public class SessionV2IT {
             .startKey(startKey)
             .endKey(endKey + (endKey - startKey))
             .build();
+    executeDownsampleQuery(query);
+  }
+
+  @Test
+  public void testDownsampleQueryNoInterval() {
+    Query query =
+        DownsampleQuery.builder()
+            .addMeasurement("test.session.v2.long")
+            .addMeasurement("test.session.v2.double")
+            .aggregate(AggregateType.SUM)
+            .precision((endKey - startKey) / 10)
+            .build();
+    executeDownsampleQuery(query);
+  }
+
+  private void executeDownsampleQuery(Query query) {
     IginXTable table = queryClient.query(query);
     if (!needCompareResult) {
       return;
@@ -624,7 +661,7 @@ public class SessionV2IT {
     IginXHeader header = table.getHeader();
     assertTrue(header.hasTimestamp());
     List<IginXColumn> columns = header.getColumns();
-    assertEquals(2, columns.size());
+    assertEquals(4, columns.size());
     for (IginXColumn column : columns) {
       switch (column.getName()) {
         case "sum(test.session.v2.long)":
@@ -632,6 +669,9 @@ public class SessionV2IT {
           break;
         case "sum(test.session.v2.double)":
           assertEquals(DataType.DOUBLE, column.getDataType());
+          break;
+        case WINDOW_START_COL:
+        case WINDOW_END_COL:
           break;
         default:
           fail();

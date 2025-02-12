@@ -1,3 +1,22 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ */
 package cn.edu.tsinghua.iginx.utils;
 
 import java.io.BufferedReader;
@@ -16,7 +35,7 @@ public class ShellRunner {
     try {
       ProcessBuilder builder = new ProcessBuilder();
       if (isOnWin()) {;
-        builder.command((isCommandOnPath("bash") ? "bash" : BASH_PATH), command);
+        builder.command(BASH_PATH, command);
       } else {
         builder.command(command);
       }
@@ -60,8 +79,36 @@ public class ShellRunner {
         throw new Exception(
             "process exited with value: " + i + "; command: " + Arrays.toString(command));
       }
-    } catch (IOException | SecurityException e) {
-      throw new Exception("run command failed: " + e.getMessage());
+    } finally {
+      if (p != null) {
+        p.destroy();
+      }
+    }
+  }
+
+  /** 使用命令行执行命令并返回结果，结果中的各行用lineSeperator进行拼接 */
+  public static String runCommandAndGetResult(String lineSeperator, String... command)
+      throws Exception {
+    Process p = null;
+    try {
+      ProcessBuilder builder = new ProcessBuilder();
+      builder.command(command);
+      builder.redirectErrorStream(true);
+      p = builder.start();
+      BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()));
+      StringBuilder result = new StringBuilder();
+      String line;
+      while ((line = br.readLine()) != null) {
+        result.append(line).append(lineSeperator);
+      }
+
+      p.waitFor();
+      int i = p.exitValue();
+      if (i != 0) {
+        throw new Exception(
+            "process exited with value: " + i + "; command: " + Arrays.toString(command));
+      }
+      return result.toString();
     } finally {
       if (p != null) {
         p.destroy();

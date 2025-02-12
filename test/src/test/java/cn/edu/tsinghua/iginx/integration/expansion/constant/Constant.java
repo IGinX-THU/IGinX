@@ -1,3 +1,22 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ */
 package cn.edu.tsinghua.iginx.integration.expansion.constant;
 
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
@@ -13,12 +32,14 @@ public class Constant {
   public static final String EXP_PORT_NAME = "exp_port";
   public static final String READ_ONLY_PORT_NAME = "read_only_port";
 
+  public static final String IGINX_DATA_PATH_PREFIX_NAME = "iginx_";
+
   // port
-  public static int oriPort = 6667;
+  public static int oriPort = 6668;
 
-  public static int expPort = 6668;
+  public static int expPort = 6669;
 
-  public static int readOnlyPort = 6669;
+  public static int readOnlyPort = 6670;
 
   public static int oriPortIginx = 6888;
 
@@ -50,6 +71,9 @@ public class Constant {
 
   public static final List<String> READ_ONLY_PATH_LIST =
       Arrays.asList("tm.wf05.wt01.status", "tm.wf05.wt01.temperature");
+
+  public static final List<String> READ_ONLY_FLOAT_PATH_LIST =
+      Collections.singletonList("tm.wf05.wt02.float");
 
   public static final List<String> READ_ONLY_EXTEND_PATH_LIST =
       Arrays.asList("a.a.c.status", "a.a.c.temperature");
@@ -95,6 +119,9 @@ public class Constant {
   public static List<List<Object>> READ_ONLY_VALUES_LIST =
       Arrays.asList(Arrays.asList(55555555L, 10012.01), Arrays.asList(66666666L, 99123.99));
 
+  public static List<List<Object>> READ_ONLY_FLOAT_VALUES_LIST =
+      Arrays.asList(Collections.singletonList(22.33F), Collections.singletonList(44.55F));
+
   public static List<List<Object>> READ_ONLY_EXTEND_VALUES_LIST =
       Collections.singletonList(Arrays.asList(9999999L, 152346.1));
 
@@ -104,8 +131,7 @@ public class Constant {
   // key list
   public static List<Long> INIT_KEYS_LIST = Arrays.asList(1L, (long) Integer.MAX_VALUE);
 
-  // for file system
-  // for file system & influxdb
+  // for filesystem & influxdb
   public static Map<Integer, String> PORT_TO_ROOT =
       new HashMap<Integer, String>() {
         {
@@ -119,9 +145,9 @@ public class Constant {
   public static final Map<Integer, Integer> PORT_TO_RESTPORT =
       new HashMap<Integer, Integer>() {
         {
-          put(oriPort, 6666);
-          put(expPort, 6665);
-          put(readOnlyPort, 6664);
+          put(oriPort, 7888);
+          put(expPort, 7889);
+          put(readOnlyPort, 7890);
         }
       };
 
@@ -132,29 +158,6 @@ public class Constant {
           put(oriPort, oriPortIginx);
           put(expPort, expPortIginx);
           put(readOnlyPort, readOnlyPortIginx);
-        }
-      };
-
-  // for parquet
-  // <port, [dataDir, dataFilename]>
-  private static final String oriDir = "mn";
-
-  private static final String expDir = "nt";
-
-  private static final String readOnlyDir = "tm";
-
-  private static final String oriFilename = "oriData.parquet";
-
-  private static final String expFilename = "expData.parquet";
-
-  private static final String readOnlyFilename = "readOnlyData.parquet";
-
-  public static final Map<Integer, List<String>> PARQUET_PARAMS =
-      new HashMap<Integer, List<String>>() {
-        {
-          put(oriPort, Arrays.asList(oriDir, oriFilename));
-          put(expPort, Arrays.asList(expDir, expFilename));
-          put(readOnlyPort, Arrays.asList(readOnlyDir, readOnlyFilename));
         }
       };
 }

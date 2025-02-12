@@ -1,3 +1,22 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ */
 package cn.edu.tsinghua.iginx.integration.expansion.postgresql;
 
 import cn.edu.tsinghua.iginx.integration.expansion.BaseHistoryDataGenerator;
@@ -17,13 +36,13 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
 
   private static final String QUERY_DATABASES_STATEMENT = "SELECT datname FROM pg_database;";
 
-  private static final String CREATE_DATABASE_STATEMENT = "CREATE DATABASE \"%s\";";
+  public static final String CREATE_DATABASE_STATEMENT = "CREATE DATABASE \"%s\";";
 
-  private static final String CREATE_TABLE_STATEMENT = "CREATE TABLE %s (%s);";
+  public static final String CREATE_TABLE_STATEMENT = "CREATE TABLE %s (%s);";
 
-  private static final String INSERT_STATEMENT = "INSERT INTO %s VALUES %s;";
+  public static final String INSERT_STATEMENT = "INSERT INTO %s VALUES %s;";
 
-  private static final String DROP_DATABASE_STATEMENT = "DROP DATABASE \"%s\" WITH (FORCE);";
+  public static final String DROP_DATABASE_STATEMENT = "DROP DATABASE \"%s\" WITH (FORCE);";
 
   private static final String USERNAME = "postgres";
 
@@ -35,7 +54,8 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
     Constant.readOnlyPort = 5434;
   }
 
-  private Connection connect(int port, boolean useSystemDatabase, String databaseName) {
+  public static Connection connect(
+      int port, boolean useSystemDatabase, String databaseName, String username, String password) {
     try {
       String url;
       if (useSystemDatabase) {
@@ -44,7 +64,7 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
         url = String.format("jdbc:postgresql://127.0.0.1:%d/%s", port, databaseName);
       }
       Class.forName("org.postgresql.Driver");
-      return DriverManager.getConnection(url, USERNAME, PASSWORD);
+      return DriverManager.getConnection(url, username, password);
     } catch (SQLException | ClassNotFoundException e) {
       throw new RuntimeException(e);
     }
@@ -59,7 +79,7 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
       List<List<Object>> valuesList) {
     Connection connection = null;
     try {
-      connection = connect(port, true, null);
+      connection = connect(port, true, null, USERNAME, PASSWORD);
       if (connection == null) {
         LOGGER.error("cannot connect to 127.0.0.1:{}!", port);
         return;
@@ -92,7 +112,7 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
         }
         stmt.close();
 
-        Connection conn = connect(port, false, databaseName);
+        Connection conn = connect(port, false, databaseName, USERNAME, PASSWORD);
         stmt = conn.createStatement();
         for (Map.Entry<String, List<Integer>> item : entry.getValue().entrySet()) {
           String tableName = item.getKey();
@@ -158,10 +178,20 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
   }
 
   @Override
+  public void writeSpecialHistoryData() {
+    // write float value
+    writeHistoryData(
+        Constant.readOnlyPort,
+        Constant.READ_ONLY_FLOAT_PATH_LIST,
+        new ArrayList<>(Collections.singletonList(DataType.FLOAT)),
+        Constant.READ_ONLY_FLOAT_VALUES_LIST);
+  }
+
+  @Override
   public void clearHistoryDataForGivenPort(int port) {
     Connection conn = null;
     try {
-      conn = connect(port, true, null);
+      conn = connect(port, true, null, USERNAME, PASSWORD);
       Statement stmt = conn.createStatement();
       ResultSet databaseSet = stmt.executeQuery(QUERY_DATABASES_STATEMENT);
       Statement dropDatabaseStatement = conn.createStatement();

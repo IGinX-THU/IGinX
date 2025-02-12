@@ -1,20 +1,21 @@
 @REM
-@REM Licensed to the Apache Software Foundation (ASF) under one
-@REM or more contributor license agreements.  See the NOTICE file
-@REM distributed with this work for additional information
-@REM regarding copyright ownership.  The ASF licenses this file
-@REM to you under the Apache License, Version 2.0 (the
-@REM "License"); you may not use this file except in compliance
-@REM with the License.  You may obtain a copy of the License at
+@REM IGinX - the polystore system with high performance
+@REM Copyright (C) Tsinghua University
+@REM TSIGinX@gmail.com
 @REM
-@REM     http://www.apache.org/licenses/LICENSE-2.0
+@REM This program is free software; you can redistribute it and/or
+@REM modify it under the terms of the GNU Lesser General Public
+@REM License as published by the Free Software Foundation; either
+@REM version 3 of the License, or (at your option) any later version.
 @REM
-@REM Unless required by applicable law or agreed to in writing,
-@REM software distributed under the License is distributed on an
-@REM "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-@REM KIND, either express or implied.  See the License for the
-@REM specific language governing permissions and limitations
-@REM under the License.
+@REM This program is distributed in the hope that it will be useful,
+@REM but WITHOUT ANY WARRANTY; without even the implied warranty of
+@REM MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+@REM Lesser General Public License for more details.
+@REM
+@REM You should have received a copy of the GNU Lesser General Public License
+@REM along with this program; if not, write to the Free Software Foundation,
+@REM Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 @REM
 
 @echo off
@@ -57,8 +58,6 @@ echo %PARAMETERS% | findstr /c:"-u ">nul && (set PARAMETERS=%PARAMETERS%) || (se
 echo %PARAMETERS% | findstr /c:"-p ">nul && (set PARAMETERS=%PARAMETERS%) || (set PARAMETERS=%p_parameter% %PARAMETERS%)
 echo %PARAMETERS% | findstr /c:"-h ">nul && (set PARAMETERS=%PARAMETERS%) || (set PARAMETERS=%h_parameter% %PARAMETERS%)
 echo %PARAMETERS% | findstr /c:"-fs ">nul && (set PARAMETERS=%PARAMETERS%) || (set PARAMETERS=%fs_parameter% %PARAMETERS%)
-
-echo %PARAMETERS%
 
 "%JAVA_HOME%\bin\java" %JAVA_OPTS% -cp %CLASSPATH% %MAIN_CLASS% %PARAMETERS%
 

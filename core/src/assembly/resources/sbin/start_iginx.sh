@@ -1,21 +1,22 @@
 #!/usr/bin/env bash
 #
-# Licensed to the Apache Software Foundation (ASF) under one
-# or more contributor license agreements.  See the NOTICE file
-# distributed with this work for additional information
-# regarding copyright ownership.  The ASF licenses this file
-# to you under the Apache License, Version 2.0 (the
-# "License"); you may not use this file except in compliance
-# with the License.  You may obtain a copy of the License at
+# IGinX - the polystore system with high performance
+# Copyright (C) Tsinghua University
+# TSIGinX@gmail.com
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation; either
+# version 3 of the License, or (at your option) any later version.
 #
-# Unless required by applicable law or agreed to in writing,
-# software distributed under the License is distributed on an
-# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-# KIND, either express or implied.  See the License for the
-# specific language governing permissions and limitations
-# under the License.
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with this program; if not, write to the Free Software Foundation,
+# Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
 # You can put your env variable here
@@ -36,6 +37,17 @@ if [[ -z "$IGINX_HOME" ]]; then
     echo "Cannot determine IGINX_HOME, exit..."
     exit 1
   fi
+fi
+
+if [[ -z "$IGINX_CONF_DIR" ]]; then
+  IGINX_CONF_DIR="${IGINX_HOME}/conf"
+fi
+
+IGINX_CONF="${IGINX_CONF_DIR}/config.properties"
+IGINX_DRIVER="${IGINX_HOME}/driver"
+IGINX_ENV="${IGINX_CONF_DIR}/iginx-env.sh"
+if [[ -f "${IGINX_ENV}" ]]; then
+  source "${IGINX_ENV}"
 fi
 
 MAIN_CLASS=cn.edu.tsinghua.iginx.Iginx
@@ -91,25 +103,14 @@ calculate_heap_sizes() {
     system_cpu_cores=1
   fi
 
-  # set max heap size based on the following
-  # max(min(1/2 ram, 1024MB), min(1/4 ram, 64GB))
-  # calculate 1/2 ram and cap to 1024MB
-  # calculate 1/4 ram and cap to 65536MB
-  # pick the max
-  half_system_memory_in_mb=$((${system_memory_in_mb} / 2))
-  quarter_system_memory_in_mb=$((${half_system_memory_in_mb} / 2))
-#  if (( ${half_system_memory_in_mb} > 1024 )); then
-#    half_system_memory_in_mb=1024
-#  fi
-#  if (( ${quarter_system_memory_in_mb} > 65536 )); then
-#    quarter_system_memory_in_mb=65536
-#  fi
-  if (( ${half_system_memory_in_mb} > ${quarter_system_memory_in_mb} )); then
-    max_heap_size_in_mb=$half_system_memory_in_mb
-  else
-    max_heap_size_in_mb=$quarter_system_memory_in_mb
-  fi
+  # set the required memory percentage according to your needs (< 100 & must be a integer)
+  max_percentageNumerator=50
+  max_heap_size_in_mb=$((${system_memory_in_mb} * ${max_percentageNumerator} / 100))
   MAX_HEAP_SIZE=${max_heap_size_in_mb}M
+
+  min_percentageNumerator=50
+  min_heap_size_in_mb=$((${system_memory_in_mb} * ${min_percentageNumerator} / 100))
+  MIN_HEAP_SIZE=${min_heap_size_in_mb}M
 }
 
 calculate_heap_sizes
@@ -118,16 +119,18 @@ calculate_heap_sizes
 # to ensure Word Splitting works as expected,
 # i.e. split $HEAP_OPTS into two arguments
 HEAP_OPTS[0]=-Xmx$MAX_HEAP_SIZE
-HEAP_OPTS[1]=-Xms$MAX_HEAP_SIZE
+HEAP_OPTS[1]=-Xms$MIN_HEAP_SIZE
 
 # continue to other parameters
-ICONF="$IGINX_HOME/conf/config.properties"
-IDRIVER="$IGINX_HOME/driver/"
+LOCAL_JAVA_OPTS=(
+ -ea
+ -cp "$CLASSPATH"
+ -DIGINX_HOME="$IGINX_HOME"
+ -DIGINX_DRIVER="$IGINX_DRIVER"
+ -DIGINX_CONF="$IGINX_CONF"
+)
 
-export IGINX_CONF=$ICONF
-export IGINX_DRIVER=$IDRIVER
-
-exec "$JAVA" -Duser.timezone=GMT+8 ${HEAP_OPTS[@]} -cp "$CLASSPATH" "$MAIN_CLASS" "$@"
+exec "$JAVA" ${HEAP_OPTS[@]} ${IGINX_JAVA_OPTS[@]} ${LOCAL_JAVA_OPTS[@]} "$MAIN_CLASS" "$@"
 
 # Double quoted to avoid Word Splitting when IFS contains digit
 exit "$?"

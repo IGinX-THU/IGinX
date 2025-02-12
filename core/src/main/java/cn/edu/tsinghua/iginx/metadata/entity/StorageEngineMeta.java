@@ -1,27 +1,32 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 package cn.edu.tsinghua.iginx.metadata.entity;
+
+import static cn.edu.tsinghua.iginx.utils.HostUtils.isLocalHost;
 
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import javax.validation.constraints.NotNull;
 
 public final class StorageEngineMeta {
 
@@ -213,6 +218,10 @@ public final class StorageEngineMeta {
     this.extraParams = extraParams;
   }
 
+  public void updateExtraParams(Map<String, String> newParams) {
+    this.extraParams.putAll(newParams);
+  }
+
   public StorageEngineType getStorageEngine() {
     return storageEngine;
   }
@@ -278,17 +287,74 @@ public final class StorageEngineMeta {
     this.needReAllocate = needReAllocate;
   }
 
+  public static String extractEmbeddedPrefix(@NotNull String dummyDirPath) {
+    if (dummyDirPath.isEmpty()) {
+      return null;
+    }
+    String separator = System.getProperty("file.separator");
+    // dummyDirPath是规范路径，一定不会以separator结尾
+    String prefix = dummyDirPath.substring(dummyDirPath.lastIndexOf(separator) + 1);
+    // "/" also can be used on windows, just in case
+    return prefix.substring(prefix.lastIndexOf("/") + 1);
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    StorageEngineMeta that = (StorageEngineMeta) o;
+    return (ip.equals(that.ip) || (isLocalHost(ip) && isLocalHost(that.ip)))
+        && port == that.port
+        && storageEngine == that.storageEngine
+        && Objects.equals(schemaPrefix, that.getSchemaPrefix())
+        && Objects.equals(dataPrefix, that.getDataPrefix());
+  }
+
+  public boolean isSameAddress(StorageEngineMeta that) {
+    return (ip.equals(that.ip) || (isLocalHost(ip) && isLocalHost(that.ip))) && port == that.port;
+  }
+
+  /**
+   * contains 表示该数据库的功能完全覆盖另一个数据库，满足以下条件：对方数据库为只读；两数据库的ip、端口、类型、schema_prefix相同； 该数据库没有data_prefix
+   */
+  public boolean contains(StorageEngineMeta that) {
+    return that.isReadOnly()
+        && (ip.equals(that.ip) || (isLocalHost(ip) && isLocalHost(that.ip)))
+        && port == that.port
+        && storageEngine == that.storageEngine
+        && Objects.equals(schemaPrefix, that.getSchemaPrefix())
+        && dataPrefix == null;
+  }
+
   @Override
   public String toString() {
     return "StorageEngineMeta {"
+        + "id='"
+        + getId()
+        + "', "
         + "ip='"
         + ip
-        + '\''
-        + ", port="
+        + "', "
+        + "port='"
         + port
-        + ", type='"
+        + "', "
+        + "type='"
         + storageEngine.toString()
-        + '\''
-        + '}';
+        + "', "
+        + "has_data='"
+        + (hasData ? "true" : "false")
+        + "', "
+        + "read_only='"
+        + (readOnly ? "true" : "false")
+        + "', "
+        + "schema_prefix='"
+        + (schemaPrefix != null ? schemaPrefix : "NULL")
+        + "', "
+        + "data_prefix='"
+        + (dataPrefix != null ? dataPrefix : "NULL")
+        + "', "
+        + "extra_params='"
+        + (extraParams.toString())
+        + "', ";
   }
 }

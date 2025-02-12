@@ -1,0 +1,116 @@
+name: "Assembly Package Test"
+on:
+    workflow_call:
+        inputs:
+            java-matrix:
+                description: "The java version to run the test on"
+                type: string
+                required: false
+                default: '["8"]'
+            python-matrix:
+                description: "The python version to run the test on"
+                type: string
+                required: false
+                default: '["3.11"]'
+            os-matrix:
+                description: "The operating system to run the test on"
+                type: string
+                required: false
+                default: '["ubuntu-latest", "macos-latest", "windows-latest"]'
+
+env:
+    FUNCTEST: SQLSessionIT#testShowColumns
+
+jobs:
+    assembly-include-test:
+        timeout-minutes: 30
+        strategy:
+            fail-fast: false
+            matrix:
+                java: ${{ fromJSON(inputs.java-matrix) }}
+                python-version: ${{ fromJSON(inputs.python-matrix) }}
+                os: ${{ fromJSON(inputs.os-matrix) }}
+        runs-on: ${{ matrix.os }}
+        steps:
+            - uses: actions/checkout@v2
+            - name: Environment dependence
+              uses: ./.github/actions/dependence
+              with:
+                  python-version: ${{ matrix.python-version }}
+                  java: ${{ matrix.java }}
+
+            - name: assembly include package
+              run: mvn clean package -D skipTests -P-format -P release
+
+            - name: Setup Platform Dependence
+              id: platform
+              shell: bash
+              run: |
+                  SUFFIX="sh"
+                  if [ "$RUNNER_OS" == "macOS" ]; then
+                    brew install tree
+                  elif [ "$RUNNER_OS" == "Windows" ]; then
+                    choco install tree
+                    SUFFIX="bat"
+                  fi
+                  echo "suffix=$SUFFIX" >> $GITHUB_OUTPUT
+
+            - name: Save Origin Workspace Tree
+              run: tree assembly/target/iginx-assembly-${{ env.VERSION }}-include >origin-tree.txt
+
+            - name: Run IGinX include Zookeeper with Pemjax
+              run: |
+                  cd assembly/target/iginx-assembly-${{ env.VERSION }}-include
+                  ./runIGinXOn1HostWithPemjax.${{ steps.platform.outputs.suffix }}
+                  sleep 10
+
+            - name: Get Cluster Info
+              shell: bash
+              run: |
+                  ./client/target/iginx-client-${{ env.VERSION }}/sbin/start_cli.${{ steps.platform.outputs.suffix }} -e "show cluster info;" > cluster-info.txt
+                  cat cluster-info.txt
+                  LINE_COUNT=$(wc -l < cluster-info.txt)
+                  if [ $LINE_COUNT -ne 19 ]; then
+                    echo "Cluster info is not 19 lines"
+                    exit 1
+                  fi
+
+            - name: Run Tests
+              shell: bash -el {0}
+              run: mvn test -Dtest=${{ env.FUNCTEST }} -DfailIfNoTests=false -P-format
+
+            - name: Check Whether Logs Contains Error
+              shell: bash
+              run: |
+                  cd assembly/target/iginx-assembly-${{ env.VERSION }}-include
+                  if grep "ERROR" sbin/logs/iginx-latest.log; then
+                    echo "Error found in log"
+                    exit 1
+                  fi
+
+            - name: Show IGinX Log
+              if: always()
+              run: cat assembly/target/iginx-assembly-${{ env.VERSION }}-include/sbin/logs/iginx-latest.log
+
+            - name: Clean Up
+              run: |
+                  cd assembly/target/iginx-assembly-${{ env.VERSION }}-include
+                  ./stopIGinX.${{ steps.platform.outputs.suffix }}
+                  ./clearAllData.${{ steps.platform.outputs.suffix }}
+
+            - name: Save Final Workspace Tree
+              run: tree assembly/target/iginx-assembly-${{ env.VERSION }}-include >final-tree.txt
+
+            - name: Compare Workspace Tree to Ensure Clean Up
+              shell: bash
+              run: |
+                  diff origin-tree.txt final-tree.txt
+                  exit $?
+
+            - name: Show Origin Workspace Tree
+              if: always()
+              run: cat origin-tree.txt
+
+            - name: Show Final Workspace Tree
+              if: always()
+              run: cat final-tree.txt

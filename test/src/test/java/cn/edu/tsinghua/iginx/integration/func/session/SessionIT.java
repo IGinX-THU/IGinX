@@ -1,20 +1,21 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 package cn.edu.tsinghua.iginx.integration.func.session;
 
@@ -22,7 +23,6 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import cn.edu.tsinghua.iginx.exception.SessionException;
@@ -522,7 +522,8 @@ public class SessionIT extends BaseSessionIT {
         long dsStartKey = delDsAvgDataSet.getKeys()[i];
         assertEquals(START_KEY + i * PRECISION, dsStartKey);
         List<Object> dsResult = delDsAvgDataSet.getValues().get(i);
-        for (int j = 0; j < delDsResPaths.size(); j++) {
+        // j starts from 2 to skip WINDOW_START & WINDOW_END
+        for (int j = 2; j < delDsResPaths.size(); j++) {
           long dsEndKey = Math.min((START_KEY + (i + 1) * PRECISION - 1), END_KEY);
           double delDsAvg = (dsStartKey + dsEndKey) / 2.0;
           int pathNum = getPathNum(delDsResPaths.get(j));
@@ -531,8 +532,7 @@ public class SessionIT extends BaseSessionIT {
             if (dsStartKey > delEndKey || dsEndKey < delStartKey) {
               assertEquals(delDsAvg + pathNum, changeResultToDouble(dsResult.get(j)), delta);
             } else if (dsStartKey >= delStartKey && dsEndKey < delEndKey) {
-              //                            assertNull(dsResult.get(j));
-              assertTrue(Double.isNaN((Double) dsResult.get(j)));
+              assertNull(dsResult.get(j));
             } else if (dsStartKey < delStartKey) {
               assertEquals(
                   (dsStartKey + delStartKey - 1) / 2.0 + pathNum,
@@ -571,7 +571,8 @@ public class SessionIT extends BaseSessionIT {
         long key = delDataInColumnDataSet.getKeys()[i];
         assertEquals(i + START_KEY, key);
         List<Object> result = delDataInColumnDataSet.getValues().get(i);
-        for (int j = 0; j < dataInColumnLen; j++) {
+        assertEquals(dataInColumnLen - deleteDataInColumnLen, delDataInColumnResPaths.size());
+        for (int j = 0; j < dataInColumnLen - deleteDataInColumnLen; j++) {
           int pathNum = getPathNum(delDataInColumnResPaths.get(j));
           assertNotEquals(pathNum, -1);
           if (pathNum < currPath + deleteDataInColumnLen) { // Here is the removed rows
@@ -610,18 +611,12 @@ public class SessionIT extends BaseSessionIT {
           session.aggregateQuery(delDataInColumnPaths, START_KEY, END_KEY + 1, AggregateType.AVG);
       List<String> delDataAvgResPaths = delDataAvgSet.getPaths();
       Object[] delDataAvgResult = delDataAvgSet.getValues();
-      assertEquals(dataInColumnLen, delDataAvgResPaths.size());
-      assertEquals(dataInColumnLen, delDataAvgSet.getValues().length);
-      for (int i = 0; i < dataInColumnLen; i++) {
+      assertEquals(dataInColumnLen - deleteDataInColumnLen, delDataAvgResPaths.size());
+      assertEquals(dataInColumnLen - deleteDataInColumnLen, delDataAvgSet.getValues().length);
+      for (int i = 0; i < dataInColumnLen - deleteDataInColumnLen; i++) {
         int pathNum = getPathNum(delDataAvgResPaths.get(i));
         assertNotEquals(pathNum, -1);
-        if (pathNum < currPath + deleteDataInColumnLen) { // Here is the removed rows
-          //                    assertEquals("null", new String((byte[])
-          // delDataAvgResult[i]));
-          assertTrue(Double.isNaN((Double) delDataAvgResult[i]));
-        } else {
-          assertEquals((START_KEY + END_KEY) / 2.0 + pathNum, delDataAvgResult[i]);
-        }
+        assertEquals((START_KEY + END_KEY) / 2.0 + pathNum, delDataAvgResult[i]);
       }
 
       // Test downsample function for the delete
@@ -636,17 +631,13 @@ public class SessionIT extends BaseSessionIT {
         long dsKey = dsDelDataInColSet.getKeys()[i];
         assertEquals(START_KEY + i * PRECISION, dsKey);
         List<Object> dsResult = dsDelDataInColSet.getValues().get(i);
-        for (int j = 0; j < dsDelDataResPaths.size(); j++) {
+        // j starts from 2 to skip WINDOW_START & WINDOW_END
+        for (int j = 2; j < dsDelDataResPaths.size(); j++) {
           long maxNum = Math.min((START_KEY + (i + 1) * PRECISION - 1), END_KEY);
           double avg = (dsKey + maxNum) / 2.0;
           int pathNum = getPathNum(dsDelDataResPaths.get(j));
           assertNotEquals(pathNum, -1);
-          if (pathNum < currPath + deleteDataInColumnLen) { // Here is the removed rows
-            //                        assertNull(dsResult.get(j));
-            assertTrue(Double.isNaN((Double) dsResult.get(j)));
-          } else {
-            assertEquals(avg + pathNum, changeResultToDouble(dsResult.get(j)), delta);
-          }
+          assertEquals(avg + pathNum, changeResultToDouble(dsResult.get(j)), delta);
         }
       }
       currPath += dataInColumnLen;
@@ -966,7 +957,7 @@ public class SessionIT extends BaseSessionIT {
         long key = dtDelColDataSet.getKeys()[i];
         assertEquals(i + START_KEY, key);
         List<Object> result = dtDelColDataSet.getValues().get(i);
-        for (int j = 0; j < 6; j++) {
+        for (int j = 0; j < 4; j++) {
           int currPathPos = getPathNum(dtDelColResPaths.get(j)) - currPath;
           if (currPathPos < dtDelColumnNum) {
             assertNull(result.get(j));
@@ -1011,41 +1002,33 @@ public class SessionIT extends BaseSessionIT {
           session.aggregateQuery(dTDeleteAggrPaths, START_KEY, END_KEY + 1, AggregateType.AVG);
       List<String> dtDelColAvgPaths = dtDelColAvgDataSet.getPaths();
       Object[] dtDelColAvgResult = dtDelColAvgDataSet.getValues();
-      assertEquals(4, dtDelColAvgPaths.size());
-      assertEquals(4, dtDelColAvgDataSet.getValues().length);
-      for (int i = 0; i < 4; i++) {
+      assertEquals(3, dtDelColAvgPaths.size());
+      assertEquals(3, dtDelColAvgDataSet.getValues().length);
+      for (int i = 0; i < 3; i++) {
         int currPathPos = getPathNum(dtDelColAvgPaths.get(i)) - currPath;
-        if (currPathPos < dtDelColumnNum) {
-          //                    assertEquals("null", new String((byte[])
-          // dtDelColAvgResult[i]));
-          assertTrue(Double.isNaN((Double) dtDelColAvgResult[i]));
-        } else {
-          switch (currPathPos) {
-            case 1:
-              assertEquals(
-                  (START_KEY + END_KEY) / 2.0 + 1,
-                  changeResultToDouble(dtDelColAvgResult[i]),
-                  delta);
-              break;
-            case 2:
-              assertEquals((START_KEY + END_KEY) * 500.0 + 2000, dtDelColAvgResult[i]);
-              break;
-            case 3:
-              assertEquals(
-                  (START_KEY + END_KEY) / 2.0 + 3 + 0.01,
-                  changeResultToDouble(dtDelColAvgResult[i]),
-                  delta * 10000);
-              break;
-            case 4:
-              assertEquals(
-                  (START_KEY + END_KEY) * 999 / 2.0 + 4.01 * 999,
-                  changeResultToDouble(dtDelColAvgResult[i]),
-                  delta * 10000);
-              break;
-            default:
-              fail();
-              break;
-          }
+        switch (currPathPos) {
+          case 1:
+            assertEquals(
+                (START_KEY + END_KEY) / 2.0 + 1, changeResultToDouble(dtDelColAvgResult[i]), delta);
+            break;
+          case 2:
+            assertEquals((START_KEY + END_KEY) * 500.0 + 2000, dtDelColAvgResult[i]);
+            break;
+          case 3:
+            assertEquals(
+                (START_KEY + END_KEY) / 2.0 + 3 + 0.01,
+                changeResultToDouble(dtDelColAvgResult[i]),
+                delta * 10000);
+            break;
+          case 4:
+            assertEquals(
+                (START_KEY + END_KEY) * 999 / 2.0 + 4.01 * 999,
+                changeResultToDouble(dtDelColAvgResult[i]),
+                delta * 10000);
+            break;
+          default:
+            fail();
+            break;
         }
       }
 

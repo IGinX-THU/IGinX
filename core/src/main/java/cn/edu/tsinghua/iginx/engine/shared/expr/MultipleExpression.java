@@ -1,3 +1,22 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ */
 package cn.edu.tsinghua.iginx.engine.shared.expr;
 
 import java.util.List;
@@ -74,7 +93,7 @@ public class MultipleExpression implements Expression {
 
   @Override
   public boolean hasAlias() {
-    return alias != null && !alias.equals("");
+    return alias != null && !alias.isEmpty();
   }
 
   @Override
@@ -91,5 +110,27 @@ public class MultipleExpression implements Expression {
   public void accept(ExpressionVisitor visitor) {
     visitor.visit(this);
     children.forEach(e -> e.accept(visitor));
+  }
+
+  @Override
+  public boolean equalExceptAlias(Expression expr) {
+    if (this == expr) {
+      return true;
+    }
+    if (expr == null || expr.getType() != ExpressionType.Multiple) {
+      return false;
+    }
+    MultipleExpression that = (MultipleExpression) expr;
+
+    if (this.getChildren().size() != that.getChildren().size()) {
+      return false;
+    }
+    for (int i = 0; i < this.getChildren().size(); i++) {
+      if (!this.getChildren().get(i).equalExceptAlias(that.getChildren().get(i))) {
+        return false;
+      }
+    }
+
+    return this.ops.equals(that.ops);
   }
 }

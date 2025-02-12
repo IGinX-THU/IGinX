@@ -1,20 +1,21 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils;
 
@@ -63,7 +64,7 @@ public class FilterUtils {
         if (row.getKey() == Row.NON_EXISTED_KEY) {
           return false;
         }
-        return validateTimeFilter(keyFilter, row);
+        return validateKeyFilter(keyFilter, row);
       case Value:
         ValueFilter valueFilter = (ValueFilter) filter;
         return validateValueFilter(valueFilter, row);
@@ -73,13 +74,58 @@ public class FilterUtils {
       case Expr:
         ExprFilter exprFilter = (ExprFilter) filter;
         return validateExprFilter(exprFilter, row);
+      case In:
+        InFilter inFilter = (InFilter) filter;
+        return validateInFilter(inFilter, row);
       default:
         break;
     }
     return false;
   }
 
-  private static boolean validateTimeFilter(KeyFilter keyFilter, Row row) {
+  private static boolean validateInFilter(InFilter inFilter, Row row) {
+    String path = inFilter.getPath();
+    Set<Value> values = inFilter.getValues();
+
+    if (path.contains("*")) { // 带通配符的filter
+      List<Value> valueList = row.getAsValueByPattern(path);
+      InFilter.InOp inOp = inFilter.getInOp();
+      if (inOp.isOrOp()) {
+        for (Value value : valueList) {
+          if (value == null || value.isNull()) { // value是空值，则认为不可比较
+            return false;
+          }
+          if (inOp.isNotOp() && !values.contains(value)) {
+            return true;
+          } else if (!inOp.isNotOp() && values.contains(value)) {
+            return true;
+          }
+        }
+        return false;
+      } else {
+        for (Value value : valueList) {
+          if (value == null || value.isNull()) { // value是空值，则认为不可比较
+            return false;
+          }
+
+          if (inOp.isNotOp() && values.contains(value)) {
+            return false;
+          } else if (!inOp.isNotOp() && !values.contains(value)) {
+            return false;
+          }
+        }
+        return true;
+      }
+    } else {
+      Value value = row.getAsValue(path);
+      if (value == null || value.isNull()) { // value是空值，则认为不可比较
+        return false;
+      }
+      return inFilter.getInOp().isNotOp() ^ values.contains(value);
+    }
+  }
+
+  private static boolean validateKeyFilter(KeyFilter keyFilter, Row row) {
     long timestamp = row.getKey();
     switch (keyFilter.getOp()) {
       case E:
@@ -115,8 +161,8 @@ public class FilterUtils {
       return false;
     }
 
-    if (path.contains("*")) { // 带通配符的filter
-      List<Value> valueList = row.getAsValueByPattern(path);
+    List<Value> valueList = row.getAsValueByPattern(path);
+    if (valueList.size() > 1) { // filter的路径名带通配符或同一列名有多个tag
       if (Op.isOrOp(valueFilter.getOp())) {
         for (Value value : valueList) {
           if (value == null || value.isNull()) {
@@ -138,14 +184,16 @@ public class FilterUtils {
         }
         return true; // 所有子条件均满足，返回true
       } else {
-        throw new RuntimeException("Unknown op type: " + valueFilter.getOp());
+        throw new IllegalArgumentException("Unknown op type: " + valueFilter.getOp());
       }
-    } else {
-      Value value = row.getAsValue(path);
+    } else if (valueList.size() == 1) {
+      Value value = valueList.get(0);
       if (value == null || value.isNull()) { // value是空值，则认为不可比较
         return false;
       }
       return validateValueCompare(valueFilter.getOp(), value, targetValue);
+    } else {
+      return false;
     }
   }
 
@@ -212,6 +260,9 @@ public class FilterUtils {
       case LIKE:
       case LIKE_AND:
         return ValueUtils.regexCompare(valueA, valueB);
+      case NOT_LIKE:
+      case NOT_LIKE_AND:
+        return !ValueUtils.regexCompare(valueA, valueB);
     }
     return false;
   }
@@ -285,6 +336,15 @@ public class FilterUtils {
         PathFilter pathFilter = (PathFilter) filter;
         paths.add(pathFilter.getPathA());
         paths.add(pathFilter.getPathB());
+        break;
+      case In:
+        paths.add(((InFilter) filter).getPath());
+        break;
+      case Expr:
+        ExprFilter exprFilter = (ExprFilter) filter;
+        paths.addAll(ExprUtils.getPathFromExpr(exprFilter.getExpressionA()));
+        paths.addAll(ExprUtils.getPathFromExpr(exprFilter.getExpressionB()));
+        break;
       default:
         break;
     }
@@ -320,9 +380,10 @@ public class FilterUtils {
       case Key:
       case Value:
       case Bool:
+      case In:
         return false;
       default:
-        throw new RuntimeException("Unexpected filter type: " + filter.getType());
+        throw new IllegalArgumentException("Unexpected filter type: " + filter.getType());
     }
   }
 
@@ -384,6 +445,9 @@ public class FilterUtils {
 
           @Override
           public void visit(ExprFilter filter) {}
+
+          @Override
+          public void visit(InFilter inFilter) {}
         });
     return pathFilters;
   }

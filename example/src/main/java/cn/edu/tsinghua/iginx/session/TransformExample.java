@@ -1,3 +1,22 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ */
 package cn.edu.tsinghua.iginx.session;
 
 import cn.edu.tsinghua.iginx.exception.SessionException;
@@ -158,7 +177,7 @@ public class TransformExample {
     // 构造任务
     List<TaskInfo> taskInfoList = new ArrayList<>();
 
-    TaskInfo iginxTask = new TaskInfo(TaskType.IginX, DataFlowType.Stream);
+    TaskInfo iginxTask = new TaskInfo(TaskType.IGINX, DataFlowType.STREAM);
     iginxTask.setSqlList(Collections.singletonList(SHOW_TIME_SERIES_SQL));
     taskInfoList.add(iginxTask);
 
@@ -166,7 +185,7 @@ public class TransformExample {
     long jobId =
         session.commitTransformJob(
             taskInfoList,
-            ExportType.File,
+            ExportType.FILE,
             OUTPUT_DIR_PREFIX + File.separator + "export_file_show_ts.txt");
     System.out.println("job id is " + jobId);
 
@@ -185,16 +204,16 @@ public class TransformExample {
     // 构造任务
     List<TaskInfo> taskInfoList = new ArrayList<>();
 
-    TaskInfo iginxTask = new TaskInfo(TaskType.IginX, DataFlowType.Stream);
+    TaskInfo iginxTask = new TaskInfo(TaskType.IGINX, DataFlowType.STREAM);
     iginxTask.setSqlList(Collections.singletonList(QUERY_SQL));
     taskInfoList.add(iginxTask);
 
-    TaskInfo pyTask = new TaskInfo(TaskType.Python, DataFlowType.Stream);
+    TaskInfo pyTask = new TaskInfo(TaskType.PYTHON, DataFlowType.STREAM);
     pyTask.setPyTaskName("RowSumTransformer");
     taskInfoList.add(pyTask);
 
     // 提交任务
-    long jobId = session.commitTransformJob(taskInfoList, ExportType.Log, "");
+    long jobId = session.commitTransformJob(taskInfoList, ExportType.LOG, "");
     System.out.println("job id is " + jobId);
 
     // 轮询查看任务情况
@@ -212,18 +231,18 @@ public class TransformExample {
     // 构造任务
     List<TaskInfo> taskInfoList = new ArrayList<>();
 
-    TaskInfo iginxTask = new TaskInfo(TaskType.IginX, DataFlowType.Stream);
+    TaskInfo iginxTask = new TaskInfo(TaskType.IGINX, DataFlowType.STREAM);
     iginxTask.setSqlList(Collections.singletonList(QUERY_SQL));
     taskInfoList.add(iginxTask);
 
-    TaskInfo pyTask = new TaskInfo(TaskType.Python, DataFlowType.Stream);
+    TaskInfo pyTask = new TaskInfo(TaskType.PYTHON, DataFlowType.STREAM);
     pyTask.setPyTaskName("RowSumTransformer");
     taskInfoList.add(pyTask);
 
     // 提交任务
     long jobId =
         session.commitTransformJob(
-            taskInfoList, ExportType.File, OUTPUT_DIR_PREFIX + File.separator + "export_file.txt");
+            taskInfoList, ExportType.FILE, OUTPUT_DIR_PREFIX + File.separator + "export_file.txt");
     System.out.println("job id is " + jobId);
 
     // 轮询查看任务情况
@@ -241,15 +260,15 @@ public class TransformExample {
     // 构造任务
     List<TaskInfo> taskInfoList = new ArrayList<>();
 
-    TaskInfo iginxTask = new TaskInfo(TaskType.IginX, DataFlowType.Stream);
+    TaskInfo iginxTask = new TaskInfo(TaskType.IGINX, DataFlowType.STREAM);
     iginxTask.setSqlList(Collections.singletonList(QUERY_SQL));
     taskInfoList.add(iginxTask);
 
-    TaskInfo pyTask = new TaskInfo(TaskType.Python, DataFlowType.Stream);
+    TaskInfo pyTask = new TaskInfo(TaskType.PYTHON, DataFlowType.STREAM);
     pyTask.setPyTaskName("AddOneTransformer");
     taskInfoList.add(pyTask);
 
-    pyTask = new TaskInfo(TaskType.Python, DataFlowType.Stream);
+    pyTask = new TaskInfo(TaskType.PYTHON, DataFlowType.STREAM);
     pyTask.setPyTaskName("RowSumTransformer");
     taskInfoList.add(pyTask);
 
@@ -257,7 +276,7 @@ public class TransformExample {
     long jobId =
         session.commitTransformJob(
             taskInfoList,
-            ExportType.File,
+            ExportType.FILE,
             OUTPUT_DIR_PREFIX + File.separator + "export_file_combine.txt");
     System.out.println("job id is " + jobId);
 
@@ -276,19 +295,19 @@ public class TransformExample {
     // 构造任务
     List<TaskInfo> taskInfoList = new ArrayList<>();
 
-    TaskInfo iginxTask = new TaskInfo(TaskType.IginX, DataFlowType.Stream);
+    TaskInfo iginxTask = new TaskInfo(TaskType.IGINX, DataFlowType.STREAM);
     iginxTask.setSqlList(Collections.singletonList(QUERY_SQL));
     taskInfoList.add(iginxTask);
 
-    TaskInfo pyTask = new TaskInfo(TaskType.Python, DataFlowType.Stream);
+    TaskInfo pyTask = new TaskInfo(TaskType.PYTHON, DataFlowType.STREAM);
     pyTask.setPyTaskName("AddOneTransformer");
     taskInfoList.add(pyTask);
 
-    pyTask = new TaskInfo(TaskType.Python, DataFlowType.Batch);
+    pyTask = new TaskInfo(TaskType.PYTHON, DataFlowType.BATCH);
     pyTask.setPyTaskName("SumTransformer");
     taskInfoList.add(pyTask);
 
-    pyTask = new TaskInfo(TaskType.Python, DataFlowType.Stream);
+    pyTask = new TaskInfo(TaskType.PYTHON, DataFlowType.STREAM);
     pyTask.setPyTaskName("RowSumTransformer");
     taskInfoList.add(pyTask);
 
@@ -296,7 +315,7 @@ public class TransformExample {
     long jobId =
         session.commitTransformJob(
             taskInfoList,
-            ExportType.File,
+            ExportType.FILE,
             OUTPUT_DIR_PREFIX + File.separator + "export_file_sum.txt");
     System.out.println("job id is " + jobId);
 
@@ -315,16 +334,16 @@ public class TransformExample {
     // 构造任务
     List<TaskInfo> taskInfoList = new ArrayList<>();
 
-    TaskInfo iginxTask = new TaskInfo(TaskType.IginX, DataFlowType.Stream);
+    TaskInfo iginxTask = new TaskInfo(TaskType.IGINX, DataFlowType.STREAM);
     iginxTask.setSqlList(Collections.singletonList(QUERY_SQL));
     taskInfoList.add(iginxTask);
 
-    TaskInfo pyTask = new TaskInfo(TaskType.Python, DataFlowType.Stream);
+    TaskInfo pyTask = new TaskInfo(TaskType.PYTHON, DataFlowType.STREAM);
     pyTask.setPyTaskName("RowSumTransformer");
     taskInfoList.add(pyTask);
 
     // 提交任务
-    long jobId = session.commitTransformJob(taskInfoList, ExportType.IginX, "");
+    long jobId = session.commitTransformJob(taskInfoList, ExportType.IGINX, "");
     System.out.println("job id is " + jobId);
 
     // 轮询查看任务情况
@@ -344,9 +363,8 @@ public class TransformExample {
 
   private static void commitBySQL() throws SessionException, InterruptedException {
     String yamlPath = "\"" + OUTPUT_DIR_PREFIX + File.separator + "TransformJobExample.yaml\"";
-    SessionExecuteSqlResult result = session.executeSql("commit transform job " + yamlPath);
+    long jobId = session.commitTransformJob("commit transform job " + yamlPath);
 
-    long jobId = result.getJobId();
     // 轮询查看任务情况
     JobState jobState = JobState.JOB_CREATED;
     while (!jobState.equals(JobState.JOB_CLOSED)
@@ -394,13 +412,13 @@ public class TransformExample {
             Transform.builder()
                 .addTask(
                     Task.builder()
-                        .dataFlowType(DataFlowType.Stream)
+                        .dataFlowType(DataFlowType.STREAM)
                         .timeout(TIMEOUT)
                         .sql(QUERY_SQL)
                         .build())
                 .addTask(
                     Task.builder()
-                        .dataFlowType(DataFlowType.Stream)
+                        .dataFlowType(DataFlowType.STREAM)
                         .timeout(TIMEOUT)
                         .pyTaskName("RowSumTransformer")
                         .build())

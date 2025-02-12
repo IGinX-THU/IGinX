@@ -1,20 +1,21 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.stream;
 
@@ -40,13 +41,19 @@ public class SetTransformLazyStream extends UnaryLazyStream {
 
   private Row nextRow;
 
-  private Map<List<String>, RowStream> distinctStreamMap; // 用于存储distinct处理过的stream，其中null指向原始stream
+  private final Map<List<String>, RowStream> rowTransformStreamMap; // 用于存储参数为表达式的stream
+
+  private final Map<List<String>, RowStream> distinctStreamMap; // 用于存储distinct处理过的stream
 
   private boolean hasConsumed = false;
 
   public SetTransformLazyStream(
-      SetTransform setTransform, Map<List<String>, RowStream> distinctStreamMap) {
-    super(distinctStreamMap.get(null));
+      SetTransform setTransform,
+      RowStream stream,
+      Map<List<String>, RowStream> rowTransformStreamMap,
+      Map<List<String>, RowStream> distinctStreamMap) {
+    super(stream);
+    this.rowTransformStreamMap = rowTransformStreamMap;
     this.distinctStreamMap = distinctStreamMap;
     this.functionCallList = setTransform.getFunctionCallList();
   }
@@ -78,6 +85,9 @@ public class SetTransformLazyStream extends UnaryLazyStream {
         FunctionParams params = functionCall.getParams();
         if (params.isDistinct()) {
           rowList.add(function.transform((Table) distinctStreamMap.get(params.getPaths()), params));
+        } else if (functionCall.isNeedPreRowTransform()) {
+          rowList.add(
+              function.transform((Table) rowTransformStreamMap.get(params.getPaths()), params));
         } else {
           rowList.add(function.transform((Table) stream, params));
         }

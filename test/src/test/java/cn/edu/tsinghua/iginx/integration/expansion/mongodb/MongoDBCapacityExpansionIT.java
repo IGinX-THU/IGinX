@@ -1,7 +1,27 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ */
 package cn.edu.tsinghua.iginx.integration.expansion.mongodb;
 
 import static cn.edu.tsinghua.iginx.thrift.StorageEngineType.mongodb;
 
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.expansion.BaseCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.constant.Constant;
@@ -21,6 +41,145 @@ public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
     Constant.oriPort = dbConf.getDBCEPortMap().get(Constant.ORI_PORT_NAME);
     Constant.expPort = dbConf.getDBCEPortMap().get(Constant.EXP_PORT_NAME);
     Constant.readOnlyPort = dbConf.getDBCEPortMap().get(Constant.READ_ONLY_PORT_NAME);
+  }
+
+  @Override
+  protected void testShowColumnsInExpansion(boolean before) {
+    String statement = "SHOW COLUMNS nt.wf03.*;";
+    String expected =
+        "Columns:\n"
+            + "+--------------------+--------+\n"
+            + "|                Path|DataType|\n"
+            + "+--------------------+--------+\n"
+            + "|         nt.wf03._id| INTEGER|\n"
+            + "|nt.wf03.wt01.status2|    LONG|\n"
+            + "+--------------------+--------+\n"
+            + "Total line number = 2\n";
+    SQLTestTools.executeAndCompare(session, statement, expected);
+
+    statement = "SHOW COLUMNS;";
+    if (before) {
+      expected =
+          "Columns:\n"
+              + "+--------------------------------------------------------------------------------------+--------+\n"
+              + "|                                                                                  Path|DataType|\n"
+              + "+--------------------------------------------------------------------------------------+--------+\n"
+              + "|                                                                               b.b._id| INTEGER|\n"
+              + "|                                                                                 b.b.b|    LONG|\n"
+              + "|                                                                        ln.wf02.status| BOOLEAN|\n"
+              + "|                                                                       ln.wf02.version|  BINARY|\n"
+              + "|                                                                           nt.wf03._id| INTEGER|\n"
+              + "|                                                                  nt.wf03.wt01.status2|    LONG|\n"
+              + "|                                                                           nt.wf04._id| INTEGER|\n"
+              + "|                                                              nt.wf04.wt01.temperature|  DOUBLE|\n"
+              + "|                          zzzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzz._id| INTEGER|\n"
+              + "|zzzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzzzz|    LONG|\n"
+              + "+--------------------------------------------------------------------------------------+--------+\n"
+              + "Total line number = 10\n";
+    } else { // 添加schemaPrefix为p1，dataPrefix为nt.wf03的数据源
+      expected =
+          "Columns:\n"
+              + "+--------------------------------------------------------------------------------------+--------+\n"
+              + "|                                                                                  Path|DataType|\n"
+              + "+--------------------------------------------------------------------------------------+--------+\n"
+              + "|                                                                               b.b._id| INTEGER|\n"
+              + "|                                                                                 b.b.b|    LONG|\n"
+              + "|                                                                        ln.wf02.status| BOOLEAN|\n"
+              + "|                                                                       ln.wf02.version|  BINARY|\n"
+              + "|                                                                           nt.wf03._id| INTEGER|\n"
+              + "|                                                                  nt.wf03.wt01.status2|    LONG|\n"
+              + "|                                                                           nt.wf04._id| INTEGER|\n"
+              + "|                                                              nt.wf04.wt01.temperature|  DOUBLE|\n"
+              + "|                                                                        p1.nt.wf03._id| INTEGER|\n"
+              + "|                                                               p1.nt.wf03.wt01.status2|    LONG|\n"
+              + "|                          zzzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzz._id| INTEGER|\n"
+              + "|zzzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzzzz|    LONG|\n"
+              + "+--------------------------------------------------------------------------------------+--------+\n"
+              + "Total line number = 12\n";
+    }
+    SQLTestTools.executeAndCompare(session, statement, expected);
+
+    if (before) {
+      statement = "SHOW COLUMNS p1.*;";
+      expected =
+          "Columns:\n"
+              + "+----+--------+\n"
+              + "|Path|DataType|\n"
+              + "+----+--------+\n"
+              + "+----+--------+\n"
+              + "Empty set.\n";
+    } else { // 添加schemaPrefix为p1，dataPrefix为nt.wf03的数据源
+      statement = "SHOW COLUMNS p1.*;";
+      expected =
+          "Columns:\n"
+              + "+-----------------------+--------+\n"
+              + "|                   Path|DataType|\n"
+              + "+-----------------------+--------+\n"
+              + "|         p1.nt.wf03._id| INTEGER|\n"
+              + "|p1.nt.wf03.wt01.status2|    LONG|\n"
+              + "+-----------------------+--------+\n"
+              + "Total line number = 2\n";
+    }
+    SQLTestTools.executeAndCompare(session, statement, expected);
+
+    statement = "SHOW COLUMNS *.wf03.wt01.*;";
+    if (before) {
+      expected =
+          "Columns:\n"
+              + "+--------------------+--------+\n"
+              + "|                Path|DataType|\n"
+              + "+--------------------+--------+\n"
+              + "|nt.wf03.wt01.status2|    LONG|\n"
+              + "+--------------------+--------+\n"
+              + "Total line number = 1\n";
+    } else { // 添加schemaPrefix为p1，dataPrefix为nt.wf03的数据源
+      expected =
+          "Columns:\n"
+              + "+-----------------------+--------+\n"
+              + "|                   Path|DataType|\n"
+              + "+-----------------------+--------+\n"
+              + "|   nt.wf03.wt01.status2|    LONG|\n"
+              + "|p1.nt.wf03.wt01.status2|    LONG|\n"
+              + "+-----------------------+--------+\n"
+              + "Total line number = 2\n";
+    }
+    SQLTestTools.executeAndCompare(session, statement, expected);
+  }
+
+  @Override
+  protected void testShowColumnsRemoveStorageEngine(boolean before) {
+    String statement = "SHOW COLUMNS p1.*, p2.*, p3.*;";
+    String expected;
+    if (before) {
+      expected =
+          "Columns:\n"
+              + "+---------------------------+--------+\n"
+              + "|                       Path|DataType|\n"
+              + "+---------------------------+--------+\n"
+              + "|             p1.nt.wf03._id| INTEGER|\n"
+              + "|    p1.nt.wf03.wt01.status2|    LONG|\n"
+              + "|             p2.nt.wf03._id| INTEGER|\n"
+              + "|    p2.nt.wf03.wt01.status2|    LONG|\n"
+              + "|             p3.nt.wf03._id| INTEGER|\n"
+              + "|    p3.nt.wf03.wt01.status2|    LONG|\n"
+              + "|             p3.nt.wf04._id| INTEGER|\n"
+              + "|p3.nt.wf04.wt01.temperature|  DOUBLE|\n"
+              + "+---------------------------+--------+\n"
+              + "Total line number = 8\n";
+    } else { // 移除schemaPrefix为p2及p3，dataPrefix为nt.wf03的数据源
+      expected =
+          "Columns:\n"
+              + "+---------------------------+--------+\n"
+              + "|                       Path|DataType|\n"
+              + "+---------------------------+--------+\n"
+              + "|             p1.nt.wf03._id| INTEGER|\n"
+              + "|    p1.nt.wf03.wt01.status2|    LONG|\n"
+              + "|             p3.nt.wf04._id| INTEGER|\n"
+              + "|p3.nt.wf04.wt01.temperature|  DOUBLE|\n"
+              + "+---------------------------+--------+\n"
+              + "Total line number = 4\n";
+    }
+    SQLTestTools.executeAndCompare(session, statement, expected);
   }
 
   @Override
@@ -171,6 +330,18 @@ public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
             + "Total line number = 3\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
 
+    statement = "select i from d1.c1 where key > 0 and key <= 8589934592;";
+    expect =
+        "ResultSets:\n"
+            + "+----------+-------+\n"
+            + "|       key|d1.c1.i|\n"
+            + "+----------+-------+\n"
+            + "|4294967296|      0|\n"
+            + "|8589934592|      1|\n"
+            + "+----------+-------+\n"
+            + "Total line number = 2\n";
+    SQLTestTools.executeAndCompare(session, statement, expect);
+
     statement = "select b from d1.c1 where b = true;";
     expect =
         "ResultSets:\n"
@@ -180,19 +351,6 @@ public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
             + "| 4294967296|   true|\n"
             + "|12884901888|   true|\n"
             + "|21474836480|   true|\n"
-            + "+-----------+-------+\n"
-            + "Total line number = 3\n";
-    SQLTestTools.executeAndCompare(session, statement, expect);
-
-    statement = "select f from d1.c1 where f > 2;";
-    expect =
-        "ResultSets:\n"
-            + "+-----------+-------+\n"
-            + "|        key|d1.c1.f|\n"
-            + "+-----------+-------+\n"
-            + "|12884901888|    2.1|\n"
-            + "|17179869184|    3.1|\n"
-            + "|21474836480|    4.1|\n"
             + "+-----------+-------+\n"
             + "Total line number = 3\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
@@ -257,7 +415,7 @@ public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
             + "Total line number = 1\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
 
-    statement = "select contributor, version from d0.c0.information where version = '3.0';";
+    statement = "select contributor, version from d0.c0.information where version = 3.0;";
     expect =
         "ResultSets:\n"
             + "+-----------+-----------------------------+-------------------------+\n"
@@ -268,7 +426,7 @@ public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
             + "Total line number = 1\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
 
-    statement = "select contributor, version from d0.c0.information where version = '1.0';";
+    statement = "select contributor, version from d0.c0.information where version = 1.0;";
     expect =
         "ResultSets:\n"
             + "+----------+-----------------------------+-------------------------+\n"
@@ -284,11 +442,14 @@ public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
         "select contributor, version from d0.c0.information where version = 3.0 or version = 1.0;";
     expect =
         "ResultSets:\n"
-            + "+---+-----------------------------+-------------------------+\n"
-            + "|key|d0.c0.information.contributor|d0.c0.information.version|\n"
-            + "+---+-----------------------------+-------------------------+\n"
-            + "+---+-----------------------------+-------------------------+\n"
-            + "Empty set.\n";
+            + "+-----------+-----------------------------+-------------------------+\n"
+            + "|        key|d0.c0.information.contributor|d0.c0.information.version|\n"
+            + "+-----------+-----------------------------+-------------------------+\n"
+            + "| 4294967296|                 Label Studio|                      1.0|\n"
+            + "| 8589934592|                 Label Studio|                      1.0|\n"
+            + "|12884901888|                 Label Studio|                      3.0|\n"
+            + "+-----------+-----------------------------+-------------------------+\n"
+            + "Total line number = 3\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
   }
 
@@ -333,6 +494,58 @@ public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
             + "|tm.wf05.wt01.temperature|  DOUBLE|\n"
             + "+------------------------+--------+\n"
             + "Total line number = 3\n";
+    SQLTestTools.executeAndCompare(session, statement, expected);
+  }
+
+  // no param is allowed to be updated
+  @Override
+  protected void updateParams(int port) {}
+
+  @Override
+  protected void restoreParams(int port) {}
+
+  @Override
+  protected void shutdownDatabase(int port) {
+    shutOrRestart(port, true, "mongodb");
+  }
+
+  @Override
+  protected void startDatabase(int port) {
+    shutOrRestart(port, false, "mongodb");
+  }
+
+  @Override
+  protected void testPathOverlappedDataNotOverlapped() throws SessionException {
+    // before
+    String statement = "select status from mn.wf01.wt01;";
+    String expected =
+        "ResultSets:\n"
+            + "+----------+-------------------+\n"
+            + "|       key|mn.wf01.wt01.status|\n"
+            + "+----------+-------------------+\n"
+            + "|4294967296|           11111111|\n"
+            + "|8589934592|           22222222|\n"
+            + "+----------+-------------------+\n"
+            + "Total line number = 2\n";
+    SQLTestTools.executeAndCompare(session, statement, expected);
+
+    String insert =
+        "insert into mn.wf01.wt01 (key, status) values (10, 33333333), (100, 44444444);";
+    session.executeSql(insert);
+
+    // after
+    statement = "select status from mn.wf01.wt01;";
+    expected =
+        "ResultSets:\n"
+            + "+----------+-------------------+\n"
+            + "|       key|mn.wf01.wt01.status|\n"
+            + "+----------+-------------------+\n"
+            + "|        10|           33333333|\n"
+            + "|       100|           44444444|\n"
+            + "|4294967296|           11111111|\n"
+            + "|8589934592|           22222222|\n"
+            + "+----------+-------------------+\n"
+            + "Total line number = 4\n";
     SQLTestTools.executeAndCompare(session, statement, expected);
   }
 }

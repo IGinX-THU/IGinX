@@ -1,3 +1,22 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ */
 package cn.edu.tsinghua.iginx.engine.logical.utils;
 
 import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils.*;
@@ -8,6 +27,7 @@ import static cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType.isM
 import static cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType.isUnaryOperator;
 
 import cn.edu.tsinghua.iginx.engine.shared.expr.BaseExpression;
+import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionUtils;
@@ -20,15 +40,17 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.PathFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.JoinAlgType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OuterJoinType;
+import cn.edu.tsinghua.iginx.engine.shared.operator.visitor.OperatorVisitor;
+import cn.edu.tsinghua.iginx.engine.shared.source.ConstantSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.FragmentSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 import cn.edu.tsinghua.iginx.engine.shared.source.SourceType;
+import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 public class OperatorUtils {
@@ -47,7 +69,7 @@ public class OperatorUtils {
     return joinOperators(operators, KEY);
   }
 
-  public static Operator joinOperators(List<Operator> operators, String joinBy) {
+  public static Operator joinOperators(List<? extends Operator> operators, String joinBy) {
     if (operators == null || operators.isEmpty()) return null;
     if (operators.size() == 1) return operators.get(0);
     Operator join = operators.get(0);
@@ -77,7 +99,8 @@ public class OperatorUtils {
 
     if (OperatorType.isUnaryOperator(operator.getType())) {
       AbstractUnaryOperator unaryOperator = (AbstractUnaryOperator) operator;
-      if (unaryOperator.getSource().getType() != SourceType.Fragment) {
+      if (unaryOperator.getSource().getType() != SourceType.Fragment
+          && unaryOperator.getSource().getType() != SourceType.Constant) {
         pathList.addAll(findPathList(((OperatorSource) unaryOperator.getSource()).getOperator()));
       }
     } else if (OperatorType.isBinaryOperator(operator.getType())) {
@@ -92,7 +115,7 @@ public class OperatorUtils {
       }
     }
 
-    return pathList.stream().distinct().collect(Collectors.toList());
+    return pathList.stream().distinct().sorted().collect(Collectors.toList());
   }
 
   public static void findProjectOperators(List<Project> projectOperatorList, Operator operator) {
@@ -105,7 +128,7 @@ public class OperatorUtils {
     if (OperatorType.isUnaryOperator(operator.getType())) {
       UnaryOperator unaryOp = (UnaryOperator) operator;
       Source source = unaryOp.getSource();
-      if (source.getType() != SourceType.Fragment) {
+      if (source.getType() != SourceType.Fragment && source.getType() != SourceType.Constant) {
         findProjectOperators(projectOperatorList, ((OperatorSource) source).getOperator());
       }
     } else if (OperatorType.isBinaryOperator(operator.getType())) {
@@ -163,8 +186,11 @@ public class OperatorUtils {
     }
     AbstractJoin applyCopy = (AbstractJoin) apply.copy();
 
+    Operator left = ((OperatorSource) applyCopy.getSourceA()).getOperator();
+    addCorVarsToLeft(left, correlatedVariables);
+    Operator leftCopy = left.copy();
     Operator operatorA =
-        new Project(applyCopy.getSourceA(), correlatedVariables, null, false, true);
+        new Project(new OperatorSource(left), correlatedVariables, null, false, true);
     applyCopy.setSourceA(new OperatorSource(operatorA));
     applyCopy.setPrefixA(null);
     if (applyCopy.getType() == OperatorType.MarkJoin) {
@@ -193,21 +219,60 @@ public class OperatorUtils {
     if (apply.getType() == OperatorType.CrossJoin) {
       apply =
           new InnerJoin(
-              apply.getSourceA(),
+              new OperatorSource(leftCopy),
               new OperatorSource(right),
               apply.getPrefixA(),
               apply.getPrefixB(),
               null,
               new ArrayList<>(),
               false,
+              false,
               JoinAlgType.HashJoin,
               correlatedVariables);
     } else {
+      apply.setSourceA(new OperatorSource(leftCopy));
       apply.setSourceB(new OperatorSource(right));
       apply.setExtraJoinPrefix(correlatedVariables);
       apply.setJoinAlgType(JoinAlgType.HashJoin);
     }
     return apply;
+  }
+
+  private static void addCorVarsToLeft(Operator root, List<String> correlatedVariables) {
+    root.accept(
+        new OperatorVisitor() {
+          private List<String> corVars = new ArrayList<>(correlatedVariables);
+
+          @Override
+          public void visit(UnaryOperator unaryOperator) {
+            switch (unaryOperator.getType()) {
+              case Project:
+                Project project = (Project) unaryOperator;
+                String longestCommonPrefix =
+                    StringUtils.getLongestCommonPrefix(project.getPatterns());
+                for (String corVar : corVars) {
+                  if (StringUtils.hasCommonPrefix(longestCommonPrefix, corVar)
+                      && project.getPatterns().stream()
+                          .noneMatch(pattern -> StringUtils.match(corVar, pattern))) {
+                    project.getPatterns().add(corVar);
+                  }
+                }
+                break;
+              case Rename:
+                Rename rename = (Rename) unaryOperator;
+                corVars = PathUtils.recoverRenamedPatterns(rename.getAliasList(), corVars);
+                break;
+              default:
+                break;
+            }
+          }
+
+          @Override
+          public void visit(BinaryOperator binaryOperator) {}
+
+          @Override
+          public void visit(MultipleOperator multipleOperator) {}
+        });
   }
 
   private static Operator pushDownApply(Operator root, List<String> correlatedVariables) {
@@ -262,7 +327,8 @@ public class OperatorUtils {
         apply.setSourceB(rowTransform.getSource());
         List<FunctionCall> functionCallList = new ArrayList<>(rowTransform.getFunctionCallList());
         for (String correlatedVariable : correlatedVariables) {
-          FunctionParams params = new FunctionParams(new BaseExpression(correlatedVariable));
+          FunctionParams params =
+              new FunctionParams(Collections.singletonList(new BaseExpression(correlatedVariable)));
           functionCallList.add(
               new FunctionCall(FunctionManager.getInstance().getFunction(ARITHMETIC_EXPR), params));
         }
@@ -288,24 +354,26 @@ public class OperatorUtils {
                   singleJoin.getFilter(),
                   new ArrayList<>(),
                   false,
+                  false,
                   singleJoin.getJoinAlgType(),
                   singleJoin.getExtraJoinPrefix());
         }
         root =
             new GroupBy(
                 new OperatorSource(pushDownApply(apply, correlatedVariables)),
-                correlatedVariables,
+                correlatedVariables.stream().map(BaseExpression::new).collect(Collectors.toList()),
                 setTransform.getFunctionCallList());
         break;
       case GroupBy:
         GroupBy groupBy = (GroupBy) operatorB;
         apply.setSourceB(groupBy.getSource());
-        List<String> groupByCols = groupBy.getGroupByCols();
-        groupByCols.addAll(correlatedVariables);
+        List<Expression> groupByExpressions = groupBy.getGroupByExpressions();
+        groupByExpressions.addAll(
+            correlatedVariables.stream().map(BaseExpression::new).collect(Collectors.toList()));
         root =
             new GroupBy(
                 new OperatorSource(pushDownApply(apply, correlatedVariables)),
-                groupByCols,
+                groupByExpressions,
                 groupBy.getFunctionCallList());
         break;
       case Rename:
@@ -316,7 +384,7 @@ public class OperatorUtils {
         root =
             new Rename(
                 new OperatorSource(pushDownApply(apply, correlatedVariables)),
-                rename.getAliasMap(),
+                rename.getAliasList(),
                 ignorePatterns);
         break;
       case CrossJoin:
@@ -349,6 +417,7 @@ public class OperatorUtils {
                   null,
                   new BoolFilter(true),
                   new ArrayList<>(),
+                  false,
                   false,
                   JoinAlgType.HashJoin,
                   correlatedVariables);
@@ -539,6 +608,7 @@ public class OperatorUtils {
             select.getFilter(),
             new ArrayList<>(),
             false,
+            false,
             algType,
             crossJoin.getExtraJoinPrefix());
       case InnerJoin:
@@ -587,8 +657,8 @@ public class OperatorUtils {
         Operator visitedOperator = visitedOperators.get(i);
         if (visitedOperator.getType() == OperatorType.Rename) {
           Rename rename = (Rename) visitedOperator;
-          Map<String, String> aliasMap = rename.getAliasMap();
-          patterns = renamePattern(aliasMap, patterns);
+          List<Pair<String, String>> aliasList = rename.getAliasList();
+          patterns = renamePattern(aliasList, patterns);
         }
       }
       return patterns;
@@ -630,17 +700,18 @@ public class OperatorUtils {
   /**
    * 正向重命名模式列表中的pattern，将key中的pattern替换为value中的pattern
    *
-   * @param aliasMap 重命名规则, key为旧模式，value为新模式
+   * @param aliasList 重命名规则, key为旧模式，value为新模式
    * @param patterns 要重命名的模式列表
    * @return
    */
-  private static List<String> renamePattern(Map<String, String> aliasMap, List<String> patterns) {
+  private static List<String> renamePattern(
+      List<Pair<String, String>> aliasList, List<String> patterns) {
     List<String> renamedPatterns = new ArrayList<>();
     for (String pattern : patterns) {
       boolean matched = false;
-      for (Map.Entry<String, String> entry : aliasMap.entrySet()) {
-        String oldPattern = entry.getKey().replace("*", "(.*)");
-        String newPattern = entry.getValue().replace("*", "$1");
+      for (Pair<String, String> pair : aliasList) {
+        String oldPattern = pair.k.replace("*", "(.*)");
+        String newPattern = pair.v.replace("*", "$1");
         if (pattern.matches(oldPattern)) {
           if (newPattern.contains("$1") && !oldPattern.contains("*")) {
             newPattern = newPattern.replace("$1", "*");
@@ -650,12 +721,12 @@ public class OperatorUtils {
           matched = true;
           break;
         } else if (pattern.equals(oldPattern)) {
-          renamedPatterns.add(entry.getValue());
+          renamedPatterns.add(pair.v);
           matched = true;
           break;
         } else if (pattern.contains(".*")
             && oldPattern.matches(StringUtils.reformatPath(pattern))) {
-          renamedPatterns.add(entry.getKey());
+          renamedPatterns.add(pair.k);
           matched = true;
           break;
         }
@@ -689,5 +760,12 @@ public class OperatorUtils {
       }
     }
     return true;
+  }
+
+  public static boolean isProjectFromConstant(Operator operator) {
+    if (operator instanceof Project) {
+      return ((Project) operator).getSource() instanceof ConstantSource;
+    }
+    return false;
   }
 }

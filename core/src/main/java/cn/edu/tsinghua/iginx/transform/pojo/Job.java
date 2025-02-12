@@ -1,19 +1,49 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ */
 package cn.edu.tsinghua.iginx.transform.pojo;
 
+import cn.edu.tsinghua.iginx.notice.EmailNotifier;
 import cn.edu.tsinghua.iginx.thrift.*;
 import cn.edu.tsinghua.iginx.transform.api.Stage;
 import cn.edu.tsinghua.iginx.transform.data.*;
+import cn.edu.tsinghua.iginx.utils.EmailFromYAML;
 import cn.edu.tsinghua.iginx.utils.JobFromYAML;
+import cn.edu.tsinghua.iginx.utils.NotificationFromYAML;
 import cn.edu.tsinghua.iginx.utils.TaskFromYAML;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.Data;
+import org.apache.commons.mail.EmailException;
+import org.quartz.Trigger;
+import org.quartz.TriggerBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Data
 public class Job {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(Job.class);
+
   private long jobId;
+  private final String name; // will be filename if stored
 
   private long sessionId;
 
@@ -25,27 +55,53 @@ public class Job {
 
   private boolean needExport;
   private ExportType exportType;
+  private String exportFile;
   private ExportWriter writer;
 
   private final List<Task> taskList;
   private final List<Stage> stageList;
+  private EmailNotifier notifier = null;
+
+  private boolean scheduled = false;
+  private String scheduleStr = null;
+  private final Trigger trigger;
+  private boolean stopOnFailure = true;
+
+  private boolean metaStored = false;
 
   public Job(long id, CommitTransformJobReq req) {
+    this(id, req, null);
+  }
+
+  /**
+   * When trigger is not null, this scheduled job's trigger is restored from meta by the name of
+   * job's first id. Job yaml file is also stored as first_id.yaml in a specified dir. So we make
+   * first id its name. When job automatically restarts after IGinX restarts, the name remains but
+   * id will be renewed. SessionId will be -1 if this job is restored, not commited.
+   */
+  public Job(long id, CommitTransformJobReq req, Trigger trigger) {
     jobId = id;
-    sessionId = req.getSessionId();
+    sessionId = 0;
+    // job should not be bound to a session which could end rapidly.
+    // session id = 0 means empty context
     state = JobState.JOB_CREATED;
-    active = new AtomicBoolean(true);
+    active = new AtomicBoolean(false);
 
     exportType = req.getExportType();
-    if (exportType.equals(ExportType.File)) {
+    if (exportType.equals(ExportType.FILE)) {
       needExport = true;
       writer = new FileAppendWriter(req.getFileName());
-    } else if (exportType.equals(ExportType.IginX)) {
+      exportFile = req.getFileName();
+    } else if (exportType.equals(ExportType.IGINX)) {
       needExport = true;
-      writer = new IginXWriter(req.getSessionId());
+      writer = new IginXWriter(sessionId);
     } else {
       needExport = false;
       writer = new LogWriter();
+    }
+
+    if (req.isSetStopOnFailure()) {
+      stopOnFailure = req.isStopOnFailure();
     }
 
     taskList = new ArrayList<>();
@@ -57,7 +113,7 @@ public class Job {
       Task task = TaskFactory.getTask(info);
       taskList.add(task);
 
-      if (task.getDataFlowType().equals(DataFlowType.Batch)) {
+      if (task.getDataFlowType().equals(DataFlowType.BATCH)) {
         if (!stageTasks.isEmpty()) {
           stage =
               new StreamStage(
@@ -79,59 +135,60 @@ public class Job {
       stage = new StreamStage(sessionId, stage, new ArrayList<>(stageTasks), writer);
       stageList.add(stage);
     }
-  }
-
-  public Job(long id, long sessionId, JobFromYAML jobFromYAML) {
-    this.jobId = id;
-    this.sessionId = sessionId;
-    this.state = JobState.JOB_CREATED;
-    active = new AtomicBoolean(true);
-
-    String exportType = jobFromYAML.getExportType().toLowerCase().trim();
-    if (exportType.equals("file")) {
-      this.exportType = ExportType.File;
-      this.needExport = true;
-      this.writer = new FileAppendWriter(jobFromYAML.getExportFile());
-    } else if (exportType.equals("iginx")) {
-      this.exportType = ExportType.IginX;
-      this.needExport = true;
-      this.writer = new IginXWriter(sessionId);
+    if (trigger != null) {
+      // recovered from meta
+      this.trigger = trigger;
+      name = trigger.getKey().getName();
+      scheduled = true;
+      scheduleStr = req.getSchedule();
     } else {
-      this.exportType = ExportType.Log;
-      this.needExport = false;
-      this.writer = new LogWriter();
-    }
-
-    taskList = new ArrayList<>();
-    stageList = new ArrayList<>();
-    Stage stage = null;
-    List<Task> stageTasks = new ArrayList<>();
-    for (int i = 0; i < jobFromYAML.getTaskList().size(); i++) {
-      TaskFromYAML taskFromYAML = jobFromYAML.getTaskList().get(i);
-      Task task = TaskFactory.getTask(taskFromYAML);
-      taskList.add(task);
-
-      if (task.getDataFlowType().equals(DataFlowType.Batch)) {
-        if (!stageTasks.isEmpty()) {
-          stage =
-              new StreamStage(
-                  sessionId, stage, new ArrayList<>(stageTasks), new CollectionWriter());
-          stageList.add(stage);
-          stageTasks.clear();
-        }
-        if (i == jobFromYAML.getTaskList().size() - 1) {
-          stage = new BatchStage(stage, task, writer);
-        } else {
-          stage = new BatchStage(stage, task, new CollectionWriter());
-        }
-        stageList.add(stage);
+      name = String.valueOf(jobId);
+      // build from string
+      if (req.isSetSchedule()) {
+        this.trigger = JobScheduleTriggerMaker.getTrigger(req.getSchedule(), jobId);
+        scheduled = true;
+        scheduleStr = req.getSchedule();
       } else {
-        stageTasks.add(task);
+        // no schedule information provided. job will be fired instantly
+        this.trigger = TriggerBuilder.newTrigger().startNow().build();
       }
     }
-    if (!stageTasks.isEmpty()) {
-      stage = new StreamStage(sessionId, stage, new ArrayList<>(stageTasks), writer);
-      stageList.add(stage);
+
+    if (req.getNotification() != null) {
+      Email email = req.getNotification().getEmail();
+      if (email != null) {
+        notifier =
+            new EmailNotifier(
+                email.getHostName(),
+                email.getSmtpPort(),
+                email.getUsername(),
+                email.getPassword(),
+                email.getFromAddr(),
+                email.getToAddrs());
+      }
+    }
+  }
+
+  public void setState(JobState state) {
+    this.state = state;
+    switch (state) {
+      case JOB_FINISHED:
+      case JOB_FAILED:
+      case JOB_PARTIALLY_FAILED:
+      case JOB_CLOSED:
+        try {
+          sendEmail();
+        } catch (Exception e) {
+          LOGGER.error(
+              "Fail to send email notification for job {} to {}, because", jobId, notifier, e);
+        }
+    }
+  }
+
+  public void sendEmail() throws EmailException {
+    EmailNotifier emailNotifier = getNotifier();
+    if (emailNotifier != null) {
+      emailNotifier.send(this);
     }
   }
 
@@ -158,6 +215,47 @@ public class Job {
         + taskList
         + ", stageList="
         + stageList
+        + (scheduleStr != null ? ", schedule string=" + scheduleStr : "")
         + '}';
+  }
+
+  public JobFromYAML toYaml() {
+    JobFromYAML jobFromYAML = new JobFromYAML();
+    jobFromYAML.setExportType(exportType.toString());
+    jobFromYAML.setExportFile(exportFile);
+
+    List<TaskFromYAML> taskFromYAMLList = new ArrayList<>();
+    for (Task task : taskList) {
+      TaskFromYAML taskFromYAML = new TaskFromYAML();
+      taskFromYAML.setTaskType(task.getTaskType().toString());
+      taskFromYAML.setDataFlowType(task.getDataFlowType().toString());
+      taskFromYAML.setTimeout(task.getTimeLimit());
+      if (task.isPythonTask()) {
+        taskFromYAML.setPyTaskName(((PythonTask) task).getPyTaskName());
+      } else {
+        taskFromYAML.setSqlList(((IginXTask) task).getSqlList());
+      }
+      taskFromYAMLList.add(taskFromYAML);
+    }
+
+    jobFromYAML.setTaskList(taskFromYAMLList);
+    if (scheduleStr != null) {
+      jobFromYAML.setSchedule(scheduleStr);
+    }
+
+    if (notifier != null) {
+      EmailFromYAML emailFromYAML = new EmailFromYAML();
+      emailFromYAML.setHostName(notifier.getHostName());
+      emailFromYAML.setSmtpPort(notifier.getSmtpPort());
+      emailFromYAML.setUserName(notifier.getUsername());
+      emailFromYAML.setPassword(notifier.getPassword());
+      emailFromYAML.setFrom(notifier.getFrom());
+      emailFromYAML.setTo(notifier.getTo());
+      NotificationFromYAML notificationFromYAML = new NotificationFromYAML();
+      notificationFromYAML.setEmail(emailFromYAML);
+      jobFromYAML.setNotification(notificationFromYAML);
+    }
+
+    return jobFromYAML;
   }
 }

@@ -1,3 +1,22 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ */
 package cn.edu.tsinghua.iginx.sql.statement.select;
 
 import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
@@ -5,15 +24,18 @@ import cn.edu.tsinghua.iginx.sql.statement.DataStatement;
 import cn.edu.tsinghua.iginx.sql.statement.StatementType;
 import cn.edu.tsinghua.iginx.sql.statement.select.subclause.LimitClause;
 import cn.edu.tsinghua.iginx.sql.statement.select.subclause.OrderByClause;
+import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 public abstract class SelectStatement extends DataStatement {
 
   public static int markJoinCount = 0;
+  public static int caseWhenCount = 0;
+  public static int keyCount = 0;
+  public static int sequenceCount = 0;
   protected SelectStatementType selectStatementType;
   protected boolean needLogicalExplain = false;
   protected boolean needPhysicalExplain = false;
@@ -62,20 +84,26 @@ public abstract class SelectStatement extends DataStatement {
 
   public abstract Set<String> getPathSet();
 
-  public List<String> getOrderByPaths() {
-    return orderByClause.getOrderByPaths();
+  public abstract UnarySelectStatement getFirstUnarySelectStatement();
+
+  public String getOriginPath(String path) {
+    return null;
   }
 
-  public void setOrderByPath(String orderByPath) {
-    this.orderByClause.setOrderByPaths(orderByPath);
+  public List<Expression> getOrderByExpressions() {
+    return orderByClause.getOrderByExpressions();
   }
 
-  public boolean isAscending() {
-    return orderByClause.isAscending();
+  public void setOrderByExpr(Expression orderByExpr) {
+    this.orderByClause.setOrderByExpr(orderByExpr);
+  }
+
+  public List<Boolean> getAscendingList() {
+    return orderByClause.getAscendingList();
   }
 
   public void setAscending(boolean ascending) {
-    this.orderByClause.setAscending(ascending);
+    this.orderByClause.setAscendingList(ascending);
   }
 
   public long getLimit() {
@@ -117,7 +145,9 @@ public abstract class SelectStatement extends DataStatement {
 
   public abstract void initFreeVariables();
 
-  public abstract Map<String, String> getSubQueryAliasMap(String alias);
+  public abstract List<Pair<String, String>> getSubQueryAliasList(String alias);
+
+  public abstract boolean isSimpleQuery();
 
   public enum SelectStatementType {
     UNARY,

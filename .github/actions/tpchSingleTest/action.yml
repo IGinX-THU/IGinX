@@ -1,0 +1,79 @@
+name: "tpch-single-test"
+description: "test tpc-h once in main branch and new branch"
+inputs:
+    status:
+        description: "status of last test"
+        default: "unfinished"
+outputs:
+    status:
+        description: "status of this test"
+        value: ${{ steps.get.outputs.status }}
+
+runs:
+    using: "composite"
+    steps:
+        - name: Start New IGinX
+          if: inputs.status != 'ok'
+          uses: ./.github/actions/iginxRunner
+
+        - name: Run SQL Warmup on New IGinX
+          if: inputs.status != 'ok'
+          shell: bash -el {0}
+          run: mvn test -q -Dtest=SQLWarmupIT -DfailIfNoTests=false -P-format
+
+        - name: Run TPCH Test on New IGinX
+          if: inputs.status != 'ok'
+          shell: bash -el {0}
+          run: mvn test -q -Dtest=TPCHNewIT -DfailIfNoTests=false -P-format
+
+        - name: Show New IGinX log
+          if: always() && inputs.status != 'ok'
+          shell: bash
+          run: cat iginx-*.log
+
+        - name: Stop New IGinX
+          if: inputs.status != 'ok'
+          uses: ./.github/actions/iginxRunner
+          with:
+              if-stop: "true"
+
+        - name: Start Old IGinX
+          if: inputs.status != 'ok'
+          shell: bash -el {0}
+          working-directory: IGinX
+          run: |
+              chmod +x core/target/iginx-core-*/sbin/start_iginx.sh
+              nohup core/target/iginx-core-*/sbin/start_iginx.sh > iginx-$1.log 2>&1 &
+              sleep 30
+
+        - name: Run SQL Warmup on Old IGinX
+          if: inputs.status != 'ok'
+          shell: bash -el {0}
+          run: mvn test -q -Dtest=SQLWarmupIT -DfailIfNoTests=false -P-format
+
+        - name: Run TPCH Test on Old IGinX
+          if: inputs.status != 'ok'
+          shell: bash -el {0}
+          run: mvn test -q -Dtest=TPCHOldIT -DfailIfNoTests=false -P-format
+
+        - name: Show Old IGinX log
+          if: always() && inputs.status != 'ok'
+          shell: bash
+          run: cat IGinX/iginx-*.log
+
+        - name: Stop Old IGinX
+          if: inputs.status != 'ok'
+          uses: ./.github/actions/iginxRunner
+          with:
+              if-stop: "true"
+
+        - name: Get Test Result
+          id: get
+          shell: bash
+          run: |
+              if [ -f test/src/test/resources/tpch/runtimeInfo/status.txt ]; then
+                  STATUS=$(cat test/src/test/resources/tpch/runtimeInfo/status.txt)
+                  echo "status=$STATUS" >> $GITHUB_OUTPUT
+              else  
+                  echo "status=unfinished" >> $GITHUB_OUTPUT
+              fi

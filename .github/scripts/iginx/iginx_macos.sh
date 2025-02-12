@@ -1,4 +1,22 @@
-#!/bin/sh
+#!/bin/bash
+#
+# IGinX - the polystore system with high performance
+# Copyright (C) Tsinghua University
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+ 
 
 set -e
 
@@ -8,6 +26,10 @@ sed -i "" -E "s/#iginx_port=[0-9]+#/#iginx_port=$1#/g" core/target/iginx-core-*/
 
 sed -i "" -E "s/restPort=[0-9]+/restPort=$2/g" core/target/iginx-core-*/conf/config.properties
 
+export JAVA_HOME=$JAVA_HOME_8_ARM64
+
+echo "JAVA_HOME is set to $JAVA_HOME"
+
 sh -c "chmod +x core/target/iginx-core-*/sbin/start_iginx.sh"
 
 sh -c "nohup core/target/iginx-core-*/sbin/start_iginx.sh > iginx-$1.log 2>&1 &"
@@ -15,7 +37,7 @@ sh -c "nohup core/target/iginx-core-*/sbin/start_iginx.sh > iginx-$1.log 2>&1 &"
 sh -c "sleep 3"
 
 log_file="iginx-$1.log"
-timeout=30
+timeout=60
 interval=2
 
 elapsed_time=0

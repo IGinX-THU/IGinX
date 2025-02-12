@@ -1,24 +1,26 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 package cn.edu.tsinghua.iginx.conf;
 
 import cn.edu.tsinghua.iginx.thrift.TimePrecision;
+import cn.edu.tsinghua.iginx.utils.HostUtils;
 import cn.edu.tsinghua.iginx.utils.TagKVUtils;
 import java.util.ArrayList;
 import java.util.List;
@@ -53,8 +55,7 @@ public class Config {
   private TimePrecision timePrecision = TimePrecision.NS;
 
   private String databaseClassNames =
-      "iotdb12=cn.edu.tsinghua.iginx.iotdb.IoTDBStorage,influxdb=cn.edu.tsinghua.iginx.influxdb.InfluxDBStorage,parquet=cn.edu.tsinghua.iginx.parquet.ParquetStorage,relational=cn.edu.tsinghua.iginx.relational.RelationAbstractStorage,mongodb=cn.edu.tsinghua.iginx.mongodb.MongoDBStorage,redis=cn.edu.tsinghua.iginx.redis.RedisStorage";
-  // ,opentsdb=cn.edu.tsinghua.iginx.opentsdb.OpenTSDBStorage,timescaledb=cn.edu.tsinghua.iginx.timescaledb.TimescaleDBStorage,postgresql=cn.edu.tsinghua.iginx.postgresql.PostgreSQLStorage
+      "iotdb12=cn.edu.tsinghua.iginx.iotdb.IoTDBStorage,influxdb=cn.edu.tsinghua.iginx.influxdb.InfluxDBStorage,relational=cn.edu.tsinghua.iginx.relational.RelationalStorage,mongodb=cn.edu.tsinghua.iginx.mongodb.MongoDBStorage,redis=cn.edu.tsinghua.iginx.redis.RedisStorage,filesystem=cn.edu.tsinghua.iginx.filesystem.FileSystemStorage";
 
   private String policyClassName = "cn.edu.tsinghua.iginx.policy.naive.NaivePolicy";
 
@@ -90,7 +91,7 @@ public class Config {
 
   private String restIp = "127.0.0.1";
 
-  private int restPort = 6666;
+  private int restPort = 7888;
 
   private int maxTimeseriesLength = 10;
 
@@ -170,6 +171,8 @@ public class Config {
 
   private int transformMaxRetryTimes = 3;
 
+  private String defaultScheduledTransformJobDir = "transform_jobs";
+
   private boolean needInitBasicUDFFunctions = true;
 
   private List<String> udfList = new ArrayList<>();
@@ -213,22 +216,6 @@ public class Config {
 
   /////////////
 
-  private boolean enableEmailNotification = false;
-
-  private String mailSmtpHost = "";
-
-  private int mailSmtpPort = 465;
-
-  private String mailSmtpUser = "";
-
-  private String mailSmtpPassword = "";
-
-  private String mailSender = "";
-
-  private String mailRecipient = "";
-
-  /////////////
-
   private int batchSizeImportCsv = 10000;
 
   private boolean isUTTestEnv = false; // 是否是单元测试环境
@@ -241,8 +228,14 @@ public class Config {
     this.maxTimeseriesLength = maxTimeseriesLength;
   }
 
+  /** 获取本机IP地址 */
   public String getIp() {
-    return ip;
+    // 当设置监听端口为0.0.0.0，找本机IP地址
+    if (!"0.0.0.0".equals(ip)) {
+      return ip;
+    } else {
+      return HostUtils.getRepresentativeIP();
+    }
   }
 
   public void setIp(String ip) {
@@ -925,67 +918,19 @@ public class Config {
     this.ruleBasedOptimizer = ruleBasedOptimizer;
   }
 
+  public String getDefaultScheduledTransformJobDir() {
+    return defaultScheduledTransformJobDir;
+  }
+
+  public void setDefaultScheduledTransformJobDir(String defaultScheduledTransformJobDir) {
+    this.defaultScheduledTransformJobDir = defaultScheduledTransformJobDir;
+  }
+
   public int getDistributedQueryTriggerThreshold() {
     return distributedQueryTriggerThreshold;
   }
 
   public void setDistributedQueryTriggerThreshold(int distributedQueryTriggerThreshold) {
     this.distributedQueryTriggerThreshold = distributedQueryTriggerThreshold;
-  }
-
-  public boolean isEnableEmailNotification() {
-    return enableEmailNotification;
-  }
-
-  public void setEnableEmailNotification(boolean enableEmailNotification) {
-    this.enableEmailNotification = enableEmailNotification;
-  }
-
-  public String getMailSmtpHost() {
-    return mailSmtpHost;
-  }
-
-  public void setMailSmtpHost(String mailSmtpHost) {
-    this.mailSmtpHost = mailSmtpHost;
-  }
-
-  public int getMailSmtpPort() {
-    return mailSmtpPort;
-  }
-
-  public void setMailSmtpPort(int mailSmtpPort) {
-    this.mailSmtpPort = mailSmtpPort;
-  }
-
-  public String getMailSmtpUser() {
-    return mailSmtpUser;
-  }
-
-  public void setMailSmtpUser(String mailSmtpUser) {
-    this.mailSmtpUser = mailSmtpUser;
-  }
-
-  public String getMailSmtpPassword() {
-    return mailSmtpPassword;
-  }
-
-  public void setMailSmtpPassword(String mailSmtpPassword) {
-    this.mailSmtpPassword = mailSmtpPassword;
-  }
-
-  public String getMailSender() {
-    return mailSender;
-  }
-
-  public void setMailSender(String mailSender) {
-    this.mailSender = mailSender;
-  }
-
-  public String getMailRecipient() {
-    return mailRecipient;
-  }
-
-  public void setMailRecipient(String mailRecipients) {
-    this.mailRecipient = mailRecipients;
   }
 }

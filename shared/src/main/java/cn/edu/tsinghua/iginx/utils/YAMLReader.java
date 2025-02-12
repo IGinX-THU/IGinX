@@ -1,3 +1,22 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ */
 package cn.edu.tsinghua.iginx.utils;
 
 import java.io.*;
@@ -23,6 +42,9 @@ public class YAMLReader {
     this.path = path;
     this.yaml = new Yaml(new Constructor(JobFromYAML.class, new LoaderOptions()));
     this.file = new File(path);
+    if (!file.exists()) {
+      throw new FileNotFoundException(file.getAbsolutePath());
+    }
   }
 
   public String normalize(String conf) {
@@ -41,10 +63,12 @@ public class YAMLReader {
     String exportType = "(?i)exportType";
     String exportFile = "(?i)exportFile";
     String exportNameList = "(?i)exportNameList";
+    String schedule = "(?i)schedule";
 
     conf = conf.replaceAll(exportType, "exportType");
     conf = conf.replaceAll(exportFile, "exportFile");
     conf = conf.replaceAll(exportNameList, "exportNameList");
+    conf = conf.replaceAll(schedule, "schedule");
 
     return conf;
   }
@@ -60,7 +84,9 @@ public class YAMLReader {
       LOGGER.error("Fail to find file, path={}", filePath);
     } finally {
       try {
-        in.close();
+        if (in != null) {
+          in.close();
+        }
       } catch (IOException e) {
         LOGGER.error("Fail to close the file, path={}", filePath);
       }

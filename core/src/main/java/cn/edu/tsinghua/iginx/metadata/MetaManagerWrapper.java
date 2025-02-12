@@ -1,3 +1,22 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ */
 package cn.edu.tsinghua.iginx.metadata;
 
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
@@ -8,6 +27,7 @@ import cn.edu.tsinghua.iginx.metadata.hook.StorageUnitHook;
 import cn.edu.tsinghua.iginx.policy.simple.ColumnCalDO;
 import cn.edu.tsinghua.iginx.sql.statement.InsertStatement;
 import cn.edu.tsinghua.iginx.thrift.AuthType;
+import cn.edu.tsinghua.iginx.transform.pojo.TriggerDescriptor;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.List;
 import java.util.Map;
@@ -323,6 +343,26 @@ public class MetaManagerWrapper implements IMetaManager {
   @Override
   public List<TransformTaskMeta> getTransformTasksByModule(String moduleName) {
     return metaManager.getTransformTasksByModule(moduleName);
+  }
+
+  @Override
+  public boolean storeJobTrigger(TriggerDescriptor jobTriggerDescriptor) {
+    return metaManager.storeJobTrigger(jobTriggerDescriptor);
+  }
+
+  @Override
+  public boolean updateJobTrigger(TriggerDescriptor jobTriggerDescriptor) {
+    return metaManager.updateJobTrigger(jobTriggerDescriptor);
+  }
+
+  @Override
+  public boolean dropJobTrigger(String name) {
+    return metaManager.dropJobTrigger(name);
+  }
+
+  @Override
+  public List<TriggerDescriptor> getJobTriggers() {
+    return metaManager.getJobTriggers();
   }
 
   @Override

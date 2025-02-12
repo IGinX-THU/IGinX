@@ -1,9 +1,30 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ */
 package cn.edu.tsinghua.iginx.engine.physical.task;
 
+import cn.edu.tsinghua.iginx.engine.logical.utils.OperatorUtils;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.UnexpectedOperatorException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.OperatorMemoryExecutor;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.OperatorMemoryExecutorFactory;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.stream.EmptyRowStream;
 import cn.edu.tsinghua.iginx.engine.physical.task.visitor.TaskVisitor;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
@@ -35,21 +56,28 @@ public class UnaryMemoryPhysicalTask extends MemoryPhysicalTask {
     return parentTask;
   }
 
+  public boolean isProjectFromConstant() {
+    return !getOperators().isEmpty() && OperatorUtils.isProjectFromConstant(getOperators().get(0));
+  }
+
   @Override
   public TaskExecuteResult execute() {
     if (getOperators().size() == 1 && getOperators().get(0).getType().equals(OperatorType.Load)) {
       return executeLoad((Load) getOperators().get(0));
     }
-    TaskExecuteResult parentResult = parentTask.getResult();
-    if (parentResult == null) {
-      return new TaskExecuteResult(
-          new PhysicalException("unexpected parent task execute result for " + this + ": null"));
-    }
-    if (parentResult.getException() != null) {
-      return parentResult;
+    RowStream stream = new EmptyRowStream();
+    if (!isProjectFromConstant()) {
+      TaskExecuteResult parentResult = parentTask.getResult();
+      if (parentResult == null) {
+        return new TaskExecuteResult(
+            new PhysicalException("unexpected parent task execute result for " + this + ": null"));
+      }
+      if (parentResult.getException() != null) {
+        return parentResult;
+      }
+      stream = parentResult.getRowStream();
     }
     List<Operator> operators = getOperators();
-    RowStream stream = parentResult.getRowStream();
     OperatorMemoryExecutor executor =
         OperatorMemoryExecutorFactory.getInstance().getMemoryExecutor();
     try {

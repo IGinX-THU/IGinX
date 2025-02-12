@@ -85,12 +85,12 @@ dataDir=data
 
 ### IGinX Installation
 
-Go directly to the [IGinX project](https://github.com/IGinX-THU/IGinX) and download the [IGinX project release package](https://github.com/IGinX-THU/IGinX/releases/download/release%2Fv0.5.1/IGinX-release-v0.5.1-bin.tar.gz). That's it.
+Go directly to the [IGinX project](https://github.com/IGinX-THU/IGinX) and download the [IGinX project release package](https://github.com/IGinX-THU/IGinX/releases/download/v0.7.0/IGinX-Server-0.7.0.tar.gz). That's it.
 
 ```shell
 $ cd ~
-$ wget https://github.com/IGinX-THU/IGinX/releases/download/release%2Fv0.5.1/IGinX-release-v0.5.1-bin.tar.gz
-$ tar -zxvf IGinX-release-v0.5.1-bin.tar.gz
+$ wget https://github.com/IGinX-THU/IGinX/releases/download/v0.7.0/IGinX-Server-0.7.0.tar.gz
+$ tar -zxvf IGinX-Server-0.7.0.tar.gz
 ```
 
 ## Launch
@@ -193,7 +193,7 @@ Create the file insert.json and add the following to it:
 Insert data into the database from an IGinX instance using the following command:
 
 ```shell
-$ curl -XPOST -H'Content-Type: application/json' -d @insert.json http://127.0.0.1:6666/api/v1/datapoints
+$ curl -XPOST -H'Content-Type: application/json' -d @insert.json http://127.0.0.1:7888/api/v1/datapoints
 ```
 
 After inserting data, you can also query the data just written using the RESTful interface.
@@ -222,7 +222,7 @@ Create a file query.json and write the following data to it:
 Use the following command to query data from IGinX instance two:
 
 ```shell
-$ curl -XPOST -H'Content-Type: application/json' -d @query.json http://127.0.0.1:6666/api/v1/datapoints/query
+$ curl -XPOST -H'Content-Type: application/json' -d @query.json http://127.0.0.1:7888/api/v1/datapoints/query
 ```
 
 The command will return information about the data point just inserted:
@@ -303,15 +303,15 @@ In addition to the RESTful interface, IGinX also provides RPC data access interf
 
 Below is a short tutorial on how to use it.
 
-Since the IGinX 0.5.1 version has not been released to the maven central repository, if you want to use it, you need to manually install it to the local maven repository. The specific installation method is as follows:
+Since the IGinX jars have not been released to the maven central repository, if you want to use it, you need to manually install it to the local maven repository. The specific installation method is as follows:
 
 ```shell
-# Download IGinX 0.5.1 version source package
-$ wget https://github.com/IGinX-THU/IGinX/archive/refs/tags/release/v0.5.1.tar.gz
+# Download the newest IGinX version source package
+$ wget https://github.com/IGinX-THU/IGinX/archive/refs/tags/v0.7.0.tar.gz
 # Unzip the source package
-$ tar -zxvf v0.5.1.tar.gz
+$ tar -zxvf v0.7.0.tar.gz
 # Enter the project's main directory
-$ cd IGinX-release-v0.5.1
+$ cd IGinX-release-v0.7.0
 # Install to local maven repository
 $ mvn clean install -DskipTests
 ```
@@ -322,7 +322,7 @@ Only when you are using it, you need to introduce the following dependencies in 
 <dependency>
   <groupId>cn.edu.tsinghua</groupId>
   <artifactId>iginx-core</artifactId>
-  <version>0.6.0-SNAPSHOT</version>
+  <version>0.7.0</version>
 </dependency>
 ```
 

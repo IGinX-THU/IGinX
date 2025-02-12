@@ -1,3 +1,22 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ */
 package cn.edu.tsinghua.iginx.utils;
 
 import java.text.SimpleDateFormat;
@@ -23,7 +42,7 @@ public class FormatUtils {
     }
     for (List<String> row : result) {
       for (int i = 0; i < colCount; i++) {
-        maxSizeList.set(i, Math.max(row.get(i).length(), maxSizeList.get(i)));
+        maxSizeList.set(i, Math.max(getDisplayWidth(row.get(i)), maxSizeList.get(i)));
       }
     }
 
@@ -35,6 +54,28 @@ public class FormatUtils {
     }
     builder.append(buildBlockLine(maxSizeList));
     return builder.toString();
+  }
+
+  private static int getDisplayWidth(String str) {
+    int width = 0;
+    for (char c : str.toCharArray()) {
+      if (isChinese(c)) {
+        width += 2;
+      } else {
+        width += 1;
+      }
+    }
+    return width;
+  }
+
+  private static boolean isChinese(char c) {
+    Character.UnicodeBlock ub = Character.UnicodeBlock.of(c);
+    return ub == Character.UnicodeBlock.CJK_UNIFIED_IDEOGRAPHS
+        || ub == Character.UnicodeBlock.CJK_COMPATIBILITY_IDEOGRAPHS
+        || ub == Character.UnicodeBlock.CJK_UNIFIED_IDEOGRAPHS_EXTENSION_A
+        || ub == Character.UnicodeBlock.GENERAL_PUNCTUATION
+        || ub == Character.UnicodeBlock.CJK_SYMBOLS_AND_PUNCTUATION
+        || ub == Character.UnicodeBlock.HALFWIDTH_AND_FULLWIDTH_FORMS;
   }
 
   private static String buildBlockLine(List<Integer> maxSizeList) {
@@ -54,7 +95,11 @@ public class FormatUtils {
     for (int i = 0; i < maxSizeList.size(); i++) {
       maxSize = maxSizeList.get(i);
       rowValue = cache.get(rowIdx).get(i);
-      builder.append(String.format("%" + maxSize + "s|", rowValue));
+      int padding = maxSize - getDisplayWidth(rowValue);
+      for (int j = 0; j < padding; j++) {
+        builder.append(' ');
+      }
+      builder.append(rowValue).append('|');
     }
     builder.append("\n");
     return builder.toString();

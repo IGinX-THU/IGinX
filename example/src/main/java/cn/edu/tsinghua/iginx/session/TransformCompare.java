@@ -1,3 +1,22 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ */
 package cn.edu.tsinghua.iginx.session;
 
 import cn.edu.tsinghua.iginx.exception.SessionException;
@@ -91,16 +110,16 @@ public class TransformCompare {
       throws SessionException, InterruptedException {
     List<TaskInfo> taskInfoList = new ArrayList<>();
 
-    TaskInfo iginxTask = new TaskInfo(TaskType.IginX, DataFlowType.Stream);
+    TaskInfo iginxTask = new TaskInfo(TaskType.IGINX, DataFlowType.STREAM);
     iginxTask.setSqlList(Collections.singletonList(sql));
     taskInfoList.add(iginxTask);
 
-    TaskInfo pyTask = new TaskInfo(TaskType.Python, DataFlowType.Stream);
+    TaskInfo pyTask = new TaskInfo(TaskType.PYTHON, DataFlowType.STREAM);
     pyTask.setPyTaskName(pyTaskName);
     taskInfoList.add(pyTask);
 
     // 提交任务
-    long jobId = session.commitTransformJob(taskInfoList, ExportType.Log, "");
+    long jobId = session.commitTransformJob(taskInfoList, ExportType.LOG, "");
     // 轮询查看任务情况
     JobState jobState = JobState.JOB_CREATED;
     while (!jobState.equals(JobState.JOB_CLOSED)

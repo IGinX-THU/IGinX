@@ -1,3 +1,22 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ */
 package cn.edu.tsinghua.iginx.integration.expansion.utils;
 
 import static org.junit.Assert.*;
@@ -5,7 +24,6 @@ import static org.junit.Assert.*;
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
-import cn.edu.tsinghua.iginx.utils.ShellRunner;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -147,13 +165,13 @@ public class SQLTestTools {
       String[] command;
       boolean isOnWin = System.getProperty("os.name").toLowerCase().contains("win");
       command = new String[args.length + 2];
-      if (isOnWin && !ShellRunner.isCommandOnPath("sh")) {
-        command[0] = "C:/Program Files/Git/bin/sh.exe";
-      } else {
-        command[0] = "sh";
-      }
       command[1] = scriptPath;
       System.arraycopy(args, 0, command, 2, args.length);
+      if (isOnWin) {
+        command[0] = "C:/Program Files/Git/bin/bash.exe";
+      } else {
+        command[0] = "bash";
+      }
       // 创建进程并执行命令
       LOGGER.info("exe shell : {}", Arrays.toString(command));
       ProcessBuilder processBuilder = new ProcessBuilder(command);

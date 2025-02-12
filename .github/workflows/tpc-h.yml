@@ -1,0 +1,200 @@
+name: "TPC-H Regression Test"
+
+on:
+    workflow_call:
+        inputs:
+            java-matrix:
+                description: "The java version to run the test on"
+                type: string
+                required: false
+                default: '["8"]'
+            python-matrix:
+                description: "The python version to run the test on"
+                type: string
+                required: false
+                default: '["3.11"]'
+            os-matrix:
+                description: "The operating system to run the test on"
+                type: string
+                required: false
+                default: '["ubuntu-latest", "macos-latest", "windows-latest"]'
+            metadata-matrix:
+                description: "The metadata to run the test on"
+                type: string
+                required: false
+                default: '["zookeeper", "etcd"]'
+            db-matrix:
+                description: "The database to run the test on"
+                type: string
+                required: false
+                default: '["IoTDB12", "InfluxDB", "FileSystem", "PostgreSQL", "Redis", "MongoDB", "MySQL"]'
+            close-optimizer:
+                description: "Whether to close the optimizer"
+                type: string
+                required: false
+                default: "false"
+            timeout-minutes:
+                description: "The timeout minutes for the job"
+                type: number
+                required: false
+                default: 60
+
+jobs:
+    TPC-H-Test:
+        timeout-minutes: ${{ inputs.timeout-minutes }}
+        strategy:
+            fail-fast: false
+            matrix:
+                java: ${{ fromJSON(inputs.java-matrix) }}
+                python-version: ${{ fromJSON(inputs.python-matrix) }}
+                os: ${{ fromJSON(inputs.os-matrix) }}
+                metadata: ${{ fromJSON(inputs.metadata-matrix) }}
+                DB-name: ${{ fromJSON(inputs.db-matrix) }}
+        runs-on: ${{ matrix.os }}
+        steps:
+            - name: Get New Version IGinX
+              uses: actions/checkout@v4
+            - name: Get Old Version IGinX
+              uses: actions/checkout@v4
+              with:
+                  ref: main
+                  path: IGinX
+            - name: Environment dependence
+              uses: ./.github/actions/dependence
+              with:
+                  python-version: ${{ matrix.python-version }}
+                  java: ${{ matrix.java }}
+                  iginx-conda-flag: "true"
+                  iginx-conda-env: "iginxEnv"
+
+            - name: Display System Info
+              shell: bash
+              run: |
+                  echo "Operating System: $(uname -a 2>/dev/null || ver)"
+                  echo "Architecture: $(uname -m 2>/dev/null || echo %PROCESSOR_ARCHITECTURE%)"
+                  echo "Java Version:"
+                  java -version
+                  echo "Python Version:"
+                  python --version
+                  echo "CPU Info:"
+                  if [ "$(uname)" = "Linux" ]; then
+                    lscpu
+                  elif [ "$(uname)" = "Darwin" ]; then
+                    sysctl -n machdep.cpu.brand_string
+                  else
+                    wmic cpu get name
+                  fi
+                  echo "Memory Info:"
+                  if [ "$(uname)" = "Linux" ]; then
+                    free -h
+                  elif [ "$(uname)" = "Darwin" ]; then
+                    vm_stat
+                  else
+                    systeminfo | findstr /C:"Total Physical Memory"
+                  fi
+
+            - name: Run ZooKeeper1
+              uses: ./.github/actions/zookeeperRunner
+
+            - name: Run ZooKeeper2
+              uses: ./.github/actions/zookeeperRunner
+              with:
+                  port: 2182
+
+            - name: Run DB
+              uses: ./.github/actions/dbRunner
+              with:
+                  DB-name: ${{ matrix.DB-name }}
+
+            - name: Install New IGinX with Maven
+              shell: bash
+              run: mvn clean package -DskipTests -P-format
+
+            - name: Install Old IGinX with Maven
+              working-directory: IGinX
+              shell: bash
+              run: mvn clean package -DskipTests -P-format
+
+            - name: Change New IGinX Config
+              uses: ./.github/actions/confWriter
+              with:
+                  DB-name: ${{ matrix.DB-name }}
+                  Close-Optimizer: ${{ inputs.close-optimizer }}
+                  Metadata: ${{ matrix.metadata }}
+
+            - name: Change Old IGinX Config
+              uses: ./.github/actions/confWriter
+              with:
+                  DB-name: ${{ matrix.DB-name }}
+                  Close-Optimizer: ${{ inputs.close-optimizer }}
+                  Metadata: ${{ matrix.metadata }}
+                  zookeeper-port: 2182
+                  Root-Dir-Path: "IGinX"
+
+            - name: Download TPC-H Data
+              shell: bash
+              run: |
+                  wget https://github.com/IGinX-THU/IGinX-resources/raw/main/resources/tpc.7z
+                  sudo apt-get install p7zip-full
+                  7za x tpc.7z
+                  ls tpc
+                  cp -r tpc IGinX/tpc
+                  ls IGinX/tpc
+
+            - name: Run 1st Regression Test
+              id: test1
+              uses: ./.github/actions/tpchSingleTest
+
+            - name: Run 2nd Regression Test
+              id: test2
+              uses: ./.github/actions/tpchSingleTest
+              with:
+                  status: ${{ steps.test1.outputs.status }}
+
+            - name: Run 3rd Regression Test
+              id: test3
+              uses: ./.github/actions/tpchSingleTest
+              with:
+                  status: ${{ steps.test2.outputs.status }}
+
+            - name: Run 4th Regression Test
+              id: test4
+              uses: ./.github/actions/tpchSingleTest
+              with:
+                  status: ${{ steps.test3.outputs.status }}
+
+            - name: Run 5th Regression Test
+              id: test5
+              uses: ./.github/actions/tpchSingleTest
+              with:
+                  status: ${{ steps.test4.outputs.status }}
+
+            - name: Run 6th Regression Test
+              id: test6
+              uses: ./.github/actions/tpchSingleTest
+              with:
+                  status: ${{ steps.test5.outputs.status }}
+
+            - name: Run 7th Regression Test
+              id: test7
+              uses: ./.github/actions/tpchSingleTest
+              with:
+                  status: ${{ steps.test6.outputs.status }}
+
+            - name: Run 8th Regression Test
+              id: test8
+              uses: ./.github/actions/tpchSingleTest
+              with:
+                  status: ${{ steps.test7.outputs.status }}
+
+            - name: Run 9th Regression Test
+              id: test9
+              uses: ./.github/actions/tpchSingleTest
+              with:
+                  status: ${{ steps.test8.outputs.status }}
+
+            - name: Run 10th Regression Test
+              id: test10
+              uses: ./.github/actions/tpchSingleTest
+              with:
+                  status: ${{ steps.test9.outputs.status }}

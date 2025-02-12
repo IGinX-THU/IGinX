@@ -1,3 +1,22 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ */
 package cn.edu.tsinghua.iginx.integration.func.rest;
 
 import static org.junit.Assert.assertEquals;
@@ -66,12 +85,12 @@ public class RestAnnotationIT {
   }
 
   private static final String[] API = {
-    " http://127.0.0.1:6666/api/v1/datapoints/annotations/add",
-    " http://127.0.0.1:6666/api/v1/datapoints/annotations/update",
-    " http://127.0.0.1:6666/api/v1/datapoints/annotations",
-    " http://127.0.0.1:6666/api/v1/datapoints/query/annotations",
-    " http://127.0.0.1:6666/api/v1/datapoints/query/annotations/data",
-    " http://127.0.0.1:6666/api/v1/datapoints/annotations/delete",
+    " http://127.0.0.1:7888/api/v1/datapoints/annotations/add",
+    " http://127.0.0.1:7888/api/v1/datapoints/annotations/update",
+    " http://127.0.0.1:7888/api/v1/datapoints/annotations",
+    " http://127.0.0.1:7888/api/v1/datapoints/query/annotations",
+    " http://127.0.0.1:7888/api/v1/datapoints/query/annotations/data",
+    " http://127.0.0.1:7888/api/v1/datapoints/annotations/delete",
   };
 
   private static final String PREFIX = "curl -XPOST -H\"Content-Type: application/json\" -d @";

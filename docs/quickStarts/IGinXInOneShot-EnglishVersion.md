@@ -55,15 +55,15 @@ IGinX is the main part of the system, and the installation package can be downlo
 
 ```shell
 $ cd ~
-$ wget https://github.com/IGinX-THU/IGinX/releases/download/release%2Fv0.5.1/IGinX-FastDeploy-v0.5.1-bin.tar.gz
-$ tar -xzvf IGinX-FastDeploy-v0.5.1-bin.tar.gz
+$ wget https://github.com/IGinX-THU/IGinX/releases/download/v0.7.0/IGinX-FastDeploy-0.7.0.tar.gz
+$ tar -xzvf IGinX-FastDeploy-0.7.0.tar.gz
 ```
 
 ## Launch
 
 ```shell
 $ cd ~
-$ cd IGinX-FastDeploy-v0.5.0-bin
+$ cd IGinX-FastDeploy-0.7.0
 $ chmod +x ./runIginxOn1Host.sh
 $ ./runIginxOn1Host.sh
 ```
@@ -135,7 +135,7 @@ Create the file insert.json and add the following to it:
 Use the following command to insert data into the database:
 
 ```shell
-$ curl -XPOST -H'Content-Type: application/json' -d @insert.json http://127.0.0.1:6666/api/v1/datapoints
+$ curl -XPOST -H'Content-Type: application/json' -d @insert.json http://127.0.0.1:7888/api/v1/datapoints
 ```
 
 After inserting data, you can also query the data just written using the RESTful interface.
@@ -164,7 +164,7 @@ Create a file query.json and write the following data to it:
 Use the following command to query the data:
 
 ```shell
-$ curl -XPOST -H'Content-Type: application/json' -d @query.json http://127.0.0.1:6666/api/v1/datapoints/query
+$ curl -XPOST -H'Content-Type: application/json' -d @query.json http://127.0.0.1:7888/api/v1/datapoints/query
 ```
 
 The command will return information about the data point just inserted:
@@ -251,17 +251,17 @@ Below is a short tutorial on how to use it.
 
 ### RPC Interface
 
-Since the IGinX 0.5.1 version has not been released to the Maven central repository, if you want to use it, you need to manually install it to the local Maven repository.
+Since the IGinX jars have not been released to the Maven central repository, if you want to use it, you need to manually install it to the local Maven repository.
 
 The specific installation method is as follows:
 
 ```shell
-# download iginx 0.4 release version source code package
-$ wget https://github.com/IGinX-THU/IGinX/archive/refs/tags/release/v0.5.1.tar.gz
+# download the newest IGinX release version source code package
+$ wget https://github.com/IGinX-THU/IGinX/archive/refs/tags/v0.7.0.tar.gz
 # Unzip the source package
-$ tar -zxvf v0.5.1.tar.gz
+$ tar -zxvf v0.7.0.tar.gz
 # go to the main project's directory
-$ cd IGinX-release-v0.5.1
+$ cd IGinX-release-v0.7.0
 # Install to local Maven repository
 $ mvn clean install -DskipTests
 ```
@@ -272,7 +272,7 @@ Specifically, when using it, you only need to introduce the following dependenci
 <dependency>
     <groupId>cn.edu.tsinghua</groupId>
     <artifactId>iginx-core</artifactId>
-    <version>0.6.0-SNAPSHOT</version>
+    <version>0.7.0</version>
 </dependency>
 ```
 
