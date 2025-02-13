@@ -16,6 +16,11 @@ runs:
           with:
               brew: mysql@8.0
 
+        - if: runner.os == 'macOS'
+          name: Add mysql bin to PATH
+          shell: bash
+          run: echo "/opt/homebrew/opt/mysql@8.0/bin" >> $GITHUB_PATH
+
         - name: Show mysql Version
           shell: bash
           working-directory: ${{ github.action_path }}
