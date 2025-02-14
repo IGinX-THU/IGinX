@@ -535,7 +535,17 @@ public class NaivePhysicalPlanner {
   }
 
   public PhysicalTask<?> construct(CrossJoin operator, RequestContext context) {
-    return constructRow(operator, context);
+    operator = PhysicalJoinUtils.reverse(operator);
+
+    PhysicalTask<BatchStream> leftTask = fetchAsync(operator.getSourceA(), context);
+    PhysicalTask<BatchStream> rightTask = fetchAsync(operator.getSourceB(), context);
+
+    return new BinarySinkMemoryPhysicalTask(
+        convert(leftTask, context, BatchStream.class),
+        convert(rightTask, context, BatchStream.class),
+        operator,
+        context,
+        new CrossJoinInfoGenerator(operator));
   }
 
   public PhysicalTask<?> construct(FoldedOperator operator, RequestContext context) {
