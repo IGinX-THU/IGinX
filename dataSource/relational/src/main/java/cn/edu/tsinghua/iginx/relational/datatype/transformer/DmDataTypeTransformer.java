@@ -37,24 +37,26 @@ public class DmDataTypeTransformer implements IDataTypeTransformer {
   @Override
   public DataType fromEngineType(String dataType, String... parameters) {
     if (dataType.equalsIgnoreCase("BYTE") || dataType.equalsIgnoreCase("TINYINT")) {
-      return BOOLEAN;
+      return DataType.BOOLEAN;
     } else if (dataType.equalsIgnoreCase("BIGINT")) {
-      return LONG;
+      return DataType.LONG;
     } else if (dataType.equalsIgnoreCase("INT")
         || dataType.equalsIgnoreCase("SMALLINT")
-        || dataType.equalsIgnoreCase("NUMERIC")) {
-      return INTEGER;
-    } else if (dataType.equalsIgnoreCase("FLOAT")) { // from getColumns api
-      return DOUBLE;
+        || dataType.equalsIgnoreCase("NUMERIC")
+        || dataType.equalsIgnoreCase("INTEGER")) {
+      return DataType.INTEGER;
+    } else if (dataType.equalsIgnoreCase("FLOAT")
+        || dataType.equalsIgnoreCase("REAL")) { // from getColumns api
+      return DataType.FLOAT;
     } else if (dataType.equalsIgnoreCase("DOUBLE PRECISION")
         || dataType.equalsIgnoreCase("DOUBLE")) {
-      return DOUBLE;
+      return DataType.DOUBLE;
     } else if (dataType.equalsIgnoreCase("VARCHAR")
         || dataType.equalsIgnoreCase("CHAR")
         || dataType.equalsIgnoreCase("NCHAR")
         || dataType.equalsIgnoreCase("NVARCHAR")
         || dataType.equalsIgnoreCase("TEXT")) {
-      return BINARY;
+      return DataType.BINARY;
     } else {
       LOGGER.error("column type {} is not supported", dataType);
     }
@@ -70,7 +72,7 @@ public class DmDataTypeTransformer implements IDataTypeTransformer {
       case LONG:
         return "BIGINT";
       case FLOAT:
-        return "FLOAT";
+        return "REAL";
       case DOUBLE:
         return "DOUBLE PRECISION";
       case BINARY:

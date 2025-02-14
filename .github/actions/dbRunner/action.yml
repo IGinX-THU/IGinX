@@ -140,6 +140,15 @@ runs:
           with:
               ports: ${{ inputs.MySQL-ports }}
 
+        - if: inputs.DB-name=='VectorDB'
+          name: Run Milvus DB
+          uses: ./.github/actions/service/vectordb
+          with:
+              stop: false
+              clean: false
+              start: true
+              ports: ${{ inputs.VectorDB-ports }}
+
         - if: inputs.DB-name=='Oracle'
           name: Setup DB
           uses: ./.github/actions/setup/oracle
@@ -160,12 +169,3 @@ runs:
           uses: ./.github/actions/service/dameng
           with:
               ports: ${{ inputs.Dameng-ports }}
-
-        - if: inputs.DB-name=='VectorDB'
-          name: Run Milvus DB
-          uses: ./.github/actions/service/vectordb
-          with:
-              stop: false
-              clean: false
-              start: true
-              ports: ${{ inputs.VectorDB-ports }}
