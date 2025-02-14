@@ -21,7 +21,10 @@ package cn.edu.tsinghua.iginx.compaction;
 
 import cn.edu.tsinghua.iginx.engine.physical.PhysicalEngine;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
+import cn.edu.tsinghua.iginx.engine.physical.task.TaskMetrics;
+import cn.edu.tsinghua.iginx.engine.physical.task.memory.row.BatchStreamToRowStreamWrapper;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Delete;
@@ -141,16 +144,21 @@ public abstract class Compaction {
         Set<String> pathRegexSet = new HashSet<>();
         ShowColumns showColumns =
             new ShowColumns(new GlobalSource(), pathRegexSet, null, Integer.MAX_VALUE, 0);
-        RowStream rowStream = physicalEngine.execute(new RequestContext(), showColumns);
+
         SortedSet<String> pathSet = new TreeSet<>();
-        while (rowStream != null && rowStream.hasNext()) {
-          Row row = rowStream.next();
-          String timeSeries = new String((byte[]) row.getValue(0));
-          if (timeSeries.contains("{") && timeSeries.contains("}")) {
-            timeSeries = timeSeries.split("\\{")[0];
-          }
-          if (fragmentMeta.getColumnsInterval().isContain(timeSeries)) {
-            pathSet.add(timeSeries);
+        try (BatchStream batchStream = physicalEngine.execute(new RequestContext(), showColumns);
+            RowStream rowStream =
+                new BatchStreamToRowStreamWrapper(batchStream, TaskMetrics.NO_OP)) {
+
+          while (rowStream.hasNext()) {
+            Row row = rowStream.next();
+            String timeSeries = new String((byte[]) row.getValue(0));
+            if (timeSeries.contains("{") && timeSeries.contains("}")) {
+              timeSeries = timeSeries.split("\\{")[0];
+            }
+            if (fragmentMeta.getColumnsInterval().isContain(timeSeries)) {
+              pathSet.add(timeSeries);
+            }
           }
         }
 

@@ -21,7 +21,6 @@ package cn.edu.tsinghua.iginx;
 
 import static cn.edu.tsinghua.iginx.metadata.utils.IdUtils.generateDummyStorageUnitId;
 import static cn.edu.tsinghua.iginx.metadata.utils.StorageEngineUtils.*;
-import static cn.edu.tsinghua.iginx.utils.ByteUtils.getLongArrayFromByteBuffer;
 import static cn.edu.tsinghua.iginx.utils.HostUtils.isLocalHost;
 import static cn.edu.tsinghua.iginx.utils.HostUtils.isValidHost;
 import static cn.edu.tsinghua.iginx.utils.StringUtils.isEqual;
@@ -828,7 +827,7 @@ public class IginxWorker implements IService.Iface {
     RequestContext ctx = contextBuilder.build(req);
     executor.execute(ctx);
     queryManager.registerQuery(ctx.getId(), ctx);
-    return ctx.getResult().getExecuteStatementResp(req.getFetchSize());
+    return ctx.getResult().getExecuteStatementResp(ctx.getAllocator(), req.getFetchSize());
   }
 
   @Override
@@ -837,7 +836,7 @@ public class IginxWorker implements IService.Iface {
     if (context == null) {
       return new FetchResultsResp(RpcUtils.SUCCESS, false);
     }
-    return context.getResult().fetch(req.getFetchSize());
+    return context.getResult().fetch(context.getAllocator(), req.getFetchSize());
   }
 
   @Override
@@ -1180,8 +1179,10 @@ public class IginxWorker implements IService.Iface {
     RequestContext ctx = contextBuilder.build(queryDataReq);
     executor.execute(ctx);
     QueryDataResp queryDataResp = ctx.getResult().getQueryDataResp();
+    ByteUtils.DataSet dataSet = ByteUtils.getDataFromArrowData(queryDataResp.getQueryArrowData());
 
-    for (DataType type : queryDataResp.getDataTypeList()) {
+    List<DataType> types = dataSet.getDataTypeList();
+    for (DataType type : types) {
       if (type.equals(DataType.BINARY) || type.equals(DataType.BOOLEAN)) {
         LOGGER.error("Unsupported data type: {}", type);
         return new CurveMatchResp(RpcUtils.FAILURE);
@@ -1195,13 +1196,9 @@ public class IginxWorker implements IService.Iface {
     List<Double> upper = CurveMatchUtils.getWindow(queryList, maxWarpingWindow, true);
     List<Double> lower = CurveMatchUtils.getWindow(queryList, maxWarpingWindow, false);
 
-    List<String> paths = queryDataResp.getPaths();
-    long[] queryTimestamps = getLongArrayFromByteBuffer(queryDataResp.getQueryDataSet().keys);
-    List<List<Object>> values =
-        ByteUtils.getValuesFromBufferAndBitmaps(
-            queryDataResp.getDataTypeList(),
-            queryDataResp.getQueryDataSet().getValuesList(),
-            queryDataResp.getQueryDataSet().getBitmapList());
+    List<String> paths = dataSet.getPaths();
+    long[] keys = dataSet.getKeys();
+    List<List<Object>> values = dataSet.getValues();
 
     double globalBestResult = Double.MAX_VALUE;
     long globalMatchedKey = 0L;
@@ -1212,9 +1209,9 @@ public class IginxWorker implements IService.Iface {
       List<Double> value = new ArrayList<>();
       List<Integer> timestampsIndex = new ArrayList<>();
       int cnt = 0;
-      for (int j = 0; j < queryTimestamps.length; j++) {
+      for (int j = 0; j < keys.length; j++) {
         if (values.get(j).get(i) != null) {
-          timestamps.add(queryTimestamps[j]);
+          timestamps.add(keys[j]);
           value.add(ValueUtils.transformToDouble(values.get(j).get(i)));
           timestampsIndex.add(cnt);
           cnt++;

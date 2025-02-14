@@ -19,11 +19,21 @@
  */
 package cn.edu.tsinghua.iginx.utils;
 
+import cn.edu.tsinghua.iginx.constant.GlobalConstant;
+import cn.edu.tsinghua.iginx.exception.IginxRuntimeException;
 import cn.edu.tsinghua.iginx.exception.UnsupportedDataTypeException;
 import cn.edu.tsinghua.iginx.thrift.DataType;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import org.apache.arrow.memory.BufferAllocator;
+import org.apache.arrow.memory.RootAllocator;
+import org.apache.arrow.vector.FieldVector;
+import org.apache.arrow.vector.VectorSchemaRoot;
+import org.apache.arrow.vector.ipc.ArrowStreamReader;
 
 public class ByteUtils {
 
@@ -449,7 +459,7 @@ public class ByteUtils {
       case BINARY:
         buffer = ByteBuffer.allocate(4 + ((byte[]) value).length);
         buffer.putInt(((byte[]) value).length);
-        buffer.put(((byte[]) value));
+        buffer.put((byte[]) value);
         break;
       default:
         throw new UnsupportedOperationException(dataType.toString());
@@ -503,6 +513,156 @@ public class ByteUtils {
         return bytes;
       default:
         throw new UnsupportedOperationException(dataType.toString());
+    }
+  }
+
+  public static byte[] getBytesFromValueByDataType(Object value, DataType dataType) {
+    byte[] bytes;
+    switch (dataType) {
+      case BOOLEAN:
+        bytes = new byte[1];
+        bytes[0] = (byte) ((boolean) value ? 0x01 : 0x00);
+        return bytes;
+      case INTEGER:
+        bytes = new byte[4];
+        for (int i = 0; i < 4; i++) {
+          bytes[i] = (byte) (((int) value >>> 8 * i) & 0xff);
+        }
+        return bytes;
+      case LONG:
+        bytes = new byte[8];
+        for (int i = 0; i < 8; i++) {
+          bytes[i] = (byte) (((long) value >>> 8 * i) & 0xff);
+        }
+        return bytes;
+      case FLOAT:
+        int valueInt = Float.floatToIntBits((float) value);
+        bytes = new byte[4];
+        for (int i = 0; i < 4; i++) {
+          bytes[i] = (byte) ((valueInt >>> 8 * i) & 0xff);
+        }
+        return bytes;
+      case DOUBLE:
+        long valueLong = Double.doubleToRawLongBits((double) value);
+        bytes = new byte[8];
+        for (int i = 0; i < 8; i++) {
+          bytes[i] = (byte) ((valueLong >>> 8 * i) & 0xff);
+        }
+        return bytes;
+      case BINARY:
+        return (byte[]) value;
+      default:
+        throw new UnsupportedOperationException(dataType.toString());
+    }
+  }
+
+  public static DataSet getDataFromArrowData(List<ByteBuffer> dataList) {
+    if (dataList == null) {
+      return null;
+    }
+    List<Long> keys = new ArrayList<>();
+    List<String> paths = new ArrayList<>();
+    List<DataType> dataTypeList = new ArrayList<>();
+    List<Map<String, String>> tagsList = new ArrayList<>();
+    List<List<Object>> values = new ArrayList<>();
+    boolean metaCollected = false;
+    boolean hasKey = false;
+
+    try (BufferAllocator allocator = new RootAllocator(Long.MAX_VALUE)) {
+      for (ByteBuffer data : dataList) {
+        try (ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(data.array());
+            ArrowStreamReader reader = new ArrowStreamReader(byteArrayInputStream, allocator);
+            VectorSchemaRoot root = reader.getVectorSchemaRoot()) {
+          if (!metaCollected) {
+            root.getSchema()
+                .getFields()
+                .forEach(
+                    field -> {
+                      paths.add(field.getName());
+                      dataTypeList.add(TypeUtils.toDataType(field.getType()));
+                      tagsList.add(field.getMetadata());
+                    });
+            if (paths.get(0).equals(GlobalConstant.KEY_NAME)) {
+              hasKey = true;
+            }
+            metaCollected = true;
+          }
+          while (reader.loadNextBatch()) {
+            int rowCnt = root.getRowCount();
+            int colCnt = root.getFieldVectors().size();
+            List<FieldVector> vectors = root.getFieldVectors();
+            for (int i = 0; i < rowCnt; i++) {
+              List<Object> row = new ArrayList<>();
+              int start = 0;
+              if (hasKey) {
+                keys.add((Long) vectors.get(0).getObject(i));
+                start++;
+              }
+              for (int j = start; j < colCnt; j++) {
+                row.add(vectors.get(j).getObject(i));
+              }
+              values.add(row);
+            }
+          }
+        } catch (IOException e) {
+          throw new IginxRuntimeException(e);
+        }
+      }
+    }
+    return new DataSet(keys, paths, dataTypeList, tagsList, values);
+  }
+
+  public static class DataSet {
+
+    private final long[] keys;
+    private final List<String> paths;
+    private final List<DataType> dataTypeList;
+    private final List<Map<String, String>> tagsList;
+    private final List<List<Object>> values;
+    private final int rowSize;
+    private final int colSize;
+
+    public DataSet(
+        List<Long> keys,
+        List<String> paths,
+        List<DataType> dataTypeList,
+        List<Map<String, String>> tagsList,
+        List<List<Object>> values) {
+      this.keys = keys.stream().mapToLong(Long::longValue).toArray();
+      this.paths = paths;
+      this.dataTypeList = dataTypeList;
+      this.tagsList = tagsList;
+      this.values = values;
+      this.rowSize = values.size();
+      this.colSize = dataTypeList.size();
+    }
+
+    public long[] getKeys() {
+      return keys;
+    }
+
+    public List<String> getPaths() {
+      return paths;
+    }
+
+    public List<DataType> getDataTypeList() {
+      return dataTypeList;
+    }
+
+    public List<Map<String, String>> getTagsList() {
+      return tagsList;
+    }
+
+    public List<List<Object>> getValues() {
+      return values;
+    }
+
+    public int getRowSize() {
+      return rowSize;
+    }
+
+    public int getColSize() {
+      return colSize;
     }
   }
 }

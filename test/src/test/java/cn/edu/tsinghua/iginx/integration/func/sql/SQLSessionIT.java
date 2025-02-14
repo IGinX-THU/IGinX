@@ -3189,7 +3189,7 @@ public class SQLSessionIT {
     executor.executeAndCompare(query, expected);
 
     query =
-        "select test1.d, sum(avg_a) from test1 join (select d, avg(a) as avg_a from test2 group by d) on test1.d = test2.d group by test1.d;";
+        "select test1.d, sum(avg_a) from test1 join (select d, avg(a) as avg_a from test2 group by d) on test1.d = test2.d group by test1.d order by test1.d desc;";
     expected =
         "ResultSets:\n"
             + "+-------+----------+\n"
@@ -3569,12 +3569,12 @@ public class SQLSessionIT {
             + "+--------+--------+----------+--------+--------+----------+--------+--------+----------+\n"
             + "|       3|     3.1|         2|       3|     bbb|         2|     bbb|   false|         4|\n"
             + "|       5|     5.1|         3|       5|     ddd|         4|     ddd|    true|         1|\n"
-            + "|    null|    null|      null|       2|     aaa|         1|     aaa|    true|         3|\n"
-            + "|    null|    null|      null|       4|     ccc|         3|     ccc|    true|         5|\n"
-            + "|    null|    null|      null|       6|     eee|         5|     eee|   false|         2|\n"
             + "|       1|     1.1|         1|    null|    null|      null|    null|    null|      null|\n"
             + "|       7|     7.1|         4|    null|    null|      null|    null|    null|      null|\n"
             + "|       9|     9.1|         5|    null|    null|      null|    null|    null|      null|\n"
+            + "|    null|    null|      null|       2|     aaa|         1|     aaa|    true|         3|\n"
+            + "|    null|    null|      null|       4|     ccc|         3|     ccc|    true|         5|\n"
+            + "|    null|    null|      null|       6|     eee|         5|     eee|   false|         2|\n"
             + "+--------+--------+----------+--------+--------+----------+--------+--------+----------+\n"
             + "Total line number = 8\n";
     executor.executeAndCompare(statement, expected);
@@ -7000,7 +7000,7 @@ public class SQLSessionIT {
                     + "+---+------------+----------+-------------+-------------+\n"
                     + "Total line number = 7\n"),
             new Pair<>(
-                "select avg(test1.a), test2.d from test1 join test2 on test1.a = test2.a group by test2.d;",
+                "select avg(test1.a), test2.d from test1 join test2 on test1.a = test2.a group by test2.d order by test2.d desc;",
                 "ResultSets:\n"
                     + "+------------+-------+\n"
                     + "|avg(test1.a)|test2.d|\n"
@@ -7012,7 +7012,7 @@ public class SQLSessionIT {
                     + "+------------+-------+\n"
                     + "Total line number = 4\n"),
             new Pair<>(
-                "select avg(test1.a), max(test1.c), test2.d from test1 join test2 on test1.a = test2.a group by test2.d;",
+                "select avg(test1.a), max(test1.c), test2.d from test1 join test2 on test1.a = test2.a group by test2.d order by test2.d desc;",
                 "ResultSets:\n"
                     + "+------------+------------+-------+\n"
                     + "|avg(test1.a)|max(test1.c)|test2.d|\n"
@@ -7024,7 +7024,7 @@ public class SQLSessionIT {
                     + "+------------+------------+-------+\n"
                     + "Total line number = 4\n"),
             new Pair<>(
-                "select avg(test1.a), max(test1.c), test2.d from test1 join test2 on test1.a = test2.a group by test2.d having max(test1.c) > 3.5;",
+                "select avg(test1.a), max(test1.c), test2.d from test1 join test2 on test1.a = test2.a group by test2.d having max(test1.c) > 3.5 order by test2.d desc;",
                 "ResultSets:\n"
                     + "+------------+------------+-------+\n"
                     + "|avg(test1.a)|max(test1.c)|test2.d|\n"
@@ -7152,6 +7152,9 @@ public class SQLSessionIT {
                 "maxTimeseriesLength",
                 "batchSize",
                 "parallelGroupByPoolSize",
+                "executionBatchRowCount",
+                "groupByInitialGroupBufferCapacity",
+                "pipelineParallelism",
                 "username"));
 
     assertEquals(expectedConfigNames, configs.keySet());
