@@ -29,8 +29,6 @@ import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.constraint.ConstraintManager;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.*;
-import cn.edu.tsinghua.iginx.physical.optimizer.rule.Rule;
-import java.util.Collection;
 
 public class NaivePhysicalOptimizer implements PhysicalOptimizer {
 
@@ -59,120 +57,6 @@ public class NaivePhysicalOptimizer implements PhysicalOptimizer {
   public ReplicaDispatcher getReplicaDispatcher() {
     return NaiveReplicaDispatcher.getInstance();
   }
-
-  public void setRules(Collection<Rule> rules) {}
-
-  //  private PhysicalTask constructTask(Operator operator, RequestContext context) {
-  //    if (OperatorType.isUnaryOperator(operator.getType())) {
-  //      return constructUnaryTask((UnaryOperator) operator, context);
-  //    } else if (OperatorType.isBinaryOperator(operator.getType())) {
-  //      return constructBinaryTask((BinaryOperator) operator, context);
-  //    } else if (operator.getType().equals(OperatorType.ShowColumns)) {
-  //      return new GlobalPhysicalTask(operator, context);
-  //    } else if (OperatorType.isMultipleOperator(operator.getType())) {
-  //      return constructMultipleTask((MultipleOperator) operator, context);
-  //    } else {
-  //      throw new IllegalArgumentException("Unexpected operator type: " + operator.getType());
-  //    }
-  //  }
-  //
-  //  private PhysicalTask constructUnaryTask(UnaryOperator operator, RequestContext context) {
-  //    List<Operator> operators = new ArrayList<>();
-  //    Source source = operator.getSource();
-  //    switch (source.getType()) {
-  //      case Fragment: // 构建物理计划
-  //        operators.add(operator);
-  //        if (OperatorType.isNeedBroadcasting(operator.getType())) {
-  //          return new StoragePhysicalTask(operators, true, true, context);
-  //        } else {
-  //          return new StoragePhysicalTask(operators, context);
-  //        }
-  //      case Operator: // 构建内存中的计划
-  //        OperatorSource operatorSource = (OperatorSource) source;
-  //        Operator sourceOperator = operatorSource.getOperator();
-  //        PhysicalTask sourceTask = constructTask(operatorSource.getOperator(), context);
-  //        // push down Select operator
-  //        if (ConfigDescriptor.getInstance().getConfig().isEnablePushDown()
-  //            && sourceTask instanceof StoragePhysicalTask
-  //            && sourceOperator.getType() == OperatorType.Project
-  //            && ((Project) sourceOperator).getTagFilter() == null
-  //            && ((UnaryOperator) sourceOperator).getSource().getType() == SourceType.Fragment) {
-  //          switch (operator.getType()) {
-  //            case Select:
-  //              if (((Select) operator).getTagFilter() == null) {
-  //                sourceTask.getOperators().add(operator);
-  //                return sourceTask;
-  //              }
-  //              break;
-  //            case SetTransform:
-  //              sourceTask.getOperators().add(operator);
-  //              return sourceTask;
-  //            default:
-  //              break;
-  //          }
-  //        }
-  //        operators.add(operator);
-  //        PhysicalTask task = new
-  // cn.edu.tsinghua.iginx.engine.physical.task.UnaryMemoryPhysicalTask(operators, sourceTask,
-  // context);
-  //        sourceTask.setFollowerTask(task);
-  //        return task;
-  //      case Constant:
-  //        operators.add(operator);
-  //        cn.edu.tsinghua.iginx.engine.physical.task.UnaryMemoryPhysicalTask ret = new
-  // cn.edu.tsinghua.iginx.engine.physical.task.UnaryMemoryPhysicalTask(operators, null, context);
-  //        MemoryPhysicalTaskDispatcher.getInstance().addMemoryTask(ret);
-  //        return ret;
-  //      default:
-  //        throw new IllegalArgumentException("Unsupported operator type: " + source.getType());
-  //    }
-  //  }
-  //
-  //  private PhysicalTask constructBinaryTask(BinaryOperator operator, RequestContext context) {
-  //    OperatorSource sourceA = (OperatorSource) operator.getSourceA();
-  //    OperatorSource sourceB = (OperatorSource) operator.getSourceB();
-  //    PhysicalTask sourceTaskA = constructTask(sourceA.getOperator(), context);
-  //    PhysicalTask sourceTaskB = constructTask(sourceB.getOperator(), context);
-  //    List<Operator> operators = new ArrayList<>();
-  //    operators.add(operator);
-  //    PhysicalTask task = new
-  // cn.edu.tsinghua.iginx.engine.physical.task.BinaryMemoryPhysicalTask(operators, sourceTaskA,
-  // sourceTaskB, context);
-  //    sourceTaskA.setFollowerTask(task);
-  //    sourceTaskB.setFollowerTask(task);
-  //    return task;
-  //  }
-  //
-  //  private PhysicalTask constructMultipleTask(MultipleOperator operator, RequestContext context)
-  // {
-  //    List<PhysicalTask> parentTasks = new ArrayList<>();
-  //    for (Source source : operator.getSources()) {
-  //      OperatorSource operatorSource = (OperatorSource) source;
-  //      PhysicalTask parentTask = constructTask(operatorSource.getOperator(), context);
-  //      parentTasks.add(parentTask);
-  //    }
-  //    List<Operator> operators = new ArrayList<>();
-  //    operators.add(operator);
-  //
-  //    PhysicalTask task;
-  //    if (operator.getType().equals(OperatorType.Folded)) {
-  //      FoldedOperator foldedOperator = (FoldedOperator) operator;
-  //      PhysicalTask foldedTask =
-  //          new FoldedMemoryPhysicalTask(
-  //              operators, foldedOperator.getIncompleteRoot(), parentTasks, context);
-  //      for (PhysicalTask parentTask : parentTasks) {
-  //        parentTask.setFollowerTask(foldedTask);
-  //      }
-  //      task = new CompletedFoldedPhysicalTask(foldedTask, context);
-  //      foldedTask.setFollowerTask(task);
-  //    } else {
-  //      task = new MultipleMemoryPhysicalTask(operators, parentTasks, context);
-  //      for (PhysicalTask parentTask : parentTasks) {
-  //        parentTask.setFollowerTask(task);
-  //      }
-  //    }
-  //    return task;
-  //  }
 
   private static PhysicalTask<?> setFollowerTask(PhysicalTask<?> task) {
     switch (task.getType()) {
