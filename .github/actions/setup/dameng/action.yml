@@ -72,5 +72,3 @@ runs:
               sudo apt update
               sudo apt install docker-ce docker-ce-cli containerd.io -y
               sudo service docker start
-              docker --version
-              docker pull container-registry.oracle.com/database/free:23.5.0.0-lite
