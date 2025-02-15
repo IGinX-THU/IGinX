@@ -28,14 +28,14 @@ runs:
           name: Install Docker
           shell: wsl-run {0}
           run: |
-            sudo apt install apt-transport-https ca-certificates curl software-properties-common -y
-            curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
-            sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable"
-            sudo apt update
-            sudo apt install docker-ce docker-ce-cli containerd.io -y
-            sudo service docker start
-            docker --version
-            docker pull container-registry.oracle.com/database/free:23.5.0.0-lite
+              sudo apt install apt-transport-https ca-certificates curl software-properties-common -y
+              curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+              sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable"
+              sudo apt update
+              sudo apt install docker-ce docker-ce-cli containerd.io -y
+              sudo service docker start
+              docker --version
+              docker pull container-registry.oracle.com/database/free:23.5.0.0-lite
 
         - if: runner.os == 'Linux' || runner.os == 'macOS'
           name: Download and Install Dameng JDBC Driver
