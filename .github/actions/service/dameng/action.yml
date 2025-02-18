@@ -36,7 +36,7 @@ runs:
           run: |
               docker volume create dameng_data
               for port in ${{ inputs.ports }}; do
-                docker run -d -p $port:5236 \ 
+                docker run -d -p $port:5236 \
                   --platform linux/amd64 \
                   --restart=always \
                   --name=${{ inputs.version }}-$port \
