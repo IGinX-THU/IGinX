@@ -29,7 +29,7 @@ runs:
                   -v /opt/data:/opt/dmdbms/data \
                   dm8_single:dm8_20241022_rev244896_x86_rh6_64
               done
-      
+
         - if: runner.os == 'macOS'
           name: Run Dameng Database container
           shell: bash
