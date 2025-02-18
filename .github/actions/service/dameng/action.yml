@@ -16,6 +16,7 @@ runs:
           name: Run Dameng Database container
           shell: bash
           run: |
+              docker volume create dameng_data
               for port in ${{ inputs.ports }}; do
                 docker run -d -p $port:5236 --restart=always \
                   --name=${{ inputs.version }}-$port \
@@ -26,7 +27,7 @@ runs:
                   -e LOG_SIZE=1024 \
                   -e UNICODE_FLAG=1 \
                   -e INSTANCE_NAME=dm8_test \
-                  -v /opt/data:/opt/dmdbms/data \
+                  -v dameng_data:/opt/dmdbms/data \
                   dm8_single:dm8_20241022_rev244896_x86_rh6_64
               done
 
@@ -59,7 +60,7 @@ runs:
                 while true; do
                   log_output=$(docker logs "${{ inputs.version }}-$port" 2>&1 | grep -i "DM Database is OK" || true)
                   if [ -z "$log_output" ]; then
-                    echo "'DM Database is OK' not found in the logs, retrying in 100 seconds..."
+                    echo "'DM Database is OK' not found in the logs, retrying in 30 seconds..."
                     docker logs --tail 10 ${{ inputs.version }}-$port
                     sleep 30
                   else
