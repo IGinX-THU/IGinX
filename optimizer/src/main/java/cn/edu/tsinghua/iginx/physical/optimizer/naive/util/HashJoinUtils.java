@@ -257,8 +257,8 @@ public class HashJoinUtils {
       throws ComputeException {
     List<Pair<Integer, Integer>> sameNameIndicesPairs = new ArrayList<>();
     for (String sameNameEqualPath : sameNameEqualPaths) {
-      List<Integer> leftPath = Schemas.matchPattern(leftSchema, sameNameEqualPath);
-      List<Integer> rightPath = Schemas.matchPattern(rightSchema, sameNameEqualPath);
+      List<Integer> leftPath = Schemas.matchPatternIgnoreKey(leftSchema, sameNameEqualPath);
+      List<Integer> rightPath = Schemas.matchPatternIgnoreKey(rightSchema, sameNameEqualPath);
       if (leftPath.isEmpty() || rightPath.isEmpty()) {
         throw new ComputeException("Path not found: " + sameNameEqualPath);
       }

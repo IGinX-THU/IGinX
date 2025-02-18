@@ -170,7 +170,7 @@ $ mvn clean install -Dmaven.test.skip=true
 
 ```shell
 [INFO] ------------------------------------------------------------------------
-[INFO] Reactor Summary for IGinX 0.8.0-SNAPSHOT:
+[INFO] Reactor Summary for IGinX 0.9.0-SNAPSHOT:
 [INFO]
 [INFO] IGinX .............................................. SUCCESS [ 20.674 s]
 [INFO] IGinX Thrift ....................................... SUCCESS [01:18 min]
@@ -232,7 +232,7 @@ storageEngineList=127.0.0.1#6667#parquet#dir=parquetData#has_data=false#is_read_
 
 ```shell
 $ cd ~
-$ cd IGinX/core/target/iginx-core-0.8.0-SNAPSHOT
+$ cd IGinX/core/target/iginx-core-0.9.0-SNAPSHOT
 $ chmod +x sbin/start_iginx.sh # 为启动脚本添加启动权限
 $ ./sbin/start_iginx.sh
 ```
@@ -282,7 +282,7 @@ IGinX is now in service......
 使用如下的命令即可向数据库中插入数据：
 
 ```shell
-$ curl -XPOST -H'Content-Type: application/json' -d @insert.json http://127.0.0.1:6666/api/v1/datapoints
+$ curl -XPOST -H'Content-Type: application/json' -d @insert.json http://127.0.0.1:7888/api/v1/datapoints
 ```
 
 在插入数据后，还可以使用 RESTful 接口查询刚刚写入的数据。
@@ -311,7 +311,7 @@ $ curl -XPOST -H'Content-Type: application/json' -d @insert.json http://127.0.0.
 使用如下的命令查询数据：
 
 ```shell
-$ curl -XPOST -H'Content-Type: application/json' -d @query.json http://127.0.0.1:6666/api/v1/datapoints/query
+$ curl -XPOST -H'Content-Type: application/json' -d @query.json http://127.0.0.1:7888/api/v1/datapoints/query
 ```
 
 命令会返回刚刚插入的数据点信息：

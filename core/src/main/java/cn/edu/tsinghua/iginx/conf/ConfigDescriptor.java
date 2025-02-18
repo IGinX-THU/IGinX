@@ -126,7 +126,7 @@ public class ConfigDescriptor {
           Integer.parseInt(properties.getProperty("statisticsLogInterval", "5000")));
 
       config.setRestIp(properties.getProperty("restIp", "127.0.0.1"));
-      config.setRestPort(Integer.parseInt(properties.getProperty("restPort", "6666")));
+      config.setRestPort(Integer.parseInt(properties.getProperty("restPort", "7888")));
 
       config.setDisorderMargin(Long.parseLong(properties.getProperty("disorderMargin", "10")));
       config.setAsyncRestThreadPool(
@@ -205,10 +205,10 @@ public class ConfigDescriptor {
           Integer.parseInt(properties.getProperty("transformTaskThreadPoolSize", "10")));
       config.setTransformMaxRetryTimes(
           Integer.parseInt(properties.getProperty("transformMaxRetryTimes", "3")));
-
+      config.setDefaultScheduledTransformJobDir(
+          properties.getProperty("defaultScheduledTransformJobDir", "transform_jobs"));
       config.setNeedInitBasicUDFFunctions(
           Boolean.parseBoolean(properties.getProperty("needInitBasicUDFFunctions", "false")));
-
       config.setHistoricalPrefixList(properties.getProperty("historicalPrefixList", ""));
       config.setExpectedStorageUnitNum(
           Integer.parseInt(properties.getProperty("expectedStorageUnitNum", "0")));
@@ -230,20 +230,16 @@ public class ConfigDescriptor {
           Integer.parseInt(properties.getProperty("streamParallelGroupByWorkerNum", "5")));
       config.setPipelineParallelism(
           Integer.parseInt(properties.getProperty("pipelineParallelism", "5")));
+      config.setExecutionBatchRowCount(
+          Integer.parseInt(properties.getProperty("executionBatchRowCount", "3970")));
+      config.setGroupByInitialGroupBufferCapacity(
+          Integer.parseInt(properties.getProperty("groupByInitialGroupBufferCapacity", "31")));
       config.setBatchSizeImportCsv(
           Integer.parseInt(properties.getProperty("batchSizeImportCsv", "10000")));
       config.setRuleBasedOptimizer(
           properties.getProperty(
               "ruleBasedOptimizer",
               "NotFilterRemoveRule=on,FragmentPruningByFilterRule=on,ColumnPruningRule=on,FragmentPruningByPatternRule=on"));
-      config.setEnableEmailNotification(
-          Boolean.parseBoolean(properties.getProperty("enableEmailNotification", "false")));
-      config.setMailSmtpHost(properties.getProperty("mailSmtpHost", ""));
-      config.setMailSmtpPort(Integer.parseInt(properties.getProperty("mailSmtpPort", "465")));
-      config.setMailSmtpUser(properties.getProperty("mailSmtpUser", ""));
-      config.setMailSmtpPassword(properties.getProperty("mailSmtpPassword", ""));
-      config.setMailSender(properties.getProperty("mailSender", ""));
-      config.setMailRecipient(properties.getProperty("mailRecipient", ""));
     } catch (IOException e) {
       config.setUTTestEnv(true);
       config.setNeedInitBasicUDFFunctions(false);
@@ -345,6 +341,9 @@ public class ConfigDescriptor {
         EnvUtils.loadEnv("transformTaskThreadPoolSize", config.getTransformTaskThreadPoolSize()));
     config.setTransformMaxRetryTimes(
         EnvUtils.loadEnv("transformMaxRetryTimes", config.getTransformMaxRetryTimes()));
+    config.setDefaultScheduledTransformJobDir(
+        EnvUtils.loadEnv(
+            "defaultScheduledTransformJobDir", config.getDefaultScheduledTransformJobDir()));
     config.setNeedInitBasicUDFFunctions(
         EnvUtils.loadEnv("needInitBasicUDFFunctions", config.isNeedInitBasicUDFFunctions()));
     config.setHistoricalPrefixList(
@@ -367,19 +366,16 @@ public class ConfigDescriptor {
             "streamParallelGroupByWorkerNum", config.getStreamParallelGroupByWorkerNum()));
     config.setPipelineParallelism(
         EnvUtils.loadEnv("pipelineParallelism", config.getPipelineParallelism()));
+    config.setExecutionBatchRowCount(
+        EnvUtils.loadEnv("executionBatchRowCount", config.getExecutionBatchRowCount()));
+    config.setGroupByInitialGroupBufferCapacity(
+        EnvUtils.loadEnv(
+            "groupByInitialGroupBufferCapacity", config.getGroupByInitialGroupBufferCapacity()));
     config.setBatchSizeImportCsv(
         EnvUtils.loadEnv("batchSizeImportCsv", config.getBatchSizeImportCsv()));
     config.setUTTestEnv(EnvUtils.loadEnv("utTestEnv", config.isUTTestEnv()));
     config.setRuleBasedOptimizer(
         EnvUtils.loadEnv("ruleBasedOptimizer", config.getRuleBasedOptimizer()));
-    config.setEnableEmailNotification(
-        Boolean.parseBoolean(EnvUtils.loadEnv("enableEmailNotification", "false")));
-    config.setMailSmtpHost(EnvUtils.loadEnv("mailSmtpHost", ""));
-    config.setMailSmtpPort(Integer.parseInt(EnvUtils.loadEnv("mailSmtpPort", "465")));
-    config.setMailSmtpUser(EnvUtils.loadEnv("mailSmtpUser", ""));
-    config.setMailSmtpPassword(EnvUtils.loadEnv("mailSmtpPassword", ""));
-    config.setMailSender(EnvUtils.loadEnv("mailSender", ""));
-    config.setMailRecipient(EnvUtils.loadEnv("mailRecipient", ""));
   }
 
   private void loadUDFListFromFile() {

@@ -19,6 +19,7 @@
  */
 package cn.edu.tsinghua.iginx.engine.shared;
 
+import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.engine.physical.PhysicalEngine;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ConstantPool;
 import cn.edu.tsinghua.iginx.engine.physical.task.PhysicalTask;
@@ -33,7 +34,6 @@ import java.nio.ByteBuffer;
 import java.util.*;
 import lombok.Data;
 import org.apache.arrow.memory.BufferAllocator;
-import org.apache.arrow.vector.BaseValueVector;
 
 @Data
 public class RequestContext implements TaskContext {
@@ -64,11 +64,11 @@ public class RequestContext implements TaskContext {
 
   private PhysicalTask<BatchStream> physicalTree;
 
-  private ByteBuffer loadCSVFileByteBuffer;
+  private String loadCSVFileName;
 
   private ByteBuffer UDFModuleByteBuffer;
 
-  private boolean isRemoteUDF;
+  private boolean isRemoteSession;
 
   private BufferAllocator allocator;
 
@@ -80,16 +80,11 @@ public class RequestContext implements TaskContext {
 
   private List<String> warningMsg = Collections.synchronizedList(new ArrayList<>());
 
-  // TODO: make this configurable
+  private int batchRowCount =
+      ConfigDescriptor.getInstance().getConfig().getExecutionBatchRowCount();
 
-  /**
-   * The maximum number of rows in a batch.
-   *
-   * @see org.apache.arrow.vector.BaseValueVector#INITIAL_VALUE_ALLOCATION
-   */
-  private volatile int batchRowCount = BaseValueVector.INITIAL_VALUE_ALLOCATION;
-
-  private int groupByInitialGroupBufferCapacity = BaseValueVector.INITIAL_VALUE_ALLOCATION >> 7;
+  private int groupByInitialGroupBufferCapacity =
+      ConfigDescriptor.getInstance().getConfig().getGroupByInitialGroupBufferCapacity();
 
   private void init() {
     this.id = SnowFlakeUtils.getInstance().nextId();
@@ -154,10 +149,5 @@ public class RequestContext implements TaskContext {
   @Override
   public void addWarningMessage(String message) {
     warningMsg.add(message);
-  }
-
-  @Override
-  public int groupByInitialGroupBufferCapacity() {
-    return groupByInitialGroupBufferCapacity;
   }
 }

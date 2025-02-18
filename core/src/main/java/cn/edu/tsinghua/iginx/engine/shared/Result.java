@@ -71,7 +71,8 @@ public class Result {
   private RowStream resultStream;
 
   private long jobId;
-  private List<Long> jobIdList;
+  private Map<JobState, List<Long>> jobStateMap;
+  private String jobYamlPath;
 
   private Map<String, String> configs;
 
@@ -151,7 +152,8 @@ public class Result {
     resp.setRegisterTaskInfos(registerTaskInfos);
     resp.setJobId(jobId);
     resp.setJobState(jobState);
-    resp.setJobIdList(jobIdList);
+    resp.setJobStateMap(jobStateMap);
+    resp.setJobYamlPath(jobYamlPath);
     resp.setConfigs(configs);
     // INFILE AS CSV
     resp.setLoadCsvPath(loadCSVPath);

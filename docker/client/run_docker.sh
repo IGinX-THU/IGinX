@@ -41,6 +41,6 @@ done
 
 [ -d "$datadir" ] || mkdir -p "$datadir"
 
-command="docker run --name=\"$name\" --privileged -dit --add-host=host.docker.internal:host-gateway --mount type=bind,source=${datadir},target=/iginx_client/data iginx-client:0.8.0-SNAPSHOT"
+command="docker run --name=\"$name\" --privileged -dit --add-host=host.docker.internal:host-gateway --mount type=bind,source=${datadir},target=/iginx_client/data iginx-client:0.9.0-SNAPSHOT"
 echo $command
 eval $command

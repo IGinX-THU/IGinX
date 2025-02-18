@@ -59,7 +59,7 @@ public class InnerBatchSortInfoGenerator
     List<ScalarExpression<?>> children = new ArrayList<>();
     for (int i = 0; i < sort.getSortByCols().size(); i++) {
       String col = sort.getSortByCols().get(i);
-      List<Integer> partialIndices = Schemas.matchPattern(inputSchema.raw(), col);
+      List<Integer> partialIndices = Schemas.matchPatternIgnoreKey(inputSchema.raw(), col);
       if (partialIndices.isEmpty()) {
         throw new ComputeException(
             "SortBy Column " + col + " not found in input schema " + inputSchema);

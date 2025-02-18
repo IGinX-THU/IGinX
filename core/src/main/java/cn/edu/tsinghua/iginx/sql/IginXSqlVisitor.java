@@ -113,7 +113,6 @@ import cn.edu.tsinghua.iginx.sql.SqlParser.PredicateContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.PredicateWithSubqueryContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.QueryClauseContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.RegisterTaskStatementContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.RemoveHistoryDataSourceStatementContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.SearchedCaseContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.SearchedWhenClauseContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.SelectClauseContext;
@@ -653,9 +652,9 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
   }
 
   @Override
-  public Statement visitRemoveHistoryDataSourceStatement(
-      RemoveHistoryDataSourceStatementContext ctx) {
-    RemoveHistoryDataSourceStatement statement = new RemoveHistoryDataSourceStatement();
+  public Statement visitRemoveStorageEngineStatement(
+      SqlParser.RemoveStorageEngineStatementContext ctx) {
+    RemoveStorageEngineStatement statement = new RemoveStorageEngineStatement();
     ctx.removedStorageEngine()
         .forEach(
             storageEngine -> {
@@ -864,23 +863,50 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
   @Override
   public Statement visitShowEligibleJobStatement(ShowEligibleJobStatementContext ctx) {
-    JobState jobState = JobState.JOB_UNKNOWN;
-    if (ctx.jobStatus().FINISHED() != null) {
-      jobState = JobState.JOB_FINISHED;
-    } else if (ctx.jobStatus().CREATED() != null) {
-      jobState = JobState.JOB_CREATED;
-    } else if (ctx.jobStatus().RUNNING() != null) {
-      jobState = JobState.JOB_RUNNING;
-    } else if (ctx.jobStatus().FAILING() != null) {
-      jobState = JobState.JOB_FAILING;
-    } else if (ctx.jobStatus().FAILED() != null) {
-      jobState = JobState.JOB_FAILED;
-    } else if (ctx.jobStatus().CLOSING() != null) {
-      jobState = JobState.JOB_CLOSING;
-    } else if (ctx.jobStatus().CLOSED() != null) {
-      jobState = JobState.JOB_CLOSED;
+    if (ctx.jobStatus() == null) {
+      return new ShowEligibleJobStatement(null);
+    } else {
+      JobState jobState;
+      switch (ctx.jobStatus().getText().toUpperCase()) {
+        case "UNKNOWN":
+          jobState = JobState.JOB_UNKNOWN;
+          break;
+        case "FINISHED":
+          jobState = JobState.JOB_FINISHED;
+          break;
+        case "CREATED":
+          jobState = JobState.JOB_CREATED;
+          break;
+        case "IDLE":
+          jobState = JobState.JOB_IDLE;
+          break;
+        case "RUNNING":
+          jobState = JobState.JOB_RUNNING;
+          break;
+        case "PARTIALLY_FAILING":
+          jobState = JobState.JOB_PARTIALLY_FAILING;
+          break;
+        case "PARTIALLY_FAILED":
+          jobState = JobState.JOB_PARTIALLY_FAILED;
+          break;
+        case "FAILING":
+          jobState = JobState.JOB_FAILING;
+          break;
+        case "FAILED":
+          jobState = JobState.JOB_FAILED;
+          break;
+        case "CLOSING":
+          jobState = JobState.JOB_CLOSING;
+          break;
+        case "CLOSED":
+          jobState = JobState.JOB_CLOSED;
+          break;
+        default:
+          throw new SQLParserException(
+              "Illegal job state. Accept: UNKNOWN/FINISHED/CREATED/IDLE/RUNNING/PARTIALLY_FAILING/PARTIALLY_FAILED/FAILING/FAILED/CLOSING/CLOSED");
+      }
+      return new ShowEligibleJobStatement(jobState);
     }
-    return new ShowEligibleJobStatement(jobState);
   }
 
   @Override
@@ -1744,7 +1770,11 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     assert ctx.expression().size() == 2;
     Expression expressionA = parseExpression(ctx.expression().get(0), statement, pos).get(0);
     Expression expressionB = parseExpression(ctx.expression().get(1), statement, pos).get(0);
-    return new FilterData(new ExprFilter(expressionA, op, expressionB));
+
+    FilterData filterData = new FilterData(new ExprFilter(expressionA, op, expressionB));
+    filterData.addPaths(getPathsFromExpression(expressionA, statement));
+    filterData.addPaths(getPathsFromExpression(expressionB, statement));
+    return filterData;
   }
 
   private FilterData parseValueFilter(
@@ -2037,20 +2067,20 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
   private Map<String, String> parseExtra(StringLiteralContext ctx) {
     Map<String, String> map = new HashMap<>();
     String extra = ctx.getText().trim();
-    if (extra.length() == 0 || extra.equals(SQLConstant.DOUBLE_QUOTES)) {
+    if (extra.isEmpty()
+        || extra.equals(SQLConstant.DOUBLE_QUOTES)
+        || extra.equals(SQLConstant.SINGLE_QUOTES)) {
       return map;
     }
     extra = extra.substring(1, extra.length() - 1);
     String[] kvStr = extra.split(SQLConstant.COMMA);
     for (String kv : kvStr) {
-      String[] kvArray = kv.split(SQLConstant.COLON);
+      String[] kvArray = kv.split(SQLConstant.EQUAL);
       if (kvArray.length != 2) {
-        if (kv.contains("url")) {
-          map.put("url", kv.substring(kv.indexOf(":") + 1));
-        } else if (kv.contains("dir")) {
+        if (kv.contains("dir")) {
           // for windows absolute path
-          String dirType = kv.substring(0, kv.indexOf(":")).trim();
-          String dirPath = kv.substring(kv.indexOf(":") + 1).trim();
+          String dirType = kv.substring(0, kv.indexOf(SQLConstant.EQUAL)).trim();
+          String dirPath = kv.substring(kv.indexOf(SQLConstant.EQUAL) + 1).trim();
           map.put(dirType, dirPath);
         }
         continue;
@@ -2213,16 +2243,31 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     List<String> paths = new ArrayList<>();
     for (int i = 0; i < 2 && i < predicateContext.path().size(); i++) {
       String path = parsePath(predicateContext.path().get(i));
-      // 如果查询语句不是一个子查询，FROM子句只有一个部分且FROM一个前缀，则WHERE条件中的path只用写出后缀
-      if (statement.isFromSinglePath() && !statement.isSubQuery()) {
-        path = statement.getFromPart(0).getPrefix() + SQLConstant.DOT + path;
-      }
-      String originPath = statement.getOriginPath(path);
-      if (originPath != null) {
-        paths.add(originPath);
-      }
+      transformPath(paths, path, statement);
     }
     return paths;
+  }
+
+  private List<String> getPathsFromExpression(Expression expr, UnarySelectStatement statement) {
+    List<String> paths = new ArrayList<>();
+    List<BaseExpression> baseExpressions =
+        ExpressionUtils.getBaseExpressionList(Collections.singletonList(expr), false);
+    for (BaseExpression baseExpression : baseExpressions) {
+      String path = baseExpression.getPathName();
+      transformPath(paths, path, statement);
+    }
+    return paths;
+  }
+
+  private void transformPath(List<String> paths, String path, UnarySelectStatement statement) {
+    // 如果查询语句不是一个子查询，FROM子句只有一个部分且FROM一个前缀，则WHERE条件中的path只用写出后缀
+    if (statement.isFromSinglePath() && !statement.isSubQuery()) {
+      path = statement.getFromPart(0).getPrefix() + SQLConstant.DOT + path;
+    }
+    String originPath = statement.getOriginPath(path);
+    if (originPath != null) {
+      paths.add(originPath);
+    }
   }
 
   private static class FilterData {

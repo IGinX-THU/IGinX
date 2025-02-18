@@ -49,7 +49,7 @@ public class AppendExpressionInfoGenerator implements UnaryExecutorFactory<Proje
     }
     for (Expression expression : appendExpressions) {
       String columnName = expression.getColumnName();
-      List<Integer> matchedIndices = Schemas.matchPattern(inputSchema.raw(), columnName);
+      List<Integer> matchedIndices = Schemas.matchPatternIgnoreKey(inputSchema.raw(), columnName);
       if (!matchedIndices.isEmpty()) {
         continue;
       }

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # IGinX - the polystore system with high performance
 # Copyright (C) Tsinghua University
@@ -18,7 +18,7 @@
 #
 
 port=$1
-cd "$SERVICE_DIR_WIN/mysql"
+cd "${SERVICE_DIR}/mysql"
 mysqld --defaults-file="$port.ini" &
 sleep 2
 

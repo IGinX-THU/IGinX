@@ -36,7 +36,8 @@ enum StorageEngineType {
     filesystem,
     relational,
     mongodb,
-    redis
+    redis,
+    vectordb
 }
 
 enum AggregateType {
@@ -71,7 +72,7 @@ enum SqlType {
     ShowJobStatus,
     CancelJob,
     ShowEligibleJob,
-    RemoveHistoryDataSource,
+    RemoveStorageEngine,
     SetConfig,
     ShowConfig,
     Compact,
@@ -101,19 +102,19 @@ enum UserType {
 }
 
 enum ExportType {
-    Log,
-    File,
-    IginX
+    LOG,
+    FILE,
+    IGINX
 }
 
 enum TaskType {
-    IginX,
-    Python
+    IGINX,
+    PYTHON
 }
 
 enum DataFlowType {
-    Batch,
-    Stream
+    BATCH,
+    STREAM
 }
 
 enum JobState {
@@ -122,6 +123,8 @@ enum JobState {
     JOB_CREATED,
     JOB_IDLE,
     JOB_RUNNING,
+    JOB_PARTIALLY_FAILING,
+    JOB_PARTIALLY_FAILED,
     JOB_FAILING,
     JOB_FAILED,
     JOB_CLOSING,
@@ -347,6 +350,7 @@ struct GetReplicaNumResp {
 struct ExecuteSqlReq {
     1: required i64 sessionId
     2: required string statement
+    3: optional bool remoteSession
 }
 
 struct ExecuteSqlResp {
@@ -370,15 +374,16 @@ struct ExecuteSqlResp {
     18: optional list<RegisterTaskInfo> registerTaskInfos
     19: optional i64 jobId
     20: optional JobState jobState
-    21: optional list<i64> jobIdList
-    22: optional map<string, string> configs
-    23: optional string loadCsvPath
-    24: optional list<i64> sessionIDList
-    25: optional map<string, bool> rules
-    26: optional string UDFModulePath
-    27: optional list<string> usernames
-    28: optional list<UserType> userTypes
-    29: optional list<set<AuthType>> auths
+    21: optional map<JobState, list<i64>> jobStateMap
+    22: optional string jobYamlPath
+    23: optional map<string, string> configs
+    24: optional string loadCsvPath
+    25: optional list<i64> sessionIDList
+    26: optional map<string, bool> rules
+    27: optional string UDFModulePath
+    28: optional list<string> usernames
+    29: optional list<UserType> userTypes
+    30: optional list<set<AuthType>> auths
 }
 
 struct UpdateUserReq {
@@ -507,7 +512,7 @@ struct FetchResultsResp {
 struct LoadCSVReq {
     1: required i64 sessionId
     2: required string statement
-    3: required binary csvFile
+    3: required string csvFileName
 }
 
 struct LoadCSVResp {
@@ -544,6 +549,21 @@ struct CommitTransformJobReq {
     3: required ExportType exportType
     4: optional string fileName
     5: optional string schedule
+    6: optional bool stopOnFailure
+    7: optional Notification notification
+}
+
+struct Notification {
+    1: optional Email email
+}
+
+struct Email {
+    1: required string hostName
+    2: required string smtpPort
+    3: required string username
+    4: required string password
+    5: required string fromAddr
+    6: required list<string> toAddrs
 }
 
 struct CommitTransformJobResp {
@@ -563,12 +583,12 @@ struct QueryTransformJobStatusResp {
 
 struct ShowEligibleJobReq {
     1: required i64 sessionId
-    2: required JobState jobState
+    2: optional JobState jobState
 }
 
 struct ShowEligibleJobResp {
     1: required Status status
-    2: required list<i64> jobIdList
+    2: required map<JobState, list<i64>> jobStateMap
 }
 
 struct CancelTransformJobReq {
@@ -679,7 +699,7 @@ struct RemovedStorageEngineInfo {
     4: required string dataPrefix
 }
 
-struct RemoveHistoryDataSourceReq {
+struct RemoveStorageEngineReq {
     1: required i64 sessionId
     2: required list<RemovedStorageEngineInfo> removedStorageEngineInfoList
 }
@@ -707,6 +727,22 @@ struct SetRulesReq {
     2: required map<string, bool> rulesChange
 }
 
+struct FileChunk {
+    1: required string fileName;
+    2: required i64 offset;
+    3: required binary data;
+    4: required i64 chunkSize;
+}
+
+struct UploadFileReq {
+    1: required i64 sessionId
+    2: required FileChunk fileChunk
+}
+
+struct UploadFileResp {
+    1: required Status status
+}
+
 service IService {
 
     OpenSessionResp openSession(1: OpenSessionReq req);
@@ -731,7 +767,7 @@ service IService {
 
     Status alterStorageEngine(1: AlterStorageEngineReq req);
 
-    Status removeHistoryDataSource(1: RemoveHistoryDataSourceReq req);
+    Status removeStorageEngine(1: RemoveStorageEngineReq req);
 
     AggregateQueryResp aggregateQuery(1: AggregateQueryReq req);
 
@@ -788,4 +824,6 @@ service IService {
     ShowRulesResp showRules(1: ShowRulesReq req);
 
     Status setRules(1: SetRulesReq req);
+
+    UploadFileResp uploadFileChunk(1: UploadFileReq req);
 }

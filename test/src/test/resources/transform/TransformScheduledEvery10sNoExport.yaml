@@ -1,0 +1,8 @@
+---
+taskList:
+  - taskType: "iginx"
+    timeout: 10000000
+    sqlList:
+      - "show columns;"
+schedule: "every 10 second"
+exportType: "none"

@@ -19,10 +19,10 @@ jobs:
     standalone-test:
         uses: ./.github/workflows/standalone-test.yml
     standalone-test-pushdown:
-        uses: ./.github/workflows/standalone-test-pushdown.yml
+        uses: ./.github/workflows/standalone-test-no-optimizer.yml
     db-ce:
         uses: ./.github/workflows/DB-CE.yml
     remote-test:
         uses: ./.github/workflows/remote-test.yml
-    assemebly-test:
+    assembly-test:
         uses: ./.github/workflows/assembly-test.yml

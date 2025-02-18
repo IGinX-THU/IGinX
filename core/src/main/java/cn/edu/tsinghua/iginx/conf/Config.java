@@ -24,6 +24,7 @@ import cn.edu.tsinghua.iginx.utils.HostUtils;
 import cn.edu.tsinghua.iginx.utils.TagKVUtils;
 import java.util.ArrayList;
 import java.util.List;
+import org.apache.arrow.vector.BaseValueVector;
 
 public class Config {
 
@@ -91,7 +92,7 @@ public class Config {
 
   private String restIp = "127.0.0.1";
 
-  private int restPort = 6666;
+  private int restPort = 7888;
 
   private int maxTimeseriesLength = 10;
 
@@ -171,6 +172,8 @@ public class Config {
 
   private int transformMaxRetryTimes = 3;
 
+  private String defaultScheduledTransformJobDir = "transform_jobs";
+
   private boolean needInitBasicUDFFunctions = true;
 
   private List<String> udfList = new ArrayList<>();
@@ -212,19 +215,9 @@ public class Config {
 
   /////////////
 
-  private boolean enableEmailNotification = false;
+  private int executionBatchRowCount = BaseValueVector.INITIAL_VALUE_ALLOCATION;
 
-  private String mailSmtpHost = "";
-
-  private int mailSmtpPort = 465;
-
-  private String mailSmtpUser = "";
-
-  private String mailSmtpPassword = "";
-
-  private String mailSender = "";
-
-  private String mailRecipient = "";
+  private int groupByInitialGroupBufferCapacity = BaseValueVector.INITIAL_VALUE_ALLOCATION >> 7;
 
   /////////////
 
@@ -930,59 +923,27 @@ public class Config {
     this.ruleBasedOptimizer = ruleBasedOptimizer;
   }
 
-  public boolean isEnableEmailNotification() {
-    return enableEmailNotification;
+  public String getDefaultScheduledTransformJobDir() {
+    return defaultScheduledTransformJobDir;
   }
 
-  public void setEnableEmailNotification(boolean enableEmailNotification) {
-    this.enableEmailNotification = enableEmailNotification;
+  public void setDefaultScheduledTransformJobDir(String defaultScheduledTransformJobDir) {
+    this.defaultScheduledTransformJobDir = defaultScheduledTransformJobDir;
   }
 
-  public String getMailSmtpHost() {
-    return mailSmtpHost;
+  public int getExecutionBatchRowCount() {
+    return executionBatchRowCount;
   }
 
-  public void setMailSmtpHost(String mailSmtpHost) {
-    this.mailSmtpHost = mailSmtpHost;
+  public void setExecutionBatchRowCount(int executionBatchRowCount) {
+    this.executionBatchRowCount = executionBatchRowCount;
   }
 
-  public int getMailSmtpPort() {
-    return mailSmtpPort;
+  public int getGroupByInitialGroupBufferCapacity() {
+    return groupByInitialGroupBufferCapacity;
   }
 
-  public void setMailSmtpPort(int mailSmtpPort) {
-    this.mailSmtpPort = mailSmtpPort;
-  }
-
-  public String getMailSmtpUser() {
-    return mailSmtpUser;
-  }
-
-  public void setMailSmtpUser(String mailSmtpUser) {
-    this.mailSmtpUser = mailSmtpUser;
-  }
-
-  public String getMailSmtpPassword() {
-    return mailSmtpPassword;
-  }
-
-  public void setMailSmtpPassword(String mailSmtpPassword) {
-    this.mailSmtpPassword = mailSmtpPassword;
-  }
-
-  public String getMailSender() {
-    return mailSender;
-  }
-
-  public void setMailSender(String mailSender) {
-    this.mailSender = mailSender;
-  }
-
-  public String getMailRecipient() {
-    return mailRecipient;
-  }
-
-  public void setMailRecipient(String mailRecipients) {
-    this.mailRecipient = mailRecipients;
+  public void setGroupByInitialGroupBufferCapacity(int groupByInitialGroupBufferCapacity) {
+    this.groupByInitialGroupBufferCapacity = groupByInitialGroupBufferCapacity;
   }
 }

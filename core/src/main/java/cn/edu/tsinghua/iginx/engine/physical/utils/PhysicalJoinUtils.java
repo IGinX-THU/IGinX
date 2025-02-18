@@ -19,14 +19,20 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.utils;
 
-import cn.edu.tsinghua.iginx.engine.shared.operator.InnerJoin;
-import cn.edu.tsinghua.iginx.engine.shared.operator.MarkJoin;
-import cn.edu.tsinghua.iginx.engine.shared.operator.OuterJoin;
-import cn.edu.tsinghua.iginx.engine.shared.operator.SingleJoin;
+import cn.edu.tsinghua.iginx.engine.shared.operator.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OuterJoinType;
 
 public class PhysicalJoinUtils {
   private PhysicalJoinUtils() {}
+
+  public static CrossJoin reverse(CrossJoin operator) {
+    return new CrossJoin(
+        operator.getSourceB(),
+        operator.getSourceA(),
+        operator.getPrefixB(),
+        operator.getPrefixA(),
+        operator.getExtraJoinPrefix());
+  }
 
   public static SingleJoin reverse(SingleJoin join) {
     return new SingleJoin(

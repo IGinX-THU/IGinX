@@ -32,5 +32,5 @@ public interface ExecutorContext {
 
   void addWarningMessage(String message);
 
-  int groupByInitialGroupBufferCapacity();
+  int getGroupByInitialGroupBufferCapacity();
 }

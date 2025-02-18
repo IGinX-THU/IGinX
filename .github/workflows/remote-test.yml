@@ -11,7 +11,7 @@ on:
                 description: "The python version to run the test on"
                 type: string
                 required: false
-                default: '["3.9"]'
+                default: '["3.11"]'
             os-matrix:
                 description: "The operating system to run the test on"
                 type: string
@@ -27,13 +27,18 @@ on:
                 type: string
                 required: false
                 default: '["IoTDB12", "FileSystem"]'
+            timeout-minutes:
+                description: "The timeout minutes for the job"
+                type: number
+                required: false
+                default: 30
 
 env:
     FUNCTEST: RemoteUDFIT
 
 jobs:
     Remote-Server-Test:
-        timeout-minutes: 30
+        timeout-minutes: ${{ inputs.timeout-minutes }}
         strategy:
             fail-fast: false
             matrix:
@@ -51,6 +56,8 @@ jobs:
                   python-version: ${{ matrix.python-version }}
                   java: ${{ matrix.java }}
                   docker-required: true
+                  iginx-conda-flag: "true"
+                  iginx-conda-env: "iginxEnv"
 
             - if: runner.os == 'Windows'
               name: Set up Docker Firewall on Windows
@@ -122,7 +129,7 @@ jobs:
                   fi
 
             - name: Run Tests
-              shell: bash
+              shell: bash -el {0}
               run: |
                   mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
 

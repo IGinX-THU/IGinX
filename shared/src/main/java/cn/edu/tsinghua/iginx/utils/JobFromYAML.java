@@ -19,6 +19,14 @@
  */
 package cn.edu.tsinghua.iginx.utils;
 
+import cn.edu.tsinghua.iginx.thrift.CommitTransformJobReq;
+import cn.edu.tsinghua.iginx.thrift.DataFlowType;
+import cn.edu.tsinghua.iginx.thrift.Email;
+import cn.edu.tsinghua.iginx.thrift.ExportType;
+import cn.edu.tsinghua.iginx.thrift.Notification;
+import cn.edu.tsinghua.iginx.thrift.TaskInfo;
+import cn.edu.tsinghua.iginx.thrift.TaskType;
+import java.util.ArrayList;
 import java.util.List;
 
 public class JobFromYAML {
@@ -27,6 +35,8 @@ public class JobFromYAML {
   private String exportFile;
   private String exportType;
   private String schedule;
+  private NotificationFromYAML notification;
+  private boolean stopOnFailure = true;
 
   public JobFromYAML() {}
 
@@ -60,5 +70,84 @@ public class JobFromYAML {
 
   public void setSchedule(String schedule) {
     this.schedule = schedule;
+  }
+
+  public NotificationFromYAML getNotification() {
+    return notification;
+  }
+
+  public void setNotification(NotificationFromYAML notification) {
+    this.notification = notification;
+  }
+
+  public boolean isStopOnFailure() {
+    return stopOnFailure;
+  }
+
+  public void setStopOnFailure(boolean stopOnFailure) {
+    this.stopOnFailure = stopOnFailure;
+  }
+
+  public CommitTransformJobReq toCommitTransformJobReq(long sessionId) {
+    List<TaskInfo> taskList = getTaskInfoList();
+    Notification notificationReq = getNotificationReq();
+
+    ExportType type =
+        exportType.equalsIgnoreCase("none")
+            ? ExportType.LOG
+            : ExportType.valueOf(exportType.toUpperCase());
+
+    CommitTransformJobReq req = new CommitTransformJobReq(sessionId, taskList, type);
+    req.setFileName(exportFile);
+    req.setSchedule(schedule);
+    req.setStopOnFailure(stopOnFailure);
+    req.setNotification(notificationReq);
+
+    return req;
+  }
+
+  private List<TaskInfo> getTaskInfoList() {
+    List<TaskInfo> taskList = new ArrayList<>();
+    for (int i = 0; i < getTaskList().size(); i++) {
+      TaskFromYAML taskFromYAML = getTaskList().get(i);
+      TaskType taskType = TaskType.valueOf(taskFromYAML.getTaskType().toUpperCase());
+      // IGINX task can only be STREAM type, thus can be omitted.
+      DataFlowType dataFlowType =
+          taskType == TaskType.IGINX
+              ? DataFlowType.STREAM
+              : DataFlowType.valueOf(taskFromYAML.getDataFlowType().toUpperCase());
+      TaskInfo task = new TaskInfo(taskType, dataFlowType);
+      switch (task.taskType) {
+        case IGINX:
+          task.setSqlList(taskFromYAML.getSqlList());
+          break;
+        case PYTHON:
+          task.setPyTaskName(taskFromYAML.getPyTaskName());
+          break;
+      }
+      task.setTimeout(taskFromYAML.getTimeout());
+      taskList.add(task);
+    }
+    return taskList;
+  }
+
+  private Notification getNotificationReq() {
+    Email email = null;
+    if (notification != null) {
+      if (notification.getEmail() != null) {
+        EmailFromYAML emailFromYAML = notification.getEmail();
+        email =
+            new Email(
+                emailFromYAML.getHostName(),
+                emailFromYAML.getSmtpPort(),
+                emailFromYAML.getUserName(),
+                emailFromYAML.getPassword(),
+                emailFromYAML.getFrom(),
+                emailFromYAML.getTo());
+      }
+    }
+    Notification notificationReq = new Notification();
+    notificationReq.setEmail(email);
+    return notificationReq;
   }
 }

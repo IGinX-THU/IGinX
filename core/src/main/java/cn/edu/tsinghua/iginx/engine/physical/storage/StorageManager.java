@@ -99,7 +99,9 @@ public class StorageManager {
       return null;
     } finally {
       try {
-        storage.release();
+        if (storage != null) {
+          storage.release();
+        }
       } catch (Exception e) {
         LOGGER.error("release session pool failure!", e);
       }
@@ -136,7 +138,7 @@ public class StorageManager {
         if (!storageMap.containsKey(id)) {
           // 启动一个派发线程池
           ThreadPoolExecutor dispatcher =
-              new ThreadPoolExecutor(
+              new StorageTaskThreadPoolExecutor(
                   ConfigDescriptor.getInstance()
                       .getConfig()
                       .getPhysicalTaskThreadPoolSizePerStorage(),

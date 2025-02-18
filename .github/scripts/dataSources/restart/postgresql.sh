@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # IGinX - the polystore system with high performance
 # Copyright (C) Tsinghua University
@@ -22,7 +22,7 @@ set -e
 
 PGDATA=$1
 
-nohup pg_ctl -D ".github/actions/service/postgresql/${PGDATA}" start > /dev/null 2>&1 &
+nohup pg_ctl -D "${SERVICE_DIR}/postgresql/${PGDATA}" start > /dev/null 2>&1 &
 
 sleep 3
 lsof -i:$1

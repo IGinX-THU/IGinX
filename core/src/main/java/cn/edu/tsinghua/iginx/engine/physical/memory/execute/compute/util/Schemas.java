@@ -19,6 +19,7 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util;
 
+import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.util.*;
@@ -161,10 +162,17 @@ public class Schemas {
     return indexes;
   }
 
-  public static List<Integer> matchPattern(Schema inputSchema, Collection<String> patterns) {
+  public static List<Integer> matchPatternIgnoreKey(Schema inputSchema, String pattern) {
+    List<Integer> indexes = matchPattern(inputSchema, pattern);
+    indexes.removeIf(i -> BatchSchema.KEY.equals(inputSchema.getFields().get(i)));
+    return indexes;
+  }
+
+  public static List<Integer> matchPatternIgnoreKey(
+      Schema inputSchema, Collection<String> patterns) {
     List<Integer> indexes = new ArrayList<>();
     for (String pattern : patterns) {
-      indexes.addAll(matchPattern(inputSchema, pattern));
+      indexes.addAll(matchPatternIgnoreKey(inputSchema, pattern));
     }
     Collections.sort(indexes);
     return indexes;

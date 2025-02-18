@@ -47,10 +47,12 @@ import cn.edu.tsinghua.iginx.metadata.IMetaManager;
 import cn.edu.tsinghua.iginx.metadata.entity.*;
 import cn.edu.tsinghua.iginx.resource.QueryResourceManager;
 import cn.edu.tsinghua.iginx.thrift.*;
+import cn.edu.tsinghua.iginx.transform.exception.TransformException;
 import cn.edu.tsinghua.iginx.transform.exec.TransformJobManager;
 import cn.edu.tsinghua.iginx.utils.*;
 import java.io.File;
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.file.*;
 import java.util.*;
@@ -78,6 +80,9 @@ public class IginxWorker implements IService.Iface {
   private final ContextBuilder contextBuilder = ContextBuilder.getInstance();
 
   private final StatementExecutor executor = StatementExecutor.getInstance();
+
+  // to init scheduled jobs
+  private final TransformJobManager transformJobManager = TransformJobManager.getInstance();
 
   private static final Config config = ConfigDescriptor.getInstance().getConfig();
 
@@ -241,7 +246,7 @@ public class IginxWorker implements IService.Iface {
   }
 
   @Override
-  public Status removeHistoryDataSource(RemoveHistoryDataSourceReq req) {
+  public Status removeStorageEngine(RemoveStorageEngineReq req) {
     if (!sessionManager.checkSession(req.getSessionId(), AuthType.Cluster)) {
       return RpcUtils.ACCESS_DENY;
     }
@@ -653,6 +658,9 @@ public class IginxWorker implements IService.Iface {
   public ExecuteSqlResp executeSql(ExecuteSqlReq req) {
     StatementExecutor executor = StatementExecutor.getInstance();
     RequestContext ctx = contextBuilder.build(req);
+    if (req.isSetRemoteSession()) {
+      ctx.setRemoteSession(req.isRemoteSession());
+    }
     executor.execute(ctx);
     return ctx.getResult().getExecuteSqlResp();
   }
@@ -835,7 +843,7 @@ public class IginxWorker implements IService.Iface {
   public LoadCSVResp loadCSV(LoadCSVReq req) {
     StatementExecutor executor = StatementExecutor.getInstance();
     RequestContext ctx = contextBuilder.build(req);
-    ctx.setLoadCSVFileByteBuffer(req.csvFile);
+    ctx.setLoadCSVFileName(req.csvFileName);
     executor.execute(ctx);
     return ctx.getResult().getLoadCSVResp();
   }
@@ -845,7 +853,7 @@ public class IginxWorker implements IService.Iface {
     StatementExecutor executor = StatementExecutor.getInstance();
     RequestContext ctx = contextBuilder.build(req);
     ctx.setUDFModuleByteBuffer(req.udfFile);
-    ctx.setRemoteUDF(req.isRemote);
+    ctx.setRemoteSession(req.isRemote);
     executor.execute(ctx);
     return ctx.getResult().getLoadUDFResp();
   }
@@ -889,15 +897,19 @@ public class IginxWorker implements IService.Iface {
   @Override
   public ShowEligibleJobResp showEligibleJob(ShowEligibleJobReq req) {
     TransformJobManager manager = TransformJobManager.getInstance();
-    List<Long> jobIdList = manager.showEligibleJob(req.getJobState());
-    return new ShowEligibleJobResp(RpcUtils.SUCCESS, jobIdList);
+    Map<JobState, List<Long>> jobStateMap = manager.showEligibleJob(req.getJobState());
+    return new ShowEligibleJobResp(RpcUtils.SUCCESS, jobStateMap);
   }
 
   @Override
   public Status cancelTransformJob(CancelTransformJobReq req) {
     TransformJobManager manager = TransformJobManager.getInstance();
-    boolean success = manager.cancel(req.getJobId());
-    return success ? RpcUtils.SUCCESS : RpcUtils.FAILURE;
+    try {
+      boolean success = manager.cancel(req.getJobId());
+      return success ? RpcUtils.SUCCESS : RpcUtils.FAILURE;
+    } catch (TransformException e) {
+      return new Status(RpcUtils.FAILURE).setMessage(e.getMessage());
+    }
   }
 
   @Override
@@ -1335,5 +1347,38 @@ public class IginxWorker implements IService.Iface {
 
     // 强制转换为接口类型
     return (IRuleCollection) enumInstance;
+  }
+
+  @Override
+  public UploadFileResp uploadFileChunk(UploadFileReq req) {
+    FileChunk chunk = req.getFileChunk();
+    Status status = new Status();
+
+    String filename = chunk.fileName;
+    if (filename.contains("..") || filename.contains("/") || filename.contains("\\")) {
+      status.setCode(RpcUtils.FAILURE.code);
+      status.setMessage("Invalid filename");
+      return new UploadFileResp(status);
+    }
+
+    String filepath = String.join(File.separator, System.getProperty("java.io.tmpdir"), filename);
+    try {
+      File file = new File(filepath);
+      try (RandomAccessFile raf = new RandomAccessFile(file, "rw")) {
+        raf.seek(chunk.offset);
+        raf.write(chunk.data.array());
+        LOGGER.debug(
+            "write {} bytes to file {} at offset {}",
+            chunk.data.array().length,
+            file,
+            chunk.offset);
+      }
+      status.setCode(RpcUtils.SUCCESS.code);
+      return new UploadFileResp(status);
+    } catch (IOException e) {
+      status.setCode(RpcUtils.FAILURE.code);
+      status.setMessage("File chunk upload failed. Caused by: " + e.getMessage());
+      return new UploadFileResp(status);
+    }
   }
 }

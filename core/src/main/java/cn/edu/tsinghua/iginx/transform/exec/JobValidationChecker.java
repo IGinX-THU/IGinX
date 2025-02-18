@@ -56,12 +56,12 @@ public class JobValidationChecker implements Checker {
     }
 
     Task firstTask = taskList.get(0);
-    if (!firstTask.getTaskType().equals(TaskType.IginX)) {
+    if (!firstTask.getTaskType().equals(TaskType.IGINX)) {
       LOGGER.error("The first task must be IginX task.");
       return false;
     }
 
-    if (!firstTask.getDataFlowType().equals(DataFlowType.Stream)) {
+    if (!firstTask.getDataFlowType().equals(DataFlowType.STREAM)) {
       LOGGER.error("The IginX task must be stream.");
       return false;
     }
@@ -82,11 +82,22 @@ public class JobValidationChecker implements Checker {
 
     if (taskList.size() > 1) {
       for (int i = 1; i < taskList.size(); i++) {
-        if (taskList.get(i).getTaskType().equals(TaskType.IginX)) {
+        if (taskList.get(i).getTaskType().equals(TaskType.IGINX)) {
           LOGGER.error("2-n tasks must be python tasks.");
           return false;
         }
       }
+    }
+
+    try {
+      job.sendEmail();
+    } catch (Exception e) {
+      LOGGER.error(
+          "Fail to send email notification for job {} to {}, because",
+          job.getJobId(),
+          job.getNotifier(),
+          e);
+      return false;
     }
 
     return true;

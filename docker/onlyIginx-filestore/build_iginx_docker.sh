@@ -19,4 +19,4 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
-docker build --file Dockerfile-iginx -t iginx:0.8.0-SNAPSHOT ../..
+docker build --file Dockerfile-iginx -t iginx:0.9.0-SNAPSHOT ../..

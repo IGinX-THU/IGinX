@@ -28,6 +28,7 @@ import cn.edu.tsinghua.iginx.session.QueryDataSet;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import cn.edu.tsinghua.iginx.thrift.ExportCSV;
+import cn.edu.tsinghua.iginx.thrift.FileChunk;
 import cn.edu.tsinghua.iginx.thrift.LoadUDFResp;
 import cn.edu.tsinghua.iginx.utils.FormatUtils;
 import cn.edu.tsinghua.iginx.utils.Pair;
@@ -40,7 +41,6 @@ import java.security.InvalidParameterException;
 import java.util.*;
 import org.apache.commons.cli.*;
 import org.apache.commons.csv.CSVPrinter;
-import org.apache.commons.io.FileUtils;
 import org.jline.reader.Completer;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
@@ -302,6 +302,8 @@ public class IginxClient {
       processSetTimeUnit(statement);
     } else if (isRegisterPy(trimedStatement)) {
       processPythonRegister(statement);
+    } else if (isCommitTransformJob(trimedStatement)) {
+      processCommitTransformJob(statement);
     } else {
       processSql(statement);
     }
@@ -324,6 +326,10 @@ public class IginxClient {
 
   private static boolean isSetTimeUnit(String sql) {
     return sql.startsWith("set time unit in");
+  }
+
+  private static boolean isCommitTransformJob(String sql) {
+    return sql.startsWith("commit") && sql.contains("transform") && sql.contains("job");
   }
 
   private static void processPythonRegister(String sql) {
@@ -355,6 +361,15 @@ public class IginxClient {
     }
     timestampPrecision = args[4];
     System.out.printf("Current time unit: %s\n", timestampPrecision);
+  }
+
+  private static void processCommitTransformJob(String sql) {
+    try {
+      long id = session.commitTransformJob(sql);
+      System.out.println("job id: " + id);
+    } catch (SessionException e) {
+      System.out.println(e.getMessage());
+    }
   }
 
   private static boolean isSetTimeUnit() {
@@ -568,8 +583,9 @@ public class IginxClient {
 
     String path = exportCSV.getExportCsvPath();
     if (!path.endsWith(".csv")) {
-      throw new InvalidParameterException(
+      System.out.println(
           "The file name must end with [.csv], " + path + " doesn't satisfy the requirement!");
+      return;
     }
 
     File file = new File(path);
@@ -577,7 +593,8 @@ public class IginxClient {
     Files.deleteIfExists(Paths.get(file.getPath()));
     Files.createFile(Paths.get(file.getPath()));
     if (!file.isFile()) {
-      throw new InvalidParameterException(path + " is not a file!");
+      System.out.println(path + " is not a file!");
+      return;
     }
 
     try {
@@ -595,14 +612,17 @@ public class IginxClient {
       printer.flush();
       printer.close();
     } catch (IOException e) {
-      throw new RuntimeException(
+      System.out.println(
           "Encounter an error when writing csv file " + path + ", because " + e.getMessage());
+      return;
     }
     res.close();
     System.out.println("Successfully write csv file: \"" + file.getAbsolutePath() + "\".");
   }
 
-  private static void processLoadCsv(String sql) throws SessionException, IOException {
+  private static void processLoadCsv(String sql) throws SessionException {
+    int CHUNK_SIZE = 1024 * 1024;
+
     SessionExecuteSqlResult res = session.executeSql(sql);
     String path = res.getLoadCsvPath();
 
@@ -614,15 +634,40 @@ public class IginxClient {
 
     File file = new File(path);
     if (!file.exists()) {
-      throw new InvalidParameterException(path + " does not exist!");
+      System.out.println(path + " does not exist!");
+      return;
     }
     if (!file.isFile()) {
-      throw new InvalidParameterException(path + " is not a file!");
+      System.out.println(path + " is not a file!");
+      return;
     }
 
-    byte[] bytes = FileUtils.readFileToByteArray(file);
-    ByteBuffer csvFile = ByteBuffer.wrap(bytes);
-    Pair<List<String>, Long> pair = session.executeLoadCSV(sql, csvFile);
+    long offset = 0;
+    String fileName = System.currentTimeMillis() + ".csv";
+    try (RandomAccessFile raf = new RandomAccessFile(file, "r")) {
+      raf.seek(offset);
+      byte[] buffer = new byte[CHUNK_SIZE];
+      int bytesRead;
+      while ((bytesRead = raf.read(buffer)) != -1) {
+        byte[] dataToSend;
+        if (bytesRead < CHUNK_SIZE) { // 如果最后一块小于 CHUNK_SIZE，只发送实际读取的部分
+          dataToSend = new byte[bytesRead];
+          System.arraycopy(buffer, 0, dataToSend, 0, bytesRead);
+        } else {
+          dataToSend = buffer;
+        }
+        ByteBuffer data = ByteBuffer.wrap(dataToSend);
+        FileChunk chunk = new FileChunk(fileName, offset, data, bytesRead);
+        session.uploadFileChunk(chunk);
+        offset += bytesRead;
+      }
+    } catch (IOException e) {
+      System.out.println(
+          "Encounter an error when reading file " + path + ", because " + e.getMessage());
+      return;
+    }
+
+    Pair<List<String>, Long> pair = session.executeLoadCSV(sql, fileName);
     List<String> columns = pair.k;
     long recordsNum = pair.v;
 
@@ -680,7 +725,7 @@ public class IginxClient {
             Arrays.asList("show", "functions"),
             Arrays.asList("show", "sessionid"),
             Arrays.asList("show", "rules"),
-            Arrays.asList("remove", "historydatasource"));
+            Arrays.asList("remove", "storageengine"));
     addArgumentCompleters(iginxCompleters, withoutNullCompleters, false);
 
     List<String> singleCompleters = Arrays.asList("quit", "exit");

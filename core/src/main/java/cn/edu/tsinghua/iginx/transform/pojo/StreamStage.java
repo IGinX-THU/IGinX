@@ -40,12 +40,12 @@ public class StreamStage implements Stage {
   private final boolean startWithIginX;
 
   public StreamStage(long sessionId, Stage beforeStage, List<Task> taskList, ExportWriter writer) {
-    this.dataFlowType = DataFlowType.Stream;
+    this.dataFlowType = DataFlowType.STREAM;
     this.sessionId = sessionId;
     this.beforeStage = beforeStage;
     this.taskList = taskList;
     this.exportWriter = writer;
-    this.startWithIginX = taskList.get(0).getTaskType().equals(TaskType.IginX);
+    this.startWithIginX = taskList.get(0).getTaskType().equals(TaskType.IGINX);
   }
 
   public long getSessionId() {

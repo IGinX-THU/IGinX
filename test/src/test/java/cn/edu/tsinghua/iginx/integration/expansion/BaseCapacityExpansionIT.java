@@ -24,6 +24,7 @@ import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.*;
 import static cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools.executeShellScript;
 import static org.junit.Assert.*;
 
+import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.expansion.filesystem.FileSystemCapacityExpansionIT;
@@ -110,33 +111,33 @@ public abstract class BaseCapacityExpansionIT {
       statement.append(", \"");
       statement.append(type.name());
       statement.append("\", \"");
-      statement.append("has_data:");
+      statement.append("has_data=");
       statement.append(hasData);
-      statement.append(", is_read_only:");
+      statement.append(", is_read_only=");
       statement.append(isReadOnly);
       if (this instanceof InfluxDBCapacityExpansionIT) {
-        statement.append(", url:http://localhost:");
+        statement.append(", url=http://localhost:");
         statement.append(port);
         statement.append("/");
       }
       if (IS_EMBEDDED) {
-        statement.append(String.format(", dummy_dir:%s/", DBCE_PARQUET_FS_TEST_DIR));
+        statement.append(String.format(", dummy_dir=%s/", DBCE_PARQUET_FS_TEST_DIR));
         statement.append(PORT_TO_ROOT.get(port));
         statement.append(
-            String.format(", dir:%s/" + IGINX_DATA_PATH_PREFIX_NAME, DBCE_PARQUET_FS_TEST_DIR));
+            String.format(", dir=%s/" + IGINX_DATA_PATH_PREFIX_NAME, DBCE_PARQUET_FS_TEST_DIR));
         statement.append(PORT_TO_ROOT.get(port));
-        statement.append(", iginx_port:").append(oriPortIginx);
+        statement.append(", iginx_port=").append(oriPortIginx);
       }
       if (extraParams != null) {
         statement.append(", ");
         statement.append(extraParams);
       }
       if (dataPrefix != null) {
-        statement.append(", data_prefix:");
+        statement.append(", data_prefix=");
         statement.append(dataPrefix);
       }
       if (schemaPrefix != null) {
-        statement.append(", schema_prefix:");
+        statement.append(", schema_prefix=");
         statement.append(schemaPrefix);
       }
       statement.append("\");");
@@ -394,7 +395,7 @@ public abstract class BaseCapacityExpansionIT {
 
     String newParams =
         updatedParams.entrySet().stream()
-            .map(entry -> entry.getKey() + ":" + entry.getValue())
+            .map(entry -> entry.getKey() + "=" + entry.getValue())
             .collect(Collectors.joining(", "));
     session.executeSql(String.format(ALTER_ENGINE_STRING, id, newParams));
 
@@ -405,7 +406,7 @@ public abstract class BaseCapacityExpansionIT {
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
 
     // 删除，不影响后续测试
-    session.removeHistoryDataSource(
+    session.removeStorageEngine(
         Collections.singletonList(
             new RemovedStorageEngineInfo("127.0.0.1", readOnlyPort, prefix, "")));
 
@@ -689,7 +690,7 @@ public abstract class BaseCapacityExpansionIT {
     removedStorageEngineList.add(
         new RemovedStorageEngineInfo("127.0.0.1", expPort, "p3" + schemaPrefixSuffix, dataPrefix1));
     try {
-      session.removeHistoryDataSource(removedStorageEngineList);
+      session.removeStorageEngine(removedStorageEngineList);
       testShowClusterInfo(4);
     } catch (SessionException e) {
       LOGGER.error("remove history data source through session api error: ", e);
@@ -709,7 +710,7 @@ public abstract class BaseCapacityExpansionIT {
     SQLTestTools.executeAndCompare(session, statement, pathListAns, EXP_VALUES_LIST2);
 
     // 通过 sql 语句测试移除节点
-    String removeStatement = "remove historydatasource (\"127.0.0.1\", %d, \"%s\", \"%s\");";
+    String removeStatement = "remove storageengine (\"127.0.0.1\", %d, \"%s\", \"%s\");";
     try {
       session.executeSql(
           String.format(removeStatement, expPort, "p1" + schemaPrefixSuffix, dataPrefix1));
@@ -1025,6 +1026,7 @@ public abstract class BaseCapacityExpansionIT {
             String.valueOf(hasData),
             String.valueOf(isReadOnly),
             "core/target/iginx-core-*/conf/config.properties",
+            ConfigDescriptor.getInstance().getConfig().getPythonCMD(),
             metadataStorage);
     if (res != 0) {
       fail("change config file fail");
