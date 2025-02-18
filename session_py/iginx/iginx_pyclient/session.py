@@ -531,7 +531,7 @@ class Session(object):
             raise ValueError(f"The file name must end with [.csv], {path} doesn't satisfy the requirement!")
 
         chunk_size = 1024 * 1024
-        filename = str(time.time() * 1000) + ".csv"
+        filename = "{}-{}.csv".format(self.__session_id, time.time() * 1000)
         with open(file, 'rb') as f:
             offset = 0
             while chunk := f.read(chunk_size):
@@ -542,8 +542,8 @@ class Session(object):
                     chunkSize=len(chunk)
                 )
                 req = UploadFileReq(sessionId=self.__session_id, fileChunk=chunk_data)
-                resp = self.__client.uploadFileChunk(req)
-                Session.verify_status(resp.status)
+                status = self.__client.uploadFileChunk(req)
+                Session.verify_status(status)
                 offset += len(chunk)
 
         req = LoadCSVReq(sessionId=self.__session_id, statement=statement, csvFileName=filename)

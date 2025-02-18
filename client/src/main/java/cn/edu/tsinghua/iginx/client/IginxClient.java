@@ -643,7 +643,8 @@ public class IginxClient {
     }
 
     long offset = 0;
-    String fileName = System.currentTimeMillis() + ".csv";
+    String fileName =
+        String.format("%d-%d.csv", session.getSessionId(), System.currentTimeMillis());
     try (RandomAccessFile raf = new RandomAccessFile(file, "r")) {
       raf.seek(offset);
       byte[] buffer = new byte[CHUNK_SIZE];
