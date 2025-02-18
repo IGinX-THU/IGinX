@@ -36,7 +36,9 @@ runs:
           run: |
               docker volume create dameng_data
               for port in ${{ inputs.ports }}; do
-                docker run -d -p $port:5236 --restart=always \
+                docker run -d -p $port:5236 \ 
+                  --platform linux/amd64 \
+                  --restart=always \
                   --name=${{ inputs.version }}-$port \
                   --privileged=true \
                   -e LD_LIBRARY_PATH=/opt/dmdbms/bin \
@@ -97,7 +99,7 @@ runs:
                 while true; do
                   log_output=$(docker logs "${{ inputs.version }}-$port" 2>&1 | grep -i "DM Database is OK" || true)
                   if [ -z "$log_output" ]; then
-                    echo "'DM Database is OK' not found in the logs, retrying in 100 seconds..."
+                    echo "'DM Database is OK' not found in the logs, retrying in 30 seconds..."
                     docker logs --tail 10 ${{ inputs.version }}-$port
                     sleep 30
                   else
