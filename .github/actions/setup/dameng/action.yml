@@ -70,5 +70,5 @@ runs:
           name: Download Dameng Database Docker image and Load Dameng Database container
           shell: wsl-run {0}
           run: |
-              curl -L -o dm8_20241022_x86_rh6_64_single.tar https://github.com/IGinX-THU/IGinX-resources/raw/refs/heads/main/resources/dm8_20241022_x86_rh6_64_single.tar
+              curl -s -S -L -o dm8_20241022_x86_rh6_64_single.tar https://github.com/IGinX-THU/IGinX-resources/raw/refs/heads/main/resources/dm8_20241022_x86_rh6_64_single.tar
               docker load -i dm8_20241022_x86_rh6_64_single.tar
