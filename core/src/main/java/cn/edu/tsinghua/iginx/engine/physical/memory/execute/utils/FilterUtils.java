@@ -451,4 +451,57 @@ public class FilterUtils {
         });
     return pathFilters;
   }
+
+  /** 获取filter以及所有子filter的类型 */
+  public static Set<FilterType> getFilterType(Filter filter) {
+    Set<FilterType> filterTypes = new HashSet<>();
+    filter.accept(
+        new FilterVisitor() {
+          @Override
+          public void visit(AndFilter filter) {
+            filterTypes.add(FilterType.And);
+          }
+
+          @Override
+          public void visit(OrFilter filter) {
+            filterTypes.add(FilterType.Or);
+          }
+
+          @Override
+          public void visit(NotFilter filter) {
+            filterTypes.add(FilterType.Not);
+          }
+
+          @Override
+          public void visit(KeyFilter filter) {
+            filterTypes.add(FilterType.Key);
+          }
+
+          @Override
+          public void visit(ValueFilter filter) {
+            filterTypes.add(FilterType.Value);
+          }
+
+          @Override
+          public void visit(PathFilter filter) {
+            filterTypes.add(FilterType.Path);
+          }
+
+          @Override
+          public void visit(BoolFilter filter) {
+            filterTypes.add(FilterType.Bool);
+          }
+
+          @Override
+          public void visit(ExprFilter filter) {
+            filterTypes.add(FilterType.Expr);
+          }
+
+          @Override
+          public void visit(InFilter inFilter) {
+            filterTypes.add(FilterType.In);
+          }
+        });
+    return filterTypes;
+  }
 }

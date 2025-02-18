@@ -26,21 +26,19 @@ import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.TooManyPhysicalTasksException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.UnexpectedOperatorException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.MemoryPhysicalTaskDispatcher;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.OperatorMemoryExecutor;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.OperatorMemoryExecutorFactory;
 import cn.edu.tsinghua.iginx.engine.physical.optimizer.ReplicaDispatcher;
 import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
 import cn.edu.tsinghua.iginx.engine.physical.storage.StorageManager;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.DataArea;
+import cn.edu.tsinghua.iginx.engine.physical.storage.execute.pushdown.strategy.PushDownStrategy;
+import cn.edu.tsinghua.iginx.engine.physical.storage.execute.pushdown.strategy.PushDownStrategyFactory;
 import cn.edu.tsinghua.iginx.engine.physical.storage.queue.StoragePhysicalTaskQueue;
 import cn.edu.tsinghua.iginx.engine.physical.task.GlobalPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.MemoryPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.StoragePhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.*;
-import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
 import cn.edu.tsinghua.iginx.metadata.entity.FragmentMeta;
@@ -148,70 +146,19 @@ public class StoragePhysicalTaskExecutor {
                               boolean isDummyStorageUnit = task.isDummyStorageUnit();
                               DataArea dataArea =
                                   new DataArea(storageUnit, fragmentMeta.getKeyInterval());
-
                               switch (op.getType()) {
                                 case Project:
-                                  boolean needSelectPushDown =
-                                      pair.k.isSupportProjectWithSelect()
-                                          && operators.size() == 2
-                                          && operators.get(1).getType() == OperatorType.Select;
-                                  boolean needSetTransformPushDown =
-                                      operators.size() == 2
-                                          && operators.get(1).getType()
-                                              == OperatorType.SetTransform;
-                                  boolean canSetTransformPushDown =
-                                      needSetTransformPushDown
-                                          && pair.k.isSupportProjectWithSetTransform(
-                                              (SetTransform) operators.get(1), dataArea);
-                                  if (isDummyStorageUnit) {
-                                    if (needSelectPushDown) {
-                                      result =
-                                          pair.k.executeProjectDummyWithSelect(
-                                              (Project) op, (Select) operators.get(1), dataArea);
-                                    } else if (needSetTransformPushDown) {
-                                      throw new IllegalStateException();
-                                    } else {
-                                      result = pair.k.executeProjectDummy((Project) op, dataArea);
-                                    }
-                                  } else {
-                                    if (needSelectPushDown) {
-                                      result =
-                                          pair.k.executeProjectWithSelect(
-                                              (Project) op, (Select) operators.get(1), dataArea);
-                                    } else if (needSetTransformPushDown) {
-                                      if (canSetTransformPushDown) {
-                                        result =
-                                            pair.k.executeProjectWithSetTransform(
-                                                (Project) op,
-                                                (SetTransform) operators.get(1),
-                                                dataArea);
-                                      } else {
-                                        TaskExecuteResult tempResult =
-                                            pair.k.executeProject((Project) op, dataArea);
-                                        if (tempResult.getException() != null) {
-                                          result = tempResult;
-                                        } else {
-                                          // set transform push down is not supported, execute set
-                                          // transform in memory
-                                          OperatorMemoryExecutor executor =
-                                              OperatorMemoryExecutorFactory.getInstance()
-                                                  .getMemoryExecutor();
-                                          try {
-                                            RowStream rowStream =
-                                                executor.executeUnaryOperator(
-                                                    (SetTransform) operators.get(1),
-                                                    tempResult.getRowStream(),
-                                                    task.getContext());
-                                            result = new TaskExecuteResult(rowStream);
-                                          } catch (PhysicalException e) {
-                                            result = new TaskExecuteResult(e);
-                                          }
-                                        }
-                                      }
-                                    } else {
-                                      result = pair.k.executeProject((Project) op, dataArea);
-                                    }
-                                  }
+                                  PushDownStrategy strategy =
+                                      PushDownStrategyFactory.getStrategy(
+                                          operators, pair.k, dataArea, isDummyStorageUnit);
+                                  result =
+                                      strategy.execute(
+                                          (Project) op,
+                                          operators,
+                                          dataArea,
+                                          pair.k,
+                                          isDummyStorageUnit,
+                                          task.getContext());
                                   break;
                                 case Insert:
                                   result = pair.k.executeInsert((Insert) op, dataArea);

@@ -280,7 +280,7 @@ public class DataSourceIT {
     SetTransform countOperator =
         new SetTransform(projectSource, Collections.singletonList(countCall));
 
-    Assume.assumeTrue(storage.isSupportProjectWithSetTransform(countOperator, dataArea));
+    Assume.assumeTrue(storage.isSupportProjectWithAgg(countOperator, dataArea, false));
 
     for (int seed = 0; seed < 10; seed++) {
       Random random = new Random(seed);
@@ -291,8 +291,7 @@ public class DataSourceIT {
           keys.add(key + i);
         }
         insertData(key, rows, "us.d1.s1", "us.d1.s2", "us.d1.s3", "us.d1.s4");
-        TaskExecuteResult result =
-            storage.executeProjectWithSetTransform(project, countOperator, dataArea);
+        TaskExecuteResult result = storage.executeProjectWithAgg(project, countOperator, dataArea);
         checkResult(result);
         RowStream rowStream = result.getRowStream();
         Assert.assertTrue(rowStream.hasNext());

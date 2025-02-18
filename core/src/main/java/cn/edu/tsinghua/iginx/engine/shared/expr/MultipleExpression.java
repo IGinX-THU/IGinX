@@ -87,6 +87,23 @@ public class MultipleExpression implements Expression {
   }
 
   @Override
+  public String getCalColumnName() {
+    StringBuilder sb = new StringBuilder();
+    if (ops.get(0) == Operator.MINUS) {
+      sb.append("-");
+    }
+    for (int i = 0; i < children.size(); i++) {
+      sb.append(children.get(i).getColumnName());
+      if (i + 1 < ops.size()) {
+        sb.append(" ");
+        sb.append(Operator.operatorToCalString(ops.get(i + 1)));
+        sb.append(" ");
+      }
+    }
+    return sb.toString();
+  }
+
+  @Override
   public ExpressionType getType() {
     return ExpressionType.Multiple;
   }

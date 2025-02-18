@@ -17,75 +17,55 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package cn.edu.tsinghua.iginx.engine.shared.expr;
+package cn.edu.tsinghua.iginx.relational.tools;
 
-public class BracketExpression implements Expression {
+import cn.edu.tsinghua.iginx.engine.shared.expr.BaseExpression;
+import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
+import cn.edu.tsinghua.iginx.engine.shared.expr.ExpressionVisitor;
 
-  private Expression expression;
-  private String alias;
+public class QuoteBaseExpressionDecorator implements Expression {
+  private final BaseExpression baseExpression;
+  private final char quote;
 
-  public BracketExpression(Expression expression) {
-    this(expression, "");
-  }
+  private static String DERIVED = "derived";
 
-  public BracketExpression(Expression expression, String alias) {
-    this.expression = expression;
-    this.alias = alias;
-  }
-
-  public Expression getExpression() {
-    return expression;
-  }
-
-  public void setExpression(Expression expression) {
-    this.expression = expression;
+  public QuoteBaseExpressionDecorator(BaseExpression baseExpression, char quote) {
+    this.baseExpression = baseExpression;
+    this.quote = quote;
   }
 
   @Override
   public String getColumnName() {
-    return "(" + expression.getColumnName() + ")";
-  }
-
-  @Override
-  public String getCalColumnName() {
-    return "(" + expression.getCalColumnName() + ")";
+    return DERIVED + "." + quote + baseExpression.getColumnName() + quote;
   }
 
   @Override
   public ExpressionType getType() {
-    return ExpressionType.Bracket;
+    return baseExpression.getType();
   }
 
   @Override
   public boolean hasAlias() {
-    return alias != null && !alias.isEmpty();
+    return baseExpression.hasAlias();
   }
 
   @Override
   public String getAlias() {
-    return alias;
+    return baseExpression.getAlias();
   }
 
   @Override
   public void setAlias(String alias) {
-    this.alias = alias;
+    baseExpression.setAlias(alias);
   }
 
   @Override
   public void accept(ExpressionVisitor visitor) {
-    visitor.visit(this);
-    expression.accept(visitor);
+    visitor.visit(baseExpression);
   }
 
   @Override
   public boolean equalExceptAlias(Expression expr) {
-    if (this == expr) {
-      return true;
-    }
-    if (expr == null || expr.getType() != ExpressionType.Bracket) {
-      return false;
-    }
-    BracketExpression that = (BracketExpression) expr;
-    return this.expression.equalExceptAlias(that.expression);
+    return baseExpression.equalExceptAlias(expr);
   }
 }
