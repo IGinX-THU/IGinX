@@ -19,8 +19,6 @@
  */
 package cn.edu.tsinghua.iginx.engine.logical.generator;
 
-import static cn.edu.tsinghua.iginx.engine.shared.Constants.ALL_PATH_SUFFIX;
-
 import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.engine.logical.optimizer.LogicalOptimizerManager;
@@ -375,7 +373,8 @@ public class QueryGenerator extends AbstractGenerator {
     switch (fromPart.getType()) {
       case Path:
         policy.notify(selectStatement);
-        root = filterAndMergeFragments(selectStatement);
+        root =
+            filterAndMergeFragments(selectStatement, new ArrayList<>(selectStatement.getPathSet()));
         break;
       case SubQuery:
         SubQueryFromPart subQueryFromPart = (SubQueryFromPart) fromPart;
@@ -437,15 +436,17 @@ public class QueryGenerator extends AbstractGenerator {
               switch (fromPart.getType()) {
                 case Path:
                   PathFromPart pathFromPart = (PathFromPart) fromPart;
-                  String prefix = pathFromPart.getOriginPrefix() + ALL_PATH_SUFFIX;
-                  Pair<Map<KeyInterval, List<FragmentMeta>>, List<FragmentMeta>> pair =
-                      MetaUtils.getFragmentsByColumnsInterval(
-                          selectStatement, new ColumnsInterval(prefix, prefix));
-                  Map<KeyInterval, List<FragmentMeta>> fragments = pair.k;
-                  List<FragmentMeta> dummyFragments = pair.v;
-                  root =
-                      MetaUtils.mergeRawData(
-                          fragments, dummyFragments, Collections.singletonList(prefix), tagFilter);
+                  List<String> pathList;
+                  List<String> pathSet = new ArrayList<>(selectStatement.getPathSet());
+                  if (pathSet.stream().anyMatch(path -> path.endsWith("*"))) {
+                    pathList = Collections.singletonList(pathFromPart.getOriginPrefix() + ".*");
+                  } else {
+                    pathList =
+                        pathSet.stream()
+                            .filter(path -> path.startsWith(pathFromPart.getOriginPrefix() + "."))
+                            .collect(Collectors.toList());
+                  }
+                  root = filterAndMergeFragments(selectStatement, pathList);
                   break;
                 case SubQuery:
                   SubQueryFromPart subQueryFromPart = (SubQueryFromPart) fromPart;
@@ -567,7 +568,7 @@ public class QueryGenerator extends AbstractGenerator {
    */
   private Operator initFilterAndMergeFragments(UnarySelectStatement selectStatement) {
     policy.notify(selectStatement);
-    return filterAndMergeFragments(selectStatement);
+    return filterAndMergeFragments(selectStatement, new ArrayList<>(selectStatement.getPathSet()));
   }
 
   /**
@@ -1006,9 +1007,9 @@ public class QueryGenerator extends AbstractGenerator {
   }
 
   /** 根据Tag Filter和Project Path，过滤并合并Fragments，生成一棵树 */
-  private Operator filterAndMergeFragments(UnarySelectStatement selectStatement) {
-    List<String> pathList =
-        SortUtils.mergeAndSortPaths(new ArrayList<>(selectStatement.getPathSet()));
+  private Operator filterAndMergeFragments(
+      UnarySelectStatement selectStatement, List<String> pathList) {
+    pathList = SortUtils.mergeAndSortPaths(pathList);
     TagFilter tagFilter = selectStatement.getTagFilter();
 
     ColumnsInterval columnsInterval =
