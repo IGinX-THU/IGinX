@@ -250,13 +250,20 @@ public class TransformIT {
   private void verifyJobFinishedBlocked(long jobId) throws SessionException, InterruptedException {
     LOGGER.info("job is {}", jobId);
     JobState jobState = JobState.JOB_CREATED;
+    int timeout = 60000; // 60s
     while (!jobState.equals(JobState.JOB_CLOSED)
         && !jobState.equals(JobState.JOB_FAILED)
-        && !jobState.equals(JobState.JOB_FINISHED)) {
+        && !jobState.equals(JobState.JOB_FINISHED)
+        && timeout > 0) {
       Thread.sleep(500);
+      timeout -= 500;
       jobState = session.queryTransformJobStatus(jobId);
     }
     LOGGER.info("job {} state is {}", jobId, jobState.toString());
+    if (timeout <= 0) {
+      LOGGER.error("job is stuck, check IGinX server log...");
+      fail();
+    }
 
     if (!needCompareResult) {
       return;

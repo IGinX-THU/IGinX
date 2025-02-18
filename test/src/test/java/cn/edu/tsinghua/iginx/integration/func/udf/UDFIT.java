@@ -846,6 +846,70 @@ public class UDFIT {
   }
 
   @Test
+  public void testUDFOnlyArgs() {
+    String filePath =
+        String.join(
+            File.separator,
+            System.getProperty("user.dir"),
+            "src",
+            "test",
+            "resources",
+            "udf",
+            "no_mod_udf.py");
+    String udfName = "no_mod";
+    tool.executeReg(String.format(SINGLE_UDF_REGISTER_SQL, "UDTF", udfName, "NoModUDF", filePath));
+    taskToBeRemoved.add(udfName);
+
+    String query = "SELECT no_mod(1);";
+    SessionExecuteSqlResult ret = tool.execute(query);
+    String expected =
+        "ResultSets:\n"
+            + "+---------+\n"
+            + "|no_mod(1)|\n"
+            + "+---------+\n"
+            + "|        1|\n"
+            + "+---------+\n"
+            + "Total line number = 1\n";
+    compareResult(expected, ret.getResultInString(false, ""));
+
+    query = "SELECT no_mod(1.98);";
+    ret = tool.execute(query);
+    expected =
+        "ResultSets:\n"
+            + "+---------------+\n"
+            + "|no_mod(1.98000)|\n"
+            + "+---------------+\n"
+            + "|           1.98|\n"
+            + "+---------------+\n"
+            + "Total line number = 1\n";
+    compareResult(expected, ret.getResultInString(false, ""));
+
+    query = "SELECT no_mod(false), no_mod(TRUE);"; // false/FALSE/False
+    ret = tool.execute(query);
+    expected =
+        "ResultSets:\n"
+            + "+-------------+------------+\n"
+            + "|no_mod(false)|no_mod(true)|\n"
+            + "+-------------+------------+\n"
+            + "|        false|        true|\n"
+            + "+-------------+------------+\n"
+            + "Total line number = 1\n";
+    compareResult(expected, ret.getResultInString(false, ""));
+
+    query = "SELECT no_mod('test_string');";
+    ret = tool.execute(query);
+    expected =
+        "ResultSets:\n"
+            + "+---------------------+\n"
+            + "|no_mod('test_string')|\n"
+            + "+---------------------+\n"
+            + "|          test_string|\n"
+            + "+---------------------+\n"
+            + "Total line number = 1\n";
+    compareResult(expected, ret.getResultInString(false, ""));
+  }
+
+  @Test
   public void testUDFWithKvargs() {
     String insert =
         "INSERT INTO test(key, s1, s2) VALUES (1, 2, 3), (2, 3, 1), (3, 4, 3), (4, 9, 7), (5, 3, 6), (6, 6, 4);";
