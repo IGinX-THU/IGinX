@@ -1753,8 +1753,8 @@ public class OptimizerIT {
             + "|      +--InnerJoin    |    InnerJoin|                         PrefixA: test.a, PrefixB: test.b, IsNatural: false, Filter: test.a.a == test.b.a|\n"
             + "|        +--Rename     |       Rename|                                                                 AliasList: (sum(test.a.b), sum_test_a_b)|\n"
             + "|          +--GroupBy  |      GroupBy|GroupByCols: test.a.a, FuncList(Name, FuncType): (sum, System), MappingType: SetMapping isDistinct: false|\n"
-            + "|            +--Project|      Project|                                                            Patterns: test.a.*, Target DU: unit0000000002|\n"
-            + "|        +--Project    |      Project|                                                            Patterns: test.b.*, Target DU: unit0000000002|\n"
+            + "|            +--Project|      Project|                                                   Patterns: test.a.a,test.a.b, Target DU: unit0000000002|\n"
+            + "|        +--Project    |      Project|                                                            Patterns: test.b.a, Target DU: unit0000000002|\n"
             + "+----------------------+-------------+---------------------------------------------------------------------------------------------------------+\n"
             + "Total line number = 8\n";
 
@@ -1769,8 +1769,8 @@ public class OptimizerIT {
             + "|Reorder         |      Reorder|                                                                                     Order: sum(test.a.b)|\n"
             + "|  +--GroupBy    |      GroupBy|GroupByCols: test.a.a, FuncList(Name, FuncType): (sum, System), MappingType: SetMapping isDistinct: false|\n"
             + "|    +--InnerJoin|    InnerJoin|                         PrefixA: test.a, PrefixB: test.b, IsNatural: false, Filter: test.a.a == test.b.a|\n"
-            + "|      +--Project|      Project|                                                            Patterns: test.a.*, Target DU: unit0000000002|\n"
-            + "|      +--Project|      Project|                                                            Patterns: test.b.*, Target DU: unit0000000002|\n"
+            + "|      +--Project|      Project|                                                   Patterns: test.a.a,test.a.b, Target DU: unit0000000002|\n"
+            + "|      +--Project|      Project|                                                            Patterns: test.b.a, Target DU: unit0000000002|\n"
             + "+----------------+-------------+---------------------------------------------------------------------------------------------------------+\n"
             + "Total line number = 5\n";
     executor.execute(closeRule);
