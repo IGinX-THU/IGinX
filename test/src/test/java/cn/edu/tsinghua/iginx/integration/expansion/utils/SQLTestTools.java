@@ -24,6 +24,7 @@ import static org.junit.Assert.*;
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
+import cn.edu.tsinghua.iginx.utils.ShellRunner;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -167,7 +168,7 @@ public class SQLTestTools {
       command = new String[args.length + 2];
       command[1] = scriptPath;
       System.arraycopy(args, 0, command, 2, args.length);
-      if (isOnWin) {
+      if (isOnWin && !ShellRunner.isCommandOnPath("bash")) {
         command[0] = "C:/Program Files/Git/bin/bash.exe";
       } else {
         command[0] = "bash";
