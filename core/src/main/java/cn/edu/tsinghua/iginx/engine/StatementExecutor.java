@@ -240,7 +240,13 @@ public class StatementExecutor {
   }
 
   public void execute(RequestContext ctx) {
-    try (ResourceSet holder = resourceManager.setup(ctx)) {
+    execute(ctx, true);
+  }
+
+  public void execute(RequestContext ctx, boolean releaseResources) {
+    ResourceSet holder = null;
+    try {
+      holder = resourceManager.setup(ctx);
       before(ctx, preExecuteProcessors);
       if (ctx.isFromSQL()) {
         executeSQL(ctx);
@@ -253,12 +259,18 @@ public class StatementExecutor {
       if (ctx.isFromSQL()) {
         ctx.getResult().setSqlType(ctx.getSqlType());
       }
-    } catch (PhysicalException e) {
-      ctx.setResult(
-          new Result(RpcUtils.status(StatusCode.STATEMENT_EXECUTION_ERROR, e.toString())));
-      LOGGER.debug("statement execution failed: ", e);
-      if (ctx.isFromSQL()) {
-        ctx.getResult().setSqlType(ctx.getSqlType());
+    } finally {
+      if (holder != null && releaseResources) {
+        try {
+          holder.close();
+        } catch (PhysicalException e) {
+          ctx.setResult(
+              new Result(RpcUtils.status(StatusCode.STATEMENT_EXECUTION_ERROR, e.toString())));
+          LOGGER.debug("statement execution failed: ", e);
+          if (ctx.isFromSQL()) {
+            ctx.getResult().setSqlType(ctx.getSqlType());
+          }
+        }
       }
     }
   }

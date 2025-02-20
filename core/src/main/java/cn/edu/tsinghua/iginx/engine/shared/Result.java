@@ -53,7 +53,7 @@ public class Result {
   private List<DataType> dataTypes;
 
   private BatchStream batchStream;
-  private static VectorSchemaRoot streamCache;
+  private VectorSchemaRoot streamCache;
 
   private SqlType sqlType;
   private Long pointsNum;
@@ -232,8 +232,8 @@ public class Result {
     }
 
     try {
-      resp.setHasMoreResults(batchStream.hasNext());
       resp.setQueryArrowData(getArrowDataFromStream(allocator, fetchSize));
+      resp.setHasMoreResults(batchStream.hasNext() || streamCache != null);
     } catch (IOException | PhysicalException e) {
       LOGGER.error("unexpected error when load row stream: ", e);
       resp.setStatus(RpcUtils.FAILURE);
@@ -243,13 +243,32 @@ public class Result {
 
   private List<ByteBuffer> getArrowDataFromStream(BufferAllocator allocator, int fetchSize)
       throws PhysicalException, IOException {
+    List<ByteBuffer> dataList;
+    VectorSchemaRoot output = null, rest = null;
     if (!batchStream.hasNext()) {
+      if (streamCache != null) {
+        if (streamCache.getRowCount() <= fetchSize) {
+          dataList = writeBytesWithClose(streamCache);
+          cleanup();
+          return dataList;
+        } else {
+          output = VectorSchemaRoot.create(batchStream.getSchema().raw(), allocator);
+          rest = VectorSchemaRoot.create(batchStream.getSchema().raw(), allocator);
+          try (VectorSchemaRoot slicedOutput = streamCache.slice(0, fetchSize);
+              VectorSchemaRoot slicedRest =
+                  streamCache.slice(fetchSize, streamCache.getRowCount() - fetchSize)) {
+            VectorSchemaRootAppender.append(output, slicedOutput);
+            VectorSchemaRootAppender.append(rest, slicedRest);
+          }
+          streamCache.close();
+          streamCache = rest;
+          return writeBytesWithClose(output);
+        }
+      }
       return null;
     }
-    List<ByteBuffer> dataList = new ArrayList<>();
     try {
       if (streamCache == null) {
-        // transfer后，原root可以关闭
         try (Batch batch = batchStream.getNext()) {
           streamCache = VectorSchemaRoots.transfer(allocator, batch.getData());
         }
@@ -261,37 +280,60 @@ public class Result {
           count += batch.getRowCount();
         }
       }
-
-      VectorSchemaRoot output, rest;
       if (count <= fetchSize) {
         output = streamCache;
-        rest = null;
+        streamCache = null;
       } else {
-        // 深拷贝，分为本次需要的数据部分和留待下次fetch的数据部分
         output = VectorSchemaRoot.create(batchStream.getSchema().raw(), allocator);
-        VectorSchemaRootAppender.append(output, streamCache.slice(fetchSize));
         rest = VectorSchemaRoot.create(batchStream.getSchema().raw(), allocator);
-        VectorSchemaRootAppender.append(
-            rest, streamCache.slice(fetchSize, streamCache.getRowCount() - fetchSize));
+        try {
+          // 显式关闭切片对象?
+          try (VectorSchemaRoot slicedOutput = streamCache.slice(0, fetchSize);
+              VectorSchemaRoot slicedRest =
+                  streamCache.slice(fetchSize, streamCache.getRowCount() - fetchSize)) {
+            VectorSchemaRootAppender.append(output, slicedOutput);
+            VectorSchemaRootAppender.append(rest, slicedRest);
+          }
+          streamCache.close();
+          streamCache = rest; // 保存剩余部分
+        } catch (Exception e) {
+          // 出错立即清理
+          output.close();
+          rest.close();
+          throw e;
+        }
       }
 
-      try (ByteArrayOutputStream out = new ByteArrayOutputStream();
-          ArrowStreamWriter writer = new ArrowStreamWriter(output, null, out)) {
-        writer.start();
-        writer.writeBatch();
-        writer.close();
-        dataList.add(ByteBuffer.wrap(out.toByteArray()));
-      }
+      dataList = writeBytesWithClose(output);
 
-      streamCache = rest;
-
-    } catch (PhysicalException e) {
-      LOGGER.error("Failed to get data from stream", e);
-      throw e;
-    } catch (IOException e) {
-      LOGGER.error("Failed to write byte stream", e);
+    } catch (PhysicalException | IOException e) {
+      LOGGER.error("Failed to process stream data", e);
+      cleanup();
+      if (output != null) output.close();
+      if (rest != null) rest.close();
       throw e;
     }
     return dataList;
+  }
+
+  private List<ByteBuffer> writeBytesWithClose(VectorSchemaRoot output) throws IOException {
+    List<ByteBuffer> dataList = new ArrayList<>();
+    try (ByteArrayOutputStream out = new ByteArrayOutputStream();
+        ArrowStreamWriter writer = new ArrowStreamWriter(output, null, out)) {
+      writer.start();
+      writer.writeBatch();
+      writer.close();
+      dataList.add(ByteBuffer.wrap(out.toByteArray()));
+    } finally {
+      output.close();
+    }
+    return dataList;
+  }
+
+  public void cleanup() {
+    if (streamCache != null) {
+      streamCache.close();
+      streamCache = null;
+    }
   }
 }
