@@ -37,7 +37,6 @@ import lombok.Data;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.ipc.ArrowStreamWriter;
-import org.apache.arrow.vector.util.VectorSchemaRootAppender;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -252,16 +251,17 @@ public class Result {
           cleanup();
           return dataList;
         } else {
-          output = VectorSchemaRoot.create(batchStream.getSchema().raw(), allocator);
-          rest = VectorSchemaRoot.create(batchStream.getSchema().raw(), allocator);
-          try (VectorSchemaRoot slicedOutput = streamCache.slice(0, fetchSize);
-              VectorSchemaRoot slicedRest =
-                  streamCache.slice(fetchSize, streamCache.getRowCount() - fetchSize)) {
-            VectorSchemaRootAppender.append(output, slicedOutput);
-            VectorSchemaRootAppender.append(rest, slicedRest);
+          try {
+            output = streamCache.slice(0, fetchSize);
+            rest = streamCache.slice(fetchSize, streamCache.getRowCount() - fetchSize);
+            streamCache.close();
+            streamCache = rest; // 保存剩余部分
+          } catch (Exception e) {
+            // 出错立即清理
+            if (output != null) output.close();
+            if (rest != null) rest.close();
+            throw e;
           }
-          streamCache.close();
-          streamCache = rest;
           return writeBytesWithClose(output);
         }
       }
@@ -284,22 +284,15 @@ public class Result {
         output = streamCache;
         streamCache = null;
       } else {
-        output = VectorSchemaRoot.create(batchStream.getSchema().raw(), allocator);
-        rest = VectorSchemaRoot.create(batchStream.getSchema().raw(), allocator);
         try {
-          // 显式关闭切片对象?
-          try (VectorSchemaRoot slicedOutput = streamCache.slice(0, fetchSize);
-              VectorSchemaRoot slicedRest =
-                  streamCache.slice(fetchSize, streamCache.getRowCount() - fetchSize)) {
-            VectorSchemaRootAppender.append(output, slicedOutput);
-            VectorSchemaRootAppender.append(rest, slicedRest);
-          }
+          output = streamCache.slice(0, fetchSize);
+          rest = streamCache.slice(fetchSize, streamCache.getRowCount() - fetchSize);
           streamCache.close();
           streamCache = rest; // 保存剩余部分
         } catch (Exception e) {
           // 出错立即清理
-          output.close();
-          rest.close();
+          if (output != null) output.close();
+          if (rest != null) rest.close();
           throw e;
         }
       }

@@ -47,7 +47,6 @@ import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
 import cn.edu.tsinghua.iginx.metadata.entity.*;
 import cn.edu.tsinghua.iginx.resource.QueryResourceManager;
-import cn.edu.tsinghua.iginx.resource.ResourceManager;
 import cn.edu.tsinghua.iginx.thrift.*;
 import cn.edu.tsinghua.iginx.transform.exception.TransformException;
 import cn.edu.tsinghua.iginx.transform.exec.TransformJobManager;
@@ -837,7 +836,7 @@ public class IginxWorker implements IService.Iface {
     RequestContext context = queryManager.getQuery(req.queryId);
     if (context == null) {
       if (queryManager.isQueryCleaned(req.queryId)) {
-        queryManager.removeCleanRecord(req.queryId);  // the record is now useless
+        queryManager.removeCleanRecord(req.queryId); // the record is now useless
         return new FetchResultsResp(
             new Status(RpcUtils.FAILURE.code).setMessage("Query has been cleaned due to time out."),
             false);

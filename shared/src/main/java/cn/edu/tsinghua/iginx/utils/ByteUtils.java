@@ -582,7 +582,7 @@ public class ByteUtils {
                       dataTypeList.add(TypeUtils.toDataType(field.getType()));
                       tagsList.add(field.getMetadata());
                     });
-            if (paths.get(0).equals(GlobalConstant.KEY_NAME)) {
+            if (!paths.isEmpty() && paths.get(0).equals(GlobalConstant.KEY_NAME)) {
               hasKey = true;
             }
             metaCollected = true;
