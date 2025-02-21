@@ -19,10 +19,7 @@
  */
 package cn.edu.tsinghua.iginx.resource;
 
-import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
-import java.time.Instant;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -30,16 +27,8 @@ public class QueryResourceManager {
 
   private final ConcurrentMap<Long, RequestContext> queries;
 
-  private final ConcurrentMap<Long, Instant> lastAccessTimeMap;
-
-  private static final ResourceCleaner cleaner = new ResourceCleaner();
-
-  private static final int cleanupInterval = 60; // minute
-
   private QueryResourceManager() {
     this.queries = new ConcurrentHashMap<>();
-    this.lastAccessTimeMap = new ConcurrentHashMap<>();
-    cleaner.startWithInterval(cleanupInterval);
   }
 
   public static QueryResourceManager getInstance() {
@@ -48,38 +37,14 @@ public class QueryResourceManager {
 
   public void registerQuery(long queryId, RequestContext context) {
     queries.put(queryId, context);
-    lastAccessTimeMap.put(queryId, Instant.now());
   }
 
   public RequestContext getQuery(long queryId) {
-    lastAccessTimeMap.put(queryId, Instant.now());
     return queries.get(queryId);
   }
 
-  public Set<Long> getQueryIds() {
-    return queries.keySet();
-  }
-
-  public Instant getLastAccessTime(long queryId) {
-    return lastAccessTimeMap.get(queryId);
-  }
-
-  public void releaseQuery(long queryId) throws PhysicalException {
-    if (!queries.containsKey(queryId)) {
-      return;
-    }
-    getQuery(queryId).getResult().cleanup();
-    getQuery(queryId).closeResources();
+  public void releaseQuery(long queryId) {
     queries.remove(queryId);
-    lastAccessTimeMap.remove(queryId);
-  }
-
-  public boolean isQueryCleaned(long queryId) {
-    return cleaner.isQueryCleaned(queryId);
-  }
-
-  public void removeCleanRecord(long queryId) {
-    cleaner.removeCleanedQuery(queryId);
   }
 
   private static class QueryManagerHolder {

@@ -74,7 +74,6 @@ public class ResourceManager {
     String name = String.format("request-%d", ctx.getId());
     BufferAllocator allocator = this.allocator.newChildAllocator(name, 0, Long.MAX_VALUE);
     ResourceSet resourceSet = new ResourceSet(allocator);
-    ctx.setResourceSet(resourceSet);
     ctx.setAllocator(resourceSet.getAllocator());
     ctx.setConstantPool(resourceSet.getConstantPool());
     ctx.setTaskResultMap(resourceSet.getTaskResultMap());
