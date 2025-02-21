@@ -1034,7 +1034,8 @@ public class SQLSessionIT {
             + "Total line number = 1\n";
     executor.executeAndCompare(statement, expected);
 
-    statement = "SELECT a, COUNT(b), AVG(b), SUM(b), MIN(b), MAX(b) FROM test GROUP BY a;";
+    statement =
+        "SELECT a, COUNT(b), AVG(b), SUM(b), MIN(b), MAX(b) FROM test GROUP BY a ORDER BY a;";
     expected =
         "ResultSets:\n"
             + "+------+-------------+------------------+-----------+-----------+-----------+\n"
@@ -1049,7 +1050,7 @@ public class SQLSessionIT {
     executor.executeAndCompare(statement, expected);
 
     statement =
-        "SELECT a, COUNT(DISTINCT b), AVG(DISTINCT b), SUM(DISTINCT b), MIN(DISTINCT b), MAX(DISTINCT b) FROM test GROUP BY a;";
+        "SELECT a, COUNT(DISTINCT b), AVG(DISTINCT b), SUM(DISTINCT b), MIN(DISTINCT b), MAX(DISTINCT b) FROM test GROUP BY a ORDER BY a;";
     expected =
         "ResultSets:\n"
             + "+------+----------------------+--------------------+--------------------+--------------------+--------------------+\n"
@@ -5319,7 +5320,7 @@ public class SQLSessionIT {
             + "(3, 2, 2, 1.1, \"val3\"), (4, 3, 2, 2.1, \"val2\"), (5, 1, 2, 3.1, \"val2\"), (6, 2, 2, 5.1, \"val3\");";
     executor.execute(insert);
 
-    String statement = "SELECT AVG(a), b FROM test.a GROUP BY b;";
+    String statement = "SELECT AVG(a), b FROM test.a GROUP BY b ORDER BY b;";
     String expected =
         "ResultSets:\n"
             + "+-------------+--------+\n"
@@ -5354,7 +5355,7 @@ public class SQLSessionIT {
             + "Total line number = 1\n";
     executor.executeAndCompare(statement, expected);
 
-    statement = "SELECT AVG(a + c), b FROM test.a GROUP BY b;";
+    statement = "SELECT AVG(a + c), b FROM test.a GROUP BY b ORDER BY b;";
     expected =
         "ResultSets:\n"
             + "+------------------------+--------+\n"
@@ -5708,15 +5709,15 @@ public class SQLSessionIT {
             + "SELECT ao.outlet, ao.average_bonus_for_outlet, min.min_avg_bonus_for_outlet, max.max_avg_bonus_for_outlet "
             + "FROM avg_per_outlet AS ao "
             + "CROSS JOIN min_bonus_outlet AS min "
-            + "CROSS JOIN max_bonus_outlet AS max;";
+            + "CROSS JOIN max_bonus_outlet AS max ORDER BY ao.outlet;";
     expected =
         "ResultSets:\n"
             + "+---------+---------------------------+----------------------------+----------------------------+\n"
             + "|ao.outlet|ao.average_bonus_for_outlet|min.min_avg_bonus_for_outlet|max.max_avg_bonus_for_outlet|\n"
             + "+---------+---------------------------+----------------------------+----------------------------+\n"
-            + "|      211|                     1897.5|                      1716.0|                      2020.0|\n"
             + "|      105|                     2020.0|                      1716.0|                      2020.0|\n"
             + "|      123|                     1716.0|                      1716.0|                      2020.0|\n"
+            + "|      211|                     1897.5|                      1716.0|                      2020.0|\n"
             + "|      224|                     1968.0|                      1716.0|                      2020.0|\n"
             + "+---------+---------------------------+----------------------------+----------------------------+\n"
             + "Total line number = 4\n";
@@ -5858,7 +5859,7 @@ public class SQLSessionIT {
     executor.executeAndCompare(statement, expected);
 
     statement =
-        "SELECT value2meta(SELECT suffix FROM prefix_test WHERE type = \"boolean\") FROM test GROUP BY c.b;";
+        "SELECT value2meta(SELECT suffix FROM prefix_test WHERE type = \"boolean\") FROM test GROUP BY c.b ORDER BY c.b;";
     expected =
         "ResultSets:\n"
             + "+--------+\n"
