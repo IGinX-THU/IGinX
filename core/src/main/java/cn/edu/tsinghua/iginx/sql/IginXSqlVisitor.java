@@ -30,6 +30,7 @@ import static cn.edu.tsinghua.iginx.sql.statement.select.SelectStatement.sequenc
 import cn.edu.tsinghua.iginx.engine.logical.utils.LogicalFilterUtils;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.ExprUtils;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils;
 import cn.edu.tsinghua.iginx.engine.shared.Constants;
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
@@ -720,6 +721,17 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     }
     checkShowColumnsRename(fromParts);
     selectStatement.setFromParts(fromParts);
+
+    List<String> paths = new ArrayList<>();
+    for (FromPart fromPart : fromParts) {
+      JoinCondition joinCondition = fromPart.getJoinCondition();
+      if (joinCondition != null && joinCondition.getFilter() != null) {
+        Filter filter = joinCondition.getFilter();
+        List<String> filterPaths = FilterUtils.getAllPathsFromFilter(filter);
+        filterPaths.forEach(path -> paths.addAll(transformPath(path, selectStatement)));
+      }
+    }
+    paths.forEach(selectStatement::addFromPath);
   }
 
   private FromPart parseTableReference(
@@ -1187,18 +1199,16 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       return new BaseExpression(selectedPath);
     }
 
-    String fullPath = selectedPath;
-    String originPath = selectedPath;
     // 如果查询语句中FROM子句只有一个部分且FROM一个前缀，则path（可能会来自SELECT,GROUP BY,ORDER BY）只用写出后缀
     if (selectStatement.isFromSinglePath()) {
       FromPart fromPart = selectStatement.getFromPart(0);
-      fullPath = fromPart.getPrefix() + SQLConstant.DOT + selectedPath;
-      originPath = fromPart.getOriginPrefix() + SQLConstant.DOT + selectedPath; // 考虑FROM子句重命名的情况
+      selectedPath = fromPart.getPrefix() + SQLConstant.DOT + selectedPath;
     }
-    if (pos == Pos.SelectClause) {
+    String originPath = selectStatement.getOriginPath(selectedPath);
+    if (originPath != null && pos == Pos.SelectClause) {
       selectStatement.addSelectPath(originPath);
     }
-    return new BaseExpression(fullPath);
+    return new BaseExpression(selectedPath);
   }
 
   private Expression parseCaseWhenExpression(
@@ -1750,8 +1760,12 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       values.add(new Value(parseValue(constantContext)));
     }
     SqlParser.InOperatorContext inOperatorContext = ctx.inOperator();
-    return new FilterData(
-        new InFilter(path, InFilter.InOp.str2Op(inOperatorContext.getText()), values));
+
+    FilterData filterData =
+        new FilterData(
+            new InFilter(path, InFilter.InOp.str2Op(inOperatorContext.getText()), values));
+    filterData.addPaths(getPathsFromPredicate(ctx, statement));
+    return filterData;
   }
 
   private FilterData parseKeyFilter(PredicateContext ctx) {
@@ -1876,6 +1890,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     subStatement.initFreeVariables();
     String markColumn = MARK_PREFIX + markJoinCount;
     markJoinCount += 1;
+    FilterData filterData = new FilterData(new ValueFilter(markColumn, Op.E, new Value(true)));
 
     Filter filter;
     Expression subQueryExpr = subStatement.getExpressions().get(0);
@@ -1891,6 +1906,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       }
       filter = new PathFilter(pathA, Op.E, subQueryPath);
       subStatement.addFreeVariable(pathA);
+      filterData.addPaths(transformPath(pathA, statement));
     } else {
       assert ctx.expression() != null;
       Expression expr = parseExpression(ctx.expression(), statement, Pos.WhereClause).get(0);
@@ -1899,14 +1915,13 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
               ? new PathFilter(expr.getColumnName(), Op.E, subQueryPath)
               : new ExprFilter(expr, Op.E, new BaseExpression(subQueryPath));
       subStatement.addFreeVariable(expr.getColumnName());
+      filterData.addPaths(getPathsFromExpression(expr, statement));
     }
 
     boolean isAntiJoin = ctx.inOperator().OPERATOR_NOT_IN() != null;
     SubQueryFromPart subQueryPart =
         new SubQueryFromPart(
             subStatement, new JoinCondition(JoinType.MarkJoin, filter, markColumn, isAntiJoin));
-
-    FilterData filterData = new FilterData(new ValueFilter(markColumn, Op.E, new Value(true)));
     filterData.addSubQueryFromPart(subQueryPart);
     return filterData;
   }
@@ -1918,6 +1933,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     subStatement.initFreeVariables();
     String markColumn = MARK_PREFIX + markJoinCount;
     markJoinCount += 1;
+    FilterData filterData = new FilterData(new ValueFilter(markColumn, Op.E, new Value(true)));
 
     Filter filter;
     Op op = Op.str2Op(ctx.comparisonOperator().getText().trim().toLowerCase());
@@ -1940,6 +1956,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       }
       filter = new PathFilter(pathA, op, subQueryPath);
       subStatement.addFreeVariable(pathA);
+      filterData.addPaths(transformPath(pathA, statement));
     } else {
       assert ctx.expression() != null;
       Expression expr = parseExpression(ctx.expression(), statement, Pos.WhereClause).get(0);
@@ -1951,14 +1968,13 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
               ? new PathFilter(expr.getColumnName(), op, subQueryPath)
               : new ExprFilter(expr, op, new BaseExpression(subQueryPath));
       subStatement.addFreeVariable(expr.getColumnName());
+      filterData.addPaths(getPathsFromExpression(expr, statement));
     }
 
     boolean isAntiJoin = ctx.quantifier().all() != null;
     SubQueryFromPart subQueryPart =
         new SubQueryFromPart(
             subStatement, new JoinCondition(JoinType.MarkJoin, filter, markColumn, isAntiJoin));
-
-    FilterData filterData = new FilterData(new ValueFilter(markColumn, Op.E, new Value(true)));
     filterData.addSubQueryFromPart(subQueryPart);
     return filterData;
   }
@@ -1994,6 +2010,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         pathA = statement.getFromPart(0).getPrefix() + SQLConstant.DOT + pathA;
       }
       filterData.setFilter(new PathFilter(pathA, op, subQueryPath));
+      filterData.addPaths(transformPath(pathA, statement));
     } else {
       assert ctx.expression() != null;
       Expression expr = parseExpression(ctx.expression(), statement, Pos.WhereClause).get(0);
@@ -2002,6 +2019,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       } else {
         filterData.setFilter(new ExprFilter(expr, op, new BaseExpression(subQueryPath)));
       }
+      filterData.addPaths(getPathsFromExpression(expr, statement));
     }
 
     return filterData;
@@ -2243,7 +2261,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     List<String> paths = new ArrayList<>();
     for (int i = 0; i < 2 && i < predicateContext.path().size(); i++) {
       String path = parsePath(predicateContext.path().get(i));
-      transformPath(paths, path, statement);
+      paths.addAll(transformPath(path, statement));
     }
     return paths;
   }
@@ -2254,19 +2272,21 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         ExpressionUtils.getBaseExpressionList(Collections.singletonList(expr), false);
     for (BaseExpression baseExpression : baseExpressions) {
       String path = baseExpression.getPathName();
-      transformPath(paths, path, statement);
+      paths.addAll(transformPath(path, statement));
     }
     return paths;
   }
 
-  private void transformPath(List<String> paths, String path, UnarySelectStatement statement) {
+  private List<String> transformPath(String path, UnarySelectStatement statement) {
     // 如果查询语句不是一个子查询，FROM子句只有一个部分且FROM一个前缀，则WHERE条件中的path只用写出后缀
     if (statement.isFromSinglePath() && !statement.isSubQuery()) {
       path = statement.getFromPart(0).getPrefix() + SQLConstant.DOT + path;
     }
     String originPath = statement.getOriginPath(path);
     if (originPath != null) {
-      paths.add(originPath);
+      return Collections.singletonList(originPath);
+    } else {
+      return Collections.emptyList();
     }
   }
 

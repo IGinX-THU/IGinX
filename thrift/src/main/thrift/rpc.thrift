@@ -739,10 +739,6 @@ struct UploadFileReq {
     2: required FileChunk fileChunk
 }
 
-struct UploadFileResp {
-    1: required Status status
-}
-
 service IService {
 
     OpenSessionResp openSession(1: OpenSessionReq req);
@@ -825,5 +821,5 @@ service IService {
 
     Status setRules(1: SetRulesReq req);
 
-    UploadFileResp uploadFileChunk(1: UploadFileReq req);
+    Status uploadFileChunk(1: UploadFileReq req);
 }
