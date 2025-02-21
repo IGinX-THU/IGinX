@@ -582,7 +582,7 @@ public class ByteUtils {
                       dataTypeList.add(TypeUtils.toDataType(field.getType()));
                       tagsList.add(field.getMetadata());
                     });
-            if (!paths.isEmpty() && paths.get(0).equals(GlobalConstant.KEY_NAME)) {
+            if (paths.get(0).equals(GlobalConstant.KEY_NAME)) {
               hasKey = true;
             }
             metaCollected = true;
@@ -609,7 +609,7 @@ public class ByteUtils {
         }
       }
     }
-    return new DataSet(keys, paths, dataTypeList, tagsList, values, hasKey);
+    return new DataSet(keys, paths, dataTypeList, tagsList, values);
   }
 
   public static class DataSet {
@@ -621,15 +621,13 @@ public class ByteUtils {
     private final List<List<Object>> values;
     private final int rowSize;
     private final int colSize;
-    private final boolean hasKey;
 
     public DataSet(
         List<Long> keys,
         List<String> paths,
         List<DataType> dataTypeList,
         List<Map<String, String>> tagsList,
-        List<List<Object>> values,
-        boolean hasKey) {
+        List<List<Object>> values) {
       this.keys = keys.stream().mapToLong(Long::longValue).toArray();
       this.paths = paths;
       this.dataTypeList = dataTypeList;
@@ -637,7 +635,6 @@ public class ByteUtils {
       this.values = values;
       this.rowSize = values.size();
       this.colSize = dataTypeList.size();
-      this.hasKey = hasKey;
     }
 
     public long[] getKeys() {
@@ -666,10 +663,6 @@ public class ByteUtils {
 
     public int getColSize() {
       return colSize;
-    }
-
-    public boolean hasKey() {
-      return hasKey;
     }
   }
 }
