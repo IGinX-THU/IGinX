@@ -102,12 +102,12 @@ public class FilterTransformer {
       case LIKE:
       case LIKE_AND:
         op = relationalMeta.getRegexpOp();
-        value = "'" + filter.getValue().getBinaryVAsString() + "$" + "'";
+        value = "'^" + filter.getValue().getBinaryVAsString() + "$" + "'";
         break;
       case NOT_LIKE:
       case NOT_LIKE_AND:
         op = relationalMeta.getNotRegexpOp();
-        value = "'" + filter.getValue().getBinaryVAsString() + "$" + "'";
+        value = "'^" + filter.getValue().getBinaryVAsString() + "$" + "'";
         break;
       default:
         // postgresql does not support "==" but uses "=" instead

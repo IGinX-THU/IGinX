@@ -22,8 +22,8 @@ package cn.edu.tsinghua.iginx.engine.shared.expr;
 public enum Operator {
   PLUS,
   MINUS,
-  STAR,
-  DIV,
+  STAR, // 乘法展示, ×
+  DIV, // 除法展示, ÷
   MOD;
 
   public static String operatorToString(Operator operator) {
@@ -40,6 +40,17 @@ public enum Operator {
         return "%";
       default:
         return "";
+    }
+  }
+
+  public static String operatorToCalString(Operator operator) {
+    switch (operator) {
+      case STAR:
+        return "*";
+      case DIV:
+        return "/";
+      default:
+        return operatorToString(operator);
     }
   }
 
