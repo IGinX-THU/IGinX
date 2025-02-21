@@ -465,14 +465,10 @@ struct ExecuteStatementResp {
     1: required Status status
     2: required SqlType type
     3: optional i64 queryId
-    4: optional list<string> columns
-    5: optional list<map<string, string>> tagsList
-    6: optional list<DataType> dataTypeList
-    7: optional QueryDataSetV2 queryDataSet
-    8: optional string warningMsg;
-    9: optional string exportStreamDir
-    10: optional ExportCSV exportCSV
-    11: optional list<binary> queryArrowData
+    4: optional string warningMsg;
+    5: optional string exportStreamDir
+    6: optional ExportCSV exportCSV
+    7: optional list<binary> queryArrowData
 }
 
 struct ExportCSV {
@@ -483,11 +479,6 @@ struct ExportCSV {
     5: required i16 quote
     6: required i16 escaped
     7: required string recordSeparator
-}
-
-struct QueryDataSetV2 {
-    1: required list<binary> valuesList
-    2: required list<binary> bitmapList
 }
 
 struct CloseStatementReq {
@@ -505,8 +496,7 @@ struct FetchResultsReq {
 struct FetchResultsResp {
     1: required Status status
     2: required bool hasMoreResults
-    3: optional QueryDataSetV2 queryDataSet
-    4: optional list<binary> queryArrowData
+    3: optional list<binary> queryArrowData
 }
 
 struct LoadCSVReq {
