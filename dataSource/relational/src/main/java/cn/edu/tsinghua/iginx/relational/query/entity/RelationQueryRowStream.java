@@ -41,12 +41,14 @@ import cn.edu.tsinghua.iginx.relational.meta.JDBCMeta;
 import cn.edu.tsinghua.iginx.relational.tools.RelationSchema;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
+
 import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.*;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -97,42 +99,11 @@ public class RelationQueryRowStream implements RowStream {
   private String engine;
   private final List<List<String>> tableColumnNames;
 
-  public RelationQueryRowStream(
-      List<String> databaseNameList,
-      List<ResultSet> resultSets,
-      boolean isDummy,
-      Filter filter,
-      TagFilter tagFilter,
-      List<Connection> connList,
-      AbstractRelationalMeta relationalMeta)
-      throws SQLException {
-    this(
-        databaseNameList,
-        Collections.emptyList(),
-        resultSets,
-        isDummy,
-        filter,
-        tagFilter,
-        connList,
-        relationalMeta,
-        null,
-        null,
-        false);
+  public RelationQueryRowStream(List<String> databaseNameList, List<ResultSet> resultSets, boolean isDummy, Filter filter, TagFilter tagFilter, List<Connection> connList, AbstractRelationalMeta relationalMeta) throws SQLException {
+    this(databaseNameList, Collections.emptyList(), resultSets, isDummy, filter, tagFilter, connList, relationalMeta, null, null, false);
   }
 
-  public RelationQueryRowStream(
-      List<String> databaseNameList,
-      List<List<String>> tableColumnNames,
-      List<ResultSet> resultSets,
-      boolean isDummy,
-      Filter filter,
-      TagFilter tagFilter,
-      List<Connection> connList,
-      AbstractRelationalMeta relationalMeta,
-      Map<String, DataType> sumResType,
-      Map<String, String> fullName2Name,
-      boolean isAgg)
-      throws SQLException {
+  public RelationQueryRowStream(List<String> databaseNameList, List<List<String>> tableColumnNames, List<ResultSet> resultSets, boolean isDummy, Filter filter, TagFilter tagFilter, List<Connection> connList, AbstractRelationalMeta relationalMeta, Map<String, DataType> sumResType, Map<String, String> fullName2Name, boolean isAgg) throws SQLException {
     this.resultSets = resultSets;
     this.isDummy = isDummy;
     this.filter = filter;
@@ -189,8 +160,7 @@ public class RelationQueryRowStream implements RowStream {
 
         if (!relationalMeta.isSupportFullJoin() && isPushDown) {
           System.out.println(columnName);
-          RelationSchema relationSchema =
-              new RelationSchema(columnName, isDummy, relationalMeta.getQuote());
+          RelationSchema relationSchema = new RelationSchema(columnName, isDummy, relationalMeta.getQuote());
           tableName = relationSchema.getTableName();
           columnName = relationSchema.getColumnName();
         }
@@ -206,33 +176,15 @@ public class RelationQueryRowStream implements RowStream {
         Pair<String, Map<String, String>> namesAndTags = splitFullName(columnName);
         Field field;
         DataType type = relationalMeta.getDataTypeTransformer().fromEngineType(typeName);
-        if (isAgg
-            && sumResType != null
-            && sumResType.containsKey(fullName2Name.getOrDefault(columnName, columnName))) {
+        if (isAgg && sumResType != null && sumResType.containsKey(fullName2Name.getOrDefault(columnName, columnName))) {
           type = sumResType.get(fullName2Name.getOrDefault(columnName, columnName));
         }
         String path;
         if (isDummy) {
-          field =
-              new Field(
-                  databaseNameList.get(i) + SEPARATOR + tableName + SEPARATOR + namesAndTags.k,
-                  relationalMeta
-                      .getDataTypeTransformer()
-                      .fromEngineType(typeName, String.valueOf(columnSize), columnClassName),
-                  namesAndTags.v);
-          path =
-              databaseNameList.get(i)
-                  + SEPARATOR
-                  + (isAgg ? "" : tableName + SEPARATOR)
-                  + namesAndTags.k;
+          field = new Field(databaseNameList.get(i) + SEPARATOR + tableName + SEPARATOR + namesAndTags.k, relationalMeta.getDataTypeTransformer().fromEngineType(typeName, String.valueOf(columnSize), columnClassName), namesAndTags.v);
+          path = databaseNameList.get(i) + SEPARATOR + (isAgg ? "" : tableName + SEPARATOR) + namesAndTags.k;
         } else {
-          field =
-              new Field(
-                  tableName + SEPARATOR + namesAndTags.k,
-                  relationalMeta
-                      .getDataTypeTransformer()
-                      .fromEngineType(typeName, String.valueOf(columnSize), columnClassName),
-                  namesAndTags.v);
+          field = new Field(tableName + SEPARATOR + namesAndTags.k, relationalMeta.getDataTypeTransformer().fromEngineType(typeName, String.valueOf(columnSize), columnClassName), namesAndTags.v);
           path = (isAgg ? "" : tableName + SEPARATOR) + namesAndTags.k;
         }
 
@@ -349,11 +301,7 @@ public class RelationQueryRowStream implements RowStream {
 
             for (int j = 0; j < resultSetSizes[i]; j++) {
               String columnName = fieldToColumnName.get(header.getField(startIndex + j));
-              RelationSchema schema =
-                  new RelationSchema(
-                      header.getField(startIndex + j).getName(),
-                      isDummy,
-                      relationalMeta.getQuote());
+              RelationSchema schema = new RelationSchema(header.getField(startIndex + j).getName(), isDummy, relationalMeta.getQuote());
               String tableName = schema.getTableName();
 
               tableNameSet.add(tableName);
@@ -368,12 +316,15 @@ public class RelationQueryRowStream implements RowStream {
               }
               if (header.getField(startIndex + j).getType() == DataType.BINARY && value != null) {
                 tempValue = value.toString().getBytes();
-              } else if (header.getField(startIndex + j).getType() == DataType.BOOLEAN
-                  && value != null) {
+              } else if (header.getField(startIndex + j).getType() == DataType.BOOLEAN && value != null) {
                 if (value instanceof Boolean) {
                   tempValue = value;
                 } else {
-                  tempValue = ((int) value) == 1;
+                  if (value instanceof Byte) {
+                    tempValue = ((Byte) value) == 1;
+                  } else {
+                    tempValue = ((int) value) == 1;
+                  }
                 }
               } else {
                 tempValue = value;
@@ -443,8 +394,7 @@ public class RelationQueryRowStream implements RowStream {
    * columnLabel)是因为：在pg的filter下推中，可能会存在column名字相同，但是table不同的情况 这时候用resultSet.getObject(String
    * columnLabel)就只能取到第一个column的值
    */
-  private Object getResultSetObject(ResultSet resultSet, String columnName, String tableName)
-      throws SQLException {
+  private Object getResultSetObject(ResultSet resultSet, String columnName, String tableName) throws SQLException {
     if (!relationalMeta.isSupportFullJoin() && isPushDown) {
       return resultSet.getObject(tableName + SEPARATOR + columnName);
     }
@@ -454,18 +404,14 @@ public class RelationQueryRowStream implements RowStream {
     }
     ResultSetMetaData resultSetMetaData = resultSet.getMetaData();
     if (engine.equals("oracle") || engine.equals("dameng")) {
-      int i =
-          this.tableColumnNames
-              .get(resultSets.indexOf(resultSet))
-              .indexOf(RelationSchema.getFullName(tableName, columnName));
+      int i = this.tableColumnNames.get(resultSets.indexOf(resultSet)).indexOf(RelationSchema.getFullName(tableName, columnName));
       // LOGGER.info("{}-{}-{}-{}-{}",resultSet.getObject(1),resultSet.getObject(2),resultSet.getObject(3),resultSet.getObject(4),resultSet.getObject(5));
       return resultSet.getObject(i + 1);
     }
     for (int j = 1; j <= resultSetMetaData.getColumnCount(); j++) {
       String tempColumnName = resultSetMetaData.getColumnName(j);
       String tempTableName = resultSetMetaData.getTableName(j);
-      if (tempColumnName.equals(columnName)
-          && (tempTableName.isEmpty() || tempTableName.equals(tableName))) {
+      if (tempColumnName.equals(columnName) && (tempTableName.isEmpty() || tempTableName.equals(tableName))) {
         return resultSet.getObject(j);
       }
     }
