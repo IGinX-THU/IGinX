@@ -19,23 +19,23 @@ jobs:
         uses: ./.github/workflows/case-regression.yml
         with:
             metadata-matrix: '["zookeeper"]'
-#    standalone-test:
-#        uses: ./.github/workflows/standalone-test.yml
-#        with:
-#            metadata-matrix: '["zookeeper"]'
-#    standalone-test-no-optimizer:
-#        uses: ./.github/workflows/standalone-test-no-optimizer.yml
-#        with:
-#            metadata-matrix: '["zookeeper"]'
-#    db-ce:
-#        uses: ./.github/workflows/DB-CE.yml
-#        with:
-#            metadata-matrix: '["zookeeper"]'
-#    db-ce-no-optimizer:
-#        uses: ./.github/workflows/DB-CE.yml
-#        with:
-#            metadata-matrix: '["zookeeper"]'
-#            close-optimizer: "true"
+    #    standalone-test:
+    #        uses: ./.github/workflows/standalone-test.yml
+    #        with:
+    #            metadata-matrix: '["zookeeper"]'
+    #    standalone-test-no-optimizer:
+    #        uses: ./.github/workflows/standalone-test-no-optimizer.yml
+    #        with:
+    #            metadata-matrix: '["zookeeper"]'
+    #    db-ce:
+    #        uses: ./.github/workflows/DB-CE.yml
+    #        with:
+    #            metadata-matrix: '["zookeeper"]'
+    #    db-ce-no-optimizer:
+    #        uses: ./.github/workflows/DB-CE.yml
+    #        with:
+    #            metadata-matrix: '["zookeeper"]'
+    #            close-optimizer: "true"
     standalone-test-dameng:
         uses: ./.github/workflows/standalone-test.yml
         with:
