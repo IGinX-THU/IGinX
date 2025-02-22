@@ -1062,8 +1062,7 @@ public class Session {
 
   public void uploadFileChunk(FileChunk chunk) throws SessionException {
     UploadFileReq req = new UploadFileReq(sessionId, chunk);
-    Reference<UploadFileResp> ref = new Reference<>();
-    executeWithCheck(() -> (ref.resp = client.uploadFileChunk(req)).status);
+    executeWithCheck(() -> client.uploadFileChunk(req));
   }
 
   public Pair<List<String>, Long> executeLoadCSV(String statement, String fileName)

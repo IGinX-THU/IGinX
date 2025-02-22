@@ -27,12 +27,14 @@ import static cn.edu.tsinghua.iginx.relational.tools.TagKVUtils.splitFullName;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.RowFetchException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils;
 import cn.edu.tsinghua.iginx.engine.physical.storage.utils.TagKVUtils;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.FilterType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.relational.meta.AbstractRelationalMeta;
 import cn.edu.tsinghua.iginx.relational.meta.JDBCMeta;
@@ -58,6 +60,8 @@ public class RelationQueryRowStream implements RowStream {
 
   private final boolean isDummy;
 
+  private final boolean isAgg;
+
   private final Filter filter;
 
   private boolean[] gotNext; // 标记每个结果集是否已经获取到下一行，如果是，则在下次调用 next() 时无需再调用该结果集的 next()
@@ -80,15 +84,22 @@ public class RelationQueryRowStream implements RowStream {
 
   private AbstractRelationalMeta relationalMeta;
 
+  private Map<String, String> fullName2Name; // 记录带tagkv的fullname到不带tagkv的name的映射
+
   private String fullKeyName = KEY_NAME;
 
   private boolean isPushDown = false;
+
+  private Map<String, DataType> sumResType; // 记录聚合下推的sum的返回类型（需要提前计算，因为PG会统一返回小数）
+
+  private boolean needFilter = false;
 
   private String engine;
   private final List<List<String>> tableColumnNames;
 
   public RelationQueryRowStream(
       List<String> databaseNameList,
+      List<List<String>> tableColumnNames,
       List<ResultSet> resultSets,
       boolean isDummy,
       Filter filter,
@@ -104,7 +115,10 @@ public class RelationQueryRowStream implements RowStream {
         filter,
         tagFilter,
         connList,
-        relationalMeta);
+        relationalMeta,
+        null,
+        null,
+        false);
   }
 
   public RelationQueryRowStream(
@@ -115,7 +129,10 @@ public class RelationQueryRowStream implements RowStream {
       Filter filter,
       TagFilter tagFilter,
       List<Connection> connList,
-      AbstractRelationalMeta relationalMeta)
+      AbstractRelationalMeta relationalMeta,
+      Map<String, DataType> sumResType,
+      Map<String, String> fullName2Name,
+      boolean isAgg)
       throws SQLException {
     this.resultSets = resultSets;
     this.isDummy = isDummy;
@@ -123,6 +140,8 @@ public class RelationQueryRowStream implements RowStream {
     this.connList = connList;
     this.relationalMeta = relationalMeta;
     this.tableColumnNames = tableColumnNames;
+    this.isAgg = isAgg;
+    this.sumResType = sumResType;
 
     if (resultSets.isEmpty()) {
       this.header = new Header(Field.KEY, Collections.emptyList());
@@ -136,6 +155,10 @@ public class RelationQueryRowStream implements RowStream {
     this.resultSetSizes = new int[resultSets.size()];
     this.fieldToColumnName = new HashMap<>();
     this.resultSetHasColumnWithTheSameName = new ArrayList<>();
+
+    needFilter = (!isAgg && resultSets.size() != 1) || isDummy;
+    Set<FilterType> filterTypes = FilterUtils.getFilterType(filter);
+    needFilter |= filterTypes.contains(FilterType.Expr);
 
     JDBCMeta jdbcMeta = (JDBCMeta) relationalMeta;
     this.engine = jdbcMeta.getStorageEngineMeta().getExtraParams().get("engine");
@@ -183,6 +206,13 @@ public class RelationQueryRowStream implements RowStream {
 
         Pair<String, Map<String, String>> namesAndTags = splitFullName(columnName);
         Field field;
+        DataType type = relationalMeta.getDataTypeTransformer().fromEngineType(typeName);
+        if (isAgg
+            && sumResType != null
+            && sumResType.containsKey(fullName2Name.getOrDefault(columnName, columnName))) {
+          type = sumResType.get(fullName2Name.getOrDefault(columnName, columnName));
+        }
+        String path;
         if (isDummy) {
           field =
               new Field(
@@ -191,6 +221,11 @@ public class RelationQueryRowStream implements RowStream {
                       .getDataTypeTransformer()
                       .fromEngineType(typeName, String.valueOf(columnSize), columnClassName),
                   namesAndTags.v);
+          path =
+              databaseNameList.get(i)
+                  + SEPARATOR
+                  + (isAgg ? "" : tableName + SEPARATOR)
+                  + namesAndTags.k;
         } else {
           field =
               new Field(
@@ -199,6 +234,13 @@ public class RelationQueryRowStream implements RowStream {
                       .getDataTypeTransformer()
                       .fromEngineType(typeName, String.valueOf(columnSize), columnClassName),
                   namesAndTags.v);
+          path = (isAgg ? "" : tableName + SEPARATOR) + namesAndTags.k;
+        }
+
+        if (isAgg && fullName2Name.containsKey(path)) {
+          field = new Field(fullName2Name.get(path), path, type, namesAndTags.v);
+        } else {
+          field = new Field(path, type, namesAndTags.v);
         }
 
         if (filterByTags && !TagKVUtils.match(namesAndTags.v, tagFilter)) {
@@ -318,6 +360,13 @@ public class RelationQueryRowStream implements RowStream {
               tableNameSet.add(tableName);
 
               Object value = getResultSetObject(resultSet, columnName, tableName);
+              if (value instanceof BigDecimal) {
+                if (header.getField(startIndex + j).getType() == DataType.LONG) {
+                  value = ((BigDecimal) value).longValue();
+                } else {
+                  value = ((BigDecimal) value).doubleValue();
+                }
+              }
               if (header.getField(startIndex + j).getType() == DataType.BINARY && value != null) {
                 tempValue = value.toString().getBytes();
               } else if (header.getField(startIndex + j).getType() == DataType.BOOLEAN
@@ -325,41 +374,26 @@ public class RelationQueryRowStream implements RowStream {
                 if (value instanceof Boolean) {
                   tempValue = value;
                 } else {
-                  if (value instanceof BigDecimal) {
-                    tempValue = ((BigDecimal) value).intValue() == 1;
-                  } else if (value instanceof Byte) {
-                    tempValue = ((Byte) value) == 1;
-                  } else {
-                    tempValue = ((int) value) == 1;
-                  }
-                }
-              } else if (value instanceof BigDecimal) {
-                if (header.getField(startIndex + j).getType() == DataType.INTEGER) {
-                  tempValue = ((BigDecimal) value).intValue();
-                } else if (header.getField(startIndex + j).getType() == DataType.FLOAT) {
-                  tempValue = ((BigDecimal) value).floatValue();
-                } else if (header.getField(startIndex + j).getType() == DataType.DOUBLE) {
-                  tempValue = ((BigDecimal) value).doubleValue();
-                } else {
-                  tempValue = ((BigDecimal) value).longValue();
+                  tempValue = ((int) value) == 1;
                 }
               } else {
                 tempValue = value;
               }
               cachedValues[startIndex + j] = tempValue;
             }
-
-            if (isDummy) {
-              // 在Dummy查询的Join操作中，key列的值是由多个Join表的所有列的值拼接而成的，但实际上的Key列仅由一个表的所有列的值拼接而成
-              // 所以在这里需要将key列的值截断为一个表的所有列的值，因为能合并在一行里的不同表的数据一定是key相同的
-              // 所以查询出来的KEY值一定是（我们需要的KEY值 * 表的数量），因此只需要裁剪取第一个表的key列的值即可
-              String keyString = resultSet.getString(fullKeyName);
-              keyString = keyString.substring(0, keyString.length() / tableNameSet.size());
-              tempKey = toHash(keyString);
-            } else {
-              tempKey = resultSet.getLong(fullKeyName);
+            if (!isAgg) {
+              if (isDummy) {
+                // 在Dummy查询的Join操作中，key列的值是由多个Join表的所有列的值拼接而成的，但实际上的Key列仅由一个表的所有列的值拼接而成
+                // 所以在这里需要将key列的值截断为一个表的所有列的值，因为能合并在一行里的不同表的数据一定是key相同的
+                // 所以查询出来的KEY值一定是（我们需要的KEY值 * 表的数量），因此只需要裁剪取第一个表的key列的值即可
+                String keyString = resultSet.getString(fullKeyName);
+                keyString = keyString.substring(0, keyString.length() / tableNameSet.size());
+                tempKey = toHash(keyString);
+              } else {
+                tempKey = resultSet.getLong(fullKeyName);
+              }
+              cachedKeys[i] = tempKey;
             }
-            cachedKeys[i] = tempKey;
 
           } else {
             cachedKeys[i] = Long.MAX_VALUE;
@@ -393,7 +427,8 @@ public class RelationQueryRowStream implements RowStream {
           startIndex = endIndex;
         }
         cachedRow = new Row(header, key, values);
-        if (!validate(filter, cachedRow)) {
+        // Agg状态下，所有表join在一起，不需要后过滤
+        if (needFilter && !validate(filter, cachedRow)) {
           continue;
         }
       } else {
@@ -430,7 +465,8 @@ public class RelationQueryRowStream implements RowStream {
     for (int j = 1; j <= resultSetMetaData.getColumnCount(); j++) {
       String tempColumnName = resultSetMetaData.getColumnName(j);
       String tempTableName = resultSetMetaData.getTableName(j);
-      if (tempColumnName.equals(columnName) && tempTableName.equals(tableName)) {
+      if (tempColumnName.equals(columnName)
+          && (tempTableName.isEmpty() || tempTableName.equals(tableName))) {
         return resultSet.getObject(j);
       }
     }

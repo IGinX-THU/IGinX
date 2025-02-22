@@ -17,39 +17,11 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package cn.edu.tsinghua.iginx.engine.shared.expr;
+package cn.edu.tsinghua.iginx.engine.physical.storage.execute.pushdown.strategy;
 
-public interface Expression {
-
-  String getColumnName();
-
-  default String getCalColumnName() {
-    return getColumnName();
-  }
-
-  ExpressionType getType();
-
-  boolean hasAlias();
-
-  String getAlias();
-
-  void setAlias(String alias);
-
-  void accept(ExpressionVisitor visitor);
-
-  boolean equalExceptAlias(Expression expr);
-
-  enum ExpressionType {
-    Bracket,
-    Binary,
-    Unary,
-    Function,
-    Base,
-    Constant,
-    FromValue,
-    Multiple,
-    CaseWhen,
-    Key,
-    Sequence,
-  }
+public enum PushDownType {
+  SelectPushDown,
+  AggPushDown,
+  AggSelectPushDown,
+  NoPushDown
 }

@@ -952,20 +952,16 @@ public class OptimizerIT {
 
     String expect2 =
         "ResultSets:\n"
-            + "+--------------------+-------------+-------------------------------------------------------------------------------+\n"
-            + "|        Logical Tree|Operator Type|                                                                  Operator Info|\n"
-            + "+--------------------+-------------+-------------------------------------------------------------------------------+\n"
-            + "|Reorder             |      Reorder|                                                                Order: test.a.a|\n"
-            + "|  +--Project        |      Project|                                                             Patterns: test.a.a|\n"
-            + "|    +--InnerJoin    |    InnerJoin|PrefixA: test.a, PrefixB: us.d1, IsNatural: false, Filter: test.a.b == us.d1.s1|\n"
-            + "|      +--Project    |      Project|                                  Patterns: test.a.*, Target DU: unit0000000002|\n"
-            + "|      +--Join       |         Join|                                                                    JoinBy: key|\n"
-            + "|        +--Join     |         Join|                                                                    JoinBy: key|\n"
-            + "|          +--Project|      Project|                                   Patterns: us.d1.*, Target DU: unit0000000000|\n"
-            + "|          +--Project|      Project|                                   Patterns: us.d1.*, Target DU: unit0000000001|\n"
-            + "|        +--Project  |      Project|                                   Patterns: us.d1.*, Target DU: unit0000000002|\n"
-            + "+--------------------+-------------+-------------------------------------------------------------------------------+\n"
-            + "Total line number = 9\n";
+            + "+----------------+-------------+-------------------------------------------------------------------------------+\n"
+            + "|    Logical Tree|Operator Type|                                                                  Operator Info|\n"
+            + "+----------------+-------------+-------------------------------------------------------------------------------+\n"
+            + "|Reorder         |      Reorder|                                                                Order: test.a.a|\n"
+            + "|  +--Project    |      Project|                                                             Patterns: test.a.a|\n"
+            + "|    +--InnerJoin|    InnerJoin|PrefixA: test.a, PrefixB: us.d1, IsNatural: false, Filter: test.a.b == us.d1.s1|\n"
+            + "|      +--Project|      Project|                         Patterns: test.a.a,test.a.b, Target DU: unit0000000002|\n"
+            + "|      +--Project|      Project|                                  Patterns: us.d1.s1, Target DU: unit0000000000|\n"
+            + "+----------------+-------------+-------------------------------------------------------------------------------+\n"
+            + "Total line number = 5\n";
     executor.executeAndCompare(sql2, expect2);
 
     String expect3 =
@@ -1369,7 +1365,7 @@ public class OptimizerIT {
     assertTrue(executor.execute("EXPLAIN " + statement).contains("isDistinct: false"));
     assertEquals(closeResult, executor.execute(statement));
 
-    statement = "SELECT max(distinct s1) FROM us.d1 GROUP BY s2;";
+    statement = "SELECT max(distinct s1) FROM us.d1 GROUP BY s2 ORDER BY s2;";
     executor.execute(closeRule);
     assertTrue(executor.execute("EXPLAIN " + statement).contains("isDistinct: true"));
     closeResult = executor.execute(statement);
@@ -1386,7 +1382,8 @@ public class OptimizerIT {
     assertTrue(executor.execute("EXPLAIN " + statement).contains("isDistinct: true"));
     assertEquals(closeResult, executor.execute(statement));
 
-    statement = "SELECT avg(distinct s1), count(distinct s2) FROM us.d1 GROUP BY s2, s3;";
+    statement =
+        "SELECT avg(distinct s1), count(distinct s2) FROM us.d1 GROUP BY s2, s3 ORDER BY s2, s3;";
     executor.execute(closeRule);
     assertTrue(executor.execute("EXPLAIN " + statement).contains("isDistinct: true"));
     closeResult = executor.execute(statement);
@@ -1488,20 +1485,20 @@ public class OptimizerIT {
             + "|  +--Project                |      Project|                                             Patterns: t1.c1,t2.c2|\n"
             + "|    +--Select               |       Select|                             Filter: (t1.c1 == t2.c1 && t1.c1 > 1)|\n"
             + "|      +--CrossJoin          |    CrossJoin|                                        PrefixA: t1, PrefixB: null|\n"
-            + "|        +--Project          |      Project|                         Patterns: t1.*, Target DU: unit0000000002|\n"
+            + "|        +--Project          |      Project|                        Patterns: t1.c1, Target DU: unit0000000002|\n"
             + "|        +--Union            |        Union|LeftOrder: t2.c2,t2.c1, RightOrder: t2.c2,t2.c1, isDistinct: false|\n"
             + "|          +--Reorder        |      Reorder|                                                Order: t2.c2,t2.c1|\n"
             + "|            +--Project      |      Project|                                             Patterns: t2.c2,t2.c1|\n"
             + "|              +--Select     |       Select|                            Filter: (t2.c2 == 2 && t2.c2 == t3.c2)|\n"
             + "|                +--CrossJoin|    CrossJoin|                                          PrefixA: t2, PrefixB: t3|\n"
-            + "|                  +--Project|      Project|                         Patterns: t2.*, Target DU: unit0000000002|\n"
-            + "|                  +--Project|      Project|                         Patterns: t3.*, Target DU: unit0000000002|\n"
+            + "|                  +--Project|      Project|                  Patterns: t2.c1,t2.c2, Target DU: unit0000000002|\n"
+            + "|                  +--Project|      Project|                        Patterns: t3.c2, Target DU: unit0000000002|\n"
             + "|          +--Reorder        |      Reorder|                                                Order: t2.c2,t2.c1|\n"
             + "|            +--Project      |      Project|                                             Patterns: t2.c2,t2.c1|\n"
             + "|              +--Select     |       Select|                                          Filter: (t2.c1 == t4.c1)|\n"
             + "|                +--CrossJoin|    CrossJoin|                                          PrefixA: t2, PrefixB: t4|\n"
-            + "|                  +--Project|      Project|                         Patterns: t2.*, Target DU: unit0000000002|\n"
-            + "|                  +--Project|      Project|                         Patterns: t4.*, Target DU: unit0000000002|\n"
+            + "|                  +--Project|      Project|                  Patterns: t2.c1,t2.c2, Target DU: unit0000000002|\n"
+            + "|                  +--Project|      Project|                        Patterns: t4.c1, Target DU: unit0000000002|\n"
             + "+----------------------------+-------------+------------------------------------------------------------------+\n"
             + "Total line number = 18\n";
     assertEquals(expect, executor.execute("EXPLAIN " + statement));
@@ -1519,17 +1516,17 @@ public class OptimizerIT {
             + "|      +--Select       |       Select|Filter: (t1.c1 == t2.c1 && t1.c1 > 1 && t2.c2 == 2 && t2.c2 == t3.c2)|\n"
             + "|        +--CrossJoin  |    CrossJoin|                                             PrefixA: t2, PrefixB: t3|\n"
             + "|          +--CrossJoin|    CrossJoin|                                             PrefixA: t1, PrefixB: t2|\n"
-            + "|            +--Project|      Project|                            Patterns: t1.*, Target DU: unit0000000002|\n"
-            + "|            +--Project|      Project|                            Patterns: t2.*, Target DU: unit0000000002|\n"
-            + "|          +--Project  |      Project|                            Patterns: t3.*, Target DU: unit0000000002|\n"
+            + "|            +--Project|      Project|                           Patterns: t1.c1, Target DU: unit0000000002|\n"
+            + "|            +--Project|      Project|                     Patterns: t2.c1,t2.c2, Target DU: unit0000000002|\n"
+            + "|          +--Project  |      Project|                           Patterns: t3.c2, Target DU: unit0000000002|\n"
             + "|  +--Reorder          |      Reorder|                                                   Order: t1.c1,t2.c2|\n"
             + "|    +--Project        |      Project|                                                Patterns: t2.c2,t1.c1|\n"
             + "|      +--Select       |       Select|              Filter: (t1.c1 == t2.c1 && t1.c1 > 1 && t2.c1 == t4.c1)|\n"
             + "|        +--CrossJoin  |    CrossJoin|                                             PrefixA: t2, PrefixB: t4|\n"
             + "|          +--CrossJoin|    CrossJoin|                                             PrefixA: t1, PrefixB: t2|\n"
-            + "|            +--Project|      Project|                            Patterns: t1.*, Target DU: unit0000000002|\n"
-            + "|            +--Project|      Project|                            Patterns: t2.*, Target DU: unit0000000002|\n"
-            + "|          +--Project  |      Project|                            Patterns: t4.*, Target DU: unit0000000002|\n"
+            + "|            +--Project|      Project|                           Patterns: t1.c1, Target DU: unit0000000002|\n"
+            + "|            +--Project|      Project|                     Patterns: t2.c1,t2.c2, Target DU: unit0000000002|\n"
+            + "|          +--Project  |      Project|                           Patterns: t4.c1, Target DU: unit0000000002|\n"
             + "+----------------------+-------------+---------------------------------------------------------------------+\n"
             + "Total line number = 17\n";
     assertEquals(expect, executor.execute("EXPLAIN " + statement));
@@ -1567,16 +1564,16 @@ public class OptimizerIT {
             + "|  +--Project              |      Project|                                             Patterns: t1.c2,t2.c2|\n"
             + "|    +--Select             |       Select|                                          Filter: (t1.c1 == t2.c1)|\n"
             + "|      +--CrossJoin        |    CrossJoin|                                        PrefixA: t2, PrefixB: null|\n"
-            + "|        +--Project        |      Project|                         Patterns: t2.*, Target DU: unit0000000002|\n"
+            + "|        +--Project        |      Project|                  Patterns: t2.c1,t2.c2, Target DU: unit0000000002|\n"
             + "|        +--Union          |        Union|LeftOrder: t1.c2,t1.c1, RightOrder: t1.c2,t1.c1, isDistinct: false|\n"
             + "|          +--Reorder      |      Reorder|                                                Order: t1.c2,t1.c1|\n"
             + "|            +--Project    |      Project|                                             Patterns: t1.c2,t1.c1|\n"
             + "|              +--Select   |       Select|                                              Filter: (t1.c1 == 1)|\n"
-            + "|                +--Project|      Project|                         Patterns: t1.*, Target DU: unit0000000002|\n"
+            + "|                +--Project|      Project|                  Patterns: t1.c1,t1.c2, Target DU: unit0000000002|\n"
             + "|          +--Reorder      |      Reorder|                                                Order: t1.c2,t1.c1|\n"
             + "|            +--Project    |      Project|                                             Patterns: t1.c2,t1.c1|\n"
             + "|              +--Select   |       Select|                                              Filter: (t1.c1 == 2)|\n"
-            + "|                +--Project|      Project|                         Patterns: t1.*, Target DU: unit0000000002|\n"
+            + "|                +--Project|      Project|                  Patterns: t1.c1,t1.c2, Target DU: unit0000000002|\n"
             + "+--------------------------+-------------+------------------------------------------------------------------+\n"
             + "Total line number = 14\n";
     assertEquals(expect, executor.execute("EXPLAIN " + statement));
@@ -1593,14 +1590,14 @@ public class OptimizerIT {
             + "|    +--Project      |      Project|                                             Patterns: t2.c2,t1.c2|\n"
             + "|      +--Select     |       Select|                            Filter: (t1.c1 == t2.c1 && t1.c1 == 1)|\n"
             + "|        +--CrossJoin|    CrossJoin|                                          PrefixA: t1, PrefixB: t2|\n"
-            + "|          +--Project|      Project|                         Patterns: t1.*, Target DU: unit0000000002|\n"
-            + "|          +--Project|      Project|                         Patterns: t2.*, Target DU: unit0000000002|\n"
+            + "|          +--Project|      Project|                  Patterns: t1.c1,t1.c2, Target DU: unit0000000002|\n"
+            + "|          +--Project|      Project|                  Patterns: t2.c1,t2.c2, Target DU: unit0000000002|\n"
             + "|  +--Reorder        |      Reorder|                                                Order: t1.c2,t2.c2|\n"
             + "|    +--Project      |      Project|                                             Patterns: t2.c2,t1.c2|\n"
             + "|      +--Select     |       Select|                            Filter: (t1.c1 == t2.c1 && t1.c1 == 2)|\n"
             + "|        +--CrossJoin|    CrossJoin|                                          PrefixA: t1, PrefixB: t2|\n"
-            + "|          +--Project|      Project|                         Patterns: t1.*, Target DU: unit0000000002|\n"
-            + "|          +--Project|      Project|                         Patterns: t2.*, Target DU: unit0000000002|\n"
+            + "|          +--Project|      Project|                  Patterns: t1.c1,t1.c2, Target DU: unit0000000002|\n"
+            + "|          +--Project|      Project|                  Patterns: t2.c1,t2.c2, Target DU: unit0000000002|\n"
             + "+--------------------+-------------+------------------------------------------------------------------+\n"
             + "Total line number = 13\n";
     assertEquals(expect, executor.execute("EXPLAIN " + statement));
@@ -1728,6 +1725,225 @@ public class OptimizerIT {
     assertTrue(openExplain.contains("us.*.s1 &not in") && !openExplain.contains("us.*.s1 not in"));
     assertTrue(
         closeExplain.contains("us.*.s1 &!= 1 && us.*.s1 &!= 2 && us.*.s1 != 3 && us.*.s1 != 4"));
+  }
+
+  @Test
+  public void testAggPushdown() {
+    if (isScaling) return;
+    String insert = "INSERT INTO test(key, a.a, a.b, a.c, b.a, b.b, b.c)";
+    insert +=
+        " VALUES (1, 1, 1.1, true, 1, 1.1, true), (2, 2, 2.2, false, 2, 2.2, false), (3, 1, 2.2, true, 1, 1.1, true), (4, 2, 1.1, false, 2, 2.2, false);";
+    executor.execute(insert);
+
+    String openRule = "SET RULES AggPushDownRule=on;";
+    String closeRule = "SET RULES AggPushDownRule=off;";
+    String openRes = "", closeRes = "";
+
+    String statement =
+        "SELECT sum(test.a.b) from test.a JOIN test.b on test.a.a = test.b.a group by test.a.a;";
+    String explain = "EXPLAIN " + statement;
+    String expected =
+        "ResultSets:\n"
+            + "+----------------------+-------------+---------------------------------------------------------------------------------------------------------+\n"
+            + "|          Logical Tree|Operator Type|                                                                                            Operator Info|\n"
+            + "+----------------------+-------------+---------------------------------------------------------------------------------------------------------+\n"
+            + "|Reorder               |      Reorder|                                                                                     Order: sum(test.a.b)|\n"
+            + "|  +--Rename           |       Rename|                                                            AliasList: (sum(sum_test_a_b), sum(test.a.b))|\n"
+            + "|    +--GroupBy        |      GroupBy|GroupByCols: test.a.a, FuncList(Name, FuncType): (sum, System), MappingType: SetMapping isDistinct: false|\n"
+            + "|      +--InnerJoin    |    InnerJoin|                         PrefixA: test.a, PrefixB: test.b, IsNatural: false, Filter: test.a.a == test.b.a|\n"
+            + "|        +--Rename     |       Rename|                                                                 AliasList: (sum(test.a.b), sum_test_a_b)|\n"
+            + "|          +--GroupBy  |      GroupBy|GroupByCols: test.a.a, FuncList(Name, FuncType): (sum, System), MappingType: SetMapping isDistinct: false|\n"
+            + "|            +--Project|      Project|                                                   Patterns: test.a.a,test.a.b, Target DU: unit0000000002|\n"
+            + "|        +--Project    |      Project|                                                            Patterns: test.b.a, Target DU: unit0000000002|\n"
+            + "+----------------------+-------------+---------------------------------------------------------------------------------------------------------+\n"
+            + "Total line number = 8\n";
+
+    executor.execute(openRule);
+    openRes = executor.execute(statement);
+    executor.executeAndCompare(explain, expected);
+    expected =
+        "ResultSets:\n"
+            + "+----------------+-------------+---------------------------------------------------------------------------------------------------------+\n"
+            + "|    Logical Tree|Operator Type|                                                                                            Operator Info|\n"
+            + "+----------------+-------------+---------------------------------------------------------------------------------------------------------+\n"
+            + "|Reorder         |      Reorder|                                                                                     Order: sum(test.a.b)|\n"
+            + "|  +--GroupBy    |      GroupBy|GroupByCols: test.a.a, FuncList(Name, FuncType): (sum, System), MappingType: SetMapping isDistinct: false|\n"
+            + "|    +--InnerJoin|    InnerJoin|                         PrefixA: test.a, PrefixB: test.b, IsNatural: false, Filter: test.a.a == test.b.a|\n"
+            + "|      +--Project|      Project|                                                   Patterns: test.a.a,test.a.b, Target DU: unit0000000002|\n"
+            + "|      +--Project|      Project|                                                            Patterns: test.b.a, Target DU: unit0000000002|\n"
+            + "+----------------+-------------+---------------------------------------------------------------------------------------------------------+\n"
+            + "Total line number = 5\n";
+    executor.execute(closeRule);
+    executor.executeAndCompare(explain, expected);
+
+    statement = "SELECT sum(aaa) FROM (SELECT a as aaa, b as bbb FROM test.a) GROUP BY bbb;";
+    explain = "EXPLAIN " + statement;
+    expected =
+        "ResultSets:\n"
+            + "+--------------------+-------------+---------------------------------------------------------------------------------------------------------+\n"
+            + "|        Logical Tree|Operator Type|                                                                                            Operator Info|\n"
+            + "+--------------------+-------------+---------------------------------------------------------------------------------------------------------+\n"
+            + "|Reorder             |      Reorder|                                                                                          Order: sum(aaa)|\n"
+            + "|  +--Rename         |       Rename|                                     AliasList: (test.a.a, aaa),(test.a.b, bbb),(sum(test.a.a), sum(aaa))|\n"
+            + "|    +--Reorder      |      Reorder|                                                                            Order: test.a.b,sum(test.a.a)|\n"
+            + "|      +--Project    |      Project|                                                                         Patterns: test.a.b,sum(test.a.a)|\n"
+            + "|        +--GroupBy  |      GroupBy|GroupByCols: test.a.b, FuncList(Name, FuncType): (sum, System), MappingType: SetMapping isDistinct: false|\n"
+            + "|          +--Project|      Project|                                                   Patterns: test.a.a,test.a.b, Target DU: unit0000000002|\n"
+            + "+--------------------+-------------+---------------------------------------------------------------------------------------------------------+\n"
+            + "Total line number = 6\n";
+    executor.execute(openRule);
+    openRes = executor.execute(statement);
+    executor.executeAndCompare(explain, expected);
+    expected =
+        "ResultSets:\n"
+            + "+--------------------+-------------+----------------------------------------------------------------------------------------------------+\n"
+            + "|        Logical Tree|Operator Type|                                                                                       Operator Info|\n"
+            + "+--------------------+-------------+----------------------------------------------------------------------------------------------------+\n"
+            + "|Reorder             |      Reorder|                                                                                     Order: sum(aaa)|\n"
+            + "|  +--GroupBy        |      GroupBy|GroupByCols: bbb, FuncList(Name, FuncType): (sum, System), MappingType: SetMapping isDistinct: false|\n"
+            + "|    +--Rename       |       Rename|                                                          AliasList: (test.a.a, aaa),(test.a.b, bbb)|\n"
+            + "|      +--Reorder    |      Reorder|                                                                            Order: test.a.a,test.a.b|\n"
+            + "|        +--Project  |      Project|                                                                         Patterns: test.a.a,test.a.b|\n"
+            + "|          +--Project|      Project|                                              Patterns: test.a.a,test.a.b, Target DU: unit0000000002|\n"
+            + "+--------------------+-------------+----------------------------------------------------------------------------------------------------+\n"
+            + "Total line number = 6\n";
+    executor.execute(closeRule);
+    executor.executeAndCompare(explain, expected);
+    closeRes = executor.execute(statement);
+    assertEquals(openRes, closeRes);
+
+    statement =
+        "SELECT sum(test.a.a) FROM (SELECT a , b FROM test.a ORDER BY b) GROUP BY test.a.b;";
+    explain = "EXPLAIN " + statement;
+    expected =
+        "ResultSets:\n"
+            + "+------------------+-------------+---------------------------------------------------------------------------------------------------------+\n"
+            + "|      Logical Tree|Operator Type|                                                                                            Operator Info|\n"
+            + "+------------------+-------------+---------------------------------------------------------------------------------------------------------+\n"
+            + "|Reorder           |      Reorder|                                                                                     Order: sum(test.a.a)|\n"
+            + "|  +--Reorder      |      Reorder|                                                                            Order: test.a.b,sum(test.a.a)|\n"
+            + "|    +--Project    |      Project|                                                                         Patterns: test.a.b,sum(test.a.a)|\n"
+            + "|      +--GroupBy  |      GroupBy|GroupByCols: test.a.b, FuncList(Name, FuncType): (sum, System), MappingType: SetMapping isDistinct: false|\n"
+            + "|        +--Project|      Project|                                                   Patterns: test.a.a,test.a.b, Target DU: unit0000000002|\n"
+            + "+------------------+-------------+---------------------------------------------------------------------------------------------------------+\n"
+            + "Total line number = 5\n";
+    executor.execute(openRule);
+    executor.executeAndCompare(explain, expected);
+    openRes = executor.execute(statement);
+    expected =
+        "ResultSets:\n"
+            + "+--------------------+-------------+---------------------------------------------------------------------------------------------------------+\n"
+            + "|        Logical Tree|Operator Type|                                                                                            Operator Info|\n"
+            + "+--------------------+-------------+---------------------------------------------------------------------------------------------------------+\n"
+            + "|Reorder             |      Reorder|                                                                                     Order: sum(test.a.a)|\n"
+            + "|  +--GroupBy        |      GroupBy|GroupByCols: test.a.b, FuncList(Name, FuncType): (sum, System), MappingType: SetMapping isDistinct: false|\n"
+            + "|    +--Reorder      |      Reorder|                                                                                 Order: test.a.a,test.a.b|\n"
+            + "|      +--Sort       |         Sort|                                                                          SortBy: test.a.b, SortType: ASC|\n"
+            + "|        +--Project  |      Project|                                                                              Patterns: test.a.a,test.a.b|\n"
+            + "|          +--Project|      Project|                                                   Patterns: test.a.a,test.a.b, Target DU: unit0000000002|\n"
+            + "+--------------------+-------------+---------------------------------------------------------------------------------------------------------+\n"
+            + "Total line number = 6\n";
+    executor.execute(closeRule);
+    executor.executeAndCompare(explain, expected);
+    closeRes = executor.execute(statement);
+    assertEquals(openRes, closeRes);
+
+    statement =
+        "SELECT sum(test.a.a) FROM (SELECT a, b, c FROM test.a UNION ALL SELECT a, b, c FROM test.b) GROUP BY test.a.b ORDER BY test.a.b;";
+    explain = "EXPLAIN " + statement;
+    expected =
+        "ResultSets:\n"
+            + "+--------------------------+-------------+---------------------------------------------------------------------------------------------------------+\n"
+            + "|              Logical Tree|Operator Type|                                                                                            Operator Info|\n"
+            + "+--------------------------+-------------+---------------------------------------------------------------------------------------------------------+\n"
+            + "|Reorder                   |      Reorder|                                                                                     Order: sum(test.a.a)|\n"
+            + "|  +--Sort                 |         Sort|                                                                          SortBy: test.a.b, SortType: ASC|\n"
+            + "|    +--Rename             |       Rename|                                                           AliasList: (sum(sum(test.a.a)), sum(test.a.a))|\n"
+            + "|      +--GroupBy          |      GroupBy|GroupByCols: test.a.b, FuncList(Name, FuncType): (sum, System), MappingType: SetMapping isDistinct: false|\n"
+            + "|        +--Union          |        Union|                 LeftOrder: test.a.b,sum(test.a.a), RightOrder: test.b.b,sum(test.b.a), isDistinct: false|\n"
+            + "|          +--Reorder      |      Reorder|                                                                            Order: test.a.b,sum(test.a.a)|\n"
+            + "|            +--Project    |      Project|                                                                         Patterns: test.a.b,sum(test.a.a)|\n"
+            + "|              +--GroupBy  |      GroupBy|GroupByCols: test.a.b, FuncList(Name, FuncType): (sum, System), MappingType: SetMapping isDistinct: false|\n"
+            + "|                +--Project|      Project|                                          Patterns: test.a.a,test.a.b,test.a.c, Target DU: unit0000000002|\n"
+            + "|          +--Reorder      |      Reorder|                                                                            Order: test.b.b,sum(test.b.a)|\n"
+            + "|            +--Project    |      Project|                                                                         Patterns: test.b.b,sum(test.b.a)|\n"
+            + "|              +--GroupBy  |      GroupBy|GroupByCols: test.b.b, FuncList(Name, FuncType): (sum, System), MappingType: SetMapping isDistinct: false|\n"
+            + "|                +--Project|      Project|                                          Patterns: test.b.a,test.b.b,test.b.c, Target DU: unit0000000002|\n"
+            + "+--------------------------+-------------+---------------------------------------------------------------------------------------------------------+\n"
+            + "Total line number = 13\n";
+    executor.execute(openRule);
+    executor.executeAndCompare(explain, expected);
+    openRes = executor.execute(statement);
+    expected =
+        "ResultSets:\n"
+            + "+----------------------+-------------+---------------------------------------------------------------------------------------------------------+\n"
+            + "|          Logical Tree|Operator Type|                                                                                            Operator Info|\n"
+            + "+----------------------+-------------+---------------------------------------------------------------------------------------------------------+\n"
+            + "|Reorder               |      Reorder|                                                                                     Order: sum(test.a.a)|\n"
+            + "|  +--Sort             |         Sort|                                                                          SortBy: test.a.b, SortType: ASC|\n"
+            + "|    +--GroupBy        |      GroupBy|GroupByCols: test.a.b, FuncList(Name, FuncType): (sum, System), MappingType: SetMapping isDistinct: false|\n"
+            + "|      +--Union        |        Union|         LeftOrder: test.a.a,test.a.b,test.a.c, RightOrder: test.b.a,test.b.b,test.b.c, isDistinct: false|\n"
+            + "|        +--Reorder    |      Reorder|                                                                        Order: test.a.a,test.a.b,test.a.c|\n"
+            + "|          +--Project  |      Project|                                                                     Patterns: test.a.a,test.a.b,test.a.c|\n"
+            + "|            +--Project|      Project|                                          Patterns: test.a.a,test.a.b,test.a.c, Target DU: unit0000000002|\n"
+            + "|        +--Reorder    |      Reorder|                                                                        Order: test.b.a,test.b.b,test.b.c|\n"
+            + "|          +--Project  |      Project|                                                                     Patterns: test.b.a,test.b.b,test.b.c|\n"
+            + "|            +--Project|      Project|                                          Patterns: test.b.a,test.b.b,test.b.c, Target DU: unit0000000002|\n"
+            + "+----------------------+-------------+---------------------------------------------------------------------------------------------------------+\n"
+            + "Total line number = 10\n";
+    executor.execute(closeRule);
+    executor.executeAndCompare(explain, expected);
+    closeRes = executor.execute(statement);
+    assertEquals(openRes, closeRes);
+
+    statement =
+        "SELECT count(DISTINCT test.a.b), count(DISTINCT test.b.b) FROM (SELECT * FROM test.a JOIN test.b ON test.a.a = test.b.a) GROUP BY test.a.a;";
+    explain = "EXPLAIN " + statement;
+    expected =
+        "ResultSets:\n"
+            + "+--------------------------+-------------+--------------------------------------------------------------------------------------------------------------------------------+\n"
+            + "|              Logical Tree|Operator Type|                                                                                                                   Operator Info|\n"
+            + "+--------------------------+-------------+--------------------------------------------------------------------------------------------------------------------------------+\n"
+            + "|Reorder                   |      Reorder|                                                                        Order: count(distinct test.a.b),count(distinct test.b.b)|\n"
+            + "|  +--Reorder              |      Reorder|                                                               Order: test.a.a,count(distinct test.a.b),count(distinct test.b.b)|\n"
+            + "|    +--Project            |      Project|                                                            Patterns: test.a.a,count(distinct test.a.b),count(distinct test.b.b)|\n"
+            + "|      +--Rename           |       Rename|AliasList: (count(distinct count_test_a_b), count(distinct test.a.b)),(count(distinct count_test_b_b), count(distinct test.b.b))|\n"
+            + "|        +--GroupBy        |      GroupBy|      GroupByCols: test.a.a, FuncList(Name, FuncType): (count, System),(count, System), MappingType: SetMapping isDistinct: true|\n"
+            + "|          +--InnerJoin    |    InnerJoin|                                                PrefixA: test.a, PrefixB: test.b, IsNatural: false, Filter: test.a.a == test.b.a|\n"
+            + "|            +--Rename     |       Rename|                                                                           AliasList: (count(distinct test.a.b), count_test_a_b)|\n"
+            + "|              +--GroupBy  |      GroupBy|                      GroupByCols: test.a.a, FuncList(Name, FuncType): (count, System), MappingType: SetMapping isDistinct: true|\n"
+            + "|                +--Project|      Project|                                                                                   Patterns: test.a.*, Target DU: unit0000000002|\n"
+            + "|            +--Rename     |       Rename|                                                                           AliasList: (count(distinct test.b.b), count_test_b_b)|\n"
+            + "|              +--GroupBy  |      GroupBy|                      GroupByCols: test.b.a, FuncList(Name, FuncType): (count, System), MappingType: SetMapping isDistinct: true|\n"
+            + "|                +--Project|      Project|                                                                                   Patterns: test.b.*, Target DU: unit0000000002|\n"
+            + "+--------------------------+-------------+--------------------------------------------------------------------------------------------------------------------------------+\n"
+            + "Total line number = 12\n";
+    executor.execute(openRule);
+    executor.executeAndCompare(explain, expected);
+    openRes = executor.execute(statement);
+    expected =
+        "ResultSets:\n"
+            + "+--------------------------+-------------+--------------------------------------------------------------------------------------------------------------------------------+\n"
+            + "|              Logical Tree|Operator Type|                                                                                                                   Operator Info|\n"
+            + "+--------------------------+-------------+--------------------------------------------------------------------------------------------------------------------------------+\n"
+            + "|Reorder                   |      Reorder|                                                                        Order: count(distinct test.a.b),count(distinct test.b.b)|\n"
+            + "|  +--Reorder              |      Reorder|                                                               Order: test.a.a,count(distinct test.a.b),count(distinct test.b.b)|\n"
+            + "|    +--Project            |      Project|                                                            Patterns: test.a.a,count(distinct test.a.b),count(distinct test.b.b)|\n"
+            + "|      +--Rename           |       Rename|AliasList: (count(distinct count_test_a_b), count(distinct test.a.b)),(count(distinct count_test_b_b), count(distinct test.b.b))|\n"
+            + "|        +--GroupBy        |      GroupBy|      GroupByCols: test.a.a, FuncList(Name, FuncType): (count, System),(count, System), MappingType: SetMapping isDistinct: true|\n"
+            + "|          +--InnerJoin    |    InnerJoin|                                                PrefixA: test.a, PrefixB: test.b, IsNatural: false, Filter: test.a.a == test.b.a|\n"
+            + "|            +--Rename     |       Rename|                                                                           AliasList: (count(distinct test.a.b), count_test_a_b)|\n"
+            + "|              +--GroupBy  |      GroupBy|                      GroupByCols: test.a.a, FuncList(Name, FuncType): (count, System), MappingType: SetMapping isDistinct: true|\n"
+            + "|                +--Project|      Project|                                                                                   Patterns: test.a.*, Target DU: unit0000000002|\n"
+            + "|            +--Rename     |       Rename|                                                                           AliasList: (count(distinct test.b.b), count_test_b_b)|\n"
+            + "|              +--GroupBy  |      GroupBy|                      GroupByCols: test.b.a, FuncList(Name, FuncType): (count, System), MappingType: SetMapping isDistinct: true|\n"
+            + "|                +--Project|      Project|                                                                                   Patterns: test.b.*, Target DU: unit0000000002|\n"
+            + "+--------------------------+-------------+--------------------------------------------------------------------------------------------------------------------------------+\n"
+            + "Total line number = 12\n";
+    executor.executeAndCompare(explain, expected);
+    closeRes = executor.execute(statement);
+    executor.execute(closeRule);
+    assertEquals(openRes, closeRes);
   }
 
   @Test

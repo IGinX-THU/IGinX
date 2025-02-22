@@ -1353,15 +1353,14 @@ public class IginxWorker implements IService.Iface {
   }
 
   @Override
-  public UploadFileResp uploadFileChunk(UploadFileReq req) {
+  public Status uploadFileChunk(UploadFileReq req) {
     FileChunk chunk = req.getFileChunk();
-    Status status = new Status();
 
     String filename = chunk.fileName;
     if (filename.contains("..") || filename.contains("/") || filename.contains("\\")) {
-      status.setCode(RpcUtils.FAILURE.code);
+      Status status = RpcUtils.FAILURE;
       status.setMessage("Invalid filename");
-      return new UploadFileResp(status);
+      return status;
     }
 
     String filepath = String.join(File.separator, System.getProperty("java.io.tmpdir"), filename);
@@ -1376,12 +1375,11 @@ public class IginxWorker implements IService.Iface {
             file,
             chunk.offset);
       }
-      status.setCode(RpcUtils.SUCCESS.code);
-      return new UploadFileResp(status);
+      return RpcUtils.SUCCESS;
     } catch (IOException e) {
-      status.setCode(RpcUtils.FAILURE.code);
+      Status status = RpcUtils.FAILURE;
       status.setMessage("File chunk upload failed. Caused by: " + e.getMessage());
-      return new UploadFileResp(status);
+      return status;
     }
   }
 }

@@ -23,11 +23,13 @@ import static cn.edu.tsinghua.iginx.constant.GlobalConstant.SEPARATOR;
 import static cn.edu.tsinghua.iginx.relational.tools.Constants.*;
 import static cn.edu.tsinghua.iginx.relational.tools.TagKVUtils.splitFullName;
 import static cn.edu.tsinghua.iginx.relational.tools.TagKVUtils.toFullName;
-import static cn.edu.tsinghua.iginx.thrift.DataType.BINARY;
 
 import cn.edu.tsinghua.iginx.engine.logical.utils.LogicalFilterUtils;
+import cn.edu.tsinghua.iginx.engine.logical.utils.OperatorUtils;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.StorageInitializationException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.ExprUtils;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils;
 import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.DataArea;
@@ -41,12 +43,15 @@ import cn.edu.tsinghua.iginx.engine.shared.data.write.BitmapView;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.ColumnDataView;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.RowDataView;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Delete;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Insert;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
+import cn.edu.tsinghua.iginx.engine.shared.expr.*;
+import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
+import cn.edu.tsinghua.iginx.engine.shared.function.system.*;
+import cn.edu.tsinghua.iginx.engine.shared.operator.*;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
+import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
@@ -57,6 +62,7 @@ import cn.edu.tsinghua.iginx.relational.meta.JDBCMeta;
 import cn.edu.tsinghua.iginx.relational.query.entity.RelationQueryRowStream;
 import cn.edu.tsinghua.iginx.relational.tools.ColumnField;
 import cn.edu.tsinghua.iginx.relational.tools.FilterTransformer;
+import cn.edu.tsinghua.iginx.relational.tools.QuoteBaseExpressionDecorator;
 import cn.edu.tsinghua.iginx.relational.tools.RelationSchema;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
@@ -97,6 +103,9 @@ public class RelationalStorage implements IStorage {
   private final Map<String, HikariDataSource> connectionPoolMap = new ConcurrentHashMap<>();
 
   private final FilterTransformer filterTransformer;
+
+  private static final Set<String> SUPPORTED_AGGREGATE_FUNCTIONS =
+      new HashSet<>(Arrays.asList(Count.COUNT, Sum.SUM, Avg.AVG, Max.MAX, Min.MIN));
 
   private Connection getConnection(String databaseName) {
     if (databaseName.startsWith("dummy")) {
@@ -340,7 +349,6 @@ public class RelationalStorage implements IStorage {
     statement.close();
     conn.close();
     return databaseNames;
-    //    }
   }
 
   private List<String> getTables(String databaseName, String tablePattern) {
@@ -602,6 +610,176 @@ public class RelationalStorage implements IStorage {
     return fullColumnNames;
   }
 
+  /** 获取ProjectWithFilter中将所有table join到一起进行查询的SQL语句 */
+  private String getProjectWithFilterSQL(
+      String databaseName,
+      Filter filter,
+      Map<String, String> tableNameToColumnNames,
+      boolean isAgg) {
+    List<String> tableNames = new ArrayList<>();
+    List<List<String>> fullColumnNamesList = new ArrayList<>();
+    List<List<String>> fullColumnNamesListForExpandFilter = new ArrayList<>();
+    String firstTable = "";
+    char quote = relationalMeta.getQuote();
+    for (Map.Entry<String, String> entry : tableNameToColumnNames.entrySet()) {
+      String tableName = entry.getKey();
+      if (firstTable.isEmpty()) {
+        firstTable = tableName;
+      }
+      tableNames.add(tableName);
+      List<String> fullColumnNames = new ArrayList<>(Arrays.asList(entry.getValue().split(", ")));
+
+      // 将columnNames中的列名加上tableName前缀
+      if (isAgg) {
+        fullColumnNamesList.add(
+            fullColumnNames.stream()
+                .map(
+                    s ->
+                        RelationSchema.getQuoteFullName(tableName, s, quote)
+                            + " AS "
+                            + quote
+                            + RelationSchema.getFullName(tableName, s)
+                            + quote)
+                .collect(Collectors.toList()));
+      } else {
+        fullColumnNamesList.add(
+            fullColumnNames.stream()
+                .map(s -> RelationSchema.getQuoteFullName(tableName, s, quote))
+                .collect(Collectors.toList()));
+      }
+      fullColumnNamesListForExpandFilter.add(
+          fullColumnNames.stream()
+              .map(s -> RelationSchema.getFullName(tableName, s))
+              .collect(Collectors.toList()));
+      fullColumnNamesListForExpandFilter
+          .get(fullColumnNamesListForExpandFilter.size() - 1)
+          .add(RelationSchema.getFullName(tableName, KEY_NAME));
+    }
+
+    StringBuilder fullColumnNames = new StringBuilder();
+    fullColumnNames.append(
+        RelationSchema.getQuoteFullName(firstTable, KEY_NAME, relationalMeta.getQuote()));
+    for (List<String> columnNames : fullColumnNamesList) {
+      for (String columnName : columnNames) {
+        fullColumnNames.append(", ").append(columnName);
+      }
+    }
+
+    // 将Filter中的keyFilter替换成带tablename的value filter
+    keyFilterAddTableName(filter, firstTable);
+
+    // 将所有表进行full join
+    String fullTableName = getFullJoinTables(databaseName, tableNames, fullColumnNamesList);
+
+    // 对通配符做处理，将通配符替换成对应的列名
+    if (filterTransformer.toString(filter).contains("*")) {
+      // 把fullColumnNamesList中的列名全部用removeFullColumnNameQuote去掉引号
+      fullColumnNamesList.replaceAll(
+          columnNames -> {
+            List<String> newColumnNames = new ArrayList<>();
+            for (String columnName : columnNames) {
+              newColumnNames.add(removeFullColumnNameQuote(columnName));
+            }
+            return newColumnNames;
+          });
+      filter = expandFilter(filter, fullColumnNamesListForExpandFilter);
+      filter = LogicalFilterUtils.mergeTrue(filter);
+    }
+
+    String fullColumnNamesStr = fullColumnNames.toString();
+    String filterStr = filterTransformer.toString(filter);
+    String orderByKey =
+        RelationSchema.getQuoteFullName(tableNames.get(0), KEY_NAME, relationalMeta.getQuote());
+    if (!relationalMeta.isSupportFullJoin()) {
+      // 如果不支持full join,需要为left join + union模拟的full join表起别名，同时select、where、order by的部分都要调整
+      fullColumnNamesStr = fullColumnNamesStr.replaceAll("`\\.`", ".");
+      filterStr = filterStr.replaceAll("`\\.`", ".");
+      filterStr =
+          filterStr.replace(
+              getQuotName(KEY_NAME), getQuotName(tableNames.get(0) + SEPARATOR + KEY_NAME));
+      orderByKey = orderByKey.replaceAll("`\\.`", ".");
+    }
+    return String.format(
+        //        QUERY_STATEMENT_WITHOUT_KEYNAME,
+        fullColumnNamesStr,
+        fullTableName,
+        filterStr.isEmpty() ? "" : "WHERE " + filterStr,
+        orderByKey);
+  }
+
+  private String getProjectDummyWithSQL(
+      Filter filter, String databaseName, Map<String, String> tableNameToColumnNames)
+      throws SQLException {
+    List<String> tableNames = new ArrayList<>();
+    List<List<String>> fullColumnNamesList = new ArrayList<>();
+    List<List<String>> fullQuoteColumnNamesList = new ArrayList<>();
+
+    // 这里获取所有table的所有列名，用于concat时生成key列。
+    Map<String, List<String>> allColumnNameForTable =
+        getAllColumnNameForTable(databaseName, tableNameToColumnNames);
+
+    // 将columnNames中的列名加上tableName前缀，带JOIN的查询语句中需要用到
+    for (Map.Entry<String, String> entry : tableNameToColumnNames.entrySet()) {
+      String tableName = entry.getKey();
+      tableNames.add(tableName);
+      List<String> columnNames = new ArrayList<>(Arrays.asList(entry.getValue().split(", ")));
+      columnNames.replaceAll(s -> RelationSchema.getFullName(tableName, s));
+      fullColumnNamesList.add(columnNames);
+
+      List<String> fullColumnNames = new ArrayList<>(Arrays.asList(entry.getValue().split(", ")));
+      fullColumnNames.replaceAll(
+          s -> RelationSchema.getQuoteFullName(tableName, s, relationalMeta.getQuote()));
+      fullQuoteColumnNamesList.add(fullColumnNames);
+    }
+
+    String fullTableName = getDummyFullJoinTables(tableNames, allColumnNameForTable);
+
+    Filter copyFilter =
+        dummyFilterSetTrueByColumnNames(
+            cutFilterDatabaseNameForDummy(filter.copy(), databaseName),
+            fullColumnNamesList.stream().flatMap(List::stream).collect(Collectors.toList()));
+
+    // 对通配符做处理，将通配符替换成对应的列名
+    if (filterTransformer.toString(copyFilter).contains("*")) {
+      // 把fullColumnNamesList中的列名全部用removeFullColumnNameQuote去掉引号
+      fullColumnNamesList.replaceAll(
+          columnNames -> {
+            List<String> newColumnNames = new ArrayList<>();
+            for (String columnName : columnNames) {
+              newColumnNames.add(removeFullColumnNameQuote(columnName));
+            }
+            return newColumnNames;
+          });
+      copyFilter = expandFilter(copyFilter, fullColumnNamesList);
+      copyFilter = LogicalFilterUtils.mergeTrue(copyFilter);
+    }
+
+    String filterStr = filterTransformer.toString(copyFilter);
+    String orderByKey =
+        buildConcat(
+            fullQuoteColumnNamesList.stream().flatMap(List::stream).collect(Collectors.toList()));
+    if (!relationalMeta.isSupportFullJoin()) {
+      // 如果不支持full join,需要为left join + union模拟的full join表起别名，同时select、where、order by的部分都要调整
+      char quote = relationalMeta.getQuote();
+      fullQuoteColumnNamesList.forEach(
+          columnNames -> columnNames.replaceAll(s -> s.replaceAll(quote + "\\." + quote, ".")));
+      filterStr = filterStr.replaceAll("`\\.`", ".");
+      filterStr =
+          filterStr.replace(
+              getQuotName(KEY_NAME), getQuotName(tableNames.get(0) + SEPARATOR + KEY_NAME));
+      orderByKey = getQuotName(tableNames.get(0) + SEPARATOR + KEY_NAME);
+    }
+
+    return String.format(
+        relationalMeta.getConcatQueryStatement(),
+        buildConcat(
+            fullQuoteColumnNamesList.stream().flatMap(List::stream).collect(Collectors.toList())),
+        fullQuoteColumnNamesList.stream().flatMap(List::stream).collect(Collectors.joining(", ")),
+        fullTableName,
+        filterStr.isEmpty() ? "" : "WHERE " + filterStr,
+        orderByKey);
+  }
+
   private TaskExecuteResult executeProjectWithFilter(
       Project project, Filter filter, DataArea dataArea) {
     try {
@@ -625,7 +803,7 @@ public class RelationalStorage implements IStorage {
 
       String statement;
       // 如果table>1的情况下存在Value或Path Filter，说明filter的匹配需要跨table，此时需要将所有table join到一起进行查询
-      if (!filter.toString().contains("*")
+      if (FilterUtils.getAllPathsFromFilter(filter).stream().noneMatch(s -> s.contains("*"))
           && !(tableNameToColumnNames.size() > 1
               && filterContainsType(Arrays.asList(FilterType.Value, FilterType.Path), filter))) {
         for (Map.Entry<String, String> entry : tableNameToColumnNames.entrySet()) {
@@ -659,60 +837,8 @@ public class RelationalStorage implements IStorage {
       }
       // table中带有了通配符，将所有table都join到一起进行查询，以便输入filter.
       else if (!tableNameToColumnNames.isEmpty()) {
-        List<List<String>> fullColumnNamesList = new ArrayList<>();
-        int firstTalbe = 1; // 只取第一个table的Key列放入结果集中
-        String firstTableName = "";
-        List<String> tmpList = new ArrayList<>();
-        for (Map.Entry<String, String> entry : tableNameToColumnNames.entrySet()) {
-          String tableName = entry.getKey();
-          if (firstTalbe == 1) {
-            firstTableName = tableName;
-          }
-          List<String> fullColumnNames =
-              new ArrayList<>(Arrays.asList(entry.getValue().split(", ")));
-          tmpList.addAll(getColumnNamesWithTable(tableName, entry.getValue(), firstTalbe++ == 1));
-          // 将columnNames中的列名加上tableName前缀
-          fullColumnNames.replaceAll(
-              s -> RelationSchema.getQuoteFullName(tableName, s, relationalMeta.getQuote()));
-          fullColumnNamesList.add(fullColumnNames);
-        }
-        tableColumnNames.add(tmpList);
-        StringBuilder fullColumnNames = new StringBuilder();
-        fullColumnNames.append(
-            RelationSchema.getQuoteFullName(firstTableName, KEY_NAME, relationalMeta.getQuote()));
-        for (List<String> columnNames : fullColumnNamesList) {
-          for (String columnName : columnNames) {
-            fullColumnNames.append(", ").append(columnName);
-          }
-        }
-        // 将所有表进行full join
-        String fullTableName =
-            getFullJoinTables(
-                databaseName,
-                tableNameToColumnNames.keySet().stream().collect(Collectors.toList()),
-                fullColumnNamesList);
-
-        String fullColumnNamesStr = fullColumnNames.toString();
-        keyFilterAddTableName(expandFilter, firstTableName);
-        String filterStr = filterTransformer.toString(expandFilter);
-        String orderByKey =
-            RelationSchema.getQuoteFullName(firstTableName, KEY_NAME, relationalMeta.getQuote());
-        if (!relationalMeta.isSupportFullJoin()) {
-          // 如果不支持full join,需要为left join + union模拟的full join表起别名，同时select、where、order by的部分都要调整
-          fullColumnNamesStr = fullColumnNamesStr.replaceAll("`\\.`", ".");
-          filterStr = filterStr.replaceAll("`\\.`", ".");
-          filterStr =
-              filterStr.replace(
-                  getQuotName(KEY_NAME), getQuotName(firstTableName + SEPARATOR + KEY_NAME));
-          orderByKey = orderByKey.replaceAll("`\\.`", ".");
-        }
         statement =
-            String.format(
-                relationalMeta.getQueryTableWithoutKeyStatement(),
-                fullColumnNamesStr,
-                fullTableName,
-                filterStr.isEmpty() ? "" : "WHERE " + filterStr,
-                orderByKey);
+            getProjectWithFilterSQL(databaseName, filter.copy(), tableNameToColumnNames, false);
 
         ResultSet rs = null;
         try {
@@ -748,35 +874,6 @@ public class RelationalStorage implements IStorage {
     }
   }
 
-  private void keyFilterAddTableName(Filter filter, String tableName) {
-    switch (filter.getType()) {
-      case Or:
-        List<Filter> orChildren = ((OrFilter) filter).getChildren();
-        orChildren.replaceAll(child -> keyFilter2ValueFilter(child, tableName));
-        orChildren.forEach(child -> keyFilterAddTableName(child, tableName));
-        break;
-      case And:
-        List<Filter> andChildren = ((AndFilter) filter).getChildren();
-        andChildren.replaceAll(child -> keyFilter2ValueFilter(child, tableName));
-        andChildren.forEach(child -> keyFilterAddTableName(child, tableName));
-        break;
-      case Not:
-        NotFilter notFilter = (NotFilter) filter;
-        notFilter.setChild(keyFilter2ValueFilter(notFilter.getChild(), tableName));
-        keyFilterAddTableName(notFilter.getChild(), tableName);
-        break;
-    }
-  }
-
-  private Filter keyFilter2ValueFilter(Filter filter, String tableName) {
-    if (filter.getType() != FilterType.Key) {
-      return filter;
-    }
-    KeyFilter keyFilter = (KeyFilter) filter;
-    return new ValueFilter(
-        tableName + SEPARATOR + KEY_NAME, keyFilter.getOp(), new Value(keyFilter.getValue()));
-  }
-
   private String getFullJoinTables(
       String databaseName, List<String> tableNames, List<List<String>> fullColumnList) {
     StringBuilder fullTableName = new StringBuilder();
@@ -808,12 +905,14 @@ public class RelationalStorage implements IStorage {
     } else {
       // 不支持全连接，就要用Left Join+Union来模拟全连接
       StringBuilder allColumns = new StringBuilder();
-      fullColumnList.forEach(
-          columnList ->
-              columnList.forEach(
-                  column ->
-                      allColumns.append(
-                          String.format("%s AS %s, ", column, column.replaceAll("`\\.`", ".")))));
+      for (List<String> columnList : fullColumnList) {
+        for (String column : columnList) {
+          if (!column.contains(" AS ")) {
+            column = String.format("%s AS %s", column, column.replaceAll("`\\.`", "."));
+          }
+          allColumns.append(column).append(", ");
+        }
+      }
       allColumns.delete(allColumns.length() - 2, allColumns.length());
 
       fullTableName.append("(");
@@ -1211,6 +1310,518 @@ public class RelationalStorage implements IStorage {
     return executeProjectDummyWithFilter(project, filter);
   }
 
+  @Override
+  public boolean isSupportProjectWithAgg(Operator agg, DataArea dataArea, boolean isDummy) {
+    if (agg.getType() != OperatorType.GroupBy && agg.getType() != OperatorType.SetTransform) {
+      return false;
+    }
+    List<FunctionCall> functionCalls = OperatorUtils.getFunctionCallList(agg);
+    for (FunctionCall functionCall : functionCalls) {
+      if (!SUPPORTED_AGGREGATE_FUNCTIONS.contains(functionCall.getFunction().getIdentifier())) {
+        return false;
+      }
+      if (functionCall.getParams().isDistinct()) return false;
+    }
+
+    if (isDummy) {
+      List<String> patterns = new ArrayList<>();
+      for (FunctionCall fc : functionCalls) {
+        patterns.addAll(fc.getParams().getPaths());
+      }
+      patterns = patterns.stream().distinct().collect(Collectors.toList());
+      try {
+        Map<String, Map<String, String>> splitResults = splitAndMergeHistoryQueryPatterns(patterns);
+        if (splitResults.size() != 1) {
+          return false;
+        }
+      } catch (SQLException e) {
+        return false;
+      }
+    }
+    List<Expression> exprList = new ArrayList<>();
+    functionCalls.forEach(fc -> exprList.addAll(fc.getParams().getExpressions()));
+    // Group By Column和Function参数中不能带有函数，只能有四则运算表达式
+    if (agg.getType() == OperatorType.GroupBy) {
+      List<Expression> gbc = ((GroupBy) agg).getGroupByExpressions();
+      exprList.addAll(gbc);
+    }
+
+    for (Expression expr : exprList) {
+      final boolean[] isValid = {true};
+      expr.accept(
+          new ExpressionVisitor() {
+            @Override
+            public void visit(BaseExpression expression) {
+              if (expression.getColumnName().contains("*")) {
+                isValid[0] = false;
+              }
+            }
+
+            @Override
+            public void visit(BinaryExpression expression) {}
+
+            @Override
+            public void visit(BracketExpression expression) {}
+
+            @Override
+            public void visit(ConstantExpression expression) {}
+
+            @Override
+            public void visit(FromValueExpression expression) {
+              isValid[0] = false;
+            }
+
+            @Override
+            public void visit(FuncExpression expression) {
+              isValid[0] = false;
+            }
+
+            @Override
+            public void visit(MultipleExpression expression) {}
+
+            @Override
+            public void visit(UnaryExpression expression) {}
+
+            @Override
+            public void visit(CaseWhenExpression expression) {
+              isValid[0] = false;
+            }
+
+            @Override
+            public void visit(KeyExpression expression) {}
+
+            @Override
+            public void visit(SequenceExpression expression) {
+              isValid[0] = false;
+            }
+          });
+
+      if (!isValid[0]) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  @Override
+  public boolean isSupportProjectWithAggSelect(
+      Operator agg, Select select, DataArea dataArea, boolean isDummy) {
+    return isSupportProjectWithAgg(agg, dataArea, isDummy) && isSupportProjectWithSelect();
+  }
+
+  @Override
+  public TaskExecuteResult executeProjectWithAggSelect(
+      Project project, Select select, Operator agg, DataArea dataArea) {
+    List<FunctionCall> functionCalls = OperatorUtils.getFunctionCallList(agg);
+    List<Expression> gbc = new ArrayList<>();
+    if (agg.getType() == OperatorType.GroupBy) {
+      gbc = ((GroupBy) agg).getGroupByExpressions();
+    }
+    try {
+      String databaseName = dataArea.getStorageUnit();
+      Connection conn = getConnection(databaseName);
+      if (conn == null) {
+        return new TaskExecuteResult(
+            new RelationalTaskExecuteFailureException(
+                String.format("cannot connect to database %s", databaseName)));
+      }
+      Map<String, String> tableNameToColumnNames =
+          splitAndMergeQueryPatterns(databaseName, project.getPatterns());
+
+      String statement =
+          getProjectWithFilterSQL(
+              databaseName, select.getFilter().copy(), tableNameToColumnNames, true);
+      statement = statement.substring(0, statement.length() - 1); // 去掉最后的分号
+      Map<String, String> fullName2Name = new HashMap<>();
+      statement =
+          generateAggSql(functionCalls, gbc, statement, tableNameToColumnNames, fullName2Name);
+
+      ResultSet rs = null;
+      try {
+        Statement stmt = conn.createStatement();
+        rs = stmt.executeQuery(statement);
+        LOGGER.info("[Query] execute query: {}", statement);
+      } catch (SQLException e) {
+        LOGGER.error("meet error when executing query {}: ", statement, e);
+      }
+
+      if (rs == null) {
+        return new TaskExecuteResult(
+            new RelationalTaskExecuteFailureException("execute query failure"));
+      }
+
+      Map<String, DataType> columnTypeMap = getSumDataType(functionCalls);
+
+      RowStream rowStream =
+          new ClearEmptyRowStreamWrapper(
+              new RelationQueryRowStream(
+                  Collections.singletonList(databaseName),
+                  Collections.emptyList(),
+                  Collections.singletonList(rs),
+                  false,
+                  select.getFilter(),
+                  project.getTagFilter(),
+                  Collections.singletonList(conn),
+                  relationalMeta,
+                  columnTypeMap,
+                  fullName2Name,
+                  true));
+      return new TaskExecuteResult(rowStream);
+
+    } catch (SQLException | RelationalTaskExecuteFailureException e) {
+      LOGGER.error("unexpected error: ", e);
+      return new TaskExecuteResult(
+          new RelationalTaskExecuteFailureException(
+              String.format("execute project task in %s failure", engineName), e));
+    }
+  }
+
+  private Map<String, DataType> getSumDataType(List<FunctionCall> functionCalls)
+      throws RelationalTaskExecuteFailureException {
+    // 如果下推的函数有sum,需要判断结果是小数还是整数
+    List<Column> columns = null;
+    Map<String, DataType> columnTypeMap = new HashMap<>();
+    for (FunctionCall fc : functionCalls) {
+      if (fc.getFunction().getIdentifier().equalsIgnoreCase(Sum.SUM)) {
+        if (columns == null) {
+          columns = getColumns(null, null);
+        }
+        if (isSumResultDouble(fc.getParams().getExpression(0), columns)) {
+          columnTypeMap.put(fc.getFunctionStr(), DataType.DOUBLE);
+        } else {
+          columnTypeMap.put(fc.getFunctionStr(), DataType.LONG);
+        }
+      }
+    }
+    return columnTypeMap;
+  }
+
+  private String generateAggSql(
+      List<FunctionCall> functionCalls,
+      List<Expression> gbc,
+      String statement,
+      Map<String, String> table2Column,
+      Map<String, String> fullName2Name) {
+    char quote = relationalMeta.getQuote();
+    List<String> fullColumnNames = new ArrayList<>();
+    for (Map.Entry<String, String> entry : table2Column.entrySet()) {
+      String tableName = entry.getKey();
+      List<String> columnNames = new ArrayList<>(Arrays.asList(entry.getValue().split(", ")));
+      for (String columnName : columnNames) {
+        fullColumnNames.add(tableName + SEPARATOR + columnName);
+      }
+    }
+    // 在statement的基础上添加group by和函数内容
+    // 这里的处理形式是生成一个形如
+    // SELECT max(derived."a") AS "max(test.a)", sum(derived."b") AS "sum(test.b)", derived."c" AS
+    // "test.c"
+    // FROM (SELECT a, b, c, d FROM test) AS derived GROUP BY c;
+    // 的SQL语句
+    // 几个注意的点，1. 嵌套子查询必须重命名，否则会报错，这里重命名为derived。
+    // 2. 查询出来的结果也需要重命名来适配原始的列名，这里重命名为"max(test.a)"
+    StringBuilder sqlColumnsStr = new StringBuilder();
+    for (FunctionCall functionCall : functionCalls) {
+      String functionName = functionCall.getFunction().getIdentifier();
+      Expression param = functionCall.getParams().getExpressions().get(0);
+
+      List<Expression> expandExprs = expandExpression(param, fullColumnNames);
+      for (Expression expr : expandExprs) {
+        String IGinXTagKVName =
+            String.format(
+                "%s(%s)", functionName, exprToIGinX(ExprUtils.copy(expr)).getColumnName());
+        fullName2Name.put(IGinXTagKVName, functionCall.getFunctionStr());
+
+        String format = "%s(%s)";
+        // 如果是avg函数，且参数是base类型，在mysql下小数位数仅有5位，需要转换为decimal来补齐
+        // 仅在mysql下这么做，pg也可以用，但会出现一些误差，例如3.200000和3.1999999的区别，测试不好通过
+        if (functionName.equalsIgnoreCase(Avg.AVG)
+            && param.getType() == Expression.ExpressionType.Base
+            && engineName.equalsIgnoreCase("mysql")) {
+          format = "%s(CAST(%s AS DECIMAL(34, 16)))";
+        }
+
+        sqlColumnsStr.append(
+            String.format(
+                format, functionName, exprAdapt(ExprUtils.copy(expr)).getCalColumnName()));
+        sqlColumnsStr.append(" AS ");
+        sqlColumnsStr.append(quote).append(IGinXTagKVName).append(quote);
+        sqlColumnsStr.append(", ");
+      }
+    }
+
+    for (Expression expr : gbc) {
+      String originColumnStr = quote + expr.getColumnName() + quote;
+      sqlColumnsStr
+          .append(exprAdapt(ExprUtils.copy(expr)).getCalColumnName())
+          .append(" AS ")
+          .append(originColumnStr)
+          .append(", ");
+    }
+    sqlColumnsStr.delete(sqlColumnsStr.length() - 2, sqlColumnsStr.length());
+
+    statement = "SELECT " + sqlColumnsStr + " FROM (" + statement + ") AS derived";
+    if (!gbc.isEmpty()) {
+      statement +=
+          " GROUP BY "
+              + gbc.stream()
+                  .map(e -> exprAdapt(ExprUtils.copy(e)).getCalColumnName())
+                  .collect(Collectors.joining(", "));
+    }
+    statement += ";";
+    return statement;
+  }
+
+  /**
+   * 表达式适配下推到PG的形式 1.将baseExpression转换为QuoteBaseExpression，以让其在SQL中被引号包裹
+   * 如果SQL使用了JOIN,那列名形如`table.column`，如果没有，则形如`table`.`column`
+   */
+  private Expression exprAdapt(Expression expr) {
+    if (expr instanceof BaseExpression) {
+      return new QuoteBaseExpressionDecorator((BaseExpression) expr, relationalMeta.getQuote());
+    }
+    expr.accept(
+        new ExpressionVisitor() {
+          @Override
+          public void visit(BaseExpression expression) {}
+
+          @Override
+          public void visit(BinaryExpression expression) {
+            if (expression.getLeftExpression() instanceof BaseExpression) {
+              expression.setLeftExpression(
+                  new QuoteBaseExpressionDecorator(
+                      (BaseExpression) expression.getLeftExpression(), relationalMeta.getQuote()));
+            }
+            if (expression.getRightExpression() instanceof BaseExpression) {
+              expression.setRightExpression(
+                  new QuoteBaseExpressionDecorator(
+                      (BaseExpression) expression.getRightExpression(), relationalMeta.getQuote()));
+            }
+          }
+
+          @Override
+          public void visit(BracketExpression expression) {
+            if (expression.getExpression() instanceof BaseExpression) {
+              expression.setExpression(
+                  new QuoteBaseExpressionDecorator(
+                      (BaseExpression) expression.getExpression(), relationalMeta.getQuote()));
+            }
+          }
+
+          @Override
+          public void visit(ConstantExpression expression) {}
+
+          @Override
+          public void visit(FromValueExpression expression) {}
+
+          @Override
+          public void visit(FuncExpression expression) {
+            for (int i = 0; i < expression.getExpressions().size(); i++) {
+              if (expression.getExpressions().get(i) instanceof BaseExpression) {
+                expression
+                    .getExpressions()
+                    .set(
+                        i,
+                        new QuoteBaseExpressionDecorator(
+                            (BaseExpression) expression.getExpressions().get(i),
+                            relationalMeta.getQuote()));
+              }
+            }
+          }
+
+          @Override
+          public void visit(MultipleExpression expression) {
+            for (int i = 0; i < expression.getChildren().size(); i++) {
+              if (expression.getChildren().get(i) instanceof BaseExpression) {
+                expression
+                    .getChildren()
+                    .set(
+                        i,
+                        new QuoteBaseExpressionDecorator(
+                            (BaseExpression) expression.getChildren().get(i),
+                            relationalMeta.getQuote()));
+              }
+            }
+          }
+
+          @Override
+          public void visit(UnaryExpression expression) {
+            if (expression.getExpression() instanceof BaseExpression) {
+              expression.setExpression(
+                  new QuoteBaseExpressionDecorator(
+                      (BaseExpression) expression.getExpression(), relationalMeta.getQuote()));
+            }
+          }
+
+          @Override
+          public void visit(CaseWhenExpression expression) {}
+
+          @Override
+          public void visit(KeyExpression expression) {}
+
+          @Override
+          public void visit(SequenceExpression expression) {}
+        });
+
+    return expr;
+  }
+
+  /** 表达式修改成取回到IGinX的形式，TagKV的形式要是{t=v1, t2=v2} */
+  private Expression exprToIGinX(Expression expr) {
+    expr.accept(
+        new ExpressionVisitor() {
+          @Override
+          public void visit(BaseExpression expression) {
+            String fullColumnName = expression.getColumnName();
+            Pair<String, Map<String, String>> split = splitFullName(fullColumnName);
+            if (split.v == null || split.v.isEmpty()) {
+              return;
+            }
+            StringBuilder sb = new StringBuilder();
+            sb.append(split.k);
+            sb.append("{");
+            Map<String, String> tagKV = split.v;
+            for (Map.Entry<String, String> entry : tagKV.entrySet()) {
+              sb.append(entry.getKey());
+              sb.append("=");
+              sb.append(entry.getValue());
+              sb.append(",");
+            }
+            sb.delete(sb.length() - 1, sb.length());
+            sb.append("}");
+            expression.setPathName(sb.toString());
+          }
+
+          @Override
+          public void visit(BinaryExpression expression) {}
+
+          @Override
+          public void visit(BracketExpression expression) {}
+
+          @Override
+          public void visit(ConstantExpression expression) {}
+
+          @Override
+          public void visit(FromValueExpression expression) {}
+
+          @Override
+          public void visit(FuncExpression expression) {}
+
+          @Override
+          public void visit(MultipleExpression expression) {}
+
+          @Override
+          public void visit(UnaryExpression expression) {}
+
+          @Override
+          public void visit(CaseWhenExpression expression) {}
+
+          @Override
+          public void visit(KeyExpression expression) {}
+
+          @Override
+          public void visit(SequenceExpression expression) {}
+        });
+    return expr;
+  }
+
+  @Override
+  public TaskExecuteResult executeProjectDummyWithAggSelect(
+      Project project, Select select, Operator agg, DataArea dataArea) {
+    List<Connection> connList = new ArrayList<>();
+    Filter filter = select.getFilter();
+    List<FunctionCall> functionCalls = OperatorUtils.getFunctionCallList(agg);
+    List<Expression> gbc = new ArrayList<>();
+    if (agg.getType() == OperatorType.GroupBy) {
+      gbc = ((GroupBy) agg).getGroupByExpressions();
+    }
+    try {
+      List<String> databaseNameList = new ArrayList<>();
+      List<ResultSet> resultSets = new ArrayList<>();
+      ResultSet rs = null;
+      Connection conn;
+      Statement stmt;
+      String statement;
+
+      // 如果下推的函数有sum,需要判断结果是小数还是整数
+      Map<String, DataType> columnTypeMap = getSumDataType(functionCalls);
+
+      Map<String, Map<String, String>> splitResults =
+          splitAndMergeHistoryQueryPatterns(project.getPatterns());
+      Map<String, String> fullName2Name = new HashMap<>();
+      for (Map.Entry<String, Map<String, String>> splitEntry : splitResults.entrySet()) {
+        Map<String, String> tableNameToColumnNames = splitEntry.getValue();
+        String databaseName = splitEntry.getKey();
+        conn = getConnection(databaseName);
+        if (conn == null) {
+          continue;
+        }
+        connList.add(conn);
+
+        // 如果table没有带通配符，那直接简单构建起查询语句即可
+        statement = getProjectDummyWithSQL(filter, databaseName, tableNameToColumnNames);
+        gbc.forEach(this::cutExprDatabaseNameForDummy);
+        functionCalls.forEach(
+            fc -> fc.getParams().getExpressions().forEach(this::cutExprDatabaseNameForDummy));
+
+        statement =
+            generateAggSql(functionCalls, gbc, statement, tableNameToColumnNames, fullName2Name);
+
+        try {
+          stmt = conn.createStatement();
+          rs = stmt.executeQuery(statement);
+          LOGGER.info("[Query] execute query: {}", statement);
+        } catch (SQLException e) {
+          LOGGER.error("meet error when executing query {}: ", statement, e);
+        }
+        if (rs != null) {
+          databaseNameList.add(databaseName);
+          resultSets.add(rs);
+        }
+      }
+
+      RowStream rowStream =
+          new ClearEmptyRowStreamWrapper(
+              new RelationQueryRowStream(
+                  databaseNameList,
+                  Collections.emptyList(),
+                  resultSets,
+                  true,
+                  filter,
+                  project.getTagFilter(),
+                  connList,
+                  relationalMeta,
+                  columnTypeMap,
+                  fullName2Name,
+                  true));
+      return new TaskExecuteResult(rowStream);
+    } catch (SQLException | RelationalTaskExecuteFailureException e) {
+      LOGGER.error("unexpected error: ", e);
+      return new TaskExecuteResult(
+          new RelationalTaskExecuteFailureException(
+              String.format("execute project task in %s failure", engineName), e));
+    }
+  }
+
+  @Override
+  public TaskExecuteResult executeProjectWithAgg(Project project, Operator agg, DataArea dataArea) {
+    return executeProjectWithAggSelect(
+        project,
+        new Select(new OperatorSource(project), new BoolFilter(true), null),
+        agg,
+        dataArea);
+  }
+
+  @Override
+  public TaskExecuteResult executeProjectDummyWithAgg(
+      Project project, Operator agg, DataArea dataArea) {
+    return executeProjectDummyWithAggSelect(
+        project,
+        new Select(new OperatorSource(project), new BoolFilter(true), null),
+        agg,
+        dataArea);
+  }
+
   private TaskExecuteResult executeProjectDummyWithFilter(Project project, Filter filter) {
     List<Connection> connList = new ArrayList<>();
     try {
@@ -1232,27 +1843,27 @@ public class RelationalStorage implements IStorage {
         }
         connList.add(conn);
 
-        // 这里获取所有table的所有列名，用于concat时生成key列。
-        Map<String, List<String>> allColumnNameForTable =
-            getAllColumnNameForTable(databaseName, tableNameToColumnNames);
-
         // 如果table没有带通配符，那直接简单构建起查询语句即可
         if (!filter.toString().contains("*")
             && !(tableNameToColumnNames.size() > 1
                 && filterContainsType(Arrays.asList(FilterType.Value, FilterType.Path), filter))) {
-          Filter expandFilter = expandFilter(filter.copy(), tableNameToColumnNames);
+          Filter expandFilter =
+              expandFilter(
+                  cutFilterDatabaseNameForDummy(filter.copy(), databaseName),
+                  tableNameToColumnNames);
           for (Map.Entry<String, String> entry : splitEntry.getValue().entrySet()) {
             String tableName = entry.getKey();
             String fullQuotColumnNames = getQuotColumnNames(entry.getValue());
             List<String> fullPathList = Arrays.asList(entry.getValue().split(", "));
-            fullPathList.replaceAll(
+            fullPathList.replaceAll(s -> RelationSchema.getFullName(tableName, s));
+            List<String> fullQuotePathList = Arrays.asList(entry.getValue().split(", "));
+            fullQuotePathList.replaceAll(
                 s -> RelationSchema.getQuoteFullName(tableName, s, relationalMeta.getQuote()));
+
             String filterStr =
                 filterTransformer.toString(
-                    dummyFilterSetTrueByColumnNames(
-                        cutFilterDatabaseNameForDummy(expandFilter.copy(), databaseName),
-                        fullPathList));
-            String concatKey = buildConcat(fullPathList);
+                    dummyFilterSetTrueByColumnNames(expandFilter.copy(), fullPathList));
+            String concatKey = buildConcat(fullQuotePathList);
             statement =
                 String.format(
                     relationalMeta.getConcatQueryStatement(),
@@ -1276,66 +1887,7 @@ public class RelationalStorage implements IStorage {
         }
         // table中带有了通配符，将所有table都join到一起进行查询，以便输入filter.
         else if (!tableNameToColumnNames.isEmpty()) {
-          List<String> tableNames = new ArrayList<>();
-          List<List<String>> fullColumnNamesList = new ArrayList<>();
-          List<List<String>> fullQuoteColumnNamesList = new ArrayList<>();
-
-          // 将columnNames中的列名加上tableName前缀，带JOIN的查询语句中需要用到
-          for (Map.Entry<String, String> entry : tableNameToColumnNames.entrySet()) {
-            String tableName = entry.getKey();
-            tableNames.add(tableName);
-            List<String> columnNames = new ArrayList<>(Arrays.asList(entry.getValue().split(", ")));
-            columnNames.replaceAll(s -> RelationSchema.getFullName(tableName, s));
-            fullColumnNamesList.add(columnNames);
-
-            List<String> fullColumnNames =
-                new ArrayList<>(Arrays.asList(entry.getValue().split(", ")));
-            fullColumnNames.replaceAll(
-                s -> RelationSchema.getQuoteFullName(tableName, s, relationalMeta.getQuote()));
-            fullQuoteColumnNamesList.add(fullColumnNames);
-          }
-
-          String fullTableName = getDummyFullJoinTables(tableNames, allColumnNameForTable);
-
-          Filter copyFilter =
-              dummyFilterSetTrueByColumnNames(
-                  cutFilterDatabaseNameForDummy(filter.copy(), databaseName),
-                  fullColumnNamesList.stream().flatMap(List::stream).collect(Collectors.toList()));
-
-          copyFilter = expandFilter(copyFilter, tableNameToColumnNames);
-
-          String filterStr = filterTransformer.toString(copyFilter);
-          String orderByKey =
-              buildConcat(
-                  fullQuoteColumnNamesList.stream()
-                      .flatMap(List::stream)
-                      .collect(Collectors.toList()));
-          if (!relationalMeta.isSupportFullJoin()) {
-            // 如果不支持full join,需要为left join + union模拟的full join表起别名，同时select、where、order by的部分都要调整
-            char quote = relationalMeta.getQuote();
-            fullQuoteColumnNamesList.forEach(
-                columnNames ->
-                    columnNames.replaceAll(s -> s.replaceAll(quote + "\\." + quote, ".")));
-            filterStr = filterStr.replaceAll("`\\.`", ".");
-            filterStr =
-                filterStr.replace(
-                    getQuotName(KEY_NAME), getQuotName(tableNames.get(0) + SEPARATOR + KEY_NAME));
-            orderByKey = getQuotName(tableNames.get(0) + SEPARATOR + KEY_NAME);
-          }
-
-          statement =
-              String.format(
-                  relationalMeta.getConcatQueryStatement(),
-                  buildConcat(
-                      fullQuoteColumnNamesList.stream()
-                          .flatMap(List::stream)
-                          .collect(Collectors.toList())),
-                  fullQuoteColumnNamesList.stream()
-                      .flatMap(List::stream)
-                      .collect(Collectors.joining(", ")),
-                  fullTableName,
-                  filterStr.isEmpty() ? "" : "WHERE " + filterStr,
-                  orderByKey);
+          statement = getProjectDummyWithSQL(filter, databaseName, tableNameToColumnNames);
 
           try {
             stmt = conn.createStatement();
@@ -1355,6 +1907,7 @@ public class RelationalStorage implements IStorage {
           new ClearEmptyRowStreamWrapper(
               new RelationQueryRowStream(
                   databaseNameList,
+                  Collections.emptyList(),
                   resultSets,
                   true,
                   filter,
@@ -1912,7 +2465,7 @@ public class RelationalStorage implements IStorage {
 
             String value = "null";
             if (bitmapView.get(j)) {
-              if (dataType == BINARY) {
+              if (dataType == DataType.BINARY) {
                 value =
                     "'"
                         + new String((byte[]) data.getValue(i, index), StandardCharsets.UTF_8)
@@ -2022,7 +2575,7 @@ public class RelationalStorage implements IStorage {
           for (int j = cnt; j < cnt + size; j++) {
             String value = "null";
             if (bitmapView.get(j)) {
-              if (dataType == BINARY) {
+              if (dataType == DataType.BINARY) {
                 value =
                     "'"
                         + new String((byte[]) data.getValue(i, index), StandardCharsets.UTF_8)
@@ -2440,5 +2993,213 @@ public class RelationalStorage implements IStorage {
       name = getQuotName(name);
     }
     return name;
+  }
+
+  private boolean isSumResultDouble(Expression expr, List<Column> columns) {
+    Map<String, DataType> columnTypeMap = new HashMap<>();
+    for (Column column : columns) {
+      columnTypeMap.put(splitFullName(column.getPath()).k, column.getDataType());
+    }
+    boolean[] isDouble = {false};
+    expr.accept(
+        new ExpressionVisitor() {
+          @Override
+          public void visit(BaseExpression expression) {
+            String path = expression.getColumnName();
+            if (columnTypeMap.containsKey(path)) {
+              isDouble[0] |= columnTypeMap.get(path) == DataType.DOUBLE;
+            }
+          }
+
+          @Override
+          public void visit(BinaryExpression expression) {
+            isDouble[0] |=
+                expression.getOp() == cn.edu.tsinghua.iginx.engine.shared.expr.Operator.DIV;
+          }
+
+          @Override
+          public void visit(BracketExpression expression) {}
+
+          @Override
+          public void visit(ConstantExpression expression) {
+            isDouble[0] |=
+                expression.getValue() instanceof Double || expression.getValue() instanceof Float;
+          }
+
+          @Override
+          public void visit(FromValueExpression expression) {}
+
+          @Override
+          public void visit(FuncExpression expression) {}
+
+          @Override
+          public void visit(MultipleExpression expression) {
+            isDouble[0] |=
+                expression.getOps().stream()
+                    .anyMatch(op -> op == cn.edu.tsinghua.iginx.engine.shared.expr.Operator.DIV);
+          }
+
+          @Override
+          public void visit(UnaryExpression expression) {}
+
+          @Override
+          public void visit(CaseWhenExpression expression) {}
+
+          @Override
+          public void visit(KeyExpression expression) {}
+
+          @Override
+          public void visit(SequenceExpression expression) {}
+        });
+
+    return isDouble[0];
+  }
+
+  private void cutExprDatabaseNameForDummy(Expression expr) {
+    expr.accept(
+        new ExpressionVisitor() {
+          @Override
+          public void visit(BaseExpression expression) {
+            expression.setPathName(expression.getColumnName().split("\\.")[1]);
+          }
+
+          @Override
+          public void visit(BinaryExpression expression) {}
+
+          @Override
+          public void visit(BracketExpression expression) {}
+
+          @Override
+          public void visit(ConstantExpression expression) {}
+
+          @Override
+          public void visit(FromValueExpression expression) {}
+
+          @Override
+          public void visit(FuncExpression expression) {}
+
+          @Override
+          public void visit(MultipleExpression expression) {}
+
+          @Override
+          public void visit(UnaryExpression expression) {}
+
+          @Override
+          public void visit(CaseWhenExpression expression) {}
+
+          @Override
+          public void visit(KeyExpression expression) {}
+
+          @Override
+          public void visit(SequenceExpression expression) {}
+        });
+  }
+
+  /**
+   * 获取替换了*和tag kv的expression
+   *
+   * @return
+   */
+  private List<Expression> expandExpression(Expression expression, List<String> fullColumnNames) {
+    Queue<Expression> queue = new LinkedList<>();
+    List<Expression> result = new ArrayList<>();
+    queue.add(expression);
+    while (!queue.isEmpty()) {
+      Expression expr = queue.poll();
+      BaseExpression[] be = {null};
+      List<String> matchesColumns = new ArrayList<>();
+      expr.accept(
+          new ExpressionVisitor() {
+            @Override
+            public void visit(BaseExpression expression) {
+              if (be[0] != null) return;
+              if (expression.getColumnName().contains("*")) {
+                be[0] = expression;
+              }
+              String pattern = StringUtils.reformatPath(expression.getColumnName());
+              for (String fullColumnName : fullColumnNames) {
+                String columnNameWithoutTag = splitFullName(fullColumnName).k;
+                if (Pattern.matches(pattern, columnNameWithoutTag)) {
+                  matchesColumns.add(fullColumnName);
+                }
+              }
+              if (matchesColumns.size() > 1) {
+                be[0] = expression;
+              } else {
+                matchesColumns.clear();
+              }
+            }
+
+            @Override
+            public void visit(BinaryExpression expression) {}
+
+            @Override
+            public void visit(BracketExpression expression) {}
+
+            @Override
+            public void visit(ConstantExpression expression) {}
+
+            @Override
+            public void visit(FromValueExpression expression) {}
+
+            @Override
+            public void visit(FuncExpression expression) {}
+
+            @Override
+            public void visit(MultipleExpression expression) {}
+
+            @Override
+            public void visit(UnaryExpression expression) {}
+
+            @Override
+            public void visit(CaseWhenExpression expression) {}
+
+            @Override
+            public void visit(KeyExpression expression) {}
+
+            @Override
+            public void visit(SequenceExpression expression) {}
+          });
+
+      if (be[0] == null) {
+        result.add(expr);
+        continue;
+      }
+      for (String columnName : matchesColumns) {
+        be[0].setPathName(columnName);
+        queue.add(ExprUtils.copy(expr));
+      }
+    }
+
+    return result;
+  }
+
+  private void keyFilterAddTableName(Filter filter, String tableName) {
+    switch (filter.getType()) {
+      case Or:
+        List<Filter> orChildren = ((OrFilter) filter).getChildren();
+        orChildren.replaceAll(child -> keyFilter2ValueFilter(child, tableName));
+        orChildren.forEach(child -> keyFilterAddTableName(child, tableName));
+        break;
+      case And:
+        List<Filter> andChildren = ((AndFilter) filter).getChildren();
+        andChildren.replaceAll(child -> keyFilter2ValueFilter(child, tableName));
+        andChildren.forEach(child -> keyFilterAddTableName(child, tableName));
+        break;
+      case Not:
+        NotFilter notFilter = (NotFilter) filter;
+        notFilter.setChild(keyFilter2ValueFilter(notFilter.getChild(), tableName));
+        keyFilterAddTableName(notFilter.getChild(), tableName);
+        break;
+    }
+  }
+
+  private Filter keyFilter2ValueFilter(Filter filter, String tableName) {
+    if (filter.getType() != FilterType.Key) {
+      return filter;
+    }
+    KeyFilter keyFilter = (KeyFilter) filter;
+    return new ValueFilter(
+        tableName + SEPARATOR + KEY_NAME, keyFilter.getOp(), new Value(keyFilter.getValue()));
   }
 }

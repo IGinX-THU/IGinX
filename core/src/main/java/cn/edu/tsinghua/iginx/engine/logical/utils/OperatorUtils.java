@@ -768,4 +768,26 @@ public class OperatorUtils {
     }
     return false;
   }
+
+  public static List<FunctionCall> getFunctionCallList(Operator operator) {
+    switch (operator.getType()) {
+      case GroupBy:
+        return ((GroupBy) operator).getFunctionCallList();
+      case SetTransform:
+        return ((SetTransform) operator).getFunctionCallList();
+      case RowTransform:
+        return ((RowTransform) operator).getFunctionCallList();
+      case MappingTransform:
+        return ((MappingTransform) operator).getFunctionCallList();
+      default:
+        return new ArrayList<>();
+    }
+  }
+
+  public static Operator getUnaryChild(Operator operator) {
+    if (isUnaryOperator(operator.getType())) {
+      return ((OperatorSource) ((UnaryOperator) operator).getSource()).getOperator();
+    }
+    return null;
+  }
 }
