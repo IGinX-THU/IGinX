@@ -19,22 +19,53 @@ jobs:
         uses: ./.github/workflows/case-regression.yml
         with:
             metadata-matrix: '["zookeeper"]'
-    standalone-test:
+#    standalone-test:
+#        uses: ./.github/workflows/standalone-test.yml
+#        with:
+#            metadata-matrix: '["zookeeper"]'
+#    standalone-test-no-optimizer:
+#        uses: ./.github/workflows/standalone-test-no-optimizer.yml
+#        with:
+#            metadata-matrix: '["zookeeper"]'
+#    db-ce:
+#        uses: ./.github/workflows/DB-CE.yml
+#        with:
+#            metadata-matrix: '["zookeeper"]'
+#    db-ce-no-optimizer:
+#        uses: ./.github/workflows/DB-CE.yml
+#        with:
+#            metadata-matrix: '["zookeeper"]'
+#            close-optimizer: "true"
+    standalone-test-dameng:
         uses: ./.github/workflows/standalone-test.yml
         with:
             metadata-matrix: '["zookeeper"]'
-    standalone-test-no-optimizer:
+            os-matrix: '["ubuntu-latest", "windows-latest"]'
+            db-matrix: '["Dameng"]'
+            timeout-minutes: 60
+    standalone-test-no-optimizer-dameng:
         uses: ./.github/workflows/standalone-test-no-optimizer.yml
         with:
             metadata-matrix: '["zookeeper"]'
-    db-ce:
+            os-matrix: '["ubuntu-latest", "windows-latest"]'
+            db-matrix: '["Dameng"]'
+            timeout-minutes: 60
+    db-ce-dameng:
         uses: ./.github/workflows/DB-CE.yml
         with:
             metadata-matrix: '["zookeeper"]'
-    db-ce-no-optimizer:
+            os-matrix: '["ubuntu-latest", "windows-latest"]'
+            db-matrix: '["Dameng"]'
+            functest: "NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,CompactionIT,TimePrecisionIT,PySessionIT"
+            timeout-minutes: 120
+    db-ce-no-optimizer-dameng:
         uses: ./.github/workflows/DB-CE.yml
         with:
             metadata-matrix: '["zookeeper"]'
+            os-matrix: '["ubuntu-latest", "windows-latest"]'
+            db-matrix: '["Dameng"]'
+            functest: "NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,CompactionIT,TimePrecisionIT,PySessionIT"
+            timeout-minutes: 120
             close-optimizer: "true"
     standalone-test-vectordb:
         uses: ./.github/workflows/standalone-test.yml

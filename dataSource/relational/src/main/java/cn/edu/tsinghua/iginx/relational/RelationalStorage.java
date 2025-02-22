@@ -864,7 +864,10 @@ public class RelationalStorage implements IStorage {
                   filter,
                   project.getTagFilter(),
                   Collections.singletonList(conn),
-                  relationalMeta));
+                  relationalMeta,
+                  null,
+                  null,
+                  false));
       return new TaskExecuteResult(rowStream);
     } catch (SQLException e) {
       LOGGER.error("unexpected error: ", e);
@@ -1907,7 +1910,6 @@ public class RelationalStorage implements IStorage {
           new ClearEmptyRowStreamWrapper(
               new RelationQueryRowStream(
                   databaseNameList,
-                  Collections.emptyList(),
                   resultSets,
                   true,
                   filter,

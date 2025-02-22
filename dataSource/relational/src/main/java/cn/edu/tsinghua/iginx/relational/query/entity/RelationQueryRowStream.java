@@ -99,7 +99,6 @@ public class RelationQueryRowStream implements RowStream {
 
   public RelationQueryRowStream(
       List<String> databaseNameList,
-      List<List<String>> tableColumnNames,
       List<ResultSet> resultSets,
       boolean isDummy,
       Filter filter,
