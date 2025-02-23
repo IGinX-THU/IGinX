@@ -700,7 +700,7 @@ public class RelationalStorage implements IStorage {
       orderByKey = orderByKey.replaceAll("`\\.`", ".");
     }
     return String.format(
-        //        QUERY_STATEMENT_WITHOUT_KEYNAME,
+        QUERY_STATEMENT_WITHOUT_KEYNAME,
         fullColumnNamesStr,
         fullTableName,
         filterStr.isEmpty() ? "" : "WHERE " + filterStr,
@@ -798,7 +798,6 @@ public class RelationalStorage implements IStorage {
       Map<String, String> tableNameToColumnNames =
           splitAndMergeQueryPatterns(databaseName, project.getPatterns());
       // 按列顺序加上表名
-      List<List<String>> tableColumnNames = new ArrayList<>();
       Filter expandFilter = expandFilter(filter.copy(), tableNameToColumnNames);
 
       String statement;
@@ -808,7 +807,6 @@ public class RelationalStorage implements IStorage {
               && filterContainsType(Arrays.asList(FilterType.Value, FilterType.Path), filter))) {
         for (Map.Entry<String, String> entry : tableNameToColumnNames.entrySet()) {
           String tableName = entry.getKey();
-          tableColumnNames.add(getColumnNamesWithTable(tableName, entry.getValue(), true));
           String quotColumnNames = getQuotColumnNames(entry.getValue());
           String filterStr = filterTransformer.toString(expandFilter);
           statement =
@@ -858,7 +856,7 @@ public class RelationalStorage implements IStorage {
           new ClearEmptyRowStreamWrapper(
               new RelationQueryRowStream(
                   databaseNameList,
-                  tableColumnNames,
+                  tableNameToColumnNames,
                   resultSets,
                   false,
                   filter,
@@ -1460,7 +1458,7 @@ public class RelationalStorage implements IStorage {
           new ClearEmptyRowStreamWrapper(
               new RelationQueryRowStream(
                   Collections.singletonList(databaseName),
-                  Collections.emptyList(),
+                  tableNameToColumnNames,
                   Collections.singletonList(rs),
                   false,
                   select.getFilter(),
@@ -1787,7 +1785,7 @@ public class RelationalStorage implements IStorage {
           new ClearEmptyRowStreamWrapper(
               new RelationQueryRowStream(
                   databaseNameList,
-                  Collections.emptyList(),
+                  new HashMap<>(),
                   resultSets,
                   true,
                   filter,
