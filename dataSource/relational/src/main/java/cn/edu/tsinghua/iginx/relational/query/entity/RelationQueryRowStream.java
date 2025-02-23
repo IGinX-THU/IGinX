@@ -97,6 +97,8 @@ public class RelationQueryRowStream implements RowStream {
   private String engine;
   private final Map<String, String> tableNameToColumnNames;
 
+  private List<List<String>> tableColumnNames;
+
   public RelationQueryRowStream(
       List<String> databaseNameList,
       List<ResultSet> resultSets,
@@ -142,13 +144,14 @@ public class RelationQueryRowStream implements RowStream {
     this.isAgg = isAgg;
     this.sumResType = sumResType;
 
-    List<List<String>> tableColumnNames = new ArrayList<>();
+    //    List<List<String>> tableColumnNames = new ArrayList<>();
+    this.tableColumnNames = new ArrayList<>();
     // 遍历tableNameToColumnNames，将columnNames中的列名加上tableName前缀
-    for (Map.Entry<String, String> entry : tableNameToColumnNames.entrySet()) {
+    for (Map.Entry<String, String> entry : this.tableNameToColumnNames.entrySet()) {
       String tableName = entry.getKey();
       List<String> columnNames = new ArrayList<>(Arrays.asList(entry.getValue().split(", ")));
       columnNames.replaceAll(s -> RelationSchema.getFullName(tableName, s));
-      tableColumnNames.add(columnNames);
+      this.tableColumnNames.add(columnNames);
     }
 
     if (resultSets.isEmpty()) {
@@ -184,12 +187,10 @@ public class RelationQueryRowStream implements RowStream {
       for (int j = 1; j <= resultSetMetaData.getColumnCount(); j++) {
         columnName = resultSetMetaData.getColumnName(j);
         typeName = resultSetMetaData.getColumnTypeName(j);
+        tableName = resultSetMetaData.getTableName(j);
         if (engine.equals("oracle") || engine.equals("dameng")) {
-          tableName = this.getTableName(tableColumnNames.get(i).get(j - 1));
           columnSize = resultSetMetaData.getPrecision(j);
           columnClassName = resultSetMetaData.getColumnClassName(j);
-        } else {
-          tableName = resultSetMetaData.getTableName(j);
         }
 
         if (j == 1 && columnName.contains(KEY_NAME) && columnName.contains(SEPARATOR)) {
@@ -466,15 +467,21 @@ public class RelationQueryRowStream implements RowStream {
       return resultSet.getObject(columnName);
     }
     ResultSetMetaData resultSetMetaData = resultSet.getMetaData();
-    //    if (engine.equals("oracle") || engine.equals("dameng")) {
-    //      int i =
-    //          this.tableColumnNames
-    //              .get(resultSets.indexOf(resultSet))
-    //              .indexOf(RelationSchema.getFullName(tableName, columnName));
-    //      //
-    // LOGGER.info("{}-{}-{}-{}-{}",resultSet.getObject(1),resultSet.getObject(2),resultSet.getObject(3),resultSet.getObject(4),resultSet.getObject(5));
-    //      return resultSet.getObject(i + 1);
-    //    }
+    if (engine.equals("oracle") || engine.equals("dameng")) {
+      int i =
+          this.tableColumnNames
+              .get(resultSets.indexOf(resultSet))
+              .indexOf(RelationSchema.getFullName(tableName, columnName));
+      //
+      LOGGER.info(
+          "{}-{}-{}-{}-{}",
+          resultSet.getObject(1),
+          resultSet.getObject(2),
+          resultSet.getObject(3),
+          resultSet.getObject(4),
+          resultSet.getObject(5));
+      return resultSet.getObject(i + 1);
+    }
     for (int j = 1; j <= resultSetMetaData.getColumnCount(); j++) {
       String tempColumnName = resultSetMetaData.getColumnName(j);
       String tempTableName = resultSetMetaData.getTableName(j);
