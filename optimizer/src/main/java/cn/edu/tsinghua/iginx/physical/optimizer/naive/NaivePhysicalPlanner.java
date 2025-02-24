@@ -384,9 +384,6 @@ public class NaivePhysicalPlanner {
         if (project.getTagFilter() != null) {
           return null;
         }
-        if (((Project) operator).getTagFilter() != null) {
-          return null;
-        }
         break;
       default:
         return null;

@@ -207,47 +207,13 @@ public class SessionExecuteSqlResult {
   private String buildQueryResult(boolean needFormatTime, String timePrecision) {
     StringBuilder builder = new StringBuilder();
     builder.append("ResultSets:").append("\n");
+
     List<List<String>> cache =
-        cacheArrowResult(needFormatTime, FormatUtils.DEFAULT_TIME_FORMAT, timePrecision);
+        cacheResult(needFormatTime, FormatUtils.DEFAULT_TIME_FORMAT, timePrecision);
     builder.append(FormatUtils.formatResult(cache));
+
     builder.append(FormatUtils.formatCount(cache.size() - 1));
     return builder.toString();
-  }
-
-  private List<List<String>> cacheArrowResult(
-      boolean needFormatTime, String timeFormat, String timePrecision) {
-    // TODO: time format
-    List<List<String>> cache = new ArrayList<>();
-    boolean hasKey = keys != null;
-    List<String> titles = paths;
-    if (hasKey && paths.isEmpty()) {
-      titles.add(0, GlobalConstant.KEY_NAME);
-    }
-    for (int index = 0; index < values.size(); index++) {
-      List<String> rowCache = new ArrayList<>();
-      if (hasKey) {
-        String timeValue;
-        if (needFormatTime) {
-          timeValue = FormatUtils.formatTime(keys[index], timeFormat, timePrecision);
-        } else {
-          timeValue = String.valueOf(keys[index]);
-        }
-        rowCache.add(timeValue);
-      }
-      boolean isNull = !values.get(index).isEmpty();
-      for (Object o : values.get(index)) {
-        String rowValue = FormatUtils.valueToString(o);
-        rowCache.add(rowValue);
-        if (!rowValue.equalsIgnoreCase("null")) {
-          isNull = false;
-        }
-      }
-      if (!isNull) {
-        cache.add(rowCache);
-      }
-    }
-    cache.add(0, titles);
-    return cache;
   }
 
   private List<List<String>> cacheResult(

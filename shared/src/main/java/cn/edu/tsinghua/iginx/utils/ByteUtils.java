@@ -584,6 +584,7 @@ public class ByteUtils {
                     });
             if (!paths.isEmpty() && paths.get(0).equals(GlobalConstant.KEY_NAME)) {
               hasKey = true;
+              paths.remove(0);
             }
             metaCollected = true;
           }
@@ -621,7 +622,6 @@ public class ByteUtils {
     private final List<List<Object>> values;
     private final int rowSize;
     private final int colSize;
-    private final boolean hasKey;
 
     public DataSet(
         List<Long> keys,
@@ -630,14 +630,13 @@ public class ByteUtils {
         List<Map<String, String>> tagsList,
         List<List<Object>> values,
         boolean hasKey) {
-      this.keys = keys.stream().mapToLong(Long::longValue).toArray();
+      this.keys = hasKey ? keys.stream().mapToLong(Long::longValue).toArray() : null;
       this.paths = paths;
       this.dataTypeList = dataTypeList;
       this.tagsList = tagsList;
       this.values = values;
       this.rowSize = values.size();
       this.colSize = dataTypeList.size();
-      this.hasKey = hasKey;
     }
 
     public long[] getKeys() {
@@ -669,7 +668,7 @@ public class ByteUtils {
     }
 
     public boolean hasKey() {
-      return hasKey;
+      return keys != null;
     }
   }
 }
