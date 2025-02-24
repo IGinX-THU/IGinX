@@ -74,14 +74,6 @@ public class QueryResourceManager {
     lastAccessTimeMap.remove(queryId);
   }
 
-  public boolean isQueryCleaned(long queryId) {
-    return cleaner.isQueryCleaned(queryId);
-  }
-
-  public void removeCleanRecord(long queryId) {
-    cleaner.removeCleanedQuery(queryId);
-  }
-
   private static class QueryManagerHolder {
 
     private static final QueryResourceManager INSTANCE = new QueryResourceManager();

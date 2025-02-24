@@ -826,7 +826,7 @@ public class IginxWorker implements IService.Iface {
   public ExecuteStatementResp executeStatement(ExecuteStatementReq req) {
     StatementExecutor executor = StatementExecutor.getInstance();
     RequestContext ctx = contextBuilder.build(req);
-    executor.execute(ctx, false); // resource will be released in fetch
+    executor.execute(ctx, false); // resource will be released when closed
     queryManager.registerQuery(ctx.getId(), ctx);
     return ctx.getResult().getExecuteStatementResp(ctx.getAllocator(), req.getFetchSize());
   }
@@ -835,27 +835,11 @@ public class IginxWorker implements IService.Iface {
   public FetchResultsResp fetchResults(FetchResultsReq req) {
     RequestContext context = queryManager.getQuery(req.queryId);
     if (context == null) {
-      if (queryManager.isQueryCleaned(req.queryId)) {
-        queryManager.removeCleanRecord(req.queryId); // the record is now useless
-        return new FetchResultsResp(
-            new Status(RpcUtils.FAILURE.code).setMessage("Query has been cleaned due to time out."),
-            false);
-      }
-      return new FetchResultsResp(RpcUtils.SUCCESS, false);
+      return new FetchResultsResp(
+          new Status(RpcUtils.FAILURE.code).setMessage("Query has been closed or cleaned due to time out."),
+          false);
     }
-    FetchResultsResp resp = context.getResult().fetch(context.getAllocator(), req.getFetchSize());
-    if (!resp.hasMoreResults) {
-      try {
-        context.closeResources();
-      } catch (PhysicalException e) {
-        LOGGER.error("Failed to close resources for query:{}", req.queryId, e);
-        return new FetchResultsResp(
-            new Status(RpcUtils.FAILURE.code)
-                .setMessage("Failed to close resources for query:" + e.getMessage()),
-            false);
-      }
-    }
-    return resp;
+    return context.getResult().fetch(context.getAllocator(), req.getFetchSize());
   }
 
   @Override

@@ -50,8 +50,6 @@ public class ResourceCleaner {
 
   private Scheduler scheduler;
 
-  private static final Set<Long> cleanedQueries = Collections.synchronizedSet(new HashSet<>());
-
   public ResourceCleaner() {
     try {
       scheduler = StdSchedulerFactory.getDefaultScheduler();
@@ -74,7 +72,6 @@ public class ResourceCleaner {
         JobBuilder.newJob(ResourceCleanupJob.class).withIdentity(JOB_NAME, JOB_GROUP).build();
 
     job.getJobDataMap().put("interval", minutes);
-    job.getJobDataMap().put("cleanedQueries", cleanedQueries);
 
     Trigger trigger =
         TriggerBuilder.newTrigger()
@@ -96,14 +93,6 @@ public class ResourceCleaner {
     }
   }
 
-  public boolean isQueryCleaned(long id) {
-    return cleanedQueries.contains(id);
-  }
-
-  public void removeCleanedQuery(long id) {
-    cleanedQueries.remove(id);
-  }
-
   public static class ResourceCleanupJob implements Job {
 
     private final Logger LOGGER = LoggerFactory.getLogger(ResourceCleanupJob.class);
@@ -113,7 +102,6 @@ public class ResourceCleaner {
       JobDataMap dataMap = context.getJobDetail().getJobDataMap();
       QueryResourceManager manager = QueryResourceManager.getInstance();
       int interval = (int) dataMap.get("interval");
-      Set<Long> cleanedQueries = (Set<Long>) dataMap.get("cleanedQueries");
 
       LOGGER.info("Executing query clean up job.");
 
@@ -125,7 +113,6 @@ public class ResourceCleaner {
         if (!lastAccessTime.isAfter(base)) {
           try {
             manager.releaseQuery(id);
-            cleanedQueries.add(id);
             LOGGER.info("Cleaned resources for query:{}", id);
           } catch (PhysicalException e) {
             LOGGER.error("Can't close resource for query: {}", id, e);
