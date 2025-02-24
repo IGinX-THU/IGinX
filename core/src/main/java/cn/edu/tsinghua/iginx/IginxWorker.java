@@ -836,7 +836,8 @@ public class IginxWorker implements IService.Iface {
     RequestContext context = queryManager.getQuery(req.queryId);
     if (context == null) {
       return new FetchResultsResp(
-          new Status(RpcUtils.FAILURE.code).setMessage("Query has been closed or cleaned due to time out."),
+          new Status(RpcUtils.FAILURE.code)
+              .setMessage("Query has been closed or cleaned due to time out."),
           false);
     }
     return context.getResult().fetch(context.getAllocator(), req.getFetchSize());
