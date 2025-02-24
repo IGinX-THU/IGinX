@@ -37,6 +37,7 @@ import cn.edu.tsinghua.iginx.engine.ContextBuilder;
 import cn.edu.tsinghua.iginx.engine.StatementExecutor;
 import cn.edu.tsinghua.iginx.engine.logical.optimizer.IRuleCollection;
 import cn.edu.tsinghua.iginx.engine.physical.PhysicalEngineImpl;
+import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
 import cn.edu.tsinghua.iginx.engine.physical.storage.StorageManager;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
@@ -825,7 +826,7 @@ public class IginxWorker implements IService.Iface {
   public ExecuteStatementResp executeStatement(ExecuteStatementReq req) {
     StatementExecutor executor = StatementExecutor.getInstance();
     RequestContext ctx = contextBuilder.build(req);
-    executor.execute(ctx);
+    executor.execute(ctx, false); // resource will be released when closed
     queryManager.registerQuery(ctx.getId(), ctx);
     return ctx.getResult().getExecuteStatementResp(ctx.getAllocator(), req.getFetchSize());
   }
@@ -834,7 +835,10 @@ public class IginxWorker implements IService.Iface {
   public FetchResultsResp fetchResults(FetchResultsReq req) {
     RequestContext context = queryManager.getQuery(req.queryId);
     if (context == null) {
-      return new FetchResultsResp(RpcUtils.SUCCESS, false);
+      return new FetchResultsResp(
+          new Status(RpcUtils.FAILURE.code)
+              .setMessage("Query has been closed or cleaned due to time out."),
+          false);
     }
     return context.getResult().fetch(context.getAllocator(), req.getFetchSize());
   }
@@ -860,7 +864,15 @@ public class IginxWorker implements IService.Iface {
 
   @Override
   public Status closeStatement(CloseStatementReq req) {
-    queryManager.releaseQuery(req.queryId);
+    try {
+      queryManager.releaseQuery(req.queryId);
+    } catch (PhysicalException e) {
+      String err = String.format("failed to close resources for query:%s", req.queryId);
+      LOGGER.error(err, e);
+      Status res = new Status(RpcUtils.FAILURE.code);
+      res.setMessage(err);
+      return res;
+    }
     return RpcUtils.SUCCESS;
   }
 

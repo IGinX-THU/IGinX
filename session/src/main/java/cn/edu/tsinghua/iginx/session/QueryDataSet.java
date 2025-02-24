@@ -113,7 +113,16 @@ public class QueryDataSet {
     }
 
     // nextRow 只会返回本地的 row，如果本地没有，在进行 hasMore 操作时候，就一定也已经取回来了
-    return dataSet.getValues().get(index++).toArray();
+    if (dataSet.hasKey()) {
+      List<Object> row = dataSet.getValues().get(index);
+      Object[] result = new Object[1 + row.size()];
+      result[0] = dataSet.getKeys()[index];
+      System.arraycopy(row.toArray(), 0, result, 1, row.size());
+      index++;
+      return result;
+    } else {
+      return dataSet.getValues().get(index++).toArray();
+    }
   }
 
   public List<byte[]> nextRowAsBytes() throws SessionException {
