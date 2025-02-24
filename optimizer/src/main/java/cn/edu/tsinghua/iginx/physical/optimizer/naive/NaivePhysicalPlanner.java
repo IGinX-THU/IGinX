@@ -317,7 +317,7 @@ public class NaivePhysicalPlanner {
 
   public PhysicalTask<?> construct(Select operator, RequestContext context) {
     Source source = operator.getSource();
-    PhysicalTask<?> sourceTask = fetch(operator.getSource(), context);
+    PhysicalTask<?> sourceTask = fetch(source, context);
 
     StoragePhysicalTask storageTask = tryPushDownAloneWithProject(sourceTask, context, operator);
     if (storageTask != null) {
@@ -355,6 +355,7 @@ public class NaivePhysicalPlanner {
   @Nullable
   private StoragePhysicalTask tryPushDownAloneWithProject(
       PhysicalTask<?> sourceTask, RequestContext context, Operator operator) {
+
     if (!ConfigDescriptor.getInstance().getConfig().isEnablePushDown()) {
       return null;
     }
@@ -365,33 +366,47 @@ public class NaivePhysicalPlanner {
     StoragePhysicalTask storageTask = (StoragePhysicalTask) sourceTask;
     List<Operator> childOperators = sourceTask.getOperators();
 
-    if (childOperators.size() != 1) {
-      return null;
+    switch (childOperators.size()) {
+      case 2:
+        Operator secondSourceOperator = childOperators.get(1);
+        if (secondSourceOperator.getType() != OperatorType.Select) {
+          return null;
+        }
+        if (operator.getType() == OperatorType.Select) {
+          return null;
+        }
+      case 1:
+        Operator firstSourceOperator = childOperators.get(0);
+        if (firstSourceOperator.getType() != OperatorType.Project) {
+          return null;
+        }
+        Project project = (Project) firstSourceOperator;
+        if (project.getTagFilter() != null) {
+          return null;
+        }
+        if (((Project) operator).getTagFilter() != null) {
+          return null;
+        }
+        break;
+      default:
+        return null;
     }
-    Operator sourceOperator = childOperators.get(0);
 
-    if (sourceOperator.getType() != OperatorType.Project) {
-      return null;
-    }
-    Project project = (Project) sourceOperator;
-
-    if (project.getTagFilter() != null) {
-      return null;
-    }
     return reConstruct(storageTask, context, false, operator);
   }
 
   public PhysicalTask<?> construct(SetTransform operator, RequestContext context) {
+    PhysicalTask<?> sourceTask = fetch(operator.getSource(), context);
+
+    StoragePhysicalTask storageTask = tryPushDownAloneWithProject(sourceTask, context, operator);
+    if (storageTask != null) {
+      return storageTask;
+    }
+
     if (operator.getFunctionCallList().stream()
         .map(FunctionCall::getFunction)
         .anyMatch(f -> f.getFunctionType() != FunctionType.System)) {
       return constructRow(operator, context);
-    }
-
-    PhysicalTask<?> sourceTask = fetch(operator.getSource(), context);
-    StoragePhysicalTask storageTask = tryPushDownAloneWithProject(sourceTask, context, operator);
-    if (storageTask != null) {
-      return storageTask;
     }
 
     return new UnarySinkMemoryPhysicalTask(
@@ -402,6 +417,13 @@ public class NaivePhysicalPlanner {
   }
 
   public PhysicalTask<?> construct(GroupBy operator, RequestContext context) {
+    PhysicalTask<?> sourceTask = fetch(operator.getSource(), context);
+
+    StoragePhysicalTask storageTask = tryPushDownAloneWithProject(sourceTask, context, operator);
+    if (storageTask != null) {
+      return storageTask;
+    }
+
     if (operator.getFunctionCallList().stream()
         .map(FunctionCall::getFunction)
         .anyMatch(f -> f.getFunctionType() != FunctionType.System)) {
@@ -412,7 +434,6 @@ public class NaivePhysicalPlanner {
       return constructRow(operator, context);
     }
 
-    PhysicalTask<?> sourceTask = fetch(operator.getSource(), context);
     if (sourceTask.getResultClass() == RowStream.class) {
       return new UnaryRowMemoryPhysicalTask(
           convert(sourceTask, context, RowStream.class), operator, context);

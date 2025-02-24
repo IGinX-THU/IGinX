@@ -45,6 +45,10 @@ inputs:
         description: "close all optimizer"
         required: false
         default: "false"
+    Set-ColumnPruning-ON:
+        description: "set ColumnPruningRule ON"
+        required: false
+        default: "false"
 
 runs:
     using: "composite" # Mandatory parameter
@@ -117,6 +121,28 @@ runs:
           with:
               paths: ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-*/conf/config.properties
               statements: s/policyClassName=.*$/policyClassName=cn.edu.tsinghua.iginx.policy.test.KeyRangeTestPolicy/g
+
+        - if: inputs.Set-Filter-Fragment-OFF=='true'
+          name: Set FragmentPruningByFilterRule OFF
+          uses: ./.github/actions/edit
+          with:
+              paths: ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-*/conf/config.properties
+              statements: s/ruleBasedOptimizer=NotFilterRemoveRule=on,FragmentPruningByFilterRule=on/ruleBasedOptimizer=NotFilterRemoveRule=on/g
+
+        - if: inputs.Set-ColumnPruning-ON=='true'
+          name: Set ColumnPruningRule ON
+          uses: ./.github/actions/edit
+          with:
+              paths: ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-*/conf/config.properties
+              statements: |
+                  s/ColumnPruningRule=off/ColumnPruningRule=on/g
+
+        - if: inputs.Set-AggPushDown-OFF=='true'
+          name: Set AggPushDownRule OFF
+          uses: ./.github/actions/edit
+          with:
+              paths: ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-*/conf/config.properties
+              statements: s/AggPushDownRule=on/AggPushDownRule=off/g
 
         - name: Change Log Conf
           uses: ./.github/actions/edit

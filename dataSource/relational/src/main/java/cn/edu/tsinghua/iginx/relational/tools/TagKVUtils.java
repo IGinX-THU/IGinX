@@ -30,7 +30,7 @@ import java.util.TreeMap;
 public class TagKVUtils {
 
   public static Pair<String, Map<String, String>> splitFullName(String fullName) {
-    if (!fullName.contains(TAGKV_SEPARATOR)) {
+    if (!fullName.contains(TAGKV_SEPARATOR) || !fullName.contains(TAGKV_EQUAL)) {
       return new Pair<>(fullName, null);
     }
 

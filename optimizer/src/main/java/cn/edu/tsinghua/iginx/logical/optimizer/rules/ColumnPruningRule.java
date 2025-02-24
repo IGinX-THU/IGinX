@@ -72,7 +72,7 @@ public class ColumnPruningRule extends Rule {
         "ColumnPruningRule",
         "ColumnPruningRule",
         operand(AbstractOperator.class, any()),
-        0,
+        -1,
         RuleStrategy.ONCE);
   }
 
