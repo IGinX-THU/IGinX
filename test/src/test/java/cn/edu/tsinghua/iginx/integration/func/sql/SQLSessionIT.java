@@ -251,7 +251,7 @@ public class SQLSessionIT {
   @After
   public void clearData() {
     String clearData = "CLEAR DATA;";
-    executor.execute(clearData);
+    //    executor.execute(clearData);
   }
 
   @Test

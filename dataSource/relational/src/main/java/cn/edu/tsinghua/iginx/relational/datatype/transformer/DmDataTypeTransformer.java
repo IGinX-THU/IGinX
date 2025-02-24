@@ -49,7 +49,8 @@ public class DmDataTypeTransformer implements IDataTypeTransformer {
         || dataType.equalsIgnoreCase("REAL")) { // from getColumns api
       return DataType.FLOAT;
     } else if (dataType.equalsIgnoreCase("DOUBLE PRECISION")
-        || dataType.equalsIgnoreCase("DOUBLE")) {
+        || dataType.equalsIgnoreCase("DOUBLE")
+        || dataType.equalsIgnoreCase("DECIMAL")) {
       return DataType.DOUBLE;
     } else if (dataType.equalsIgnoreCase("VARCHAR")
         || dataType.equalsIgnoreCase("CHAR")
