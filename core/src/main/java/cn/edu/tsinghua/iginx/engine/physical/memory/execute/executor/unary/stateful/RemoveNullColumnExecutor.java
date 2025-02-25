@@ -51,6 +51,10 @@ public class RemoveNullColumnExecutor extends StatefulUnaryExecutor {
 
   @Override
   protected void consumeEndUnchecked() {
+    if (data.stream().allMatch(group -> group.getRowCount() == 0)) {
+      outputSchema = inputSchema;
+      return;
+    }
     boolean[] isNullColumn = new boolean[inputSchema.getFields().size()];
     Arrays.fill(isNullColumn, true);
     for (VectorSchemaRoot vectorSchemaRoot : data) {

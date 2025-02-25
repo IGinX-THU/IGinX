@@ -128,15 +128,15 @@ public class HashJoinUtils {
       Pair<Integer, Integer> pathPair = entry.getKey();
       Pair<Op, Boolean> opEntry = entry.getValue();
       Op op = opEntry.getKey();
-      boolean keyIsLeft = opEntry.getValue();
-      if (keyIsLeft) {
+      boolean operandIsReversed = opEntry.getValue();
+      if (operandIsReversed) {
         matchers.add(
             PhysicalFilterUtils.construct(
-                pathPair.getKey(), pathPair.getValue() + leftSchema.getFieldCount(), op));
+                pathPair.getValue() + leftSchema.getFieldCount(), pathPair.getKey(), op));
       } else {
         matchers.add(
             PhysicalFilterUtils.construct(
-                pathPair.getKey() + leftSchema.getFieldCount(), pathPair.getValue(), op));
+                pathPair.getKey(), pathPair.getValue() + leftSchema.getFieldCount(), op));
       }
     }
     PredicateExpression otherMatcher =
@@ -151,11 +151,7 @@ public class HashJoinUtils {
     List<Pair<Integer, Integer>> pathPairEqualOps =
         pathPairOps.entrySet().stream()
             .filter(entry -> entry.getValue().getKey() == Op.E)
-            .map(
-                e ->
-                    e.getValue().getValue()
-                        ? e.getKey()
-                        : Pair.of(e.getKey().getRight(), e.getKey().getLeft()))
+            .map(Map.Entry::getKey)
             .collect(Collectors.toList());
     ScalarExpression<IntVector> leftHasher =
         new CallNode<>(

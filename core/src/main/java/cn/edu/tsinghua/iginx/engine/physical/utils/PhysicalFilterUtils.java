@@ -380,14 +380,14 @@ public class PhysicalFilterUtils {
     if (leftAMatchedIndices.size() == 1 && rightBMatchedIndices.size() == 1) {
       pathPairOps.put(
           Pair.of(leftAMatchedIndices.get(0), rightBMatchedIndices.get(0)),
-          Pair.of(filter.getOp(), true));
+          Pair.of(filter.getOp(), false));
       return new AndFilter(Collections.emptyList());
     }
 
     if (rightAMatchedIndices.size() == 1 && leftBMatchedIndices.size() == 1) {
       pathPairOps.put(
-          Pair.of(rightAMatchedIndices.get(0), leftBMatchedIndices.get(0)),
-          Pair.of(filter.getOp(), false));
+          Pair.of(leftBMatchedIndices.get(0), rightAMatchedIndices.get(0)),
+          Pair.of(filter.getOp(), true));
       return new AndFilter(Collections.emptyList());
     }
 
