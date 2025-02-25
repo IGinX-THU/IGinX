@@ -870,6 +870,11 @@ public class StatementExecutor {
         }
       }
     }
+    if (dataList.isEmpty()) {
+      VectorSchemaRoot root = VectorSchemaRoot.create(stream.getSchema().raw(), allocator);
+      root.setRowCount(0);
+      dataList = getBytesFromVector(root, allocator);
+    }
     return dataList;
   }
 
