@@ -585,6 +585,8 @@ public class ByteUtils {
             if (!paths.isEmpty() && paths.get(0).equals(GlobalConstant.KEY_NAME)) {
               hasKey = true;
               paths.remove(0);
+              dataTypeList.remove(0);
+              tagsList.remove(0);
             }
             metaCollected = true;
           }

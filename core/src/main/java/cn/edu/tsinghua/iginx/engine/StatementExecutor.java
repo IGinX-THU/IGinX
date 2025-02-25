@@ -45,6 +45,9 @@ import cn.edu.tsinghua.iginx.engine.shared.exception.StatementExecutionException
 import cn.edu.tsinghua.iginx.engine.shared.file.FileType;
 import cn.edu.tsinghua.iginx.engine.shared.file.read.ImportCsv;
 import cn.edu.tsinghua.iginx.engine.shared.file.read.ImportFile;
+import cn.edu.tsinghua.iginx.engine.shared.file.write.ExportByteStream;
+import cn.edu.tsinghua.iginx.engine.shared.file.write.ExportCsv;
+import cn.edu.tsinghua.iginx.engine.shared.file.write.ExportFile;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.visitor.OperatorInfoVisitor;
 import cn.edu.tsinghua.iginx.engine.shared.processor.*;
@@ -460,28 +463,31 @@ public class StatementExecutor {
     // step 1: select stage
     SelectStatement selectStatement = statement.getSelectStatement();
     RequestContext selectContext = new RequestContext(ctx.getSessionId(), selectStatement, true);
-    process(selectContext);
+    try {
+      ResourceSet holder =
+          resourceManager.setup(selectContext); // will be closed after exportation finished
+      process(selectContext);
+      BatchStream batchStream = selectContext.getResult().getBatchStream();
 
-    // TODO: refactor this part
-    throw new UnsupportedOperationException("Not implemented yet");
-
-    //    RowStream stream = selectContext.getResult().getResultStream();
-    //
-    //    // step 2: export file
-    //    setResultFromRowStream(ctx, stream);
-    //    ExportFile exportFile = statement.getExportFile();
-    //    switch (exportFile.getType()) {
-    //      case CSV:
-    //        ExportCsv exportCsv = (ExportCsv) exportFile;
-    //        ctx.getResult().setExportCsv(exportCsv);
-    //        break;
-    //      case BYTE_STREAM:
-    //        ExportByteStream exportByteStream = (ExportByteStream) exportFile;
-    //        ctx.getResult().setExportByteStreamDir(exportByteStream.getDir());
-    //        break;
-    //      default:
-    //        throw new RuntimeException("Unknown export file type: " + exportFile.getType());
-    //    }
+      // step 2: export file
+      setResultFromBatchStream(ctx, batchStream);
+      ExportFile exportFile = statement.getExportFile();
+      switch (exportFile.getType()) {
+        case CSV:
+          ExportCsv exportCsv = (ExportCsv) exportFile;
+          ctx.getResult().setExportCsv(exportCsv);
+          break;
+        case BYTE_STREAM:
+          ExportByteStream exportByteStream = (ExportByteStream) exportFile;
+          ctx.getResult().setExportByteStreamDir(exportByteStream.getDir());
+          break;
+        default:
+          throw new RuntimeException("Unknown export file type: " + exportFile.getType());
+      }
+    } catch (ResourceException e) {
+      LOGGER.error("Cannot setup resource for query", e);
+      throw new StatementExecutionException(e);
+    }
   }
 
   private void processInsertFromFile(RequestContext ctx)

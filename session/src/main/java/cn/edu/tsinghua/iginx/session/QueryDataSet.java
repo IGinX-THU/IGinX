@@ -129,11 +129,12 @@ public class QueryDataSet {
     if (!hasMore()) {
       return null;
     }
+    int colSize = dataSet.getColSize();
     // nextRow 只会返回本地的 row，如果本地没有，在进行 hasMore 操作时候，就一定也已经取回来了
-    List<byte[]> bytesValues = new ArrayList<>(dataSet.getColSize());
+    List<byte[]> bytesValues = new ArrayList<>(colSize);
     List<Object> values = dataSet.getValues().get(index);
     index++;
-    for (int i = 0; i < dataSet.getColSize(); i++) {
+    for (int i = 0; i < colSize; i++) {
       if (values.get(i) == null) {
         bytesValues.add(new byte[0]);
       } else {
@@ -142,6 +143,10 @@ public class QueryDataSet {
       }
     }
     return bytesValues;
+  }
+
+  public boolean hasKey() {
+    return dataSet.hasKey();
   }
 
   public List<String> getColumnList() {

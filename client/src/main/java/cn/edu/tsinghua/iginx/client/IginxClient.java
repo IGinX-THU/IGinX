@@ -485,10 +485,13 @@ public class IginxClient {
 
   private static List<List<String>> cacheResult(QueryDataSet queryDataSet, boolean skipHeader)
       throws SessionException {
-    boolean hasKey = queryDataSet.getColumnList().get(0).equals(GlobalConstant.KEY_NAME);
+    boolean hasKey = queryDataSet.hasKey();
     List<List<String>> cache = new ArrayList<>();
     if (!skipHeader) {
       cache.add(new ArrayList<>(queryDataSet.getColumnList()));
+      if (hasKey) {
+        cache.get(0).add(0, GlobalConstant.KEY_NAME);
+      }
     }
 
     int rowIndex = 0;
@@ -526,16 +529,10 @@ public class IginxClient {
     }
 
     int columnsSize = res.getColumnList().size();
-    int finalCnt = columnsSize;
     String[] columns = new String[columnsSize];
     Map<String, Integer> countMap = new HashMap<>();
     for (int i = 0; i < columnsSize; i++) {
       String originColumn = res.getColumnList().get(i);
-      if (originColumn.equals(GlobalConstant.KEY_NAME)) {
-        columns[i] = "";
-        finalCnt--;
-        continue;
-      }
       originColumn = originColumn.replace("\\", ".");
       Integer count = countMap.getOrDefault(originColumn, 0);
       count += 1;
@@ -558,7 +555,7 @@ public class IginxClient {
 
     System.out.println(
         "Successfully write "
-            + finalCnt
+            + columnsSize
             + " file(s) to directory: \""
             + dirFile.getAbsolutePath()
             + "\".");
@@ -601,7 +598,11 @@ public class IginxClient {
       CSVPrinter printer = getCSVBuilder(exportCSV).build().print(new PrintWriter(file));
 
       if (exportCSV.isExportHeader) {
-        printer.printRecord(res.getColumnList());
+        List<String> header = res.getColumnList();
+        if (res.hasKey()) {
+          header.add(0, GlobalConstant.KEY_NAME);
+        }
+        printer.printRecord(header);
       }
 
       while (res.hasMore()) {
