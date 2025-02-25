@@ -328,5 +328,12 @@ public class Result {
       streamCache.close();
       streamCache = null;
     }
+    if (batchStream != null) {
+      try {
+        batchStream.close();
+      } catch (PhysicalException e) {
+        LOGGER.error("unexpected error when closing stream", e);
+      }
+    }
   }
 }
