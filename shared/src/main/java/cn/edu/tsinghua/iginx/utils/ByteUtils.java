@@ -21,19 +21,22 @@ package cn.edu.tsinghua.iginx.utils;
 
 import cn.edu.tsinghua.iginx.constant.GlobalConstant;
 import cn.edu.tsinghua.iginx.exception.IginxRuntimeException;
-import cn.edu.tsinghua.iginx.exception.UnsupportedDataTypeException;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.memory.RootAllocator;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.ipc.ArrowStreamReader;
+import org.apache.arrow.vector.ipc.ArrowStreamWriter;
 
 public class ByteUtils {
 
@@ -45,56 +48,14 @@ public class ByteUtils {
     }
   }
 
-  public static List<List<Object>> getValuesFromBufferAndBitmaps(
-      List<DataType> dataTypeList, List<ByteBuffer> valuesList, List<ByteBuffer> bitmapList) {
-    List<List<Object>> values = new ArrayList<>();
-    for (int i = 0; i < valuesList.size(); i++) {
-      List<Object> tempValues = new ArrayList<>();
-      ByteBuffer valuesBuffer = valuesList.get(i);
-      ByteBuffer bitmapBuffer = bitmapList.get(i);
-      Bitmap bitmap = new Bitmap(dataTypeList.size(), bitmapBuffer.array());
-      for (int j = 0; j < dataTypeList.size(); j++) {
-        if (bitmap.get(j)) {
-          tempValues.add(getValueFromByteBufferByDataType(valuesBuffer, dataTypeList.get(j)));
-        } else {
-          tempValues.add(null);
-        }
-      }
-      values.add(tempValues);
+  public static ByteBuffer getBytesFromVectorOfIginx(VectorSchemaRoot batch) throws IOException {
+    try (ByteArrayOutputStream out = new ByteArrayOutputStream();
+        ArrowStreamWriter writer = new ArrowStreamWriter(batch, null, out)) {
+      writer.start();
+      writer.writeBatch();
+      writer.end();
+      return ByteBuffer.wrap(out.toByteArray());
     }
-    return values;
-  }
-
-  public static Object[] getValuesByDataType(ByteBuffer valuesList, List<DataType> dataTypeList) {
-    Object[] values = new Object[dataTypeList.size()];
-    for (int i = 0; i < values.length; i++) {
-      switch (dataTypeList.get(i)) {
-        case BOOLEAN:
-          values[i] = valuesList.get() == 1;
-          break;
-        case INTEGER:
-          values[i] = valuesList.getInt();
-          break;
-        case LONG:
-          values[i] = valuesList.getLong();
-          break;
-        case FLOAT:
-          values[i] = valuesList.getFloat();
-          break;
-        case DOUBLE:
-          values[i] = valuesList.getDouble();
-          break;
-        case BINARY:
-          int length = valuesList.getInt();
-          byte[] bytes = new byte[length];
-          valuesList.get(bytes, 0, length);
-          values[i] = bytes;
-          break;
-        default:
-          throw new UnsupportedDataTypeException(dataTypeList.get(i).toString());
-      }
-    }
-    return values;
   }
 
   public static Object[] getColumnValuesByDataType(
@@ -215,28 +176,6 @@ public class ByteUtils {
 
   public static long[] getLongArrayFromByteArray(byte[] array) {
     return getLongArrayFromByteBuffer(ByteBuffer.wrap(array));
-  }
-
-  public static List<Long> getLongListFromByteBuffer(ByteBuffer buffer) {
-    int size = buffer.array().length / 8;
-    List<Long> list = new ArrayList<>(size);
-    for (int i = 0; i < size; i++) {
-      list.add(buffer.getLong());
-    }
-    return list;
-  }
-
-  public static List<Long> getLongListFromByteArray(byte[] array) {
-    return getLongListFromByteBuffer(ByteBuffer.wrap(array));
-  }
-
-  public static ByteBuffer getByteBufferFromLongArray(Long[] array) {
-    ByteBuffer buffer = ByteBuffer.allocate(8 * array.length);
-    for (long value : array) {
-      buffer.putLong(value);
-    }
-    buffer.flip();
-    return buffer;
   }
 
   public static ByteBuffer getRowByteBuffer(Object[] values, List<DataType> dataTypes) {
@@ -433,89 +372,6 @@ public class ByteUtils {
     return value;
   }
 
-  public static ByteBuffer getByteBufferFromObjectByDataType(Object value, DataType dataType) {
-    ByteBuffer buffer;
-    switch (dataType) {
-      case BOOLEAN:
-        buffer = ByteBuffer.allocate(1);
-        buffer.put(booleanToByte((boolean) value));
-        break;
-      case INTEGER:
-        buffer = ByteBuffer.allocate(4);
-        buffer.putInt((int) value);
-        break;
-      case LONG:
-        buffer = ByteBuffer.allocate(8);
-        buffer.putLong((long) value);
-        break;
-      case FLOAT:
-        buffer = ByteBuffer.allocate(4);
-        buffer.putFloat((float) value);
-        break;
-      case DOUBLE:
-        buffer = ByteBuffer.allocate(8);
-        buffer.putDouble((double) value);
-        break;
-      case BINARY:
-        buffer = ByteBuffer.allocate(4 + ((byte[]) value).length);
-        buffer.putInt(((byte[]) value).length);
-        buffer.put((byte[]) value);
-        break;
-      default:
-        throw new UnsupportedOperationException(dataType.toString());
-    }
-    buffer.flip();
-    return buffer;
-  }
-
-  public static byte[] getBytesFromByteBufferByDataType(ByteBuffer buffer, DataType dataType) {
-    byte[] bytes;
-    switch (dataType) {
-      case BOOLEAN:
-        boolean boolV = buffer.get() == 1;
-        bytes = new byte[1];
-        bytes[0] = (byte) (boolV ? 0x01 : 0x00);
-        return bytes;
-      case INTEGER:
-        int intV = buffer.getInt();
-        bytes = new byte[4];
-        for (int i = 0; i < 4; i++) {
-          bytes[i] = (byte) ((intV >>> 8 * i) & 0xff);
-        }
-        return bytes;
-      case LONG:
-        long longV = buffer.getLong();
-        bytes = new byte[8];
-        for (int i = 0; i < 8; i++) {
-          bytes[i] = (byte) ((longV >>> 8 * i) & 0xff);
-        }
-        return bytes;
-      case FLOAT:
-        float floatV = buffer.getFloat();
-        int valueInt = Float.floatToIntBits(floatV);
-        bytes = new byte[4];
-        for (int i = 0; i < 4; i++) {
-          bytes[i] = (byte) ((valueInt >>> 8 * i) & 0xff);
-        }
-        return bytes;
-      case DOUBLE:
-        double doubleV = buffer.getDouble();
-        long valueLong = Double.doubleToRawLongBits(doubleV);
-        bytes = new byte[8];
-        for (int i = 0; i < 8; i++) {
-          bytes[i] = (byte) ((valueLong >>> 8 * i) & 0xff);
-        }
-        return bytes;
-      case BINARY:
-        int length = buffer.getInt();
-        bytes = new byte[length];
-        buffer.get(bytes, 0, length);
-        return bytes;
-      default:
-        throw new UnsupportedOperationException(dataType.toString());
-    }
-  }
-
   public static byte[] getBytesFromValueByDataType(Object value, DataType dataType) {
     byte[] bytes;
     switch (dataType) {
@@ -578,7 +434,7 @@ public class ByteUtils {
                 .getFields()
                 .forEach(
                     field -> {
-                      paths.add(field.getName());
+                      paths.add(getFullName(field.getName(), field.getMetadata()));
                       dataTypeList.add(TypeUtils.toDataType(field.getType()));
                       tagsList.add(field.getMetadata());
                     });
@@ -613,6 +469,19 @@ public class ByteUtils {
       }
     }
     return new DataSet(keys, paths, dataTypeList, tagsList, values, hasKey);
+  }
+
+  private static final Pattern FUNC_CALL_PATTERN = Pattern.compile("(.*)\\((.*)\\)$");
+
+  private static String getFullName(String name, Map<String, String> metadata) {
+    Matcher matcher = FUNC_CALL_PATTERN.matcher(name);
+    if (matcher.matches() && metadata != null && !metadata.isEmpty()) {
+      String funcName = matcher.group(1);
+      String pathName = matcher.group(2);
+      return funcName + "(" + TagKVUtils.toFullName(pathName, metadata) + ")";
+    } else {
+      return TagKVUtils.toFullName(name, metadata);
+    }
   }
 
   public static class DataSet {

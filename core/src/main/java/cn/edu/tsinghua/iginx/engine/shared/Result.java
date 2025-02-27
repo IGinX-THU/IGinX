@@ -28,15 +28,14 @@ import cn.edu.tsinghua.iginx.engine.shared.file.CSVFile;
 import cn.edu.tsinghua.iginx.engine.shared.file.write.ExportCsv;
 import cn.edu.tsinghua.iginx.exception.StatusCode;
 import cn.edu.tsinghua.iginx.thrift.*;
+import cn.edu.tsinghua.iginx.utils.ByteUtils;
 import cn.edu.tsinghua.iginx.utils.RpcUtils;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.*;
 import lombok.Data;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.VectorSchemaRoot;
-import org.apache.arrow.vector.ipc.ArrowStreamWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -311,12 +310,9 @@ public class Result {
 
   private List<ByteBuffer> writeBytesWithClose(VectorSchemaRoot output) throws IOException {
     List<ByteBuffer> dataList = new ArrayList<>();
-    try (ByteArrayOutputStream out = new ByteArrayOutputStream();
-        ArrowStreamWriter writer = new ArrowStreamWriter(output, null, out)) {
-      writer.start();
-      writer.writeBatch();
-      writer.close();
-      dataList.add(ByteBuffer.wrap(out.toByteArray()));
+    try {
+      ByteBuffer buffer = ByteUtils.getBytesFromVectorOfIginx(output);
+      dataList.add(buffer);
     } finally {
       output.close();
     }

@@ -83,7 +83,6 @@ import org.apache.arrow.vector.BigIntVector;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VarBinaryVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
-import org.apache.arrow.vector.ipc.ArrowStreamWriter;
 import org.apache.arrow.vector.types.Types;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
@@ -881,13 +880,8 @@ public class StatementExecutor {
   private List<ByteBuffer> getBytesFromVector(
       VectorSchemaRoot vectorSchemaRoot, BufferAllocator allocator) throws PhysicalException {
     List<ByteBuffer> dataList = new ArrayList<>();
-    try (VectorSchemaRoot root = vectorSchemaRoot;
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        ArrowStreamWriter writer = new ArrowStreamWriter(root, null, out)) {
-      writer.start();
-      writer.writeBatch();
-      writer.end();
-      ByteBuffer data = ByteBuffer.wrap(out.toByteArray());
+    try (VectorSchemaRoot root = vectorSchemaRoot) {
+      ByteBuffer data = ByteUtils.getBytesFromVectorOfIginx(root);
       dataList.add(data);
     } catch (IOException e) {
       throw new PhysicalException(e);

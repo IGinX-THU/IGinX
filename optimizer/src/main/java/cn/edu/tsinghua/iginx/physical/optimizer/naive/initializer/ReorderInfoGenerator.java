@@ -30,10 +30,13 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Reorder;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
+import cn.edu.tsinghua.iginx.utils.TagKVUtils;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
+import org.apache.arrow.vector.types.pojo.Field;
 
 public class ReorderInfoGenerator implements UnaryExecutorFactory<ProjectExecutor> {
 
@@ -76,7 +79,11 @@ public class ReorderInfoGenerator implements UnaryExecutorFactory<ProjectExecuto
     for (int i = start; i < totalFieldSize; i++) {
       String name = inputSchema.getName(i);
       if (Constants.RESERVED_COLS.contains(name)) {
-        ret.add(new Pair<>(name, i));
+        ret.add(
+            new Pair<>(
+                TagKVUtils.toFullName(
+                    inputSchema.getName(i), inputSchema.getField(i).getMetadata()),
+                i));
       }
     }
 
@@ -88,14 +95,22 @@ public class ReorderInfoGenerator implements UnaryExecutorFactory<ProjectExecuto
         for (int i = start; i < totalFieldSize; i++) {
           String name = inputSchema.getName(i);
           if (StringUtils.match(name, pattern)) {
-            matchedFields.add(new Pair<>(name, i));
+            matchedFields.add(
+                new Pair<>(
+                    TagKVUtils.toFullName(
+                        inputSchema.getName(i), inputSchema.getField(i).getMetadata()),
+                    i));
           }
         }
       } else {
         for (int i = start; i < totalFieldSize; i++) {
           String name = inputSchema.getName(i);
           if (pattern.equals(name)) {
-            matchedFields.add(new Pair<>(name, i));
+            matchedFields.add(
+                new Pair<>(
+                    TagKVUtils.toFullName(
+                        inputSchema.getName(i), inputSchema.getField(i).getMetadata()),
+                    i));
           }
         }
       }
@@ -107,6 +122,13 @@ public class ReorderInfoGenerator implements UnaryExecutorFactory<ProjectExecuto
         ret.addAll(matchedFields);
       }
     }
-    return ret;
+    return ret.stream()
+        .map(Pair::getV)
+        .map(
+            index -> {
+              Field field = inputSchema.getField(index);
+              return new Pair<>(field.getName(), index);
+            })
+        .collect(Collectors.toList());
   }
 }
