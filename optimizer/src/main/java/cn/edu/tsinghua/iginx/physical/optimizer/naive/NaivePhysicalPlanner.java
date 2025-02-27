@@ -282,8 +282,11 @@ public class NaivePhysicalPlanner {
         new ReorderInfoGenerator(operator));
   }
 
-  public PhysicalTask<BatchStream> construct(AddSchemaPrefix operator, RequestContext context) {
+  public PhysicalTask<?> construct(AddSchemaPrefix operator, RequestContext context) {
     PhysicalTask<?> sourceTask = fetch(operator.getSource(), context);
+    if (operator.getSchemaPrefix() == null) {
+      return sourceTask;
+    }
     return new PipelineMemoryPhysicalTask(
         convert(sourceTask, context, BatchStream.class),
         Collections.singletonList(operator),
