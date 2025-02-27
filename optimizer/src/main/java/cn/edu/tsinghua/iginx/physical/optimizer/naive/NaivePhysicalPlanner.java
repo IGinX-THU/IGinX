@@ -36,7 +36,6 @@ import cn.edu.tsinghua.iginx.engine.physical.task.memory.row.BinaryRowMemoryPhys
 import cn.edu.tsinghua.iginx.engine.physical.task.memory.row.RowToArrowUnaryMemoryPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.memory.row.UnaryRowMemoryPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.utils.PhysicalCloseable;
-import cn.edu.tsinghua.iginx.engine.physical.utils.PhysicalExpressionUtils;
 import cn.edu.tsinghua.iginx.engine.physical.utils.PhysicalJoinUtils;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
@@ -45,13 +44,13 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
-import cn.edu.tsinghua.iginx.engine.shared.function.FunctionType;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.ArithmeticExpr;
 import cn.edu.tsinghua.iginx.engine.shared.operator.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.JoinAlgType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.source.*;
 import cn.edu.tsinghua.iginx.physical.optimizer.naive.initializer.*;
+import cn.edu.tsinghua.iginx.physical.optimizer.naive.util.UDFDetector;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -293,9 +292,7 @@ public class NaivePhysicalPlanner {
   }
 
   public PhysicalTask<?> construct(RowTransform operator, RequestContext context) {
-    if (operator.getFunctionCallList().stream()
-        .map(FunctionCall::getFunction)
-        .anyMatch(f -> f.getFunctionType() != FunctionType.System)) {
+    if (operator.getFunctionCallList().stream().anyMatch(UDFDetector::containNonSystemFunction)) {
       return constructRow(operator, context);
     }
 
@@ -322,6 +319,10 @@ public class NaivePhysicalPlanner {
     StoragePhysicalTask storageTask = tryPushDownAloneWithProject(sourceTask, context, operator);
     if (storageTask != null) {
       return storageTask;
+    }
+
+    if (UDFDetector.containNonSystemFunction(operator.getFilter())) {
+      return constructRow(operator, context);
     }
 
     if (sourceTask.getResultClass() == RowStream.class) {
@@ -400,9 +401,7 @@ public class NaivePhysicalPlanner {
       return storageTask;
     }
 
-    if (operator.getFunctionCallList().stream()
-        .map(FunctionCall::getFunction)
-        .anyMatch(f -> f.getFunctionType() != FunctionType.System)) {
+    if (operator.getFunctionCallList().stream().anyMatch(UDFDetector::containNonSystemFunction)) {
       return constructRow(operator, context);
     }
 
@@ -421,13 +420,10 @@ public class NaivePhysicalPlanner {
       return storageTask;
     }
 
-    if (operator.getFunctionCallList().stream()
-        .map(FunctionCall::getFunction)
-        .anyMatch(f -> f.getFunctionType() != FunctionType.System)) {
+    if (operator.getFunctionCallList().stream().anyMatch(UDFDetector::containNonSystemFunction)) {
       return constructRow(operator, context);
     }
-    if (!operator.getGroupByExpressions().stream()
-        .allMatch(PhysicalExpressionUtils::containSystemFunctionOnly)) {
+    if (operator.getGroupByExpressions().stream().anyMatch(UDFDetector::containNonSystemFunction)) {
       return constructRow(operator, context);
     }
 
@@ -482,6 +478,10 @@ public class NaivePhysicalPlanner {
       return constructRow(operator, context);
     }
 
+    if (UDFDetector.containNonSystemFunction(operator.getFilter())) {
+      return constructRow(operator, context);
+    }
+
     // NOTE: The order of left and right task is reversed in InnerJoin
     // 这里以及后面交换了左右两个表的顺序，原因是在之前基于行的实现中，右表是BuildSide，左表是ProbeSide
     // 现在基于列的实现中，左表是BuildSide，右表是ProbeSide
@@ -503,6 +503,10 @@ public class NaivePhysicalPlanner {
       return constructRow(operator, context);
     }
 
+    if (UDFDetector.containNonSystemFunction(operator.getFilter())) {
+      return constructRow(operator, context);
+    }
+
     operator = PhysicalJoinUtils.reverse(operator);
 
     PhysicalTask<BatchStream> leftTask = fetchAsync(operator.getSourceA(), context);
@@ -521,6 +525,10 @@ public class NaivePhysicalPlanner {
       return constructRow(operator, context);
     }
 
+    if (UDFDetector.containNonSystemFunction(operator.getFilter())) {
+      return constructRow(operator, context);
+    }
+
     operator = PhysicalJoinUtils.reverse(operator);
 
     PhysicalTask<BatchStream> leftTask = fetchAsync(operator.getSourceA(), context);
@@ -536,6 +544,10 @@ public class NaivePhysicalPlanner {
 
   public PhysicalTask<?> construct(SingleJoin operator, RequestContext context) {
     if (operator.getJoinAlgType() != JoinAlgType.HashJoin) {
+      return constructRow(operator, context);
+    }
+
+    if (UDFDetector.containNonSystemFunction(operator.getFilter())) {
       return constructRow(operator, context);
     }
 
