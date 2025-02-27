@@ -763,7 +763,7 @@ public class StatementExecutor {
 
     long pointsNum = 0;
     ByteUtils.DataSet dataSet = ByteUtils.getDataFromArrowData(ctx.getResult().getArrowData());
-    if (dataSet.getValues() != null) {
+    if (dataSet.getValues() != null && !dataSet.getValues().isEmpty()) {
       Object[] row = dataSet.getValues().get(0).toArray();
       pointsNum = Arrays.stream(row).mapToLong(e -> (Long) e).sum();
     }
