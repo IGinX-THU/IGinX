@@ -57,8 +57,10 @@ runs:
           shell: bash -el {0}
           working-directory: IGinX
           run: |
+              mkdir -p test/src/test/resources/tpch/runtimeInfo
               cp -f ../test/src/test/resources/tpch/runtimeInfo/newTimeCosts.txt test/src/test/resources/tpch/runtimeInfo/newTimeCosts.txt
               mvn test -q -Dtest=TPCHOldIT -DfailIfNoTests=false -P-format
+              mkdir -p ../test/src/test/resources/tpch/runtimeInfo
               cp -f test/src/test/resources/tpch/runtimeInfo/failedQueryIds.txt ../test/src/test/resources/tpch/runtimeInfo/failedQueryIds.txt
               cp -f test/src/test/resources/tpch/runtimeInfo/iterationTimes.txt ../test/src/test/resources/tpch/runtimeInfo/iterationTimes.txt
 
