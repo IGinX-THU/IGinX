@@ -52,7 +52,7 @@ public final class Field {
     this(name, fullName, type, Collections.emptyMap());
   }
 
-  private Field(String name, String fullName, DataType type, Map<String, String> tags) {
+  public Field(String name, String fullName, DataType type, Map<String, String> tags) {
     this.name = Objects.requireNonNull(name);
     this.fullName = Objects.requireNonNull(fullName);
     this.type = Objects.requireNonNull(type);

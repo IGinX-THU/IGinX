@@ -21,14 +21,18 @@ package cn.edu.tsinghua.iginx.sql.statement.select.subclause;
 
 import cn.edu.tsinghua.iginx.sql.statement.frompart.FromPart;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class FromClause {
   private List<FromPart> fromParts;
   private boolean hasJoinParts = false;
+  private final Set<String> pathSet;
 
   public FromClause() {
     fromParts = new ArrayList<>();
+    pathSet = new HashSet<>();
   }
 
   public void setFromParts(List<FromPart> fromParts) {
@@ -49,5 +53,13 @@ public class FromClause {
 
   public void addFromPart(FromPart fromPart) {
     fromParts.add(fromPart);
+  }
+
+  public Set<String> getPathSet() {
+    return pathSet;
+  }
+
+  public void addPath(String path) {
+    pathSet.add(path);
   }
 }
