@@ -940,7 +940,7 @@ public class StatementExecutor {
 
   private void parseOldTagsFromSchema(BatchSchema schema, InsertStatement insertStatement)
       throws PhysicalException, StatementExecutionException {
-    if (insertStatement.getPaths().size() != schema.getFieldCount()
+    if (!(!schema.hasKey() && insertStatement.getPaths().size() == schema.getFieldCount())
         && !(schema.hasKey() && insertStatement.getPaths().size() + 1 == schema.getFieldCount())) {
       throw new StatementExecutionException(
           "Execute Error: Insert path size and value size must be equal.");
@@ -969,7 +969,7 @@ public class StatementExecutor {
       InsertStatement insertStatement)
       throws PhysicalException, StatementExecutionException {
     BatchSchema schema = batchStream.getSchema();
-    if (insertStatement.getPaths().size() != schema.getFieldCount()
+    if (!(!schema.hasKey() && insertStatement.getPaths().size() == schema.getFieldCount())
         && !(schema.hasKey() && insertStatement.getPaths().size() + 1 == schema.getFieldCount())) {
       throw new StatementExecutionException(
           "Execute Error: Insert path size and value size must be equal.");
@@ -983,16 +983,18 @@ public class StatementExecutor {
     List<Long> keys = new ArrayList<>();
     List<Object[]> rows = new ArrayList<>();
     List<Bitmap> bitmaps = new ArrayList<>();
+    int rowIndex;
 
     while (batchStream.hasNext()) {
       try (Batch batch = batchStream.getNext();
-          VectorSchemaRoot current = VectorSchemaRoots.transfer(allocator, batch.getData())) {
+          VectorSchemaRoot current = batch.getData()) {
         int rowCnt = current.getRowCount();
         int colCnt = current.getFieldVectors().size();
         int realColCount = colCnt - (hasKey ? 1 : 0);
         List<FieldVector> vectors = current.getFieldVectors();
         for (int i = 0; i < rowCnt; i++) {
           Object[] row = new Object[realColCount];
+          rowIndex = 0;
           int start = 0;
           if (hasKey) {
             keys.add((Long) vectors.get(0).getObject(i) + offset);
@@ -1002,8 +1004,9 @@ public class StatementExecutor {
           }
           Bitmap bitmap = new Bitmap(realColCount);
           for (int j = start; j < colCnt; j++) {
-            row[j - start] = (vectors.get(j).getObject(i));
-            if (row[j - start] != null) {
+            Object val = vectors.get(j).getObject(i);
+            if (val != null) {
+              row[rowIndex++] = val;
               bitmap.mark(j - start);
             }
           }
