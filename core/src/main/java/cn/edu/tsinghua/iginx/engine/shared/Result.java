@@ -264,7 +264,11 @@ public class Result {
           return writeBytesWithClose(output);
         }
       }
-      return null;
+      // empty result
+      VectorSchemaRoot root = VectorSchemaRoot.create(batchStream.getSchema().raw(), allocator);
+      root.setRowCount(0);
+      dataList = writeBytesWithClose(root);
+      return dataList;
     }
     try {
       if (streamCache == null) {
