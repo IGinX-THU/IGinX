@@ -51,7 +51,7 @@ public class SessionQueryDataSet {
 
   public SessionQueryDataSet(QueryDataResp resp) {
     ByteUtils.DataSet dataSet = ByteUtils.getDataFromArrowData(resp.getQueryArrowData());
-    this.keys = dataSet.getKeys();
+    this.keys = dataSet.getKeys() == null ? new long[0] : dataSet.getKeys();
     this.paths = dataSet.getPaths();
     this.tagsList = dataSet.getTagsList();
     this.values = dataSet.getValues();
@@ -59,7 +59,7 @@ public class SessionQueryDataSet {
 
   public SessionQueryDataSet(DownsampleQueryResp resp) {
     ByteUtils.DataSet dataSet = ByteUtils.getDataFromArrowData(resp.getQueryArrowData());
-    this.keys = dataSet.getKeys();
+    this.keys = dataSet.getKeys() == null ? new long[0] : dataSet.getKeys();
     this.paths = dataSet.getPaths();
     this.tagsList = dataSet.getTagsList();
     this.values = dataSet.getValues();
