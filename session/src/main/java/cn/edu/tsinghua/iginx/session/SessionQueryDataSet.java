@@ -44,8 +44,9 @@ public class SessionQueryDataSet {
 
   public SessionQueryDataSet(ShowColumnsResp resp) {
     this.paths = resp.getPaths();
-    // TODO: refactor this part
-    throw new UnsupportedOperationException("Not implemented yet");
+    this.keys = null;
+    this.tagsList = null;
+    this.values = null;
   }
 
   public SessionQueryDataSet(QueryDataResp resp) {
