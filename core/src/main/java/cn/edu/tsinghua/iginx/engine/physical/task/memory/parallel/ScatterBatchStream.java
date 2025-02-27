@@ -25,16 +25,14 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
 import java.util.NoSuchElementException;
 import java.util.Objects;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
 import javax.annotation.concurrent.ThreadSafe;
 
 @ThreadSafe
-class ScatterBatchStream implements BatchStream {
+public class ScatterBatchStream implements BatchStream {
 
   private final BatchStream stream;
-  final AtomicLong nextSequenceNumber = new AtomicLong(0);
-  final AtomicBoolean finished = new AtomicBoolean(false);
+  private long nextSequenceNumber = 0;
+  private boolean closed = false;
 
   public ScatterBatchStream(BatchStream stream) {
     this.stream = Objects.requireNonNull(stream);
@@ -42,16 +40,15 @@ class ScatterBatchStream implements BatchStream {
 
   @Override
   public synchronized BatchSchema getSchema() throws PhysicalException {
+    if (closed) {
+      throw new IllegalStateException("ScatterBatchStream has been closed");
+    }
     return stream.getSchema();
   }
 
   @Override
   public synchronized boolean hasNext() throws PhysicalException {
-    if (!stream.hasNext()) {
-      finished.set(true);
-      return false;
-    }
-    return true;
+    return !closed && stream.hasNext();
   }
 
   @Override
@@ -60,16 +57,18 @@ class ScatterBatchStream implements BatchStream {
       throw new NoSuchElementException();
     }
     Batch batch = stream.getNext();
-    batch.setSequenceNumber(nextSequenceNumber.getAndIncrement());
+    batch.setSequenceNumber(nextSequenceNumber);
+    nextSequenceNumber++;
     return batch;
   }
 
   @Override
-  public void close() throws PhysicalException {
+  public synchronized void close() throws PhysicalException {
+    closed = true;
     stream.close();
   }
 
-  public BatchStream createBranch() {
-    return new PrefetchBatchStreamReference(this);
+  public synchronized long getNextSequenceNumber() {
+    return nextSequenceNumber;
   }
 }

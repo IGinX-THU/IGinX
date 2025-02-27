@@ -78,12 +78,11 @@ public class ParallelPipelineMemoryPhysicalTask
 
   private BatchStream compute(BatchStream previous) {
     try (StopWatch ignored = new StopWatch(getMetrics()::accumulateCpuTime)) {
-      ScatterBatchStream scatterStream = new ScatterBatchStream(previous);
-      GatherBatchStream outputStream = new GatherBatchStream(scatterStream, getMetrics());
-      gathers = new ArrayList<>(parallelism);
-      for (int i = 0; i < parallelism; i++) {
-        GatherMemoryPhysicalTask gather =
-            constructPipeline(getContext(), scatterStream.createBranch(), outputStream);
+      gathers = new ArrayList<>();
+      ScatterGatherBatchStream outputStream =
+          new ScatterGatherBatchStream(previous, getMetrics(), parallelism);
+      for (BatchStream branch : outputStream.getBranches()) {
+        GatherMemoryPhysicalTask gather = constructPipeline(getContext(), branch, outputStream);
         gathers.add(gather);
       }
       if (getFollowerTask() != null) {
@@ -105,7 +104,7 @@ public class ParallelPipelineMemoryPhysicalTask
   }
 
   private GatherMemoryPhysicalTask constructPipeline(
-      RequestContext context, BatchStream stream, GatherBatchStream outputStream) {
+      RequestContext context, BatchStream stream, ScatterGatherBatchStream outputStream) {
     MemoryPhysicalTask<BatchStream> source =
         new StreamSourceMemoryPhysicalTask(context, "Parallel Pipeline Source", stream);
     PipelineMemoryPhysicalTask pipeline = pipelineFactory.createPipeline(context, source);
@@ -163,12 +162,12 @@ public class ParallelPipelineMemoryPhysicalTask
 
   static class GatherMemoryPhysicalTask extends UnaryMemoryPhysicalTask<BatchStream, BatchStream> {
 
-    private final GatherBatchStream outputStream;
+    private final ScatterGatherBatchStream outputStream;
 
     public GatherMemoryPhysicalTask(
         RequestContext context,
         PhysicalTask<BatchStream> parentTasks,
-        GatherBatchStream outputStream) {
+        ScatterGatherBatchStream outputStream) {
       super(parentTasks, Collections.emptyList(), context);
       this.outputStream = Objects.requireNonNull(outputStream);
     }
