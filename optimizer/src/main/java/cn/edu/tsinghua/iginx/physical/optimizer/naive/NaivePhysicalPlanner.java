@@ -580,8 +580,7 @@ public class NaivePhysicalPlanner {
   }
 
   public PhysicalTask<?> construct(Migration operator, RequestContext context) {
-    throw new UnsupportedOperationException(
-        "Migration is not supported in the new physical planner");
+    return new GlobalPhysicalTask(operator, context);
   }
 
   public PhysicalTask<?> construct(Join operator, RequestContext context) {

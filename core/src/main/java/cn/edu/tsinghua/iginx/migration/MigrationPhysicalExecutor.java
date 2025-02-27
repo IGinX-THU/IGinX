@@ -85,7 +85,7 @@ public class MigrationPhysicalExecutor {
 
     storageTaskExecutor.commit(projectPhysicalTask);
 
-    try (TaskResult<RowStream> projectResult = projectPhysicalTask.getResult().get();
+    try (TaskResult<RowStream> projectResult = selectPhysicalTask.getResult().get();
         RowStream selectRowStream = projectResult.unwrap()) {
       List<String> selectResultPaths = new ArrayList<>();
       List<DataType> selectResultTypes = new ArrayList<>();

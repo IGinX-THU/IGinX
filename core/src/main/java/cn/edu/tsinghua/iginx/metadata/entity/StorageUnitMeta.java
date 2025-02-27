@@ -234,6 +234,6 @@ public final class StorageUnitMeta {
         createdBy,
         initialStorageUnit,
         dummy,
-        new ArrayList<>(replicas));
+        replicas == null ? null : new ArrayList<>(replicas));
   }
 }

@@ -54,19 +54,6 @@ public abstract class UnaryMemoryPhysicalTask<
 
   @Override
   public TaskResult<RESULT> execute() {
-    // TODO
-    //    if (!isProjectFromConstant()) {
-    //      TaskExecuteResult parentResult = parentTask.getResult();
-    //      if (parentResult == null) {
-    //        return new TaskExecuteResult(
-    //            new PhysicalException("unexpected parent task execute result for " + this + ":
-    // null"));
-    //      }
-    //      if (parentResult.getException() != null) {
-    //        return parentResult;
-    //      }
-    //      stream = parentResult.getRowStream();
-    //    }
     Future<TaskResult<INPUT>> future = parentTask.getResult();
     try (TaskResult<INPUT> parentResult = future.get()) {
       INPUT stream = parentResult.unwrap();

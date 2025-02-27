@@ -298,13 +298,6 @@ public class StoragePhysicalTaskExecutor {
         long span = System.nanoTime() - startTime;
         task.getMetrics().accumulateCpuTime(span);
         setResult(task, result);
-        if (task.getFollowerTask() != null) {
-          MemoryPhysicalTask<?> followerTask = (MemoryPhysicalTask<?>) task.getFollowerTask();
-          boolean isFollowerTaskReady = followerTask.notifyParentReady();
-          if (isFollowerTaskReady) {
-            memoryTaskExecutor.addMemoryTask(followerTask);
-          }
-        }
         break;
       case Migration:
         try {
@@ -318,6 +311,13 @@ public class StoragePhysicalTaskExecutor {
         break;
       default:
         throw new UnsupportedOperationException("unknown op: " + task.getOperator().getType());
+    }
+    if (task.getFollowerTask() != null) {
+      MemoryPhysicalTask<?> followerTask = (MemoryPhysicalTask<?>) task.getFollowerTask();
+      boolean isFollowerTaskReady = followerTask.notifyParentReady();
+      if (isFollowerTaskReady) {
+        memoryTaskExecutor.addMemoryTask(followerTask);
+      }
     }
   }
 
