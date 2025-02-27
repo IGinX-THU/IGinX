@@ -24,7 +24,6 @@ import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.engine.ContextBuilder;
 import cn.edu.tsinghua.iginx.engine.StatementExecutor;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.thrift.ExecuteStatementReq;
 import cn.edu.tsinghua.iginx.transform.api.Reader;
 import cn.edu.tsinghua.iginx.transform.api.Runner;
@@ -69,6 +68,8 @@ public class StreamStageRunner implements Runner {
 
   private static final Config config = ConfigDescriptor.getInstance().getConfig();
 
+  private final List<RequestContext> ctxToBeClosed = new ArrayList<>();
+
   public StreamStageRunner(StreamStage stage) {
     this.streamStage = stage;
     this.batchSize = config.getBatchSize();
@@ -81,8 +82,7 @@ public class StreamStageRunner implements Runner {
   public void start() throws TransformException {
     if (streamStage.isStartWithIginX()) {
       IginXTask firstTask = (IginXTask) streamStage.getTaskList().get(0);
-      RowStream rowStream = getRowStream(streamStage.getSessionId(), firstTask.getSqlList());
-      reader = new RowStreamReader(rowStream, batchSize);
+      reader = getBatchStreamReader(streamStage.getSessionId(), firstTask.getSqlList());
     } else {
       CollectionWriter collectionWriter =
           (CollectionWriter) streamStage.getBeforeStage().getExportWriter();
@@ -102,7 +102,8 @@ public class StreamStageRunner implements Runner {
     }
   }
 
-  private RowStream getRowStream(long sessionId, List<String> sqlList) throws TransformException {
+  private BatchStreamReader getBatchStreamReader(long sessionId, List<String> sqlList)
+      throws TransformException {
     for (int i = 0; i < sqlList.size() - 1; i++) {
       ExecuteStatementReq req = new ExecuteStatementReq(sessionId, sqlList.get(i));
       RequestContext context = contextBuilder.build(req);
@@ -123,7 +124,8 @@ public class StreamStageRunner implements Runner {
 
     ExecuteStatementReq req = new ExecuteStatementReq(sessionId, sqlList.get(sqlList.size() - 1));
     RequestContext context = contextBuilder.build(req);
-    executor.execute(context);
+    executor.execute(context, false);
+    ctxToBeClosed.add(context);
     if (context.getResult().getStatus().code != RpcUtils.SUCCESS.code) {
       if (!context.getWarningMsg().contains("overlapped keys")) {
         throw new TransformException(
@@ -136,7 +138,7 @@ public class StreamStageRunner implements Runner {
             sqlList.get(sqlList.size() - 1));
       }
     }
-    return context.getResult().getResultStream();
+    return new BatchStreamReader(context.getResult().getBatchStream());
   }
 
   @Override
@@ -160,8 +162,15 @@ public class StreamStageRunner implements Runner {
     if (reader != null) {
       reader.close();
     }
-    if (pemjaWorkerList.size() > 0) {
+    if (!pemjaWorkerList.isEmpty()) {
       pemjaWorkerList.forEach(PemjaWorker::close);
+    }
+    try {
+      for (RequestContext requestContext : ctxToBeClosed) {
+        requestContext.closeResources();
+      }
+    } catch (Exception e) {
+      LOGGER.error("Cannot close resources for req contexts:", e);
     }
   }
 
