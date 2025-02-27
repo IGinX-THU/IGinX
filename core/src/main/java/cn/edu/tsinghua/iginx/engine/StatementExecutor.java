@@ -1009,10 +1009,6 @@ public class StatementExecutor {
               row[rowIndex++] = val;
               bitmap.mark(j - start);
             }
-            //            row[j - start] = (vectors.get(j).getObject(i));
-            //            if (row[j - start] != null) {
-            //              bitmap.mark(j - start);
-            //            }
           }
           rows.add(row);
           bitmaps.add(bitmap);
