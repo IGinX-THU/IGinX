@@ -35,7 +35,7 @@ public class UDFDetector {
     if (functionCall == null) {
       return false;
     }
-    if (!containNonSystemFunction(functionCall.getFunction())) {
+    if (containNonSystemFunction(functionCall.getFunction())) {
       return true;
     }
     FunctionParams params = functionCall.getParams();
