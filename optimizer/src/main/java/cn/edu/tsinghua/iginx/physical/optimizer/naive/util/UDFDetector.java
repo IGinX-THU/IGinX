@@ -27,10 +27,14 @@ import cn.edu.tsinghua.iginx.engine.shared.function.FunctionType;
 import cn.edu.tsinghua.iginx.engine.shared.function.manager.FunctionManager;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import javax.annotation.Nullable;
 
 public class UDFDetector {
 
-  public static boolean containNonSystemFunction(FunctionCall functionCall) {
+  public static boolean containNonSystemFunction(@Nullable FunctionCall functionCall) {
+    if (functionCall == null) {
+      return false;
+    }
     if (!containNonSystemFunction(functionCall.getFunction())) {
       return true;
     }
@@ -43,11 +47,17 @@ public class UDFDetector {
     return false;
   }
 
-  public static boolean containNonSystemFunction(Function function) {
+  public static boolean containNonSystemFunction(@Nullable Function function) {
+    if (function == null) {
+      return false;
+    }
     return function.getFunctionType() != FunctionType.System;
   }
 
-  public static boolean containNonSystemFunction(Filter filter) {
+  public static boolean containNonSystemFunction(@Nullable Filter filter) {
+    if (filter == null) {
+      return false;
+    }
     boolean[] result = new boolean[1];
     filter.accept(
         new FilterVisitor() {
@@ -86,7 +96,10 @@ public class UDFDetector {
     return result[0];
   }
 
-  public static boolean containNonSystemFunction(Expression expression) {
+  public static boolean containNonSystemFunction(@Nullable Expression expression) {
+    if (expression == null) {
+      return false;
+    }
     AtomicBoolean containUdf = new AtomicBoolean(false);
     expression.accept(
         new ExpressionVisitor() {
