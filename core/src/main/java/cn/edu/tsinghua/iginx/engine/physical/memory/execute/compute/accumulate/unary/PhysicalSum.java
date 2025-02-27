@@ -26,7 +26,9 @@ import java.util.function.Supplier;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.*;
 import org.apache.arrow.vector.complex.writer.FieldWriter;
+import org.apache.arrow.vector.types.Types;
 import org.apache.arrow.vector.types.pojo.Field;
+import org.apache.arrow.vector.types.pojo.FieldType;
 
 public class PhysicalSum extends UnaryAccumulation {
 
@@ -39,20 +41,63 @@ public class PhysicalSum extends UnaryAccumulation {
   @Override
   protected SumAccumulator<? extends SumState> accumulate(
       BufferAllocator allocator, Field inputField) throws ComputeException {
-    Field resultField = new Field(getResultFieldName(inputField), inputField.getFieldType(), null);
     switch (Schemas.minorTypeOf(inputField)) {
       case INT:
         return new SumAccumulator<>(
-            allocator, inputField, resultField, IntSumState.class, IntSumState::new);
+            allocator,
+            inputField,
+            new Field(
+                getResultFieldName(inputField),
+                new FieldType(
+                    inputField.isNullable(),
+                    Types.MinorType.BIGINT.getType(),
+                    inputField.getDictionary(),
+                    inputField.getMetadata()),
+                inputField.getChildren()),
+            IntSumState.class,
+            IntSumState::new);
       case BIGINT:
         return new SumAccumulator<>(
-            allocator, inputField, resultField, BigIntSumState.class, BigIntSumState::new);
+            allocator,
+            inputField,
+            new Field(
+                getResultFieldName(inputField),
+                new FieldType(
+                    inputField.isNullable(),
+                    Types.MinorType.BIGINT.getType(),
+                    inputField.getDictionary(),
+                    inputField.getMetadata()),
+                inputField.getChildren()),
+            BigIntSumState.class,
+            BigIntSumState::new);
       case FLOAT4:
         return new SumAccumulator<>(
-            allocator, inputField, resultField, Float4SumState.class, Float4SumState::new);
+            allocator,
+            inputField,
+            new Field(
+                getResultFieldName(inputField),
+                new FieldType(
+                    inputField.isNullable(),
+                    Types.MinorType.FLOAT8.getType(),
+                    inputField.getDictionary(),
+                    inputField.getMetadata()),
+                inputField.getChildren()),
+            Float4SumState.class,
+            Float4SumState::new);
       case FLOAT8:
         return new SumAccumulator<>(
-            allocator, inputField, resultField, Float8SumState.class, Float8SumState::new);
+            allocator,
+            inputField,
+            new Field(
+                getResultFieldName(inputField),
+                new FieldType(
+                    inputField.isNullable(),
+                    Types.MinorType.FLOAT8.getType(),
+                    inputField.getDictionary(),
+                    inputField.getMetadata()),
+                inputField.getChildren()),
+            Float8SumState.class,
+            Float8SumState::new);
       default:
         throw new NotAllowTypeException(this, Schemas.of(inputField), 0);
     }
@@ -74,7 +119,7 @@ public class PhysicalSum extends UnaryAccumulation {
 
   protected static class IntSumState extends SumState {
 
-    private int sum = 0;
+    private long sum = 0;
     private boolean hasValue = false;
 
     @Override
@@ -96,7 +141,7 @@ public class PhysicalSum extends UnaryAccumulation {
     @Override
     public void evaluate(FieldWriter writer) {
       if (hasValue) {
-        writer.writeInt(sum);
+        writer.writeBigInt(sum);
       } else {
         writer.writeNull();
       }
@@ -136,7 +181,7 @@ public class PhysicalSum extends UnaryAccumulation {
 
   protected static class Float4SumState extends SumState {
 
-    private float sum = 0;
+    private double sum = 0;
     private boolean hasValue = false;
 
     @Override
@@ -158,7 +203,7 @@ public class PhysicalSum extends UnaryAccumulation {
     @Override
     public void evaluate(FieldWriter writer) {
       if (hasValue) {
-        writer.writeFloat4(sum);
+        writer.writeFloat8(sum);
       } else {
         writer.writeNull();
       }

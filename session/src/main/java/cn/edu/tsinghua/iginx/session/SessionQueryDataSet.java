@@ -72,6 +72,10 @@ public class SessionQueryDataSet {
     return keys;
   }
 
+  public List<Map<String, String>> getTagsList() {
+    return tagsList;
+  }
+
   public List<List<Object>> getValues() {
     return values;
   }

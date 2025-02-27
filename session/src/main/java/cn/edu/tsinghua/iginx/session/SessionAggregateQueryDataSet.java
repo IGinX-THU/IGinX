@@ -36,7 +36,7 @@ public class SessionAggregateQueryDataSet {
 
   public SessionAggregateQueryDataSet(AggregateQueryResp resp, AggregateType type) {
     ByteUtils.DataSet dataSet = ByteUtils.getDataFromArrowData(resp.getQueryArrowData());
-    this.keys = dataSet.getKeys();
+    this.keys = null; // 为了兼容 0.8.0 版本的接口行为
     this.paths = dataSet.getPaths();
     this.values = dataSet.getValues().get(0).toArray();
     this.type = type;

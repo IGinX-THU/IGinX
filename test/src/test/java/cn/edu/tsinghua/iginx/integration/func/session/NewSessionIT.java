@@ -265,7 +265,8 @@ public class NewSessionIT {
       return;
     }
     compareKeys(expected.getKeys(), actual.getKeys());
-    comparePaths(expected.getPaths(), actual.getPaths(), expected.getTagsList());
+    comparePaths(
+        expected.getPaths(), actual.getPaths(), expected.getTagsList(), actual.getTagsList());
     compareValues(expected.getValues(), actual.getValues());
   }
 
@@ -286,6 +287,19 @@ public class NewSessionIT {
       }
       long expectedKey = expectedKeys.get(i); // unboxing
       assertEquals(expectedKey, actualKeys[i]);
+    }
+  }
+
+  private void comparePaths(
+      List<String> expectedPaths,
+      List<String> actualPaths,
+      List<Map<String, String>> tagList,
+      List<Map<String, String>> tagsList) {
+    assertEquals(expectedPaths.size(), actualPaths.size());
+    for (int i = 0; i < expectedPaths.size(); i++) {
+      assertEquals(
+          getPathWithTag(expectedPaths.get(i), tagList.get(i)),
+          getPathWithTag(actualPaths.get(i), tagsList.get(i)));
     }
   }
 
