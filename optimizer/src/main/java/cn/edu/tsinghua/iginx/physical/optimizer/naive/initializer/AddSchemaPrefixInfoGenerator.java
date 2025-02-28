@@ -29,6 +29,7 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.operator.*;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.*;
+import org.apache.arrow.util.Preconditions;
 
 public class AddSchemaPrefixInfoGenerator implements UnaryExecutorFactory<ProjectExecutor> {
 
@@ -36,6 +37,7 @@ public class AddSchemaPrefixInfoGenerator implements UnaryExecutorFactory<Projec
 
   public AddSchemaPrefixInfoGenerator(AddSchemaPrefix operator) {
     this.operator = Objects.requireNonNull(operator);
+    Preconditions.checkNotNull(operator.getSchemaPrefix());
   }
 
   @Override
@@ -45,8 +47,7 @@ public class AddSchemaPrefixInfoGenerator implements UnaryExecutorFactory<Projec
     return new ProjectExecutor(context, inputSchema.raw(), expressions);
   }
 
-  public List<ScalarExpression<?>> getExpression(ExecutorContext context, BatchSchema inputSchema)
-      throws ComputeException {
+  public List<ScalarExpression<?>> getExpression(ExecutorContext context, BatchSchema inputSchema) {
     List<Pair<String, Integer>> columnsAndIndices = getColumnsAndIndices(inputSchema, operator);
     List<ScalarExpression<?>> ret = new ArrayList<>();
     for (Pair<String, Integer> pair : columnsAndIndices) {

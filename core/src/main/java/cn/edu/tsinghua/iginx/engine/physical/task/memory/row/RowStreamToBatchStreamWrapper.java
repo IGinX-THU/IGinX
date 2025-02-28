@@ -26,6 +26,7 @@ import cn.edu.tsinghua.iginx.engine.physical.task.TaskMetrics;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.*;
 import java.util.*;
 import org.apache.arrow.memory.BufferAllocator;
+import org.apache.arrow.util.Preconditions;
 
 public class RowStreamToBatchStreamWrapper implements BatchStream {
 
@@ -42,6 +43,7 @@ public class RowStreamToBatchStreamWrapper implements BatchStream {
 
   public RowStreamToBatchStreamWrapper(
       BufferAllocator allocator, RowStream rowStream, TaskMetrics metrics, int batchRowCount) {
+    Preconditions.checkArgument(batchRowCount > 0);
     this.allocator = Objects.requireNonNull(allocator);
     this.rowStream = Objects.requireNonNull(rowStream);
     this.metrics = Objects.requireNonNull(metrics);
@@ -96,7 +98,7 @@ public class RowStreamToBatchStreamWrapper implements BatchStream {
     }
 
     boolean hasKey = schema.hasKey();
-    try (StopWatch watch = new StopWatch(metrics::accumulateCpuTime)) {
+    try (StopWatch ignored = new StopWatch(metrics::accumulateCpuTime)) {
       try (BatchBuilder builder = new BatchBuilder(allocator, schema, rows.size())) {
         for (Row row : rows) {
           if (hasKey) {
