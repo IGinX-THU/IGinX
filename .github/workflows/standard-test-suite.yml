@@ -15,21 +15,21 @@ jobs:
         uses: ./.github/workflows/standalone-test.yml
         with:
             metadata-matrix: '["zookeeper"]'
-            os-matrix: '["ubuntu-latest", "windows-latest", "macos-latest-large"]'
+            os-matrix: '["ubuntu-latest", "windows-latest", "macos-latest-xlarge"]'
             db-matrix: '["VectorDB"]'
             timeout-minutes: 300
     standalone-test-no-optimizer-vectordb:
         uses: ./.github/workflows/standalone-test-no-optimizer.yml
         with:
             metadata-matrix: '["zookeeper"]'
-            os-matrix: '["ubuntu-latest", "windows-latest", "macos-latest-large"]'
+            os-matrix: '["ubuntu-latest", "windows-latest", "macos-latest-xlarge"]'
             db-matrix: '["VectorDB"]'
             timeout-minutes: 300
     db-ce-vectordb:
         uses: ./.github/workflows/DB-CE.yml
         with:
             metadata-matrix: '["zookeeper"]'
-            os-matrix: '["ubuntu-latest", "windows-latest", "macos-latest-large"]'
+            os-matrix: '["ubuntu-latest", "windows-latest", "macos-latest-xlarge"]'
             db-matrix: '["VectorDB"]'
             functest: "NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,CompactionIT,TimePrecisionIT,PySessionIT"
             timeout-minutes: 360
@@ -37,7 +37,7 @@ jobs:
         uses: ./.github/workflows/DB-CE.yml
         with:
             metadata-matrix: '["zookeeper"]'
-            os-matrix: '["ubuntu-latest", "windows-latest", "macos-latest-large"]'
+            os-matrix: '["ubuntu-latest", "windows-latest", "macos-latest-xlarge"]'
             db-matrix: '["VectorDB"]'
             functest: "NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,CompactionIT,TimePrecisionIT,PySessionIT"
             timeout-minutes: 360
@@ -45,14 +45,14 @@ jobs:
     tpc-h-regression-test-vectordb:
         uses: ./.github/workflows/tpc-h.yml
         with:
-            os-matrix: '["ubuntu-latest", "macos-latest-large"]'
+            os-matrix: '["ubuntu-latest", "macos-latest-xlarge"]'
             metadata-matrix: '["zookeeper"]'
             db-matrix: '["VectorDB"]'
             timeout-minutes: 360
     tpc-h-regression-test-no-optimizer-vectordb:
         uses: ./.github/workflows/tpc-h.yml
         with:
-            os-matrix: '["ubuntu-latest", "macos-latest-large"]'
+            os-matrix: '["ubuntu-latest", "macos-latest-xlarge"]'
             metadata-matrix: '["zookeeper"]'
             db-matrix: '["VectorDB"]'
             close-optimizer: "true"
