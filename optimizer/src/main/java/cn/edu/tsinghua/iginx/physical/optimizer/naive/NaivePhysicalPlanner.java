@@ -567,7 +567,7 @@ public class NaivePhysicalPlanner {
         new SingleJoinInfoGenerator(operator));
   }
 
-  public PhysicalTask<?> construct(CrossJoin operator, RequestContext context) {
+  public PhysicalTask<BatchStream> construct(CrossJoin operator, RequestContext context) {
     operator = PhysicalJoinUtils.reverse(operator);
 
     PhysicalTask<BatchStream> leftTask = fetchAsync(operator.getSourceA(), context);
