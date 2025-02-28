@@ -1538,7 +1538,7 @@ public class RelationalStorage implements IStorage {
         // 仅在mysql下这么做，pg也可以用，但会出现一些误差，例如3.200000和3.1999999的区别，测试不好通过
         if (functionName.equalsIgnoreCase(Avg.AVG)
             && param.getType() == Expression.ExpressionType.Base
-            && engineName.equalsIgnoreCase("mysql")) {
+            && (engineName.equalsIgnoreCase("mysql") || engineName.equalsIgnoreCase("dameng"))) {
           format = "%s(CAST(%s AS DECIMAL(34, 16)))";
         }
 
