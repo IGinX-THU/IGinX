@@ -98,7 +98,7 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
 
       for (Map.Entry<String, Map<String, List<Integer>>> entry :
           databaseToTablesToColumnIndexes.entrySet()) {
-        String databaseName = getQuotName(entry.getKey());
+        String databaseName = entry.getKey();
         Statement stmt = connection.createStatement();
         String createDatabaseSql =
             String.format(CREATE_DATABASE_STATEMENT, getQuotName(databaseName));

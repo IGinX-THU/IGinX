@@ -11,7 +11,7 @@ nohup docker run -d -p $port:5236 --restart=always \
     -e LOG_SIZE=1024 \
     -e UNICODE_FLAG=1 \
     -e INSTANCE_NAME=dm8_test \
-    -v /opt/data:/opt/dmdbms/data \
+    -v /opt/data_$port:/opt/dmdbms/data \
     dm8_single:dm8_20241022_rev244896_x86_rh6_64 > docker_dm8_$port.log 2>&1 &
 
 echo "waiting for Dameng database to start..."
