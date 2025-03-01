@@ -100,7 +100,8 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
           databaseToTablesToColumnIndexes.entrySet()) {
         String databaseName = getQuotName(entry.getKey());
         Statement stmt = connection.createStatement();
-        String createDatabaseSql = String.format(CREATE_DATABASE_STATEMENT, databaseName);
+        String createDatabaseSql =
+            String.format(CREATE_DATABASE_STATEMENT, getQuotName(databaseName));
         try {
           LOGGER.info("create database with stmt: {}", createDatabaseSql);
           stmt.execute(createDatabaseSql);
@@ -213,7 +214,8 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
           continue;
         }
 
-        dropDatabaseStatement.addBatch(String.format(DROP_DATABASE_STATEMENT, databaseName));
+        dropDatabaseStatement.addBatch(
+            String.format(DROP_DATABASE_STATEMENT, getQuotName(databaseName)));
         LOGGER.info("drop database {} on 127.0.0.1:{}: ", databaseName, port);
       }
       dropDatabaseStatement.executeBatch();
