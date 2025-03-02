@@ -9,6 +9,17 @@ inputs:
         description: "to test UDF path detection"
         required: false
         default: "false"
+    iginx-conda-flag:
+        # this step is only needed when using python3.13 by conda because latest conda supports py3.12,
+        # and we use conda-forge to support 3.13. Thus, the required env would not be activated automatically
+        # even when we use login mode of bash
+        description: "whether to manually activate conda env before start IGinX"
+        required: false
+        default: "false"
+    iginx-conda-env:
+        description: "required conda env name"
+        required: false
+        default: "false"
 
 runs:
     using: "composite" # Mandatory parameter
@@ -36,16 +47,18 @@ runs:
           name: Start IGinX
           shell: bash -el {0}
           run: |
-              which python
+              if [ "${{ inputs.iginx-conda-flag }}" == "true" ]; then
+                  conda activate ${{ inputs.iginx-conda-env }}
+              fi
               if [ "$RUNNER_OS" == "Linux" ]; then
-                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx.sh" 6888 7888
+                  chmod +x "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx.sh"
+                  "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx.sh" 6888 7888
               elif [ "$RUNNER_OS" == "Windows" ]; then
-                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx_windows.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx_windows.sh" 6888 7888
+                  chmod +x "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx_windows.sh"
+                  "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx_windows.sh" 6888 7888
               elif [ "$RUNNER_OS" == "macOS" ]; then
-                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx_macos.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx_macos.sh" 6888 7888
+                  chmod +x "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx_macos.sh"
+                  "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx_macos.sh" 6888 7888
               fi
 
         - if: inputs.if-test-udf=='false' && inputs.if-stop=='true'

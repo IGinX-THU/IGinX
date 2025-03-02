@@ -32,7 +32,8 @@ echo "JAVA_HOME is set to $JAVA_HOME"
 
 sh -c "chmod +x core/target/iginx-core-*/sbin/start_iginx.sh"
 
-sh -c "nohup core/target/iginx-core-*/sbin/start_iginx.sh > iginx-$1.log 2>&1 &"
+python3 -VV
+bash -c "nohup core/target/iginx-core-*/sbin/start_iginx.sh > iginx-$1.log 2>&1 &"
 
 sh -c "sleep 3"
 
