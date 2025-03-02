@@ -44,9 +44,9 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
 
   private static final String CREATE_DATABASE_STATEMENT = "CREATE SCHEMA %s";
 
-  private static final String CREATE_TABLE_STATEMENT = "CREATE TABLE %s.%s (%s)";
+  private static final String CREATE_TABLE_STATEMENT = "CREATE TABLE %s (%s)";
 
-  private static final String INSERT_STATEMENT = "INSERT INTO %s.%s VALUES %s";
+  private static final String INSERT_STATEMENT = "INSERT INTO %s VALUES %s";
 
   private static final String DROP_DATABASE_STATEMENT = "DROP SCHEMA %s CASCADE";
 
@@ -59,7 +59,10 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
   private Connection connect(int port, boolean useSystemDatabase, String databaseName) {
     try {
       String url;
-      url = String.format("jdbc:dm://127.0.0.1:%d", port);
+      url =
+          String.format(
+              "jdbc:dm://127.0.0.1:%d?schema=%s",
+              port, databaseName == null ? "SYSDBA" : databaseName);
       Class.forName("dm.jdbc.driver.DmDriver");
       return DriverManager.getConnection(url, "SYSDBA", "SYSDBA001"); // 达梦默认用户名密码
     } catch (SQLException | ClassNotFoundException e) {
@@ -124,16 +127,10 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
             createTableStr.append(toDamengSQL(dataType));
             createTableStr.append(", ");
           }
-          LOGGER.info(
-              String.format(
-                  CREATE_TABLE_STATEMENT,
-                  getQuotName(databaseName),
-                  getQuotName(tableName),
-                  createTableStr.substring(0, createTableStr.length() - 2)));
           stmt.execute(
               String.format(
                   CREATE_TABLE_STATEMENT,
-                  getQuotName(databaseName),
+                  //                  getQuotName(databaseName),
                   getQuotName(tableName),
                   createTableStr.substring(0, createTableStr.length() - 2)));
 
@@ -157,7 +154,7 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
           stmt.execute(
               String.format(
                   INSERT_STATEMENT,
-                  getQuotName(databaseName),
+                  //                  getQuotName(databaseName),
                   getQuotName(tableName),
                   insertStr.substring(0, insertStr.length() - 2)));
         }

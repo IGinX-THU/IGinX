@@ -200,11 +200,12 @@ public class RelationalStorage implements IStorage {
       case "dameng":
         url =
             String.format(
-                "jdbc:dm://%s:%s/?user=%s&password=%s",
+                "jdbc:dm://%s:%s?user=%s&password=%s&schema=%s",
                 meta.getIp(),
                 meta.getPort(),
                 extraParams.get("username"),
-                extraParams.get("password"));
+                extraParams.get("password"),
+                getQuotName(databaseName));
         break;
       default:
         url =
@@ -333,7 +334,7 @@ public class RelationalStorage implements IStorage {
     //      databaseNames.add(DefaultDatabaseName);
     //      return databaseNames;
     //    } else {
-    Connection conn = getConnection(relationalMeta.getDefaultDatabaseName());
+    Connection conn = getConnection(DefaultDatabaseName);
     Statement statement = conn.createStatement();
     ResultSet rs = statement.executeQuery(relationalMeta.getDatabaseQuerySql());
     while (rs.next()) {
