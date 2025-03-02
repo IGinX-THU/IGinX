@@ -50,7 +50,8 @@ public class DmDataTypeTransformer implements IDataTypeTransformer {
       return DataType.FLOAT;
     } else if (dataType.equalsIgnoreCase("DOUBLE PRECISION")
         || dataType.equalsIgnoreCase("DOUBLE")
-        || dataType.equalsIgnoreCase("DECIMAL")) {
+        || dataType.equalsIgnoreCase("DECIMAL")
+        || dataType.equalsIgnoreCase("BigDecimal")) {
       return DataType.DOUBLE;
     } else if (dataType.equalsIgnoreCase("VARCHAR")
         || dataType.equalsIgnoreCase("CHAR")
