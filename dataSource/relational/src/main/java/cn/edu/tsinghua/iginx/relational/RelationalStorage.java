@@ -831,7 +831,6 @@ public class RelationalStorage implements IStorage {
           new ClearEmptyRowStreamWrapper(
               new RelationQueryRowStream(
                   databaseNameList,
-                  tableNameToColumnNames,
                   resultSets,
                   false,
                   filter,
@@ -1433,7 +1432,6 @@ public class RelationalStorage implements IStorage {
           new ClearEmptyRowStreamWrapper(
               new RelationQueryRowStream(
                   Collections.singletonList(databaseName),
-                  tableNameToColumnNames,
                   Collections.singletonList(rs),
                   false,
                   select.getFilter(),
@@ -1760,7 +1758,6 @@ public class RelationalStorage implements IStorage {
           new ClearEmptyRowStreamWrapper(
               new RelationQueryRowStream(
                   databaseNameList,
-                  new HashMap<>(),
                   resultSets,
                   true,
                   filter,

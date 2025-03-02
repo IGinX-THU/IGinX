@@ -95,9 +95,7 @@ public class RelationQueryRowStream implements RowStream {
   private boolean needFilter = false;
 
   private String engine;
-  private final Map<String, String> tableNameToColumnNames;
 
-  private List<List<String>> tableColumnNames;
 
   public RelationQueryRowStream(
       List<String> databaseNameList,
@@ -110,7 +108,6 @@ public class RelationQueryRowStream implements RowStream {
       throws SQLException {
     this(
         databaseNameList,
-        new HashMap<>(),
         resultSets,
         isDummy,
         filter,
@@ -124,7 +121,6 @@ public class RelationQueryRowStream implements RowStream {
 
   public RelationQueryRowStream(
       List<String> databaseNameList,
-      Map<String, String> tableNameToColumnNames,
       List<ResultSet> resultSets,
       boolean isDummy,
       Filter filter,
@@ -140,19 +136,8 @@ public class RelationQueryRowStream implements RowStream {
     this.filter = filter;
     this.connList = connList;
     this.relationalMeta = relationalMeta;
-    this.tableNameToColumnNames = tableNameToColumnNames;
     this.isAgg = isAgg;
     this.sumResType = sumResType;
-
-    //    List<List<String>> tableColumnNames = new ArrayList<>();
-    this.tableColumnNames = new ArrayList<>();
-    // 遍历tableNameToColumnNames，将columnNames中的列名加上tableName前缀
-    for (Map.Entry<String, String> entry : this.tableNameToColumnNames.entrySet()) {
-      String tableName = entry.getKey();
-      List<String> columnNames = new ArrayList<>(Arrays.asList(entry.getValue().split(", ")));
-      columnNames.replaceAll(s -> RelationSchema.getFullName(tableName, s));
-      this.tableColumnNames.add(columnNames);
-    }
 
     if (resultSets.isEmpty()) {
       this.header = new Header(Field.KEY, Collections.emptyList());
@@ -182,16 +167,10 @@ public class RelationQueryRowStream implements RowStream {
       String tableName = "";
       String columnName = "";
       String typeName = "";
-      int columnSize = 0;
-      String columnClassName = "";
       for (int j = 1; j <= resultSetMetaData.getColumnCount(); j++) {
         columnName = resultSetMetaData.getColumnName(j);
         typeName = resultSetMetaData.getColumnTypeName(j);
         tableName = resultSetMetaData.getTableName(j);
-        if (engine.equals("dameng")) {
-          columnSize = resultSetMetaData.getPrecision(j);
-          columnClassName = resultSetMetaData.getColumnClassName(j);
-        }
 
         if (j == 1 && columnName.contains(KEY_NAME) && columnName.contains(SEPARATOR)) {
           isPushDown = true;
@@ -223,26 +202,12 @@ public class RelationQueryRowStream implements RowStream {
         }
         String path;
         if (isDummy) {
-          field =
-              new Field(
-                  databaseNameList.get(i) + SEPARATOR + tableName + SEPARATOR + namesAndTags.k,
-                  relationalMeta
-                      .getDataTypeTransformer()
-                      .fromEngineType(typeName, String.valueOf(columnSize), columnClassName),
-                  namesAndTags.v);
           path =
               databaseNameList.get(i)
                   + SEPARATOR
                   + (isAgg ? "" : tableName + SEPARATOR)
                   + namesAndTags.k;
         } else {
-          field =
-              new Field(
-                  tableName + SEPARATOR + namesAndTags.k,
-                  relationalMeta
-                      .getDataTypeTransformer()
-                      .fromEngineType(typeName, String.valueOf(columnSize), columnClassName),
-                  namesAndTags.v);
           path = (isAgg ? "" : tableName + SEPARATOR) + namesAndTags.k;
         }
 
