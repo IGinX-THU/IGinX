@@ -9,7 +9,10 @@ inputs:
         description: "to test UDF path detection"
         required: false
         default: "false"
-    activate-conda-flag:
+    iginx-conda-flag:
+        # this step is only needed when using python3.13 by conda because latest conda supports py3.12,
+        # and we use conda-forge to support 3.13. Thus, the required env would not be activated automatically
+        # even when we use login mode of bash
         description: "whether to manually activate conda env before start IGinX"
         required: false
         default: "false"
@@ -44,7 +47,7 @@ runs:
           name: Start IGinX
           shell: bash -el {0}
           run: |
-              if [ "${{ inputs.activate-conda-flag }}" == "true" ]; then
+              if [ "${{ inputs.iginx-conda-flag }}" == "true" ]; then
                   conda activate ${{ inputs.iginx-conda-env }}
               fi
               if [ "$RUNNER_OS" == "Linux" ]; then

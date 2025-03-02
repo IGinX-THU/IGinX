@@ -37,6 +37,7 @@ jobs:
         runs-on: ${{ matrix.os }}
         env:
             # only used in this workflow file
+            IGINX_CONDA_FLAG: "true"
             IGINX_CONDA_ENV: "iginxEnv"
         steps:
             - uses: actions/checkout@v4
@@ -47,7 +48,7 @@ jobs:
                   java: ${{ matrix.java }}
                   free-thread-python-required: "true"
                   scope: "only-java"
-                  iginx-conda-flag: "true"
+                  iginx-conda-flag: ${{ env.IGINX_CONDA_FLAG }}
                   iginx-conda-env: ${{ env.IGINX_CONDA_ENV }}
 
             - name: Run Metadata
@@ -76,7 +77,7 @@ jobs:
             - name: Start IGinX
               uses: ./.github/actions/iginxRunner
               with:
-                  activate-conda-flag: "true"
+                  iginx-conda-flag: ${{ env.IGINX_CONDA_FLAG }}
                   iginx-conda-env: ${{ env.IGINX_CONDA_ENV }}
 
             - name: TestController IT
