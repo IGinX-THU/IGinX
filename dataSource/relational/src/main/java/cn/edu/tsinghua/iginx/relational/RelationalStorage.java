@@ -2769,13 +2769,6 @@ public class RelationalStorage implements IStorage {
     //    String selectSql = "SELECT %s FROM %s.%s WHERE %s IN (%s)";
     //    String insertSql = "INSERT INTO %s.%s ( %s ) VALUES ( %s )";
     //    String updateSql = "UPDATE %s.%s SET %s WHERE %s = %s";
-    Map<String, String[]> valueMap1 =
-        values.stream()
-            .collect(
-                Collectors.toMap(
-                    value -> value.substring(0, value.length() - 2).split(", ")[0],
-                    value -> value.substring(0, value.length() - 2).split(", ")));
-    values.forEach(System.out::println);
     Map<String, String[]> valueMap = new HashMap<>();
     for (String value : values) {
       String csvLine = value.substring(0, value.length() - 2);
