@@ -2766,15 +2766,48 @@ public class RelationalStorage implements IStorage {
       Map<String, ColumnField> columnMap,
       String[] parts,
       List<String> values) {
-    // String selectSql = "SELECT %s FROM %s.%s WHERE %s IN (%s)";
+    //    String selectSql = "SELECT %s FROM %s.%s WHERE %s IN (%s)";
     //    String insertSql = "INSERT INTO %s.%s ( %s ) VALUES ( %s )";
     //    String updateSql = "UPDATE %s.%s SET %s WHERE %s = %s";
-    Map<String, String[]> valueMap =
+    Map<String, String[]> valueMap1 =
         values.stream()
             .collect(
                 Collectors.toMap(
                     value -> value.substring(0, value.length() - 2).split(", ")[0],
                     value -> value.substring(0, value.length() - 2).split(", ")));
+    values.forEach(System.out::println);
+    Map<String, String[]> valueMap = new HashMap<>();
+    for (String value : values) {
+      String csvLine = value.substring(0, value.length() - 2);
+
+      // 临时替换引号内的逗号
+      StringBuilder processed = new StringBuilder();
+      boolean inQuotes = false;
+      for (int i = 0; i < csvLine.length(); i++) {
+        char c = csvLine.charAt(i);
+
+        if (c == '\'') {
+          inQuotes = !inQuotes;
+        }
+
+        if (c == ',' && inQuotes) {
+          processed.append("##COMMA##");
+        } else {
+          processed.append(c);
+        }
+      }
+
+      // 正常分割
+      String[] value_parts = processed.toString().split(", ");
+
+      // 恢复原来的逗号
+      for (int i = 0; i < parts.length; i++) {
+        value_parts[i] = value_parts[i].replace("##COMMA##", ",");
+      }
+
+      valueMap.put(value_parts[0], value_parts);
+    }
+
     List<String> allKeys = new ArrayList<>(valueMap.keySet());
     List<String> insertKeys = new ArrayList<>();
     List<String> updateKeys = new ArrayList<>();
@@ -2945,6 +2978,7 @@ public class RelationalStorage implements IStorage {
         stmt.setDouble(index, Double.parseDouble(value));
         break;
       default:
+        LOGGER.info("value: {}", value);
         if (value.startsWith("'") && value.endsWith("'")) { // 处理空字符串'', 非空字符串包含特殊字符的情况'""'
           stmt.setString(index, value.substring(1, value.length() - 1));
         } else {
