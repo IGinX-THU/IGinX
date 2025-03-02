@@ -69,10 +69,12 @@ public class PySessionIT {
 
   private static boolean isAbleToDelete = true;
   private static PythonInterpreter interpreter;
+  protected static String runningEngine;
 
   public PySessionIT() {
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
     DBConf dbConf = conf.loadDBConf(conf.getStorageType());
+    runningEngine = conf.getStorageType();
     isAbleToDelete = dbConf.getEnumValue(DBConf.DBConfType.isAbleToDelete);
     PythonInterpreterConfig config =
         PythonInterpreterConfig.newBuilder().setPythonExec(pythonCMD).addPythonPaths(PATH).build();

@@ -36,6 +36,37 @@ jobs:
         with:
             metadata-matrix: '["zookeeper"]'
             close-optimizer: "true"
+    standalone-test-dameng:
+        uses: ./.github/workflows/standalone-test.yml
+        with:
+            metadata-matrix: '["zookeeper"]'
+            os-matrix: '["ubuntu-latest", "windows-latest"]'
+            db-matrix: '["Dameng"]'
+            timeout-minutes: 60
+    standalone-test-no-optimizer-dameng:
+        uses: ./.github/workflows/standalone-test-no-optimizer.yml
+        with:
+            metadata-matrix: '["zookeeper"]'
+            os-matrix: '["ubuntu-latest", "windows-latest"]'
+            db-matrix: '["Dameng"]'
+            timeout-minutes: 60
+    db-ce-dameng:
+        uses: ./.github/workflows/DB-CE.yml
+        with:
+            metadata-matrix: '["zookeeper"]'
+            os-matrix: '["ubuntu-latest", "windows-latest"]'
+            db-matrix: '["Dameng"]'
+            functest: "NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,CompactionIT,TimePrecisionIT,PySessionIT"
+            timeout-minutes: 120
+    db-ce-no-optimizer-dameng:
+        uses: ./.github/workflows/DB-CE.yml
+        with:
+            metadata-matrix: '["zookeeper"]'
+            os-matrix: '["ubuntu-latest", "windows-latest"]'
+            db-matrix: '["Dameng"]'
+            functest: "NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,CompactionIT,TimePrecisionIT,PySessionIT"
+            timeout-minutes: 120
+            close-optimizer: "true"
     standalone-test-vectordb:
         uses: ./.github/workflows/standalone-test.yml
         with:
@@ -88,6 +119,21 @@ jobs:
             os-matrix: '["ubuntu-latest"]'
             metadata-matrix: '["zookeeper"]'
             close-optimizer: "true"
+    tpc-h-regression-test-dameng:
+        uses: ./.github/workflows/tpc-h.yml
+        with:
+            os-matrix: '["ubuntu-latest"]'
+            metadata-matrix: '["zookeeper"]'
+            db-matrix: '["Dameng"]'
+            timeout-minutes: 60
+    tpc-h-regression-test-no-optimizer-dameng:
+        uses: ./.github/workflows/tpc-h.yml
+        with:
+            os-matrix: '["ubuntu-latest"]'
+            metadata-matrix: '["zookeeper"]'
+            db-matrix: '["Dameng"]'
+            close-optimizer: "true"
+            timeout-minutes: 60
     tpc-h-regression-test-vectordb:
         uses: ./.github/workflows/tpc-h.yml
         with:

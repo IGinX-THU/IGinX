@@ -55,6 +55,11 @@
             <artifactId>mysql-connector-java</artifactId>
             <version>8.0.26</version>
         </dependency>
+        <dependency>
+            <groupId>cn.edu.tsinghua.iginx</groupId>
+            <artifactId>dameng-jdbc</artifactId>
+            <version>1.8-SNAPSHOT</version>
+        </dependency>
     </dependencies>
 
     <build>
