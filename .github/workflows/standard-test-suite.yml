@@ -119,6 +119,21 @@ jobs:
             os-matrix: '["ubuntu-latest"]'
             metadata-matrix: '["zookeeper"]'
             close-optimizer: "true"
+    tpc-h-regression-test-dameng:
+        uses: ./.github/workflows/tpc-h.yml
+        with:
+            os-matrix: '["ubuntu-latest"]'
+            metadata-matrix: '["zookeeper"]'
+            db-matrix: '["Dameng"]'
+            timeout-minutes: 60
+    tpc-h-regression-test-no-optimizer-dameng:
+        uses: ./.github/workflows/tpc-h.yml
+        with:
+            os-matrix: '["ubuntu-latest"]'
+            metadata-matrix: '["zookeeper"]'
+            db-matrix: '["Dameng"]'
+            close-optimizer: "true"
+            timeout-minutes: 60
     tpc-h-regression-test-vectordb:
         uses: ./.github/workflows/tpc-h.yml
         with:
