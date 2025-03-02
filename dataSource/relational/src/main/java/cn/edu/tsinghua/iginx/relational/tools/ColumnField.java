@@ -23,7 +23,7 @@ public class ColumnField {
   public String tableName;
   public String columnName;
   public String columnType;
-  public int columnSize; // for oracle
+  public int columnSize;
 
   public ColumnField(String tableName, String columnName, String columnType) {
     this.tableName = tableName;

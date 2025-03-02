@@ -188,7 +188,7 @@ public class RelationQueryRowStream implements RowStream {
         columnName = resultSetMetaData.getColumnName(j);
         typeName = resultSetMetaData.getColumnTypeName(j);
         tableName = resultSetMetaData.getTableName(j);
-        if (engine.equals("oracle") || engine.equals("dameng")) {
+        if (engine.equals("dameng")) {
           columnSize = resultSetMetaData.getPrecision(j);
           columnClassName = resultSetMetaData.getColumnClassName(j);
         }
@@ -250,7 +250,7 @@ public class RelationQueryRowStream implements RowStream {
           field = new Field(fullName2Name.get(path), path, type, namesAndTags.v);
         } else {
           if (isAgg
-              && (engine.equals("oracle") || engine.equals("dameng"))
+              && (engine.equals("dameng"))
               && !path.contains(SEPARATOR)) {
             field = new Field(tableName + SEPARATOR + path, type, namesAndTags.v);
           } else {
@@ -475,21 +475,6 @@ public class RelationQueryRowStream implements RowStream {
       return resultSet.getObject(columnName);
     }
     ResultSetMetaData resultSetMetaData = resultSet.getMetaData();
-    // if (engine.equals("oracle") || engine.equals("dameng")) {
-    //   int i =
-    //       this.tableColumnNames
-    //           .get(resultSets.indexOf(resultSet))
-    //           .indexOf(RelationSchema.getFullName(tableName, columnName));
-    //   //
-    //   LOGGER.info(
-    //       "{}-{}-{}-{}-{}",
-    //       resultSet.getObject(1),
-    //       resultSet.getObject(2),
-    //       resultSet.getObject(3),
-    //       resultSet.getObject(4),
-    //       resultSet.getObject(5));
-    //   return resultSet.getObject(i + 1);
-    // }
     for (int j = 1; j <= resultSetMetaData.getColumnCount(); j++) {
       String tempColumnName = resultSetMetaData.getColumnName(j);
       String tempTableName = resultSetMetaData.getTableName(j);

@@ -119,16 +119,7 @@ public class RelationalStorage implements IStorage {
     try (Statement stmt = connection.createStatement()) {
       stmt.execute(
           String.format(relationalMeta.getCreateDatabaseStatement(), getQuotName(databaseName)));
-      if (engineName.equals("oracle")) {
-        stmt.execute(
-            String.format(relationalMeta.getGrantPrivilegesStatement(), getQuotName(databaseName)));
-      }
     } catch (SQLException ignored) {
-    }
-
-    // oracle只能针对实例（SID）建立连接，databaseName在oracle中对应的是user/schema
-    if (engineName.equals("oracle")) {
-      databaseName = relationalMeta.getDefaultDatabaseName();
     }
 
     HikariDataSource dataSource = connectionPoolMap.get(databaseName);
@@ -191,12 +182,6 @@ public class RelationalStorage implements IStorage {
     String engine = extraParams.get("engine");
     String url;
     switch (engine) {
-      case "oracle":
-        url =
-            String.format(
-                "jdbc:oracle:thin:@//%s:%d/%s",
-                meta.getIp(), meta.getPort(), relationalMeta.getDefaultDatabaseName());
-        break;
       case "dameng":
         url =
             String.format(
@@ -221,17 +206,6 @@ public class RelationalStorage implements IStorage {
     String engine = extraParams.get("engine");
     String connUrl;
     switch (engine) {
-      case "oracle":
-        connUrl =
-            String.format(
-                "jdbc:%s:thin:%s/%s@%s:%d/%s",
-                engine,
-                username,
-                password,
-                meta.getIp(),
-                meta.getPort(),
-                relationalMeta.getDefaultDatabaseName());
-        break;
       case "dameng":
         connUrl =
             String.format(
@@ -366,7 +340,7 @@ public class RelationalStorage implements IStorage {
       ResultSet rs =
           databaseMetaData.getTables(
               databaseName,
-              engineName.equals("oracle") || engineName.equals("dameng")
+              engineName.equals("dameng")
                   ? databaseName
                   : relationalMeta.getSchemaPattern(),
               tablePattern,
@@ -398,7 +372,7 @@ public class RelationalStorage implements IStorage {
       ResultSet rs =
           databaseMetaData.getColumns(
               databaseName,
-              engineName.equals("oracle") || engineName.equals("dameng")
+              engineName.equals("dameng")
                   ? databaseName
                   : relationalMeta.getSchemaPattern(),
               tableName,
@@ -2657,7 +2631,7 @@ public class RelationalStorage implements IStorage {
       String[] parts = columnNames.split(", ");
       boolean hasMultipleRows = parts.length != 1;
       StringBuilder statement = new StringBuilder();
-      if (engineName.equals("oracle") || engineName.equals("dameng")) {
+      if (engineName.equals("dameng")) {
         Map<String, ColumnField> columnMap = getColumnMap(databaseName, tableName);
         this.batchInsert(conn, databaseName, tableName, columnMap, parts, values);
       } else {
@@ -2988,7 +2962,7 @@ public class RelationalStorage implements IStorage {
 
   private String getTableNameByDB(String databaseName, String name) {
     String engineName = meta.getExtraParams().get("engine");
-    if (engineName.equals("oracle") || engineName.equals("dameng")) {
+    if (engineName.equals("dameng")) {
       name = getQuotName(databaseName) + SEPARATOR + getQuotName(name);
     } else {
       name = getQuotName(name);

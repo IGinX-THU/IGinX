@@ -117,16 +117,16 @@ public class FilterTransformer {
         op = Op.op2StrWithoutAndOr(filter.getOp()).replace("==", "=");
         if (filter.getValue().getDataType() == DataType.BINARY) {
           value = "'" + filter.getValue().getBinaryVAsString() + "'";
-        } else if ((engine.equals("oracle") || engine.equals("dameng"))
+        } else if (engine.equals("dameng")
             && filter.getValue().getDataType()
-                == DataType.BOOLEAN) { // oracle not support boolean type before 23ai
+                == DataType.BOOLEAN) {
           value = filter.getValue().getBoolV() ? "1" : "0";
         } else {
           value = filter.getValue().getValue();
         }
         break;
     }
-    if ((engine.equals("oracle") || engine.equals("dameng"))
+    if (engine.equals("dameng")
         && (filter.getOp() == Op.LIKE
             || filter.getOp() == Op.LIKE_AND
             || filter.getOp() == Op.NOT_LIKE
@@ -177,7 +177,7 @@ public class FilterTransformer {
                     value -> {
                       if (value.getDataType() == DataType.BINARY) {
                         return "'" + value.getBinaryVAsString() + "'";
-                      } else if ((engine.equals("oracle") || engine.equals("dameng"))
+                      } else if (engine.equals("dameng")
                           && value.getDataType() == DataType.BOOLEAN) {
                         return value.getBoolV() ? "1" : "0";
                       } else {

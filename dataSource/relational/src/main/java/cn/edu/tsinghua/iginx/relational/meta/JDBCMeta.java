@@ -23,7 +23,6 @@ import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.relational.datatype.transformer.DmDataTypeTransformer;
 import cn.edu.tsinghua.iginx.relational.datatype.transformer.IDataTypeTransformer;
 import cn.edu.tsinghua.iginx.relational.datatype.transformer.JDBCDataTypeTransformer;
-import cn.edu.tsinghua.iginx.relational.datatype.transformer.OracleLDataTypeTransformer;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
@@ -83,9 +82,7 @@ public class JDBCMeta extends AbstractRelationalMeta {
     quote = properties.getProperty("quote").charAt(0);
     driverClass = properties.getProperty("driver_class");
     defaultDatabaseName = properties.getProperty("default_database");
-    if (meta.getExtraParams().get("engine").equalsIgnoreCase("oracle")) {
-      dataTypeTransformer = OracleLDataTypeTransformer.getInstance();
-    } else if (meta.getExtraParams().get("engine").equalsIgnoreCase("dameng")) {
+    if (meta.getExtraParams().get("engine").equalsIgnoreCase("dameng")) {
       dataTypeTransformer = DmDataTypeTransformer.getInstance();
     } else {
       dataTypeTransformer = new JDBCDataTypeTransformer(properties);
