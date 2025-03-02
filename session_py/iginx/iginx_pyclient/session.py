@@ -17,6 +17,7 @@
 # along with this program; if not, write to the Free Software Foundation,
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
+import time
 
 import csv
 import logging
@@ -28,6 +29,7 @@ import pandas as pd
 from thrift.protocol import TBinaryProtocol
 from thrift.transport import TSocket, TTransport
 from pathlib import Path
+import pyarrow as pa
 
 from .cluster_info import ClusterInfo
 from .dataset import column_dataset_from_df, QueryDataSet, AggregateQueryDataSet, StatementExecuteDataSet
@@ -430,6 +432,83 @@ class Session(object):
         data_types = resp.dataTypeList
         raw_data_set = resp.queryDataSet
         return QueryDataSet(paths, data_types, raw_data_set.keys, raw_data_set.valuesList, raw_data_set.bitmapList)
+
+    def queryArrow(self, paths, start_time, end_time, timePrecision=None):
+        import time
+        req = QueryDataReq(sessionId=self.__session_id, paths=Session.merge_and_sort_paths(paths),
+                           startKey=start_time, endKey=end_time, timePrecision=timePrecision)
+        resp = self.__client.queryData(req)
+        Session.verify_status(resp.status)
+        start_time=time.perf_counter()
+        result=self.get_batch_from_arrow(resp.queryArrowData)
+        end_time=time.perf_counter()
+        return result, end_time-start_time
+
+    def get_batch_from_arrow2(self, bytes_list):
+        # 直接使用第一个batch获取schema
+        for arrow_bytes in bytes_list:
+            buf = pa.py_buffer(arrow_bytes)
+            reader = pa.ipc.open_stream(buf)
+            batches = [batch for batch in reader]
+            if batches:  # 如果这个bytes有数据
+                return pa.Table.from_batches(batches)
+        return None  # 如果没有任何数据返回None
+
+    def get_batch_from_arrow3(self, bytes_list):
+        tables = []
+        for arrow_bytes in bytes_list:
+            buf = pa.py_buffer(arrow_bytes)
+            # 直接读取完整table，避免batch的迭代
+            table = pa.ipc.open_stream(buf).read_all()
+            tables.append(table)
+
+        if not tables:
+            return None
+        elif len(tables) == 1:
+            return tables[0]
+        else:
+            return pa.concat_tables(tables)
+
+    def get_batch_from_arrow4(self, bytes_list): # slow
+        # 直接使用第一个batch获取schema
+
+        def convert_batch_to_pandas(batch):
+            return batch.to_pandas()
+
+        dfs=[]
+        for arrow_bytes in bytes_list:
+            buf = pa.py_buffer(arrow_bytes)
+            reader = pa.ipc.open_stream(buf)
+            batches = [batch for batch in reader]
+            if batches:  # 如果这个bytes有数据
+                dfs.extend(convert_batch_to_pandas(e) for e in batches)
+        if dfs:
+            return pd.concat(dfs)
+        return None  # 如果没有任何数据返回None
+
+    def get_batch_from_arrow(self, bytes_list):
+        batch_stream = self.process_bytes_stream(bytes_list)
+        first_batch = next(batch_stream)
+        schema = first_batch.schema
+
+        def batch_generator():
+            yield first_batch
+            for batch in batch_stream:
+                yield batch
+        reader = pa.RecordBatchReader.from_batches(schema, batch_generator())
+        return reader.read_all()
+
+
+    def process_bytes_stream(self, bytes_list):
+        for arrow_bytes in bytes_list:
+            yield from self._process_single_bytes(arrow_bytes)
+
+    def _process_single_bytes(self, arrow_bytes):
+        buf = pa.py_buffer(arrow_bytes)  # 使用零拷贝buffer
+        reader = pa.ipc.open_stream(buf)
+
+        for batch in reader:
+            yield batch
 
     def last_query(self, paths, start_time=0, timePrecision=None):
         if len(paths) == 0:
