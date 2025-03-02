@@ -340,9 +340,7 @@ public class RelationalStorage implements IStorage {
       ResultSet rs =
           databaseMetaData.getTables(
               databaseName,
-              engineName.equals("dameng")
-                  ? databaseName
-                  : relationalMeta.getSchemaPattern(),
+              engineName.equals("dameng") ? databaseName : relationalMeta.getSchemaPattern(),
               tablePattern,
               new String[] {"TABLE"});
       List<String> tableNames = new ArrayList<>();
@@ -372,9 +370,7 @@ public class RelationalStorage implements IStorage {
       ResultSet rs =
           databaseMetaData.getColumns(
               databaseName,
-              engineName.equals("dameng")
-                  ? databaseName
-                  : relationalMeta.getSchemaPattern(),
+              engineName.equals("dameng") ? databaseName : relationalMeta.getSchemaPattern(),
               tableName,
               columnNamePattern);
       List<ColumnField> columnFields = new ArrayList<>();

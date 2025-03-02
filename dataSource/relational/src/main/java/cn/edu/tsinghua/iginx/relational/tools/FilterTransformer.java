@@ -117,9 +117,7 @@ public class FilterTransformer {
         op = Op.op2StrWithoutAndOr(filter.getOp()).replace("==", "=");
         if (filter.getValue().getDataType() == DataType.BINARY) {
           value = "'" + filter.getValue().getBinaryVAsString() + "'";
-        } else if (engine.equals("dameng")
-            && filter.getValue().getDataType()
-                == DataType.BOOLEAN) {
+        } else if (engine.equals("dameng") && filter.getValue().getDataType() == DataType.BOOLEAN) {
           value = filter.getValue().getBoolV() ? "1" : "0";
         } else {
           value = filter.getValue().getValue();

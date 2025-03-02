@@ -96,7 +96,6 @@ public class RelationQueryRowStream implements RowStream {
 
   private String engine;
 
-
   public RelationQueryRowStream(
       List<String> databaseNameList,
       List<ResultSet> resultSets,
@@ -214,9 +213,7 @@ public class RelationQueryRowStream implements RowStream {
         if (isAgg && fullName2Name.containsKey(path)) {
           field = new Field(fullName2Name.get(path), path, type, namesAndTags.v);
         } else {
-          if (isAgg
-              && (engine.equals("dameng"))
-              && !path.contains(SEPARATOR)) {
+          if (isAgg && (engine.equals("dameng")) && !path.contains(SEPARATOR)) {
             field = new Field(tableName + SEPARATOR + path, type, namesAndTags.v);
           } else {
             field = new Field(path, type, namesAndTags.v);
