@@ -159,7 +159,6 @@ class Tests:
                 print(e)
                 exit(1)
             finally:
-
                 return ""
 
     def deleteColumn(self):
@@ -361,7 +360,6 @@ class Tests:
             print(e)
             exit(1)
         finally:
-
             return ""
 
     def insertDF(self):
@@ -456,6 +454,8 @@ class Tests:
         dataset = self.session.execute_statement("select * from test;", fetch_size=2)
 
         columns = dataset.columns()
+        if dataset.has_key():
+            retStr += 'key    '
         for column in columns:
             retStr += str(column) + '    '
         retStr += '\n'
