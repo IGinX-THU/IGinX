@@ -146,7 +146,7 @@ runs:
               ports: ${{ inputs.VectorDB-ports }}
 
         - if: inputs.DB-name=='Dameng'
-          name: Setup Dameng
+          name: Setup DB
           uses: ./.github/actions/setup/dameng
 
         - if: inputs.DB-name=='Dameng'
