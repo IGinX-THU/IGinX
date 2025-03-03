@@ -7,7 +7,7 @@ on:
                 description: "The java version to run the test on"
                 type: string
                 required: false
-                default: '["8"]'
+                default: '["17"]'
             os-matrix:
                 description: "The operating system to run the test on"
                 type: string

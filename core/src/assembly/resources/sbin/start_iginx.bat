@@ -114,7 +114,7 @@ set /a min_heap_size_in_mb=%system_memory_in_mb% * %min_percentageNumerator% / 1
 set MIN_HEAP_SIZE=%min_heap_size_in_mb%M
 
 @REM -----------------------------------------------------------------------------
-set HEAP_OPTS=-Xmx%MAX_HEAP_SIZE% -Xms%MIN_HEAP_SIZE% -Xloggc:"%IGINX_HOME%\gc.log" -XX:+PrintGCDateStamps -XX:+PrintGCDetails
+set HEAP_OPTS=-Xmx%MAX_HEAP_SIZE% -Xms%MIN_HEAP_SIZE%
 
 @REM ***** CLASSPATH library setting *****
 @REM Ensure that any user defined CLASSPATH variables are not used on startup
