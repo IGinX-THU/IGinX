@@ -2971,7 +2971,6 @@ public class RelationalStorage implements IStorage {
         stmt.setDouble(index, Double.parseDouble(value));
         break;
       default:
-        LOGGER.info("value: {}", value);
         if (value.startsWith("'") && value.endsWith("'")) { // 处理空字符串'', 非空字符串包含特殊字符的情况'""'
           stmt.setString(index, value.substring(1, value.length() - 1));
         } else {
