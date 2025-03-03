@@ -49,3 +49,32 @@ runs:
           with:
               path: ${{ steps.base.outputs.cache-path }}
               key: ${{ steps.base.outputs.cache-key }}
+
+        - name: save old JAVA_HOME
+          id: old-java-home
+          shell: bash
+          run: echo "oldJavaHome=$JAVA_HOME" >> $GITHUB_OUTPUT
+
+        - uses: actions/setup-java@v4
+          with:
+              java-version: 8
+              distribution: ${{ runner.os == 'macOS' && 'liberica' || 'temurin' }}
+
+        - name: restore old JAVA_HOME
+          id: java8-home
+          shell: bash
+          run: echo "JAVA_HOME=${{ steps.old-java-home.outputs.oldJavaHome }}" >> $GITHUB_ENV
+
+        - name: Add JAVA_HOME of Java 8 to IoTDB Scripts
+          if: runner.os != 'Windows'
+          uses: ./.github/actions/edit
+          with:
+              paths: $IOTDB_ROOT/sbin/start-server.sh $IOTDB_ROOT/sbin/start-cli.sh
+              statements: 20a JAVA_HOME=$JAVA_HOME_8_${{ runner.arch }}
+
+        - name: Add JAVA_HOME of Java 8 to IoTDB Scripts
+          if: runner.os == 'Windows'
+          uses: ./.github/actions/edit
+          with:
+              paths: $IOTDB_ROOT/sbin/start-server.bat $IOTDB_ROOT/sbin/start-cli.bat
+              statements: 20a set JAVA_HOME=%JAVA_HOME_8_${{ runner.arch }}%
