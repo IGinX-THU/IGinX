@@ -50,37 +50,31 @@ runs:
               path: ${{ steps.base.outputs.cache-path }}
               key: ${{ steps.base.outputs.cache-key }}
 
-        - name: save old JAVA_HOME and PATH
-          id: old-env
-          shell: bash
-          run: |
-              echo "oldJavaHome=$JAVA_HOME" >> $GITHUB_OUTPUT
-              echo "oldPath=$PATH" >> $GITHUB_OUTPUT
-
-        - uses: actions/setup-java@v4
+        - name: Setup JDK
+          id: setup-jdk
+          uses: pbrisbin/setup-tool-action@v2
           with:
-              java-version: 8
-              distribution: ${{ runner.os == 'macOS' && 'liberica' || 'temurin' }}
-
-        - name: restore old JAVA_HOME and PATH
-          id: java8-home
-          shell: bash
-          run: |
-              echo "JAVA_HOME=${{ steps.old-env.outputs.oldJavaHome }}" >> $GITHUB_ENV
-              echo "PATH=${{ steps.old-env.outputs.oldPath }}" >> $GITHUB_ENV
+            name: amazon-corretto
+            version: 8.442.06.1
+            url: "https://corretto.aws/downloads/resources/{version}/{name}-{version}-{os}-{arch}.{ext}"
+            subdir: "{name}-{version}-{os}-{arch}"
+            os-darwin: macos
+            os-win32: windows
+            arch-arm64: aarch64
+            arch-win32-x64: x64-jdk
 
         - name: Add JAVA_HOME of Java 8 to IoTDB Scripts
           if: runner.os != 'Windows'
           shell: bash
           working-directory: ${{ steps.base.outputs.tool-path }}
           run: |
-              perl -i -pe 'print "JAVA_HOME=$JAVA_HOME_8_${{ runner.arch }}\n" if $. == 20' sbin/start-server.sh
-              perl -i -pe 'print "JAVA_HOME=$JAVA_HOME_8_${{ runner.arch }}\n" if $. == 20' sbin/start-cli.sh
+            perl -i -pe 'print "JAVA_HOME=${{ steps.setup-jdk.outputs.directory }}\n" if $. == 20' sbin/start-server.sh
+            perl -i -pe 'print "JAVA_HOME=${{ steps.setup-jdk.outputs.directory }}\n" if $. == 20' sbin/start-cli.sh
 
         - name: Add JAVA_HOME of Java 8 to IoTDB Scripts
           if: runner.os == 'Windows'
           shell: bash
           working-directory: ${{ steps.base.outputs.tool-path }}
           run: |
-              perl -i -pe 'print "set JAVA_HOME=%JAVA_HOME_8_${{ runner.arch }}%\n" if $. == 20' sbin/start-server.bat
-              perl -i -pe 'print "set JAVA_HOME=%JAVA_HOME_8_${{ runner.arch }}%\n" if $. == 20' sbin/start-cli.bat
+            perl -i -pe 'print "set JAVA_HOME=${{ steps.setup-jdk.outputs.directory }}\n" if $. == 20' sbin/start-server.bat
+            perl -i -pe 'print "set JAVA_HOME=${{ steps.setup-jdk.outputs.directory }}\n" if $. == 20' sbin/start-cli.bat
