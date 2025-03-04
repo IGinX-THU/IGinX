@@ -700,11 +700,16 @@ public class StatementExecutor {
         // do the actual insert
         LOGGER.info("Inserting {} rows, {} rows completed", recordsSize, count);
         RequestContext subInsertContext = new RequestContext(ctx.getSessionId(), insertStatement);
-        process(subInsertContext);
+        try (ResourceSet holder = resourceManager.setup(subInsertContext)) {
+          process(subInsertContext);
 
-        if (!subInsertContext.getResult().getStatus().equals(RpcUtils.SUCCESS)) {
-          ctx.setResult(new Result(RpcUtils.FAILURE));
-          return;
+          if (!subInsertContext.getResult().getStatus().equals(RpcUtils.SUCCESS)) {
+            ctx.setResult(new Result(RpcUtils.FAILURE));
+            return;
+          }
+        } catch (ResourceException e) {
+          LOGGER.error("Cannot setup resource for query", e);
+          throw new StatementExecutionException(e);
         }
         count += recordsSize;
       }

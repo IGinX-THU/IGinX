@@ -273,13 +273,13 @@ public class Result {
     try {
       if (streamCache == null) {
         try (Batch batch = batchStream.getNext()) {
-          streamCache = VectorSchemaRoots.transfer(allocator, batch.getData());
+          streamCache = VectorSchemaRoots.transfer(allocator, batch.flattened(allocator));
         }
       }
       int count = streamCache.getRowCount();
       while (count < fetchSize && batchStream.hasNext()) {
         try (Batch batch = batchStream.getNext()) {
-          VectorSchemaRoots.append(streamCache, batch.getData());
+          VectorSchemaRoots.append(streamCache, batch.flattened(allocator));
           count += batch.getRowCount();
         }
       }
