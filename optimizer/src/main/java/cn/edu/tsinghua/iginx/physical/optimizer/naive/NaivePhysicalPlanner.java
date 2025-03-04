@@ -300,24 +300,35 @@ public class NaivePhysicalPlanner {
   }
 
   public PhysicalTask<?> construct(RowTransform operator, RequestContext context) {
+    // 有 UDF 时借用旧的基于 Row 的实现
     if (operator.getFunctionCallList().stream().anyMatch(UDFDetector::containNonSystemFunction)) {
       return constructRow(operator, context);
     }
 
-    PhysicalTask<BatchStream> sourceTask = fetchAsync(operator.getSource(), context);
+    // 有 UDF 时并行化流水线
+    if (operator.getFunctionCallList().stream().anyMatch(UDFDetector::containNonSystemFunction)) {
+      PhysicalTask<BatchStream> sourceTask = fetchAsync(operator.getSource(), context);
 
-    int pipelineParallelism = ConfigDescriptor.getInstance().getConfig().getPipelineParallelism();
+      int pipelineParallelism = ConfigDescriptor.getInstance().getConfig().getPipelineParallelism();
 
-    return new ParallelPipelineMemoryPhysicalTask(
-        sourceTask,
+      return new ParallelPipelineMemoryPhysicalTask(
+          sourceTask,
+          context,
+          (ctx, parentTask) ->
+              new PipelineMemoryPhysicalTask(
+                  parentTask,
+                  Collections.singletonList(operator),
+                  ctx,
+                  new RowTransformInfoGenerator(operator)),
+          pipelineParallelism);
+    }
+
+    PhysicalTask<?> sourceTask = fetch(operator.getSource(), context);
+    return new PipelineMemoryPhysicalTask(
+        convert(sourceTask, context, BatchStream.class),
+        Collections.singletonList(operator),
         context,
-        (ctx, parentTask) ->
-            new PipelineMemoryPhysicalTask(
-                parentTask,
-                Collections.singletonList(operator),
-                ctx,
-                new RowTransformInfoGenerator(operator)),
-        pipelineParallelism);
+        new RowTransformInfoGenerator(operator));
   }
 
   public PhysicalTask<?> construct(Select operator, RequestContext context) {
