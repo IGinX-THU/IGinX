@@ -461,8 +461,6 @@ public class NaivePhysicalPlanner {
               new AppendExpressionInfoGenerator(operator.getGroupByExpressions()));
     }
 
-    batchTask = new FetchAsyncMemoryPhysicalTask(batchTask, context);
-
     return new UnarySinkMemoryPhysicalTask(
         batchTask,
         Collections.singletonList(operator),
@@ -506,8 +504,8 @@ public class NaivePhysicalPlanner {
     // 现在基于列的实现中，左表是BuildSide，右表是ProbeSide
     operator = PhysicalJoinUtils.reverse(operator);
 
-    PhysicalTask<BatchStream> leftTask = fetchAsync(operator.getSourceA(), context);
-    PhysicalTask<BatchStream> rightTask = fetchAsync(operator.getSourceB(), context);
+    PhysicalTask<?> leftTask = fetch(operator.getSourceA(), context);
+    PhysicalTask<?> rightTask = fetchAsync(operator.getSourceB(), context);
 
     return new BinarySinkMemoryPhysicalTask(
         convert(leftTask, context, BatchStream.class),
@@ -528,8 +526,8 @@ public class NaivePhysicalPlanner {
 
     operator = PhysicalJoinUtils.reverse(operator);
 
-    PhysicalTask<BatchStream> leftTask = fetchAsync(operator.getSourceA(), context);
-    PhysicalTask<BatchStream> rightTask = fetchAsync(operator.getSourceB(), context);
+    PhysicalTask<?> leftTask = fetch(operator.getSourceA(), context);
+    PhysicalTask<?> rightTask = fetchAsync(operator.getSourceB(), context);
 
     return new BinarySinkMemoryPhysicalTask(
         convert(leftTask, context, BatchStream.class),
@@ -550,8 +548,8 @@ public class NaivePhysicalPlanner {
 
     operator = PhysicalJoinUtils.reverse(operator);
 
-    PhysicalTask<BatchStream> leftTask = fetchAsync(operator.getSourceA(), context);
-    PhysicalTask<BatchStream> rightTask = fetchAsync(operator.getSourceB(), context);
+    PhysicalTask<?> leftTask = fetch(operator.getSourceA(), context);
+    PhysicalTask<?> rightTask = fetchAsync(operator.getSourceB(), context);
 
     return new BinarySinkMemoryPhysicalTask(
         convert(leftTask, context, BatchStream.class),
@@ -572,8 +570,8 @@ public class NaivePhysicalPlanner {
 
     operator = PhysicalJoinUtils.reverse(operator);
 
-    PhysicalTask<BatchStream> leftTask = fetchAsync(operator.getSourceA(), context);
-    PhysicalTask<BatchStream> rightTask = fetchAsync(operator.getSourceB(), context);
+    PhysicalTask<?> leftTask = fetch(operator.getSourceA(), context);
+    PhysicalTask<?> rightTask = fetchAsync(operator.getSourceB(), context);
 
     return new BinarySinkMemoryPhysicalTask(
         convert(leftTask, context, BatchStream.class),
@@ -586,8 +584,8 @@ public class NaivePhysicalPlanner {
   public PhysicalTask<BatchStream> construct(CrossJoin operator, RequestContext context) {
     operator = PhysicalJoinUtils.reverse(operator);
 
-    PhysicalTask<BatchStream> leftTask = fetchAsync(operator.getSourceA(), context);
-    PhysicalTask<BatchStream> rightTask = fetchAsync(operator.getSourceB(), context);
+    PhysicalTask<?> leftTask = fetch(operator.getSourceA(), context);
+    PhysicalTask<?> rightTask = fetchAsync(operator.getSourceB(), context);
 
     return new BinarySinkMemoryPhysicalTask(
         convert(leftTask, context, BatchStream.class),
