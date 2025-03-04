@@ -58,6 +58,7 @@ runs:
               version: 8u442+7
               url: "https://download.bell-sw.com/java/{version}/{name}{version}-{os}-{arch}.{ext}"
               subdir: "jre8u442"
+              subdir-darwin: "jre8u442.jre"
               os-darwin: macos
               os-win32: windows
               arch-arm64: aarch64
@@ -76,5 +77,6 @@ runs:
           shell: bash
           working-directory: ${{ steps.base.outputs.tool-path }}
           run: |
-              perl -i -pe 'print "set JAVA_HOME=${{ steps.setup-jre.outputs.directory }}\n" if $. == 20' sbin/start-server.bat
-              perl -i -pe 'print "set JAVA_HOME=${{ steps.setup-jre.outputs.directory }}\n" if $. == 20' sbin/start-cli.bat
+              JAVA_HOME=$(echo "${{ steps.setup-jre.outputs.directory }}" | sed 's/\\/\\\\/g')
+              perl -i -pe 'print "set JAVA_HOME=${JAVA_HOME}\n" if $. == 20' sbin/start-server.bat
+              perl -i -pe 'print "set JAVA_HOME=${JAVA_HOME}\n" if $. == 20' sbin/start-cli.bat
