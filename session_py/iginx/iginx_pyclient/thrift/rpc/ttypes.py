@@ -72,7 +72,6 @@ class StorageEngineType(object):
     mongodb = 5
     redis = 6
     vectordb = 7
-    dameng = 8
 
     _VALUES_TO_NAMES = {
         0: "unknown",
@@ -83,7 +82,6 @@ class StorageEngineType(object):
         5: "mongodb",
         6: "redis",
         7: "vectordb",
-        8: "dameng",
     }
 
     _NAMES_TO_VALUES = {
@@ -95,7 +93,6 @@ class StorageEngineType(object):
         "mongodb": 5,
         "redis": 6,
         "vectordb": 7,
-        "dameng": 8,
     }
 
 
