@@ -54,27 +54,27 @@ runs:
           id: setup-jdk
           uses: pbrisbin/setup-tool-action@v2
           with:
-            name: amazon-corretto
-            version: 8.442.06.1
-            url: "https://corretto.aws/downloads/resources/{version}/{name}-{version}-{os}-{arch}.{ext}"
-            subdir: "{name}-{version}-{os}-{arch}"
-            os-darwin: macos
-            os-win32: windows
-            arch-arm64: aarch64
-            arch-win32-x64: x64-jdk
+              name: amazon-corretto
+              version: 8.442.06.1
+              url: "https://corretto.aws/downloads/resources/{version}/{name}-{version}-{os}-{arch}.{ext}"
+              subdir: "{name}-{version}-{os}-{arch}"
+              os-darwin: macos
+              os-win32: windows
+              arch-arm64: aarch64
+              arch-win32-x64: x64-jdk
 
         - name: Add JAVA_HOME of Java 8 to IoTDB Scripts
           if: runner.os != 'Windows'
           shell: bash
           working-directory: ${{ steps.base.outputs.tool-path }}
           run: |
-            perl -i -pe 'print "JAVA_HOME=${{ steps.setup-jdk.outputs.directory }}\n" if $. == 20' sbin/start-server.sh
-            perl -i -pe 'print "JAVA_HOME=${{ steps.setup-jdk.outputs.directory }}\n" if $. == 20' sbin/start-cli.sh
+              perl -i -pe 'print "JAVA_HOME=${{ steps.setup-jdk.outputs.directory }}\n" if $. == 20' sbin/start-server.sh
+              perl -i -pe 'print "JAVA_HOME=${{ steps.setup-jdk.outputs.directory }}\n" if $. == 20' sbin/start-cli.sh
 
         - name: Add JAVA_HOME of Java 8 to IoTDB Scripts
           if: runner.os == 'Windows'
           shell: bash
           working-directory: ${{ steps.base.outputs.tool-path }}
           run: |
-            perl -i -pe 'print "set JAVA_HOME=${{ steps.setup-jdk.outputs.directory }}\n" if $. == 20' sbin/start-server.bat
-            perl -i -pe 'print "set JAVA_HOME=${{ steps.setup-jdk.outputs.directory }}\n" if $. == 20' sbin/start-cli.bat
+              perl -i -pe 'print "set JAVA_HOME=${{ steps.setup-jdk.outputs.directory }}\n" if $. == 20' sbin/start-server.bat
+              perl -i -pe 'print "set JAVA_HOME=${{ steps.setup-jdk.outputs.directory }}\n" if $. == 20' sbin/start-cli.bat
