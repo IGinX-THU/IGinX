@@ -26,10 +26,14 @@ import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.expansion.BaseCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.constant.Constant;
+import cn.edu.tsinghua.iginx.integration.expansion.dameng.DamengHistoryDataGenerator;
 import cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.integration.tool.DBConf;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
+
+import java.sql.Connection;
+import java.sql.Statement;
 import java.util.Arrays;
 import java.util.List;
 import org.slf4j.Logger;
@@ -56,12 +60,12 @@ public class DamengCapacityExpansionIT extends BaseCapacityExpansionIT {
 
   @Override
   protected void updateParams(int port) {
-    changeParams(port, "SYSDBA", "newPassword");
+    changeParams(port, "SYSDBA001", "newPassword");
   }
 
   @Override
   protected void restoreParams(int port) {
-    changeParams(port, "newPassword", "SYSDBA");
+    changeParams(port, "newPassword", "SYSDBA001");
   }
 
   @Override
@@ -92,6 +96,7 @@ public class DamengCapacityExpansionIT extends BaseCapacityExpansionIT {
   @Override
   protected void testQuerySpecialHistoryData() {
     testFloatData();
+    testConcatFunction();
   }
 
   /** 测试float类型数据 */
@@ -103,6 +108,70 @@ public class DamengCapacityExpansionIT extends BaseCapacityExpansionIT {
     statement = "select wt02.float from tm.wf05 where wt02.float = 44.55;";
     valuesList = Arrays.asList(Arrays.asList(44.55F));
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
+  }
+
+  /** 创建一个1000列的表，进行查询，看concat函数是否会报错。 */
+  protected void testConcatFunction() {
+    int cols = 1000;
+    // 用pg的session创建一个1000列的表
+    String createTableStatement = "CREATE TABLE test_concat (";
+    for (int i = 0; i < cols; i++) {
+      createTableStatement += "col" + i + " text,";
+    }
+    createTableStatement = createTableStatement.substring(0, createTableStatement.length() - 1);
+    createTableStatement += ");";
+
+    StringBuilder insert1 = new StringBuilder();
+    insert1.append("test_concat (");
+    for (int i = 0; i < cols; i++) {
+      insert1.append("col" + i + ",");
+    }
+    insert1.deleteCharAt(insert1.length() - 1);
+    insert1.append(") ");
+    StringBuilder insert2 = new StringBuilder();
+    insert2.append("(");
+    for (int i = 0; i < cols; i++) {
+      insert2.append("'test',");
+    }
+    insert2.deleteCharAt(insert2.length() - 1);
+    insert2.append(");");
+    String insertStatement =
+            String.format(DamengHistoryDataGenerator.INSERT_STATEMENT, insert1, insert2);
+
+    try {
+      Connection connection =
+              DamengHistoryDataGenerator.connect(5236, true, null);
+      Statement stmt = connection.createStatement();
+      stmt.execute(
+              String.format(DamengHistoryDataGenerator.CREATE_DATABASE_STATEMENT, "test_concat"));
+
+      Connection testConnection =
+              DamengHistoryDataGenerator.connect(
+                      5236, false, "test_concat");
+      Statement testStmt = testConnection.createStatement();
+      testStmt.execute(createTableStatement);
+      testStmt.execute(insertStatement);
+
+      // 不用插入数据直接查，不报错即可，不需要比较结果
+      String query = "SELECT col1 FROM test_concat.*;";
+      String expect =
+              "ResultSets:\n"
+                      + "+---------+----------------------------+\n"
+                      + "|      key|test_concat.test_concat.col1|\n"
+                      + "+---------+----------------------------+\n"
+                      + "|262526998|                        test|\n"
+                      + "+---------+----------------------------+\n"
+                      + "Total line number = 1\n";
+      SQLTestTools.executeAndCompare(session, query, expect);
+
+      testConnection.close();
+      stmt.execute(
+              String.format(DamengHistoryDataGenerator.DROP_DATABASE_STATEMENT, "test_concat"));
+      connection.close();
+    } catch (Exception e) {
+      LOGGER.error("create table failed", e);
+      assert false;
+    }
   }
 
   @Override

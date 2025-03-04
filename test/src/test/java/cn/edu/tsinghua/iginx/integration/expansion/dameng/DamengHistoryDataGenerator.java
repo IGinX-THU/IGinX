@@ -39,16 +39,16 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
 
   private static final char SEPARATOR = '.';
 
-  private static final String QUERY_DATABASES_STATEMENT =
+  public static final String QUERY_DATABASES_STATEMENT =
       "SELECT DISTINCT object_name TABLE_SCHEMA FROM all_objects WHERE object_type='SCH' AND OWNER='SYSDBA';";
 
-  private static final String CREATE_DATABASE_STATEMENT = "CREATE SCHEMA %s";
+  public static final String CREATE_DATABASE_STATEMENT = "CREATE SCHEMA %s";
 
-  private static final String CREATE_TABLE_STATEMENT = "CREATE TABLE %s (%s)";
+  public static final String CREATE_TABLE_STATEMENT = "CREATE TABLE %s (%s)";
 
-  private static final String INSERT_STATEMENT = "INSERT INTO %s VALUES %s";
+  public static final String INSERT_STATEMENT = "INSERT INTO %s VALUES %s";
 
-  private static final String DROP_DATABASE_STATEMENT = "DROP SCHEMA %s CASCADE";
+  public static final String DROP_DATABASE_STATEMENT = "DROP SCHEMA %s CASCADE";
 
   public DamengHistoryDataGenerator() {
     Constant.oriPort = 5236;
@@ -56,13 +56,17 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
     Constant.readOnlyPort = 5238;
   }
 
-  private Connection connect(int port, boolean useSystemDatabase, String databaseName) {
+  public static Connection connect(int port, boolean useSystemDatabase, String databaseName) {
     try {
       String url;
-      url =
-          String.format(
-              "jdbc:dm://127.0.0.1:%d?schema=%s",
-              port, databaseName == null ? "SYSDBA" : databaseName);
+      if (useSystemDatabase) {
+        url = String.format("jdbc:dm://127.0.0.1:%d", port);
+      }  else {
+        url =
+                String.format(
+                        "jdbc:dm://127.0.0.1:%d?schema=%s",
+                        port, databaseName);
+        }
       Class.forName("dm.jdbc.driver.DmDriver");
       return DriverManager.getConnection(url, "SYSDBA", "SYSDBA001"); // 达梦默认用户名密码
     } catch (SQLException | ClassNotFoundException e) {
@@ -130,7 +134,6 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
           stmt.execute(
               String.format(
                   CREATE_TABLE_STATEMENT,
-                  //                  getQuotName(databaseName),
                   getQuotName(tableName),
                   createTableStr.substring(0, createTableStr.length() - 2)));
 
@@ -154,7 +157,6 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
           stmt.execute(
               String.format(
                   INSERT_STATEMENT,
-                  //                  getQuotName(databaseName),
                   getQuotName(tableName),
                   insertStr.substring(0, insertStr.length() - 2)));
         }

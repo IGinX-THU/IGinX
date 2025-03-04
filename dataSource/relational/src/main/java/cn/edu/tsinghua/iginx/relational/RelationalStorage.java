@@ -608,9 +608,7 @@ public class RelationalStorage implements IStorage {
                     s ->
                         RelationSchema.getQuoteFullName(tableName, s, quote)
                             + " AS "
-                            + quote
-                            + RelationSchema.getFullName(tableName, s)
-                            + quote)
+                            + getQuotName(RelationSchema.getFullName(tableName, s)))
                 .collect(Collectors.toList()));
       } else {
         fullColumnNamesList.add(
@@ -628,8 +626,7 @@ public class RelationalStorage implements IStorage {
     }
 
     StringBuilder fullColumnNames = new StringBuilder();
-    fullColumnNames.append(
-        RelationSchema.getQuoteFullName(firstTable, KEY_NAME, relationalMeta.getQuote()));
+    fullColumnNames.append(RelationSchema.getQuoteFullName(firstTable, KEY_NAME, quote));
     for (List<String> columnNames : fullColumnNamesList) {
       for (String columnName : columnNames) {
         fullColumnNames.append(", ").append(columnName);
@@ -659,8 +656,7 @@ public class RelationalStorage implements IStorage {
 
     String fullColumnNamesStr = fullColumnNames.toString();
     String filterStr = filterTransformer.toString(filter);
-    String orderByKey =
-        RelationSchema.getQuoteFullName(tableNames.get(0), KEY_NAME, relationalMeta.getQuote());
+    String orderByKey = RelationSchema.getQuoteFullName(tableNames.get(0), KEY_NAME, quote);
     if (!relationalMeta.isSupportFullJoin()) {
       // 如果不支持full join,需要为left join + union模拟的full join表起别名，同时select、where、order by的部分都要调整
       fullColumnNamesStr = fullColumnNamesStr.replaceAll("`\\.`", ".");
@@ -942,17 +938,18 @@ public class RelationalStorage implements IStorage {
     }
 
     if (concatList.size() == 1) {
-      return String.format(" CONCAT(%s) ", String.join(", ", concatList.get(0)));
+      if (engineName.equals("dameng") && concatList.get(0).size() == 1) {
+        return String.format("%s", getQuotName(concatList.get(0).get(0)));
+      } else {
+        return String.format(" CONCAT(%s) ", String.join(", ", concatList.get(0)));
+      }
     }
 
     StringBuilder concat = new StringBuilder();
     concat.append(" CONCAT(");
     for (int i = 0; i < concatList.size(); i++) {
-      if (engineName.equals("dameng")) {
-        // 给concat的参数加上引号
-        List<String> quotColumnNames =
-            concatList.get(i).stream().map(this::getQuotName).collect(Collectors.toList());
-        concat.append(String.format(" CONCAT($s) ", String.join(", ", quotColumnNames)));
+      if (engineName.equals("dameng") && concatList.get(i).size() == 1) {
+        concat.append(String.format("%s", getQuotName(concatList.get(i).get(0))));
       } else {
         concat.append(String.format(" CONCAT(%s) ", String.join(", ", concatList.get(i))));
       }
