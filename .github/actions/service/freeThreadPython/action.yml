@@ -106,10 +106,12 @@ runs:
           shell: bash
           run: |
               curl -L -O https://github.com/IGinX-THU/IGinX-resources/raw/refs/heads/main/resources/python/pandas-3.0.0.dev0+1654.g32a97a969a-cp313-cp313t-win_amd64.whl
+              curl -L -O https://pypi.fury.io/arrow-nightlies/-/ver_1AsSYu/pyarrow-19.0.0.dev286-cp313-cp313t-win_amd64.whl#md5=3c940f7b4ffd0debaa8b23d06bc9b2ea
               ls -l
               if [ "$RUNNER_OS" == "Windows" ]; then
                python3.13t -m pip install numpy thrift pemjax
                python3.13t -m pip install pandas*.whl
+               python3.13t -m pip install pyarrow*.whl
               else
-               sudo python3.13t -m pip install pandas==2.2.3 numpy thrift pemjax
+               sudo python3.13t -m pip install pandas==2.2.3 numpy thrift pemjax pyarrow
               fi
