@@ -61,12 +61,9 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
       String url;
       if (useSystemDatabase) {
         url = String.format("jdbc:dm://127.0.0.1:%d", port);
-      }  else {
-        url =
-                String.format(
-                        "jdbc:dm://127.0.0.1:%d?schema=%s",
-                        port, databaseName);
-        }
+      } else {
+        url = String.format("jdbc:dm://127.0.0.1:%d?schema=%s", port, databaseName);
+      }
       Class.forName("dm.jdbc.driver.DmDriver");
       return DriverManager.getConnection(url, "SYSDBA", "SYSDBA001"); // 达梦默认用户名密码
     } catch (SQLException | ClassNotFoundException e) {

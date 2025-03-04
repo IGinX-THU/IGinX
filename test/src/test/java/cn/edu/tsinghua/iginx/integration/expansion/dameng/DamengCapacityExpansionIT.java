@@ -26,12 +26,10 @@ import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.expansion.BaseCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.constant.Constant;
-import cn.edu.tsinghua.iginx.integration.expansion.dameng.DamengHistoryDataGenerator;
 import cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.integration.tool.DBConf;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
-
 import java.sql.Connection;
 import java.sql.Statement;
 import java.util.Arrays;
@@ -136,18 +134,15 @@ public class DamengCapacityExpansionIT extends BaseCapacityExpansionIT {
     insert2.deleteCharAt(insert2.length() - 1);
     insert2.append(");");
     String insertStatement =
-            String.format(DamengHistoryDataGenerator.INSERT_STATEMENT, insert1, insert2);
+        String.format(DamengHistoryDataGenerator.INSERT_STATEMENT, insert1, insert2);
 
     try {
-      Connection connection =
-              DamengHistoryDataGenerator.connect(5236, true, null);
+      Connection connection = DamengHistoryDataGenerator.connect(5236, true, null);
       Statement stmt = connection.createStatement();
       stmt.execute(
-              String.format(DamengHistoryDataGenerator.CREATE_DATABASE_STATEMENT, "test_concat"));
+          String.format(DamengHistoryDataGenerator.CREATE_DATABASE_STATEMENT, "test_concat"));
 
-      Connection testConnection =
-              DamengHistoryDataGenerator.connect(
-                      5236, false, "test_concat");
+      Connection testConnection = DamengHistoryDataGenerator.connect(5236, false, "test_concat");
       Statement testStmt = testConnection.createStatement();
       testStmt.execute(createTableStatement);
       testStmt.execute(insertStatement);
@@ -155,18 +150,18 @@ public class DamengCapacityExpansionIT extends BaseCapacityExpansionIT {
       // 不用插入数据直接查，不报错即可，不需要比较结果
       String query = "SELECT col1 FROM test_concat.*;";
       String expect =
-              "ResultSets:\n"
-                      + "+---------+----------------------------+\n"
-                      + "|      key|test_concat.test_concat.col1|\n"
-                      + "+---------+----------------------------+\n"
-                      + "|262526998|                        test|\n"
-                      + "+---------+----------------------------+\n"
-                      + "Total line number = 1\n";
+          "ResultSets:\n"
+              + "+---------+----------------------------+\n"
+              + "|      key|test_concat.test_concat.col1|\n"
+              + "+---------+----------------------------+\n"
+              + "|262526998|                        test|\n"
+              + "+---------+----------------------------+\n"
+              + "Total line number = 1\n";
       SQLTestTools.executeAndCompare(session, query, expect);
 
       testConnection.close();
       stmt.execute(
-              String.format(DamengHistoryDataGenerator.DROP_DATABASE_STATEMENT, "test_concat"));
+          String.format(DamengHistoryDataGenerator.DROP_DATABASE_STATEMENT, "test_concat"));
       connection.close();
     } catch (Exception e) {
       LOGGER.error("create table failed", e);
