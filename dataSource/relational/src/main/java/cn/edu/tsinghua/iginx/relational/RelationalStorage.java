@@ -942,7 +942,7 @@ public class RelationalStorage implements IStorage {
     }
 
     if (concatList.size() == 1) {
-        return String.format(" CONCAT(%s) ", String.join(", ", concatList.get(0)));
+      return String.format(" CONCAT(%s) ", String.join(", ", concatList.get(0)));
     }
 
     StringBuilder concat = new StringBuilder();
@@ -1845,7 +1845,7 @@ public class RelationalStorage implements IStorage {
                     relationalMeta.getConcatQueryStatement(),
                     concatKey,
                     fullQuotColumnNames,
-                        getTableNameByDB(databaseName, tableName),
+                    getTableNameByDB(databaseName, tableName),
                     filterStr.isEmpty() ? "" : "WHERE " + filterStr,
                     concatKey);
 
