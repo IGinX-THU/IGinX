@@ -74,9 +74,15 @@ runs:
 
         - name: Add JAVA_HOME of Java 8 to IoTDB Scripts
           if: runner.os == 'Windows'
-          shell: bash
+          shell: python
           working-directory: ${{ steps.base.outputs.tool-path }}
           run: |
-              JAVA_HOME=$(echo "${{ steps.setup-jre.outputs.directory }}" | sed 's/\\/\\\\/g')
-              perl -i -pe 'print "set JAVA_HOME=${JAVA_HOME}\n" if $. == 20' sbin/start-server.bat
-              perl -i -pe 'print "set JAVA_HOME=${JAVA_HOME}\n" if $. == 20' sbin/start-cli.bat
+              for file in ["sbin/start-server.bat", "sbin/start-cli.bat"]:
+                  with open(file, "r") as f:
+                      lines = f.readlines()
+                  with open(file, "w") as f:
+                      for i, line in enumerate(lines):
+                          f.write(line)
+                          if i == 19:
+                              f.write(r"set JAVA_HOME=${{ steps.setup-jre.outputs.directory }}")
+                              f.write("\n")
