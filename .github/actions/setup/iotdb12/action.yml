@@ -67,14 +67,16 @@ runs:
 
         - name: Add JAVA_HOME of Java 8 to IoTDB Scripts
           if: runner.os != 'Windows'
-          uses: ./.github/actions/edit
-          with:
-              paths: $IOTDB_ROOT/sbin/start-server.sh $IOTDB_ROOT/sbin/start-cli.sh
-              statements: 20a JAVA_HOME=$JAVA_HOME_8_${{ runner.arch }}
+          shell: bash
+          working-directory: ${{ steps.base.outputs.tool-path }}
+          run:
+              perl -i -pe 'print "JAVA_HOME=$JAVA_HOME_8_${{ runner.arch }}\n" if $. == 20' sbin/start-server.sh
+              perl -i -pe 'print "JAVA_HOME=$JAVA_HOME_8_${{ runner.arch }}\n" if $. == 20' sbin/start-cli.sh
 
         - name: Add JAVA_HOME of Java 8 to IoTDB Scripts
           if: runner.os == 'Windows'
-          uses: ./.github/actions/edit
-          with:
-              paths: $IOTDB_ROOT/sbin/start-server.bat $IOTDB_ROOT/sbin/start-cli.bat
-              statements: 20a set JAVA_HOME=%JAVA_HOME_8_${{ runner.arch }}%
+          shell: bash
+          working-directory: ${{ steps.base.outputs.tool-path }}
+          run: |
+              perl -i -pe 'print "set JAVA_HOME=%JAVA_HOME_8_${{ runner.arch }}%\n" if $. == 20' sbin/start-server.bat
+              perl -i -pe 'print "set JAVA_HOME=%JAVA_HOME_8_${{ runner.arch }}%\n" if $. == 20' sbin/start-cli.bat
