@@ -23,7 +23,7 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expre
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.ExprUtils;
-import cn.edu.tsinghua.iginx.engine.physical.utils.PhysicalExpressionUtils;
+import cn.edu.tsinghua.iginx.engine.physical.utils.PhysicalExpressionPlannerUtils;
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
@@ -91,7 +91,7 @@ public class ArithmeticExpr implements RowMappingFunction {
       ExecutorContext context, Schema schema, FunctionParams params, boolean setAlias)
       throws ComputeException {
     List<ScalarExpression<?>> inputs =
-        PhysicalExpressionUtils.getRowMappingFunctionArgumentExpressions(
+        PhysicalExpressionPlannerUtils.getRowMappingFunctionArgumentExpressions(
             context, schema, params, setAlias);
 
     if (inputs.size() != 1) {

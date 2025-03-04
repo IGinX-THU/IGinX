@@ -19,20 +19,14 @@
  */
 package cn.edu.tsinghua.iginx.physical.optimizer.naive.initializer;
 
-import static cn.edu.tsinghua.iginx.engine.shared.operator.type.JoinAlgType.HashJoin;
-
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.join.JoinOption;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.binary.BinaryExecutorFactory;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.binary.stateful.StatefulBinaryExecutor;
+import cn.edu.tsinghua.iginx.engine.physical.utils.PhysicalJoinPlannerUtils;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.operator.InnerJoin;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.PathFilter;
-import cn.edu.tsinghua.iginx.physical.optimizer.naive.util.HashJoinUtils;
 import java.util.*;
 
 public class InnerJoinInfoGenerator implements BinaryExecutorFactory<StatefulBinaryExecutor> {
@@ -47,50 +41,15 @@ public class InnerJoinInfoGenerator implements BinaryExecutorFactory<StatefulBin
   public StatefulBinaryExecutor initialize(
       ExecutorContext context, BatchSchema leftSchema, BatchSchema rightSchema)
       throws ComputeException {
-
-    switch (operator.getJoinAlgType()) {
-      case HashJoin:
-        return initializeHashJoin(context, leftSchema, rightSchema);
-      default:
-        throw new IllegalStateException(
-            "JoinAlgType is not supported: " + operator.getJoinAlgType());
-    }
-  }
-
-  private StatefulBinaryExecutor initializeHashJoin(
-      ExecutorContext context, BatchSchema leftSchema, BatchSchema rightSchema)
-      throws ComputeException {
-
-    if (operator.getJoinAlgType() != HashJoin) {
-      throw new IllegalArgumentException(
-          "JoinAlgType is not HashJoin: " + operator.getJoinAlgType());
-    }
-
-    List<Filter> subFilters = new ArrayList<>();
-    if (operator.getFilter() != null) {
-      subFilters.add(operator.getFilter());
-    }
-    for (String extraPrefix : operator.getExtraJoinPrefix()) {
-      subFilters.add(new PathFilter(extraPrefix, Op.E, extraPrefix));
-    }
-    Set<String> ignoreColumns = new HashSet<>();
-    for (String joinColumn : operator.getJoinColumns()) {
-      ignoreColumns.add(operator.getPrefixA() + "." + joinColumn);
-      subFilters.add(
-          new PathFilter(
-              operator.getPrefixA() + "." + joinColumn,
-              Op.E,
-              operator.getPrefixB() + "." + joinColumn));
-    }
-
-    return HashJoinUtils.constructHashJoin(
+    return PhysicalJoinPlannerUtils.constructJoin(
         context,
         leftSchema,
         rightSchema,
-        operator.getPrefixA(),
-        operator.getPrefixB(),
-        new AndFilter(subFilters),
-        ignoreColumns,
-        JoinOption.INNER);
+        operator,
+        JoinOption.INNER,
+        operator.getFilter(),
+        operator.getJoinColumns(),
+        null,
+        false);
   }
 }

@@ -30,7 +30,7 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.excepti
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutorFactory;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateful.AggregateUnaryExecutor;
-import cn.edu.tsinghua.iginx.engine.physical.utils.PhysicalExpressionUtils;
+import cn.edu.tsinghua.iginx.engine.physical.utils.PhysicalExpressionPlannerUtils;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
 import cn.edu.tsinghua.iginx.engine.shared.function.*;
@@ -103,7 +103,7 @@ public class AggregateInfoGenerator implements UnaryExecutorFactory<AggregateUna
       List<ScalarExpression<?>> preRowTransform = new ArrayList<>();
       for (Expression expression : params.getExpressions()) {
         preRowTransform.add(
-            PhysicalExpressionUtils.getPhysicalExpression(
+            PhysicalExpressionPlannerUtils.getPhysicalExpression(
                 context, inputSchema.raw(), expression, true));
       }
       Schema schema =

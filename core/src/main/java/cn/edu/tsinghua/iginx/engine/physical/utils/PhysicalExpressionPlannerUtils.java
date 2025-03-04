@@ -35,7 +35,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.apache.arrow.vector.types.pojo.Schema;
 
-public class PhysicalExpressionUtils {
+public class PhysicalExpressionPlannerUtils {
 
   public static ScalarExpression<?> getPhysicalExpression(
       ExecutorContext context, Schema inputSchema, Expression expr, boolean setAlias)
@@ -109,7 +109,8 @@ public class PhysicalExpressionUtils {
     List<ScalarExpression<?>> args = new ArrayList<>();
     // [condition1, value1, condition2, value2..., valueElse]
     for (int i = 0; i < expr.getConditions().size(); i++) {
-      args.add(PhysicalFilterUtils.construct(expr.getConditions().get(i), context, inputSchema));
+      args.add(
+          PhysicalFilterPlannerUtils.construct(expr.getConditions().get(i), context, inputSchema));
       args.add(getPhysicalExpression(context, inputSchema, expr.getResults().get(i), false));
     }
     if (expr.getResultElse() != null) {
@@ -339,7 +340,7 @@ public class PhysicalExpressionUtils {
       List<ScalarExpression<?>> preRowTransform = new ArrayList<>();
       for (Expression expression : params.getExpressions()) {
         preRowTransform.add(
-            PhysicalExpressionUtils.getPhysicalExpression(
+            PhysicalExpressionPlannerUtils.getPhysicalExpression(
                 context, inputSchema, expression, setAlias));
       }
       Schema schema =
