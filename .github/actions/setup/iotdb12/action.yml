@@ -50,37 +50,39 @@ runs:
               path: ${{ steps.base.outputs.cache-path }}
               key: ${{ steps.base.outputs.cache-key }}
 
-        - name: save old JAVA_HOME and PATH
-          id: old-env
-          shell: bash
-          run: |
-              echo "oldJavaHome=$JAVA_HOME" >> $GITHUB_OUTPUT
-              echo "oldPath=$PATH" >> $GITHUB_OUTPUT
-
-        - uses: actions/setup-java@v4
+        - name: Setup JRE
+          id: setup-jre
+          uses: pbrisbin/setup-tool-action@v2
           with:
-              java-version: 8
-              distribution: ${{ runner.os == 'macOS' && 'liberica' || 'temurin' }}
-
-        - name: restore old JAVA_HOME and PATH
-          id: java8-home
-          shell: bash
-          run: |
-              echo "JAVA_HOME=${{ steps.old-env.outputs.oldJavaHome }}" >> $GITHUB_ENV
-              echo "PATH=${{ steps.old-env.outputs.oldPath }}" >> $GITHUB_ENV
+              name: bellsoft-jre
+              version: 8u442+7
+              url: "https://download.bell-sw.com/java/{version}/{name}{version}-{os}-{arch}.{ext}"
+              subdir: "jre8u442"
+              subdir-darwin: "jre8u442.jre"
+              os-darwin: macos
+              os-win32: windows
+              arch-arm64: aarch64
+              arch-x64: amd64
 
         - name: Add JAVA_HOME of Java 8 to IoTDB Scripts
           if: runner.os != 'Windows'
           shell: bash
           working-directory: ${{ steps.base.outputs.tool-path }}
           run: |
-              perl -i -pe 'print "JAVA_HOME=$JAVA_HOME_8_${{ runner.arch }}\n" if $. == 20' sbin/start-server.sh
-              perl -i -pe 'print "JAVA_HOME=$JAVA_HOME_8_${{ runner.arch }}\n" if $. == 20' sbin/start-cli.sh
+              perl -i -pe 'print "JAVA_HOME=${{ steps.setup-jre.outputs.directory }}\n" if $. == 20' sbin/start-server.sh
+              perl -i -pe 'print "JAVA_HOME=${{ steps.setup-jre.outputs.directory }}\n" if $. == 20' sbin/start-cli.sh
 
         - name: Add JAVA_HOME of Java 8 to IoTDB Scripts
           if: runner.os == 'Windows'
-          shell: bash
+          shell: python
           working-directory: ${{ steps.base.outputs.tool-path }}
           run: |
-              perl -i -pe 'print "set JAVA_HOME=%JAVA_HOME_8_${{ runner.arch }}%\n" if $. == 20' sbin/start-server.bat
-              perl -i -pe 'print "set JAVA_HOME=%JAVA_HOME_8_${{ runner.arch }}%\n" if $. == 20' sbin/start-cli.bat
+              for file in ["sbin/start-server.bat", "sbin/start-cli.bat"]:
+                  with open(file, "r") as f:
+                      lines = f.readlines()
+                  with open(file, "w") as f:
+                      for i, line in enumerate(lines):
+                          f.write(line)
+                          if i == 19:
+                              f.write(r"set JAVA_HOME=${{ steps.setup-jre.outputs.directory }}")
+                              f.write("\n")
