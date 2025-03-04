@@ -122,6 +122,8 @@ goto okClasspath
 set LOCAL_JAVA_OPTS=^
  -ea^
  -cp %CLASSPATH%^
+ --add-opens java.base/java.lang=ALL-UNNAMED^
+ --add-opens java.base/java.util=ALL-UNNAMED^
  --add-opens=java.base/java.nio=ALL-UNNAMED^
  -DIGINX_HOME=%IGINX_HOME%^
  -DIGINX_DRIVER=%IGINX_DRIVER%^
