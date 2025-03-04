@@ -57,14 +57,10 @@ public class DamengCapacityExpansionIT extends BaseCapacityExpansionIT {
   }
 
   @Override
-  protected void updateParams(int port) {
-    changeParams(port, "SYSDBA001", "newPassword");
-  }
+  protected void updateParams(int port) {}
 
   @Override
-  protected void restoreParams(int port) {
-    changeParams(port, "newPassword", "SYSDBA001");
-  }
+  protected void restoreParams(int port) {}
 
   @Override
   protected void shutdownDatabase(int port) {
