@@ -47,7 +47,7 @@ public class SQLWarmupIT implements AutoCloseable {
   private static final String USERNAME = System.getProperty("iginx.warmup.username", "root");
   private static final String PASSWORD = System.getProperty("iginx.warmup.password", "root");
 
-  private final Session session
+  private final Session session;
   private final String[] queries;
   private final int records;
   private final int repeat;
