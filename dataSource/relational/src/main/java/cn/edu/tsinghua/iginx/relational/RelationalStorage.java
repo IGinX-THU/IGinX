@@ -948,7 +948,14 @@ public class RelationalStorage implements IStorage {
     StringBuilder concat = new StringBuilder();
     concat.append(" CONCAT(");
     for (int i = 0; i < concatList.size(); i++) {
-      concat.append(String.format(" CONCAT(%s) ", String.join(", ", concatList.get(i))));
+      if (engineName.equals("dameng")) {
+        // 给concat的参数加上引号
+        List<String> quotColumnNames =
+            concatList.get(i).stream().map(s -> getQuotName(s)).collect(Collectors.toList());
+        concat.append(String.format(" CONCAT($s) ", String.join(", ", quotColumnNames)));
+      } else {
+        concat.append(String.format(" CONCAT(%s) ", String.join(", ", concatList.get(i))));
+      }
       if (i != concatList.size() - 1) {
         concat.append(", ");
       }
