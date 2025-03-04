@@ -942,7 +942,11 @@ public class RelationalStorage implements IStorage {
     }
 
     if (concatList.size() == 1) {
-      return String.format(" CONCAT(%s) ", String.join(", ", concatList.get(0)));
+      if (engineName.equals("dameng")) {
+        return String.format("%s", String.join(", ", concatList.get(0)));
+      } else {
+        return String.format(" CONCAT(%s) ", String.join(", ", concatList.get(0)));
+      }
     }
 
     StringBuilder concat = new StringBuilder();
@@ -951,7 +955,7 @@ public class RelationalStorage implements IStorage {
       if (engineName.equals("dameng")) {
         // 给concat的参数加上引号
         List<String> quotColumnNames =
-            concatList.get(i).stream().map(s -> getQuotName(s)).collect(Collectors.toList());
+            concatList.get(i).stream().map(this::getQuotName).collect(Collectors.toList());
         concat.append(String.format(" CONCAT($s) ", String.join(", ", quotColumnNames)));
       } else {
         concat.append(String.format(" CONCAT(%s) ", String.join(", ", concatList.get(i))));
