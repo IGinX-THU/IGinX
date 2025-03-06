@@ -2364,7 +2364,7 @@ public class ETCDMetaStorage implements IMetaStorage {
       throw new MetaStorageException(e);
     } finally {
       if (jobTriggerLease != -1) {
-        releaseTransform();
+        releaseJobTrigger();
       }
     }
     if (jobTriggerChangeHook != null) {
