@@ -57,10 +57,14 @@ public class DamengCapacityExpansionIT extends BaseCapacityExpansionIT {
   }
 
   @Override
-  protected void updateParams(int port) {}
+  protected void updateParams(int port) {
+    changeParams(port, "SYSDBA001", "newPassword");
+  }
 
   @Override
-  protected void restoreParams(int port) {}
+  protected void restoreParams(int port) {
+    changeParams(port, "newPassword", "SYSDBA001");
+  }
 
   @Override
   protected void shutdownDatabase(int port) {
@@ -75,9 +79,7 @@ public class DamengCapacityExpansionIT extends BaseCapacityExpansionIT {
   private void changeParams(int port, String oldPw, String newPw) {
     String scriptPath = updateParamsScriptDir + "dameng.sh";
     String os = System.getProperty("os.name").toLowerCase();
-    if (os.contains("mac")) {
-      scriptPath = updateParamsScriptDir + "dameng_macos.sh";
-    } else if (os.contains("win")) {
+    if (os.contains("win")) {
       scriptPath = updateParamsScriptDir + "dameng_windows.sh";
     }
     // 脚本参数：对应端口，旧密码，新密码
