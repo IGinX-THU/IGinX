@@ -26,10 +26,6 @@ sed -i "" -E "s/#iginx_port=[0-9]+#/#iginx_port=$1#/g" core/target/iginx-core-*/
 
 sed -i "" -E "s/restPort=[0-9]+/restPort=$2/g" core/target/iginx-core-*/conf/config.properties
 
-export JAVA_HOME=$JAVA_HOME_8_ARM64
-
-echo "JAVA_HOME is set to $JAVA_HOME"
-
 sh -c "chmod +x core/target/iginx-core-*/sbin/start_iginx.sh"
 
 python3 -VV
