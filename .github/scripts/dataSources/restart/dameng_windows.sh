@@ -41,7 +41,7 @@ else
     -e LOG_SIZE=1024 \
     -e UNICODE_FLAG=1 \
     -e INSTANCE_NAME=dm8_test \
-    -v /opt/data_$port:/opt/dmdbms/data \
+    -v /mnt/c/opt/data_$port:/opt/dmdbms/data \
     dm8_single:dm8_20241022_rev244896_x86_rh6_64 || {
       log "ERROR: Failed to start container"
       exit 1
