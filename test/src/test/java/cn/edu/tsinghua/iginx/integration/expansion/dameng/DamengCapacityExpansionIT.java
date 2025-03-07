@@ -53,6 +53,7 @@ public class DamengCapacityExpansionIT extends BaseCapacityExpansionIT {
     Constant.oriPort = dbConf.getDBCEPortMap().get(Constant.ORI_PORT_NAME);
     Constant.expPort = dbConf.getDBCEPortMap().get(Constant.EXP_PORT_NAME);
     Constant.readOnlyPort = dbConf.getDBCEPortMap().get(Constant.READ_ONLY_PORT_NAME);
+    wrongExtraParams.add("username=wrong, password=SYSDBA001");
     updatedParams.put("password", "newPassword");
   }
 
