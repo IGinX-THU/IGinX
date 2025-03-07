@@ -50,6 +50,8 @@ public class SingleJoinInfoGenerator implements BinaryExecutorFactory<StatefulBi
         JoinOption.SINGLE,
         operator.getFilter(),
         Collections.emptyList(),
+        false,
+        false,
         null,
         false);
   }

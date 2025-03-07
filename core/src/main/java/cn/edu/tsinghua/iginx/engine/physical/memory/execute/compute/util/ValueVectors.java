@@ -103,16 +103,18 @@ public class ValueVectors {
     return slice(allocator, source, source.getValueCount());
   }
 
-  @SuppressWarnings("unchecked")
-  public static <T extends BaseIntVector> T slice(
-      BufferAllocator allocator, T indices, Dictionary dictionary) {
+  public static FieldVector slice(
+      BufferAllocator allocator, @Nullable BaseIntVector indices, Dictionary dictionary) {
+    if (indices == null) {
+      return slice(allocator, dictionary.getVector());
+    }
     Field field =
         Schemas.fieldWithName(indices.getField(), dictionary.getVector().getField().getName());
     Field fieldWithDictionaryEncoding =
         Schemas.fieldWithDictionary(field, dictionary.getEncoding());
     TransferPair transferPair = indices.getTransferPair(fieldWithDictionaryEncoding, allocator);
     transferPair.splitAndTransfer(0, indices.getValueCount());
-    return (T) transferPair.getTo();
+    return (FieldVector) transferPair.getTo();
   }
 
   public static FieldVector create(BufferAllocator allocator, Types.MinorType returnType) {

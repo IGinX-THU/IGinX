@@ -3394,6 +3394,86 @@ public class SQLSessionIT {
             + "+--------+--------+----------+--------+--------+----------+\n"
             + "Total line number = 25\n";
     executor.executeAndCompare(statement, expected);
+
+    statement = "select * from test.a join test.b on test.a.a < test.b.a;";
+    expected =
+        "ResultSets:\n"
+            + "+--------+--------+----------+--------+--------+----------+\n"
+            + "|test.a.a|test.a.b|test.a.key|test.b.a|test.b.b|test.b.key|\n"
+            + "+--------+--------+----------+--------+--------+----------+\n"
+            + "|       1|     1.1|         1|       2|     2.1|         1|\n"
+            + "|       1|     1.1|         1|       3|     3.1|         2|\n"
+            + "|       1|     1.1|         1|       4|     4.1|         3|\n"
+            + "|       3|     3.1|         2|       4|     4.1|         3|\n"
+            + "|       1|     1.1|         1|       5|     5.1|         4|\n"
+            + "|       3|     3.1|         2|       5|     5.1|         4|\n"
+            + "|       1|     1.1|         1|       6|     6.1|         5|\n"
+            + "|       3|     3.1|         2|       6|     6.1|         5|\n"
+            + "|       5|     5.1|         3|       6|     6.1|         5|\n"
+            + "+--------+--------+----------+--------+--------+----------+\n"
+            + "Total line number = 9\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "select * from test.a left join test.b on test.a.a < test.b.a;";
+    expected =
+        "ResultSets:\n"
+            + "+--------+--------+----------+--------+--------+----------+\n"
+            + "|test.a.a|test.a.b|test.a.key|test.b.a|test.b.b|test.b.key|\n"
+            + "+--------+--------+----------+--------+--------+----------+\n"
+            + "|       1|     1.1|         1|       2|     2.1|         1|\n"
+            + "|       1|     1.1|         1|       3|     3.1|         2|\n"
+            + "|       1|     1.1|         1|       4|     4.1|         3|\n"
+            + "|       3|     3.1|         2|       4|     4.1|         3|\n"
+            + "|       1|     1.1|         1|       5|     5.1|         4|\n"
+            + "|       3|     3.1|         2|       5|     5.1|         4|\n"
+            + "|       1|     1.1|         1|       6|     6.1|         5|\n"
+            + "|       3|     3.1|         2|       6|     6.1|         5|\n"
+            + "|       5|     5.1|         3|       6|     6.1|         5|\n"
+            + "|       7|     7.1|         4|    null|    null|      null|\n"
+            + "|       9|     9.1|         5|    null|    null|      null|\n"
+            + "+--------+--------+----------+--------+--------+----------+\n"
+            + "Total line number = 11\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "select * from test.b right join test.a on test.a.a < test.b.a;";
+    expected =
+        "ResultSets:\n"
+            + "+--------+--------+----------+--------+--------+----------+\n"
+            + "|test.a.a|test.a.b|test.a.key|test.b.a|test.b.b|test.b.key|\n"
+            + "+--------+--------+----------+--------+--------+----------+\n"
+            + "|       1|     1.1|         1|       2|     2.1|         1|\n"
+            + "|       1|     1.1|         1|       3|     3.1|         2|\n"
+            + "|       1|     1.1|         1|       4|     4.1|         3|\n"
+            + "|       1|     1.1|         1|       5|     5.1|         4|\n"
+            + "|       1|     1.1|         1|       6|     6.1|         5|\n"
+            + "|       3|     3.1|         2|       4|     4.1|         3|\n"
+            + "|       3|     3.1|         2|       5|     5.1|         4|\n"
+            + "|       3|     3.1|         2|       6|     6.1|         5|\n"
+            + "|       5|     5.1|         3|       6|     6.1|         5|\n"
+            + "|       7|     7.1|         4|    null|    null|      null|\n"
+            + "|       9|     9.1|         5|    null|    null|      null|\n"
+            + "+--------+--------+----------+--------+--------+----------+\n"
+            + "Total line number = 11\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "select * from test.a full join test.b on test.a.a <> test.b.a and test.b.b = 3.1;";
+    expected =
+        "ResultSets:\n"
+            + "+--------+--------+----------+--------+--------+----------+\n"
+            + "|test.a.a|test.a.b|test.a.key|test.b.a|test.b.b|test.b.key|\n"
+            + "+--------+--------+----------+--------+--------+----------+\n"
+            + "|       1|     1.1|         1|       3|     3.1|         2|\n"
+            + "|       5|     5.1|         3|       3|     3.1|         2|\n"
+            + "|       7|     7.1|         4|       3|     3.1|         2|\n"
+            + "|       9|     9.1|         5|       3|     3.1|         2|\n"
+            + "|       3|     3.1|         2|    null|    null|      null|\n"
+            + "|    null|    null|      null|       2|     2.1|         1|\n"
+            + "|    null|    null|      null|       4|     4.1|         3|\n"
+            + "|    null|    null|      null|       5|     5.1|         4|\n"
+            + "|    null|    null|      null|       6|     6.1|         5|\n"
+            + "+--------+--------+----------+--------+--------+----------+\n"
+            + "Total line number = 9\n";
+    executor.executeAndCompare(statement, expected);
   }
 
   @Test
@@ -3564,20 +3644,20 @@ public class SQLSessionIT {
     statement =
         "select * from test.a full join test.b on test.a.a = test.b.a full join test.c on test.b.b = test.c.a;";
     expected =
-        "ResultSets:\n"
-            + "+--------+--------+----------+--------+--------+----------+--------+--------+----------+\n"
-            + "|test.a.a|test.a.b|test.a.key|test.b.a|test.b.b|test.b.key|test.c.a|test.c.b|test.c.key|\n"
-            + "+--------+--------+----------+--------+--------+----------+--------+--------+----------+\n"
-            + "|       3|     3.1|         2|       3|     bbb|         2|     bbb|   false|         4|\n"
-            + "|       5|     5.1|         3|       5|     ddd|         4|     ddd|    true|         1|\n"
-            + "|       1|     1.1|         1|    null|    null|      null|    null|    null|      null|\n"
-            + "|       7|     7.1|         4|    null|    null|      null|    null|    null|      null|\n"
-            + "|       9|     9.1|         5|    null|    null|      null|    null|    null|      null|\n"
-            + "|    null|    null|      null|       2|     aaa|         1|     aaa|    true|         3|\n"
-            + "|    null|    null|      null|       4|     ccc|         3|     ccc|    true|         5|\n"
-            + "|    null|    null|      null|       6|     eee|         5|     eee|   false|         2|\n"
-            + "+--------+--------+----------+--------+--------+----------+--------+--------+----------+\n"
-            + "Total line number = 8\n";
+        "ResultSets:\n" +
+            "+--------+--------+----------+--------+--------+----------+--------+--------+----------+\n" +
+            "|test.a.a|test.a.b|test.a.key|test.b.a|test.b.b|test.b.key|test.c.a|test.c.b|test.c.key|\n" +
+            "+--------+--------+----------+--------+--------+----------+--------+--------+----------+\n" +
+            "|       3|     3.1|         2|       3|     bbb|         2|     bbb|   false|         4|\n" +
+            "|       5|     5.1|         3|       5|     ddd|         4|     ddd|    true|         1|\n" +
+            "|       1|     1.1|         1|    null|    null|      null|    null|    null|      null|\n" +
+            "|       7|     7.1|         4|    null|    null|      null|    null|    null|      null|\n" +
+            "|       9|     9.1|         5|    null|    null|      null|    null|    null|      null|\n" +
+            "|    null|    null|      null|       2|     aaa|         1|     aaa|    true|         3|\n" +
+            "|    null|    null|      null|       4|     ccc|         3|     ccc|    true|         5|\n" +
+            "|    null|    null|      null|       6|     eee|         5|     eee|   false|         2|\n" +
+            "+--------+--------+----------+--------+--------+----------+--------+--------+----------+\n" +
+            "Total line number = 8\n";
     executor.executeAndCompare(statement, expected);
   }
 

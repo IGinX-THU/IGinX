@@ -50,6 +50,8 @@ public class MarkJoinInfoGenerator implements BinaryExecutorFactory<StatefulBina
         JoinOption.MARK,
         operator.getFilter(),
         Collections.emptyList(),
+        false,
+        false,
         operator.getMarkColumn(),
         operator.isAntiJoin());
   }

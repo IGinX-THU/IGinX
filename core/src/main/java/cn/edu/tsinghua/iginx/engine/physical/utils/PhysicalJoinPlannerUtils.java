@@ -19,6 +19,7 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.utils;
 
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.join.JoinArrayList;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.join.JoinHashMap;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.join.JoinOption;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.CallNode;
@@ -40,6 +41,7 @@ import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
+import org.apache.arrow.util.Preconditions;
 import org.apache.arrow.vector.IntVector;
 import org.apache.arrow.vector.types.pojo.Field;
 import org.apache.commons.lang3.tuple.Pair;
@@ -307,9 +309,13 @@ public class PhysicalJoinPlannerUtils {
       JoinOption joinOption,
       @Nullable Filter filter,
       List<String> joinColumns,
+      boolean joinByKey,
+      boolean naturalJoin,
       @Nullable String markColumnName,
       boolean antiMark)
       throws ComputeException {
+    Preconditions.checkArgument(!joinByKey);
+    Preconditions.checkArgument(!naturalJoin);
 
     Filter unionFilter =
         PhysicalJoinPlannerUtils.constructFilter(
@@ -338,6 +344,9 @@ public class PhysicalJoinPlannerUtils {
             antiMark);
 
     switch (operator.getJoinAlgType()) {
+      case NestedLoopJoin:
+        return PhysicalJoinPlannerUtils.constructNestedLoopJoin(
+            context, leftSchema, rightSchema, joinOption, matcher, outputExpressions);
       case HashJoin:
         return PhysicalJoinPlannerUtils.constructHashJoin(
             context, leftSchema, rightSchema, joinOption, matcher, outputExpressions, pathPairOps);
@@ -345,6 +354,32 @@ public class PhysicalJoinPlannerUtils {
         throw new IllegalStateException(
             "JoinAlgType is not supported: " + operator.getJoinAlgType());
     }
+  }
+
+  public static StatefulBinaryExecutor constructNestedLoopJoin(
+      ExecutorContext context,
+      BatchSchema leftSchema,
+      BatchSchema rightSchema,
+      JoinOption joinOption,
+      PredicateExpression matcher,
+      List<ScalarExpression<?>> outputExpressions)
+      throws ComputeException {
+
+    String info =
+        "NestedLoopJoin(" + joinOption + ") on " + matcher + " output " + outputExpressions;
+
+    return new CollectionJoinExecutor(
+        context,
+        leftSchema,
+        rightSchema,
+        new JoinArrayList.Builder(
+            context.getAllocator(),
+            leftSchema.raw(),
+            rightSchema.raw(),
+            outputExpressions,
+            joinOption,
+            matcher),
+        info);
   }
 
   public static StatefulBinaryExecutor constructHashJoin(

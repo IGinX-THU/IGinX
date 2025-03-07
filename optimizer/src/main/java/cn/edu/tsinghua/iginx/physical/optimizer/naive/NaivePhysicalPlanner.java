@@ -491,9 +491,10 @@ public class NaivePhysicalPlanner {
   }
 
   public PhysicalTask<?> construct(InnerJoin operator, RequestContext context) {
-    if (operator.getJoinAlgType() != JoinAlgType.HashJoin
-        || operator.isNaturalJoin()
-        || operator.isJoinByKey()) {
+    if ((operator.getJoinAlgType() != JoinAlgType.HashJoin
+            && operator.getJoinAlgType() != JoinAlgType.NestedLoopJoin)
+        || operator.isJoinByKey()
+        || operator.isNaturalJoin()) {
       return constructRow(operator, context);
     }
 
@@ -518,9 +519,10 @@ public class NaivePhysicalPlanner {
   }
 
   public PhysicalTask<?> construct(OuterJoin operator, RequestContext context) {
-    if (operator.getJoinAlgType() != JoinAlgType.HashJoin
-        || operator.isNaturalJoin()
-        || operator.isJoinByKey()) {
+    if ((operator.getJoinAlgType() != JoinAlgType.HashJoin
+            && operator.getJoinAlgType() != JoinAlgType.NestedLoopJoin)
+        || operator.isJoinByKey()
+        || operator.isNaturalJoin()) {
       return constructRow(operator, context);
     }
 
@@ -542,7 +544,8 @@ public class NaivePhysicalPlanner {
   }
 
   public PhysicalTask<?> construct(MarkJoin operator, RequestContext context) {
-    if (operator.getJoinAlgType() != JoinAlgType.HashJoin) {
+    if (operator.getJoinAlgType() != JoinAlgType.HashJoin
+        && operator.getJoinAlgType() != JoinAlgType.NestedLoopJoin) {
       return constructRow(operator, context);
     }
 
@@ -564,7 +567,8 @@ public class NaivePhysicalPlanner {
   }
 
   public PhysicalTask<?> construct(SingleJoin operator, RequestContext context) {
-    if (operator.getJoinAlgType() != JoinAlgType.HashJoin) {
+    if (operator.getJoinAlgType() != JoinAlgType.HashJoin
+        && operator.getJoinAlgType() != JoinAlgType.NestedLoopJoin) {
       return constructRow(operator, context);
     }
 

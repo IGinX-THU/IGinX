@@ -62,6 +62,9 @@ public class CrossJoinArrayList implements JoinCollection {
   }
 
   @Override
+  public void flush() throws ComputeException {}
+
+  @Override
   public void probe(
       DictionaryProvider dictionaryProvider,
       VectorSchemaRoot data,
@@ -72,9 +75,6 @@ public class CrossJoinArrayList implements JoinCollection {
       probe(flattened);
     }
   }
-
-  @Override
-  public void flush() throws ComputeException {}
 
   private void probe(VectorSchemaRoot probeSideBatch) throws ComputeException {
     Preconditions.checkArgument(probeSideBatch.getSchema().equals(probeSideSchema));

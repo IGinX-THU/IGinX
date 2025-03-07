@@ -49,6 +49,8 @@ public class InnerJoinInfoGenerator implements BinaryExecutorFactory<StatefulBin
         JoinOption.INNER,
         operator.getFilter(),
         operator.getJoinColumns(),
+        operator.isJoinByKey(),
+        operator.isNaturalJoin(),
         null,
         false);
   }

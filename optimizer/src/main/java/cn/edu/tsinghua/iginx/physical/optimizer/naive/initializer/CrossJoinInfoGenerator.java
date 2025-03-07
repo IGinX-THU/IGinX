@@ -75,11 +75,7 @@ public class CrossJoinInfoGenerator implements BinaryExecutorFactory<StatefulBin
         leftSchema,
         rightSchema,
         new CrossJoinArrayList.Builder(
-            context.getAllocator(),
-            leftSchema.raw(),
-            rightSchema.raw(),
-            outputExpressions
-        ),
+            context.getAllocator(), leftSchema.raw(), rightSchema.raw(), outputExpressions),
         "CrossJoin");
   }
 }

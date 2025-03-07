@@ -41,6 +41,8 @@ public class MarkBuilder implements AutoCloseable {
     if (bitVector == null) {
       return;
     }
+    bitVector.setValueCount(index + count);
+
     ConstantVectors.setOne(bitVector.getDataBuffer(), index, count);
     index += count;
   }
@@ -56,8 +58,8 @@ public class MarkBuilder implements AutoCloseable {
     if (bitVector == null) {
       return null;
     }
-    ConstantVectors.setAllValidity(bitVector, index);
     bitVector.setValueCount(count);
+    ConstantVectors.setAllValidity(bitVector, index);
     BitVector result = bitVector;
     bitVector = null;
     return result;

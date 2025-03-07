@@ -51,6 +51,8 @@ public class OuterJoinInfoGenerator implements BinaryExecutorFactory<StatefulBin
         joinOption,
         operator.getFilter(),
         operator.getJoinColumns(),
+        operator.isJoinByKey(),
+        operator.isNaturalJoin(),
         null,
         false);
   }
