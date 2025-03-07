@@ -39,12 +39,12 @@ public interface JoinCollection extends AutoCloseable {
 
   void flush() throws ComputeException;
 
-  interface Builder<SELF extends Builder<SELF>> extends AutoCloseable {
+  interface Builder extends AutoCloseable {
     Schema constructOutputSchema() throws ComputeException;
 
     void close();
 
-    SELF add(
+    void add(
         DictionaryProvider dictionaryProvider,
         VectorSchemaRoot data,
         @Nullable BaseIntVector selection)

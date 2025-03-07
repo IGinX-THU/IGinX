@@ -20,7 +20,6 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.join;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpression;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpressionUtils;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.predicate.expression.PredicateExpression;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.*;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
@@ -29,79 +28,42 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import javax.annotation.Nullable;
-import javax.annotation.WillCloseWhenClosed;
 import org.apache.arrow.memory.BufferAllocator;
-import org.apache.arrow.util.Preconditions;
 import org.apache.arrow.vector.*;
 import org.apache.arrow.vector.dictionary.DictionaryProvider;
-import org.apache.arrow.vector.types.Types;
-import org.apache.arrow.vector.types.pojo.Field;
 import org.apache.arrow.vector.types.pojo.Schema;
 
-public class JoinHashMap implements JoinCollection {
-
-  private final BufferAllocator allocator;
-  private final JoinOption joinOption;
-  private final PredicateExpression matcher;
-  private final List<ScalarExpression<?>> outputExpressions;
+public class JoinHashMap extends JoinArrayList {
   private final ScalarExpression<IntVector> probeSideHasher;
-  private final Schema probeSideSchema;
   private final IntObjectHashMap<List<Integer>> buildSideMap;
-  private final VectorSchemaRoot buildSideSingleBatch;
-  private final boolean[] buildSideMatched;
-  private final ResultConsumer resultConsumer;
 
   JoinHashMap(
-      BufferAllocator allocator,
-      JoinOption joinOption,
-      PredicateExpression matcher,
-      List<ScalarExpression<?>> outputExpressions,
+      JoinArrayList parent,
       ScalarExpression<IntVector> probeSideHasher,
-      Schema probeSideSchema,
-      IntObjectHashMap<List<Integer>> buildSideMap,
-      @WillCloseWhenClosed VectorSchemaRoot buildSideSingleBatch,
-      ResultConsumer resultConsumer) {
-    this.allocator = allocator;
-    this.joinOption = joinOption;
-    this.matcher = matcher;
-    this.outputExpressions = outputExpressions;
+      IntObjectHashMap<List<Integer>> buildSideMap) {
+    super(parent);
     this.probeSideHasher = probeSideHasher;
-    this.probeSideSchema = probeSideSchema;
     this.buildSideMap = buildSideMap;
-    this.buildSideSingleBatch = buildSideSingleBatch;
-    this.buildSideMatched = new boolean[buildSideSingleBatch.getRowCount()];
-    this.resultConsumer = resultConsumer;
   }
 
   @Override
-  public void close() {
-    buildSideSingleBatch.close();
-  }
-
-  @Override
-  public void probe(
-      DictionaryProvider dictionaryProvider,
-      VectorSchemaRoot data,
-      @Nullable BaseIntVector selection)
+  protected int outputMatched(
+      SelectionBuilder buildSideIndicesBuilder,
+      SelectionBuilder probeSideIndicesBuilder,
+      DictionaryProvider dictionary,
+      boolean[] probeSideMatched)
       throws ComputeException {
-    try (VectorSchemaRoot flattened =
-        VectorSchemaRoots.flatten(allocator, dictionaryProvider, data, selection)) {
-      probe(flattened);
-    }
-  }
-
-  public void probe(VectorSchemaRoot probeSideBatch) throws ComputeException {
-    Preconditions.checkArgument(probeSideBatch.getSchema().equals(probeSideSchema));
 
     try (SelectionBuilder buildSideCandidateIndicesBuilder =
-            new SelectionBuilder(allocator, "tempBuildSideIndices", probeSideBatch.getRowCount());
+            new SelectionBuilder(allocator, "tempBuildSideIndices", probeSideMatched.length);
         SelectionBuilder probeSideCandidateIndicesBuilder =
-            new SelectionBuilder(allocator, "tempProbeSideIndices", probeSideBatch.getRowCount())) {
+            new SelectionBuilder(allocator, "tempProbeSideIndices", probeSideMatched.length)) {
 
-      try (IntVector probeSideHashCodes = probeSideHasher.invoke(allocator, probeSideBatch)) {
+      try (VectorSchemaRoot probeSideBatch =
+              getProbeSideBatch(dictionary, probeSideMatched.length);
+          IntVector probeSideHashCodes = probeSideHasher.invoke(allocator, probeSideBatch)) {
         for (int probeSideCandidate = 0;
-            probeSideCandidate < probeSideHashCodes.getValueCount();
+            probeSideCandidate < probeSideMatched.length;
             probeSideCandidate++) {
           int hashCode = probeSideHashCodes.get(probeSideCandidate);
           for (int buildSideCandidate :
@@ -112,310 +74,33 @@ public class JoinHashMap implements JoinCollection {
         }
       }
 
-      try (ArrayDictionaryProvider outputDictionaryProvider =
-              ArrayDictionaryProvider.of(allocator, buildSideSingleBatch, probeSideBatch);
-          IntVector buildSideCandidateIndices = buildSideCandidateIndicesBuilder.build();
-          IntVector proSideCandidateIndices = probeSideCandidateIndicesBuilder.build()) {
-        boolean[] probeSideMatched = new boolean[probeSideBatch.getRowCount()];
-        outputMatchedAndUnmatched(
-            outputDictionaryProvider,
+      try (IntVector buildSideCandidateIndices = buildSideCandidateIndicesBuilder.build();
+          IntVector probeSideCandidateIndices = probeSideCandidateIndicesBuilder.build()) {
+        return outputMatched(
+            buildSideIndicesBuilder,
+            probeSideIndicesBuilder,
+            dictionary,
             buildSideCandidateIndices,
-            proSideCandidateIndices,
+            probeSideCandidateIndices,
             probeSideMatched);
       }
     }
   }
 
-  @Override
-  public void flush() throws ComputeException {
-    if (!joinOption.isToOutputBuildSideUnmatched()) {
-      return;
-    }
-
-    // TODO: 使用 NullVector 优化空值的处理，从而减少访存
-
-    try (SelectionBuilder buildSideIndicesBuilder =
-            new SelectionBuilder(
-                allocator, "buildSideIndices", buildSideSingleBatch.getRowCount());
-        SelectionBuilder probeSideIndicesBuilder =
-            new SelectionBuilder(
-                allocator, "probeSideIndices", buildSideSingleBatch.getRowCount());
-        MarkBuilder markBuilder = getMarkBuilder(buildSideMatched.length)) {
-      int buildSideUnmatchedCount = 0;
-      for (int i = 0; i < buildSideMatched.length; i++) {
-        if (!buildSideMatched[i]) {
-          buildSideIndicesBuilder.append(i);
-          buildSideUnmatchedCount++;
-        }
-      }
-
-      try (VectorSchemaRoot probeSideBatch = VectorSchemaRoot.create(probeSideSchema, allocator);
-          ArrayDictionaryProvider dictionary =
-              ArrayDictionaryProvider.of(allocator, buildSideSingleBatch, probeSideBatch);
-          IntVector buildSideIndices = buildSideIndicesBuilder.build(buildSideUnmatchedCount);
-          IntVector probeSideIndices = probeSideIndicesBuilder.build(buildSideUnmatchedCount);
-          BitVector mark = markBuilder.build(buildSideUnmatchedCount)) {
-        output(dictionary, buildSideIndices, probeSideIndices, mark, 0);
-      }
-    }
-  }
-
-  private void outputMatchedAndUnmatched(
-      ArrayDictionaryProvider dictionary,
-      IntVector buildSideCandidateIndices,
-      IntVector proSideCandidateIndices,
-      boolean[] probeSideMatched)
-      throws ComputeException {
-
-    try (SelectionBuilder buildSideIndicesBuilder =
-            new SelectionBuilder(
-                allocator, "buildSideIndices", buildSideCandidateIndices.getValueCount());
-        SelectionBuilder probeSideIndicesBuilder =
-            new SelectionBuilder(
-                allocator, "probeSideIndices", proSideCandidateIndices.getValueCount())) {
-
-      int matchedCount = 0;
-      try (VectorSchemaRoot candidate =
-              getDictionaryEncodedBatch(
-                  buildSideCandidateIndices, proSideCandidateIndices, dictionary);
-          BaseIntVector indicesSelection = matcher.filter(allocator, dictionary, candidate, null)) {
-        matchedCount =
-            outputMatched(
-                buildSideIndicesBuilder,
-                probeSideIndicesBuilder,
-                buildSideCandidateIndices,
-                proSideCandidateIndices,
-                indicesSelection,
-                probeSideMatched);
-      }
-
-      int unmatchedCount = 0;
-      if (joinOption.isToOutputProbeSideUnmatched()) {
-        unmatchedCount = outputProbeSideUnmatched(probeSideIndicesBuilder, probeSideMatched);
-      }
-
-      try (MarkBuilder markBuilder = getMarkBuilder(matchedCount + unmatchedCount)) {
-        markBuilder.appendTrue(matchedCount);
-        markBuilder.appendFalse(unmatchedCount);
-        try (IntVector probeSideIndices = probeSideIndicesBuilder.build();
-            IntVector buildSideIndices =
-                buildSideIndicesBuilder.build(probeSideIndices.getValueCount());
-            BitVector mark = markBuilder.build(probeSideIndices.getValueCount())) {
-          output(dictionary, buildSideIndices, probeSideIndices, mark, unmatchedCount);
-        }
-      }
-    }
-  }
-
-  private MarkBuilder getMarkBuilder(int capacity) {
-    if (joinOption.isToOutputMark()) {
-      return new MarkBuilder(allocator, "&mark", capacity);
-    } else {
-      return new MarkBuilder();
-    }
-  }
-
-  private int outputMatched(
-      SelectionBuilder buildSideIndicesBuilder,
-      SelectionBuilder probeSideIndicesBuilder,
-      IntVector buildSideCandidateIndices,
-      IntVector proSideCandidateIndices,
-      @Nullable BaseIntVector indicesSelection,
-      boolean[] probeSideMatched)
-      throws ComputeException {
-    Preconditions.checkState(
-        buildSideCandidateIndices.getValueCount() == proSideCandidateIndices.getValueCount());
-    if (indicesSelection == null) {
-      return outputMatched(
-          buildSideIndicesBuilder,
-          probeSideIndicesBuilder,
-          buildSideCandidateIndices,
-          proSideCandidateIndices,
-          probeSideMatched,
-          proSideCandidateIndices.getValueCount(),
-          i -> i);
-    } else {
-      return outputMatched(
-          buildSideIndicesBuilder,
-          probeSideIndicesBuilder,
-          buildSideCandidateIndices,
-          proSideCandidateIndices,
-          probeSideMatched,
-          indicesSelection.getValueCount(),
-          i -> (int) indicesSelection.getValueAsLong(i));
-    }
-  }
-
-  private int outputMatched(
-      SelectionBuilder buildSideIndicesBuilder,
-      SelectionBuilder probeSideIndicesBuilder,
-      IntVector buildSideCandidateIndices,
-      IntVector proSideCandidateIndices,
-      boolean[] probeSideMatched,
-      int matchedIndicesCount,
-      IntToIntFunction matchedSelectionSupplier)
-      throws ComputeException {
-
-    int probeSideMatchedCount = 0;
-    for (int i = 0; i < matchedIndicesCount; i++) {
-      int selection = matchedSelectionSupplier.apply(i);
-      int probeSideMatchedIndex = proSideCandidateIndices.get(selection);
-
-      if (!joinOption.isAllowedToMatchMultiple()) {
-        if (probeSideMatched[probeSideMatchedIndex]) {
-          throw new ComputeException("the return value of sub-query has more than one rows");
-        }
-      }
-      if (!joinOption.isToOutputAllMatched()) {
-        if (probeSideMatched[probeSideMatchedIndex]) {
-          continue;
-        }
-      }
-
-      probeSideMatchedCount++;
-      int buildSideMatchedIndex = buildSideCandidateIndices.get(selection);
-      buildSideMatched[buildSideMatchedIndex] = true;
-      probeSideMatched[probeSideMatchedIndex] = true;
-      buildSideIndicesBuilder.append(buildSideMatchedIndex);
-      probeSideIndicesBuilder.append(probeSideMatchedIndex);
-    }
-    return probeSideMatchedCount;
-  }
-
-  private int outputProbeSideUnmatched(
-      SelectionBuilder probeSideIndicesBuilder, boolean[] probeSideMatched) {
-    int probeSideUnmatchedCount = 0;
-    for (int probeSideIndex = 0; probeSideIndex < probeSideMatched.length; probeSideIndex++) {
-      if (!probeSideMatched[probeSideIndex]) {
-        probeSideUnmatchedCount++;
-        probeSideIndicesBuilder.append(probeSideIndex);
-      }
-    }
-    return probeSideUnmatchedCount;
-  }
-
-  private VectorSchemaRoot getDictionaryEncodedBatch(
-      IntVector buildSideCandidateIndices,
-      IntVector probeSideIndices,
-      ArrayDictionaryProvider dictionaryProvider) {
-    List<FieldVector> vectors = new ArrayList<>();
-    int buildSideColumnCount = buildSideSingleBatch.getFieldVectors().size();
-    for (int i = 0; i < buildSideColumnCount; i++) {
-      vectors.add(
-          ValueVectors.slice(allocator, buildSideCandidateIndices, dictionaryProvider.lookup(i)));
-    }
-    int probeSideColumnCount = probeSideSchema.getFields().size();
-    for (int i = 0; i < probeSideColumnCount; i++) {
-      vectors.add(
-          ValueVectors.slice(
-              allocator, probeSideIndices, dictionaryProvider.lookup(i + buildSideColumnCount)));
-    }
-    return VectorSchemaRoots.create(vectors, probeSideIndices.getValueCount());
-  }
-
-  private void output(
-      ArrayDictionaryProvider dictionaryProvider,
-      BaseIntVector buildSideIndices,
-      BaseIntVector probeSideIndices,
-      @Nullable BitVector mark,
-      int unmatchedCount)
-      throws ComputeException {
-    Preconditions.checkArgument(
-        buildSideIndices.getValueCount() == probeSideIndices.getValueCount());
-
-    if (mark != null) {
-      Preconditions.checkArgument(buildSideIndices.getValueCount() == mark.getValueCount());
-    }
+  private VectorSchemaRoot getProbeSideBatch(DictionaryProvider dictionaryProvider, int rowCount) {
     int buildSideColumnCount = buildSideSingleBatch.getFieldVectors().size();
     int probeSideColumnCount = probeSideSchema.getFields().size();
-
     List<FieldVector> vectors = new ArrayList<>();
-    for (int i = 0; i < buildSideColumnCount; i++) {
-      vectors.add(ValueVectors.slice(allocator, buildSideIndices, dictionaryProvider.lookup(i)));
-    }
     for (int i = 0; i < probeSideColumnCount; i++) {
       vectors.add(
-          ValueVectors.slice(
-              allocator, probeSideIndices, dictionaryProvider.lookup(i + buildSideColumnCount)));
+          ValueVectors.slice(allocator, null, dictionaryProvider.lookup(i + buildSideColumnCount)));
     }
-    if (mark != null) {
-      vectors.add(ValueVectors.slice(allocator, mark));
-    }
-
-    try (VectorSchemaRoot result =
-            VectorSchemaRoots.create(vectors, probeSideIndices.getValueCount());
-        VectorSchemaRoot output =
-            ScalarExpressionUtils.evaluate(
-                allocator, dictionaryProvider, result, null, outputExpressions);
-        BaseIntVector selection = getSelection(probeSideIndices, unmatchedCount)) {
-      resultConsumer.consume(dictionaryProvider, output, selection);
-    }
+    return VectorSchemaRoots.create(vectors, rowCount);
   }
 
-  @Nullable
-  private BaseIntVector getSelection(BaseIntVector probeSideIndices, int unmatchedCount) {
-    int total = probeSideIndices.getValueCount();
-    int matchedCount = total - unmatchedCount;
-    if (matchedCount == 0 || unmatchedCount == 0 || !joinOption.isOrderByProbeSideOrdinal()) {
-      return null;
-    }
-
-    if (isInOrder(probeSideIndices, matchedCount - 1, matchedCount)) {
-      return null;
-    }
-
-    try (SelectionBuilder selectionBuilder = new SelectionBuilder(allocator, "selection", total)) {
-      // merge from [0,matchedCount) and from [matchedCount,probeSideIndices.getValueCount())
-      int leftCursor = 0;
-      int rightCursor = matchedCount;
-      while (true) {
-        if (leftCursor < matchedCount) {
-          if (rightCursor < total) {
-            if (isInOrder(probeSideIndices, leftCursor, rightCursor)) {
-              selectionBuilder.append(leftCursor++);
-            } else {
-              selectionBuilder.append(rightCursor++);
-            }
-          } else {
-            selectionBuilder.append(leftCursor++);
-          }
-        } else {
-          if (rightCursor < total) {
-            selectionBuilder.append(rightCursor++);
-          } else {
-            break;
-          }
-        }
-      }
-      return selectionBuilder.build();
-    }
-  }
-
-  private static boolean isInOrder(BaseIntVector vector, int leftIndex, int rightIndex) {
-    // null is biggest
-    if (vector.getField().isNullable()) {
-      if (vector.isNull(rightIndex)) {
-        return true;
-      }
-      if (vector.isNull(leftIndex)) {
-        return false;
-      }
-    }
-    return vector.getValueAsLong(leftIndex) <= vector.getValueAsLong(rightIndex);
-  }
-
-  public static class Builder implements JoinCollection.Builder<Builder> {
-
-    private final BufferAllocator allocator;
-    private final Schema buildSideSchema;
-    private final Schema probeSideSchema;
-    private final List<ScalarExpression<?>> outputExpressions;
-    private final JoinOption joinOption;
-    private final PredicateExpression matcher;
+  public static class Builder extends JoinArrayList.Builder {
     private final ScalarExpression<IntVector> buildSideHasher;
     private final ScalarExpression<IntVector> probeSideHasher;
-
-    private final List<VectorSchemaRoot> buildSideBatches;
 
     public Builder(
         BufferAllocator allocator,
@@ -426,71 +111,25 @@ public class JoinHashMap implements JoinCollection {
         PredicateExpression matcher,
         ScalarExpression<IntVector> buildSideHasher,
         ScalarExpression<IntVector> probeSideHasher) {
-      this.allocator = Objects.requireNonNull(allocator);
-      this.buildSideSchema = Objects.requireNonNull(buildSideSchema);
-      this.probeSideSchema = Objects.requireNonNull(probeSideSchema);
-      this.outputExpressions = Objects.requireNonNull(outputExpressions);
-      this.joinOption = Objects.requireNonNull(joinOption);
-      this.matcher = Objects.requireNonNull(matcher);
+      super(allocator, buildSideSchema, probeSideSchema, outputExpressions, joinOption, matcher);
       this.buildSideHasher = Objects.requireNonNull(buildSideHasher);
       this.probeSideHasher = Objects.requireNonNull(probeSideHasher);
-      this.buildSideBatches = new ArrayList<>();
     }
 
     @Override
-    public Schema constructOutputSchema() throws ComputeException {
-      List<Field> outputFields = new ArrayList<>();
-      outputFields.addAll(buildSideSchema.getFields());
-      outputFields.addAll(probeSideSchema.getFields());
-      outputFields.add(Field.nullable("mark", Types.MinorType.BIT.getType()));
-      return ScalarExpressionUtils.getOutputSchema(
-          allocator, outputExpressions, new Schema(outputFields));
-    }
-
-    @Override
-    public void close() {
-      buildSideBatches.forEach(VectorSchemaRoot::close);
-      buildSideBatches.clear();
-    }
-
-    @Override
-    public Builder add(
-        DictionaryProvider dictionaryProvider,
-        VectorSchemaRoot data,
-        @Nullable BaseIntVector selection)
-        throws ComputeException {
-      VectorSchemaRoot flattened =
-          VectorSchemaRoots.flatten(allocator, dictionaryProvider, data, selection);
-      buildSideBatches.add(flattened);
-      return this;
-    }
-
-    @Override
-    public JoinCollection build(ResultConsumer resultConsumer) throws ComputeException {
+    public JoinHashMap build(ResultConsumer resultConsumer) throws ComputeException {
       Objects.requireNonNull(resultConsumer);
 
       IntObjectHashMap<List<Integer>> buildSideMap = new IntObjectHashMap<>();
-
-      try (VectorSchemaRoot buildSideSingleBatch =
-          VectorSchemaRoots.concat(allocator, buildSideSchema, buildSideBatches)) {
+      try (JoinArrayList joinArrayList = super.build(resultConsumer)) {
         try (IntVector buildSideHashCodes =
-            buildSideHasher.invoke(allocator, buildSideSingleBatch)) {
+            buildSideHasher.invoke(joinArrayList.allocator, joinArrayList.buildSideSingleBatch)) {
           for (int i = 0; i < buildSideHashCodes.getValueCount(); i++) {
             int hashCode = buildSideHashCodes.get(i);
             buildSideMap.computeIfAbsent(hashCode, k -> new ArrayList<>()).add(i);
           }
         }
-
-        return new JoinHashMap(
-            allocator,
-            joinOption,
-            matcher,
-            outputExpressions,
-            probeSideHasher,
-            probeSideSchema,
-            buildSideMap,
-            VectorSchemaRoots.transfer(allocator, buildSideSingleBatch),
-            resultConsumer);
+        return new JoinHashMap(joinArrayList, probeSideHasher, buildSideMap);
       }
     }
   }

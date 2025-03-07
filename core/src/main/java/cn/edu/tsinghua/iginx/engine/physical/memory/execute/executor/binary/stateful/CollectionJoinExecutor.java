@@ -41,7 +41,7 @@ import org.apache.arrow.vector.types.pojo.Schema;
  */
 public class CollectionJoinExecutor extends StatefulBinaryExecutor {
 
-  private final JoinCollection.Builder<?> joinCollectionBuilder;
+  private final JoinCollection.Builder joinCollectionBuilder;
   private final String info;
   private JoinCollection joinCollection;
   private Schema outputSchema;
@@ -50,7 +50,7 @@ public class CollectionJoinExecutor extends StatefulBinaryExecutor {
       ExecutorContext context,
       BatchSchema leftSchema,
       BatchSchema rightSchema,
-      @WillClose JoinCollection.Builder<?> joinCollectionBuilder,
+      @WillClose JoinCollection.Builder joinCollectionBuilder,
       String info) {
     super(context, leftSchema, rightSchema, 1);
     this.joinCollectionBuilder = Objects.requireNonNull(joinCollectionBuilder);
