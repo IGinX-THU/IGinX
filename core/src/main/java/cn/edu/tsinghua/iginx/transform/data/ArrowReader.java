@@ -23,7 +23,7 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.transform.api.Reader;
 import cn.edu.tsinghua.iginx.transform.utils.Constants;
-import cn.edu.tsinghua.iginx.transform.utils.TypeUtils;
+import cn.edu.tsinghua.iginx.utils.TypeUtils;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.arrow.vector.BigIntVector;
@@ -31,7 +31,7 @@ import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.types.pojo.Field;
 import org.apache.arrow.vector.types.pojo.Schema;
 
-public class ArrowReader implements Reader {
+public class ArrowReader implements Reader, AutoCloseable {
 
   private final VectorSchemaRoot root;
 
@@ -62,7 +62,7 @@ public class ArrowReader implements Reader {
       } else {
         fieldList.add(
             new cn.edu.tsinghua.iginx.engine.shared.data.read.Field(
-                field.getName(), TypeUtils.arrowTypeToDataType(field.getType())));
+                field.getName(), TypeUtils.toDataType(field.getType())));
       }
     }
 
