@@ -152,8 +152,7 @@ public class NaivePhysicalPlanner {
     }
   }
 
-  public PhysicalTask<BatchStream> construct(
-      List<Expression> constantExpressions, RequestContext context) {
+  public PhysicalTask<?> construct(List<Expression> constantExpressions, RequestContext context) {
     Preconditions.checkArgument(
         constantExpressions.stream()
             .allMatch(cn.edu.tsinghua.iginx.sql.utils.ExpressionUtils::isConstantArithmeticExpr));
@@ -162,7 +161,7 @@ public class NaivePhysicalPlanner {
         new StreamSourceMemoryPhysicalTask(
             context,
             "Produce 1 emtpy row to calculate constant values",
-            BatchStreams.nonColumn(context.getBatchRowCount(), 1));
+            () -> BatchStreams.nonColumn(context.getBatchRowCount(), 1));
 
     List<FunctionCall> functionCalls = new ArrayList<>();
     for (Expression expression : constantExpressions) {
@@ -171,6 +170,12 @@ public class NaivePhysicalPlanner {
     }
 
     RowTransform rowTransform = new RowTransform(EmptySource.EMPTY_SOURCE, functionCalls);
+
+    if (rowTransform.getFunctionCallList().stream()
+        .anyMatch(UDFDetector::containNonSystemFunction)) {
+      return new UnaryRowMemoryPhysicalTask(
+          convert(source, context, RowStream.class), rowTransform, context);
+    }
 
     return new PipelineMemoryPhysicalTask(
         source,
