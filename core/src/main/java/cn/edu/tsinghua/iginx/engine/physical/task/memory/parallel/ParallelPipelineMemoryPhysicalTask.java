@@ -106,7 +106,7 @@ public class ParallelPipelineMemoryPhysicalTask
   private GatherMemoryPhysicalTask constructPipeline(
       RequestContext context, BatchStream stream, ScatterGatherBatchStream outputStream) {
     MemoryPhysicalTask<BatchStream> source =
-        new StreamSourceMemoryPhysicalTask(context, "Parallel Pipeline Source", stream);
+        new StreamSourceMemoryPhysicalTask(context, "Parallel Pipeline Source", () -> stream);
     PipelineMemoryPhysicalTask pipeline = pipelineFactory.createPipeline(context, source);
     GatherMemoryPhysicalTask gather = new GatherMemoryPhysicalTask(context, pipeline, outputStream);
 

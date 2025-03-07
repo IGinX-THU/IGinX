@@ -22,6 +22,7 @@ package cn.edu.tsinghua.iginx.engine.physical.task.memory;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.util.Batch;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskResult;
+import cn.edu.tsinghua.iginx.engine.physical.task.utils.PhysicalSupplier;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
@@ -29,16 +30,21 @@ import java.util.Objects;
 
 public class StreamSourceMemoryPhysicalTask extends SourceMemoryPhysicalTask {
 
-  private final BatchStream stream;
+  private final PhysicalSupplier<BatchStream> supplier;
 
-  public StreamSourceMemoryPhysicalTask(RequestContext context, Object info, BatchStream stream) {
+  public StreamSourceMemoryPhysicalTask(
+      RequestContext context, Object info, PhysicalSupplier<BatchStream> supplier) {
     super(context, info);
-    this.stream = Objects.requireNonNull(stream);
+    this.supplier = Objects.requireNonNull(supplier);
   }
 
   @Override
   public TaskResult<BatchStream> execute() {
-    return new TaskResult<>(new StreamWrapper(stream));
+    try {
+      return new TaskResult<>(new StreamWrapper(supplier.get()));
+    } catch (PhysicalException e) {
+      return new TaskResult<>(e);
+    }
   }
 
   private class StreamWrapper implements BatchStream {
