@@ -64,7 +64,7 @@ public abstract class BinaryComparisonFunction extends BinaryPredicateFunction {
       ArrowBuf dataBuffer = dest.getDataBuffer();
       evaluate(
           allocator,
-          DictionaryProviders.empty(),
+          ArrowDictionaries.emptyProvider(),
           selection,
           left,
           right,

@@ -17,19 +17,39 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.join;
 
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ResultConsumer;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import javax.annotation.Nullable;
 import org.apache.arrow.vector.BaseIntVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.dictionary.DictionaryProvider;
+import org.apache.arrow.vector.types.pojo.Schema;
 
-public interface ResultConsumer {
+public interface JoinCollection extends AutoCloseable {
 
-  void consume(
+  void close();
+
+  void probe(
       DictionaryProvider dictionaryProvider,
       VectorSchemaRoot data,
       @Nullable BaseIntVector selection)
       throws ComputeException;
+
+  void flush() throws ComputeException;
+
+  interface Builder<SELF extends Builder<SELF>> extends AutoCloseable {
+    Schema constructOutputSchema() throws ComputeException;
+
+    void close();
+
+    SELF add(
+        DictionaryProvider dictionaryProvider,
+        VectorSchemaRoot data,
+        @Nullable BaseIntVector selection)
+        throws ComputeException;
+
+    JoinCollection build(ResultConsumer resultConsumer) throws ComputeException;
+  }
 }

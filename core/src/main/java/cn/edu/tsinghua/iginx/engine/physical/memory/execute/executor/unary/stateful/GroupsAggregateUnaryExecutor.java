@@ -93,7 +93,9 @@ public class GroupsAggregateUnaryExecutor extends StatefulUnaryExecutor {
   protected void consumeEndUnchecked() throws ComputeException {
     try (GroupTable groupTable = groupTableBuilder.build()) {
       for (VectorSchemaRoot group : groupTable.getGroups()) {
-        offerResult(Batch.of(VectorSchemaRoots.slice(context.getAllocator(), group)));
+        try (Batch batch = Batch.of(VectorSchemaRoots.slice(context.getAllocator(), group))) {
+          offerResult(batch);
+        }
       }
     }
   }

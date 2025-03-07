@@ -84,7 +84,9 @@ public class RemoveNullColumnExecutor extends StatefulUnaryExecutor {
           vectors.add(vector);
         }
       }
-      offerResult(Batch.of(VectorSchemaRoots.create(vectors, current.getRowCount())));
+      try (Batch output = Batch.of(VectorSchemaRoots.create(vectors, current.getRowCount()))) {
+        offerResult(output);
+      }
     }
   }
 

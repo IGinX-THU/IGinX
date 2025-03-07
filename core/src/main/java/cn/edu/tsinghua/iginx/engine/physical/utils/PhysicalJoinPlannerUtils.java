@@ -19,6 +19,7 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.utils;
 
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.join.JoinHashMap;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.join.JoinOption;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.CallNode;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.FieldNode;
@@ -29,7 +30,7 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.predi
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.Schemas;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.binary.stateful.HashJoinExecutor;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.binary.stateful.CollectionJoinExecutor;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.binary.stateful.StatefulBinaryExecutor;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.operator.AbstractJoin;
@@ -346,7 +347,7 @@ public class PhysicalJoinPlannerUtils {
     }
   }
 
-  public static HashJoinExecutor constructHashJoin(
+  public static StatefulBinaryExecutor constructHashJoin(
       ExecutorContext context,
       BatchSchema leftSchema,
       BatchSchema rightSchema,
@@ -377,14 +378,21 @@ public class PhysicalJoinPlannerUtils {
                 .map(FieldNode::new)
                 .collect(Collectors.toList()));
 
-    return new HashJoinExecutor(
+    String info = "HashJoin(" + joinOption + ") on " + matcher + " output " + outputExpressions;
+
+    return new CollectionJoinExecutor(
         context,
         leftSchema,
         rightSchema,
-        joinOption,
-        matcher,
-        outputExpressions,
-        leftHasher,
-        rightHasher);
+        new JoinHashMap.Builder(
+            context.getAllocator(),
+            leftSchema.raw(),
+            rightSchema.raw(),
+            outputExpressions,
+            joinOption,
+            matcher,
+            leftHasher,
+            rightHasher),
+        info);
   }
 }

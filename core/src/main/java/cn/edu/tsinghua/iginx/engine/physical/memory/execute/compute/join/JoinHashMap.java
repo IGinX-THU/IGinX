@@ -30,14 +30,16 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import javax.annotation.Nullable;
-import javax.annotation.WillClose;
 import javax.annotation.WillCloseWhenClosed;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.util.Preconditions;
 import org.apache.arrow.vector.*;
+import org.apache.arrow.vector.dictionary.DictionaryProvider;
+import org.apache.arrow.vector.types.Types;
+import org.apache.arrow.vector.types.pojo.Field;
 import org.apache.arrow.vector.types.pojo.Schema;
 
-public class JoinHashMap implements AutoCloseable {
+public class JoinHashMap implements JoinCollection {
 
   private final BufferAllocator allocator;
   private final JoinOption joinOption;
@@ -77,6 +79,18 @@ public class JoinHashMap implements AutoCloseable {
     buildSideSingleBatch.close();
   }
 
+  @Override
+  public void probe(
+      DictionaryProvider dictionaryProvider,
+      VectorSchemaRoot data,
+      @Nullable BaseIntVector selection)
+      throws ComputeException {
+    try (VectorSchemaRoot flattened =
+        VectorSchemaRoots.flatten(allocator, dictionaryProvider, data, selection)) {
+      probe(flattened);
+    }
+  }
+
   public void probe(VectorSchemaRoot probeSideBatch) throws ComputeException {
     Preconditions.checkArgument(probeSideBatch.getSchema().equals(probeSideSchema));
 
@@ -112,6 +126,7 @@ public class JoinHashMap implements AutoCloseable {
     }
   }
 
+  @Override
   public void flush() throws ComputeException {
     if (!joinOption.isToOutputBuildSideUnmatched()) {
       return;
@@ -333,10 +348,7 @@ public class JoinHashMap implements AutoCloseable {
             ScalarExpressionUtils.evaluate(
                 allocator, dictionaryProvider, result, null, outputExpressions);
         BaseIntVector selection = getSelection(probeSideIndices, unmatchedCount)) {
-      resultConsumer.consume(
-          dictionaryProvider.slice(allocator),
-          VectorSchemaRoots.transfer(allocator, output),
-          ValueVectors.slice(allocator, selection));
+      resultConsumer.consume(dictionaryProvider, output, selection);
     }
   }
 
@@ -392,26 +404,47 @@ public class JoinHashMap implements AutoCloseable {
     return vector.getValueAsLong(leftIndex) <= vector.getValueAsLong(rightIndex);
   }
 
-  public static class Builder implements AutoCloseable {
+  public static class Builder implements JoinCollection.Builder<Builder> {
 
     private final BufferAllocator allocator;
-    private final ScalarExpression<IntVector> buildSideHasher;
     private final Schema buildSideSchema;
+    private final Schema probeSideSchema;
+    private final List<ScalarExpression<?>> outputExpressions;
+    private final JoinOption joinOption;
+    private final PredicateExpression matcher;
+    private final ScalarExpression<IntVector> buildSideHasher;
+    private final ScalarExpression<IntVector> probeSideHasher;
+
     private final List<VectorSchemaRoot> buildSideBatches;
 
     public Builder(
         BufferAllocator allocator,
+        Schema buildSideSchema,
+        Schema probeSideSchema,
+        List<ScalarExpression<?>> outputExpressions,
+        JoinOption joinOption,
+        PredicateExpression matcher,
         ScalarExpression<IntVector> buildSideHasher,
-        Schema buildSideSchema) {
+        ScalarExpression<IntVector> probeSideHasher) {
       this.allocator = Objects.requireNonNull(allocator);
-      this.buildSideHasher = Objects.requireNonNull(buildSideHasher);
       this.buildSideSchema = Objects.requireNonNull(buildSideSchema);
+      this.probeSideSchema = Objects.requireNonNull(probeSideSchema);
+      this.outputExpressions = Objects.requireNonNull(outputExpressions);
+      this.joinOption = Objects.requireNonNull(joinOption);
+      this.matcher = Objects.requireNonNull(matcher);
+      this.buildSideHasher = Objects.requireNonNull(buildSideHasher);
+      this.probeSideHasher = Objects.requireNonNull(probeSideHasher);
       this.buildSideBatches = new ArrayList<>();
     }
 
-    public Builder add(@WillClose VectorSchemaRoot buildSideBatch) throws ComputeException {
-      buildSideBatches.add(buildSideBatch);
-      return this;
+    @Override
+    public Schema constructOutputSchema() throws ComputeException {
+      List<Field> outputFields = new ArrayList<>();
+      outputFields.addAll(buildSideSchema.getFields());
+      outputFields.addAll(probeSideSchema.getFields());
+      outputFields.add(Field.nullable("mark", Types.MinorType.BIT.getType()));
+      return ScalarExpressionUtils.getOutputSchema(
+          allocator, outputExpressions, new Schema(outputFields));
     }
 
     @Override
@@ -420,15 +453,20 @@ public class JoinHashMap implements AutoCloseable {
       buildSideBatches.clear();
     }
 
-    public JoinHashMap build(
-        BufferAllocator allocator,
-        JoinOption joinOption,
-        PredicateExpression matcher,
-        List<ScalarExpression<?>> outputExpressions,
-        ScalarExpression<IntVector> probeSideHasher,
-        Schema probeSideSchema,
-        ResultConsumer resultConsumer)
+    @Override
+    public Builder add(
+        DictionaryProvider dictionaryProvider,
+        VectorSchemaRoot data,
+        @Nullable BaseIntVector selection)
         throws ComputeException {
+      VectorSchemaRoot flattened =
+          VectorSchemaRoots.flatten(allocator, dictionaryProvider, data, selection);
+      buildSideBatches.add(flattened);
+      return this;
+    }
+
+    @Override
+    public JoinCollection build(ResultConsumer resultConsumer) throws ComputeException {
       Preconditions.checkNotNull(allocator);
       Preconditions.checkNotNull(joinOption);
       Preconditions.checkNotNull(matcher);

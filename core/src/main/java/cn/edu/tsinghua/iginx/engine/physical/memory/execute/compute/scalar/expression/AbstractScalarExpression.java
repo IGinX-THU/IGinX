@@ -19,7 +19,7 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.DictionaryProviders;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ArrowDictionaries;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ValueVectors;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import java.util.Collections;
@@ -69,7 +69,7 @@ public abstract class AbstractScalarExpression<OUTPUT extends FieldVector>
   public OUTPUT invoke(
       BufferAllocator allocator, @Nullable BaseIntVector selection, VectorSchemaRoot input)
       throws ComputeException {
-    return invoke(allocator, DictionaryProviders.empty(), selection, input);
+    return invoke(allocator, ArrowDictionaries.emptyProvider(), selection, input);
   }
 
   @Override

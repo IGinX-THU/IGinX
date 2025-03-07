@@ -19,7 +19,7 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.DictionaryProviders;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ArrowDictionaries;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.VectorSchemaRoots;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ResultRowCountException;
@@ -43,7 +43,7 @@ public class ScalarExpressionUtils {
       throws ComputeException {
     try (VectorSchemaRoot empty = VectorSchemaRoot.create(inputSchema, allocator);
         FieldVector result =
-            evaluate(allocator, DictionaryProviders.empty(), empty, null, expression)) {
+            evaluate(allocator, ArrowDictionaries.emptyProvider(), empty, null, expression)) {
       return result.getField();
     }
   }
@@ -104,6 +104,6 @@ public class ScalarExpressionUtils {
   public static VectorSchemaRoot evaluate(
       BufferAllocator allocator, VectorSchemaRoot input, List<ScalarExpression<?>> expressions)
       throws ComputeException {
-    return evaluate(allocator, DictionaryProviders.empty(), input, null, expressions);
+    return evaluate(allocator, ArrowDictionaries.emptyProvider(), input, null, expressions);
   }
 }

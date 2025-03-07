@@ -26,14 +26,16 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.excepti
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import javax.annotation.WillClose;
+import javax.annotation.Nullable;
 import javax.annotation.WillCloseWhenClosed;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.util.Preconditions;
 import org.apache.arrow.vector.*;
+import org.apache.arrow.vector.dictionary.DictionaryProvider;
+import org.apache.arrow.vector.types.pojo.Field;
 import org.apache.arrow.vector.types.pojo.Schema;
 
-public class JoinArrayList implements AutoCloseable {
+public class CrossJoinArrayList implements JoinCollection {
 
   private final BufferAllocator allocator;
   private final List<ScalarExpression<?>> outputExpressions;
@@ -41,7 +43,7 @@ public class JoinArrayList implements AutoCloseable {
   private final VectorSchemaRoot buildSideSingleBatch;
   private final ResultConsumer resultConsumer;
 
-  JoinArrayList(
+  CrossJoinArrayList(
       BufferAllocator allocator,
       List<ScalarExpression<?>> outputExpressions,
       Schema probeSideSchema,
@@ -59,7 +61,22 @@ public class JoinArrayList implements AutoCloseable {
     buildSideSingleBatch.close();
   }
 
-  public void probe(VectorSchemaRoot probeSideBatch) throws ComputeException {
+  @Override
+  public void probe(
+      DictionaryProvider dictionaryProvider,
+      VectorSchemaRoot data,
+      @Nullable BaseIntVector selection)
+      throws ComputeException {
+    try (VectorSchemaRoot flattened =
+        VectorSchemaRoots.flatten(allocator, dictionaryProvider, data, selection)) {
+      probe(flattened);
+    }
+  }
+
+  @Override
+  public void flush() throws ComputeException {}
+
+  private void probe(VectorSchemaRoot probeSideBatch) throws ComputeException {
     Preconditions.checkArgument(probeSideBatch.getSchema().equals(probeSideSchema));
 
     try (SelectionBuilder buildSideCandidateIndicesBuilder =
@@ -113,21 +130,37 @@ public class JoinArrayList implements AutoCloseable {
         VectorSchemaRoot output =
             ScalarExpressionUtils.evaluate(
                 allocator, dictionaryProvider, result, null, outputExpressions)) {
-      resultConsumer.consume(
-          dictionaryProvider.slice(allocator), VectorSchemaRoots.transfer(allocator, output), null);
+      resultConsumer.consume(dictionaryProvider, output, null);
     }
   }
 
-  public static class Builder implements AutoCloseable {
+  public static class Builder implements JoinCollection.Builder<Builder> {
 
     private final BufferAllocator allocator;
     private final Schema buildSideSchema;
+    private final Schema probeSideSchema;
+    private final List<ScalarExpression<?>> outputExpressions;
     private final List<VectorSchemaRoot> buildSideBatches;
 
-    public Builder(BufferAllocator allocator, Schema buildSideSchema) {
+    public Builder(
+        BufferAllocator allocator,
+        Schema buildSideSchema,
+        Schema probeSideSchema,
+        List<ScalarExpression<?>> outputExpressions) {
       this.allocator = Objects.requireNonNull(allocator);
       this.buildSideSchema = Objects.requireNonNull(buildSideSchema);
+      this.probeSideSchema = Objects.requireNonNull(probeSideSchema);
+      this.outputExpressions = Objects.requireNonNull(outputExpressions);
       this.buildSideBatches = new ArrayList<>();
+    }
+
+    @Override
+    public Schema constructOutputSchema() throws ComputeException {
+      List<Field> outputFields = new ArrayList<>();
+      outputFields.addAll(buildSideSchema.getFields());
+      outputFields.addAll(probeSideSchema.getFields());
+      return ScalarExpressionUtils.getOutputSchema(
+          allocator, outputExpressions, new Schema(outputFields));
     }
 
     @Override
@@ -136,24 +169,25 @@ public class JoinArrayList implements AutoCloseable {
       buildSideBatches.clear();
     }
 
-    public Builder add(@WillClose VectorSchemaRoot buildSideBatch) throws ComputeException {
-      buildSideBatches.add(buildSideBatch);
+    @Override
+    public Builder add(
+        DictionaryProvider dictionaryProvider,
+        VectorSchemaRoot data,
+        @Nullable BaseIntVector selection)
+        throws ComputeException {
+      VectorSchemaRoot flattened =
+          VectorSchemaRoots.flatten(allocator, dictionaryProvider, data, selection);
+      buildSideBatches.add(flattened);
       return this;
     }
 
-    public JoinArrayList build(
-        BufferAllocator allocator,
-        List<ScalarExpression<?>> outputExpressions,
-        Schema probeSideSchema,
-        ResultConsumer resultConsumer)
-        throws ComputeException {
-      Preconditions.checkNotNull(allocator);
-      Preconditions.checkNotNull(probeSideSchema);
-      Preconditions.checkNotNull(resultConsumer);
+    @Override
+    public CrossJoinArrayList build(ResultConsumer resultConsumer) throws ComputeException {
+      Objects.requireNonNull(resultConsumer);
 
       try (VectorSchemaRoot buildSideSingleBatch =
           VectorSchemaRoots.concat(allocator, buildSideSchema, buildSideBatches)) {
-        return new JoinArrayList(
+        return new CrossJoinArrayList(
             allocator,
             outputExpressions,
             probeSideSchema,

@@ -27,9 +27,10 @@ import org.apache.arrow.util.Preconditions;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.dictionary.Dictionary;
+import org.apache.arrow.vector.dictionary.DictionaryProvider;
 import org.apache.arrow.vector.types.pojo.DictionaryEncoding;
 
-public class ArrayDictionaryProvider implements CloseableDictionaryProvider {
+public class ArrayDictionaryProvider implements DictionaryProvider, AutoCloseable {
 
   private Dictionary[] dictionaries;
   private Set<Long> dictionaryIds;
