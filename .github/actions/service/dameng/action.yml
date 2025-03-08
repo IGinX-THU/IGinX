@@ -58,6 +58,7 @@ runs:
               for port in ${{ inputs.ports }}; do
                 docker run -d -p $port:5236 --restart=always \
                   --name=${{ inputs.version }}-$port \
+                  --privileged=true \
                   -e LD_LIBRARY_PATH=/opt/dmdbms/bin \
                   -e PAGE_SIZE=16 \
                   -e EXTENT_SIZE=32 \
