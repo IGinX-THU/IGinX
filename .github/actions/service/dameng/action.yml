@@ -55,14 +55,11 @@ runs:
           name: Run Dameng Database container
           shell: wsl-run {0}
           run: |
-              ulimit -a
-              ulimit -n 65535
-              ulimit -u 16384
-              ulimit -a
               for port in ${{ inputs.ports }}; do
                 docker run -d -p $port:5236 --restart=always \
                   --name=${{ inputs.version }}-$port \
                   --privileged=true \
+                  --ulimit nofile=65536:65536
                   -e LD_LIBRARY_PATH=/opt/dmdbms/bin \
                   -e PAGE_SIZE=16 \
                   -e EXTENT_SIZE=32 \
