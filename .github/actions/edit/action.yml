@@ -13,4 +13,7 @@ runs:
     steps:
         - name: "edit"
           shell: bash
-          run: sed -i"" -e "${{ inputs.statements }}" ${{ inputs.paths }}
+          run: |
+            docker ps
+            docker ps -a
+            sed -i"" -e "${{ inputs.statements }}" ${{ inputs.paths }}

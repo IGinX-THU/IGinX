@@ -88,6 +88,7 @@ runs:
                     break
                   fi
                 done
-                echo "Logs for $port:"
-                docker logs ${{ inputs.version }}-$port
               done
+              docker ps
+              docker ps -a
+              
