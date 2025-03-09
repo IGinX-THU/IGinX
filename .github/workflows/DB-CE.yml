@@ -93,7 +93,12 @@ jobs:
 
             - name: Install IGinX with Maven
               shell: bash
-              run: mvn clean package -DskipTests -P-format -q
+              run: |
+                docker ps
+                docker ps -a
+                mvn clean package -DskipTests -P-format -q
+                docker ps
+                docker ps -a
 
             - name: Change IGinX config
               uses: ./.github/actions/confWriter
