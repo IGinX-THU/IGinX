@@ -59,7 +59,6 @@ runs:
                 docker run -d -p $port:5236 --restart=always \
                   --name=${{ inputs.version }}-$port \
                   --privileged=true \
-                  --ulimit nofile=65536:65536
                   -e LD_LIBRARY_PATH=/opt/dmdbms/bin \
                   -e PAGE_SIZE=16 \
                   -e EXTENT_SIZE=32 \
@@ -89,4 +88,6 @@ runs:
                     break
                   fi
                 done
+                echo "Logs for $port:"
+                docker logs ${{ inputs.version }}-$port
               done
