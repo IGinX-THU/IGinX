@@ -89,6 +89,3 @@ runs:
                   fi
                 done
               done
-              docker ps
-              docker ps -a
-              

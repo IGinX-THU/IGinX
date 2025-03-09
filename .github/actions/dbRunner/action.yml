@@ -154,3 +154,17 @@ runs:
           uses: ./.github/actions/service/dameng
           with:
               ports: ${{ inputs.Dameng-ports }}
+
+        - if: inputs.DB-name=='Dameng' && runner.os == 'Windows'
+          name: test-db-in-wsl
+          shell: wsl-run {0}
+          run: |
+              docker ps
+              docker ps -a
+
+        - if: inputs.DB-name=='Dameng'
+          name: test-db-in-bash
+          shell: bash
+          run: |
+              docker ps
+              docker ps -a
