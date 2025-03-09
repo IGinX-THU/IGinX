@@ -49,8 +49,6 @@ while [ $elapsed_time -lt $timeout ]; do
   last_lines=$(tail -n 20 "$log_file")
   if echo "$last_lines" | grep -q "IGinX is now in service......"; then
     echo "IGinX started successfully"
-    docker ps -a
-    docker ps
     exit 0
   fi
   sleep $interval

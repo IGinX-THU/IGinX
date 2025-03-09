@@ -17,10 +17,6 @@ fi
 port=$1
 log "Starting Dameng database on port $port"
 
-# --------------------------
-# 关键修改点：所有 Docker 命令前添加 `wsl`
-# --------------------------
-
 # 检查容器是否存在
 if wsl docker ps -a | grep -q "dm8-$port"; then
   log "Container dm8-$port already exists, restarting it"
