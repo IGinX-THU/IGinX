@@ -72,7 +72,7 @@ runs:
         - if: runner.os == 'Windows'
           name: Verify Dameng Database is running
           id: dmContainerWin
-          shell: wsl-run {0}
+          shell: bash
           run: |
               docker ps
               sleep 10
