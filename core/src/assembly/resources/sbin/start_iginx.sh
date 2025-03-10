@@ -125,6 +125,9 @@ HEAP_OPTS[1]=-Xms$MIN_HEAP_SIZE
 LOCAL_JAVA_OPTS=(
  -ea
  -cp "$CLASSPATH"
+ --add-opens java.base/java.lang=ALL-UNNAMED
+ --add-opens java.base/java.util=ALL-UNNAMED
+ --add-opens=java.base/java.nio=ALL-UNNAMED
  -DIGINX_HOME="$IGINX_HOME"
  -DIGINX_DRIVER="$IGINX_DRIVER"
  -DIGINX_CONF="$IGINX_CONF"

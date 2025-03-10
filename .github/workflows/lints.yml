@@ -29,7 +29,7 @@ jobs:
             - uses: actions/checkout@v4
             - uses: actions/setup-java@v4
               with:
-                  java-version: 8
+                  java-version: 17
                   distribution: temurin
                   cache: maven
             - name: remove py-session thrift
@@ -49,7 +49,7 @@ jobs:
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-    analyze-required-check:
+    analyze-required-lint-check:
         if: always()
         needs: # List of jobs that must pass. Add more jobs if needed.
             - formatting
