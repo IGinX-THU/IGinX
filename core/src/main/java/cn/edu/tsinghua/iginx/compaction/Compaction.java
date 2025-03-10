@@ -21,7 +21,10 @@ package cn.edu.tsinghua.iginx.compaction;
 
 import cn.edu.tsinghua.iginx.engine.physical.PhysicalEngine;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
+import cn.edu.tsinghua.iginx.engine.physical.task.TaskMetrics;
+import cn.edu.tsinghua.iginx.engine.physical.task.memory.row.BatchStreamToRowStreamWrapper;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Delete;
@@ -32,6 +35,9 @@ import cn.edu.tsinghua.iginx.engine.shared.source.GlobalSource;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
 import cn.edu.tsinghua.iginx.metadata.entity.FragmentMeta;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageUnitMeta;
+import cn.edu.tsinghua.iginx.resource.ResourceManager;
+import cn.edu.tsinghua.iginx.resource.ResourceSet;
+import cn.edu.tsinghua.iginx.resource.exception.ResourceException;
 import java.util.*;
 
 public abstract class Compaction {
@@ -109,7 +115,7 @@ public abstract class Compaction {
 
   protected void compactFragmentGroupToTargetStorageUnit(
       List<FragmentMeta> fragmentGroup, StorageUnitMeta targetStorageUnit, long totalPoints)
-      throws PhysicalException {
+      throws PhysicalException, ResourceException {
     String startTimeseries = fragmentGroup.get(0).getColumnsInterval().getStartColumn();
     String endTimeseries = fragmentGroup.get(0).getColumnsInterval().getEndColumn();
     long startTime = fragmentGroup.get(0).getKeyInterval().getStartKey();
@@ -141,16 +147,24 @@ public abstract class Compaction {
         Set<String> pathRegexSet = new HashSet<>();
         ShowColumns showColumns =
             new ShowColumns(new GlobalSource(), pathRegexSet, null, Integer.MAX_VALUE, 0);
-        RowStream rowStream = physicalEngine.execute(new RequestContext(), showColumns);
+
         SortedSet<String> pathSet = new TreeSet<>();
-        while (rowStream != null && rowStream.hasNext()) {
-          Row row = rowStream.next();
-          String timeSeries = new String((byte[]) row.getValue(0));
-          if (timeSeries.contains("{") && timeSeries.contains("}")) {
-            timeSeries = timeSeries.split("\\{")[0];
-          }
-          if (fragmentMeta.getColumnsInterval().isContain(timeSeries)) {
-            pathSet.add(timeSeries);
+
+        RequestContext showColumnCtx = new RequestContext();
+        try (ResourceSet ignored = ResourceManager.getInstance().setup(showColumnCtx);
+            BatchStream batchStream = physicalEngine.execute(showColumnCtx, showColumns);
+            RowStream rowStream =
+                new BatchStreamToRowStreamWrapper(batchStream, TaskMetrics.NO_OP)) {
+
+          while (rowStream.hasNext()) {
+            Row row = rowStream.next();
+            String timeSeries = new String((byte[]) row.getValue(0));
+            if (timeSeries.contains("{") && timeSeries.contains("}")) {
+              timeSeries = timeSeries.split("\\{")[0];
+            }
+            if (fragmentMeta.getColumnsInterval().isContain(timeSeries)) {
+              pathSet.add(timeSeries);
+            }
           }
         }
 
@@ -159,7 +173,10 @@ public abstract class Compaction {
           Migration migration =
               new Migration(
                   new GlobalSource(), fragmentMeta, new ArrayList<>(pathSet), targetStorageUnit);
-          physicalEngine.execute(new RequestContext(), migration);
+          RequestContext migrationCtx = new RequestContext();
+          try (ResourceSet ignored = ResourceManager.getInstance().setup(migrationCtx)) {
+            physicalEngine.execute(migrationCtx, migration);
+          }
         }
       }
     }
@@ -183,7 +200,10 @@ public abstract class Compaction {
         Delete delete =
             new Delete(
                 new FragmentSource(fragmentMeta), new ArrayList<>(), new ArrayList<>(), null);
-        physicalEngine.execute(new RequestContext(), delete);
+        RequestContext deleteCtx = new RequestContext();
+        try (ResourceSet ignored = ResourceManager.getInstance().setup(deleteCtx)) {
+          physicalEngine.execute(deleteCtx, delete);
+        }
       }
     }
   }
