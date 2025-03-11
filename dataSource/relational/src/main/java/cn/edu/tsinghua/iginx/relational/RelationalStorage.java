@@ -304,10 +304,6 @@ public class RelationalStorage implements IStorage {
   private List<String> getDatabaseNames() throws SQLException {
     List<String> databaseNames = new ArrayList<>();
     String DefaultDatabaseName = relationalMeta.getDefaultDatabaseName();
-    //    if (DefaultDatabaseName.equals("DAMENG")) {
-    //      databaseNames.add(DefaultDatabaseName);
-    //      return databaseNames;
-    //    } else {
     Connection conn = getConnection(DefaultDatabaseName);
     Statement statement = conn.createStatement();
     ResultSet rs = statement.executeQuery(relationalMeta.getDatabaseQuerySql());

@@ -618,9 +618,7 @@ public class Session {
     req.setDataTypeList(sortedDataTypeList);
     req.setTagsList(sortedTagsList);
     req.setTimePrecision(precision);
-    SessionExecution s = () -> client.insertRowRecords(req);
-    executeWithCheck(s);
-    //    executeWithCheck(() -> client.insertRowRecords(req));
+    executeWithCheck(() -> client.insertRowRecords(req));
   }
 
   public void insertNonAlignedRowRecords(
