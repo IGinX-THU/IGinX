@@ -618,7 +618,6 @@ public class Session {
     req.setDataTypeList(sortedDataTypeList);
     req.setTagsList(sortedTagsList);
     req.setTimePrecision(precision);
-
     executeWithCheck(() -> client.insertRowRecords(req));
   }
 

@@ -37,6 +37,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.FilterType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.relational.meta.AbstractRelationalMeta;
+import cn.edu.tsinghua.iginx.relational.meta.JDBCMeta;
 import cn.edu.tsinghua.iginx.relational.tools.RelationSchema;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
@@ -92,6 +93,8 @@ public class RelationQueryRowStream implements RowStream {
   private Map<String, DataType> sumResType; // 记录聚合下推的sum的返回类型（需要提前计算，因为PG会统一返回小数）
 
   private boolean needFilter = false;
+
+  private String engine;
 
   public RelationQueryRowStream(
       List<String> databaseNameList,
@@ -152,16 +155,21 @@ public class RelationQueryRowStream implements RowStream {
     Set<FilterType> filterTypes = FilterUtils.getFilterType(filter);
     needFilter |= filterTypes.contains(FilterType.Expr);
 
+    JDBCMeta jdbcMeta = (JDBCMeta) relationalMeta;
+    this.engine = jdbcMeta.getStorageEngineMeta().getExtraParams().get("engine");
     for (int i = 0; i < resultSets.size(); i++) {
       ResultSetMetaData resultSetMetaData = resultSets.get(i).getMetaData();
 
       Set<String> columnNameSet = new HashSet<>(); // 用于检查该resultSet中是否有同名的column
 
       int cnt = 0;
+      String tableName = "";
+      String columnName = "";
+      String typeName = "";
       for (int j = 1; j <= resultSetMetaData.getColumnCount(); j++) {
-        String tableName = resultSetMetaData.getTableName(j);
-        String columnName = resultSetMetaData.getColumnName(j);
-        String typeName = resultSetMetaData.getColumnTypeName(j);
+        columnName = resultSetMetaData.getColumnName(j);
+        typeName = resultSetMetaData.getColumnTypeName(j);
+        tableName = resultSetMetaData.getTableName(j);
 
         if (j == 1 && columnName.contains(KEY_NAME) && columnName.contains(SEPARATOR)) {
           isPushDown = true;
@@ -205,7 +213,11 @@ public class RelationQueryRowStream implements RowStream {
         if (isAgg && fullName2Name.containsKey(path)) {
           field = new Field(fullName2Name.get(path), path, type, namesAndTags.v);
         } else {
-          field = new Field(path, type, namesAndTags.v);
+          if (isAgg && (engine.equals("dameng")) && !path.contains(SEPARATOR)) {
+            field = new Field(tableName + SEPARATOR + path, type, namesAndTags.v);
+          } else {
+            field = new Field(path, type, namesAndTags.v);
+          }
         }
 
         if (filterByTags && !TagKVUtils.match(namesAndTags.v, tagFilter)) {
@@ -339,7 +351,13 @@ public class RelationQueryRowStream implements RowStream {
                 if (value instanceof Boolean) {
                   tempValue = value;
                 } else {
-                  tempValue = ((int) value) == 1;
+                  if (value instanceof Byte) {
+                    tempValue = ((Byte) value) == 1;
+                  } else if (value instanceof Long) {
+                    tempValue = ((long) value) == 1;
+                  } else {
+                    tempValue = ((int) value) == 1;
+                  }
                 }
               } else {
                 tempValue = value;
@@ -428,5 +446,9 @@ public class RelationQueryRowStream implements RowStream {
       }
     }
     return null;
+  }
+
+  private String getTableName(String fullColumnName) {
+    return fullColumnName.substring(0, fullColumnName.lastIndexOf(SEPARATOR));
   }
 }
