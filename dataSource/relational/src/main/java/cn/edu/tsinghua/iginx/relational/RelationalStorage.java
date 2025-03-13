@@ -126,12 +126,12 @@ public class RelationalStorage implements IStorage {
     if (dataSource != null) {
       try {
         Connection conn;
-        if (engineName.equals("dameng")) {
-          // 使用username和password连接
-          conn = DriverManager.getConnection(getUrl(databaseName, meta));
-        } else {
-          conn = dataSource.getConnection();
-        }
+//        if (engineName.equals("dameng")) {
+//          // 使用username和password连接
+//          conn = DriverManager.getConnection(getUrl(databaseName, meta));
+//        } else {
+        conn = dataSource.getConnection();
+//        }
         return conn;
       } catch (SQLException e) {
         LOGGER.error("Cannot get connection for database {}", databaseName, e);
@@ -190,7 +190,7 @@ public class RelationalStorage implements IStorage {
                 meta.getPort(),
                 extraParams.get("username"),
                 extraParams.get("password"),
-                getQuotName(databaseName));
+                databaseName);
         break;
       default:
         url =
