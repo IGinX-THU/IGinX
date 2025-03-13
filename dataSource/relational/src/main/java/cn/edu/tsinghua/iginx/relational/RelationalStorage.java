@@ -579,10 +579,7 @@ public class RelationalStorage implements IStorage {
 
   /** 获取ProjectWithFilter中将所有table join到一起进行查询的SQL语句 */
   private String getProjectWithFilterSQL(
-      String databaseName,
-      Filter filter,
-      Map<String, String> tableNameToColumnNames,
-      boolean isAgg) {
+      Filter filter, Map<String, String> tableNameToColumnNames, boolean isAgg) {
     List<String> tableNames = new ArrayList<>();
     List<List<String>> fullColumnNamesList = new ArrayList<>();
     List<List<String>> fullColumnNamesListForExpandFilter = new ArrayList<>();
@@ -633,7 +630,7 @@ public class RelationalStorage implements IStorage {
     keyFilterAddTableName(filter, firstTable);
 
     // 将所有表进行full join
-    String fullTableName = getFullJoinTables(databaseName, tableNames, fullColumnNamesList);
+    String fullTableName = getFullJoinTables(tableNames, fullColumnNamesList);
 
     // 对通配符做处理，将通配符替换成对应的列名
     if (filterTransformer.toString(filter).contains("*")) {
@@ -799,8 +796,7 @@ public class RelationalStorage implements IStorage {
       }
       // table中带有了通配符，将所有table都join到一起进行查询，以便输入filter.
       else if (!tableNameToColumnNames.isEmpty()) {
-        statement =
-            getProjectWithFilterSQL(databaseName, filter.copy(), tableNameToColumnNames, false);
+        statement = getProjectWithFilterSQL(filter.copy(), tableNameToColumnNames, false);
 
         ResultSet rs = null;
         try {
@@ -838,8 +834,7 @@ public class RelationalStorage implements IStorage {
     }
   }
 
-  private String getFullJoinTables(
-      String databaseName, List<String> tableNames, List<List<String>> fullColumnList) {
+  private String getFullJoinTables(List<String> tableNames, List<List<String>> fullColumnList) {
     StringBuilder fullTableName = new StringBuilder();
     if (relationalMeta.isSupportFullJoin()) {
       // 支持全连接，就直接用全连接连接各个表
@@ -1404,8 +1399,7 @@ public class RelationalStorage implements IStorage {
           splitAndMergeQueryPatterns(databaseName, project.getPatterns());
 
       String statement =
-          getProjectWithFilterSQL(
-              databaseName, select.getFilter().copy(), tableNameToColumnNames, true);
+          getProjectWithFilterSQL(select.getFilter().copy(), tableNameToColumnNames, true);
       statement = statement.substring(0, statement.length() - 1); // 去掉最后的分号
       Map<String, String> fullName2Name = new HashMap<>();
       statement =
@@ -2493,7 +2487,7 @@ public class RelationalStorage implements IStorage {
           }
         }
 
-        executeBatchInsert(conn, stmt, tableToColumnEntries, databaseName);
+        executeBatchInsert(conn, stmt, tableToColumnEntries);
         for (Pair<String, List<String>> columnEntries : tableToColumnEntries.values()) {
           columnEntries.v.clear();
         }
@@ -2601,7 +2595,7 @@ public class RelationalStorage implements IStorage {
             tableToColumnEntries.put(tableName, new Pair<>(columnKeys, columnValues));
           }
         }
-        executeBatchInsert(conn, stmt, tableToColumnEntries, databaseName);
+        executeBatchInsert(conn, stmt, tableToColumnEntries);
         for (Map.Entry<String, Pair<String, List<String>>> entry :
             tableToColumnEntries.entrySet()) {
           entry.getValue().v.clear();
@@ -2620,10 +2614,7 @@ public class RelationalStorage implements IStorage {
   }
 
   private void executeBatchInsert(
-      Connection conn,
-      Statement stmt,
-      Map<String, Pair<String, List<String>>> tableToColumnEntries,
-      String databaseName)
+      Connection conn, Statement stmt, Map<String, Pair<String, List<String>>> tableToColumnEntries)
       throws SQLException {
     for (Map.Entry<String, Pair<String, List<String>>> entry : tableToColumnEntries.entrySet()) {
       String tableName = entry.getKey();
@@ -2632,43 +2623,41 @@ public class RelationalStorage implements IStorage {
       String[] parts = columnNames.split(", ");
       boolean hasMultipleRows = parts.length != 1;
       StringBuilder statement = new StringBuilder();
-      if (engineName.equals("dameng")) {
-        Map<String, ColumnField> columnMap = getColumnMap(databaseName, tableName);
-        this.batchInsert(conn, databaseName, tableName, columnMap, parts, values);
-      } else {
-        // INSERT INTO XXX ("key", XXX, ...) VALUES (XXX, XXX, ...), (XXX, XXX, ...), ...,
-        // (XXX,
-        // XXX, ...) ON CONFLICT ("key") DO UPDATE SET (XXX, ...) = (excluded.XXX, ...);
+      //      if (engineName.equals("dameng")) {
+      //        Map<String, ColumnField> columnMap = getColumnMap(databaseName, tableName);
+      //        this.batchInsert(conn, databaseName, tableName, columnMap, parts, values);
+      //      } else {
+      // INSERT INTO XXX ("key", XXX, ...) VALUES (XXX, XXX, ...), (XXX, XXX, ...), ...,
+      // (XXX,
+      // XXX, ...) ON CONFLICT ("key") DO UPDATE SET (XXX, ...) = (excluded.XXX, ...);
 
-        statement.append("INSERT INTO ");
-        statement.append(getQuotName(tableName));
-        statement.append(" (");
-        statement.append(getQuotName(KEY_NAME));
+      statement.append("INSERT INTO ");
+      statement.append(getQuotName(tableName));
+      statement.append(" (");
+      statement.append(getQuotName(KEY_NAME));
+      statement.append(", ");
+      String fullColumnNames = getQuotColumnNames(columnNames);
+      statement.append(fullColumnNames);
+
+      statement.append(") VALUES ");
+      for (String value : values) {
+        statement.append("(");
+        statement.append(value, 0, value.length() - 2);
+        statement.append("), ");
+      }
+      statement.delete(statement.length() - 2, statement.length());
+
+      statement.append(relationalMeta.getUpsertStatement());
+
+      for (String part : parts) {
+        if (part.equals(KEY_NAME)) {
+          continue;
+        }
+        statement.append(
+            String.format(
+                relationalMeta.getUpsertConflictStatement(), getQuotName(part), getQuotName(part)));
         statement.append(", ");
-        String fullColumnNames = getQuotColumnNames(columnNames);
-        statement.append(fullColumnNames);
-
-        statement.append(") VALUES ");
-        for (String value : values) {
-          statement.append("(");
-          statement.append(value, 0, value.length() - 2);
-          statement.append("), ");
-        }
-        statement.delete(statement.length() - 2, statement.length());
-
-        statement.append(relationalMeta.getUpsertStatement());
-
-        for (String part : parts) {
-          if (part.equals(KEY_NAME)) {
-            continue;
-          }
-          statement.append(
-              String.format(
-                  relationalMeta.getUpsertConflictStatement(),
-                  getQuotName(part),
-                  getQuotName(part)));
-          statement.append(", ");
-        }
+        //        }
 
         statement.delete(statement.length() - 2, statement.length());
 
