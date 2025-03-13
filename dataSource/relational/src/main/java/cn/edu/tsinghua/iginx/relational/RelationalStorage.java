@@ -2487,7 +2487,7 @@ public class RelationalStorage implements IStorage {
           }
         }
 
-        executeBatchInsert(conn, stmt, tableToColumnEntries);
+        executeBatchInsert(databaseName, stmt, tableToColumnEntries);
         for (Pair<String, List<String>> columnEntries : tableToColumnEntries.values()) {
           columnEntries.v.clear();
         }
@@ -2595,7 +2595,7 @@ public class RelationalStorage implements IStorage {
             tableToColumnEntries.put(tableName, new Pair<>(columnKeys, columnValues));
           }
         }
-        executeBatchInsert(conn, stmt, tableToColumnEntries);
+        executeBatchInsert(databaseName, stmt, tableToColumnEntries);
         for (Map.Entry<String, Pair<String, List<String>>> entry :
             tableToColumnEntries.entrySet()) {
           entry.getValue().v.clear();
@@ -2614,7 +2614,9 @@ public class RelationalStorage implements IStorage {
   }
 
   private void executeBatchInsert(
-      Connection conn, Statement stmt, Map<String, Pair<String, List<String>>> tableToColumnEntries)
+      String databaseName,
+      Statement stmt,
+      Map<String, Pair<String, List<String>>> tableToColumnEntries)
       throws SQLException {
     for (Map.Entry<String, Pair<String, List<String>>> entry : tableToColumnEntries.entrySet()) {
       String tableName = entry.getKey();
@@ -2623,41 +2625,88 @@ public class RelationalStorage implements IStorage {
       String[] parts = columnNames.split(", ");
       boolean hasMultipleRows = parts.length != 1;
       StringBuilder statement = new StringBuilder();
-      //      if (engineName.equals("dameng")) {
-      //        Map<String, ColumnField> columnMap = getColumnMap(databaseName, tableName);
-      //        this.batchInsert(conn, databaseName, tableName, columnMap, parts, values);
-      //      } else {
-      // INSERT INTO XXX ("key", XXX, ...) VALUES (XXX, XXX, ...), (XXX, XXX, ...), ...,
-      // (XXX,
-      // XXX, ...) ON CONFLICT ("key") DO UPDATE SET (XXX, ...) = (excluded.XXX, ...);
-
-      statement.append("INSERT INTO ");
-      statement.append(getQuotName(tableName));
-      statement.append(" (");
-      statement.append(getQuotName(KEY_NAME));
-      statement.append(", ");
-      String fullColumnNames = getQuotColumnNames(columnNames);
-      statement.append(fullColumnNames);
-
-      statement.append(") VALUES ");
-      for (String value : values) {
-        statement.append("(");
-        statement.append(value, 0, value.length() - 2);
-        statement.append("), ");
-      }
-      statement.delete(statement.length() - 2, statement.length());
-
-      statement.append(relationalMeta.getUpsertStatement());
-
-      for (String part : parts) {
-        if (part.equals(KEY_NAME)) {
-          continue;
-        }
+      if (engineName.equals("dameng")) {
+        // dameng upsert 需要 merge into
+        statement.append("MERGE INTO ");
+        statement.append(getQuotName(tableName));
+        statement.append(" USING (");
+        // 创建一个包含所有值的源查询
         statement.append(
-            String.format(
-                relationalMeta.getUpsertConflictStatement(), getQuotName(part), getQuotName(part)));
+            getQuotSelectStatements(getColumnMap(databaseName, tableName), parts, values));
+        statement.append(") AS source ON (");
+        statement.append(getQuotName(tableName)).append(".").append(getQuotName(KEY_NAME));
+        statement.append(" = source.").append(getQuotName(KEY_NAME)).append(")");
+
+        // 当匹配时更新
+        statement.append(relationalMeta.getUpsertStatement());
+        for (String part : parts) {
+          if (part.equals(KEY_NAME)) {
+            continue;
+          }
+          statement.append(
+              String.format(
+                  relationalMeta.getUpsertConflictStatement(),
+                  getQuotName(tableName),
+                  getQuotName(part),
+                  getQuotName(part)));
+          statement.append(", ");
+        }
+        statement.delete(statement.length() - 2, statement.length());
+
+        // 当不匹配时插入
+        statement.append(" WHEN NOT MATCHED THEN INSERT (");
+        statement.append(getQuotName(KEY_NAME)).append(", ");
+        for (String part : parts) {
+          if (part.equals(KEY_NAME)) {
+            continue;
+          }
+          statement.append(getQuotName(part)).append(", ");
+        }
+        statement.delete(statement.length() - 2, statement.length());
+
+        statement.append(") VALUES (source.").append(getQuotName(KEY_NAME)).append(", ");
+        for (String part : parts) {
+          if (part.equals(KEY_NAME)) {
+            continue;
+          }
+          statement.append("source.").append(getQuotName(part)).append(", ");
+        }
+        statement.delete(statement.length() - 2, statement.length());
+        statement.append(")");
+      } else {
+        // INSERT INTO XXX ("key", XXX, ...) VALUES (XXX, XXX, ...), (XXX, XXX, ...), ...,
+        // (XXX,
+        // XXX, ...) ON CONFLICT ("key") DO UPDATE SET (XXX, ...) = (excluded.XXX, ...);
+
+        statement.append("INSERT INTO ");
+        statement.append(getQuotName(tableName));
+        statement.append(" (");
+        statement.append(getQuotName(KEY_NAME));
         statement.append(", ");
-        //        }
+        String fullColumnNames = getQuotColumnNames(columnNames);
+        statement.append(fullColumnNames);
+
+        statement.append(") VALUES ");
+        for (String value : values) {
+          statement.append("(");
+          statement.append(value, 0, value.length() - 2);
+          statement.append("), ");
+        }
+        statement.delete(statement.length() - 2, statement.length());
+
+        statement.append(relationalMeta.getUpsertStatement());
+
+        for (String part : parts) {
+          if (part.equals(KEY_NAME)) {
+            continue;
+          }
+          statement.append(
+              String.format(
+                  relationalMeta.getUpsertConflictStatement(),
+                  getQuotName(part),
+                  getQuotName(part)));
+          statement.append(", ");
+        }
 
         statement.delete(statement.length() - 2, statement.length());
 
