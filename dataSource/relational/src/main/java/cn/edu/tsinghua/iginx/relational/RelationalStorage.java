@@ -774,7 +774,6 @@ public class RelationalStorage implements IStorage {
                   relationalMeta.getQueryTableStatement(),
                   getQuotName(KEY_NAME),
                   quotColumnNames,
-                  //                  getTableNameByDB(databaseName, tableName),
                   getQuotName(tableName),
                   filterStr.isEmpty() ? "" : "WHERE " + filterStr,
                   getQuotName(KEY_NAME));
@@ -838,13 +837,11 @@ public class RelationalStorage implements IStorage {
     StringBuilder fullTableName = new StringBuilder();
     if (relationalMeta.isSupportFullJoin()) {
       // 支持全连接，就直接用全连接连接各个表
-      //      fullTableName.append(getTableNameByDB(databaseName, tableNames.get(0)));
       fullTableName.append(getQuotName(tableNames.get(0)));
       for (int i = 1; i < tableNames.size(); i++) {
         fullTableName.insert(0, "(");
         fullTableName
             .append(" FULL OUTER JOIN ")
-            //            .append(getTableNameByDB(databaseName, tableNames.get(i)))
             .append(getQuotName(tableNames.get(i)))
             .append(" ON ");
         for (int j = 0; j < i; j++) {
@@ -1835,7 +1832,6 @@ public class RelationalStorage implements IStorage {
                     relationalMeta.getConcatQueryStatement(),
                     concatKey,
                     fullQuotColumnNames,
-                    //                    getTableNameByDB(databaseName, tableName),
                     getQuotName(tableName),
                     filterStr.isEmpty() ? "" : "WHERE " + filterStr,
                     concatKey);
@@ -1990,7 +1986,6 @@ public class RelationalStorage implements IStorage {
               statement =
                   String.format(
                       relationalMeta.getAlterTableDropColumnStatement(),
-                      //                      getTableNameByDB(databaseName, tableName),
                       getQuotName(tableName),
                       getQuotName(columnName));
               LOGGER.info("[Delete] execute delete: {}", statement);
@@ -2012,7 +2007,6 @@ public class RelationalStorage implements IStorage {
               statement =
                   String.format(
                       relationalMeta.getDeleteTableStatement(),
-                      //                      getTableNameByDB(databaseName, tableName),
                       getQuotName(tableName),
                       getQuotName(columnName),
                       getQuotName(KEY_NAME),
@@ -2368,7 +2362,6 @@ public class RelationalStorage implements IStorage {
           String statement =
               String.format(
                   relationalMeta.getCreateTableStatement(),
-                  //                  getTableNameByDB(storageUnit, tableName),
                   getQuotName(tableName),
                   getQuotName(KEY_NAME),
                   relationalMeta.getDataTypeTransformer().toEngineType(DataType.LONG),
@@ -2382,7 +2375,6 @@ public class RelationalStorage implements IStorage {
             String statement =
                 String.format(
                     relationalMeta.getAlterTableAddColumnStatement(),
-                    //                    getTableNameByDB(storageUnit, tableName),
                     getQuotName(tableName),
                     getQuotName(columnName),
                     relationalMeta.getDataTypeTransformer().toEngineType(dataType));
@@ -2627,57 +2619,6 @@ public class RelationalStorage implements IStorage {
       boolean hasMultipleRows = parts.length != 1;
       StringBuilder statement = new StringBuilder();
       if (engineName.equals("dameng")) {
-        //        // dameng upsert 需要 merge into
-        //        statement.append("MERGE INTO ");
-        //        statement.append(getQuotName(tableName));
-        //        statement.append(" USING (");
-        //        // 创建一个包含所有值的源查询
-        //        statement.append(
-        //            getQuotSelectStatements(getColumnMap(databaseName, tableName), parts,
-        // values));
-        //        statement.append(") AS source ON (");
-        //
-        // statement.append(getQuotName(tableName)).append(".").append(getQuotName(KEY_NAME));
-        //        statement.append(" = source.").append(getQuotName(KEY_NAME)).append(")");
-        //
-        //        // 当匹配时更新
-        //        statement.append(relationalMeta.getUpsertStatement());
-        //        for (String part : parts) {
-        //          if (part.equals(KEY_NAME)) {
-        //            continue;
-        //          }
-        //          statement.append(
-        //              String.format(
-        //                  relationalMeta.getUpsertConflictStatement(),
-        //                  getQuotName(tableName),
-        //                  getQuotName(part),
-        //                  getQuotName(part)));
-        //          statement.append(", ");
-        //        }
-        //        statement.delete(statement.length() - 2, statement.length());
-        //
-        //        // 当不匹配时插入
-        //        statement.append(" WHEN NOT MATCHED THEN INSERT (");
-        //        statement.append(getQuotName(KEY_NAME)).append(", ");
-        //        for (String part : parts) {
-        //          if (part.equals(KEY_NAME)) {
-        //            continue;
-        //          }
-        //          statement.append(getQuotName(part)).append(", ");
-        //        }
-        //        statement.delete(statement.length() - 2, statement.length());
-        //
-        //        statement.append(") VALUES (source.").append(getQuotName(KEY_NAME)).append(", ");
-        //        for (String part : parts) {
-        //          if (part.equals(KEY_NAME)) {
-        //            continue;
-        //          }
-        //          statement.append("source.").append(getQuotName(part)).append(", ");
-        //        }
-        //        statement.delete(statement.length() - 2, statement.length());
-        //        statement.append(")");
-        //        statement.append(";");
-        //        stmt.addBatch(statement.toString());
         Map<String, ColumnField> columnMap = getColumnMap(databaseName, tableName);
         this.batchInsert(conn, tableName, columnMap, parts, values);
       } else {
@@ -2818,9 +2759,6 @@ public class RelationalStorage implements IStorage {
       Map<String, ColumnField> columnMap,
       String[] parts,
       List<String> values) {
-    //    String selectSql = "SELECT %s FROM %s.%s WHERE %s IN (%s)";
-    //    String insertSql = "INSERT INTO %s.%s ( %s ) VALUES ( %s )";
-    //    String updateSql = "UPDATE %s.%s SET %s WHERE %s = %s";
     Map<String, String[]> valueMap = new HashMap<>();
     for (String value : values) {
       String csvLine = value.substring(0, value.length() - 2);
@@ -2875,7 +2813,6 @@ public class RelationalStorage implements IStorage {
                     relationalMeta.getQueryTableStatement(),
                     getQuotName(KEY_NAME),
                     1,
-                    //                    getTableNameByDB(databaseName, tableName),
                     getQuotName(tableName),
                     " WHERE "
                         + getQuotName(KEY_NAME)
@@ -2906,7 +2843,6 @@ public class RelationalStorage implements IStorage {
           conn.prepareStatement(
               String.format(
                   relationalMeta.getInsertTableStatement(),
-                  //                  getTableNameByDB(databaseName, tableName),
                   getQuotName(tableName),
                   getQuotName(KEY_NAME) + "," + partStr,
                   placeHolder.append("?")));
@@ -3031,16 +2967,6 @@ public class RelationalStorage implements IStorage {
           stmt.setString(index, value);
         }
     }
-  }
-
-  private String getTableNameByDB(String databaseName, String name) {
-    String engineName = meta.getExtraParams().get("engine");
-    //    if (engineName.equals("dameng")) {
-    //      name = getQuotName(databaseName) + SEPARATOR + getQuotName(name);
-    //    } else {
-    name = getQuotName(name);
-    //    }
-    return name;
   }
 
   private boolean isSumResultDouble(Expression expr, List<Column> columns) {
