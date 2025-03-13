@@ -844,13 +844,13 @@ public class RelationalStorage implements IStorage {
     if (relationalMeta.isSupportFullJoin()) {
       // 支持全连接，就直接用全连接连接各个表
       //      fullTableName.append(getTableNameByDB(databaseName, tableNames.get(0)));
-      fullTableName.append(tableNames.get(0));
+      fullTableName.append(getQuotName(tableNames.get(0)));
       for (int i = 1; i < tableNames.size(); i++) {
         fullTableName.insert(0, "(");
         fullTableName
             .append(" FULL OUTER JOIN ")
             //            .append(getTableNameByDB(databaseName, tableNames.get(i)))
-            .append(tableNames.get(i))
+            .append(getQuotName(tableNames.get(i)))
             .append(" ON ");
         for (int j = 0; j < i; j++) {
           fullTableName
@@ -2910,7 +2910,6 @@ public class RelationalStorage implements IStorage {
           conn.prepareStatement(
               String.format(
                   relationalMeta.getUpdateTableStatement(),
-                  //                  getTableNameByDB(databaseName, tableName),
                   getQuotName(tableName),
                   placeHolder.substring(0, placeHolder.length() - 1),
                   getQuotName(KEY_NAME),
