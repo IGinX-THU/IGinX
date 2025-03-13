@@ -2981,11 +2981,11 @@ public class RelationalStorage implements IStorage {
 
   private String getTableNameByDB(String databaseName, String name) {
     String engineName = meta.getExtraParams().get("engine");
-    if (engineName.equals("dameng")) {
-      name = getQuotName(databaseName) + SEPARATOR + getQuotName(name);
-    } else {
-      name = getQuotName(name);
-    }
+    //    if (engineName.equals("dameng")) {
+    //      name = getQuotName(databaseName) + SEPARATOR + getQuotName(name);
+    //    } else {
+    name = getQuotName(name);
+    //    }
     return name;
   }
 
