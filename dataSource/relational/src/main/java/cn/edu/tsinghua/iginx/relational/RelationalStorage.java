@@ -2673,6 +2673,8 @@ public class RelationalStorage implements IStorage {
         }
         statement.delete(statement.length() - 2, statement.length());
         statement.append(")");
+        statement.append(";");
+        stmt.addBatch(statement.toString());
       } else {
         // INSERT INTO XXX ("key", XXX, ...) VALUES (XXX, XXX, ...), (XXX, XXX, ...), ...,
         // (XXX,
