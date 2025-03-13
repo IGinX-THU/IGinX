@@ -447,8 +447,4 @@ public class RelationQueryRowStream implements RowStream {
     }
     return null;
   }
-
-  private String getTableName(String fullColumnName) {
-    return fullColumnName.substring(0, fullColumnName.lastIndexOf(SEPARATOR));
-  }
 }
