@@ -215,6 +215,9 @@ public class RelationQueryRowStream implements RowStream {
         } else {
           if (isAgg && (engine.equals("dameng")) && !path.contains(SEPARATOR)) {
             field = new Field(tableName + SEPARATOR + path, type, namesAndTags.v);
+            LOGGER.info("field: {}", field);
+            LOGGER.info("path: {}", path);
+            LOGGER.info("tableName: {}", tableName);
           } else {
             field = new Field(path, type, namesAndTags.v);
           }
