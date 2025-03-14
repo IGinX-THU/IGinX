@@ -19,10 +19,10 @@ jobs:
     #        uses: ./.github/workflows/case-regression.yml
     #        with:
     #            metadata-matrix: '["zookeeper"]'
-    #    standalone-test:
-    #        uses: ./.github/workflows/standalone-test.yml
-    #        with:
-    #            metadata-matrix: '["zookeeper"]'
+    standalone-test:
+        uses: ./.github/workflows/standalone-test.yml
+        with:
+            metadata-matrix: '["zookeeper"]'
     #    standalone-test-no-optimizer:
     #        uses: ./.github/workflows/standalone-test-no-optimizer.yml
     #        with:
@@ -140,7 +140,7 @@ jobs:
             #            - unit-test
             #            - unit-mds
             #            - case-regression
-            #            - standalone-test
+            - standalone-test
             #            - standalone-test-no-optimizer
             #            - db-ce
             #            - db-ce-no-optimizer
