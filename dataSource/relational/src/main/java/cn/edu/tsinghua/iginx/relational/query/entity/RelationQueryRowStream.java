@@ -172,7 +172,6 @@ public class RelationQueryRowStream implements RowStream {
           isPushDown = true;
         }
 
-        LOGGER.info("columnName: {}", columnName);
         if (!relationalMeta.isSupportFullJoin() && isPushDown) {
           System.out.println(columnName);
           RelationSchema relationSchema =
@@ -188,7 +187,6 @@ public class RelationQueryRowStream implements RowStream {
           this.fullKeyName = resultSetMetaData.getColumnName(j);
           continue;
         }
-        LOGGER.info("columnName: {}", columnName);
         Pair<String, Map<String, String>> namesAndTags = splitFullName(columnName);
         LOGGER.info("namesAndTags: {}", namesAndTags);
         Field field;
@@ -209,14 +207,16 @@ public class RelationQueryRowStream implements RowStream {
           path = (isAgg ? "" : tableName + SEPARATOR) + namesAndTags.k;
         }
 
+        // dameng引擎下，如果是聚合查询，需要将列名加上表名前缀
+        // if (isAgg && (engine.equals("dameng")) && !path.contains(SEPARATOR)) {
+        if (isAgg && (engine.equals("dameng"))) {
+          path = tableName + SEPARATOR + path;
+        }
+
         if (isAgg && fullName2Name.containsKey(path)) {
           field = new Field(fullName2Name.get(path), path, type, namesAndTags.v);
         } else {
-          if (isAgg && (engine.equals("dameng")) && !path.contains(SEPARATOR)) {
-            field = new Field(tableName + SEPARATOR + path, type, namesAndTags.v);
-          } else {
-            field = new Field(path, type, namesAndTags.v);
-          }
+          field = new Field(path, type, namesAndTags.v);
           LOGGER.info("field: {}", field);
           LOGGER.info("path: {}", path);
           LOGGER.info("tableName: {}", tableName);
