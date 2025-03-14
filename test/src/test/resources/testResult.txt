@@ -4,4 +4,3 @@ test IT name : UserPermissionIT
 test IT name : DataSourceIT
  test  -- Success !
 test IT name : SQLSessionIT
- test  -- Faile  : 0
