@@ -213,11 +213,11 @@ public class RelationQueryRowStream implements RowStream {
         if (isAgg && fullName2Name.containsKey(path)) {
           field = new Field(fullName2Name.get(path), path, type, namesAndTags.v);
         } else {
-          //          if (isAgg && (engine.equals("dameng")) && !path.contains(SEPARATOR)) {
-          //            field = new Field(tableName + SEPARATOR + path, type, namesAndTags.v);
-          //          } else {
-          field = new Field(path, type, namesAndTags.v);
-          //          }
+          if (isAgg && (engine.equals("dameng")) && !path.contains(SEPARATOR)) {
+            field = new Field(tableName + SEPARATOR + path, type, namesAndTags.v);
+          } else {
+            field = new Field(path, type, namesAndTags.v);
+          }
         }
 
         if (filterByTags && !TagKVUtils.match(namesAndTags.v, tagFilter)) {

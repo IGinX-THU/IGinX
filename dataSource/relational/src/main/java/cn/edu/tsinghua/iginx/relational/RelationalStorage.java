@@ -126,12 +126,7 @@ public class RelationalStorage implements IStorage {
     if (dataSource != null) {
       try {
         Connection conn;
-        //        if (engineName.equals("dameng")) {
-        //          // 使用username和password连接
-        //          conn = DriverManager.getConnection(getUrl(databaseName, meta));
-        //        } else {
         conn = dataSource.getConnection();
-        //        }
         return conn;
       } catch (SQLException e) {
         LOGGER.error("Cannot get connection for database {}", databaseName, e);
@@ -930,7 +925,7 @@ public class RelationalStorage implements IStorage {
 
     if (concatList.size() == 1) {
       if (engineName.equals("dameng") && concatList.get(0).size() == 1) {
-        return String.format(" CONCAT(%s, \'\') ", concatList.get(0).get(0));
+        return String.format(" CONCAT(%s, '') ", concatList.get(0).get(0));
       } else {
         return String.format(" CONCAT(%s) ", String.join(", ", concatList.get(0)));
       }
@@ -940,7 +935,7 @@ public class RelationalStorage implements IStorage {
     concat.append(" CONCAT(");
     for (int i = 0; i < concatList.size(); i++) {
       if (engineName.equals("dameng") && concatList.get(i).size() == 1) {
-        concat.append(String.format(" CONCAT(%s, \'\') ", concatList.get(i).get(0)));
+        concat.append(String.format(" CONCAT(%s, '') ", concatList.get(i).get(0)));
       } else {
         concat.append(String.format(" CONCAT(%s) ", String.join(", ", concatList.get(i))));
       }
