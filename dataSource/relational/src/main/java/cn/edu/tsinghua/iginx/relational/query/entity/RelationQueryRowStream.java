@@ -208,8 +208,7 @@ public class RelationQueryRowStream implements RowStream {
         }
 
         // dameng引擎下，如果是聚合查询，需要将列名加上表名前缀
-        // if (isAgg && (engine.equals("dameng")) && !path.contains(SEPARATOR)) {
-        if (isAgg && (engine.equals("dameng"))) {
+        if (isAgg && (engine.equals("dameng")) && !path.contains(SEPARATOR)) {
           path = tableName + SEPARATOR + path;
         }
 
@@ -217,9 +216,6 @@ public class RelationQueryRowStream implements RowStream {
           field = new Field(fullName2Name.get(path), path, type, namesAndTags.v);
         } else {
           field = new Field(path, type, namesAndTags.v);
-          LOGGER.info("field: {}", field);
-          LOGGER.info("path: {}", path);
-          LOGGER.info("tableName: {}", tableName);
         }
 
         if (filterByTags && !TagKVUtils.match(namesAndTags.v, tagFilter)) {
