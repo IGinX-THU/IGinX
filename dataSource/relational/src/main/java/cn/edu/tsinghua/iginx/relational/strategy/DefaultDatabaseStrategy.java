@@ -42,6 +42,8 @@ public class DefaultDatabaseStrategy implements DatabaseStrategy {
 
   @Override
   public String getConnectUrl(StorageEngineMeta meta) {
+    LOGGER.info("meta: {}", meta);
+    LOGGER.info("meta.getExtraParams(): {}", meta.getExtraParams());
     Map<String, String> extraParams = meta.getExtraParams();
     String username = extraParams.get(USERNAME);
     String password = extraParams.get(PASSWORD);

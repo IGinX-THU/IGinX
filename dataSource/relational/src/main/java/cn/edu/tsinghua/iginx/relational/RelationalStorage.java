@@ -201,6 +201,8 @@ public class RelationalStorage implements IStorage {
   }
 
   public String getConnectUrl() {
+    LOGGER.info("get connect url");
+    LOGGER.info("meta: {}", meta);
     return dbStrategy.getConnectUrl(meta);
     // Map<String, String> extraParams = meta.getExtraParams();
     // String username = extraParams.get(USERNAME);
