@@ -28,12 +28,15 @@ import java.sql.*;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DamengDatabaseStrategy implements DatabaseStrategy {
 
   private static final String USERNAME = "username";
   private static final String PASSWORD = "password";
   private static final String KEY_NAME = "key";
+  private static final Logger LOGGER = LoggerFactory.getLogger(DamengDatabaseStrategy.class);
 
   @Override
   public String getUrl(String databaseName, StorageEngineMeta meta) {

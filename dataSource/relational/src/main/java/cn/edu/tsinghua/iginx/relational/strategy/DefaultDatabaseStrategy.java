@@ -27,11 +27,14 @@ import cn.edu.tsinghua.iginx.utils.Pair;
 import java.sql.*;
 import java.util.List;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DefaultDatabaseStrategy implements DatabaseStrategy {
 
   private static final String USERNAME = "username";
   private static final String PASSWORD = "password";
+  private static final Logger LOGGER = LoggerFactory.getLogger(DefaultDatabaseStrategy.class);
 
   @Override
   public String getUrl(String databaseName, StorageEngineMeta meta) {
