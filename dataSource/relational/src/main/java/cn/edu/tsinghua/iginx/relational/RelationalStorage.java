@@ -236,7 +236,7 @@ public class RelationalStorage implements IStorage {
       throw new StorageInitializationException("cannot build relational meta: ", e);
     }
     engineName = meta.getExtraParams().get("engine");
-    dbStrategy = DatabaseStrategyFactory.getStrategy(engineName);
+    dbStrategy = DatabaseStrategyFactory.getStrategy(engineName, relationalMeta);
     if (!testConnection(this.meta)) {
       throw new StorageInitializationException("cannot connect to " + meta.toString());
     }
@@ -2670,7 +2670,7 @@ public class RelationalStorage implements IStorage {
     //     statement.append(" (");
     //     statement.append(getQuotName(KEY_NAME));
     //     statement.append(", ");
-    //     String fullColumnNames = getQuotColumnNames(columnNames);
+    // String fullColumnNames = getQuotColumnNames(columnNames);
     //     statement.append(fullColumnNames);
 
     //     statement.append(") VALUES ");

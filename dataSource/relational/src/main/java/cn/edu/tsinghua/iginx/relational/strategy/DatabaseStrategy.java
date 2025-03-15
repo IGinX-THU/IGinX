@@ -29,6 +29,8 @@ import java.util.List;
 import java.util.Map;
 
 public interface DatabaseStrategy {
+  String getQuotName(String name);
+
   String getUrl(String databaseName, StorageEngineMeta meta);
 
   String getConnectUrl(StorageEngineMeta meta);

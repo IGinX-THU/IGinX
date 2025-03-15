@@ -20,8 +20,13 @@
 package cn.edu.tsinghua.iginx.relational.strategy;
 
 import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
+import cn.edu.tsinghua.iginx.relational.meta.AbstractRelationalMeta;
 
 public class MySQLDatabaseStrategy extends DefaultDatabaseStrategy {
+  MySQLDatabaseStrategy(AbstractRelationalMeta relationalMeta) {
+    super(relationalMeta);
+  }
+
   @Override
   public String getAvgCastExpression(Expression param) {
     if (param.getType() == Expression.ExpressionType.Base) {

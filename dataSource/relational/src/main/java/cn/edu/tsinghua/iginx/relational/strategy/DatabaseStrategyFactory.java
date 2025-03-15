@@ -19,19 +19,22 @@
  */
 package cn.edu.tsinghua.iginx.relational.strategy;
 
+import cn.edu.tsinghua.iginx.relational.meta.AbstractRelationalMeta;
+
 public class DatabaseStrategyFactory {
-  public static DatabaseStrategy getStrategy(String engineName) {
+  public static DatabaseStrategy getStrategy(
+      String engineName, AbstractRelationalMeta relationalMeta) {
     if (engineName == null) {
-      return new DefaultDatabaseStrategy();
+      return new DefaultDatabaseStrategy(relationalMeta);
     }
 
     switch (engineName.toLowerCase()) {
       case "dameng":
-        return new DamengDatabaseStrategy();
+        return new DamengDatabaseStrategy(relationalMeta);
       case "mysql":
-        return new MySQLDatabaseStrategy();
+        return new MySQLDatabaseStrategy(relationalMeta);
       default:
-        return new DefaultDatabaseStrategy();
+        return new DefaultDatabaseStrategy(relationalMeta);
     }
   }
 }

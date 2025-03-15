@@ -19,6 +19,8 @@
  */
 package cn.edu.tsinghua.iginx.relational.strategy;
 
+import static cn.edu.tsinghua.iginx.relational.tools.Constants.*;
+
 import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.relational.meta.AbstractRelationalMeta;
@@ -32,11 +34,18 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class DamengDatabaseStrategy implements DatabaseStrategy {
-
-  private static final String USERNAME = "username";
-  private static final String PASSWORD = "password";
-  private static final String KEY_NAME = "key";
   private static final Logger LOGGER = LoggerFactory.getLogger(DamengDatabaseStrategy.class);
+
+  private AbstractRelationalMeta relationalMeta;
+
+  public DamengDatabaseStrategy(AbstractRelationalMeta relationalMeta) {
+    this.relationalMeta = relationalMeta;
+  }
+
+  @Override
+  public String getQuotName(String name) {
+    return String.format("%s%s%s", relationalMeta.getQuote(), name, relationalMeta.getQuote());
+  }
 
   @Override
   public String getUrl(String databaseName, StorageEngineMeta meta) {
@@ -52,8 +61,6 @@ public class DamengDatabaseStrategy implements DatabaseStrategy {
 
   @Override
   public String getConnectUrl(StorageEngineMeta meta) {
-    LOGGER.info("meta: {}", meta);
-    LOGGER.info("meta.getExtraParams(): {}", meta.getExtraParams());
     Map<String, String> extraParams = meta.getExtraParams();
     String username = extraParams.get(USERNAME);
     String password = extraParams.get(PASSWORD);
