@@ -2826,6 +2826,9 @@ public class RelationalStorage implements IStorage {
       }
       mergeSql.append(")");
 
+      // 打印生成的 SQL 语句
+      LOGGER.info("Generated MERGE SQL: {}", mergeSql.toString());
+
       PreparedStatement mergeStmt = conn.prepareStatement(mergeSql.toString());
       conn.setAutoCommit(false); // 关闭自动提交
       mergeStmt.executeUpdate();
