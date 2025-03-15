@@ -126,6 +126,7 @@ public class DefaultDatabaseStrategy implements DatabaseStrategy {
         statement.append(
             String.format(
                 relationalMeta.getUpsertConflictStatement(), getQuotName(part), getQuotName(part)));
+        statement.append(", ");
       }
       statement.delete(statement.length() - 2, statement.length());
       statement.append(";");

@@ -201,8 +201,6 @@ public class RelationalStorage implements IStorage {
   }
 
   public String getConnectUrl() {
-    LOGGER.info("get connect url");
-    LOGGER.info("meta: {}", meta);
     return dbStrategy.getConnectUrl(meta);
     // Map<String, String> extraParams = meta.getExtraParams();
     // String username = extraParams.get(USERNAME);
@@ -2670,7 +2668,7 @@ public class RelationalStorage implements IStorage {
     //     statement.append(" (");
     //     statement.append(getQuotName(KEY_NAME));
     //     statement.append(", ");
-    // String fullColumnNames = getQuotColumnNames(columnNames);
+    //     String fullColumnNames = getQuotColumnNames(columnNames);
     //     statement.append(fullColumnNames);
 
     //     statement.append(") VALUES ");
