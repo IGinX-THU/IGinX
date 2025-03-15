@@ -73,7 +73,7 @@ public class DefaultDatabaseStrategy implements DatabaseStrategy {
   }
 
   @Override
-  public String getSchemaPattern(String databaseName, AbstractRelationalMeta relationalMeta) {
+  public String getSchemaPattern(String databaseName) {
     return relationalMeta.getSchemaPattern();
   }
 

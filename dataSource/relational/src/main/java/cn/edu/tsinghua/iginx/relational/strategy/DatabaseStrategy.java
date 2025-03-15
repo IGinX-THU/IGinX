@@ -21,7 +21,6 @@ package cn.edu.tsinghua.iginx.relational.strategy;
 
 import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
-import cn.edu.tsinghua.iginx.relational.meta.AbstractRelationalMeta;
 import cn.edu.tsinghua.iginx.relational.tools.ColumnField;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.sql.*;
@@ -37,7 +36,7 @@ public interface DatabaseStrategy {
 
   String getDatabaseNameFromResultSet(ResultSet rs) throws SQLException;
 
-  String getSchemaPattern(String databaseName, AbstractRelationalMeta relationalMeta);
+  String getSchemaPattern(String databaseName);
 
   String formatConcatStatement(List<String> columns);
 
