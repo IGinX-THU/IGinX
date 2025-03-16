@@ -215,9 +215,6 @@ public class RelationQueryRowStream implements RowStream {
           field = new Field(path, type, namesAndTags.v);
         }
 
-
-        
-
         if (filterByTags && !TagKVUtils.match(namesAndTags.v, tagFilter)) {
           continue;
         }
