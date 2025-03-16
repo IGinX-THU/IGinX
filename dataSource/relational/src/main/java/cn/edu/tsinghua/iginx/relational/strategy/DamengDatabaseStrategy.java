@@ -288,11 +288,6 @@ public class DamengDatabaseStrategy implements DatabaseStrategy {
     return "%s(%s)";
   }
 
-  @Override
-  public boolean needSpecialBatchInsert() {
-    return true;
-  }
-
   private Map<String, ColumnField> getColumnMap(
       Connection conn, String databaseName, String tableName) throws SQLException {
     DatabaseMetaData metaData = conn.getMetaData();
@@ -310,17 +305,6 @@ public class DamengDatabaseStrategy implements DatabaseStrategy {
 
     rs.close();
     return columnMap;
-  }
-
-  @Override
-  public void batchInsert(
-      Connection conn,
-      String tableName,
-      Map<String, ColumnField> columnMap,
-      String[] parts,
-      List<String> values)
-      throws SQLException {
-    // TODO: Implement this method
   }
 
   private void setValue(PreparedStatement stmt, int index, String value, int types)

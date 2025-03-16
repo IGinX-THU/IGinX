@@ -21,7 +21,6 @@ package cn.edu.tsinghua.iginx.relational.strategy;
 
 import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
-import cn.edu.tsinghua.iginx.relational.tools.ColumnField;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.sql.*;
 import java.util.List;
@@ -49,14 +48,4 @@ public interface DatabaseStrategy {
       throws SQLException;
 
   String getAvgCastExpression(Expression param);
-
-  boolean needSpecialBatchInsert();
-
-  void batchInsert(
-      Connection conn,
-      String tableName,
-      Map<String, ColumnField> columnMap,
-      String[] parts,
-      List<String> values)
-      throws SQLException;
 }

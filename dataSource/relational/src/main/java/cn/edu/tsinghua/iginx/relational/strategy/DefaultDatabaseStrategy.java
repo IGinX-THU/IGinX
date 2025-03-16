@@ -24,7 +24,6 @@ import static cn.edu.tsinghua.iginx.relational.tools.Constants.*;
 import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.relational.meta.AbstractRelationalMeta;
-import cn.edu.tsinghua.iginx.relational.tools.ColumnField;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.sql.*;
 import java.util.List;
@@ -139,22 +138,5 @@ public class DefaultDatabaseStrategy implements DatabaseStrategy {
   @Override
   public String getAvgCastExpression(Expression param) {
     return "%s(%s)";
-  }
-
-  @Override
-  public boolean needSpecialBatchInsert() {
-    return false;
-  }
-
-  @Override
-  public void batchInsert(
-      Connection conn,
-      String tableName,
-      Map<String, ColumnField> columnMap,
-      String[] parts,
-      List<String> values)
-      throws SQLException {
-    // 默认实现为空，子类需要覆盖此方法
-    throw new UnsupportedOperationException("This database does not support special batch insert");
   }
 }
