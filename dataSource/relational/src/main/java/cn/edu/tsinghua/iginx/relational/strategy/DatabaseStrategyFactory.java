@@ -25,7 +25,7 @@ public class DatabaseStrategyFactory {
   public static DatabaseStrategy getStrategy(
       String engineName, AbstractRelationalMeta relationalMeta) {
     if (engineName == null) {
-      return new DefaultDatabaseStrategy(relationalMeta);
+      throw new IllegalArgumentException("Engine name cannot be null");
     }
 
     switch (engineName.toLowerCase()) {
@@ -33,8 +33,10 @@ public class DatabaseStrategyFactory {
         return new DamengDatabaseStrategy(relationalMeta);
       case "mysql":
         return new MySQLDatabaseStrategy(relationalMeta);
+      case "postgresql":
+        return new PostgreSQLDatabaseStrategy(relationalMeta);
       default:
-        return new DefaultDatabaseStrategy(relationalMeta);
+        throw new UnsupportedOperationException("Unsupported engine: " + engineName);
     }
   }
 }

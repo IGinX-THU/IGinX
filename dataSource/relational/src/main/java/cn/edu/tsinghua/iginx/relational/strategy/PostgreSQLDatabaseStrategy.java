@@ -19,19 +19,12 @@
  */
 package cn.edu.tsinghua.iginx.relational.strategy;
 
-import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
+import static cn.edu.tsinghua.iginx.relational.tools.Constants.*;
+
 import cn.edu.tsinghua.iginx.relational.meta.AbstractRelationalMeta;
 
-public class MySQLDatabaseStrategy extends AbstractDatabaseStrategy {
-  MySQLDatabaseStrategy(AbstractRelationalMeta relationalMeta) {
+public class PostgreSQLDatabaseStrategy extends AbstractDatabaseStrategy {
+  public PostgreSQLDatabaseStrategy(AbstractRelationalMeta relationalMeta) {
     super(relationalMeta);
-  }
-
-  @Override
-  public String getAvgCastExpression(Expression param) {
-    if (param.getType() == Expression.ExpressionType.Base) {
-      return "%s(CAST(%s AS DECIMAL(34, 16)))";
-    }
-    return super.getAvgCastExpression(param);
   }
 }

@@ -26,17 +26,16 @@ import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.relational.meta.AbstractRelationalMeta;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.sql.*;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-public class DefaultDatabaseStrategy implements DatabaseStrategy {
-  private static final Logger LOGGER = LoggerFactory.getLogger(DefaultDatabaseStrategy.class);
-
+public abstract class AbstractDatabaseStrategy implements DatabaseStrategy {
   private AbstractRelationalMeta relationalMeta;
 
-  public DefaultDatabaseStrategy(AbstractRelationalMeta relationalMeta) {
+  public AbstractDatabaseStrategy(AbstractRelationalMeta relationalMeta) {
     this.relationalMeta = relationalMeta;
   }
 
