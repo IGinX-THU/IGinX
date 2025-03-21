@@ -186,6 +186,7 @@ public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
   protected void testQuerySpecialHistoryData() {
     testProject();
     testFilter();
+    testProjectNonexistent();
   }
 
   private static void testProject() {
@@ -314,6 +315,50 @@ public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
             + "+-----------+------------------------------------+\n"
             + "Total line number = 3\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
+
+    // wildcard match
+    statement = "select _id from d0.*;";
+    expect =
+        "ResultSets:\n"
+            + "+-----------+------------------------------------+\n"
+            + "|        key|                           d0.c0._id|\n"
+            + "+-----------+------------------------------------+\n"
+            + "| 4294967296|ObjectId(\"652f4577a162014f74419b7f\")|\n"
+            + "| 8589934592|ObjectId(\"652f4577a162014f74419b80\")|\n"
+            + "|12884901888|ObjectId(\"652f4577a162014f74419b81\")|\n"
+            + "+-----------+------------------------------------+\n"
+            + "Total line number = 3\n";
+    SQLTestTools.executeAndCompare(session, statement, expect);
+
+    statement = "select _id from *.c1;";
+    expect =
+        "ResultSets:\n"
+            + "+-----------+------------------------------------+\n"
+            + "|        key|                           d1.c1._id|\n"
+            + "+-----------+------------------------------------+\n"
+            + "| 4294967296|ObjectId(\"000000000000000000000000\")|\n"
+            + "| 8589934592|ObjectId(\"000000000000000000000001\")|\n"
+            + "|12884901888|ObjectId(\"000000000000000000000002\")|\n"
+            + "|17179869184|ObjectId(\"000000000000000000000003\")|\n"
+            + "|21474836480|ObjectId(\"000000000000000000000004\")|\n"
+            + "+-----------+------------------------------------+\n"
+            + "Total line number = 5\n";
+    SQLTestTools.executeAndCompare(session, statement, expect);
+
+    statement = "select _id from *;";
+    expect =
+        "ResultSets:\n"
+            + "+-----------+------------------------------------+------------------------------------+\n"
+            + "|        key|                           d0.c0._id|                           d1.c1._id|\n"
+            + "+-----------+------------------------------------+------------------------------------+\n"
+            + "| 4294967296|ObjectId(\"652f4577a162014f74419b7f\")|ObjectId(\"000000000000000000000000\")|\n"
+            + "| 8589934592|ObjectId(\"652f4577a162014f74419b80\")|ObjectId(\"000000000000000000000001\")|\n"
+            + "|12884901888|ObjectId(\"652f4577a162014f74419b81\")|ObjectId(\"000000000000000000000002\")|\n"
+            + "|17179869184|                                null|ObjectId(\"000000000000000000000003\")|\n"
+            + "|21474836480|                                null|ObjectId(\"000000000000000000000004\")|\n"
+            + "+-----------+------------------------------------+------------------------------------+\n"
+            + "Total line number = 5\n";
+    SQLTestTools.executeAndCompare(session, statement, expect);
   }
 
   private void testFilter() {
@@ -402,6 +447,18 @@ public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
             + "|21474836480|    5th|\n"
             + "+-----------+-------+\n"
             + "Total line number = 3\n";
+    SQLTestTools.executeAndCompare(session, statement, expect);
+
+    statement = "select s from d1.c1 where s LIKE '.*th' and key < 21474836480;";
+    expect =
+        "ResultSets:\n"
+            + "+-----------+-------+\n"
+            + "|        key|d1.c1.s|\n"
+            + "+-----------+-------+\n"
+            + "|12884901888|    3th|\n"
+            + "|17179869184|    4th|\n"
+            + "+-----------+-------+\n"
+            + "Total line number = 2\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
 
     statement = "select * from d1.c1 where _id = 'ObjectId(\"000000000000000000000003\")';";
@@ -547,5 +604,25 @@ public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
             + "+----------+-------------------+\n"
             + "Total line number = 4\n";
     SQLTestTools.executeAndCompare(session, statement, expected);
+  }
+
+  protected void testProjectNonexistent() {
+    // field name
+    String statement = "select key, area, category_id from d0.c0.annotations0;";
+    String expect =
+        "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
+    SQLTestTools.executeAndCompare(session, statement, expect);
+
+    statement = "select key, area, category_id from d0.c00.annotations;";
+    expect = "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
+    SQLTestTools.executeAndCompare(session, statement, expect);
+
+    statement = "select key, area, category_id from d00.c0.annotations0;";
+    expect = "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
+    SQLTestTools.executeAndCompare(session, statement, expect);
+
+    statement = "select key, area0, category_id0 from d00.c00.annotations00;";
+    expect = "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
+    SQLTestTools.executeAndCompare(session, statement, expect);
   }
 }

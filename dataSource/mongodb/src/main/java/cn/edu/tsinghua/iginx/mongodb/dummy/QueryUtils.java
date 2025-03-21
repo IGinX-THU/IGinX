@@ -60,10 +60,8 @@ public class QueryUtils {
   }
 
   static Map<String, PathTree> getDatabaseTrees(MongoClient client, PathTree pathTree) {
-    if (pathTree.hasWildcardChild()) {
-      List<String> names = MongoDBStorage.getDatabaseNames(client);
-      pathTree.eliminateWildcardChild(names);
-    }
+    List<String> names = MongoDBStorage.getDatabaseNames(client);
+    pathTree.project(names);
     return pathTree.getChildren();
   }
 
@@ -87,11 +85,8 @@ public class QueryUtils {
   }
 
   static Map<String, PathTree> getCollectionTrees(MongoDatabase database, PathTree pathTree) {
-    if (pathTree.hasWildcardChild()) {
-      List<String> names = database.listCollectionNames().into(new ArrayList<>());
-      pathTree.eliminateWildcardChild(names);
-    }
-
+    List<String> names = database.listCollectionNames().into(new ArrayList<>());
+    pathTree.project(names);
     return pathTree.getChildren();
   }
 
