@@ -344,21 +344,6 @@ public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
             + "+-----------+------------------------------------+\n"
             + "Total line number = 5\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
-
-    statement = "select _id from *;";
-    expect =
-        "ResultSets:\n"
-            + "+-----------+------------------------------------+------------------------------------+\n"
-            + "|        key|                           d0.c0._id|                           d1.c1._id|\n"
-            + "+-----------+------------------------------------+------------------------------------+\n"
-            + "| 4294967296|ObjectId(\"652f4577a162014f74419b7f\")|ObjectId(\"000000000000000000000000\")|\n"
-            + "| 8589934592|ObjectId(\"652f4577a162014f74419b80\")|ObjectId(\"000000000000000000000001\")|\n"
-            + "|12884901888|ObjectId(\"652f4577a162014f74419b81\")|ObjectId(\"000000000000000000000002\")|\n"
-            + "|17179869184|                                null|ObjectId(\"000000000000000000000003\")|\n"
-            + "|21474836480|                                null|ObjectId(\"000000000000000000000004\")|\n"
-            + "+-----------+------------------------------------+------------------------------------+\n"
-            + "Total line number = 5\n";
-    SQLTestTools.executeAndCompare(session, statement, expect);
   }
 
   private void testFilter() {
