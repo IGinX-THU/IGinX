@@ -17,13 +17,21 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package cn.edu.tsinghua.iginx.relational.datatype.transformer;
+package cn.edu.tsinghua.iginx.relational.strategy;
 
-import cn.edu.tsinghua.iginx.thrift.DataType;
+import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
+import cn.edu.tsinghua.iginx.relational.meta.AbstractRelationalMeta;
 
-public interface IDataTypeTransformer {
+public class MySQLDatabaseStrategy extends AbstractDatabaseStrategy {
+  MySQLDatabaseStrategy(AbstractRelationalMeta relationalMeta) {
+    super(relationalMeta);
+  }
 
-  public DataType fromEngineType(String dataType, String... parameters);
-
-  public String toEngineType(DataType dataType);
+  @Override
+  public String getAvgCastExpression(Expression param) {
+    if (param.getType() == Expression.ExpressionType.Base) {
+      return "%s(CAST(%s AS DECIMAL(34, 16)))";
+    }
+    return super.getAvgCastExpression(param);
+  }
 }
