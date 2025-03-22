@@ -19,6 +19,8 @@
  */
 package cn.edu.tsinghua.iginx.engine.shared.function.manager;
 
+import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import javax.validation.constraints.NotNull;
@@ -63,5 +65,42 @@ public class ThreadInterpreterManager {
   public static <T> T executeWithInterpreterAndReturn(Function<PythonInterpreter, T> action) {
     PythonInterpreter interpreter = getInterpreter();
     return action.apply(interpreter);
+  }
+
+  @SuppressWarnings("unchecked")
+  public static <T> T invokeMethodWithTimeout(
+      long timeout,
+      String obj,
+      String function,
+      List<List<Object>> data,
+      List<Object> args,
+      Map<String, Object> kvargs) {
+    if (timeout <= 0) {
+      return invokeMethod(obj, function, data, args, kvargs);
+    }
+    return (T)
+        executeWithInterpreterAndReturn(
+            interpreter -> {
+              // Wrap the original object with TimeoutSafeWrapper.
+              // All function calls on the wrapped instance will be automatically
+              // managed with a timeout.
+              interpreter.exec("from timeout_handler import TimeoutSafeWrapper");
+              String safeObject = String.format("%s_safe_instance", obj);
+              interpreter.exec(
+                  String.format("%s=TimeoutSafeWrapper(%s, %d)", safeObject, obj, timeout));
+              return interpreter.invokeMethod(safeObject, function, data, args, kvargs);
+            });
+  }
+
+  @SuppressWarnings("unchecked")
+  public static <T> T invokeMethod(
+      String obj,
+      String function,
+      List<List<Object>> data,
+      List<Object> args,
+      Map<String, Object> kvargs) {
+    return (T)
+        executeWithInterpreterAndReturn(
+            interpreter -> interpreter.invokeMethod(obj, function, data, args, kvargs));
   }
 }
