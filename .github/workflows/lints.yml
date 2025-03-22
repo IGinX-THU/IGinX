@@ -49,7 +49,7 @@ jobs:
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-    analyze-required-check:
+    analyze-required-lint-check:
         if: always()
         needs: # List of jobs that must pass. Add more jobs if needed.
             - formatting
