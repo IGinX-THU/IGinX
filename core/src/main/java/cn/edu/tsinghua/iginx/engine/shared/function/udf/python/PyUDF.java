@@ -76,7 +76,7 @@ public abstract class PyUDF implements Function {
           timeout, obj, UDF_FUNC, data, args, kvargs);
     } catch (Exception e) {
       LOGGER.error("Invoke python failure: ", e);
-      return null;
+      throw e;
     }
   }
 }

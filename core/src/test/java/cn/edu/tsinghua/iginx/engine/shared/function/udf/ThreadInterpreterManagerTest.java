@@ -89,9 +89,9 @@ public class ThreadInterpreterManagerTest {
     try {
       Object res =
           ThreadInterpreterManager.invokeMethodWithTimeout(
-              3, obj, "downloadLargeModel", new ArrayList<>(), new ArrayList<>(), new HashMap<>());
+              3, obj, "waitForEvent", new ArrayList<>(), new ArrayList<>(), new HashMap<>());
     } catch (Exception e) {
-      if (e.getMessage().contains("Failed to import")) {
+      if (e.getMessage().contains("timeout")) {
         LOGGER.info("Successfully detected timeout and terminated the thread.");
       } else {
         LOGGER.error(e.getMessage());

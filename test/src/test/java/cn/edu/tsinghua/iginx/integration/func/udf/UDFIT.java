@@ -1543,4 +1543,38 @@ public class UDFIT {
 
     assertEquals(expected, tool.execute(statement).getResultInString(false, ""));
   }
+
+  @Test
+  public void testTimeout() {
+    String name = "TimeoutTest";
+    String filePath =
+        String.join(
+            File.separator,
+            System.getProperty("user.dir"),
+            "src",
+            "test",
+            "resources",
+            "udf",
+            "timeout_test.py");
+    String statement =
+        String.format(SINGLE_UDF_REGISTER_SQL, "udsf", name, "TimeoutTest", filePath);
+    tool.executeReg(statement);
+    assertTrue(tool.isUDFRegistered(name));
+    taskToBeRemoved.add(name);
+
+    statement = "select " + name + "(s1, 1, iginx_timeout=3) from us.d1 where s1 < 10;";
+    long start = System.currentTimeMillis();
+    Exception ret = tool.executeFail(statement);
+    long end = System.currentTimeMillis();
+    assertTrue(ret.getMessage().contains("encounter error"));
+    assertTrue(end - start < 5000); // 5秒内拿到结果，触发timeout
+
+    // test event waiting
+    statement = "select " + name + "(s1, 2, iginx_timeout=3) from us.d1 where s1 < 10;";
+    start = System.currentTimeMillis();
+    ret = tool.executeFail(statement);
+    end = System.currentTimeMillis();
+    assertTrue(ret.getMessage().contains("encounter error"));
+    assertTrue(end - start < 5000); // 5秒内拿到结果，触发timeout
+  }
 }
