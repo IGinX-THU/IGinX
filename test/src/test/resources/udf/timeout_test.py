@@ -20,9 +20,19 @@ class TimeoutTest:
         event = threading.Event()
         event.wait()
 
+    def downloadLargeModel(self, data, args, kvargs):
+        """download big ML models to test timeout when downloading"""
+        print("start to get models...")
+        from transformers import BlipProcessor, BlipForConditionalGeneration
+        processor = BlipProcessor.from_pretrained("Salesforce/blip-image-captioning-base")
+        model = BlipForConditionalGeneration.from_pretrained("Salesforce/blip-image-captioning-base")
+        print("finished downloading.")
+
     def transform(self, data, args, kvargs):
-        """测两种情况"""
+        """测三种情况"""
         if args[0]==1:
             self.timeout(data, args, kvargs)
-        else:
+        elif args[0]==2:
             self.waitForEvent(data, args, kvargs)
+        else:
+            self.downloadLargeModel(data, args, kvargs)

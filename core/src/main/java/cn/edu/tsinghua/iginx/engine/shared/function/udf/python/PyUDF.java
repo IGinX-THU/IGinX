@@ -64,19 +64,14 @@ public abstract class PyUDF implements Function {
       timeout = Long.parseLong(kvargs.get(TIMEOUT_ARG_NAME).toString());
       kvargs.remove(TIMEOUT_ARG_NAME);
     }
-    try {
-      // 由于多个UDF共享interpreter，因此使用独特的对象名
-      String obj = (moduleName + className).replace(".", "a");
-      ThreadInterpreterManager.executeWithInterpreter(
-          interpreter ->
-              interpreter.exec(
-                  String.format(
-                      "import %s; %s = %s.%s()", moduleName, obj, moduleName, className)));
-      return ThreadInterpreterManager.invokeMethodWithTimeout(
-          timeout, obj, UDF_FUNC, data, args, kvargs);
-    } catch (Exception e) {
-      LOGGER.error("Invoke python failure: ", e);
-      throw e;
-    }
+    // 由于多个UDF共享interpreter，因此使用独特的对象名
+    String obj = (moduleName + className).replace(".", "a");
+    ThreadInterpreterManager.executeWithInterpreter(
+        interpreter ->
+            interpreter.exec(
+                String.format(
+                    "import %s; %s = %s.%s()", moduleName, obj, moduleName, className)));
+    return ThreadInterpreterManager.invokeMethodWithTimeout(
+        timeout, obj, UDF_FUNC, data, args, kvargs);
   }
 }

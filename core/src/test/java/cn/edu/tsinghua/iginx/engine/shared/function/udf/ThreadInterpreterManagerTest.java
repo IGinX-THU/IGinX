@@ -98,5 +98,18 @@ public class ThreadInterpreterManagerTest {
         LOGGER.error("Failed to detect timeout and terminated the thread.", e);
       }
     }
+
+    try {
+      Object res =
+              ThreadInterpreterManager.invokeMethodWithTimeout(
+                      1, obj, "downloadLargeModel", new ArrayList<>(), new ArrayList<>(), new HashMap<>());
+    } catch (Exception e) {
+      if (e.getMessage().contains("timeout")) {
+        LOGGER.info("Successfully detected timeout and terminated the thread.");
+      } else {
+        LOGGER.error(e.getMessage());
+        LOGGER.error("Failed to detect timeout and terminated the thread.", e);
+      }
+    }
   }
 }

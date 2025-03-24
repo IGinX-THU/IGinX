@@ -1566,7 +1566,7 @@ public class UDFIT {
     long start = System.currentTimeMillis();
     Exception ret = tool.executeFail(statement);
     long end = System.currentTimeMillis();
-    assertTrue(ret.getMessage().contains("encounter error"));
+    assertTrue(ret.getMessage().contains("encounter error")); // timeout的信息没有被session传递（？）但服务端有log
     assertTrue(end - start < 5000); // 5秒内拿到结果，触发timeout
 
     // test event waiting
@@ -1576,5 +1576,13 @@ public class UDFIT {
     end = System.currentTimeMillis();
     assertTrue(ret.getMessage().contains("encounter error"));
     assertTrue(end - start < 5000); // 5秒内拿到结果，触发timeout
+
+    // test importing large models
+    statement = "select " + name + "(s1, 3, iginx_timeout=1) from us.d1 where s1 < 10;";
+    start = System.currentTimeMillis();
+    ret = tool.executeFail(statement);
+    end = System.currentTimeMillis();
+    assertTrue(ret.getMessage().contains("encounter error"));
+    assertTrue(end - start < 3000); // 3秒内拿到结果，触发timeout
   }
 }
