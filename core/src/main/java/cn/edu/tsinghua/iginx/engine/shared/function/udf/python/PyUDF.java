@@ -69,8 +69,7 @@ public abstract class PyUDF implements Function {
     ThreadInterpreterManager.executeWithInterpreter(
         interpreter ->
             interpreter.exec(
-                String.format(
-                    "import %s; %s = %s.%s()", moduleName, obj, moduleName, className)));
+                String.format("import %s; %s = %s.%s()", moduleName, obj, moduleName, className)));
     return ThreadInterpreterManager.invokeMethodWithTimeout(
         timeout, obj, UDF_FUNC, data, args, kvargs);
   }

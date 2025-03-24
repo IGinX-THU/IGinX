@@ -101,8 +101,8 @@ public class ThreadInterpreterManagerTest {
 
     try {
       Object res =
-              ThreadInterpreterManager.invokeMethodWithTimeout(
-                      1, obj, "downloadLargeModel", new ArrayList<>(), new ArrayList<>(), new HashMap<>());
+          ThreadInterpreterManager.invokeMethodWithTimeout(
+              1, obj, "downloadLargeModel", new ArrayList<>(), new ArrayList<>(), new HashMap<>());
     } catch (Exception e) {
       if (e.getMessage().contains("timeout")) {
         LOGGER.info("Successfully detected timeout and terminated the thread.");
