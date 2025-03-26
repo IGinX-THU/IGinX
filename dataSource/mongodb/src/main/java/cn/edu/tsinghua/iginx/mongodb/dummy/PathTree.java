@@ -124,17 +124,18 @@ class PathTree {
     return children.containsKey(null);
   }
 
-  public void eliminateWildcardChild(Iterable<String> allNodes) {
+  public void project(Collection<String> allNodes) {
     PathTree subTree = children.remove(null);
-    if (subTree == null) return;
+    children.keySet().retainAll(allNodes);
+    if (subTree != null) {
+      PathTree wildcardSubTree = new PathTree();
+      wildcardSubTree.children.put(null, subTree);
 
-    PathTree wildcardSubTree = new PathTree();
-    wildcardSubTree.children.put(null, subTree);
-
-    for (String node : allNodes) {
-      PathTree child = children.computeIfAbsent(node, k -> new PathTree());
-      child.put(subTree);
-      child.put(wildcardSubTree);
+      for (String node : allNodes) {
+        PathTree child = children.computeIfAbsent(node, k -> new PathTree());
+        child.put(subTree);
+        child.put(wildcardSubTree);
+      }
     }
   }
 }
