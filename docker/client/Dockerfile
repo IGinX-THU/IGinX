@@ -18,12 +18,12 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
-FROM maven:3-amazoncorretto-8 AS builder
+FROM maven:3-amazoncorretto-17 AS builder
 COPY . /root/iginx
 WORKDIR /root/iginx
 RUN mvn clean package -pl client -am -Dmaven.test.skip=true -P-format -e
 
-FROM openjdk:11-jre-slim
+FROM openjdk:17-jdk-slim
 COPY --from=builder /root/iginx/client/target/iginx-client-0.9.0-SNAPSHOT/ /iginx_client/
 
 RUN mkdir -p /iginx_client/logs
