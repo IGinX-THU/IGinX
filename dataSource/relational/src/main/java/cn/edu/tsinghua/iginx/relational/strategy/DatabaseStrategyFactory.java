@@ -17,13 +17,26 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package cn.edu.tsinghua.iginx.relational.datatype.transformer;
+package cn.edu.tsinghua.iginx.relational.strategy;
 
-import cn.edu.tsinghua.iginx.thrift.DataType;
+import cn.edu.tsinghua.iginx.relational.meta.AbstractRelationalMeta;
 
-public interface IDataTypeTransformer {
+public class DatabaseStrategyFactory {
+  public static DatabaseStrategy getStrategy(
+      String engineName, AbstractRelationalMeta relationalMeta) {
+    if (engineName == null) {
+      throw new IllegalArgumentException("Engine name cannot be null");
+    }
 
-  public DataType fromEngineType(String dataType, String... parameters);
-
-  public String toEngineType(DataType dataType);
+    switch (engineName.toLowerCase()) {
+      case "dameng":
+        return new DamengDatabaseStrategy(relationalMeta);
+      case "mysql":
+        return new MySQLDatabaseStrategy(relationalMeta);
+      case "postgresql":
+        return new PostgreSQLDatabaseStrategy(relationalMeta);
+      default:
+        throw new UnsupportedOperationException("Unsupported engine: " + engineName);
+    }
+  }
 }

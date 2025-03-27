@@ -17,13 +17,14 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package cn.edu.tsinghua.iginx.relational.datatype.transformer;
+package cn.edu.tsinghua.iginx.relational.strategy;
 
-import cn.edu.tsinghua.iginx.thrift.DataType;
+import static cn.edu.tsinghua.iginx.relational.tools.Constants.*;
 
-public interface IDataTypeTransformer {
+import cn.edu.tsinghua.iginx.relational.meta.AbstractRelationalMeta;
 
-  public DataType fromEngineType(String dataType, String... parameters);
-
-  public String toEngineType(DataType dataType);
+public class PostgreSQLDatabaseStrategy extends AbstractDatabaseStrategy {
+  public PostgreSQLDatabaseStrategy(AbstractRelationalMeta relationalMeta) {
+    super(relationalMeta);
+  }
 }
