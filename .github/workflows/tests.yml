@@ -134,7 +134,7 @@ jobs:
             db-matrix: '["VectorDB"]'
             close-optimizer: "true"
             timeout-minutes: 360
-    analyze-required-check:
+    analyze-required-test-check:
         if: always()
         needs: # List of jobs that must pass. Add more jobs if needed.
             - unit-test
