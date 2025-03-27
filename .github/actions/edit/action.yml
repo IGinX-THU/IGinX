@@ -13,4 +13,5 @@ runs:
     steps:
         - name: "edit"
           shell: bash
-          run: sed -i"" -e "${{ inputs.statements }}" ${{ inputs.paths }}
+          run: |
+              sed -i"" -e "${{ inputs.statements }}" ${{ inputs.paths }}

@@ -34,7 +34,7 @@ public class JDBCDataTypeTransformer implements IDataTypeTransformer {
   }
 
   @Override
-  public DataType fromEngineType(String dataType) {
+  public DataType fromEngineType(String dataType, String... parameters) {
     String mappedType = typeMappings.getProperty(dataType.toUpperCase());
     if (mappedType != null) {
       return str2DataType(mappedType);

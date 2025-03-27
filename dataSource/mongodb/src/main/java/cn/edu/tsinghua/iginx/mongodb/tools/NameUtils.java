@@ -103,6 +103,6 @@ public class NameUtils {
   }
 
   public static boolean isWildcard(String node) {
-    return node.contains("*");
+    return node.equals("*");
   }
 }
