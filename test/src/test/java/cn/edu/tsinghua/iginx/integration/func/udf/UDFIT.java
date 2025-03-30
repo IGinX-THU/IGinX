@@ -21,9 +21,10 @@ package cn.edu.tsinghua.iginx.integration.func.udf;
 
 import static cn.edu.tsinghua.iginx.integration.controller.Controller.SUPPORT_KEY;
 import static cn.edu.tsinghua.iginx.integration.controller.Controller.clearAllData;
-import static cn.edu.tsinghua.iginx.integration.func.session.PySessionIT.pythonNewerThan313;
 import static org.junit.Assert.*;
 
+import cn.edu.tsinghua.iginx.conf.Config;
+import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.func.session.InsertAPIType;
@@ -49,6 +50,8 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pemja.core.PythonInterpreter;
+import pemja.core.PythonInterpreterConfig;
 
 public class UDFIT {
   private static final Logger LOGGER = LoggerFactory.getLogger(UDFIT.class);
@@ -1543,6 +1546,18 @@ public class UDFIT {
             + "Total line number = 5\n";
 
     assertEquals(expected, tool.execute(statement).getResultInString(false, ""));
+  }
+
+  private boolean pythonNewerThan313() {
+    Config config = ConfigDescriptor.getInstance().getConfig();
+    String pythonCMD = config.getPythonCMD();
+    PythonInterpreterConfig pyConfig =
+            PythonInterpreterConfig.newBuilder().setPythonExec(pythonCMD).build();
+    LOGGER.debug("using pythonCMD: {}", pythonCMD);
+    try (PythonInterpreter interpreter = new PythonInterpreter(pyConfig)) {
+      interpreter.exec("import sys; tooNew = sys.version_info >= (3, 13);");
+      return (boolean) interpreter.get("tooNew");
+    }
   }
 
   @Test
