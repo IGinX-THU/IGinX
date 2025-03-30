@@ -1552,7 +1552,7 @@ public class UDFIT {
     Config config = ConfigDescriptor.getInstance().getConfig();
     String pythonCMD = config.getPythonCMD();
     PythonInterpreterConfig pyConfig =
-            PythonInterpreterConfig.newBuilder().setPythonExec(pythonCMD).build();
+        PythonInterpreterConfig.newBuilder().setPythonExec(pythonCMD).build();
     LOGGER.debug("using pythonCMD: {}", pythonCMD);
     try (PythonInterpreter interpreter = new PythonInterpreter(pyConfig)) {
       interpreter.exec("import sys; tooNew = sys.version_info >= (3, 13);");
