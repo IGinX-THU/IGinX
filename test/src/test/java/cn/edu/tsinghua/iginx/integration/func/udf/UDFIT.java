@@ -21,6 +21,7 @@ package cn.edu.tsinghua.iginx.integration.func.udf;
 
 import static cn.edu.tsinghua.iginx.integration.controller.Controller.SUPPORT_KEY;
 import static cn.edu.tsinghua.iginx.integration.controller.Controller.clearAllData;
+import static cn.edu.tsinghua.iginx.integration.func.session.PySessionIT.pythonNewerThan313;
 import static org.junit.Assert.*;
 
 import cn.edu.tsinghua.iginx.exception.SessionException;
@@ -1577,6 +1578,8 @@ public class UDFIT {
     assertTrue(ret.getMessage().contains("encounter error"));
     assertTrue(end - start < 5000); // 5秒内拿到结果，触发timeout
 
+    Assume.assumeFalse(
+        "Test skipped: Python >= 3.13, transformers is not supported.", pythonNewerThan313());
     // test importing large models
     statement = "select " + name + "(s1, 3, iginx_timeout=1) from us.d1 where s1 < 10;";
     start = System.currentTimeMillis();
