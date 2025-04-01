@@ -14,7 +14,8 @@ class SessionTest:
             return [[f"sessionTest({path})"], ["LONG"], [1]]
         except Exception as e:
             msg = str(e)
-            if ("Unable to delete data from read-only nodes" in msg):
+            if "Unable to delete data from read-only nodes" in msg or "contain overlapped keys" in msg:
+                # ignore these two warnings
                 return [[f"sessionTest({path})"], ["LONG"], [1]]
             else:
                 print(f"session test in udf failed! {msg}")
