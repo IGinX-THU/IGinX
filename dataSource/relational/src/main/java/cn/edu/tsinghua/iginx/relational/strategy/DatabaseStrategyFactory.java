@@ -35,6 +35,8 @@ public class DatabaseStrategyFactory {
         return new MySQLDatabaseStrategy(relationalMeta);
       case "postgresql":
         return new PostgreSQLDatabaseStrategy(relationalMeta);
+      case "oracle":
+          return new OracleDatabaseStrategy(relationalMeta);
       default:
         throw new UnsupportedOperationException("Unsupported engine: " + engineName);
     }
