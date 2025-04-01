@@ -1526,6 +1526,38 @@ public class UDFIT {
   }
 
   @Test
+  public void sessionTest() {
+    // create and use session in udf
+    String name = "sessionTest";
+    String filePath =
+        String.join(
+            File.separator,
+            System.getProperty("user.dir"),
+            "src",
+            "test",
+            "resources",
+            "udf",
+            "session_test.py");
+    String statement =
+        String.format(SINGLE_UDF_REGISTER_SQL, "udsf", name, "SessionTest", filePath);
+    tool.executeReg(statement);
+    assertTrue(tool.isUDFRegistered(name));
+    taskToBeRemoved.add(name);
+
+    statement = "select " + name + "(s1) from us.d1 where s1 < 10;";
+    SessionExecuteSqlResult ret = tool.execute(statement);
+    String expected =
+        "ResultSets:\n"
+            + "+---------------------+\n"
+            + "|sessionTest(us.d1.s1)|\n"
+            + "+---------------------+\n"
+            + "|                    1|\n"
+            + "+---------------------+\n"
+            + "Total line number = 1\n";
+    assertEquals(expected, ret.getResultInString(false, ""));
+  }
+
+  @Test
   public void testUDFColumnPruning() {
     String statement = "SELECT cos(s1), cos(s2) FROM us.d1 LIMIT 5;";
     String expected =

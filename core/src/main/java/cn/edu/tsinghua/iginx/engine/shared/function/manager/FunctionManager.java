@@ -63,6 +63,7 @@ public class FunctionManager {
 
   private PythonInterpreterConfig INTERPRETER_CONFIG;
 
+  // DON'T use it directly, use getInterpreter() to make sure it's initialized
   private PythonInterpreter interpreter;
 
   private static final String PythonCMD = config.getPythonCMD();
@@ -208,7 +209,7 @@ public class FunctionManager {
     if (functions.containsKey(identifier)) {
       PyUDF function = (PyUDF) functions.get(identifier);
       try {
-        function.close(identifier, interpreter);
+        function.close(identifier, getInterpreter());
       } catch (Exception e) {
         LOGGER.error("Failed to remove UDF {}.", identifier, e);
       }
