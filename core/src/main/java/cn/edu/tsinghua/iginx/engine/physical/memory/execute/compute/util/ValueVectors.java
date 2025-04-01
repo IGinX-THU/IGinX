@@ -20,6 +20,7 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.logic.And;
+import javax.annotation.Nullable;
 import org.apache.arrow.memory.ArrowBuf;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.memory.util.MemoryUtil;
@@ -30,8 +31,6 @@ import org.apache.arrow.vector.types.Types;
 import org.apache.arrow.vector.types.pojo.DictionaryEncoding;
 import org.apache.arrow.vector.types.pojo.Field;
 import org.apache.arrow.vector.util.TransferPair;
-
-import javax.annotation.Nullable;
 
 public class ValueVectors {
 
@@ -76,7 +75,15 @@ public class ValueVectors {
     if (source == null) {
       return null;
     }
-    return slice(allocator, source, startIndex, valueCount, source.getName());
+    return slice(allocator, source, startIndex, valueCount, source.getField());
+  }
+
+  public static <T extends ValueVector> T slice(
+      BufferAllocator allocator, @Nullable T source, Field field) {
+    if (source == null) {
+      return null;
+    }
+    return slice(allocator, source, 0, source.getValueCount(), field);
   }
 
   public static <T extends ValueVector> T slice(
@@ -239,19 +246,9 @@ public class ValueVectors {
 
   public static FieldVector flatten(
       BufferAllocator allocator,
-      DictionaryProvider dictionaryProvider,
+      Dictionary dictionary,
       FieldVector vector,
       @Nullable BaseIntVector selection) {
-    DictionaryEncoding dictionaryEncoding = vector.getField().getDictionary();
-    if (dictionaryEncoding == null) {
-      if (selection != null) {
-        return ValueVectors.select(allocator, vector, selection);
-      } else {
-        return slice(allocator, vector);
-      }
-    }
-
-    Dictionary dictionary = dictionaryProvider.lookup(dictionaryEncoding.getId());
     FieldVector dictionaryVector = dictionary.getVector();
     BaseIntVector indices = (BaseIntVector) vector;
     int destCount = selection == null ? vector.getValueCount() : selection.getValueCount();
@@ -281,7 +278,26 @@ public class ValueVectors {
     }
   }
 
-  public static <T extends ValueVector> T select(BufferAllocator allocator, @Nullable T vector, @Nullable BaseIntVector selection) {
+  public static FieldVector flatten(
+      BufferAllocator allocator,
+      DictionaryProvider dictionaryProvider,
+      FieldVector vector,
+      @Nullable BaseIntVector selection) {
+    DictionaryEncoding dictionaryEncoding = vector.getField().getDictionary();
+    if (dictionaryEncoding == null) {
+      if (selection != null) {
+        return ValueVectors.select(allocator, vector, selection);
+      } else {
+        return slice(allocator, vector);
+      }
+    }
+
+    Dictionary dictionary = dictionaryProvider.lookup(dictionaryEncoding.getId());
+    return ValueVectors.flatten(allocator, dictionary, vector, selection);
+  }
+
+  public static <T extends ValueVector> T select(
+      BufferAllocator allocator, @Nullable T vector, @Nullable BaseIntVector selection) {
     if (vector == null) {
       return null;
     }

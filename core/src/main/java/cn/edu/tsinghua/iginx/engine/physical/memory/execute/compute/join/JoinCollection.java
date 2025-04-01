@@ -21,8 +21,6 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.join;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ResultConsumer;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
-import javax.annotation.Nullable;
-import org.apache.arrow.vector.BaseIntVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.dictionary.DictionaryProvider;
 import org.apache.arrow.vector.types.pojo.Schema;
@@ -31,10 +29,7 @@ public interface JoinCollection extends AutoCloseable {
 
   void close();
 
-  void probe(
-      DictionaryProvider dictionaryProvider,
-      VectorSchemaRoot data)
-      throws ComputeException;
+  void probe(DictionaryProvider dictionaryProvider, VectorSchemaRoot data) throws ComputeException;
 
   void flush() throws ComputeException;
 
@@ -43,10 +38,7 @@ public interface JoinCollection extends AutoCloseable {
 
     void close();
 
-    void add(
-        DictionaryProvider dictionaryProvider,
-        VectorSchemaRoot data)
-        throws ComputeException;
+    void add(DictionaryProvider dictionaryProvider, VectorSchemaRoot data) throws ComputeException;
 
     JoinCollection build(ResultConsumer resultConsumer) throws ComputeException;
   }

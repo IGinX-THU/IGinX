@@ -21,16 +21,13 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.binary.sta
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.join.JoinCollection;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ArrowDictionaries;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ValueVectors;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.VectorSchemaRoots;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.util.Batch;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import java.util.Objects;
-import javax.annotation.Nullable;
 import javax.annotation.WillClose;
-import org.apache.arrow.vector.BaseIntVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.dictionary.DictionaryProvider;
 import org.apache.arrow.vector.types.pojo.Schema;
@@ -94,14 +91,13 @@ public class CollectionJoinExecutor extends StatefulBinaryExecutor {
     joinCollection = joinCollectionBuilder.build(this::offerRawResult);
   }
 
-  private void offerRawResult(
-      DictionaryProvider dictionaryProvider,
-      VectorSchemaRoot data)
+  private void offerRawResult(DictionaryProvider dictionaryProvider, VectorSchemaRoot data)
       throws ComputeException {
     try (Batch batch =
         Batch.of(
             VectorSchemaRoots.slice(context.getAllocator(), data),
-            ArrowDictionaries.slice(context.getAllocator(), dictionaryProvider, data.getSchema()))) {
+            ArrowDictionaries.slice(
+                context.getAllocator(), dictionaryProvider, data.getSchema()))) {
       offerResult(batch);
     }
   }

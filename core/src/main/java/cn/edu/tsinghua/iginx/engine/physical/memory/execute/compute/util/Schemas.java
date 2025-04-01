@@ -215,6 +215,13 @@ public class Schemas {
     return Schemas.fieldWithName(dictionary.getVector().getField(), field.getName());
   }
 
+  public static Schema flatten(DictionaryProvider dictionaryProvider, Schema field) {
+    return new Schema(
+        field.getFields().stream()
+            .map(f -> flatten(dictionaryProvider, f))
+            .collect(Collectors.toList()));
+  }
+
   public static cn.edu.tsinghua.iginx.engine.shared.data.read.Field toIginxField(Field field) {
     return new cn.edu.tsinghua.iginx.engine.shared.data.read.Field(
         field.getName(), toDataType(field.getFieldType().getType()), field.getMetadata());

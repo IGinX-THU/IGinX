@@ -168,12 +168,13 @@ public class VectorSchemaRoots {
         rowCount);
   }
 
-  public static VectorSchemaRoot select(BufferAllocator allocator, VectorSchemaRoot data, @Nullable BaseIntVector selection) {
-    if(selection == null) {
+  public static VectorSchemaRoot select(
+      BufferAllocator allocator, VectorSchemaRoot data, @Nullable BaseIntVector selection) {
+    if (selection == null) {
       return slice(allocator, data);
     }
     List<FieldVector> resultVectors = new ArrayList<>();
-    for(FieldVector fieldVector : data.getFieldVectors()) {
+    for (FieldVector fieldVector : data.getFieldVectors()) {
       resultVectors.add(ValueVectors.select(allocator, fieldVector, selection));
     }
     return create(resultVectors, selection.getValueCount());

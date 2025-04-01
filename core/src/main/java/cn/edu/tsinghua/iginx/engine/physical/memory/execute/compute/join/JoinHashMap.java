@@ -47,10 +47,11 @@ public class JoinHashMap extends JoinArrayList {
   }
 
   @Override
-  protected int outputMatched(
+  protected int outputMatchedBeforeBuildCandidates(
+      DictionaryProvider probeSideDictionaryProvider,
+      VectorSchemaRoot probeSideBatch,
       SelectionBuilder buildSideIndicesBuilder,
       SelectionBuilder probeSideIndicesBuilder,
-      DictionaryProvider dictionary,
       boolean[] probeSideMatched)
       throws ComputeException {
 
@@ -59,9 +60,8 @@ public class JoinHashMap extends JoinArrayList {
         SelectionBuilder probeSideCandidateIndicesBuilder =
             new SelectionBuilder(allocator, "tempProbeSideIndices", probeSideMatched.length)) {
 
-      try (VectorSchemaRoot probeSideBatch =
-              getProbeSideBatch(dictionary, probeSideMatched.length);
-          IntVector probeSideHashCodes = probeSideHasher.invoke(allocator, probeSideBatch)) {
+      try (IntVector probeSideHashCodes =
+          probeSideHasher.invoke(allocator, probeSideDictionaryProvider, null, probeSideBatch)) {
         for (int probeSideCandidate = 0;
             probeSideCandidate < probeSideMatched.length;
             probeSideCandidate++) {
@@ -76,26 +76,16 @@ public class JoinHashMap extends JoinArrayList {
 
       try (IntVector buildSideCandidateIndices = buildSideCandidateIndicesBuilder.build();
           IntVector probeSideCandidateIndices = probeSideCandidateIndicesBuilder.build()) {
-        return outputMatched(
+        return outputMatchedBeforeFilter(
+            probeSideDictionaryProvider,
+            probeSideBatch,
             buildSideIndicesBuilder,
             probeSideIndicesBuilder,
-            dictionary,
             buildSideCandidateIndices,
             probeSideCandidateIndices,
             probeSideMatched);
       }
     }
-  }
-
-  private VectorSchemaRoot getProbeSideBatch(DictionaryProvider dictionaryProvider, int rowCount) {
-    int buildSideColumnCount = buildSideSingleBatch.getFieldVectors().size();
-    int probeSideColumnCount = probeSideSchema.getFields().size();
-    List<FieldVector> vectors = new ArrayList<>();
-    for (int i = 0; i < probeSideColumnCount; i++) {
-      vectors.add(
-          ValueVectors.slice(allocator, null, dictionaryProvider.lookup(i + buildSideColumnCount)));
-    }
-    return VectorSchemaRoots.create(vectors, rowCount);
   }
 
   public static class Builder extends JoinArrayList.Builder {
@@ -123,7 +113,11 @@ public class JoinHashMap extends JoinArrayList {
       IntObjectHashMap<List<Integer>> buildSideMap = new IntObjectHashMap<>();
       try (JoinArrayList joinArrayList = super.build(resultConsumer)) {
         try (IntVector buildSideHashCodes =
-            buildSideHasher.invoke(joinArrayList.allocator, joinArrayList.buildSideSingleBatch)) {
+            buildSideHasher.invoke(
+                joinArrayList.allocator,
+                joinArrayList.buildSideDictionaryProvider,
+                null,
+                joinArrayList.buildSideSingleBatch)) {
           for (int i = 0; i < buildSideHashCodes.getValueCount(); i++) {
             int hashCode = buildSideHashCodes.get(i);
             buildSideMap.computeIfAbsent(hashCode, k -> new ArrayList<>()).add(i);

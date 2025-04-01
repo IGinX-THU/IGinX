@@ -20,15 +20,11 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
-import javax.annotation.Nullable;
-import org.apache.arrow.vector.BaseIntVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.dictionary.DictionaryProvider;
 
 public interface ResultConsumer {
 
-  void consume(
-      DictionaryProvider dictionaryProvider,
-      VectorSchemaRoot data)
+  void consume(DictionaryProvider dictionaryProvider, VectorSchemaRoot data)
       throws ComputeException;
 }

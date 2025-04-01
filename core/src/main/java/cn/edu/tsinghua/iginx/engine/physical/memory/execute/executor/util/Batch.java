@@ -22,15 +22,12 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.util;
 import static org.apache.arrow.vector.dictionary.DictionaryProvider.MapDictionaryProvider;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ArrowDictionaries;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ValueVectors;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.VectorSchemaRoots;
 import java.util.List;
 import java.util.Objects;
-import javax.annotation.Nullable;
 import javax.annotation.WillClose;
 import javax.annotation.WillCloseWhenClosed;
 import org.apache.arrow.memory.BufferAllocator;
-import org.apache.arrow.vector.BaseIntVector;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.types.pojo.Schema;
@@ -59,7 +56,7 @@ public class Batch implements AutoCloseable {
   }
 
   public static Batch empty(BufferAllocator allocator, Schema schema) {
-    return of(VectorSchemaRoot.create(schema,allocator));
+    return of(VectorSchemaRoot.create(schema, allocator));
   }
 
   public boolean isEmpty() {
@@ -83,7 +80,7 @@ public class Batch implements AutoCloseable {
   }
 
   public VectorSchemaRoot flattened(BufferAllocator allocator) {
-    return VectorSchemaRoots.flatten(allocator, dictionaryProvider, group,null);
+    return VectorSchemaRoots.flatten(allocator, dictionaryProvider, group, null);
   }
 
   public Batch slice(BufferAllocator allocator) {
@@ -98,11 +95,9 @@ public class Batch implements AutoCloseable {
         ArrowDictionaries.slice(allocator, dictionaryProvider));
   }
 
-  public Batch sliceWith(
-      BufferAllocator allocator,
-      @WillClose VectorSchemaRoot unnested) {
-    return new Batch(unnested,
-        ArrowDictionaries.slice(allocator, dictionaryProvider, unnested.getSchema()));
+  public Batch sliceWith(BufferAllocator allocator, @WillClose VectorSchemaRoot unnested) {
+    return new Batch(
+        unnested, ArrowDictionaries.slice(allocator, dictionaryProvider, unnested.getSchema()));
   }
 
   public List<FieldVector> getVectors() {

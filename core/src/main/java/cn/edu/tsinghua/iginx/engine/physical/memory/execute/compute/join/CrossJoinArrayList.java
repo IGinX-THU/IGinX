@@ -23,18 +23,21 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expre
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpressionUtils;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.*;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
-import org.apache.arrow.memory.BufferAllocator;
-import org.apache.arrow.util.Preconditions;
-import org.apache.arrow.vector.*;
-import org.apache.arrow.vector.dictionary.DictionaryProvider;
-import org.apache.arrow.vector.types.Types;
-import org.apache.arrow.vector.types.pojo.Field;
-import org.apache.arrow.vector.types.pojo.Schema;
-
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import javax.annotation.Nullable;
+import org.apache.arrow.memory.BufferAllocator;
+import org.apache.arrow.util.Preconditions;
+import org.apache.arrow.vector.*;
+import org.apache.arrow.vector.dictionary.Dictionary;
+import org.apache.arrow.vector.dictionary.DictionaryProvider;
+import org.apache.arrow.vector.dictionary.DictionaryProvider.MapDictionaryProvider;
+import org.apache.arrow.vector.types.Types;
+import org.apache.arrow.vector.types.pojo.Field;
+import org.apache.arrow.vector.types.pojo.Schema;
+import org.apache.arrow.vector.util.VectorAppender;
+import org.apache.commons.lang3.tuple.Pair;
 
 public class CrossJoinArrayList implements JoinCollection {
 
@@ -42,6 +45,7 @@ public class CrossJoinArrayList implements JoinCollection {
   protected final List<ScalarExpression<?>> outputExpressions;
   protected final Schema probeSideSchema;
   protected final VectorSchemaRoot buildSideSingleBatch;
+  protected final MapDictionaryProvider buildSideDictionaryProvider;
   protected final ResultConsumer resultConsumer;
 
   CrossJoinArrayList(
@@ -49,11 +53,15 @@ public class CrossJoinArrayList implements JoinCollection {
       List<ScalarExpression<?>> outputExpressions,
       Schema probeSideSchema,
       VectorSchemaRoot buildSideSingleBatch,
+      DictionaryProvider buildSideDictionaryProvider,
       ResultConsumer resultConsumer) {
     this.allocator = allocator;
     this.outputExpressions = outputExpressions;
     this.probeSideSchema = probeSideSchema;
     this.buildSideSingleBatch = VectorSchemaRoots.slice(allocator, buildSideSingleBatch);
+    this.buildSideDictionaryProvider =
+        ArrowDictionaries.slice(
+            allocator, buildSideDictionaryProvider, buildSideSingleBatch.getSchema());
     this.resultConsumer = resultConsumer;
   }
 
@@ -63,6 +71,7 @@ public class CrossJoinArrayList implements JoinCollection {
         o.outputExpressions,
         o.probeSideSchema,
         o.buildSideSingleBatch,
+        o.buildSideDictionaryProvider,
         o.resultConsumer);
   }
 
@@ -72,46 +81,42 @@ public class CrossJoinArrayList implements JoinCollection {
   }
 
   @Override
-  public void flush() throws ComputeException {
-  }
+  public void flush() throws ComputeException {}
 
   @Override
-  public void probe(
-      DictionaryProvider dictionaryProvider,
-      VectorSchemaRoot data)
+  public void probe(DictionaryProvider probeSideDictionaryProvider, VectorSchemaRoot probeSideBatch)
       throws ComputeException {
-    try (VectorSchemaRoot flattened =
-        VectorSchemaRoots.flatten(allocator, dictionaryProvider, data,null)) {
-      probe(flattened);
-    }
-  }
-
-  private void probe(VectorSchemaRoot probeSideBatch) throws ComputeException {
-    Preconditions.checkArgument(probeSideBatch.getSchema().equals(probeSideSchema));
+    Preconditions.checkArgument(
+        probeSideSchema.equals(
+            Schemas.flatten(probeSideDictionaryProvider, probeSideBatch.getSchema())));
 
     // TODO: cross join 的扫描侧不需要  probeSideIndices，可以进行优化
-    try (ArrayDictionaryProvider outputDictionaryProvider =
-             ArrayDictionaryProvider.of(allocator, buildSideSingleBatch, probeSideBatch);
-         SelectionBuilder probeSideIndicesBuilder =
-             new SelectionBuilder(allocator, "tempProbeSideIndices", probeSideBatch.getRowCount());
-         SelectionBuilder buildSideIndicesBuilder =
-             new SelectionBuilder(allocator, "tempBuildSideIndices", probeSideBatch.getRowCount());
-         MarkBuilder markBuilder = getMarkBuilder(probeSideBatch.getRowCount())) {
+    try (SelectionBuilder probeSideIndicesBuilder =
+            new SelectionBuilder(allocator, "tempProbeSideIndices", probeSideBatch.getRowCount());
+        SelectionBuilder buildSideIndicesBuilder =
+            new SelectionBuilder(allocator, "tempBuildSideIndices", probeSideBatch.getRowCount());
+        MarkBuilder markBuilder = getMarkBuilder(probeSideBatch.getRowCount())) {
 
       int unmatchedCount =
           outputMatchedAndProbeSideUnmatched(
+              probeSideDictionaryProvider,
+              probeSideBatch,
               buildSideIndicesBuilder,
               probeSideIndicesBuilder,
-              markBuilder,
-              outputDictionaryProvider,
-              probeSideBatch.getRowCount());
+              markBuilder);
 
       try (IntVector probeSideIndices = probeSideIndicesBuilder.build();
-           IntVector buildSideIndices =
-               buildSideIndicesBuilder.build(probeSideIndices.getValueCount());
-           BitVector mark = markBuilder.build(probeSideIndices.getValueCount());
-           BaseIntVector selection = getSelection(probeSideIndices, unmatchedCount)) {
-        output(outputDictionaryProvider, buildSideIndices, probeSideIndices, mark, selection);
+          IntVector buildSideIndices =
+              buildSideIndicesBuilder.build(probeSideIndices.getValueCount());
+          BitVector mark = markBuilder.build(probeSideIndices.getValueCount());
+          BaseIntVector selection = getSelection(probeSideIndices, unmatchedCount)) {
+        output(
+            probeSideDictionaryProvider,
+            probeSideBatch,
+            buildSideIndices,
+            probeSideIndices,
+            mark,
+            selection);
       }
     }
   }
@@ -121,15 +126,16 @@ public class CrossJoinArrayList implements JoinCollection {
   }
 
   protected int outputMatchedAndProbeSideUnmatched(
+      DictionaryProvider probeSideDictionaryProvider,
+      VectorSchemaRoot probeSideBatch,
       SelectionBuilder buildSideIndicesBuilder,
       SelectionBuilder probeSideIndicesBuilder,
-      MarkBuilder markBuilder,
-      DictionaryProvider dictionary,
-      int probeSideBatchRowCount)
+      MarkBuilder markBuilder)
       throws ComputeException {
+    int probeSideBatchRowCount = probeSideBatch.getRowCount();
     for (int buildSideIndex = 0;
-         buildSideIndex < buildSideSingleBatch.getRowCount();
-         buildSideIndex++) {
+        buildSideIndex < buildSideSingleBatch.getRowCount();
+        buildSideIndex++) {
       for (int probeSideIndex = 0; probeSideIndex < probeSideBatchRowCount; probeSideIndex++) {
         buildSideIndicesBuilder.append(buildSideIndex);
         probeSideIndicesBuilder.append(probeSideIndex);
@@ -143,7 +149,8 @@ public class CrossJoinArrayList implements JoinCollection {
   }
 
   protected void output(
-      ArrayDictionaryProvider dictionaryProvider,
+      DictionaryProvider probeSideDictionaryProvider,
+      VectorSchemaRoot probeSideBatch,
       BaseIntVector buildSideIndices,
       @Nullable BaseIntVector probeSideIndices,
       @Nullable BitVector mark,
@@ -157,39 +164,63 @@ public class CrossJoinArrayList implements JoinCollection {
       Preconditions.checkArgument(buildSideIndices.getValueCount() == mark.getValueCount());
     }
 
-    if(selection!=null){
-      try(BaseIntVector selectedBuildSideIndices = ValueVectors.select(allocator, buildSideIndices, selection);
-          BaseIntVector selectedProbeSideIndices = probeSideIndices == null
-              ? ValueVectors.slice(allocator, selection)
-              : ValueVectors.select(allocator, probeSideIndices, selection);
+    if (selection != null) {
+      try (BaseIntVector selectedBuildSideIndices =
+              ValueVectors.select(allocator, buildSideIndices, selection);
+          BaseIntVector selectedProbeSideIndices =
+              probeSideIndices == null
+                  ? ValueVectors.slice(allocator, selection)
+                  : ValueVectors.select(allocator, probeSideIndices, selection);
           BitVector selectedMark = ValueVectors.select(allocator, mark, selection)) {
-        output(dictionaryProvider, selectedBuildSideIndices, selectedProbeSideIndices, selectedMark, null);
+        output(
+            probeSideDictionaryProvider,
+            probeSideBatch,
+            selectedBuildSideIndices,
+            selectedProbeSideIndices,
+            selectedMark,
+            null);
         return;
       }
     }
 
-    int buildSideColumnCount = buildSideSingleBatch.getSchema().getFields().size();
-    int probeSideColumnCount = probeSideSchema.getFields().size();
+    try (LazyBatch buildSideAndProbeSideSelected =
+        selectBuildSideAndProbeSide(
+            probeSideDictionaryProvider, probeSideBatch, buildSideIndices, probeSideIndices)) {
 
-    List<FieldVector> vectors = new ArrayList<>();
-    for (int i = 0; i < buildSideColumnCount; i++) {
-      vectors.add(ValueVectors.slice(allocator, buildSideIndices, dictionaryProvider.lookup(i)));
-    }
-    for (int i = 0; i < probeSideColumnCount; i++) {
-      vectors.add(
-          ValueVectors.slice(
-              allocator, probeSideIndices, dictionaryProvider.lookup(i + buildSideColumnCount)));
-    }
-    if (mark != null) {
-      vectors.add(ValueVectors.slice(allocator, mark));
-    }
+      List<FieldVector> vectors = new ArrayList<>();
+      for (FieldVector vector : buildSideAndProbeSideSelected.getData().getFieldVectors()) {
+        vectors.add(ValueVectors.slice(allocator, vector));
+      }
+      if (mark != null) {
+        vectors.add(ValueVectors.slice(allocator, mark));
+      }
 
-    try (VectorSchemaRoot result =
-            VectorSchemaRoots.create(vectors, buildSideIndices.getValueCount());
-        VectorSchemaRoot output =
-            ScalarExpressionUtils.evaluate(
-                allocator, dictionaryProvider, result, null, outputExpressions)) {
-      resultConsumer.consume(dictionaryProvider, output);
+      try (VectorSchemaRoot result =
+              VectorSchemaRoots.create(vectors, buildSideIndices.getValueCount());
+          VectorSchemaRoot output =
+              ScalarExpressionUtils.evaluate(
+                  allocator,
+                  buildSideAndProbeSideSelected.getDictionaryProvider(),
+                  result,
+                  null,
+                  outputExpressions)) {
+        resultConsumer.consume(buildSideAndProbeSideSelected.getDictionaryProvider(), output);
+      }
+    }
+  }
+
+  protected LazyBatch selectBuildSideAndProbeSide(
+      DictionaryProvider probeSideDictionaryProvider,
+      VectorSchemaRoot probeSideBatch,
+      BaseIntVector buildSideIndices,
+      @Nullable BaseIntVector probeSideIndices) {
+    try (LazyBatch buildSideSelected =
+            ArrowDictionaries.select(
+                allocator, buildSideDictionaryProvider, buildSideSingleBatch, buildSideIndices);
+        LazyBatch probeSideSelected =
+            ArrowDictionaries.select(
+                allocator, probeSideDictionaryProvider, probeSideBatch, probeSideIndices)) {
+      return ArrowDictionaries.join(allocator, buildSideSelected, probeSideSelected);
     }
   }
 
@@ -230,10 +261,10 @@ public class CrossJoinArrayList implements JoinCollection {
     }
 
     @Override
-    public void add(
-        DictionaryProvider dictionaryProvider,
-        VectorSchemaRoot data)
+    public void add(DictionaryProvider dictionaryProvider, VectorSchemaRoot data)
         throws ComputeException {
+      Preconditions.checkArgument(
+          buildSideSchema.equals(Schemas.flatten(dictionaryProvider, data.getSchema())));
       buildSideBatches.add(LazyBatch.slice(allocator, dictionaryProvider, data));
     }
 
@@ -241,16 +272,104 @@ public class CrossJoinArrayList implements JoinCollection {
     public CrossJoinArrayList build(ResultConsumer resultConsumer) throws ComputeException {
       Objects.requireNonNull(resultConsumer);
 
-      try (VectorSchemaRoot buildSideSingleBatch = VectorSchemaRoot.create(buildSideSchema, allocator)) {
-        for(LazyBatch buildSideBatch : buildSideBatches) {
-          try(VectorSchemaRoot flattened = VectorSchemaRoots.flatten(allocator,buildSideBatch.getDictionaryProvider(),buildSideBatch.getData(),null)){
-            VectorSchemaRoots.append(buildSideSingleBatch, flattened);
+      if (buildSideBatches.isEmpty()) {
+        try (VectorSchemaRoot buildSideSingleBatch =
+            VectorSchemaRoot.create(buildSideSchema, allocator)) {
+          return new CrossJoinArrayList(
+              allocator,
+              outputExpressions,
+              probeSideSchema,
+              buildSideSingleBatch,
+              ArrowDictionaries.emptyProvider(),
+              resultConsumer);
+        }
+      }
+
+      int rowCount =
+          buildSideBatches.stream()
+              .map(LazyBatch::getData)
+              .mapToInt(VectorSchemaRoot::getRowCount)
+              .sum();
+      List<FieldVector> resultVectors = new ArrayList<>();
+      for (int i = 0; i < buildSideSchema.getFields().size(); i++) {
+        List<Pair<FieldVector, Dictionary>> dictionaryColumns = getColumn(i);
+
+        // 没有字典的列 || (变长类型列 && 每个 batch 的字典相同): 拷贝时不考虑字典
+        if (dictionaryColumns.stream().map(Pair::getRight).anyMatch(Objects::isNull)
+            || (!(dictionaryColumns.get(0).getLeft() instanceof FixedWidthVector)
+                && dictionaryColumns.stream()
+                    .map(Pair::getRight)
+                    .allMatch(d -> isSameDictionary(d, dictionaryColumns.get(0).getRight())))) {
+          FieldVector dest = dictionaryColumns.get(0).getLeft().getField().createVector(allocator);
+          dest.allocateNew();
+          VectorAppender appender = new VectorAppender(dest);
+          dictionaryColumns.stream()
+              .map(Pair::getLeft)
+              .forEach(vector -> vector.accept(appender, null));
+          resultVectors.add(dest);
+          continue;
+        }
+
+        // 默认进行物化
+        FieldVector dest = buildSideSchema.getFields().get(i).createVector(allocator);
+        dest.allocateNew();
+        VectorAppender appender = new VectorAppender(dest);
+        for (Pair<FieldVector, Dictionary> pair : dictionaryColumns) {
+          FieldVector vector = pair.getLeft();
+          Dictionary dictionary = pair.getRight();
+          try (FieldVector flattened = ValueVectors.flatten(allocator, dictionary, vector, null)) {
+            flattened.accept(appender, null);
           }
         }
+        resultVectors.add(dest);
+      }
+
+      try (VectorSchemaRoot buildSideSingleBatch =
+          VectorSchemaRoots.create(resultVectors, rowCount)) {
         return new CrossJoinArrayList(
-            allocator, outputExpressions, probeSideSchema, buildSideSingleBatch, resultConsumer);
+            allocator,
+            outputExpressions,
+            probeSideSchema,
+            buildSideSingleBatch,
+            buildSideBatches.get(0).getDictionaryProvider(),
+            resultConsumer);
       }
     }
 
+    private List<Pair<FieldVector, Dictionary>> getColumn(int index) {
+      List<Pair<FieldVector, Dictionary>> dictionaryColumns = new ArrayList<>();
+      for (LazyBatch buildSideBatch : buildSideBatches) {
+        FieldVector vector = buildSideBatch.getData().getVector(index);
+        DictionaryProvider dictionaryProvider = buildSideBatch.getDictionaryProvider();
+        if (vector.getField().getDictionary() == null) {
+          dictionaryColumns.add(Pair.of(vector, null));
+        } else {
+          Dictionary dictionary =
+              dictionaryProvider.lookup(vector.getField().getDictionary().getId());
+          dictionaryColumns.add(Pair.of(vector, dictionary));
+        }
+      }
+      return dictionaryColumns;
+    }
+
+    private static boolean isSameDictionary(Dictionary d1, Dictionary d2) {
+      if (d1 == null || d2 == null) {
+        return false;
+      }
+      if (!d1.getEncoding().equals(d2.getEncoding())) {
+        return false;
+      }
+      if (!d1.getVectorType().equals(d1.getVectorType())) {
+        return false;
+      }
+      FieldVector v1 = d1.getVector();
+      FieldVector v2 = d2.getVector();
+      if (v1.getValueCount() == 0) {
+        return true;
+      }
+      return v1.getValueCount() == v2.getValueCount()
+          && v1.getValidityBufferAddress() == v2.getValidityBufferAddress()
+          && v1.getDataBufferAddress() == v2.getDataBufferAddress();
+    }
   }
 }

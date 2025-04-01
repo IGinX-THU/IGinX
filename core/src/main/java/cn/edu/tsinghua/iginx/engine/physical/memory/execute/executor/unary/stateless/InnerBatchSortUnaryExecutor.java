@@ -19,21 +19,17 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateless;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.PhysicalFunctions;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpressionUtils;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.sort.IndexSortExpression;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ArrowDictionaries;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ValueVectors;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.LazyBatch;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.VectorSchemaRoots;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.util.Batch;
 import java.util.Objects;
-import org.apache.arrow.vector.BaseIntVector;
 import org.apache.arrow.vector.IntVector;
-import org.apache.arrow.vector.VectorSchemaRoot;
-import org.apache.arrow.vector.dictionary.DictionaryProvider;
 import org.apache.arrow.vector.types.pojo.Schema;
-import org.apache.commons.lang3.tuple.Pair;
 
 public class InnerBatchSortUnaryExecutor extends StatelessUnaryExecutor {
 
@@ -67,13 +63,19 @@ public class InnerBatchSortUnaryExecutor extends StatelessUnaryExecutor {
             batch.getData(),
             null,
             indexSortExpression)) {
-      Pair<DictionaryProvider.MapDictionaryProvider, VectorSchemaRoot> result = ArrowDictionaries.select(
-          context.getAllocator(),
-          batch.getDictionaryProvider(),
-          batch.getData(),
-          sortedIndices
-      );
-      return Batch.of(result.getRight(), result.getLeft());
+      try (LazyBatch result =
+          ArrowDictionaries.select(
+              context.getAllocator(),
+              batch.getDictionaryProvider(),
+              batch.getData(),
+              sortedIndices)) {
+        return Batch.of(
+            VectorSchemaRoots.slice(context.getAllocator(), result.getData()),
+            ArrowDictionaries.slice(
+                context.getAllocator(),
+                result.getDictionaryProvider(),
+                result.getData().getSchema()));
+      }
     }
   }
 }

@@ -19,6 +19,11 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util;
 
+import static org.apache.arrow.vector.dictionary.DictionaryProvider.MapDictionaryProvider;
+
+import java.util.*;
+import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.util.Preconditions;
 import org.apache.arrow.vector.BaseIntVector;
@@ -30,15 +35,6 @@ import org.apache.arrow.vector.types.pojo.ArrowType;
 import org.apache.arrow.vector.types.pojo.DictionaryEncoding;
 import org.apache.arrow.vector.types.pojo.Field;
 import org.apache.arrow.vector.types.pojo.Schema;
-import org.apache.commons.lang3.tuple.Pair;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import static org.apache.arrow.vector.dictionary.DictionaryProvider.MapDictionaryProvider;
 
 public class ArrowDictionaries {
 
@@ -86,34 +82,75 @@ public class ArrowDictionaries {
     return new MapDictionaryProvider();
   }
 
-  public static Pair<MapDictionaryProvider, VectorSchemaRoot> select(
+  public static LazyBatch select(
       BufferAllocator allocator,
       DictionaryProvider dictionaryProvider,
       VectorSchemaRoot data,
-      BaseIntVector selection) {
-    Preconditions.checkNotNull(selection);
+      @Nullable BaseIntVector selection) {
+    if (selection == null) {
+      return LazyBatch.slice(allocator, dictionaryProvider, data);
+    }
 
-    long nextId = dictionaryProvider.getDictionaryIds().stream().max(Long::compareTo).orElse(0L) + 1;
+    long nextId =
+        dictionaryProvider.getDictionaryIds().stream().max(Long::compareTo).orElse(0L) + 1;
 
-    MapDictionaryProvider mapDictionaryProvider = slice(allocator, dictionaryProvider, data.getSchema());
+    MapDictionaryProvider mapDictionaryProvider =
+        slice(allocator, dictionaryProvider, data.getSchema());
     List<FieldVector> resultVectors = new ArrayList<>();
     for (FieldVector vector : data.getFieldVectors()) {
       if (vector.getField().getDictionary() == null) {
         long id = nextId++;
-        Dictionary dictionary = new Dictionary(
-            ValueVectors.slice(allocator, vector),
-            new DictionaryEncoding(
-                id,
-                false,
-                (ArrowType.Int) (selection.getField().getType())
-            )
-        );
+        Dictionary dictionary =
+            new Dictionary(
+                ValueVectors.slice(allocator, vector),
+                new DictionaryEncoding(
+                    id, false, (ArrowType.Int) (selection.getField().getType())));
         mapDictionaryProvider.put(dictionary);
         resultVectors.add(ValueVectors.slice(allocator, selection, dictionary));
       } else {
         resultVectors.add(ValueVectors.select(allocator, vector, selection));
       }
     }
-    return Pair.of(mapDictionaryProvider, VectorSchemaRoots.create(resultVectors, selection.getValueCount()));
+    return new LazyBatch(
+        mapDictionaryProvider, VectorSchemaRoots.create(resultVectors, selection.getValueCount()));
+  }
+
+  public static LazyBatch join(BufferAllocator allocator, LazyBatch... batches) {
+    Preconditions.checkArgument(
+        Arrays.stream(batches)
+                .map(LazyBatch::getData)
+                .mapToInt(VectorSchemaRoot::getRowCount)
+                .distinct()
+                .count()
+            == 1);
+
+    MapDictionaryProvider resultDictionaryProvider = new MapDictionaryProvider();
+    List<FieldVector> resultVectors = new ArrayList<>();
+    for (LazyBatch batch : batches) {
+      for (FieldVector vector : batch.getData().getFieldVectors()) {
+        Field field = vector.getField();
+        if (field.getDictionary() != null) {
+          long id = field.getDictionary().getId();
+          Dictionary dictionary = batch.getDictionaryProvider().lookup(id);
+          if (dictionary == null) {
+            throw new IllegalArgumentException("Dictionary with id " + id + " not found");
+          }
+          long newId = resultVectors.size();
+          Dictionary newDictionary =
+              new Dictionary(
+                  ValueVectors.slice(allocator, dictionary.getVector()),
+                  new DictionaryEncoding(
+                      newId,
+                      dictionary.getEncoding().isOrdered(),
+                      dictionary.getEncoding().getIndexType()));
+          field = Schemas.fieldWithDictionary(field, newDictionary.getEncoding());
+          resultDictionaryProvider.put(newDictionary);
+        }
+        resultVectors.add(ValueVectors.slice(allocator, vector, field));
+      }
+    }
+    return new LazyBatch(
+        resultDictionaryProvider,
+        VectorSchemaRoots.create(resultVectors, batches[0].getData().getRowCount()));
   }
 }

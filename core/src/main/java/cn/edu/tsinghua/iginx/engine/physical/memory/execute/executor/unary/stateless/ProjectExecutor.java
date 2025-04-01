@@ -81,7 +81,8 @@ public class ProjectExecutor extends StatelessUnaryExecutor {
             batch.getData(),
             null,
             expressions)) {
-      return batch.sliceWith(context.getAllocator(), PhysicalFunctions.unnest(context.getAllocator(), result));
+      return batch.sliceWith(
+          context.getAllocator(), PhysicalFunctions.unnest(context.getAllocator(), result));
     }
   }
 }

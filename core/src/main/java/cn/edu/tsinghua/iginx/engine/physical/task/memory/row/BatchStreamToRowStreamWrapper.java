@@ -143,13 +143,7 @@ public class BatchStreamToRowStreamWrapper implements RowStream {
     }
 
     return toRows(
-        header,
-        null,
-        keyIndices,
-        keyVector,
-        indices,
-        valueVectors,
-        arrowBatch.getRowCount());
+        header, null, keyIndices, keyVector, indices, valueVectors, arrowBatch.getRowCount());
   }
 
   private static List<Row> toRows(

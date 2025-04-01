@@ -23,12 +23,14 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expre
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.predicate.expression.PredicateExpression;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.*;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import javax.annotation.Nullable;
 import org.apache.arrow.memory.BufferAllocator;
-import org.apache.arrow.vector.*;
+import org.apache.arrow.vector.BaseIntVector;
+import org.apache.arrow.vector.BitVector;
+import org.apache.arrow.vector.IntVector;
+import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.dictionary.DictionaryProvider;
 import org.apache.arrow.vector.types.pojo.Schema;
 
@@ -73,12 +75,16 @@ public class JoinArrayList extends CrossJoinArrayList {
       }
 
       try (VectorSchemaRoot probeSideBatch = VectorSchemaRoot.create(probeSideSchema, allocator);
-          ArrayDictionaryProvider dictionary =
-              ArrayDictionaryProvider.of(allocator, buildSideSingleBatch, probeSideBatch);
           IntVector buildSideIndices = buildSideIndicesBuilder.build(buildSideUnmatchedCount);
           IntVector probeSideIndices = probeSideIndicesBuilder.build(buildSideUnmatchedCount);
           BitVector mark = markBuilder.build(buildSideUnmatchedCount)) {
-        output(dictionary, buildSideIndices, probeSideIndices, mark, null);
+        output(
+            ArrowDictionaries.emptyProvider(),
+            probeSideBatch,
+            buildSideIndices,
+            probeSideIndices,
+            mark,
+            null);
       }
     }
   }
@@ -94,17 +100,21 @@ public class JoinArrayList extends CrossJoinArrayList {
 
   @Override
   protected int outputMatchedAndProbeSideUnmatched(
+      DictionaryProvider probeSideDictionaryProvider,
+      VectorSchemaRoot probeSideBatch,
       SelectionBuilder buildSideIndicesBuilder,
       SelectionBuilder probeSideIndicesBuilder,
-      MarkBuilder markBuilder,
-      DictionaryProvider dictionary,
-      int probeSideBatchRowCount)
+      MarkBuilder markBuilder)
       throws ComputeException {
-    boolean[] probeSideMatched = new boolean[probeSideBatchRowCount];
+    boolean[] probeSideMatched = new boolean[probeSideBatch.getRowCount()];
 
     int matchedCount =
-        outputMatched(
-            buildSideIndicesBuilder, probeSideIndicesBuilder, dictionary, probeSideMatched);
+        outputMatchedBeforeBuildCandidates(
+            probeSideDictionaryProvider,
+            probeSideBatch,
+            buildSideIndicesBuilder,
+            probeSideIndicesBuilder,
+            probeSideMatched);
 
     int unmatchedCount = 0;
     if (joinOption.isToOutputProbeSideUnmatched()) {
@@ -116,10 +126,11 @@ public class JoinArrayList extends CrossJoinArrayList {
     return unmatchedCount;
   }
 
-  protected int outputMatched(
+  protected int outputMatchedBeforeBuildCandidates(
+      DictionaryProvider probeSideDictionaryProvider,
+      VectorSchemaRoot probeSideBatch,
       SelectionBuilder buildSideIndicesBuilder,
       SelectionBuilder probeSideIndicesBuilder,
-      DictionaryProvider dictionary,
       boolean[] probeSideMatched)
       throws ComputeException {
     int matchedCount = 0;
@@ -129,10 +140,11 @@ public class JoinArrayList extends CrossJoinArrayList {
       try (IntVector buildSideCandidateIndices =
           ConstantVectors.of(allocator, buildSideIndex, probeSideMatched.length)) {
         matchedCount +=
-            outputMatched(
+            outputMatchedBeforeFilter(
+                probeSideDictionaryProvider,
+                probeSideBatch,
                 buildSideIndicesBuilder,
                 probeSideIndicesBuilder,
-                dictionary,
                 buildSideCandidateIndices,
                 null,
                 probeSideMatched);
@@ -141,19 +153,28 @@ public class JoinArrayList extends CrossJoinArrayList {
     return matchedCount;
   }
 
-  protected int outputMatched(
+  protected int outputMatchedBeforeFilter(
+      DictionaryProvider probeSideDictionaryProvider,
+      VectorSchemaRoot probeSideBatch,
       SelectionBuilder buildSideIndicesBuilder,
       SelectionBuilder probeSideIndicesBuilder,
-      DictionaryProvider dictionary,
       BaseIntVector buildSideCandidateIndices,
       @Nullable BaseIntVector proSideCandidateIndices,
       boolean[] probeSideMatched)
       throws ComputeException {
-    try (VectorSchemaRoot candidate =
-            getDictionaryEncodedBatch(
-                buildSideCandidateIndices, proSideCandidateIndices, dictionary);
-        BaseIntVector indicesSelection = matcher.filter(allocator, dictionary, candidate, null)) {
-      return outputMatched(
+    try (LazyBatch selectedBuildSideAndProbeSide =
+            selectBuildSideAndProbeSide(
+                probeSideDictionaryProvider,
+                probeSideBatch,
+                buildSideCandidateIndices,
+                proSideCandidateIndices);
+        BaseIntVector indicesSelection =
+            matcher.filter(
+                allocator,
+                selectedBuildSideAndProbeSide.getDictionaryProvider(),
+                selectedBuildSideAndProbeSide.getData(),
+                null)) {
+      return outputMatchedAfterFilter(
           buildSideIndicesBuilder,
           probeSideIndicesBuilder,
           buildSideCandidateIndices,
@@ -163,7 +184,7 @@ public class JoinArrayList extends CrossJoinArrayList {
     }
   }
 
-  private int outputMatched(
+  private int outputMatchedAfterFilter(
       SelectionBuilder buildSideIndicesBuilder,
       SelectionBuilder probeSideIndicesBuilder,
       BaseIntVector buildSideCandidateIndices,
@@ -223,27 +244,6 @@ public class JoinArrayList extends CrossJoinArrayList {
       }
     }
     return probeSideUnmatchedCount;
-  }
-
-  private VectorSchemaRoot getDictionaryEncodedBatch(
-      BaseIntVector buildSideCandidateIndices,
-      @Nullable BaseIntVector probeSideCandidateIndices,
-      DictionaryProvider dictionaryProvider) {
-    int buildSideColumnCount = buildSideSingleBatch.getFieldVectors().size();
-    int probeSideColumnCount = probeSideSchema.getFields().size();
-    List<FieldVector> vectors = new ArrayList<>();
-    for (int i = 0; i < buildSideColumnCount; i++) {
-      vectors.add(
-          ValueVectors.slice(allocator, buildSideCandidateIndices, dictionaryProvider.lookup(i)));
-    }
-    for (int i = 0; i < probeSideColumnCount; i++) {
-      vectors.add(
-          ValueVectors.slice(
-              allocator,
-              probeSideCandidateIndices,
-              dictionaryProvider.lookup(i + buildSideColumnCount)));
-    }
-    return new VectorSchemaRoot(vectors);
   }
 
   @Nullable

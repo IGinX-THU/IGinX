@@ -21,16 +21,14 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stat
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.predicate.expression.PredicateExpression;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ArrowDictionaries;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.LazyBatch;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.VectorSchemaRoots;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.util.Batch;
-import org.apache.arrow.vector.BaseIntVector;
-import org.apache.arrow.vector.VectorSchemaRoot;
-import org.apache.arrow.vector.dictionary.DictionaryProvider;
-import org.apache.arrow.vector.types.pojo.Schema;
-import org.apache.commons.lang3.tuple.Pair;
-
 import java.util.Objects;
+import org.apache.arrow.vector.BaseIntVector;
+import org.apache.arrow.vector.types.pojo.Schema;
 
 public class FilterExecutor extends StatelessUnaryExecutor {
 
@@ -44,17 +42,22 @@ public class FilterExecutor extends StatelessUnaryExecutor {
 
   @Override
   public Batch computeImpl(Batch batch) throws ComputeException {
-    try (BaseIntVector selection = condition.filter(context.getAllocator(), batch.getDictionaryProvider(), batch.getData(), null)) {
+    try (BaseIntVector selection =
+        condition.filter(
+            context.getAllocator(), batch.getDictionaryProvider(), batch.getData(), null)) {
       if (selection == null) {
         return batch.slice(context.getAllocator());
       }
-      Pair<DictionaryProvider.MapDictionaryProvider, VectorSchemaRoot> result = ArrowDictionaries.select(
-          context.getAllocator(),
-          batch.getDictionaryProvider(),
-          batch.getData(),
-          selection
-      );
-      return Batch.of(result.getRight(),result.getLeft());
+      try (LazyBatch result =
+          ArrowDictionaries.select(
+              context.getAllocator(), batch.getDictionaryProvider(), batch.getData(), selection)) {
+        return Batch.of(
+            VectorSchemaRoots.slice(context.getAllocator(), result.getData()),
+            ArrowDictionaries.slice(
+                context.getAllocator(),
+                result.getDictionaryProvider(),
+                result.getData().getSchema()));
+      }
     }
   }
 
@@ -69,6 +72,5 @@ public class FilterExecutor extends StatelessUnaryExecutor {
   }
 
   @Override
-  public void close() throws ComputeException {
-  }
+  public void close() throws ComputeException {}
 }
