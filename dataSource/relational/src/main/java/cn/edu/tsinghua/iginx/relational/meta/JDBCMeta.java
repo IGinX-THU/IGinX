@@ -54,8 +54,6 @@ public class JDBCMeta extends AbstractRelationalMeta {
 
   private final String queryTableStatement;
 
-  private final String queryTableWithoutKeyStatement;
-
   private final String insertTableStatement;
 
   private final String updateTableStatement;
@@ -99,7 +97,6 @@ public class JDBCMeta extends AbstractRelationalMeta {
     alterTableAddColumnStatement = properties.getProperty("alter_table_add_column_statement");
     alterTableDropColumnStatement = properties.getProperty("alter_table_drop_column_statement");
     queryTableStatement = properties.getProperty("query_table_statement");
-    queryTableWithoutKeyStatement = properties.getProperty("query_table_without_key_statement");
     insertTableStatement = properties.getProperty("insert_table_statement");
     updateTableStatement = properties.getProperty("update_table_statement");
     deleteTableStatement = properties.getProperty("delete_table_statement");
@@ -177,11 +174,6 @@ public class JDBCMeta extends AbstractRelationalMeta {
   @Override
   public String getQueryTableStatement() {
     return queryTableStatement;
-  }
-
-  @Override
-  public String getQueryTableWithoutKeyStatement() {
-    return queryTableWithoutKeyStatement;
   }
 
   @Override

@@ -98,8 +98,6 @@ public abstract class AbstractRelationalMeta {
 
   public abstract String getQueryTableStatement();
 
-  public abstract String getQueryTableWithoutKeyStatement();
-
   public abstract String getInsertTableStatement();
 
   public abstract String getUpdateTableStatement();

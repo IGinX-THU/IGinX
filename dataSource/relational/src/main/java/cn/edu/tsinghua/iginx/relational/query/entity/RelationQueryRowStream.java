@@ -206,9 +206,10 @@ public class RelationQueryRowStream implements RowStream {
         }
         Pair<String, Map<String, String>> namesAndTags = splitFullName(columnName);
         Field field;
-        DataType type =                   relationalMeta
-            .getDataTypeTransformer()
-            .fromEngineType(typeName, String.valueOf(columnSize), columnClassName);
+        DataType type =
+            relationalMeta
+                .getDataTypeTransformer()
+                .fromEngineType(typeName, String.valueOf(columnSize), columnClassName);
         if (isAgg
             && sumResType != null
             && sumResType.containsKey(fullName2Name.getOrDefault(columnName, columnName))) {
