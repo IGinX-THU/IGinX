@@ -33,8 +33,7 @@ public interface JoinCollection extends AutoCloseable {
 
   void probe(
       DictionaryProvider dictionaryProvider,
-      VectorSchemaRoot data,
-      @Nullable BaseIntVector selection)
+      VectorSchemaRoot data)
       throws ComputeException;
 
   void flush() throws ComputeException;
@@ -46,8 +45,7 @@ public interface JoinCollection extends AutoCloseable {
 
     void add(
         DictionaryProvider dictionaryProvider,
-        VectorSchemaRoot data,
-        @Nullable BaseIntVector selection)
+        VectorSchemaRoot data)
         throws ComputeException;
 
     JoinCollection build(ResultConsumer resultConsumer) throws ComputeException;

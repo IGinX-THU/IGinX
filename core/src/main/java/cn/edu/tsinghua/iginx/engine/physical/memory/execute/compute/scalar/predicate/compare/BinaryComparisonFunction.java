@@ -143,7 +143,16 @@ public abstract class BinaryComparisonFunction extends BinaryPredicateFunction {
                   dictionaryProvider,
                   selection,
                   new VectorSchemaRoot(Collections.singleton(right)))) {
-        evaluateSameType(dictionaryProvider, leftCast, rightCast, rowCount, selection, consumer);
+        evaluateSameType(
+            dictionaryProvider,
+            leftCast,
+            rightCast,
+            rowCount,
+            null,
+            (index, matched) -> {
+              consumer.accept(
+                  selection == null ? index : (int) selection.getValueAsLong(index), matched);
+            });
       }
     } else {
       throw new ArgumentException(

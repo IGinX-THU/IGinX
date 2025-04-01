@@ -79,10 +79,9 @@ public class ProjectExecutor extends StatelessUnaryExecutor {
             context.getAllocator(),
             batch.getDictionaryProvider(),
             batch.getData(),
-            batch.getSelection(),
+            null,
             expressions)) {
-      VectorSchemaRoot unnested = PhysicalFunctions.unnest(context.getAllocator(), result);
-      return batch.sliceWith(context.getAllocator(), unnested, null);
+      return batch.sliceWith(context.getAllocator(), PhysicalFunctions.unnest(context.getAllocator(), result));
     }
   }
 }

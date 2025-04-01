@@ -86,7 +86,7 @@ public class CollectionJoinExecutor extends StatefulBinaryExecutor {
 
   @Override
   protected void consumeLeftUnchecked(Batch batch) throws ComputeException {
-    joinCollectionBuilder.add(batch.getDictionaryProvider(), batch.getData(), batch.getSelection());
+    joinCollectionBuilder.add(batch.getDictionaryProvider(), batch.getData());
   }
 
   @Override
@@ -96,21 +96,19 @@ public class CollectionJoinExecutor extends StatefulBinaryExecutor {
 
   private void offerRawResult(
       DictionaryProvider dictionaryProvider,
-      VectorSchemaRoot data,
-      @Nullable BaseIntVector selection)
+      VectorSchemaRoot data)
       throws ComputeException {
     try (Batch batch =
         Batch.of(
             VectorSchemaRoots.slice(context.getAllocator(), data),
-            ArrowDictionaries.slice(context.getAllocator(), dictionaryProvider, data.getSchema()),
-            ValueVectors.slice(context.getAllocator(), selection))) {
+            ArrowDictionaries.slice(context.getAllocator(), dictionaryProvider, data.getSchema()))) {
       offerResult(batch);
     }
   }
 
   @Override
   protected void consumeRightUnchecked(Batch batch) throws ComputeException {
-    joinCollection.probe(batch.getDictionaryProvider(), batch.getData(), batch.getSelection());
+    joinCollection.probe(batch.getDictionaryProvider(), batch.getData());
   }
 
   @Override

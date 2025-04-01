@@ -23,10 +23,6 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expre
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpressionUtils;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.*;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import javax.annotation.Nullable;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.util.Preconditions;
 import org.apache.arrow.vector.*;
@@ -34,6 +30,11 @@ import org.apache.arrow.vector.dictionary.DictionaryProvider;
 import org.apache.arrow.vector.types.Types;
 import org.apache.arrow.vector.types.pojo.Field;
 import org.apache.arrow.vector.types.pojo.Schema;
+
+import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 
 public class CrossJoinArrayList implements JoinCollection {
 
@@ -71,16 +72,16 @@ public class CrossJoinArrayList implements JoinCollection {
   }
 
   @Override
-  public void flush() throws ComputeException {}
+  public void flush() throws ComputeException {
+  }
 
   @Override
   public void probe(
       DictionaryProvider dictionaryProvider,
-      VectorSchemaRoot data,
-      @Nullable BaseIntVector selection)
+      VectorSchemaRoot data)
       throws ComputeException {
     try (VectorSchemaRoot flattened =
-        VectorSchemaRoots.flatten(allocator, dictionaryProvider, data, selection)) {
+        VectorSchemaRoots.flatten(allocator, dictionaryProvider, data,null)) {
       probe(flattened);
     }
   }
@@ -88,13 +89,14 @@ public class CrossJoinArrayList implements JoinCollection {
   private void probe(VectorSchemaRoot probeSideBatch) throws ComputeException {
     Preconditions.checkArgument(probeSideBatch.getSchema().equals(probeSideSchema));
 
+    // TODO: cross join 的扫描侧不需要  probeSideIndices，可以进行优化
     try (ArrayDictionaryProvider outputDictionaryProvider =
-            ArrayDictionaryProvider.of(allocator, buildSideSingleBatch, probeSideBatch);
-        SelectionBuilder probeSideIndicesBuilder =
-            new SelectionBuilder(allocator, "tempProbeSideIndices", probeSideBatch.getRowCount());
-        SelectionBuilder buildSideIndicesBuilder =
-            new SelectionBuilder(allocator, "tempBuildSideIndices", probeSideBatch.getRowCount());
-        MarkBuilder markBuilder = getMarkBuilder(probeSideBatch.getRowCount())) {
+             ArrayDictionaryProvider.of(allocator, buildSideSingleBatch, probeSideBatch);
+         SelectionBuilder probeSideIndicesBuilder =
+             new SelectionBuilder(allocator, "tempProbeSideIndices", probeSideBatch.getRowCount());
+         SelectionBuilder buildSideIndicesBuilder =
+             new SelectionBuilder(allocator, "tempBuildSideIndices", probeSideBatch.getRowCount());
+         MarkBuilder markBuilder = getMarkBuilder(probeSideBatch.getRowCount())) {
 
       int unmatchedCount =
           outputMatchedAndProbeSideUnmatched(
@@ -105,10 +107,10 @@ public class CrossJoinArrayList implements JoinCollection {
               probeSideBatch.getRowCount());
 
       try (IntVector probeSideIndices = probeSideIndicesBuilder.build();
-          IntVector buildSideIndices =
-              buildSideIndicesBuilder.build(probeSideIndices.getValueCount());
-          BitVector mark = markBuilder.build(probeSideIndices.getValueCount());
-          BaseIntVector selection = getSelection(probeSideIndices, unmatchedCount)) {
+           IntVector buildSideIndices =
+               buildSideIndicesBuilder.build(probeSideIndices.getValueCount());
+           BitVector mark = markBuilder.build(probeSideIndices.getValueCount());
+           BaseIntVector selection = getSelection(probeSideIndices, unmatchedCount)) {
         output(outputDictionaryProvider, buildSideIndices, probeSideIndices, mark, selection);
       }
     }
@@ -126,8 +128,8 @@ public class CrossJoinArrayList implements JoinCollection {
       int probeSideBatchRowCount)
       throws ComputeException {
     for (int buildSideIndex = 0;
-        buildSideIndex < buildSideSingleBatch.getRowCount();
-        buildSideIndex++) {
+         buildSideIndex < buildSideSingleBatch.getRowCount();
+         buildSideIndex++) {
       for (int probeSideIndex = 0; probeSideIndex < probeSideBatchRowCount; probeSideIndex++) {
         buildSideIndicesBuilder.append(buildSideIndex);
         probeSideIndicesBuilder.append(probeSideIndex);
@@ -154,6 +156,18 @@ public class CrossJoinArrayList implements JoinCollection {
     if (mark != null) {
       Preconditions.checkArgument(buildSideIndices.getValueCount() == mark.getValueCount());
     }
+
+    if(selection!=null){
+      try(BaseIntVector selectedBuildSideIndices = ValueVectors.select(allocator, buildSideIndices, selection);
+          BaseIntVector selectedProbeSideIndices = probeSideIndices == null
+              ? ValueVectors.slice(allocator, selection)
+              : ValueVectors.select(allocator, probeSideIndices, selection);
+          BitVector selectedMark = ValueVectors.select(allocator, mark, selection)) {
+        output(dictionaryProvider, selectedBuildSideIndices, selectedProbeSideIndices, selectedMark, null);
+        return;
+      }
+    }
+
     int buildSideColumnCount = buildSideSingleBatch.getSchema().getFields().size();
     int probeSideColumnCount = probeSideSchema.getFields().size();
 
@@ -171,11 +185,11 @@ public class CrossJoinArrayList implements JoinCollection {
     }
 
     try (VectorSchemaRoot result =
-            VectorSchemaRoots.create(vectors, probeSideIndices.getValueCount());
+            VectorSchemaRoots.create(vectors, buildSideIndices.getValueCount());
         VectorSchemaRoot output =
             ScalarExpressionUtils.evaluate(
                 allocator, dictionaryProvider, result, null, outputExpressions)) {
-      resultConsumer.consume(dictionaryProvider, output, selection);
+      resultConsumer.consume(dictionaryProvider, output);
     }
   }
 
@@ -185,7 +199,7 @@ public class CrossJoinArrayList implements JoinCollection {
     private final Schema buildSideSchema;
     private final Schema probeSideSchema;
     private final List<ScalarExpression<?>> outputExpressions;
-    private final List<VectorSchemaRoot> buildSideBatches;
+    private final List<LazyBatch> buildSideBatches;
 
     public Builder(
         BufferAllocator allocator,
@@ -211,31 +225,32 @@ public class CrossJoinArrayList implements JoinCollection {
 
     @Override
     public void close() {
-      buildSideBatches.forEach(VectorSchemaRoot::close);
+      buildSideBatches.forEach(LazyBatch::close);
       buildSideBatches.clear();
     }
 
     @Override
     public void add(
         DictionaryProvider dictionaryProvider,
-        VectorSchemaRoot data,
-        @Nullable BaseIntVector selection)
+        VectorSchemaRoot data)
         throws ComputeException {
-      VectorSchemaRoot flattened =
-          VectorSchemaRoots.flatten(allocator, dictionaryProvider, data, selection);
-      buildSideBatches.add(flattened);
-      Preconditions.checkArgument(flattened.getSchema().equals(buildSideSchema));
+      buildSideBatches.add(LazyBatch.slice(allocator, dictionaryProvider, data));
     }
 
     @Override
     public CrossJoinArrayList build(ResultConsumer resultConsumer) throws ComputeException {
       Objects.requireNonNull(resultConsumer);
 
-      try (VectorSchemaRoot buildSideSingleBatch =
-          VectorSchemaRoots.concat(allocator, buildSideSchema, buildSideBatches)) {
+      try (VectorSchemaRoot buildSideSingleBatch = VectorSchemaRoot.create(buildSideSchema, allocator)) {
+        for(LazyBatch buildSideBatch : buildSideBatches) {
+          try(VectorSchemaRoot flattened = VectorSchemaRoots.flatten(allocator,buildSideBatch.getDictionaryProvider(),buildSideBatch.getData(),null)){
+            VectorSchemaRoots.append(buildSideSingleBatch, flattened);
+          }
+        }
         return new CrossJoinArrayList(
             allocator, outputExpressions, probeSideSchema, buildSideSingleBatch, resultConsumer);
       }
     }
+
   }
 }

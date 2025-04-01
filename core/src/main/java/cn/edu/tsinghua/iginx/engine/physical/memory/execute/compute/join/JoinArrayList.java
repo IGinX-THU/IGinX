@@ -263,24 +263,18 @@ public class JoinArrayList extends CrossJoinArrayList {
       // merge from [0,matchedCount) and from [matchedCount,probeSideIndices.getValueCount())
       int leftCursor = 0;
       int rightCursor = matchedCount;
-      while (true) {
-        if (leftCursor < matchedCount) {
-          if (rightCursor < total) {
-            if (isInOrder(probeSideIndices, leftCursor, rightCursor)) {
-              selectionBuilder.append(leftCursor++);
-            } else {
-              selectionBuilder.append(rightCursor++);
-            }
-          } else {
-            selectionBuilder.append(leftCursor++);
-          }
+      while (leftCursor < matchedCount && rightCursor < total) {
+        if (isInOrder(probeSideIndices, leftCursor, rightCursor)) {
+          selectionBuilder.append(leftCursor++);
         } else {
-          if (rightCursor < total) {
-            selectionBuilder.append(rightCursor++);
-          } else {
-            break;
-          }
+          selectionBuilder.append(rightCursor++);
         }
+      }
+      while (leftCursor < matchedCount) {
+        selectionBuilder.append(leftCursor++);
+      }
+      while (rightCursor < total) {
+        selectionBuilder.append(rightCursor++);
       }
       return selectionBuilder.build();
     }

@@ -144,7 +144,7 @@ public class BatchStreamToRowStreamWrapper implements RowStream {
 
     return toRows(
         header,
-        arrowBatch.getSelection(),
+        null,
         keyIndices,
         keyVector,
         indices,
@@ -173,9 +173,9 @@ public class BatchStreamToRowStreamWrapper implements RowStream {
       for (int columnIndex = 0; columnIndex < valueVectors.length; columnIndex++) {
         int valueRowIndex;
         if (valueIndices[columnIndex] != null) {
-          valueRowIndex = (int) valueIndices[columnIndex].getValueAsLong(selectionIndex);
+          valueRowIndex = (int) valueIndices[columnIndex].getValueAsLong(rowIndex);
         } else {
-          valueRowIndex = selectionIndex;
+          valueRowIndex = rowIndex;
         }
         values[columnIndex] = valueVectors[columnIndex].getObject(valueRowIndex);
       }
@@ -184,9 +184,9 @@ public class BatchStreamToRowStreamWrapper implements RowStream {
       } else {
         int keyRowIndex;
         if (keyIndices != null) {
-          keyRowIndex = (int) keyIndices.getValueAsLong(selectionIndex);
+          keyRowIndex = (int) keyIndices.getValueAsLong(rowIndex);
         } else {
-          keyRowIndex = selectionIndex;
+          keyRowIndex = rowIndex;
         }
         long key = keyVector.get(keyRowIndex);
         rows.add(new Row(header, key, values));

@@ -29,7 +29,6 @@ public interface ResultConsumer {
 
   void consume(
       DictionaryProvider dictionaryProvider,
-      VectorSchemaRoot data,
-      @Nullable BaseIntVector selection)
+      VectorSchemaRoot data)
       throws ComputeException;
 }

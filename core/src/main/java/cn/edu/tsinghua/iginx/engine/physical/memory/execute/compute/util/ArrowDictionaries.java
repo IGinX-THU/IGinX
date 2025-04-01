@@ -19,19 +19,26 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util;
 
-import static org.apache.arrow.vector.dictionary.DictionaryProvider.MapDictionaryProvider;
+import org.apache.arrow.memory.BufferAllocator;
+import org.apache.arrow.util.Preconditions;
+import org.apache.arrow.vector.BaseIntVector;
+import org.apache.arrow.vector.FieldVector;
+import org.apache.arrow.vector.VectorSchemaRoot;
+import org.apache.arrow.vector.dictionary.Dictionary;
+import org.apache.arrow.vector.dictionary.DictionaryProvider;
+import org.apache.arrow.vector.types.pojo.ArrowType;
+import org.apache.arrow.vector.types.pojo.DictionaryEncoding;
+import org.apache.arrow.vector.types.pojo.Field;
+import org.apache.arrow.vector.types.pojo.Schema;
+import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.apache.arrow.memory.BufferAllocator;
-import org.apache.arrow.vector.dictionary.Dictionary;
-import org.apache.arrow.vector.dictionary.DictionaryProvider;
-import org.apache.arrow.vector.types.pojo.DictionaryEncoding;
-import org.apache.arrow.vector.types.pojo.Field;
-import org.apache.arrow.vector.types.pojo.Schema;
+
+import static org.apache.arrow.vector.dictionary.DictionaryProvider.MapDictionaryProvider;
 
 public class ArrowDictionaries {
 
@@ -77,5 +84,36 @@ public class ArrowDictionaries {
 
   public static DictionaryProvider emptyProvider() {
     return new MapDictionaryProvider();
+  }
+
+  public static Pair<MapDictionaryProvider, VectorSchemaRoot> select(
+      BufferAllocator allocator,
+      DictionaryProvider dictionaryProvider,
+      VectorSchemaRoot data,
+      BaseIntVector selection) {
+    Preconditions.checkNotNull(selection);
+
+    long nextId = dictionaryProvider.getDictionaryIds().stream().max(Long::compareTo).orElse(0L) + 1;
+
+    MapDictionaryProvider mapDictionaryProvider = slice(allocator, dictionaryProvider, data.getSchema());
+    List<FieldVector> resultVectors = new ArrayList<>();
+    for (FieldVector vector : data.getFieldVectors()) {
+      if (vector.getField().getDictionary() == null) {
+        long id = nextId++;
+        Dictionary dictionary = new Dictionary(
+            ValueVectors.slice(allocator, vector),
+            new DictionaryEncoding(
+                id,
+                false,
+                (ArrowType.Int) (selection.getField().getType())
+            )
+        );
+        mapDictionaryProvider.put(dictionary);
+        resultVectors.add(ValueVectors.slice(allocator, selection, dictionary));
+      } else {
+        resultVectors.add(ValueVectors.select(allocator, vector, selection));
+      }
+    }
+    return Pair.of(mapDictionaryProvider, VectorSchemaRoots.create(resultVectors, selection.getValueCount()));
   }
 }

@@ -20,12 +20,17 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateless;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.predicate.expression.PredicateExpression;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ArrowDictionaries;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.util.Batch;
-import java.util.Objects;
 import org.apache.arrow.vector.BaseIntVector;
+import org.apache.arrow.vector.VectorSchemaRoot;
+import org.apache.arrow.vector.dictionary.DictionaryProvider;
 import org.apache.arrow.vector.types.pojo.Schema;
+import org.apache.commons.lang3.tuple.Pair;
+
+import java.util.Objects;
 
 public class FilterExecutor extends StatelessUnaryExecutor {
 
@@ -39,13 +44,18 @@ public class FilterExecutor extends StatelessUnaryExecutor {
 
   @Override
   public Batch computeImpl(Batch batch) throws ComputeException {
-    BaseIntVector selection =
-        condition.filter(
-            context.getAllocator(),
-            batch.getDictionaryProvider(),
-            batch.getData(),
-            batch.getSelection());
-    return batch.sliceWith(context.getAllocator(), selection);
+    try (BaseIntVector selection = condition.filter(context.getAllocator(), batch.getDictionaryProvider(), batch.getData(), null)) {
+      if (selection == null) {
+        return batch.slice(context.getAllocator());
+      }
+      Pair<DictionaryProvider.MapDictionaryProvider, VectorSchemaRoot> result = ArrowDictionaries.select(
+          context.getAllocator(),
+          batch.getDictionaryProvider(),
+          batch.getData(),
+          selection
+      );
+      return Batch.of(result.getRight(),result.getLeft());
+    }
   }
 
   @Override
@@ -59,5 +69,6 @@ public class FilterExecutor extends StatelessUnaryExecutor {
   }
 
   @Override
-  public void close() throws ComputeException {}
+  public void close() throws ComputeException {
+  }
 }

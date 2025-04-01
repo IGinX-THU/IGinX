@@ -19,9 +19,7 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.PhysicalFunctions;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.logic.And;
-import javax.annotation.Nullable;
 import org.apache.arrow.memory.ArrowBuf;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.memory.util.MemoryUtil;
@@ -32,6 +30,8 @@ import org.apache.arrow.vector.types.Types;
 import org.apache.arrow.vector.types.pojo.DictionaryEncoding;
 import org.apache.arrow.vector.types.pojo.Field;
 import org.apache.arrow.vector.util.TransferPair;
+
+import javax.annotation.Nullable;
 
 public class ValueVectors {
 
@@ -245,7 +245,7 @@ public class ValueVectors {
     DictionaryEncoding dictionaryEncoding = vector.getField().getDictionary();
     if (dictionaryEncoding == null) {
       if (selection != null) {
-        return PhysicalFunctions.take(allocator, selection, vector);
+        return ValueVectors.select(allocator, vector, selection);
       } else {
         return slice(allocator, vector);
       }
@@ -279,5 +279,39 @@ public class ValueVectors {
       dest.setValueCount(destCount);
       return ValueVectors.transfer(allocator, dest, indices.getName());
     }
+  }
+
+  public static <T extends ValueVector> T select(BufferAllocator allocator, @Nullable T vector, @Nullable BaseIntVector selection) {
+    if (vector == null) {
+      return null;
+    }
+    if (selection == null) {
+      return slice(allocator, vector);
+    }
+
+    T result = likeOnlyField(allocator, vector);
+
+    int destCount = selection.getValueCount();
+    FixedWidthVector fixedWidthVector =
+        result instanceof FixedWidthVector ? (FixedWidthVector) result : null;
+    if (fixedWidthVector != null) {
+      fixedWidthVector.allocateNew(destCount);
+    } else {
+      result.setInitialCapacity(destCount);
+    }
+
+    for (int destIndex = 0; destIndex < destCount; destIndex++) {
+      if (selection.isNull(destIndex)) {
+        continue;
+      }
+      int sourceIndex = (int) selection.getValueAsLong(destIndex);
+      if (fixedWidthVector != null) {
+        fixedWidthVector.copyFrom(sourceIndex, destIndex, vector);
+      } else {
+        result.copyFromSafe(sourceIndex, destIndex, vector);
+      }
+    }
+    result.setValueCount(destCount);
+    return result;
   }
 }

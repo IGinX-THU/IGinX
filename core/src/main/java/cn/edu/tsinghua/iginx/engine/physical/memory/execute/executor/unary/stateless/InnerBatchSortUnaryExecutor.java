@@ -22,6 +22,7 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stat
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.PhysicalFunctions;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpressionUtils;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.sort.IndexSortExpression;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ArrowDictionaries;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ValueVectors;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
@@ -29,7 +30,10 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.util.Batch;
 import java.util.Objects;
 import org.apache.arrow.vector.BaseIntVector;
 import org.apache.arrow.vector.IntVector;
+import org.apache.arrow.vector.VectorSchemaRoot;
+import org.apache.arrow.vector.dictionary.DictionaryProvider;
 import org.apache.arrow.vector.types.pojo.Schema;
+import org.apache.commons.lang3.tuple.Pair;
 
 public class InnerBatchSortUnaryExecutor extends StatelessUnaryExecutor {
 
@@ -61,15 +65,15 @@ public class InnerBatchSortUnaryExecutor extends StatelessUnaryExecutor {
             context.getAllocator(),
             batch.getDictionaryProvider(),
             batch.getData(),
-            batch.getSelection(),
+            null,
             indexSortExpression)) {
-      if (batch.getSelection() == null) {
-        return batch.sliceWith(
-            context.getAllocator(), ValueVectors.transfer(context.getAllocator(), sortedIndices));
-      }
-      BaseIntVector sortedSelection =
-          PhysicalFunctions.take(context.getAllocator(), sortedIndices, batch.getSelection());
-      return batch.sliceWith(context.getAllocator(), sortedSelection);
+      Pair<DictionaryProvider.MapDictionaryProvider, VectorSchemaRoot> result = ArrowDictionaries.select(
+          context.getAllocator(),
+          batch.getDictionaryProvider(),
+          batch.getData(),
+          sortedIndices
+      );
+      return Batch.of(result.getRight(), result.getLeft());
     }
   }
 }
