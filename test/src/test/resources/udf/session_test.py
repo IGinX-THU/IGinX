@@ -153,7 +153,7 @@ class SessionTest:
         dataset = session.query(["*"], 0, 10)
         print(dataset)
 
-        session.batch_delete_time_series(["*"])
+        session.batch_delete_time_series(["a.*"])
 
         # 查询删除全部后剩余的数据
         dataset = session.query(["*"], 0, 10)
