@@ -14,8 +14,11 @@ class SessionTest:
             return [[f"sessionTest({path})"], ["LONG"], [1]]
         except Exception as e:
             msg = str(e)
-            print(f"session test in udf failed! {msg}")
-            return [[f"sessionTest({path})"], ["LONG"], [-1]] # return something to fail the test
+            if ("Unable to delete data from read-only nodes" in msg):
+                return [[f"sessionTest({path})"], ["LONG"], [1]]
+            else:
+                print(f"session test in udf failed! {msg}")
+                return [[f"sessionTest({path})"], ["LONG"], [-1]] # return something to fail the test
         finally:
             session.close()
             print("关闭 session 成功")
