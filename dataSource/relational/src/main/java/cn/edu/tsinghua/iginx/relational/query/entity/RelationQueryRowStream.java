@@ -208,7 +208,7 @@ public class RelationQueryRowStream implements RowStream {
 
         if (isAgg && fullName2Name.containsKey(path)) {
           field = new Field(fullName2Name.get(path), path, type, namesAndTags.v);
-        } else if (isAgg && (engine.equals("dameng")) && !path.contains(SEPARATOR)) {
+        } else if (isAgg && (engine.equals("dameng")|| engine.equals("oracle")) && !path.contains(SEPARATOR)) {
           // dameng引擎下，如果是聚合查询，需要将列名加上表名前缀
           field = new Field(tableName + SEPARATOR + path, type, namesAndTags.v);
         } else {
