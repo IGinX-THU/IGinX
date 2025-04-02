@@ -1,3 +1,5 @@
+package cn.edu.tsinghua.iginx.relational.datatype.transformer;
+
 /*
  * IGinX - the polystore system with high performance
  * Copyright (C) Tsinghua University
@@ -17,7 +19,8 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package cn.edu.tsinghua.iginx.relational.datatype.transformer;
+
+import static cn.edu.tsinghua.iginx.thrift.DataType.*;
 
 import cn.edu.tsinghua.iginx.relational.query.entity.RelationQueryRowStream;
 import cn.edu.tsinghua.iginx.thrift.DataType;
@@ -34,29 +37,26 @@ public class OracleDataTypeTransformer implements IDataTypeTransformer {
 
   @Override
   public DataType fromEngineType(String dataType, String... parameters) {
-    if (dataType.equalsIgnoreCase("BYTE") || dataType.equalsIgnoreCase("TINYINT")) {
-      return DataType.BOOLEAN;
-    } else if (dataType.equalsIgnoreCase("BIGINT")) {
-      return DataType.LONG;
-    } else if (dataType.equalsIgnoreCase("INT")
-        || dataType.equalsIgnoreCase("SMALLINT")
-        || dataType.equalsIgnoreCase("NUMERIC")
-        || dataType.equalsIgnoreCase("INTEGER")) {
-      return DataType.INTEGER;
-    } else if (dataType.equalsIgnoreCase("FLOAT")
-        || dataType.equalsIgnoreCase("REAL")) { // from getColumns api
-      return DataType.FLOAT;
-    } else if (dataType.equalsIgnoreCase("DOUBLE PRECISION")
-        || dataType.equalsIgnoreCase("DOUBLE")
-        || dataType.equalsIgnoreCase("DECIMAL")
-        || dataType.equalsIgnoreCase("BigDecimal")) {
-      return DataType.DOUBLE;
-    } else if (dataType.equalsIgnoreCase("VARCHAR")
-        || dataType.equalsIgnoreCase("CHAR")
-        || dataType.equalsIgnoreCase("NCHAR")
-        || dataType.equalsIgnoreCase("NVARCHAR")
-        || dataType.equalsIgnoreCase("TEXT")) {
-      return DataType.BINARY;
+    if (parameters == null || parameters.length == 0) {
+      return DataType.valueOf(dataType);
+    }
+    if (dataType.equalsIgnoreCase("VARCHAR2")) {
+      return BINARY;
+    } else if (dataType.equalsIgnoreCase("NUMBER")) {
+      int columnSize = Integer.parseInt(parameters[0]);
+      if (columnSize == 1) {
+        return BOOLEAN;
+      } else if (columnSize >= 1 && columnSize <= 10) {
+        return INTEGER;
+      } else if (columnSize == 126) { // from ResultSet api
+        return FLOAT;
+      } else if (columnSize == 38) { // from ResultSet api
+        return DOUBLE;
+      } else {
+        return LONG;
+      }
+    } else if (dataType.equalsIgnoreCase("FLOAT")) { // from getColumns api
+      return FLOAT;
     } else {
       LOGGER.error("column type {} is not supported", dataType);
     }
@@ -66,18 +66,18 @@ public class OracleDataTypeTransformer implements IDataTypeTransformer {
   public String toEngineType(DataType dataType) {
     switch (dataType) {
       case BOOLEAN:
-        return "TINYINT";
+        return "NUMBER(1)";
       case INTEGER:
-        return "INT";
+        return "NUMBER(10)";
       case LONG:
-        return "BIGINT";
+        return "NUMBER(19)";
       case FLOAT:
-        return "REAL";
+        return "FLOAT";
       case DOUBLE:
-        return "DOUBLE PRECISION";
+        return "NUMBER(38, 10)";
       case BINARY:
       default:
-        return "VARCHAR(4000)";
+        return "VARCHAR2(4000)";
     }
   }
 }
