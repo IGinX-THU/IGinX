@@ -8,7 +8,7 @@ inputs:
     java:
         description: "java version"
         required: false
-        default: 8
+        default: 17
     os:
         description: "running environment"
         required: false
@@ -124,7 +124,7 @@ runs:
           uses: actions/setup-java@v4
           with:
               java-version: ${{ inputs.java }}
-              distribution: ${{ runner.os == 'macOS' && matrix.java == '8' && 'liberica' || 'temurin' }}
+              distribution: "temurin"
               cache: "maven"
 
         - name: Check Java & Python Version

@@ -8,9 +8,9 @@ Currently, IGinX directly supports big data service over relational database Pos
 
 ### Java Installation
 
-Since ZooKeeper, IGinX and IoTDB are all developed using Java, Java needs to be installed first. If a running environment of JDK >= 1.8 has been installed locally, **skip this step entirely**.
+Since ZooKeeper, IGinX and IoTDB are all developed using Java, Java needs to be installed first. If a running environment of JDK >= 17 has been installed locally, **skip this step entirely**.
 
-1. First, visit the [official Java website](https://www.oracle.com/java/technologies/javase/javase-jdk8-downloads.html) to download the JDK package for your current system.
+1. First, visit the [official Java website](https://www.oracle.com/java/technologies/downloads) to download the JDK package for your current system.
 
 2. Installation
 
