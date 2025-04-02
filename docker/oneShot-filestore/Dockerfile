@@ -18,11 +18,11 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
-FROM maven:3-amazoncorretto-8 AS builder
+FROM maven:3-amazoncorretto-17 AS builder
 COPY . /root/IGinX
 WORKDIR /root/IGinX
 RUN --mount=type=cache,target=/root/.m2 mvn clean package -pl core,dataSources/filesystem -am -Dmaven.test.skip=true -Drevision=dev
 
-FROM amazoncorretto:8
+FROM amazoncorretto:17
 COPY --from=builder /root/IGinX/core/target/iginx-core-dev /root/IGinX
 ENV PS1='\u@\h:\w\$ '
