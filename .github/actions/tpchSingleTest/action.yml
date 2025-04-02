@@ -4,6 +4,11 @@ inputs:
     status:
         description: "status of last test"
         default: "unfinished"
+    warmup-test:
+      description: "Testcases to run for warmup"
+      type: string
+      required: false
+      default: SQLSessionIT,SQLSessionIT,SQLSessionIT,SQLSessionIT,SQLSessionIT,SQLWarmupIT
 outputs:
     status:
         description: "status of this test"
@@ -19,7 +24,7 @@ runs:
         - name: Run SQL Warmup on New IGinX
           if: inputs.status != 'ok'
           shell: bash -el {0}
-          run: mvn test -q -Dtest=SQLWarmupIT -DfailIfNoTests=false -P-format
+          run: mvn test -q -Dtest=${{ inputs.warmup-test }} -DfailIfNoTests=false -Dmaven.test.failure.ignore=true -P-format
 
         - name: Run TPCH Test on New IGinX
           if: inputs.status != 'ok'
@@ -50,7 +55,7 @@ runs:
           if: inputs.status != 'ok'
           shell: bash -el {0}
           working-directory: IGinX
-          run: mvn test -q -Dtest=SQLWarmupIT -DfailIfNoTests=false -P-format
+          run: mvn test -q -Dtest=${{ inputs.warmup-test }} -DfailIfNoTests=false -Dmaven.test.failure.ignore=true -P-format
 
         - name: Run TPCH Test on Old IGinX
           if: inputs.status != 'ok'
