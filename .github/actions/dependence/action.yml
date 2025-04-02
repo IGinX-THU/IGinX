@@ -83,6 +83,7 @@ runs:
               echo "tqdm" >> requirements.txt
               echo "requests" >> requirements.txt
               echo "torch" >> requirements.txt
+              echo "transformers" >> requirements.txt
 
         - if: inputs.scope=='all' && inputs.iginx-conda-flag != 'true'
           name: Set up Python ${{ inputs.python-version }}
