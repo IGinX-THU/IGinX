@@ -22,6 +22,7 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.util;
 import static org.apache.arrow.vector.dictionary.DictionaryProvider.MapDictionaryProvider;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ArrowDictionaries;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.Schemas;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.VectorSchemaRoots;
 import java.util.List;
 import java.util.Objects;
@@ -30,6 +31,7 @@ import javax.annotation.WillCloseWhenClosed;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
+import org.apache.arrow.vector.dictionary.DictionaryProvider;
 import org.apache.arrow.vector.types.pojo.Schema;
 
 public class Batch implements AutoCloseable {
@@ -75,7 +77,7 @@ public class Batch implements AutoCloseable {
     this.sequenceNumber = sequenceNumber;
   }
 
-  public MapDictionaryProvider getDictionaryProvider() {
+  public DictionaryProvider getDictionaryProvider() {
     return dictionaryProvider;
   }
 
@@ -104,40 +106,21 @@ public class Batch implements AutoCloseable {
     return group.getFieldVectors();
   }
 
+  public int getRowCount() {
+    return group.getRowCount();
+  }
+
   public FieldVector getVector(int index) {
     return group.getFieldVectors().get(index);
   }
 
   public Schema getSchema() {
-    // TODO: flatten schema
-    throw new UnsupportedOperationException("Not implemented");
+    return Schemas.flatten(dictionaryProvider, group.getSchema());
   }
 
   @Override
   public void close() {
     group.close();
     dictionaryProvider.close();
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) return true;
-    if (o == null || getClass() != o.getClass()) return false;
-    Batch that = (Batch) o;
-    return Objects.equals(group, that.group);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hashCode(group);
-  }
-
-  @Override
-  public String toString() {
-    return group.toString();
-  }
-
-  public int getRowCount() {
-    return group.getRowCount();
   }
 }
