@@ -20,25 +20,43 @@
 package cn.edu.tsinghua.iginx.relational.tools;
 
 public class ColumnField {
-  public String tableName;
-  public String columnName;
-  public String columnType;
-  public int columnSize;
+  public final String tableName;
+  public final String columnName;
+  public final int columnType;
+  public final String columnTypeName;
+  public final int columnSize;
+  public final int decimalDigits;
 
-  public ColumnField(String tableName, String columnName, String columnType) {
+  public ColumnField(String tableName, String columnName, int columnType ,String columnTypeName, int columnSize, int decimalDigits) {
     this.tableName = tableName;
     this.columnName = columnName;
     this.columnType = columnType;
+    this.columnTypeName = columnTypeName;
+    this.columnSize = columnSize;
+    this.decimalDigits = decimalDigits;
   }
 
-  public ColumnField(String tableName, String columnName, String columnType, int columnSize) {
-    this.tableName = tableName;
-    this.columnName = columnName;
-    this.columnType = columnType;
-    this.columnSize = columnSize;
+  public String getTableName() {
+    return tableName;
   }
 
   public String getColumnName() {
     return columnName;
+  }
+
+  public int getColumnType() {
+    return columnType;
+  }
+
+  public String getColumnTypeName() {
+    return columnTypeName;
+  }
+
+  public int getColumnSize() {
+    return columnSize;
+  }
+
+  public int getDecimalDigits() {
+    return decimalDigits;
   }
 }

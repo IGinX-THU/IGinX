@@ -22,13 +22,11 @@ package cn.edu.tsinghua.iginx.relational.datatype.transformer;
 
 import static cn.edu.tsinghua.iginx.thrift.DataType.*;
 
-import cn.edu.tsinghua.iginx.relational.query.entity.RelationQueryRowStream;
 import cn.edu.tsinghua.iginx.thrift.DataType;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import java.sql.Types;
 
 public class OracleDataTypeTransformer implements IDataTypeTransformer {
-  private static final Logger LOGGER = LoggerFactory.getLogger(RelationQueryRowStream.class);
   private static final OracleDataTypeTransformer INSTANCE = new OracleDataTypeTransformer();
 
   public static OracleDataTypeTransformer getInstance() {
@@ -36,31 +34,31 @@ public class OracleDataTypeTransformer implements IDataTypeTransformer {
   }
 
   @Override
-  public DataType fromEngineType(String dataType, String... parameters) {
-    if (parameters == null || parameters.length == 0) {
-      return DataType.valueOf(dataType);
-    }
-    if (dataType.equalsIgnoreCase("VARCHAR2")) {
-      return BINARY;
-    } else if (dataType.equalsIgnoreCase("NUMBER")) {
-      int columnSize = Integer.parseInt(parameters[0]);
-      if (columnSize == 1) {
-        return BOOLEAN;
-      } else if (columnSize >= 1 && columnSize <= 10) {
-        return INTEGER;
-      } else if (columnSize == 126) { // from ResultSet api
-        return FLOAT;
-      } else if (columnSize == 38) { // from ResultSet api
+  public DataType fromEngineType(int type, String dataType, int precision, int scale) {
+    switch (type){
+      case Types.NUMERIC:
+        if(scale==0){
+          if(precision<=1) {
+            return BOOLEAN;
+          }else if(precision <= 10) {
+            return INTEGER;
+          }else if(precision <= 19) {
+            return LONG;
+          }
+        }
         return DOUBLE;
-      } else {
-        return LONG;
-      }
-    } else if (dataType.equalsIgnoreCase("FLOAT")) { // from getColumns api
-      return FLOAT;
-    } else {
-      LOGGER.error("column type {} is not supported", dataType);
+      case Types.LONGVARCHAR:
+        return BINARY;
+      default:
+        switch (dataType.toUpperCase()){
+          case "BINARY_FLOAT":
+            return FLOAT;
+          case "BINARY_DOUBLE":
+            return DOUBLE;
+          default:
+            return BINARY;
+        }
     }
-    return null;
   }
 
   public String toEngineType(DataType dataType) {
@@ -72,12 +70,13 @@ public class OracleDataTypeTransformer implements IDataTypeTransformer {
       case LONG:
         return "NUMBER(19)";
       case FLOAT:
-        return "FLOAT";
+        return "BINARY_FLOAT";
       case DOUBLE:
-        return "NUMBER(38, 10)";
+        return "BINARY_DOUBLE";
       case BINARY:
+        return "LONG";
       default:
-        return "VARCHAR2(4000)";
+        throw new IllegalArgumentException("dataType " + dataType + " is not supported");
     }
   }
 }

@@ -35,7 +35,7 @@ public class DmDataTypeTransformer implements IDataTypeTransformer {
   }
 
   @Override
-  public DataType fromEngineType(String dataType, String... parameters) {
+  public DataType fromEngineType(int type, String dataType, int precision, int scale) {
     if (dataType.equalsIgnoreCase("BYTE") || dataType.equalsIgnoreCase("TINYINT")) {
       return DataType.BOOLEAN;
     } else if (dataType.equalsIgnoreCase("BIGINT")) {

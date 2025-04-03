@@ -79,6 +79,8 @@ public class JDBCMeta extends AbstractRelationalMeta {
 
   private final boolean jdbcSupportBackslash;
 
+  private final boolean jdbcSupportGetTableNameFromResultSet;
+
   public JDBCMeta(StorageEngineMeta meta, Properties properties) {
     super(meta);
     quote = properties.getProperty("quote").charAt(0);
@@ -113,6 +115,7 @@ public class JDBCMeta extends AbstractRelationalMeta {
     notRegexOp = properties.getProperty("not_regex_like_symbol");
     jdbcSupportBackslash =
         Boolean.parseBoolean(properties.getProperty("jdbc_support_special_char"));
+    this.jdbcSupportGetTableNameFromResultSet = Boolean.parseBoolean(properties.getProperty("jdbc_support_get_table_name_from_result_set"));
   }
 
   @Override
@@ -238,6 +241,11 @@ public class JDBCMeta extends AbstractRelationalMeta {
   @Override
   public boolean jdbcSupportSpecialChar() {
     return jdbcSupportBackslash;
+  }
+
+  @Override
+  public boolean jdbcSupportGetTableNameFromResultSet() {
+    return jdbcSupportGetTableNameFromResultSet;
   }
 
   public StorageEngineMeta getStorageEngineMeta() {

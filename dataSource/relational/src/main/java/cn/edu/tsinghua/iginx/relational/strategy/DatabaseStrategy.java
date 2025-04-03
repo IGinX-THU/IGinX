@@ -22,6 +22,8 @@ package cn.edu.tsinghua.iginx.relational.strategy;
 import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.utils.Pair;
+import com.zaxxer.hikari.HikariConfig;
+
 import java.sql.*;
 import java.util.List;
 import java.util.Map;
@@ -102,4 +104,8 @@ public interface DatabaseStrategy {
    * @return 包含类型转换的平均值表达式
    */
   String getAvgCastExpression(Expression param);
+
+  default void configureDataSource(HikariConfig config, String databaseName, StorageEngineMeta meta){
+
+  }
 }

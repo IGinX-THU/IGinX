@@ -24,11 +24,17 @@ import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.relational.meta.AbstractRelationalMeta;
 import cn.edu.tsinghua.iginx.relational.tools.ColumnField;
 import cn.edu.tsinghua.iginx.utils.Pair;
+import com.zaxxer.hikari.HikariConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.*;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -50,9 +56,7 @@ public class OracleDatabaseStrategy implements DatabaseStrategy {
 
   @Override
   public String getUrl(String databaseName, StorageEngineMeta meta) {
-    return String.format(
-        "jdbc:oracle:thin:@//%s:%d/%s",
-        meta.getIp(), meta.getPort(), relationalMeta.getDefaultDatabaseName());
+    return getConnectUrl(meta);
   }
 
   @Override
@@ -67,8 +71,13 @@ public class OracleDatabaseStrategy implements DatabaseStrategy {
   }
 
   @Override
+  public void configureDataSource(HikariConfig config, String databaseName, StorageEngineMeta meta){
+    config.setConnectionInitSql("ALTER SESSION SET CURRENT_SCHEMA = " + getQuotName(databaseName));
+  }
+
+  @Override
   public String getDatabaseNameFromResultSet(ResultSet rs) throws SQLException {
-    return rs.getString("TABLE_SCHEMA");
+    return rs.getString("DATNAME");
   }
 
   @Override
@@ -97,211 +106,161 @@ public class OracleDatabaseStrategy implements DatabaseStrategy {
       String columnNames = entry.getValue().k.substring(0, entry.getValue().k.length() - 2);
       List<String> values = entry.getValue().v;
       String[] parts = columnNames.split(", ");
-      Map<String, String[]> valueMap = new HashMap<>();
       Map<String, ColumnField> columnMap = getColumnMap(conn, databaseName, tableName);
-      for (String value : values) {
-        String csvLine = value.substring(0, value.length() - 2);
+      this.batchInsert(conn,databaseName, tableName, columnMap, parts, values);
+    }
+    stmt.executeBatch();
+  }
 
-        // 临时替换引号内的逗号
-        StringBuilder processed = new StringBuilder();
-        boolean inQuotes = false;
-        for (int i = 0; i < csvLine.length(); i++) {
-          char c = csvLine.charAt(i);
+  private void batchInsert(
+      Connection conn,
+      String databaseName,
+      String tableName,
+      Map<String, ColumnField> columnMap,
+      String[] parts,
+      List<String> values) {
+    Map<String, String[]> valueMap =
+        values.stream()
+            .map(value -> value.substring(0, value.length() - 2))
+            .map(OracleDatabaseStrategy::splitByCommaWithQuotes)
+            .collect(Collectors.toMap(arr -> arr[0], arr -> arr));
+    List<String> allKeys = new ArrayList<>(valueMap.keySet());
+    List<String> insertKeys = new ArrayList<>();
+    List<String> updateKeys = new ArrayList<>();
+    try {
+      StringBuilder placeHolder = new StringBuilder();
 
-          if (c == '\'') {
-            inQuotes = !inQuotes;
-          }
+      int start = 0, end = 0, step = 0;
 
-          if (c == ',' && inQuotes) {
-            processed.append("##COMMA##");
-          } else {
-            processed.append(c);
-          }
-        }
-
-        // 正常分割
-        String[] value_parts = processed.toString().split(", ");
-
-        // 恢复原来的逗号
-        for (int i = 0; i < value_parts.length; i++) {
-          value_parts[i] = value_parts[i].replace("##COMMA##", ",");
-        }
-
-        valueMap.put(value_parts[0], value_parts);
-      }
-
-      List<String> allKeys = new ArrayList<>(valueMap.keySet());
-      List<String> insertKeys = new ArrayList<>();
-      List<String> updateKeys = new ArrayList<>();
-      try {
-        StringBuilder placeHolder = new StringBuilder();
-
-        int start = 0, end = 0, step = 0;
-
-        while (end < allKeys.size()) {
-          step = Math.min(allKeys.size() - end, 500);
-          end += step;
-          IntStream.range(start, end).forEach(i -> placeHolder.append("?,"));
-
-          PreparedStatement selectStmt =
-              conn.prepareStatement(
-                  String.format(
-                      relationalMeta.getQueryTableStatement(),
-                      getQuotName(KEY_NAME),
-                      1,
-                      getQuotName(tableName),
-                      " WHERE "
-                          + getQuotName(KEY_NAME)
-                          + "IN ("
-                          + placeHolder.substring(0, placeHolder.length() - 1)
-                          + ")",
-                      getQuotName(KEY_NAME)));
-
-          for (int i = 0; i < end - start; i++) {
-            selectStmt.setString(i + 1, allKeys.get(start + i));
-          }
-          ResultSet resultSet = selectStmt.executeQuery();
-          while (resultSet.next()) {
-            updateKeys.add(resultSet.getString(1));
-          }
-          start = end;
-          placeHolder.setLength(0);
-          resultSet.close();
-          selectStmt.close();
-        }
-        insertKeys =
-            allKeys.stream()
-                .filter(item -> !updateKeys.contains(item))
-                .collect(Collectors.toList());
-
-        // insert
-        placeHolder.setLength(0);
-        Arrays.stream(parts).forEach(part -> placeHolder.append("?,"));
-        String partStr =
-            Arrays.stream(parts).map(this::getQuotName).collect(Collectors.joining(","));
-        PreparedStatement insertStmt =
+      while (end < allKeys.size()) {
+        step = Math.min(allKeys.size() - end, 500);
+        end += step;
+        IntStream.range(start, end)
+            .forEach(
+                i -> {
+                  placeHolder.append("?,");
+                });
+        PreparedStatement selectStmt =
             conn.prepareStatement(
                 String.format(
-                    relationalMeta.getInsertTableStatement(),
-                    getQuotName(tableName),
-                    getQuotName(KEY_NAME) + "," + partStr,
-                    placeHolder.append("?")));
-
-        conn.setAutoCommit(false); // 关闭自动提交
-        for (int i = 0; i < insertKeys.size(); i++) {
-          String[] vals = valueMap.get(insertKeys.get(i));
-          insertStmt.setString(1, vals[0]);
-          for (int j = 0; j < parts.length; j++) {
-            if (!columnMap.containsKey(parts[j])) {
-              break;
-            }
-            if (columnMap.get(parts[j]).columnType.equals("NUMBER")) {
-              int columnSize = columnMap.get(parts[j]).columnSize;
-              if (columnSize == 1) {
-                setValue(insertStmt, j + 2, vals[j + 1], Types.BOOLEAN);
-              } else if (columnSize >= 1 && columnSize <= 10) {
-                setValue(insertStmt, j + 2, vals[j + 1], Types.INTEGER);
-              } else if (columnSize == 38) {
-                setValue(insertStmt, j + 2, vals[j + 1], Types.DOUBLE);
-              } else {
-                setValue(insertStmt, j + 2, vals[j + 1], Types.BIGINT);
-              }
-            } else if (columnMap.get(parts[j]).columnType.equals("FLOAT")) {
-              setValue(insertStmt, j + 2, vals[j + 1], Types.FLOAT);
-            } else if (columnMap.get(parts[j]).columnType.equals("TINYINT")) {
-              setValue(insertStmt, j + 2, vals[j + 1], Types.BOOLEAN);
-            } else {
-              setValue(insertStmt, j + 2, vals[j + 1], Types.VARCHAR);
-            }
-          }
-          insertStmt.addBatch();
-          if (i % 500 == 0) { // 每500条数据执行一次批处理
-            insertStmt.executeBatch(); // 执行批处理
-            insertStmt.clearBatch();
-          }
-        }
-        insertStmt.executeBatch();
-        insertStmt.close();
-        conn.commit();
-
-        // upadte  String updateSql = "UPDATE %s.%s SET %s WHERE %s = %s";
-        placeHolder.setLength(0);
-        Arrays.stream(parts).forEach(part -> placeHolder.append(getQuotName(part)).append("=?,"));
-        PreparedStatement updateStmt =
-            conn.prepareStatement(
-                String.format(
-                    relationalMeta.getUpdateTableStatement(),
-                    getQuotName(tableName),
-                    placeHolder.substring(0, placeHolder.length() - 1),
+                    relationalMeta.getQueryTableStatement(),
                     getQuotName(KEY_NAME),
-                    "?"));
+                    1,
+                    getQuotName(tableName),
+                    " WHERE "
+                        + getQuotName(KEY_NAME)
+                        + "IN ("
+                        + placeHolder.substring(0, placeHolder.length() - 1)
+                        + ")",
+                    getQuotName(KEY_NAME)));
+        for (int i = 0; i < end - start; i++) {
+          selectStmt.setString(i + 1, allKeys.get(start + i));
+        }
+        ResultSet resultSet = selectStmt.executeQuery();
+        while (resultSet.next()) {
+          updateKeys.add(resultSet.getString(1));
+        }
+        start = end;
+        placeHolder.setLength(0);
+        resultSet.close();
+        selectStmt.close();
+      }
+      insertKeys =
+          allKeys.stream().filter(item -> !updateKeys.contains(item)).collect(Collectors.toList());
 
-        for (int i = 0; i < updateKeys.size(); i++) {
-          String[] vals = valueMap.get(updateKeys.get(i));
-          for (int j = 0; j < parts.length; j++) {
-            if (!columnMap.containsKey(parts[j])) {
-              break;
-            }
-            if (columnMap.get(parts[j]).columnType.equals("NUMBER")) {
-              int columnSize = columnMap.get(parts[j]).columnSize;
-              if (columnSize == 1) {
-                setValue(updateStmt, j + 1, vals[j + 1], Types.BOOLEAN);
-              } else if (columnSize >= 1 && columnSize <= 10) {
-                setValue(updateStmt, j + 1, vals[j + 1], Types.INTEGER);
-              } else if (columnSize == 38) {
-                setValue(updateStmt, j + 1, vals[j + 1], Types.DOUBLE);
-              } else {
-                setValue(updateStmt, j + 1, vals[j + 1], Types.BIGINT);
-              }
-            } else if (columnMap.get(parts[j]).columnType.equals("FLOAT")) {
-              setValue(updateStmt, j + 1, vals[j + 1], Types.FLOAT);
-            } else if (columnMap.get(parts[j]).columnType.equals("TINYINT")) {
-              setValue(updateStmt, j + 1, vals[j + 1], Types.BOOLEAN);
-            } else {
-              setValue(updateStmt, j + 1, vals[j + 1], Types.VARCHAR);
-            }
+      // insert
+      placeHolder.setLength(0);
+      Arrays.stream(parts).forEach(part -> placeHolder.append("?,"));
+      String partStr = Arrays.stream(parts).map(this::getQuotName).collect(Collectors.joining(","));
+      PreparedStatement insertStmt =
+          conn.prepareStatement(
+              String.format(
+                  relationalMeta.getInsertTableStatement(),
+                  getQuotName(tableName),
+                  getQuotName(KEY_NAME) + "," + partStr,
+                  placeHolder.append("?")));
+      conn.setAutoCommit(false); // 关闭自动提交
+      for (int i = 0; i < insertKeys.size(); i++) {
+        String[] vals = valueMap.get(insertKeys.get(i));
+        insertStmt.setString(1, vals[0]);
+        for (int j = 0; j < parts.length; j++) {
+          if (!columnMap.containsKey(parts[j])) {
+            break;
           }
-          updateStmt.setString(parts.length + 1, vals[0]);
-          updateStmt.addBatch();
-          if (i % 500 == 0) { // 每500条数据执行一次批处理
-            updateStmt.executeBatch();
-            updateStmt.clearBatch();
+          if (columnMap.get(parts[j]).columnTypeName.equals("NUMBER")) {
+            int columnSize = columnMap.get(parts[j]).columnSize;
+            if (columnSize == 1) {
+              setValue(insertStmt, j + 2, vals[j + 1], Types.BOOLEAN);
+            } else if (columnSize >= 1 && columnSize <= 10) {
+              setValue(insertStmt, j + 2, vals[j + 1], Types.INTEGER);
+            } else if (columnSize == 38) {
+              setValue(insertStmt, j + 2, vals[j + 1], Types.DOUBLE);
+            } else {
+              setValue(insertStmt, j + 2, vals[j + 1], Types.BIGINT);
+            }
+          } else if (columnMap.get(parts[j]).columnTypeName.equals("FLOAT")) {
+            setValue(insertStmt, j + 2, vals[j + 1], Types.FLOAT);
+          } else {
+            setValue(insertStmt, j + 2, vals[j + 1], Types.VARCHAR);
           }
         }
-        updateStmt.executeBatch();
-        updateStmt.close();
-        conn.commit();
-      } catch (SQLException e) {
-        throw new RuntimeException(e);
+        insertStmt.addBatch();
+        if (i % 500 == 0) { // 每1000条数据执行一次批处理
+          insertStmt.executeBatch(); // 执行批处理
+          insertStmt.clearBatch();
+        }
       }
+      insertStmt.executeBatch();
+      insertStmt.close();
+      conn.commit();
+
+      // upadte  String updateSql = "UPDATE %s.%s SET %s WHERE %s = %s";
+      placeHolder.setLength(0);
+      Arrays.stream(parts).forEach(part -> placeHolder.append(getQuotName(part)).append("=?,"));
+      PreparedStatement updateStmt =
+          conn.prepareStatement(
+              String.format(
+                  relationalMeta.getUpdateTableStatement(),
+                  getQuotName(tableName),
+                  placeHolder.substring(0, placeHolder.length() - 1),
+                  getQuotName(KEY_NAME),
+                  "?"));
+      for (int i = 0; i < updateKeys.size(); i++) {
+        String[] vals = valueMap.get(updateKeys.get(i));
+        for (int j = 0; j < parts.length; j++) {
+          if (!columnMap.containsKey(parts[j])) {
+            break;
+          }
+          if (columnMap.get(parts[j]).columnTypeName.equals("NUMBER")) {
+            int columnSize = columnMap.get(parts[j]).columnSize;
+            if (columnSize == 1) {
+              setValue(updateStmt, j + 1, vals[j + 1], Types.BOOLEAN);
+            } else if (columnSize >= 1 && columnSize <= 10) {
+              setValue(updateStmt, j + 1, vals[j + 1], Types.INTEGER);
+            } else if (columnSize == 38) {
+              setValue(updateStmt, j + 1, vals[j + 1], Types.DOUBLE);
+            } else {
+              setValue(updateStmt, j + 1, vals[j + 1], Types.BIGINT);
+            }
+          } else if (columnMap.get(parts[j]).columnTypeName.equals("FLOAT")) {
+            setValue(updateStmt, j + 1, vals[j + 1], Types.FLOAT);
+          } else {
+            setValue(updateStmt, j + 1, vals[j + 1], Types.VARCHAR);
+          }
+        }
+        updateStmt.setString(parts.length + 1, vals[0]);
+        updateStmt.addBatch();
+        if (i % 500 == 0) { // 每500条数据执行一次批处理
+          updateStmt.executeBatch();
+          updateStmt.clearBatch();
+        }
+      }
+      updateStmt.executeBatch();
+      updateStmt.close();
+      conn.commit();
+    } catch (SQLException e) {
+      throw new RuntimeException(e);
     }
-  }
-
-  @Override
-  public String getAvgCastExpression(Expression param) {
-    if (param.getType() == Expression.ExpressionType.Base) {
-      return "%s(CAST(%s AS DECIMAL(34, 16)))";
-    }
-    return "%s(%s)";
-  }
-
-  private Map<String, ColumnField> getColumnMap(
-      Connection conn, String databaseName, String tableName) throws SQLException {
-    DatabaseMetaData metaData = conn.getMetaData();
-    ResultSet rs = metaData.getColumns(databaseName, databaseName, tableName, null);
-    Map<String, ColumnField> columnMap = new HashMap<>();
-
-    while (rs.next()) {
-      String columnName = rs.getString("COLUMN_NAME");
-      String columnType = rs.getString("TYPE_NAME");
-      String columnTable = rs.getString("TABLE_NAME");
-      int columnSize = rs.getInt("COLUMN_SIZE");
-
-      columnMap.put(columnName, new ColumnField(columnTable, columnName, columnType, columnSize));
-    }
-
-    rs.close();
-    return columnMap;
   }
 
   private void setValue(PreparedStatement stmt, int index, String value, int types)
@@ -331,11 +290,85 @@ public class OracleDatabaseStrategy implements DatabaseStrategy {
         stmt.setDouble(index, Double.parseDouble(value));
         break;
       default:
-        if (value.startsWith("'") && value.endsWith("'")) {
+        if (value.startsWith("'") && value.endsWith("'")) { // 处理空字符串'', 非空字符串包含特殊字符的情况'""'
           stmt.setString(index, value.substring(1, value.length() - 1));
         } else {
           stmt.setString(index, value);
         }
     }
   }
+
+  @Override
+  public String getAvgCastExpression(Expression param) {
+    if (param.getType() == Expression.ExpressionType.Base) {
+      return "%s(CAST(%s AS DECIMAL(34, 16)))";
+    }
+    return "%s(%s)";
+  }
+
+  public Map<String, ColumnField> getColumnMap(
+      Connection conn, String databaseName, String tableName) throws SQLException {
+    List<ColumnField> columnFieldList = getColumns(conn, databaseName, tableName, null);
+    return columnFieldList.stream()
+        .collect(Collectors.toMap(ColumnField::getColumnName, field -> field));
+  }
+
+  private List<ColumnField> getColumns(
+      Connection conn, String databaseName, String tableName, String columnNamePattern) throws SQLException {
+    DatabaseMetaData databaseMetaData = conn.getMetaData();
+    try (ResultSet rs =
+             databaseMetaData.getColumns(
+                 databaseName, getSchemaPattern(databaseName), tableName, columnNamePattern)) {
+      List<ColumnField> columnFields = new ArrayList<>();
+      while (rs.next()) {
+        String columnName = rs.getString("COLUMN_NAME");
+        String columnTypeName = rs.getString("TYPE_NAME");
+        String columnTable = rs.getString("TABLE_NAME");
+        int columnSize = rs.getInt("COLUMN_SIZE");
+        int columnType = rs.getInt("DATA_TYPE");
+        int decimalDigits = rs.getInt("DECIMAL_DIGITS");
+        columnFields.add(new ColumnField(columnTable, columnName, columnType, columnTypeName, columnSize, decimalDigits));
+      }
+      return columnFields;
+    }
+  }
+
+  public static String[] splitByCommaWithQuotes(String input) {
+    // 引号中不包含逗号时，使用split方式返回
+    String regex = "(['\"])(.*?)\\1";
+    Pattern pattern = Pattern.compile(regex);
+    Matcher matcher = pattern.matcher(input);
+    boolean containsCommaWithQuotes = false;
+    while (matcher.find()) {
+      if (matcher.group().contains(",")) {
+        LOGGER.debug("Found: {} :: {}", matcher.group(), input);
+        containsCommaWithQuotes = true;
+        break;
+      }
+    }
+    if (!containsCommaWithQuotes) {
+      return Arrays.stream(input.split(",")).map(String::trim).toArray(String[]::new);
+    }
+
+    List<String> resultList = new ArrayList<>();
+    StringBuilder currentPart = new StringBuilder();
+    boolean insideQuotes = false;
+    for (int i = 0; i < input.length(); i++) {
+      char c = input.charAt(i);
+      if (c == ',' && !insideQuotes) {
+        resultList.add(currentPart.toString().trim());
+        currentPart.setLength(0);
+      } else if (c == '\'' || c == '\"') {
+        insideQuotes = !insideQuotes;
+        currentPart.append(c);
+      } else {
+        currentPart.append(c);
+      }
+    }
+    if (currentPart.length() > 0) {
+      resultList.add(currentPart.toString().trim());
+    }
+    return resultList.toArray(new String[0]);
+  }
+
 }

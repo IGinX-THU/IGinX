@@ -31,7 +31,7 @@ public class PostgreSQLDataTypeTransformer implements IDataTypeTransformer {
     return INSTANCE;
   }
 
-  public DataType fromEngineType(String dataType, String... parameters) {
+  public DataType fromEngineType(int type, String dataType, int precision, int scale) {
     if (dataType.equalsIgnoreCase("bool")) {
       return BOOLEAN;
     } else if (dataType.equalsIgnoreCase("int")

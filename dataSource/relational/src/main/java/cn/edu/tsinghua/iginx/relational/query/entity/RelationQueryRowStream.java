@@ -166,7 +166,10 @@ public class RelationQueryRowStream implements RowStream {
       for (int j = 1; j <= resultSetMetaData.getColumnCount(); j++) {
         String tableName = resultSetMetaData.getTableName(j);
         String columnName = resultSetMetaData.getColumnName(j);
-        String typeName = resultSetMetaData.getColumnTypeName(j);
+        String columnTypeName = resultSetMetaData.getColumnTypeName(j);
+        int columnType = resultSetMetaData.getColumnType(j);
+        int precision = resultSetMetaData.getPrecision(j);
+        int scale = resultSetMetaData.getScale(j);
 
         if (j == 1 && columnName.contains(KEY_NAME) && columnName.contains(SEPARATOR)) {
           isPushDown = true;
@@ -189,7 +192,7 @@ public class RelationQueryRowStream implements RowStream {
         }
         Pair<String, Map<String, String>> namesAndTags = splitFullName(columnName);
         Field field;
-        DataType type = relationalMeta.getDataTypeTransformer().fromEngineType(typeName);
+        DataType type = relationalMeta.getDataTypeTransformer().fromEngineType(columnType,columnTypeName,precision,scale);
         if (isAgg
             && sumResType != null
             && sumResType.containsKey(fullName2Name.getOrDefault(columnName, columnName))) {
@@ -200,15 +203,15 @@ public class RelationQueryRowStream implements RowStream {
           path =
               databaseNameList.get(i)
                   + SEPARATOR
-                  + (isAgg ? "" : tableName + SEPARATOR)
+                  + (isAgg || !relationalMeta.jdbcSupportGetTableNameFromResultSet() ? "" : tableName + SEPARATOR)
                   + namesAndTags.k;
         } else {
-          path = (isAgg ? "" : tableName + SEPARATOR) + namesAndTags.k;
+          path = (isAgg || !relationalMeta.jdbcSupportGetTableNameFromResultSet() ? "" : tableName + SEPARATOR) + namesAndTags.k;
         }
 
         if (isAgg && fullName2Name.containsKey(path)) {
           field = new Field(fullName2Name.get(path), path, type, namesAndTags.v);
-        } else if (isAgg && (engine.equals("dameng")|| engine.equals("oracle")) && !path.contains(SEPARATOR)) {
+        } else if (isAgg && (engine.equals("dameng")) && !path.contains(SEPARATOR)) {
           // dameng引擎下，如果是聚合查询，需要将列名加上表名前缀
           field = new Field(tableName + SEPARATOR + path, type, namesAndTags.v);
         } else {

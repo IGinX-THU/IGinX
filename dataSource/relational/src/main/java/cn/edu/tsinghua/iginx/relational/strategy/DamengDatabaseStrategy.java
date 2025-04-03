@@ -198,7 +198,7 @@ public class DamengDatabaseStrategy implements DatabaseStrategy {
             if (!columnMap.containsKey(parts[j])) {
               break;
             }
-            if (columnMap.get(parts[j]).columnType.equals("NUMBER")) {
+            if (columnMap.get(parts[j]).columnTypeName.equals("NUMBER")) {
               int columnSize = columnMap.get(parts[j]).columnSize;
               if (columnSize == 1) {
                 setValue(insertStmt, j + 2, vals[j + 1], Types.BOOLEAN);
@@ -209,9 +209,9 @@ public class DamengDatabaseStrategy implements DatabaseStrategy {
               } else {
                 setValue(insertStmt, j + 2, vals[j + 1], Types.BIGINT);
               }
-            } else if (columnMap.get(parts[j]).columnType.equals("FLOAT")) {
+            } else if (columnMap.get(parts[j]).columnTypeName.equals("FLOAT")) {
               setValue(insertStmt, j + 2, vals[j + 1], Types.FLOAT);
-            } else if (columnMap.get(parts[j]).columnType.equals("TINYINT")) {
+            } else if (columnMap.get(parts[j]).columnTypeName.equals("TINYINT")) {
               setValue(insertStmt, j + 2, vals[j + 1], Types.BOOLEAN);
             } else {
               setValue(insertStmt, j + 2, vals[j + 1], Types.VARCHAR);
@@ -245,7 +245,7 @@ public class DamengDatabaseStrategy implements DatabaseStrategy {
             if (!columnMap.containsKey(parts[j])) {
               break;
             }
-            if (columnMap.get(parts[j]).columnType.equals("NUMBER")) {
+            if (columnMap.get(parts[j]).columnTypeName.equals("NUMBER")) {
               int columnSize = columnMap.get(parts[j]).columnSize;
               if (columnSize == 1) {
                 setValue(updateStmt, j + 1, vals[j + 1], Types.BOOLEAN);
@@ -256,9 +256,9 @@ public class DamengDatabaseStrategy implements DatabaseStrategy {
               } else {
                 setValue(updateStmt, j + 1, vals[j + 1], Types.BIGINT);
               }
-            } else if (columnMap.get(parts[j]).columnType.equals("FLOAT")) {
+            } else if (columnMap.get(parts[j]).columnTypeName.equals("FLOAT")) {
               setValue(updateStmt, j + 1, vals[j + 1], Types.FLOAT);
-            } else if (columnMap.get(parts[j]).columnType.equals("TINYINT")) {
+            } else if (columnMap.get(parts[j]).columnTypeName.equals("TINYINT")) {
               setValue(updateStmt, j + 1, vals[j + 1], Types.BOOLEAN);
             } else {
               setValue(updateStmt, j + 1, vals[j + 1], Types.VARCHAR);
@@ -296,11 +296,13 @@ public class DamengDatabaseStrategy implements DatabaseStrategy {
 
     while (rs.next()) {
       String columnName = rs.getString("COLUMN_NAME");
-      String columnType = rs.getString("TYPE_NAME");
+      String columnTypeName = rs.getString("TYPE_NAME");
       String columnTable = rs.getString("TABLE_NAME");
       int columnSize = rs.getInt("COLUMN_SIZE");
+      int columnType = rs.getInt("DATA_TYPE");
+      int decimalDigits = rs.getInt("DECIMAL_DIGITS");
 
-      columnMap.put(columnName, new ColumnField(columnTable, columnName, columnType, columnSize));
+      columnMap.put(columnName, new ColumnField(columnTable, columnName, columnType,columnTypeName,columnSize,decimalDigits));
     }
 
     rs.close();
