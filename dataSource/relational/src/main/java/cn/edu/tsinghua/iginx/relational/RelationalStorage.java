@@ -129,7 +129,9 @@ public class RelationalStorage implements IStorage {
     HikariDataSource dataSource = connectionPoolMap.get(databaseName);
     if (dataSource != null) {
       try {
-        return dataSource.getConnection();
+        Connection conn;
+        conn = dataSource.getConnection();
+        return conn;
       } catch (SQLException e) {
         LOGGER.error("Cannot get connection for database {}", databaseName, e);
         dataSource.close();
@@ -198,9 +200,8 @@ public class RelationalStorage implements IStorage {
     filterTransformer = new FilterTransformer(relationalMeta);
     try {
       connection = DriverManager.getConnection(getConnectUrl());
-      try(Statement statement = connection.createStatement()){
-        // do nothing
-      }
+      Statement statement = connection.createStatement();
+      statement.close();
     } catch (SQLException e) {
       throw new StorageInitializationException(String.format("cannot connect to %s :", meta), e);
     }
@@ -264,17 +265,21 @@ public class RelationalStorage implements IStorage {
    */
   private List<String> getDatabaseNames() throws SQLException {
     List<String> databaseNames = new ArrayList<>();
-    try (Statement stmt = connection.createStatement();
-         ResultSet rs = stmt.executeQuery(relationalMeta.getDatabaseQuerySql())) {
-      while (rs.next()) {
-        String databaseName = dbStrategy.getDatabaseNameFromResultSet(rs);
-        if (relationalMeta.getSystemDatabaseName().contains(databaseName)
-            || relationalMeta.getDefaultDatabaseName().equals(databaseName)) {
-          continue;
-        }
-        databaseNames.add(databaseName);
+    String DefaultDatabaseName = relationalMeta.getDefaultDatabaseName();
+    Connection conn = getConnection(DefaultDatabaseName);
+    Statement statement = conn.createStatement();
+    ResultSet rs = statement.executeQuery(relationalMeta.getDatabaseQuerySql());
+    while (rs.next()) {
+      String databaseName = dbStrategy.getDatabaseNameFromResultSet(rs);
+      if (relationalMeta.getSystemDatabaseName().contains(databaseName)
+          || relationalMeta.getDefaultDatabaseName().equals(databaseName)) {
+        continue;
       }
+      databaseNames.add(databaseName);
     }
+    rs.close();
+    statement.close();
+    conn.close();
     return databaseNames;
   }
 
@@ -282,23 +287,28 @@ public class RelationalStorage implements IStorage {
     if (relationalMeta.jdbcNeedQuote()) {
       tablePattern = relationalMeta.getQuote() + tablePattern + relationalMeta.getQuote();
     }
-    try (Connection conn = getConnection(databaseName)) {
+    try {
+      Connection conn = getConnection(databaseName);
       if (conn == null) {
         throw new RelationalTaskExecuteFailureException(
             "cannot connect to database " + databaseName);
       }
       DatabaseMetaData databaseMetaData = conn.getMetaData();
-      try (ResultSet rs = databaseMetaData.getTables(
-          databaseName,
-          dbStrategy.getSchemaPattern(databaseName),
-          tablePattern,
-          new String[]{"TABLE"})) {
-        List<String> tableNames = new ArrayList<>();
-        while (rs.next()) {
-          tableNames.add(rs.getString("TABLE_NAME"));
-        }
-        return tableNames;
+      ResultSet rs =
+          databaseMetaData.getTables(
+              databaseName,
+              dbStrategy.getSchemaPattern(databaseName),
+              tablePattern,
+              new String[] {"TABLE"});
+      List<String> tableNames = new ArrayList<>();
+
+      while (rs.next()) {
+        tableNames.add(rs.getString("TABLE_NAME"));
       }
+
+      rs.close();
+      conn.close();
+      return tableNames;
     } catch (SQLException | RelationalTaskExecuteFailureException e) {
       LOGGER.error("unexpected error: ", e);
       return new ArrayList<>();
@@ -307,29 +317,32 @@ public class RelationalStorage implements IStorage {
 
   private List<ColumnField> getColumns(
       String databaseName, String tableName, String columnNamePattern) {
-    try (Connection conn = getConnection(databaseName)) {
+    try {
+      Connection conn = getConnection(databaseName);
       if (conn == null) {
         throw new RelationalTaskExecuteFailureException(
             "cannot connect to database " + databaseName);
       }
       DatabaseMetaData databaseMetaData = conn.getMetaData();
-      try (ResultSet rs = databaseMetaData.getColumns(
-          databaseName,
-          dbStrategy.getSchemaPattern(databaseName),
-          tableName,
-          columnNamePattern)) {
-        List<ColumnField> columnFields = new ArrayList<>();
-        while (rs.next()) {
-          String columnName = rs.getString("COLUMN_NAME");
-          int columnType = rs.getInt("DATA_TYPE");
-          String columnTypeName = rs.getString("TYPE_NAME");
-          String columnTable = rs.getString("TABLE_NAME");
-          int columnSize = rs.getInt("COLUMN_SIZE");
-          int decimalDigits = rs.getInt("DECIMAL_DIGITS");
-          columnFields.add(new ColumnField(columnTable, columnName, columnType, columnTypeName, columnSize, decimalDigits));
-        }
-        return columnFields;
+      ResultSet rs =
+          databaseMetaData.getColumns(
+              databaseName,
+              dbStrategy.getSchemaPattern(databaseName),
+              tableName,
+              columnNamePattern);
+      List<ColumnField> columnFields = new ArrayList<>();
+      while (rs.next()) {
+        String columnName = rs.getString("COLUMN_NAME");
+        int columnType = rs.getInt("DATA_TYPE");
+        String columnTypeName = rs.getString("TYPE_NAME");
+        String columnTable = rs.getString("TABLE_NAME");
+        int columnSize = rs.getInt("COLUMN_SIZE");
+        int decimalDigits = rs.getInt("DECIMAL_DIGITS");
+        columnFields.add(new ColumnField(columnTable, columnName, columnType, columnTypeName, columnSize, decimalDigits));
       }
+      rs.close();
+      conn.close();
+      return columnFields;
     } catch (SQLException | RelationalTaskExecuteFailureException e) {
       LOGGER.error("unexpected error: ", e);
       return new ArrayList<>();
@@ -417,7 +430,6 @@ public class RelationalStorage implements IStorage {
             List<ColumnField> columnFieldList = getColumns(databaseName, tableName, colName);
             for (ColumnField columnField : columnFieldList) {
               String columnName = columnField.columnName;
-              int columnSize = columnField.columnSize;
 
               if (columnName.equals(KEY_NAME)) { // key 列不显示
                 continue;
@@ -454,8 +466,7 @@ public class RelationalStorage implements IStorage {
             List<ColumnField> columnFieldList = getColumns(databaseName, tableName, colName);
             for (ColumnField columnField : columnFieldList) {
               String columnName = columnField.columnName;
-              String typeName = columnField.columnTypeName;
-              int columnSize = columnField.columnSize;
+
               if (columnName.equals(KEY_NAME)) { // key 列不显示
                 continue;
               }
@@ -469,7 +480,7 @@ public class RelationalStorage implements IStorage {
                       columnName,
                       relationalMeta
                           .getDataTypeTransformer()
-                          .fromEngineType(0, typeName, columnSize, 0),
+                          .fromEngineType(columnField.getColumnType(), columnField.getColumnTypeName(), columnField.getColumnSize(), columnField.getDecimalDigits()),
                       nameAndTags.v,
                       true));
             }
@@ -693,7 +704,7 @@ public class RelationalStorage implements IStorage {
 
       List<String> databaseNameList = new ArrayList<>();
       List<ResultSet> resultSets = new ArrayList<>();
-      Statement stmt =null;
+      Statement stmt;
 
       Map<String, String> tableNameToColumnNames =
           splitAndMergeQueryPatterns(databaseName, project.getPatterns());
@@ -1259,16 +1270,13 @@ public class RelationalStorage implements IStorage {
             }
 
             @Override
-            public void visit(BinaryExpression expression) {
-            }
+            public void visit(BinaryExpression expression) {}
 
             @Override
-            public void visit(BracketExpression expression) {
-            }
+            public void visit(BracketExpression expression) {}
 
             @Override
-            public void visit(ConstantExpression expression) {
-            }
+            public void visit(ConstantExpression expression) {}
 
             @Override
             public void visit(FromValueExpression expression) {
@@ -1281,12 +1289,10 @@ public class RelationalStorage implements IStorage {
             }
 
             @Override
-            public void visit(MultipleExpression expression) {
-            }
+            public void visit(MultipleExpression expression) {}
 
             @Override
-            public void visit(UnaryExpression expression) {
-            }
+            public void visit(UnaryExpression expression) {}
 
             @Override
             public void visit(CaseWhenExpression expression) {
@@ -1294,8 +1300,7 @@ public class RelationalStorage implements IStorage {
             }
 
             @Override
-            public void visit(KeyExpression expression) {
-            }
+            public void visit(KeyExpression expression) {}
 
             @Override
             public void visit(SequenceExpression expression) {
@@ -1468,8 +1473,8 @@ public class RelationalStorage implements IStorage {
       statement +=
           " GROUP BY "
               + gbc.stream()
-              .map(e -> exprAdapt(ExprUtils.copy(e)).getCalColumnName())
-              .collect(Collectors.joining(", "));
+                  .map(e -> exprAdapt(ExprUtils.copy(e)).getCalColumnName())
+                  .collect(Collectors.joining(", "));
     }
     statement += ";";
     return statement;
@@ -1486,8 +1491,7 @@ public class RelationalStorage implements IStorage {
     expr.accept(
         new ExpressionVisitor() {
           @Override
-          public void visit(BaseExpression expression) {
-          }
+          public void visit(BaseExpression expression) {}
 
           @Override
           public void visit(BinaryExpression expression) {
@@ -1513,12 +1517,10 @@ public class RelationalStorage implements IStorage {
           }
 
           @Override
-          public void visit(ConstantExpression expression) {
-          }
+          public void visit(ConstantExpression expression) {}
 
           @Override
-          public void visit(FromValueExpression expression) {
-          }
+          public void visit(FromValueExpression expression) {}
 
           @Override
           public void visit(FuncExpression expression) {
@@ -1560,24 +1562,19 @@ public class RelationalStorage implements IStorage {
           }
 
           @Override
-          public void visit(CaseWhenExpression expression) {
-          }
+          public void visit(CaseWhenExpression expression) {}
 
           @Override
-          public void visit(KeyExpression expression) {
-          }
+          public void visit(KeyExpression expression) {}
 
           @Override
-          public void visit(SequenceExpression expression) {
-          }
+          public void visit(SequenceExpression expression) {}
         });
 
     return expr;
   }
 
-  /**
-   * 表达式修改成取回到IGinX的形式，TagKV的形式要是{t=v1, t2=v2}
-   */
+  /** 表达式修改成取回到IGinX的形式，TagKV的形式要是{t=v1, t2=v2} */
   private Expression exprToIGinX(Expression expr) {
     expr.accept(
         new ExpressionVisitor() {
@@ -1604,44 +1601,34 @@ public class RelationalStorage implements IStorage {
           }
 
           @Override
-          public void visit(BinaryExpression expression) {
-          }
+          public void visit(BinaryExpression expression) {}
 
           @Override
-          public void visit(BracketExpression expression) {
-          }
+          public void visit(BracketExpression expression) {}
 
           @Override
-          public void visit(ConstantExpression expression) {
-          }
+          public void visit(ConstantExpression expression) {}
 
           @Override
-          public void visit(FromValueExpression expression) {
-          }
+          public void visit(FromValueExpression expression) {}
 
           @Override
-          public void visit(FuncExpression expression) {
-          }
+          public void visit(FuncExpression expression) {}
 
           @Override
-          public void visit(MultipleExpression expression) {
-          }
+          public void visit(MultipleExpression expression) {}
 
           @Override
-          public void visit(UnaryExpression expression) {
-          }
+          public void visit(UnaryExpression expression) {}
 
           @Override
-          public void visit(CaseWhenExpression expression) {
-          }
+          public void visit(CaseWhenExpression expression) {}
 
           @Override
-          public void visit(KeyExpression expression) {
-          }
+          public void visit(KeyExpression expression) {}
 
           @Override
-          public void visit(SequenceExpression expression) {
-          }
+          public void visit(SequenceExpression expression) {}
         });
     return expr;
   }
@@ -1766,7 +1753,7 @@ public class RelationalStorage implements IStorage {
         // 如果table没有带通配符，那直接简单构建起查询语句即可
         if (!filter.toString().contains("*")
             && !(tableNameToColumnNames.size() > 1
-            && filterContainsType(Arrays.asList(FilterType.Value, FilterType.Path), filter))) {
+                && filterContainsType(Arrays.asList(FilterType.Value, FilterType.Path), filter))) {
           Filter expandFilter =
               expandFilter(
                   cutFilterDatabaseNameForDummy(filter.copy(), databaseName),
@@ -1886,76 +1873,98 @@ public class RelationalStorage implements IStorage {
 
   @Override
   public TaskExecuteResult executeDelete(Delete delete, DataArea dataArea) {
-    String databaseName = dataArea.getStorageUnit();
-    try (Connection conn = getConnection(databaseName)) {
+    try {
+      String databaseName = dataArea.getStorageUnit();
+      Connection conn = getConnection(databaseName);
       if (conn == null) {
         return new TaskExecuteResult(
             new RelationalTaskExecuteFailureException(
                 String.format("cannot connect to database %s", databaseName)));
       }
-      try (Statement stmt = conn.createStatement()) {
 
-        String statement;
-        List<String> paths = delete.getPatterns();
-        List<Pair<String, String>> deletedPaths; // table name -> column name
-        String tableName;
-        String columnName;
-        List<String> tables;
+      Statement stmt = conn.createStatement();
+      String statement;
+      List<String> paths = delete.getPatterns();
+      List<Pair<String, String>> deletedPaths; // table name -> column name
+      String tableName;
+      String columnName;
+      List<String> tables;
 
-        if (delete.getKeyRanges() == null || delete.getKeyRanges().isEmpty()) {
-          if (paths.size() == 1 && paths.get(0).equals("*") && delete.getTagFilter() == null) {
-            closeConnection(databaseName);
-            try (Statement defaultStmt = connection.createStatement()) { // 正在使用的数据库无法被删除，因此需要切换到默认数据库
+      if (delete.getKeyRanges() == null || delete.getKeyRanges().isEmpty()) {
+        if (paths.size() == 1 && paths.get(0).equals("*") && delete.getTagFilter() == null) {
+          closeConnection(databaseName);
+          Connection defaultConn =
+              getConnection(relationalMeta.getDefaultDatabaseName()); // 正在使用的数据库无法被删除，因此需要切换到默认数据库
+          if (defaultConn != null) {
+            try {
+              stmt = defaultConn.createStatement();
               statement =
                   String.format(
                       relationalMeta.getDropDatabaseStatement(), getQuotName(databaseName));
               LOGGER.info("[Delete] execute delete: {}", statement);
-              defaultStmt.execute(statement); // 删除数据库
+              stmt.execute(statement); // 删除数据库
+            } catch (Exception ignoreExcetpion) {
+              // add try-catch for dbs which do not support "DROP DATABASE IF EXISTS %s" grammar,
+              // e.g.dameng
+            } finally {
+              stmt.close();
+              defaultConn.close();
+              conn.close();
             }
+            return new TaskExecuteResult(null, null);
           } else {
-            deletedPaths = determineDeletedPaths(paths, delete.getTagFilter());
-            for (Pair<String, String> pair : deletedPaths) {
-              tableName = pair.k;
-              columnName = pair.v;
-              tables = getTables(databaseName, tableName);
-              if (!tables.isEmpty()) {
-                statement =
+            conn.close();
+            return new TaskExecuteResult(
+                new RelationalTaskExecuteFailureException(
                     String.format(
-                        relationalMeta.getAlterTableDropColumnStatement(),
-                        getQuotName(tableName),
-                        getQuotName(columnName));
-                LOGGER.info("[Delete] execute delete: {}", statement);
-                try {
-                  stmt.execute(statement); // 删除列
-                } catch (SQLException e) {
-                  // 可能会出现该列不存在的问题，此时不做处理
-                }
-              }
-            }
+                        "cannot connect to database %s", relationalMeta.getDefaultDatabaseName()),
+                    new SQLException()));
           }
         } else {
           deletedPaths = determineDeletedPaths(paths, delete.getTagFilter());
           for (Pair<String, String> pair : deletedPaths) {
             tableName = pair.k;
             columnName = pair.v;
-            if (!getColumns(databaseName, tableName, columnName).isEmpty()) {
-              for (KeyRange keyRange : delete.getKeyRanges()) {
-                statement =
-                    String.format(
-                        relationalMeta.getDeleteTableStatement(),
-                        getQuotName(tableName),
-                        getQuotName(columnName),
-                        getQuotName(KEY_NAME),
-                        keyRange.getBeginKey(),
-                        getQuotName(KEY_NAME),
-                        keyRange.getEndKey());
-                LOGGER.info("[Delete] execute delete: {}", statement);
-                stmt.execute(statement); // 将目标列的目标范围的值置为空
+            tables = getTables(databaseName, tableName);
+            if (!tables.isEmpty()) {
+              statement =
+                  String.format(
+                      relationalMeta.getAlterTableDropColumnStatement(),
+                      getQuotName(tableName),
+                      getQuotName(columnName));
+              LOGGER.info("[Delete] execute delete: {}", statement);
+              try {
+                stmt.execute(statement); // 删除列
+              } catch (SQLException e) {
+                // 可能会出现该列不存在的问题，此时不做处理
               }
             }
           }
         }
+      } else {
+        deletedPaths = determineDeletedPaths(paths, delete.getTagFilter());
+        for (Pair<String, String> pair : deletedPaths) {
+          tableName = pair.k;
+          columnName = pair.v;
+          if (!getColumns(databaseName, tableName, columnName).isEmpty()) {
+            for (KeyRange keyRange : delete.getKeyRanges()) {
+              statement =
+                  String.format(
+                      relationalMeta.getDeleteTableStatement(),
+                      getQuotName(tableName),
+                      getQuotName(columnName),
+                      getQuotName(KEY_NAME),
+                      keyRange.getBeginKey(),
+                      getQuotName(KEY_NAME),
+                      keyRange.getEndKey());
+              LOGGER.info("[Delete] execute delete: {}", statement);
+              stmt.execute(statement); // 将目标列的目标范围的值置为空
+            }
+          }
+        }
       }
+      stmt.close();
+      conn.close();
       return new TaskExecuteResult(null, null);
     } catch (SQLException e) {
       LOGGER.error("unexpected error: ", e);
@@ -1969,26 +1978,32 @@ public class RelationalStorage implements IStorage {
   public TaskExecuteResult executeInsert(Insert insert, DataArea dataArea) {
     DataView dataView = insert.getData();
     String databaseName = dataArea.getStorageUnit();
-    try(Connection conn = getConnection(databaseName)){
-      if (conn == null) {
-        return new TaskExecuteResult(
-            new RelationalTaskExecuteFailureException(
-                String.format("cannot connect to database %s", databaseName)));
-      }
-      switch (dataView.getRawDataType()) {
-        case Row:
-        case NonAlignedRow:
-          insertNonAlignedRowRecords(conn, databaseName, (RowDataView) dataView);
-          break;
-        case Column:
-        case NonAlignedColumn:
-          insertNonAlignedColumnRecords(conn, databaseName, (ColumnDataView) dataView);
-          break;
-      }
-    } catch (SQLException e) {
-      LOGGER.error("unexpected error: ", e);
+    Connection conn = getConnection(databaseName);
+    if (conn == null) {
       return new TaskExecuteResult(
           new RelationalTaskExecuteFailureException(
+              String.format("cannot connect to database %s", databaseName)));
+    }
+    Exception e = null;
+    switch (dataView.getRawDataType()) {
+      case Row:
+      case NonAlignedRow:
+        e = insertNonAlignedRowRecords(conn, databaseName, (RowDataView) dataView);
+        break;
+      case Column:
+      case NonAlignedColumn:
+        e = insertNonAlignedColumnRecords(conn, databaseName, (ColumnDataView) dataView);
+        break;
+    }
+    try {
+      conn.close();
+    } catch (SQLException ex) {
+      LOGGER.error("encounter error when closing connection: {}", ex.getMessage());
+    }
+    if (e != null) {
+      return new TaskExecuteResult(
+          null,
+          new RelationalException(
               String.format("execute insert task in %s failure", engineName), e));
     }
     return new TaskExecuteResult(null, null);
@@ -2149,9 +2164,7 @@ public class RelationalStorage implements IStorage {
     return tableNameToColumnNames;
   }
 
-  /**
-   * JDBC中的路径中的 . 不需要转义
-   */
+  /** JDBC中的路径中的 . 不需要转义 */
   private String reformatForJDBC(String path) {
     return StringUtils.reformatPath(path).replace("\\.", ".");
   }
@@ -2284,7 +2297,9 @@ public class RelationalStorage implements IStorage {
       String tableName = schema.getTableName();
       String columnName = schema.getColumnName();
 
-      try(Statement stmt = conn.createStatement()) {
+      try {
+        Statement stmt = conn.createStatement();
+
         List<String> tables = getTables(storageUnit, tableName);
         columnName = toFullName(columnName, tags);
         if (tables.isEmpty()) {
@@ -2311,16 +2326,19 @@ public class RelationalStorage implements IStorage {
             stmt.execute(statement);
           }
         }
+        stmt.close();
       } catch (SQLException e) {
         LOGGER.error("create or alter table {} field {} error: ", tableName, columnName, e);
       }
     }
   }
 
-  private void insertNonAlignedRowRecords(
-      Connection conn, String databaseName, RowDataView data) throws SQLException {
+  private Exception insertNonAlignedRowRecords(
+      Connection conn, String databaseName, RowDataView data) {
     int batchSize = Math.min(data.getKeySize(), BATCH_SIZE);
-    try(Statement stmt = conn.createStatement()) {
+    try {
+      Statement stmt = conn.createStatement();
+
       // 创建表
       createOrAlterTables(
           conn, databaseName, data.getPaths(), data.getTagsList(), data.getDataTypeList());
@@ -2412,13 +2430,21 @@ public class RelationalStorage implements IStorage {
 
         cnt += size;
       }
+      stmt.close();
+    } catch (SQLException e) {
+      LOGGER.error("unexpected error: ", e);
+      return e;
     }
+
+    return null;
   }
 
-  private void insertNonAlignedColumnRecords(
-      Connection conn, String databaseName, ColumnDataView data) throws SQLException {
+  private Exception insertNonAlignedColumnRecords(
+      Connection conn, String databaseName, ColumnDataView data) {
     int batchSize = Math.min(data.getKeySize(), BATCH_SIZE);
-    try(Statement stmt = conn.createStatement()) {
+    try {
+      Statement stmt = conn.createStatement();
+
       // 创建表
       createOrAlterTables(
           conn, databaseName, data.getPaths(), data.getTagsList(), data.getDataTypeList());
@@ -2514,7 +2540,13 @@ public class RelationalStorage implements IStorage {
         firstRound = false;
         cnt += size;
       }
+      stmt.close();
+    } catch (SQLException e) {
+      LOGGER.error("unexpected error: ", e);
+      return e;
     }
+
+    return null;
   }
 
   private void executeBatchInsert(
@@ -2607,8 +2639,7 @@ public class RelationalStorage implements IStorage {
           }
 
           @Override
-          public void visit(BracketExpression expression) {
-          }
+          public void visit(BracketExpression expression) {}
 
           @Override
           public void visit(ConstantExpression expression) {
@@ -2617,12 +2648,10 @@ public class RelationalStorage implements IStorage {
           }
 
           @Override
-          public void visit(FromValueExpression expression) {
-          }
+          public void visit(FromValueExpression expression) {}
 
           @Override
-          public void visit(FuncExpression expression) {
-          }
+          public void visit(FuncExpression expression) {}
 
           @Override
           public void visit(MultipleExpression expression) {
@@ -2632,20 +2661,16 @@ public class RelationalStorage implements IStorage {
           }
 
           @Override
-          public void visit(UnaryExpression expression) {
-          }
+          public void visit(UnaryExpression expression) {}
 
           @Override
-          public void visit(CaseWhenExpression expression) {
-          }
+          public void visit(CaseWhenExpression expression) {}
 
           @Override
-          public void visit(KeyExpression expression) {
-          }
+          public void visit(KeyExpression expression) {}
 
           @Override
-          public void visit(SequenceExpression expression) {
-          }
+          public void visit(SequenceExpression expression) {}
         });
 
     return isDouble[0];
@@ -2660,44 +2685,34 @@ public class RelationalStorage implements IStorage {
           }
 
           @Override
-          public void visit(BinaryExpression expression) {
-          }
+          public void visit(BinaryExpression expression) {}
 
           @Override
-          public void visit(BracketExpression expression) {
-          }
+          public void visit(BracketExpression expression) {}
 
           @Override
-          public void visit(ConstantExpression expression) {
-          }
+          public void visit(ConstantExpression expression) {}
 
           @Override
-          public void visit(FromValueExpression expression) {
-          }
+          public void visit(FromValueExpression expression) {}
 
           @Override
-          public void visit(FuncExpression expression) {
-          }
+          public void visit(FuncExpression expression) {}
 
           @Override
-          public void visit(MultipleExpression expression) {
-          }
+          public void visit(MultipleExpression expression) {}
 
           @Override
-          public void visit(UnaryExpression expression) {
-          }
+          public void visit(UnaryExpression expression) {}
 
           @Override
-          public void visit(CaseWhenExpression expression) {
-          }
+          public void visit(CaseWhenExpression expression) {}
 
           @Override
-          public void visit(KeyExpression expression) {
-          }
+          public void visit(KeyExpression expression) {}
 
           @Override
-          public void visit(SequenceExpression expression) {
-          }
+          public void visit(SequenceExpression expression) {}
         });
   }
 
@@ -2737,44 +2752,34 @@ public class RelationalStorage implements IStorage {
             }
 
             @Override
-            public void visit(BinaryExpression expression) {
-            }
+            public void visit(BinaryExpression expression) {}
 
             @Override
-            public void visit(BracketExpression expression) {
-            }
+            public void visit(BracketExpression expression) {}
 
             @Override
-            public void visit(ConstantExpression expression) {
-            }
+            public void visit(ConstantExpression expression) {}
 
             @Override
-            public void visit(FromValueExpression expression) {
-            }
+            public void visit(FromValueExpression expression) {}
 
             @Override
-            public void visit(FuncExpression expression) {
-            }
+            public void visit(FuncExpression expression) {}
 
             @Override
-            public void visit(MultipleExpression expression) {
-            }
+            public void visit(MultipleExpression expression) {}
 
             @Override
-            public void visit(UnaryExpression expression) {
-            }
+            public void visit(UnaryExpression expression) {}
 
             @Override
-            public void visit(CaseWhenExpression expression) {
-            }
+            public void visit(CaseWhenExpression expression) {}
 
             @Override
-            public void visit(KeyExpression expression) {
-            }
+            public void visit(KeyExpression expression) {}
 
             @Override
-            public void visit(SequenceExpression expression) {
-            }
+            public void visit(SequenceExpression expression) {}
           });
 
       if (be[0] == null) {
