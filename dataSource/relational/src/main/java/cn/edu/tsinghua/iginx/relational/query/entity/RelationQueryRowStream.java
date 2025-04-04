@@ -41,7 +41,6 @@ import cn.edu.tsinghua.iginx.relational.meta.JDBCMeta;
 import cn.edu.tsinghua.iginx.relational.tools.RelationSchema;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
-
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -192,7 +191,10 @@ public class RelationQueryRowStream implements RowStream {
         }
         Pair<String, Map<String, String>> namesAndTags = splitFullName(columnName);
         Field field;
-        DataType type = relationalMeta.getDataTypeTransformer().fromEngineType(columnType,columnTypeName,precision,scale);
+        DataType type =
+            relationalMeta
+                .getDataTypeTransformer()
+                .fromEngineType(columnType, columnTypeName, precision, scale);
         if (isAgg
             && sumResType != null
             && sumResType.containsKey(fullName2Name.getOrDefault(columnName, columnName))) {
@@ -203,10 +205,16 @@ public class RelationQueryRowStream implements RowStream {
           path =
               databaseNameList.get(i)
                   + SEPARATOR
-                  + (isAgg || !relationalMeta.jdbcSupportGetTableNameFromResultSet() ? "" : tableName + SEPARATOR)
+                  + (isAgg || !relationalMeta.jdbcSupportGetTableNameFromResultSet()
+                      ? ""
+                      : tableName + SEPARATOR)
                   + namesAndTags.k;
         } else {
-          path = (isAgg || !relationalMeta.jdbcSupportGetTableNameFromResultSet() ? "" : tableName + SEPARATOR) + namesAndTags.k;
+          path =
+              (isAgg || !relationalMeta.jdbcSupportGetTableNameFromResultSet()
+                      ? ""
+                      : tableName + SEPARATOR)
+                  + namesAndTags.k;
         }
 
         if (isAgg && fullName2Name.containsKey(path)) {
@@ -396,12 +404,12 @@ public class RelationQueryRowStream implements RowStream {
   }
 
   private Object convertToIginxValue(Object value, DataType type) {
-    if(value == null) {
+    if (value == null) {
       return null;
     }
-    return switch (type){
+    return switch (type) {
       case BOOLEAN -> {
-        if(value instanceof Boolean) {
+        if (value instanceof Boolean) {
           yield value;
         } else {
           yield ((Number) value).doubleValue() != 0;

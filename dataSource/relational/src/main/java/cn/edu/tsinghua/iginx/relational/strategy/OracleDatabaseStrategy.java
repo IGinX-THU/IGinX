@@ -19,6 +19,8 @@
  */
 package cn.edu.tsinghua.iginx.relational.strategy;
 
+import static cn.edu.tsinghua.iginx.relational.tools.Constants.*;
+
 import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.relational.datatype.transformer.OracleDataTypeTransformer;
@@ -27,9 +29,6 @@ import cn.edu.tsinghua.iginx.relational.tools.ColumnField;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import com.zaxxer.hikari.HikariConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -39,8 +38,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-
-import static cn.edu.tsinghua.iginx.relational.tools.Constants.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class OracleDatabaseStrategy implements DatabaseStrategy {
   private static final Logger LOGGER = LoggerFactory.getLogger(OracleDatabaseStrategy.class);
@@ -75,7 +74,8 @@ public class OracleDatabaseStrategy implements DatabaseStrategy {
   }
 
   @Override
-  public void configureDataSource(HikariConfig config, String databaseName, StorageEngineMeta meta){
+  public void configureDataSource(
+      HikariConfig config, String databaseName, StorageEngineMeta meta) {
     config.setConnectionInitSql("ALTER SESSION SET CURRENT_SCHEMA = " + getQuotName(databaseName));
   }
 
@@ -111,7 +111,7 @@ public class OracleDatabaseStrategy implements DatabaseStrategy {
       List<String> values = entry.getValue().v;
       String[] parts = columnNames.split(", ");
       Map<String, ColumnField> columnMap = getColumnMap(conn, databaseName, tableName);
-      this.batchInsert(conn,databaseName, tableName, columnMap, parts, values);
+      this.batchInsert(conn, databaseName, tableName, columnMap, parts, values);
     }
     stmt.executeBatch();
   }
@@ -193,8 +193,12 @@ public class OracleDatabaseStrategy implements DatabaseStrategy {
             break;
           }
           ColumnField columnField = columnMap.get(parts[j]);
-          DataType dataType = dataTypeTransformer.fromEngineType(
-              columnField.columnType, columnField.columnTypeName, columnField.columnSize, columnField.decimalDigits);
+          DataType dataType =
+              dataTypeTransformer.fromEngineType(
+                  columnField.columnType,
+                  columnField.columnTypeName,
+                  columnField.columnSize,
+                  columnField.decimalDigits);
           setValue(insertStmt, j + 2, vals[j + 1], dataType);
         }
         insertStmt.addBatch();
@@ -225,8 +229,12 @@ public class OracleDatabaseStrategy implements DatabaseStrategy {
             break;
           }
           ColumnField columnField = columnMap.get(parts[j]);
-          DataType dataType = dataTypeTransformer.fromEngineType(
-              columnField.columnType, columnField.columnTypeName, columnField.columnSize, columnField.decimalDigits);
+          DataType dataType =
+              dataTypeTransformer.fromEngineType(
+                  columnField.columnType,
+                  columnField.columnTypeName,
+                  columnField.columnSize,
+                  columnField.decimalDigits);
           setValue(updateStmt, j + 1, vals[j + 1], dataType);
         }
         updateStmt.setString(parts.length + 1, vals[0]);
@@ -249,42 +257,42 @@ public class OracleDatabaseStrategy implements DatabaseStrategy {
     boolean isNull = value.equals("null");
     switch (type) {
       case BOOLEAN:
-        if(isNull){
+        if (isNull) {
           stmt.setNull(index, Types.INTEGER);
-        }else{
+        } else {
           stmt.setInt(index, value.equalsIgnoreCase("true") ? 1 : 0);
         }
         break;
       case INTEGER:
-        if(isNull) {
+        if (isNull) {
           stmt.setNull(index, Types.INTEGER);
-        }else{
+        } else {
           stmt.setInt(index, Integer.parseInt(value));
         }
         break;
       case LONG:
-        if(isNull) {
+        if (isNull) {
           stmt.setNull(index, Types.BIGINT);
-        }else {
+        } else {
           stmt.setLong(index, Long.parseLong(value));
         }
         break;
       case FLOAT:
-        if(isNull) {
+        if (isNull) {
           stmt.setNull(index, Types.FLOAT);
-        }else {
+        } else {
           stmt.setFloat(index, Float.parseFloat(value));
         }
         break;
       case DOUBLE:
-        if(isNull) {
+        if (isNull) {
           stmt.setNull(index, Types.DOUBLE);
-        }else {
+        } else {
           stmt.setDouble(index, Double.parseDouble(value));
         }
         break;
       case BINARY:
-        if(isNull) {
+        if (isNull) {
           stmt.setNull(index, Types.VARCHAR);
         } else if (value.startsWith("'") && value.endsWith("'")) { // 处理空字符串'', 非空字符串包含特殊字符的情况'""'
           stmt.setString(index, value.substring(1, value.length() - 1));
@@ -313,11 +321,12 @@ public class OracleDatabaseStrategy implements DatabaseStrategy {
   }
 
   private List<ColumnField> getColumns(
-      Connection conn, String databaseName, String tableName, String columnNamePattern) throws SQLException {
+      Connection conn, String databaseName, String tableName, String columnNamePattern)
+      throws SQLException {
     DatabaseMetaData databaseMetaData = conn.getMetaData();
     try (ResultSet rs =
-             databaseMetaData.getColumns(
-                 databaseName, getSchemaPattern(databaseName), tableName, columnNamePattern)) {
+        databaseMetaData.getColumns(
+            databaseName, getSchemaPattern(databaseName), tableName, columnNamePattern)) {
       List<ColumnField> columnFields = new ArrayList<>();
       while (rs.next()) {
         String columnName = rs.getString("COLUMN_NAME");
@@ -326,7 +335,9 @@ public class OracleDatabaseStrategy implements DatabaseStrategy {
         int columnSize = rs.getInt("COLUMN_SIZE");
         int columnType = rs.getInt("DATA_TYPE");
         int decimalDigits = rs.getInt("DECIMAL_DIGITS");
-        columnFields.add(new ColumnField(columnTable, columnName, columnType, columnTypeName, columnSize, decimalDigits));
+        columnFields.add(
+            new ColumnField(
+                columnTable, columnName, columnType, columnTypeName, columnSize, decimalDigits));
       }
       return columnFields;
     }
@@ -369,5 +380,4 @@ public class OracleDatabaseStrategy implements DatabaseStrategy {
     }
     return resultList.toArray(new String[0]);
   }
-
 }

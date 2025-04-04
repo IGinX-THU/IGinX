@@ -302,7 +302,10 @@ public class DamengDatabaseStrategy implements DatabaseStrategy {
       int columnType = rs.getInt("DATA_TYPE");
       int decimalDigits = rs.getInt("DECIMAL_DIGITS");
 
-      columnMap.put(columnName, new ColumnField(columnTable, columnName, columnType,columnTypeName,columnSize,decimalDigits));
+      columnMap.put(
+          columnName,
+          new ColumnField(
+              columnTable, columnName, columnType, columnTypeName, columnSize, decimalDigits));
     }
 
     rs.close();

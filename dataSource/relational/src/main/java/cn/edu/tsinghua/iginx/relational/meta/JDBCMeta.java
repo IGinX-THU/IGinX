@@ -24,7 +24,6 @@ import cn.edu.tsinghua.iginx.relational.datatype.transformer.DmDataTypeTransform
 import cn.edu.tsinghua.iginx.relational.datatype.transformer.IDataTypeTransformer;
 import cn.edu.tsinghua.iginx.relational.datatype.transformer.JDBCDataTypeTransformer;
 import cn.edu.tsinghua.iginx.relational.datatype.transformer.OracleDataTypeTransformer;
-
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
@@ -115,7 +114,8 @@ public class JDBCMeta extends AbstractRelationalMeta {
     notRegexOp = properties.getProperty("not_regex_like_symbol");
     jdbcSupportBackslash =
         Boolean.parseBoolean(properties.getProperty("jdbc_support_special_char"));
-    this.jdbcSupportGetTableNameFromResultSet = Boolean.parseBoolean(properties.getProperty("jdbc_support_get_table_name_from_result_set"));
+    this.jdbcSupportGetTableNameFromResultSet =
+        Boolean.parseBoolean(properties.getProperty("jdbc_support_get_table_name_from_result_set"));
   }
 
   @Override

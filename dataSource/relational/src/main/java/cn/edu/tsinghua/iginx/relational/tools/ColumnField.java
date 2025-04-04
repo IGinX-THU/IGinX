@@ -27,7 +27,13 @@ public class ColumnField {
   public final int columnSize;
   public final int decimalDigits;
 
-  public ColumnField(String tableName, String columnName, int columnType ,String columnTypeName, int columnSize, int decimalDigits) {
+  public ColumnField(
+      String tableName,
+      String columnName,
+      int columnType,
+      String columnTypeName,
+      int columnSize,
+      int decimalDigits) {
     this.tableName = tableName;
     this.columnName = columnName;
     this.columnType = columnType;

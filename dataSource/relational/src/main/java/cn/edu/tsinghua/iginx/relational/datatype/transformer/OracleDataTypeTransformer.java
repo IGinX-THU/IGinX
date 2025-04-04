@@ -23,7 +23,6 @@ package cn.edu.tsinghua.iginx.relational.datatype.transformer;
 import static cn.edu.tsinghua.iginx.thrift.DataType.*;
 
 import cn.edu.tsinghua.iginx.thrift.DataType;
-
 import java.sql.Types;
 
 public class OracleDataTypeTransformer implements IDataTypeTransformer {

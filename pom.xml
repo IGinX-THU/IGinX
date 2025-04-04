@@ -373,7 +373,7 @@
                             <removeUnusedImports/>
                             <trimTrailingWhitespace/>
                             <googleJavaFormat>
-                                <version>1.7</version>
+                                <version>1.10.0</version>
                                 <style>GOOGLE</style>
                             </googleJavaFormat>
                         </java>

@@ -23,7 +23,6 @@ import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import com.zaxxer.hikari.HikariConfig;
-
 import java.sql.*;
 import java.util.List;
 import java.util.Map;
@@ -105,7 +104,6 @@ public interface DatabaseStrategy {
    */
   String getAvgCastExpression(Expression param);
 
-  default void configureDataSource(HikariConfig config, String databaseName, StorageEngineMeta meta){
-
-  }
+  default void configureDataSource(
+      HikariConfig config, String databaseName, StorageEngineMeta meta) {}
 }
