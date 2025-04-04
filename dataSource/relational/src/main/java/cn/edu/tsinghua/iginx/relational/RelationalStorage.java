@@ -526,6 +526,7 @@ public class RelationalStorage implements IStorage {
     return executeProjectWithFilter(project, select.getFilter(), dataArea);
   }
 
+  // TODO: getProjectWithFilterSQL 存在bug，多表 full-join 时，key可能为 null，造成结果不完整
   /**
    * 获取ProjectWithFilter中将所有table join到一起进行查询的SQL语句
    */
@@ -713,12 +714,16 @@ public class RelationalStorage implements IStorage {
 
       String statement;
       // 如果table>1的情况下存在Value或Path Filter，说明filter的匹配需要跨table，此时需要将所有table join到一起进行查询
-      if (relationalMeta.jdbcSupportGetTableNameFromResultSet() && FilterUtils.getAllPathsFromFilter(filter).stream().noneMatch(s -> s.contains("*"))
+      if (FilterUtils.getAllPathsFromFilter(filter).stream().noneMatch(s -> s.contains("*"))
           && !(tableNameToColumnNames.size() > 1
           && filterContainsType(Arrays.asList(FilterType.Value, FilterType.Path), filter))) {
         for (Map.Entry<String, String> entry : tableNameToColumnNames.entrySet()) {
           String tableName = entry.getKey();
           String quotColumnNames = getQuotColumnNames(entry.getValue());
+          if(!relationalMeta.jdbcSupportGetTableNameFromResultSet()){
+            quotColumnNames = getQuotTableAndColumnNames(tableName, entry.getValue());
+          }
+
           String filterStr = filterTransformer.toString(expandFilter);
           statement =
               String.format(
@@ -2596,6 +2601,18 @@ public class RelationalStorage implements IStorage {
     StringBuilder fullColumnNames = new StringBuilder();
     for (String part : parts) {
       fullColumnNames.append(getQuotName(part));
+      fullColumnNames.append(", ");
+    }
+    return fullColumnNames.substring(0, fullColumnNames.length() - 2);
+  }
+
+  private String getQuotTableAndColumnNames(String tableName, String columnNames) {
+    String[] parts = columnNames.split(", ");
+    StringBuilder fullColumnNames = new StringBuilder();
+    for (String part : parts) {
+      fullColumnNames.append(RelationSchema.getQuoteFullName(tableName,part,relationalMeta.getQuote()));
+      fullColumnNames.append(" AS ");
+      fullColumnNames.append(getQuotName(RelationSchema.getFullName(tableName,part)));
       fullColumnNames.append(", ");
     }
     return fullColumnNames.substring(0, fullColumnNames.length() - 2);
