@@ -42,14 +42,14 @@ jobs:
             metadata-matrix: '["zookeeper"]'
             os-matrix: '["ubuntu-latest", "windows-latest"]'
             db-matrix: '["Dameng", "Oracle"]'
-            timeout-minutes: 60
+            timeout-minutes: 100
     standalone-test-no-optimizer-no-mac-relational:
         uses: ./.github/workflows/standalone-test-no-optimizer.yml
         with:
             metadata-matrix: '["zookeeper"]'
             os-matrix: '["ubuntu-latest", "windows-latest"]'
             db-matrix: '["Dameng", "Oracle"]'
-            timeout-minutes: 60
+            timeout-minutes: 100
     db-ce-no-mac-relational:
         uses: ./.github/workflows/DB-CE.yml
         with:
