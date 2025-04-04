@@ -299,7 +299,7 @@ public class RelationalStorage implements IStorage {
               databaseName,
               dbStrategy.getSchemaPattern(databaseName),
               tablePattern,
-              new String[] {"TABLE"});
+              new String[]{"TABLE"});
       List<String> tableNames = new ArrayList<>();
 
       while (rs.next()) {
@@ -527,6 +527,7 @@ public class RelationalStorage implements IStorage {
   }
 
   // TODO: getProjectWithFilterSQL 存在bug，多表 full-join 时，key可能为 null，造成结果不完整
+
   /**
    * 获取ProjectWithFilter中将所有table join到一起进行查询的SQL语句
    */
@@ -720,7 +721,7 @@ public class RelationalStorage implements IStorage {
         for (Map.Entry<String, String> entry : tableNameToColumnNames.entrySet()) {
           String tableName = entry.getKey();
           String quotColumnNames = getQuotColumnNames(entry.getValue());
-          if(!relationalMeta.jdbcSupportGetTableNameFromResultSet()){
+          if (!relationalMeta.jdbcSupportGetTableNameFromResultSet()) {
             quotColumnNames = getQuotTableAndColumnNames(tableName, entry.getValue());
           }
 
@@ -1275,13 +1276,16 @@ public class RelationalStorage implements IStorage {
             }
 
             @Override
-            public void visit(BinaryExpression expression) {}
+            public void visit(BinaryExpression expression) {
+            }
 
             @Override
-            public void visit(BracketExpression expression) {}
+            public void visit(BracketExpression expression) {
+            }
 
             @Override
-            public void visit(ConstantExpression expression) {}
+            public void visit(ConstantExpression expression) {
+            }
 
             @Override
             public void visit(FromValueExpression expression) {
@@ -1294,10 +1298,12 @@ public class RelationalStorage implements IStorage {
             }
 
             @Override
-            public void visit(MultipleExpression expression) {}
+            public void visit(MultipleExpression expression) {
+            }
 
             @Override
-            public void visit(UnaryExpression expression) {}
+            public void visit(UnaryExpression expression) {
+            }
 
             @Override
             public void visit(CaseWhenExpression expression) {
@@ -1305,7 +1311,8 @@ public class RelationalStorage implements IStorage {
             }
 
             @Override
-            public void visit(KeyExpression expression) {}
+            public void visit(KeyExpression expression) {
+            }
 
             @Override
             public void visit(SequenceExpression expression) {
@@ -1478,8 +1485,8 @@ public class RelationalStorage implements IStorage {
       statement +=
           " GROUP BY "
               + gbc.stream()
-                  .map(e -> exprAdapt(ExprUtils.copy(e)).getCalColumnName())
-                  .collect(Collectors.joining(", "));
+              .map(e -> exprAdapt(ExprUtils.copy(e)).getCalColumnName())
+              .collect(Collectors.joining(", "));
     }
     statement += ";";
     return statement;
@@ -1496,7 +1503,8 @@ public class RelationalStorage implements IStorage {
     expr.accept(
         new ExpressionVisitor() {
           @Override
-          public void visit(BaseExpression expression) {}
+          public void visit(BaseExpression expression) {
+          }
 
           @Override
           public void visit(BinaryExpression expression) {
@@ -1522,10 +1530,12 @@ public class RelationalStorage implements IStorage {
           }
 
           @Override
-          public void visit(ConstantExpression expression) {}
+          public void visit(ConstantExpression expression) {
+          }
 
           @Override
-          public void visit(FromValueExpression expression) {}
+          public void visit(FromValueExpression expression) {
+          }
 
           @Override
           public void visit(FuncExpression expression) {
@@ -1567,19 +1577,24 @@ public class RelationalStorage implements IStorage {
           }
 
           @Override
-          public void visit(CaseWhenExpression expression) {}
+          public void visit(CaseWhenExpression expression) {
+          }
 
           @Override
-          public void visit(KeyExpression expression) {}
+          public void visit(KeyExpression expression) {
+          }
 
           @Override
-          public void visit(SequenceExpression expression) {}
+          public void visit(SequenceExpression expression) {
+          }
         });
 
     return expr;
   }
 
-  /** 表达式修改成取回到IGinX的形式，TagKV的形式要是{t=v1, t2=v2} */
+  /**
+   * 表达式修改成取回到IGinX的形式，TagKV的形式要是{t=v1, t2=v2}
+   */
   private Expression exprToIGinX(Expression expr) {
     expr.accept(
         new ExpressionVisitor() {
@@ -1606,34 +1621,44 @@ public class RelationalStorage implements IStorage {
           }
 
           @Override
-          public void visit(BinaryExpression expression) {}
+          public void visit(BinaryExpression expression) {
+          }
 
           @Override
-          public void visit(BracketExpression expression) {}
+          public void visit(BracketExpression expression) {
+          }
 
           @Override
-          public void visit(ConstantExpression expression) {}
+          public void visit(ConstantExpression expression) {
+          }
 
           @Override
-          public void visit(FromValueExpression expression) {}
+          public void visit(FromValueExpression expression) {
+          }
 
           @Override
-          public void visit(FuncExpression expression) {}
+          public void visit(FuncExpression expression) {
+          }
 
           @Override
-          public void visit(MultipleExpression expression) {}
+          public void visit(MultipleExpression expression) {
+          }
 
           @Override
-          public void visit(UnaryExpression expression) {}
+          public void visit(UnaryExpression expression) {
+          }
 
           @Override
-          public void visit(CaseWhenExpression expression) {}
+          public void visit(CaseWhenExpression expression) {
+          }
 
           @Override
-          public void visit(KeyExpression expression) {}
+          public void visit(KeyExpression expression) {
+          }
 
           @Override
-          public void visit(SequenceExpression expression) {}
+          public void visit(SequenceExpression expression) {
+          }
         });
     return expr;
   }
@@ -1758,7 +1783,7 @@ public class RelationalStorage implements IStorage {
         // 如果table没有带通配符，那直接简单构建起查询语句即可
         if (!filter.toString().contains("*")
             && !(tableNameToColumnNames.size() > 1
-                && filterContainsType(Arrays.asList(FilterType.Value, FilterType.Path), filter))) {
+            && filterContainsType(Arrays.asList(FilterType.Value, FilterType.Path), filter))) {
           Filter expandFilter =
               expandFilter(
                   cutFilterDatabaseNameForDummy(filter.copy(), databaseName),
@@ -1766,6 +1791,9 @@ public class RelationalStorage implements IStorage {
           for (Map.Entry<String, String> entry : splitEntry.getValue().entrySet()) {
             String tableName = entry.getKey();
             String fullQuotColumnNames = getQuotColumnNames(entry.getValue());
+            if(!relationalMeta.jdbcSupportGetTableNameFromResultSet()){
+              fullQuotColumnNames = getQuotTableAndColumnNames(tableName,entry.getValue());
+            }
             List<String> fullPathList = Arrays.asList(entry.getValue().split(", "));
             fullPathList.replaceAll(s -> RelationSchema.getFullName(tableName, s));
             List<String> fullQuotePathList = Arrays.asList(entry.getValue().split(", "));
@@ -2169,7 +2197,9 @@ public class RelationalStorage implements IStorage {
     return tableNameToColumnNames;
   }
 
-  /** JDBC中的路径中的 . 不需要转义 */
+  /**
+   * JDBC中的路径中的 . 不需要转义
+   */
   private String reformatForJDBC(String path) {
     return StringUtils.reformatPath(path).replace("\\.", ".");
   }
@@ -2610,9 +2640,9 @@ public class RelationalStorage implements IStorage {
     String[] parts = columnNames.split(", ");
     StringBuilder fullColumnNames = new StringBuilder();
     for (String part : parts) {
-      fullColumnNames.append(RelationSchema.getQuoteFullName(tableName,part,relationalMeta.getQuote()));
+      fullColumnNames.append(RelationSchema.getQuoteFullName(tableName, part, relationalMeta.getQuote()));
       fullColumnNames.append(" AS ");
-      fullColumnNames.append(getQuotName(RelationSchema.getFullName(tableName,part)));
+      fullColumnNames.append(getQuotName(RelationSchema.getFullName(tableName, part)));
       fullColumnNames.append(", ");
     }
     return fullColumnNames.substring(0, fullColumnNames.length() - 2);
@@ -2656,7 +2686,8 @@ public class RelationalStorage implements IStorage {
           }
 
           @Override
-          public void visit(BracketExpression expression) {}
+          public void visit(BracketExpression expression) {
+          }
 
           @Override
           public void visit(ConstantExpression expression) {
@@ -2665,10 +2696,12 @@ public class RelationalStorage implements IStorage {
           }
 
           @Override
-          public void visit(FromValueExpression expression) {}
+          public void visit(FromValueExpression expression) {
+          }
 
           @Override
-          public void visit(FuncExpression expression) {}
+          public void visit(FuncExpression expression) {
+          }
 
           @Override
           public void visit(MultipleExpression expression) {
@@ -2678,16 +2711,20 @@ public class RelationalStorage implements IStorage {
           }
 
           @Override
-          public void visit(UnaryExpression expression) {}
+          public void visit(UnaryExpression expression) {
+          }
 
           @Override
-          public void visit(CaseWhenExpression expression) {}
+          public void visit(CaseWhenExpression expression) {
+          }
 
           @Override
-          public void visit(KeyExpression expression) {}
+          public void visit(KeyExpression expression) {
+          }
 
           @Override
-          public void visit(SequenceExpression expression) {}
+          public void visit(SequenceExpression expression) {
+          }
         });
 
     return isDouble[0];
@@ -2702,34 +2739,44 @@ public class RelationalStorage implements IStorage {
           }
 
           @Override
-          public void visit(BinaryExpression expression) {}
+          public void visit(BinaryExpression expression) {
+          }
 
           @Override
-          public void visit(BracketExpression expression) {}
+          public void visit(BracketExpression expression) {
+          }
 
           @Override
-          public void visit(ConstantExpression expression) {}
+          public void visit(ConstantExpression expression) {
+          }
 
           @Override
-          public void visit(FromValueExpression expression) {}
+          public void visit(FromValueExpression expression) {
+          }
 
           @Override
-          public void visit(FuncExpression expression) {}
+          public void visit(FuncExpression expression) {
+          }
 
           @Override
-          public void visit(MultipleExpression expression) {}
+          public void visit(MultipleExpression expression) {
+          }
 
           @Override
-          public void visit(UnaryExpression expression) {}
+          public void visit(UnaryExpression expression) {
+          }
 
           @Override
-          public void visit(CaseWhenExpression expression) {}
+          public void visit(CaseWhenExpression expression) {
+          }
 
           @Override
-          public void visit(KeyExpression expression) {}
+          public void visit(KeyExpression expression) {
+          }
 
           @Override
-          public void visit(SequenceExpression expression) {}
+          public void visit(SequenceExpression expression) {
+          }
         });
   }
 
@@ -2769,34 +2816,44 @@ public class RelationalStorage implements IStorage {
             }
 
             @Override
-            public void visit(BinaryExpression expression) {}
+            public void visit(BinaryExpression expression) {
+            }
 
             @Override
-            public void visit(BracketExpression expression) {}
+            public void visit(BracketExpression expression) {
+            }
 
             @Override
-            public void visit(ConstantExpression expression) {}
+            public void visit(ConstantExpression expression) {
+            }
 
             @Override
-            public void visit(FromValueExpression expression) {}
+            public void visit(FromValueExpression expression) {
+            }
 
             @Override
-            public void visit(FuncExpression expression) {}
+            public void visit(FuncExpression expression) {
+            }
 
             @Override
-            public void visit(MultipleExpression expression) {}
+            public void visit(MultipleExpression expression) {
+            }
 
             @Override
-            public void visit(UnaryExpression expression) {}
+            public void visit(UnaryExpression expression) {
+            }
 
             @Override
-            public void visit(CaseWhenExpression expression) {}
+            public void visit(CaseWhenExpression expression) {
+            }
 
             @Override
-            public void visit(KeyExpression expression) {}
+            public void visit(KeyExpression expression) {
+            }
 
             @Override
-            public void visit(SequenceExpression expression) {}
+            public void visit(SequenceExpression expression) {
+            }
           });
 
       if (be[0] == null) {
