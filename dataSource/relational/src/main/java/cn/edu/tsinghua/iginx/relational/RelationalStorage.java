@@ -157,6 +157,7 @@ public class RelationalStorage implements IStorage {
       config.addDataSourceProperty(
           "prepStmtCacheSqlLimit",
           meta.getExtraParams().getOrDefault("prep_stmt_cache_sql_limit", "2048"));
+      dbStrategy.configureDataSource(config, databaseName, meta);
 
       HikariDataSource newDataSource = new HikariDataSource(config);
       connectionPoolMap.put(databaseName, newDataSource);
@@ -331,10 +332,14 @@ public class RelationalStorage implements IStorage {
       List<ColumnField> columnFields = new ArrayList<>();
       while (rs.next()) {
         String columnName = rs.getString("COLUMN_NAME");
-        String columnType = rs.getString("TYPE_NAME");
+        int columnType = rs.getInt("DATA_TYPE");
+        String columnTypeName = rs.getString("TYPE_NAME");
         String columnTable = rs.getString("TABLE_NAME");
         int columnSize = rs.getInt("COLUMN_SIZE");
-        columnFields.add(new ColumnField(columnTable, columnName, columnType, columnSize));
+        int decimalDigits = rs.getInt("DECIMAL_DIGITS");
+        columnFields.add(
+            new ColumnField(
+                columnTable, columnName, columnType, columnTypeName, columnSize, decimalDigits));
       }
       rs.close();
       conn.close();
@@ -426,8 +431,7 @@ public class RelationalStorage implements IStorage {
             List<ColumnField> columnFieldList = getColumns(databaseName, tableName, colName);
             for (ColumnField columnField : columnFieldList) {
               String columnName = columnField.columnName;
-              String typeName = columnField.columnType;
-              int columnSize = columnField.columnSize;
+
               if (columnName.equals(KEY_NAME)) { // key 列不显示
                 continue;
               }
@@ -441,7 +445,11 @@ public class RelationalStorage implements IStorage {
                       columnName,
                       relationalMeta
                           .getDataTypeTransformer()
-                          .fromEngineType(typeName, String.valueOf(columnSize)),
+                          .fromEngineType(
+                              columnField.getColumnType(),
+                              columnField.getColumnTypeName(),
+                              columnField.getColumnSize(),
+                              columnField.getDecimalDigits()),
                       nameAndTags.v,
                       isDummy));
             }
@@ -463,8 +471,7 @@ public class RelationalStorage implements IStorage {
             List<ColumnField> columnFieldList = getColumns(databaseName, tableName, colName);
             for (ColumnField columnField : columnFieldList) {
               String columnName = columnField.columnName;
-              String typeName = columnField.columnType;
-              int columnSize = columnField.columnSize;
+
               if (columnName.equals(KEY_NAME)) { // key 列不显示
                 continue;
               }
@@ -478,7 +485,11 @@ public class RelationalStorage implements IStorage {
                       columnName,
                       relationalMeta
                           .getDataTypeTransformer()
-                          .fromEngineType(typeName, String.valueOf(columnSize)),
+                          .fromEngineType(
+                              columnField.getColumnType(),
+                              columnField.getColumnTypeName(),
+                              columnField.getColumnSize(),
+                              columnField.getDecimalDigits()),
                       nameAndTags.v,
                       true));
             }
@@ -515,7 +526,7 @@ public class RelationalStorage implements IStorage {
 
   @Override
   public boolean isSupportProjectWithSelect() {
-    return true;
+    return !engineName.equals("oracle");
   }
 
   @Override
@@ -523,6 +534,8 @@ public class RelationalStorage implements IStorage {
       Project project, Select select, DataArea dataArea) {
     return executeProjectWithFilter(project, select.getFilter(), dataArea);
   }
+
+  // TODO: getProjectWithFilterSQL 存在bug，多表 full-join 时，key可能为 null，造成结果不完整
 
   /** 获取ProjectWithFilter中将所有table join到一起进行查询的SQL语句 */
   private String getProjectWithFilterSQL(
@@ -541,7 +554,7 @@ public class RelationalStorage implements IStorage {
       List<String> fullColumnNames = new ArrayList<>(Arrays.asList(entry.getValue().split(", ")));
 
       // 将columnNames中的列名加上tableName前缀
-      if (isAgg) {
+      if (isAgg || !relationalMeta.jdbcSupportGetTableNameFromResultSet()) {
         fullColumnNamesList.add(
             fullColumnNames.stream()
                 .map(
@@ -607,7 +620,7 @@ public class RelationalStorage implements IStorage {
       orderByKey = orderByKey.replaceAll("`\\.`", ".");
     }
     return String.format(
-        QUERY_STATEMENT_WITHOUT_KEYNAME,
+        relationalMeta.getQueryTableWithoutKeyStatement(),
         fullColumnNamesStr,
         fullTableName,
         filterStr.isEmpty() ? "" : "WHERE " + filterStr,
@@ -715,6 +728,10 @@ public class RelationalStorage implements IStorage {
         for (Map.Entry<String, String> entry : tableNameToColumnNames.entrySet()) {
           String tableName = entry.getKey();
           String quotColumnNames = getQuotColumnNames(entry.getValue());
+          if (!relationalMeta.jdbcSupportGetTableNameFromResultSet()) {
+            quotColumnNames = getQuotTableAndColumnNames(tableName, entry.getValue());
+          }
+
           String filterStr = filterTransformer.toString(expandFilter);
           statement =
               String.format(
@@ -1217,6 +1234,9 @@ public class RelationalStorage implements IStorage {
 
   @Override
   public boolean isSupportProjectWithAgg(Operator agg, DataArea dataArea, boolean isDummy) {
+    if (engineName.equals("oracle")) {
+      return false;
+    }
     if (agg.getType() != OperatorType.GroupBy && agg.getType() != OperatorType.SetTransform) {
       return false;
     }
@@ -1754,6 +1774,9 @@ public class RelationalStorage implements IStorage {
           for (Map.Entry<String, String> entry : splitEntry.getValue().entrySet()) {
             String tableName = entry.getKey();
             String fullQuotColumnNames = getQuotColumnNames(entry.getValue());
+            if (!relationalMeta.jdbcSupportGetTableNameFromResultSet()) {
+              fullQuotColumnNames = getQuotTableAndColumnNames(tableName, entry.getValue());
+            }
             List<String> fullPathList = Arrays.asList(entry.getValue().split(", "));
             fullPathList.replaceAll(s -> RelationSchema.getFullName(tableName, s));
             List<String> fullQuotePathList = Arrays.asList(entry.getValue().split(", "));
@@ -2589,6 +2612,19 @@ public class RelationalStorage implements IStorage {
     StringBuilder fullColumnNames = new StringBuilder();
     for (String part : parts) {
       fullColumnNames.append(getQuotName(part));
+      fullColumnNames.append(", ");
+    }
+    return fullColumnNames.substring(0, fullColumnNames.length() - 2);
+  }
+
+  private String getQuotTableAndColumnNames(String tableName, String columnNames) {
+    String[] parts = columnNames.split(", ");
+    StringBuilder fullColumnNames = new StringBuilder();
+    for (String part : parts) {
+      fullColumnNames.append(
+          RelationSchema.getQuoteFullName(tableName, part, relationalMeta.getQuote()));
+      fullColumnNames.append(" AS ");
+      fullColumnNames.append(getQuotName(RelationSchema.getFullName(tableName, part)));
       fullColumnNames.append(", ");
     }
     return fullColumnNames.substring(0, fullColumnNames.length() - 2);

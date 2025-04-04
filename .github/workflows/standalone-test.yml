@@ -116,8 +116,8 @@ jobs:
                     chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_job_register_macos.sh"
                     "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_job_register_macos.sh" ${VERSION}
                   fi
-                  mvn test -q -Dtest=TransformJobPathIT#verifyResult -DfailIfNoTests=false -P-format
                   mvn test -q -Dtest=TransformJobRestartIT#prepare -DfailIfNoTests=false -P-format
+                  mvn test -q -Dtest=TransformJobPathIT#verifyResult -DfailIfNoTests=false -P-format
 
             - name: Stop IGinX
               uses: ./.github/actions/iginxRunner

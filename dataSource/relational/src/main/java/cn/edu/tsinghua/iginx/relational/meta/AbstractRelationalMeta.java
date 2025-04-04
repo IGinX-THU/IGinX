@@ -153,4 +153,6 @@ public abstract class AbstractRelationalMeta {
 
   /** jdbc获取元数据是否支持反斜杠的识别 */
   public abstract boolean jdbcSupportSpecialChar();
+
+  public abstract boolean jdbcSupportGetTableNameFromResultSet();
 }

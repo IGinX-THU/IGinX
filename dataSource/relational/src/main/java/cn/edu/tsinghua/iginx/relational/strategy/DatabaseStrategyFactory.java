@@ -29,6 +29,8 @@ public class DatabaseStrategyFactory {
     }
 
     switch (engineName.toLowerCase()) {
+      case "oracle":
+        return new OracleDatabaseStrategy(relationalMeta);
       case "dameng":
         return new DamengDatabaseStrategy(relationalMeta);
       case "mysql":

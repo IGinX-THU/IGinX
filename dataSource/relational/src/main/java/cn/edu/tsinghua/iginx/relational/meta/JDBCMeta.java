@@ -23,6 +23,7 @@ import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.relational.datatype.transformer.DmDataTypeTransformer;
 import cn.edu.tsinghua.iginx.relational.datatype.transformer.IDataTypeTransformer;
 import cn.edu.tsinghua.iginx.relational.datatype.transformer.JDBCDataTypeTransformer;
+import cn.edu.tsinghua.iginx.relational.datatype.transformer.OracleDataTypeTransformer;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
@@ -77,6 +78,8 @@ public class JDBCMeta extends AbstractRelationalMeta {
 
   private final boolean jdbcSupportBackslash;
 
+  private final boolean jdbcSupportGetTableNameFromResultSet;
+
   public JDBCMeta(StorageEngineMeta meta, Properties properties) {
     super(meta);
     quote = properties.getProperty("quote").charAt(0);
@@ -84,6 +87,8 @@ public class JDBCMeta extends AbstractRelationalMeta {
     defaultDatabaseName = properties.getProperty("default_database");
     if (meta.getExtraParams().get("engine").equalsIgnoreCase("dameng")) {
       dataTypeTransformer = DmDataTypeTransformer.getInstance();
+    } else if (meta.getExtraParams().get("engine").equalsIgnoreCase("oracle")) {
+      dataTypeTransformer = OracleDataTypeTransformer.getInstance();
     } else {
       dataTypeTransformer = new JDBCDataTypeTransformer(properties);
     }
@@ -109,6 +114,8 @@ public class JDBCMeta extends AbstractRelationalMeta {
     notRegexOp = properties.getProperty("not_regex_like_symbol");
     jdbcSupportBackslash =
         Boolean.parseBoolean(properties.getProperty("jdbc_support_special_char"));
+    this.jdbcSupportGetTableNameFromResultSet =
+        Boolean.parseBoolean(properties.getProperty("jdbc_support_get_table_name_from_result_set"));
   }
 
   @Override
@@ -234,6 +241,11 @@ public class JDBCMeta extends AbstractRelationalMeta {
   @Override
   public boolean jdbcSupportSpecialChar() {
     return jdbcSupportBackslash;
+  }
+
+  @Override
+  public boolean jdbcSupportGetTableNameFromResultSet() {
+    return jdbcSupportGetTableNameFromResultSet;
   }
 
   public StorageEngineMeta getStorageEngineMeta() {
