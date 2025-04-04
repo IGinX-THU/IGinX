@@ -104,6 +104,13 @@ public interface DatabaseStrategy {
    */
   String getAvgCastExpression(Expression param);
 
+  /**
+   * 获取修改数据源连接配置
+   *
+   * @param config HikariConfig 数据源连接配置
+   * @param databaseName 所要连接的数据库名称
+   * @param meta 存储引擎元数据
+   */
   default void configureDataSource(
       HikariConfig config, String databaseName, StorageEngineMeta meta) {}
 }
