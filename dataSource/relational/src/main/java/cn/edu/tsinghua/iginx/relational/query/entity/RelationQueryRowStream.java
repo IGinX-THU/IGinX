@@ -41,7 +41,7 @@ import cn.edu.tsinghua.iginx.relational.meta.JDBCMeta;
 import cn.edu.tsinghua.iginx.relational.tools.RelationSchema;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
-import java.math.BigDecimal;
+
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -319,7 +319,6 @@ public class RelationQueryRowStream implements RowStream {
 
           if (tempHasNext) {
             long tempKey;
-            Object tempValue;
 
             Set<String> tableNameSet = new HashSet<>();
 
@@ -335,29 +334,8 @@ public class RelationQueryRowStream implements RowStream {
               tableNameSet.add(tableName);
 
               Object value = getResultSetObject(resultSet, columnName, tableName);
-              if (value instanceof BigDecimal) {
-                if (header.getField(startIndex + j).getType() == DataType.LONG) {
-                  value = ((BigDecimal) value).longValue();
-                } else {
-                  value = ((BigDecimal) value).doubleValue();
-                }
-              }
-              if (header.getField(startIndex + j).getType() == DataType.BINARY && value != null) {
-                tempValue = value.toString().getBytes();
-              } else if (header.getField(startIndex + j).getType() == DataType.BOOLEAN
-                  && value != null) {
-                if (value instanceof Boolean) {
-                  tempValue = value;
-                } if(value instanceof Number) {
-                  tempValue = ((Number) value).doubleValue() == 1;
-                } else {
-                  String tempValueString = value.toString();
-                  tempValue = !tempValueString.equals("0") && !tempValueString.equalsIgnoreCase("false");
-                }
-              } else {
-                tempValue = value;
-              }
-              cachedValues[startIndex + j] = tempValue;
+              DataType type = header.getField(startIndex + j).getType();
+              cachedValues[startIndex + j] = convertToIginxValue(value, type);
             }
             if (!isAgg) {
               if (isDummy) {
@@ -415,6 +393,29 @@ public class RelationQueryRowStream implements RowStream {
       break;
     }
     hasCachedRow = true;
+  }
+
+  private Object convertToIginxValue(Object value, DataType type) {
+    if(value == null) {
+      return null;
+    }
+    return switch (type){
+      case BOOLEAN -> {
+        if(value instanceof Boolean) {
+          yield value;
+        } else if (value instanceof Number) {
+          yield ((Number) value).doubleValue() == 1;
+        } else {
+          String tempValueString = value.toString();
+          yield !tempValueString.equals("0") && !tempValueString.equalsIgnoreCase("false");
+        }
+      }
+      case INTEGER -> ((Number) value).intValue();
+      case LONG -> ((Number) value).longValue();
+      case FLOAT -> ((Number) value).floatValue();
+      case DOUBLE -> ((Number) value).doubleValue();
+      case BINARY -> value.toString().getBytes();
+    };
   }
 
   /**

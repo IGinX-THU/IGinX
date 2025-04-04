@@ -35,48 +35,36 @@ public class OracleDataTypeTransformer implements IDataTypeTransformer {
 
   @Override
   public DataType fromEngineType(int type, String dataType, int precision, int scale) {
-    switch (type){
-      case Types.NUMERIC:
-        if(scale==0){
-          if(precision<=1) {
-            return BOOLEAN;
-          }else if(precision <= 10) {
-            return INTEGER;
-          }else if(precision <= 19) {
-            return LONG;
+    return switch (type) {
+      case Types.NUMERIC -> {
+        if (scale == 0) {
+          if (precision <= 1) {
+            yield BOOLEAN;
+          } else if (precision <= 10) {
+            yield INTEGER;
+          } else if (precision <= 19) {
+            yield LONG;
           }
         }
-        return DOUBLE;
-      case Types.VARCHAR:
-        return BINARY;
-      default:
-        switch (dataType.toUpperCase()){
-          case "BINARY_FLOAT":
-            return FLOAT;
-          case "BINARY_DOUBLE":
-            return DOUBLE;
-          default:
-            return BINARY;
-        }
-    }
+        yield DOUBLE;
+      }
+      case Types.VARCHAR -> BINARY;
+      default -> switch (dataType.toUpperCase()) {
+        case "BINARY_FLOAT" -> FLOAT;
+        case "BINARY_DOUBLE" -> DOUBLE;
+        default -> BINARY;
+      };
+    };
   }
 
   public String toEngineType(DataType dataType) {
-    switch (dataType) {
-      case BOOLEAN:
-        return "NUMBER(1)";
-      case INTEGER:
-        return "NUMBER(10)";
-      case LONG:
-        return "NUMBER(19)";
-      case FLOAT:
-        return "BINARY_FLOAT";
-      case DOUBLE:
-        return "BINARY_DOUBLE";
-      case BINARY:
-        return "VARCHAR2(4000)";
-      default:
-        throw new IllegalArgumentException("dataType " + dataType + " is not supported");
-    }
+    return switch (dataType) {
+      case BOOLEAN -> "NUMBER(1)";
+      case INTEGER -> "NUMBER(10)";
+      case LONG -> "NUMBER(19)";
+      case FLOAT -> "BINARY_FLOAT";
+      case DOUBLE -> "BINARY_DOUBLE";
+      case BINARY -> "VARCHAR2(4000)";
+    };
   }
 }
