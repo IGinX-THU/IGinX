@@ -403,11 +403,8 @@ public class RelationQueryRowStream implements RowStream {
       case BOOLEAN -> {
         if(value instanceof Boolean) {
           yield value;
-        } else if (value instanceof Number) {
-          yield ((Number) value).doubleValue() == 1;
         } else {
-          String tempValueString = value.toString();
-          yield !tempValueString.equals("0") && !tempValueString.equalsIgnoreCase("false");
+          yield ((Number) value).doubleValue() != 0;
         }
       }
       case INTEGER -> ((Number) value).intValue();
