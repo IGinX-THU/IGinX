@@ -47,7 +47,7 @@ public class OracleDataTypeTransformer implements IDataTypeTransformer {
           }
         }
         return DOUBLE;
-      case Types.LONGVARCHAR:
+      case Types.VARCHAR:
         return BINARY;
       default:
         switch (dataType.toUpperCase()){
@@ -74,7 +74,7 @@ public class OracleDataTypeTransformer implements IDataTypeTransformer {
       case DOUBLE:
         return "BINARY_DOUBLE";
       case BINARY:
-        return "LONG";
+        return "VARCHAR2(4000)";
       default:
         throw new IllegalArgumentException("dataType " + dataType + " is not supported");
     }

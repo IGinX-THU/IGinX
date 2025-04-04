@@ -21,8 +21,10 @@ package cn.edu.tsinghua.iginx.relational.strategy;
 
 import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
+import cn.edu.tsinghua.iginx.relational.datatype.transformer.OracleDataTypeTransformer;
 import cn.edu.tsinghua.iginx.relational.meta.AbstractRelationalMeta;
 import cn.edu.tsinghua.iginx.relational.tools.ColumnField;
+import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import com.zaxxer.hikari.HikariConfig;
 import org.slf4j.Logger;
@@ -43,10 +45,12 @@ import static cn.edu.tsinghua.iginx.relational.tools.Constants.*;
 public class OracleDatabaseStrategy implements DatabaseStrategy {
   private static final Logger LOGGER = LoggerFactory.getLogger(OracleDatabaseStrategy.class);
 
-  private AbstractRelationalMeta relationalMeta;
+  private final AbstractRelationalMeta relationalMeta;
+  private final OracleDataTypeTransformer dataTypeTransformer;
 
   public OracleDatabaseStrategy(AbstractRelationalMeta relationalMeta) {
     this.relationalMeta = relationalMeta;
+    this.dataTypeTransformer = OracleDataTypeTransformer.getInstance();
   }
 
   @Override
@@ -171,6 +175,7 @@ public class OracleDatabaseStrategy implements DatabaseStrategy {
       // insert
       placeHolder.setLength(0);
       Arrays.stream(parts).forEach(part -> placeHolder.append("?,"));
+      placeHolder.append("?");
       String partStr = Arrays.stream(parts).map(this::getQuotName).collect(Collectors.joining(","));
       PreparedStatement insertStmt =
           conn.prepareStatement(
@@ -178,7 +183,7 @@ public class OracleDatabaseStrategy implements DatabaseStrategy {
                   relationalMeta.getInsertTableStatement(),
                   getQuotName(tableName),
                   getQuotName(KEY_NAME) + "," + partStr,
-                  placeHolder.append("?")));
+                  placeHolder));
       conn.setAutoCommit(false); // 关闭自动提交
       for (int i = 0; i < insertKeys.size(); i++) {
         String[] vals = valueMap.get(insertKeys.get(i));
@@ -187,22 +192,10 @@ public class OracleDatabaseStrategy implements DatabaseStrategy {
           if (!columnMap.containsKey(parts[j])) {
             break;
           }
-          if (columnMap.get(parts[j]).columnTypeName.equals("NUMBER")) {
-            int columnSize = columnMap.get(parts[j]).columnSize;
-            if (columnSize == 1) {
-              setValue(insertStmt, j + 2, vals[j + 1], Types.BOOLEAN);
-            } else if (columnSize >= 1 && columnSize <= 10) {
-              setValue(insertStmt, j + 2, vals[j + 1], Types.INTEGER);
-            } else if (columnSize == 38) {
-              setValue(insertStmt, j + 2, vals[j + 1], Types.DOUBLE);
-            } else {
-              setValue(insertStmt, j + 2, vals[j + 1], Types.BIGINT);
-            }
-          } else if (columnMap.get(parts[j]).columnTypeName.equals("FLOAT")) {
-            setValue(insertStmt, j + 2, vals[j + 1], Types.FLOAT);
-          } else {
-            setValue(insertStmt, j + 2, vals[j + 1], Types.VARCHAR);
-          }
+          ColumnField columnField = columnMap.get(parts[j]);
+          DataType dataType = dataTypeTransformer.fromEngineType(
+              columnField.columnType, columnField.columnTypeName, columnField.columnSize, columnField.decimalDigits);
+          setValue(insertStmt, j + 2, vals[j + 1], dataType);
         }
         insertStmt.addBatch();
         if (i % 500 == 0) { // 每1000条数据执行一次批处理
@@ -231,22 +224,10 @@ public class OracleDatabaseStrategy implements DatabaseStrategy {
           if (!columnMap.containsKey(parts[j])) {
             break;
           }
-          if (columnMap.get(parts[j]).columnTypeName.equals("NUMBER")) {
-            int columnSize = columnMap.get(parts[j]).columnSize;
-            if (columnSize == 1) {
-              setValue(updateStmt, j + 1, vals[j + 1], Types.BOOLEAN);
-            } else if (columnSize >= 1 && columnSize <= 10) {
-              setValue(updateStmt, j + 1, vals[j + 1], Types.INTEGER);
-            } else if (columnSize == 38) {
-              setValue(updateStmt, j + 1, vals[j + 1], Types.DOUBLE);
-            } else {
-              setValue(updateStmt, j + 1, vals[j + 1], Types.BIGINT);
-            }
-          } else if (columnMap.get(parts[j]).columnTypeName.equals("FLOAT")) {
-            setValue(updateStmt, j + 1, vals[j + 1], Types.FLOAT);
-          } else {
-            setValue(updateStmt, j + 1, vals[j + 1], Types.VARCHAR);
-          }
+          ColumnField columnField = columnMap.get(parts[j]);
+          DataType dataType = dataTypeTransformer.fromEngineType(
+              columnField.columnType, columnField.columnTypeName, columnField.columnSize, columnField.decimalDigits);
+          setValue(updateStmt, j + 1, vals[j + 1], dataType);
         }
         updateStmt.setString(parts.length + 1, vals[0]);
         updateStmt.addBatch();
@@ -263,38 +244,56 @@ public class OracleDatabaseStrategy implements DatabaseStrategy {
     }
   }
 
-  private void setValue(PreparedStatement stmt, int index, String value, int types)
+  private void setValue(PreparedStatement stmt, int index, String value, DataType type)
       throws SQLException {
-    if (value.equals("null")) {
-      if (Types.BOOLEAN == types) {
-        stmt.setNull(index, Types.INTEGER);
-      } else {
-        stmt.setNull(index, types);
-      }
-      return;
-    }
-    switch (types) {
-      case Types.BOOLEAN:
-        stmt.setInt(index, value.equalsIgnoreCase("true") ? 1 : 0);
+    boolean isNull = value.equals("null");
+    switch (type) {
+      case BOOLEAN:
+        if(isNull){
+          stmt.setNull(index, Types.INTEGER);
+        }else{
+          stmt.setInt(index, value.equalsIgnoreCase("true") ? 1 : 0);
+        }
         break;
-      case Types.INTEGER:
-        stmt.setInt(index, Integer.parseInt(value));
+      case INTEGER:
+        if(isNull) {
+          stmt.setNull(index, Types.INTEGER);
+        }else{
+          stmt.setInt(index, Integer.parseInt(value));
+        }
         break;
-      case Types.BIGINT:
-        stmt.setLong(index, Long.parseLong(value));
+      case LONG:
+        if(isNull) {
+          stmt.setNull(index, Types.BIGINT);
+        }else {
+          stmt.setLong(index, Long.parseLong(value));
+        }
         break;
-      case Types.FLOAT:
-        stmt.setFloat(index, Float.parseFloat(value));
+      case FLOAT:
+        if(isNull) {
+          stmt.setNull(index, Types.FLOAT);
+        }else {
+          stmt.setFloat(index, Float.parseFloat(value));
+        }
         break;
-      case Types.DOUBLE:
-        stmt.setDouble(index, Double.parseDouble(value));
+      case DOUBLE:
+        if(isNull) {
+          stmt.setNull(index, Types.DOUBLE);
+        }else {
+          stmt.setDouble(index, Double.parseDouble(value));
+        }
         break;
-      default:
-        if (value.startsWith("'") && value.endsWith("'")) { // 处理空字符串'', 非空字符串包含特殊字符的情况'""'
+      case BINARY:
+        if(isNull) {
+          stmt.setNull(index, Types.VARCHAR);
+        } else if (value.startsWith("'") && value.endsWith("'")) { // 处理空字符串'', 非空字符串包含特殊字符的情况'""'
           stmt.setString(index, value.substring(1, value.length() - 1));
         } else {
           stmt.setString(index, value);
         }
+        break;
+      default:
+        throw new IllegalArgumentException("Unsupported data type: " + type);
     }
   }
 

@@ -348,14 +348,11 @@ public class RelationQueryRowStream implements RowStream {
                   && value != null) {
                 if (value instanceof Boolean) {
                   tempValue = value;
+                } if(value instanceof Number) {
+                  tempValue = ((Number) value).doubleValue() == 1;
                 } else {
-                  if (value instanceof Byte) {
-                    tempValue = ((Byte) value) == 1;
-                  } else if (value instanceof Long) {
-                    tempValue = ((long) value) == 1;
-                  } else {
-                    tempValue = ((int) value) == 1;
-                  }
+                  String tempValueString = value.toString();
+                  tempValue = !tempValueString.equals("0") && !tempValueString.equalsIgnoreCase("false");
                 }
               } else {
                 tempValue = value;
