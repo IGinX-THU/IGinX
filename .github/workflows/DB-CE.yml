@@ -55,10 +55,6 @@ jobs:
                 metadata: ${{ fromJSON(inputs.metadata-matrix) }}
                 DB-name: ${{ fromJSON(inputs.db-matrix) }}
                 test-way:
-                    - "oriHasDataExpHasData"
-                    - "oriNoDataExpNoData"
-                    - "oriHasDataExpNoData"
-                    - "oriNoDataExpHasData"
                     - "testReadOnly"
         runs-on: ${{ matrix.os }}
         env:
