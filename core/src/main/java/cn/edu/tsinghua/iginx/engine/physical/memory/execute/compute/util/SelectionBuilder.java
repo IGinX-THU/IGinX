@@ -27,6 +27,7 @@ public class SelectionBuilder implements AutoCloseable {
   private final BufferAllocator allocator;
   private IntVector selection;
   private int index = 0;
+  private boolean nullable = false;
 
   public SelectionBuilder(BufferAllocator allocator, String name, int initCapacity) {
     this.allocator = allocator;
@@ -39,6 +40,10 @@ public class SelectionBuilder implements AutoCloseable {
     if (selection != null) {
       selection.close();
     }
+  }
+
+  public void setNullable(boolean nullable) {
+    this.nullable = nullable;
   }
 
   public void append(int integer) {
@@ -54,10 +59,10 @@ public class SelectionBuilder implements AutoCloseable {
   }
 
   public IntVector build(int count) {
-    ConstantVectors.setAllValidity(selection, index);
     selection.setValueCount(count);
+    ConstantVectors.setAllValidity(selection, index);
     try {
-      return ValueVectors.slice(allocator, selection, count > index);
+      return ValueVectors.slice(allocator, selection, count > index || nullable);
     } finally {
       selection.close();
       selection = null;

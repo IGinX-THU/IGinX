@@ -232,11 +232,11 @@ public class CrossJoinArrayList implements JoinCollection {
 
   public static class Builder implements JoinCollection.Builder {
 
-    private final BufferAllocator allocator;
-    private final Schema buildSideSchema;
-    private final Schema probeSideSchema;
-    private final List<ScalarExpression<?>> outputExpressions;
-    private final List<LazyBatch> buildSideBatches;
+    protected final BufferAllocator allocator;
+    protected final Schema buildSideSchema;
+    protected final Schema probeSideSchema;
+    protected final List<ScalarExpression<?>> outputExpressions;
+    protected final List<LazyBatch> buildSideBatches;
 
     public Builder(
         BufferAllocator allocator,
@@ -255,7 +255,6 @@ public class CrossJoinArrayList implements JoinCollection {
       List<Field> outputFields = new ArrayList<>();
       outputFields.addAll(buildSideSchema.getFields());
       outputFields.addAll(probeSideSchema.getFields());
-      outputFields.add(Field.nullable("mark", Types.MinorType.BIT.getType()));
       return ScalarExpressionUtils.getOutputSchema(
           allocator, outputExpressions, new Schema(outputFields));
     }
