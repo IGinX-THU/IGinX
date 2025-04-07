@@ -19,15 +19,15 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateless;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.PhysicalFunctions;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpressionUtils;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.sort.IndexSortExpression;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ValueVectors;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ArrowDictionaries;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.LazyBatch;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.VectorSchemaRoots;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.util.Batch;
 import java.util.Objects;
-import org.apache.arrow.vector.BaseIntVector;
 import org.apache.arrow.vector.IntVector;
 import org.apache.arrow.vector.types.pojo.Schema;
 
@@ -61,15 +61,21 @@ public class InnerBatchSortUnaryExecutor extends StatelessUnaryExecutor {
             context.getAllocator(),
             batch.getDictionaryProvider(),
             batch.getData(),
-            batch.getSelection(),
+            null,
             indexSortExpression)) {
-      if (batch.getSelection() == null) {
-        return batch.sliceWith(
-            context.getAllocator(), ValueVectors.transfer(context.getAllocator(), sortedIndices));
+      try (LazyBatch result =
+          ArrowDictionaries.select(
+              context.getAllocator(),
+              batch.getDictionaryProvider(),
+              batch.getData(),
+              sortedIndices)) {
+        return Batch.of(
+            VectorSchemaRoots.slice(context.getAllocator(), result.getData()),
+            ArrowDictionaries.slice(
+                context.getAllocator(),
+                result.getDictionaryProvider(),
+                result.getData().getSchema()));
       }
-      BaseIntVector sortedSelection =
-          PhysicalFunctions.take(context.getAllocator(), sortedIndices, batch.getSelection());
-      return batch.sliceWith(context.getAllocator(), sortedSelection);
     }
   }
 }

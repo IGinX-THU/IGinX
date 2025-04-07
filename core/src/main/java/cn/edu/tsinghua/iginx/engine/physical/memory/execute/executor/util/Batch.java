@@ -19,59 +19,45 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.util;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.CloseableDictionaryProvider;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.DictionaryProviders;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ValueVectors;
+import static org.apache.arrow.vector.dictionary.DictionaryProvider.MapDictionaryProvider;
+
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ArrowDictionaries;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.VectorSchemaRoots;
 import java.util.List;
 import java.util.Objects;
-import javax.annotation.Nullable;
 import javax.annotation.WillClose;
 import javax.annotation.WillCloseWhenClosed;
 import org.apache.arrow.memory.BufferAllocator;
-import org.apache.arrow.vector.BaseIntVector;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
+import org.apache.arrow.vector.dictionary.DictionaryProvider;
 import org.apache.arrow.vector.types.pojo.Schema;
 
 public class Batch implements AutoCloseable {
 
   private long sequenceNumber; // start from 0
   private final VectorSchemaRoot group;
-  private final CloseableDictionaryProvider dictionaryProvider;
-  private final BaseIntVector selection;
+  private final MapDictionaryProvider dictionaryProvider;
 
   protected Batch(
       @WillCloseWhenClosed VectorSchemaRoot group,
-      @WillCloseWhenClosed CloseableDictionaryProvider dictionaryProvider,
-      @Nullable @WillCloseWhenClosed BaseIntVector selection) {
+      @WillCloseWhenClosed MapDictionaryProvider dictionaryProvider) {
     this.group = Objects.requireNonNull(group);
     this.dictionaryProvider = Objects.requireNonNull(dictionaryProvider);
-    this.selection = selection;
   }
 
   public static Batch of(@WillCloseWhenClosed VectorSchemaRoot compute) {
-    return new Batch(compute, DictionaryProviders.emptyClosable(), null);
+    return new Batch(compute, new MapDictionaryProvider());
   }
 
   public static Batch of(
       @WillCloseWhenClosed VectorSchemaRoot compute,
-      @WillCloseWhenClosed CloseableDictionaryProvider dictionaryProvider) {
-    return new Batch(compute, dictionaryProvider, null);
+      @WillCloseWhenClosed MapDictionaryProvider dictionaryProvider) {
+    return new Batch(compute, dictionaryProvider);
   }
 
-  public static Batch of(
-      @WillCloseWhenClosed VectorSchemaRoot compute,
-      @WillCloseWhenClosed CloseableDictionaryProvider dictionaryProvider,
-      @Nullable @WillCloseWhenClosed BaseIntVector selection) {
-    return new Batch(compute, dictionaryProvider, selection);
-  }
-
-  public static Batch empty(BufferAllocator allocator, Schema outputSchema) {
-    return new Batch(
-        VectorSchemaRoot.create(outputSchema, allocator),
-        DictionaryProviders.emptyClosable(),
-        null);
+  public static Batch empty(BufferAllocator allocator, Schema schema) {
+    return of(VectorSchemaRoot.create(schema, allocator));
   }
 
   public boolean isEmpty() {
@@ -90,61 +76,37 @@ public class Batch implements AutoCloseable {
     this.sequenceNumber = sequenceNumber;
   }
 
-  public CloseableDictionaryProvider getDictionaryProvider() {
+  public DictionaryProvider getDictionaryProvider() {
     return dictionaryProvider;
   }
 
-  @Nullable
-  public BaseIntVector getSelection() {
-    return selection;
-  }
-
-  @Nullable
-  public BaseIntVector getSelectionSlice(BufferAllocator allocator) {
-    if (selection == null) {
-      return null;
-    }
-    return ValueVectors.slice(allocator, selection);
-  }
-
   public VectorSchemaRoot flattened(BufferAllocator allocator) {
-    return VectorSchemaRoots.flatten(allocator, dictionaryProvider, group, selection);
+    return ArrowDictionaries.flatten(allocator, dictionaryProvider, group, null);
   }
 
   public Batch slice(BufferAllocator allocator) {
     return new Batch(
         VectorSchemaRoots.slice(allocator, group),
-        dictionaryProvider.slice(allocator),
-        getSelectionSlice(allocator));
+        ArrowDictionaries.slice(allocator, dictionaryProvider));
   }
 
   public Batch slice(BufferAllocator allocator, int slicedStartIndex, int slicedRowCount) {
-    if (selection != null) {
-      return new Batch(
-          VectorSchemaRoots.slice(allocator, group),
-          dictionaryProvider.slice(allocator),
-          ValueVectors.slice(allocator, selection, slicedStartIndex, slicedRowCount));
-    }
     return new Batch(
         VectorSchemaRoots.slice(allocator, group, slicedStartIndex, slicedRowCount),
-        dictionaryProvider.slice(allocator),
-        null);
+        ArrowDictionaries.slice(allocator, dictionaryProvider));
   }
 
-  public Batch sliceWith(
-      BufferAllocator allocator,
-      @WillClose VectorSchemaRoot unnested,
-      @WillClose @Nullable BaseIntVector selection) {
-    return new Batch(unnested, dictionaryProvider.slice(allocator), selection);
-  }
-
-  public Batch sliceWith(BufferAllocator allocator, @WillClose @Nullable BaseIntVector selection) {
+  public Batch sliceWith(BufferAllocator allocator, @WillClose VectorSchemaRoot unnested) {
     return new Batch(
-        VectorSchemaRoots.slice(allocator, group), dictionaryProvider.slice(allocator), selection);
+        unnested, ArrowDictionaries.slice(allocator, dictionaryProvider, unnested.getSchema()));
   }
 
   public List<FieldVector> getVectors() {
     return group.getFieldVectors();
+  }
+
+  public int getRowCount() {
+    return group.getRowCount();
   }
 
   public FieldVector getVector(int index) {
@@ -152,41 +114,12 @@ public class Batch implements AutoCloseable {
   }
 
   public Schema getSchema() {
-    // TODO: flatten schema
-    throw new UnsupportedOperationException("Not implemented");
+    return ArrowDictionaries.flatten(dictionaryProvider, group.getSchema());
   }
 
   @Override
   public void close() {
     group.close();
     dictionaryProvider.close();
-    if (selection != null) {
-      selection.close();
-    }
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) return true;
-    if (o == null || getClass() != o.getClass()) return false;
-    Batch that = (Batch) o;
-    return Objects.equals(group, that.group);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hashCode(group);
-  }
-
-  @Override
-  public String toString() {
-    return group.toString();
-  }
-
-  public int getRowCount() {
-    if (selection != null) {
-      return selection.getValueCount();
-    }
-    return group.getRowCount();
   }
 }

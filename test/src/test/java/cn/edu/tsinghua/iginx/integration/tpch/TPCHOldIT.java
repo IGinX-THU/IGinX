@@ -129,6 +129,12 @@ public class TPCHOldIT {
               newTimeCostMedian);
           Assert.fail();
         }
+        LOGGER.info(
+            "Query {} failed after {} times' iterations, old time costs' median: {}ms, new time costs' median: {}ms.",
+            queryId,
+            iterationTimes,
+            oldTimeCostMedian,
+            newTimeCostMedian);
         failedQueryIds.add(queryId);
         continue;
       }

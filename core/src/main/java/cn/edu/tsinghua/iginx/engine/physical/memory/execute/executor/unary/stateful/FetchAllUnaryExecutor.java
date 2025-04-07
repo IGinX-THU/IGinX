@@ -42,7 +42,7 @@ public class FetchAllUnaryExecutor extends StatefulUnaryExecutor {
 
   @Override
   protected void consumeUnchecked(Batch batch) throws ComputeException {
-    offerResult(batch.slice(context.getAllocator()));
+    offerResult(batch);
   }
 
   @Override

@@ -19,43 +19,39 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util;
 
-import java.util.Collections;
-import java.util.Set;
+import static org.apache.arrow.vector.dictionary.DictionaryProvider.MapDictionaryProvider;
+
+import java.util.Objects;
+import javax.annotation.WillCloseWhenClosed;
+import lombok.Getter;
 import org.apache.arrow.memory.BufferAllocator;
-import org.apache.arrow.vector.dictionary.Dictionary;
+import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.dictionary.DictionaryProvider;
 
-public class DictionaryProviders {
-  private DictionaryProviders() {}
+@Getter
+public class LazyBatch implements AutoCloseable {
 
-  private static class EmptyDictionaryProvider implements CloseableDictionaryProvider {
-    @Override
-    public Dictionary lookup(long id) {
-      return null;
-    }
+  private final MapDictionaryProvider dictionaryProvider;
 
-    @Override
-    public Set<Long> getDictionaryIds() {
-      return Collections.emptySet();
-    }
+  private final VectorSchemaRoot data;
 
-    @Override
-    public void close() {}
-
-    @Override
-    public CloseableDictionaryProvider slice(BufferAllocator allocator) {
-      return this;
-    }
+  public static LazyBatch slice(
+      BufferAllocator allocator, DictionaryProvider dictionaryProvider, VectorSchemaRoot data) {
+    return new LazyBatch(
+        ArrowDictionaries.slice(allocator, dictionaryProvider, data.getSchema()),
+        VectorSchemaRoots.slice(allocator, data));
   }
 
-  private static final CloseableDictionaryProvider EMPTY_DICTIONARY_PROVIDER =
-      new EmptyDictionaryProvider();
-
-  public static DictionaryProvider empty() {
-    return EMPTY_DICTIONARY_PROVIDER;
+  public LazyBatch(
+      @WillCloseWhenClosed MapDictionaryProvider dictionaryProvider,
+      @WillCloseWhenClosed VectorSchemaRoot data) {
+    this.dictionaryProvider = Objects.requireNonNull(dictionaryProvider);
+    this.data = Objects.requireNonNull(data);
   }
 
-  public static CloseableDictionaryProvider emptyClosable() {
-    return EMPTY_DICTIONARY_PROVIDER;
+  @Override
+  public void close() {
+    data.close();
+    dictionaryProvider.close();
   }
 }

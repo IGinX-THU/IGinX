@@ -21,9 +21,12 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expr
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.ScalarFunction;
 import java.util.List;
+import java.util.Set;
 import org.apache.arrow.vector.FieldVector;
 
 public interface ScalarExpression<OUTPUT extends FieldVector> extends ScalarFunction<OUTPUT> {
 
   List<ScalarExpression<?>> getChildren();
+
+  Set<ScalarExpression<?>> getLeafExpressions();
 }

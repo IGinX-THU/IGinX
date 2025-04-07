@@ -62,7 +62,9 @@ public class LimitUnaryExecutor extends StatefulUnaryExecutor {
         (int) Math.min(batch.getRowCount(), Math.max(0, offset + limit - currentOffset));
     int slicedRowCount = slicedEndIndex - slicedStartIndex;
     if (slicedRowCount > 0) {
-      offerResult(batch.slice(context.getAllocator(), slicedStartIndex, slicedRowCount));
+      try (Batch output = batch.slice(context.getAllocator(), slicedStartIndex, slicedRowCount)) {
+        offerResult(output);
+      }
     }
     currentOffset += batch.getRowCount();
   }

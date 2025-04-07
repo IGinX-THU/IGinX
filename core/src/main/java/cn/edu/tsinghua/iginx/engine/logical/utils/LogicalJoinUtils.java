@@ -17,13 +17,13 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package cn.edu.tsinghua.iginx.engine.physical.utils;
+package cn.edu.tsinghua.iginx.engine.logical.utils;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OuterJoinType;
 
-public class PhysicalJoinUtils {
-  private PhysicalJoinUtils() {}
+public class LogicalJoinUtils {
+  private LogicalJoinUtils() {}
 
   public static CrossJoin reverse(CrossJoin operator) {
     return new CrossJoin(

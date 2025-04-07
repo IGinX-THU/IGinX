@@ -82,7 +82,9 @@ public class AddSequenceExecutor extends StatefulUnaryExecutor {
       vectors.add(sequence);
     }
     offset += flattened.getRowCount();
-    offerResult(Batch.of(VectorSchemaRoots.create(vectors, flattened.getRowCount())));
+    try (Batch output = Batch.of(VectorSchemaRoots.create(vectors, flattened.getRowCount()))) {
+      offerResult(output);
+    }
   }
 
   private static BigIntVector createSequenceVector(

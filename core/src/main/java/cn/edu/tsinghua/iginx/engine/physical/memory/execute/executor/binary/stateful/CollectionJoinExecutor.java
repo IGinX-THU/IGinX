@@ -19,97 +19,96 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.binary.stateful;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.join.JoinArrayList;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpression;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpressionUtils;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.join.JoinCollection;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ArrowDictionaries;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.VectorSchemaRoots;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.util.Batch;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Objects;
+import javax.annotation.WillClose;
 import org.apache.arrow.vector.VectorSchemaRoot;
-import org.apache.arrow.vector.types.pojo.Field;
+import org.apache.arrow.vector.dictionary.DictionaryProvider;
 import org.apache.arrow.vector.types.pojo.Schema;
 
 /**
  * This class is used to execute hash join operation. Left is the build side, and right is the probe
  * side.
  */
-public class CrossJoinExecutor extends StatefulBinaryExecutor {
+public class CollectionJoinExecutor extends StatefulBinaryExecutor {
 
-  private final List<ScalarExpression<?>> outputExpressions;
-
-  private final JoinArrayList.Builder joinArrayListBuilder;
-  private JoinArrayList joinArrayList;
+  private final JoinCollection.Builder joinCollectionBuilder;
+  private final String info;
+  private JoinCollection joinCollection;
   private Schema outputSchema;
 
-  public CrossJoinExecutor(
+  public CollectionJoinExecutor(
       ExecutorContext context,
       BatchSchema leftSchema,
       BatchSchema rightSchema,
-      List<ScalarExpression<?>> outputExpressions) {
+      @WillClose JoinCollection.Builder joinCollectionBuilder,
+      String info) {
     super(context, leftSchema, rightSchema, 1);
-    this.outputExpressions = new ArrayList<>(outputExpressions);
-    this.joinArrayListBuilder =
-        new JoinArrayList.Builder(context.getAllocator(), getLeftSchema().raw());
+    this.joinCollectionBuilder = Objects.requireNonNull(joinCollectionBuilder);
+    this.info = Objects.requireNonNull(info);
   }
 
   @Override
   public Schema getOutputSchema() throws ComputeException {
     if (outputSchema == null) {
-      List<Field> outputFields = new ArrayList<>();
-      outputFields.addAll(leftSchema.raw().getFields());
-      outputFields.addAll(rightSchema.raw().getFields());
-      this.outputSchema =
-          ScalarExpressionUtils.getOutputSchema(
-              context.getAllocator(), outputExpressions, new Schema(outputFields));
+      outputSchema = joinCollectionBuilder.constructOutputSchema();
     }
     return outputSchema;
   }
 
   @Override
   protected String getInfo() {
-    return "CrossJoin output " + outputExpressions;
+    return info;
   }
 
   @Override
   public void close() throws ComputeException {
-    joinArrayListBuilder.close();
-    if (joinArrayList != null) {
-      joinArrayList.close();
+    joinCollectionBuilder.close();
+    if (joinCollection != null) {
+      joinCollection.close();
     }
     super.close();
   }
 
   @Override
   public boolean needConsumeRight() throws ComputeException {
-    return super.needConsumeRight() && joinArrayList != null;
+    return super.needConsumeRight() && joinCollection != null;
   }
 
   @Override
   protected void consumeLeftUnchecked(Batch batch) throws ComputeException {
-    joinArrayListBuilder.add(batch.flattened(context.getAllocator()));
+    joinCollectionBuilder.add(batch.getDictionaryProvider(), batch.getData());
   }
 
   @Override
   protected void consumeLeftEndUnchecked() throws ComputeException {
-    joinArrayList =
-        joinArrayListBuilder.build(
-            context.getAllocator(),
-            outputExpressions,
-            getRightSchema().raw(),
-            (dictionaryProvider, data, selection) ->
-                offerResult(Batch.of(data, dictionaryProvider, selection)));
+    joinCollection = joinCollectionBuilder.build(this::offerRawResult);
   }
 
-  @Override
-  protected void consumeRightUnchecked(Batch batch) throws ComputeException {
-    try (VectorSchemaRoot batchFlattened = batch.flattened(context.getAllocator())) {
-      joinArrayList.probe(batchFlattened);
+  private void offerRawResult(DictionaryProvider dictionaryProvider, VectorSchemaRoot data)
+      throws ComputeException {
+    try (Batch batch =
+        Batch.of(
+            VectorSchemaRoots.slice(context.getAllocator(), data),
+            ArrowDictionaries.slice(
+                context.getAllocator(), dictionaryProvider, data.getSchema()))) {
+      offerResult(batch);
     }
   }
 
   @Override
-  protected void consumeRightEndUnchecked() throws ComputeException {}
+  protected void consumeRightUnchecked(Batch batch) throws ComputeException {
+    joinCollection.probe(batch.getDictionaryProvider(), batch.getData());
+  }
+
+  @Override
+  protected void consumeRightEndUnchecked() throws ComputeException {
+    joinCollection.flush();
+  }
 }

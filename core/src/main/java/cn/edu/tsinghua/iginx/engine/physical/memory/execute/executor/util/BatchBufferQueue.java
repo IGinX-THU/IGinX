@@ -22,7 +22,6 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.util;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import java.util.ArrayDeque;
 import java.util.Queue;
-import javax.annotation.WillClose;
 import org.apache.arrow.util.Preconditions;
 
 public class BatchBufferQueue implements AutoCloseable {
@@ -44,15 +43,11 @@ public class BatchBufferQueue implements AutoCloseable {
     return queue.isEmpty();
   }
 
-  public void add(ExecutorContext context, @WillClose Batch batch) {
-    try {
-      for (Batch partition :
-          Batches.partition(context.getAllocator(), batch, context.getBatchRowCount())) {
-        partition.setSequenceNumber(sequenceNumber++);
-        queue.add(partition);
-      }
-    } finally {
-      batch.close();
+  public void add(ExecutorContext context, Batch batch) {
+    for (Batch partition :
+        Batches.partition(context.getAllocator(), batch, context.getBatchRowCount())) {
+      partition.setSequenceNumber(sequenceNumber++);
+      queue.add(partition);
     }
   }
 

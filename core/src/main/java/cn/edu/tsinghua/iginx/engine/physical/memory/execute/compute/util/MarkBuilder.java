@@ -26,6 +26,7 @@ public class MarkBuilder implements AutoCloseable {
 
   private BitVector bitVector;
   private int index;
+  private boolean nullable = false;
 
   public MarkBuilder() {
     this.bitVector = null;
@@ -37,10 +38,16 @@ public class MarkBuilder implements AutoCloseable {
     this.index = 0;
   }
 
+  public void setNullable(boolean nullable) {
+    this.nullable = nullable;
+  }
+
   public void appendTrue(int count) {
     if (bitVector == null) {
       return;
     }
+    bitVector.setValueCount(index + count);
+
     ConstantVectors.setOne(bitVector.getDataBuffer(), index, count);
     index += count;
   }
@@ -56,11 +63,15 @@ public class MarkBuilder implements AutoCloseable {
     if (bitVector == null) {
       return null;
     }
-    ConstantVectors.setAllValidity(bitVector, index);
+
     bitVector.setValueCount(count);
-    BitVector result = bitVector;
-    bitVector = null;
-    return result;
+    ConstantVectors.setAllValidity(bitVector, index);
+    try {
+      return ValueVectors.slice(bitVector.getAllocator(), bitVector, count > index || nullable);
+    } finally {
+      bitVector.close();
+      bitVector = null;
+    }
   }
 
   @Override

@@ -27,28 +27,54 @@ public enum JoinOption {
   LEFT(true, false),
   RIGHT(false, true),
   FULL(true, true),
-  MARK(false, true, true, true, false, true),
-  SINGLE(false, true, true, false, false, false);
+  MARK(false, true, true),
+  SINGLE(true, false, false);
 
-  private final boolean toOutputProbeSideUnmatched;
   private final boolean toOutputBuildSideUnmatched;
+  private final boolean toOutputBuildSideKey;
+  private final boolean toOutputBuildSideData;
+  private final boolean toOutputProbeSideUnmatched;
   private final boolean orderByProbeSideOrdinal;
   private final boolean allowedToMatchMultiple;
   private final boolean toOutputAllMatched;
   private final boolean toOutputMark;
 
   JoinOption(boolean toOutputBuildSideUnmatched, boolean toOutputProbeSideUnmatched) {
-    this(toOutputBuildSideUnmatched, toOutputProbeSideUnmatched, false, true, true, false);
+    this(
+        toOutputBuildSideUnmatched,
+        true,
+        true,
+        toOutputProbeSideUnmatched,
+        false,
+        true,
+        true,
+        false);
+  }
+
+  JoinOption(boolean toOutputBuildSideData, boolean allowedToMatchMultiple, boolean toOutputMark) {
+    this(
+        false,
+        false,
+        toOutputBuildSideData,
+        true,
+        true,
+        allowedToMatchMultiple,
+        false,
+        toOutputMark);
   }
 
   JoinOption(
       boolean toOutputBuildSideUnmatched,
+      boolean toOutputBuildSideKey,
+      boolean toOutputBuildSideData,
       boolean toOutputProbeSideUnmatched,
       boolean orderByProbeSideOrdinal,
       boolean allowedToMatchMultiple,
       boolean toOutputAllMatched,
       boolean toOutputMark) {
     this.toOutputBuildSideUnmatched = toOutputBuildSideUnmatched;
+    this.toOutputBuildSideKey = toOutputBuildSideKey;
+    this.toOutputBuildSideData = toOutputBuildSideData;
     this.toOutputProbeSideUnmatched = toOutputProbeSideUnmatched;
     this.orderByProbeSideOrdinal = orderByProbeSideOrdinal;
     this.allowedToMatchMultiple = allowedToMatchMultiple;

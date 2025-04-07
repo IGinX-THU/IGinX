@@ -20,6 +20,7 @@
 package cn.edu.tsinghua.iginx.physical.optimizer.naive;
 
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
+import cn.edu.tsinghua.iginx.engine.logical.utils.LogicalJoinUtils;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateful.AddSequenceExecutor;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateful.LimitUnaryExecutor;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateful.RemoveNullColumnExecutor;
@@ -36,7 +37,7 @@ import cn.edu.tsinghua.iginx.engine.physical.task.memory.row.BinaryRowMemoryPhys
 import cn.edu.tsinghua.iginx.engine.physical.task.memory.row.RowToArrowUnaryMemoryPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.memory.row.UnaryRowMemoryPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.utils.PhysicalCloseable;
-import cn.edu.tsinghua.iginx.engine.physical.utils.PhysicalJoinUtils;
+import cn.edu.tsinghua.iginx.engine.physical.utils.UDFDetector;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStreams;
@@ -50,7 +51,6 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.type.JoinAlgType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.source.*;
 import cn.edu.tsinghua.iginx.physical.optimizer.naive.initializer.*;
-import cn.edu.tsinghua.iginx.physical.optimizer.naive.util.UDFDetector;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -300,24 +300,35 @@ public class NaivePhysicalPlanner {
   }
 
   public PhysicalTask<?> construct(RowTransform operator, RequestContext context) {
+    // 有 UDF 时借用旧的基于 Row 的实现
     if (operator.getFunctionCallList().stream().anyMatch(UDFDetector::containNonSystemFunction)) {
       return constructRow(operator, context);
     }
 
-    PhysicalTask<BatchStream> sourceTask = fetchAsync(operator.getSource(), context);
+    // 有 UDF 时并行化流水线
+    if (operator.getFunctionCallList().stream().anyMatch(UDFDetector::containNonSystemFunction)) {
+      PhysicalTask<BatchStream> sourceTask = fetchAsync(operator.getSource(), context);
 
-    int pipelineParallelism = ConfigDescriptor.getInstance().getConfig().getPipelineParallelism();
+      int pipelineParallelism = ConfigDescriptor.getInstance().getConfig().getPipelineParallelism();
 
-    return new ParallelPipelineMemoryPhysicalTask(
-        sourceTask,
+      return new ParallelPipelineMemoryPhysicalTask(
+          sourceTask,
+          context,
+          (ctx, parentTask) ->
+              new PipelineMemoryPhysicalTask(
+                  parentTask,
+                  Collections.singletonList(operator),
+                  ctx,
+                  new RowTransformInfoGenerator(operator)),
+          pipelineParallelism);
+    }
+
+    PhysicalTask<?> sourceTask = fetch(operator.getSource(), context);
+    return new PipelineMemoryPhysicalTask(
+        convert(sourceTask, context, BatchStream.class),
+        Collections.singletonList(operator),
         context,
-        (ctx, parentTask) ->
-            new PipelineMemoryPhysicalTask(
-                parentTask,
-                Collections.singletonList(operator),
-                ctx,
-                new RowTransformInfoGenerator(operator)),
-        pipelineParallelism);
+        new RowTransformInfoGenerator(operator));
   }
 
   public PhysicalTask<?> construct(Select operator, RequestContext context) {
@@ -450,8 +461,6 @@ public class NaivePhysicalPlanner {
               new AppendExpressionInfoGenerator(operator.getGroupByExpressions()));
     }
 
-    batchTask = new FetchAsyncMemoryPhysicalTask(batchTask, context);
-
     return new UnarySinkMemoryPhysicalTask(
         batchTask,
         Collections.singletonList(operator),
@@ -482,7 +491,10 @@ public class NaivePhysicalPlanner {
   }
 
   public PhysicalTask<?> construct(InnerJoin operator, RequestContext context) {
-    if (operator.getJoinAlgType() != JoinAlgType.HashJoin || operator.isNaturalJoin()) {
+    if ((operator.getJoinAlgType() != JoinAlgType.HashJoin
+            && operator.getJoinAlgType() != JoinAlgType.NestedLoopJoin)
+        || operator.isJoinByKey()
+        || operator.isNaturalJoin()) {
       return constructRow(operator, context);
     }
 
@@ -493,10 +505,10 @@ public class NaivePhysicalPlanner {
     // NOTE: The order of left and right task is reversed in InnerJoin
     // 这里以及后面交换了左右两个表的顺序，原因是在之前基于行的实现中，右表是BuildSide，左表是ProbeSide
     // 现在基于列的实现中，左表是BuildSide，右表是ProbeSide
-    operator = PhysicalJoinUtils.reverse(operator);
+    operator = LogicalJoinUtils.reverse(operator);
 
-    PhysicalTask<BatchStream> leftTask = fetchAsync(operator.getSourceA(), context);
-    PhysicalTask<BatchStream> rightTask = fetchAsync(operator.getSourceB(), context);
+    PhysicalTask<?> leftTask = fetch(operator.getSourceA(), context);
+    PhysicalTask<?> rightTask = fetchAsync(operator.getSourceB(), context);
 
     return new BinarySinkMemoryPhysicalTask(
         convert(leftTask, context, BatchStream.class),
@@ -507,7 +519,10 @@ public class NaivePhysicalPlanner {
   }
 
   public PhysicalTask<?> construct(OuterJoin operator, RequestContext context) {
-    if (operator.getJoinAlgType() != JoinAlgType.HashJoin || operator.isNaturalJoin()) {
+    if ((operator.getJoinAlgType() != JoinAlgType.HashJoin
+            && operator.getJoinAlgType() != JoinAlgType.NestedLoopJoin)
+        || operator.isJoinByKey()
+        || operator.isNaturalJoin()) {
       return constructRow(operator, context);
     }
 
@@ -515,10 +530,10 @@ public class NaivePhysicalPlanner {
       return constructRow(operator, context);
     }
 
-    operator = PhysicalJoinUtils.reverse(operator);
+    operator = LogicalJoinUtils.reverse(operator);
 
-    PhysicalTask<BatchStream> leftTask = fetchAsync(operator.getSourceA(), context);
-    PhysicalTask<BatchStream> rightTask = fetchAsync(operator.getSourceB(), context);
+    PhysicalTask<?> leftTask = fetch(operator.getSourceA(), context);
+    PhysicalTask<?> rightTask = fetchAsync(operator.getSourceB(), context);
 
     return new BinarySinkMemoryPhysicalTask(
         convert(leftTask, context, BatchStream.class),
@@ -529,7 +544,8 @@ public class NaivePhysicalPlanner {
   }
 
   public PhysicalTask<?> construct(MarkJoin operator, RequestContext context) {
-    if (operator.getJoinAlgType() != JoinAlgType.HashJoin) {
+    if (operator.getJoinAlgType() != JoinAlgType.HashJoin
+        && operator.getJoinAlgType() != JoinAlgType.NestedLoopJoin) {
       return constructRow(operator, context);
     }
 
@@ -537,10 +553,10 @@ public class NaivePhysicalPlanner {
       return constructRow(operator, context);
     }
 
-    operator = PhysicalJoinUtils.reverse(operator);
+    operator = LogicalJoinUtils.reverse(operator);
 
-    PhysicalTask<BatchStream> leftTask = fetchAsync(operator.getSourceA(), context);
-    PhysicalTask<BatchStream> rightTask = fetchAsync(operator.getSourceB(), context);
+    PhysicalTask<?> leftTask = fetch(operator.getSourceA(), context);
+    PhysicalTask<?> rightTask = fetchAsync(operator.getSourceB(), context);
 
     return new BinarySinkMemoryPhysicalTask(
         convert(leftTask, context, BatchStream.class),
@@ -551,7 +567,8 @@ public class NaivePhysicalPlanner {
   }
 
   public PhysicalTask<?> construct(SingleJoin operator, RequestContext context) {
-    if (operator.getJoinAlgType() != JoinAlgType.HashJoin) {
+    if (operator.getJoinAlgType() != JoinAlgType.HashJoin
+        && operator.getJoinAlgType() != JoinAlgType.NestedLoopJoin) {
       return constructRow(operator, context);
     }
 
@@ -559,10 +576,10 @@ public class NaivePhysicalPlanner {
       return constructRow(operator, context);
     }
 
-    operator = PhysicalJoinUtils.reverse(operator);
+    operator = LogicalJoinUtils.reverse(operator);
 
-    PhysicalTask<BatchStream> leftTask = fetchAsync(operator.getSourceA(), context);
-    PhysicalTask<BatchStream> rightTask = fetchAsync(operator.getSourceB(), context);
+    PhysicalTask<?> leftTask = fetch(operator.getSourceA(), context);
+    PhysicalTask<?> rightTask = fetchAsync(operator.getSourceB(), context);
 
     return new BinarySinkMemoryPhysicalTask(
         convert(leftTask, context, BatchStream.class),
@@ -573,10 +590,10 @@ public class NaivePhysicalPlanner {
   }
 
   public PhysicalTask<BatchStream> construct(CrossJoin operator, RequestContext context) {
-    operator = PhysicalJoinUtils.reverse(operator);
+    operator = LogicalJoinUtils.reverse(operator);
 
-    PhysicalTask<BatchStream> leftTask = fetchAsync(operator.getSourceA(), context);
-    PhysicalTask<BatchStream> rightTask = fetchAsync(operator.getSourceB(), context);
+    PhysicalTask<?> leftTask = fetch(operator.getSourceA(), context);
+    PhysicalTask<?> rightTask = fetchAsync(operator.getSourceB(), context);
 
     return new BinarySinkMemoryPhysicalTask(
         convert(leftTask, context, BatchStream.class),

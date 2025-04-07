@@ -31,7 +31,6 @@ import org.apache.arrow.util.Preconditions;
 import org.apache.arrow.vector.BaseIntVector;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
-import org.apache.arrow.vector.dictionary.DictionaryProvider;
 import org.apache.arrow.vector.types.pojo.Schema;
 import org.apache.arrow.vector.util.VectorSchemaRootAppender;
 
@@ -124,20 +123,6 @@ public class VectorSchemaRoots {
     return result;
   }
 
-  public static VectorSchemaRoot flatten(
-      BufferAllocator allocator,
-      DictionaryProvider dictionaryProvider,
-      VectorSchemaRoot batch,
-      @Nullable BaseIntVector selection) {
-    List<FieldVector> resultFieldVectors = new ArrayList<>();
-    for (FieldVector fieldVector : batch.getFieldVectors()) {
-      resultFieldVectors.add(
-          ValueVectors.flatten(allocator, dictionaryProvider, fieldVector, selection));
-    }
-    return VectorSchemaRoots.create(
-        resultFieldVectors, selection == null ? batch.getRowCount() : selection.getValueCount());
-  }
-
   public static VectorSchemaRoot create(
       BufferAllocator allocator, Schema probeSideSchema, int count) {
     VectorSchemaRoot vectorSchemaRoot = VectorSchemaRoot.create(probeSideSchema, allocator);
@@ -166,5 +151,17 @@ public class VectorSchemaRoots {
         new Schema(vectors.stream().map(FieldVector::getField).collect(Collectors.toList())),
         vectors,
         rowCount);
+  }
+
+  public static VectorSchemaRoot select(
+      BufferAllocator allocator, VectorSchemaRoot data, @Nullable BaseIntVector selection) {
+    if (selection == null) {
+      return slice(allocator, data);
+    }
+    List<FieldVector> resultVectors = new ArrayList<>();
+    for (FieldVector fieldVector : data.getFieldVectors()) {
+      resultVectors.add(ValueVectors.select(allocator, fieldVector, selection));
+    }
+    return create(resultVectors, selection.getValueCount());
   }
 }

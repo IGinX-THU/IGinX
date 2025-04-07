@@ -19,15 +19,12 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util;
 
-import javax.annotation.Nullable;
-import javax.annotation.WillCloseWhenClosed;
-import org.apache.arrow.vector.BaseIntVector;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import org.apache.arrow.vector.VectorSchemaRoot;
+import org.apache.arrow.vector.dictionary.DictionaryProvider;
 
 public interface ResultConsumer {
 
-  void consume(
-      @WillCloseWhenClosed CloseableDictionaryProvider dictionaryProvider,
-      @WillCloseWhenClosed VectorSchemaRoot data,
-      @WillCloseWhenClosed @Nullable BaseIntVector selection);
+  void consume(DictionaryProvider dictionaryProvider, VectorSchemaRoot data)
+      throws ComputeException;
 }

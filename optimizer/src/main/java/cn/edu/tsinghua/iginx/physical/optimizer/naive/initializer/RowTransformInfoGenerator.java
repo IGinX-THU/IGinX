@@ -25,7 +25,7 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.excepti
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutorFactory;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateless.ProjectExecutor;
-import cn.edu.tsinghua.iginx.engine.physical.utils.PhysicalExpressionUtils;
+import cn.edu.tsinghua.iginx.engine.physical.utils.PhysicalExpressionPlannerUtils;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.expr.KeyExpression;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
@@ -65,7 +65,7 @@ public class RowTransformInfoGenerator implements UnaryExecutorFactory<ProjectEx
     for (int targetIndex = 0; targetIndex < operator.getFunctionCallList().size(); targetIndex++) {
       FunctionCall functionCall = operator.getFunctionCallList().get(targetIndex);
       ScalarExpression<?> expression =
-          PhysicalExpressionUtils.getPhysicalExpressionOfFunctionCall(
+          PhysicalExpressionPlannerUtils.getPhysicalExpressionOfFunctionCall(
               context, inputSchema.raw(), functionCall, true);
       ret.add(expression);
     }

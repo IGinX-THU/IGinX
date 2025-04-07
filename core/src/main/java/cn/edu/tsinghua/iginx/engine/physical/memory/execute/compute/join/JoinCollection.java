@@ -17,40 +17,29 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.join;
 
-import java.util.Objects;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ResultConsumer;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import org.apache.arrow.vector.VectorSchemaRoot;
+import org.apache.arrow.vector.dictionary.DictionaryProvider;
+import org.apache.arrow.vector.types.pojo.Schema;
 
-public class ComputeResult implements AutoCloseable {
+public interface JoinCollection extends AutoCloseable {
 
-  private CloseableDictionaryProvider dictionary;
-  private VectorSchemaRoot data;
+  void close();
 
-  public ComputeResult(CloseableDictionaryProvider dictionary, VectorSchemaRoot data) {
-    this.data = Objects.requireNonNull(data);
-    this.dictionary = Objects.requireNonNull(dictionary);
-  }
+  void probe(DictionaryProvider dictionaryProvider, VectorSchemaRoot data) throws ComputeException;
 
-  public CloseableDictionaryProvider extractDictionaryProvider() {
-    CloseableDictionaryProvider result = dictionary;
-    dictionary = null;
-    return result;
-  }
+  void flush() throws ComputeException;
 
-  public VectorSchemaRoot extractData() {
-    VectorSchemaRoot result = data;
-    data = null;
-    return result;
-  }
+  interface Builder extends AutoCloseable {
+    Schema constructOutputSchema() throws ComputeException;
 
-  @Override
-  public void close() {
-    if (dictionary != null) {
-      dictionary.close();
-    }
-    if (data != null) {
-      data.close();
-    }
+    void close();
+
+    void add(DictionaryProvider dictionaryProvider, VectorSchemaRoot data) throws ComputeException;
+
+    JoinCollection build(ResultConsumer resultConsumer) throws ComputeException;
   }
 }

@@ -26,8 +26,6 @@ import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import org.apache.arrow.vector.FieldVector;
-import org.apache.arrow.vector.dictionary.Dictionary;
-import org.apache.arrow.vector.dictionary.DictionaryProvider;
 import org.apache.arrow.vector.types.Types;
 import org.apache.arrow.vector.types.pojo.*;
 
@@ -140,14 +138,14 @@ public class Schemas {
         field.getChildren());
   }
 
-  public static Field fieldWithDictionary(Field field, DictionaryEncoding dictionaryEncoding) {
+  public static Field fieldWith(
+      Field field,
+      String name,
+      DictionaryEncoding dictionaryEncoding,
+      Map<String, String> metadata) {
     return new Field(
-        field.getName(),
-        new FieldType(
-            field.isNullable(),
-            field.getFieldType().getType(),
-            dictionaryEncoding,
-            field.getFieldType().getMetadata()),
+        name,
+        new FieldType(field.isNullable(), field.getType(), dictionaryEncoding, metadata),
         field.getChildren());
   }
 
@@ -205,14 +203,6 @@ public class Schemas {
 
   public static Schema merge(Schema... schemas) {
     return merge(Arrays.asList(schemas));
-  }
-
-  public static Field flatten(DictionaryProvider dictionaryProvider, Field field) {
-    if (field.getDictionary() == null) {
-      return field;
-    }
-    Dictionary dictionary = dictionaryProvider.lookup(field.getDictionary().getId());
-    return Schemas.fieldWithName(dictionary.getVector().getField(), field.getName());
   }
 
   public static cn.edu.tsinghua.iginx.engine.shared.data.read.Field toIginxField(Field field) {

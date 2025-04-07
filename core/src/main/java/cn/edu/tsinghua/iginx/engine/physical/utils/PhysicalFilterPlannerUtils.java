@@ -41,9 +41,8 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import org.apache.arrow.vector.types.pojo.Field;
 import org.apache.arrow.vector.types.pojo.Schema;
-import org.apache.commons.lang3.tuple.Pair;
 
-public class PhysicalFilterUtils {
+public class PhysicalFilterPlannerUtils {
 
   public static PredicateExpression construct(
       Filter filter, ExecutorContext context, Schema inputSchema) throws ComputeException {
@@ -93,21 +92,25 @@ public class PhysicalFilterUtils {
 
   private static PredicateExpression construct(
       KeyFilter keyFilter, ExecutorContext context, Schema inputSchema) throws ComputeException {
-    ValueFilter valueFilter =
-        new ValueFilter(
-            BatchSchema.KEY.getName(),
-            keyFilter.getOp(),
-            new Value(DataType.LONG, keyFilter.getValue()));
-    return construct(valueFilter, context, inputSchema);
+    List<Integer> paths = Schemas.matchPattern(inputSchema, BatchSchema.KEY.getName());
+    if (paths.isEmpty()) {
+      throw new ComputeException(
+          "Key not found: " + BatchSchema.KEY.getName() + " in " + inputSchema);
+    }
+    if (paths.size() > 1) {
+      throw new ComputeException("Multiple keys found in " + inputSchema);
+    }
+    Value value = new Value(DataType.LONG, keyFilter.getValue());
+    return construct(paths, keyFilter.getOp(), value, context, inputSchema);
   }
 
   private static PredicateExpression construct(
       ExprFilter filter, ExecutorContext context, Schema inputSchema) throws ComputeException {
     return new CompareNode(
         getPredicate(filter.getOp()),
-        PhysicalExpressionUtils.getPhysicalExpression(
+        PhysicalExpressionPlannerUtils.getPhysicalExpression(
             context, inputSchema, filter.getExpressionA(), false),
-        PhysicalExpressionUtils.getPhysicalExpression(
+        PhysicalExpressionPlannerUtils.getPhysicalExpression(
             context, inputSchema, filter.getExpressionB(), false));
   }
 
@@ -141,7 +144,7 @@ public class PhysicalFilterUtils {
       List<PredicateExpression> children, ExecutorContext context) {
     List<PredicateExpression> subPredicates =
         children.stream()
-            .map(PhysicalFilterUtils::getAndNodeSubPredicates)
+            .map(PhysicalFilterPlannerUtils::getAndNodeSubPredicates)
             .flatMap(List::stream)
             .collect(Collectors.toList());
     if (subPredicates.isEmpty()) {
@@ -174,7 +177,7 @@ public class PhysicalFilterUtils {
       List<PredicateExpression> children, ExecutorContext context) {
     List<PredicateExpression> subPredicates =
         children.stream()
-            .map(PhysicalFilterUtils::getOrNodeSubPredicates)
+            .map(PhysicalFilterPlannerUtils::getOrNodeSubPredicates)
             .flatMap(List::stream)
             .collect(Collectors.toList());
     if (subPredicates.isEmpty()) {
@@ -209,25 +212,31 @@ public class PhysicalFilterUtils {
     if (paths.isEmpty()) {
       throw new ComputeException("Path not found: " + filter.getPath() + " in " + inputSchema);
     }
+    return construct(paths, filter.getOp(), filter.getValue(), context, inputSchema);
+  }
+
+  private static PredicateExpression construct(
+      List<Integer> paths, Op op, Value value, ExecutorContext context, Schema inputSchema)
+      throws ComputeException {
     List<PredicateExpression> comparisons = new ArrayList<>();
     for (Integer pathIndex : paths) {
-      PredicateFunction predicateFunction = getPredicate(filter.getOp(), filter.getValue());
+      PredicateFunction predicateFunction = getPredicate(op, value);
       if (predicateFunction != null) {
         comparisons.add(new CompareNode(predicateFunction, new FieldNode(pathIndex)));
       } else {
         comparisons.add(
             new CompareNode(
-                getPredicate(filter.getOp()),
+                getPredicate(op),
                 new FieldNode(pathIndex),
-                new LiteralNode<>(filter.getValue().getValue(), context.getConstantPool())));
+                new LiteralNode<>(value.getValue(), context.getConstantPool())));
       }
     }
-    if (Op.isOrOp(filter.getOp())) {
+    if (Op.isOrOp(op)) {
       return or(comparisons, context);
-    } else if (Op.isAndOp(filter.getOp())) {
+    } else if (Op.isAndOp(op)) {
       return and(comparisons, context);
     } else {
-      throw new UnsupportedOperationException("Unsupported operator: " + filter.getOp());
+      throw new UnsupportedOperationException("Unsupported operator: " + op);
     }
   }
 
@@ -325,91 +334,22 @@ public class PhysicalFilterUtils {
     }
   }
 
-  public static Filter parseJoinFilter(
-      Filter filter,
-      BatchSchema leftSchema,
-      BatchSchema rightSchema,
-      Map<Pair<Integer, Integer>, Pair<Op, Boolean>> pathPairOps)
-      throws ComputeException {
-    switch (filter.getType()) {
-      case Path:
-        return parseJoinFilter((PathFilter) filter, leftSchema, rightSchema, pathPairOps);
-      case And:
-        return parseJoinFilter((AndFilter) filter, leftSchema, rightSchema, pathPairOps);
-      case Bool:
-        BoolFilter boolFilter = (BoolFilter) filter;
-        if (boolFilter.isTrue()) {
-          return new AndFilter(Collections.emptyList());
-        } else {
-          return new OrFilter(Collections.emptyList());
-        }
-      default:
-        return filter;
-    }
-  }
-
-  private static Filter parseJoinFilter(
-      AndFilter filter,
-      BatchSchema leftSchema,
-      BatchSchema rightSchema,
-      Map<Pair<Integer, Integer>, Pair<Op, Boolean>> pathPairOps)
-      throws ComputeException {
-    List<Filter> children = new ArrayList<>();
-    for (Filter subFilter : filter.getChildren()) {
-      Filter parsedFilter = parseJoinFilter(subFilter, leftSchema, rightSchema, pathPairOps);
-      children.add(parsedFilter);
-    }
-    return new AndFilter(children);
-  }
-
-  private static Filter parseJoinFilter(
-      PathFilter filter,
-      BatchSchema leftSchema,
-      BatchSchema rightSchema,
-      Map<Pair<Integer, Integer>, Pair<Op, Boolean>> pathPairOps) {
-
-    List<Integer> leftAMatchedIndices =
-        Schemas.matchPatternIgnoreKey(leftSchema.raw(), filter.getPathA());
-    List<Integer> leftBMatchedIndices =
-        Schemas.matchPatternIgnoreKey(leftSchema.raw(), filter.getPathB());
-    List<Integer> rightAMatchedIndices =
-        Schemas.matchPatternIgnoreKey(rightSchema.raw(), filter.getPathA());
-    List<Integer> rightBMatchedIndices =
-        Schemas.matchPatternIgnoreKey(rightSchema.raw(), filter.getPathB());
-
-    if (leftAMatchedIndices.size() == 1 && rightBMatchedIndices.size() == 1) {
-      pathPairOps.put(
-          Pair.of(leftAMatchedIndices.get(0), rightBMatchedIndices.get(0)),
-          Pair.of(filter.getOp(), false));
-      return new AndFilter(Collections.emptyList());
-    }
-
-    if (rightAMatchedIndices.size() == 1 && leftBMatchedIndices.size() == 1) {
-      pathPairOps.put(
-          Pair.of(leftBMatchedIndices.get(0), rightAMatchedIndices.get(0)),
-          Pair.of(filter.getOp(), true));
-      return new AndFilter(Collections.emptyList());
-    }
-
-    return filter;
-  }
-
   private static Filter reorderFilter(Filter filter) {
     switch (filter.getType()) {
       case And:
         AndFilter andFilter = (AndFilter) filter;
         List<Filter> reorderedAndChildren =
             andFilter.getChildren().stream()
-                .map(PhysicalFilterUtils::reorderFilter)
-                .sorted(Comparator.comparingInt(PhysicalFilterUtils::countComplexFilter))
+                .map(PhysicalFilterPlannerUtils::reorderFilter)
+                .sorted(Comparator.comparingInt(PhysicalFilterPlannerUtils::countComplexFilter))
                 .collect(Collectors.toList());
         return new AndFilter(reorderedAndChildren);
       case Or:
         OrFilter orFilter = (OrFilter) filter;
         List<Filter> reorderedOrChildren =
             orFilter.getChildren().stream()
-                .map(PhysicalFilterUtils::reorderFilter)
-                .sorted(Comparator.comparingInt(PhysicalFilterUtils::countComplexFilter))
+                .map(PhysicalFilterPlannerUtils::reorderFilter)
+                .sorted(Comparator.comparingInt(PhysicalFilterPlannerUtils::countComplexFilter))
                 .collect(Collectors.toList());
         return new OrFilter(reorderedOrChildren);
       default:

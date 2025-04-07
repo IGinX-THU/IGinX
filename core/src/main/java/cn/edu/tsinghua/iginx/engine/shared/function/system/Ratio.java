@@ -24,7 +24,7 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expre
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpressionUtils;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
-import cn.edu.tsinghua.iginx.engine.physical.utils.PhysicalExpressionUtils;
+import cn.edu.tsinghua.iginx.engine.physical.utils.PhysicalExpressionPlannerUtils;
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
@@ -108,7 +108,7 @@ public class Ratio implements RowMappingFunction {
       ExecutorContext context, Schema schema, FunctionParams params, boolean setAlias)
       throws ComputeException {
     List<ScalarExpression<?>> inputs =
-        PhysicalExpressionUtils.getRowMappingFunctionArgumentExpressions(
+        PhysicalExpressionPlannerUtils.getRowMappingFunctionArgumentExpressions(
             context, schema, params, false);
 
     if (inputs.size() != 2) {

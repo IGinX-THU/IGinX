@@ -20,6 +20,9 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.stateless;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.predicate.expression.PredicateExpression;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ArrowDictionaries;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.LazyBatch;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.VectorSchemaRoots;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.util.Batch;
@@ -39,13 +42,23 @@ public class FilterExecutor extends StatelessUnaryExecutor {
 
   @Override
   public Batch computeImpl(Batch batch) throws ComputeException {
-    BaseIntVector selection =
+    try (BaseIntVector selection =
         condition.filter(
-            context.getAllocator(),
-            batch.getDictionaryProvider(),
-            batch.getData(),
-            batch.getSelection());
-    return batch.sliceWith(context.getAllocator(), selection);
+            context.getAllocator(), batch.getDictionaryProvider(), batch.getData(), null)) {
+      if (selection == null) {
+        return batch.slice(context.getAllocator());
+      }
+      try (LazyBatch result =
+          ArrowDictionaries.select(
+              context.getAllocator(), batch.getDictionaryProvider(), batch.getData(), selection)) {
+        return Batch.of(
+            VectorSchemaRoots.slice(context.getAllocator(), result.getData()),
+            ArrowDictionaries.slice(
+                context.getAllocator(),
+                result.getDictionaryProvider(),
+                result.getData().getSchema()));
+      }
+    }
   }
 
   @Override

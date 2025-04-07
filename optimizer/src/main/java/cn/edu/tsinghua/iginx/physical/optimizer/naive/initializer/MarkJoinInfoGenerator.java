@@ -23,15 +23,11 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.join.JoinOpt
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.binary.BinaryExecutorFactory;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.binary.stateful.HashJoinExecutor;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.binary.stateful.StatefulBinaryExecutor;
+import cn.edu.tsinghua.iginx.engine.physical.utils.PhysicalJoinPlannerUtils;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.operator.MarkJoin;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
-import cn.edu.tsinghua.iginx.physical.optimizer.naive.util.HashJoinUtils;
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
 import java.util.Objects;
 
 public class MarkJoinInfoGenerator implements BinaryExecutorFactory<StatefulBinaryExecutor> {
@@ -46,39 +42,17 @@ public class MarkJoinInfoGenerator implements BinaryExecutorFactory<StatefulBina
   public StatefulBinaryExecutor initialize(
       ExecutorContext context, BatchSchema leftSchema, BatchSchema rightSchema)
       throws ComputeException {
-    switch (operator.getJoinAlgType()) {
-      case HashJoin:
-        return initializeHashJoin(context, leftSchema, rightSchema);
-      default:
-        throw new IllegalStateException(
-            "JoinAlgType is not supported: " + operator.getJoinAlgType());
-    }
-  }
-
-  public HashJoinExecutor initializeHashJoin(
-      ExecutorContext context, BatchSchema leftSchema, BatchSchema rightSchema)
-      throws ComputeException {
-
-    List<Filter> subFilters = new ArrayList<>();
-    if (operator.getFilter() != null) {
-      subFilters.add(operator.getFilter());
-    }
-    for (String extraPrefix : operator.getExtraJoinPrefix()) {
-      subFilters.add(new PathFilter(extraPrefix, Op.E, extraPrefix));
-    }
-
-    return HashJoinUtils.constructHashJoin(
+    return PhysicalJoinPlannerUtils.constructJoin(
         context,
         leftSchema,
         rightSchema,
-        operator.getPrefixA(),
-        operator.getPrefixB(),
-        new AndFilter(subFilters),
-        Collections.emptySet(),
+        operator,
         JoinOption.MARK,
-        operator.getMarkColumn(),
-        operator.isAntiJoin(),
+        operator.getFilter(),
+        Collections.emptyList(),
         false,
-        false);
+        false,
+        operator.getMarkColumn(),
+        operator.isAntiJoin());
   }
 }

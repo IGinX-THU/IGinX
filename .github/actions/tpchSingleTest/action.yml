@@ -27,7 +27,7 @@ runs:
           run: mvn test -q -Dtest=TPCHNewIT -DfailIfNoTests=false -P-format
 
         - name: Show New IGinX log
-          if: always() && inputs.status != 'ok'
+          if: failure() && inputs.status != 'ok'
           shell: bash
           run: cat iginx-*.log
 
@@ -65,7 +65,7 @@ runs:
               cp -f test/src/test/resources/tpch/runtimeInfo/iterationTimes.txt ../test/src/test/resources/tpch/runtimeInfo/iterationTimes.txt
 
         - name: Show Old IGinX log
-          if: always() && inputs.status != 'ok'
+          if: failure() && inputs.status != 'ok'
           shell: bash
           working-directory: IGinX
           run: cat iginx-*.log

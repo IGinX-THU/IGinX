@@ -22,6 +22,7 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expr
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import java.util.Collections;
 import java.util.Objects;
+import java.util.Set;
 import javax.annotation.Nullable;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.BaseIntVector;
@@ -64,5 +65,10 @@ public class RenameNode<OUTPUT extends FieldVector> extends AbstractScalarExpres
   @Override
   public String getName() {
     return "(" + child.getName() + ")";
+  }
+
+  @Override
+  public Set<ScalarExpression<?>> getLeafExpressions() {
+    return child.getLeafExpressions();
   }
 }

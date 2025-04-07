@@ -95,7 +95,7 @@ public class ConstantVectors {
     return vector;
   }
 
-  public static FieldVector of(@WillNotClose BufferAllocator allocator, int value, int valueCount) {
+  public static IntVector of(@WillNotClose BufferAllocator allocator, int value, int valueCount) {
     IntVector vector =
         new IntVector(Schemas.nullableField(String.valueOf(value), Types.MinorType.INT), allocator);
     if (valueCount > 0) {
@@ -108,7 +108,7 @@ public class ConstantVectors {
     return vector;
   }
 
-  public static FieldVector of(
+  public static BigIntVector of(
       @WillNotClose BufferAllocator allocator, long value, int valueCount) {
     BigIntVector vector =
         new BigIntVector(
@@ -123,7 +123,7 @@ public class ConstantVectors {
     return vector;
   }
 
-  public static FieldVector of(
+  public static Float4Vector of(
       @WillNotClose BufferAllocator allocator, float value, int valueCount) {
     Float4Vector vector =
         new Float4Vector(
@@ -138,7 +138,7 @@ public class ConstantVectors {
     return vector;
   }
 
-  public static FieldVector of(
+  public static Float8Vector of(
       @WillNotClose BufferAllocator allocator, double value, int valueCount) {
     Float8Vector vector =
         new Float8Vector(
@@ -153,7 +153,7 @@ public class ConstantVectors {
     return vector;
   }
 
-  public static FieldVector of(BufferAllocator allocator, byte[] value, int valueCount) {
+  public static VarBinaryVector of(BufferAllocator allocator, byte[] value, int valueCount) {
     VarBinaryVector vector =
         new VarBinaryVector(
             Schemas.nullableField("'" + new String(value) + "'", Types.MinorType.VARBINARY),

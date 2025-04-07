@@ -84,9 +84,10 @@ public class AggregateUnaryExecutor extends StatefulUnaryExecutor {
   protected void consumeEndUnchecked() throws ComputeException {
     List<List<Accumulator.State>> statesColumns =
         this.states.stream().map(Collections::singletonList).collect(Collectors.toList());
-    try (VectorSchemaRoot root = ExpressionAccumulators.evaluateSafe(accumulators, statesColumns)) {
-      VectorSchemaRoot unnested = PhysicalFunctions.unnest(context.getAllocator(), root);
-      offerResult(Batch.of(unnested));
+    try (VectorSchemaRoot root = ExpressionAccumulators.evaluateSafe(accumulators, statesColumns);
+        VectorSchemaRoot unnested = PhysicalFunctions.unnest(context.getAllocator(), root);
+        Batch output = Batch.of(unnested)) {
+      offerResult(output);
     }
   }
 }

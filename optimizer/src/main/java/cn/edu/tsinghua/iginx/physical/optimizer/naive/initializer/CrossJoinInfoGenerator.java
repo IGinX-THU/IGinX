@@ -19,12 +19,13 @@
  */
 package cn.edu.tsinghua.iginx.physical.optimizer.naive.initializer;
 
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.join.CrossJoinArrayList;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.FieldNode;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpression;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.binary.BinaryExecutorFactory;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.binary.stateful.CrossJoinExecutor;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.binary.stateful.CollectionJoinExecutor;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.binary.stateful.StatefulBinaryExecutor;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.operator.CrossJoin;
@@ -68,6 +69,13 @@ public class CrossJoinInfoGenerator implements BinaryExecutorFactory<StatefulBin
       }
       outputExpressions.add(new FieldNode(i + leftSchema.getFieldCount()));
     }
-    return new CrossJoinExecutor(context, leftSchema, rightSchema, outputExpressions);
+
+    return new CollectionJoinExecutor(
+        context,
+        leftSchema,
+        rightSchema,
+        new CrossJoinArrayList.Builder(
+            context.getAllocator(), leftSchema.raw(), rightSchema.raw(), outputExpressions),
+        "CrossJoin");
   }
 }
