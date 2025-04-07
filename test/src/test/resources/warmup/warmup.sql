@@ -14,28 +14,10 @@ FROM (SELECT val.bool AS b1,
              val.bin AS v1,
              val.bin AS v2
       FROM (SELECT * FROM *))
-WHERE b1 == b2 AND v1 == v2 AND i1 == i2 AND l1 == l2 AND f1 == f2 AND d1 == d2
-  AND b1 >= b2 AND v1 >= v2 AND i1 >= i2 AND l1 >= l2 AND f1 >= f2 AND d1 >= d2
-  AND b1 <= b2 AND v1 <= v2 AND i1 <= i2 AND l1 <= l2 AND f1 <= f2 AND d1 <= d2
-  AND (b1 <> b2 OR v1 <> v2 OR i1 <> i2 OR l1 <> l2 OR f1 <> f2 OR d1 <> d2
-    OR b1 < b2  OR v1 < v2  OR i1 < i2  OR l1 < l2  OR f1 < f2  OR d1 < d2
-    OR b1 > b2  OR v1 > v2  OR i1 > i2  OR l1 > l2  OR f1 > f2  OR d1 > d2
-    OR NOT ( v1 LIKE '^$' OR v2 NOT LIKE '^.*')
-  )
-  AND (
-   KEY < 0 OR KEY <= -1 OR KEY >= 10000000
-   OR KEY == 0 OR KEY > 0
-  )
-  AND (l1 == 0 OR l2 <> 0)
-  AND (l1 <= 0 OR l2 > 0)
-  AND (l1 < 0 OR l2 >= 0)
-  AND (d1 == 0.0 OR d2 <> 0.0)
-  AND (d1 <= 0.0 OR d2 > 0.0)
-  AND (d1 < 0.0 OR d2 >= 0.0)
-  AND( l1 in (0, 1, 2) OR l2 not in (0, 1, 2))
-  AND( d1 in (0.0, 1.0, 2.0) OR d2 not in (0.0, 1.0, 2.0))
-  AND( v1 in ('0', '1', '2') OR v2 not in ('0', '1', '2'))
-;
+WHERE b1 == b2 AND v1 >= v2 AND i1 <= i2
+  AND (l1 <> l2 OR f1 < f2 OR d1 > d2 OR NOT ( v1 LIKE '^$' OR v2 NOT LIKE '^.*'))
+  AND (KEY < 0 OR KEY >= 0)
+  AND( v1 in ('0', '1', '2') OR v2 not in ('0', '1', '2'));
 
 -- expression
 SELECT
@@ -68,7 +50,7 @@ SELECT
     EXTRACT(l,'day'),
     EXTRACT(l,'hour'),
     EXTRACT(l,'minute'),
-    EXTRACT(l, 'second')
+    EXTRACT(l,'second')
 FROM num;
 
 SELECT SUBSTRING(bin, 1, 1) FROM val;
@@ -146,36 +128,36 @@ SELECT * FROM val ORDER BY bool DESC, bin DESC;
 
 -- join
 WITH p(v) AS (SELECT l FROM num WHERE key < 100)
-SELECT * FROM p AS l, p as r;
+SELECT * FROM p AS l, p AS r;
 
 WITH p(v) AS (SELECT l FROM num WHERE key < 100)
-SELECT * FROM p AS x, p as y where x.v = y.v AND x.v > 10;
+SELECT * FROM p AS x, p AS y where x.v = y.v AND x.v > 10;
 
 SELECT * FROM num JOIN val USING KEY;
 
-SELECT * FROM num as x JOIN num as y USING i;
-SELECT * FROM num as x JOIN num as y USING l;
-SELECT * FROM num as x JOIN num as y USING f;
-SELECT * FROM num as x JOIN num as y USING d;
-SELECT * FROM val as x JOIN val as y USING bin;
+SELECT * FROM num AS x JOIN num AS y USING i JOIN num AS z ON x.i = z.i;
+SELECT * FROM num AS x JOIN num AS y USING l JOIN num AS z ON x.l = z.l;
+SELECT * FROM num AS x JOIN num AS y USING f JOIN num AS z ON x.f = z.f;
+SELECT * FROM num AS x JOIN num AS y USING d JOIN num AS z ON x.d = z.d;
+SELECT * FROM val AS x JOIN val AS y USING bin JOIN val AS z ON x.bin = z.bin;
 
-SELECT * FROM num as x LEFT JOIN num as y USING i;
-SELECT * FROM num as x LEFT JOIN num as y USING l;
-SELECT * FROM num as x LEFT JOIN num as y USING f;
-SELECT * FROM num as x LEFT JOIN num as y USING d;
-SELECT * FROM val as x LEFT JOIN val as y USING bin;
+SELECT * FROM num AS x LEFT JOIN num AS y USING i LEFT JOIN num AS z ON x.i = z.i;
+SELECT * FROM num AS x LEFT JOIN num AS y USING l LEFT JOIN num AS z ON x.l = z.l;
+SELECT * FROM num AS x LEFT JOIN num AS y USING f LEFT JOIN num AS z ON x.f = z.f;
+SELECT * FROM num AS x LEFT JOIN num AS y USING d LEFT JOIN num AS z ON x.d = z.d;
+SELECT * FROM val AS x LEFT JOIN val AS y USING bin LEFT JOIN val AS z ON x.bin = z.bin;
 
-SELECT * FROM num as x RIGHT JOIN num as y USING i;
-SELECT * FROM num as x RIGHT JOIN num as y USING l;
-SELECT * FROM num as x RIGHT JOIN num as y USING f;
-SELECT * FROM num as x RIGHT JOIN num as y USING d;
-SELECT * FROM val as x RIGHT JOIN val as y USING bin;
+SELECT * FROM num AS x RIGHT JOIN num AS y USING i RIGHT JOIN num AS z ON y.i = z.i;
+SELECT * FROM num AS x RIGHT JOIN num AS y USING l RIGHT JOIN num AS z ON y.l = z.l;
+SELECT * FROM num AS x RIGHT JOIN num AS y USING f RIGHT JOIN num AS z ON y.f = z.f;
+SELECT * FROM num AS x RIGHT JOIN num AS y USING d RIGHT JOIN num AS z ON y.d = z.d;
+SELECT * FROM val AS x RIGHT JOIN val AS y USING bin RIGHT JOIN val AS z ON y.bin = z.bin;
 
-SELECT * FROM num as x FULL JOIN num as y USING i;
-SELECT * FROM num as x FULL JOIN num as y USING l;
-SELECT * FROM num as x FULL JOIN num as y USING f;
-SELECT * FROM num as x FULL JOIN num as y USING d;
-SELECT * FROM val as x FULL JOIN val as y USING bin;
+SELECT * FROM num AS x FULL JOIN num AS y USING i FULL JOIN num AS z ON x.i = z.i;
+SELECT * FROM num AS x FULL JOIN num AS y USING l FULL JOIN num AS z ON x.l = z.l;
+SELECT * FROM num AS x FULL JOIN num AS y USING f FULL JOIN num AS z ON x.f = z.f;
+SELECT * FROM num AS x FULL JOIN num AS y USING d FULL JOIN num AS z ON x.d = z.d;
+SELECT * FROM val AS x FULL JOIN val AS y USING bin FULL JOIN val AS z ON x.bin = z.bin;
 
 SELECT l-(SELECT AVG(`l`) FROM num) FROM num;
 SELECT l FROM num WHERE EXISTS(SELECT * FROM num WHERE key =1);
@@ -195,7 +177,7 @@ SELECT * FROM * INTERSECT SELECT * FROM *;
 -- not standard
 SELECT FIRST(*), LAST(*) FROM *;
 
-SELECT sequence() as s1, sequence(-20, 30) as s2 from *;
+SELECT sequence() AS s1, sequence(-20, 30) AS s2 from *;
 
 select KEY AS KEY from *;
 SELECT KEY AS v, i AS KEY from num;
