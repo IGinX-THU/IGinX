@@ -135,22 +135,22 @@ SELECT * FROM p AS x, p AS y where x.v = y.v AND x.v > 10;
 
 SELECT * FROM num JOIN val USING KEY;
 
-SELECT * FROM num AS x JOIN num AS y USING i JOIN num AS z ON x.i = z.i;
-SELECT * FROM num AS x JOIN num AS y USING l JOIN num AS z ON x.l = z.l;
-SELECT * FROM num AS x JOIN num AS y USING f JOIN num AS z ON x.f = z.f;
-SELECT * FROM num AS x JOIN num AS y USING d JOIN num AS z ON x.d = z.d;
+SELECT * FROM num AS x JOIN num AS y USING i JOIN num AS z ON x.i = z.l;
+SELECT * FROM num AS x JOIN num AS y USING l JOIN num AS z ON x.l = z.f;
+SELECT * FROM num AS x JOIN num AS y USING f JOIN num AS z ON x.f = z.d;
+SELECT * FROM num AS x JOIN num AS y USING d JOIN num AS z ON x.d = z.i;
 SELECT * FROM val AS x JOIN val AS y USING bin JOIN val AS z ON x.bin = z.bin;
 
-SELECT * FROM num AS x LEFT JOIN num AS y USING i LEFT JOIN num AS z ON x.i = z.i;
-SELECT * FROM num AS x LEFT JOIN num AS y USING l LEFT JOIN num AS z ON x.l = z.l;
-SELECT * FROM num AS x LEFT JOIN num AS y USING f LEFT JOIN num AS z ON x.f = z.f;
-SELECT * FROM num AS x LEFT JOIN num AS y USING d LEFT JOIN num AS z ON x.d = z.d;
+SELECT * FROM num AS x LEFT JOIN num AS y USING i LEFT JOIN num AS z ON x.i = z.f;
+SELECT * FROM num AS x LEFT JOIN num AS y USING l LEFT JOIN num AS z ON x.l = z.d;
+SELECT * FROM num AS x LEFT JOIN num AS y USING f LEFT JOIN num AS z ON x.f = z.i;
+SELECT * FROM num AS x LEFT JOIN num AS y USING d LEFT JOIN num AS z ON x.d = z.l;
 SELECT * FROM val AS x LEFT JOIN val AS y USING bin LEFT JOIN val AS z ON x.bin = z.bin;
 
-SELECT * FROM num AS x RIGHT JOIN num AS y USING i RIGHT JOIN num AS z ON y.i = z.i;
-SELECT * FROM num AS x RIGHT JOIN num AS y USING l RIGHT JOIN num AS z ON y.l = z.l;
-SELECT * FROM num AS x RIGHT JOIN num AS y USING f RIGHT JOIN num AS z ON y.f = z.f;
-SELECT * FROM num AS x RIGHT JOIN num AS y USING d RIGHT JOIN num AS z ON y.d = z.d;
+SELECT * FROM num AS x RIGHT JOIN num AS y USING i RIGHT JOIN num AS z ON y.i = z.d;
+SELECT * FROM num AS x RIGHT JOIN num AS y USING l RIGHT JOIN num AS z ON y.l = z.i;
+SELECT * FROM num AS x RIGHT JOIN num AS y USING f RIGHT JOIN num AS z ON y.f = z.l;
+SELECT * FROM num AS x RIGHT JOIN num AS y USING d RIGHT JOIN num AS z ON y.d = z.f;
 SELECT * FROM val AS x RIGHT JOIN val AS y USING bin RIGHT JOIN val AS z ON y.bin = z.bin;
 
 SELECT * FROM num AS x FULL JOIN num AS y USING i FULL JOIN num AS z ON x.i = z.i;
