@@ -92,12 +92,15 @@ public class PhysicalFilterPlannerUtils {
 
   private static PredicateExpression construct(
       KeyFilter keyFilter, ExecutorContext context, Schema inputSchema) throws ComputeException {
-    ValueFilter valueFilter =
-        new ValueFilter(
-            BatchSchema.KEY.getName(),
-            keyFilter.getOp(),
-            new Value(DataType.LONG, keyFilter.getValue()));
-    return construct(valueFilter, context, inputSchema);
+    List<Integer> paths = Schemas.matchPattern(inputSchema, BatchSchema.KEY.getName());
+    if (paths.isEmpty()) {
+      throw new ComputeException("Key not found: " + BatchSchema.KEY.getName() + " in " + inputSchema);
+    }
+    if(paths.size() > 1) {
+      throw new ComputeException("Multiple keys found in " + inputSchema);
+    }
+    Value value = new Value(DataType.LONG, keyFilter.getValue());
+    return construct(paths, keyFilter.getOp(), value, context, inputSchema);
   }
 
   private static PredicateExpression construct(
@@ -208,25 +211,31 @@ public class PhysicalFilterPlannerUtils {
     if (paths.isEmpty()) {
       throw new ComputeException("Path not found: " + filter.getPath() + " in " + inputSchema);
     }
+    return construct(
+        paths, filter.getOp(), filter.getValue(), context, inputSchema);
+  }
+
+  private static PredicateExpression construct(
+      List<Integer> paths, Op op, Value value, ExecutorContext context, Schema inputSchema) throws ComputeException {
     List<PredicateExpression> comparisons = new ArrayList<>();
     for (Integer pathIndex : paths) {
-      PredicateFunction predicateFunction = getPredicate(filter.getOp(), filter.getValue());
+      PredicateFunction predicateFunction = getPredicate(op, value);
       if (predicateFunction != null) {
         comparisons.add(new CompareNode(predicateFunction, new FieldNode(pathIndex)));
       } else {
         comparisons.add(
             new CompareNode(
-                getPredicate(filter.getOp()),
+                getPredicate(op),
                 new FieldNode(pathIndex),
-                new LiteralNode<>(filter.getValue().getValue(), context.getConstantPool())));
+                new LiteralNode<>(value.getValue(), context.getConstantPool())));
       }
     }
-    if (Op.isOrOp(filter.getOp())) {
+    if (Op.isOrOp(op)) {
       return or(comparisons, context);
-    } else if (Op.isAndOp(filter.getOp())) {
+    } else if (Op.isAndOp(op)) {
       return and(comparisons, context);
     } else {
-      throw new UnsupportedOperationException("Unsupported operator: " + filter.getOp());
+      throw new UnsupportedOperationException("Unsupported operator: " + op);
     }
   }
 
