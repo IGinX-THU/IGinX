@@ -25,6 +25,10 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expre
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.predicate.expression.PredicateExpression;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.*;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import javax.annotation.Nullable;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.BaseIntVector;
 import org.apache.arrow.vector.BitVector;
@@ -35,11 +39,6 @@ import org.apache.arrow.vector.types.Types;
 import org.apache.arrow.vector.types.pojo.Field;
 import org.apache.arrow.vector.types.pojo.FieldType;
 import org.apache.arrow.vector.types.pojo.Schema;
-
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
 
 public class JoinArrayList extends CrossJoinArrayList {
 
@@ -57,7 +56,9 @@ public class JoinArrayList extends CrossJoinArrayList {
     this.unusedByMatcherInBuildSide = new boolean[buildSideSingleBatch.getFieldVectors().size()];
     this.unusedByMatcherInProbeSide = new boolean[probeSideSchema.getFields().size()];
 
-    boolean[] usedByMatcher = new boolean[buildSideSingleBatch.getFieldVectors().size() + probeSideSchema.getFields().size()];
+    boolean[] usedByMatcher =
+        new boolean
+            [buildSideSingleBatch.getFieldVectors().size() + probeSideSchema.getFields().size()];
     matcher.getLeafExpressions().stream()
         .filter(e -> e instanceof FieldNode)
         .map(e -> (FieldNode) e)
@@ -84,12 +85,12 @@ public class JoinArrayList extends CrossJoinArrayList {
     // TODO: 使用 NullVector 优化空值的处理，从而减少访存
 
     try (SelectionBuilder buildSideIndicesBuilder =
-             new SelectionBuilder(
-                 allocator, "buildSideIndices", buildSideSingleBatch.getRowCount());
-         SelectionBuilder probeSideIndicesBuilder =
-             new SelectionBuilder(
-                 allocator, "probeSideIndices", buildSideSingleBatch.getRowCount());
-         MarkBuilder markBuilder = getMarkBuilder(buildSideMatched.length)) {
+            new SelectionBuilder(
+                allocator, "buildSideIndices", buildSideSingleBatch.getRowCount());
+        SelectionBuilder probeSideIndicesBuilder =
+            new SelectionBuilder(
+                allocator, "probeSideIndices", buildSideSingleBatch.getRowCount());
+        MarkBuilder markBuilder = getMarkBuilder(buildSideMatched.length)) {
       int buildSideUnmatchedCount = 0;
       for (int i = 0; i < buildSideMatched.length; i++) {
         if (!buildSideMatched[i]) {
@@ -103,9 +104,9 @@ public class JoinArrayList extends CrossJoinArrayList {
       markBuilder.setNullable(joinOption.isToOutputBuildSideUnmatched());
 
       try (VectorSchemaRoot probeSideBatch = VectorSchemaRoot.create(probeSideSchema, allocator);
-           IntVector buildSideIndices = buildSideIndicesBuilder.build(buildSideUnmatchedCount);
-           IntVector probeSideIndices = probeSideIndicesBuilder.build(buildSideUnmatchedCount);
-           BitVector mark = markBuilder.build(buildSideUnmatchedCount)) {
+          IntVector buildSideIndices = buildSideIndicesBuilder.build(buildSideUnmatchedCount);
+          IntVector probeSideIndices = probeSideIndicesBuilder.build(buildSideUnmatchedCount);
+          BitVector mark = markBuilder.build(buildSideUnmatchedCount)) {
         output(
             ArrowDictionaries.emptyProvider(),
             probeSideBatch,
@@ -168,10 +169,10 @@ public class JoinArrayList extends CrossJoinArrayList {
       throws ComputeException {
     int matchedCount = 0;
     for (int buildSideIndex = 0;
-         buildSideIndex < buildSideSingleBatch.getRowCount();
-         buildSideIndex++) {
+        buildSideIndex < buildSideSingleBatch.getRowCount();
+        buildSideIndex++) {
       try (IntVector buildSideCandidateIndices =
-               ConstantVectors.of(allocator, buildSideIndex, probeSideMatched.length)) {
+          ConstantVectors.of(allocator, buildSideIndex, probeSideMatched.length)) {
         matchedCount +=
             outputMatchedBeforeFilter(
                 probeSideDictionaryProvider,
@@ -196,19 +197,19 @@ public class JoinArrayList extends CrossJoinArrayList {
       boolean[] probeSideMatched)
       throws ComputeException {
     try (LazyBatch selectedBuildSideAndProbeSide =
-             selectBuildSideAndProbeSide(
-                 probeSideDictionaryProvider,
-                 probeSideBatch,
-                 buildSideCandidateIndices,
-                 proSideCandidateIndices,
-                 unusedByMatcherInBuildSide,
-                 unusedByMatcherInProbeSide);
-         BaseIntVector indicesSelection =
-             matcher.filter(
-                 allocator,
-                 selectedBuildSideAndProbeSide.getDictionaryProvider(),
-                 selectedBuildSideAndProbeSide.getData(),
-                 null)) {
+            selectBuildSideAndProbeSide(
+                probeSideDictionaryProvider,
+                probeSideBatch,
+                buildSideCandidateIndices,
+                proSideCandidateIndices,
+                unusedByMatcherInBuildSide,
+                unusedByMatcherInProbeSide);
+        BaseIntVector indicesSelection =
+            matcher.filter(
+                allocator,
+                selectedBuildSideAndProbeSide.getDictionaryProvider(),
+                selectedBuildSideAndProbeSide.getData(),
+                null)) {
       return outputMatchedAfterFilter(
           buildSideIndicesBuilder,
           probeSideIndicesBuilder,
@@ -349,20 +350,21 @@ public class JoinArrayList extends CrossJoinArrayList {
       List<Field> outputFields = new ArrayList<>();
       boolean buildSideMustNullable = joinOption.isToOutputProbeSideUnmatched();
       boolean probeSideMustNullable = joinOption.isToOutputBuildSideUnmatched();
-      buildSideSchema.getFields().stream().map(
-          field -> Schemas.fieldWithNullable(field, buildSideMustNullable || field.isNullable())
-      ).forEach(outputFields::add);
-      probeSideSchema.getFields().stream().map(
-          field -> Schemas.fieldWithNullable(field, probeSideMustNullable || field.isNullable())
-      ).forEach(outputFields::add);
+      buildSideSchema.getFields().stream()
+          .map(
+              field ->
+                  Schemas.fieldWithNullable(field, buildSideMustNullable || field.isNullable()))
+          .forEach(outputFields::add);
+      probeSideSchema.getFields().stream()
+          .map(
+              field ->
+                  Schemas.fieldWithNullable(field, probeSideMustNullable || field.isNullable()))
+          .forEach(outputFields::add);
       outputFields.add(
-          new Field("mark",
-              new FieldType(
-                  probeSideMustNullable,
-                  Types.MinorType.BIT.getType(),
-                  null),
-              null)
-      );
+          new Field(
+              "mark",
+              new FieldType(probeSideMustNullable, Types.MinorType.BIT.getType(), null),
+              null));
       return ScalarExpressionUtils.getOutputSchema(
           allocator, outputExpressions, new Schema(outputFields));
     }

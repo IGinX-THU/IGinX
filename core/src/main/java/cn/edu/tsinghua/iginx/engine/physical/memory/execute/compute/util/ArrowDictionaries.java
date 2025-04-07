@@ -19,6 +19,11 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util;
 
+import static org.apache.arrow.vector.dictionary.DictionaryProvider.MapDictionaryProvider;
+
+import java.util.*;
+import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.util.Preconditions;
 import org.apache.arrow.vector.BaseIntVector;
@@ -32,12 +37,6 @@ import org.apache.arrow.vector.types.pojo.DictionaryEncoding;
 import org.apache.arrow.vector.types.pojo.Field;
 import org.apache.arrow.vector.types.pojo.Schema;
 import org.apache.commons.lang3.tuple.Pair;
-
-import javax.annotation.Nullable;
-import java.util.*;
-import java.util.stream.Collectors;
-
-import static org.apache.arrow.vector.dictionary.DictionaryProvider.MapDictionaryProvider;
 
 public class ArrowDictionaries {
 
@@ -135,12 +134,15 @@ public class ArrowDictionaries {
       }
 
       BaseIntVector indexVector = (BaseIntVector) vector;
-      Pair<Long, Long> cacheKey = Pair.of(indexVector.getValidityBufferAddress(), indexVector.getDataBufferAddress());
+      Pair<Long, Long> cacheKey =
+          Pair.of(indexVector.getValidityBufferAddress(), indexVector.getDataBufferAddress());
 
       if (selectedCache.containsKey(cacheKey)) {
         Dictionary dictionary = mapDictionaryProvider.lookup(dictionaryEncoding.getId());
-        BaseIntVector cachedSelectedIndexVector = (BaseIntVector) resultVectors.get(selectedCache.get(cacheKey));
-        resultVectors.add(sliceWithDictionary(allocator, cachedSelectedIndexVector, dictionary, field));
+        BaseIntVector cachedSelectedIndexVector =
+            (BaseIntVector) resultVectors.get(selectedCache.get(cacheKey));
+        resultVectors.add(
+            sliceWithDictionary(allocator, cachedSelectedIndexVector, dictionary, field));
         continue;
       }
 
@@ -155,10 +157,10 @@ public class ArrowDictionaries {
   public static LazyBatch join(BufferAllocator allocator, LazyBatch... batches) {
     Preconditions.checkArgument(
         Arrays.stream(batches)
-            .map(LazyBatch::getData)
-            .mapToInt(VectorSchemaRoot::getRowCount)
-            .distinct()
-            .count()
+                .map(LazyBatch::getData)
+                .mapToInt(VectorSchemaRoot::getRowCount)
+                .distinct()
+                .count()
             == 1);
 
     MapDictionaryProvider resultDictionaryProvider = new MapDictionaryProvider();
@@ -185,7 +187,8 @@ public class ArrowDictionaries {
                     dictionary.getEncoding().isOrdered(),
                     dictionary.getEncoding().getIndexType()));
         resultDictionaryProvider.put(newDictionary);
-        resultVectors.add(sliceWithDictionary(allocator, indexVector, newDictionary, indexVector.getField()));
+        resultVectors.add(
+            sliceWithDictionary(allocator, indexVector, newDictionary, indexVector.getField()));
       }
     }
     return new LazyBatch(
@@ -213,8 +216,7 @@ public class ArrowDictionaries {
     Field dictionaryField = dictionary.getVector().getField();
     return Schemas.fieldWithNullable(
         Schemas.fieldWithName(dictionaryField, field.getName()),
-        field.isNullable() || dictionaryField.isNullable()
-    );
+        field.isNullable() || dictionaryField.isNullable());
   }
 
   public static Schema flatten(DictionaryProvider dictionaryProvider, Schema field) {
@@ -283,8 +285,7 @@ public class ArrowDictionaries {
       @Nullable BaseIntVector selection) {
     List<FieldVector> resultFieldVectors = new ArrayList<>();
     for (FieldVector fieldVector : batch.getFieldVectors()) {
-      resultFieldVectors.add(
-          flatten(allocator, dictionaryProvider, fieldVector, selection));
+      resultFieldVectors.add(flatten(allocator, dictionaryProvider, fieldVector, selection));
     }
     return VectorSchemaRoots.create(
         resultFieldVectors, selection == null ? batch.getRowCount() : selection.getValueCount());

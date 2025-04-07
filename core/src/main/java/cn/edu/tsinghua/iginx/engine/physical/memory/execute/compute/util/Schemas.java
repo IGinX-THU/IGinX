@@ -22,13 +22,12 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
-import org.apache.arrow.vector.FieldVector;
-import org.apache.arrow.vector.types.Types;
-import org.apache.arrow.vector.types.pojo.*;
-
 import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import org.apache.arrow.vector.FieldVector;
+import org.apache.arrow.vector.types.Types;
+import org.apache.arrow.vector.types.pojo.*;
 
 public class Schemas {
 
@@ -146,11 +145,7 @@ public class Schemas {
       Map<String, String> metadata) {
     return new Field(
         name,
-        new FieldType(
-            field.isNullable(),
-            field.getType(),
-            dictionaryEncoding,
-            metadata),
+        new FieldType(field.isNullable(), field.getType(), dictionaryEncoding, metadata),
         field.getChildren());
   }
 
@@ -214,5 +209,4 @@ public class Schemas {
     return new cn.edu.tsinghua.iginx.engine.shared.data.read.Field(
         field.getName(), toDataType(field.getFieldType().getType()), field.getMetadata());
   }
-
 }

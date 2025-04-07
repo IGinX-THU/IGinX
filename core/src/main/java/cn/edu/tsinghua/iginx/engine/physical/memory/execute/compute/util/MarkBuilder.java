@@ -26,7 +26,7 @@ public class MarkBuilder implements AutoCloseable {
 
   private BitVector bitVector;
   private int index;
-  private boolean nullable= false;
+  private boolean nullable = false;
 
   public MarkBuilder() {
     this.bitVector = null;
@@ -80,6 +80,4 @@ public class MarkBuilder implements AutoCloseable {
       bitVector.close();
     }
   }
-
-
 }

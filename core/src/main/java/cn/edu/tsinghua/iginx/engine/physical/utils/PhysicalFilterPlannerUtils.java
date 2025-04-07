@@ -94,9 +94,10 @@ public class PhysicalFilterPlannerUtils {
       KeyFilter keyFilter, ExecutorContext context, Schema inputSchema) throws ComputeException {
     List<Integer> paths = Schemas.matchPattern(inputSchema, BatchSchema.KEY.getName());
     if (paths.isEmpty()) {
-      throw new ComputeException("Key not found: " + BatchSchema.KEY.getName() + " in " + inputSchema);
+      throw new ComputeException(
+          "Key not found: " + BatchSchema.KEY.getName() + " in " + inputSchema);
     }
-    if(paths.size() > 1) {
+    if (paths.size() > 1) {
       throw new ComputeException("Multiple keys found in " + inputSchema);
     }
     Value value = new Value(DataType.LONG, keyFilter.getValue());
@@ -211,12 +212,12 @@ public class PhysicalFilterPlannerUtils {
     if (paths.isEmpty()) {
       throw new ComputeException("Path not found: " + filter.getPath() + " in " + inputSchema);
     }
-    return construct(
-        paths, filter.getOp(), filter.getValue(), context, inputSchema);
+    return construct(paths, filter.getOp(), filter.getValue(), context, inputSchema);
   }
 
   private static PredicateExpression construct(
-      List<Integer> paths, Op op, Value value, ExecutorContext context, Schema inputSchema) throws ComputeException {
+      List<Integer> paths, Op op, Value value, ExecutorContext context, Schema inputSchema)
+      throws ComputeException {
     List<PredicateExpression> comparisons = new ArrayList<>();
     for (Integer pathIndex : paths) {
       PredicateFunction predicateFunction = getPredicate(op, value);

@@ -19,7 +19,6 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.PhysicalFunction;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.ScalarFunction;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import java.util.Arrays;
