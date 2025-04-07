@@ -81,6 +81,7 @@ public class CrossJoinArrayList implements JoinCollection {
   @Override
   public void close() {
     buildSideSingleBatch.close();
+    buildSideDictionaryProvider.close();
   }
 
   @Override
