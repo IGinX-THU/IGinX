@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -65,6 +66,11 @@ public class ThreadInterpreterManagerTest {
     PATHS.forEach(builder::addPythonPaths);
     PythonInterpreterConfig config = builder.build();
     ThreadInterpreterManager.setConfig(config);
+  }
+
+  @AfterClass
+  public static void tearDown() throws Exception {
+    ThreadInterpreterManager.getInterpreter().close();
   }
 
   @Test
