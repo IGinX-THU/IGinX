@@ -34,6 +34,7 @@ public class DmDataTypeTransformer implements IDataTypeTransformer {
     return INSTANCE;
   }
 
+  // TODO: 需要一个兜底类型，参考 JDBCDataTypeTransformer 将未识别的类型视作 BINRY
   @Override
   public DataType fromEngineType(int type, String dataType, int precision, int scale) {
     if (dataType.equalsIgnoreCase("BYTE") || dataType.equalsIgnoreCase("TINYINT")) {

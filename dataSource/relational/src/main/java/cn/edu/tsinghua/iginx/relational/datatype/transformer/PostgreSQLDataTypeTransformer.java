@@ -23,6 +23,7 @@ import static cn.edu.tsinghua.iginx.thrift.DataType.*;
 
 import cn.edu.tsinghua.iginx.thrift.DataType;
 
+// TODO: 这个文件当前不再被使用，考虑移除
 public class PostgreSQLDataTypeTransformer implements IDataTypeTransformer {
 
   private static final PostgreSQLDataTypeTransformer INSTANCE = new PostgreSQLDataTypeTransformer();
