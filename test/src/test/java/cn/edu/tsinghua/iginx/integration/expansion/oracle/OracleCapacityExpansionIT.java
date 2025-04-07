@@ -74,18 +74,13 @@ public class OracleCapacityExpansionIT extends BaseCapacityExpansionIT {
 
   private void changeParams(int port, String newPw) {
     String scriptPath = updateParamsScriptDir + "oracle.sh";
+    String os = System.getProperty("os.name").toLowerCase();
+    if (os.contains("win")) {
+      scriptPath = updateParamsScriptDir + "oracle_windows.sh";
+    }
     int res = executeShellScript(scriptPath, String.valueOf(port), newPw);
     if (res != 0) {
       fail("Fail to update oracle params.");
-    }
-  }
-
-  protected void shutOrRestart(int port, boolean mode, String DBName) {
-    String dir = mode ? shutdownScriptDir : restartScriptDir;
-    String scriptPath = dir + DBName + ".sh";
-    int res = executeShellScript(scriptPath, String.valueOf(port));
-    if (res != 0) {
-      fail("Fail to " + (mode ? "shutdown" : "restart") + " " + DBName + port);
     }
   }
 
