@@ -21,7 +21,7 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.PhysicalFunction;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.PhysicalFunctions;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.VectorSchemaRoots;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ArrowDictionaries;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import javax.annotation.Nullable;
 import org.apache.arrow.memory.BufferAllocator;
@@ -69,7 +69,7 @@ public interface ScalarFunction<OUTPUT extends FieldVector> extends PhysicalFunc
       return invoke(allocator, selection, input);
     }
     try (VectorSchemaRoot flattened =
-        VectorSchemaRoots.flatten(allocator, dictionaryProvider, input, selection)) {
+        ArrowDictionaries.flatten(allocator, dictionaryProvider, input, selection)) {
       return invoke(allocator, flattened);
     }
   }

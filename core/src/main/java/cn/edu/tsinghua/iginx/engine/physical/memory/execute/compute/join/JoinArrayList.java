@@ -19,6 +19,7 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.join;
 
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.FieldNode;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpression;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.predicate.expression.PredicateExpression;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.*;
@@ -27,10 +28,7 @@ import java.util.List;
 import java.util.Objects;
 import javax.annotation.Nullable;
 import org.apache.arrow.memory.BufferAllocator;
-import org.apache.arrow.vector.BaseIntVector;
-import org.apache.arrow.vector.BitVector;
-import org.apache.arrow.vector.IntVector;
-import org.apache.arrow.vector.VectorSchemaRoot;
+import org.apache.arrow.vector.*;
 import org.apache.arrow.vector.dictionary.DictionaryProvider;
 import org.apache.arrow.vector.types.pojo.Schema;
 
@@ -39,12 +37,29 @@ public class JoinArrayList extends CrossJoinArrayList {
   protected final JoinOption joinOption;
   protected final PredicateExpression matcher;
   protected final boolean[] buildSideMatched;
+  protected final boolean[] unusedByMatcherInBuildSide;
+  protected final boolean[] unusedByMatcherInProbeSide;
 
   JoinArrayList(CrossJoinArrayList parent, JoinOption joinOption, PredicateExpression matcher) {
     super(parent);
     this.joinOption = joinOption;
     this.matcher = matcher;
     this.buildSideMatched = new boolean[buildSideSingleBatch.getRowCount()];
+    this.unusedByMatcherInBuildSide = new boolean[buildSideSingleBatch.getFieldVectors().size()];
+    this.unusedByMatcherInProbeSide = new boolean[probeSideSchema.getFields().size()];
+
+    boolean[] usedByMatcher = new boolean[buildSideSingleBatch.getFieldVectors().size() + probeSideSchema.getFields().size()];
+    matcher.getLeafExpressions().stream()
+        .filter(e->e instanceof FieldNode)
+        .map(e -> (FieldNode) e)
+        .mapToInt(FieldNode::getIndex)
+        .forEach(index -> usedByMatcher[index] = true);
+    for (int i = 0; i < unusedByMatcherInBuildSide.length; i++) {
+      unusedByMatcherInBuildSide[i] = !usedByMatcher[i];
+    }
+    for (int i = 0; i < unusedByMatcherInProbeSide.length; i++) {
+      unusedByMatcherInProbeSide[i] = !usedByMatcher[i + unusedByMatcherInBuildSide.length];
+    }
   }
 
   JoinArrayList(JoinArrayList o) {
@@ -167,8 +182,10 @@ public class JoinArrayList extends CrossJoinArrayList {
                 probeSideDictionaryProvider,
                 probeSideBatch,
                 buildSideCandidateIndices,
-                proSideCandidateIndices);
-        BaseIntVector indicesSelection =
+                proSideCandidateIndices,
+                unusedByMatcherInBuildSide,
+                unusedByMatcherInProbeSide);
+         BaseIntVector indicesSelection =
             matcher.filter(
                 allocator,
                 selectedBuildSideAndProbeSide.getDictionaryProvider(),

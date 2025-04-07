@@ -31,7 +31,6 @@ import org.apache.arrow.util.Preconditions;
 import org.apache.arrow.vector.BaseIntVector;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
-import org.apache.arrow.vector.dictionary.DictionaryProvider;
 import org.apache.arrow.vector.types.pojo.Schema;
 import org.apache.arrow.vector.util.VectorSchemaRootAppender;
 
@@ -122,20 +121,6 @@ public class VectorSchemaRoots {
       append(result, batch);
     }
     return result;
-  }
-
-  public static VectorSchemaRoot flatten(
-      BufferAllocator allocator,
-      DictionaryProvider dictionaryProvider,
-      VectorSchemaRoot batch,
-      @Nullable BaseIntVector selection) {
-    List<FieldVector> resultFieldVectors = new ArrayList<>();
-    for (FieldVector fieldVector : batch.getFieldVectors()) {
-      resultFieldVectors.add(
-          ValueVectors.flatten(allocator, dictionaryProvider, fieldVector, selection));
-    }
-    return VectorSchemaRoots.create(
-        resultFieldVectors, selection == null ? batch.getRowCount() : selection.getValueCount());
   }
 
   public static VectorSchemaRoot create(

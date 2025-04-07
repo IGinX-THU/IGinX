@@ -22,14 +22,13 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
+import org.apache.arrow.vector.FieldVector;
+import org.apache.arrow.vector.types.Types;
+import org.apache.arrow.vector.types.pojo.*;
+
 import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import org.apache.arrow.vector.FieldVector;
-import org.apache.arrow.vector.dictionary.Dictionary;
-import org.apache.arrow.vector.dictionary.DictionaryProvider;
-import org.apache.arrow.vector.types.Types;
-import org.apache.arrow.vector.types.pojo.*;
 
 public class Schemas {
 
@@ -140,14 +139,18 @@ public class Schemas {
         field.getChildren());
   }
 
-  public static Field fieldWithDictionary(Field field, DictionaryEncoding dictionaryEncoding) {
+  public static Field fieldWith(
+      Field field,
+      String name,
+      DictionaryEncoding dictionaryEncoding,
+      Map<String, String> metadata) {
     return new Field(
-        field.getName(),
+        name,
         new FieldType(
             field.isNullable(),
-            field.getFieldType().getType(),
+            field.getType(),
             dictionaryEncoding,
-            field.getFieldType().getMetadata()),
+            metadata),
         field.getChildren());
   }
 
@@ -207,23 +210,9 @@ public class Schemas {
     return merge(Arrays.asList(schemas));
   }
 
-  public static Field flatten(DictionaryProvider dictionaryProvider, Field field) {
-    if (field.getDictionary() == null) {
-      return field;
-    }
-    Dictionary dictionary = dictionaryProvider.lookup(field.getDictionary().getId());
-    return Schemas.fieldWithName(dictionary.getVector().getField(), field.getName());
-  }
-
-  public static Schema flatten(DictionaryProvider dictionaryProvider, Schema field) {
-    return new Schema(
-        field.getFields().stream()
-            .map(f -> flatten(dictionaryProvider, f))
-            .collect(Collectors.toList()));
-  }
-
   public static cn.edu.tsinghua.iginx.engine.shared.data.read.Field toIginxField(Field field) {
     return new cn.edu.tsinghua.iginx.engine.shared.data.read.Field(
         field.getName(), toDataType(field.getFieldType().getType()), field.getMetadata());
   }
+
 }

@@ -22,7 +22,6 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.util;
 import static org.apache.arrow.vector.dictionary.DictionaryProvider.MapDictionaryProvider;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ArrowDictionaries;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.Schemas;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.VectorSchemaRoots;
 import java.util.List;
 import java.util.Objects;
@@ -82,7 +81,7 @@ public class Batch implements AutoCloseable {
   }
 
   public VectorSchemaRoot flattened(BufferAllocator allocator) {
-    return VectorSchemaRoots.flatten(allocator, dictionaryProvider, group, null);
+    return ArrowDictionaries.flatten(allocator, dictionaryProvider, group, null);
   }
 
   public Batch slice(BufferAllocator allocator) {
@@ -115,7 +114,7 @@ public class Batch implements AutoCloseable {
   }
 
   public Schema getSchema() {
-    return Schemas.flatten(dictionaryProvider, group.getSchema());
+    return ArrowDictionaries.flatten(dictionaryProvider, group.getSchema());
   }
 
   @Override

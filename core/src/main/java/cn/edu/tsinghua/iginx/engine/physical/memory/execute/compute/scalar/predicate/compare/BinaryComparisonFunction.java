@@ -122,8 +122,8 @@ public abstract class BinaryComparisonFunction extends BinaryPredicateFunction {
       int rowCount,
       IntBooleanConsumer consumer)
       throws ComputeException {
-    Field leftFlattenedType = Schemas.flatten(dictionaryProvider, left.getField());
-    Field rightFlattenedType = Schemas.flatten(dictionaryProvider, right.getField());
+    Field leftFlattenedType = ArrowDictionaries.flatten(dictionaryProvider, left.getField());
+    Field rightFlattenedType = ArrowDictionaries.flatten(dictionaryProvider, right.getField());
     Types.MinorType leftMinorType = Types.getMinorTypeForArrowType(leftFlattenedType.getType());
     Types.MinorType rightMinorType = Types.getMinorTypeForArrowType(rightFlattenedType.getType());
 

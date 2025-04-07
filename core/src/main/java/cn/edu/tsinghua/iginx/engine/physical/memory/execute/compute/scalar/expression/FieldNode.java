@@ -24,6 +24,7 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ValueVe
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import javax.annotation.Nullable;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.BaseIntVector;
@@ -47,6 +48,10 @@ public final class FieldNode extends AbstractScalarExpression<FieldVector> {
   @Override
   public String getName() {
     return "field(" + index + ")";
+  }
+
+  public int getIndex() {
+    return index;
   }
 
   @Override
@@ -73,6 +78,11 @@ public final class FieldNode extends AbstractScalarExpression<FieldVector> {
       return ValueVectors.slice(allocator, args.get(index), input.getRowCount());
     }
     return PhysicalFunctions.take(allocator, selection, args.get(index));
+  }
+
+  @Override
+  public Set<ScalarExpression<?>> getLeafExpressions() {
+    return Collections.singleton(this);
   }
 }
 

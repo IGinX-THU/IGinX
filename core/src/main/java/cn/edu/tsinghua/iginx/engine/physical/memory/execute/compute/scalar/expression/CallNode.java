@@ -19,10 +19,12 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression;
 
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.PhysicalFunction;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.ScalarFunction;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import org.apache.arrow.memory.BufferAllocator;
@@ -76,6 +78,14 @@ public class CallNode<OUTPUT extends FieldVector> extends AbstractScalarExpressi
     if (obj == null || obj.getClass() != getClass()) return false;
     CallNode<?> callNode = (CallNode<?>) obj;
     return function.equals(callNode.function) && getChildren().equals(callNode.getChildren());
+  }
+
+  @Override
+  public Set<ScalarExpression<?>> getLeafExpressions() {
+    return getChildren().stream()
+        .map(ScalarExpression::getLeafExpressions)
+        .flatMap(Set::stream)
+        .collect(Collectors.toSet());
   }
 
   @Override

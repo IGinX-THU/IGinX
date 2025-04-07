@@ -25,6 +25,7 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.excepti
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import java.util.Collections;
 import java.util.Objects;
+import java.util.Set;
 import javax.annotation.Nullable;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.BaseIntVector;
@@ -77,5 +78,10 @@ public class LiteralNode<OUTPUT extends FieldVector> extends AbstractScalarExpre
       throws ComputeException {
     int count = selection == null ? input.getRowCount() : selection.getValueCount();
     return (OUTPUT) ConstantVectors.of(allocator, pool, value, count);
+  }
+
+  @Override
+  public Set<ScalarExpression<?>> getLeafExpressions() {
+    return Collections.singleton(this);
   }
 }

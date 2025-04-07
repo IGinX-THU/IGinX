@@ -23,10 +23,7 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expre
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpressionUtils;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.*;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import javax.annotation.Nullable;
+import org.apache.arrow.memory.ArrowBuf;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.util.Preconditions;
 import org.apache.arrow.vector.*;
@@ -38,6 +35,12 @@ import org.apache.arrow.vector.types.pojo.Field;
 import org.apache.arrow.vector.types.pojo.Schema;
 import org.apache.arrow.vector.util.VectorAppender;
 import org.apache.commons.lang3.tuple.Pair;
+
+import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
 
 public class CrossJoinArrayList implements JoinCollection {
 
@@ -81,21 +84,22 @@ public class CrossJoinArrayList implements JoinCollection {
   }
 
   @Override
-  public void flush() throws ComputeException {}
+  public void flush() throws ComputeException {
+  }
 
   @Override
   public void probe(DictionaryProvider probeSideDictionaryProvider, VectorSchemaRoot probeSideBatch)
       throws ComputeException {
     Preconditions.checkArgument(
         probeSideSchema.equals(
-            Schemas.flatten(probeSideDictionaryProvider, probeSideBatch.getSchema())));
+            ArrowDictionaries.flatten(probeSideDictionaryProvider, probeSideBatch.getSchema())));
 
     // TODO: cross join 的扫描侧不需要  probeSideIndices，可以进行优化
     try (SelectionBuilder probeSideIndicesBuilder =
-            new SelectionBuilder(allocator, "tempProbeSideIndices", probeSideBatch.getRowCount());
-        SelectionBuilder buildSideIndicesBuilder =
-            new SelectionBuilder(allocator, "tempBuildSideIndices", probeSideBatch.getRowCount());
-        MarkBuilder markBuilder = getMarkBuilder(probeSideBatch.getRowCount())) {
+             new SelectionBuilder(allocator, "tempProbeSideIndices", probeSideBatch.getRowCount());
+         SelectionBuilder buildSideIndicesBuilder =
+             new SelectionBuilder(allocator, "tempBuildSideIndices", probeSideBatch.getRowCount());
+         MarkBuilder markBuilder = getMarkBuilder(probeSideBatch.getRowCount())) {
 
       int unmatchedCount =
           outputMatchedAndProbeSideUnmatched(
@@ -106,10 +110,10 @@ public class CrossJoinArrayList implements JoinCollection {
               markBuilder);
 
       try (IntVector probeSideIndices = probeSideIndicesBuilder.build();
-          IntVector buildSideIndices =
-              buildSideIndicesBuilder.build(probeSideIndices.getValueCount());
-          BitVector mark = markBuilder.build(probeSideIndices.getValueCount());
-          BaseIntVector selection = getSelection(probeSideIndices, unmatchedCount)) {
+           IntVector buildSideIndices =
+               buildSideIndicesBuilder.build(probeSideIndices.getValueCount());
+           BitVector mark = markBuilder.build(probeSideIndices.getValueCount());
+           BaseIntVector selection = getSelection(probeSideIndices, unmatchedCount)) {
         output(
             probeSideDictionaryProvider,
             probeSideBatch,
@@ -134,8 +138,8 @@ public class CrossJoinArrayList implements JoinCollection {
       throws ComputeException {
     int probeSideBatchRowCount = probeSideBatch.getRowCount();
     for (int buildSideIndex = 0;
-        buildSideIndex < buildSideSingleBatch.getRowCount();
-        buildSideIndex++) {
+         buildSideIndex < buildSideSingleBatch.getRowCount();
+         buildSideIndex++) {
       for (int probeSideIndex = 0; probeSideIndex < probeSideBatchRowCount; probeSideIndex++) {
         buildSideIndicesBuilder.append(buildSideIndex);
         probeSideIndicesBuilder.append(probeSideIndex);
@@ -166,12 +170,12 @@ public class CrossJoinArrayList implements JoinCollection {
 
     if (selection != null) {
       try (BaseIntVector selectedBuildSideIndices =
-              ValueVectors.select(allocator, buildSideIndices, selection);
-          BaseIntVector selectedProbeSideIndices =
-              probeSideIndices == null
-                  ? ValueVectors.slice(allocator, selection)
-                  : ValueVectors.select(allocator, probeSideIndices, selection);
-          BitVector selectedMark = ValueVectors.select(allocator, mark, selection)) {
+               ValueVectors.select(allocator, buildSideIndices, selection);
+           BaseIntVector selectedProbeSideIndices =
+               probeSideIndices == null
+                   ? ValueVectors.slice(allocator, selection)
+                   : ValueVectors.select(allocator, probeSideIndices, selection);
+           BitVector selectedMark = ValueVectors.select(allocator, mark, selection)) {
         output(
             probeSideDictionaryProvider,
             probeSideBatch,
@@ -184,8 +188,8 @@ public class CrossJoinArrayList implements JoinCollection {
     }
 
     try (LazyBatch buildSideAndProbeSideSelected =
-        selectBuildSideAndProbeSide(
-            probeSideDictionaryProvider, probeSideBatch, buildSideIndices, probeSideIndices)) {
+             selectBuildSideAndProbeSide(
+                 probeSideDictionaryProvider, probeSideBatch, buildSideIndices, probeSideIndices, null, null)) {
 
       List<FieldVector> vectors = new ArrayList<>();
       for (FieldVector vector : buildSideAndProbeSideSelected.getData().getFieldVectors()) {
@@ -196,14 +200,14 @@ public class CrossJoinArrayList implements JoinCollection {
       }
 
       try (VectorSchemaRoot result =
-              VectorSchemaRoots.create(vectors, buildSideIndices.getValueCount());
-          VectorSchemaRoot output =
-              ScalarExpressionUtils.evaluate(
-                  allocator,
-                  buildSideAndProbeSideSelected.getDictionaryProvider(),
-                  result,
-                  null,
-                  outputExpressions)) {
+               VectorSchemaRoots.create(vectors, buildSideIndices.getValueCount());
+           VectorSchemaRoot output =
+               ScalarExpressionUtils.evaluate(
+                   allocator,
+                   buildSideAndProbeSideSelected.getDictionaryProvider(),
+                   result,
+                   null,
+                   outputExpressions)) {
         resultConsumer.consume(buildSideAndProbeSideSelected.getDictionaryProvider(), output);
       }
     }
@@ -213,13 +217,15 @@ public class CrossJoinArrayList implements JoinCollection {
       DictionaryProvider probeSideDictionaryProvider,
       VectorSchemaRoot probeSideBatch,
       BaseIntVector buildSideIndices,
-      @Nullable BaseIntVector probeSideIndices) {
+      @Nullable BaseIntVector probeSideIndices,
+      @Nullable boolean[] unusedInBuildSide,
+      @Nullable boolean[] unusedInProbeSide) {
     try (LazyBatch buildSideSelected =
-            ArrowDictionaries.select(
-                allocator, buildSideDictionaryProvider, buildSideSingleBatch, buildSideIndices);
-        LazyBatch probeSideSelected =
-            ArrowDictionaries.select(
-                allocator, probeSideDictionaryProvider, probeSideBatch, probeSideIndices)) {
+             ArrowDictionaries.select(
+                 allocator, buildSideDictionaryProvider, buildSideSingleBatch, buildSideIndices, unusedInBuildSide);
+         LazyBatch probeSideSelected =
+             ArrowDictionaries.select(
+                 allocator, probeSideDictionaryProvider, probeSideBatch, probeSideIndices, unusedInProbeSide)) {
       return ArrowDictionaries.join(allocator, buildSideSelected, probeSideSelected);
     }
   }
@@ -264,7 +270,7 @@ public class CrossJoinArrayList implements JoinCollection {
     public void add(DictionaryProvider dictionaryProvider, VectorSchemaRoot data)
         throws ComputeException {
       Preconditions.checkArgument(
-          buildSideSchema.equals(Schemas.flatten(dictionaryProvider, data.getSchema())));
+          buildSideSchema.equals(ArrowDictionaries.flatten(dictionaryProvider, data.getSchema())));
       buildSideBatches.add(LazyBatch.slice(allocator, dictionaryProvider, data));
     }
 
@@ -274,7 +280,7 @@ public class CrossJoinArrayList implements JoinCollection {
 
       if (buildSideBatches.isEmpty()) {
         try (VectorSchemaRoot buildSideSingleBatch =
-            VectorSchemaRoot.create(buildSideSchema, allocator)) {
+                 VectorSchemaRoot.create(buildSideSchema, allocator)) {
           return new CrossJoinArrayList(
               allocator,
               outputExpressions,
@@ -294,12 +300,11 @@ public class CrossJoinArrayList implements JoinCollection {
       for (int i = 0; i < buildSideSchema.getFields().size(); i++) {
         List<Pair<FieldVector, Dictionary>> dictionaryColumns = getColumn(i);
 
-        // 没有字典的列 || (变长类型列 && 每个 batch 的字典相同): 拷贝时不考虑字典
+        // 没有字典的列 || 每个 batch 的字典相同: 拷贝时不考虑字典
         if (dictionaryColumns.stream().map(Pair::getRight).anyMatch(Objects::isNull)
-            || (!(dictionaryColumns.get(0).getLeft() instanceof FixedWidthVector)
-                && dictionaryColumns.stream()
-                    .map(Pair::getRight)
-                    .allMatch(d -> isSameDictionary(d, dictionaryColumns.get(0).getRight())))) {
+            || dictionaryColumns.stream()
+            .map(Pair::getRight)
+            .allMatch(d -> isSameDictionary(d, dictionaryColumns.get(0).getRight()))) {
           FieldVector dest = dictionaryColumns.get(0).getLeft().getField().createVector(allocator);
           dest.allocateNew();
           VectorAppender appender = new VectorAppender(dest);
@@ -317,7 +322,7 @@ public class CrossJoinArrayList implements JoinCollection {
         for (Pair<FieldVector, Dictionary> pair : dictionaryColumns) {
           FieldVector vector = pair.getLeft();
           Dictionary dictionary = pair.getRight();
-          try (FieldVector flattened = ValueVectors.flatten(allocator, dictionary, vector, null)) {
+          try (FieldVector flattened = ArrowDictionaries.flatten(allocator, dictionary, vector, null)) {
             flattened.accept(appender, null);
           }
         }
@@ -325,7 +330,7 @@ public class CrossJoinArrayList implements JoinCollection {
       }
 
       try (VectorSchemaRoot buildSideSingleBatch =
-          VectorSchemaRoots.create(resultVectors, rowCount)) {
+               VectorSchemaRoots.create(resultVectors, rowCount)) {
         return new CrossJoinArrayList(
             allocator,
             outputExpressions,
@@ -364,12 +369,12 @@ public class CrossJoinArrayList implements JoinCollection {
       }
       FieldVector v1 = d1.getVector();
       FieldVector v2 = d2.getVector();
-      if (v1.getValueCount() == 0) {
+      if (v1.getValueCount() == 0 || v2.getValueCount() == 0) {
         return true;
       }
-      return v1.getValueCount() == v2.getValueCount()
-          && v1.getValidityBufferAddress() == v2.getValidityBufferAddress()
-          && v1.getDataBufferAddress() == v2.getDataBufferAddress();
+      long[] v1BufferAddresses = Arrays.stream(v1.getBuffers(false)).mapToLong(ArrowBuf::memoryAddress).toArray();
+      long[] v2BufferAddresses = Arrays.stream(v2.getBuffers(false)).mapToLong(ArrowBuf::memoryAddress).toArray();
+      return Arrays.equals(v1BufferAddresses, v2BufferAddresses);
     }
   }
 }

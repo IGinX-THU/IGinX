@@ -25,10 +25,7 @@ import org.apache.arrow.memory.ArrowBuf;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.memory.util.MemoryUtil;
 import org.apache.arrow.vector.*;
-import org.apache.arrow.vector.dictionary.Dictionary;
-import org.apache.arrow.vector.dictionary.DictionaryProvider;
 import org.apache.arrow.vector.types.Types;
-import org.apache.arrow.vector.types.pojo.DictionaryEncoding;
 import org.apache.arrow.vector.types.pojo.Field;
 import org.apache.arrow.vector.util.TransferPair;
 
@@ -39,9 +36,6 @@ public class ValueVectors {
       BufferAllocator allocator, @Nullable T source, int startIndex, int valueCount, Field field) {
     if (source == null) {
       return null;
-    }
-    if (source.getValueCount() == 0) {
-      return (T) source.getField().createVector(allocator);
     }
     TransferPair transferPair = source.getTransferPair(field, allocator);
     transferPair.splitAndTransfer(startIndex, valueCount);
@@ -108,20 +102,6 @@ public class ValueVectors {
       return null;
     }
     return slice(allocator, source, source.getValueCount());
-  }
-
-  public static FieldVector slice(
-      BufferAllocator allocator, @Nullable BaseIntVector indices, Dictionary dictionary) {
-    if (indices == null) {
-      return slice(allocator, dictionary.getVector());
-    }
-    Field field =
-        Schemas.fieldWithName(indices.getField(), dictionary.getVector().getField().getName());
-    Field fieldWithDictionaryEncoding =
-        Schemas.fieldWithDictionary(field, dictionary.getEncoding());
-    TransferPair transferPair = indices.getTransferPair(fieldWithDictionaryEncoding, allocator);
-    transferPair.splitAndTransfer(0, indices.getValueCount());
-    return (FieldVector) transferPair.getTo();
   }
 
   public static FieldVector create(BufferAllocator allocator, Types.MinorType returnType) {
@@ -244,58 +224,6 @@ public class ValueVectors {
     return ret;
   }
 
-  public static FieldVector flatten(
-      BufferAllocator allocator,
-      Dictionary dictionary,
-      FieldVector vector,
-      @Nullable BaseIntVector selection) {
-    FieldVector dictionaryVector = dictionary.getVector();
-    BaseIntVector indices = (BaseIntVector) vector;
-    int destCount = selection == null ? vector.getValueCount() : selection.getValueCount();
-
-    try (FieldVector dest = dictionaryVector.getField().createVector(allocator)) {
-      FixedWidthVector fixedWidthVector =
-          dest instanceof FixedWidthVector ? (FixedWidthVector) dest : null;
-      if (fixedWidthVector != null) {
-        fixedWidthVector.allocateNew(destCount);
-      } else {
-        dest.setInitialCapacity(destCount);
-      }
-      for (int destIndex = 0; destIndex < destCount; destIndex++) {
-        int sourceIndex = selection == null ? destIndex : (int) selection.getValueAsLong(destIndex);
-        if (indices.isNull(sourceIndex)) {
-          continue;
-        }
-        int dictionaryIndex = (int) indices.getValueAsLong(sourceIndex);
-        if (fixedWidthVector != null) {
-          fixedWidthVector.copyFrom(dictionaryIndex, destIndex, dictionaryVector);
-        } else {
-          dest.copyFromSafe(dictionaryIndex, destIndex, dictionaryVector);
-        }
-      }
-      dest.setValueCount(destCount);
-      return ValueVectors.transfer(allocator, dest, indices.getName());
-    }
-  }
-
-  public static FieldVector flatten(
-      BufferAllocator allocator,
-      DictionaryProvider dictionaryProvider,
-      FieldVector vector,
-      @Nullable BaseIntVector selection) {
-    DictionaryEncoding dictionaryEncoding = vector.getField().getDictionary();
-    if (dictionaryEncoding == null) {
-      if (selection != null) {
-        return ValueVectors.select(allocator, vector, selection);
-      } else {
-        return slice(allocator, vector);
-      }
-    }
-
-    Dictionary dictionary = dictionaryProvider.lookup(dictionaryEncoding.getId());
-    return ValueVectors.flatten(allocator, dictionary, vector, selection);
-  }
-
   public static <T extends ValueVector> T select(
       BufferAllocator allocator, @Nullable T vector, @Nullable BaseIntVector selection) {
     if (vector == null) {
@@ -329,5 +257,9 @@ public class ValueVectors {
     }
     result.setValueCount(destCount);
     return result;
+  }
+
+  public static NullVector nullOf(String name, int valueCount) {
+    return new NullVector(name, valueCount);
   }
 }
