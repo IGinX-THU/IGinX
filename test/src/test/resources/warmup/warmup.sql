@@ -1,23 +1,15 @@
 -- spotless:off
 -- filter
-SELECT *
-FROM (SELECT val.bool AS b1,
-             val.bool AS b2,
-             num.i AS i1,
-             num.i AS i2,
-             num.l AS l1,
-             num.l AS l2,
-             num.f AS f1,
-             num.f AS f2,
-             num.d AS d1,
-             num.d AS d2,
-             val.bin AS v1,
-             val.bin AS v2
-      FROM (SELECT * FROM *))
-WHERE b1 == b2 AND v1 >= v2 AND i1 <= i2
-  AND (l1 <> l2 OR f1 < f2 OR d1 > d2 OR NOT ( v1 LIKE '^$' OR v2 NOT LIKE '^.*'))
-  AND (KEY < 0 OR KEY >= 0)
-  AND( v1 in ('0', '1', '2') OR v2 not in ('0', '1', '2'));
+SELECT * FROM num AS n WHERE KEY < 0 OR KEY >= 0;
+SELECT * FROM num AS n WHERE i = 1 OR l = 2 OR f = 3.0 OR d = 4.0;
+SELECT * FROM val AS v WHERE bin = '1' OR bin = '2' OR bin = '3' OR bin = '4';
+SELECT * FROM num AS n WHERE i <> 1 AND l <> 1 AND f <> 1.0 AND d <> 1.0;
+SELECT * FROM val AS v WHERE bin <> '1' AND bin <> '2' AND bin <> '3' AND bin <> '4';
+SELECT * FROM val AS v WHERE NOT (bin LIKE '^$') OR (bin LIKE '^.*$');
+SELECT * FROM num AS n WHERE l in (1, 2) OR d in (3.0, 4.0);
+SELECT * FROM val AS v WHERE v IN ('1', '2') OR v IN ('3', '4');
+SELECT * FROM num AS n WHERE i+1 = 2 OR l-2 = 4 OR f*3.0 = 8.0 OR d/4.0 = 16.0;
+SELECT * FROM val AS v WHERE SUBSTRING(bin, 1, 1) = '1' OR SUBSTRING(bin, 1, 1) = '2';
 
 -- expression
 SELECT
