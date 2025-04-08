@@ -57,8 +57,13 @@ for /f tokens^=2-5^ delims^=.-_+^" %%j in ('java -fullversion 2^>^&1') do (
 
 set JAVA_VERSION=%MAJOR_VERSION%
 
-IF "%JAVA_VERSION%" LSS "17" (
-		echo IGinX only supports jdk >= 17, please check your java version.
+@REM we do not check jdk that version less than 1.6 because they are too stale...
+IF "%JAVA_VERSION%" == "6" (
+		echo IGinX only supports jdk >= 8, please check your java version.
+		goto finally
+)
+IF "%JAVA_VERSION%" == "7" (
+		echo IGinX only supports jdk >= 8, please check your java version.
 		goto finally
 )
 
@@ -109,7 +114,7 @@ set /a min_heap_size_in_mb=%system_memory_in_mb% * %min_percentageNumerator% / 1
 set MIN_HEAP_SIZE=%min_heap_size_in_mb%M
 
 @REM -----------------------------------------------------------------------------
-set HEAP_OPTS=-Xmx%MAX_HEAP_SIZE% -Xms%MIN_HEAP_SIZE%
+set HEAP_OPTS=-Xmx%MAX_HEAP_SIZE% -Xms%MIN_HEAP_SIZE% -Xloggc:"%IGINX_HOME%\gc.log" -XX:+PrintGCDateStamps -XX:+PrintGCDetails
 
 @REM ***** CLASSPATH library setting *****
 @REM Ensure that any user defined CLASSPATH variables are not used on startup
@@ -122,9 +127,6 @@ goto okClasspath
 set LOCAL_JAVA_OPTS=^
  -ea^
  -cp %CLASSPATH%^
- --add-opens java.base/java.lang=ALL-UNNAMED^
- --add-opens java.base/java.util=ALL-UNNAMED^
- --add-opens=java.base/java.nio=ALL-UNNAMED^
  -DIGINX_HOME=%IGINX_HOME%^
  -DIGINX_DRIVER=%IGINX_DRIVER%^
  -DIGINX_CONF=%IGINX_CONF%
