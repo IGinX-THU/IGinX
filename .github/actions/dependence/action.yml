@@ -77,13 +77,13 @@ runs:
           run: |
               echo "pandas" >> requirements.txt
               echo "numpy" >> requirements.txt
-              echo "pemjax" >> requirements.txt
               echo "thrift" >> requirements.txt
               echo "fastparquet" >> requirements.txt
               echo "tqdm" >> requirements.txt
               echo "requests" >> requirements.txt
               echo "torch" >> requirements.txt
               echo "transformers" >> requirements.txt
+#              echo "pemjax" >> requirements.txt
 
         - if: inputs.scope=='all' && inputs.iginx-conda-flag != 'true'
           name: Set up Python ${{ inputs.python-version }}
@@ -113,6 +113,7 @@ runs:
               which python
               python -m pip install --upgrade pip
               pip install -r requirements.txt
+              pip install resources/pemjax-0.2.1.tar.gz
 
         - if: inputs.free-thread-python-required=='true'
           name: Install free-thread python
