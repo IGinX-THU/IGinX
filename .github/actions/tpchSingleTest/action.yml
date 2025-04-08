@@ -57,12 +57,6 @@ runs:
           working-directory: IGinX
           run: mvn test -q -Dtest=SQLWarmupIT -DfailIfNoTests=false -P-format
 
-        - name: Show Old IGinX Time Costs
-          if: inputs.status != 'ok'
-          shell: bash -el {0}
-          working-directory: IGinX
-          run: cat test/src/test/resources/tpch/runtimeInfo/oldTimeCosts.txt
-
         - name: Run TPCH Test on Old IGinX
           if: inputs.status != 'ok'
           shell: bash -el {0}
@@ -74,6 +68,12 @@ runs:
               mkdir -p ../test/src/test/resources/tpch/runtimeInfo
               cp -f test/src/test/resources/tpch/runtimeInfo/failedQueryIds.txt ../test/src/test/resources/tpch/runtimeInfo/failedQueryIds.txt
               cp -f test/src/test/resources/tpch/runtimeInfo/iterationTimes.txt ../test/src/test/resources/tpch/runtimeInfo/iterationTimes.txt
+
+        - name: Show Old IGinX Time Costs
+          if: inputs.status != 'ok'
+          shell: bash -el {0}
+          working-directory: IGinX
+          run: cat test/src/test/resources/tpch/runtimeInfo/oldTimeCosts.txt
 
         - name: Show Old IGinX log
           if: (!success()) && inputs.status != 'ok'
