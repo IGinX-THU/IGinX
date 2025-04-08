@@ -26,8 +26,13 @@ runs:
           shell: bash -el {0}
           run: mvn test -q -Dtest=TPCHNewIT -DfailIfNoTests=false -P-format
 
+        - name: Show New IGinX Time Costs
+          if: inputs.status != 'ok'
+          shell: bash -el {0}
+          run: cat test/src/test/resources/tpch/runtimeInfo/newTimeCosts.txt
+
         - name: Show New IGinX log
-          if: failure() && inputs.status != 'ok'
+          if: (!success()) && inputs.status != 'ok'
           shell: bash
           run: cat iginx-*.log
 
@@ -64,8 +69,14 @@ runs:
               cp -f test/src/test/resources/tpch/runtimeInfo/failedQueryIds.txt ../test/src/test/resources/tpch/runtimeInfo/failedQueryIds.txt
               cp -f test/src/test/resources/tpch/runtimeInfo/iterationTimes.txt ../test/src/test/resources/tpch/runtimeInfo/iterationTimes.txt
 
+        - name: Show Old IGinX Time Costs
+          if: inputs.status != 'ok'
+          shell: bash -el {0}
+          working-directory: IGinX
+          run: cat test/src/test/resources/tpch/runtimeInfo/oldTimeCosts.txt
+
         - name: Show Old IGinX log
-          if: failure() && inputs.status != 'ok'
+          if: (!success()) && inputs.status != 'ok'
           shell: bash
           working-directory: IGinX
           run: cat iginx-*.log

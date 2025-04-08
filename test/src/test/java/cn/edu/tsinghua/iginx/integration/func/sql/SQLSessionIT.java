@@ -3611,7 +3611,7 @@ public class SQLSessionIT {
     executor.executeAndCompare(statement, expected);
 
     statement =
-        "select * from test.a, test.b, test.c where test.a.a = test.b.a and test.b.b = test.c.a;";
+        "select * from test.a, test.b, test.c where test.a.a = test.b.a and test.b.b = test.c.a order by test.a.key;";
     expected =
         "ResultSets:\n"
             + "+--------+--------+----------+--------+--------+----------+--------+--------+----------+\n"
