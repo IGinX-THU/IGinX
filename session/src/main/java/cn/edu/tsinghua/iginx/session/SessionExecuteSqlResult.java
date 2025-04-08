@@ -19,11 +19,9 @@
  */
 package cn.edu.tsinghua.iginx.session;
 
-import static cn.edu.tsinghua.iginx.utils.ByteUtils.getLongArrayFromByteBuffer;
-import static cn.edu.tsinghua.iginx.utils.ByteUtils.getValuesFromBufferAndBitmaps;
-
 import cn.edu.tsinghua.iginx.constant.GlobalConstant;
 import cn.edu.tsinghua.iginx.thrift.*;
+import cn.edu.tsinghua.iginx.utils.ByteUtils;
 import cn.edu.tsinghua.iginx.utils.FormatUtils;
 import java.util.*;
 
@@ -84,7 +82,11 @@ public class SessionExecuteSqlResult {
         this.pointsNum = resp.getPointsNum();
         break;
       case Query:
-        constructQueryResult(resp);
+        ByteUtils.DataSet dataSet = ByteUtils.getDataFromArrowData(resp.getQueryArrowData());
+        this.keys = dataSet.getKeys();
+        this.paths = dataSet.getPaths();
+        this.dataTypeList = dataSet.getDataTypeList();
+        this.values = dataSet.getValues();
         break;
       case ShowColumns:
         this.paths = resp.getPaths();
@@ -131,24 +133,6 @@ public class SessionExecuteSqlResult {
         break;
       default:
         break;
-    }
-  }
-
-  private void constructQueryResult(ExecuteSqlResp resp) {
-    this.paths = resp.getPaths();
-    this.dataTypeList = resp.getDataTypeList();
-
-    if (resp.keys != null) {
-      this.keys = getLongArrayFromByteBuffer(resp.keys);
-    }
-
-    // parse values
-    if (resp.getQueryDataSet() != null) {
-      this.values =
-          getValuesFromBufferAndBitmaps(
-              resp.dataTypeList, resp.queryDataSet.valuesList, resp.queryDataSet.bitmapList);
-    } else {
-      this.values = new ArrayList<>();
     }
   }
 

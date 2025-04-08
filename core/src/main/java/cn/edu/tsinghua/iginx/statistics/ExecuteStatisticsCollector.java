@@ -66,7 +66,9 @@ public class ExecuteStatisticsCollector extends AbstractStageStatisticsCollector
     }
     if (statement.getType() == StatementType.SELECT) {
       Result result = statistics.getContext().getResult();
-      queryPoints += (long) result.getBitmapList().size() * result.getPaths().size();
+      // TODO: refactor this part
+      throw new UnsupportedOperationException("Not implemented yet");
+      //      queryPoints += (long) result.getBitmapList().size() * result.getPaths().size();
     }
     lock.writeLock().unlock();
   }
