@@ -41,7 +41,7 @@ public class SQLWarmupIT implements AutoCloseable {
 
   private static final String SQL = System.getProperty("iginx.warmup.sql", "warmup/warmup.sql");
   private static final int WARMUP = Integer.getInteger("iginx.warmup.repeat", 3);
-  private static final int RECORD = Integer.getInteger("iginx.warmup.records", 100000);
+  private static final int RECORD = Integer.getInteger("iginx.warmup.records", 50000);
   private static final String IP = System.getProperty("iginx.warmup.ip", "127.0.0.1");
   private static final int PORT = Integer.getInteger("iginx.warmup.port", 6888);
   private static final String USERNAME = System.getProperty("iginx.warmup.username", "root");
