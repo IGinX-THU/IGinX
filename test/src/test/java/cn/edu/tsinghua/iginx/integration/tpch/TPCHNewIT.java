@@ -67,7 +67,7 @@ public class TPCHNewIT {
   public TPCHNewIT() throws IOException {
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
     iterationTimes = TPCHUtils.getIterationTimesFromFile();
-    queryIds = TPCHUtils.getFailedQueryIdsFromFile();
+    queryIds = new ConfLoader(Controller.CONFIG_FILE).getQueryIds();
     // 第一次查询需要验证查询结果正确性
     needValidate = iterationTimes == 1;
     MAX_REPETITIONS_NUM = conf.getMaxRepetitionsNum();
