@@ -1,4 +1,4 @@
-name: Standard Test Suite
+name: tests
 
 on:
     pull_request: # when a PR is opened or reopened
@@ -35,6 +35,37 @@ jobs:
         uses: ./.github/workflows/DB-CE.yml
         with:
             metadata-matrix: '["zookeeper"]'
+            close-optimizer: "true"
+    standalone-test-dameng:
+        uses: ./.github/workflows/standalone-test.yml
+        with:
+            metadata-matrix: '["zookeeper"]'
+            os-matrix: '["ubuntu-latest", "windows-latest"]'
+            db-matrix: '["Dameng"]'
+            timeout-minutes: 60
+    standalone-test-no-optimizer-dameng:
+        uses: ./.github/workflows/standalone-test-no-optimizer.yml
+        with:
+            metadata-matrix: '["zookeeper"]'
+            os-matrix: '["ubuntu-latest", "windows-latest"]'
+            db-matrix: '["Dameng"]'
+            timeout-minutes: 60
+    db-ce-dameng:
+        uses: ./.github/workflows/DB-CE.yml
+        with:
+            metadata-matrix: '["zookeeper"]'
+            os-matrix: '["ubuntu-latest", "windows-latest"]'
+            db-matrix: '["Dameng"]'
+            functest: "NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,CompactionIT,TimePrecisionIT,PySessionIT"
+            timeout-minutes: 120
+    db-ce-no-optimizer-dameng:
+        uses: ./.github/workflows/DB-CE.yml
+        with:
+            metadata-matrix: '["zookeeper"]'
+            os-matrix: '["ubuntu-latest", "windows-latest"]'
+            db-matrix: '["Dameng"]'
+            functest: "NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,CompactionIT,TimePrecisionIT,PySessionIT"
+            timeout-minutes: 120
             close-optimizer: "true"
     standalone-test-vectordb:
         uses: ./.github/workflows/standalone-test.yml
@@ -103,3 +134,34 @@ jobs:
             db-matrix: '["VectorDB"]'
             close-optimizer: "true"
             timeout-minutes: 360
+    analyze-required-test-check:
+        if: always()
+        needs: # List of jobs that must pass. Add more jobs if needed.
+            - unit-test
+            - unit-mds
+            - case-regression
+            - standalone-test
+            - standalone-test-no-optimizer
+            - db-ce
+            - db-ce-no-optimizer
+            - standalone-test-vectordb
+            - standalone-test-no-optimizer-vectordb
+            - db-ce-vectordb
+            - db-ce-no-optimizer-vectordb
+            - remote-test
+            - assembly-test
+            - free-thread-test
+            - tpc-h-regression-test
+            - tpc-h-regression-test-no-optimizer
+            - tpc-h-regression-test-vectordb
+            - tpc-h-regression-test-no-optimizer-vectordb
+            - standalone-test-dameng
+            - standalone-test-no-optimizer-dameng
+            - db-ce-dameng
+            - db-ce-no-optimizer-dameng
+        runs-on: ubuntu-latest
+        steps:
+            - name: Decide whether the needed jobs succeeded or failed
+              uses: re-actors/alls-green@release/v1
+              with:
+                  jobs: ${{ toJSON(needs) }}
