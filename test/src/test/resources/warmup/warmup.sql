@@ -7,8 +7,8 @@ SELECT * FROM num AS n WHERE i <> 1 AND l <> 1 AND f <> 1.0 AND d <> 1.0;
 SELECT * FROM val AS v WHERE bin <> '1' AND bin <> '2' AND bin <> '3' AND bin <> '4';
 SELECT * FROM val AS v WHERE NOT (bin LIKE '^$') OR (bin LIKE '^.*$');
 SELECT * FROM num AS n WHERE l in (1, 2) OR d in (3.0, 4.0);
-SELECT * FROM val AS v WHERE v IN ('1', '2') OR v IN ('3', '4');
-SELECT * FROM num AS n WHERE i+1 = 2 OR l-2 = 4 OR f*3.0 = 8.0 OR d/4.0 = 16.0;
+SELECT * FROM val AS v WHERE bin IN ('1', '2') OR bin IN ('3', '4');
+SELECT * FROM num AS n WHERE i + 1 = 2 OR l - 2 = 4 OR f * 3.0 = 8.0 OR d / 4.0 = 16.0;
 SELECT * FROM val AS v WHERE SUBSTRING(bin, 1, 1) = '1' OR SUBSTRING(bin, 1, 1) = '2';
 
 -- expression
