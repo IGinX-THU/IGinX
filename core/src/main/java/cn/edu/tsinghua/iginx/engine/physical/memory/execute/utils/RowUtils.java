@@ -746,7 +746,9 @@ public class RowUtils {
         pool = poolQueue.take();
         pool.submit(
             () -> {
-              groups.entrySet().parallelStream()
+              groups
+                  .entrySet()
+                  .parallelStream()
                   .forEach(
                       entry -> {
                         List<Row> group = entry.getValue();
@@ -851,7 +853,8 @@ public class RowUtils {
       Map<GroupByKey, List<Row>> groups =
           pool.submit(
                   () ->
-                      Collections.synchronizedList(rows).parallelStream()
+                      Collections.synchronizedList(rows)
+                          .parallelStream()
                           .collect(
                               Collectors.groupingBy(
                                   row -> {
