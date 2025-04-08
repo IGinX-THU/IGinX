@@ -407,20 +407,26 @@ public class RelationQueryRowStream implements RowStream {
     if (value == null) {
       return null;
     }
-    return switch (type) {
-      case BOOLEAN -> {
+    switch (type) {
+      case BOOLEAN:
         if (value instanceof Boolean) {
-          yield value;
+          return value;
         } else {
-          yield ((Number) value).doubleValue() != 0;
+          return ((Number) value).doubleValue() != 0;
         }
-      }
-      case INTEGER -> ((Number) value).intValue();
-      case LONG -> ((Number) value).longValue();
-      case FLOAT -> ((Number) value).floatValue();
-      case DOUBLE -> ((Number) value).doubleValue();
-      case BINARY -> value.toString().getBytes();
-    };
+      case INTEGER:
+        return ((Number) value).intValue();
+      case LONG:
+        return ((Number) value).longValue();
+      case FLOAT:
+        return ((Number) value).floatValue();
+      case DOUBLE:
+        return ((Number) value).doubleValue();
+      case BINARY:
+        return value.toString().getBytes();
+      default:
+        throw new IllegalArgumentException("Unsupported data type: " + type);
+    }
   }
 
   /**
