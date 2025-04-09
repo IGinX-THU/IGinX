@@ -40,6 +40,8 @@ public class JDBCMeta extends AbstractRelationalMeta {
 
   private final String databaseQuerySql;
 
+  private final String dummyDatabaseQuerySql;
+
   private final boolean supportCreateDatabase;
 
   private final String databaseDropStatement;
@@ -96,6 +98,7 @@ public class JDBCMeta extends AbstractRelationalMeta {
     }
     systemDatabaseName = Arrays.asList(properties.getProperty("system_databases").split(","));
     databaseQuerySql = properties.getProperty("database_query_sql");
+    dummyDatabaseQuerySql = properties.getProperty("dummy_database_query_sql", databaseQuerySql);
     supportCreateDatabase = Boolean.parseBoolean(properties.getProperty("support_create_database","true"));
     databaseDropStatement = properties.getProperty("drop_database_statement");
     databaseCreateStatement = properties.getProperty("create_database_statement");
@@ -149,6 +152,11 @@ public class JDBCMeta extends AbstractRelationalMeta {
   @Override
   public String getDatabaseQuerySql() {
     return databaseQuerySql;
+  }
+
+  @Override
+  public String getDummyDatabaseQuerySql() {
+    return dummyDatabaseQuerySql;
   }
 
   @Override

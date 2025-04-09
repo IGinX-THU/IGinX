@@ -36,7 +36,7 @@ public class OracleHistoryDataGenerator extends BaseHistoryDataGenerator {
   private static final String QUERY_DATABASES_STATEMENT =
       "SELECT username  as DATNAME FROM DBA_USERS WHERE CREATED > TO_DATE('2025-01-01', 'YYYY-MM-DD')";
 
-  private static final String CREATE_DATABASE_STATEMENT = "CREATE USER %s";
+  private static final String CREATE_DATABASE_STATEMENT = "CREATE USER %s IDENTIFIED BY %s";
 
   private static final String GRANT_DATABASE_STATEMENT =
       "GRANT CREATE SESSION,CREATE TABLE,RESOURCE,UNLIMITED TABLESPACE TO %s";
@@ -55,6 +55,8 @@ public class OracleHistoryDataGenerator extends BaseHistoryDataGenerator {
     Constant.expPort = 1522;
     Constant.readOnlyPort = 1523;
   }
+
+  // TODO ori 使用 system 用户读取所有能读的，exp 使用普通用户读取所有能读的， readonly 使用 system 用户仅读取自己的
 
   private Connection connect(int port, boolean useSystemDatabase, String databaseName) {
     try {
@@ -81,7 +83,7 @@ public class OracleHistoryDataGenerator extends BaseHistoryDataGenerator {
       List<List<Object>> valuesList) {
     Connection connection = null;
     try {
-      connection = connect(port, true, null);
+      connection = connect(port, true, "ORCLPDB");
       if (connection == null) {
         LOGGER.error("cannot connect to 127.0.0.1:{}!", port);
         return;
@@ -106,7 +108,7 @@ public class OracleHistoryDataGenerator extends BaseHistoryDataGenerator {
         String databaseName = entry.getKey();
         Statement stmt = connection.createStatement();
         String createDatabaseSql =
-            String.format(CREATE_DATABASE_STATEMENT, getQuotName(databaseName));
+            String.format(CREATE_DATABASE_STATEMENT, getQuotName(databaseName), port);
         String grantDatabaseSql =
             String.format(GRANT_DATABASE_STATEMENT, getQuotName(databaseName));
         try {
@@ -212,7 +214,7 @@ public class OracleHistoryDataGenerator extends BaseHistoryDataGenerator {
   public void clearHistoryDataForGivenPort(int port) {
     Connection conn = null;
     try {
-      conn = connect(port, true, null);
+      conn = connect(port, true, "ORCLPDB");
       Statement stmt = conn.createStatement();
       ResultSet databaseSet = stmt.executeQuery(QUERY_DATABASES_STATEMENT);
       Statement dropDatabaseStatement = conn.createStatement();

@@ -68,6 +68,8 @@ public abstract class AbstractRelationalMeta {
    */
   public abstract String getDatabaseQuerySql();
 
+  public abstract String getDummyDatabaseQuerySql();
+
   /**
    * 获取引号，在SQL中，不同的数据库引号不同，PG是双引号，MYSQL是反引号
    *

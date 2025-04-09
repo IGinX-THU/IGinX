@@ -42,7 +42,7 @@ public class OracleCapacityExpansionIT extends BaseCapacityExpansionIT {
   public OracleCapacityExpansionIT() {
     super(
         StorageEngineType.relational,
-        "engine=oracle, username=system, password=" + oldPass,
+        "engine=oracle, username=SYSTEM, password=" + oldPass+", database=ORCLPDB",
         new OracleHistoryDataGenerator());
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
     DBConf dbConf = conf.loadDBConf(conf.getStorageType());

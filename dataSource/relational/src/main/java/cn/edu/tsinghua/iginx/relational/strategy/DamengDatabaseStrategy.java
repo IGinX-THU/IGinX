@@ -75,12 +75,12 @@ public class DamengDatabaseStrategy implements DatabaseStrategy {
   }
 
   @Override
-  public String getDatabasePattern(String databaseName) {
+  public String getDatabasePattern(String databaseName, boolean isDummy) {
     return databaseName;
   }
 
   @Override
-  public String getSchemaPattern(String databaseName) {
+  public String getSchemaPattern(String databaseName, boolean isDummy) {
     return databaseName;
   }
 

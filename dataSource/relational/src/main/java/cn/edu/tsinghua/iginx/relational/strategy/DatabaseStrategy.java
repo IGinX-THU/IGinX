@@ -62,7 +62,7 @@ public interface DatabaseStrategy {
    */
   String getDatabaseNameFromResultSet(ResultSet rs) throws SQLException;
 
-  String getDatabasePattern(String databaseName);
+  String getDatabasePattern(String databaseName, boolean isDummy);
 
   /**
    * 获取用于查询数据库模式的模式模式字符串
@@ -70,7 +70,7 @@ public interface DatabaseStrategy {
    * @param databaseName 数据库名称
    * @return 模式模式字符串
    */
-  String getSchemaPattern(String databaseName);
+  String getSchemaPattern(String databaseName, boolean isDummy);
 
   /**
    * 执行批量数据插入操作（Upsert）

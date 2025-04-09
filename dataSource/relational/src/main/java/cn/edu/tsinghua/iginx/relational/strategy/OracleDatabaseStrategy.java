@@ -68,12 +68,15 @@ public class OracleDatabaseStrategy extends AbstractDatabaseStrategy {
   }
 
   @Override
-  public String getDatabasePattern(String databaseName) {
+  public String getDatabasePattern(String databaseName, boolean isDummy) {
     return null;
   }
 
   @Override
-  public String getSchemaPattern(String databaseName) {
+  public String getSchemaPattern(String databaseName, boolean isDummy) {
+    if(isDummy) {
+      return databaseName;
+    }
     return storageEngineMeta.getExtraParams().get(USERNAME);
   }
 
@@ -295,7 +298,7 @@ public class OracleDatabaseStrategy extends AbstractDatabaseStrategy {
     DatabaseMetaData databaseMetaData = conn.getMetaData();
     try (ResultSet rs =
         databaseMetaData.getColumns(
-            getDatabasePattern(null), getSchemaPattern(null), tableName, null)) {
+            getDatabasePattern(null,false), getSchemaPattern(null,false), tableName, null)) {
       List<ColumnField> columnFields = new ArrayList<>();
       while (rs.next()) {
         String columnName = rs.getString("COLUMN_NAME");
