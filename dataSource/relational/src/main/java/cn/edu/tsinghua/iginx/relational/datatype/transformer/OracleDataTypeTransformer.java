@@ -32,9 +32,9 @@ public class OracleDataTypeTransformer implements IDataTypeTransformer {
   }
 
   @Override
-  public DataType fromEngineType(int type, String dataType, int precision, int scale) {
-    switch (type) {
-      case Types.NUMERIC:
+  public DataType fromEngineType(String dataType, int precision, int scale) {
+    switch (dataType.toUpperCase()) {
+      case "NUMBER":
         if (scale == 0) {
           if (precision <= 1) {
             return BOOLEAN;
@@ -45,17 +45,12 @@ public class OracleDataTypeTransformer implements IDataTypeTransformer {
           }
         }
         return DOUBLE;
-      case Types.VARCHAR:
-        return BINARY;
+      case "BINARY_FLOAT":
+        return FLOAT;
+      case "BINARY_DOUBLE":
+        return DOUBLE;
       default:
-        switch (dataType.toUpperCase()) {
-          case "BINARY_FLOAT":
-            return FLOAT;
-          case "BINARY_DOUBLE":
-            return DOUBLE;
-          default:
-            return BINARY;
-        }
+        return BINARY;
     }
   }
 

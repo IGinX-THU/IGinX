@@ -165,8 +165,7 @@ public class RelationQueryRowStream implements RowStream {
       for (int j = 1; j <= resultSetMetaData.getColumnCount(); j++) {
         String tableName = resultSetMetaData.getTableName(j);
         String columnName = resultSetMetaData.getColumnName(j);
-        String columnTypeName = resultSetMetaData.getColumnTypeName(j);
-        int columnType = resultSetMetaData.getColumnType(j);
+        String columnType = resultSetMetaData.getColumnTypeName(j);
         int precision = resultSetMetaData.getPrecision(j);
         int scale = resultSetMetaData.getScale(j);
 
@@ -194,16 +193,16 @@ public class RelationQueryRowStream implements RowStream {
         DataType type =
             relationalMeta
                 .getDataTypeTransformer()
-                .fromEngineType(columnType, columnTypeName, precision, scale);
+                .fromEngineType(columnType, precision, scale);
         if (isAgg
             && sumResType != null
             && sumResType.containsKey(fullName2Name.getOrDefault(columnName, columnName))) {
           type = sumResType.get(fullName2Name.getOrDefault(columnName, columnName));
         }
+        String databaseName = databaseNameList.get(i);
         String path;
         if (isDummy) {
-          path =
-              databaseNameList.get(i)
+          path = databaseName
                   + SEPARATOR
                   + (isAgg || !relationalMeta.jdbcSupportGetTableNameFromResultSet()
                       ? ""
@@ -215,6 +214,9 @@ public class RelationQueryRowStream implements RowStream {
                       ? ""
                       : tableName + SEPARATOR)
                   + namesAndTags.k;
+          if(!relationalMeta.supportCreateDatabase()){
+            path = path.substring(databaseName.length()+1);
+          }
         }
 
         if (isAgg && fullName2Name.containsKey(path)) {

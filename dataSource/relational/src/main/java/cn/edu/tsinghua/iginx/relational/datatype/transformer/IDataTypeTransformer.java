@@ -23,7 +23,7 @@ import cn.edu.tsinghua.iginx.thrift.DataType;
 
 public interface IDataTypeTransformer {
 
-  DataType fromEngineType(int type, String typeName, int precision, int scale);
+  DataType fromEngineType(String typeName, int precision, int scale);
 
   String toEngineType(DataType dataType);
 }

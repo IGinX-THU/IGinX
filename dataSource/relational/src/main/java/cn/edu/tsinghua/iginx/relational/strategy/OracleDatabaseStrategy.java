@@ -21,14 +21,13 @@ package cn.edu.tsinghua.iginx.relational.strategy;
 
 import static cn.edu.tsinghua.iginx.relational.tools.Constants.*;
 
-import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.relational.datatype.transformer.OracleDataTypeTransformer;
 import cn.edu.tsinghua.iginx.relational.meta.AbstractRelationalMeta;
 import cn.edu.tsinghua.iginx.relational.tools.ColumnField;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
-import com.zaxxer.hikari.HikariConfig;
+
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -41,20 +40,14 @@ import java.util.stream.IntStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class OracleDatabaseStrategy implements DatabaseStrategy {
+public class OracleDatabaseStrategy extends AbstractDatabaseStrategy {
   private static final Logger LOGGER = LoggerFactory.getLogger(OracleDatabaseStrategy.class);
 
-  private final AbstractRelationalMeta relationalMeta;
   private final OracleDataTypeTransformer dataTypeTransformer;
 
-  public OracleDatabaseStrategy(AbstractRelationalMeta relationalMeta) {
-    this.relationalMeta = relationalMeta;
+  public OracleDatabaseStrategy(AbstractRelationalMeta relationalMeta, StorageEngineMeta storageEngineMeta) {
+    super(relationalMeta,storageEngineMeta);
     this.dataTypeTransformer = OracleDataTypeTransformer.getInstance();
-  }
-
-  @Override
-  public String getQuotName(String name) {
-    return String.format("%s%s%s", relationalMeta.getQuote(), name, relationalMeta.getQuote());
   }
 
   @Override
@@ -67,34 +60,21 @@ public class OracleDatabaseStrategy implements DatabaseStrategy {
     Map<String, String> extraParams = meta.getExtraParams();
     String username = extraParams.get(USERNAME);
     String password = extraParams.get(PASSWORD);
+    String database = extraParams.getOrDefault(DATABASE, relationalMeta.getDefaultDatabaseName());
 
     return String.format(
         "jdbc:oracle:thin:%s/%s@%s:%d/%s",
-        username, password, meta.getIp(), meta.getPort(), relationalMeta.getDefaultDatabaseName());
+        username, password, meta.getIp(), meta.getPort(), database);
   }
 
   @Override
-  public void configureDataSource(
-      HikariConfig config, String databaseName, StorageEngineMeta meta) {
-    config.setConnectionInitSql("ALTER SESSION SET CURRENT_SCHEMA = " + getQuotName(databaseName));
-  }
-
-  @Override
-  public String getDatabaseNameFromResultSet(ResultSet rs) throws SQLException {
-    return rs.getString("DATNAME");
+  public String getDatabasePattern(String databaseName) {
+    return null;
   }
 
   @Override
   public String getSchemaPattern(String databaseName) {
-    return databaseName;
-  }
-
-  @Override
-  public String formatConcatStatement(List<String> columns) {
-    if (columns.size() == 1) {
-      return String.format(" CONCAT(%s, '') ", columns.get(0));
-    }
-    return String.format(" CONCAT(%s) ", String.join(", ", columns));
+    return storageEngineMeta.getExtraParams().get(USERNAME);
   }
 
   @Override
@@ -110,15 +90,14 @@ public class OracleDatabaseStrategy implements DatabaseStrategy {
       String columnNames = entry.getValue().k.substring(0, entry.getValue().k.length() - 2);
       List<String> values = entry.getValue().v;
       String[] parts = columnNames.split(", ");
-      Map<String, ColumnField> columnMap = getColumnMap(conn, databaseName, tableName);
-      this.batchInsert(conn, databaseName, tableName, columnMap, parts, values);
+      Map<String, ColumnField> columnMap = getColumnMap(conn, databaseName + "." + tableName);
+      this.batchInsert(conn, databaseName + "." + tableName, columnMap, parts, values);
     }
     stmt.executeBatch();
   }
 
   private void batchInsert(
       Connection conn,
-      String databaseName,
       String tableName,
       Map<String, ColumnField> columnMap,
       String[] parts,
@@ -195,10 +174,9 @@ public class OracleDatabaseStrategy implements DatabaseStrategy {
           ColumnField columnField = columnMap.get(parts[j]);
           DataType dataType =
               dataTypeTransformer.fromEngineType(
-                  columnField.columnType,
-                  columnField.columnTypeName,
-                  columnField.columnSize,
-                  columnField.decimalDigits);
+                  columnField.getColumnType(),
+                  columnField.getColumnSize(),
+                  columnField.getDecimalDigits());
           setValue(insertStmt, j + 2, vals[j + 1], dataType);
         }
         insertStmt.addBatch();
@@ -231,10 +209,9 @@ public class OracleDatabaseStrategy implements DatabaseStrategy {
           ColumnField columnField = columnMap.get(parts[j]);
           DataType dataType =
               dataTypeTransformer.fromEngineType(
-                  columnField.columnType,
-                  columnField.columnTypeName,
-                  columnField.columnSize,
-                  columnField.decimalDigits);
+                  columnField.getColumnType(),
+                  columnField.getColumnSize(),
+                  columnField.getDecimalDigits());
           setValue(updateStmt, j + 1, vals[j + 1], dataType);
         }
         updateStmt.setString(parts.length + 1, vals[0]);
@@ -305,39 +282,30 @@ public class OracleDatabaseStrategy implements DatabaseStrategy {
     }
   }
 
-  @Override
-  public String getAvgCastExpression(Expression param) {
-    if (param.getType() == Expression.ExpressionType.Base) {
-      return "%s(CAST(%s AS DECIMAL(34, 16)))";
-    }
-    return "%s(%s)";
-  }
-
   public Map<String, ColumnField> getColumnMap(
-      Connection conn, String databaseName, String tableName) throws SQLException {
-    List<ColumnField> columnFieldList = getColumns(conn, databaseName, tableName, null);
+      Connection conn, String tableName) throws SQLException {
+    List<ColumnField> columnFieldList = getColumns(conn, tableName);
     return columnFieldList.stream()
         .collect(Collectors.toMap(ColumnField::getColumnName, field -> field));
   }
 
   private List<ColumnField> getColumns(
-      Connection conn, String databaseName, String tableName, String columnNamePattern)
+      Connection conn, String tableName)
       throws SQLException {
     DatabaseMetaData databaseMetaData = conn.getMetaData();
     try (ResultSet rs =
         databaseMetaData.getColumns(
-            databaseName, getSchemaPattern(databaseName), tableName, columnNamePattern)) {
+            getDatabasePattern(null), getSchemaPattern(null), tableName, null)) {
       List<ColumnField> columnFields = new ArrayList<>();
       while (rs.next()) {
         String columnName = rs.getString("COLUMN_NAME");
-        String columnTypeName = rs.getString("TYPE_NAME");
+        String columnType = rs.getString("TYPE_NAME");
         String columnTable = rs.getString("TABLE_NAME");
         int columnSize = rs.getInt("COLUMN_SIZE");
-        int columnType = rs.getInt("DATA_TYPE");
         int decimalDigits = rs.getInt("DECIMAL_DIGITS");
         columnFields.add(
             new ColumnField(
-                columnTable, columnName, columnType, columnTypeName, columnSize, decimalDigits));
+                columnTable, columnName, columnType, columnSize, decimalDigits));
       }
       return columnFields;
     }

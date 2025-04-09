@@ -40,13 +40,15 @@ public class JDBCMeta extends AbstractRelationalMeta {
 
   private final String databaseQuerySql;
 
+  private final boolean supportCreateDatabase;
+
   private final String databaseDropStatement;
 
   private final String databaseCreateStatement;
 
-  private final String grantPrivilegesStatement;
-
   private final String createTableStatement;
+
+  private final String dropTableStatement;
 
   private final String alterTableAddColumnStatement;
 
@@ -94,10 +96,11 @@ public class JDBCMeta extends AbstractRelationalMeta {
     }
     systemDatabaseName = Arrays.asList(properties.getProperty("system_databases").split(","));
     databaseQuerySql = properties.getProperty("database_query_sql");
+    supportCreateDatabase = Boolean.parseBoolean(properties.getProperty("support_create_database","true"));
     databaseDropStatement = properties.getProperty("drop_database_statement");
     databaseCreateStatement = properties.getProperty("create_database_statement");
-    grantPrivilegesStatement = properties.getProperty("grant_privileges_statement");
     createTableStatement = properties.getProperty("create_table_statement");
+    dropTableStatement = properties.getProperty("drop_table_statement");
     alterTableAddColumnStatement = properties.getProperty("alter_table_add_column_statement");
     alterTableDropColumnStatement = properties.getProperty("alter_table_drop_column_statement");
     queryTableStatement = properties.getProperty("query_table_statement");
@@ -115,7 +118,7 @@ public class JDBCMeta extends AbstractRelationalMeta {
     jdbcSupportBackslash =
         Boolean.parseBoolean(properties.getProperty("jdbc_support_special_char"));
     this.jdbcSupportGetTableNameFromResultSet =
-        Boolean.parseBoolean(properties.getProperty("jdbc_support_get_table_name_from_result_set"));
+        Boolean.parseBoolean(properties.getProperty("jdbc_support_get_table_name_from_result_set","true"));
   }
 
   @Override
@@ -149,6 +152,11 @@ public class JDBCMeta extends AbstractRelationalMeta {
   }
 
   @Override
+  public boolean supportCreateDatabase() {
+    return supportCreateDatabase;
+  }
+
+  @Override
   public String getDropDatabaseStatement() {
     return databaseDropStatement;
   }
@@ -159,13 +167,13 @@ public class JDBCMeta extends AbstractRelationalMeta {
   }
 
   @Override
-  public String getGrantPrivilegesStatement() {
-    return grantPrivilegesStatement;
+  public String getCreateTableStatement() {
+    return createTableStatement;
   }
 
   @Override
-  public String getCreateTableStatement() {
-    return createTableStatement;
+  public String getDropTableStatement(){
+    return dropTableStatement;
   }
 
   @Override

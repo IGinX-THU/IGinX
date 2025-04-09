@@ -20,11 +20,12 @@
 package cn.edu.tsinghua.iginx.relational.strategy;
 
 import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
+import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.relational.meta.AbstractRelationalMeta;
 
 public class MySQLDatabaseStrategy extends AbstractDatabaseStrategy {
-  MySQLDatabaseStrategy(AbstractRelationalMeta relationalMeta) {
-    super(relationalMeta);
+  MySQLDatabaseStrategy(AbstractRelationalMeta relationalMeta, StorageEngineMeta storageEngineMeta) {
+    super(relationalMeta,storageEngineMeta);
   }
 
   @Override

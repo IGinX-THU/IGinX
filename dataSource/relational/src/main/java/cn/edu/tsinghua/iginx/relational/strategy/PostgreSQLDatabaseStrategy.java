@@ -19,12 +19,11 @@
  */
 package cn.edu.tsinghua.iginx.relational.strategy;
 
-import static cn.edu.tsinghua.iginx.relational.tools.Constants.*;
-
+import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.relational.meta.AbstractRelationalMeta;
 
 public class PostgreSQLDatabaseStrategy extends AbstractDatabaseStrategy {
-  public PostgreSQLDatabaseStrategy(AbstractRelationalMeta relationalMeta) {
-    super(relationalMeta);
+  public PostgreSQLDatabaseStrategy(AbstractRelationalMeta relationalMeta, StorageEngineMeta storageEngineMeta) {
+    super(relationalMeta,storageEngineMeta);
   }
 }

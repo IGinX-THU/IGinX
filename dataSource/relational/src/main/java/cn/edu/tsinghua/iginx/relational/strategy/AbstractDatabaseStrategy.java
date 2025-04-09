@@ -33,10 +33,12 @@ import java.util.List;
 import java.util.Map;
 
 public abstract class AbstractDatabaseStrategy implements DatabaseStrategy {
-  private AbstractRelationalMeta relationalMeta;
+  protected final AbstractRelationalMeta relationalMeta;
+  protected final StorageEngineMeta storageEngineMeta;
 
-  public AbstractDatabaseStrategy(AbstractRelationalMeta relationalMeta) {
+  public AbstractDatabaseStrategy(AbstractRelationalMeta relationalMeta, StorageEngineMeta storageEngineMeta) {
     this.relationalMeta = relationalMeta;
+    this.storageEngineMeta = storageEngineMeta;
   }
 
   @Override
@@ -71,13 +73,13 @@ public abstract class AbstractDatabaseStrategy implements DatabaseStrategy {
   }
 
   @Override
-  public String getSchemaPattern(String databaseName) {
-    return relationalMeta.getSchemaPattern();
+  public String getDatabasePattern(String databaseName) {
+    return databaseName;
   }
 
   @Override
-  public String formatConcatStatement(List<String> columns) {
-    return String.format(" CONCAT(%s) ", String.join(", ", columns));
+  public String getSchemaPattern(String databaseName) {
+    return relationalMeta.getSchemaPattern();
   }
 
   @Override

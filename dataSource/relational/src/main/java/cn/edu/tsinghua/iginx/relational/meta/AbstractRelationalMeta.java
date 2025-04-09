@@ -86,11 +86,13 @@ public abstract class AbstractRelationalMeta {
 
   public abstract String getCreateTableStatement();
 
+  public abstract String getDropTableStatement();
+
+  public abstract boolean supportCreateDatabase();
+
   public abstract String getDropDatabaseStatement();
 
   public abstract String getCreateDatabaseStatement();
-
-  public abstract String getGrantPrivilegesStatement();
 
   public abstract String getAlterTableAddColumnStatement();
 

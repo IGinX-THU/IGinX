@@ -22,7 +22,7 @@ package cn.edu.tsinghua.iginx.relational.strategy;
 import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.utils.Pair;
-import com.zaxxer.hikari.HikariConfig;
+
 import java.sql.*;
 import java.util.List;
 import java.util.Map;
@@ -62,6 +62,8 @@ public interface DatabaseStrategy {
    */
   String getDatabaseNameFromResultSet(ResultSet rs) throws SQLException;
 
+  String getDatabasePattern(String databaseName);
+
   /**
    * 获取用于查询数据库模式的模式模式字符串
    *
@@ -69,14 +71,6 @@ public interface DatabaseStrategy {
    * @return 模式模式字符串
    */
   String getSchemaPattern(String databaseName);
-
-  /**
-   * 格式化SQL连接语句，用于将多个列合并成一个表达式
-   *
-   * @param columns 需要连接的列名列表
-   * @return 格式化后的连接表达式
-   */
-  String formatConcatStatement(List<String> columns);
 
   /**
    * 执行批量数据插入操作（Upsert）
@@ -103,14 +97,4 @@ public interface DatabaseStrategy {
    * @return 包含类型转换的平均值表达式
    */
   String getAvgCastExpression(Expression param);
-
-  /**
-   * 获取修改数据源连接配置
-   *
-   * @param config HikariConfig 数据源连接配置
-   * @param databaseName 所要连接的数据库名称
-   * @param meta 存储引擎元数据
-   */
-  default void configureDataSource(
-      HikariConfig config, String databaseName, StorageEngineMeta meta) {}
 }
