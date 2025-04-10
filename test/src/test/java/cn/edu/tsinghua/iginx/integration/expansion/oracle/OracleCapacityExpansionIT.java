@@ -31,10 +31,9 @@ import cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.integration.tool.DBConf;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
+import java.util.HashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.HashMap;
 
 public class OracleCapacityExpansionIT extends BaseCapacityExpansionIT {
 
@@ -53,11 +52,19 @@ public class OracleCapacityExpansionIT extends BaseCapacityExpansionIT {
   public OracleCapacityExpansionIT() {
     super(
         StorageEngineType.relational,
-        new HashMap<Integer, String>() {{
-          put(oriPort, "engine=oracle, username=SYSTEM, password=" + oldPass+", database=ORCLPDB");
-          put(expPort, "engine=oracle, username=nt, password=" + expPort+", database=ORCLPDB");
-          put(readOnlyPort, "engine=oracle, username=observer, password=" + readOnlyPort+", database=ORCLPDB");
-        }},
+        new HashMap<Integer, String>() {
+          {
+            put(
+                oriPort,
+                "engine=oracle, username=SYSTEM, password=" + oldPass + ", database=ORCLPDB");
+            put(expPort, "engine=oracle, username=nt, password=" + expPort + ", database=ORCLPDB");
+            put(
+                readOnlyPort,
+                "engine=oracle, username=observer, password="
+                    + readOnlyPort
+                    + ", database=ORCLPDB");
+          }
+        },
         new OracleHistoryDataGenerator());
     updatedParams.put("password", newPass);
   }
@@ -146,27 +153,27 @@ public class OracleCapacityExpansionIT extends BaseCapacityExpansionIT {
     if (before) {
       expected =
           "Columns:\n"
-              + "+--------------------------------------------------------------------------------------+--------+\n"
-              + "|                                                                                  Path|DataType|\n"
-              + "+--------------------------------------------------------------------------------------+--------+\n"
-              + "|                                                                        ln.wf02.status| BOOLEAN|\n"
-              + "|                                                                       ln.wf02.version|  BINARY|\n"
-              + "|                                                                  nt.wf03.wt01.status2|    LONG|\n"
-              + "|                                                              nt.wf04.wt01.temperature|  DOUBLE|\n"
-              + "+--------------------------------------------------------------------------------------+--------+\n"
+              + "+------------------------+--------+\n"
+              + "|                    Path|DataType|\n"
+              + "+------------------------+--------+\n"
+              + "|          ln.wf02.status| BOOLEAN|\n"
+              + "|         ln.wf02.version|  BINARY|\n"
+              + "|    nt.wf03.wt01.status2|    LONG|\n"
+              + "|nt.wf04.wt01.temperature|  DOUBLE|\n"
+              + "+------------------------+--------+\n"
               + "Total line number = 4\n";
     } else { // 添加schemaPrefix为p1，dataPrefix为nt.wf03的数据源
       expected =
           "Columns:\n"
-              + "+--------------------------------------------------------------------------------------+--------+\n"
-              + "|                                                                                  Path|DataType|\n"
-              + "+--------------------------------------------------------------------------------------+--------+\n"
-              + "|                                                                        ln.wf02.status| BOOLEAN|\n"
-              + "|                                                                       ln.wf02.version|  BINARY|\n"
-              + "|                                                                  nt.wf03.wt01.status2|    LONG|\n"
-              + "|                                                              nt.wf04.wt01.temperature|  DOUBLE|\n"
-              + "|                                                               p1.nt.wf03.wt01.status2|    LONG|\n"
-              + "+--------------------------------------------------------------------------------------+--------+\n"
+              + "+------------------------+--------+\n"
+              + "|                    Path|DataType|\n"
+              + "+------------------------+--------+\n"
+              + "|          ln.wf02.status| BOOLEAN|\n"
+              + "|         ln.wf02.version|  BINARY|\n"
+              + "|    nt.wf03.wt01.status2|    LONG|\n"
+              + "|nt.wf04.wt01.temperature|  DOUBLE|\n"
+              + "| p1.nt.wf03.wt01.status2|    LONG|\n"
+              + "+------------------------+--------+\n"
               + "Total line number = 5\n";
     }
     SQLTestTools.executeAndCompare(session, statement, expected);

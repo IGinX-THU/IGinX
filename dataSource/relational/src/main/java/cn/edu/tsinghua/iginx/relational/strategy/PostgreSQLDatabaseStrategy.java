@@ -23,7 +23,8 @@ import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.relational.meta.AbstractRelationalMeta;
 
 public class PostgreSQLDatabaseStrategy extends AbstractDatabaseStrategy {
-  public PostgreSQLDatabaseStrategy(AbstractRelationalMeta relationalMeta, StorageEngineMeta storageEngineMeta) {
-    super(relationalMeta,storageEngineMeta);
+  public PostgreSQLDatabaseStrategy(
+      AbstractRelationalMeta relationalMeta, StorageEngineMeta storageEngineMeta) {
+    super(relationalMeta, storageEngineMeta);
   }
 }

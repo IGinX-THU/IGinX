@@ -19,6 +19,11 @@
  */
 package cn.edu.tsinghua.iginx.relational;
 
+import static cn.edu.tsinghua.iginx.constant.GlobalConstant.SEPARATOR;
+import static cn.edu.tsinghua.iginx.relational.tools.Constants.*;
+import static cn.edu.tsinghua.iginx.relational.tools.TagKVUtils.splitFullName;
+import static cn.edu.tsinghua.iginx.relational.tools.TagKVUtils.toFullName;
+
 import cn.edu.tsinghua.iginx.engine.logical.utils.LogicalFilterUtils;
 import cn.edu.tsinghua.iginx.engine.logical.utils.OperatorUtils;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
@@ -67,10 +72,6 @@ import cn.edu.tsinghua.iginx.utils.StringUtils;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import com.zaxxer.hikari.pool.HikariPool;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URISyntaxException;
@@ -84,11 +85,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-
-import static cn.edu.tsinghua.iginx.constant.GlobalConstant.SEPARATOR;
-import static cn.edu.tsinghua.iginx.relational.tools.Constants.*;
-import static cn.edu.tsinghua.iginx.relational.tools.TagKVUtils.splitFullName;
-import static cn.edu.tsinghua.iginx.relational.tools.TagKVUtils.toFullName;
+import javax.annotation.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class RelationalStorage implements IStorage {
 
@@ -127,7 +126,8 @@ public class RelationalStorage implements IStorage {
       } catch (SQLException ignored) {
       }
     } else {
-      if (databaseName.equals(relationalMeta.getDefaultDatabaseName()) || databaseName.matches("unit\\d{10}")) {
+      if (databaseName.equals(relationalMeta.getDefaultDatabaseName())
+          || databaseName.matches("unit\\d{10}")) {
         databaseName = "";
       }
     }
@@ -260,6 +260,7 @@ public class RelationalStorage implements IStorage {
       DriverManager.getConnection(getConnectUrl());
       return true;
     } catch (SQLException | ClassNotFoundException e) {
+      LOGGER.error("Cannot connect to {}", meta, e);
       return false;
     }
   }
@@ -272,10 +273,11 @@ public class RelationalStorage implements IStorage {
   private List<String> getDatabaseNames(boolean isDummy) throws SQLException {
     List<String> databaseNames = new ArrayList<>();
     String DefaultDatabaseName = relationalMeta.getDefaultDatabaseName();
-    String query = isDummy ? relationalMeta.getDummyDatabaseQuerySql() : relationalMeta.getDatabaseQuerySql();
+    String query =
+        isDummy ? relationalMeta.getDummyDatabaseQuerySql() : relationalMeta.getDatabaseQuerySql();
     try (Connection conn = getConnection(DefaultDatabaseName);
-         Statement statement = conn.createStatement();
-         ResultSet rs = statement.executeQuery(query)) {
+        Statement statement = conn.createStatement();
+        ResultSet rs = statement.executeQuery(query)) {
       while (rs.next()) {
         String databaseName = dbStrategy.getDatabaseNameFromResultSet(rs);
         if (relationalMeta.getSystemDatabaseName().contains(databaseName)
@@ -304,7 +306,9 @@ public class RelationalStorage implements IStorage {
       }
       DatabaseMetaData databaseMetaData = conn.getMetaData();
       List<String> tableNames = new ArrayList<>();
-      try (ResultSet rs = databaseMetaData.getTables(databasePattern, schemaPattern, tablePattern, new String[]{"TABLE"})) {
+      try (ResultSet rs =
+          databaseMetaData.getTables(
+              databasePattern, schemaPattern, tablePattern, new String[] {"TABLE"})) {
         while (rs.next()) {
           String tableName = rs.getString("TABLE_NAME");
           if (!isDummy) {
@@ -334,8 +338,9 @@ public class RelationalStorage implements IStorage {
       }
       List<ColumnField> columnFields = new ArrayList<>();
       DatabaseMetaData databaseMetaData = conn.getMetaData();
-      try (ResultSet rs = databaseMetaData.getColumns(databasePattern, schemaPattern, tableName,
-          columnNamePattern)) {
+      try (ResultSet rs =
+          databaseMetaData.getColumns(
+              databasePattern, schemaPattern, tableName, columnNamePattern)) {
         while (rs.next()) {
           String columnName = rs.getString("COLUMN_NAME");
           String columnType = rs.getString("TYPE_NAME");
@@ -346,8 +351,7 @@ public class RelationalStorage implements IStorage {
           int columnSize = rs.getInt("COLUMN_SIZE");
           int decimalDigits = rs.getInt("DECIMAL_DIGITS");
           columnFields.add(
-              new ColumnField(
-                  columnTable, columnName, columnType, columnSize, decimalDigits));
+              new ColumnField(columnTable, columnName, columnType, columnSize, decimalDigits));
         }
       }
       return columnFields;
@@ -543,7 +547,8 @@ public class RelationalStorage implements IStorage {
 
   @Override
   public boolean isSupportProjectWithSelect() {
-    return relationalMeta.supportCreateDatabase() && relationalMeta.jdbcSupportGetTableNameFromResultSet();
+    return relationalMeta.supportCreateDatabase()
+        && relationalMeta.jdbcSupportGetTableNameFromResultSet();
   }
 
   @Override
@@ -554,11 +559,12 @@ public class RelationalStorage implements IStorage {
 
   // TODO: getProjectWithFilterSQL 存在bug，多表 full-join 时，key可能为 null，造成结果不完整
 
-  /**
-   * 获取ProjectWithFilter中将所有table join到一起进行查询的SQL语句
-   */
-  private String getProjectWithFilterSQL(String databaseName,
-                                         Filter filter, Map<String, String> tableNameToColumnNames, boolean isAgg) {
+  /** 获取ProjectWithFilter中将所有table join到一起进行查询的SQL语句 */
+  private String getProjectWithFilterSQL(
+      String databaseName,
+      Filter filter,
+      Map<String, String> tableNameToColumnNames,
+      boolean isAgg) {
     List<String> tableNames = new ArrayList<>();
     List<List<String>> fullColumnNamesList = new ArrayList<>();
     List<List<String>> fullColumnNamesListForExpandFilter = new ArrayList<>();
@@ -743,7 +749,7 @@ public class RelationalStorage implements IStorage {
       // 如果table>1的情况下存在Value或Path Filter，说明filter的匹配需要跨table，此时需要将所有table join到一起进行查询
       if (FilterUtils.getAllPathsFromFilter(filter).stream().noneMatch(s -> s.contains("*"))
           && !(tableNameToColumnNames.size() > 1
-          && filterContainsType(Arrays.asList(FilterType.Value, FilterType.Path), filter))) {
+              && filterContainsType(Arrays.asList(FilterType.Value, FilterType.Path), filter))) {
         for (Map.Entry<String, String> entry : tableNameToColumnNames.entrySet()) {
           String tableName = entry.getKey();
           tableName = reshapeTableNameBeforeQuery(tableName, databaseName);
@@ -779,7 +785,8 @@ public class RelationalStorage implements IStorage {
       }
       // table中带有了通配符，将所有table都join到一起进行查询，以便输入filter.
       else if (!tableNameToColumnNames.isEmpty()) {
-        statement = getProjectWithFilterSQL(databaseName, filter.copy(), tableNameToColumnNames, false);
+        statement =
+            getProjectWithFilterSQL(databaseName, filter.copy(), tableNameToColumnNames, false);
 
         ResultSet rs = null;
         try {
@@ -1268,7 +1275,8 @@ public class RelationalStorage implements IStorage {
 
   @Override
   public boolean isSupportProjectWithAgg(Operator agg, DataArea dataArea, boolean isDummy) {
-    if (!(relationalMeta.supportCreateDatabase() && relationalMeta.jdbcSupportGetTableNameFromResultSet())) {
+    if (!(relationalMeta.supportCreateDatabase()
+        && relationalMeta.jdbcSupportGetTableNameFromResultSet())) {
       return false;
     }
     if (agg.getType() != OperatorType.GroupBy && agg.getType() != OperatorType.SetTransform) {
@@ -1317,16 +1325,13 @@ public class RelationalStorage implements IStorage {
             }
 
             @Override
-            public void visit(BinaryExpression expression) {
-            }
+            public void visit(BinaryExpression expression) {}
 
             @Override
-            public void visit(BracketExpression expression) {
-            }
+            public void visit(BracketExpression expression) {}
 
             @Override
-            public void visit(ConstantExpression expression) {
-            }
+            public void visit(ConstantExpression expression) {}
 
             @Override
             public void visit(FromValueExpression expression) {
@@ -1339,12 +1344,10 @@ public class RelationalStorage implements IStorage {
             }
 
             @Override
-            public void visit(MultipleExpression expression) {
-            }
+            public void visit(MultipleExpression expression) {}
 
             @Override
-            public void visit(UnaryExpression expression) {
-            }
+            public void visit(UnaryExpression expression) {}
 
             @Override
             public void visit(CaseWhenExpression expression) {
@@ -1352,8 +1355,7 @@ public class RelationalStorage implements IStorage {
             }
 
             @Override
-            public void visit(KeyExpression expression) {
-            }
+            public void visit(KeyExpression expression) {}
 
             @Override
             public void visit(SequenceExpression expression) {
@@ -1395,7 +1397,8 @@ public class RelationalStorage implements IStorage {
           splitAndMergeQueryPatterns(databaseName, project.getPatterns());
 
       String statement =
-          getProjectWithFilterSQL(databaseName, select.getFilter().copy(), tableNameToColumnNames, true);
+          getProjectWithFilterSQL(
+              databaseName, select.getFilter().copy(), tableNameToColumnNames, true);
       statement = statement.substring(0, statement.length() - 1); // 去掉最后的分号
       Map<String, String> fullName2Name = new HashMap<>();
       statement =
@@ -1526,8 +1529,8 @@ public class RelationalStorage implements IStorage {
       statement +=
           " GROUP BY "
               + gbc.stream()
-              .map(e -> exprAdapt(ExprUtils.copy(e)).getCalColumnName())
-              .collect(Collectors.joining(", "));
+                  .map(e -> exprAdapt(ExprUtils.copy(e)).getCalColumnName())
+                  .collect(Collectors.joining(", "));
     }
     statement += ";";
     return statement;
@@ -1544,8 +1547,7 @@ public class RelationalStorage implements IStorage {
     expr.accept(
         new ExpressionVisitor() {
           @Override
-          public void visit(BaseExpression expression) {
-          }
+          public void visit(BaseExpression expression) {}
 
           @Override
           public void visit(BinaryExpression expression) {
@@ -1571,12 +1573,10 @@ public class RelationalStorage implements IStorage {
           }
 
           @Override
-          public void visit(ConstantExpression expression) {
-          }
+          public void visit(ConstantExpression expression) {}
 
           @Override
-          public void visit(FromValueExpression expression) {
-          }
+          public void visit(FromValueExpression expression) {}
 
           @Override
           public void visit(FuncExpression expression) {
@@ -1618,24 +1618,19 @@ public class RelationalStorage implements IStorage {
           }
 
           @Override
-          public void visit(CaseWhenExpression expression) {
-          }
+          public void visit(CaseWhenExpression expression) {}
 
           @Override
-          public void visit(KeyExpression expression) {
-          }
+          public void visit(KeyExpression expression) {}
 
           @Override
-          public void visit(SequenceExpression expression) {
-          }
+          public void visit(SequenceExpression expression) {}
         });
 
     return expr;
   }
 
-  /**
-   * 表达式修改成取回到IGinX的形式，TagKV的形式要是{t=v1, t2=v2}
-   */
+  /** 表达式修改成取回到IGinX的形式，TagKV的形式要是{t=v1, t2=v2} */
   private Expression exprToIGinX(Expression expr) {
     expr.accept(
         new ExpressionVisitor() {
@@ -1662,44 +1657,34 @@ public class RelationalStorage implements IStorage {
           }
 
           @Override
-          public void visit(BinaryExpression expression) {
-          }
+          public void visit(BinaryExpression expression) {}
 
           @Override
-          public void visit(BracketExpression expression) {
-          }
+          public void visit(BracketExpression expression) {}
 
           @Override
-          public void visit(ConstantExpression expression) {
-          }
+          public void visit(ConstantExpression expression) {}
 
           @Override
-          public void visit(FromValueExpression expression) {
-          }
+          public void visit(FromValueExpression expression) {}
 
           @Override
-          public void visit(FuncExpression expression) {
-          }
+          public void visit(FuncExpression expression) {}
 
           @Override
-          public void visit(MultipleExpression expression) {
-          }
+          public void visit(MultipleExpression expression) {}
 
           @Override
-          public void visit(UnaryExpression expression) {
-          }
+          public void visit(UnaryExpression expression) {}
 
           @Override
-          public void visit(CaseWhenExpression expression) {
-          }
+          public void visit(CaseWhenExpression expression) {}
 
           @Override
-          public void visit(KeyExpression expression) {
-          }
+          public void visit(KeyExpression expression) {}
 
           @Override
-          public void visit(SequenceExpression expression) {
-          }
+          public void visit(SequenceExpression expression) {}
         });
     return expr;
   }
@@ -1824,7 +1809,7 @@ public class RelationalStorage implements IStorage {
         // 如果table没有带通配符，那直接简单构建起查询语句即可
         if (!filter.toString().contains("*")
             && !(tableNameToColumnNames.size() > 1
-            && filterContainsType(Arrays.asList(FilterType.Value, FilterType.Path), filter))) {
+                && filterContainsType(Arrays.asList(FilterType.Value, FilterType.Path), filter))) {
           Filter expandFilter =
               expandFilter(
                   cutFilterDatabaseNameForDummy(filter.copy(), databaseName),
@@ -1970,7 +1955,8 @@ public class RelationalStorage implements IStorage {
             // 删除整个数据库
             closeConnection(databaseName);
             Connection defaultConn =
-                getConnection(relationalMeta.getDefaultDatabaseName()); // 正在使用的数据库无法被删除，因此需要切换到默认数据库
+                getConnection(
+                    relationalMeta.getDefaultDatabaseName()); // 正在使用的数据库无法被删除，因此需要切换到默认数据库
             if (defaultConn != null) {
               try {
                 stmt = defaultConn.createStatement();
@@ -2000,10 +1986,11 @@ public class RelationalStorage implements IStorage {
             tables = getTables(databaseName, "%", false);
             if (!tables.isEmpty()) {
               String statementTemplate = relationalMeta.getDropTableStatement();
-              List<String> statements = tables.stream()
-                  .map(table -> reshapeTableNameBeforeQuery(table, databaseName))
-                  .map(table -> String.format(statementTemplate, getQuotName(table)))
-                  .collect(Collectors.toList());
+              List<String> statements =
+                  tables.stream()
+                      .map(table -> reshapeTableNameBeforeQuery(table, databaseName))
+                      .map(table -> String.format(statementTemplate, getQuotName(table)))
+                      .collect(Collectors.toList());
               LOGGER.info("[Delete] execute delete: {}", statements);
               for (String dropTableStatement : statements) {
                 stmt.addBatch(dropTableStatement);
@@ -2214,12 +2201,14 @@ public class RelationalStorage implements IStorage {
       List<ColumnField> columnFieldList;
       if (relationalMeta.jdbcSupportSpecialChar()) {
         columnFieldList =
-            getColumns(databaseName, reformatForJDBC(tableName), reformatForJDBC(columnNames), false);
+            getColumns(
+                databaseName, reformatForJDBC(tableName), reformatForJDBC(columnNames), false);
       } else {
         columnFieldList = getColumns(databaseName, "%", "%", false);
       }
 
-      List<Pattern> patternList = getRegexPatternByName(databaseName, tableName, columnNames, false);
+      List<Pattern> patternList =
+          getRegexPatternByName(databaseName, tableName, columnNames, false);
       Pattern tableNamePattern = patternList.get(0), columnNamePattern = patternList.get(1);
 
       for (ColumnField columnField : columnFieldList) {
@@ -2256,9 +2245,7 @@ public class RelationalStorage implements IStorage {
     return tableNameToColumnNames;
   }
 
-  /**
-   * JDBC中的路径中的 . 不需要转义
-   */
+  /** JDBC中的路径中的 . 不需要转义 */
   private String reformatForJDBC(String path) {
     return StringUtils.reformatPath(path).replace("\\.", ".");
   }
@@ -2742,8 +2729,7 @@ public class RelationalStorage implements IStorage {
           }
 
           @Override
-          public void visit(BracketExpression expression) {
-          }
+          public void visit(BracketExpression expression) {}
 
           @Override
           public void visit(ConstantExpression expression) {
@@ -2752,12 +2738,10 @@ public class RelationalStorage implements IStorage {
           }
 
           @Override
-          public void visit(FromValueExpression expression) {
-          }
+          public void visit(FromValueExpression expression) {}
 
           @Override
-          public void visit(FuncExpression expression) {
-          }
+          public void visit(FuncExpression expression) {}
 
           @Override
           public void visit(MultipleExpression expression) {
@@ -2767,20 +2751,16 @@ public class RelationalStorage implements IStorage {
           }
 
           @Override
-          public void visit(UnaryExpression expression) {
-          }
+          public void visit(UnaryExpression expression) {}
 
           @Override
-          public void visit(CaseWhenExpression expression) {
-          }
+          public void visit(CaseWhenExpression expression) {}
 
           @Override
-          public void visit(KeyExpression expression) {
-          }
+          public void visit(KeyExpression expression) {}
 
           @Override
-          public void visit(SequenceExpression expression) {
-          }
+          public void visit(SequenceExpression expression) {}
         });
 
     return isDouble[0];
@@ -2795,44 +2775,34 @@ public class RelationalStorage implements IStorage {
           }
 
           @Override
-          public void visit(BinaryExpression expression) {
-          }
+          public void visit(BinaryExpression expression) {}
 
           @Override
-          public void visit(BracketExpression expression) {
-          }
+          public void visit(BracketExpression expression) {}
 
           @Override
-          public void visit(ConstantExpression expression) {
-          }
+          public void visit(ConstantExpression expression) {}
 
           @Override
-          public void visit(FromValueExpression expression) {
-          }
+          public void visit(FromValueExpression expression) {}
 
           @Override
-          public void visit(FuncExpression expression) {
-          }
+          public void visit(FuncExpression expression) {}
 
           @Override
-          public void visit(MultipleExpression expression) {
-          }
+          public void visit(MultipleExpression expression) {}
 
           @Override
-          public void visit(UnaryExpression expression) {
-          }
+          public void visit(UnaryExpression expression) {}
 
           @Override
-          public void visit(CaseWhenExpression expression) {
-          }
+          public void visit(CaseWhenExpression expression) {}
 
           @Override
-          public void visit(KeyExpression expression) {
-          }
+          public void visit(KeyExpression expression) {}
 
           @Override
-          public void visit(SequenceExpression expression) {
-          }
+          public void visit(SequenceExpression expression) {}
         });
   }
 
@@ -2872,44 +2842,34 @@ public class RelationalStorage implements IStorage {
             }
 
             @Override
-            public void visit(BinaryExpression expression) {
-            }
+            public void visit(BinaryExpression expression) {}
 
             @Override
-            public void visit(BracketExpression expression) {
-            }
+            public void visit(BracketExpression expression) {}
 
             @Override
-            public void visit(ConstantExpression expression) {
-            }
+            public void visit(ConstantExpression expression) {}
 
             @Override
-            public void visit(FromValueExpression expression) {
-            }
+            public void visit(FromValueExpression expression) {}
 
             @Override
-            public void visit(FuncExpression expression) {
-            }
+            public void visit(FuncExpression expression) {}
 
             @Override
-            public void visit(MultipleExpression expression) {
-            }
+            public void visit(MultipleExpression expression) {}
 
             @Override
-            public void visit(UnaryExpression expression) {
-            }
+            public void visit(UnaryExpression expression) {}
 
             @Override
-            public void visit(CaseWhenExpression expression) {
-            }
+            public void visit(CaseWhenExpression expression) {}
 
             @Override
-            public void visit(KeyExpression expression) {
-            }
+            public void visit(KeyExpression expression) {}
 
             @Override
-            public void visit(SequenceExpression expression) {
-            }
+            public void visit(SequenceExpression expression) {}
           });
 
       if (be[0] == null) {

@@ -26,7 +26,6 @@ import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.relational.meta.AbstractRelationalMeta;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import com.zaxxer.hikari.HikariConfig;
-
 import java.sql.*;
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -38,7 +37,8 @@ public abstract class AbstractDatabaseStrategy implements DatabaseStrategy {
   protected final AbstractRelationalMeta relationalMeta;
   protected final StorageEngineMeta storageEngineMeta;
 
-  public AbstractDatabaseStrategy(AbstractRelationalMeta relationalMeta, StorageEngineMeta storageEngineMeta) {
+  public AbstractDatabaseStrategy(
+      AbstractRelationalMeta relationalMeta, StorageEngineMeta storageEngineMeta) {
     this.relationalMeta = relationalMeta;
     this.storageEngineMeta = storageEngineMeta;
   }

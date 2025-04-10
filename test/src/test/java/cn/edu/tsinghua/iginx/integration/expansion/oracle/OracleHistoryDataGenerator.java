@@ -61,10 +61,7 @@ public class OracleHistoryDataGenerator extends BaseHistoryDataGenerator {
       String url;
 
       // TODO 获取docker container 虚拟IP 172.17.0.2
-      url =
-          String.format(
-              "jdbc:oracle:thin:system/ORCLPWD@127.0.0.1:%d/%s",
-              port, "ORCLPDB");
+      url = String.format("jdbc:oracle:thin:system/ORCLPWD@127.0.0.1:%d/%s", port, "ORCLPDB");
       Class.forName("oracle.jdbc.driver.OracleDriver");
       return DriverManager.getConnection(url);
     } catch (SQLException | ClassNotFoundException e) {
@@ -207,25 +204,29 @@ public class OracleHistoryDataGenerator extends BaseHistoryDataGenerator {
         new ArrayList<>(Collections.singletonList(DataType.FLOAT)),
         Constant.READ_ONLY_FLOAT_VALUES_LIST);
     // create another user who can read data of tm user
-    try(Connection connection = connect(Constant.readOnlyPort);
+    try (Connection connection = connect(Constant.readOnlyPort);
         Statement stmt = connection.createStatement()) {
       String createDatabaseSql =
           String.format(CREATE_DATABASE_STATEMENT, getQuotName("observer"), Constant.readOnlyPort);
-      LOGGER.info("create another user in {} with stmt: {}", Constant.readOnlyPort, createDatabaseSql);
+      LOGGER.info(
+          "create another user in {} with stmt: {}", Constant.readOnlyPort, createDatabaseSql);
       stmt.execute(createDatabaseSql);
 
-      String grantDatabaseSql =
-          String.format(GRANT_DATABASE_STATEMENT, getQuotName("observer"));
+      String grantDatabaseSql = String.format(GRANT_DATABASE_STATEMENT, getQuotName("observer"));
       LOGGER.info("grant permission to observer with stmt: {}", grantDatabaseSql);
       stmt.execute(grantDatabaseSql);
 
       String grantTableSql =
-          String.format("GRANT SELECT ON %s.%s TO %s", getQuotName("tm"),getQuotName("wf05.wt01"),getQuotName("observer"));
+          String.format(
+              "GRANT SELECT ON %s.%s TO %s",
+              getQuotName("tm"), getQuotName("wf05.wt01"), getQuotName("observer"));
       LOGGER.info("grant select permission to observer with stmt: {}", grantTableSql);
       stmt.execute(grantTableSql);
 
       String grantTable2Sql =
-          String.format("GRANT SELECT ON %s.%s TO %s", getQuotName("tm"),getQuotName("wf05.wt02"),getQuotName("observer"));
+          String.format(
+              "GRANT SELECT ON %s.%s TO %s",
+              getQuotName("tm"), getQuotName("wf05.wt02"), getQuotName("observer"));
       LOGGER.info("grant select permission to observer with stmt: {}", grantTable2Sql);
       stmt.execute(grantTable2Sql);
     } catch (SQLException e) {

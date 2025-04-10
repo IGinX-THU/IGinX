@@ -24,20 +24,22 @@ import cn.edu.tsinghua.iginx.relational.meta.AbstractRelationalMeta;
 
 public class DatabaseStrategyFactory {
   public static DatabaseStrategy getStrategy(
-      String engineName, AbstractRelationalMeta relationalMeta, StorageEngineMeta storageEngineMeta) {
+      String engineName,
+      AbstractRelationalMeta relationalMeta,
+      StorageEngineMeta storageEngineMeta) {
     if (engineName == null) {
       throw new IllegalArgumentException("Engine name cannot be null");
     }
 
     switch (engineName.toLowerCase()) {
       case "oracle":
-        return new OracleDatabaseStrategy(relationalMeta,storageEngineMeta);
+        return new OracleDatabaseStrategy(relationalMeta, storageEngineMeta);
       case "dameng":
         return new DamengDatabaseStrategy(relationalMeta);
       case "mysql":
-        return new MySQLDatabaseStrategy(relationalMeta,storageEngineMeta);
+        return new MySQLDatabaseStrategy(relationalMeta, storageEngineMeta);
       case "postgresql":
-        return new PostgreSQLDatabaseStrategy(relationalMeta,storageEngineMeta);
+        return new PostgreSQLDatabaseStrategy(relationalMeta, storageEngineMeta);
       default:
         throw new UnsupportedOperationException("Unsupported engine: " + engineName);
     }

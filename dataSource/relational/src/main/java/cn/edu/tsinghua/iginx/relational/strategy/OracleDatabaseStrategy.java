@@ -27,7 +27,7 @@ import cn.edu.tsinghua.iginx.relational.meta.AbstractRelationalMeta;
 import cn.edu.tsinghua.iginx.relational.tools.ColumnField;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
-
+import com.zaxxer.hikari.HikariConfig;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -37,8 +37,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-
-import com.zaxxer.hikari.HikariConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,8 +45,9 @@ public class OracleDatabaseStrategy extends AbstractDatabaseStrategy {
 
   private final OracleDataTypeTransformer dataTypeTransformer;
 
-  public OracleDatabaseStrategy(AbstractRelationalMeta relationalMeta, StorageEngineMeta storageEngineMeta) {
-    super(relationalMeta,storageEngineMeta);
+  public OracleDatabaseStrategy(
+      AbstractRelationalMeta relationalMeta, StorageEngineMeta storageEngineMeta) {
+    super(relationalMeta, storageEngineMeta);
     this.dataTypeTransformer = OracleDataTypeTransformer.getInstance();
   }
 
@@ -75,7 +74,8 @@ public class OracleDatabaseStrategy extends AbstractDatabaseStrategy {
     config.setUsername(null);
     config.setPassword(null);
     if (!databaseName.isEmpty()) {
-      config.setConnectionInitSql("ALTER SESSION SET CURRENT_SCHEMA = " + getQuotName(databaseName));
+      config.setConnectionInitSql(
+          "ALTER SESSION SET CURRENT_SCHEMA = " + getQuotName(databaseName));
     }
   }
 
@@ -86,7 +86,7 @@ public class OracleDatabaseStrategy extends AbstractDatabaseStrategy {
 
   @Override
   public String getSchemaPattern(String databaseName, boolean isDummy) {
-    if(isDummy) {
+    if (isDummy) {
       return databaseName;
     }
     return storageEngineMeta.getExtraParams().get(USERNAME);
@@ -297,20 +297,18 @@ public class OracleDatabaseStrategy extends AbstractDatabaseStrategy {
     }
   }
 
-  public Map<String, ColumnField> getColumnMap(
-      Connection conn, String tableName) throws SQLException {
+  public Map<String, ColumnField> getColumnMap(Connection conn, String tableName)
+      throws SQLException {
     List<ColumnField> columnFieldList = getColumns(conn, tableName);
     return columnFieldList.stream()
         .collect(Collectors.toMap(ColumnField::getColumnName, field -> field));
   }
 
-  private List<ColumnField> getColumns(
-      Connection conn, String tableName)
-      throws SQLException {
+  private List<ColumnField> getColumns(Connection conn, String tableName) throws SQLException {
     DatabaseMetaData databaseMetaData = conn.getMetaData();
     try (ResultSet rs =
         databaseMetaData.getColumns(
-            getDatabasePattern(null,false), getSchemaPattern(null,false), tableName, null)) {
+            getDatabasePattern(null, false), getSchemaPattern(null, false), tableName, null)) {
       List<ColumnField> columnFields = new ArrayList<>();
       while (rs.next()) {
         String columnName = rs.getString("COLUMN_NAME");
@@ -319,8 +317,7 @@ public class OracleDatabaseStrategy extends AbstractDatabaseStrategy {
         int columnSize = rs.getInt("COLUMN_SIZE");
         int decimalDigits = rs.getInt("DECIMAL_DIGITS");
         columnFields.add(
-            new ColumnField(
-                columnTable, columnName, columnType, columnSize, decimalDigits));
+            new ColumnField(columnTable, columnName, columnType, columnSize, decimalDigits));
       }
       return columnFields;
     }

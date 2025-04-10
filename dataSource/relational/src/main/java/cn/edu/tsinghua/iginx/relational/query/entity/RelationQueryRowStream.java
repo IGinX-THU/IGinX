@@ -191,9 +191,7 @@ public class RelationQueryRowStream implements RowStream {
         Pair<String, Map<String, String>> namesAndTags = splitFullName(columnName);
         Field field;
         DataType type =
-            relationalMeta
-                .getDataTypeTransformer()
-                .fromEngineType(columnType, precision, scale);
+            relationalMeta.getDataTypeTransformer().fromEngineType(columnType, precision, scale);
         if (isAgg
             && sumResType != null
             && sumResType.containsKey(fullName2Name.getOrDefault(columnName, columnName))) {
@@ -202,7 +200,8 @@ public class RelationQueryRowStream implements RowStream {
         String databaseName = databaseNameList.get(i);
         String path;
         if (isDummy) {
-          path = databaseName
+          path =
+              databaseName
                   + SEPARATOR
                   + (isAgg || !relationalMeta.jdbcSupportGetTableNameFromResultSet()
                       ? ""
@@ -214,8 +213,8 @@ public class RelationQueryRowStream implements RowStream {
                       ? ""
                       : tableName + SEPARATOR)
                   + namesAndTags.k;
-          if(!relationalMeta.supportCreateDatabase()){
-            path = path.substring(databaseName.length()+1);
+          if (!relationalMeta.supportCreateDatabase()) {
+            path = path.substring(databaseName.length() + 1);
           }
         }
 

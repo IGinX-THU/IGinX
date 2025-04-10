@@ -99,7 +99,8 @@ public class JDBCMeta extends AbstractRelationalMeta {
     systemDatabaseName = Arrays.asList(properties.getProperty("system_databases").split(","));
     databaseQuerySql = properties.getProperty("database_query_sql");
     dummyDatabaseQuerySql = properties.getProperty("dummy_database_query_sql", databaseQuerySql);
-    supportCreateDatabase = Boolean.parseBoolean(properties.getProperty("support_create_database","true"));
+    supportCreateDatabase =
+        Boolean.parseBoolean(properties.getProperty("support_create_database", "true"));
     databaseDropStatement = properties.getProperty("drop_database_statement");
     databaseCreateStatement = properties.getProperty("create_database_statement");
     createTableStatement = properties.getProperty("create_table_statement");
@@ -121,7 +122,8 @@ public class JDBCMeta extends AbstractRelationalMeta {
     jdbcSupportBackslash =
         Boolean.parseBoolean(properties.getProperty("jdbc_support_special_char"));
     this.jdbcSupportGetTableNameFromResultSet =
-        Boolean.parseBoolean(properties.getProperty("jdbc_support_get_table_name_from_result_set","true"));
+        Boolean.parseBoolean(
+            properties.getProperty("jdbc_support_get_table_name_from_result_set", "true"));
   }
 
   @Override
@@ -180,7 +182,7 @@ public class JDBCMeta extends AbstractRelationalMeta {
   }
 
   @Override
-  public String getDropTableStatement(){
+  public String getDropTableStatement() {
     return dropTableStatement;
   }
 

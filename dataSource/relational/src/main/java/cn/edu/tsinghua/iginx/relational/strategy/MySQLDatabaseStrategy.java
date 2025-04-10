@@ -24,8 +24,9 @@ import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.relational.meta.AbstractRelationalMeta;
 
 public class MySQLDatabaseStrategy extends AbstractDatabaseStrategy {
-  MySQLDatabaseStrategy(AbstractRelationalMeta relationalMeta, StorageEngineMeta storageEngineMeta) {
-    super(relationalMeta,storageEngineMeta);
+  MySQLDatabaseStrategy(
+      AbstractRelationalMeta relationalMeta, StorageEngineMeta storageEngineMeta) {
+    super(relationalMeta, storageEngineMeta);
   }
 
   @Override

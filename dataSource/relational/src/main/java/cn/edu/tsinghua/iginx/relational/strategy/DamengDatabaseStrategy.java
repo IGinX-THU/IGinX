@@ -26,12 +26,11 @@ import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.relational.meta.AbstractRelationalMeta;
 import cn.edu.tsinghua.iginx.relational.tools.ColumnField;
 import cn.edu.tsinghua.iginx.utils.Pair;
+import com.zaxxer.hikari.HikariConfig;
 import java.sql.*;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-
-import com.zaxxer.hikari.HikariConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -314,8 +313,7 @@ public class DamengDatabaseStrategy implements DatabaseStrategy {
 
       columnMap.put(
           columnName,
-          new ColumnField(
-              columnTable, columnName, columnType, columnSize, decimalDigits));
+          new ColumnField(columnTable, columnName, columnType, columnSize, decimalDigits));
     }
 
     rs.close();
