@@ -45,6 +45,8 @@ public class OracleDataTypeTransformer implements IDataTypeTransformer {
           }
         }
         return DOUBLE;
+      case "FLOAT":
+        return DOUBLE;
       case "BINARY_FLOAT":
         return FLOAT;
       case "BINARY_DOUBLE":

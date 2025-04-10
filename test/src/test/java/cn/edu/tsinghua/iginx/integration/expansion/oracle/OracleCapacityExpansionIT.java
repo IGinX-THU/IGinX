@@ -56,7 +56,7 @@ public class OracleCapacityExpansionIT extends BaseCapacityExpansionIT {
         new HashMap<Integer, String>() {{
           put(oriPort, "engine=oracle, username=SYSTEM, password=" + oldPass+", database=ORCLPDB");
           put(expPort, "engine=oracle, username=nt, password=" + expPort+", database=ORCLPDB");
-          put(readOnlyPort, "engine=oracle, username=tm, password=" + readOnlyPort+", database=ORCLPDB");
+          put(readOnlyPort, "engine=oracle, username=observer, password=" + readOnlyPort+", database=ORCLPDB");
         }},
         new OracleHistoryDataGenerator());
     updatedParams.put("password", newPass);
