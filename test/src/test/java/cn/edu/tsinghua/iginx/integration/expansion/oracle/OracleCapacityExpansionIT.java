@@ -31,6 +31,11 @@ import cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.integration.tool.DBConf;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.HashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,8 +57,8 @@ public class OracleCapacityExpansionIT extends BaseCapacityExpansionIT {
     portsToUsername.put(expPort, "nt");
     portsToUsername.put(readOnlyPort, "observer");
     portsToPassword.put(oriPort, "ORCLPWD");
-    portsToUsername.put(expPort, String.valueOf(expPort));
-    portsToUsername.put(readOnlyPort, String.valueOf(readOnlyPort));
+    portsToPassword.put(expPort, String.valueOf(expPort));
+    portsToPassword.put(readOnlyPort, String.valueOf(readOnlyPort));
   }
 
   public OracleCapacityExpansionIT() {
@@ -109,15 +114,21 @@ public class OracleCapacityExpansionIT extends BaseCapacityExpansionIT {
   }
 
   private void changeParams(int port, String newPw) {
-    String scriptPath = updateParamsScriptDir + "oracle.sh";
-    String os = System.getProperty("os.name").toLowerCase();
-    if (os.contains("win")) {
-      scriptPath = updateParamsScriptDir + "oracle_windows.sh";
+    String username = portsToUsername.get(port);
+    String jdbcUrl =  String.format("jdbc:oracle:thin:system/ORCLPWD@127.0.0.1:%d/%s", port, "ORCLPDB");
+    try {
+      Class.forName("oracle.jdbc.driver.OracleDriver");
+    } catch (ClassNotFoundException e) {
+      throw new RuntimeException(e);
     }
-    int res =
-        executeShellScript(scriptPath, String.valueOf(port), portsToUsername.get(port), newPw);
-    if (res != 0) {
-      fail("Fail to update oracle params.");
+    try(Connection connection = DriverManager.getConnection(jdbcUrl);
+        Statement stmt = connection.createStatement()){
+      String alterStmt = String.format(
+              "ALTER USER %s IDENTIFIED BY %s", OracleHistoryDataGenerator.getQuotName(username), OracleHistoryDataGenerator.getQuotName(newPw));
+      LOGGER.info("alter statement in {}: {}",port,alterStmt);
+      stmt.execute(alterStmt);
+    } catch (SQLException e) {
+      throw new RuntimeException(e);
     }
   }
 

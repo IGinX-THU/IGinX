@@ -287,7 +287,7 @@ public class OracleHistoryDataGenerator extends BaseHistoryDataGenerator {
     }
   }
 
-  private static String getQuotName(String name) {
+  public static String getQuotName(String name) {
     return "\"" + name + "\"";
   }
 }
