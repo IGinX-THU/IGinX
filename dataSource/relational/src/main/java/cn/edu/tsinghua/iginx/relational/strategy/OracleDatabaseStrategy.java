@@ -37,6 +37,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+
+import com.zaxxer.hikari.HikariConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,6 +67,14 @@ public class OracleDatabaseStrategy extends AbstractDatabaseStrategy {
     return String.format(
         "jdbc:oracle:thin:%s/%s@%s:%d/%s",
         username, password, meta.getIp(), meta.getPort(), database);
+  }
+
+  @Override
+  public void configureDataSource(
+      HikariConfig config, String databaseName, StorageEngineMeta meta) {
+    if (!databaseName.isEmpty()) {
+      config.setConnectionInitSql("ALTER SESSION SET CURRENT_SCHEMA = " + getQuotName(databaseName));
+    }
   }
 
   @Override

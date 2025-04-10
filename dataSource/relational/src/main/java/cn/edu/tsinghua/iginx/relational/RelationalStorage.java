@@ -127,6 +127,10 @@ public class RelationalStorage implements IStorage {
             String.format(relationalMeta.getCreateDatabaseStatement(), getQuotName(databaseName)));
       } catch (SQLException ignored) {
       }
+    } else {
+      if (databaseName.equals(relationalMeta.getDefaultDatabaseName()) || databaseName.matches("unit\\d{10}")) {
+        databaseName = "";
+      }
     }
 
     HikariDataSource dataSource = connectionPoolMap.get(databaseName);
@@ -161,6 +165,7 @@ public class RelationalStorage implements IStorage {
       config.addDataSourceProperty(
           "prepStmtCacheSqlLimit",
           meta.getExtraParams().getOrDefault("prep_stmt_cache_sql_limit", "2048"));
+      dbStrategy.configureDataSource(config, databaseName, meta);
 
       HikariDataSource newDataSource = new HikariDataSource(config);
       connectionPoolMap.put(databaseName, newDataSource);
@@ -268,10 +273,10 @@ public class RelationalStorage implements IStorage {
   private List<String> getDatabaseNames(boolean isDummy) throws SQLException {
     List<String> databaseNames = new ArrayList<>();
     String DefaultDatabaseName = relationalMeta.getDefaultDatabaseName();
-    String query = isDummy? relationalMeta.getDummyDatabaseQuerySql(): relationalMeta.getDatabaseQuerySql();
-    try(Connection conn = getConnection(DefaultDatabaseName);
-        Statement statement = conn.createStatement();
-        ResultSet rs = statement.executeQuery(query)){
+    String query = isDummy ? relationalMeta.getDummyDatabaseQuerySql() : relationalMeta.getDatabaseQuerySql();
+    try (Connection conn = getConnection(DefaultDatabaseName);
+         Statement statement = conn.createStatement();
+         ResultSet rs = statement.executeQuery(query)) {
       while (rs.next()) {
         String databaseName = dbStrategy.getDatabaseNameFromResultSet(rs);
         if (relationalMeta.getSystemDatabaseName().contains(databaseName)
@@ -285,9 +290,9 @@ public class RelationalStorage implements IStorage {
   }
 
   private List<String> getTables(String databaseName, String tablePattern, boolean isDummy) {
-    String databasePattern = dbStrategy.getDatabasePattern(databaseName,isDummy);
-    String schemaPattern = dbStrategy.getSchemaPattern(databaseName,isDummy);
-    if(!isDummy){
+    String databasePattern = dbStrategy.getDatabasePattern(databaseName, isDummy);
+    String schemaPattern = dbStrategy.getSchemaPattern(databaseName, isDummy);
+    if (!isDummy) {
       tablePattern = reshapeTableNameBeforeQuery(tablePattern, databaseName);
     }
     if (relationalMeta.jdbcNeedQuote()) {
@@ -303,7 +308,9 @@ public class RelationalStorage implements IStorage {
       try (ResultSet rs = databaseMetaData.getTables(databasePattern, schemaPattern, tablePattern, new String[]{"TABLE"})) {
         while (rs.next()) {
           String tableName = rs.getString("TABLE_NAME");
-          tableName = reshapeTableNameAfterQuery(tableName,databaseName);
+          if (!isDummy) {
+            tableName = reshapeTableNameAfterQuery(tableName, databaseName);
+          }
           tableNames.add(tableName);
         }
       }
@@ -318,7 +325,7 @@ public class RelationalStorage implements IStorage {
       String databaseName, String tableName, String columnNamePattern, boolean isDummy) {
     String databasePattern = dbStrategy.getDatabasePattern(databaseName, isDummy);
     String schemaPattern = dbStrategy.getSchemaPattern(databaseName, isDummy);
-    if(!isDummy){
+    if (!isDummy) {
       tableName = reshapeTableNameBeforeQuery(tableName, databaseName);
     }
     try (Connection conn = getConnection(databaseName)) {
@@ -334,7 +341,9 @@ public class RelationalStorage implements IStorage {
           String columnName = rs.getString("COLUMN_NAME");
           String columnType = rs.getString("TYPE_NAME");
           String columnTable = rs.getString("TABLE_NAME");
-          columnTable = reshapeTableNameAfterQuery(columnTable,databaseName);
+          if (!isDummy) {
+            columnTable = reshapeTableNameAfterQuery(columnTable, databaseName);
+          }
           int columnSize = rs.getInt("COLUMN_SIZE");
           int decimalDigits = rs.getInt("DECIMAL_DIGITS");
           columnFields.add(
@@ -420,14 +429,14 @@ public class RelationalStorage implements IStorage {
         if (patterns != null && patterns.size() != 0) {
           tableAndColPattern = splitAndMergeQueryPatterns(databaseName, new ArrayList<>(patterns));
         } else {
-          for (String table : getTables(databaseName, "%",false)) {
+          for (String table : getTables(databaseName, "%", false)) {
             tableAndColPattern.put(table, "%");
           }
         }
         for (String tableName : tableAndColPattern.keySet()) {
           colPattern = tableAndColPattern.get(tableName);
           for (String colName : colPattern.split(", ")) {
-            List<ColumnField> columnFieldList = getColumns(databaseName, tableName, colName,false);
+            List<ColumnField> columnFieldList = getColumns(databaseName, tableName, colName, false);
             for (ColumnField columnField : columnFieldList) {
               String columnName = columnField.getColumnName();
 
@@ -466,7 +475,7 @@ public class RelationalStorage implements IStorage {
         for (String tableName : table2cols.keySet()) {
           colPattern = table2cols.get(tableName);
           for (String colName : colPattern.split(", ")) {
-            List<ColumnField> columnFieldList = getColumns(databaseName, tableName, colName,true);
+            List<ColumnField> columnFieldList = getColumns(databaseName, tableName, colName, true);
             for (ColumnField columnField : columnFieldList) {
               String columnName = columnField.getColumnName();
 
@@ -538,14 +547,14 @@ public class RelationalStorage implements IStorage {
    * 获取ProjectWithFilter中将所有table join到一起进行查询的SQL语句
    */
   private String getProjectWithFilterSQL(String databaseName,
-      Filter filter, Map<String, String> tableNameToColumnNames, boolean isAgg) {
+                                         Filter filter, Map<String, String> tableNameToColumnNames, boolean isAgg) {
     List<String> tableNames = new ArrayList<>();
     List<List<String>> fullColumnNamesList = new ArrayList<>();
     List<List<String>> fullColumnNamesListForExpandFilter = new ArrayList<>();
     String firstTable = "";
     char quote = relationalMeta.getQuote();
     for (Map.Entry<String, String> entry : tableNameToColumnNames.entrySet()) {
-      String tableName= reshapeTableNameBeforeQuery(entry.getKey(), databaseName);
+      String tableName = reshapeTableNameBeforeQuery(entry.getKey(), databaseName);
       if (firstTable.isEmpty()) {
         firstTable = tableName;
       }
@@ -759,7 +768,7 @@ public class RelationalStorage implements IStorage {
       }
       // table中带有了通配符，将所有table都join到一起进行查询，以便输入filter.
       else if (!tableNameToColumnNames.isEmpty()) {
-        statement = getProjectWithFilterSQL(databaseName,filter.copy(), tableNameToColumnNames, false);
+        statement = getProjectWithFilterSQL(databaseName, filter.copy(), tableNameToColumnNames, false);
 
         ResultSet rs = null;
         try {
@@ -798,14 +807,14 @@ public class RelationalStorage implements IStorage {
   }
 
   private String reshapeTableNameBeforeQuery(String tableName, String databaseName) {
-    if(!relationalMeta.supportCreateDatabase()){
+    if (!relationalMeta.supportCreateDatabase()) {
       tableName = databaseName + "." + tableName;
     }
     return tableName;
   }
 
   private String reshapeTableNameAfterQuery(String tableName, String databaseName) {
-    if(!relationalMeta.supportCreateDatabase()){
+    if (!relationalMeta.supportCreateDatabase()) {
       tableName = tableName.substring(databaseName.length() + 1);
     }
     return tableName;
@@ -897,15 +906,26 @@ public class RelationalStorage implements IStorage {
   private String buildConcat(List<String> columnNames) {
     int n = columnNames.size();
     assert n > 0;
+    List<List<String>> concatList = new ArrayList<>();
+    for (int i = 0; i < n / 100 + 1; i++) {
+      List<String> subList = columnNames.subList(i * 100, Math.min((i + 1) * 100, n));
+      if (subList.size() == 0) {
+        continue;
+      }
+      concatList.add(subList);
+    }
+
+    if (concatList.size() == 1) {
+      return dbStrategy.formatConcatStatement(concatList.get(0));
+    }
 
     StringBuilder concat = new StringBuilder();
-    concat.append(" CONCAT(''");
-    for (List<String> partition : Lists.partition(columnNames, 100)) {
-      concat.append(", CONCAT(''");
-      for (String column : partition) {
-        concat.append(", COALESCE(").append(column).append(", ").append("''").append(")");
+    concat.append(" CONCAT(");
+    for (int i = 0; i < concatList.size(); i++) {
+      concat.append(dbStrategy.formatConcatStatement(concatList.get(i)));
+      if (i != concatList.size() - 1) {
+        concat.append(", ");
       }
-      concat.append(")");
     }
     concat.append(") ");
     return concat.toString();
@@ -1206,7 +1226,7 @@ public class RelationalStorage implements IStorage {
     for (Map.Entry<String, String> entry : tableNameToColumnNames.entrySet()) {
       String tableName = entry.getKey();
 
-      List<ColumnField> columnFieldList = getColumns(databaseName, tableName, "%",true);
+      List<ColumnField> columnFieldList = getColumns(databaseName, tableName, "%", true);
       for (ColumnField columnField : columnFieldList) {
         String columnName = columnField.getColumnName();
 
@@ -1364,7 +1384,7 @@ public class RelationalStorage implements IStorage {
           splitAndMergeQueryPatterns(databaseName, project.getPatterns());
 
       String statement =
-          getProjectWithFilterSQL(databaseName,select.getFilter().copy(), tableNameToColumnNames, true);
+          getProjectWithFilterSQL(databaseName, select.getFilter().copy(), tableNameToColumnNames, true);
       statement = statement.substring(0, statement.length() - 1); // 去掉最后的分号
       Map<String, String> fullName2Name = new HashMap<>();
       statement =
@@ -1966,12 +1986,12 @@ public class RelationalStorage implements IStorage {
                       new SQLException()));
             }
           } else {
-            tables = getTables(databaseName, "%",false);
+            tables = getTables(databaseName, "%", false);
             if (!tables.isEmpty()) {
               String statementTemplate = relationalMeta.getDropTableStatement();
               List<String> statements = tables.stream()
-                  .map(table->reshapeTableNameBeforeQuery(table, databaseName))
-                  .map(table ->String.format(statementTemplate,getQuotName(table)))
+                  .map(table -> reshapeTableNameBeforeQuery(table, databaseName))
+                  .map(table -> String.format(statementTemplate, getQuotName(table)))
                   .collect(Collectors.toList());
               LOGGER.info("[Delete] execute delete: {}", statements);
               for (String dropTableStatement : statements) {
@@ -1985,7 +2005,7 @@ public class RelationalStorage implements IStorage {
           for (Pair<String, String> pair : deletedPaths) {
             tableName = pair.k;
             columnName = pair.v;
-            tables = getTables(databaseName, tableName,false);
+            tables = getTables(databaseName, tableName, false);
             tableName = reshapeTableNameBeforeQuery(tableName, databaseName);
             if (!tables.isEmpty()) {
               statement =
@@ -2007,7 +2027,7 @@ public class RelationalStorage implements IStorage {
         for (Pair<String, String> pair : deletedPaths) {
           tableName = pair.k;
           columnName = pair.v;
-          if (!getColumns(databaseName, tableName, columnName,false).isEmpty()) {
+          if (!getColumns(databaseName, tableName, columnName, false).isEmpty()) {
             tableName = reshapeTableNameBeforeQuery(tableName, databaseName);
             for (KeyRange keyRange : delete.getKeyRanges()) {
               statement =
@@ -2078,9 +2098,9 @@ public class RelationalStorage implements IStorage {
     List<String> paths = new ArrayList<>();
     try {
       for (String databaseName : getDatabaseNames(true)) {
-        List<String> tables = getTables(databaseName, "%",true);
+        List<String> tables = getTables(databaseName, "%", true);
         for (String tableName : tables) {
-          List<ColumnField> columnFieldList = getColumns(databaseName, tableName, "%",true);
+          List<ColumnField> columnFieldList = getColumns(databaseName, tableName, "%", true);
           for (ColumnField columnField : columnFieldList) {
             String columnName = columnField.getColumnName(); // 获取列名称
 
@@ -2183,9 +2203,9 @@ public class RelationalStorage implements IStorage {
       List<ColumnField> columnFieldList;
       if (relationalMeta.jdbcSupportSpecialChar()) {
         columnFieldList =
-            getColumns(databaseName, reformatForJDBC(tableName), reformatForJDBC(columnNames),false);
+            getColumns(databaseName, reformatForJDBC(tableName), reformatForJDBC(columnNames), false);
       } else {
-        columnFieldList = getColumns(databaseName, "%", "%",false);
+        columnFieldList = getColumns(databaseName, "%", "%", false);
       }
 
       List<Pattern> patternList = getRegexPatternByName(databaseName, tableName, columnNames, false);
@@ -2275,13 +2295,13 @@ public class RelationalStorage implements IStorage {
           if (tempDatabaseName.startsWith(DATABASE_PREFIX)) {
             continue;
           }
-          List<String> tables = getTables(tempDatabaseName, tableName,true);
+          List<String> tables = getTables(tempDatabaseName, tableName, true);
           for (String tempTableName : tables) {
             if (!tableNamePattern.matcher(tempTableName).find()) {
               continue;
             }
             List<ColumnField> columnFieldList =
-                getColumns(tempDatabaseName, tempTableName, columnNames,true);
+                getColumns(tempDatabaseName, tempTableName, columnNames, true);
             for (ColumnField columnField : columnFieldList) {
               String tempColumnNames = columnField.getColumnName();
               if (!columnNamePattern.matcher(tempColumnNames).find()) {
@@ -2302,7 +2322,7 @@ public class RelationalStorage implements IStorage {
         if (!databases.contains(databaseName)) {
           continue;
         }
-        List<ColumnField> columnFieldList = getColumns(databaseName, tableName, columnNames,true);
+        List<ColumnField> columnFieldList = getColumns(databaseName, tableName, columnNames, true);
         Map<String, String> tableNameToColumnNames = new HashMap<>();
         for (ColumnField columnField : columnFieldList) {
           tableName = columnField.getTableName();
@@ -2363,7 +2383,7 @@ public class RelationalStorage implements IStorage {
       try {
         Statement stmt = conn.createStatement();
 
-        List<String> tables = getTables(storageUnit, tableName,false);
+        List<String> tables = getTables(storageUnit, tableName, false);
         columnName = toFullName(columnName, tags);
         tableName = reshapeTableNameBeforeQuery(tableName, storageUnit);
         if (tables.isEmpty()) {
@@ -2379,7 +2399,7 @@ public class RelationalStorage implements IStorage {
           LOGGER.info("[Create] execute create: {}", statement);
           stmt.execute(statement);
         } else {
-          if (getColumns(storageUnit, tableName, columnName,false).isEmpty()) {
+          if (getColumns(storageUnit, tableName, columnName, false).isEmpty()) {
             String statement =
                 String.format(
                     relationalMeta.getAlterTableAddColumnStatement(),

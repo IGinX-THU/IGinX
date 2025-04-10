@@ -25,6 +25,8 @@ import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.relational.meta.AbstractRelationalMeta;
 import cn.edu.tsinghua.iginx.utils.Pair;
+import com.zaxxer.hikari.HikariConfig;
+
 import java.sql.*;
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -68,6 +70,10 @@ public abstract class AbstractDatabaseStrategy implements DatabaseStrategy {
   }
 
   @Override
+  public void configureDataSource(
+      HikariConfig config, String databaseName, StorageEngineMeta meta) {}
+
+  @Override
   public String getDatabaseNameFromResultSet(ResultSet rs) throws SQLException {
     return rs.getString("DATNAME");
   }
@@ -80,6 +86,14 @@ public abstract class AbstractDatabaseStrategy implements DatabaseStrategy {
   @Override
   public String getSchemaPattern(String databaseName, boolean isDummy) {
     return relationalMeta.getSchemaPattern();
+  }
+
+  @Override
+  public String formatConcatStatement(List<String> columns) {
+    if (columns.size() == 1) {
+      return String.format(" CONCAT(%s, '') ", columns.get(0));
+    }
+    return String.format(" CONCAT(%s) ", String.join(", ", columns));
   }
 
   @Override

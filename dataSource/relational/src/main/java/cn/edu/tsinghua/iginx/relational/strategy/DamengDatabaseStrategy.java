@@ -30,6 +30,8 @@ import java.sql.*;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+
+import com.zaxxer.hikari.HikariConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -70,6 +72,10 @@ public class DamengDatabaseStrategy implements DatabaseStrategy {
   }
 
   @Override
+  public void configureDataSource(
+      HikariConfig config, String databaseName, StorageEngineMeta meta) {}
+
+  @Override
   public String getDatabaseNameFromResultSet(ResultSet rs) throws SQLException {
     return rs.getString("TABLE_SCHEMA");
   }
@@ -82,6 +88,14 @@ public class DamengDatabaseStrategy implements DatabaseStrategy {
   @Override
   public String getSchemaPattern(String databaseName, boolean isDummy) {
     return databaseName;
+  }
+
+  @Override
+  public String formatConcatStatement(List<String> columns) {
+    if (columns.size() == 1) {
+      return String.format(" CONCAT(%s, '') ", columns.get(0));
+    }
+    return String.format(" CONCAT(%s) ", String.join(", ", columns));
   }
 
   @Override
