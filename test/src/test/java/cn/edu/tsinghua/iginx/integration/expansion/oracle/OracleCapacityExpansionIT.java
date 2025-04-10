@@ -20,8 +20,6 @@
 package cn.edu.tsinghua.iginx.integration.expansion.oracle;
 
 import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.*;
-import static cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools.executeShellScript;
-import static org.junit.Assert.fail;
 
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
@@ -31,7 +29,6 @@ import cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.integration.tool.DBConf;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
-
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -115,17 +112,21 @@ public class OracleCapacityExpansionIT extends BaseCapacityExpansionIT {
 
   private void changeParams(int port, String newPw) {
     String username = portsToUsername.get(port);
-    String jdbcUrl =  String.format("jdbc:oracle:thin:system/ORCLPWD@127.0.0.1:%d/%s", port, "ORCLPDB");
+    String jdbcUrl =
+        String.format("jdbc:oracle:thin:system/ORCLPWD@127.0.0.1:%d/%s", port, "ORCLPDB");
     try {
       Class.forName("oracle.jdbc.driver.OracleDriver");
     } catch (ClassNotFoundException e) {
       throw new RuntimeException(e);
     }
-    try(Connection connection = DriverManager.getConnection(jdbcUrl);
-        Statement stmt = connection.createStatement()){
-      String alterStmt = String.format(
-              "ALTER USER %s IDENTIFIED BY %s", OracleHistoryDataGenerator.getQuotName(username), OracleHistoryDataGenerator.getQuotName(newPw));
-      LOGGER.info("alter statement in {}: {}",port,alterStmt);
+    try (Connection connection = DriverManager.getConnection(jdbcUrl);
+        Statement stmt = connection.createStatement()) {
+      String alterStmt =
+          String.format(
+              "ALTER USER %s IDENTIFIED BY %s",
+              OracleHistoryDataGenerator.getQuotName(username),
+              OracleHistoryDataGenerator.getQuotName(newPw));
+      LOGGER.info("alter statement in {}: {}", port, alterStmt);
       stmt.execute(alterStmt);
     } catch (SQLException e) {
       throw new RuntimeException(e);
