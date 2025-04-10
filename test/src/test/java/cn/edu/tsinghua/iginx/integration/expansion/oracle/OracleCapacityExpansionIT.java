@@ -32,8 +32,6 @@ import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.integration.tool.DBConf;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import java.util.HashMap;
-
-import org.apache.iotdb.tsfile.read.filter.operator.In;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,8 +39,8 @@ public class OracleCapacityExpansionIT extends BaseCapacityExpansionIT {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(OracleCapacityExpansionIT.class);
   private static final String newPass = "ORCLPWD"; // 新密码保持不变，因为oracle密码错误次数过多会锁定账号
-  private static final HashMap<Integer,String> portsToUsername = new HashMap<>();
-  private static final HashMap<Integer,String> portsToPassword = new HashMap<>();
+  private static final HashMap<Integer, String> portsToUsername = new HashMap<>();
+  private static final HashMap<Integer, String> portsToPassword = new HashMap<>();
 
   static {
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
@@ -50,12 +48,12 @@ public class OracleCapacityExpansionIT extends BaseCapacityExpansionIT {
     Constant.oriPort = dbConf.getDBCEPortMap().get(Constant.ORI_PORT_NAME);
     Constant.expPort = dbConf.getDBCEPortMap().get(Constant.EXP_PORT_NAME);
     Constant.readOnlyPort = dbConf.getDBCEPortMap().get(Constant.READ_ONLY_PORT_NAME);
-    portsToUsername.put(oriPort,"SYSTEM");
-    portsToUsername.put(expPort,"nt");
-    portsToUsername.put(readOnlyPort,"observer");
-    portsToPassword.put(oriPort,"ORCLPWD");
-    portsToUsername.put(expPort,String.valueOf(expPort));
-    portsToUsername.put(readOnlyPort,String.valueOf(readOnlyPort));
+    portsToUsername.put(oriPort, "SYSTEM");
+    portsToUsername.put(expPort, "nt");
+    portsToUsername.put(readOnlyPort, "observer");
+    portsToPassword.put(oriPort, "ORCLPWD");
+    portsToUsername.put(expPort, String.valueOf(expPort));
+    portsToUsername.put(readOnlyPort, String.valueOf(readOnlyPort));
   }
 
   public OracleCapacityExpansionIT() {
@@ -65,11 +63,23 @@ public class OracleCapacityExpansionIT extends BaseCapacityExpansionIT {
           {
             put(
                 oriPort,
-                "engine=oracle, username="+portsToUsername.get(oriPort)+", password=" + portsToPassword.get(oriPort) + ", database=ORCLPDB");
-            put(expPort, "engine=oracle, username="+portsToUsername.get(expPort)+", password=" + portsToPassword.get(expPort) + ", database=ORCLPDB");
+                "engine=oracle, username="
+                    + portsToUsername.get(oriPort)
+                    + ", password="
+                    + portsToPassword.get(oriPort)
+                    + ", database=ORCLPDB");
+            put(
+                expPort,
+                "engine=oracle, username="
+                    + portsToUsername.get(expPort)
+                    + ", password="
+                    + portsToPassword.get(expPort)
+                    + ", database=ORCLPDB");
             put(
                 readOnlyPort,
-                "engine=oracle, username="+portsToUsername.get(readOnlyPort)+", password="
+                "engine=oracle, username="
+                    + portsToUsername.get(readOnlyPort)
+                    + ", password="
                     + portsToPassword.get(readOnlyPort)
                     + ", database=ORCLPDB");
           }
@@ -104,7 +114,8 @@ public class OracleCapacityExpansionIT extends BaseCapacityExpansionIT {
     if (os.contains("win")) {
       scriptPath = updateParamsScriptDir + "oracle_windows.sh";
     }
-    int res = executeShellScript(scriptPath, String.valueOf(port), portsToUsername.get(port) ,newPw);
+    int res =
+        executeShellScript(scriptPath, String.valueOf(port), portsToUsername.get(port), newPw);
     if (res != 0) {
       fail("Fail to update oracle params.");
     }
