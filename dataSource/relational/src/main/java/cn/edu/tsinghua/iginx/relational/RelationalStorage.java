@@ -2396,8 +2396,8 @@ public class RelationalStorage implements IStorage {
 
         List<String> tables = getTables(storageUnit, tableName, false);
         columnName = toFullName(columnName, tags);
-        tableName = reshapeTableNameBeforeQuery(tableName, storageUnit);
         if (tables.isEmpty()) {
+          tableName = reshapeTableNameBeforeQuery(tableName, storageUnit);
           String statement =
               String.format(
                   relationalMeta.getCreateTableStatement(),
@@ -2411,6 +2411,7 @@ public class RelationalStorage implements IStorage {
           stmt.execute(statement);
         } else {
           if (getColumns(storageUnit, tableName, columnName, false).isEmpty()) {
+            tableName = reshapeTableNameBeforeQuery(tableName, storageUnit);
             String statement =
                 String.format(
                     relationalMeta.getAlterTableAddColumnStatement(),

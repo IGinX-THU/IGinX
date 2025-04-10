@@ -42,7 +42,7 @@ public class OracleHistoryDataGenerator extends BaseHistoryDataGenerator {
       "GRANT CREATE SESSION,CREATE TABLE,RESOURCE,UNLIMITED TABLESPACE TO %s";
 
   private static final String CREATE_TABLE_STATEMENT =
-      "CREATE TABLE %s.%s (%s)"; // "CREATE TABLE %s (%s);";
+      "CREATE TABLE IF NOT EXISTS %s.%s (%s)"; // "CREATE TABLE %s (%s);";
 
   private static final String INSERT_STATEMENT =
       "INSERT INTO %s.%s VALUES %s"; // "INSERT INTO %s VALUES %s;";

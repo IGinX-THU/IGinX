@@ -19,6 +19,7 @@
  */
 package cn.edu.tsinghua.iginx.integration.expansion.oracle;
 
+import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.*;
 import static cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools.executeShellScript;
 import static org.junit.Assert.fail;
 
@@ -33,16 +34,25 @@ import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashMap;
+
 public class OracleCapacityExpansionIT extends BaseCapacityExpansionIT {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(OracleCapacityExpansionIT.class);
   private static final String oldPass = "ORCLPWD";
   private static final String newPass = "ORCLPWD"; // 新密码保持不变，因为oracle密码错误次数过多会锁定账号
+  private static final String systemUserParams = "engine=oracle, username=SYSTEM, password=" + oldPass+", database=ORCLPDB";
+  private static final String expUserParams = "engine=oracle, username=nt, password=" + expPort+", database=ORCLPDB";
+  private static final String readonlyUserParams = "engine=oracle, username=tm, password=" + readOnlyPort+", database=ORCLPDB";
 
   public OracleCapacityExpansionIT() {
     super(
         StorageEngineType.relational,
-        "engine=oracle, username=SYSTEM, password=" + oldPass+", database=ORCLPDB",
+        new HashMap<Integer, String>() {{
+          put(oriPort, systemUserParams);
+          put(expPort, expUserParams);
+          put(readOnlyPort, readonlyUserParams);
+        }},
         new OracleHistoryDataGenerator());
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
     DBConf dbConf = conf.loadDBConf(conf.getStorageType());
