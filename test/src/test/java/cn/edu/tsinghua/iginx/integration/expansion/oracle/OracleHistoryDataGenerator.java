@@ -56,8 +56,6 @@ public class OracleHistoryDataGenerator extends BaseHistoryDataGenerator {
     Constant.readOnlyPort = 1523;
   }
 
-  // TODO ori 使用 system 用户读取所有能读的，exp 使用普通用户读取所有能读的， readonly 使用 system 用户仅读取自己的
-
   private Connection connect(int port, boolean useSystemDatabase, String databaseName) {
     try {
       String url;

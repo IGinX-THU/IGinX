@@ -65,13 +65,15 @@ public class OracleDatabaseStrategy extends AbstractDatabaseStrategy {
     String database = extraParams.getOrDefault(DATABASE, relationalMeta.getDefaultDatabaseName());
 
     return String.format(
-        "jdbc:oracle:thin:%s/%s@%s:%d/%s",
+        "jdbc:oracle:thin:\"%s\"/%s@%s:%d/%s",
         username, password, meta.getIp(), meta.getPort(), database);
   }
 
   @Override
   public void configureDataSource(
       HikariConfig config, String databaseName, StorageEngineMeta meta) {
+    config.setUsername(null);
+    config.setPassword(null);
     if (!databaseName.isEmpty()) {
       config.setConnectionInitSql("ALTER SESSION SET CURRENT_SCHEMA = " + getQuotName(databaseName));
     }
