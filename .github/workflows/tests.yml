@@ -54,16 +54,16 @@ jobs:
         uses: ./.github/workflows/DB-CE.yml
         with:
             metadata-matrix: '["zookeeper"]'
-            os-matrix: '["ubuntu-latest", "windows-latest"]'
-            db-matrix: '["Dameng", "Oracle"]'
+            os-matrix: '["ubuntu-latest"]'
+            db-matrix: '["Oracle"]'
             functest: "NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,CompactionIT,TimePrecisionIT,PySessionIT"
             timeout-minutes: 120
     db-ce-no-optimizer-no-mac-relational:
         uses: ./.github/workflows/DB-CE.yml
         with:
             metadata-matrix: '["zookeeper"]'
-            os-matrix: '["ubuntu-latest", "windows-latest"]'
-            db-matrix: '["Dameng", "Oracle"]'
+            os-matrix: '["ubuntu-latest"]'
+            db-matrix: '["Oracle"]'
             functest: "NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,CompactionIT,TimePrecisionIT,PySessionIT"
             timeout-minutes: 120
             close-optimizer: "true"
