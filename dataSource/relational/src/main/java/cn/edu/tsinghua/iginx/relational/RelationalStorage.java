@@ -64,7 +64,6 @@ import cn.edu.tsinghua.iginx.relational.tools.RelationSchema;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
-import com.google.common.collect.Lists;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import com.zaxxer.hikari.pool.HikariPool;
@@ -392,13 +391,7 @@ public class RelationalStorage implements IStorage {
     List<Column> columns = new ArrayList<>();
     Map<String, String> extraParams = meta.getExtraParams();
     try {
-      // dummy pattern list
-      List<String> patternList = new ArrayList<>();
-      if (patterns == null || patterns.size() == 0) {
-        patternList = new ArrayList<>(Collections.singletonList("*.*"));
-      }
       String colPattern;
-
       // non-dummy
       for (String databaseName : getDatabaseNames(false)) {
         if ((extraParams.get("has_data") == null || extraParams.get("has_data").equals("false"))
@@ -410,17 +403,6 @@ public class RelationalStorage implements IStorage {
                 && extraParams.get("has_data").equalsIgnoreCase("true")
                 && !databaseName.startsWith(DATABASE_PREFIX);
         if (isDummy) {
-          // find pattern that match <databaseName>.* to avoid creating databases after.
-          if (patterns == null || patterns.size() == 0) {
-            continue;
-          }
-          for (String p : patterns) {
-            // dummy path starts with <bucketName>.
-            if (Pattern.matches(
-                StringUtils.reformatPath(p.substring(0, p.indexOf("."))), databaseName)) {
-              patternList.add(p);
-            }
-          }
           continue;
         }
 
@@ -465,6 +447,35 @@ public class RelationalStorage implements IStorage {
       }
 
       // dummy
+      List<String> patternList = new ArrayList<>();
+      if (patterns == null || patterns.size() == 0) {
+        patternList = new ArrayList<>(Collections.singletonList("*.*"));
+      }
+      for (String databaseName : getDatabaseNames(true)) {
+        if ((extraParams.get("has_data") == null || extraParams.get("has_data").equals("false"))
+            && !databaseName.startsWith(DATABASE_PREFIX)) {
+          continue;
+        }
+        boolean isDummy =
+            extraParams.get("has_data") != null
+                && extraParams.get("has_data").equalsIgnoreCase("true")
+                && !databaseName.startsWith(DATABASE_PREFIX);
+        if (!isDummy) {
+          continue;
+        }
+        // find pattern that match <databaseName>.* to avoid creating databases after.
+        if (patterns == null || patterns.size() == 0) {
+          continue;
+        }
+        for (String p : patterns) {
+          // dummy path starts with <bucketName>.
+          if (Pattern.matches(
+              StringUtils.reformatPath(p.substring(0, p.indexOf("."))), databaseName)) {
+            patternList.add(p);
+          }
+        }
+      }
+
       Map<String, Map<String, String>> dummyRes = splitAndMergeHistoryQueryPatterns(patternList);
       Map<String, String> table2cols;
       // seemingly there are 4 nested loops, but it's only the consequence of special data structure
