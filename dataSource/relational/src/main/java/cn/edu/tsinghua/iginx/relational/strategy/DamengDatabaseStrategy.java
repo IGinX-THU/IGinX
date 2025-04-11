@@ -26,6 +26,7 @@ import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.relational.meta.AbstractRelationalMeta;
 import cn.edu.tsinghua.iginx.relational.tools.ColumnField;
 import cn.edu.tsinghua.iginx.utils.Pair;
+import com.zaxxer.hikari.HikariConfig;
 import java.sql.*;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -70,12 +71,21 @@ public class DamengDatabaseStrategy implements DatabaseStrategy {
   }
 
   @Override
+  public void configureDataSource(
+      HikariConfig config, String databaseName, StorageEngineMeta meta) {}
+
+  @Override
   public String getDatabaseNameFromResultSet(ResultSet rs) throws SQLException {
     return rs.getString("TABLE_SCHEMA");
   }
 
   @Override
-  public String getSchemaPattern(String databaseName) {
+  public String getDatabasePattern(String databaseName, boolean isDummy) {
+    return databaseName;
+  }
+
+  @Override
+  public String getSchemaPattern(String databaseName, boolean isDummy) {
     return databaseName;
   }
 
@@ -198,8 +208,8 @@ public class DamengDatabaseStrategy implements DatabaseStrategy {
             if (!columnMap.containsKey(parts[j])) {
               break;
             }
-            if (columnMap.get(parts[j]).columnType.equals("NUMBER")) {
-              int columnSize = columnMap.get(parts[j]).columnSize;
+            if (columnMap.get(parts[j]).getColumnType().equals("NUMBER")) {
+              int columnSize = columnMap.get(parts[j]).getColumnSize();
               if (columnSize == 1) {
                 setValue(insertStmt, j + 2, vals[j + 1], Types.BOOLEAN);
               } else if (columnSize >= 1 && columnSize <= 10) {
@@ -209,9 +219,9 @@ public class DamengDatabaseStrategy implements DatabaseStrategy {
               } else {
                 setValue(insertStmt, j + 2, vals[j + 1], Types.BIGINT);
               }
-            } else if (columnMap.get(parts[j]).columnType.equals("FLOAT")) {
+            } else if (columnMap.get(parts[j]).getColumnType().equals("FLOAT")) {
               setValue(insertStmt, j + 2, vals[j + 1], Types.FLOAT);
-            } else if (columnMap.get(parts[j]).columnType.equals("TINYINT")) {
+            } else if (columnMap.get(parts[j]).getColumnType().equals("TINYINT")) {
               setValue(insertStmt, j + 2, vals[j + 1], Types.BOOLEAN);
             } else {
               setValue(insertStmt, j + 2, vals[j + 1], Types.VARCHAR);
@@ -245,8 +255,8 @@ public class DamengDatabaseStrategy implements DatabaseStrategy {
             if (!columnMap.containsKey(parts[j])) {
               break;
             }
-            if (columnMap.get(parts[j]).columnType.equals("NUMBER")) {
-              int columnSize = columnMap.get(parts[j]).columnSize;
+            if (columnMap.get(parts[j]).getColumnType().equals("NUMBER")) {
+              int columnSize = columnMap.get(parts[j]).getColumnSize();
               if (columnSize == 1) {
                 setValue(updateStmt, j + 1, vals[j + 1], Types.BOOLEAN);
               } else if (columnSize >= 1 && columnSize <= 10) {
@@ -256,9 +266,9 @@ public class DamengDatabaseStrategy implements DatabaseStrategy {
               } else {
                 setValue(updateStmt, j + 1, vals[j + 1], Types.BIGINT);
               }
-            } else if (columnMap.get(parts[j]).columnType.equals("FLOAT")) {
+            } else if (columnMap.get(parts[j]).getColumnType().equals("FLOAT")) {
               setValue(updateStmt, j + 1, vals[j + 1], Types.FLOAT);
-            } else if (columnMap.get(parts[j]).columnType.equals("TINYINT")) {
+            } else if (columnMap.get(parts[j]).getColumnType().equals("TINYINT")) {
               setValue(updateStmt, j + 1, vals[j + 1], Types.BOOLEAN);
             } else {
               setValue(updateStmt, j + 1, vals[j + 1], Types.VARCHAR);
@@ -299,8 +309,11 @@ public class DamengDatabaseStrategy implements DatabaseStrategy {
       String columnType = rs.getString("TYPE_NAME");
       String columnTable = rs.getString("TABLE_NAME");
       int columnSize = rs.getInt("COLUMN_SIZE");
+      int decimalDigits = rs.getInt("DECIMAL_DIGITS");
 
-      columnMap.put(columnName, new ColumnField(columnTable, columnName, columnType, columnSize));
+      columnMap.put(
+          columnName,
+          new ColumnField(columnTable, columnName, columnType, columnSize, decimalDigits));
     }
 
     rs.close();

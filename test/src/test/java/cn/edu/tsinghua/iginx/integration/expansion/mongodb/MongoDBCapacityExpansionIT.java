@@ -35,7 +35,7 @@ public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
   private static final Logger LOGGER = LoggerFactory.getLogger(MongoDBCapacityExpansionIT.class);
 
   public MongoDBCapacityExpansionIT() {
-    super(mongodb, null, new MongoDBHistoryDataGenerator());
+    super(mongodb, (String) null, new MongoDBHistoryDataGenerator());
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
     DBConf dbConf = conf.loadDBConf(conf.getStorageType());
     Constant.oriPort = dbConf.getDBCEPortMap().get(Constant.ORI_PORT_NAME);

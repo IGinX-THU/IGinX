@@ -22,6 +22,7 @@ package cn.edu.tsinghua.iginx.relational.strategy;
 import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.utils.Pair;
+import com.zaxxer.hikari.HikariConfig;
 import java.sql.*;
 import java.util.List;
 import java.util.Map;
@@ -52,6 +53,8 @@ public interface DatabaseStrategy {
    */
   String getConnectUrl(StorageEngineMeta meta);
 
+  void configureDataSource(HikariConfig config, String databaseName, StorageEngineMeta meta);
+
   /**
    * 从数据库查询结果集中提取数据库名称
    *
@@ -61,13 +64,15 @@ public interface DatabaseStrategy {
    */
   String getDatabaseNameFromResultSet(ResultSet rs) throws SQLException;
 
+  String getDatabasePattern(String databaseName, boolean isDummy);
+
   /**
    * 获取用于查询数据库模式的模式模式字符串
    *
    * @param databaseName 数据库名称
    * @return 模式模式字符串
    */
-  String getSchemaPattern(String databaseName);
+  String getSchemaPattern(String databaseName, boolean isDummy);
 
   /**
    * 格式化SQL连接语句，用于将多个列合并成一个表达式

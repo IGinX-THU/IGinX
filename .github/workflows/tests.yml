@@ -36,34 +36,34 @@ jobs:
         with:
             metadata-matrix: '["zookeeper"]'
             close-optimizer: "true"
-    standalone-test-dameng:
+    standalone-test-no-mac-relational:
         uses: ./.github/workflows/standalone-test.yml
         with:
             metadata-matrix: '["zookeeper"]'
             os-matrix: '["ubuntu-latest", "windows-latest"]'
-            db-matrix: '["Dameng"]'
-            timeout-minutes: 60
-    standalone-test-no-optimizer-dameng:
+            db-matrix: '["Dameng", "Oracle"]'
+            timeout-minutes: 100
+    standalone-test-no-optimizer-no-mac-relational:
         uses: ./.github/workflows/standalone-test-no-optimizer.yml
         with:
             metadata-matrix: '["zookeeper"]'
             os-matrix: '["ubuntu-latest", "windows-latest"]'
-            db-matrix: '["Dameng"]'
-            timeout-minutes: 60
-    db-ce-dameng:
+            db-matrix: '["Dameng", "Oracle"]'
+            timeout-minutes: 100
+    db-ce-no-mac-relational:
         uses: ./.github/workflows/DB-CE.yml
         with:
             metadata-matrix: '["zookeeper"]'
             os-matrix: '["ubuntu-latest", "windows-latest"]'
-            db-matrix: '["Dameng"]'
+            db-matrix: '["Dameng", "Oracle"]'
             functest: "NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,CompactionIT,TimePrecisionIT,PySessionIT"
             timeout-minutes: 120
-    db-ce-no-optimizer-dameng:
+    db-ce-no-optimizer-no-mac-relational:
         uses: ./.github/workflows/DB-CE.yml
         with:
             metadata-matrix: '["zookeeper"]'
             os-matrix: '["ubuntu-latest", "windows-latest"]'
-            db-matrix: '["Dameng"]'
+            db-matrix: '["Dameng", "Oracle"]'
             functest: "NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,CompactionIT,TimePrecisionIT,PySessionIT"
             timeout-minutes: 120
             close-optimizer: "true"
@@ -155,10 +155,10 @@ jobs:
             - tpc-h-regression-test-no-optimizer
             - tpc-h-regression-test-vectordb
             - tpc-h-regression-test-no-optimizer-vectordb
-            - standalone-test-dameng
-            - standalone-test-no-optimizer-dameng
-            - db-ce-dameng
-            - db-ce-no-optimizer-dameng
+            - standalone-test-no-mac-relational
+            - standalone-test-no-optimizer-no-mac-relational
+            - db-ce-no-mac-relational
+            - db-ce-no-optimizer-no-mac-relational
         runs-on: ubuntu-latest
         steps:
             - name: Decide whether the needed jobs succeeded or failed
