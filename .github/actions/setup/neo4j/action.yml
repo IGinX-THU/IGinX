@@ -1,0 +1,25 @@
+name: "neo4j"
+description: "setup neo4j community edition 5.x"
+
+runs:
+    using: "composite"
+    steps:
+        - name: Download and Extract Neo4j
+          if: runner.os != 'Windows'
+          working-directory: ${{ github.workspace }}
+          run: |
+              curl -L -o neo4j.tar.gz https://dist.neo4j.org/neo4j-community-5.26.5-unix.tar.gz
+              curl -L -o apoc.jar https://github.com/neo4j/apoc/releases/download/5.26.5/apoc-5.26.5-core.jar
+              pwd
+              ls -a
+          shell: bash
+
+        - name: Download Neo4j (Windows)
+          if: runner.os == 'Windows'
+          working-directory: ${{ github.workspace }}
+          shell: bash
+          run: |
+              curl -L -o neo4j.zip https://dist.neo4j.org/neo4j-community-5.26.5-windows.zip
+              curl -L -o apoc.jar https://github.com/neo4j/apoc/releases/download/5.26.5/apoc-5.26.5-core.jar
+              pwd
+              dir
