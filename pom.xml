@@ -147,6 +147,11 @@
                 <version>${project.version}</version>
             </dependency>
             <dependency>
+                <groupId>cn.edu.tsinghua</groupId>
+                <artifactId>neo4j</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>cn.edu.tsinghua.iginx</groupId>
                 <artifactId>pemja</artifactId>
                 <version>0.5-SNAPSHOT</version>

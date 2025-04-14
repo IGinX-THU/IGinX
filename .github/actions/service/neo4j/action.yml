@@ -1,0 +1,103 @@
+name: "neo4j"
+description: "stop, clean and start neo4j in order"
+inputs:
+    stop:
+        description: "whether to stop"
+        required: true
+    clean:
+        description: "whether to clean"
+        required: true
+    start:
+        description: "whether to start"
+        required: true
+    ports:
+        description: "ports to run on"
+        required: false
+        default: "7687"
+
+runs:
+    using: "composite"
+    steps:
+        - if: fromJSON(inputs.stop) || fromJSON(inputs.clean)
+          name: unimplemented
+          shell: bash
+          run: exit 1
+
+        - if: fromJSON(inputs.start) && runner.os != 'Windows'
+          name: Create Neo4j Work Directory
+          shell: bash
+          working-directory: ${{ github.workspace }}
+          run: |
+              for port in ${{ inputs.ports }}; do
+                instance_dir="./neo4j_instances/$port"
+                mkdir -p $instance_dir
+                tar -xzf neo4j.tar.gz --strip-components=1 -C $instance_dir
+
+                mkdir -p $instance_dir/plugins/
+                cp apoc.jar $instance_dir/plugins/
+                echo "ls $instance_dir/plugins/"
+                ls $instance_dir/plugins/
+
+                sed -i"" -e "s/#server.http.listen_address=:7474/server.http.listen_address=:1$port/g" $instance_dir/conf/neo4j.conf
+                sed -i"" -e "s/#server.bolt.listen_address=:7687/server.bolt.listen_address=:$port/g" $instance_dir/conf/neo4j.conf
+                sed -i"" -e "s/#dbms.memory.transaction.total.max=256m/dbms.memory.transaction.total.max=4G/g" $instance_dir/conf/neo4j.conf
+                echo "dbms.security.procedures.unrestricted=apoc.*" >> $instance_dir/conf/neo4j.conf
+                echo "dbms.security.procedures.allowlist=apoc.*" >> $instance_dir/conf/neo4j.conf
+                echo "apoc.import.file.enabled=true" >> $instance_dir/conf/apoc.conf
+                echo "apoc.export.file.enabled=true" >> $instance_dir/conf/apoc.conf
+                echo "apoc.import.file.use_neo4j_config=true" >> $instance_dir/conf/apoc.conf
+
+                chmod +x $instance_dir/bin/neo4j
+                chmod +x $instance_dir/bin/neo4j-admin
+
+                env JAVA_HOME="./jdk17" $instance_dir/bin/neo4j-admin dbms set-initial-password neo4jtest
+
+                nohup env JAVA_HOME="./jdk17" $instance_dir/bin/neo4j console > neo4j$port.log 2>&1 &
+                sleep 10
+              done
+
+        - if: fromJSON(inputs.start) && runner.os == 'Windows'
+          name: Create Neo4j Work Directory(Windows)
+          working-directory: ${{ github.workspace }}
+          shell: bash
+          run: |
+              for port in ${{ inputs.ports }}; do
+                instance_dir="./neo4j_instances/$port"
+                mkdir -p $instance_dir
+                powershell -Command "Expand-Archive neo4j.zip -DestinationPath $instance_dir"
+                pwd
+                dir
+                dir $instance_dir
+                dir $instance_dir/neo4j-community-5.26.5
+                mv $instance_dir/neo4j*/* $instance_dir
+                dir $instance_dir
+
+                mkdir -p $instance_dir/plugins/
+                cp apoc.jar $instance_dir/plugins/
+
+                sed -i"" -e "s/#server.http.listen_address=:7474/server.http.listen_address=:1$port/g" $instance_dir/conf/neo4j.conf
+                sed -i"" -e "s/#server.bolt.listen_address=:7687/server.bolt.listen_address=:$port/g" $instance_dir/conf/neo4j.conf
+                sed -i"" -e "s/#dbms.memory.transaction.total.max=256m/dbms.memory.transaction.total.max=4G/g" $instance_dir/conf/neo4j.conf
+                echo "dbms.security.procedures.unrestricted=apoc.*" >> $instance_dir/conf/neo4j.conf
+                echo "dbms.security.procedures.allowlist=apoc.*" >> $instance_dir/conf/neo4j.conf
+                echo "apoc.import.file.enabled=true" >> $instance_dir/conf/apoc.conf
+                echo "apoc.export.file.enabled=true" >> $instance_dir/conf/apoc.conf
+                echo "apoc.import.file.use_neo4j_config=true" >> $instance_dir/conf/apoc.conf
+
+                powershell -Command "\$env:JAVA_HOME = './jdk17';\$env:PATH = \"\$env:JAVA_HOME\\bin;\$env:PATH\";Start-Process -FilePath $instance_dir/bin/neo4j-admin.bat -ArgumentList dbms,set-initial-password,neo4jtest -NoNewWindow -Wait"
+                powershell -Command "\$env:JAVA_HOME = './jdk17';\$env:PATH = \"\$env:JAVA_HOME\\bin;\$env:PATH\";Start-Process -FilePath $instance_dir/bin/neo4j.bat -ArgumentList console -WindowStyle Hidden"
+
+                sleep 10
+              done
+
+        - if: runner.os != 'Windows'
+          name: Network test
+          shell: bash
+          run: |
+              for port in ${{ inputs.ports }}; do
+                if netstat -an | grep -q ".*:$port.*LISTEN"; then
+                  echo "Port $port is open."
+                else
+                  echo "Port $port is not open."
+                fi
+              done
