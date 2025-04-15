@@ -76,10 +76,8 @@ public class ThreadInterpreterManagerTest {
   @Test
   public void invokeMethodWithTimeoutTest() {
     String moduleName = "timeout_test", obj = "t", className = "TimeoutTest";
-    ThreadInterpreterManager.executeWithInterpreter(
-        interpreter ->
-            interpreter.exec(
-                String.format("import %s; %s = %s.%s()", moduleName, obj, moduleName, className)));
+    ThreadInterpreterManager.exec(
+        String.format("import %s; %s = %s.%s()", moduleName, obj, moduleName, className));
     try {
       Object res =
           ThreadInterpreterManager.invokeMethodWithTimeout(
