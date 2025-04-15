@@ -41,10 +41,6 @@ runs:
           if: inputs.status != 'ok'
           shell: bash -el {0}
           working-directory: IGinX
-          # The following environment variable is used to solve the problem of Illegal reflective access operation in JDK 9+ in old branch.run:
-          # 后面不需要时可以删除
-          env:
-              JDK_JAVA_OPTIONS: "--add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.nio=ALL-UNNAMED"
           run: |
               chmod +x core/target/iginx-core-*/sbin/start_iginx.sh
               nohup core/target/iginx-core-*/sbin/start_iginx.sh > iginx-$1.log 2>&1 &

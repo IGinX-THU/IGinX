@@ -6,12 +6,12 @@ COPY ./target/iginx-client-0.9.0-SNAPSHOT/ C:/iginx_client
 
 # 设置环境变量
 USER ContainerAdministrator
-ENV JAVA_HOME "C:\jdk\jdk17.0.14_7"
+ENV JAVA_HOME "C:\jdk\jdk-11.0.2"
 RUN setx /M PATH "%JAVA_HOME%\bin;%PATH%"
 SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
 
 # 下载 JDK
-ADD https://corretto.aws/downloads/resources/17.0.14.7.1/amazon-corretto-17.0.14.7.1-windows-x64-jdk.zip C:/temp/jdk.zip
+ADD https://download.java.net/java/GA/jdk11/9/GPL/openjdk-11.0.2_windows-x64_bin.zip C:/temp/jdk.zip
 
 # 解压 JDK
 RUN Expand-Archive -Path C:/temp/jdk.zip -DestinationPath C:/jdk

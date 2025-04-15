@@ -8,9 +8,9 @@ IGinX支持用户一体化管理已存储在不同系统中的数据资产，也
 
 ### Java 安装
 
-由于 ZooKeeper、IGinX 以及 IoTDB 都是使用 Java 开发的，因此首先需要安装 Java。如果本地已经安装了 JDK>=17 的运行环境，**直接跳过此步骤**。
+由于 ZooKeeper、IGinX 以及 IoTDB 都是使用 Java 开发的，因此首先需要安装 Java。如果本地已经安装了 JDK>=1.8 的运行环境，**直接跳过此步骤**。
 
-1. 首先访问 [Java官方网站](https://www.oracle.com/java/technologies/downloads)下载适用于当前系统的 JDK 包。
+1. 首先访问 [Java官方网站](https://www.oracle.com/java/technologies/javase/javase-jdk8-downloads.html)下载适用于当前系统的 JDK 包。
 2. 安装
 
 ```shell
