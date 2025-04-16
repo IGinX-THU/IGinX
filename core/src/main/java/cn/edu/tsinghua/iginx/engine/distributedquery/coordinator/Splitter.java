@@ -17,14 +17,11 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package cn.edu.tsinghua.iginx.engine.shared.source;
+package cn.edu.tsinghua.iginx.engine.distributedquery.coordinator;
 
-public enum SourceType {
-  Unknown,
-  Empty,
-  Constant,
-  Fragment,
-  Operator,
-  IGinX,
-  Global,
+import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
+
+public interface Splitter {
+
+  Plan split(Operator root);
 }

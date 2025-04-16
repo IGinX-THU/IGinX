@@ -88,6 +88,8 @@ public class NaivePhysicalOptimizer implements PhysicalOptimizer {
         } else {
           return new StoragePhysicalTask(operators, context);
         }
+      case IGinX:
+        return new IGinXPhysicalTask(operator, context);
       case Operator: // 构建内存中的计划
         OperatorSource operatorSource = (OperatorSource) source;
         Operator sourceOperator = operatorSource.getOperator();

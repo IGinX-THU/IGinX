@@ -17,14 +17,22 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package cn.edu.tsinghua.iginx.engine.shared.source;
+package cn.edu.tsinghua.iginx.utils;
 
-public enum SourceType {
-  Unknown,
-  Empty,
-  Constant,
-  Fragment,
-  Operator,
-  IGinX,
-  Global,
+import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONReader;
+import com.alibaba.fastjson2.JSONWriter;
+
+public class FastjsonSerializeUtils {
+
+  public static <T> String serialize(T obj) {
+    if (obj == null) {
+      throw new NullPointerException();
+    }
+    return JSON.toJSONString(obj, JSONWriter.Feature.WriteClassName, JSONWriter.Feature.FieldBased);
+  }
+
+  public static <T> T deserialize(String json, Class<T> clazz) {
+    return JSON.parseObject(json, clazz, JSONReader.Feature.SupportAutoType);
+  }
 }

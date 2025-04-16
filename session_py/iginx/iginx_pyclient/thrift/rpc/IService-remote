@@ -65,6 +65,7 @@ if len(sys.argv) <= 1 or sys.argv[1] == '--help':
     print('  ShowRulesResp showRules(ShowRulesReq req)')
     print('  Status setRules(SetRulesReq req)')
     print('  Status uploadFileChunk(UploadFileReq req)')
+    print('  ExecuteSubPlanResp executeSubPlan(ExecuteSubPlanReq req)')
     print('')
     sys.exit(0)
 
@@ -389,6 +390,12 @@ elif cmd == 'uploadFileChunk':
         print('uploadFileChunk requires 1 args')
         sys.exit(1)
     pp.pprint(client.uploadFileChunk(eval(args[0]),))
+
+elif cmd == 'executeSubPlan':
+    if len(args) != 1:
+        print('executeSubPlan requires 1 args')
+        sys.exit(1)
+    pp.pprint(client.executeSubPlan(eval(args[0]),))
 
 else:
     print('Unrecognized method %s' % cmd)

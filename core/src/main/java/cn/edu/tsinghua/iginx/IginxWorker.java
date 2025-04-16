@@ -36,6 +36,7 @@ import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.conf.Constants;
 import cn.edu.tsinghua.iginx.engine.ContextBuilder;
 import cn.edu.tsinghua.iginx.engine.StatementExecutor;
+import cn.edu.tsinghua.iginx.engine.distributedquery.worker.SubPlanExecutor;
 import cn.edu.tsinghua.iginx.engine.logical.optimizer.IRuleCollection;
 import cn.edu.tsinghua.iginx.engine.physical.PhysicalEngineImpl;
 import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
@@ -112,13 +113,7 @@ public class IginxWorker implements IService.Iface {
         continue;
       }
       metaFromConf.setExtraParams(extraParams);
-      boolean hasAdded = false;
-      for (StorageEngineMeta meta : metaManager.getStorageEngineList()) {
-        if (metaFromConf.equals(meta)) {
-          hasAdded = true;
-          break;
-        }
-      }
+      boolean hasAdded = metaManager.getStorageEngineList().stream().anyMatch(metaFromConf::equals);
       if (hasAdded) {
         hasOtherMetas = true;
         continue;
@@ -663,7 +658,18 @@ public class IginxWorker implements IService.Iface {
       ctx.setRemoteSession(req.isRemoteSession());
     }
     executor.execute(ctx);
-    return ctx.getResult().getExecuteSqlResp();
+    LOGGER.info("total cost time: {}", ctx.getEndTime() - ctx.getStartTime());
+    ExecuteSqlResp resp = ctx.getResult().getExecuteSqlResp();
+    resp.setCostTime(ctx.getEndTime() - ctx.getStartTime());
+    return resp;
+  }
+
+  @Override
+  public ExecuteSubPlanResp executeSubPlan(ExecuteSubPlanReq req) {
+    SubPlanExecutor executor = SubPlanExecutor.getInstance();
+    RequestContext ctx = contextBuilder.build(req);
+    executor.execute(ctx);
+    return ctx.getResult().getExecuteSubPlanResp();
   }
 
   @Override
