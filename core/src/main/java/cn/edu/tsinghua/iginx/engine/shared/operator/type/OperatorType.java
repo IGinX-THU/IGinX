@@ -68,7 +68,8 @@ public enum OperatorType {
   AddSequence,
   RemoveNullColumn,
   ProjectWaitingForPath,
-  ValueToSelectedPath;
+  ValueToSelectedPath,
+  Load;
 
   private int value;
 

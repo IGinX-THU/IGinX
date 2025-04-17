@@ -55,14 +55,20 @@ public class UnaryMemoryPhysicalTask extends MemoryPhysicalTask {
     return parentTask;
   }
 
+  private boolean isLoad() {
+    return getOperators().size() == 1 && getOperators().get(0).getType().equals(OperatorType.Load);
+  }
+
   public boolean isProjectFromConstant() {
-    return !getOperators().isEmpty() && OperatorUtils.isProjectFromConstant(getOperators().get(0));
+    return getOperators().size() == 1 && OperatorUtils.isProjectFromConstant(getOperators().get(0));
   }
 
   @Override
   public TaskExecuteResult execute() {
-    RowStream stream = new EmptyRowStream();
-    if (!isProjectFromConstant()) {
+    RowStream stream;
+    if (isLoad() || isProjectFromConstant()) {
+      stream = new EmptyRowStream();
+    } else {
       TaskExecuteResult parentResult = parentTask.getResult();
       if (parentResult == null) {
         return new TaskExecuteResult(

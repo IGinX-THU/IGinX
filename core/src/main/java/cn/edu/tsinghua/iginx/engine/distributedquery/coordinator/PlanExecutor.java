@@ -17,14 +17,27 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package cn.edu.tsinghua.iginx.engine.shared.source;
+package cn.edu.tsinghua.iginx.engine.distributedquery.coordinator;
 
-public enum SourceType {
-  Unknown,
-  Empty,
-  Constant,
-  Fragment,
-  Operator,
-  IGinX,
-  Global,
+import cn.edu.tsinghua.iginx.engine.physical.PhysicalEngine;
+import cn.edu.tsinghua.iginx.engine.physical.PhysicalEngineImpl;
+import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
+import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
+
+public class PlanExecutor {
+
+  private static final PhysicalEngine engine = PhysicalEngineImpl.getInstance();
+
+  private static class PlanExecutorHolder {
+    private static final PlanExecutor INSTANCE = new PlanExecutor();
+  }
+
+  public static PlanExecutor getInstance() {
+    return PlanExecutorHolder.INSTANCE;
+  }
+
+  public RowStream execute(RequestContext ctx, Plan plan) throws PhysicalException {
+    return engine.execute(ctx, plan.getRoot());
+  }
 }

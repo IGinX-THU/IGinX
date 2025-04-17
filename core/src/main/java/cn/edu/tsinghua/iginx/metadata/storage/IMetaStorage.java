@@ -44,12 +44,12 @@ public interface IMetaStorage {
 
   void registerIginxChangeHook(IginxChangeHook hook);
 
-  Map<Long, StorageEngineMeta> loadStorageEngine(List<StorageEngineMeta> storageEngines)
-      throws MetaStorageException;
+  Map<Long, StorageEngineMeta> loadStorageEngine(
+      long iginxId, List<StorageEngineMeta> storageEngines) throws MetaStorageException;
 
-  long addStorageEngine(StorageEngineMeta storageEngine) throws MetaStorageException;
+  long addStorageEngine(long iginxId, StorageEngineMeta storageEngine) throws MetaStorageException;
 
-  void removeDummyStorageEngine(long storageEngineId) throws MetaStorageException;
+  void removeDummyStorageEngine(long iginxId, long storageEngineId) throws MetaStorageException;
 
   void registerStorageChangeHook(StorageChangeHook hook);
 

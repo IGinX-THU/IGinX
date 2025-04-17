@@ -70,7 +70,7 @@ public class RowUtils {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(RowUtils.class);
 
-  private static final BlockingQueue<ForkJoinPool> poolQueue = new LinkedBlockingQueue<>();
+  public static final BlockingQueue<ForkJoinPool> poolQueue = new LinkedBlockingQueue<>();
 
   static {
     for (int i = 0; i < config.getParallelGroupByPoolNum(); i++) {

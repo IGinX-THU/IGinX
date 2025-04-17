@@ -81,13 +81,10 @@ public class ExecuteStatisticsCollector extends AbstractStageStatisticsCollector
     }
     for (Map.Entry<StatementType, Pair<Long, Long>> entry : detailInfos.entrySet()) {
       LOGGER.info(
-          "\t\tFor Request: "
-              + entry.getKey()
-              + ", count: "
-              + entry.getValue().k
-              + ", span: "
-              + entry.getValue().v
-              + "μs");
+          "\t\tFor Request: {}, count: {}, span: {}μs",
+          entry.getKey(),
+          entry.getValue().k,
+          entry.getValue().v);
     }
     LOGGER.info("\ttotal insert points: {}", insertPoints);
     LOGGER.info("\ttotal query points: {}", queryPoints);

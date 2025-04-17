@@ -56,6 +56,8 @@ public class SessionExecuteSqlResult {
 
   private Map<String, Boolean> rules;
 
+  private long totalCostTime;
+
   // Only for mock test
   public SessionExecuteSqlResult() {}
 
@@ -150,6 +152,7 @@ public class SessionExecuteSqlResult {
     } else {
       this.values = new ArrayList<>();
     }
+    this.totalCostTime = resp.getCostTime();
   }
 
   public List<List<String>> getResultInList(
@@ -229,7 +232,56 @@ public class SessionExecuteSqlResult {
     builder.append(FormatUtils.formatResult(cache));
 
     builder.append(FormatUtils.formatCount(cache.size() - 1));
+
+    if (paths != null && !paths.isEmpty() && paths.get(0).equals("Physical Tree")) {
+      builder.append(cacheMoreThings());
+    }
     return builder.toString();
+  }
+
+  private String cacheMoreThings() {
+    Map<String, OpStats> map = new HashMap<>();
+    for (List<Object> row : values) {
+      String timeStr = FormatUtils.valueToString(row.get(1));
+      String name = FormatUtils.valueToString(row.get(3)).split(":")[0];
+      int costTime = Integer.parseInt(timeStr.substring(0, timeStr.length() - 2));
+      if (map.containsKey(name)) {
+        map.get(name).addUp(costTime);
+      } else {
+        map.put(name, new OpStats(name, costTime));
+      }
+    }
+
+    List<OpStats> list = new ArrayList<>(map.values());
+    list.sort(Comparator.comparingInt(a -> a.costTime));
+
+    StringBuilder builder = new StringBuilder();
+    list.forEach(
+        opStats ->
+            builder
+                .append(
+                    String.format(
+                        "[%s] cost time: %s, num: %s", opStats.name, opStats.costTime, opStats.num))
+                .append("\n"));
+    builder.append("total cost: ").append(totalCostTime).append("ms\n");
+    return builder.toString();
+  }
+
+  static class OpStats {
+    String name;
+    int num;
+    int costTime;
+
+    public OpStats(String name, int costTime) {
+      this.num = 1;
+      this.name = name;
+      this.costTime = costTime;
+    }
+
+    public void addUp(int costTime) {
+      this.num++;
+      this.costTime += costTime;
+    }
   }
 
   private List<List<String>> cacheResult(

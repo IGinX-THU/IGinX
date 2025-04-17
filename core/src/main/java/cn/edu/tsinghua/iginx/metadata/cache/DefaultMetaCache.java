@@ -77,6 +77,9 @@ public class DefaultMetaCache implements IMetaCache {
   // 数据后端的缓存
   private final Map<Long, StorageEngineMeta> storageEngineMetaMap;
 
+  // iginx 和数据后端连接关系的缓存
+  private final Map<Long, List<StorageEngineMeta>> iginxStorageConnectionMap;
+
   // schemaMapping 的缓存
   private final Map<String, Map<String, Integer>> schemaMappings;
 
@@ -120,6 +123,8 @@ public class DefaultMetaCache implements IMetaCache {
     iginxMetaMap = new ConcurrentHashMap<>();
     // 数据后端相关
     storageEngineMetaMap = new ConcurrentHashMap<>();
+    // iginx 与数据后端连接相关
+    iginxStorageConnectionMap = new ConcurrentHashMap<>();
     // schemaMapping 相关
     schemaMappings = new ConcurrentHashMap<>();
     // user 相关
@@ -690,7 +695,7 @@ public class DefaultMetaCache implements IMetaCache {
   }
 
   @Override
-  public void addStorageEngine(StorageEngineMeta storageEngineMeta) {
+  public void addStorageEngine(long iginxId, StorageEngineMeta storageEngineMeta) {
     storageUnitLock.writeLock().lock();
     fragmentLock.writeLock().lock();
     try {
@@ -704,6 +709,9 @@ public class DefaultMetaCache implements IMetaCache {
           dummyFragments.add(dummyFragment);
         }
       }
+      iginxStorageConnectionMap
+          .computeIfAbsent(iginxId, k -> new ArrayList<>())
+          .add(storageEngineMeta);
     } finally {
       fragmentLock.writeLock().unlock();
       storageUnitLock.writeLock().unlock();
@@ -711,7 +719,7 @@ public class DefaultMetaCache implements IMetaCache {
   }
 
   @Override
-  public boolean removeDummyStorageEngine(long storageEngineId) {
+  public boolean removeDummyStorageEngine(long iginxId, long storageEngineId) {
     storageUnitLock.writeLock().lock();
     fragmentLock.writeLock().lock();
     try {
@@ -724,6 +732,13 @@ public class DefaultMetaCache implements IMetaCache {
       assert oldStorageEngineMeta.isHasData();
       dummyFragments.removeIf(e -> e.getMasterStorageUnitId().equals(dummyStorageUnitId));
       dummyStorageUnitMetaMap.remove(dummyStorageUnitId);
+      iginxStorageConnectionMap.computeIfPresent(
+          iginxId,
+          (k, v) -> {
+            v.remove(storageEngineMetaMap.get(storageEngineId));
+            return v;
+          });
+      // TODO
       storageEngineMetaMap.remove(storageEngineId);
     } finally {
       fragmentLock.writeLock().unlock();
@@ -735,6 +750,12 @@ public class DefaultMetaCache implements IMetaCache {
   @Override
   public List<StorageEngineMeta> getStorageEngineList() {
     return new ArrayList<>(this.storageEngineMetaMap.values());
+  }
+
+  @Override
+  public List<StorageEngineMeta> getStorageEngineListByIginxId(long iginxId) {
+    return new ArrayList<>(
+        this.iginxStorageConnectionMap.getOrDefault(iginxId, Collections.emptyList()));
   }
 
   @Override

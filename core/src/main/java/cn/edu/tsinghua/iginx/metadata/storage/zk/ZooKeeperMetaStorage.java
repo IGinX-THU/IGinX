@@ -45,6 +45,7 @@ import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.framework.recipes.cache.TreeCache;
 import org.apache.curator.framework.recipes.cache.TreeCacheListener;
+import org.apache.curator.framework.recipes.locks.InterProcessMultiLock;
 import org.apache.curator.framework.recipes.locks.InterProcessMutex;
 import org.apache.curator.retry.RetryForever;
 import org.apache.zookeeper.CreateMode;
@@ -59,6 +60,8 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
   private static final String IGINX_NODE = "/iginx/node";
 
   private static final String STORAGE_ENGINE_NODE = "/storage/node";
+
+  private static final String IGINX_STORAGE_CONNECTION_NODE = "/connection/%s/%s";
 
   private static final String STORAGE_UNIT_NODE = "/unit/unit";
 
@@ -298,7 +301,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
         mutex.release();
       } catch (Exception e) {
         throw new MetaStorageException(
-            "get error when release interprocess lock for " + SCHEMA_MAPPING_LOCK_NODE, e);
+            "get error when release interprocess lock for " + IGINX_LOCK_NODE, e);
       }
     }
   }
@@ -346,12 +349,10 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
               iginxMeta = JsonUtils.fromJson(data, IginxMeta.class);
               if (iginxMeta != null) {
                 LOGGER.info(
-                    "new iginx comes to cluster: id = "
-                        + iginxMeta.getId()
-                        + " ,ip = "
-                        + iginxMeta.getIp()
-                        + " , port = "
-                        + iginxMeta.getPort());
+                    "new iginx comes to cluster: id = {} ,ip = {} , port = {}",
+                    iginxMeta.getId(),
+                    iginxMeta.getIp(),
+                    iginxMeta.getPort());
                 iginxChangeHook.onChange(iginxMeta.getId(), iginxMeta);
               } else {
                 LOGGER.error("resolve iginx meta from zookeeper error");
@@ -370,12 +371,10 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
               iginxMeta = JsonUtils.fromJson(data, IginxMeta.class);
               if (iginxMeta != null) {
                 LOGGER.info(
-                    "iginx leave from cluster: id = "
-                        + iginxMeta.getId()
-                        + " ,ip = "
-                        + iginxMeta.getIp()
-                        + " , port = "
-                        + iginxMeta.getPort());
+                    "iginx leave from cluster: id = {} ,ip = {} , port = {}",
+                    iginxMeta.getId(),
+                    iginxMeta.getIp(),
+                    iginxMeta.getPort());
                 iginxChangeHook.onChange(iginxMeta.getId(), null);
               } else {
                 LOGGER.error("resolve iginx meta from zookeeper error");
@@ -395,11 +394,17 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
   }
 
   @Override
-  public Map<Long, StorageEngineMeta> loadStorageEngine(List<StorageEngineMeta> storageEngines)
-      throws MetaStorageException {
-    InterProcessMutex mutex = new InterProcessMutex(this.client, STORAGE_ENGINE_LOCK_NODE);
+  public Map<Long, StorageEngineMeta> loadStorageEngine(
+      long iginxId, List<StorageEngineMeta> storageEngines) throws MetaStorageException {
+    String iginxNodeName = generateId("", iginxId);
+    InterProcessMutex connectionMutex =
+        new InterProcessMutex(
+            this.client, String.format(IGINX_STORAGE_CONNECTION_LOCK_NODE, iginxNodeName));
+    InterProcessMutex storageMutex = new InterProcessMutex(this.client, STORAGE_ENGINE_LOCK_NODE);
+    InterProcessMultiLock multiLock =
+        new InterProcessMultiLock(Arrays.asList(storageMutex, connectionMutex));
     try {
-      mutex.acquire();
+      multiLock.acquire();
       if (this.client.checkExists().forPath(STORAGE_ENGINE_NODE_PREFIX)
           == null) { // 节点不存在，说明还没有别的 iginx 节点写入过元信息
         this.client
@@ -428,11 +433,20 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
         byte[] data = this.client.getData().forPath(STORAGE_ENGINE_NODE_PREFIX + "/" + childName);
         StorageEngineMeta storageEngineMeta = JsonUtils.fromJson(data, StorageEngineMeta.class);
         if (storageEngineMeta == null) {
-          LOGGER.error(
-              "resolve data from " + STORAGE_ENGINE_NODE_PREFIX + "/" + childName + " error");
+          LOGGER.error("resolve data from " + STORAGE_ENGINE_NODE_PREFIX + "/{} error", childName);
           continue;
         }
         storageEngineMetaMap.putIfAbsent(storageEngineMeta.getId(), storageEngineMeta);
+        // 建立连接关系
+        this.client
+            .create()
+            .creatingParentsIfNeeded()
+            .withMode(CreateMode.EPHEMERAL)
+            .forPath(
+                String.format(
+                    IGINX_STORAGE_CONNECTION_NODE,
+                    iginxNodeName,
+                    generateId("", storageEngineMeta.getId())));
       }
 
       registerMaxActiveEndTimeStatisticsListener();
@@ -443,7 +457,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
       throw new MetaStorageException("get error when load schema mapping", e);
     } finally {
       try {
-        mutex.release();
+        multiLock.release();
       } catch (Exception e) {
         throw new MetaStorageException(
             "get error when release interprocess lock for " + STORAGE_ENGINE_LOCK_NODE, e);
@@ -452,10 +466,17 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
   }
 
   @Override
-  public long addStorageEngine(StorageEngineMeta storageEngine) throws MetaStorageException {
-    InterProcessMutex mutex = new InterProcessMutex(this.client, STORAGE_ENGINE_LOCK_NODE);
+  public long addStorageEngine(long iginxId, StorageEngineMeta storageEngine)
+      throws MetaStorageException {
+    String iginxNodeName = generateId(IGINX_NODE, iginxId);
+    InterProcessMutex connectionMutex =
+        new InterProcessMutex(
+            this.client, String.format(IGINX_STORAGE_CONNECTION_LOCK_NODE, iginxNodeName));
+    InterProcessMutex storageMutex = new InterProcessMutex(this.client, STORAGE_ENGINE_LOCK_NODE);
+    InterProcessMultiLock multiLock =
+        new InterProcessMultiLock(Arrays.asList(storageMutex, connectionMutex));
     try {
-      mutex.acquire();
+      multiLock.acquire();
       String nodeName =
           this.client
               .create()
@@ -465,12 +486,18 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
       long id = Long.parseLong(nodeName.substring(STORAGE_ENGINE_NODE.length()));
       storageEngine.setId(id);
       this.client.setData().forPath(nodeName, JsonUtils.toJson(storageEngine));
+      // 建立连接关系
+      this.client
+          .create()
+          .creatingParentsIfNeeded()
+          .withMode(CreateMode.EPHEMERAL)
+          .forPath(String.format(IGINX_STORAGE_CONNECTION_NODE, iginxNodeName, generateId("", id)));
       return id;
     } catch (Exception e) {
       throw new MetaStorageException("get error when add storage engine", e);
     } finally {
       try {
-        mutex.release();
+        multiLock.release();
       } catch (Exception e) {
         throw new MetaStorageException(
             "get error when release interprocess lock for " + SCHEMA_MAPPING_LOCK_NODE, e);
@@ -479,19 +506,33 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
   }
 
   @Override
-  public void removeDummyStorageEngine(long storageEngineId) throws MetaStorageException {
-    InterProcessMutex mutex = new InterProcessMutex(this.client, STORAGE_ENGINE_LOCK_NODE);
+  public void removeDummyStorageEngine(long iginxId, long storageEngineId)
+      throws MetaStorageException {
+    String iginxNodeName = generateId(IGINX_NODE, iginxId);
+    InterProcessMutex connectionMutex =
+        new InterProcessMutex(
+            this.client, String.format(IGINX_STORAGE_CONNECTION_LOCK_NODE, iginxNodeName));
+    InterProcessMutex storageMutex = new InterProcessMutex(this.client, STORAGE_ENGINE_LOCK_NODE);
+    InterProcessMultiLock multiLock =
+        new InterProcessMultiLock(Arrays.asList(storageMutex, connectionMutex));
     try {
-      mutex.acquire();
+      multiLock.acquire();
       String nodeName = generateId(STORAGE_ENGINE_NODE, storageEngineId);
       if (this.client.checkExists().forPath(nodeName) != null) {
         this.client.delete().forPath(nodeName);
+      }
+      // 删除连接状态
+      String connectionNodeName =
+          String.format(
+              IGINX_STORAGE_CONNECTION_NODE, iginxNodeName, generateId("", storageEngineId));
+      if (this.client.checkExists().forPath(connectionNodeName) != null) {
+        this.client.delete().forPath(connectionNodeName);
       }
     } catch (Exception e) {
       throw new MetaStorageException("get error when removing dummy storage engine", e);
     } finally {
       try {
-        mutex.release();
+        multiLock.release();
       } catch (Exception e) {
         throw new MetaStorageException(
             "get error when release interprocess lock for " + STORAGE_ENGINE_LOCK_NODE, e);
@@ -520,12 +561,10 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
               storageEngineMeta = JsonUtils.fromJson(data, StorageEngineMeta.class);
               if (storageEngineMeta != null) {
                 LOGGER.info(
-                    "new storage engine comes to cluster: id = "
-                        + storageEngineMeta.getId()
-                        + " ,ip = "
-                        + storageEngineMeta.getIp()
-                        + " , port = "
-                        + storageEngineMeta.getPort());
+                    "new storage engine comes to cluster: id = {} ,ip = {} , port = {}",
+                    storageEngineMeta.getId(),
+                    storageEngineMeta.getIp(),
+                    storageEngineMeta.getPort());
                 storageChangeHook.onChange(storageEngineMeta.getId(), storageEngineMeta);
               } else {
                 LOGGER.error("resolve storage engine from zookeeper error");
@@ -544,12 +583,10 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
               storageEngineMeta = JsonUtils.fromJson(data, StorageEngineMeta.class);
               if (storageEngineMeta != null) {
                 LOGGER.info(
-                    "storage engine leave from cluster: id = "
-                        + storageEngineMeta.getId()
-                        + " ,ip = "
-                        + storageEngineMeta.getIp()
-                        + " , port = "
-                        + storageEngineMeta.getPort());
+                    "storage engine leave from cluster: id = {} ,ip = {} , port = {}",
+                    storageEngineMeta.getId(),
+                    storageEngineMeta.getIp(),
+                    storageEngineMeta.getPort());
                 storageChangeHook.onChange(storageEngineMeta.getId(), null);
               } else {
                 LOGGER.error("resolve storage engine from zookeeper error");

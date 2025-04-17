@@ -242,7 +242,7 @@ public class DefaultMetaManager implements IMetaManager {
           }
         });
     storageEngineListFromConf = resolveStorageEngineFromConf();
-    storage.loadStorageEngine(storageEngineListFromConf);
+    storage.loadStorageEngine(id, storageEngineListFromConf);
   }
 
   private void initStorageUnit() throws MetaStorageException {
@@ -420,7 +420,7 @@ public class DefaultMetaManager implements IMetaManager {
   public boolean addStorageEngines(List<StorageEngineMeta> storageEngineMetas) {
     try {
       for (StorageEngineMeta storageEngineMeta : storageEngineMetas) {
-        long id = storage.addStorageEngine(storageEngineMeta);
+        long id = storage.addStorageEngine(getIginxId(), storageEngineMeta);
         storageEngineMeta.setId(id);
         addStorageEngine(id, storageEngineMeta);
       }
@@ -441,7 +441,7 @@ public class DefaultMetaManager implements IMetaManager {
       dummyFragment.setMasterStorageUnit(dummyStorageUnit);
       dummyFragment.setMasterStorageUnitId(dummyStorageUnit.getId());
     }
-    cache.addStorageEngine(storageEngineMeta);
+    cache.addStorageEngine(id, storageEngineMeta);
     for (StorageEngineChangeHook hook : storageEngineChangeHooks) {
       hook.onChange(null, storageEngineMeta);
     }
@@ -455,12 +455,12 @@ public class DefaultMetaManager implements IMetaManager {
   @Override
   public boolean removeDummyStorageEngine(long storageEngineId) {
     try {
-      storage.removeDummyStorageEngine(storageEngineId);
+      storage.removeDummyStorageEngine(id, storageEngineId);
       // release 对接层
       for (StorageEngineChangeHook hook : storageEngineChangeHooks) {
         hook.onChange(getStorageEngine(storageEngineId), null);
       }
-      return cache.removeDummyStorageEngine(storageEngineId);
+      return cache.removeDummyStorageEngine(id, storageEngineId);
     } catch (MetaStorageException e) {
       LOGGER.error("remove dummy storage engine {} error: ", storageEngineId, e);
     }
@@ -1025,7 +1025,9 @@ public class DefaultMetaManager implements IMetaManager {
     if (cache.hasFragment() && cache.hasStorageUnit()) {
       return false;
     }
-    checkInitialFragmentCompletion(initialFragments);
+    if (initialFragments != null) {
+      checkInitialFragmentCompletion(initialFragments);
+    }
     List<StorageUnitMeta> newStorageUnits = new ArrayList<>();
     try {
       storage.lockFragment();

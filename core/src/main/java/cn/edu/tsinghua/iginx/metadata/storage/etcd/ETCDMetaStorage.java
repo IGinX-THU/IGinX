@@ -782,8 +782,8 @@ public class ETCDMetaStorage implements IMetaStorage {
   }
 
   @Override
-  public Map<Long, StorageEngineMeta> loadStorageEngine(List<StorageEngineMeta> localStorageEngines)
-      throws MetaStorageException {
+  public Map<Long, StorageEngineMeta> loadStorageEngine(
+      long iginxId, List<StorageEngineMeta> localStorageEngines) throws MetaStorageException {
     try {
       lockStorage();
       Map<Long, StorageEngineMeta> storageEngines = new HashMap<>();
@@ -832,7 +832,8 @@ public class ETCDMetaStorage implements IMetaStorage {
   }
 
   @Override
-  public long addStorageEngine(StorageEngineMeta storageEngine) throws MetaStorageException {
+  public long addStorageEngine(long iginxId, StorageEngineMeta storageEngine)
+      throws MetaStorageException {
     try {
       lockStorage();
       long id = nextId(STORAGE_ID);
@@ -857,7 +858,8 @@ public class ETCDMetaStorage implements IMetaStorage {
   }
 
   @Override
-  public void removeDummyStorageEngine(long storageEngineId) throws MetaStorageException {
+  public void removeDummyStorageEngine(long iginxId, long storageEngineId)
+      throws MetaStorageException {
     try {
       lockStorage();
       this.client

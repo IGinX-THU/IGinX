@@ -31,6 +31,8 @@ public class Constant {
 
   public static final String STORAGE_ENGINE_LOCK_NODE = "/lock/storage";
 
+  public static final String IGINX_STORAGE_CONNECTION_LOCK_NODE = "/lock/connection/%s";
+
   public static final String FRAGMENT_LOCK_NODE = "/lock/fragment";
 
   public static final String STORAGE_UNIT_LOCK_NODE = "/lock/unit";
