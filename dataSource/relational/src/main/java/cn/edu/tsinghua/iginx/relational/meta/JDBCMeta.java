@@ -23,6 +23,7 @@ import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.relational.datatype.transformer.DmDataTypeTransformer;
 import cn.edu.tsinghua.iginx.relational.datatype.transformer.IDataTypeTransformer;
 import cn.edu.tsinghua.iginx.relational.datatype.transformer.JDBCDataTypeTransformer;
+import cn.edu.tsinghua.iginx.relational.datatype.transformer.OracleDataTypeTransformer;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
@@ -39,13 +40,17 @@ public class JDBCMeta extends AbstractRelationalMeta {
 
   private final String databaseQuerySql;
 
+  private final String dummyDatabaseQuerySql;
+
+  private final boolean supportCreateDatabase;
+
   private final String databaseDropStatement;
 
   private final String databaseCreateStatement;
 
-  private final String grantPrivilegesStatement;
-
   private final String createTableStatement;
+
+  private final String dropTableStatement;
 
   private final String alterTableAddColumnStatement;
 
@@ -77,6 +82,8 @@ public class JDBCMeta extends AbstractRelationalMeta {
 
   private final boolean jdbcSupportBackslash;
 
+  private final boolean jdbcSupportGetTableNameFromResultSet;
+
   public JDBCMeta(StorageEngineMeta meta, Properties properties) {
     super(meta);
     quote = properties.getProperty("quote").charAt(0);
@@ -84,15 +91,20 @@ public class JDBCMeta extends AbstractRelationalMeta {
     defaultDatabaseName = properties.getProperty("default_database");
     if (meta.getExtraParams().get("engine").equalsIgnoreCase("dameng")) {
       dataTypeTransformer = DmDataTypeTransformer.getInstance();
+    } else if (meta.getExtraParams().get("engine").equalsIgnoreCase("oracle")) {
+      dataTypeTransformer = OracleDataTypeTransformer.getInstance();
     } else {
       dataTypeTransformer = new JDBCDataTypeTransformer(properties);
     }
     systemDatabaseName = Arrays.asList(properties.getProperty("system_databases").split(","));
     databaseQuerySql = properties.getProperty("database_query_sql");
+    dummyDatabaseQuerySql = properties.getProperty("dummy_database_query_sql", databaseQuerySql);
+    supportCreateDatabase =
+        Boolean.parseBoolean(properties.getProperty("support_create_database", "true"));
     databaseDropStatement = properties.getProperty("drop_database_statement");
     databaseCreateStatement = properties.getProperty("create_database_statement");
-    grantPrivilegesStatement = properties.getProperty("grant_privileges_statement");
     createTableStatement = properties.getProperty("create_table_statement");
+    dropTableStatement = properties.getProperty("drop_table_statement");
     alterTableAddColumnStatement = properties.getProperty("alter_table_add_column_statement");
     alterTableDropColumnStatement = properties.getProperty("alter_table_drop_column_statement");
     queryTableStatement = properties.getProperty("query_table_statement");
@@ -109,6 +121,9 @@ public class JDBCMeta extends AbstractRelationalMeta {
     notRegexOp = properties.getProperty("not_regex_like_symbol");
     jdbcSupportBackslash =
         Boolean.parseBoolean(properties.getProperty("jdbc_support_special_char"));
+    this.jdbcSupportGetTableNameFromResultSet =
+        Boolean.parseBoolean(
+            properties.getProperty("jdbc_support_get_table_name_from_result_set", "true"));
   }
 
   @Override
@@ -142,6 +157,16 @@ public class JDBCMeta extends AbstractRelationalMeta {
   }
 
   @Override
+  public String getDummyDatabaseQuerySql() {
+    return dummyDatabaseQuerySql;
+  }
+
+  @Override
+  public boolean supportCreateDatabase() {
+    return supportCreateDatabase;
+  }
+
+  @Override
   public String getDropDatabaseStatement() {
     return databaseDropStatement;
   }
@@ -152,13 +177,13 @@ public class JDBCMeta extends AbstractRelationalMeta {
   }
 
   @Override
-  public String getGrantPrivilegesStatement() {
-    return grantPrivilegesStatement;
+  public String getCreateTableStatement() {
+    return createTableStatement;
   }
 
   @Override
-  public String getCreateTableStatement() {
-    return createTableStatement;
+  public String getDropTableStatement() {
+    return dropTableStatement;
   }
 
   @Override
@@ -234,6 +259,11 @@ public class JDBCMeta extends AbstractRelationalMeta {
   @Override
   public boolean jdbcSupportSpecialChar() {
     return jdbcSupportBackslash;
+  }
+
+  @Override
+  public boolean jdbcSupportGetTableNameFromResultSet() {
+    return jdbcSupportGetTableNameFromResultSet;
   }
 
   public StorageEngineMeta getStorageEngineMeta() {

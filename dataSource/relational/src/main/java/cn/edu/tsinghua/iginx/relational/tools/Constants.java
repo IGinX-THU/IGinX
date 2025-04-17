@@ -30,6 +30,8 @@ public abstract class Constants {
 
   public static final String PASSWORD = "password";
 
+  public static final String DATABASE = "database";
+
   public static final String KEY_NAME = "RELATIONAL+KEY";
 
   public static final String DATABASE_PREFIX = "unit";

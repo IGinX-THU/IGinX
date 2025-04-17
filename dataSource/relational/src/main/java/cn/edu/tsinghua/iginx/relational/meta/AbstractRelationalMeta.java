@@ -68,6 +68,8 @@ public abstract class AbstractRelationalMeta {
    */
   public abstract String getDatabaseQuerySql();
 
+  public abstract String getDummyDatabaseQuerySql();
+
   /**
    * 获取引号，在SQL中，不同的数据库引号不同，PG是双引号，MYSQL是反引号
    *
@@ -86,11 +88,13 @@ public abstract class AbstractRelationalMeta {
 
   public abstract String getCreateTableStatement();
 
+  public abstract String getDropTableStatement();
+
+  public abstract boolean supportCreateDatabase();
+
   public abstract String getDropDatabaseStatement();
 
   public abstract String getCreateDatabaseStatement();
-
-  public abstract String getGrantPrivilegesStatement();
 
   public abstract String getAlterTableAddColumnStatement();
 
@@ -153,4 +157,6 @@ public abstract class AbstractRelationalMeta {
 
   /** jdbc获取元数据是否支持反斜杠的识别 */
   public abstract boolean jdbcSupportSpecialChar();
+
+  public abstract boolean jdbcSupportGetTableNameFromResultSet();
 }
