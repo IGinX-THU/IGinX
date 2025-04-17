@@ -55,6 +55,13 @@ public class ThreadInterpreterManagerTest {
                   "..",
                   "udf_funcs",
                   "python_scripts")
+              .toString(),
+          Paths.get(
+                  EnvUtils.loadEnv(Constants.IGINX_HOME, System.getProperty("user.dir")),
+                  "..",
+                  "udf_funcs",
+                  "python_scripts",
+                  "utils")
               .toString());
 
   private static final String PYTHON_CMD = config.getPythonCMD();

@@ -9,7 +9,7 @@ class TimeoutTest:
         """dead loop"""
         try:
             limit = 6  # in case of bug
-            while limit>=0:
+            while limit > 0:
                 print('running timeout')
                 time.sleep(10)
                 limit-=1

@@ -113,7 +113,8 @@ runs:
               which python
               python -m pip install --upgrade pip
               pip install -r requirements.txt
-              pip install resources/pemjax-0.2.1.tar.gz
+              curl -L -O https://github.com/IGinX-THU/IGinX-resources/raw/refs/heads/main/resources/python/pemjax-0.2.1.tar.gz
+              pip install pemjax-0.2.1.tar.gz
 
         - if: inputs.free-thread-python-required=='true'
           name: Install free-thread python
