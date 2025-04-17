@@ -25,6 +25,7 @@ import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.relational.meta.AbstractRelationalMeta;
 import cn.edu.tsinghua.iginx.utils.Pair;
+import com.zaxxer.hikari.HikariConfig;
 import java.sql.*;
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -33,10 +34,13 @@ import java.util.List;
 import java.util.Map;
 
 public abstract class AbstractDatabaseStrategy implements DatabaseStrategy {
-  private AbstractRelationalMeta relationalMeta;
+  protected final AbstractRelationalMeta relationalMeta;
+  protected final StorageEngineMeta storageEngineMeta;
 
-  public AbstractDatabaseStrategy(AbstractRelationalMeta relationalMeta) {
+  public AbstractDatabaseStrategy(
+      AbstractRelationalMeta relationalMeta, StorageEngineMeta storageEngineMeta) {
     this.relationalMeta = relationalMeta;
+    this.storageEngineMeta = storageEngineMeta;
   }
 
   @Override
@@ -66,17 +70,29 @@ public abstract class AbstractDatabaseStrategy implements DatabaseStrategy {
   }
 
   @Override
+  public void configureDataSource(
+      HikariConfig config, String databaseName, StorageEngineMeta meta) {}
+
+  @Override
   public String getDatabaseNameFromResultSet(ResultSet rs) throws SQLException {
     return rs.getString("DATNAME");
   }
 
   @Override
-  public String getSchemaPattern(String databaseName) {
+  public String getDatabasePattern(String databaseName, boolean isDummy) {
+    return databaseName;
+  }
+
+  @Override
+  public String getSchemaPattern(String databaseName, boolean isDummy) {
     return relationalMeta.getSchemaPattern();
   }
 
   @Override
   public String formatConcatStatement(List<String> columns) {
+    if (columns.size() == 1) {
+      return String.format(" CONCAT(%s, '') ", columns.get(0));
+    }
     return String.format(" CONCAT(%s) ", String.join(", ", columns));
   }
 

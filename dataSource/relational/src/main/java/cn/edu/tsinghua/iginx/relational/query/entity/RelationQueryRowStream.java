@@ -41,7 +41,6 @@ import cn.edu.tsinghua.iginx.relational.meta.JDBCMeta;
 import cn.edu.tsinghua.iginx.relational.tools.RelationSchema;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
-import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -166,7 +165,9 @@ public class RelationQueryRowStream implements RowStream {
       for (int j = 1; j <= resultSetMetaData.getColumnCount(); j++) {
         String tableName = resultSetMetaData.getTableName(j);
         String columnName = resultSetMetaData.getColumnName(j);
-        String typeName = resultSetMetaData.getColumnTypeName(j);
+        String columnType = resultSetMetaData.getColumnTypeName(j);
+        int precision = resultSetMetaData.getPrecision(j);
+        int scale = resultSetMetaData.getScale(j);
 
         if (j == 1 && columnName.contains(KEY_NAME) && columnName.contains(SEPARATOR)) {
           isPushDown = true;
@@ -189,21 +190,32 @@ public class RelationQueryRowStream implements RowStream {
         }
         Pair<String, Map<String, String>> namesAndTags = splitFullName(columnName);
         Field field;
-        DataType type = relationalMeta.getDataTypeTransformer().fromEngineType(typeName);
+        DataType type =
+            relationalMeta.getDataTypeTransformer().fromEngineType(columnType, precision, scale);
         if (isAgg
             && sumResType != null
             && sumResType.containsKey(fullName2Name.getOrDefault(columnName, columnName))) {
           type = sumResType.get(fullName2Name.getOrDefault(columnName, columnName));
         }
+        String databaseName = databaseNameList.get(i);
         String path;
         if (isDummy) {
           path =
-              databaseNameList.get(i)
+              databaseName
                   + SEPARATOR
-                  + (isAgg ? "" : tableName + SEPARATOR)
+                  + (isAgg || !relationalMeta.jdbcSupportGetTableNameFromResultSet()
+                      ? ""
+                      : tableName + SEPARATOR)
                   + namesAndTags.k;
         } else {
-          path = (isAgg ? "" : tableName + SEPARATOR) + namesAndTags.k;
+          path =
+              (isAgg || !relationalMeta.jdbcSupportGetTableNameFromResultSet()
+                      ? ""
+                      : tableName + SEPARATOR)
+                  + namesAndTags.k;
+          if (!relationalMeta.supportCreateDatabase()) {
+            path = path.substring(databaseName.length() + 1);
+          }
         }
 
         if (isAgg && fullName2Name.containsKey(path)) {
@@ -316,7 +328,6 @@ public class RelationQueryRowStream implements RowStream {
 
           if (tempHasNext) {
             long tempKey;
-            Object tempValue;
 
             Set<String> tableNameSet = new HashSet<>();
 
@@ -332,32 +343,8 @@ public class RelationQueryRowStream implements RowStream {
               tableNameSet.add(tableName);
 
               Object value = getResultSetObject(resultSet, columnName, tableName);
-              if (value instanceof BigDecimal) {
-                if (header.getField(startIndex + j).getType() == DataType.LONG) {
-                  value = ((BigDecimal) value).longValue();
-                } else {
-                  value = ((BigDecimal) value).doubleValue();
-                }
-              }
-              if (header.getField(startIndex + j).getType() == DataType.BINARY && value != null) {
-                tempValue = value.toString().getBytes();
-              } else if (header.getField(startIndex + j).getType() == DataType.BOOLEAN
-                  && value != null) {
-                if (value instanceof Boolean) {
-                  tempValue = value;
-                } else {
-                  if (value instanceof Byte) {
-                    tempValue = ((Byte) value) == 1;
-                  } else if (value instanceof Long) {
-                    tempValue = ((long) value) == 1;
-                  } else {
-                    tempValue = ((int) value) == 1;
-                  }
-                }
-              } else {
-                tempValue = value;
-              }
-              cachedValues[startIndex + j] = tempValue;
+              DataType type = header.getField(startIndex + j).getType();
+              cachedValues[startIndex + j] = convertToIginxValue(value, type);
             }
             if (!isAgg) {
               if (isDummy) {
@@ -415,6 +402,32 @@ public class RelationQueryRowStream implements RowStream {
       break;
     }
     hasCachedRow = true;
+  }
+
+  private Object convertToIginxValue(Object value, DataType type) {
+    if (value == null) {
+      return null;
+    }
+    switch (type) {
+      case BOOLEAN:
+        if (value instanceof Boolean) {
+          return value;
+        } else {
+          return ((Number) value).doubleValue() != 0;
+        }
+      case INTEGER:
+        return ((Number) value).intValue();
+      case LONG:
+        return ((Number) value).longValue();
+      case FLOAT:
+        return ((Number) value).floatValue();
+      case DOUBLE:
+        return ((Number) value).doubleValue();
+      case BINARY:
+        return value.toString().getBytes();
+      default:
+        throw new IllegalArgumentException("Unsupported data type: " + type);
+    }
   }
 
   /**

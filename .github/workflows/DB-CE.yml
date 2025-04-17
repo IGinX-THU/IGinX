@@ -90,6 +90,7 @@ jobs:
                   Redis-ports: 6379 6380 6381
                   VectorDB-ports: 19530 19531 19532
                   Dameng-ports: 5236 5237 5238
+                  Oracle-ports: 1521 1522 1523
 
             - name: Install IGinX with Maven
               shell: bash
