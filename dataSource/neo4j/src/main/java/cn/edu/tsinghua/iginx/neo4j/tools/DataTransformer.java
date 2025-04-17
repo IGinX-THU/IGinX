@@ -26,7 +26,7 @@ public class DataTransformer {
 
   public static String objectValueToString(Object value) {
     if (value instanceof byte[]) {
-      return new String((byte[]) value);
+      return new String((byte[]) value, StandardCharsets.UTF_8);
     } else {
       return String.valueOf(value);
     }

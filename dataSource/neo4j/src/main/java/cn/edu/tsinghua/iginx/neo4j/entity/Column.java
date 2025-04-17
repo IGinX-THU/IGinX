@@ -66,31 +66,6 @@ public class Column {
     this.data = data;
   }
 
-  public Column(String pathName, Map<Long, Object> data) {
-    this.pathName = pathName;
-    if (data != null && data.size() > 0) {
-      Object firstValue = data.values().iterator().next();
-      if (firstValue instanceof String) {
-        type = DataType.BINARY;
-      } else if (firstValue instanceof Long) {
-        type = DataType.LONG;
-      } else if (firstValue instanceof Double) {
-        type = DataType.DOUBLE;
-      } else if (firstValue instanceof Float) {
-        type = DataType.FLOAT;
-      } else if (firstValue instanceof Integer) {
-        type = DataType.INTEGER;
-      } else if (firstValue instanceof Boolean) {
-        type = DataType.BOOLEAN;
-      } else {
-        type = DataType.BINARY;
-      }
-    } else {
-      type = DataType.BINARY;
-    }
-    this.data = data;
-  }
-
   public String getPathName() {
     return pathName;
   }

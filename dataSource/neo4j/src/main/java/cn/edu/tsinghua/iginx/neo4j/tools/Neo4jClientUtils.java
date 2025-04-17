@@ -191,7 +191,6 @@ public class Neo4jClientUtils {
         }
         if (!keyPropertyMap.containsKey(curlabelName)) {
           String keyProperty = getUniqueConstraintName(session, curlabelName);
-          LOGGER.info("-------------------keyProperty:" + keyProperty);
           keyPropertyMap.put(curlabelName, keyProperty);
         }
 
@@ -302,7 +301,6 @@ public class Neo4jClientUtils {
       Map<String, String> properties,
       Filter filter,
       boolean isDummy) {
-    LOGGER.info("query: " + label + ", " + properties + ", " + filter + ", " + isDummy);
     try {
       String expr = "";
       String quotedLabel = getQuoteName(label);
@@ -412,8 +410,6 @@ public class Neo4jClientUtils {
 
   public static boolean clearDatabase(Session session) {
     clearConstraint(session);
-    //    session.run("MATCH ()-[r]->() CALL { WITH r DELETE r } IN TRANSACTIONS OF 1000
-    // ROWS;").consume();
     String query =
         "CALL apoc.periodic.iterate(\"MATCH (n) RETURN n\", \"DETACH DELETE n\",  {batchSize: 5000})";
     LOGGER.info("query: {}", query);
