@@ -25,6 +25,7 @@ import static cn.edu.tsinghua.iginx.integration.controller.Controller.SUPPORT_KE
 import static cn.edu.tsinghua.iginx.integration.controller.Controller.clearAllData;
 import static cn.edu.tsinghua.iginx.integration.func.session.InsertAPIType.*;
 import static cn.edu.tsinghua.iginx.thrift.StorageEngineType.influxdb;
+import static cn.edu.tsinghua.iginx.thrift.StorageEngineType.neo4j;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -84,6 +85,8 @@ public class NewSessionIT {
   private static final TestDataSection baseDataSection = buildBaseDataSection();
 
   private static boolean isInfluxdb = false;
+
+  private static boolean isNeo4j = false;
 
   private static boolean isAbleToDelete = true;
 
@@ -145,6 +148,9 @@ public class NewSessionIT {
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
     if (StorageEngineType.valueOf(conf.getStorageType(false).toLowerCase()) == influxdb) {
       isInfluxdb = true;
+    }
+    if (StorageEngineType.valueOf(conf.getStorageType(false).toLowerCase()) == neo4j) {
+      isNeo4j = true;
     }
     if (!SUPPORT_KEY.get(conf.getStorageType()) && conf.isScaling()) {
       needCompareResult = false;
@@ -338,7 +344,7 @@ public class NewSessionIT {
   }
 
   private void compareObjectValue(Object expected, Object actual) {
-    if (expected.getClass() != actual.getClass() && !isInfluxdb) {
+    if (expected.getClass() != actual.getClass() && !isInfluxdb && !isNeo4j) {
       LOGGER.error(
           "Inconsistent data types, expected:{}, actual:{}",
           expected.getClass(),
@@ -350,7 +356,7 @@ public class NewSessionIT {
       boolean actualVal = (boolean) actual;
       assertEquals(expectedVal, actualVal);
     } else if (expected instanceof Integer) {
-      if (isInfluxdb) {
+      if (isInfluxdb || isNeo4j) {
         long expectedVal = ((Integer) expected).longValue();
         long actualVal = (long) actual;
         assertEquals(expectedVal, actualVal);
@@ -364,7 +370,7 @@ public class NewSessionIT {
       long actualVal = (long) actual;
       assertEquals(expectedVal, actualVal);
     } else if (expected instanceof Float) {
-      if (isInfluxdb) {
+      if (isInfluxdb || isNeo4j) {
         double expectedVal = ((Float) expected).doubleValue();
         double actualVal = (double) actual;
         assertEquals(expectedVal, actualVal, expectedVal * DELTA);
