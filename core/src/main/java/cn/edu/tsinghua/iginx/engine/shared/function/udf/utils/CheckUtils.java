@@ -19,9 +19,16 @@
  */
 package cn.edu.tsinghua.iginx.engine.shared.function.udf.utils;
 
+import static cn.edu.tsinghua.iginx.engine.shared.function.udf.utils.Constants.GET_FILE_MODULES_METHOD;
+import static cn.edu.tsinghua.iginx.engine.shared.function.udf.utils.Constants.IMPORT_SENTINEL_SCRIPT;
+import static cn.edu.tsinghua.iginx.engine.shared.function.udf.utils.Constants.MODULES_TO_BLOCK;
+
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
+import cn.edu.tsinghua.iginx.engine.shared.function.manager.ThreadInterpreterManager;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class CheckUtils {
 
@@ -39,5 +46,21 @@ public class CheckUtils {
   public static boolean isLegal(FunctionParams params) {
     List<String> paths = params.getPaths();
     return paths != null && !paths.isEmpty();
+  }
+
+  public static Set<String> importCheck(String filepath) {
+    ThreadInterpreterManager.exec(
+        String.format("from %s import %s", IMPORT_SENTINEL_SCRIPT, GET_FILE_MODULES_METHOD));
+    List<String> modules =
+        (List<String>)
+            ThreadInterpreterManager.executeWithInterpreterAndReturn(
+                interpreter -> interpreter.invoke(GET_FILE_MODULES_METHOD, filepath));
+    Set<String> res = new HashSet<>();
+    for (String module : MODULES_TO_BLOCK) {
+      if (modules.contains(module)) {
+        res.add(module);
+      }
+    }
+    return res;
   }
 }

@@ -23,6 +23,8 @@ import static cn.edu.tsinghua.iginx.integration.controller.Controller.SUPPORT_KE
 import static cn.edu.tsinghua.iginx.integration.controller.Controller.clearAllData;
 import static org.junit.Assert.*;
 
+import cn.edu.tsinghua.iginx.conf.Config;
+import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.func.session.InsertAPIType;
@@ -48,6 +50,8 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pemja.core.PythonInterpreter;
+import pemja.core.PythonInterpreterConfig;
 
 public class UDFIT {
   private static final Logger LOGGER = LoggerFactory.getLogger(UDFIT.class);
@@ -1542,5 +1546,60 @@ public class UDFIT {
             + "Total line number = 5\n";
 
     assertEquals(expected, tool.execute(statement).getResultInString(false, ""));
+  }
+
+  private boolean pythonNewerThan313() {
+    Config config = ConfigDescriptor.getInstance().getConfig();
+    String pythonCMD = config.getPythonCMD();
+    PythonInterpreterConfig pyConfig =
+        PythonInterpreterConfig.newBuilder().setPythonExec(pythonCMD).build();
+    try (PythonInterpreter interpreter = new PythonInterpreter(pyConfig)) {
+      interpreter.exec("import sys; tooNew = sys.version_info >= (3, 13);");
+      return (boolean) interpreter.get("tooNew");
+    }
+  }
+
+  @Test
+  public void testTimeout() {
+    String name = "TimeoutTest";
+    String filePath =
+        String.join(
+            File.separator,
+            System.getProperty("user.dir"),
+            "src",
+            "test",
+            "resources",
+            "udf",
+            "timeout_test.py");
+    String statement =
+        String.format(SINGLE_UDF_REGISTER_SQL, "udsf", name, "TimeoutTest", filePath);
+    tool.executeReg(statement);
+    assertTrue(tool.isUDFRegistered(name));
+    taskToBeRemoved.add(name);
+
+    statement = "select " + name + "(s1, 1, iginx_timeout=3) from us.d1 where s1 < 10;";
+    long start = System.currentTimeMillis();
+    Exception ret = tool.executeFail(statement);
+    long end = System.currentTimeMillis();
+    assertTrue(ret.getMessage().contains("encounter error")); // timeout的信息没有被session传递（？）但服务端有log
+    assertTrue(end - start < 5000); // 5秒内拿到结果，触发timeout
+
+    // test event waiting
+    statement = "select " + name + "(s1, 2, iginx_timeout=3) from us.d1 where s1 < 10;";
+    start = System.currentTimeMillis();
+    ret = tool.executeFail(statement);
+    end = System.currentTimeMillis();
+    assertTrue(ret.getMessage().contains("encounter error"));
+    assertTrue(end - start < 5000); // 5秒内拿到结果，触发timeout
+
+    Assume.assumeFalse(
+        "Test skipped: Python >= 3.13, transformers is not supported.", pythonNewerThan313());
+    // test importing large models
+    statement = "select " + name + "(s1, 3, iginx_timeout=1) from us.d1 where s1 < 10;";
+    start = System.currentTimeMillis();
+    ret = tool.executeFail(statement);
+    end = System.currentTimeMillis();
+    assertTrue(ret.getMessage().contains("encounter error"));
+    assertTrue(end - start < 3000); // 3秒内拿到结果，触发timeout
   }
 }
