@@ -91,6 +91,7 @@ jobs:
                   VectorDB-ports: 19530 19531 19532
                   Dameng-ports: 5236 5237 5238
                   Neo4j-ports: 7687 7688 7689
+                  Oracle-ports: 1521 1522 1523
 
             - name: Install IGinX with Maven
               shell: bash

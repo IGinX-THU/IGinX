@@ -41,6 +41,10 @@ inputs:
         description: "Neo4j ports"
         required: false
         default: 7687
+    Oracle-ports:
+        description: "Oracle ports"
+        required: false
+        default: 1521
 
 runs:
     using: "composite" # Mandatory parameter
@@ -171,3 +175,14 @@ runs:
               clean: false
               start: true
               ports: ${{ inputs.Neo4j-ports }}
+
+        - if: inputs.DB-name=='Oracle'
+          name: Setup DB
+          uses: ./.github/actions/setup/oracle
+
+        - if: inputs.DB-name == 'Oracle'
+          id: oracleService
+          name: Start Oracle Service
+          uses: ./.github/actions/service/oracle
+          with:
+              ports: ${{ inputs.Oracle-ports }}
