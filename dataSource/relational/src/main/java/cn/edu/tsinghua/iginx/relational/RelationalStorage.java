@@ -2369,6 +2369,10 @@ public class RelationalStorage implements IStorage {
 
   private ColumnsInterval getBoundaryFromInformationSchema()
       throws PhysicalException, SQLException {
+    if (!engineName.equalsIgnoreCase("postgresql")) {
+      return getBoundaryFromInformationSchemaInCatalog(
+          relationalMeta.getDefaultDatabaseName(), relationalMeta.getDefaultDatabaseName());
+    }
     StringBuilder sqlGetDBBuilder = new StringBuilder();
     sqlGetDBBuilder.append("SELECT min(datname), max(datname)");
     sqlGetDBBuilder
@@ -2407,10 +2411,18 @@ public class RelationalStorage implements IStorage {
 
   private ColumnsInterval getBoundaryFromInformationSchemaInCatalog(String minDb, String maxDb)
       throws SQLException, RelationalTaskExecuteFailureException {
-    String conditionStatement =
-        relationalMeta.getSchemaPattern() == null
-            ? ""
-            : " WHERE table_schema LIKE '" + relationalMeta.getSchemaPattern() + "'";
+    String conditionStatement;
+    if (engineName.equalsIgnoreCase("postgresql")) {
+      conditionStatement = " WHERE table_schema LIKE '" + relationalMeta.getSchemaPattern() + "'";
+    } else {
+      List<String> exceptSchema = new ArrayList<>();
+      exceptSchema.add(relationalMeta.getDefaultDatabaseName());
+      exceptSchema.addAll(relationalMeta.getSystemDatabaseName());
+      conditionStatement =
+          exceptSchema.stream()
+              .map(s -> "'" + s + "'")
+              .collect(Collectors.joining(", ", " WHERE table_schema NOT IN (", ")"));
+    }
     String sqlMin =
         "SELECT table_catalog, table_name, column_name FROM information_schema.columns"
             + conditionStatement
@@ -2420,25 +2432,31 @@ public class RelationalStorage implements IStorage {
             + conditionStatement
             + " ORDER BY table_catalog DESC, table_name DESC, column_name DESC LIMIT 1";
 
-    String minPath;
+    String minPath = null;
     try (Connection conn = getConnection(minDb);
         Statement statement = conn.createStatement();
         ResultSet rs = statement.executeQuery(sqlMin)) {
       if (rs.next()) {
         minPath = rs.getString(1) + SEPARATOR + rs.getString(2) + SEPARATOR + rs.getString(3);
-      } else {
-        minPath = minDb;
       }
     }
-    String maxPath;
+    String maxPath = null;
     try (Connection conn = getConnection(maxDb);
         Statement statement = conn.createStatement();
         ResultSet rs = statement.executeQuery(sqlMax)) {
       if (rs.next()) {
         maxPath = rs.getString(1) + SEPARATOR + rs.getString(2) + SEPARATOR + rs.getString(3);
-      } else {
-        maxPath = maxDb;
       }
+    }
+    if (engineName.equalsIgnoreCase("postgresql")) {
+      minPath = minPath == null ? minDb : minPath;
+      maxPath = maxPath == null ? maxDb : maxPath;
+    } else {
+      if (minPath == null || maxPath == null) {
+        throw new RelationalTaskExecuteFailureException("no data!");
+      }
+      minPath = minPath.substring(minPath.indexOf(SEPARATOR) + 1);
+      maxPath = maxPath.substring(maxPath.indexOf(SEPARATOR) + 1);
     }
     return new ColumnsInterval(minPath, StringUtils.nextString(maxPath));
   }
