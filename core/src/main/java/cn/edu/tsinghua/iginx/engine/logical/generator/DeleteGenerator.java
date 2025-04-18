@@ -82,6 +82,9 @@ public class DeleteGenerator extends AbstractGenerator {
             policy.generateInitialFragmentsAndStorageUnits(deleteStatement);
         metaManager.createInitialFragmentsAndStorageUnits(
             fragmentsAndStorageUnits.v, fragmentsAndStorageUnits.k);
+      } else {
+        // no corresponding fragment and no writable engines, no need to execute delete
+        return null;
       }
       fragments = metaManager.getFragmentMapByColumnsInterval(columnsInterval);
     }
