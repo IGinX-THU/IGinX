@@ -50,14 +50,15 @@ public class DamengDatabaseStrategy implements DatabaseStrategy {
 
   @Override
   public String getUrl(String databaseName, StorageEngineMeta meta) {
-    Map<String, String> extraParams = meta.getExtraParams();
-    return String.format(
-        "jdbc:dm://%s:%s?user=%s&password=%s&schema=%s",
-        meta.getIp(),
-        meta.getPort(),
-        extraParams.get(USERNAME),
-        extraParams.get(PASSWORD),
-        databaseName);
+    return getConnectUrl(meta);
+    //    Map<String, String> extraParams = meta.getExtraParams();
+    //    return String.format(
+    //        "jdbc:dm://%s:%s?user=%s&password=%s&schema=%s",
+    //        meta.getIp(),
+    //        meta.getPort(),
+    //        extraParams.get(USERNAME),
+    //        extraParams.get(PASSWORD),
+    //        databaseName);
   }
 
   @Override
