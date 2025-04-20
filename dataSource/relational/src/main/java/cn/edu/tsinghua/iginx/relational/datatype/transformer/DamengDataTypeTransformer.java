@@ -54,12 +54,12 @@ public class DamengDataTypeTransformer implements IDataTypeTransformer {
         || dataType.equalsIgnoreCase("DECIMAL")
         || dataType.equalsIgnoreCase("BigDecimal")) {
       return DOUBLE;
-//    } else if (dataType.equalsIgnoreCase("VARCHAR")
-//        || dataType.equalsIgnoreCase("CHAR")
-//        || dataType.equalsIgnoreCase("NCHAR")
-//        || dataType.equalsIgnoreCase("NVARCHAR")
-//        || dataType.equalsIgnoreCase("TEXT")) {
-//      return DataType.BINARY;
+      //    } else if (dataType.equalsIgnoreCase("VARCHAR")
+      //        || dataType.equalsIgnoreCase("CHAR")
+      //        || dataType.equalsIgnoreCase("NCHAR")
+      //        || dataType.equalsIgnoreCase("NVARCHAR")
+      //        || dataType.equalsIgnoreCase("TEXT")) {
+      //      return DataType.BINARY;
     } else {
       return BINARY;
     }

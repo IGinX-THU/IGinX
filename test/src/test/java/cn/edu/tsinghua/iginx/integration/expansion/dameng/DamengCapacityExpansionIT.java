@@ -67,19 +67,19 @@ public class DamengCapacityExpansionIT extends BaseCapacityExpansionIT {
           {
             put(
                 oriPort,
-                "engine=oracle, username="
+                "engine=dameng, username="
                     + portsToUsername.get(oriPort)
                     + ", password="
                     + portsToPassword.get(oriPort));
             put(
                 expPort,
-                "engine=oracle, username="
+                "engine=dameng, username="
                     + portsToUsername.get(expPort)
                     + ", password="
                     + portsToPassword.get(expPort));
             put(
                 readOnlyPort,
-                "engine=oracle, username="
+                "engine=dameng, username="
                     + portsToUsername.get(readOnlyPort)
                     + ", password="
                     + portsToPassword.get(readOnlyPort));

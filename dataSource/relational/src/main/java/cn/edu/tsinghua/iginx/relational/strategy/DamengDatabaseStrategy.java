@@ -42,7 +42,8 @@ public class DamengDatabaseStrategy extends AbstractDatabaseStrategy {
   private AbstractRelationalMeta relationalMeta;
   private final DamengDataTypeTransformer dataTypeTransformer;
 
-  public DamengDatabaseStrategy(AbstractRelationalMeta relationalMeta, StorageEngineMeta storageEngineMeta) {
+  public DamengDatabaseStrategy(
+      AbstractRelationalMeta relationalMeta, StorageEngineMeta storageEngineMeta) {
     super(relationalMeta, storageEngineMeta);
     this.dataTypeTransformer = DamengDataTypeTransformer.getInstance();
   }
@@ -102,207 +103,209 @@ public class DamengDatabaseStrategy extends AbstractDatabaseStrategy {
     return String.format(" CONCAT(%s) ", String.join(", ", columns));
   }
 
-//  @Override
-//  public void executeBatchInsert(
-//      Connection conn,
-//      String databaseName,
-//      Statement stmt,
-//      Map<String, Pair<String, List<String>>> tableToColumnEntries,
-//      char quote)
-//      throws SQLException {
-//    for (Map.Entry<String, Pair<String, List<String>>> entry : tableToColumnEntries.entrySet()) {
-//      String tableName = entry.getKey();
-//      String columnNames = entry.getValue().k.substring(0, entry.getValue().k.length() - 2);
-//      List<String> values = entry.getValue().v;
-//      String[] parts = columnNames.split(", ");
-//      Map<String, String[]> valueMap = new HashMap<>();
-//      Map<String, ColumnField> columnMap = getColumnMap(conn, databaseName, tableName);
-//      for (String value : values) {
-//        String csvLine = value.substring(0, value.length() - 2);
-//
-//        // 临时替换引号内的逗号
-//        StringBuilder processed = new StringBuilder();
-//        boolean inQuotes = false;
-//        for (int i = 0; i < csvLine.length(); i++) {
-//          char c = csvLine.charAt(i);
-//
-//          if (c == '\'') {
-//            inQuotes = !inQuotes;
-//          }
-//
-//          if (c == ',' && inQuotes) {
-//            processed.append("##COMMA##");
-//          } else {
-//            processed.append(c);
-//          }
-//        }
-//
-//        // 正常分割
-//        String[] value_parts = processed.toString().split(", ");
-//
-//        // 恢复原来的逗号
-//        for (int i = 0; i < value_parts.length; i++) {
-//          value_parts[i] = value_parts[i].replace("##COMMA##", ",");
-//        }
-//
-//        valueMap.put(value_parts[0], value_parts);
-//      }
-//
-//      List<String> allKeys = new ArrayList<>(valueMap.keySet());
-//      List<String> insertKeys = new ArrayList<>();
-//      List<String> updateKeys = new ArrayList<>();
-//      try {
-//        StringBuilder placeHolder = new StringBuilder();
-//
-//        int start = 0, end = 0, step = 0;
-//
-//        while (end < allKeys.size()) {
-//          step = Math.min(allKeys.size() - end, 500);
-//          end += step;
-//          IntStream.range(start, end).forEach(i -> placeHolder.append("?,"));
-//
-//          PreparedStatement selectStmt =
-//              conn.prepareStatement(
-//                  String.format(
-//                      relationalMeta.getQueryTableStatement(),
-//                      getQuotName(KEY_NAME),
-//                      1,
-//                      getQuotName(tableName),
-//                      " WHERE "
-//                          + getQuotName(KEY_NAME)
-//                          + "IN ("
-//                          + placeHolder.substring(0, placeHolder.length() - 1)
-//                          + ")",
-//                      getQuotName(KEY_NAME)));
-//
-//          for (int i = 0; i < end - start; i++) {
-//            selectStmt.setString(i + 1, allKeys.get(start + i));
-//          }
-//          ResultSet resultSet = selectStmt.executeQuery();
-//          while (resultSet.next()) {
-//            updateKeys.add(resultSet.getString(1));
-//          }
-//          start = end;
-//          placeHolder.setLength(0);
-//          resultSet.close();
-//          selectStmt.close();
-//        }
-//        insertKeys =
-//            allKeys.stream()
-//                .filter(item -> !updateKeys.contains(item))
-//                .collect(Collectors.toList());
-//
-//        // insert
-//        placeHolder.setLength(0);
-//        Arrays.stream(parts).forEach(part -> placeHolder.append("?,"));
-//        String partStr =
-//            Arrays.stream(parts).map(this::getQuotName).collect(Collectors.joining(","));
-//        PreparedStatement insertStmt =
-//            conn.prepareStatement(
-//                String.format(
-//                    relationalMeta.getInsertTableStatement(),
-//                    getQuotName(tableName),
-//                    getQuotName(KEY_NAME) + "," + partStr,
-//                    placeHolder.append("?")));
-//
-//        conn.setAutoCommit(false); // 关闭自动提交
-//        for (int i = 0; i < insertKeys.size(); i++) {
-//          String[] vals = valueMap.get(insertKeys.get(i));
-//          insertStmt.setString(1, vals[0]);
-//          for (int j = 0; j < parts.length; j++) {
-//            if (!columnMap.containsKey(parts[j])) {
-//              break;
-//            }
-//            if (columnMap.get(parts[j]).getColumnType().equals("NUMBER")) {
-//              int columnSize = columnMap.get(parts[j]).getColumnSize();
-//              if (columnSize == 1) {
-//                setValue(insertStmt, j + 2, vals[j + 1], Types.BOOLEAN);
-//              } else if (columnSize >= 1 && columnSize <= 10) {
-//                setValue(insertStmt, j + 2, vals[j + 1], Types.INTEGER);
-//              } else if (columnSize == 38) {
-//                setValue(insertStmt, j + 2, vals[j + 1], Types.DOUBLE);
-//              } else {
-//                setValue(insertStmt, j + 2, vals[j + 1], Types.BIGINT);
-//              }
-//            } else if (columnMap.get(parts[j]).getColumnType().equals("FLOAT")) {
-//              setValue(insertStmt, j + 2, vals[j + 1], Types.FLOAT);
-//            } else if (columnMap.get(parts[j]).getColumnType().equals("TINYINT")) {
-//              setValue(insertStmt, j + 2, vals[j + 1], Types.BOOLEAN);
-//            } else {
-//              setValue(insertStmt, j + 2, vals[j + 1], Types.VARCHAR);
-//            }
-//          }
-//          insertStmt.addBatch();
-//          if (i % 500 == 0) { // 每500条数据执行一次批处理
-//            insertStmt.executeBatch(); // 执行批处理
-//            insertStmt.clearBatch();
-//          }
-//        }
-//        insertStmt.executeBatch();
-//        insertStmt.close();
-//        conn.commit();
-//
-//        // upadte  String updateSql = "UPDATE %s.%s SET %s WHERE %s = %s";
-//        placeHolder.setLength(0);
-//        Arrays.stream(parts).forEach(part -> placeHolder.append(getQuotName(part)).append("=?,"));
-//        PreparedStatement updateStmt =
-//            conn.prepareStatement(
-//                String.format(
-//                    relationalMeta.getUpdateTableStatement(),
-//                    getQuotName(tableName),
-//                    placeHolder.substring(0, placeHolder.length() - 1),
-//                    getQuotName(KEY_NAME),
-//                    "?"));
-//
-//        for (int i = 0; i < updateKeys.size(); i++) {
-//          String[] vals = valueMap.get(updateKeys.get(i));
-//          for (int j = 0; j < parts.length; j++) {
-//            if (!columnMap.containsKey(parts[j])) {
-//              break;
-//            }
-//            if (columnMap.get(parts[j]).getColumnType().equals("NUMBER")) {
-//              int columnSize = columnMap.get(parts[j]).getColumnSize();
-//              if (columnSize == 1) {
-//                setValue(updateStmt, j + 1, vals[j + 1], Types.BOOLEAN);
-//              } else if (columnSize >= 1 && columnSize <= 10) {
-//                setValue(updateStmt, j + 1, vals[j + 1], Types.INTEGER);
-//              } else if (columnSize == 38) {
-//                setValue(updateStmt, j + 1, vals[j + 1], Types.DOUBLE);
-//              } else {
-//                setValue(updateStmt, j + 1, vals[j + 1], Types.BIGINT);
-//              }
-//            } else if (columnMap.get(parts[j]).getColumnType().equals("FLOAT")) {
-//              setValue(updateStmt, j + 1, vals[j + 1], Types.FLOAT);
-//            } else if (columnMap.get(parts[j]).getColumnType().equals("TINYINT")) {
-//              setValue(updateStmt, j + 1, vals[j + 1], Types.BOOLEAN);
-//            } else {
-//              setValue(updateStmt, j + 1, vals[j + 1], Types.VARCHAR);
-//            }
-//          }
-//          updateStmt.setString(parts.length + 1, vals[0]);
-//          updateStmt.addBatch();
-//          if (i % 500 == 0) { // 每500条数据执行一次批处理
-//            updateStmt.executeBatch();
-//            updateStmt.clearBatch();
-//          }
-//        }
-//        updateStmt.executeBatch();
-//        updateStmt.close();
-//        conn.commit();
-//      } catch (SQLException e) {
-//        throw new RuntimeException(e);
-//      }
-//    }
-//  }
+  //  @Override
+  //  public void executeBatchInsert(
+  //      Connection conn,
+  //      String databaseName,
+  //      Statement stmt,
+  //      Map<String, Pair<String, List<String>>> tableToColumnEntries,
+  //      char quote)
+  //      throws SQLException {
+  //    for (Map.Entry<String, Pair<String, List<String>>> entry : tableToColumnEntries.entrySet())
+  // {
+  //      String tableName = entry.getKey();
+  //      String columnNames = entry.getValue().k.substring(0, entry.getValue().k.length() - 2);
+  //      List<String> values = entry.getValue().v;
+  //      String[] parts = columnNames.split(", ");
+  //      Map<String, String[]> valueMap = new HashMap<>();
+  //      Map<String, ColumnField> columnMap = getColumnMap(conn, databaseName, tableName);
+  //      for (String value : values) {
+  //        String csvLine = value.substring(0, value.length() - 2);
+  //
+  //        // 临时替换引号内的逗号
+  //        StringBuilder processed = new StringBuilder();
+  //        boolean inQuotes = false;
+  //        for (int i = 0; i < csvLine.length(); i++) {
+  //          char c = csvLine.charAt(i);
+  //
+  //          if (c == '\'') {
+  //            inQuotes = !inQuotes;
+  //          }
+  //
+  //          if (c == ',' && inQuotes) {
+  //            processed.append("##COMMA##");
+  //          } else {
+  //            processed.append(c);
+  //          }
+  //        }
+  //
+  //        // 正常分割
+  //        String[] value_parts = processed.toString().split(", ");
+  //
+  //        // 恢复原来的逗号
+  //        for (int i = 0; i < value_parts.length; i++) {
+  //          value_parts[i] = value_parts[i].replace("##COMMA##", ",");
+  //        }
+  //
+  //        valueMap.put(value_parts[0], value_parts);
+  //      }
+  //
+  //      List<String> allKeys = new ArrayList<>(valueMap.keySet());
+  //      List<String> insertKeys = new ArrayList<>();
+  //      List<String> updateKeys = new ArrayList<>();
+  //      try {
+  //        StringBuilder placeHolder = new StringBuilder();
+  //
+  //        int start = 0, end = 0, step = 0;
+  //
+  //        while (end < allKeys.size()) {
+  //          step = Math.min(allKeys.size() - end, 500);
+  //          end += step;
+  //          IntStream.range(start, end).forEach(i -> placeHolder.append("?,"));
+  //
+  //          PreparedStatement selectStmt =
+  //              conn.prepareStatement(
+  //                  String.format(
+  //                      relationalMeta.getQueryTableStatement(),
+  //                      getQuotName(KEY_NAME),
+  //                      1,
+  //                      getQuotName(tableName),
+  //                      " WHERE "
+  //                          + getQuotName(KEY_NAME)
+  //                          + "IN ("
+  //                          + placeHolder.substring(0, placeHolder.length() - 1)
+  //                          + ")",
+  //                      getQuotName(KEY_NAME)));
+  //
+  //          for (int i = 0; i < end - start; i++) {
+  //            selectStmt.setString(i + 1, allKeys.get(start + i));
+  //          }
+  //          ResultSet resultSet = selectStmt.executeQuery();
+  //          while (resultSet.next()) {
+  //            updateKeys.add(resultSet.getString(1));
+  //          }
+  //          start = end;
+  //          placeHolder.setLength(0);
+  //          resultSet.close();
+  //          selectStmt.close();
+  //        }
+  //        insertKeys =
+  //            allKeys.stream()
+  //                .filter(item -> !updateKeys.contains(item))
+  //                .collect(Collectors.toList());
+  //
+  //        // insert
+  //        placeHolder.setLength(0);
+  //        Arrays.stream(parts).forEach(part -> placeHolder.append("?,"));
+  //        String partStr =
+  //            Arrays.stream(parts).map(this::getQuotName).collect(Collectors.joining(","));
+  //        PreparedStatement insertStmt =
+  //            conn.prepareStatement(
+  //                String.format(
+  //                    relationalMeta.getInsertTableStatement(),
+  //                    getQuotName(tableName),
+  //                    getQuotName(KEY_NAME) + "," + partStr,
+  //                    placeHolder.append("?")));
+  //
+  //        conn.setAutoCommit(false); // 关闭自动提交
+  //        for (int i = 0; i < insertKeys.size(); i++) {
+  //          String[] vals = valueMap.get(insertKeys.get(i));
+  //          insertStmt.setString(1, vals[0]);
+  //          for (int j = 0; j < parts.length; j++) {
+  //            if (!columnMap.containsKey(parts[j])) {
+  //              break;
+  //            }
+  //            if (columnMap.get(parts[j]).getColumnType().equals("NUMBER")) {
+  //              int columnSize = columnMap.get(parts[j]).getColumnSize();
+  //              if (columnSize == 1) {
+  //                setValue(insertStmt, j + 2, vals[j + 1], Types.BOOLEAN);
+  //              } else if (columnSize >= 1 && columnSize <= 10) {
+  //                setValue(insertStmt, j + 2, vals[j + 1], Types.INTEGER);
+  //              } else if (columnSize == 38) {
+  //                setValue(insertStmt, j + 2, vals[j + 1], Types.DOUBLE);
+  //              } else {
+  //                setValue(insertStmt, j + 2, vals[j + 1], Types.BIGINT);
+  //              }
+  //            } else if (columnMap.get(parts[j]).getColumnType().equals("FLOAT")) {
+  //              setValue(insertStmt, j + 2, vals[j + 1], Types.FLOAT);
+  //            } else if (columnMap.get(parts[j]).getColumnType().equals("TINYINT")) {
+  //              setValue(insertStmt, j + 2, vals[j + 1], Types.BOOLEAN);
+  //            } else {
+  //              setValue(insertStmt, j + 2, vals[j + 1], Types.VARCHAR);
+  //            }
+  //          }
+  //          insertStmt.addBatch();
+  //          if (i % 500 == 0) { // 每500条数据执行一次批处理
+  //            insertStmt.executeBatch(); // 执行批处理
+  //            insertStmt.clearBatch();
+  //          }
+  //        }
+  //        insertStmt.executeBatch();
+  //        insertStmt.close();
+  //        conn.commit();
+  //
+  //        // upadte  String updateSql = "UPDATE %s.%s SET %s WHERE %s = %s";
+  //        placeHolder.setLength(0);
+  //        Arrays.stream(parts).forEach(part ->
+  // placeHolder.append(getQuotName(part)).append("=?,"));
+  //        PreparedStatement updateStmt =
+  //            conn.prepareStatement(
+  //                String.format(
+  //                    relationalMeta.getUpdateTableStatement(),
+  //                    getQuotName(tableName),
+  //                    placeHolder.substring(0, placeHolder.length() - 1),
+  //                    getQuotName(KEY_NAME),
+  //                    "?"));
+  //
+  //        for (int i = 0; i < updateKeys.size(); i++) {
+  //          String[] vals = valueMap.get(updateKeys.get(i));
+  //          for (int j = 0; j < parts.length; j++) {
+  //            if (!columnMap.containsKey(parts[j])) {
+  //              break;
+  //            }
+  //            if (columnMap.get(parts[j]).getColumnType().equals("NUMBER")) {
+  //              int columnSize = columnMap.get(parts[j]).getColumnSize();
+  //              if (columnSize == 1) {
+  //                setValue(updateStmt, j + 1, vals[j + 1], Types.BOOLEAN);
+  //              } else if (columnSize >= 1 && columnSize <= 10) {
+  //                setValue(updateStmt, j + 1, vals[j + 1], Types.INTEGER);
+  //              } else if (columnSize == 38) {
+  //                setValue(updateStmt, j + 1, vals[j + 1], Types.DOUBLE);
+  //              } else {
+  //                setValue(updateStmt, j + 1, vals[j + 1], Types.BIGINT);
+  //              }
+  //            } else if (columnMap.get(parts[j]).getColumnType().equals("FLOAT")) {
+  //              setValue(updateStmt, j + 1, vals[j + 1], Types.FLOAT);
+  //            } else if (columnMap.get(parts[j]).getColumnType().equals("TINYINT")) {
+  //              setValue(updateStmt, j + 1, vals[j + 1], Types.BOOLEAN);
+  //            } else {
+  //              setValue(updateStmt, j + 1, vals[j + 1], Types.VARCHAR);
+  //            }
+  //          }
+  //          updateStmt.setString(parts.length + 1, vals[0]);
+  //          updateStmt.addBatch();
+  //          if (i % 500 == 0) { // 每500条数据执行一次批处理
+  //            updateStmt.executeBatch();
+  //            updateStmt.clearBatch();
+  //          }
+  //        }
+  //        updateStmt.executeBatch();
+  //        updateStmt.close();
+  //        conn.commit();
+  //      } catch (SQLException e) {
+  //        throw new RuntimeException(e);
+  //      }
+  //    }
+  //  }
 
   @Override
   public void executeBatchInsert(
-          Connection conn,
-          String databaseName,
-          Statement stmt,
-          Map<String, Pair<String, List<String>>> tableToColumnEntries,
-          char quote)
-          throws SQLException {
+      Connection conn,
+      String databaseName,
+      Statement stmt,
+      Map<String, Pair<String, List<String>>> tableToColumnEntries,
+      char quote)
+      throws SQLException {
     for (Map.Entry<String, Pair<String, List<String>>> entry : tableToColumnEntries.entrySet()) {
       String tableName = entry.getKey();
       String columnNames = entry.getValue().k.substring(0, entry.getValue().k.length() - 2);
@@ -315,16 +318,16 @@ public class DamengDatabaseStrategy extends AbstractDatabaseStrategy {
   }
 
   private void batchInsert(
-          Connection conn,
-          String tableName,
-          Map<String, ColumnField> columnMap,
-          String[] parts,
-          List<String> values) {
+      Connection conn,
+      String tableName,
+      Map<String, ColumnField> columnMap,
+      String[] parts,
+      List<String> values) {
     Map<String, String[]> valueMap =
-            values.stream()
-                    .map(value -> value.substring(0, value.length() - 2))
-                    .map(OracleDatabaseStrategy::splitByCommaWithQuotes)
-                    .collect(Collectors.toMap(arr -> arr[0], arr -> arr));
+        values.stream()
+            .map(value -> value.substring(0, value.length() - 2))
+            .map(OracleDatabaseStrategy::splitByCommaWithQuotes)
+            .collect(Collectors.toMap(arr -> arr[0], arr -> arr));
     List<String> allKeys = new ArrayList<>(valueMap.keySet());
     List<String> insertKeys = new ArrayList<>();
     List<String> updateKeys = new ArrayList<>();
@@ -337,23 +340,23 @@ public class DamengDatabaseStrategy extends AbstractDatabaseStrategy {
         step = Math.min(allKeys.size() - end, 500);
         end += step;
         IntStream.range(start, end)
-                .forEach(
-                        i -> {
-                          placeHolder.append("?,");
-                        });
+            .forEach(
+                i -> {
+                  placeHolder.append("?,");
+                });
         PreparedStatement selectStmt =
-                conn.prepareStatement(
-                        String.format(
-                                relationalMeta.getQueryTableStatement(),
-                                getQuotName(KEY_NAME),
-                                1,
-                                getQuotName(tableName),
-                                " WHERE "
-                                        + getQuotName(KEY_NAME)
-                                        + "IN ("
-                                        + placeHolder.substring(0, placeHolder.length() - 1)
-                                        + ")",
-                                getQuotName(KEY_NAME)));
+            conn.prepareStatement(
+                String.format(
+                    relationalMeta.getQueryTableStatement(),
+                    getQuotName(KEY_NAME),
+                    1,
+                    getQuotName(tableName),
+                    " WHERE "
+                        + getQuotName(KEY_NAME)
+                        + "IN ("
+                        + placeHolder.substring(0, placeHolder.length() - 1)
+                        + ")",
+                    getQuotName(KEY_NAME)));
         for (int i = 0; i < end - start; i++) {
           selectStmt.setString(i + 1, allKeys.get(start + i));
         }
@@ -367,7 +370,7 @@ public class DamengDatabaseStrategy extends AbstractDatabaseStrategy {
         selectStmt.close();
       }
       insertKeys =
-              allKeys.stream().filter(item -> !updateKeys.contains(item)).collect(Collectors.toList());
+          allKeys.stream().filter(item -> !updateKeys.contains(item)).collect(Collectors.toList());
 
       // insert
       placeHolder.setLength(0);
@@ -375,12 +378,12 @@ public class DamengDatabaseStrategy extends AbstractDatabaseStrategy {
       placeHolder.append("?");
       String partStr = Arrays.stream(parts).map(this::getQuotName).collect(Collectors.joining(","));
       PreparedStatement insertStmt =
-              conn.prepareStatement(
-                      String.format(
-                              relationalMeta.getInsertTableStatement(),
-                              getQuotName(tableName),
-                              getQuotName(KEY_NAME) + "," + partStr,
-                              placeHolder));
+          conn.prepareStatement(
+              String.format(
+                  relationalMeta.getInsertTableStatement(),
+                  getQuotName(tableName),
+                  getQuotName(KEY_NAME) + "," + partStr,
+                  placeHolder));
       conn.setAutoCommit(false); // 关闭自动提交
       for (int i = 0; i < insertKeys.size(); i++) {
         String[] vals = valueMap.get(insertKeys.get(i));
@@ -391,10 +394,10 @@ public class DamengDatabaseStrategy extends AbstractDatabaseStrategy {
           }
           ColumnField columnField = columnMap.get(parts[j]);
           DataType dataType =
-                  dataTypeTransformer.fromEngineType(
-                          columnField.getColumnType(),
-                          columnField.getColumnSize(),
-                          columnField.getDecimalDigits());
+              dataTypeTransformer.fromEngineType(
+                  columnField.getColumnType(),
+                  columnField.getColumnSize(),
+                  columnField.getDecimalDigits());
           setValue(insertStmt, j + 2, vals[j + 1], dataType);
         }
         insertStmt.addBatch();
@@ -411,13 +414,13 @@ public class DamengDatabaseStrategy extends AbstractDatabaseStrategy {
       placeHolder.setLength(0);
       Arrays.stream(parts).forEach(part -> placeHolder.append(getQuotName(part)).append("=?,"));
       PreparedStatement updateStmt =
-              conn.prepareStatement(
-                      String.format(
-                              relationalMeta.getUpdateTableStatement(),
-                              getQuotName(tableName),
-                              placeHolder.substring(0, placeHolder.length() - 1),
-                              getQuotName(KEY_NAME),
-                              "?"));
+          conn.prepareStatement(
+              String.format(
+                  relationalMeta.getUpdateTableStatement(),
+                  getQuotName(tableName),
+                  placeHolder.substring(0, placeHolder.length() - 1),
+                  getQuotName(KEY_NAME),
+                  "?"));
       for (int i = 0; i < updateKeys.size(); i++) {
         String[] vals = valueMap.get(updateKeys.get(i));
         for (int j = 0; j < parts.length; j++) {
@@ -426,10 +429,10 @@ public class DamengDatabaseStrategy extends AbstractDatabaseStrategy {
           }
           ColumnField columnField = columnMap.get(parts[j]);
           DataType dataType =
-                  dataTypeTransformer.fromEngineType(
-                          columnField.getColumnType(),
-                          columnField.getColumnSize(),
-                          columnField.getDecimalDigits());
+              dataTypeTransformer.fromEngineType(
+                  columnField.getColumnType(),
+                  columnField.getColumnSize(),
+                  columnField.getDecimalDigits());
           setValue(updateStmt, j + 1, vals[j + 1], dataType);
         }
         updateStmt.setString(parts.length + 1, vals[0]);
@@ -455,40 +458,40 @@ public class DamengDatabaseStrategy extends AbstractDatabaseStrategy {
     return "%s(%s)";
   }
 
-//  private Map<String, ColumnField> getColumnMap(
-//      Connection conn, String tableName) throws SQLException {
-////    DatabaseMetaData metaData = conn.getMetaData();
-//    ResultSet rs = getColumns(conn, tableName);
-//    Map<String, ColumnField> columnMap = new HashMap<>();
-//
-//    while (rs.next()) {
-//      String columnName = rs.getString("COLUMN_NAME");
-//      String columnType = rs.getString("TYPE_NAME");
-//      String columnTable = rs.getString("TABLE_NAME");
-//      int columnSize = rs.getInt("COLUMN_SIZE");
-//      int decimalDigits = rs.getInt("DECIMAL_DIGITS");
-//
-//      columnMap.put(
-//          columnName,
-//          new ColumnField(columnTable, columnName, columnType, columnSize, decimalDigits));
-//    }
-//
-//    rs.close();
-//    return columnMap;
-//  }
+  //  private Map<String, ColumnField> getColumnMap(
+  //      Connection conn, String tableName) throws SQLException {
+  ////    DatabaseMetaData metaData = conn.getMetaData();
+  //    ResultSet rs = getColumns(conn, tableName);
+  //    Map<String, ColumnField> columnMap = new HashMap<>();
+  //
+  //    while (rs.next()) {
+  //      String columnName = rs.getString("COLUMN_NAME");
+  //      String columnType = rs.getString("TYPE_NAME");
+  //      String columnTable = rs.getString("TABLE_NAME");
+  //      int columnSize = rs.getInt("COLUMN_SIZE");
+  //      int decimalDigits = rs.getInt("DECIMAL_DIGITS");
+  //
+  //      columnMap.put(
+  //          columnName,
+  //          new ColumnField(columnTable, columnName, columnType, columnSize, decimalDigits));
+  //    }
+  //
+  //    rs.close();
+  //    return columnMap;
+  //  }
 
   public Map<String, ColumnField> getColumnMap(Connection conn, String tableName)
-          throws SQLException {
+      throws SQLException {
     List<ColumnField> columnFieldList = getColumns(conn, tableName);
     return columnFieldList.stream()
-            .collect(Collectors.toMap(ColumnField::getColumnName, field -> field));
+        .collect(Collectors.toMap(ColumnField::getColumnName, field -> field));
   }
 
   private List<ColumnField> getColumns(Connection conn, String tableName) throws SQLException {
     DatabaseMetaData databaseMetaData = conn.getMetaData();
     try (ResultSet rs =
-                 databaseMetaData.getColumns(
-                         getDatabasePattern(null, false), getSchemaPattern(null, false), tableName, null)) {
+        databaseMetaData.getColumns(
+            getDatabasePattern(null, false), getSchemaPattern(null, false), tableName, null)) {
       List<ColumnField> columnFields = new ArrayList<>();
       while (rs.next()) {
         String columnName = rs.getString("COLUMN_NAME");
@@ -497,49 +500,49 @@ public class DamengDatabaseStrategy extends AbstractDatabaseStrategy {
         int columnSize = rs.getInt("COLUMN_SIZE");
         int decimalDigits = rs.getInt("DECIMAL_DIGITS");
         columnFields.add(
-                new ColumnField(columnTable, columnName, columnType, columnSize, decimalDigits));
+            new ColumnField(columnTable, columnName, columnType, columnSize, decimalDigits));
       }
       return columnFields;
     }
   }
 
-//  private void setValue(PreparedStatement stmt, int index, String value, int types)
-//      throws SQLException {
-//    if (value.equals("null")) {
-//      if (Types.BOOLEAN == types) {
-//        stmt.setNull(index, Types.INTEGER);
-//      } else {
-//        stmt.setNull(index, types);
-//      }
-//      return;
-//    }
-//    switch (types) {
-//      case Types.BOOLEAN:
-//        stmt.setInt(index, value.equalsIgnoreCase("true") ? 1 : 0);
-//        break;
-//      case Types.INTEGER:
-//        stmt.setInt(index, Integer.parseInt(value));
-//        break;
-//      case Types.BIGINT:
-//        stmt.setLong(index, Long.parseLong(value));
-//        break;
-//      case Types.FLOAT:
-//        stmt.setFloat(index, Float.parseFloat(value));
-//        break;
-//      case Types.DOUBLE:
-//        stmt.setDouble(index, Double.parseDouble(value));
-//        break;
-//      default:
-//        if (value.startsWith("'") && value.endsWith("'")) {
-//          stmt.setString(index, value.substring(1, value.length() - 1));
-//        } else {
-//          stmt.setString(index, value);
-//        }
-//    }
-//  }
+  //  private void setValue(PreparedStatement stmt, int index, String value, int types)
+  //      throws SQLException {
+  //    if (value.equals("null")) {
+  //      if (Types.BOOLEAN == types) {
+  //        stmt.setNull(index, Types.INTEGER);
+  //      } else {
+  //        stmt.setNull(index, types);
+  //      }
+  //      return;
+  //    }
+  //    switch (types) {
+  //      case Types.BOOLEAN:
+  //        stmt.setInt(index, value.equalsIgnoreCase("true") ? 1 : 0);
+  //        break;
+  //      case Types.INTEGER:
+  //        stmt.setInt(index, Integer.parseInt(value));
+  //        break;
+  //      case Types.BIGINT:
+  //        stmt.setLong(index, Long.parseLong(value));
+  //        break;
+  //      case Types.FLOAT:
+  //        stmt.setFloat(index, Float.parseFloat(value));
+  //        break;
+  //      case Types.DOUBLE:
+  //        stmt.setDouble(index, Double.parseDouble(value));
+  //        break;
+  //      default:
+  //        if (value.startsWith("'") && value.endsWith("'")) {
+  //          stmt.setString(index, value.substring(1, value.length() - 1));
+  //        } else {
+  //          stmt.setString(index, value);
+  //        }
+  //    }
+  //  }
 
   private void setValue(PreparedStatement stmt, int index, String value, DataType type)
-          throws SQLException {
+      throws SQLException {
     boolean isNull = value.equals("null");
     switch (type) {
       case BOOLEAN:
