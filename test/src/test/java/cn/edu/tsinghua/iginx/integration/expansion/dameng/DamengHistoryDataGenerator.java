@@ -39,14 +39,21 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
 
   private static final char SEPARATOR = '.';
 
+  private static final String PREFIX = "DAMENG"; // 密码前缀（达梦密码强度要求）
+
   public static final String QUERY_DATABASES_STATEMENT =
-      "SELECT DISTINCT object_name TABLE_SCHEMA FROM all_objects WHERE object_type='SCH' AND OWNER='SYSDBA';";
+      "SELECT username  as DATNAME FROM DBA_USERS WHERE CREATED > TO_DATE('2025-01-01', 'YYYY-MM-DD')";
 
-  public static final String CREATE_DATABASE_STATEMENT = "CREATE SCHEMA %s";
+  public static final String CREATE_DATABASE_STATEMENT = "CREATE USER %s IDENTIFIED BY %s";
 
-  public static final String CREATE_TABLE_STATEMENT = "CREATE TABLE %s (%s)";
+  private static final String GRANT_DATABASE_STATEMENT =
+      "GRANT CREATE SESSION,CREATE TABLE,UNLIMITED TABLESPACE TO %s";
 
-  public static final String INSERT_STATEMENT = "INSERT INTO %s VALUES %s";
+  private static final String GRANT_ROLE_STATEMENT = "GRANT CREATE RESOURCE TO %s";
+
+  public static final String CREATE_TABLE_STATEMENT = "CREATE TABLE IF NOT EXISTS %s.%s (%s)";
+
+  public static final String INSERT_STATEMENT = "INSERT INTO %s.%s VALUES %s";
 
   public static final String DROP_DATABASE_STATEMENT = "DROP SCHEMA %s CASCADE";
 
@@ -56,14 +63,10 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
     Constant.readOnlyPort = 5238;
   }
 
-  public static Connection connect(int port, boolean useSystemDatabase, String databaseName) {
+  public static Connection connect(int port) {
     try {
       String url;
-      if (useSystemDatabase) {
-        url = String.format("jdbc:dm://127.0.0.1:%d", port);
-      } else {
-        url = String.format("jdbc:dm://127.0.0.1:%d?schema=%s", port, databaseName);
-      }
+      url = String.format("jdbc:dm://127.0.0.1:%d", port);
       Class.forName("dm.jdbc.driver.DmDriver");
       return DriverManager.getConnection(url, "SYSDBA", "SYSDBA001"); // 达梦默认用户名密码
     } catch (SQLException | ClassNotFoundException e) {
@@ -80,7 +83,7 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
       List<List<Object>> valuesList) {
     Connection connection = null;
     try {
-      connection = connect(port, true, null);
+      connection = connect(port);
       if (connection == null) {
         LOGGER.error("cannot connect to 127.0.0.1:{}!", port);
         return;
@@ -105,17 +108,22 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
         String databaseName = entry.getKey();
         Statement stmt = connection.createStatement();
         String createDatabaseSql =
-            String.format(CREATE_DATABASE_STATEMENT, getQuotName(databaseName));
+            String.format(
+                CREATE_DATABASE_STATEMENT, getQuotName(databaseName), toDamengPassword(port));
+        String grantDatabaseSql =
+            String.format(GRANT_DATABASE_STATEMENT, getQuotName(databaseName));
+        String grantRoleSql = String.format(GRANT_ROLE_STATEMENT, getQuotName(databaseName));
         try {
           LOGGER.info("create database with stmt: {}", createDatabaseSql);
           stmt.execute(createDatabaseSql);
+          stmt.execute(grantDatabaseSql);
+          stmt.execute(grantRoleSql);
         } catch (SQLException e) {
           LOGGER.info("database {} exists!", databaseName);
         }
         stmt.close();
 
-        Connection conn = connect(port, false, databaseName);
-        stmt = conn.createStatement();
+        stmt = connection.createStatement();
         for (Map.Entry<String, List<Integer>> item : entry.getValue().entrySet()) {
           String tableName = item.getKey();
           StringBuilder createTableStr = new StringBuilder();
@@ -131,6 +139,7 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
           stmt.execute(
               String.format(
                   CREATE_TABLE_STATEMENT,
+                  getQuotName(databaseName),
                   getQuotName(tableName),
                   createTableStr.substring(0, createTableStr.length() - 2)));
 
@@ -154,11 +163,11 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
           stmt.execute(
               String.format(
                   INSERT_STATEMENT,
+                  getQuotName(databaseName),
                   getQuotName(tableName),
                   insertStr.substring(0, insertStr.length() - 2)));
         }
         stmt.close();
-        conn.close();
       }
       connection.close();
 
@@ -190,6 +199,38 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
         Constant.READ_ONLY_FLOAT_PATH_LIST,
         new ArrayList<>(Collections.singletonList(DataType.FLOAT)),
         Constant.READ_ONLY_FLOAT_VALUES_LIST);
+    // create another user who can read data of tm user
+    try (Connection connection = connect(Constant.readOnlyPort);
+        Statement stmt = connection.createStatement()) {
+      String createDatabaseSql =
+          String.format(
+              CREATE_DATABASE_STATEMENT,
+              getQuotName("observer"),
+              toDamengPassword(Constant.readOnlyPort));
+      LOGGER.info(
+          "create another user in {} with stmt: {}", Constant.readOnlyPort, createDatabaseSql);
+      stmt.execute(createDatabaseSql);
+
+      String grantDatabaseSql = String.format(GRANT_DATABASE_STATEMENT, getQuotName("observer"));
+      LOGGER.info("grant permission to observer with stmt: {}", grantDatabaseSql);
+      stmt.execute(grantDatabaseSql);
+
+      String grantTableSql =
+          String.format(
+              "GRANT SELECT ON %s.%s TO %s",
+              getQuotName("tm"), getQuotName("wf05.wt01"), getQuotName("observer"));
+      LOGGER.info("grant select permission to observer with stmt: {}", grantTableSql);
+      stmt.execute(grantTableSql);
+
+      String grantTable2Sql =
+          String.format(
+              "GRANT SELECT ON %s.%s TO %s",
+              getQuotName("tm"), getQuotName("wf05.wt02"), getQuotName("observer"));
+      LOGGER.info("grant select permission to observer with stmt: {}", grantTable2Sql);
+      stmt.execute(grantTable2Sql);
+    } catch (SQLException e) {
+      LOGGER.error("write special history data failure: ", e);
+    }
   }
 
   @Override
@@ -197,7 +238,7 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
     Connection conn = null;
     try {
       LOGGER.info("port: {}", port);
-      conn = connect(port, true, null);
+      conn = connect(port);
       Statement stmt = conn.createStatement();
       ResultSet databaseSet = stmt.executeQuery(QUERY_DATABASES_STATEMENT);
       Statement dropDatabaseStatement = conn.createStatement();
@@ -256,26 +297,7 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
     return "\"" + name + "\"";
   }
 
-  // 终止所有连接的逻辑
-  private void terminateConnectionsForDatabase(String databaseName, int port) throws SQLException {
-    String query = String.format("SELECT sess_id FROM v$sessions;");
-    Connection conn = null;
-    conn = connect(port, true, null);
-    if (conn == null) {
-      LOGGER.error("cannot connect to 127.0.0.1:{}!", port);
-      return;
-    }
-    try (Statement stmt = conn.createStatement();
-        ResultSet resultSet = stmt.executeQuery(query)) {
-      while (resultSet.next()) {
-        int sid = resultSet.getInt("sess_id");
-        LOGGER.info("Killing session with SID: {}", sid);
-        String killQuery = String.format("sp_close_session(%d)", sid);
-        try (Statement killStmt = conn.createStatement()) {
-          killStmt.execute(killQuery);
-          LOGGER.info("Killed session with SID: {}", sid);
-        }
-      }
-    }
+  private static String toDamengPassword(int port) {
+    return PREFIX + port;
   }
 }

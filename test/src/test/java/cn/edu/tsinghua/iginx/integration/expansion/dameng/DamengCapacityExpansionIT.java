@@ -19,6 +19,8 @@
  */
 package cn.edu.tsinghua.iginx.integration.expansion.dameng;
 
+import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.*;
+import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.readOnlyPort;
 import static cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools.executeShellScript;
 import static org.junit.Assert.fail;
 
@@ -31,6 +33,7 @@ import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.integration.tool.DBConf;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,18 +43,54 @@ public class DamengCapacityExpansionIT extends BaseCapacityExpansionIT {
   private static final Logger LOGGER =
       LoggerFactory.getLogger(
           cn.edu.tsinghua.iginx.integration.expansion.dameng.DamengCapacityExpansionIT.class);
+  private static final HashMap<Integer, String> portsToUsername = new HashMap<>();
+  private static final HashMap<Integer, String> portsToPassword = new HashMap<>();
 
-  public DamengCapacityExpansionIT() {
-    super(
-        StorageEngineType.relational,
-        "engine=dameng, username=SYSDBA, password=SYSDBA001",
-        new DamengHistoryDataGenerator());
+  static {
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
     DBConf dbConf = conf.loadDBConf(conf.getStorageType());
     Constant.oriPort = dbConf.getDBCEPortMap().get(Constant.ORI_PORT_NAME);
     Constant.expPort = dbConf.getDBCEPortMap().get(Constant.EXP_PORT_NAME);
     Constant.readOnlyPort = dbConf.getDBCEPortMap().get(Constant.READ_ONLY_PORT_NAME);
-    wrongExtraParams.add("username=wrong, password=SYSDBA001");
+    portsToUsername.put(oriPort, "SYSDBA");
+    portsToUsername.put(expPort, "nt");
+    portsToUsername.put(readOnlyPort, "observer");
+    portsToPassword.put(oriPort, "SYSDBA001");
+    portsToPassword.put(expPort, "DAMENG" + expPort);
+    portsToPassword.put(readOnlyPort, "DAMENG" + readOnlyPort);
+  }
+
+  public DamengCapacityExpansionIT() {
+    super(
+        StorageEngineType.relational,
+        new HashMap<Integer, String>() {
+          {
+            put(
+                oriPort,
+                "engine=oracle, username="
+                    + portsToUsername.get(oriPort)
+                    + ", password="
+                    + portsToPassword.get(oriPort));
+            put(
+                expPort,
+                "engine=oracle, username="
+                    + portsToUsername.get(expPort)
+                    + ", password="
+                    + portsToPassword.get(expPort));
+            put(
+                readOnlyPort,
+                "engine=oracle, username="
+                    + portsToUsername.get(readOnlyPort)
+                    + ", password="
+                    + portsToPassword.get(readOnlyPort));
+          }
+        },
+        new DamengHistoryDataGenerator());
+    //    ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
+    //    DBConf dbConf = conf.loadDBConf(conf.getStorageType());
+    //    Constant.oriPort = dbConf.getDBCEPortMap().get(Constant.ORI_PORT_NAME);
+    //    Constant.expPort = dbConf.getDBCEPortMap().get(Constant.EXP_PORT_NAME);
+    //    Constant.readOnlyPort = dbConf.getDBCEPortMap().get(Constant.READ_ONLY_PORT_NAME);
     updatedParams.put("password", "newPassword");
   }
 
@@ -136,6 +175,93 @@ public class DamengCapacityExpansionIT extends BaseCapacityExpansionIT {
             + "|33357770565002400|           22222222|\n"
             + "+-----------------+-------------------+\n"
             + "Total line number = 4\n";
+    SQLTestTools.executeAndCompare(session, statement, expected);
+  }
+
+  @Override
+  protected void testShowColumnsInExpansion(boolean before) {
+    String statement = "SHOW COLUMNS nt.wf03.*;";
+    String expected =
+        "Columns:\n"
+            + "+--------------------+--------+\n"
+            + "|                Path|DataType|\n"
+            + "+--------------------+--------+\n"
+            + "|nt.wf03.wt01.status2|    LONG|\n"
+            + "+--------------------+--------+\n"
+            + "Total line number = 1\n";
+    SQLTestTools.executeAndCompare(session, statement, expected);
+
+    statement = "SHOW COLUMNS;";
+    if (before) {
+      expected =
+          "Columns:\n"
+              + "+------------------------+--------+\n"
+              + "|                    Path|DataType|\n"
+              + "+------------------------+--------+\n"
+              + "|          ln.wf02.status| BOOLEAN|\n"
+              + "|         ln.wf02.version|  BINARY|\n"
+              + "|    nt.wf03.wt01.status2|    LONG|\n"
+              + "|nt.wf04.wt01.temperature|  DOUBLE|\n"
+              + "+------------------------+--------+\n"
+              + "Total line number = 4\n";
+    } else { // 添加schemaPrefix为p1，dataPrefix为nt.wf03的数据源
+      expected =
+          "Columns:\n"
+              + "+------------------------+--------+\n"
+              + "|                    Path|DataType|\n"
+              + "+------------------------+--------+\n"
+              + "|          ln.wf02.status| BOOLEAN|\n"
+              + "|         ln.wf02.version|  BINARY|\n"
+              + "|    nt.wf03.wt01.status2|    LONG|\n"
+              + "|nt.wf04.wt01.temperature|  DOUBLE|\n"
+              + "| p1.nt.wf03.wt01.status2|    LONG|\n"
+              + "+------------------------+--------+\n"
+              + "Total line number = 5\n";
+    }
+    SQLTestTools.executeAndCompare(session, statement, expected);
+
+    statement = "SHOW COLUMNS p1.*;";
+    if (before) {
+      expected =
+          "Columns:\n"
+              + "+----+--------+\n"
+              + "|Path|DataType|\n"
+              + "+----+--------+\n"
+              + "+----+--------+\n"
+              + "Empty set.\n";
+    } else { // 添加schemaPrefix为p1，dataPrefix为nt.wf03的数据源
+      expected =
+          "Columns:\n"
+              + "+-----------------------+--------+\n"
+              + "|                   Path|DataType|\n"
+              + "+-----------------------+--------+\n"
+              + "|p1.nt.wf03.wt01.status2|    LONG|\n"
+              + "+-----------------------+--------+\n"
+              + "Total line number = 1\n";
+    }
+    SQLTestTools.executeAndCompare(session, statement, expected);
+
+    statement = "SHOW COLUMNS *.wf03.wt01.*;";
+    if (before) {
+      expected =
+          "Columns:\n"
+              + "+--------------------+--------+\n"
+              + "|                Path|DataType|\n"
+              + "+--------------------+--------+\n"
+              + "|nt.wf03.wt01.status2|    LONG|\n"
+              + "+--------------------+--------+\n"
+              + "Total line number = 1\n";
+    } else { // 添加schemaPrefix为p1，dataPrefix为nt.wf03的数据源
+      expected =
+          "Columns:\n"
+              + "+-----------------------+--------+\n"
+              + "|                   Path|DataType|\n"
+              + "+-----------------------+--------+\n"
+              + "|   nt.wf03.wt01.status2|    LONG|\n"
+              + "|p1.nt.wf03.wt01.status2|    LONG|\n"
+              + "+-----------------------+--------+\n"
+              + "Total line number = 2\n";
+    }
     SQLTestTools.executeAndCompare(session, statement, expected);
   }
 }
