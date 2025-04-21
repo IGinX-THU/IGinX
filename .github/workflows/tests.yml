@@ -98,27 +98,27 @@ jobs:
     #            functest: "NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,CompactionIT,TimePrecisionIT,PySessionIT"
     #            timeout-minutes: 360
     #            close-optimizer: "true"
-#    remote-test:
-#        uses: ./.github/workflows/remote-test.yml
-#        with:
-#            metadata-matrix: '["zookeeper"]'
-#    assembly-test:
-#        uses: ./.github/workflows/assembly-test.yml
-#    free-thread-test:
-#        uses: ./.github/workflows/free-thread-test.yml
-#        with:
-#            metadata-matrix: '["zookeeper"]'
-#    tpc-h-regression-test:
-#        uses: ./.github/workflows/tpc-h.yml
-#        with:
-#            os-matrix: '["ubuntu-latest"]'
-#            metadata-matrix: '["zookeeper"]'
-#    tpc-h-regression-test-no-optimizer:
-#        uses: ./.github/workflows/tpc-h.yml
-#        with:
-#            os-matrix: '["ubuntu-latest"]'
-#            metadata-matrix: '["zookeeper"]'
-#            close-optimizer: "true"
+    remote-test:
+        uses: ./.github/workflows/remote-test.yml
+        with:
+            metadata-matrix: '["zookeeper"]'
+    assembly-test:
+        uses: ./.github/workflows/assembly-test.yml
+    free-thread-test:
+        uses: ./.github/workflows/free-thread-test.yml
+        with:
+            metadata-matrix: '["zookeeper"]'
+    tpc-h-regression-test:
+        uses: ./.github/workflows/tpc-h.yml
+        with:
+            os-matrix: '["ubuntu-latest"]'
+            metadata-matrix: '["zookeeper"]'
+    tpc-h-regression-test-no-optimizer:
+        uses: ./.github/workflows/tpc-h.yml
+        with:
+            os-matrix: '["ubuntu-latest"]'
+            metadata-matrix: '["zookeeper"]'
+            close-optimizer: "true"
     #    tpc-h-regression-test-vectordb:
     #        uses: ./.github/workflows/tpc-h.yml
     #        with:
@@ -148,11 +148,11 @@ jobs:
             #            - standalone-test-no-optimizer-vectordb
             #            - db-ce-vectordb
             #            - db-ce-no-optimizer-vectordb
-#            - remote-test
-#            - assembly-test
-#            - free-thread-test
-#            - tpc-h-regression-test
-#            - tpc-h-regression-test-no-optimizer
+            - remote-test
+            - assembly-test
+            - free-thread-test
+            - tpc-h-regression-test
+            - tpc-h-regression-test-no-optimizer
             #            - tpc-h-regression-test-vectordb
             #            - tpc-h-regression-test-no-optimizer-vectordb
             - standalone-test-no-mac-relational
