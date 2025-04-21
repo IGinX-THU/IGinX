@@ -802,6 +802,14 @@ public class RelationalStorage implements IStorage {
         }
       }
 
+      for (String database : databaseNameList) {
+        LOGGER.info(
+            "[Query] database name: {}, table name: {}, column names: {}",
+            database,
+            tableNameToColumnNames.keySet(),
+            tableNameToColumnNames.values());)
+      }
+      LOGGER.info("[Query] execute query: {}", statement);
       RowStream rowStream =
           new ClearEmptyRowStreamWrapper(
               new RelationQueryRowStream(

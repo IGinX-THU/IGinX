@@ -79,14 +79,14 @@ public class DamengDatabaseStrategy extends AbstractDatabaseStrategy {
     config.setPassword(null);
     if (!databaseName.isEmpty()) {
       config.setConnectionInitSql(
-              "ALTER SESSION SET CURRENT_SCHEMA = " + getQuotName(databaseName));
+          "ALTER SESSION SET CURRENT_SCHEMA = " + getQuotName(databaseName));
     }
   }
 
-//  @Override
-//  public String getDatabaseNameFromResultSet(ResultSet rs) throws SQLException {
-//    return rs.getString("TABLE_SCHEMA");
-//  }
+  //  @Override
+  //  public String getDatabaseNameFromResultSet(ResultSet rs) throws SQLException {
+  //    return rs.getString("TABLE_SCHEMA");
+  //  }
 
   @Override
   public String getDatabasePattern(String databaseName, boolean isDummy) {
