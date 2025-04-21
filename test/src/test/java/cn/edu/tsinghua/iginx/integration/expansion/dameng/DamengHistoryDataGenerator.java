@@ -74,13 +74,124 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
     }
   }
 
+//  @Override
+//  public void writeHistoryData(
+//      int port,
+//      List<String> pathList,
+//      List<DataType> dataTypeList,
+//      List<Long> keyList,
+//      List<List<Object>> valuesList) {
+//    Connection connection = null;
+//    try {
+//      connection = connect(port);
+//      if (connection == null) {
+//        LOGGER.error("cannot connect to 127.0.0.1:{}!", port);
+//        return;
+//      }
+//
+//      Map<String, Map<String, List<Integer>>> databaseToTablesToColumnIndexes = new HashMap<>();
+//      for (int i = 0; i < pathList.size(); i++) {
+//        String path = pathList.get(i);
+//        String databaseName = path.substring(0, path.indexOf(SEPARATOR));
+//        String tableName = path.substring(path.indexOf(SEPARATOR) + 1, path.lastIndexOf(SEPARATOR));
+//
+//        Map<String, List<Integer>> tablesToColumnIndexes =
+//            databaseToTablesToColumnIndexes.computeIfAbsent(databaseName, x -> new HashMap<>());
+//        List<Integer> columnIndexes =
+//            tablesToColumnIndexes.computeIfAbsent(tableName, x -> new ArrayList<>());
+//        columnIndexes.add(i);
+//        tablesToColumnIndexes.put(tableName, columnIndexes);
+//      }
+//
+//      for (Map.Entry<String, Map<String, List<Integer>>> entry :
+//          databaseToTablesToColumnIndexes.entrySet()) {
+//        String databaseName = entry.getKey();
+//        Statement stmt = connection.createStatement();
+//        String createDatabaseSql =
+//            String.format(
+//                CREATE_DATABASE_STATEMENT, getQuotName(databaseName), toDamengPassword(port));
+//        String grantDatabaseSql =
+//            String.format(GRANT_DATABASE_STATEMENT, getQuotName(databaseName));
+//        String grantRoleSql = String.format(GRANT_ROLE_STATEMENT, getQuotName(databaseName));
+//        try {
+//          LOGGER.info("create database with stmt: {}", createDatabaseSql);
+//          stmt.execute(createDatabaseSql);
+//          stmt.execute(grantDatabaseSql);
+//          stmt.execute(grantRoleSql);
+//        } catch (SQLException e) {
+//          LOGGER.info("database {} exists!", databaseName);
+//        }
+//        stmt.close();
+//
+//        stmt = connection.createStatement();
+//        for (Map.Entry<String, List<Integer>> item : entry.getValue().entrySet()) {
+//          String tableName = item.getKey();
+//          StringBuilder createTableStr = new StringBuilder();
+//          for (Integer index : item.getValue()) {
+//            String path = pathList.get(index);
+//            String columnName = path.substring(path.lastIndexOf(SEPARATOR) + 1);
+//            DataType dataType = dataTypeList.get(index);
+//            createTableStr.append(getQuotName(columnName));
+//            createTableStr.append(" ");
+//            createTableStr.append(toDamengSQL(dataType));
+//            createTableStr.append(", ");
+//          }
+//          stmt.execute(
+//              String.format(
+//                  CREATE_TABLE_STATEMENT,
+//                  getQuotName(databaseName),
+//                  getQuotName(tableName),
+//                  createTableStr.substring(0, createTableStr.length() - 2)));
+//
+//          StringBuilder insertStr = new StringBuilder();
+//          for (List<Object> values : valuesList) {
+//            insertStr.append("(");
+//            for (Integer index : item.getValue()) {
+//              if (dataTypeList.get(index) == DataType.BINARY) {
+//                insertStr.append("'").append(new String((byte[]) values.get(index))).append("'");
+//              } else if (dataTypeList.get(index) == DataType.BOOLEAN) {
+//                // 达梦的布尔类型需要特殊处理，转换为1或0
+//                insertStr.append(((Boolean) values.get(index)) ? "1" : "0");
+//              } else {
+//                insertStr.append(values.get(index));
+//              }
+//              insertStr.append(", ");
+//            }
+//            insertStr = new StringBuilder(insertStr.substring(0, insertStr.length() - 2));
+//            insertStr.append("), ");
+//          }
+//          stmt.execute(
+//              String.format(
+//                  INSERT_STATEMENT,
+//                  getQuotName(databaseName),
+//                  getQuotName(tableName),
+//                  insertStr.substring(0, insertStr.length() - 2)));
+//        }
+//        stmt.close();
+//      }
+//      connection.close();
+//
+//      LOGGER.info("write data to 127.0.0.1:{} success!", port);
+//    } catch (RuntimeException | SQLException e) {
+//      LOGGER.error("write data to 127.0.0.1:{} failure: ", port, e);
+//    } finally {
+//      try {
+//        if (connection != null) {
+//          connection.close();
+//        }
+//      } catch (SQLException e) {
+//        LOGGER.error("close connection failure: ", e);
+//      }
+//    }
+//  }
+
   @Override
   public void writeHistoryData(
-      int port,
-      List<String> pathList,
-      List<DataType> dataTypeList,
-      List<Long> keyList,
-      List<List<Object>> valuesList) {
+          int port,
+          List<String> pathList,
+          List<DataType> dataTypeList,
+          List<Long> keyList,
+          List<List<Object>> valuesList) {
     Connection connection = null;
     try {
       connection = connect(port);
@@ -96,36 +207,34 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
         String tableName = path.substring(path.indexOf(SEPARATOR) + 1, path.lastIndexOf(SEPARATOR));
 
         Map<String, List<Integer>> tablesToColumnIndexes =
-            databaseToTablesToColumnIndexes.computeIfAbsent(databaseName, x -> new HashMap<>());
+                databaseToTablesToColumnIndexes.computeIfAbsent(databaseName, x -> new HashMap<>());
         List<Integer> columnIndexes =
-            tablesToColumnIndexes.computeIfAbsent(tableName, x -> new ArrayList<>());
+                tablesToColumnIndexes.computeIfAbsent(tableName, x -> new ArrayList<>());
         columnIndexes.add(i);
         tablesToColumnIndexes.put(tableName, columnIndexes);
       }
 
       for (Map.Entry<String, Map<String, List<Integer>>> entry :
-          databaseToTablesToColumnIndexes.entrySet()) {
+              databaseToTablesToColumnIndexes.entrySet()) {
         String databaseName = entry.getKey();
         Statement stmt = connection.createStatement();
         String createDatabaseSql =
-            String.format(
-                CREATE_DATABASE_STATEMENT, getQuotName(databaseName), toDamengPassword(port));
+                String.format(CREATE_DATABASE_STATEMENT, getQuotName(databaseName), port);
         String grantDatabaseSql =
-            String.format(GRANT_DATABASE_STATEMENT, getQuotName(databaseName));
-        String grantRoleSql = String.format(GRANT_ROLE_STATEMENT, getQuotName(databaseName));
+                String.format(GRANT_DATABASE_STATEMENT, getQuotName(databaseName));
         try {
-          LOGGER.info("create database with stmt: {}", createDatabaseSql);
+          LOGGER.info("create database with stmt: {} {}", port, createDatabaseSql);
           stmt.execute(createDatabaseSql);
           stmt.execute(grantDatabaseSql);
-          stmt.execute(grantRoleSql);
         } catch (SQLException e) {
-          LOGGER.info("database {} exists!", databaseName);
+          LOGGER.info("database {} {} exists!", port, databaseName);
         }
         stmt.close();
 
         stmt = connection.createStatement();
         for (Map.Entry<String, List<Integer>> item : entry.getValue().entrySet()) {
           String tableName = item.getKey();
+          StringBuilder columnStr = new StringBuilder();
           StringBuilder createTableStr = new StringBuilder();
           for (Integer index : item.getValue()) {
             String path = pathList.get(index);
@@ -135,37 +244,48 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
             createTableStr.append(" ");
             createTableStr.append(toDamengSQL(dataType));
             createTableStr.append(", ");
+            columnStr.append(getQuotName(columnName)).append(",");
           }
           stmt.execute(
-              String.format(
-                  CREATE_TABLE_STATEMENT,
-                  getQuotName(databaseName),
-                  getQuotName(tableName),
-                  createTableStr.substring(0, createTableStr.length() - 2)));
+                  String.format(
+                          CREATE_TABLE_STATEMENT,
+                          getQuotName(databaseName),
+                          getQuotName(tableName),
+                          createTableStr.substring(0, createTableStr.length() - 2)));
 
-          StringBuilder insertStr = new StringBuilder();
-          for (List<Object> values : valuesList) {
-            insertStr.append("(");
-            for (Integer index : item.getValue()) {
-              if (dataTypeList.get(index) == DataType.BINARY) {
-                insertStr.append("'").append(new String((byte[]) values.get(index))).append("'");
-              } else if (dataTypeList.get(index) == DataType.BOOLEAN) {
-                // 达梦的布尔类型需要特殊处理，转换为1或0
-                insertStr.append(((Boolean) values.get(index)) ? "1" : "0");
-              } else {
-                insertStr.append(values.get(index));
+          columnStr = new StringBuilder(columnStr.substring(0, columnStr.length() - 1));
+          int start = 0, end = 0, step = 0;
+          while (end < valuesList.size()) {
+            step = Math.min(valuesList.size() - end, 1000);
+            end += step;
+            StringBuilder insertAllSql = new StringBuilder("INSERT ALL ");
+            StringBuilder insertStr = new StringBuilder();
+            List<List<Object>> lists = valuesList.subList(start, end);
+            for (List<Object> values : lists) {
+              insertStr
+                      .append("INTO ")
+                      .append(getQuotName(databaseName))
+                      .append(SEPARATOR)
+                      .append(getQuotName(tableName))
+                      .append(" (")
+                      .append(columnStr)
+                      .append(") VALUES ");
+              insertStr.append("(");
+              for (Integer index : item.getValue()) {
+                if (dataTypeList.get(index) == DataType.BINARY) {
+                  insertStr.append("'").append(new String((byte[]) values.get(index))).append("'");
+                } else {
+                  insertStr.append(values.get(index));
+                }
+                insertStr.append(", ");
               }
-              insertStr.append(", ");
+              insertStr = new StringBuilder(insertStr.substring(0, insertStr.length() - 2));
+              insertStr.append(") ");
             }
-            insertStr = new StringBuilder(insertStr.substring(0, insertStr.length() - 2));
-            insertStr.append("), ");
+            insertAllSql.append(insertStr).append("SELECT * FROM dual");
+            stmt.execute(insertAllSql.toString());
+            start = end;
           }
-          stmt.execute(
-              String.format(
-                  INSERT_STATEMENT,
-                  getQuotName(databaseName),
-                  getQuotName(tableName),
-                  insertStr.substring(0, insertStr.length() - 2)));
         }
         stmt.close();
       }
