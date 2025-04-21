@@ -91,7 +91,7 @@ public class UDFTestTools {
       return;
     }
 
-    fail("Statement: \"{}\" execute without failure, which was not expected.");
+    fail("Statement: \"" + statement + "\" execute without failure, which was not expected.");
   }
 
   SessionExecuteSqlResult execute(String statement) {
@@ -155,8 +155,9 @@ public class UDFTestTools {
       return new SessionException(res.getParseErrorMsg());
     }
 
-    fail("Statement: \"{}\" execute without failure, which was not expected.");
-    return null;
+    fail("Statement: \"" + statement + "\" execute without failure, which was not expected.");
+    throw new AssertionError(
+        "Statement executed successfully when failure was expected: " + statement);
   }
 
   public void executeAndCompareErrMsg(String statement, String expectedErrMsg) {
