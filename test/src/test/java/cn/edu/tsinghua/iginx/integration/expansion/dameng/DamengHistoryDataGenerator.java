@@ -55,7 +55,7 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
 
   public static final String INSERT_STATEMENT = "INSERT INTO %s.%s VALUES %s";
 
-  public static final String DROP_DATABASE_STATEMENT = "DROP SCHEMA %s CASCADE";
+  public static final String DROP_DATABASE_STATEMENT = "DROP USER %s CASCADE";
 
   public DamengHistoryDataGenerator() {
     Constant.oriPort = 5236;
