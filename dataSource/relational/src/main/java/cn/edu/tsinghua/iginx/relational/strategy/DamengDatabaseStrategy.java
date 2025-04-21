@@ -50,11 +50,6 @@ public class DamengDatabaseStrategy extends AbstractDatabaseStrategy {
   }
 
   @Override
-  public String getQuotName(String name) {
-    return String.format("%s%s%s", relationalMeta.getQuote(), name, relationalMeta.getQuote());
-  }
-
-  @Override
   public String getUrl(String databaseName, StorageEngineMeta meta) {
     return getConnectUrl(meta);
     //    Map<String, String> extraParams = meta.getExtraParams();
@@ -79,12 +74,19 @@ public class DamengDatabaseStrategy extends AbstractDatabaseStrategy {
 
   @Override
   public void configureDataSource(
-      HikariConfig config, String databaseName, StorageEngineMeta meta) {}
-
-  @Override
-  public String getDatabaseNameFromResultSet(ResultSet rs) throws SQLException {
-    return rs.getString("TABLE_SCHEMA");
+      HikariConfig config, String databaseName, StorageEngineMeta meta) {
+    config.setUsername(null);
+    config.setPassword(null);
+    if (!databaseName.isEmpty()) {
+      config.setConnectionInitSql(
+              "ALTER SESSION SET CURRENT_SCHEMA = " + getQuotName(databaseName));
+    }
   }
+
+//  @Override
+//  public String getDatabaseNameFromResultSet(ResultSet rs) throws SQLException {
+//    return rs.getString("TABLE_SCHEMA");
+//  }
 
   @Override
   public String getDatabasePattern(String databaseName, boolean isDummy) {
