@@ -221,7 +221,8 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
         String databaseName = entry.getKey();
         Statement stmt = connection.createStatement();
         String createDatabaseSql =
-            String.format(CREATE_DATABASE_STATEMENT, getQuotName(databaseName), port);
+            String.format(
+                CREATE_DATABASE_STATEMENT, getQuotName(databaseName), toDamengPassword(port));
         String grantDatabaseSql =
             String.format(GRANT_DATABASE_STATEMENT, getQuotName(databaseName));
         try {
@@ -366,12 +367,12 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
       Statement dropDatabaseStatement = conn.createStatement();
 
       while (databaseSet.next()) {
-        String databaseName = databaseSet.getString("TABLE_SCHEMA");
+        String databaseName = databaseSet.getString("DATNAME");
 
-        // 过滤系统数据库
-        if (databaseName.equals("SYSDBA")) {
-          continue;
-        }
+        //        // 过滤系统数据库
+        //        if (databaseName.equals("SYSDBA")) {
+        //          continue;
+        //        }
 
         dropDatabaseStatement.addBatch(
             String.format(DROP_DATABASE_STATEMENT, getQuotName(databaseName)));
