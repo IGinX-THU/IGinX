@@ -2411,10 +2411,13 @@ public class RelationalStorage implements IStorage {
 
   private ColumnsInterval getBoundaryFromInformationSchemaInCatalog(String minDb, String maxDb)
       throws SQLException, RelationalTaskExecuteFailureException {
+    String columnNames;
     String conditionStatement;
     if (engineName.equalsIgnoreCase("postgresql")) {
+      columnNames = "table_catalog, table_name, column_name";
       conditionStatement = " WHERE table_schema LIKE '" + relationalMeta.getSchemaPattern() + "'";
     } else {
+      columnNames = "table_schema, table_name, column_name";
       List<String> exceptSchema = new ArrayList<>();
       exceptSchema.add(relationalMeta.getDefaultDatabaseName());
       exceptSchema.addAll(relationalMeta.getSystemDatabaseName());
@@ -2424,11 +2427,15 @@ public class RelationalStorage implements IStorage {
               .collect(Collectors.joining(", ", " WHERE table_schema NOT IN (", ")"));
     }
     String sqlMin =
-        "SELECT table_catalog, table_name, column_name FROM information_schema.columns"
+        "SELECT "
+            + columnNames
+            + " FROM information_schema.columns"
             + conditionStatement
             + " ORDER BY table_catalog, table_name, column_name LIMIT 1";
     String sqlMax =
-        "SELECT table_catalog, table_name, column_name FROM information_schema.columns"
+        "SELECT "
+            + columnNames
+            + " FROM information_schema.columns"
             + conditionStatement
             + " ORDER BY table_catalog DESC, table_name DESC, column_name DESC LIMIT 1";
 
@@ -2451,12 +2458,8 @@ public class RelationalStorage implements IStorage {
     if (engineName.equalsIgnoreCase("postgresql")) {
       minPath = minPath == null ? minDb : minPath;
       maxPath = maxPath == null ? maxDb : maxPath;
-    } else {
-      if (minPath == null || maxPath == null) {
-        throw new RelationalTaskExecuteFailureException("no data!");
-      }
-      minPath = minPath.substring(minPath.indexOf(SEPARATOR) + 1);
-      maxPath = maxPath.substring(maxPath.indexOf(SEPARATOR) + 1);
+    } else if (minPath == null || maxPath == null) {
+      throw new RelationalTaskExecuteFailureException("no data!");
     }
     return new ColumnsInterval(minPath, StringUtils.nextString(maxPath));
   }
