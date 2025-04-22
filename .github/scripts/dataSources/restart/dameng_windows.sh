@@ -40,6 +40,7 @@ else
     -e EXTENT_SIZE=32 \
     -e LOG_SIZE=1024 \
     -e UNICODE_FLAG=1 \
+    -e CASE_SENSITIVE=0 \
     -e INSTANCE_NAME=dm8_test \
     -v /mnt/c/opt/data_$port:/opt/dmdbms/data \
     dm8_single:dm8_20241022_rev244896_x86_rh6_64 || {

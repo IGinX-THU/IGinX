@@ -220,6 +220,7 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
           databaseToTablesToColumnIndexes.entrySet()) {
         String databaseName = entry.getKey();
         Statement stmt = connection.createStatement();
+        // 达梦的用户名始终会转为大写
         String createDatabaseSql =
             String.format(
                 CREATE_DATABASE_STATEMENT, getQuotName(databaseName), toDamengPassword(port));
@@ -230,9 +231,7 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
           LOGGER.info("create database with stmt: {} {}", port, createDatabaseSql);
           stmt.execute(createDatabaseSql);
           stmt.execute(grantDatabaseSql);
-          LOGGER.info("grant database with stmt: {} {}", port, grantDatabaseSql);
           stmt.execute(grantRoleSql);
-          LOGGER.info("grant role with stmt: {} {}", port, grantRoleSql);
         } catch (SQLException e) {
           LOGGER.info("database {} {} exists!", port, databaseName);
         }
@@ -339,8 +338,10 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
       stmt.execute(createDatabaseSql);
 
       String grantDatabaseSql = String.format(GRANT_DATABASE_STATEMENT, getQuotName("observer"));
+      String grantRoleSql = String.format(GRANT_ROLE_STATEMENT, getQuotName("observer"));
       LOGGER.info("grant permission to observer with stmt: {}", grantDatabaseSql);
       stmt.execute(grantDatabaseSql);
+      stmt.execute(grantRoleSql);
 
       String grantTableSql =
           String.format(
@@ -373,10 +374,13 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
       while (databaseSet.next()) {
         String databaseName = databaseSet.getString("DATNAME");
 
-        //        // 过滤系统数据库
-        //        if (databaseName.equals("SYSDBA")) {
-        //          continue;
-        //        }
+        // 过滤系统数据库
+        if (databaseName.equals("SYS")
+            || databaseName.equals("SYSDBA")
+            || databaseName.equals("SYSSSO")
+            || databaseName.equals("SYSAUDITOR")) {
+          continue;
+        }
 
         dropDatabaseStatement.addBatch(
             String.format(DROP_DATABASE_STATEMENT, getQuotName(databaseName)));
@@ -421,7 +425,7 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
   }
 
   private static String getQuotName(String name) {
-    return "\"" + name + "\"";
+    return String.format("\"%s\"", name);
   }
 
   private static String toDamengPassword(int port) {
