@@ -276,15 +276,27 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
   private String parsePath(PathContext ctx) {
     StringBuilder path = new StringBuilder();
     for (NodeNameContext nodeNameContext : ctx.nodeName()) {
-      String nodeName = nodeNameContext.getText();
-      if (nodeNameContext.BACK_QUOTE_STRING_LITERAL_NOT_EMPTY() != null) {
-        nodeName = nodeName.substring(1, nodeName.length() - 1);
-      }
+      String nodeName = parseNodeName(nodeNameContext);
       path.append(nodeName);
       path.append(SQLConstant.DOT);
     }
     path.deleteCharAt(path.length() - 1);
     return path.toString();
+  }
+
+  private String parseNodeName(NodeNameContext ctx) {
+    if (ctx.identifier() != null) {
+      return parseIdentifier(ctx.identifier());
+    }
+    return ctx.getText();
+  }
+
+  private String parseIdentifier(SqlParser.IdentifierContext ctx) {
+    if (ctx.BACK_QUOTE_STRING_LITERAL_NOT_EMPTY() != null) {
+      String identifier = ctx.BACK_QUOTE_STRING_LITERAL_NOT_EMPTY().getText();
+      return identifier.substring(1, identifier.length() - 1);
+    }
+    return ctx.getText();
   }
 
   private ImportFile parseImportFileClause(ImportFileClauseContext ctx) {
@@ -359,7 +371,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
   private void parseCteClause(CteClauseContext ctx, List<CommonTableExpression> cteList) {
     for (CommonTableExprContext cteCtx : ctx.commonTableExpr()) {
-      String name = cteCtx.cteName().getText();
+      String name = parseIdentifier(cteCtx.cteName().identifier());
       SelectStatement statement = parseQueryClause(cteCtx.queryClause(), cteList, false);
       if (cteCtx.orderByClause() != null) {
         parseOrderByClause(cteCtx.orderByClause(), statement);
@@ -370,7 +382,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       if (cteCtx.columnsList() != null) {
         List<String> columns = new ArrayList<>();
         for (CteColumnContext columnCtx : cteCtx.columnsList().cteColumn()) {
-          columns.add(columnCtx.getText());
+          columns.add(parseIdentifier(columnCtx.identifier()));
         }
         if (columns.size() != statement.getExpressions().size()) {
           throw new SQLParserException(
@@ -632,7 +644,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
   public Statement visitShowUserStatement(SqlParser.ShowUserStatementContext ctx) {
     List<String> users = new ArrayList<>();
     if (ctx.userSpec() != null) {
-      ctx.userSpec().nodeName().forEach(e -> users.add(e.getText()));
+      ctx.userSpec().nodeName().forEach(this::parseNodeName);
     }
     return new ShowUserStatement(users);
   }
@@ -741,12 +753,12 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       for (CommonTableExpression cte : cteList) {
         if (cte.getName().equals(fromPath)) {
           return ctx.asClause() != null
-              ? new CteFromPart(cte, ctx.asClause().ID().getText())
+              ? new CteFromPart(cte, parseIdentifier(ctx.asClause().identifier()))
               : new CteFromPart(cte);
         }
       }
       return ctx.asClause() != null
-          ? new PathFromPart(fromPath, ctx.asClause().ID().getText())
+          ? new PathFromPart(fromPath, parseIdentifier(ctx.asClause().identifier()))
           : new PathFromPart(fromPath);
     } else if (ctx.subquery() != null) {
       SelectStatement subStatement = parseQueryClause(ctx.subquery().queryClause(), cteList, true);
@@ -759,12 +771,12 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       // 计算子查询的自由变量
       subStatement.initFreeVariables();
       return ctx.asClause() != null
-          ? new SubQueryFromPart(subStatement, ctx.asClause().ID().getText())
+          ? new SubQueryFromPart(subStatement, parseIdentifier(ctx.asClause().identifier()))
           : new SubQueryFromPart(subStatement);
     } else {
       ShowColumnsStatement statement = parseShowColumnsOptions(ctx.showColumnsOptions());
       return ctx.asClause() != null
-          ? new ShowColumnsFromPart(statement, ctx.asClause().ID().getText())
+          ? new ShowColumnsFromPart(statement, parseIdentifier(ctx.asClause().identifier()))
           : new ShowColumnsFromPart(statement);
     }
   }
@@ -1001,7 +1013,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       }
       if (ret.size() == 1) {
         if (select.asClause() != null) {
-          ret.get(0).setAlias(select.asClause().ID().getText());
+          ret.get(0).setAlias(parseIdentifier(select.asClause().identifier()));
         } else if (select.asKeyClause() != null) {
           ret.get(0).setAlias(Constants.KEY);
           asKeyCnt++;
