@@ -69,11 +69,14 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
     Constant.readOnlyPort = 5238;
 
     portsToUser.put(Constant.oriPort, new Pair<>("SYSDBA", "SYSDBA001"));
-    portsToUser.put(Constant.expPort, new Pair<>("SYSDBA", toDamengPassword(expPort)));
+    portsToUser.put(Constant.expPort, new Pair<>("observer", toDamengPassword(expPort)));
     portsToUser.put(Constant.readOnlyPort, new Pair<>("nt", toDamengPassword(readOnlyPort)));
 
     for (Map.Entry<Integer, Pair<String, String>> entry : portsToUser.entrySet()) {
       int port = entry.getKey();
+      if (port == Constant.oriPort) {
+        continue;
+      }
       Pair<String, String> user = entry.getValue();
       String username = user.getK();
       String password = user.getV();
@@ -119,6 +122,20 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
     }
   }
 
+  public static Connection connect(int port, String username, String password) {
+    try {
+      String url;
+      String database = username.toLowerCase();
+      url =
+          String.format(
+              "jdbc:dm://127.0.0.1:%d/%s?user=%s&password=%s", port, database, username, password);
+      Class.forName("dm.jdbc.driver.DmDriver");
+      return DriverManager.getConnection(url);
+    } catch (SQLException | ClassNotFoundException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
   @Override
   public void writeHistoryData(
       int port,
@@ -128,7 +145,10 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
       List<List<Object>> valuesList) {
     Connection connection = null;
     try {
-      connection = connect(port);
+      Pair<String, String> user = portsToUser.get(port);
+      String username = user.getK();
+      String password = user.getV();
+      connection = connect(port, username, password);
       if (connection == null) {
         LOGGER.error("cannot connect to 127.0.0.1:{}!", port);
         return;
@@ -151,7 +171,7 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
       for (Map.Entry<String, Map<String, List<Integer>>> entry :
           databaseToTablesToColumnIndexes.entrySet()) {
         //        String databaseName = entry.getKey();
-        Statement stmt = connection.createStatement();
+        //        Statement stmt = connection.createStatement();
         //        String createDatabaseSql =
         //            String.format(
         //                CREATE_DATABASE_STATEMENT, getQuotName(databaseName),
@@ -170,7 +190,7 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
         //        }
         //        stmt.close();
 
-        stmt = connection.createStatement();
+        Statement stmt = connection.createStatement();
         for (Map.Entry<String, List<Integer>> item : entry.getValue().entrySet()) {
           String tableName = item.getKey();
           StringBuilder createTableStr = new StringBuilder();
