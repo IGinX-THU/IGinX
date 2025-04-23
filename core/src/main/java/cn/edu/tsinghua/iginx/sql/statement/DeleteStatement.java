@@ -36,6 +36,7 @@ public class DeleteStatement extends DataStatement {
   private TagFilter tagFilter;
 
   private boolean involveDummyData;
+  private boolean noWritable; // no writable engine, deletion will not be executed.
 
   public DeleteStatement() {
     this.statementType = StatementType.DELETE;
@@ -44,6 +45,7 @@ public class DeleteStatement extends DataStatement {
     this.deleteAll = false;
     this.tagFilter = null;
     this.involveDummyData = false;
+    this.noWritable = false;
   }
 
   public DeleteStatement(List<String> paths, long startKey, long endKey) {
@@ -54,6 +56,7 @@ public class DeleteStatement extends DataStatement {
     this.deleteAll = false;
     this.tagFilter = null;
     this.involveDummyData = false;
+    this.noWritable = false;
   }
 
   public DeleteStatement(List<String> paths) {
@@ -67,6 +70,7 @@ public class DeleteStatement extends DataStatement {
     this.deleteAll = true;
     this.tagFilter = tagFilter;
     this.involveDummyData = false;
+    this.noWritable = false;
   }
 
   public List<String> getPaths() {
@@ -99,6 +103,14 @@ public class DeleteStatement extends DataStatement {
 
   public void setInvolveDummyData(boolean involveDummyData) {
     this.involveDummyData = involveDummyData;
+  }
+
+  public boolean isNoWritable() {
+    return noWritable;
+  }
+
+  public void setNoWritable(boolean noWritable) {
+    this.noWritable = noWritable;
   }
 
   public void setKeyRangesByFilter(Filter filter) {

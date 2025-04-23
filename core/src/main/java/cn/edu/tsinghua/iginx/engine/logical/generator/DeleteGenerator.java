@@ -84,6 +84,7 @@ public class DeleteGenerator extends AbstractGenerator {
             fragmentsAndStorageUnits.v, fragmentsAndStorageUnits.k);
       } else {
         // no corresponding fragment and no writable engines, no need to execute delete
+        deleteStatement.setNoWritable(true);
         return null;
       }
       fragments = metaManager.getFragmentMapByColumnsInterval(columnsInterval);
