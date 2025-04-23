@@ -67,7 +67,9 @@ public class DamengDatabaseStrategy extends AbstractDatabaseStrategy {
     Map<String, String> extraParams = meta.getExtraParams();
     String username = extraParams.get(USERNAME);
     String password = extraParams.get(PASSWORD);
-    String database = extraParams.getOrDefault(DATABASE, relationalMeta.getDefaultDatabaseName());
+    //    String database = extraParams.getOrDefault(DATABASE,
+    // relationalMeta.getDefaultDatabaseName());
+    String database = username.toUpperCase();
 
     return String.format(
         "jdbc:dm://%s:%s/%s?user=%s&password=%s",
