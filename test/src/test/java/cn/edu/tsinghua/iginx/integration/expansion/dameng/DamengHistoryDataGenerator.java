@@ -170,25 +170,25 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
 
       for (Map.Entry<String, Map<String, List<Integer>>> entry :
           databaseToTablesToColumnIndexes.entrySet()) {
-        //        String databaseName = entry.getKey();
-        //        Statement stmt = connection.createStatement();
-        //        String createDatabaseSql =
-        //            String.format(
-        //                CREATE_DATABASE_STATEMENT, getQuotName(databaseName),
-        // toDamengPassword(port));
-        //        String grantDatabaseSql =
-        //            String.format(GRANT_DATABASE_STATEMENT, getQuotName(databaseName));
-        //        String grantRoleSql = String.format(GRANT_ROLE_STATEMENT,
-        // getQuotName(databaseName));
-        //        try {
-        //          LOGGER.info("create database with stmt: {}", createDatabaseSql);
-        //          stmt.execute(createDatabaseSql);
-        //          stmt.execute(grantDatabaseSql);
-        //          stmt.execute(grantRoleSql);
-        //        } catch (SQLException e) {
-        //          LOGGER.info("database {} exists!", databaseName);
-        //        }
-        //        stmt.close();
+        String databaseName = entry.getKey();
+        if (!keyList.isEmpty()) {
+          Statement stmt = connection.createStatement();
+          String createDatabaseSql =
+              String.format(
+                  CREATE_DATABASE_STATEMENT, getQuotName(databaseName), toDamengPassword(port));
+          String grantDatabaseSql =
+              String.format(GRANT_DATABASE_STATEMENT, getQuotName(databaseName));
+          String grantRoleSql = String.format(GRANT_ROLE_STATEMENT, getQuotName(databaseName));
+          try {
+            LOGGER.info("create database with stmt: {}", createDatabaseSql);
+            stmt.execute(createDatabaseSql);
+            stmt.execute(grantDatabaseSql);
+            stmt.execute(grantRoleSql);
+          } catch (SQLException e) {
+            LOGGER.info("database {} exists!", databaseName);
+          }
+          stmt.close();
+        }
 
         Statement stmt = connection.createStatement();
         for (Map.Entry<String, List<Integer>> item : entry.getValue().entrySet()) {
@@ -206,7 +206,9 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
           stmt.execute(
               String.format(
                   CREATE_TABLE_STATEMENT,
-                  getQuotName(tableName),
+                  keyList.isEmpty()
+                      ? getQuotName(tableName)
+                      : getQuotName(databaseName) + SEPARATOR + getQuotName(tableName),
                   createTableStr.substring(0, createTableStr.length() - 2)));
 
           StringBuilder insertStr = new StringBuilder();
@@ -229,7 +231,9 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
           stmt.execute(
               String.format(
                   INSERT_STATEMENT,
-                  getQuotName(tableName),
+                  keyList.isEmpty()
+                      ? getQuotName(tableName)
+                      : getQuotName(databaseName) + SEPARATOR + getQuotName(tableName),
                   insertStr.substring(0, insertStr.length() - 2)));
         }
         stmt.close();
