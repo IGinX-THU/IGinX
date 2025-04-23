@@ -125,6 +125,7 @@ public class SQLTestTools {
       String statement,
       List<String> pathListAns,
       List<List<Object>> expectedValuesList) {
+    LOGGER.info("Execute Statement: \"{}\"", statement);
     try {
       SessionExecuteSqlResult res = session.executeSql(statement);
       List<String> pathList = res.getPaths();
