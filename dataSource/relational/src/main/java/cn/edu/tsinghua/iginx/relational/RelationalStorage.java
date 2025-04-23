@@ -729,6 +729,7 @@ public class RelationalStorage implements IStorage {
       Project project, Filter filter, DataArea dataArea) {
     try {
       String databaseName = dataArea.getStorageUnit();
+      LOGGER.info("databaseName: {}", databaseName);
       Connection conn = getConnection(databaseName);
       if (conn == null) {
         return new TaskExecuteResult(
@@ -1805,9 +1806,11 @@ public class RelationalStorage implements IStorage {
 
       Map<String, Map<String, String>> splitResults =
           splitAndMergeHistoryQueryPatterns(project.getPatterns());
+      LOGGER.info("dummy: {}", splitResults);
       for (Map.Entry<String, Map<String, String>> splitEntry : splitResults.entrySet()) {
         Map<String, String> tableNameToColumnNames = splitEntry.getValue();
         String databaseName = splitEntry.getKey();
+        LOGGER.info("dummy databse: {}", databaseName);
         conn = getConnection(databaseName);
         if (conn == null) {
           continue;

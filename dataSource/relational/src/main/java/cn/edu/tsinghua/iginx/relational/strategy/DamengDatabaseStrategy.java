@@ -103,13 +103,13 @@ public class DamengDatabaseStrategy extends AbstractDatabaseStrategy {
     return storageEngineMeta.getExtraParams().get(USERNAME);
   }
 
-  @Override
-  public String formatConcatStatement(List<String> columns) {
-    if (columns.size() == 1) {
-      return String.format(" CONCAT(%s, '') ", columns.get(0));
-    }
-    return String.format(" CONCAT(%s) ", String.join(", ", columns));
-  }
+  //  @Override
+  //  public String formatConcatStatement(List<String> columns) {
+  //    if (columns.size() == 1) {
+  //      return String.format(" CONCAT(%s, '') ", columns.get(0));
+  //    }
+  //    return String.format(" CONCAT(%s) ", String.join(", ", columns));
+  //  }
 
   //    @Override
   //    public void executeBatchInsert(

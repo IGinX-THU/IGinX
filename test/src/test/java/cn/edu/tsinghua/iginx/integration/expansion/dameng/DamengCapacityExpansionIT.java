@@ -70,19 +70,22 @@ public class DamengCapacityExpansionIT extends BaseCapacityExpansionIT {
                 "engine=dameng, username="
                     + portsToUsername.get(oriPort)
                     + ", password="
-                    + portsToPassword.get(oriPort));
+                    + portsToPassword.get(oriPort)
+                    + ", database=SYSDBA");
             put(
                 expPort,
                 "engine=dameng, username="
                     + portsToUsername.get(expPort)
                     + ", password="
-                    + portsToPassword.get(expPort));
+                    + portsToPassword.get(expPort)
+                    + ", database=SYSDBA");
             put(
                 readOnlyPort,
                 "engine=dameng, username="
                     + portsToUsername.get(readOnlyPort)
                     + ", password="
-                    + portsToPassword.get(readOnlyPort));
+                    + portsToPassword.get(readOnlyPort)
+                    + ", database=SYSDBA");
           }
         },
         new DamengHistoryDataGenerator());
