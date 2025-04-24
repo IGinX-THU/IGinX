@@ -70,6 +70,7 @@ public class Job {
   private String scheduleStr = null;
   private final Trigger trigger;
   private boolean stopOnFailure = true;
+  private boolean tempTableUsed = false;
 
   private boolean metaStored = false;
 
@@ -112,7 +113,6 @@ public class Job {
     stageList = new ArrayList<>();
     Stage stage = null;
     List<Task> stageTasks = new ArrayList<>();
-    boolean tempTableUsed = false;
     for (int i = 0; i < req.getTaskListSize(); i++) {
       TaskInfo info = req.getTaskList().get(i);
       Task task = TaskFactory.getTask(info);

@@ -73,6 +73,21 @@ public class ScheduledJob implements org.quartz.Job {
         job.setState(stopOnFailure ? JobState.JOB_FAILING : JobState.JOB_PARTIALLY_FAILING);
         job.setException(e);
         List<Exception> closeExceptions = new ArrayList<>();
+        if (job.isTempTableUsed()) {
+          // last runner is clearing temporary data
+          Runner lastRunner = runnerList.get(runnerList.size() - 1);
+          try {
+            lastRunner.start();
+            lastRunner.run();
+            lastRunner.close();
+          } catch (Exception e1) {
+            LOGGER.error(
+                "Cannot clear temp table {} for transform job.",
+                ExecutionMetaManager.getTempTableName(),
+                e1);
+            closeExceptions.add(e1);
+          }
+        }
         for (Runner runner : runnerList) {
           try {
             runner.close();
