@@ -55,7 +55,7 @@ public abstract class BaseCapacityExpansionIT {
 
   protected static final String ALTER_ENGINE_STRING = "alter storageengine %d with params \"%s\";";
 
-  private static final ConfLoader testConf = new ConfLoader(Controller.CONFIG_FILE);
+  protected static final ConfLoader testConf = new ConfLoader(Controller.CONFIG_FILE);
 
   protected StorageEngineType type;
 
@@ -545,7 +545,7 @@ public abstract class BaseCapacityExpansionIT {
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
   }
 
-  private void testQueryHistoryDataExpHasData() {
+  protected void testQueryHistoryDataExpHasData() {
     String statement = "select wt01.status2 from nt.wf03;";
     List<String> pathList = EXP_PATH_LIST1;
     List<List<Object>> valuesList = EXP_VALUES_LIST1;
@@ -557,28 +557,28 @@ public abstract class BaseCapacityExpansionIT {
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
   }
 
-  private void testQueryHistoryDataOriNoData() {
+  protected void testQueryHistoryDataOriNoData() {
     String statement = "select wf01.wt01.status, wf01.wt01.temperature from mn;";
     String expect =
         "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
   }
 
-  private void testQueryHistoryDataExpNoData() {
+  protected void testQueryHistoryDataExpNoData() {
     String statement = "select wf03.wt01.status, wf04.wt01.temperature from nt;";
     String expect =
         "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
   }
 
-  private void testQueryHistoryDataReadOnly() {
+  protected void testQueryHistoryDataReadOnly() {
     String statement = "select wt01.status, wt01.temperature from tm.wf05;";
     List<String> pathList = READ_ONLY_PATH_LIST;
     List<List<Object>> valuesList = READ_ONLY_VALUES_LIST;
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
   }
 
-  private void testWriteAndQueryNewData() {
+  protected void testWriteAndQueryNewData() {
     try {
       session.executeSql("insert into ln.wf02 (key, status, version) values (100, true, \"v1\");");
       session.executeSql("insert into ln.wf02 (key, status, version) values (400, false, \"v4\");");
@@ -589,7 +589,7 @@ public abstract class BaseCapacityExpansionIT {
     }
   }
 
-  private void queryNewData() {
+  protected void queryNewData() {
     String statement = "select * from ln;";
     String expect =
         "ResultSets:\n"
@@ -615,7 +615,7 @@ public abstract class BaseCapacityExpansionIT {
     SQLTestTools.executeAndCompare(session, statement, expect);
   }
 
-  private void testWriteAndQueryNewDataAfterCE() {
+  protected void testWriteAndQueryNewDataAfterCE() {
     try {
       session.executeSql("insert into ln.wf02 (key, version) values (1600, \"v48\");");
       queryAllNewData();
@@ -624,7 +624,7 @@ public abstract class BaseCapacityExpansionIT {
     }
   }
 
-  private void queryAllNewData() {
+  protected void queryAllNewData() {
     String statement = "select * from ln;";
     String expect =
         "ResultSets:\n"
@@ -651,7 +651,7 @@ public abstract class BaseCapacityExpansionIT {
     SQLTestTools.executeAndCompare(session, statement, expect);
   }
 
-  private void testAddAndRemoveStorageEngineWithPrefix() {
+  protected void testAddAndRemoveStorageEngineWithPrefix() {
     String dataPrefix1 = "nt.wf03";
     String dataPrefix2 = "nt.wf04";
     String schemaPrefixSuffix = "";
@@ -969,7 +969,7 @@ public abstract class BaseCapacityExpansionIT {
     SQLTestTools.executeAndCompare(session, statement, expected);
   }
 
-  private void testSameKeyWarning() {
+  protected void testSameKeyWarning() {
     if (!SUPPORT_KEY.get(testConf.getStorageType())) {
       return;
     }

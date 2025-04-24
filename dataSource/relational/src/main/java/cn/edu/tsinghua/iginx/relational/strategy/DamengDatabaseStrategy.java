@@ -75,12 +75,12 @@ public class DamengDatabaseStrategy extends AbstractDatabaseStrategy {
   @Override
   public void configureDataSource(
       HikariConfig config, String databaseName, StorageEngineMeta meta) {
-    //    config.setUsername(null);
-    //    config.setPassword(null);
-    //    if (!databaseName.isEmpty()) {
-    //      config.setConnectionInitSql(
-    //          "ALTER SESSION SET CURRENT_SCHEMA = " + getQuotName(databaseName));
-    //    }
+    config.setUsername(null);
+    config.setPassword(null);
+    if (!databaseName.isEmpty()) {
+      config.setConnectionInitSql(
+          "ALTER SESSION SET CURRENT_SCHEMA = " + getQuotName(databaseName.toUpperCase()));
+    }
   }
 
   //  @Override
