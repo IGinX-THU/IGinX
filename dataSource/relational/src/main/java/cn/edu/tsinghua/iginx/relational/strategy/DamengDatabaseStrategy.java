@@ -67,24 +67,20 @@ public class DamengDatabaseStrategy extends AbstractDatabaseStrategy {
     Map<String, String> extraParams = meta.getExtraParams();
     String username = extraParams.get(USERNAME);
     String password = extraParams.get(PASSWORD);
-    //    String database = extraParams.getOrDefault(DATABASE,
-    // relationalMeta.getDefaultDatabaseName());
-    String database = username.toUpperCase();
 
     return String.format(
-        "jdbc:dm://%s:%s/%s?user=%s&password=%s",
-        meta.getIp(), meta.getPort(), database, username, password);
+        "jdbc:dm://%s:%s/?user=%s&password=%s", meta.getIp(), meta.getPort(), username, password);
   }
 
   @Override
   public void configureDataSource(
       HikariConfig config, String databaseName, StorageEngineMeta meta) {
-    config.setUsername(null);
-    config.setPassword(null);
-    if (!databaseName.isEmpty()) {
-      config.setConnectionInitSql(
-          "ALTER SESSION SET CURRENT_SCHEMA = " + getQuotName(databaseName));
-    }
+    //    config.setUsername(null);
+    //    config.setPassword(null);
+    //    if (!databaseName.isEmpty()) {
+    //      config.setConnectionInitSql(
+    //          "ALTER SESSION SET CURRENT_SCHEMA = " + getQuotName(databaseName));
+    //    }
   }
 
   //  @Override
