@@ -138,7 +138,7 @@ public class DamengCapacityExpansionIT extends BaseCapacityExpansionIT {
   /** 测试float类型数据 */
   private void testFloatData() {
     String statement = "select wt02.float from TM.wf05 where wt02.float <= 44.55;";
-    List<String> pathList = Constant.READ_ONLY_FLOAT_PATH_LIST;
+    List<String> pathList = splitAndUpperCase(Constant.READ_ONLY_FLOAT_PATH_LIST);
     List<List<Object>> valuesList = Constant.READ_ONLY_FLOAT_VALUES_LIST;
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
     statement = "select wt02.float from TM.wf05 where wt02.float = 44.55;";
@@ -284,7 +284,7 @@ public class DamengCapacityExpansionIT extends BaseCapacityExpansionIT {
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
 
     statement = "select wt01.temperature from NT.wf04;";
-    pathList = EXP_PATH_LIST2;
+    pathList = splitAndUpperCase(EXP_PATH_LIST2);
     valuesList = EXP_VALUES_LIST2;
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
   }
