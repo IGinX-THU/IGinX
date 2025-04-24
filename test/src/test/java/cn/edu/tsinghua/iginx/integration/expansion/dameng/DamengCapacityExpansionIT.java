@@ -23,8 +23,7 @@ import static cn.edu.tsinghua.iginx.integration.controller.Controller.SUPPORT_KE
 import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.*;
 import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.readOnlyPort;
 import static cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools.executeShellScript;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
@@ -36,8 +35,10 @@ import cn.edu.tsinghua.iginx.integration.tool.DBConf;
 import cn.edu.tsinghua.iginx.session.ClusterInfo;
 import cn.edu.tsinghua.iginx.session.QueryDataSet;
 import cn.edu.tsinghua.iginx.thrift.RemovedStorageEngineInfo;
+import cn.edu.tsinghua.iginx.thrift.StorageEngineInfo;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import java.util.*;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -144,6 +145,110 @@ public class DamengCapacityExpansionIT extends BaseCapacityExpansionIT {
     statement = "select wt02.float from TM.wf05 where wt02.float = 44.55;";
     valuesList = Arrays.asList(Arrays.asList(44.55F));
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
+  }
+
+  @Override
+  /** 测试引擎修改参数（目前仅支持dummy & read-only） */
+  protected void testUpdateEngineParams() throws SessionException {
+    // 修改前后通过相同schema_prefix查询判断引擎成功更新
+    LOGGER.info("Testing updating engine params...");
+    if (updatedParams.isEmpty()) {
+      LOGGER.info("Engine {} skipped this test.", type);
+      return;
+    }
+
+    String prefix = "prefix";
+    // 添加只读节点
+    addStorageEngine(readOnlyPort, true, true, null, prefix, portsToExtraParams.get(readOnlyPort));
+    // 查询
+    String statement = "select wt01.status, wt01.temperature from " + prefix + ".tm.wf05;";
+    List<String> pathList =
+        splitAndUpperCase(READ_ONLY_PATH_LIST).stream()
+            .map(s -> prefix + "." + s)
+            .collect(Collectors.toList());
+    List<List<Object>> valuesList = READ_ONLY_VALUES_LIST;
+    SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
+
+    // 修改数据库参数
+    updateParams(readOnlyPort);
+
+    // 修改
+    List<StorageEngineInfo> engineInfoList = session.getClusterInfo().getStorageEngineInfos();
+    long id = -1;
+    for (StorageEngineInfo info : engineInfoList) {
+      if (info.getIp().equals("127.0.0.1")
+          && info.getPort() == readOnlyPort
+          && info.getDataPrefix().equals("null")
+          && info.getSchemaPrefix().equals(prefix)
+          && info.getType().equals(type)) {
+        id = info.getId();
+      }
+    }
+    assertTrue(id != -1);
+
+    String newParams =
+        updatedParams.entrySet().stream()
+            .map(entry -> entry.getKey() + "=" + entry.getValue())
+            .collect(Collectors.joining(", "));
+    session.executeSql(String.format(ALTER_ENGINE_STRING, id, newParams));
+
+    // 重新查询
+    statement = "select wt01.status, wt01.temperature from " + prefix + ".tm.wf05;";
+    pathList =
+        splitAndUpperCase(READ_ONLY_PATH_LIST).stream()
+            .map(s -> prefix + "." + s)
+            .collect(Collectors.toList());
+    valuesList = READ_ONLY_VALUES_LIST;
+    SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
+
+    // 删除，不影响后续测试
+    session.removeStorageEngine(
+        Collections.singletonList(
+            new RemovedStorageEngineInfo("127.0.0.1", readOnlyPort, prefix, "")));
+
+    // 改回数据库参数
+    restoreParams(readOnlyPort);
+  }
+
+  @Override
+  protected void queryExtendedKeyDummy() {
+    // ori
+    // extended key queryable
+    // NOTE: in some database(e.g. mongoDB), the key for dummy data is given randomly and cannot be
+    // controlled. Thus, when extended value can be queried without specifying key filter,
+    // we still assume that dummy key range is extended.
+    String statement = "select wf01.wt01.status, wf01.wt01.temperature from MN;";
+    SQLTestTools.executeAndContainValue(
+        session, statement, splitAndUpperCase(ORI_PATH_LIST), ORI_EXTEND_VALUES_LIST);
+
+    // exp
+    statement = "select wf03.wt01.status2 from NT;";
+    SQLTestTools.executeAndContainValue(
+        session, statement, splitAndUpperCase(EXP_PATH_LIST1), EXP_EXTEND_VALUES_LIST1);
+    statement = "select wf04.wt01.temperature from NT;";
+    SQLTestTools.executeAndContainValue(
+        session, statement, splitAndUpperCase(EXP_PATH_LIST2), EXP_EXTEND_VALUES_LIST2);
+
+    // ro
+    statement = "select wf05.wt01.status, wf05.wt01.temperature from TM;";
+    SQLTestTools.executeAndContainValue(
+        session, statement, splitAndUpperCase(READ_ONLY_PATH_LIST), READ_ONLY_EXTEND_VALUES_LIST);
+  }
+
+  @Override
+  protected void queryExtendedColDummy() {
+    // ori
+    // extended columns unreachable
+    String statement = "select * from A.a.a;";
+    SQLTestTools.executeAndCompare(session, statement, new ArrayList<>(), new ArrayList<>());
+
+    // exp
+    statement = "select * from A.a.b;";
+    SQLTestTools.executeAndCompare(session, statement, new ArrayList<>(), new ArrayList<>());
+
+    // ro
+    statement = "select * from A.a.c;";
+    SQLTestTools.executeAndCompare(session, statement, new ArrayList<>(), new ArrayList<>());
   }
 
   @Override
