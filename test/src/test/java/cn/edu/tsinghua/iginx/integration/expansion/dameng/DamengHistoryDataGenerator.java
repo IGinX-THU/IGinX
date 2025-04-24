@@ -20,7 +20,6 @@
 package cn.edu.tsinghua.iginx.integration.expansion.dameng;
 
 import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.*;
-import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.readOnlyPort;
 
 import cn.edu.tsinghua.iginx.integration.expansion.BaseHistoryDataGenerator;
 import cn.edu.tsinghua.iginx.integration.expansion.constant.Constant;
@@ -55,9 +54,9 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
 
   private static final String GRANT_ROLE_STATEMENT = "GRANT RESOURCE TO %s";
 
-  public static final String CREATE_TABLE_STATEMENT = "CREATE TABLE IF NOT EXISTS %s (%s)";
+  public static final String CREATE_TABLE_STATEMENT = "CREATE TABLE IF NOT EXISTS %s.%s (%s)";
 
-  public static final String INSERT_STATEMENT = "INSERT INTO %s VALUES %s";
+  public static final String INSERT_STATEMENT = "INSERT INTO %s.%s VALUES %s";
 
   public static final String DROP_DATABASE_STATEMENT = "DROP USER %s CASCADE";
 
@@ -68,53 +67,54 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
     Constant.expPort = 5237;
     Constant.readOnlyPort = 5238;
 
-    portsToUser.put(Constant.oriPort, new Pair<>("SYSDBA", "SYSDBA001"));
-    portsToUser.put(Constant.expPort, new Pair<>("observer", toDamengPassword(expPort)));
-    portsToUser.put(Constant.readOnlyPort, new Pair<>("nt", toDamengPassword(readOnlyPort)));
-
-    for (Map.Entry<Integer, Pair<String, String>> entry : portsToUser.entrySet()) {
-      int port = entry.getKey();
-      if (port == Constant.oriPort) {
-        continue;
-      }
-      Pair<String, String> user = entry.getValue();
-      String username = user.getK();
-      String password = user.getV();
-      Connection connection = null;
-      try {
-        connection = connect(port);
-        Statement stmt = connection.createStatement();
-        String createDatabaseSql =
-            String.format(CREATE_DATABASE_STATEMENT, getQuotName(username), password);
-        String grantDatabaseSql = String.format(GRANT_DATABASE_STATEMENT, getQuotName(username));
-        String grantRoleSql = String.format(GRANT_ROLE_STATEMENT, getQuotName(username));
-        try {
-          LOGGER.info("create database with stmt: {}", createDatabaseSql);
-          stmt.execute(createDatabaseSql);
-          stmt.execute(grantDatabaseSql);
-          stmt.execute(grantRoleSql);
-        } catch (SQLException e) {
-          LOGGER.info("database {} exists!", username);
-        }
-        stmt.close();
-      } catch (RuntimeException | SQLException e) {
-        LOGGER.error("write data to 127.0.0.1:{} failure: ", port, e);
-      } finally {
-        try {
-          if (connection != null) {
-            connection.close();
-          }
-        } catch (SQLException e) {
-          LOGGER.error("close connection failure: ", e);
-        }
-      }
-    }
+    //    portsToUser.put(Constant.oriPort, new Pair<>("SYSDBA", "SYSDBA001"));
+    //    portsToUser.put(Constant.expPort, new Pair<>("observer", toDamengPassword(expPort)));
+    //    portsToUser.put(Constant.readOnlyPort, new Pair<>("nt", toDamengPassword(readOnlyPort)));
+    //
+    //    for (Map.Entry<Integer, Pair<String, String>> entry : portsToUser.entrySet()) {
+    //      int port = entry.getKey();
+    //      if (port == Constant.oriPort) {
+    //        continue;
+    //      }
+    //      Pair<String, String> user = entry.getValue();
+    //      String username = user.getK();
+    //      String password = user.getV();
+    //      Connection connection = null;
+    //      try {
+    //        connection = connect(port);
+    //        Statement stmt = connection.createStatement();
+    //        String createDatabaseSql =
+    //            String.format(CREATE_DATABASE_STATEMENT, getQuotName(username), password);
+    //        String grantDatabaseSql = String.format(GRANT_DATABASE_STATEMENT,
+    // getQuotName(username));
+    //        String grantRoleSql = String.format(GRANT_ROLE_STATEMENT, getQuotName(username));
+    //        try {
+    //          LOGGER.info("create database with stmt: {}", createDatabaseSql);
+    //          stmt.execute(createDatabaseSql);
+    //          stmt.execute(grantDatabaseSql);
+    //          stmt.execute(grantRoleSql);
+    //        } catch (SQLException e) {
+    //          LOGGER.info("database {} exists!", username);
+    //        }
+    //        stmt.close();
+    //      } catch (RuntimeException | SQLException e) {
+    //        LOGGER.error("write data to 127.0.0.1:{} failure: ", port, e);
+    //      } finally {
+    //        try {
+    //          if (connection != null) {
+    //            connection.close();
+    //          }
+    //        } catch (SQLException e) {
+    //          LOGGER.error("close connection failure: ", e);
+    //        }
+    //      }
+    //    }
   }
 
   public static Connection connect(int port) {
     try {
       String url;
-      url = String.format("jdbc:dm://127.0.0.1:%d/SYSDBA?user=SYSDBA&password=SYSDBA001", port);
+      url = String.format("jdbc:dm://127.0.0.1:%d?user=SYSDBA&password=SYSDBA001", port);
       Class.forName("dm.jdbc.driver.DmDriver");
       return DriverManager.getConnection(url);
     } catch (SQLException | ClassNotFoundException e) {
@@ -145,10 +145,7 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
       List<List<Object>> valuesList) {
     Connection connection = null;
     try {
-      Pair<String, String> user = portsToUser.get(port);
-      String username = user.getK();
-      String password = user.getV();
-      connection = connect(port, username, password);
+      connection = connect(port);
       if (connection == null) {
         LOGGER.error("cannot connect to 127.0.0.1:{}!", port);
         return;
@@ -171,26 +168,26 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
       for (Map.Entry<String, Map<String, List<Integer>>> entry :
           databaseToTablesToColumnIndexes.entrySet()) {
         String databaseName = entry.getKey();
-        if (!keyList.isEmpty()) {
-          Statement stmt = connection.createStatement();
-          String createDatabaseSql =
-              String.format(
-                  CREATE_DATABASE_STATEMENT, getQuotName(databaseName), toDamengPassword(port));
-          String grantDatabaseSql =
-              String.format(GRANT_DATABASE_STATEMENT, getQuotName(databaseName));
-          String grantRoleSql = String.format(GRANT_ROLE_STATEMENT, getQuotName(databaseName));
-          try {
-            LOGGER.info("create database with stmt: {}", createDatabaseSql);
-            stmt.execute(createDatabaseSql);
-            stmt.execute(grantDatabaseSql);
-            stmt.execute(grantRoleSql);
-          } catch (SQLException e) {
-            LOGGER.info("database {} exists!", databaseName);
-          }
-          stmt.close();
-        }
-
+        //        if (!keyList.isEmpty()) {
         Statement stmt = connection.createStatement();
+        String createDatabaseSql =
+            String.format(
+                CREATE_DATABASE_STATEMENT, getQuotName(databaseName), toDamengPassword(port));
+        String grantDatabaseSql =
+            String.format(GRANT_DATABASE_STATEMENT, getQuotName(databaseName));
+        String grantRoleSql = String.format(GRANT_ROLE_STATEMENT, getQuotName(databaseName));
+        try {
+          LOGGER.info("create database with stmt: {}", createDatabaseSql);
+          stmt.execute(createDatabaseSql);
+          stmt.execute(grantDatabaseSql);
+          stmt.execute(grantRoleSql);
+        } catch (SQLException e) {
+          LOGGER.info("database {} exists!", databaseName);
+        }
+        stmt.close();
+        //        }
+
+        stmt = connection.createStatement();
         for (Map.Entry<String, List<Integer>> item : entry.getValue().entrySet()) {
           String tableName = item.getKey();
           StringBuilder createTableStr = new StringBuilder();
@@ -206,9 +203,8 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
           stmt.execute(
               String.format(
                   CREATE_TABLE_STATEMENT,
-                  keyList.isEmpty()
-                      ? getQuotName(tableName)
-                      : getQuotName(databaseName) + SEPARATOR + getQuotName(tableName),
+                  getQuotName(databaseName),
+                  getQuotName(tableName),
                   createTableStr.substring(0, createTableStr.length() - 2)));
 
           StringBuilder insertStr = new StringBuilder();
@@ -231,9 +227,8 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
           stmt.execute(
               String.format(
                   INSERT_STATEMENT,
-                  keyList.isEmpty()
-                      ? getQuotName(tableName)
-                      : getQuotName(databaseName) + SEPARATOR + getQuotName(tableName),
+                  getQuotName(databaseName),
+                  getQuotName(tableName),
                   insertStr.substring(0, insertStr.length() - 2)));
         }
         stmt.close();
@@ -397,22 +392,20 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
     // create another user who can read data of tm user
     try (Connection connection = connect(Constant.readOnlyPort);
         Statement stmt = connection.createStatement()) {
-      //      String createDatabaseSql =
-      //          String.format(
-      //              CREATE_DATABASE_STATEMENT,
-      //              getQuotName("observer"),
-      //              toDamengPassword(Constant.readOnlyPort));
-      //      LOGGER.info(
-      //          "create another user in {} with stmt: {}", Constant.readOnlyPort,
-      // createDatabaseSql);
-      //      stmt.execute(createDatabaseSql);
-      //
-      //      String grantDatabaseSql = String.format(GRANT_DATABASE_STATEMENT,
-      // getQuotName("observer"));
-      //      String grantRoleSql = String.format(GRANT_ROLE_STATEMENT, getQuotName("observer"));
-      //      LOGGER.info("grant permission to observer with stmt: {}", grantDatabaseSql);
-      //      stmt.execute(grantDatabaseSql);
-      //      stmt.execute(grantRoleSql);
+      String createDatabaseSql =
+          String.format(
+              CREATE_DATABASE_STATEMENT,
+              getQuotName("observer"),
+              toDamengPassword(Constant.readOnlyPort));
+      LOGGER.info(
+          "create another user in {} with stmt: {}", Constant.readOnlyPort, createDatabaseSql);
+      stmt.execute(createDatabaseSql);
+
+      String grantDatabaseSql = String.format(GRANT_DATABASE_STATEMENT, getQuotName("observer"));
+      String grantRoleSql = String.format(GRANT_ROLE_STATEMENT, getQuotName("observer"));
+      LOGGER.info("grant permission to observer with stmt: {}", grantDatabaseSql);
+      stmt.execute(grantDatabaseSql);
+      stmt.execute(grantRoleSql);
 
       String grantTableSql =
           String.format(
