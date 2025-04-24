@@ -46,4 +46,9 @@ public class Constants {
   public static String getWorkerStatusInfo(int status) {
     return WORKER_STATUS_MAP.get(status);
   }
+
+  // mid-stage python task results, refer to actual table named:
+  // transform_job_tmp_{job_id}_{execution_id}
+  public static final String TEMP_TABLE_NAME = "{JOB_TEMP_TABLE}";
+  public static final String TEMP_TABLE_NAME_FORMAT = "transform_job_tmp_%s_%s";
 }

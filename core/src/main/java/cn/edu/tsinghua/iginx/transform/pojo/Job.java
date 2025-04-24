@@ -19,6 +19,9 @@
  */
 package cn.edu.tsinghua.iginx.transform.pojo;
 
+import static cn.edu.tsinghua.iginx.constant.GlobalConstant.TRANSFORM_PREFIX;
+import static cn.edu.tsinghua.iginx.transform.pojo.IginXTask.getClearTableTask;
+
 import cn.edu.tsinghua.iginx.notice.EmailNotifier;
 import cn.edu.tsinghua.iginx.thrift.*;
 import cn.edu.tsinghua.iginx.transform.api.Stage;
@@ -28,6 +31,7 @@ import cn.edu.tsinghua.iginx.utils.JobFromYAML;
 import cn.edu.tsinghua.iginx.utils.NotificationFromYAML;
 import cn.edu.tsinghua.iginx.utils.TaskFromYAML;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.Data;
@@ -94,7 +98,7 @@ public class Job {
       exportFile = req.getFileName();
     } else if (exportType.equals(ExportType.IGINX)) {
       needExport = true;
-      writer = new IginXWriter(sessionId);
+      writer = new IginXWriter(sessionId, TRANSFORM_PREFIX);
     } else {
       needExport = false;
       writer = new LogWriter();
@@ -108,6 +112,7 @@ public class Job {
     stageList = new ArrayList<>();
     Stage stage = null;
     List<Task> stageTasks = new ArrayList<>();
+    boolean tempTableUsed = false;
     for (int i = 0; i < req.getTaskListSize(); i++) {
       TaskInfo info = req.getTaskList().get(i);
       Task task = TaskFactory.getTask(info);
@@ -128,11 +133,33 @@ public class Job {
         }
         stageList.add(stage);
       } else {
+        if (task.getTaskType().equals(TaskType.IGINX) && !stageTasks.isEmpty()) {
+          // iginx task will only be stream type. this branch processes iginx task that comes after
+          // python tasks: create a new stream stage that starts with this iginx task.
+          // Note that iginx tasks will not come after another iginx task because the SQL list can
+          // be merged,
+          // and such conduct will be prohibited during the yaml reading process.
+          // Also, in such iginx task, temp table containing previous python task results could be
+          // used. We mark
+          // it and clear it after all tasks.
+          stage =
+              new StreamStage(
+                  sessionId, stage, new ArrayList<>(stageTasks), new IginXWriter(sessionId, null));
+          stageList.add(stage);
+          stageTasks.clear();
+          tempTableUsed = true;
+        }
         stageTasks.add(task);
       }
     }
     if (!stageTasks.isEmpty()) {
       stage = new StreamStage(sessionId, stage, new ArrayList<>(stageTasks), writer);
+      stageList.add(stage);
+    }
+    if (tempTableUsed) {
+      stage =
+          new StreamStage(
+              sessionId, stage, Collections.singletonList(getClearTableTask()), new LogWriter());
       stageList.add(stage);
     }
     if (trigger != null) {

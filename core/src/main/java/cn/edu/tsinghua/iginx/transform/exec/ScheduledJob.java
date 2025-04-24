@@ -19,12 +19,16 @@
  */
 package cn.edu.tsinghua.iginx.transform.exec;
 
+import static cn.edu.tsinghua.iginx.transform.utils.Constants.TEMP_TABLE_NAME_FORMAT;
+
 import cn.edu.tsinghua.iginx.thrift.JobState;
 import cn.edu.tsinghua.iginx.transform.api.Runner;
 import cn.edu.tsinghua.iginx.transform.exception.TransformException;
+import cn.edu.tsinghua.iginx.transform.exec.tools.ExecutionMetaManager;
 import cn.edu.tsinghua.iginx.transform.pojo.Job;
 import java.util.ArrayList;
 import java.util.List;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.quartz.DisallowConcurrentExecution;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
@@ -47,6 +51,11 @@ public class ScheduledJob implements org.quartz.Job {
           "Cannot set active status of job: " + job.getJobId() + ".", null, stopOnFailure);
     }
     try {
+      // [important] the temp table that will be used to store mid-stage result, must be set before
+      // run
+      ExecutionMetaManager.setMeta(
+          String.format(
+              TEMP_TABLE_NAME_FORMAT, job.getJobId(), RandomStringUtils.randomAlphanumeric(6)));
       for (Runner runner : runnerList) {
         runner.start();
         runner.run();

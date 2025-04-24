@@ -118,6 +118,8 @@ public class TransformIT {
     TASK_MAP.put("SleepTransformer", OUTPUT_DIR_PREFIX + File.separator + "transformer_sleep.py");
     TASK_MAP.put(
         "ToBytesTransformer", OUTPUT_DIR_PREFIX + File.separator + "transformer_to_bytes.py");
+    TASK_MAP.put(
+        "SumTransformerNoKey", OUTPUT_DIR_PREFIX + File.separator + "transformer_sum_no_key.py");
   }
 
   @BeforeClass
@@ -1056,15 +1058,27 @@ public class TransformIT {
   @Test
   public void commitMixedPythonJobsByYamlTest() {
     LOGGER.info("commitMixedPythonJobsByYamlTest");
+    String[] taskList = {"RowSumTransformer", "AddOneTransformer", "SumTransformer"};
+    testMixJobs(
+        taskList, "TransformMixedPythonJobs.yaml", "export_file_mixed_python_jobs_by_yaml.txt");
+  }
+
+  @Test
+  public void commitMixedPythonAndSQLTest() {
+    LOGGER.info("commitMixedPythonAndSQLTest");
+    String[] taskList = {"RowSumTransformer", "AddOneTransformer", "SumTransformerNoKey"};
+    testMixJobs(
+        taskList, "TransformMixedPythonAndSQL.yaml", "export_file_mixed_python_And_SQL.txt");
+  }
+
+  private void testMixJobs(String[] taskList, String jobFile, String outputFile) {
     try {
-      String[] taskList = {"RowSumTransformer", "AddOneTransformer", "SumTransformer"};
       for (String task : taskList) {
         registerTask(task);
       }
 
-      String yamlFileName = OUTPUT_DIR_PREFIX + File.separator + "TransformMixedPythonJobs.yaml";
-      String outputFileName =
-          OUTPUT_DIR_PREFIX + File.separator + "export_file_mixed_python_jobs_by_yaml.txt";
+      String yamlFileName = OUTPUT_DIR_PREFIX + File.separator + jobFile;
+      String outputFileName = OUTPUT_DIR_PREFIX + File.separator + outputFile;
       long jobId = session.commitTransformJob(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
 
       verifyJobFinishedBlocked(jobId);
