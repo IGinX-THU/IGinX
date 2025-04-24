@@ -20,7 +20,6 @@
 package cn.edu.tsinghua.iginx.transform.pojo;
 
 import static cn.edu.tsinghua.iginx.constant.GlobalConstant.TRANSFORM_PREFIX;
-import static cn.edu.tsinghua.iginx.transform.pojo.IginXTask.getClearTableTask;
 
 import cn.edu.tsinghua.iginx.notice.EmailNotifier;
 import cn.edu.tsinghua.iginx.thrift.*;
@@ -31,7 +30,6 @@ import cn.edu.tsinghua.iginx.utils.JobFromYAML;
 import cn.edu.tsinghua.iginx.utils.NotificationFromYAML;
 import cn.edu.tsinghua.iginx.utils.TaskFromYAML;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.Data;
@@ -154,12 +152,6 @@ public class Job {
     }
     if (!stageTasks.isEmpty()) {
       stage = new StreamStage(sessionId, stage, new ArrayList<>(stageTasks), writer);
-      stageList.add(stage);
-    }
-    if (tempTableUsed) {
-      stage =
-          new StreamStage(
-              sessionId, stage, Collections.singletonList(getClearTableTask()), new LogWriter());
       stageList.add(stage);
     }
     if (trigger != null) {
