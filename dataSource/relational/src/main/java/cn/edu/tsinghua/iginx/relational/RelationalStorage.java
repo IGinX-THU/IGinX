@@ -140,13 +140,13 @@ public class RelationalStorage implements IStorage {
     if (dataSource != null) {
       try {
         Connection conn;
+        LOGGER.info(
+                "username: {}, password: {}", dataSource.getUsername(), dataSource.getPassword());
+        LOGGER.info("jdbcUrl: {}", dataSource.getJdbcUrl());
         conn = dataSource.getConnection();
         return conn;
       } catch (SQLException e) {
         LOGGER.error("Cannot get connection for database {}", databaseName, e);
-        LOGGER.info(
-            "username: {}, password: {}", dataSource.getUsername(), dataSource.getPassword());
-        LOGGER.info("jdbcUrl: {}", dataSource.getJdbcUrl());
         dataSource.close();
       }
     }

@@ -386,7 +386,6 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
   public void clearHistoryDataForGivenPort(int port) {
     Connection conn = null;
     try {
-      LOGGER.info("port: {}", port);
       conn = connect(port);
       Statement stmt = conn.createStatement();
       ResultSet databaseSet = stmt.executeQuery(QUERY_DATABASES_STATEMENT);
