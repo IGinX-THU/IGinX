@@ -119,6 +119,8 @@ public class RelationalStorage implements IStorage {
       return null;
     }
 
+    LOGGER.info("databaseName: {}", databaseName);
+
     if (relationalMeta.supportCreateDatabase()) {
       try (Statement stmt = connection.createStatement()) {
         stmt.execute(
@@ -145,6 +147,8 @@ public class RelationalStorage implements IStorage {
     }
 
     try {
+      LOGGER.info("Creating connection for database {}", databaseName);
+      LOGGER.info("meta: {}", meta);
       HikariConfig config = new HikariConfig();
       config.setJdbcUrl(getUrl(databaseName, meta));
       config.setUsername(meta.getExtraParams().get(USERNAME));

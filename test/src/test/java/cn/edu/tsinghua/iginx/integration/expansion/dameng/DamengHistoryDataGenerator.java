@@ -66,49 +66,6 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
     Constant.oriPort = 5236;
     Constant.expPort = 5237;
     Constant.readOnlyPort = 5238;
-
-    //    portsToUser.put(Constant.oriPort, new Pair<>("SYSDBA", "SYSDBA001"));
-    //    portsToUser.put(Constant.expPort, new Pair<>("observer", toDamengPassword(expPort)));
-    //    portsToUser.put(Constant.readOnlyPort, new Pair<>("nt", toDamengPassword(readOnlyPort)));
-    //
-    //    for (Map.Entry<Integer, Pair<String, String>> entry : portsToUser.entrySet()) {
-    //      int port = entry.getKey();
-    //      if (port == Constant.oriPort) {
-    //        continue;
-    //      }
-    //      Pair<String, String> user = entry.getValue();
-    //      String username = user.getK();
-    //      String password = user.getV();
-    //      Connection connection = null;
-    //      try {
-    //        connection = connect(port);
-    //        Statement stmt = connection.createStatement();
-    //        String createDatabaseSql =
-    //            String.format(CREATE_DATABASE_STATEMENT, getQuotName(username), password);
-    //        String grantDatabaseSql = String.format(GRANT_DATABASE_STATEMENT,
-    // getQuotName(username));
-    //        String grantRoleSql = String.format(GRANT_ROLE_STATEMENT, getQuotName(username));
-    //        try {
-    //          LOGGER.info("create database with stmt: {}", createDatabaseSql);
-    //          stmt.execute(createDatabaseSql);
-    //          stmt.execute(grantDatabaseSql);
-    //          stmt.execute(grantRoleSql);
-    //        } catch (SQLException e) {
-    //          LOGGER.info("database {} exists!", username);
-    //        }
-    //        stmt.close();
-    //      } catch (RuntimeException | SQLException e) {
-    //        LOGGER.error("write data to 127.0.0.1:{} failure: ", port, e);
-    //      } finally {
-    //        try {
-    //          if (connection != null) {
-    //            connection.close();
-    //          }
-    //        } catch (SQLException e) {
-    //          LOGGER.error("close connection failure: ", e);
-    //        }
-    //      }
-    //    }
   }
 
   public static Connection connect(int port) {

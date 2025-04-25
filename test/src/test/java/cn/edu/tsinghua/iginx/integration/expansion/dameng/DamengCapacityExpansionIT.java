@@ -161,7 +161,7 @@ public class DamengCapacityExpansionIT extends BaseCapacityExpansionIT {
     // 添加只读节点
     addStorageEngine(readOnlyPort, true, true, null, prefix, portsToExtraParams.get(readOnlyPort));
     // 查询
-    String statement = "select wt01.status, wt01.temperature from " + prefix + ".tm.wf05;";
+    String statement = "select wt01.status, wt01.temperature from " + prefix + ".TM.wf05;";
     List<String> pathList =
         splitAndUpperCase(READ_ONLY_PATH_LIST).stream()
             .map(s -> prefix + "." + s)
@@ -193,7 +193,7 @@ public class DamengCapacityExpansionIT extends BaseCapacityExpansionIT {
     session.executeSql(String.format(ALTER_ENGINE_STRING, id, newParams));
 
     // 重新查询
-    statement = "select wt01.status, wt01.temperature from " + prefix + ".tm.wf05;";
+    statement = "select wt01.status, wt01.temperature from " + prefix + ".TM.wf05;";
     pathList =
         splitAndUpperCase(READ_ONLY_PATH_LIST).stream()
             .map(s -> prefix + "." + s)
