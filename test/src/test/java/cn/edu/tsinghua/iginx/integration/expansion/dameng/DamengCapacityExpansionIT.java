@@ -62,7 +62,7 @@ public class DamengCapacityExpansionIT extends BaseCapacityExpansionIT {
     Constant.readOnlyPort = dbConf.getDBCEPortMap().get(Constant.READ_ONLY_PORT_NAME);
     portsToUsername.put(oriPort, "SYSDBA");
     portsToUsername.put(expPort, "NT");
-    portsToUsername.put(readOnlyPort, "observer");
+    portsToUsername.put(readOnlyPort, "OBSERVER");
     portsToPassword.put(oriPort, "SYSDBA001");
     portsToPassword.put(expPort, "DAMENG" + expPort);
     portsToPassword.put(readOnlyPort, "DAMENG" + readOnlyPort);

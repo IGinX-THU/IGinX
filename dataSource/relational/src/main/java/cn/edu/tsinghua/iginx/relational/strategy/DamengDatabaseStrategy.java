@@ -78,8 +78,7 @@ public class DamengDatabaseStrategy extends AbstractDatabaseStrategy {
     //    config.setUsername(null);
     //    config.setPassword(null);
     if (!databaseName.isEmpty()) {
-      config.setConnectionInitSql(
-          "ALTER SESSION SET CURRENT_SCHEMA = " + getQuotName(databaseName.toUpperCase()));
+      config.setConnectionInitSql("SET SCHEMA " + getQuotName(databaseName));
     }
   }
 
