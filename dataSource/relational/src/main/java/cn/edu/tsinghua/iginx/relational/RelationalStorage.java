@@ -2429,7 +2429,7 @@ public class RelationalStorage implements IStorage {
               .map(s -> "'" + s + "'")
               .collect(Collectors.joining(", ", " WHERE table_schema NOT IN (", ")"));
       if(relationalMeta.isUseApproximateBoundary()){
-        String sql="SELECT min(table_schema), max(table_schema) FROM information_schema.columns "+columnNames;
+        String sql="SELECT min(table_schema), max(table_schema) FROM information_schema.tables "+conditionStatement;
         try (Connection conn = getConnection(minDb);
              Statement statement = conn.createStatement();
              ResultSet rs = statement.executeQuery(sql)) {
