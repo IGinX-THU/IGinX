@@ -133,8 +133,10 @@ public class RelationalStorage implements IStorage {
         databaseName = "";
       }
     }
-
+    LOGGER.info("after processed database: {}", databaseName);
     HikariDataSource dataSource = connectionPoolMap.get(databaseName);
+    LOGGER.info("connectionPoolMap: {}", connectionPoolMap);
+    LOGGER.info("dataSource: {}", dataSource);
     if (dataSource != null) {
       try {
         Connection conn;
