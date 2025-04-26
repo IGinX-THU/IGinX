@@ -51,15 +51,7 @@ public class DamengDatabaseStrategy extends AbstractDatabaseStrategy {
 
   @Override
   public String getUrl(String databaseName, StorageEngineMeta meta) {
-    Map<String, String> extraParams = meta.getExtraParams();
-    String username = extraParams.get(USERNAME);
-    String password = extraParams.get(PASSWORD);
-    String database = username.toUpperCase();
-
-    return String.format(
-        "jdbc:dm://%s:%s?user=%s&password=\"%s\"&schema=\"%s\"",
-        meta.getIp(), meta.getPort(), username, password, database);
-    //    return getConnectUrl(meta);
+    return getConnectUrl(meta);
   }
 
   @Override
