@@ -393,15 +393,6 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
 
       while (databaseSet.next()) {
         String databaseName = databaseSet.getString("DATNAME");
-
-        // 过滤系统数据库
-        if (databaseName.equals("SYS")
-            || databaseName.equals("SYSDBA")
-            || databaseName.equals("SYSSSO")
-            || databaseName.equals("SYSAUDITOR")) {
-          continue;
-        }
-
         dropDatabaseStatement.addBatch(
             String.format(DROP_DATABASE_STATEMENT, getQuotName(databaseName)));
         LOGGER.info("drop database {} on 127.0.0.1:{}: ", databaseName, port);
