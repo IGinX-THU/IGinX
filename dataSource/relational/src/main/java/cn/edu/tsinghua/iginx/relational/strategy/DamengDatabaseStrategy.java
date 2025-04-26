@@ -57,8 +57,9 @@ public class DamengDatabaseStrategy extends AbstractDatabaseStrategy {
     String database = username.toLowerCase();
 
     return String.format(
-            "jdbc:dm://%s:%s/?user=%s&password=\"%s\"&schema=\"%s\"", meta.getIp(), meta.getPort(), username, password, database);
-//    return getConnectUrl(meta);
+        "jdbc:dm://%s:%s/?user=%s&password=\"%s\"&schema=\"%s\"",
+        meta.getIp(), meta.getPort(), username, password, database);
+    //    return getConnectUrl(meta);
   }
 
   @Override
@@ -68,7 +69,8 @@ public class DamengDatabaseStrategy extends AbstractDatabaseStrategy {
     String password = extraParams.get(PASSWORD);
 
     return String.format(
-        "jdbc:dm://%s:%s/?user=%s&password=\"%s\"", meta.getIp(), meta.getPort(), username, password);
+        "jdbc:dm://%s:%s/?user=%s&password=\"%s\"",
+        meta.getIp(), meta.getPort(), username, password);
   }
 
   @Override
