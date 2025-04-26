@@ -77,6 +77,7 @@ public class DamengDatabaseStrategy extends AbstractDatabaseStrategy {
       HikariConfig config, String databaseName, StorageEngineMeta meta) {
     config.setUsername(null);
     config.setPassword(null);
+    // 一个用户对应一个SCHEMA，用户名只能大写，达梦设置为大小写不敏感，SCHEMA也只能为大写
     if (!databaseName.isEmpty()) {
       config.setConnectionInitSql("SET SCHEMA " + getQuotName(databaseName.toUpperCase()));
     }
