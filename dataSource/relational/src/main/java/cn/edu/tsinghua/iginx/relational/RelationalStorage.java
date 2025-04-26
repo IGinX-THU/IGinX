@@ -119,8 +119,6 @@ public class RelationalStorage implements IStorage {
       return null;
     }
 
-    LOGGER.info("databaseName: {}", databaseName);
-
     if (relationalMeta.supportCreateDatabase()) {
       try (Statement stmt = connection.createStatement()) {
         stmt.execute(
@@ -133,16 +131,11 @@ public class RelationalStorage implements IStorage {
         databaseName = "";
       }
     }
-    LOGGER.info("after processed database: {}", databaseName);
+
     HikariDataSource dataSource = connectionPoolMap.get(databaseName);
-    LOGGER.info("connectionPoolMap: {}", connectionPoolMap);
-    LOGGER.info("dataSource: {}", dataSource);
     if (dataSource != null) {
       try {
         Connection conn;
-        LOGGER.info(
-            "username: {}, password: {}", dataSource.getUsername(), dataSource.getPassword());
-        LOGGER.info("jdbcUrl: {}", dataSource.getJdbcUrl());
         conn = dataSource.getConnection();
         return conn;
       } catch (SQLException e) {
@@ -152,8 +145,6 @@ public class RelationalStorage implements IStorage {
     }
 
     try {
-      LOGGER.info("Creating connection for database {}", databaseName);
-      LOGGER.info("meta: {}", meta);
       HikariConfig config = new HikariConfig();
       config.setJdbcUrl(getUrl(databaseName, meta));
       config.setUsername(meta.getExtraParams().get(USERNAME));
@@ -167,7 +158,7 @@ public class RelationalStorage implements IStorage {
       config.setIdleTimeout(
           Long.parseLong(meta.getExtraParams().getOrDefault("idle_timeout", "10000")));
       config.setMaximumPoolSize(
-          Integer.parseInt(meta.getExtraParams().getOrDefault("maximum_pool_size", "60")));
+          Integer.parseInt(meta.getExtraParams().getOrDefault("maximum_pool_size", "20")));
       config.setMinimumIdle(
           Integer.parseInt(meta.getExtraParams().getOrDefault("minimum_idle", "1")));
       config.addDataSourceProperty(
@@ -738,7 +729,6 @@ public class RelationalStorage implements IStorage {
       Project project, Filter filter, DataArea dataArea) {
     try {
       String databaseName = dataArea.getStorageUnit();
-      LOGGER.info("databaseName: {}", databaseName);
       Connection conn = getConnection(databaseName);
       if (conn == null) {
         return new TaskExecuteResult(
@@ -812,14 +802,6 @@ public class RelationalStorage implements IStorage {
         }
       }
 
-      for (String database : databaseNameList) {
-        LOGGER.info(
-            "[Query] database name: {}, table name: {}, column names: {}",
-            database,
-            tableNameToColumnNames.keySet(),
-            tableNameToColumnNames.values());
-      }
-      LOGGER.info("stop log");
       RowStream rowStream =
           new ClearEmptyRowStreamWrapper(
               new RelationQueryRowStream(
@@ -1815,11 +1797,9 @@ public class RelationalStorage implements IStorage {
 
       Map<String, Map<String, String>> splitResults =
           splitAndMergeHistoryQueryPatterns(project.getPatterns());
-      LOGGER.info("dummy: {}", splitResults);
       for (Map.Entry<String, Map<String, String>> splitEntry : splitResults.entrySet()) {
         Map<String, String> tableNameToColumnNames = splitEntry.getValue();
         String databaseName = splitEntry.getKey();
-        LOGGER.info("dummy databse: {}", databaseName);
         conn = getConnection(databaseName);
         if (conn == null) {
           continue;

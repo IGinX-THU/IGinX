@@ -214,8 +214,6 @@ public class RelationQueryRowStream implements RowStream {
                       : tableName + SEPARATOR)
                   + namesAndTags.k;
           if (!relationalMeta.supportCreateDatabase()) {
-            LOGGER.info("database: {}", databaseName);
-            LOGGER.info("path: {}", path);
             path = path.substring(databaseName.length() + 1);
           }
         }
