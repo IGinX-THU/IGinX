@@ -163,9 +163,9 @@ public class RelationalStorage implements IStorage {
       config.setLeakDetectionThreshold(
           Long.parseLong(meta.getExtraParams().getOrDefault("leak_detection_threshold", "2500")));
       config.setConnectionTimeout(
-          Long.parseLong(meta.getExtraParams().getOrDefault("connection_timeout", "30000")));
+          Long.parseLong(meta.getExtraParams().getOrDefault("connection_timeout", "3000000")));
       config.setIdleTimeout(
-          Long.parseLong(meta.getExtraParams().getOrDefault("idle_timeout", "10000")));
+          Long.parseLong(meta.getExtraParams().getOrDefault("idle_timeout", "6000000")));
       config.setMaximumPoolSize(
           Integer.parseInt(meta.getExtraParams().getOrDefault("maximum_pool_size", "60")));
       config.setMinimumIdle(
