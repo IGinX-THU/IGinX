@@ -157,6 +157,8 @@ public class DamengCapacityExpansionIT extends BaseCapacityExpansionIT {
     testFloatData();
   }
 
+  /** 达梦的用户名不受大小写敏感影响，无论如何都是大写，User对应database，需要修改测试，将databaseName修改为大写 * */
+
   /** 测试float类型数据 */
   private void testFloatData() {
     String statement = "select wt02.float from TM.wf05 where wt02.float <= 44.55;";
