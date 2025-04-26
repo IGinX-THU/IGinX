@@ -352,7 +352,7 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
       String createDatabaseSql =
           String.format(
               CREATE_DATABASE_STATEMENT,
-              getQuotName("observer"),
+              getQuotName("OBSERVER"),
               toDamengPassword(Constant.readOnlyPort));
       LOGGER.info(
           "create another user in {} with stmt: {}", Constant.readOnlyPort, createDatabaseSql);
@@ -367,14 +367,14 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
       String grantTableSql =
           String.format(
               "GRANT SELECT ON %s.%s TO %s",
-              getQuotName("tm"), getQuotName("wf05.wt01"), getQuotName("observer"));
+              getQuotName("TM"), getQuotName("wf05.wt01"), getQuotName("OBSERVER"));
       LOGGER.info("grant select permission to observer with stmt: {}", grantTableSql);
       stmt.execute(grantTableSql);
 
       String grantTable2Sql =
           String.format(
               "GRANT SELECT ON %s.%s TO %s",
-              getQuotName("tm"), getQuotName("wf05.wt02"), getQuotName("observer"));
+              getQuotName("TM"), getQuotName("wf05.wt02"), getQuotName("OBSERVER"));
       LOGGER.info("grant select permission to observer with stmt: {}", grantTable2Sql);
       stmt.execute(grantTable2Sql);
     } catch (SQLException e) {
@@ -393,6 +393,12 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
 
       while (databaseSet.next()) {
         String databaseName = databaseSet.getString("DATNAME");
+
+        // 过滤系统数据库
+        if (databaseName.equals("SYSDBA")) {
+          continue;
+        }
+
         dropDatabaseStatement.addBatch(
             String.format(DROP_DATABASE_STATEMENT, getQuotName(databaseName)));
         LOGGER.info("drop database {} on 127.0.0.1:{}: ", databaseName, port);
