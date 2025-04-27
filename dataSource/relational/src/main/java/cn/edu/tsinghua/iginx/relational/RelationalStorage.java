@@ -837,7 +837,7 @@ public class RelationalStorage implements IStorage {
   }
 
   private String reshapeTableNameBeforeQuery(String tableName, String databaseName) {
-    if (!relationalMeta.supportCreateDatabase()) {
+    if (!engineName.equals("dameng") && !relationalMeta.supportCreateDatabase()) {
       tableName = databaseName + "." + tableName;
     }
     return tableName;
