@@ -328,9 +328,13 @@ public class RelationalStorage implements IStorage {
       String databaseName, String tableName, String columnNamePattern, boolean isDummy) {
     String databasePattern = dbStrategy.getDatabasePattern(databaseName, isDummy);
     String schemaPattern = dbStrategy.getSchemaPattern(databaseName, isDummy);
+    LOGGER.info("schema pattern: {}", schemaPattern);
+    LOGGER.info("database: {}", databaseName);
+    LOGGER.info("table: {}", tableName);
     if (!isDummy) {
       tableName = reshapeTableNameBeforeQuery(tableName, databaseName);
     }
+    LOGGER.info("table: {}", tableName);
     try (Connection conn = getConnection(databaseName)) {
       if (conn == null) {
         throw new RelationalTaskExecuteFailureException(
@@ -345,6 +349,7 @@ public class RelationalStorage implements IStorage {
           String columnName = rs.getString("COLUMN_NAME");
           String columnType = rs.getString("TYPE_NAME");
           String columnTable = rs.getString("TABLE_NAME");
+          LOGGER.info("table name: {}", columnTable);
           if (!isDummy) {
             columnTable = reshapeTableNameAfterQuery(columnTable, databaseName);
           }
@@ -354,6 +359,7 @@ public class RelationalStorage implements IStorage {
               new ColumnField(columnTable, columnName, columnType, columnSize, decimalDigits));
         }
       }
+      LOGGER.info("column fields: {}", columnFields);
       return columnFields;
     } catch (SQLException | RelationalTaskExecuteFailureException e) {
       LOGGER.error("unexpected error: ", e);
@@ -743,8 +749,13 @@ public class RelationalStorage implements IStorage {
 
       Map<String, String> tableNameToColumnNames =
           splitAndMergeQueryPatterns(databaseName, project.getPatterns());
+      LOGGER.info("databaseName: " + databaseName);
+      LOGGER.info("project.getPatterns(): " + project.getPatterns());
+      LOGGER.info("tableNameToColumnNames: " + tableNameToColumnNames);
       // 按列顺序加上表名
       Filter expandFilter = expandFilter(filter.copy(), tableNameToColumnNames);
+      LOGGER.info("expandFilter: " + expandFilter);
+      LOGGER.info("filter: " + filter);
 
       String statement;
       // 如果table>1的情况下存在Value或Path Filter，说明filter的匹配需要跨table，此时需要将所有table join到一起进行查询
@@ -833,7 +844,7 @@ public class RelationalStorage implements IStorage {
   }
 
   private String reshapeTableNameAfterQuery(String tableName, String databaseName) {
-    if (!relationalMeta.supportCreateDatabase()) {
+    if (!engineName.equals("dameng") && !relationalMeta.supportCreateDatabase()) {
       tableName = tableName.substring(databaseName.length() + 1);
     }
     return tableName;
@@ -2216,6 +2227,7 @@ public class RelationalStorage implements IStorage {
       for (ColumnField columnField : columnFieldList) {
         String curTableName = columnField.getTableName();
         String curColumnNames = columnField.getColumnName();
+        LOGGER.info("current table name: " + curTableName);
         if (curColumnNames.equals(KEY_NAME)) {
           continue;
         }
@@ -2240,10 +2252,12 @@ public class RelationalStorage implements IStorage {
 
           curColumnNames = String.join(", ", columnNamesList);
         }
+        LOGGER.info("cur table name: " + curTableName);
+        LOGGER.info("cur column names: " + curColumnNames);
         tableNameToColumnNames.put(curTableName, curColumnNames);
       }
     }
-
+    LOGGER.info("tableNameToColumnNames: {}", tableNameToColumnNames);
     return tableNameToColumnNames;
   }
 
