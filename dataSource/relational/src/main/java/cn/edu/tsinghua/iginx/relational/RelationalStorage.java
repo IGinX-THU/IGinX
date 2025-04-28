@@ -635,7 +635,7 @@ public class RelationalStorage implements IStorage {
             }
             return newColumnNames;
           });
-      filter = expandFilter(filter, fullColumnNamesListForExpandFilter);
+      filter = expandFilter(filter, fullColumnNamesListForExpandFilter, databaseName, false);
       filter = LogicalFilterUtils.mergeTrue(filter);
     }
 
@@ -702,7 +702,7 @@ public class RelationalStorage implements IStorage {
             }
             return newColumnNames;
           });
-      copyFilter = expandFilter(copyFilter, fullColumnNamesList);
+      copyFilter = expandFilter(copyFilter, fullColumnNamesList, databaseName, true);
       copyFilter = LogicalFilterUtils.mergeTrue(copyFilter);
     }
 
@@ -753,7 +753,8 @@ public class RelationalStorage implements IStorage {
       LOGGER.info("project.getPatterns(): " + project.getPatterns());
       LOGGER.info("tableNameToColumnNames: " + tableNameToColumnNames);
       // 按列顺序加上表名
-      Filter expandFilter = expandFilter(filter.copy(), tableNameToColumnNames);
+      Filter expandFilter =
+          expandFilter(filter.copy(), tableNameToColumnNames, databaseName, false);
       LOGGER.info("expandFilter: " + expandFilter);
       LOGGER.info("filter: " + filter);
 
@@ -837,14 +838,14 @@ public class RelationalStorage implements IStorage {
   }
 
   private String reshapeTableNameBeforeQuery(String tableName, String databaseName) {
-    if (!engineName.equals("dameng") && !relationalMeta.supportCreateDatabase()) {
+    if (!relationalMeta.supportCreateDatabase()) {
       tableName = databaseName + "." + tableName;
     }
     return tableName;
   }
 
   private String reshapeTableNameAfterQuery(String tableName, String databaseName) {
-    if (!engineName.equals("dameng") && !relationalMeta.supportCreateDatabase()) {
+    if (!relationalMeta.supportCreateDatabase()) {
       tableName = tableName.substring(databaseName.length() + 1);
     }
     return tableName;
@@ -1026,52 +1027,207 @@ public class RelationalStorage implements IStorage {
     return fullTableName.toString();
   }
 
-  private Filter expandFilter(Filter filter, Map<String, String> tableNameToColumnNames) {
+  private Filter expandFilter(
+      Filter filter,
+      Map<String, String> tableNameToColumnNames,
+      String databaseName,
+      boolean isDummy) {
     List<List<String>> fullColumnNamesList = new ArrayList<>();
     for (Map.Entry<String, String> entry : tableNameToColumnNames.entrySet()) {
       List<String> fullColumnNames = new ArrayList<>(Arrays.asList(entry.getValue().split(", ")));
-      // 将columnNames中的列名加上tableName前缀
-      fullColumnNames.replaceAll(
-          s -> RelationSchema.getQuoteFullName(entry.getKey(), s, relationalMeta.getQuote()));
+      if (!relationalMeta.supportCreateDatabase() && !isDummy) {
+        // 将columnNames中的列名加上tableName前缀
+        fullColumnNames.replaceAll(
+            s ->
+                RelationSchema.getQuoteFullName(
+                    databaseName + SEPARATOR + entry.getKey(), s, relationalMeta.getQuote()));
+      } else {
+        // 将columnNames中的列名加上tableName前缀
+        fullColumnNames.replaceAll(
+            s -> RelationSchema.getQuoteFullName(entry.getKey(), s, relationalMeta.getQuote()));
+      }
       fullColumnNamesList.add(fullColumnNames);
     }
+    LOGGER.info("fullColumnNamesList: " + fullColumnNamesList);
     // 把fullColumnNamesList中的列名全部用removeFullColumnNameQuote去掉引号
     fullColumnNamesList.replaceAll(
         columnNames -> {
           List<String> newColumnNames = new ArrayList<>();
+          LOGGER.info("columnNames: " + columnNames);
           for (String columnName : columnNames) {
             newColumnNames.add(removeFullColumnNameQuote(columnName));
           }
+          LOGGER.info("newColumnNames: " + newColumnNames);
           return newColumnNames;
         });
-    filter = expandFilter(filter, fullColumnNamesList);
+    LOGGER.info("fullColumnNamesList: " + fullColumnNamesList);
+    filter = expandFilter(filter, fullColumnNamesList, databaseName, isDummy);
+    LOGGER.info("a filter: " + filter);
     filter = LogicalFilterUtils.mergeTrue(filter);
+    LOGGER.info("b filter: " + filter);
     return filter;
   }
 
-  private Filter expandFilter(Filter filter, List<List<String>> columnNamesList) {
+  //  private Filter getFullFilter(Filter filter, String databaseName) {
+  //    if (filter == null) {
+  //      return null;
+  //    }
+  //    switch (filter.getType()) {
+  //      case And:
+  //        List<Filter> andChildren = ((AndFilter) filter).getChildren();
+  //        for (Filter child : andChildren) {
+  //          Filter newFilter = getFullFilter(child, databaseName);
+  //          andChildren.set(andChildren.indexOf(child), newFilter);
+  //        }
+  //        return new AndFilter(andChildren);
+  //      case Or:
+  //        List<Filter> orChildren = ((OrFilter) filter).getChildren();
+  //        for (Filter child : orChildren) {
+  //          Filter newFilter = getFullFilter(child, databaseName);
+  //          orChildren.set(orChildren.indexOf(child), newFilter);
+  //        }
+  //        return new OrFilter(orChildren);
+  //      case Not:
+  //        Filter notChild = ((NotFilter) filter).getChild();
+  //        Filter newFilter = getFullFilter(child, databaseName);
+  //        return new NotFilter(newFilter);
+  //      case Value:
+  //        ValueFilter valueFilter = ((ValueFilter) filter);
+  //        String path = valueFilter.getPath();
+  //        List<String> matchedPaths = getMatchedPath(path, columnNamesList);
+  //        if (matchedPaths.isEmpty()) {
+  //          return new BoolFilter(true);
+  //        } else if (matchedPaths.size() == 1) {
+  //          return new ValueFilter(matchedPaths.get(0), valueFilter.getOp(),
+  // valueFilter.getValue());
+  //        } else {
+  //          List<Filter> newFilters = new ArrayList<>();
+  //          for (String matched : matchedPaths) {
+  //            newFilters.add(new ValueFilter(matched, valueFilter.getOp(),
+  // valueFilter.getValue()));
+  //          }
+  //          if (Op.isOrOp(valueFilter.getOp())) {
+  //            return new OrFilter(newFilters);
+  //          } else {
+  //            return new AndFilter(newFilters);
+  //          }
+  //        }
+  //      case In:
+  //        InFilter inFilter = (InFilter) filter;
+  //        String inPath = inFilter.getPath();
+  //        if (inPath.contains("*")) {
+  //          List<String> matchedPath = getMatchedPath(inPath, columnNamesList);
+  //          if (matchedPath.size() == 0) {
+  //            return new BoolFilter(true);
+  //          } else if (matchedPath.size() == 1) {
+  //            return new InFilter(matchedPath.get(0), inFilter.getInOp(), inFilter.getValues());
+  //          } else {
+  //            List<Filter> inChildren = new ArrayList<>();
+  //            for (String matched : matchedPath) {
+  //              inChildren.add(new InFilter(matched, inFilter.getInOp(), inFilter.getValues()));
+  //            }
+  //
+  //            if (inFilter.getInOp().isOrOp()) {
+  //              return new OrFilter(inChildren);
+  //            }
+  //            return new AndFilter(inChildren);
+  //          }
+  //        }
+  //
+  //        return filter;
+  //      case Path:
+  //        String pathA = ((PathFilter) filter).getPathA();
+  //        String pathB = ((PathFilter) filter).getPathB();
+  //        if (pathA.contains("*")) {
+  //          List<String> matchedPath = getMatchedPath(pathA, columnNamesList);
+  //          if (matchedPath.size() == 0) {
+  //            return new BoolFilter(true);
+  //          } else if (matchedPath.size() == 1) {
+  //            return new PathFilter(
+  //                    matchedPath.get(0),
+  //                    ((PathFilter) filter).getOp(),
+  //                    ((PathFilter) filter).getPathB());
+  //          } else {
+  //            List<Filter> andPathChildren = new ArrayList<>();
+  //            for (String matched : matchedPath) {
+  //              andPathChildren.add(
+  //                      new PathFilter(
+  //                              matched, ((PathFilter) filter).getOp(), ((PathFilter)
+  // filter).getPathB()));
+  //            }
+  //            if (Op.isOrOp(((PathFilter) filter).getOp())) {
+  //              filter = new OrFilter(andPathChildren);
+  //            } else {
+  //              filter = new AndFilter(andPathChildren);
+  //            }
+  //          }
+  //        }
+  //
+  //        if (pathB.contains("*")) {
+  //          if (filter.getType() != FilterType.Path) {
+  //            return expandFilter(filter, columnNamesList);
+  //          }
+  //
+  //          List<String> matchedPath = getMatchedPath(pathB, columnNamesList);
+  //          if (matchedPath.size() == 0) {
+  //            return new BoolFilter(true);
+  //          } else if (matchedPath.size() == 1) {
+  //            return new PathFilter(
+  //                    ((PathFilter) filter).getPathA(),
+  //                    ((PathFilter) filter).getOp(),
+  //                    matchedPath.get(0));
+  //          } else {
+  //            List<Filter> andPathChildren = new ArrayList<>();
+  //            for (String matched : matchedPath) {
+  //              andPathChildren.add(
+  //                      new PathFilter(
+  //                              ((PathFilter) filter).getPathA(), ((PathFilter) filter).getOp(),
+  // matched));
+  //            }
+  //            if (Op.isOrOp(((ValueFilter) filter).getOp())) {
+  //              return new OrFilter(andPathChildren);
+  //            }
+  //            return new AndFilter(andPathChildren);
+  //          }
+  //        }
+  //
+  //        return filter;
+  //
+  //      case Bool:
+  //      case Key:
+  //      default:
+  //        break;
+  //    }
+  //    return filter;
+  //  }
+
+  private Filter expandFilter(
+      Filter filter, List<List<String>> columnNamesList, String databaseName, boolean isDummy) {
     switch (filter.getType()) {
       case And:
         List<Filter> andChildren = ((AndFilter) filter).getChildren();
         for (Filter child : andChildren) {
-          Filter newFilter = expandFilter(child, columnNamesList);
+          Filter newFilter = expandFilter(child, columnNamesList, databaseName, isDummy);
           andChildren.set(andChildren.indexOf(child), newFilter);
         }
         return new AndFilter(andChildren);
       case Or:
         List<Filter> orChildren = ((OrFilter) filter).getChildren();
         for (Filter child : orChildren) {
-          Filter newFilter = expandFilter(child, columnNamesList);
+          Filter newFilter = expandFilter(child, columnNamesList, databaseName, isDummy);
           orChildren.set(orChildren.indexOf(child), newFilter);
         }
         return new OrFilter(orChildren);
       case Not:
         Filter notChild = ((NotFilter) filter).getChild();
-        Filter newFilter = expandFilter(notChild, columnNamesList);
+        Filter newFilter = expandFilter(notChild, columnNamesList, databaseName, isDummy);
         return new NotFilter(newFilter);
       case Value:
         ValueFilter valueFilter = ((ValueFilter) filter);
         String path = valueFilter.getPath();
+        if (!relationalMeta.supportCreateDatabase() && !isDummy) {
+          path = databaseName + SEPARATOR + path;
+        }
         List<String> matchedPaths = getMatchedPath(path, columnNamesList);
         if (matchedPaths.isEmpty()) {
           return new BoolFilter(true);
@@ -1091,6 +1247,9 @@ public class RelationalStorage implements IStorage {
       case In:
         InFilter inFilter = (InFilter) filter;
         String inPath = inFilter.getPath();
+        if (!relationalMeta.supportCreateDatabase() && !isDummy) {
+          inPath = databaseName + SEPARATOR + inPath;
+        }
         if (inPath.contains("*")) {
           List<String> matchedPath = getMatchedPath(inPath, columnNamesList);
           if (matchedPath.size() == 0) {
@@ -1112,6 +1271,12 @@ public class RelationalStorage implements IStorage {
 
         return filter;
       case Path:
+        if (!relationalMeta.supportCreateDatabase() && !isDummy) {
+          ((PathFilter) filter)
+              .setPathA(databaseName + SEPARATOR + ((PathFilter) filter).getPathA());
+          ((PathFilter) filter)
+              .setPathB(databaseName + SEPARATOR + ((PathFilter) filter).getPathB());
+        }
         String pathA = ((PathFilter) filter).getPathA();
         String pathB = ((PathFilter) filter).getPathB();
         if (pathA.contains("*")) {
@@ -1140,7 +1305,7 @@ public class RelationalStorage implements IStorage {
 
         if (pathB.contains("*")) {
           if (filter.getType() != FilterType.Path) {
-            return expandFilter(filter, columnNamesList);
+            return expandFilter(filter, columnNamesList, databaseName, isDummy);
           }
 
           List<String> matchedPath = getMatchedPath(pathB, columnNamesList);
@@ -1826,7 +1991,9 @@ public class RelationalStorage implements IStorage {
           Filter expandFilter =
               expandFilter(
                   cutFilterDatabaseNameForDummy(filter.copy(), databaseName),
-                  tableNameToColumnNames);
+                  tableNameToColumnNames,
+                  databaseName,
+                  true);
           for (Map.Entry<String, String> entry : splitEntry.getValue().entrySet()) {
             String tableName = entry.getKey();
             String fullQuotColumnNames = getQuotColumnNames(entry.getValue());
@@ -2154,6 +2321,9 @@ public class RelationalStorage implements IStorage {
       tableNameRegex = tableNameRegex.substring(0, tableNameRegex.length() - 2);
       tableNameRegex += "(\\" + SEPARATOR + ".*)?";
     }
+    //    if (engineName.equals("dameng") && !isDummy) {
+    //      tableNameRegex = databaseName + SEPARATOR + tableName;
+    //    }
     Pattern tableNamePattern = Pattern.compile("^" + tableNameRegex + "$");
 
     String columnNameRegex = columnNames;
@@ -2223,6 +2393,8 @@ public class RelationalStorage implements IStorage {
       List<Pattern> patternList =
           getRegexPatternByName(databaseName, tableName, columnNames, false);
       Pattern tableNamePattern = patternList.get(0), columnNamePattern = patternList.get(1);
+      LOGGER.info("tableNamePattern: " + tableNamePattern);
+      LOGGER.info("columnNamePattern: " + columnNamePattern);
 
       for (ColumnField columnField : columnFieldList) {
         String curTableName = columnField.getTableName();
