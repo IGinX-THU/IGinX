@@ -24,6 +24,7 @@ import cn.edu.tsinghua.iginx.metadata.exception.MetaStorageException;
 import cn.edu.tsinghua.iginx.metadata.hook.StorageEngineChangeHook;
 import cn.edu.tsinghua.iginx.metadata.hook.StorageUnitHook;
 import cn.edu.tsinghua.iginx.policy.simple.ColumnCalDO;
+import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.sql.statement.InsertStatement;
 import cn.edu.tsinghua.iginx.thrift.AuthType;
 import cn.edu.tsinghua.iginx.transform.pojo.TriggerDescriptor;
@@ -38,7 +39,7 @@ public interface IMetaManager {
   boolean addStorageEngines(List<StorageEngineMeta> storageEngineMetas);
 
   /** 删除存储引擎节点（仅限于dummy） */
-  boolean removeDummyStorageEngine(long storageEngineId);
+  boolean removeDummyStorageEngine(long storageEngineId, boolean forAllIginx);
 
   /** 获取所有的存储引擎实例的原信息（包括每个存储引擎的存储单元列表） */
   List<StorageEngineMeta> getStorageEngineList();
@@ -60,8 +61,14 @@ public interface IMetaManager {
   /** 获取所有活跃的 iginx 节点的元信息 */
   List<IginxMeta> getIginxList();
 
+  /** 获取当前 iginx 节点的元信息 */
+  IginxMeta getIginxMeta();
+
   /** 获取当前 iginx 节点的 ID */
   long getIginxId();
+
+  /** 获取已连接的其他 iginx 节点的 session */
+  Map<Long, Session> getIginxSessionMap();
 
   /** 获取所有的分片，用于 debug */
   List<FragmentMeta> getFragments();

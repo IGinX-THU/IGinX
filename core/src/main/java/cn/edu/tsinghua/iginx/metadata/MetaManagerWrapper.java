@@ -25,6 +25,7 @@ import cn.edu.tsinghua.iginx.metadata.exception.MetaStorageException;
 import cn.edu.tsinghua.iginx.metadata.hook.StorageEngineChangeHook;
 import cn.edu.tsinghua.iginx.metadata.hook.StorageUnitHook;
 import cn.edu.tsinghua.iginx.policy.simple.ColumnCalDO;
+import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.sql.statement.InsertStatement;
 import cn.edu.tsinghua.iginx.thrift.AuthType;
 import cn.edu.tsinghua.iginx.transform.pojo.TriggerDescriptor;
@@ -65,8 +66,8 @@ public class MetaManagerWrapper implements IMetaManager {
   }
 
   @Override
-  public boolean removeDummyStorageEngine(long storageEngineId) {
-    return metaManager.removeDummyStorageEngine(storageEngineId);
+  public boolean removeDummyStorageEngine(long storageEngineId, boolean forAllIginx) {
+    return metaManager.removeDummyStorageEngine(storageEngineId, forAllIginx);
   }
 
   @Override
@@ -110,8 +111,18 @@ public class MetaManagerWrapper implements IMetaManager {
   }
 
   @Override
+  public IginxMeta getIginxMeta() {
+    return metaManager.getIginxMeta();
+  }
+
+  @Override
   public long getIginxId() {
     return metaManager.getIginxId();
+  }
+
+  @Override
+  public Map<Long, Session> getIginxSessionMap() {
+    return metaManager.getIginxSessionMap();
   }
 
   @Override

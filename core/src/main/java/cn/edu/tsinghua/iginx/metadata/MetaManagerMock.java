@@ -24,6 +24,7 @@ import cn.edu.tsinghua.iginx.metadata.exception.MetaStorageException;
 import cn.edu.tsinghua.iginx.metadata.hook.StorageEngineChangeHook;
 import cn.edu.tsinghua.iginx.metadata.hook.StorageUnitHook;
 import cn.edu.tsinghua.iginx.policy.simple.ColumnCalDO;
+import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.sql.statement.InsertStatement;
 import cn.edu.tsinghua.iginx.thrift.AuthType;
 import cn.edu.tsinghua.iginx.transform.pojo.TriggerDescriptor;
@@ -58,7 +59,7 @@ public class MetaManagerMock implements IMetaManager {
   }
 
   @Override
-  public boolean removeDummyStorageEngine(long storageEngineId) {
+  public boolean removeDummyStorageEngine(long storageEngineId, boolean forAllIginx) {
     return false;
   }
 
@@ -103,8 +104,18 @@ public class MetaManagerMock implements IMetaManager {
   }
 
   @Override
+  public IginxMeta getIginxMeta() {
+    return null;
+  }
+
+  @Override
   public long getIginxId() {
     return 0;
+  }
+
+  @Override
+  public Map<Long, Session> getIginxSessionMap() {
+    return null;
   }
 
   @Override

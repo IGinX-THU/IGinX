@@ -1,0 +1,129 @@
+name: "Cluster Test"
+
+on:
+    workflow_call:
+        inputs:
+            java-matrix:
+                description: "The java version to run the test on"
+                type: string
+                required: false
+                default: '["8"]'
+            python-matrix:
+                description: "The python version to run the test on"
+                type: string
+                required: false
+                default: '["3.11"]'
+            os-matrix:
+                description: "The operating system to run the test on"
+                type: string
+                required: false
+                default: '["ubuntu-latest", "macos-latest", "windows-latest"]'
+            metadata-matrix:
+                description: "The metadata to run the test on"
+                type: string
+                required: false
+                default: '["zookeeper", "etcd"]'
+            timeout-minutes:
+                description: "The timeout minutes for the job"
+                type: number
+                required: false
+                default: 45
+
+jobs:
+    Cluster-Test:
+        timeout-minutes: ${{ inputs.timeout-minutes }}
+        strategy:
+            fail-fast: false
+            matrix:
+                java: ${{ fromJSON(inputs.java-matrix) }}
+                python-version: ${{ fromJSON(inputs.python-matrix) }}
+                os: ${{ fromJSON(inputs.os-matrix) }}
+                metadata: ${{ fromJSON(inputs.metadata-matrix) }}
+        runs-on: ${{ matrix.os }}
+        steps:
+            - uses: actions/checkout@v4
+            - name: Environment dependence
+              uses: ./.github/actions/dependence
+              with:
+                  python-version: ${{ matrix.python-version }}
+                  java: ${{ matrix.java }}
+                  iginx-conda-flag: "true"
+                  iginx-conda-env: "iginxEnv"
+
+            - name: Run Metadata
+              uses: ./.github/actions/metadataRunner
+              with:
+                  metadata: ${{ matrix.metadata }}
+
+            - name: Install IGinX with Maven
+              shell: bash
+              run: |
+                  mvn clean package -DskipTests -P-format -q
+
+            - name: Copy IGinX
+              shell: bash
+              run: |
+                  cp -r core/target/iginx-core-* IGinX-6889
+                  cp -r core/target/iginx-core-* IGinX-6890
+
+            - name: Modify IGinX-6889 Config
+              uses: ./.github/actions/edit
+              with:
+                  paths: IGinX-6889/conf/config.properties
+                  statements: |
+                      s/port=6888/port=6889/g
+                      s/iginx_port=6888/iginx_port=6889/g
+                      s/restPort=7888/restPort=7889/g
+
+            - name: Modify IGinX-6890 Config
+              uses: ./.github/actions/edit
+              with:
+                  paths: IGinX-6890/conf/config.properties
+                  statements: |
+                      s/port=6888/port=6890/g
+                      s/iginx_port=6888/iginx_port=6890/g
+                      s/restPort=7888/restPort=7890/g
+
+            - name: Start IGinX-6888
+              uses: ./.github/actions/iginxRunner
+
+            - name: Start IGinX-6889
+              working-directory: IGinX-6889
+              run: |
+                  if [ "$RUNNER_OS" == "Windows" ]; then
+                      chmod +x sbin/start_iginx.bat
+                      nohup sbin/start_iginx.bat > iginx-6889.log 2>&1 &
+                  else
+                      chmod +x sbin/start_iginx.sh
+                      nohup sbin/start_iginx.sh > iginx-6889.log 2>&1 &
+                  fi
+
+            - name: Start IGinX-6890
+              working-directory: IGinX-6890
+              run: |
+                  if [ "$RUNNER_OS" == "Windows" ]; then
+                      chmod +x sbin/start_iginx.bat
+                      nohup sbin/start_iginx.bat > iginx-6890.log 2>&1 &
+                  else
+                      chmod +x sbin/start_iginx.sh
+                      nohup sbin/start_iginx.sh > iginx-6890.log 2>&1 &
+                  fi
+
+            - name: ClusterIT
+              shell: bash -el {0}
+              run: mvn test -q -Dtest=ClusterIT -DfailIfNoTests=false -P-format
+
+            - name: Show IGinX-6888 log
+              if: always()
+              shell: bash
+              run: cat iginx-*.log
+
+            - name: Show IGinX-6889 log
+              if: always()
+              shell: bash
+              run: cat IGinX-6889/iginx-6889.log
+
+            - name: Show IGinX-6890 log
+              if: always()
+              shell: bash
+              run: cat IGinX-6890/iginx-6890.log

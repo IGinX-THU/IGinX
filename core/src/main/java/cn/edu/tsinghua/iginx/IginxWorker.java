@@ -47,6 +47,7 @@ import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
 import cn.edu.tsinghua.iginx.metadata.entity.*;
 import cn.edu.tsinghua.iginx.resource.QueryResourceManager;
+import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.thrift.*;
 import cn.edu.tsinghua.iginx.transform.exception.TransformException;
 import cn.edu.tsinghua.iginx.transform.exec.TransformJobManager;
@@ -296,7 +297,7 @@ public class IginxWorker implements IService.Iface {
         continue;
       }
       // 更新 zk 以及缓存中的元数据信息
-      if (!metaManager.removeDummyStorageEngine(storageEngineMeta.getId())) {
+      if (!metaManager.removeDummyStorageEngine(storageEngineMeta.getId(), req.isForAllIginx())) {
         partialFailAndLog(
             status,
             String.format("unexpected error during removing dummy storage engine %s.", info));
@@ -435,7 +436,7 @@ public class IginxWorker implements IService.Iface {
               LOGGER.debug("old engine cannot be connected");
               // 已有的数据库无法连接了，若是只读，直接删除
               if (currentStorageEngine.isReadOnly() && currentStorageEngine.isHasData()) {
-                metaManager.removeDummyStorageEngine(currentStorageEngine.getId());
+                metaManager.removeDummyStorageEngine(currentStorageEngine.getId(), false);
                 LOGGER.warn(
                     "Existing dummy Storage engine {} cannot be connected and will be removed.",
                     currentStorageEngine);
@@ -604,7 +605,7 @@ public class IginxWorker implements IService.Iface {
     targetMeta.updateExtraParams(newParams);
 
     // remove, then add
-    if (!metaManager.removeDummyStorageEngine(targetId)) {
+    if (!metaManager.removeDummyStorageEngine(targetId, true)) {
       LOGGER.error("unexpected error during removing dummy storage engine {}.", targetMeta);
       status.setCode(RpcUtils.FAILURE.code);
       status.setMessage("unexpected error occurred. Please check server log.");
@@ -745,9 +746,19 @@ public class IginxWorker implements IService.Iface {
     // if starts in Docker, host_iginx_port will be given as env, representing host port to access
     // IGinX service
     String iginxPort = System.getenv("host_iginx_port");
+    IginxMeta currentIginx = metaManager.getIginxMeta();
+    Map<Long, Session> sessions = metaManager.getIginxSessionMap();
     for (IginxMeta iginxMeta : metaManager.getIginxList()) {
+      String connected;
+      if (iginxMeta.getId() == currentIginx.getId()) {
+        connected = "isSelf";
+      } else if (sessions.containsKey(iginxMeta.getId())) {
+        connected = "true";
+      } else {
+        connected = "false";
+      }
       int thisIginxPort = iginxPort != null ? Integer.parseInt(iginxPort) : iginxMeta.getPort();
-      iginxInfos.add(new IginxInfo(iginxMeta.getId(), iginxMeta.getIp(), thisIginxPort));
+      iginxInfos.add(new IginxInfo(iginxMeta.getId(), iginxMeta.getIp(), thisIginxPort, connected));
     }
     iginxInfos.sort(Comparator.comparingLong(IginxInfo::getId));
     resp.setIginxInfos(iginxInfos);
@@ -762,7 +773,8 @@ public class IginxWorker implements IService.Iface {
                   ? System.getenv("ip")
                   : storageEngineMeta.getIp(),
               storageEngineMeta.getPort(),
-              storageEngineMeta.getStorageEngine());
+              storageEngineMeta.getStorageEngine(),
+              "");
       info.setSchemaPrefix(
           storageEngineMeta.getSchemaPrefix() == null
               ? "null"

@@ -30,6 +30,7 @@ import cn.edu.tsinghua.iginx.metadata.exception.MetaStorageException;
 import cn.edu.tsinghua.iginx.metadata.hook.*;
 import cn.edu.tsinghua.iginx.metadata.storage.IMetaStorage;
 import cn.edu.tsinghua.iginx.metadata.utils.ReshardStatus;
+import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.transform.pojo.TriggerDescriptor;
 import cn.edu.tsinghua.iginx.utils.JsonUtils;
 import cn.edu.tsinghua.iginx.utils.Pair;
@@ -69,7 +70,10 @@ public class ETCDMetaStorage implements IMetaStorage {
 
   private static ETCDMetaStorage INSTANCE = null;
 
+  private final Lock iginxLeaseLock = new ReentrantLock();
+  private final Lock iginxConnectionLock = new ReentrantLock();
   private final Lock storageLeaseLock = new ReentrantLock();
+  private final Lock storageConnectionLock = new ReentrantLock();
   private final Lock storageUnitLeaseLock = new ReentrantLock();
   private final Lock fragmentLeaseLock = new ReentrantLock();
   private final Lock userLeaseLock = new ReentrantLock();
@@ -210,12 +214,10 @@ public class ETCDMetaStorage implements IMetaStorage {
                               JsonUtils.fromJson(
                                   event.getKeyValue().getValue().getBytes(), IginxMeta.class);
                           LOGGER.info(
-                              "new iginx comes to cluster: id = "
-                                  + iginx.getId()
-                                  + " ,ip = "
-                                  + iginx.getIp()
-                                  + " , port = "
-                                  + iginx.getPort());
+                              "new iginx comes to cluster: id = {} ,ip = {} , port = {}",
+                              iginx.getId(),
+                              iginx.getIp(),
+                              iginx.getPort());
                           ETCDMetaStorage.this.iginxChangeHook.onChange(iginx.getId(), iginx);
                           break;
                         case DELETE:
@@ -223,12 +225,10 @@ public class ETCDMetaStorage implements IMetaStorage {
                               JsonUtils.fromJson(
                                   event.getPrevKV().getValue().getBytes(), IginxMeta.class);
                           LOGGER.info(
-                              "iginx leave from cluster: id = "
-                                  + iginx.getId()
-                                  + " ,ip = "
-                                  + iginx.getIp()
-                                  + " , port = "
-                                  + iginx.getPort());
+                              "iginx leave from cluster: id = {} ,ip = {} , port = {}",
+                              iginx.getId(),
+                              iginx.getIp(),
+                              iginx.getPort());
                           iginxChangeHook.onChange(iginx.getId(), null);
                           break;
                         default:
@@ -715,7 +715,7 @@ public class ETCDMetaStorage implements IMetaStorage {
   }
 
   @Override
-  public long registerIginx(IginxMeta iginx) throws MetaStorageException {
+  public IginxMeta registerIginx(IginxMeta iginx) throws MetaStorageException {
     try {
       // 申请一个 id
       long id = nextId(IGINX_ID);
@@ -744,7 +744,7 @@ public class ETCDMetaStorage implements IMetaStorage {
               ByteSequence.from(generateID(IGINX_NODE_PREFIX, IGINX_NODE_LENGTH, id).getBytes()),
               ByteSequence.from(JsonUtils.toJson(iginx)))
           .get();
-      return id;
+      return iginx;
     } catch (ExecutionException | InterruptedException e) {
       LOGGER.error("got error when register iginx meta: ", e);
       throw new MetaStorageException(e);
@@ -832,7 +832,8 @@ public class ETCDMetaStorage implements IMetaStorage {
   }
 
   @Override
-  public long addStorageEngine(StorageEngineMeta storageEngine) throws MetaStorageException {
+  public long addStorageEngine(long iginxId, StorageEngineMeta storageEngine)
+      throws MetaStorageException {
     try {
       lockStorage();
       long id = nextId(STORAGE_ID);
@@ -857,7 +858,8 @@ public class ETCDMetaStorage implements IMetaStorage {
   }
 
   @Override
-  public void removeDummyStorageEngine(long storageEngineId) throws MetaStorageException {
+  public void removeDummyStorageEngine(long iginxId, long storageEngineId, boolean forAllIginx)
+      throws MetaStorageException {
     try {
       lockStorage();
       this.client
@@ -883,6 +885,24 @@ public class ETCDMetaStorage implements IMetaStorage {
   }
 
   @Override
+  public Map<Long, Session> connectOtherIginx(IginxMeta iginx) throws MetaStorageException {
+    // TODO
+    return Collections.emptyMap();
+  }
+
+  @Override
+  public Map<Long, List<Long>> updateClusterIginxConnections() throws MetaStorageException {
+    // TODO
+    return Collections.emptyMap();
+  }
+
+  @Override
+  public Map<Long, List<Long>> updateClusterStorageConnections() throws MetaStorageException {
+    // TODO
+    return Collections.emptyMap();
+  }
+
+  @Override
   public Map<String, StorageUnitMeta> loadStorageUnit() throws MetaStorageException {
     try {
       Map<String, StorageUnitMeta> storageUnitMap = new HashMap<>();
@@ -904,9 +924,8 @@ public class ETCDMetaStorage implements IMetaStorage {
           StorageUnitMeta masterStorageUnit = storageUnitMap.get(storageUnit.getMasterId());
           if (masterStorageUnit == null) { // 子节点先于主节点加入系统中，不应该发生，报错
             LOGGER.error(
-                "unexpected storage unit "
-                    + new String(kv.getValue().getBytes())
-                    + ", because it does not has a master storage unit");
+                "unexpected storage unit {}, because it does not has a master storage unit",
+                new String(kv.getValue().getBytes()));
           } else {
             masterStorageUnit.addReplica(storageUnit);
           }

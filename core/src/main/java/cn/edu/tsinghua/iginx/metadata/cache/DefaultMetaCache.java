@@ -24,8 +24,10 @@ import static cn.edu.tsinghua.iginx.metadata.utils.IdUtils.generateDummyStorageU
 import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.*;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.metadata.entity.*;
 import cn.edu.tsinghua.iginx.policy.simple.ColumnCalDO;
+import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.sql.statement.InsertStatement;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.transform.pojo.TriggerDescriptor;
@@ -74,8 +76,17 @@ public class DefaultMetaCache implements IMetaCache {
   // iginx 的缓存
   private final Map<Long, IginxMeta> iginxMetaMap;
 
+  // iginx 之间连接关系的缓存
+  private final Map<Long, List<Long>> iginxConnectionMap;
+
+  // 当前 iginx 和集群其他 iginx 连接的缓存
+  private final Map<Long, Session> iginxSessionMap;
+
   // 数据后端的缓存
   private final Map<Long, StorageEngineMeta> storageEngineMetaMap;
+
+  // iginx 和数据后端连接关系的缓存
+  private final Map<Long, List<Long>> storageConnectionMap;
 
   // schemaMapping 的缓存
   private final Map<String, Map<String, Integer>> schemaMappings;
@@ -118,8 +129,11 @@ public class DefaultMetaCache implements IMetaCache {
     storageUnitLock = new ReentrantReadWriteLock();
     // iginx 相关
     iginxMetaMap = new ConcurrentHashMap<>();
+    iginxConnectionMap = new ConcurrentHashMap<>();
+    iginxSessionMap = new ConcurrentHashMap<>();
     // 数据后端相关
     storageEngineMetaMap = new ConcurrentHashMap<>();
+    storageConnectionMap = new ConcurrentHashMap<>();
     // schemaMapping 相关
     schemaMappings = new ConcurrentHashMap<>();
     // user 相关
@@ -680,6 +694,11 @@ public class DefaultMetaCache implements IMetaCache {
   }
 
   @Override
+  public IginxMeta getIginx(long id) {
+    return iginxMetaMap.get(id);
+  }
+
+  @Override
   public void addIginx(IginxMeta iginxMeta) {
     iginxMetaMap.put(iginxMeta.getId(), iginxMeta);
   }
@@ -687,6 +706,21 @@ public class DefaultMetaCache implements IMetaCache {
   @Override
   public void removeIginx(long id) {
     iginxMetaMap.remove(id);
+    // 关闭与移除 iginx 的连接
+    if (iginxSessionMap.containsKey(id)) {
+      Session session = iginxSessionMap.get(id);
+      try {
+        session.closeSession();
+      } catch (SessionException e) {
+        LOGGER.info(
+            "close session (id = {} , host = {} , port = {}) failed, because: ",
+            session.getSessionId(),
+            session.getHost(),
+            session.getPort(),
+            e);
+      }
+    }
+    iginxSessionMap.remove(id);
   }
 
   @Override
@@ -740,6 +774,46 @@ public class DefaultMetaCache implements IMetaCache {
   @Override
   public StorageEngineMeta getStorageEngine(long id) {
     return this.storageEngineMetaMap.get(id);
+  }
+
+  @Override
+  public Map<Long, Session> getIginxSessionMap() {
+    return iginxSessionMap;
+  }
+
+  @Override
+  public Session getIginxSession(long id) {
+    if (iginxSessionMap.containsKey(id)) {
+      return iginxSessionMap.get(id);
+    }
+    return null;
+  }
+
+  @Override
+  public void addIginxSession(long id, Session session) {
+    this.iginxSessionMap.put(id, session);
+  }
+
+  @Override
+  public Map<Long, List<Long>> getIginxConnections() {
+    return iginxConnectionMap;
+  }
+
+  @Override
+  public void updateIginxConnections(Map<Long, List<Long>> connections) {
+    iginxConnectionMap.clear();
+    iginxConnectionMap.putAll(connections);
+  }
+
+  @Override
+  public Map<Long, List<Long>> getStorageConnections() {
+    return storageConnectionMap;
+  }
+
+  @Override
+  public void updateStorageConnections(Map<Long, List<Long>> connections) {
+    storageConnectionMap.clear();
+    storageConnectionMap.putAll(connections);
   }
 
   @Override

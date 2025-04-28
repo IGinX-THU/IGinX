@@ -447,6 +447,7 @@ struct IginxInfo {
     1: required i64 id
     2: required string ip
     3: required i32 port
+    4: required string connected
 }
 
 struct StorageEngineInfo {
@@ -454,8 +455,9 @@ struct StorageEngineInfo {
     2: required string ip
     3: required i32 port
     4: required StorageEngineType type
-    5: optional string schemaPrefix
-    6: optional string dataPrefix
+    5: required string connected
+    6: optional string schemaPrefix
+    7: optional string dataPrefix
 }
 
 struct MetaStorageInfo {
@@ -722,6 +724,7 @@ struct RemovedStorageEngineInfo {
 struct RemoveStorageEngineReq {
     1: required i64 sessionId
     2: required list<RemovedStorageEngineInfo> removedStorageEngineInfoList
+    3: required bool forAllIginx
 }
 
 struct ShowSessionIDReq {

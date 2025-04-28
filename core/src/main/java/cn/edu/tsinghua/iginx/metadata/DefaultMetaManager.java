@@ -28,6 +28,7 @@ import static cn.edu.tsinghua.iginx.utils.HostUtils.isValidHost;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.conf.Constants;
 import cn.edu.tsinghua.iginx.engine.physical.storage.StorageManager;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.metadata.cache.DefaultMetaCache;
 import cn.edu.tsinghua.iginx.metadata.cache.IMetaCache;
 import cn.edu.tsinghua.iginx.metadata.entity.*;
@@ -41,6 +42,7 @@ import cn.edu.tsinghua.iginx.metadata.utils.ReshardStatus;
 import cn.edu.tsinghua.iginx.monitor.HotSpotMonitor;
 import cn.edu.tsinghua.iginx.monitor.RequestsMonitor;
 import cn.edu.tsinghua.iginx.policy.simple.ColumnCalDO;
+import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.sql.statement.InsertStatement;
 import cn.edu.tsinghua.iginx.thrift.AuthType;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
@@ -219,6 +221,29 @@ public class DefaultMetaManager implements IMetaManager {
             cache.removeIginx(id);
           } else {
             cache.addIginx(iginx);
+            if (iginx.getIp().equals(ConfigDescriptor.getInstance().getConfig().getIp())
+                && iginx.getPort() == ConfigDescriptor.getInstance().getConfig().getPort()) {
+              return;
+            }
+            // 尝试与新进来的 iginx 建立连接
+            Session session = new Session(iginx.iginxMetaInfo());
+            try {
+              session.openSession();
+            } catch (SessionException e) {
+              LOGGER.info(
+                  "open session of iginx(id = {} ,ip = {} , port = {}) failed, because: ",
+                  iginx.getId(),
+                  iginx.getIp(),
+                  iginx.getPort(),
+                  e);
+              return;
+            }
+            LOGGER.info(
+                "connect to iginx(id = {} ,ip = {} , port = {})",
+                iginx.getId(),
+                iginx.getIp(),
+                iginx.getPort());
+            cache.addIginxSession(iginx.getId(), session);
           }
         });
     for (IginxMeta iginx : storage.loadIginx().values()) {
@@ -229,9 +254,12 @@ public class DefaultMetaManager implements IMetaManager {
             0L,
             ConfigDescriptor.getInstance().getConfig().getIp(),
             ConfigDescriptor.getInstance().getConfig().getPort(),
-            null);
-    id = storage.registerIginx(iginx);
+            new HashMap<>());
+    iginx = storage.registerIginx(iginx);
+    id = iginx.getId();
     SnowFlakeUtils.init(id);
+    storage.connectOtherIginx(iginx).forEach(cache::addIginxSession);
+    cache.updateIginxConnections(storage.updateClusterIginxConnections());
   }
 
   private void initStorageEngine() throws MetaStorageException {
@@ -239,6 +267,8 @@ public class DefaultMetaManager implements IMetaManager {
         (id, storageEngine) -> {
           if (storageEngine != null) {
             addStorageEngine(id, storageEngine);
+          } else {
+            removeDummyStorageEngine(id, false);
           }
         });
     storageEngineListFromConf = resolveStorageEngineFromConf();
@@ -420,7 +450,7 @@ public class DefaultMetaManager implements IMetaManager {
   public boolean addStorageEngines(List<StorageEngineMeta> storageEngineMetas) {
     try {
       for (StorageEngineMeta storageEngineMeta : storageEngineMetas) {
-        long id = storage.addStorageEngine(storageEngineMeta);
+        long id = storage.addStorageEngine(getIginxId(), storageEngineMeta);
         storageEngineMeta.setId(id);
         addStorageEngine(id, storageEngineMeta);
       }
@@ -453,9 +483,9 @@ public class DefaultMetaManager implements IMetaManager {
   }
 
   @Override
-  public boolean removeDummyStorageEngine(long storageEngineId) {
+  public boolean removeDummyStorageEngine(long storageEngineId, boolean forAllIginx) {
     try {
-      storage.removeDummyStorageEngine(storageEngineId);
+      storage.removeDummyStorageEngine(id, storageEngineId, forAllIginx);
       // release 对接层
       for (StorageEngineChangeHook hook : storageEngineChangeHooks) {
         hook.onChange(getStorageEngine(storageEngineId), null);
@@ -510,8 +540,18 @@ public class DefaultMetaManager implements IMetaManager {
   }
 
   @Override
+  public IginxMeta getIginxMeta() {
+    return cache.getIginx(id);
+  }
+
+  @Override
   public long getIginxId() {
     return id;
+  }
+
+  @Override
+  public Map<Long, Session> getIginxSessionMap() {
+    return cache.getIginxSessionMap();
   }
 
   @Override
