@@ -635,7 +635,7 @@ public class RelationalStorage implements IStorage {
             }
             return newColumnNames;
           });
-      filter = expandFilter(filter, fullColumnNamesListForExpandFilter, databaseName, false);
+      filter = expandFilter(filter, fullColumnNamesListForExpandFilter);
       filter = LogicalFilterUtils.mergeTrue(filter);
     }
 
@@ -702,7 +702,7 @@ public class RelationalStorage implements IStorage {
             }
             return newColumnNames;
           });
-      copyFilter = expandFilter(copyFilter, fullColumnNamesList, databaseName, true);
+      copyFilter = expandFilter(copyFilter, fullColumnNamesList);
       copyFilter = LogicalFilterUtils.mergeTrue(copyFilter);
     }
 
@@ -753,8 +753,7 @@ public class RelationalStorage implements IStorage {
       LOGGER.info("project.getPatterns(): " + project.getPatterns());
       LOGGER.info("tableNameToColumnNames: " + tableNameToColumnNames);
       // 按列顺序加上表名
-      Filter expandFilter =
-          expandFilter(filter.copy(), tableNameToColumnNames, databaseName, false);
+      Filter expandFilter = expandFilter(filter.copy(), tableNameToColumnNames);
       LOGGER.info("expandFilter: " + expandFilter);
       LOGGER.info("filter: " + filter);
 
@@ -1027,207 +1026,52 @@ public class RelationalStorage implements IStorage {
     return fullTableName.toString();
   }
 
-  private Filter expandFilter(
-      Filter filter,
-      Map<String, String> tableNameToColumnNames,
-      String databaseName,
-      boolean isDummy) {
+  private Filter expandFilter(Filter filter, Map<String, String> tableNameToColumnNames) {
     List<List<String>> fullColumnNamesList = new ArrayList<>();
     for (Map.Entry<String, String> entry : tableNameToColumnNames.entrySet()) {
       List<String> fullColumnNames = new ArrayList<>(Arrays.asList(entry.getValue().split(", ")));
-      if (!relationalMeta.supportCreateDatabase() && !isDummy) {
-        // 将columnNames中的列名加上tableName前缀
-        fullColumnNames.replaceAll(
-            s ->
-                RelationSchema.getQuoteFullName(
-                    databaseName + SEPARATOR + entry.getKey(), s, relationalMeta.getQuote()));
-      } else {
-        // 将columnNames中的列名加上tableName前缀
-        fullColumnNames.replaceAll(
-            s -> RelationSchema.getQuoteFullName(entry.getKey(), s, relationalMeta.getQuote()));
-      }
+      // 将columnNames中的列名加上tableName前缀
+      fullColumnNames.replaceAll(
+          s -> RelationSchema.getQuoteFullName(entry.getKey(), s, relationalMeta.getQuote()));
       fullColumnNamesList.add(fullColumnNames);
     }
-    LOGGER.info("fullColumnNamesList: " + fullColumnNamesList);
     // 把fullColumnNamesList中的列名全部用removeFullColumnNameQuote去掉引号
     fullColumnNamesList.replaceAll(
         columnNames -> {
           List<String> newColumnNames = new ArrayList<>();
-          LOGGER.info("columnNames: " + columnNames);
           for (String columnName : columnNames) {
             newColumnNames.add(removeFullColumnNameQuote(columnName));
           }
-          LOGGER.info("newColumnNames: " + newColumnNames);
           return newColumnNames;
         });
-    LOGGER.info("fullColumnNamesList: " + fullColumnNamesList);
-    filter = expandFilter(filter, fullColumnNamesList, databaseName, isDummy);
-    LOGGER.info("a filter: " + filter);
+    filter = expandFilter(filter, fullColumnNamesList);
     filter = LogicalFilterUtils.mergeTrue(filter);
-    LOGGER.info("b filter: " + filter);
     return filter;
   }
 
-  //  private Filter getFullFilter(Filter filter, String databaseName) {
-  //    if (filter == null) {
-  //      return null;
-  //    }
-  //    switch (filter.getType()) {
-  //      case And:
-  //        List<Filter> andChildren = ((AndFilter) filter).getChildren();
-  //        for (Filter child : andChildren) {
-  //          Filter newFilter = getFullFilter(child, databaseName);
-  //          andChildren.set(andChildren.indexOf(child), newFilter);
-  //        }
-  //        return new AndFilter(andChildren);
-  //      case Or:
-  //        List<Filter> orChildren = ((OrFilter) filter).getChildren();
-  //        for (Filter child : orChildren) {
-  //          Filter newFilter = getFullFilter(child, databaseName);
-  //          orChildren.set(orChildren.indexOf(child), newFilter);
-  //        }
-  //        return new OrFilter(orChildren);
-  //      case Not:
-  //        Filter notChild = ((NotFilter) filter).getChild();
-  //        Filter newFilter = getFullFilter(child, databaseName);
-  //        return new NotFilter(newFilter);
-  //      case Value:
-  //        ValueFilter valueFilter = ((ValueFilter) filter);
-  //        String path = valueFilter.getPath();
-  //        List<String> matchedPaths = getMatchedPath(path, columnNamesList);
-  //        if (matchedPaths.isEmpty()) {
-  //          return new BoolFilter(true);
-  //        } else if (matchedPaths.size() == 1) {
-  //          return new ValueFilter(matchedPaths.get(0), valueFilter.getOp(),
-  // valueFilter.getValue());
-  //        } else {
-  //          List<Filter> newFilters = new ArrayList<>();
-  //          for (String matched : matchedPaths) {
-  //            newFilters.add(new ValueFilter(matched, valueFilter.getOp(),
-  // valueFilter.getValue()));
-  //          }
-  //          if (Op.isOrOp(valueFilter.getOp())) {
-  //            return new OrFilter(newFilters);
-  //          } else {
-  //            return new AndFilter(newFilters);
-  //          }
-  //        }
-  //      case In:
-  //        InFilter inFilter = (InFilter) filter;
-  //        String inPath = inFilter.getPath();
-  //        if (inPath.contains("*")) {
-  //          List<String> matchedPath = getMatchedPath(inPath, columnNamesList);
-  //          if (matchedPath.size() == 0) {
-  //            return new BoolFilter(true);
-  //          } else if (matchedPath.size() == 1) {
-  //            return new InFilter(matchedPath.get(0), inFilter.getInOp(), inFilter.getValues());
-  //          } else {
-  //            List<Filter> inChildren = new ArrayList<>();
-  //            for (String matched : matchedPath) {
-  //              inChildren.add(new InFilter(matched, inFilter.getInOp(), inFilter.getValues()));
-  //            }
-  //
-  //            if (inFilter.getInOp().isOrOp()) {
-  //              return new OrFilter(inChildren);
-  //            }
-  //            return new AndFilter(inChildren);
-  //          }
-  //        }
-  //
-  //        return filter;
-  //      case Path:
-  //        String pathA = ((PathFilter) filter).getPathA();
-  //        String pathB = ((PathFilter) filter).getPathB();
-  //        if (pathA.contains("*")) {
-  //          List<String> matchedPath = getMatchedPath(pathA, columnNamesList);
-  //          if (matchedPath.size() == 0) {
-  //            return new BoolFilter(true);
-  //          } else if (matchedPath.size() == 1) {
-  //            return new PathFilter(
-  //                    matchedPath.get(0),
-  //                    ((PathFilter) filter).getOp(),
-  //                    ((PathFilter) filter).getPathB());
-  //          } else {
-  //            List<Filter> andPathChildren = new ArrayList<>();
-  //            for (String matched : matchedPath) {
-  //              andPathChildren.add(
-  //                      new PathFilter(
-  //                              matched, ((PathFilter) filter).getOp(), ((PathFilter)
-  // filter).getPathB()));
-  //            }
-  //            if (Op.isOrOp(((PathFilter) filter).getOp())) {
-  //              filter = new OrFilter(andPathChildren);
-  //            } else {
-  //              filter = new AndFilter(andPathChildren);
-  //            }
-  //          }
-  //        }
-  //
-  //        if (pathB.contains("*")) {
-  //          if (filter.getType() != FilterType.Path) {
-  //            return expandFilter(filter, columnNamesList);
-  //          }
-  //
-  //          List<String> matchedPath = getMatchedPath(pathB, columnNamesList);
-  //          if (matchedPath.size() == 0) {
-  //            return new BoolFilter(true);
-  //          } else if (matchedPath.size() == 1) {
-  //            return new PathFilter(
-  //                    ((PathFilter) filter).getPathA(),
-  //                    ((PathFilter) filter).getOp(),
-  //                    matchedPath.get(0));
-  //          } else {
-  //            List<Filter> andPathChildren = new ArrayList<>();
-  //            for (String matched : matchedPath) {
-  //              andPathChildren.add(
-  //                      new PathFilter(
-  //                              ((PathFilter) filter).getPathA(), ((PathFilter) filter).getOp(),
-  // matched));
-  //            }
-  //            if (Op.isOrOp(((ValueFilter) filter).getOp())) {
-  //              return new OrFilter(andPathChildren);
-  //            }
-  //            return new AndFilter(andPathChildren);
-  //          }
-  //        }
-  //
-  //        return filter;
-  //
-  //      case Bool:
-  //      case Key:
-  //      default:
-  //        break;
-  //    }
-  //    return filter;
-  //  }
-
-  private Filter expandFilter(
-      Filter filter, List<List<String>> columnNamesList, String databaseName, boolean isDummy) {
+  private Filter expandFilter(Filter filter, List<List<String>> columnNamesList) {
     switch (filter.getType()) {
       case And:
         List<Filter> andChildren = ((AndFilter) filter).getChildren();
         for (Filter child : andChildren) {
-          Filter newFilter = expandFilter(child, columnNamesList, databaseName, isDummy);
+          Filter newFilter = expandFilter(child, columnNamesList);
           andChildren.set(andChildren.indexOf(child), newFilter);
         }
         return new AndFilter(andChildren);
       case Or:
         List<Filter> orChildren = ((OrFilter) filter).getChildren();
         for (Filter child : orChildren) {
-          Filter newFilter = expandFilter(child, columnNamesList, databaseName, isDummy);
+          Filter newFilter = expandFilter(child, columnNamesList);
           orChildren.set(orChildren.indexOf(child), newFilter);
         }
         return new OrFilter(orChildren);
       case Not:
         Filter notChild = ((NotFilter) filter).getChild();
-        Filter newFilter = expandFilter(notChild, columnNamesList, databaseName, isDummy);
+        Filter newFilter = expandFilter(notChild, columnNamesList);
         return new NotFilter(newFilter);
       case Value:
         ValueFilter valueFilter = ((ValueFilter) filter);
         String path = valueFilter.getPath();
-        if (!relationalMeta.supportCreateDatabase() && !isDummy) {
-          path = databaseName + SEPARATOR + path;
-        }
         List<String> matchedPaths = getMatchedPath(path, columnNamesList);
         if (matchedPaths.isEmpty()) {
           return new BoolFilter(true);
@@ -1247,9 +1091,6 @@ public class RelationalStorage implements IStorage {
       case In:
         InFilter inFilter = (InFilter) filter;
         String inPath = inFilter.getPath();
-        if (!relationalMeta.supportCreateDatabase() && !isDummy) {
-          inPath = databaseName + SEPARATOR + inPath;
-        }
         if (inPath.contains("*")) {
           List<String> matchedPath = getMatchedPath(inPath, columnNamesList);
           if (matchedPath.size() == 0) {
@@ -1271,12 +1112,6 @@ public class RelationalStorage implements IStorage {
 
         return filter;
       case Path:
-        if (!relationalMeta.supportCreateDatabase() && !isDummy) {
-          ((PathFilter) filter)
-              .setPathA(databaseName + SEPARATOR + ((PathFilter) filter).getPathA());
-          ((PathFilter) filter)
-              .setPathB(databaseName + SEPARATOR + ((PathFilter) filter).getPathB());
-        }
         String pathA = ((PathFilter) filter).getPathA();
         String pathB = ((PathFilter) filter).getPathB();
         if (pathA.contains("*")) {
@@ -1305,7 +1140,7 @@ public class RelationalStorage implements IStorage {
 
         if (pathB.contains("*")) {
           if (filter.getType() != FilterType.Path) {
-            return expandFilter(filter, columnNamesList, databaseName, isDummy);
+            return expandFilter(filter, columnNamesList);
           }
 
           List<String> matchedPath = getMatchedPath(pathB, columnNamesList);
@@ -1580,7 +1415,14 @@ public class RelationalStorage implements IStorage {
       statement = statement.substring(0, statement.length() - 1); // 去掉最后的分号
       Map<String, String> fullName2Name = new HashMap<>();
       statement =
-          generateAggSql(functionCalls, gbc, statement, tableNameToColumnNames, fullName2Name);
+          generateAggSql(
+              functionCalls,
+              gbc,
+              statement,
+              tableNameToColumnNames,
+              fullName2Name,
+              databaseName,
+              false);
 
       ResultSet rs = null;
       try {
@@ -1646,11 +1488,14 @@ public class RelationalStorage implements IStorage {
       List<Expression> gbc,
       String statement,
       Map<String, String> table2Column,
-      Map<String, String> fullName2Name) {
+      Map<String, String> fullName2Name,
+      String databaseName,
+      boolean isDummy) {
     char quote = relationalMeta.getQuote();
     List<String> fullColumnNames = new ArrayList<>();
     for (Map.Entry<String, String> entry : table2Column.entrySet()) {
       String tableName = entry.getKey();
+      LOGGER.info("tableName: {}", tableName);
       List<String> columnNames = new ArrayList<>(Arrays.asList(entry.getValue().split(", ")));
       for (String columnName : columnNames) {
         fullColumnNames.add(tableName + SEPARATOR + columnName);
@@ -1668,14 +1513,16 @@ public class RelationalStorage implements IStorage {
     for (FunctionCall functionCall : functionCalls) {
       String functionName = functionCall.getFunction().getIdentifier();
       Expression param = functionCall.getParams().getExpressions().get(0);
-
+      LOGGER.info("param: {}", param.getCalColumnName());
+      LOGGER.info("param: {}", param.getColumnName());
       List<Expression> expandExprs = expandExpression(param, fullColumnNames);
       for (Expression expr : expandExprs) {
+        LOGGER.info("expand expr: {}", expr.getCalColumnName());
         String IGinXTagKVName =
             String.format(
                 "%s(%s)", functionName, exprToIGinX(ExprUtils.copy(expr)).getColumnName());
         fullName2Name.put(IGinXTagKVName, functionCall.getFunctionStr());
-
+        LOGGER.info("IGinXTagKVName: {}", IGinXTagKVName);
         String format = "%s(%s)";
         // 如果是avg函数，且参数是base类型，在mysql下小数位数仅有5位，需要转换为decimal来补齐
         // 仅在mysql下这么做，pg也可以用，但会出现一些误差，例如3.200000和3.1999999的区别，测试不好通过
@@ -1683,9 +1530,11 @@ public class RelationalStorage implements IStorage {
             && param.getType() == Expression.ExpressionType.Base) {
           format = dbStrategy.getAvgCastExpression(param);
         }
-        sqlColumnsStr.append(
-            String.format(
-                format, functionName, exprAdapt(ExprUtils.copy(expr)).getCalColumnName()));
+        if (expr instanceof BaseExpression && !relationalMeta.supportCreateDatabase() && !isDummy) {
+          ((BaseExpression) expr).setPathName(databaseName + SEPARATOR + expr.getCalColumnName());
+        }
+        String calColumnName = exprAdapt(ExprUtils.copy(expr)).getCalColumnName();
+        sqlColumnsStr.append(String.format(format, functionName, calColumnName));
         sqlColumnsStr.append(" AS ");
         sqlColumnsStr.append(quote).append(IGinXTagKVName).append(quote);
         sqlColumnsStr.append(", ");
@@ -1907,7 +1756,14 @@ public class RelationalStorage implements IStorage {
             fc -> fc.getParams().getExpressions().forEach(this::cutExprDatabaseNameForDummy));
 
         statement =
-            generateAggSql(functionCalls, gbc, statement, tableNameToColumnNames, fullName2Name);
+            generateAggSql(
+                functionCalls,
+                gbc,
+                statement,
+                tableNameToColumnNames,
+                fullName2Name,
+                databaseName,
+                true);
 
         try {
           stmt = conn.createStatement();
@@ -1991,9 +1847,7 @@ public class RelationalStorage implements IStorage {
           Filter expandFilter =
               expandFilter(
                   cutFilterDatabaseNameForDummy(filter.copy(), databaseName),
-                  tableNameToColumnNames,
-                  databaseName,
-                  true);
+                  tableNameToColumnNames);
           for (Map.Entry<String, String> entry : splitEntry.getValue().entrySet()) {
             String tableName = entry.getKey();
             String fullQuotColumnNames = getQuotColumnNames(entry.getValue());
@@ -2321,9 +2175,6 @@ public class RelationalStorage implements IStorage {
       tableNameRegex = tableNameRegex.substring(0, tableNameRegex.length() - 2);
       tableNameRegex += "(\\" + SEPARATOR + ".*)?";
     }
-    //    if (engineName.equals("dameng") && !isDummy) {
-    //      tableNameRegex = databaseName + SEPARATOR + tableName;
-    //    }
     Pattern tableNamePattern = Pattern.compile("^" + tableNameRegex + "$");
 
     String columnNameRegex = columnNames;

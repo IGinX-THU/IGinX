@@ -213,16 +213,13 @@ public class RelationQueryRowStream implements RowStream {
                       ? ""
                       : tableName + SEPARATOR)
                   + namesAndTags.k;
-          if (!relationalMeta.supportCreateDatabase()) {
+          if (!isAgg && !relationalMeta.supportCreateDatabase()) {
             path = path.substring(databaseName.length() + 1);
           }
         }
 
         if (isAgg && fullName2Name.containsKey(path)) {
           field = new Field(fullName2Name.get(path), path, type, namesAndTags.v);
-        } else if (isAgg && (engine.equals("dameng")) && !path.contains(SEPARATOR)) {
-          // dameng引擎下，如果是聚合查询，需要将列名加上表名前缀
-          field = new Field(tableName + SEPARATOR + path, type, namesAndTags.v);
         } else {
           field = new Field(path, type, namesAndTags.v);
         }
