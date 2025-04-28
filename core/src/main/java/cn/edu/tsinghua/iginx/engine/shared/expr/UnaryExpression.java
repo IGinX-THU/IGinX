@@ -53,6 +53,9 @@ public class UnaryExpression implements Expression {
   }
 
   @Override
+  public void setColumnName(String databaseName) {}
+
+  @Override
   public String getCalColumnName() {
     return Operator.operatorToCalString(operator) + " " + expression.getColumnName();
   }

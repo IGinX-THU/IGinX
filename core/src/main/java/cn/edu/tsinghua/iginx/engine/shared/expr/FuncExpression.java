@@ -111,6 +111,13 @@ public class FuncExpression implements Expression {
   }
 
   @Override
+  public void setColumnName(String databaseName) {
+    for (Expression expression : expressions) {
+      expression.setColumnName(databaseName);
+    }
+  }
+
+  @Override
   public ExpressionType getType() {
     return ExpressionType.Function;
   }

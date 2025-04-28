@@ -20,12 +20,15 @@
 package cn.edu.tsinghua.iginx.engine.shared.expr;
 
 public interface Expression {
+  String SEPARATOR = ".";
 
   String getColumnName();
 
   default String getCalColumnName() {
     return getColumnName();
   }
+
+  void setColumnName(String databaseName);
 
   ExpressionType getType();
 

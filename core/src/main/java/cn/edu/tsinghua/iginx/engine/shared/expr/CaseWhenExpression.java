@@ -73,6 +73,9 @@ public class CaseWhenExpression implements Expression {
   }
 
   @Override
+  public void setColumnName(String databaseName) {}
+
+  @Override
   public ExpressionType getType() {
     return ExpressionType.CaseWhen;
   }

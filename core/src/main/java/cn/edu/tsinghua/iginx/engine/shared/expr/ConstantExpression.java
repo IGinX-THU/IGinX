@@ -51,6 +51,9 @@ public class ConstantExpression implements Expression {
   }
 
   @Override
+  public void setColumnName(String databaseName) {}
+
+  @Override
   public ExpressionType getType() {
     return ExpressionType.Constant;
   }

@@ -1530,8 +1530,10 @@ public class RelationalStorage implements IStorage {
             && param.getType() == Expression.ExpressionType.Base) {
           format = dbStrategy.getAvgCastExpression(param);
         }
-        if (expr instanceof BaseExpression && !relationalMeta.supportCreateDatabase() && !isDummy) {
-          ((BaseExpression) expr).setPathName(databaseName + SEPARATOR + expr.getCalColumnName());
+        if (!relationalMeta.supportCreateDatabase() && !isDummy) {
+          //          ((BaseExpression) expr).setPathName(databaseName + SEPARATOR +
+          // expr.getCalColumnName());
+          expr.setColumnName(databaseName);
         }
         sqlColumnsStr.append(
             String.format(
@@ -1544,8 +1546,10 @@ public class RelationalStorage implements IStorage {
 
     for (Expression expr : gbc) {
       String originColumnStr = quote + expr.getColumnName() + quote;
-      if (expr instanceof BaseExpression && !relationalMeta.supportCreateDatabase() && !isDummy) {
-        ((BaseExpression) expr).setPathName(databaseName + SEPARATOR + expr.getCalColumnName());
+      if (!relationalMeta.supportCreateDatabase() && !isDummy) {
+        //        ((BaseExpression) expr).setPathName(databaseName + SEPARATOR +
+        // expr.getCalColumnName());
+        expr.setColumnName(databaseName);
       }
       sqlColumnsStr
           .append(exprAdapt(ExprUtils.copy(expr)).getCalColumnName())

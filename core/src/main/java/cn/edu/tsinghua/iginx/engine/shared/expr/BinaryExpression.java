@@ -72,6 +72,12 @@ public class BinaryExpression implements Expression {
   }
 
   @Override
+  public void setColumnName(String databaseName) {
+    leftExpression.setColumnName(databaseName);
+    rightExpression.setColumnName(databaseName);
+  }
+
+  @Override
   public String getCalColumnName() {
     return leftExpression.getCalColumnName()
         + " "
