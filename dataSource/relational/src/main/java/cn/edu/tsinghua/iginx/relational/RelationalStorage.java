@@ -1533,8 +1533,9 @@ public class RelationalStorage implements IStorage {
         if (expr instanceof BaseExpression && !relationalMeta.supportCreateDatabase() && !isDummy) {
           ((BaseExpression) expr).setPathName(databaseName + SEPARATOR + expr.getCalColumnName());
         }
-        String calColumnName = exprAdapt(ExprUtils.copy(expr)).getCalColumnName();
-        sqlColumnsStr.append(String.format(format, functionName, calColumnName));
+        sqlColumnsStr.append(
+            String.format(
+                format, functionName, exprAdapt(ExprUtils.copy(expr)).getCalColumnName()));
         sqlColumnsStr.append(" AS ");
         sqlColumnsStr.append(quote).append(IGinXTagKVName).append(quote);
         sqlColumnsStr.append(", ");
@@ -1543,6 +1544,9 @@ public class RelationalStorage implements IStorage {
 
     for (Expression expr : gbc) {
       String originColumnStr = quote + expr.getColumnName() + quote;
+      if (expr instanceof BaseExpression && !relationalMeta.supportCreateDatabase() && !isDummy) {
+        ((BaseExpression) expr).setPathName(databaseName + SEPARATOR + expr.getCalColumnName());
+      }
       sqlColumnsStr
           .append(exprAdapt(ExprUtils.copy(expr)).getCalColumnName())
           .append(" AS ")
