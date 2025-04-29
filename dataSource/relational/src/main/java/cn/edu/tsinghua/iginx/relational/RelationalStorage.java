@@ -742,16 +742,18 @@ public class RelationalStorage implements IStorage {
             new RelationalTaskExecuteFailureException(
                 String.format("cannot connect to database %s", databaseName)));
       }
-
+      if (!relationalMeta.supportCreateDatabase()) {
+        filter = reshapeFilterBeforeQuery(filter, databaseName);
+      }
       List<String> databaseNameList = new ArrayList<>();
       List<ResultSet> resultSets = new ArrayList<>();
       Statement stmt;
 
       Map<String, String> tableNameToColumnNames =
           splitAndMergeQueryPatterns(databaseName, project.getPatterns());
-      LOGGER.info("databaseName: " + databaseName);
-      LOGGER.info("project.getPatterns(): " + project.getPatterns());
-      LOGGER.info("tableNameToColumnNames: " + tableNameToColumnNames);
+      //      LOGGER.info("databaseName: " + databaseName);
+      //      LOGGER.info("project.getPatterns(): " + project.getPatterns());
+      //      LOGGER.info("tableNameToColumnNames: " + tableNameToColumnNames);
       // 按列顺序加上表名
       Filter expandFilter =
           expandFilter(filter.copy(), tableNameToColumnNames, databaseName, false);
@@ -814,6 +816,11 @@ public class RelationalStorage implements IStorage {
           resultSets.add(rs);
         }
       }
+
+      if (!relationalMeta.supportCreateDatabase()) {
+        filter = reshapeFilterAfterQuery(filter, databaseName);
+      }
+      LOGGER.info("filter: " + filter);
 
       RowStream rowStream =
           new ClearEmptyRowStreamWrapper(
@@ -1061,6 +1068,92 @@ public class RelationalStorage implements IStorage {
     return filter;
   }
 
+  private Filter reshapeFilterBeforeQuery(Filter filter, String databaseName) {
+    switch (filter.getType()) {
+      case And:
+        List<Filter> andChildren = ((AndFilter) filter).getChildren();
+        for (Filter child : andChildren) {
+          Filter newFilter = reshapeFilterBeforeQuery(child, databaseName);
+          andChildren.set(andChildren.indexOf(child), newFilter);
+        }
+        return new AndFilter(andChildren);
+      case Or:
+        List<Filter> orChildren = ((OrFilter) filter).getChildren();
+        for (Filter child : orChildren) {
+          Filter newFilter = reshapeFilterBeforeQuery(child, databaseName);
+          orChildren.set(orChildren.indexOf(child), newFilter);
+        }
+        return new OrFilter(orChildren);
+      case Not:
+        Filter notChild = ((NotFilter) filter).getChild();
+        Filter newFilter = reshapeFilterBeforeQuery(notChild, databaseName);
+        return new NotFilter(newFilter);
+      case Value:
+        ValueFilter valueFilter = ((ValueFilter) filter);
+        String path = valueFilter.getPath();
+        valueFilter.setPath(databaseName + SEPARATOR + path);
+        return valueFilter;
+      case In:
+        InFilter inFilter = (InFilter) filter;
+        String inPath = inFilter.getPath();
+        inFilter.setPath(databaseName + SEPARATOR + inPath);
+        return inFilter;
+      case Path:
+        PathFilter pathFilter = (PathFilter) filter;
+        String pathA = pathFilter.getPathA();
+        String pathB = pathFilter.getPathB();
+        pathFilter.setPathA(databaseName + SEPARATOR + pathA);
+        pathFilter.setPathB(databaseName + SEPARATOR + pathB);
+        return pathFilter;
+      default:
+        break;
+    }
+    return filter;
+  }
+
+  private Filter reshapeFilterAfterQuery(Filter filter, String databaseName) {
+    switch (filter.getType()) {
+      case And:
+        List<Filter> andChildren = ((AndFilter) filter).getChildren();
+        for (Filter child : andChildren) {
+          Filter newFilter = reshapeFilterAfterQuery(child, databaseName);
+          andChildren.set(andChildren.indexOf(child), newFilter);
+        }
+        return new AndFilter(andChildren);
+      case Or:
+        List<Filter> orChildren = ((OrFilter) filter).getChildren();
+        for (Filter child : orChildren) {
+          Filter newFilter = reshapeFilterAfterQuery(child, databaseName);
+          orChildren.set(orChildren.indexOf(child), newFilter);
+        }
+        return new OrFilter(orChildren);
+      case Not:
+        Filter notChild = ((NotFilter) filter).getChild();
+        Filter newFilter = reshapeFilterAfterQuery(notChild, databaseName);
+        return new NotFilter(newFilter);
+      case Value:
+        ValueFilter valueFilter = ((ValueFilter) filter);
+        String path = valueFilter.getPath();
+        valueFilter.setPath(path.substring(path.indexOf(SEPARATOR) + 1));
+        return valueFilter;
+      case In:
+        InFilter inFilter = (InFilter) filter;
+        String inPath = inFilter.getPath();
+        inFilter.setPath(inPath.substring(inPath.indexOf(SEPARATOR) + 1));
+        return inFilter;
+      case Path:
+        PathFilter pathFilter = (PathFilter) filter;
+        String pathA = pathFilter.getPathA();
+        String pathB = pathFilter.getPathB();
+        pathFilter.setPathA(pathA.substring(pathA.indexOf(SEPARATOR) + 1));
+        pathFilter.setPathB(pathB.substring(pathB.indexOf(SEPARATOR) + 1));
+        return pathFilter;
+      default:
+        break;
+    }
+    return filter;
+  }
+
   private Filter expandFilter(
       Filter filter, List<List<String>> columnNamesList, String databaseName, boolean isDummy) {
     switch (filter.getType()) {
@@ -1085,9 +1178,9 @@ public class RelationalStorage implements IStorage {
       case Value:
         ValueFilter valueFilter = ((ValueFilter) filter);
         String path = valueFilter.getPath();
-        if (!relationalMeta.supportCreateDatabase() && !isDummy) {
-          path = databaseName + SEPARATOR + path;
-        }
+        //        if (!relationalMeta.supportCreateDatabase() && !isDummy) {
+        //          path = databaseName + SEPARATOR + path;
+        //        }
         List<String> matchedPaths = getMatchedPath(path, columnNamesList);
         if (matchedPaths.isEmpty()) {
           return new BoolFilter(true);
@@ -1107,9 +1200,9 @@ public class RelationalStorage implements IStorage {
       case In:
         InFilter inFilter = (InFilter) filter;
         String inPath = inFilter.getPath();
-        if (!relationalMeta.supportCreateDatabase() && !isDummy) {
-          inPath = databaseName + SEPARATOR + inPath;
-        }
+        //        if (!relationalMeta.supportCreateDatabase() && !isDummy) {
+        //          inPath = databaseName + SEPARATOR + inPath;
+        //        }
         if (inPath.contains("*")) {
           List<String> matchedPath = getMatchedPath(inPath, columnNamesList);
           if (matchedPath.size() == 0) {
@@ -1131,12 +1224,12 @@ public class RelationalStorage implements IStorage {
 
         return filter;
       case Path:
-        if (!relationalMeta.supportCreateDatabase() && !isDummy) {
-          ((PathFilter) filter)
-              .setPathA(databaseName + SEPARATOR + ((PathFilter) filter).getPathA());
-          ((PathFilter) filter)
-              .setPathB(databaseName + SEPARATOR + ((PathFilter) filter).getPathB());
-        }
+        //        if (!relationalMeta.supportCreateDatabase() && !isDummy) {
+        //          ((PathFilter) filter)
+        //              .setPathA(databaseName + SEPARATOR + ((PathFilter) filter).getPathA());
+        //          ((PathFilter) filter)
+        //              .setPathB(databaseName + SEPARATOR + ((PathFilter) filter).getPathB());
+        //        }
         String pathA = ((PathFilter) filter).getPathA();
         String pathB = ((PathFilter) filter).getPathB();
         if (pathA.contains("*")) {

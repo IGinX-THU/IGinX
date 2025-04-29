@@ -445,6 +445,10 @@ public class RelationQueryRowStream implements RowStream {
     for (int j = 1; j <= resultSetMetaData.getColumnCount(); j++) {
       String tempColumnName = resultSetMetaData.getColumnName(j);
       String tempTableName = resultSetMetaData.getTableName(j);
+      if (!relationalMeta.supportCreateDatabase()) {
+        int firstSeparator = tempTableName.indexOf(SEPARATOR);
+        tempTableName = tempTableName.substring(firstSeparator + 1);
+      }
       if (tempColumnName.equals(columnName)
           && (tempTableName.isEmpty() || tempTableName.equals(tableName))) {
         return resultSet.getObject(j);
