@@ -635,7 +635,7 @@ public class RelationalStorage implements IStorage {
             }
             return newColumnNames;
           });
-      filter = expandFilter(filter, fullColumnNamesListForExpandFilter);
+      filter = expandFilter(filter, fullColumnNamesListForExpandFilter, databaseName, false);
       filter = LogicalFilterUtils.mergeTrue(filter);
     }
 
@@ -702,7 +702,7 @@ public class RelationalStorage implements IStorage {
             }
             return newColumnNames;
           });
-      copyFilter = expandFilter(copyFilter, fullColumnNamesList);
+      copyFilter = expandFilter(copyFilter, fullColumnNamesList, databaseName, true);
       copyFilter = LogicalFilterUtils.mergeTrue(copyFilter);
     }
 
@@ -753,7 +753,8 @@ public class RelationalStorage implements IStorage {
       LOGGER.info("project.getPatterns(): " + project.getPatterns());
       LOGGER.info("tableNameToColumnNames: " + tableNameToColumnNames);
       // 按列顺序加上表名
-      Filter expandFilter = expandFilter(filter.copy(), tableNameToColumnNames);
+      Filter expandFilter =
+          expandFilter(filter.copy(), tableNameToColumnNames, databaseName, false);
       LOGGER.info("expandFilter: " + expandFilter);
       LOGGER.info("filter: " + filter);
 
@@ -1026,13 +1027,24 @@ public class RelationalStorage implements IStorage {
     return fullTableName.toString();
   }
 
-  private Filter expandFilter(Filter filter, Map<String, String> tableNameToColumnNames) {
+  private Filter expandFilter(
+      Filter filter,
+      Map<String, String> tableNameToColumnNames,
+      String databaseName,
+      boolean isDummy) {
     List<List<String>> fullColumnNamesList = new ArrayList<>();
     for (Map.Entry<String, String> entry : tableNameToColumnNames.entrySet()) {
       List<String> fullColumnNames = new ArrayList<>(Arrays.asList(entry.getValue().split(", ")));
-      // 将columnNames中的列名加上tableName前缀
-      fullColumnNames.replaceAll(
-          s -> RelationSchema.getQuoteFullName(entry.getKey(), s, relationalMeta.getQuote()));
+      if (!relationalMeta.supportCreateDatabase() && !isDummy) {
+        fullColumnNames.replaceAll(
+            s ->
+                RelationSchema.getQuoteFullName(
+                    databaseName + SEPARATOR + entry.getKey(), s, relationalMeta.getQuote()));
+      } else {
+        // 将columnNames中的列名加上tableName前缀
+        fullColumnNames.replaceAll(
+            s -> RelationSchema.getQuoteFullName(entry.getKey(), s, relationalMeta.getQuote()));
+      }
       fullColumnNamesList.add(fullColumnNames);
     }
     // 把fullColumnNamesList中的列名全部用removeFullColumnNameQuote去掉引号
@@ -1044,34 +1056,38 @@ public class RelationalStorage implements IStorage {
           }
           return newColumnNames;
         });
-    filter = expandFilter(filter, fullColumnNamesList);
+    filter = expandFilter(filter, fullColumnNamesList, databaseName, isDummy);
     filter = LogicalFilterUtils.mergeTrue(filter);
     return filter;
   }
 
-  private Filter expandFilter(Filter filter, List<List<String>> columnNamesList) {
+  private Filter expandFilter(
+      Filter filter, List<List<String>> columnNamesList, String databaseName, boolean isDummy) {
     switch (filter.getType()) {
       case And:
         List<Filter> andChildren = ((AndFilter) filter).getChildren();
         for (Filter child : andChildren) {
-          Filter newFilter = expandFilter(child, columnNamesList);
+          Filter newFilter = expandFilter(child, columnNamesList, databaseName, isDummy);
           andChildren.set(andChildren.indexOf(child), newFilter);
         }
         return new AndFilter(andChildren);
       case Or:
         List<Filter> orChildren = ((OrFilter) filter).getChildren();
         for (Filter child : orChildren) {
-          Filter newFilter = expandFilter(child, columnNamesList);
+          Filter newFilter = expandFilter(child, columnNamesList, databaseName, isDummy);
           orChildren.set(orChildren.indexOf(child), newFilter);
         }
         return new OrFilter(orChildren);
       case Not:
         Filter notChild = ((NotFilter) filter).getChild();
-        Filter newFilter = expandFilter(notChild, columnNamesList);
+        Filter newFilter = expandFilter(notChild, columnNamesList, databaseName, isDummy);
         return new NotFilter(newFilter);
       case Value:
         ValueFilter valueFilter = ((ValueFilter) filter);
         String path = valueFilter.getPath();
+        if (!relationalMeta.supportCreateDatabase() && !isDummy) {
+          path = databaseName + SEPARATOR + path;
+        }
         List<String> matchedPaths = getMatchedPath(path, columnNamesList);
         if (matchedPaths.isEmpty()) {
           return new BoolFilter(true);
@@ -1091,6 +1107,9 @@ public class RelationalStorage implements IStorage {
       case In:
         InFilter inFilter = (InFilter) filter;
         String inPath = inFilter.getPath();
+        if (!relationalMeta.supportCreateDatabase() && !isDummy) {
+          inPath = databaseName + SEPARATOR + inPath;
+        }
         if (inPath.contains("*")) {
           List<String> matchedPath = getMatchedPath(inPath, columnNamesList);
           if (matchedPath.size() == 0) {
@@ -1112,6 +1131,12 @@ public class RelationalStorage implements IStorage {
 
         return filter;
       case Path:
+        if (!relationalMeta.supportCreateDatabase() && !isDummy) {
+          ((PathFilter) filter)
+              .setPathA(databaseName + SEPARATOR + ((PathFilter) filter).getPathA());
+          ((PathFilter) filter)
+              .setPathB(databaseName + SEPARATOR + ((PathFilter) filter).getPathB());
+        }
         String pathA = ((PathFilter) filter).getPathA();
         String pathB = ((PathFilter) filter).getPathB();
         if (pathA.contains("*")) {
@@ -1140,7 +1165,7 @@ public class RelationalStorage implements IStorage {
 
         if (pathB.contains("*")) {
           if (filter.getType() != FilterType.Path) {
-            return expandFilter(filter, columnNamesList);
+            return expandFilter(filter, columnNamesList, databaseName, isDummy);
           }
 
           List<String> matchedPath = getMatchedPath(pathB, columnNamesList);
@@ -1855,7 +1880,9 @@ public class RelationalStorage implements IStorage {
           Filter expandFilter =
               expandFilter(
                   cutFilterDatabaseNameForDummy(filter.copy(), databaseName),
-                  tableNameToColumnNames);
+                  tableNameToColumnNames,
+                  databaseName,
+                  true);
           for (Map.Entry<String, String> entry : splitEntry.getValue().entrySet()) {
             String tableName = entry.getKey();
             String fullQuotColumnNames = getQuotColumnNames(entry.getValue());
