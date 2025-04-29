@@ -19,9 +19,15 @@
  */
 package cn.edu.tsinghua.iginx.neo4j.tools;
 
+import static cn.edu.tsinghua.iginx.neo4j.tools.TagKVUtils.splitFullName;
+
+import cn.edu.tsinghua.iginx.engine.logical.utils.LogicalFilterUtils;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.utils.Pair;
+import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class FilterUtils {
 
@@ -178,6 +184,34 @@ public class FilterUtils {
     return result;
   }
 
+  public static boolean filterContainsType(List<FilterType> types, Filter filter) {
+    boolean res = false;
+    if (types.contains(filter.getType())) {
+      return true;
+    }
+    switch (filter.getType()) {
+      case And:
+        List<Filter> andChildren = ((AndFilter) filter).getChildren();
+        for (Filter child : andChildren) {
+          res |= filterContainsType(types, child);
+        }
+        break;
+      case Or:
+        List<Filter> orChildren = ((OrFilter) filter).getChildren();
+        for (Filter child : orChildren) {
+          res |= filterContainsType(types, child);
+        }
+        break;
+      case Not:
+        Filter notChild = ((NotFilter) filter).getChild();
+        res |= filterContainsType(types, notChild);
+        break;
+      default:
+        break;
+    }
+    return res;
+  }
+
   public static Filter expandFilter(Filter filter, String key) {
     switch (filter.getType()) {
       case And:
@@ -215,31 +249,164 @@ public class FilterUtils {
     return filter;
   }
 
-  public static boolean filterContainsType(List<FilterType> types, Filter filter) {
-    boolean res = false;
-    if (types.contains(filter.getType())) {
-      return true;
+  public static Filter expandFilter(
+      Filter filter, Map<String, Map<String, String>> labelToProperties) {
+    List<List<String>> fullColumnNamesList = new ArrayList<>();
+    for (Map.Entry<String, Map<String, String>> entry : labelToProperties.entrySet()) {
+      List<String> fullColumnNames = new ArrayList<>();
+      for (Map.Entry<String, String> property : entry.getValue().entrySet()) {
+        fullColumnNames.add(entry.getKey() + "." + property.getKey());
+      }
+      fullColumnNamesList.add(fullColumnNames);
     }
+    filter = expandFilter(filter, fullColumnNamesList);
+    filter = LogicalFilterUtils.mergeTrue(filter);
+    return filter;
+  }
+
+  private static Filter expandFilter(Filter filter, List<List<String>> columnNamesList) {
     switch (filter.getType()) {
       case And:
         List<Filter> andChildren = ((AndFilter) filter).getChildren();
         for (Filter child : andChildren) {
-          res |= filterContainsType(types, child);
+          Filter newFilter = expandFilter(child, columnNamesList);
+          andChildren.set(andChildren.indexOf(child), newFilter);
         }
-        break;
+        return new AndFilter(andChildren);
       case Or:
         List<Filter> orChildren = ((OrFilter) filter).getChildren();
         for (Filter child : orChildren) {
-          res |= filterContainsType(types, child);
+          Filter newFilter = expandFilter(child, columnNamesList);
+          orChildren.set(orChildren.indexOf(child), newFilter);
         }
-        break;
+        return new OrFilter(orChildren);
       case Not:
         Filter notChild = ((NotFilter) filter).getChild();
-        res |= filterContainsType(types, notChild);
-        break;
+        Filter newFilter = expandFilter(notChild, columnNamesList);
+        return new NotFilter(newFilter);
+      case Value:
+        ValueFilter valueFilter = ((ValueFilter) filter);
+        String path = valueFilter.getPath();
+        List<String> matchedPaths = getMatchedPath(path, columnNamesList);
+        if (matchedPaths.isEmpty()) {
+          return new BoolFilter(true);
+        } else if (matchedPaths.size() == 1) {
+          return new ValueFilter(matchedPaths.get(0), valueFilter.getOp(), valueFilter.getValue());
+        } else {
+          List<Filter> newFilters = new ArrayList<>();
+          for (String matched : matchedPaths) {
+            newFilters.add(new ValueFilter(matched, valueFilter.getOp(), valueFilter.getValue()));
+          }
+          if (Op.isOrOp(valueFilter.getOp())) {
+            return new OrFilter(newFilters);
+          } else {
+            return new AndFilter(newFilters);
+          }
+        }
+      case In:
+        InFilter inFilter = (InFilter) filter;
+        String inPath = inFilter.getPath();
+        if (inPath.contains("*")) {
+          List<String> matchedPath = getMatchedPath(inPath, columnNamesList);
+          if (matchedPath.size() == 0) {
+            return new BoolFilter(true);
+          } else if (matchedPath.size() == 1) {
+            return new InFilter(matchedPath.get(0), inFilter.getInOp(), inFilter.getValues());
+          } else {
+            List<Filter> inChildren = new ArrayList<>();
+            for (String matched : matchedPath) {
+              inChildren.add(new InFilter(matched, inFilter.getInOp(), inFilter.getValues()));
+            }
+
+            if (inFilter.getInOp().isOrOp()) {
+              return new OrFilter(inChildren);
+            }
+            return new AndFilter(inChildren);
+          }
+        }
+
+        return filter;
+      case Path:
+        String pathA = ((PathFilter) filter).getPathA();
+        String pathB = ((PathFilter) filter).getPathB();
+        if (pathA.contains("*")) {
+          List<String> matchedPath = getMatchedPath(pathA, columnNamesList);
+          if (matchedPath.size() == 0) {
+            return new BoolFilter(true);
+          } else if (matchedPath.size() == 1) {
+            PathFilter newPathFilter =
+                new PathFilter(
+                    matchedPath.get(0),
+                    ((PathFilter) filter).getOp(),
+                    ((PathFilter) filter).getPathB());
+            if (pathB.contains("*")) {
+              return expandFilter(newPathFilter, columnNamesList);
+            }
+            return newPathFilter;
+          } else {
+            List<Filter> andPathChildren = new ArrayList<>();
+            for (String matched : matchedPath) {
+              andPathChildren.add(
+                  new PathFilter(
+                      matched, ((PathFilter) filter).getOp(), ((PathFilter) filter).getPathB()));
+            }
+            if (Op.isOrOp(((PathFilter) filter).getOp())) {
+              filter = new OrFilter(andPathChildren);
+            } else {
+              filter = new AndFilter(andPathChildren);
+            }
+          }
+        }
+
+        if (pathB.contains("*")) {
+          if (filter.getType() != FilterType.Path) {
+            return expandFilter(filter, columnNamesList);
+          }
+
+          List<String> matchedPath = getMatchedPath(pathB, columnNamesList);
+          if (matchedPath.size() == 0) {
+            return new BoolFilter(true);
+          } else if (matchedPath.size() == 1) {
+            return new PathFilter(
+                ((PathFilter) filter).getPathA(),
+                ((PathFilter) filter).getOp(),
+                matchedPath.get(0));
+          } else {
+            List<Filter> andPathChildren = new ArrayList<>();
+            for (String matched : matchedPath) {
+              andPathChildren.add(
+                  new PathFilter(
+                      ((PathFilter) filter).getPathA(), ((PathFilter) filter).getOp(), matched));
+            }
+            if (Op.isOrOp(((ValueFilter) filter).getOp())) {
+              return new OrFilter(andPathChildren);
+            }
+            return new AndFilter(andPathChildren);
+          }
+        }
+
+        return filter;
+
+      case Bool:
+      case Key:
       default:
         break;
     }
-    return res;
+    return filter;
+  }
+
+  private static List<String> getMatchedPath(String path, List<List<String>> columnNamesList) {
+    List<String> matchedPath = new ArrayList<>();
+    path = StringUtils.reformatPath(path);
+    Pattern pattern = Pattern.compile("^(unit.*\\.)?" + path + "$");
+    for (List<String> columnNames : columnNamesList) {
+      for (String columnName : columnNames) {
+        Matcher matcher = pattern.matcher(splitFullName(columnName).k);
+        if (matcher.find()) {
+          matchedPath.add(columnName);
+        }
+      }
+    }
+    return matchedPath;
   }
 }

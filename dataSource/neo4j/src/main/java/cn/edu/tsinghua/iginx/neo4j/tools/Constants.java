@@ -30,7 +30,7 @@ public class Constants {
 
   public static final int DEFAULT_MAX_CONNECTION_POOL_SIZE = 50;
 
-  public static final int DEFAULT_CONNECTION_TIMEOUT = 100000;
+  public static final int DEFAULT_CONNECTION_TIMEOUT = 180000;
 
   public static final int DEFAULT_CONNECTION_CHECK_TIMEOUT = 300;
 

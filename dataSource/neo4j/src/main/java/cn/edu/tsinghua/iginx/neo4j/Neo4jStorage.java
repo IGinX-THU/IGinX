@@ -38,10 +38,7 @@ import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.RowDataView;
 import cn.edu.tsinghua.iginx.engine.shared.operator.*;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
@@ -165,11 +162,17 @@ public class Neo4jStorage implements IStorage {
       for (Map.Entry<String, Map<String, String>> entry : labelToProperties.entrySet()) {
         String labelName = entry.getKey();
         Map<String, String> propertyMap = entry.getValue();
-        columns.addAll(
-            Neo4jClientUtils.query(session, labelName, propertyMap, filter, isDummy(labelName)));
-      }
 
-      return new TaskExecuteResult(new Neo4jQueryRowStream(columns, filter), null);
+        columns.addAll(
+            Neo4jClientUtils.query(
+                session,
+                labelName,
+                propertyMap,
+                filter.copy(),
+                isDummy(labelName),
+                dataArea.getStorageUnit()));
+      }
+      return new TaskExecuteResult(new Neo4jQueryRowStream(columns, filter.copy()), null);
     } catch (Exception e) {
       LOGGER.error("unexpected error: ", e);
       return new TaskExecuteResult(
@@ -188,10 +191,12 @@ public class Neo4jStorage implements IStorage {
       for (Map.Entry<String, Map<String, String>> entry : labelToProperties.entrySet()) {
         String labelName = entry.getKey();
         Map<String, String> propertyMap = entry.getValue();
-        columns.addAll(Neo4jClientUtils.query(session, labelName, propertyMap, filter, true));
-      }
 
-      return new TaskExecuteResult(new Neo4jQueryRowStream(columns, filter), null);
+        columns.addAll(
+            Neo4jClientUtils.query(
+                session, labelName, propertyMap, filter.copy(), isDummy(labelName), ""));
+      }
+      return new TaskExecuteResult(new Neo4jQueryRowStream(columns, filter.copy()), null);
     } catch (Exception e) {
       LOGGER.error("unexpected error: ", e);
       return new TaskExecuteResult(

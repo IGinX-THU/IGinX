@@ -23,6 +23,7 @@ import static cn.edu.tsinghua.iginx.constant.GlobalConstant.SEPARATOR;
 import static cn.edu.tsinghua.iginx.neo4j.tools.Constants.DATABASE_PREFIX;
 import static cn.edu.tsinghua.iginx.neo4j.tools.Constants.IDENTITY_PROPERTY_NAME;
 import static cn.edu.tsinghua.iginx.neo4j.tools.DataTransformer.fromStringDataType;
+import static cn.edu.tsinghua.iginx.neo4j.tools.FilterUtils.expandFilter;
 import static cn.edu.tsinghua.iginx.neo4j.tools.Neo4jSchema.getQuoteName;
 import static cn.edu.tsinghua.iginx.neo4j.tools.RegexEscaper.escapeRegex;
 import static cn.edu.tsinghua.iginx.neo4j.tools.TagKVUtils.splitFullName;
@@ -30,7 +31,6 @@ import static org.neo4j.driver.Values.parameters;
 
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.FilterType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.neo4j.Neo4jStorage;
 import cn.edu.tsinghua.iginx.neo4j.entity.Column;
@@ -246,9 +246,9 @@ public class Neo4jClientUtils {
                         query,
                         parameters(
                             "labelPattern",
-                            ":`" + labelPattern + "`",
+                            ":`" + (labelPattern) + "`",
                             "propertyPattern",
-                            propertyPattern));
+                            (propertyPattern)));
                 return result.list();
               });
 
@@ -300,39 +300,37 @@ public class Neo4jClientUtils {
       String label,
       Map<String, String> properties,
       Filter filter,
-      boolean isDummy) {
+      boolean isDummy,
+      String storageUnit) {
     try {
       String expr = "";
       String quotedLabel = getQuoteName(label);
+      Map<String, Map<String, String>> labelToProperties = new HashMap<>();
+      labelToProperties.put(label, properties);
 
       String keyProperty = null;
       if (isDummy) {
         keyProperty = getUniqueConstraintName(session, label);
       }
 
-      if (!FilterUtils.filterContainsType(
-          Arrays.asList(FilterType.Value, FilterType.Path, FilterType.In), filter)) {
-        if (isDummy) {
-          if (keyProperty == null) {
-            expr =
-                new FilterTransformer("id(" + quotedLabel + ")", label)
-                    .toString(FilterUtils.expandFilter(filter, "id(" + quotedLabel + ")"));
-          } else {
-            expr =
-                new FilterTransformer(quotedLabel + ".`" + keyProperty + "`", label)
-                    .toString(
-                        FilterUtils.expandFilter(filter, quotedLabel + ".`" + keyProperty + "`"));
-          }
+      if (isDummy) {
+        if (keyProperty == null) {
+          expr =
+              new FilterTransformer("id(" + quotedLabel + ")", storageUnit, label)
+                  .toString(expandFilter(filter, labelToProperties));
         } else {
           expr =
-              new FilterTransformer(quotedLabel + ".`" + IDENTITY_PROPERTY_NAME + "`", label)
-                  .toString(
-                      FilterUtils.expandFilter(
-                          filter, quotedLabel + ".`" + IDENTITY_PROPERTY_NAME + "`"));
+              new FilterTransformer(quotedLabel + ".`" + keyProperty + "`", storageUnit, label)
+                  .toString(expandFilter(filter, labelToProperties));
         }
-        if (StringUtils.isNotEmpty(expr)) {
-          expr = "WHERE " + expr + " ";
-        }
+      } else {
+        expr =
+            new FilterTransformer(
+                    quotedLabel + ".`" + IDENTITY_PROPERTY_NAME + "`", storageUnit, label)
+                .toString(expandFilter(filter, labelToProperties));
+      }
+      if (StringUtils.isNotEmpty(expr)) {
+        expr = "WHERE " + expr + " ";
       }
 
       StringBuilder r = new StringBuilder();
@@ -387,6 +385,156 @@ public class Neo4jClientUtils {
         }
         Column c = new Column(trimPrefix(pathName), type, data);
         columns.add(c);
+      }
+
+      return columns;
+    } catch (Exception e) {
+      LOGGER.error("unexpected error: ", e);
+      return new ArrayList<>();
+    }
+  }
+
+  public static List<Column> query(
+      Session session,
+      Map<String, Map<String, String>> labelToProperties,
+      Filter filter,
+      boolean isDummy,
+      String storageUnit) {
+    try {
+      if (labelToProperties.isEmpty()) {
+        return new ArrayList<>();
+      }
+
+      StringBuilder call = new StringBuilder();
+      StringBuilder collect = new StringBuilder(" WITH ");
+      StringBuilder unwind = new StringBuilder(" UNWIND apoc.coll.toSet([x IN ");
+      StringBuilder with = new StringBuilder(" WITH ").append(IDENTITY_PROPERTY_NAME).append(",");
+      StringBuilder ret = new StringBuilder(" RETURN ").append(IDENTITY_PROPERTY_NAME);
+
+      for (Map.Entry<String, Map<String, String>> entry : labelToProperties.entrySet()) {
+        String label = entry.getKey();
+        Map<String, String> propertyMap = entry.getValue();
+        String quotedLabel = getQuoteName(label);
+
+        String keyProperty = null;
+        if (isDummy) {
+          keyProperty = getUniqueConstraintName(session, label);
+        }
+
+        call.append("CALL { MATCH (")
+            .append(quotedLabel)
+            .append(':')
+            .append(quotedLabel)
+            .append(") RETURN ")
+            .append(quotedLabel)
+            .append(" } ");
+        unwind.append(quotedLabel).append('+');
+        with.append("[x IN ")
+            .append(quotedLabel)
+            .append(" WHERE x.")
+            .append(IDENTITY_PROPERTY_NAME)
+            .append("=")
+            .append(IDENTITY_PROPERTY_NAME)
+            .append("|x.")
+            .append(quotedLabel)
+            .append("][0] AS ")
+            .append(quotedLabel)
+            .append(",");
+
+        if (isDummy) {
+          if (keyProperty == null) {
+            collect
+                .append("collect({")
+                .append(IDENTITY_PROPERTY_NAME)
+                .append(": ")
+                .append("id(" + quotedLabel + "),");
+          } else {
+            propertyMap.remove(keyProperty);
+            collect
+                .append("collect({")
+                .append(IDENTITY_PROPERTY_NAME)
+                .append(": ")
+                .append(quotedLabel)
+                .append(".`")
+                .append(keyProperty)
+                .append("`,");
+          }
+        } else {
+          propertyMap.remove(keyProperty);
+          collect
+              .append("collect({")
+              .append(IDENTITY_PROPERTY_NAME)
+              .append(": ")
+              .append(quotedLabel)
+              .append(SEPARATOR)
+              .append(IDENTITY_PROPERTY_NAME)
+              .append(",");
+        }
+        collect
+            .append(quotedLabel)
+            .append(": ")
+            .append(quotedLabel)
+            .append("}) AS ")
+            .append(quotedLabel)
+            .append(",");
+
+        for (String property : propertyMap.keySet()) {
+          ret.append(',')
+              .append(quotedLabel)
+              .append(SEPARATOR)
+              .append(getQuoteName(property))
+              .append(" AS ")
+              .append(getQuoteName(label + "." + property));
+        }
+      }
+
+      filter = filter.copy();
+      FilterTransformer filterTransformer =
+          new FilterTransformer(IDENTITY_PROPERTY_NAME, storageUnit, null);
+      filter = expandFilter(filter, labelToProperties);
+      String filterStr = filterTransformer.toString(filter);
+
+      String where = filterStr.isEmpty() ? "" : " WHERE " + filterStr;
+
+      String query =
+          call
+              + collect.substring(0, collect.length() - 1)
+              + unwind.substring(0, unwind.length() - 1)
+              + "| x.NEO4JID]) AS NEO4JID "
+              + with.substring(0, with.length() - 1)
+              + where
+              + ret;
+
+      LOGGER.info("query: {}", query);
+      List<Record> records =
+          session.readTransaction(
+              tx -> {
+                Result result = tx.run(query);
+                return result.list();
+              });
+
+      List<Column> columns = new ArrayList<>();
+
+      for (Map.Entry<String, Map<String, String>> entry : labelToProperties.entrySet()) {
+        String label = entry.getKey();
+        for (Map.Entry<String, String> property : entry.getValue().entrySet()) {
+          String pathName = label + SEPARATOR + property.getKey();
+          DataType type = fromStringDataType(property.getValue().toUpperCase());
+          Map<Long, Object> data = new HashMap<>();
+          for (Record record : records) {
+            if (record.get(pathName) != null
+                && !record.get(pathName).isNull()
+                && !(record.get(pathName) instanceof NullValue)) {
+              data.put(
+                  record.get(IDENTITY_PROPERTY_NAME).asLong(),
+                  "String".equals(property.getValue())
+                      ? record.get(pathName).asString()
+                      : transform(record.get(pathName)));
+            }
+          }
+          Column c = new Column(trimPrefix(pathName), type, data);
+          columns.add(c);
+        }
       }
 
       return columns;
