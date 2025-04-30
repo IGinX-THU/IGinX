@@ -23,10 +23,13 @@ import cn.edu.tsinghua.iginx.thrift.DataType;
 
 public enum CsvDataType {
   UNKNOWN(DataType.BINARY),
-  INT(DataType.LONG),
-  FLOAT(DataType.DOUBLE),
-  BOOL(DataType.BOOLEAN),
+  INT(DataType.INTEGER),
+  LONG(DataType.LONG),
+  FLOAT(DataType.FLOAT),
+  DOUBLE(DataType.DOUBLE),
+  BOOLEAN(DataType.BOOLEAN),
   DATE(DataType.LONG),
+  STRING(DataType.BINARY),
   ;
 
   private final DataType dataType;

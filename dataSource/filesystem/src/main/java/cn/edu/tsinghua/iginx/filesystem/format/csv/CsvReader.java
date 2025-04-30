@@ -41,12 +41,18 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.*;
 import java.util.function.Predicate;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class CsvReader implements FileFormat.Reader {
+
+  private final static Logger LOGGER = LoggerFactory.getLogger(CsvReader.class);
 
   private final Path path;
   private final CsvReaderConfig config;
@@ -81,16 +87,14 @@ public class CsvReader implements FileFormat.Reader {
     try (BufferedReader reader = Files.newBufferedReader(path)) {
       CSVParser parser = CSVParser.parse(reader, csvFormat);
       sample = parser.stream().limit(config.getSampleSize() + 1).collect(Collectors.toList());
-      this.headers =
-          parser.getHeaderNames().stream()
-              .map(name -> IginxPaths.join(prefix, name))
-              .toArray(String[]::new);
+      this.headers = new String[parser.getHeaderNames().size()];
+      this.csvDataType = new CsvDataType[headers.length];
+      parserHeader(parser.getHeaderNames(),prefix);
     }
 
-    // Initialize data type array based on number of columns, not samples
-    this.csvDataType = new CsvDataType[headers.length];
-    Arrays.fill(csvDataType, CsvDataType.UNKNOWN); // Default to unknown
-    inferSchema(sample);
+    if(config.isInferSchema()){
+      inferSchema(sample);
+    }
 
     this.fieldIndex = new HashMap<>();
     for (int i = 0; i < headers.length; i++) {
@@ -98,19 +102,73 @@ public class CsvReader implements FileFormat.Reader {
     }
   }
 
+  private void parserHeader(List<String> headerNames, String prefix) {
+    for (int i = 0; i < headerNames.size(); i++) {
+      String headerName = headerNames.get(i);
+      String name = headerName;
+      CsvDataType type = CsvDataType.UNKNOWN;
+      if(config.isParseTypeFromHeader()){
+        final int colon = headerName.indexOf(':');
+        if (colon >= 0) {
+          name = headerName.substring(0, colon);
+          String typeString = headerName.substring(colon + 1);
+          type = parseType(typeString.toLowerCase());
+        }
+      }
+      if (prefix != null && !prefix.isEmpty()) {
+        this.headers[i] = prefix + "." + name;
+      } else {
+        this.headers[i] = name;
+      }
+      this.csvDataType[i] = type;
+    }
+  }
+
+  private static final Pattern DECIMAL_TYPE_PATTERN = Pattern
+      .compile("\"decimal\\(([0-9]+),([0-9]+)\\)");
+  private CsvDataType parseType(String typeString) {
+    Matcher decimalMatcher = DECIMAL_TYPE_PATTERN.matcher(typeString);
+    if (decimalMatcher.matches()) {
+      return CsvDataType.DOUBLE;
+    } else {
+      switch (typeString) {
+        case "boolean":
+          return CsvDataType.BOOLEAN;
+        case "int":
+          return CsvDataType.INT;
+        case "long":
+          return CsvDataType.LONG;
+        case "float":
+          return CsvDataType.FLOAT;
+        case "double":
+          return CsvDataType.DOUBLE;
+        case "string":
+          return CsvDataType.STRING;
+        case "date":
+          return CsvDataType.DATE;
+        default:
+          LOGGER.warn("Found unknown type hint: {} in file: {}", typeString, path);
+          return CsvDataType.UNKNOWN;
+      }
+    }
+  }
+
   private void inferSchema(List<CSVRecord> sample) {
-    boolean[] couldBeBool = new boolean[headers.length];
-    boolean[] couldBeInt = new boolean[headers.length];
-    boolean[] couldBeFloat = new boolean[headers.length];
+    boolean[] couldBeBoolean = new boolean[headers.length];
+    boolean[] couldBeLong = new boolean[headers.length];
+    boolean[] couldBeDouble = new boolean[headers.length];
     boolean[] couldBeDate = new boolean[headers.length];
 
-    Arrays.fill(couldBeBool, true);
-    Arrays.fill(couldBeInt, true);
-    Arrays.fill(couldBeFloat, true);
+    Arrays.fill(couldBeBoolean, true);
+    Arrays.fill(couldBeLong, true);
+    Arrays.fill(couldBeDouble, true);
     Arrays.fill(couldBeDate, true);
 
     for (CSVRecord record : sample) {
       for (int i = 0; i < Math.min(headers.length, record.size()); i++) {
+        if(this.csvDataType[i] != CsvDataType.UNKNOWN) {
+          continue;
+        }
         String value = record.get(i);
 
         // Skip empty values during type inference
@@ -118,25 +176,25 @@ public class CsvReader implements FileFormat.Reader {
           continue;
         }
 
-        if (couldBeBool[i]) {
+        if (couldBeBoolean[i]) {
           if (!value.equalsIgnoreCase("true") && !value.equalsIgnoreCase("false")) {
-            couldBeBool[i] = false;
+            couldBeBoolean[i] = false;
           }
         }
 
-        if (couldBeInt[i]) {
+        if (couldBeLong[i]) {
           try {
             Long.parseLong(value);
           } catch (NumberFormatException e) {
-            couldBeInt[i] = false;
+            couldBeLong[i] = false;
           }
         }
 
-        if (couldBeFloat[i]) {
+        if (couldBeDouble[i]) {
           try {
             Double.parseDouble(value);
           } catch (NumberFormatException e) {
-            couldBeFloat[i] = false;
+            couldBeDouble[i] = false;
           }
         }
 
@@ -157,16 +215,19 @@ public class CsvReader implements FileFormat.Reader {
 
     // Determine types based on inference results
     for (int i = 0; i < headers.length; i++) {
-      if (couldBeBool[i]) {
-        csvDataType[i] = CsvDataType.BOOL;
-      } else if (couldBeInt[i]) {
-        csvDataType[i] = CsvDataType.INT;
-      } else if (couldBeFloat[i]) {
-        csvDataType[i] = CsvDataType.FLOAT;
+      if(this.csvDataType[i] != CsvDataType.UNKNOWN) {
+        continue;
+      }
+      if (couldBeBoolean[i]) {
+        csvDataType[i] = CsvDataType.BOOLEAN;
+      } else if (couldBeLong[i]) {
+        csvDataType[i] = CsvDataType.LONG;
+      } else if (couldBeDouble[i]) {
+        csvDataType[i] = CsvDataType.DOUBLE;
       } else if (couldBeDate[i]) {
         csvDataType[i] = CsvDataType.DATE;
       } else {
-        csvDataType[i] = CsvDataType.UNKNOWN;
+        csvDataType[i] = CsvDataType.STRING;
       }
     }
   }
@@ -319,7 +380,15 @@ public class CsvReader implements FileFormat.Reader {
         return null;
       }
       switch (dataType) {
+        case BOOLEAN:
+          return Boolean.parseBoolean(value);
         case INT:
+          try {
+            return Integer.parseInt(value);
+          } catch (NumberFormatException e) {
+            return null;
+          }
+        case LONG:
           try {
             return Long.parseLong(value);
           } catch (NumberFormatException e) {
@@ -327,12 +396,16 @@ public class CsvReader implements FileFormat.Reader {
           }
         case FLOAT:
           try {
+            return Float.parseFloat(value);
+          } catch (NumberFormatException e) {
+            return null;
+          }
+        case DOUBLE:
+          try {
             return Double.parseDouble(value);
           } catch (NumberFormatException e) {
             return null;
           }
-        case BOOL:
-          return Boolean.parseBoolean(value);
         case DATE:
           try {
             return LocalDate.parse(value, dateFormat)
@@ -343,6 +416,7 @@ public class CsvReader implements FileFormat.Reader {
           } catch (DateTimeParseException e) {
             return null;
           }
+        case STRING:
         case UNKNOWN:
         default:
           return value.getBytes();

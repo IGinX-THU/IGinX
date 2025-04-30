@@ -33,6 +33,8 @@ import lombok.experimental.FieldNameConstants;
 @FieldNameConstants
 public class CsvReaderConfig extends AbstractConfig {
 
+  @Optional boolean parseTypeFromHeader = true;
+  @Optional boolean inferSchema = false;
   @Optional String delimiter = null;
   @Optional int sampleSize = 1;
   @Optional String dateFormat = "yyyy-MM-dd";
