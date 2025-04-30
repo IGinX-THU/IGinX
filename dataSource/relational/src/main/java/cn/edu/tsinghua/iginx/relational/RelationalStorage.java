@@ -395,8 +395,7 @@ public class RelationalStorage implements IStorage {
     return res;
   }
 
-  @Override
-  public List<Column> getColumns(Set<String> patterns, TagFilter tagFilter)
+  public List<Column> getColumnList(Set<String> patterns, TagFilter tagFilter)
       throws RelationalTaskExecuteFailureException {
     List<Column> columns = new ArrayList<>();
     Map<String, String> extraParams = meta.getExtraParams();
@@ -405,7 +404,6 @@ public class RelationalStorage implements IStorage {
       // non-dummy
       for (String databaseName : getDatabaseNames(false)) {
         if ((extraParams.get("has_data") == null || extraParams.get("has_data").equals("false"))
-            && relationalMeta.supportCreateDatabase()
             && !databaseName.startsWith(DATABASE_PREFIX)) {
           continue;
         }
@@ -439,6 +437,140 @@ public class RelationalStorage implements IStorage {
               Pair<String, Map<String, String>> nameAndTags = splitFullName(columnName);
               columnName =
                   reshapeTableNameBeforeQuery(tableName, databaseName) + SEPARATOR + nameAndTags.k;
+              if (tagFilter != null && !TagKVUtils.match(nameAndTags.v, tagFilter)) {
+                continue;
+              }
+              columns.add(
+                  new Column(
+                      columnName,
+                      relationalMeta
+                          .getDataTypeTransformer()
+                          .fromEngineType(
+                              columnField.getColumnType(),
+                              columnField.getColumnSize(),
+                              columnField.getDecimalDigits()),
+                      nameAndTags.v,
+                      isDummy));
+            }
+          }
+        }
+      }
+
+      // dummy
+      List<String> patternList = new ArrayList<>();
+      if (patterns == null || patterns.size() == 0) {
+        patternList = new ArrayList<>(Collections.singletonList("*.*"));
+      }
+      for (String databaseName : getDatabaseNames(true)) {
+        if ((extraParams.get("has_data") == null || extraParams.get("has_data").equals("false"))
+            && !databaseName.startsWith(DATABASE_PREFIX)) {
+          continue;
+        }
+        boolean isDummy =
+            extraParams.get("has_data") != null
+                && extraParams.get("has_data").equalsIgnoreCase("true")
+                && !databaseName.startsWith(DATABASE_PREFIX);
+        if (!isDummy) {
+          continue;
+        }
+        // find pattern that match <databaseName>.* to avoid creating databases after.
+        if (patterns == null || patterns.size() == 0) {
+          continue;
+        }
+        for (String p : patterns) {
+          // dummy path starts with <bucketName>.
+          if (Pattern.matches(
+              StringUtils.reformatPath(p.substring(0, p.indexOf("."))), databaseName)) {
+            patternList.add(p);
+          }
+        }
+      }
+
+      Map<String, Map<String, String>> dummyRes = splitAndMergeHistoryQueryPatterns(patternList);
+      Map<String, String> table2cols;
+      // seemingly there are 4 nested loops, but it's only the consequence of special data structure
+      // and reused methods.
+      // the loops would not affect complexity
+      for (String databaseName : dummyRes.keySet()) {
+        table2cols = dummyRes.get(databaseName);
+        for (String tableName : table2cols.keySet()) {
+          colPattern = table2cols.get(tableName);
+          for (String colName : colPattern.split(", ")) {
+            List<ColumnField> columnFieldList = getColumns(databaseName, tableName, colName, true);
+            for (ColumnField columnField : columnFieldList) {
+              String columnName = columnField.getColumnName();
+
+              if (columnName.equals(KEY_NAME)) { // key 列不显示
+                continue;
+              }
+              Pair<String, Map<String, String>> nameAndTags = splitFullName(columnName);
+              columnName = databaseName + SEPARATOR + tableName + SEPARATOR + nameAndTags.k;
+              if (tagFilter != null && !TagKVUtils.match(nameAndTags.v, tagFilter)) {
+                continue;
+              }
+              columns.add(
+                  new Column(
+                      columnName,
+                      relationalMeta
+                          .getDataTypeTransformer()
+                          .fromEngineType(
+                              columnField.getColumnType(),
+                              columnField.getColumnSize(),
+                              columnField.getDecimalDigits()),
+                      nameAndTags.v,
+                      true));
+            }
+          }
+        }
+      }
+    } catch (SQLException e) {
+      throw new RelationalTaskExecuteFailureException("failed to get columns ", e);
+    }
+    return columns;
+  }
+
+  @Override
+  public List<Column> getColumns(Set<String> patterns, TagFilter tagFilter)
+      throws RelationalTaskExecuteFailureException {
+    List<Column> columns = new ArrayList<>();
+    Map<String, String> extraParams = meta.getExtraParams();
+    try {
+      String colPattern;
+      // non-dummy
+      for (String databaseName : getDatabaseNames(false)) {
+        if ((extraParams.get("has_data") == null || extraParams.get("has_data").equals("false"))
+            && !databaseName.startsWith(DATABASE_PREFIX)) {
+          continue;
+        }
+        boolean isDummy =
+            extraParams.get("has_data") != null
+                && extraParams.get("has_data").equalsIgnoreCase("true")
+                && !databaseName.startsWith(DATABASE_PREFIX);
+        if (isDummy) {
+          continue;
+        }
+
+        Map<String, String> tableAndColPattern = new HashMap<>();
+
+        if (patterns != null && patterns.size() != 0) {
+          tableAndColPattern = splitAndMergeQueryPatterns(databaseName, new ArrayList<>(patterns));
+        } else {
+          for (String table : getTables(databaseName, "%", false)) {
+            tableAndColPattern.put(table, "%");
+          }
+        }
+        for (String tableName : tableAndColPattern.keySet()) {
+          colPattern = tableAndColPattern.get(tableName);
+          for (String colName : colPattern.split(", ")) {
+            List<ColumnField> columnFieldList = getColumns(databaseName, tableName, colName, false);
+            for (ColumnField columnField : columnFieldList) {
+              String columnName = columnField.getColumnName();
+
+              if (columnName.equals(KEY_NAME)) { // key 列不显示
+                continue;
+              }
+              Pair<String, Map<String, String>> nameAndTags = splitFullName(columnName);
+              columnName = tableName + SEPARATOR + nameAndTags.k;
               if (tagFilter != null && !TagKVUtils.match(nameAndTags.v, tagFilter)) {
                 continue;
               }
@@ -1603,9 +1735,6 @@ public class RelationalStorage implements IStorage {
         if (columns == null) {
           columns = getColumns(null, null);
         }
-        //        LOGGER.info("columns: {}", columns);
-        //        LOGGER.info("fc.getParams().getExpression(0): {}",
-        // fc.getParams().getExpression(0));
         if (isSumResultDouble(fc.getParams().getExpression(0), columns)) {
           columnTypeMap.put(fc.getFunctionStr(), DataType.DOUBLE);
         } else {
@@ -2901,7 +3030,10 @@ public class RelationalStorage implements IStorage {
           @Override
           public void visit(BaseExpression expression) {
             String path = expression.getColumnName();
-            LOGGER.info("path: {}", path);
+            if (!relationalMeta.supportCreateDatabase() && path.startsWith(DATABASE_PREFIX)) {
+              int firstSeparatorIndex = path.indexOf(SEPARATOR);
+              path = path.substring(firstSeparatorIndex + 1);
+            }
             if (columnTypeMap.containsKey(path)) {
               isDouble[0] |= columnTypeMap.get(path) == DataType.DOUBLE;
             }
