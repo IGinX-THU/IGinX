@@ -328,13 +328,13 @@ public class RelationalStorage implements IStorage {
       String databaseName, String tableName, String columnNamePattern, boolean isDummy) {
     String databasePattern = dbStrategy.getDatabasePattern(databaseName, isDummy);
     String schemaPattern = dbStrategy.getSchemaPattern(databaseName, isDummy);
-    LOGGER.info("schema pattern: {}", schemaPattern);
-    LOGGER.info("database: {}", databaseName);
-    LOGGER.info("table: {}", tableName);
+    //    LOGGER.info("schema pattern: {}", schemaPattern);
+    //    LOGGER.info("database: {}", databaseName);
+    //    LOGGER.info("table: {}", tableName);
     if (!isDummy) {
       tableName = reshapeTableNameBeforeQuery(tableName, databaseName);
     }
-    LOGGER.info("table: {}", tableName);
+    //    LOGGER.info("table: {}", tableName);
     try (Connection conn = getConnection(databaseName)) {
       if (conn == null) {
         throw new RelationalTaskExecuteFailureException(
@@ -349,7 +349,7 @@ public class RelationalStorage implements IStorage {
           String columnName = rs.getString("COLUMN_NAME");
           String columnType = rs.getString("TYPE_NAME");
           String columnTable = rs.getString("TABLE_NAME");
-          LOGGER.info("table name: {}", columnTable);
+          //          LOGGER.info("table name: {}", columnTable);
           if (!isDummy) {
             columnTable = reshapeTableNameAfterQuery(columnTable, databaseName);
           }
@@ -359,7 +359,7 @@ public class RelationalStorage implements IStorage {
               new ColumnField(columnTable, columnName, columnType, columnSize, decimalDigits));
         }
       }
-      LOGGER.info("column fields: {}", columnFields);
+      //      LOGGER.info("column fields: {}", columnFields);
       return columnFields;
     } catch (SQLException | RelationalTaskExecuteFailureException e) {
       LOGGER.error("unexpected error: ", e);
@@ -405,6 +405,7 @@ public class RelationalStorage implements IStorage {
       // non-dummy
       for (String databaseName : getDatabaseNames(false)) {
         if ((extraParams.get("has_data") == null || extraParams.get("has_data").equals("false"))
+            && relationalMeta.supportCreateDatabase()
             && !databaseName.startsWith(DATABASE_PREFIX)) {
           continue;
         }
@@ -436,7 +437,8 @@ public class RelationalStorage implements IStorage {
                 continue;
               }
               Pair<String, Map<String, String>> nameAndTags = splitFullName(columnName);
-              columnName = tableName + SEPARATOR + nameAndTags.k;
+              columnName =
+                  reshapeTableNameBeforeQuery(tableName, databaseName) + SEPARATOR + nameAndTags.k;
               if (tagFilter != null && !TagKVUtils.match(nameAndTags.v, tagFilter)) {
                 continue;
               }
@@ -620,6 +622,7 @@ public class RelationalStorage implements IStorage {
 
     // 将Filter中的keyFilter替换成带tablename的value filter
     keyFilterAddTableName(filter, firstTable);
+    LOGGER.info("filter after keyFilterAddTableName: {}", filter);
 
     // 将所有表进行full join
     String fullTableName = getFullJoinTables(tableNames, fullColumnNamesList);
@@ -1556,7 +1559,16 @@ public class RelationalStorage implements IStorage {
             new RelationalTaskExecuteFailureException("execute query failure"));
       }
 
+      //      int columnCount = rs.getMetaData().getColumnCount();
+      //      while (rs.next()) {
+      //        for (int i = 0; i < columnCount; i++) {
+      //          System.out.print(rs.getString(i + 1) + "\t");
+      //        }
+      //        System.out.println();
+      //      }
+
       Map<String, DataType> columnTypeMap = getSumDataType(functionCalls);
+      LOGGER.info("columnTypeMap: {}", columnTypeMap);
 
       RowStream rowStream =
           new ClearEmptyRowStreamWrapper(
@@ -1591,6 +1603,9 @@ public class RelationalStorage implements IStorage {
         if (columns == null) {
           columns = getColumns(null, null);
         }
+        //        LOGGER.info("columns: {}", columns);
+        //        LOGGER.info("fc.getParams().getExpression(0): {}",
+        // fc.getParams().getExpression(0));
         if (isSumResultDouble(fc.getParams().getExpression(0), columns)) {
           columnTypeMap.put(fc.getFunctionStr(), DataType.DOUBLE);
         } else {
@@ -2877,13 +2892,16 @@ public class RelationalStorage implements IStorage {
     Map<String, DataType> columnTypeMap = new HashMap<>();
     for (Column column : columns) {
       columnTypeMap.put(splitFullName(column.getPath()).k, column.getDataType());
+      LOGGER.info("judge columnTypeMap: {}", columnTypeMap);
     }
     boolean[] isDouble = {false};
+    LOGGER.info("expr.type: {}", expr.getType());
     expr.accept(
         new ExpressionVisitor() {
           @Override
           public void visit(BaseExpression expression) {
             String path = expression.getColumnName();
+            LOGGER.info("path: {}", path);
             if (columnTypeMap.containsKey(path)) {
               isDouble[0] |= columnTypeMap.get(path) == DataType.DOUBLE;
             }
@@ -2891,6 +2909,7 @@ public class RelationalStorage implements IStorage {
 
           @Override
           public void visit(BinaryExpression expression) {
+            LOGGER.info("operator: {}", expression.getOp().toString());
             isDouble[0] |=
                 expression.getOp() == cn.edu.tsinghua.iginx.engine.shared.expr.Operator.DIV;
           }

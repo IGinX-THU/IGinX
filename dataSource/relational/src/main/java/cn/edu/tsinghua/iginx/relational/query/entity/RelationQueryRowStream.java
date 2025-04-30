@@ -168,6 +168,12 @@ public class RelationQueryRowStream implements RowStream {
         String columnType = resultSetMetaData.getColumnTypeName(j);
         int precision = resultSetMetaData.getPrecision(j);
         int scale = resultSetMetaData.getScale(j);
+        LOGGER.info(
+            "columnName: {}, columnType: {}, precision: {}, scale: {}",
+            columnName,
+            columnType,
+            precision,
+            scale);
 
         if (j == 1 && columnName.contains(KEY_NAME) && columnName.contains(SEPARATOR)) {
           isPushDown = true;
@@ -192,11 +198,13 @@ public class RelationQueryRowStream implements RowStream {
         Field field;
         DataType type =
             relationalMeta.getDataTypeTransformer().fromEngineType(columnType, precision, scale);
+        LOGGER.info("columnName: {}, type: {}", columnName, type);
         if (isAgg
             && sumResType != null
             && sumResType.containsKey(fullName2Name.getOrDefault(columnName, columnName))) {
           type = sumResType.get(fullName2Name.getOrDefault(columnName, columnName));
         }
+        LOGGER.info("columnName: {}, type: {}", columnName, type);
         String databaseName = databaseNameList.get(i);
         String path;
         if (isDummy) {
