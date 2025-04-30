@@ -1691,14 +1691,6 @@ public class RelationalStorage implements IStorage {
             new RelationalTaskExecuteFailureException("execute query failure"));
       }
 
-      //      int columnCount = rs.getMetaData().getColumnCount();
-      //      while (rs.next()) {
-      //        for (int i = 0; i < columnCount; i++) {
-      //          System.out.print(rs.getString(i + 1) + "\t");
-      //        }
-      //        System.out.println();
-      //      }
-
       Map<String, DataType> columnTypeMap = getSumDataType(functionCalls);
       LOGGER.info("columnTypeMap: {}", columnTypeMap);
 

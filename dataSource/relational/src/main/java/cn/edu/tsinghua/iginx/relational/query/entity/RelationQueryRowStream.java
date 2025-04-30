@@ -165,6 +165,10 @@ public class RelationQueryRowStream implements RowStream {
       for (int j = 1; j <= resultSetMetaData.getColumnCount(); j++) {
         String tableName = resultSetMetaData.getTableName(j);
         String columnName = resultSetMetaData.getColumnName(j);
+        // 达梦需要通过getColumnLabel获取列名
+        if (engine.equals("dameng")) {
+          columnName = resultSetMetaData.getColumnLabel(j);
+        }
         String columnType = resultSetMetaData.getColumnTypeName(j);
         int precision = resultSetMetaData.getPrecision(j);
         int scale = resultSetMetaData.getScale(j);
@@ -216,6 +220,15 @@ public class RelationQueryRowStream implements RowStream {
                       : tableName + SEPARATOR)
                   + namesAndTags.k;
         } else {
+          //          LOGGER.info("tableName: {}", tableName);
+          //          if (!relationalMeta.supportCreateDatabase() &&
+          // tableName.startsWith(DATABASE_PREFIX)) {
+          //            int fisrtSeparatorIndex = tableName.indexOf(SEPARATOR);
+          //            if (fisrtSeparatorIndex > 0) {
+          //              tableName = tableName.substring(fisrtSeparatorIndex + 1);
+          //            }
+          //            LOGGER.info("tableName: {}", tableName);
+          //          }
           path =
               (isAgg || !relationalMeta.jdbcSupportGetTableNameFromResultSet()
                       ? ""
@@ -225,12 +238,13 @@ public class RelationQueryRowStream implements RowStream {
             path = path.substring(databaseName.length() + 1);
           }
         }
-
+        LOGGER.info("path: {}", path);
         if (isAgg && fullName2Name.containsKey(path)) {
           field = new Field(fullName2Name.get(path), path, type, namesAndTags.v);
         } else {
           field = new Field(path, type, namesAndTags.v);
         }
+        LOGGER.info("field: {}", field.getName());
 
         if (filterByTags && !TagKVUtils.match(namesAndTags.v, tagFilter)) {
           continue;
@@ -454,8 +468,8 @@ public class RelationQueryRowStream implements RowStream {
       String tempColumnName = resultSetMetaData.getColumnName(j);
       String tempTableName = resultSetMetaData.getTableName(j);
       if (!relationalMeta.supportCreateDatabase()) {
-        int firstSeparator = tempTableName.indexOf(SEPARATOR);
-        tempTableName = tempTableName.substring(firstSeparator + 1);
+        int firstSeparatorIndex = tempTableName.indexOf(SEPARATOR);
+        tempTableName = tempTableName.substring(firstSeparatorIndex + 1);
       }
       if (tempColumnName.equals(columnName)
           && (tempTableName.isEmpty() || tempTableName.equals(tableName))) {
