@@ -29,10 +29,8 @@ import java.util.List;
 public class PushDownStrategyFactory {
   private static PushDownType determinePushDownType(
       List<Operator> operators, IStorage storage, DataArea dataArea, boolean isDummyStorageUnit) {
-    System.out.println("determinePushDownType: " + operators);
     if (operators.size() >= 2) {
       OperatorType secondOpType = operators.get(1).getType();
-      System.out.println("secondOpType: " + secondOpType);
       if (storage.isSupportProjectWithSelect() && secondOpType == OperatorType.Select) {
         return PushDownType.SelectPushDown;
       }
@@ -43,7 +41,6 @@ public class PushDownStrategyFactory {
     }
     if (operators.size() >= 3) {
       OperatorType thirdOpType = operators.get(2).getType();
-      System.out.println("thirdOpType: " + thirdOpType);
       if (operators.get(1).getType() == OperatorType.Select
           && (thirdOpType == OperatorType.GroupBy || thirdOpType == OperatorType.SetTransform)
           && storage.isSupportProjectWithAggSelect(

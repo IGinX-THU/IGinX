@@ -1271,17 +1271,6 @@ public class RowUtils {
       }
 
       Row tmp = row;
-      LOGGER.info("row info: {}", row);
-      LOGGER.info("row header: {}", row.getHeader());
-      LOGGER.info("row values: {}", Arrays.toString(row.getValues()));
-      LOGGER.info("function call: {}", functionCall);
-      for (String path : params.getPaths()) {
-        LOGGER.info("function path: {}", path);
-      }
-      for (Expression expression : params.getExpressions()) {
-        LOGGER.info("function expression: {}", expression);
-      }
-      LOGGER.info("isNeedPreRowTransform: {}", functionCall.isNeedPreRowTransform());
       if (functionCall.isNeedPreRowTransform()) {
         List<FunctionCall> list = FunctionUtils.getFunctionCalls(params.getExpressions());
         if (rowTransformMap.containsKey(params.getPaths())) {
@@ -1290,7 +1279,6 @@ public class RowUtils {
           tmp = calRowTransform(row, list);
           rowTransformMap.put(params.getPaths(), tmp);
         }
-        LOGGER.info("row transform: {}", tmp);
       }
 
       try {

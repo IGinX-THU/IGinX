@@ -328,13 +328,9 @@ public class RelationalStorage implements IStorage {
       String databaseName, String tableName, String columnNamePattern, boolean isDummy) {
     String databasePattern = dbStrategy.getDatabasePattern(databaseName, isDummy);
     String schemaPattern = dbStrategy.getSchemaPattern(databaseName, isDummy);
-    //    LOGGER.info("schema pattern: {}", schemaPattern);
-    //    LOGGER.info("database: {}", databaseName);
-    //    LOGGER.info("table: {}", tableName);
     if (!isDummy) {
       tableName = reshapeTableNameBeforeQuery(tableName, databaseName);
     }
-    //    LOGGER.info("table: {}", tableName);
     try (Connection conn = getConnection(databaseName)) {
       if (conn == null) {
         throw new RelationalTaskExecuteFailureException(
@@ -1610,7 +1606,6 @@ public class RelationalStorage implements IStorage {
     List<String> fullColumnNames = new ArrayList<>();
     for (Map.Entry<String, String> entry : table2Column.entrySet()) {
       String tableName = entry.getKey();
-      //      LOGGER.info("tableName: {}", tableName);
       List<String> columnNames = new ArrayList<>(Arrays.asList(entry.getValue().split(", ")));
       for (String columnName : columnNames) {
         fullColumnNames.add(tableName + SEPARATOR + columnName);
