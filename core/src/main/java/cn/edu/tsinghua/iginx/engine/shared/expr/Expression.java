@@ -28,7 +28,7 @@ public interface Expression {
     return getColumnName();
   }
 
-  void setColumnName(String databaseName);
+  void setColumnName(String columnName);
 
   ExpressionType getType();
 

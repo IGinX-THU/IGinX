@@ -51,7 +51,7 @@ public class ConstantExpression implements Expression {
   }
 
   @Override
-  public void setColumnName(String databaseName) {}
+  public void setColumnName(String columnName) {}
 
   @Override
   public ExpressionType getType() {

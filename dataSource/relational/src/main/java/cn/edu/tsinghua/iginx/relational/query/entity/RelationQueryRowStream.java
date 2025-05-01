@@ -466,6 +466,9 @@ public class RelationQueryRowStream implements RowStream {
     ResultSetMetaData resultSetMetaData = resultSet.getMetaData();
     for (int j = 1; j <= resultSetMetaData.getColumnCount(); j++) {
       String tempColumnName = resultSetMetaData.getColumnName(j);
+      if (engine.equals("dameng")) {
+        tempColumnName = resultSetMetaData.getColumnLabel(j);
+      }
       String tempTableName = resultSetMetaData.getTableName(j);
       if (!relationalMeta.supportCreateDatabase()) {
         int firstSeparatorIndex = tempTableName.indexOf(SEPARATOR);

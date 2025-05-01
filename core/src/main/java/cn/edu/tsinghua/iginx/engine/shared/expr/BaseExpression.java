@@ -43,8 +43,8 @@ public class BaseExpression implements Expression {
   }
 
   @Override
-  public void setColumnName(String databaseName) {
-    this.pathName = databaseName + SEPARATOR + getPathName();
+  public void setColumnName(String columnName) {
+    this.pathName = columnName;
   }
 
   public void setPathName(String pathName) {

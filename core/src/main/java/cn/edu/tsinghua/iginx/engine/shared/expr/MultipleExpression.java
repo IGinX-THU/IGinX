@@ -87,11 +87,7 @@ public class MultipleExpression implements Expression {
   }
 
   @Override
-  public void setColumnName(String databaseName) {
-    for (Expression child : children) {
-      child.setColumnName(databaseName);
-    }
-  }
+  public void setColumnName(String columnName) {}
 
   @Override
   public String getCalColumnName() {

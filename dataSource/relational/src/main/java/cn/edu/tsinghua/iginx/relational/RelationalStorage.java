@@ -349,7 +349,6 @@ public class RelationalStorage implements IStorage {
           String columnName = rs.getString("COLUMN_NAME");
           String columnType = rs.getString("TYPE_NAME");
           String columnTable = rs.getString("TABLE_NAME");
-          //          LOGGER.info("table name: {}", columnTable);
           if (!isDummy) {
             columnTable = reshapeTableNameAfterQuery(columnTable, databaseName);
           }
@@ -359,7 +358,6 @@ public class RelationalStorage implements IStorage {
               new ColumnField(columnTable, columnName, columnType, columnSize, decimalDigits));
         }
       }
-      //      LOGGER.info("column fields: {}", columnFields);
       return columnFields;
     } catch (SQLException | RelationalTaskExecuteFailureException e) {
       LOGGER.error("unexpected error: ", e);
@@ -393,140 +391,6 @@ public class RelationalStorage implements IStorage {
         break;
     }
     return res;
-  }
-
-  public List<Column> getColumnList(Set<String> patterns, TagFilter tagFilter)
-      throws RelationalTaskExecuteFailureException {
-    List<Column> columns = new ArrayList<>();
-    Map<String, String> extraParams = meta.getExtraParams();
-    try {
-      String colPattern;
-      // non-dummy
-      for (String databaseName : getDatabaseNames(false)) {
-        if ((extraParams.get("has_data") == null || extraParams.get("has_data").equals("false"))
-            && !databaseName.startsWith(DATABASE_PREFIX)) {
-          continue;
-        }
-        boolean isDummy =
-            extraParams.get("has_data") != null
-                && extraParams.get("has_data").equalsIgnoreCase("true")
-                && !databaseName.startsWith(DATABASE_PREFIX);
-        if (isDummy) {
-          continue;
-        }
-
-        Map<String, String> tableAndColPattern = new HashMap<>();
-
-        if (patterns != null && patterns.size() != 0) {
-          tableAndColPattern = splitAndMergeQueryPatterns(databaseName, new ArrayList<>(patterns));
-        } else {
-          for (String table : getTables(databaseName, "%", false)) {
-            tableAndColPattern.put(table, "%");
-          }
-        }
-        for (String tableName : tableAndColPattern.keySet()) {
-          colPattern = tableAndColPattern.get(tableName);
-          for (String colName : colPattern.split(", ")) {
-            List<ColumnField> columnFieldList = getColumns(databaseName, tableName, colName, false);
-            for (ColumnField columnField : columnFieldList) {
-              String columnName = columnField.getColumnName();
-
-              if (columnName.equals(KEY_NAME)) { // key 列不显示
-                continue;
-              }
-              Pair<String, Map<String, String>> nameAndTags = splitFullName(columnName);
-              columnName =
-                  reshapeTableNameBeforeQuery(tableName, databaseName) + SEPARATOR + nameAndTags.k;
-              if (tagFilter != null && !TagKVUtils.match(nameAndTags.v, tagFilter)) {
-                continue;
-              }
-              columns.add(
-                  new Column(
-                      columnName,
-                      relationalMeta
-                          .getDataTypeTransformer()
-                          .fromEngineType(
-                              columnField.getColumnType(),
-                              columnField.getColumnSize(),
-                              columnField.getDecimalDigits()),
-                      nameAndTags.v,
-                      isDummy));
-            }
-          }
-        }
-      }
-
-      // dummy
-      List<String> patternList = new ArrayList<>();
-      if (patterns == null || patterns.size() == 0) {
-        patternList = new ArrayList<>(Collections.singletonList("*.*"));
-      }
-      for (String databaseName : getDatabaseNames(true)) {
-        if ((extraParams.get("has_data") == null || extraParams.get("has_data").equals("false"))
-            && !databaseName.startsWith(DATABASE_PREFIX)) {
-          continue;
-        }
-        boolean isDummy =
-            extraParams.get("has_data") != null
-                && extraParams.get("has_data").equalsIgnoreCase("true")
-                && !databaseName.startsWith(DATABASE_PREFIX);
-        if (!isDummy) {
-          continue;
-        }
-        // find pattern that match <databaseName>.* to avoid creating databases after.
-        if (patterns == null || patterns.size() == 0) {
-          continue;
-        }
-        for (String p : patterns) {
-          // dummy path starts with <bucketName>.
-          if (Pattern.matches(
-              StringUtils.reformatPath(p.substring(0, p.indexOf("."))), databaseName)) {
-            patternList.add(p);
-          }
-        }
-      }
-
-      Map<String, Map<String, String>> dummyRes = splitAndMergeHistoryQueryPatterns(patternList);
-      Map<String, String> table2cols;
-      // seemingly there are 4 nested loops, but it's only the consequence of special data structure
-      // and reused methods.
-      // the loops would not affect complexity
-      for (String databaseName : dummyRes.keySet()) {
-        table2cols = dummyRes.get(databaseName);
-        for (String tableName : table2cols.keySet()) {
-          colPattern = table2cols.get(tableName);
-          for (String colName : colPattern.split(", ")) {
-            List<ColumnField> columnFieldList = getColumns(databaseName, tableName, colName, true);
-            for (ColumnField columnField : columnFieldList) {
-              String columnName = columnField.getColumnName();
-
-              if (columnName.equals(KEY_NAME)) { // key 列不显示
-                continue;
-              }
-              Pair<String, Map<String, String>> nameAndTags = splitFullName(columnName);
-              columnName = databaseName + SEPARATOR + tableName + SEPARATOR + nameAndTags.k;
-              if (tagFilter != null && !TagKVUtils.match(nameAndTags.v, tagFilter)) {
-                continue;
-              }
-              columns.add(
-                  new Column(
-                      columnName,
-                      relationalMeta
-                          .getDataTypeTransformer()
-                          .fromEngineType(
-                              columnField.getColumnType(),
-                              columnField.getColumnSize(),
-                              columnField.getDecimalDigits()),
-                      nameAndTags.v,
-                      true));
-            }
-          }
-        }
-      }
-    } catch (SQLException e) {
-      throw new RelationalTaskExecuteFailureException("failed to get columns ", e);
-    }
-    return columns;
   }
 
   @Override
@@ -880,20 +744,16 @@ public class RelationalStorage implements IStorage {
       if (!relationalMeta.supportCreateDatabase()) {
         filter = reshapeFilterBeforeQuery(filter, databaseName);
       }
+      LOGGER.info("filter: {}", filter);
       List<String> databaseNameList = new ArrayList<>();
       List<ResultSet> resultSets = new ArrayList<>();
       Statement stmt;
 
       Map<String, String> tableNameToColumnNames =
           splitAndMergeQueryPatterns(databaseName, project.getPatterns());
-      //      LOGGER.info("databaseName: " + databaseName);
-      //      LOGGER.info("project.getPatterns(): " + project.getPatterns());
-      //      LOGGER.info("tableNameToColumnNames: " + tableNameToColumnNames);
       // 按列顺序加上表名
       Filter expandFilter =
           expandFilter(filter.copy(), tableNameToColumnNames, databaseName, false);
-      LOGGER.info("expandFilter: " + expandFilter);
-      LOGGER.info("filter: " + filter);
 
       String statement;
       // 如果table>1的情况下存在Value或Path Filter，说明filter的匹配需要跨table，此时需要将所有table join到一起进行查询
@@ -955,7 +815,6 @@ public class RelationalStorage implements IStorage {
       if (!relationalMeta.supportCreateDatabase()) {
         filter = reshapeFilterAfterQuery(filter, databaseName);
       }
-      LOGGER.info("filter: " + filter);
 
       RowStream rowStream =
           new ClearEmptyRowStreamWrapper(
@@ -1541,8 +1400,8 @@ public class RelationalStorage implements IStorage {
   @Override
   public boolean isSupportProjectWithAgg(Operator agg, DataArea dataArea, boolean isDummy) {
     if (!(engineName.equals("dameng")
-        || relationalMeta.supportCreateDatabase()
-            && relationalMeta.jdbcSupportGetTableNameFromResultSet())) {
+        || (relationalMeta.supportCreateDatabase()
+            && relationalMeta.jdbcSupportGetTableNameFromResultSet()))) {
       return false;
     }
     if (agg.getType() != OperatorType.GroupBy && agg.getType() != OperatorType.SetTransform) {
@@ -1661,6 +1520,8 @@ public class RelationalStorage implements IStorage {
       }
       Map<String, String> tableNameToColumnNames =
           splitAndMergeQueryPatterns(databaseName, project.getPatterns());
+      LOGGER.info("patterns: {}", project.getPatterns());
+      LOGGER.info("agg: {}", agg);
 
       String statement =
           getProjectWithFilterSQL(
@@ -1749,7 +1610,7 @@ public class RelationalStorage implements IStorage {
     List<String> fullColumnNames = new ArrayList<>();
     for (Map.Entry<String, String> entry : table2Column.entrySet()) {
       String tableName = entry.getKey();
-      LOGGER.info("tableName: {}", tableName);
+      //      LOGGER.info("tableName: {}", tableName);
       List<String> columnNames = new ArrayList<>(Arrays.asList(entry.getValue().split(", ")));
       for (String columnName : columnNames) {
         fullColumnNames.add(tableName + SEPARATOR + columnName);
@@ -1767,16 +1628,15 @@ public class RelationalStorage implements IStorage {
     for (FunctionCall functionCall : functionCalls) {
       String functionName = functionCall.getFunction().getIdentifier();
       Expression param = functionCall.getParams().getExpressions().get(0);
-      LOGGER.info("param: {}", param.getCalColumnName());
-      LOGGER.info("param: {}", param.getColumnName());
+      //      LOGGER.info("param: {}", param.getColumnName());
       List<Expression> expandExprs = expandExpression(param, fullColumnNames);
       for (Expression expr : expandExprs) {
-        LOGGER.info("expand expr: {}", expr.getCalColumnName());
+        //        LOGGER.info("expand expr: {}", expr.getCalColumnName());
         String IGinXTagKVName =
             String.format(
                 "%s(%s)", functionName, exprToIGinX(ExprUtils.copy(expr)).getColumnName());
         fullName2Name.put(IGinXTagKVName, functionCall.getFunctionStr());
-        LOGGER.info("IGinXTagKVName: {}", IGinXTagKVName);
+        //        LOGGER.info("IGinXTagKVName: {}", IGinXTagKVName);
         String format = "%s(%s)";
         // 如果是avg函数，且参数是base类型，在mysql下小数位数仅有5位，需要转换为decimal来补齐
         // 仅在mysql下这么做，pg也可以用，但会出现一些误差，例如3.200000和3.1999999的区别，测试不好通过
@@ -1784,32 +1644,32 @@ public class RelationalStorage implements IStorage {
             && param.getType() == Expression.ExpressionType.Base) {
           format = dbStrategy.getAvgCastExpression(param);
         }
-        if (!relationalMeta.supportCreateDatabase() && !isDummy) {
-          //          ((BaseExpression) expr).setPathName(databaseName + SEPARATOR +
-          // expr.getCalColumnName());
-          expr.setColumnName(databaseName);
-        }
+        LOGGER.info("before before reshape: {}", expr.getCalColumnName());
+        expr = reshapeColumnNameBeforeQuery(ExprUtils.copy(expr), databaseName, isDummy);
+        LOGGER.info("after before reshape: {}", expr.getCalColumnName());
         sqlColumnsStr.append(
             String.format(
                 format, functionName, exprAdapt(ExprUtils.copy(expr)).getCalColumnName()));
         sqlColumnsStr.append(" AS ");
         sqlColumnsStr.append(quote).append(IGinXTagKVName).append(quote);
         sqlColumnsStr.append(", ");
+        //        expr = reshapeColumnNameAfterQuery(ExprUtils.copy(expr), databaseName, isDummy);
+        LOGGER.info("after after reshape: {}", expr.getCalColumnName());
       }
     }
 
-    for (Expression expr : gbc) {
+    for (int i = 0; i < gbc.size(); i++) {
+      Expression expr = gbc.get(i);
       String originColumnStr = quote + expr.getColumnName() + quote;
-      if (!relationalMeta.supportCreateDatabase() && !isDummy) {
-        //        ((BaseExpression) expr).setPathName(databaseName + SEPARATOR +
-        // expr.getCalColumnName());
-        expr.setColumnName(databaseName);
-      }
+      LOGGER.info("gbc before before reshape: {}", expr.getCalColumnName());
+      gbc.set(i, reshapeColumnNameBeforeQuery(ExprUtils.copy(gbc.get(i)), databaseName, isDummy));
+      expr = gbc.get(i);
       sqlColumnsStr
           .append(exprAdapt(ExprUtils.copy(expr)).getCalColumnName())
           .append(" AS ")
           .append(originColumnStr)
           .append(", ");
+      LOGGER.info("gbc after before reshape: {}", expr.getCalColumnName());
     }
     sqlColumnsStr.delete(sqlColumnsStr.length() - 2, sqlColumnsStr.length());
 
@@ -1822,8 +1682,229 @@ public class RelationalStorage implements IStorage {
                   .collect(Collectors.joining(", "));
     }
     statement += ";";
+    for (int i = 0; i < gbc.size(); i++) {
+      gbc.set(i, reshapeColumnNameAfterQuery(ExprUtils.copy(gbc.get(i)), databaseName, isDummy));
+    }
     return statement;
   }
+
+  private Expression reshapeColumnNameBeforeQuery(
+      Expression expr, String databaseName, boolean isDummy) {
+    Expression.ExpressionType expressionType = expr.getType();
+    switch (expressionType) {
+      case Base:
+        if (!relationalMeta.supportCreateDatabase() && !isDummy) {
+          expr.setColumnName(databaseName + SEPARATOR + expr.getColumnName());
+        }
+        return expr;
+      case Binary:
+        BinaryExpression binaryExpression = (BinaryExpression) expr;
+        binaryExpression.setLeftExpression(
+            reshapeColumnNameBeforeQuery(
+                binaryExpression.getLeftExpression(), databaseName, isDummy));
+        binaryExpression.setRightExpression(
+            reshapeColumnNameBeforeQuery(
+                binaryExpression.getRightExpression(), databaseName, isDummy));
+        return binaryExpression;
+      case Bracket:
+        BracketExpression bracketExpression = (BracketExpression) expr;
+        bracketExpression.setExpression(
+            reshapeColumnNameBeforeQuery(bracketExpression.getExpression(), databaseName, isDummy));
+        return bracketExpression;
+      case Function:
+        FuncExpression funcExpression = (FuncExpression) expr;
+        funcExpression
+            .getExpressions()
+            .replaceAll(
+                expression -> reshapeColumnNameBeforeQuery(expression, databaseName, isDummy));
+        return funcExpression;
+      case Multiple:
+        MultipleExpression multipleExpression = (MultipleExpression) expr;
+        multipleExpression
+            .getChildren()
+            .replaceAll(
+                expression -> reshapeColumnNameBeforeQuery(expression, databaseName, isDummy));
+        return multipleExpression;
+        //        for (int i = 0; i < multipleExpression.getChildren().size(); i++) {
+        //          reshapeColumnNameBeforeQuery(
+        //              multipleExpression.getChildren().get(i), databaseName, isDummy);
+        //        }
+        //        break;
+      default:
+        break;
+    }
+    return expr;
+  }
+
+  private Expression reshapeColumnNameAfterQuery(
+      Expression expr, String databaseName, boolean isDummy) {
+    Expression.ExpressionType expressionType = expr.getType();
+    switch (expressionType) {
+      case Base:
+        if (!relationalMeta.supportCreateDatabase() && !isDummy) {
+          expr.setColumnName(expr.getColumnName().substring(databaseName.length() + 1));
+        }
+        return expr;
+      case Binary:
+        BinaryExpression binaryExpression = (BinaryExpression) expr;
+        binaryExpression.setLeftExpression(
+            reshapeColumnNameAfterQuery(
+                binaryExpression.getLeftExpression(), databaseName, isDummy));
+        binaryExpression.setRightExpression(
+            reshapeColumnNameAfterQuery(
+                binaryExpression.getRightExpression(), databaseName, isDummy));
+        return binaryExpression;
+      case Bracket:
+        BracketExpression bracketExpression = (BracketExpression) expr;
+        bracketExpression.setExpression(
+            reshapeColumnNameAfterQuery(bracketExpression.getExpression(), databaseName, isDummy));
+        return bracketExpression;
+      case Function:
+        FuncExpression funcExpression = (FuncExpression) expr;
+        funcExpression
+            .getExpressions()
+            .replaceAll(
+                expression -> reshapeColumnNameAfterQuery(expression, databaseName, isDummy));
+        return funcExpression;
+      case Multiple:
+        MultipleExpression multipleExpression = (MultipleExpression) expr;
+        multipleExpression
+            .getChildren()
+            .replaceAll(
+                expression -> reshapeColumnNameAfterQuery(expression, databaseName, isDummy));
+        return multipleExpression;
+      default:
+        break;
+    }
+    return expr;
+  }
+
+  //  private void reshapeColumnNameBeforeQuery(Expression expr, String databaseName, boolean
+  // isDummy) {
+  //    expr.accept(
+  //        new ExpressionVisitor() {
+  //          @Override
+  //          public void visit(BaseExpression expression) {
+  //            if (!relationalMeta.supportCreateDatabase()
+  //                && !isDummy
+  //                && !expression.getColumnName().startsWith(databaseName)) {
+  //              LOGGER.info("before reshape: {}", expression.getCalColumnName());
+  //              expression.setColumnName(databaseName + SEPARATOR + expression.getColumnName());
+  //              LOGGER.info("after reshape: {}", expression.getCalColumnName());
+  //            }
+  //          }
+  //
+  //          @Override
+  //          public void visit(BinaryExpression expression) {
+  //            LOGGER.info("aa before left reshape: {}", expression.getCalColumnName());
+  //            reshapeColumnNameBeforeQuery(expression.getLeftExpression(), databaseName, isDummy);
+  //            LOGGER.info("aa after left reshape: {}", expression.getCalColumnName());
+  //            reshapeColumnNameBeforeQuery(expression.getRightExpression(), databaseName,
+  // isDummy);
+  //            LOGGER.info("aa after right reshape: {}", expression.getCalColumnName());
+  //          }
+  //
+  //          @Override
+  //          public void visit(BracketExpression expression) {
+  //            reshapeColumnNameBeforeQuery(expression.getExpression(), databaseName, isDummy);
+  //          }
+  //
+  //          @Override
+  //          public void visit(ConstantExpression expression) {}
+  //
+  //          @Override
+  //          public void visit(FromValueExpression expression) {}
+  //
+  //          @Override
+  //          public void visit(FuncExpression expression) {
+  //            for (int i = 0; i < expression.getExpressions().size(); i++) {
+  //              reshapeColumnNameBeforeQuery(
+  //                  expression.getExpressions().get(i), databaseName, isDummy);
+  //            }
+  //          }
+  //
+  //          @Override
+  //          public void visit(MultipleExpression expression) {
+  //            for (int i = 0; i < expression.getChildren().size(); i++) {
+  //              reshapeColumnNameBeforeQuery(expression.getChildren().get(i), databaseName,
+  // isDummy);
+  //            }
+  //          }
+  //
+  //          @Override
+  //          public void visit(UnaryExpression expression) {}
+  //
+  //          @Override
+  //          public void visit(CaseWhenExpression expression) {}
+  //
+  //          @Override
+  //          public void visit(KeyExpression expression) {}
+  //
+  //          @Override
+  //          public void visit(SequenceExpression expression) {}
+  //        });
+  //  }
+
+  //  private void reshapeColumnNameAfterQuery(Expression expr, String databaseName, boolean
+  // isDummy) {
+  //    expr.accept(
+  //        new ExpressionVisitor() {
+  //          @Override
+  //          public void visit(BaseExpression expression) {
+  //            if (!relationalMeta.supportCreateDatabase()
+  //                && !isDummy
+  //                && expression.getColumnName().startsWith(databaseName)) {
+  //              expression.setColumnName(
+  //                  expression.getColumnName().substring(databaseName.length() + 1));
+  //            }
+  //          }
+  //
+  //          @Override
+  //          public void visit(BinaryExpression expression) {
+  //            reshapeColumnNameAfterQuery(expression.getLeftExpression(), databaseName, isDummy);
+  //            reshapeColumnNameAfterQuery(expression.getRightExpression(), databaseName, isDummy);
+  //          }
+  //
+  //          @Override
+  //          public void visit(BracketExpression expression) {
+  //            reshapeColumnNameAfterQuery(expression.getExpression(), databaseName, isDummy);
+  //          }
+  //
+  //          @Override
+  //          public void visit(ConstantExpression expression) {}
+  //
+  //          @Override
+  //          public void visit(FromValueExpression expression) {}
+  //
+  //          @Override
+  //          public void visit(FuncExpression expression) {
+  //            for (int i = 0; i < expression.getExpressions().size(); i++) {
+  //              reshapeColumnNameAfterQuery(
+  //                  expression.getExpressions().get(i), databaseName, isDummy);
+  //            }
+  //          }
+  //
+  //          @Override
+  //          public void visit(MultipleExpression expression) {
+  //            for (int i = 0; i < expression.getChildren().size(); i++) {
+  //              reshapeColumnNameAfterQuery(expression.getChildren().get(i), databaseName,
+  // isDummy);
+  //            }
+  //          }
+  //
+  //          @Override
+  //          public void visit(UnaryExpression expression) {}
+  //
+  //          @Override
+  //          public void visit(CaseWhenExpression expression) {}
+  //
+  //          @Override
+  //          public void visit(KeyExpression expression) {}
+  //
+  //          @Override
+  //          public void visit(SequenceExpression expression) {}
+  //        });
+  //  }
 
   /**
    * 表达式适配下推到PG的形式 1.将baseExpression转换为QuoteBaseExpression，以让其在SQL中被引号包裹
@@ -2508,13 +2589,12 @@ public class RelationalStorage implements IStorage {
       List<Pattern> patternList =
           getRegexPatternByName(databaseName, tableName, columnNames, false);
       Pattern tableNamePattern = patternList.get(0), columnNamePattern = patternList.get(1);
-      LOGGER.info("tableNamePattern: " + tableNamePattern);
-      LOGGER.info("columnNamePattern: " + columnNamePattern);
+      //      LOGGER.info("tableNamePattern: " + tableNamePattern);
+      //      LOGGER.info("columnNamePattern: " + columnNamePattern);
 
       for (ColumnField columnField : columnFieldList) {
         String curTableName = columnField.getTableName();
         String curColumnNames = columnField.getColumnName();
-        LOGGER.info("current table name: " + curTableName);
         if (curColumnNames.equals(KEY_NAME)) {
           continue;
         }
@@ -2539,12 +2619,10 @@ public class RelationalStorage implements IStorage {
 
           curColumnNames = String.join(", ", columnNamesList);
         }
-        LOGGER.info("cur table name: " + curTableName);
-        LOGGER.info("cur column names: " + curColumnNames);
         tableNameToColumnNames.put(curTableName, curColumnNames);
       }
     }
-    LOGGER.info("tableNameToColumnNames: {}", tableNameToColumnNames);
+    //    LOGGER.info("tableNameToColumnNames: {}", tableNameToColumnNames);
     return tableNameToColumnNames;
   }
 

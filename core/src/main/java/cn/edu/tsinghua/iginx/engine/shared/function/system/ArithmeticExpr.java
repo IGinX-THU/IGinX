@@ -64,19 +64,20 @@ public class ArithmeticExpr implements RowMappingFunction {
       throw new IllegalArgumentException("unexpected params for arithmetic_expr.");
     }
     Expression expr = params.getExpression(0);
-
+    System.out.println("arithmetic_expr: " + expr);
     Value ret = ExprUtils.calculateExpr(row, expr);
+    System.out.println("arithmetic_expr result: " + ret);
     if (ret == null) {
       return Row.EMPTY_ROW;
     }
 
     Field targetField = new Field(expr.getColumnName(), ret.getDataType());
-
+    System.out.println("arithmetic_expr target field: " + targetField.getName());
     Header header =
         row.getHeader().hasKey()
             ? new Header(Field.KEY, Collections.singletonList(targetField))
             : new Header(Collections.singletonList(targetField));
-
+    System.out.println("arithmetic_expr header: " + header);
     return new Row(header, row.getKey(), new Object[] {ret.getValue()});
   }
 }

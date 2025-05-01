@@ -104,7 +104,9 @@ public class ExprUtils {
       row = RowUtils.buildConstRow(funcExpr.getExpressions());
     }
     String colName = funcExpr.getColumnName();
+    LOGGER.info("colName: {}", colName);
     int index = row.getHeader().indexOf(colName);
+    LOGGER.info("header: {}", row.getHeader());
     if (index == -1) {
       return calculateFuncExprNative(row, funcExpr);
     }
@@ -115,6 +117,7 @@ public class ExprUtils {
       throws PhysicalException {
     initFunctionManager();
     Function function = functionManager.getFunction(funcExpr.getFuncName());
+    LOGGER.info("funcName: {}", funcExpr.getFuncName());
     if (!function.getMappingType().equals(MappingType.RowMapping)) {
       throw new InvalidOperatorParameterException("only row mapping function can be used in expr");
     }
