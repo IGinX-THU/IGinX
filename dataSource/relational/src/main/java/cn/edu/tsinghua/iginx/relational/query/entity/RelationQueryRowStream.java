@@ -164,11 +164,11 @@ public class RelationQueryRowStream implements RowStream {
       int cnt = 0;
       for (int j = 1; j <= resultSetMetaData.getColumnCount(); j++) {
         String tableName = resultSetMetaData.getTableName(j);
-        String columnName = resultSetMetaData.getColumnName(j);
+        String columnName = resultSetMetaData.getColumnLabel(j);
         // 达梦需要通过getColumnLabel获取列名
-        if (engine.equals("dameng")) {
-          columnName = resultSetMetaData.getColumnLabel(j);
-        }
+        //        if (engine.equals("dameng")) {
+        //          columnName = resultSetMetaData.getColumnLabel(j);
+        //        }
         String columnType = resultSetMetaData.getColumnTypeName(j);
         int precision = resultSetMetaData.getPrecision(j);
         int scale = resultSetMetaData.getScale(j);
@@ -195,7 +195,7 @@ public class RelationQueryRowStream implements RowStream {
 
         if (j == 1 && columnName.equals(KEY_NAME)) {
           key = Field.KEY;
-          this.fullKeyName = resultSetMetaData.getColumnName(j);
+          this.fullKeyName = resultSetMetaData.getColumnLabel(j);
           continue;
         }
         Pair<String, Map<String, String>> namesAndTags = splitFullName(columnName);
@@ -465,10 +465,10 @@ public class RelationQueryRowStream implements RowStream {
     }
     ResultSetMetaData resultSetMetaData = resultSet.getMetaData();
     for (int j = 1; j <= resultSetMetaData.getColumnCount(); j++) {
-      String tempColumnName = resultSetMetaData.getColumnName(j);
-      if (engine.equals("dameng")) {
-        tempColumnName = resultSetMetaData.getColumnLabel(j);
-      }
+      String tempColumnName = resultSetMetaData.getColumnLabel(j);
+      //      if (engine.equals("dameng")) {
+      //        tempColumnName = resultSetMetaData.getColumnLabel(j);
+      //      }
       String tempTableName = resultSetMetaData.getTableName(j);
       if (!relationalMeta.supportCreateDatabase()) {
         int firstSeparatorIndex = tempTableName.indexOf(SEPARATOR);
