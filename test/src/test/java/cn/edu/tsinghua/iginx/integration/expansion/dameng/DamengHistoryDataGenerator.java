@@ -19,8 +19,6 @@
  */
 package cn.edu.tsinghua.iginx.integration.expansion.dameng;
 
-import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.*;
-
 import cn.edu.tsinghua.iginx.integration.expansion.BaseHistoryDataGenerator;
 import cn.edu.tsinghua.iginx.integration.expansion.constant.Constant;
 import cn.edu.tsinghua.iginx.thrift.DataType;

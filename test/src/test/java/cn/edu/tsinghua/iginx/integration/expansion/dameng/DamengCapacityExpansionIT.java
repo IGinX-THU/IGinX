@@ -94,11 +94,6 @@ public class DamengCapacityExpansionIT extends BaseCapacityExpansionIT {
           }
         },
         new DamengHistoryDataGenerator());
-    //    ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
-    //    DBConf dbConf = conf.loadDBConf(conf.getStorageType());
-    //    Constant.oriPort = dbConf.getDBCEPortMap().get(Constant.ORI_PORT_NAME);
-    //    Constant.expPort = dbConf.getDBCEPortMap().get(Constant.EXP_PORT_NAME);
-    //    Constant.readOnlyPort = dbConf.getDBCEPortMap().get(Constant.READ_ONLY_PORT_NAME);
     updatedParams.put("password", newPass);
   }
 
@@ -140,16 +135,6 @@ public class DamengCapacityExpansionIT extends BaseCapacityExpansionIT {
     } catch (SQLException e) {
       throw new RuntimeException(e);
     }
-    //    String scriptPath = updateParamsScriptDir + "dameng.sh";
-    //    String os = System.getProperty("os.name").toLowerCase();
-    //    if (os.contains("win")) {
-    //      scriptPath = updateParamsScriptDir + "dameng_windows.sh";
-    //    }
-    //    // 脚本参数：对应端口，旧密码，新密码
-    //    int res = executeShellScript(scriptPath, String.valueOf(port), oldPw, newPw);
-    //    if (res != 0) {
-    //      fail("Fail to update Dameng database params.");
-    //    }
   }
 
   @Override
@@ -158,7 +143,6 @@ public class DamengCapacityExpansionIT extends BaseCapacityExpansionIT {
   }
 
   /** 达梦的用户名不受大小写敏感影响，无论如何都是大写，User对应database，需要修改测试，将databaseName修改为大写 * */
-
   /** 测试float类型数据 */
   private void testFloatData() {
     String statement = "select wt02.float from TM.wf05 where wt02.float <= 44.55;";

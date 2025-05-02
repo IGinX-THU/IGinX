@@ -165,19 +165,9 @@ public class RelationQueryRowStream implements RowStream {
       for (int j = 1; j <= resultSetMetaData.getColumnCount(); j++) {
         String tableName = resultSetMetaData.getTableName(j);
         String columnName = resultSetMetaData.getColumnLabel(j);
-        // 达梦需要通过getColumnLabel获取列名
-        //        if (engine.equals("dameng")) {
-        //          columnName = resultSetMetaData.getColumnLabel(j);
-        //        }
         String columnType = resultSetMetaData.getColumnTypeName(j);
         int precision = resultSetMetaData.getPrecision(j);
         int scale = resultSetMetaData.getScale(j);
-        LOGGER.info(
-            "columnName: {}, columnType: {}, precision: {}, scale: {}",
-            columnName,
-            columnType,
-            precision,
-            scale);
 
         if (j == 1 && columnName.contains(KEY_NAME) && columnName.contains(SEPARATOR)) {
           isPushDown = true;
@@ -202,13 +192,11 @@ public class RelationQueryRowStream implements RowStream {
         Field field;
         DataType type =
             relationalMeta.getDataTypeTransformer().fromEngineType(columnType, precision, scale);
-        LOGGER.info("columnName: {}, type: {}", columnName, type);
         if (isAgg
             && sumResType != null
             && sumResType.containsKey(fullName2Name.getOrDefault(columnName, columnName))) {
           type = sumResType.get(fullName2Name.getOrDefault(columnName, columnName));
         }
-        LOGGER.info("columnName: {}, type: {}", columnName, type);
         String databaseName = databaseNameList.get(i);
         String path;
         if (isDummy) {
@@ -220,15 +208,6 @@ public class RelationQueryRowStream implements RowStream {
                       : tableName + SEPARATOR)
                   + namesAndTags.k;
         } else {
-          //          LOGGER.info("tableName: {}", tableName);
-          //          if (!relationalMeta.supportCreateDatabase() &&
-          // tableName.startsWith(DATABASE_PREFIX)) {
-          //            int fisrtSeparatorIndex = tableName.indexOf(SEPARATOR);
-          //            if (fisrtSeparatorIndex > 0) {
-          //              tableName = tableName.substring(fisrtSeparatorIndex + 1);
-          //            }
-          //            LOGGER.info("tableName: {}", tableName);
-          //          }
           path =
               (isAgg || !relationalMeta.jdbcSupportGetTableNameFromResultSet()
                       ? ""
@@ -238,13 +217,12 @@ public class RelationQueryRowStream implements RowStream {
             path = path.substring(databaseName.length() + 1);
           }
         }
-        LOGGER.info("path: {}", path);
+
         if (isAgg && fullName2Name.containsKey(path)) {
           field = new Field(fullName2Name.get(path), path, type, namesAndTags.v);
         } else {
           field = new Field(path, type, namesAndTags.v);
         }
-        LOGGER.info("field: {}", field.getName());
 
         if (filterByTags && !TagKVUtils.match(namesAndTags.v, tagFilter)) {
           continue;
@@ -466,9 +444,6 @@ public class RelationQueryRowStream implements RowStream {
     ResultSetMetaData resultSetMetaData = resultSet.getMetaData();
     for (int j = 1; j <= resultSetMetaData.getColumnCount(); j++) {
       String tempColumnName = resultSetMetaData.getColumnLabel(j);
-      //      if (engine.equals("dameng")) {
-      //        tempColumnName = resultSetMetaData.getColumnLabel(j);
-      //      }
       String tempTableName = resultSetMetaData.getTableName(j);
       if (!relationalMeta.supportCreateDatabase()) {
         int firstSeparatorIndex = tempTableName.indexOf(SEPARATOR);
