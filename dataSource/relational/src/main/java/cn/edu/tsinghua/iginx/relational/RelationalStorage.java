@@ -1501,8 +1501,6 @@ public class RelationalStorage implements IStorage {
       }
       Map<String, String> tableNameToColumnNames =
           splitAndMergeQueryPatterns(databaseName, project.getPatterns());
-      LOGGER.info("patterns: {}", project.getPatterns());
-      LOGGER.info("agg: {}", agg);
 
       String statement =
           getProjectWithFilterSQL(
@@ -1534,7 +1532,6 @@ public class RelationalStorage implements IStorage {
       }
 
       Map<String, DataType> columnTypeMap = getSumDataType(functionCalls);
-      LOGGER.info("columnTypeMap: {}", columnTypeMap);
 
       RowStream rowStream =
           new ClearEmptyRowStreamWrapper(
@@ -1623,23 +1620,22 @@ public class RelationalStorage implements IStorage {
             && param.getType() == Expression.ExpressionType.Base) {
           format = dbStrategy.getAvgCastExpression(param);
         }
-        expr = reshapeColumnNameBeforeQuery(ExprUtils.copy(expr), databaseName, isDummy);
+        expr = reshapeExpressionColumnNameBeforeQuery(ExprUtils.copy(expr), databaseName, isDummy);
         sqlColumnsStr.append(
             String.format(
                 format, functionName, exprAdapt(ExprUtils.copy(expr)).getCalColumnName()));
         sqlColumnsStr.append(" AS ");
         sqlColumnsStr.append(quote).append(IGinXTagKVName).append(quote);
         sqlColumnsStr.append(", ");
-        //        expr = reshapeColumnNameAfterQuery(ExprUtils.copy(expr), databaseName, isDummy);
-        LOGGER.info("after after reshape: {}", expr.getCalColumnName());
       }
     }
 
     for (int i = 0; i < gbc.size(); i++) {
       Expression expr = gbc.get(i);
       String originColumnStr = quote + expr.getColumnName() + quote;
-      gbc.set(i, reshapeColumnNameBeforeQuery(ExprUtils.copy(gbc.get(i)), databaseName, isDummy));
-      expr = gbc.get(i);
+      expr =
+          reshapeExpressionColumnNameBeforeQuery(ExprUtils.copy(gbc.get(i)), databaseName, isDummy);
+      gbc.set(i, expr);
       sqlColumnsStr
           .append(exprAdapt(ExprUtils.copy(expr)).getCalColumnName())
           .append(" AS ")
@@ -1657,17 +1653,19 @@ public class RelationalStorage implements IStorage {
                   .collect(Collectors.joining(", "));
     }
     statement += ";";
-    for (int i = 0; i < gbc.size(); i++) {
-      gbc.set(i, reshapeColumnNameAfterQuery(ExprUtils.copy(gbc.get(i)), databaseName, isDummy));
-    }
+    gbc.replaceAll(
+        expression ->
+            reshapeExpressionColumnNameAfterQuery(
+                ExprUtils.copy(expression), databaseName, isDummy));
     return statement;
   }
 
-  private Expression reshapeColumnNameBeforeQuery(
+  private Expression reshapeExpressionColumnNameBeforeQuery(
       Expression expr, String databaseName, boolean isDummy) {
     Expression.ExpressionType expressionType = expr.getType();
     switch (expressionType) {
       case Base:
+        // 不支持创建数据库的情况下，数据库名作为tableName的一部分
         if (!relationalMeta.supportCreateDatabase() && !isDummy) {
           expr.setColumnName(databaseName + SEPARATOR + expr.getColumnName());
         }
@@ -1675,47 +1673,46 @@ public class RelationalStorage implements IStorage {
       case Binary:
         BinaryExpression binaryExpression = (BinaryExpression) expr;
         binaryExpression.setLeftExpression(
-            reshapeColumnNameBeforeQuery(
+            reshapeExpressionColumnNameBeforeQuery(
                 binaryExpression.getLeftExpression(), databaseName, isDummy));
         binaryExpression.setRightExpression(
-            reshapeColumnNameBeforeQuery(
+            reshapeExpressionColumnNameBeforeQuery(
                 binaryExpression.getRightExpression(), databaseName, isDummy));
         return binaryExpression;
       case Bracket:
         BracketExpression bracketExpression = (BracketExpression) expr;
         bracketExpression.setExpression(
-            reshapeColumnNameBeforeQuery(bracketExpression.getExpression(), databaseName, isDummy));
+            reshapeExpressionColumnNameBeforeQuery(
+                bracketExpression.getExpression(), databaseName, isDummy));
         return bracketExpression;
       case Function:
         FuncExpression funcExpression = (FuncExpression) expr;
         funcExpression
             .getExpressions()
             .replaceAll(
-                expression -> reshapeColumnNameBeforeQuery(expression, databaseName, isDummy));
+                expression ->
+                    reshapeExpressionColumnNameBeforeQuery(expression, databaseName, isDummy));
         return funcExpression;
       case Multiple:
         MultipleExpression multipleExpression = (MultipleExpression) expr;
         multipleExpression
             .getChildren()
             .replaceAll(
-                expression -> reshapeColumnNameBeforeQuery(expression, databaseName, isDummy));
+                expression ->
+                    reshapeExpressionColumnNameBeforeQuery(expression, databaseName, isDummy));
         return multipleExpression;
-        //        for (int i = 0; i < multipleExpression.getChildren().size(); i++) {
-        //          reshapeColumnNameBeforeQuery(
-        //              multipleExpression.getChildren().get(i), databaseName, isDummy);
-        //        }
-        //        break;
       default:
         break;
     }
     return expr;
   }
 
-  private Expression reshapeColumnNameAfterQuery(
+  private Expression reshapeExpressionColumnNameAfterQuery(
       Expression expr, String databaseName, boolean isDummy) {
     Expression.ExpressionType expressionType = expr.getType();
     switch (expressionType) {
       case Base:
+        // 不支持创建数据库的情况下，数据库名作为tableName的一部分
         if (!relationalMeta.supportCreateDatabase() && !isDummy) {
           expr.setColumnName(expr.getColumnName().substring(databaseName.length() + 1));
         }
@@ -1723,30 +1720,33 @@ public class RelationalStorage implements IStorage {
       case Binary:
         BinaryExpression binaryExpression = (BinaryExpression) expr;
         binaryExpression.setLeftExpression(
-            reshapeColumnNameAfterQuery(
+            reshapeExpressionColumnNameAfterQuery(
                 binaryExpression.getLeftExpression(), databaseName, isDummy));
         binaryExpression.setRightExpression(
-            reshapeColumnNameAfterQuery(
+            reshapeExpressionColumnNameAfterQuery(
                 binaryExpression.getRightExpression(), databaseName, isDummy));
         return binaryExpression;
       case Bracket:
         BracketExpression bracketExpression = (BracketExpression) expr;
         bracketExpression.setExpression(
-            reshapeColumnNameAfterQuery(bracketExpression.getExpression(), databaseName, isDummy));
+            reshapeExpressionColumnNameAfterQuery(
+                bracketExpression.getExpression(), databaseName, isDummy));
         return bracketExpression;
       case Function:
         FuncExpression funcExpression = (FuncExpression) expr;
         funcExpression
             .getExpressions()
             .replaceAll(
-                expression -> reshapeColumnNameAfterQuery(expression, databaseName, isDummy));
+                expression ->
+                    reshapeExpressionColumnNameAfterQuery(expression, databaseName, isDummy));
         return funcExpression;
       case Multiple:
         MultipleExpression multipleExpression = (MultipleExpression) expr;
         multipleExpression
             .getChildren()
             .replaceAll(
-                expression -> reshapeColumnNameAfterQuery(expression, databaseName, isDummy));
+                expression ->
+                    reshapeExpressionColumnNameAfterQuery(expression, databaseName, isDummy));
         return multipleExpression;
       default:
         break;
