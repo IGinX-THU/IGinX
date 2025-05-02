@@ -16,8 +16,8 @@ inputs:
 runs:
     using: "composite"
     steps:
-        - name: Setup docker compose
-          uses: ./.github/actions/dockerCompose
+        #        - name: Setup docker compose
+        #          uses: ./.github/actions/dockerCompose
 
         - if: fromJSON(inputs.start)
           name: Create Config for dameng docker compose
