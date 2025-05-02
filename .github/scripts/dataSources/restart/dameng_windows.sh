@@ -1,6 +1,6 @@
 #!/bin/bash
 
-docker restart dm8-"$1"
+wsl docker restart dm8-"$1"
 sleep 30
 
 ## 启用错误检测
