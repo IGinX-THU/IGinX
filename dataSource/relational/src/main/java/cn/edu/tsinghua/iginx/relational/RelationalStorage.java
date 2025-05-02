@@ -547,10 +547,7 @@ public class RelationalStorage implements IStorage {
 
   @Override
   public boolean isSupportProjectWithSelect() {
-    return true;
-    //    return engineName.equals("dameng")
-    //        || (relationalMeta.supportCreateDatabase()
-    //            && relationalMeta.jdbcSupportGetTableNameFromResultSet());
+    return relationalMeta.jdbcSupportGetTableNameFromResultSet();
   }
 
   @Override
@@ -1381,11 +1378,9 @@ public class RelationalStorage implements IStorage {
 
   @Override
   public boolean isSupportProjectWithAgg(Operator agg, DataArea dataArea, boolean isDummy) {
-    //    if (!(engineName.equals("dameng")
-    //        || (relationalMeta.supportCreateDatabase()
-    //            && relationalMeta.jdbcSupportGetTableNameFromResultSet()))) {
-    //      return false;
-    //    }
+    if (!relationalMeta.jdbcSupportGetTableNameFromResultSet()) {
+      return false;
+    }
     if (agg.getType() != OperatorType.GroupBy && agg.getType() != OperatorType.SetTransform) {
       return false;
     }
