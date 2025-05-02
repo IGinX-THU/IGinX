@@ -20,7 +20,7 @@ runs:
           uses: ./.github/actions/dockerCompose
 
         - if: fromJSON(inputs.start)
-          name: Create Config for milvus docker compose
+          name: Create Config for dameng docker compose
           shell: bash
           working-directory: ${{ github.workspace }}
           run: |

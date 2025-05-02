@@ -157,6 +157,7 @@ runs:
           name: Start Dameng Service
           uses: ./.github/actions/service/dameng
           with:
+              start: true
               ports: ${{ inputs.Dameng-ports }}
 
         - if: inputs.DB-name=='Oracle'
