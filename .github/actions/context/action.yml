@@ -98,9 +98,7 @@ runs:
           run: |
               if [ "$RUNNER_OS" == "Linux" ]; then
                 sudo apt install -y expect
-              elif [ "$RUNNER_OS" == "Windows" ]; then
-                exit 0
-              elif [ "$RUNNER_OS" == "macOS" ]; then
+              else
                 brew install expect
               fi
                 expect ${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_expansion.exp ${VERSION}
@@ -113,6 +111,10 @@ runs:
 
         - if: inputs.shell=='client-event-expansion' && runner.os == 'Windows'
           uses: vedantmgoyal9/setup-wsl2@main
+
+        - if: inputs.shell=='client-event-expansion' && runner.os == 'Windows'
+          run: apt update && apt upgrade -y
+          shell: wsl-run {0}
 
         - if: inputs.shell=='client-event-expansion' && runner.os == 'Windows'
           name: Test whether client support event expansion
