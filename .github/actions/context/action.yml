@@ -97,13 +97,21 @@ runs:
           shell: bash
           run: |
               sudo apt install expect
-              if [ "$RUNNER_OS" == "Linux" ]; then
-                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_event_expansion.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_event_expansion.sh" ${VERSION}
-              elif [ "$RUNNER_OS" == "Windows" ]; then
-                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_event_expansion_windows.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_event_expansion_windows.sh" ${VERSION}
-              elif [ "$RUNNER_OS" == "macOS" ]; then
-                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_event_expansion_macos.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_event_expansion_macos.sh" ${VERSION}
+              expect ${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_expansion.exp ${VERSION}
+              if [[ $? -eq 0 ]]; then 
+                echo 'client doesn't support event expansion, !! can be input as a variable'; 
+              else 
+                echo 'client support event expansion, !! cannot be input as a variable''; 
+                exit 1
               fi
+
+#            if [ "$RUNNER_OS" == "Linux" ]; then
+#              chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_event_expansion.sh"
+#              "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_event_expansion.sh" "$status"
+#            elif [ "$RUNNER_OS" == "Windows" ]; then
+#              chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_event_expansion_windows.sh"
+#              "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_event_expansion_windows.sh" "$status"
+#            elif [ "$RUNNER_OS" == "macOS" ]; then
+#              chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_event_expansion_macos.sh"
+#              "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_event_expansion_macos.sh" "$status"
+#            fi

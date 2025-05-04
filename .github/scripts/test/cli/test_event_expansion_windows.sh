@@ -20,6 +20,4 @@
 
 set -e
 
-expect ./test_expansion.exp $1
-
-bash -c 'if [[ $? -eq 0 ]]; then echo "success"; else echo "fail"; fi'
+bash -c "if [[ $1 -eq 0 ]]; then echo 'success'; else echo 'fail'; fi"
