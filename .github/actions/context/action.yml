@@ -96,12 +96,12 @@ runs:
           name: Test whether client support event expansion
           shell: bash
           run: |
-              sudo apt install expect
+              sudo apt install -y expect
               expect ${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_expansion.exp ${VERSION}
               if [[ $? -eq 0 ]]; then 
                 echo 'client doesn't support event expansion, !! can be input as a variable'; 
               else 
-                echo 'client support event expansion, !! cannot be input as a variable''; 
+                echo 'client support event expansion, !! cannot be input as a variable'; 
                 exit 1
               fi
 
