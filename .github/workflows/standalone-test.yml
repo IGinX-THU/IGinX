@@ -175,6 +175,11 @@ jobs:
               with:
                   shell: client-after
 
+            - name: test event expansion support
+              uses: ./.github/actions/context
+              with:
+                  shell: client-event-expansion
+
             - name: Test Client Import File
               if: always()
               shell: bash -el {0}

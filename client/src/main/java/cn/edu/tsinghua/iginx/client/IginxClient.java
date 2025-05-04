@@ -196,7 +196,7 @@ public class IginxClient {
       LineReader reader =
           LineReaderBuilder.builder()
               .terminal(terminal)
-              .option(LineReader.Option.DISABLE_EVENT_EXPANSION, true)
+              //              .option(LineReader.Option.DISABLE_EVENT_EXPANSION, true)
               .completer(buildIginxCompleter())
               .build();
 
