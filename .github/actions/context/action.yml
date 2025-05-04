@@ -101,13 +101,13 @@ runs:
               elif [ "$RUNNER_OS" == "macOS" ]; then
                 brew install expect
               fi
-                expect ${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_expansion.exp ${VERSION}
-                if [[ $? -eq 0 ]]; then 
-                  echo "client doesn't support event expansion, !! can be input as a variable"
-                else 
-                  echo "client support event expansion, !! cannot be input as a variable"
-                  exit 1
-                fi
+              expect ${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_expansion.exp ${VERSION}
+              if [[ $? -eq 0 ]]; then 
+                echo "client doesn't support event expansion, !! can be input as a variable"
+              else 
+                echo "client support event expansion, !! cannot be input as a variable"
+                exit 1
+              fi
 
         - if: inputs.shell=='client-event-expansion' && runner.os == 'Windows'
           uses: vedantmgoyal9/setup-wsl2@main
@@ -115,6 +115,8 @@ runs:
         - if: inputs.shell=='client-event-expansion' && runner.os == 'Windows'
           name: Test whether client support event expansion
           shell: wsl-run {0}
+          env:
+            VERSION: ${VERSION}
           run: |
               apt update && apt upgrade -y
               sudo apt install -y expect
@@ -124,3 +126,4 @@ runs:
               else
                 echo "client support event expansion, !! cannot be input as a variable"
                 exit 1
+              fi
