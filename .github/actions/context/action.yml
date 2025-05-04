@@ -112,15 +112,17 @@ runs:
         - if: inputs.shell=='client-event-expansion' && runner.os == 'Windows'
           uses: vedantmgoyal9/setup-wsl2@main
 
+        - id: current-version
+          name: Get project version from pom.xml
+          uses: ./.github/actions/project
+
         - if: inputs.shell=='client-event-expansion' && runner.os == 'Windows'
           name: Test whether client support event expansion
           shell: wsl-run {0}
-          env:
-            VERSION: ${VERSION}
           run: |
               apt update && apt upgrade -y
               sudo apt install -y expect
-              expect $(wslpath "${GITHUB_WORKSPACE}")/.github/scripts/test/cli/test_expansion.exp ${VERSION}            
+              expect $(wslpath "${GITHUB_WORKSPACE}")/.github/scripts/test/cli/test_expansion.exp ${{ steps.current-version.outputs.version }}
               if [[ $? -eq 0 ]]; then
                   echo "client doesn't support event expansion, !! can be input as a variable"
               else
