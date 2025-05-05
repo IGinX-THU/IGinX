@@ -19,25 +19,29 @@
  */
 package cn.edu.tsinghua.iginx.filesystem.struct.tree;
 
-import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
 import cn.edu.tsinghua.iginx.filesystem.common.IginxPaths;
-import cn.edu.tsinghua.iginx.filesystem.common.RowStreams;
 import cn.edu.tsinghua.iginx.filesystem.struct.DataTarget;
 import cn.edu.tsinghua.iginx.filesystem.struct.FileManager;
 import cn.edu.tsinghua.iginx.filesystem.struct.tree.query.Querier;
+import cn.edu.tsinghua.iginx.filesystem.struct.tree.query.Queriers;
 import cn.edu.tsinghua.iginx.filesystem.struct.tree.query.ftj.UnionFormatTree;
 import cn.edu.tsinghua.iginx.filesystem.thrift.DataBoundary;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.thrift.AggregateType;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import com.google.common.base.Strings;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import org.slf4j.Logger;
@@ -50,12 +54,16 @@ public class FileTreeManager implements FileManager {
   private final Path path;
   private final FileTreeConfig config;
   private final Querier.Builder builder;
+  private final ExecutorService executor;
 
   public FileTreeManager(Path path, FileTreeConfig config) throws IOException {
     LOGGER.debug("Create Manager in {} with {}", path, config);
     this.path = Objects.requireNonNull(path).normalize();
     this.config = config;
-    this.builder = new UnionFormatTree().create(config.getPrefix(), path, config);
+    this.executor =
+        Executors.newCachedThreadPool(
+            new ThreadFactoryBuilder().setNameFormat("FileTreeManager-%d").build());
+    this.builder = new UnionFormatTree().create(config.getPrefix(), path, config, executor);
   }
 
   @Override
@@ -155,10 +163,11 @@ public class FileTreeManager implements FileManager {
     LOGGER.debug("Querying {} ", target);
     try (Querier querier = builder.build(target)) {
       LOGGER.debug("Querier is built as: {}", querier);
-      List<RowStream> streams = querier.query();
+      List<Future<RowStream>> streams = querier.query();
+      Future<RowStream> union = Queriers.union(streams);
       try {
-        return RowStreams.union(streams);
-      } catch (PhysicalException e) {
+        return union.get();
+      } catch (ExecutionException | InterruptedException e) {
         throw new IOException(e);
       }
     }
@@ -167,6 +176,7 @@ public class FileTreeManager implements FileManager {
   @Override
   public void close() throws IOException {
     builder.close();
+    executor.shutdown();
   }
 
   @Override
