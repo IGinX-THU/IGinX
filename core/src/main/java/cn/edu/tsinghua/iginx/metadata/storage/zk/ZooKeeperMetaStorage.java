@@ -538,7 +538,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
             long[] newIds = new long[ids.length - 1];
             System.arraycopy(ids, 0, newIds, 0, index);
             System.arraycopy(ids, index + 1, newIds, index, ids.length - index - 1);
-            this.client.setData().forPath(nodeName, JsonUtils.toJson(newIds));
+            this.client.setData().forPath(connectionPath, JsonUtils.toJson(newIds));
           } else {
             // iginx 将没有连接的存储节点
             this.client.delete().forPath(connectionPath);
