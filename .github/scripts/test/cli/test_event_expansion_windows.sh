@@ -20,4 +20,9 @@
 
 set -e
 
-bash -c "if [[ $1 -eq 0 ]]; then echo 'success'; else echo 'fail'; fi"
+if bash -c '"$0/.github/scripts/test/cli/test_expansion.exp" "$1"' "$1" "$2"; then
+  echo "success"
+else
+  echo "fail"
+  exit 1
+fi
