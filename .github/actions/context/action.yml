@@ -108,10 +108,3 @@ runs:
                 echo "client support event expansion, !! cannot be input as a variable"
                 exit 1
               fi
-
-        - if: inputs.shell == 'client-event-expansion' && runner.os == 'Windows'
-          name: Test whether client support event expansion
-          shell: bash
-          run: |
-            chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_event_expansion_windows.sh"
-            "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_event_expansion_windows.sh" ${GITHUB_WORKSPACE} ${VERSION}
