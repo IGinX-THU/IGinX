@@ -59,6 +59,9 @@ public interface IMetaStorage {
 
   Map<Long, List<Long>> updateClusterIginxConnections() throws MetaStorageException;
 
+  void addStorageConnection(long iginxId, List<StorageEngineMeta> storageEngines)
+      throws MetaStorageException;
+
   Map<Long, List<Long>> updateClusterStorageConnections() throws MetaStorageException;
 
   Map<String, StorageUnitMeta> loadStorageUnit() throws MetaStorageException;

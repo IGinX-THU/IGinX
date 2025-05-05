@@ -70,6 +70,12 @@ public interface IMetaManager {
   /** 获取已连接的其他 iginx 节点的 session */
   Map<Long, Session> getIginxSessionMap();
 
+  /** 记录 iginx 节点和存储节点的连接信息 */
+  void addStorageConnection(List<StorageEngineMeta> storageEngines);
+
+  /** 获取集群中 iginx 节点与存储节点的连接信息 */
+  Map<Long, List<Long>> getStorageConnections();
+
   /** 获取所有的分片，用于 debug */
   List<FragmentMeta> getFragments();
 

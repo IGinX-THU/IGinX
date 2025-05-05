@@ -21,6 +21,8 @@ package cn.edu.tsinghua.iginx.engine.physical.storage;
 
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
+import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
+import cn.edu.tsinghua.iginx.metadata.IMetaManager;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
@@ -40,6 +42,8 @@ public class StorageManager {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(StorageManager.class);
 
+  private static final IMetaManager metaManager = DefaultMetaManager.getInstance();
+
   private static final Map<StorageEngineType, ClassLoader> classLoaders = new ConcurrentHashMap<>();
 
   private static boolean hasInitLoaders = false;
@@ -56,6 +60,7 @@ public class StorageManager {
         System.exit(-1);
       }
     }
+    metaManager.addStorageConnection(metaList);
   }
 
   /** 仅适用于已经被注册的引擎 */

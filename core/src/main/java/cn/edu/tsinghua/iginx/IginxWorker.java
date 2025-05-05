@@ -751,7 +751,7 @@ public class IginxWorker implements IService.Iface {
     for (IginxMeta iginxMeta : metaManager.getIginxList()) {
       String connected;
       if (iginxMeta.getId() == currentIginx.getId()) {
-        connected = "isSelf";
+        connected = "self";
       } else if (sessions.containsKey(iginxMeta.getId())) {
         connected = "true";
       } else {
@@ -765,7 +765,14 @@ public class IginxWorker implements IService.Iface {
 
     // 数据库信息
     List<StorageEngineInfo> storageEngineInfos = new ArrayList<>();
+    List<Long> connectedStorages = metaManager.getStorageConnections().get(currentIginx.getId());
     for (StorageEngineMeta storageEngineMeta : metaManager.getStorageEngineList()) {
+      String connected;
+      if (connectedStorages.contains(storageEngineMeta.getId())) {
+        connected = "true";
+      } else {
+        connected = "false";
+      }
       StorageEngineInfo info =
           new StorageEngineInfo(
               storageEngineMeta.getId(),
@@ -774,7 +781,7 @@ public class IginxWorker implements IService.Iface {
                   : storageEngineMeta.getIp(),
               storageEngineMeta.getPort(),
               storageEngineMeta.getStorageEngine(),
-              "");
+              connected);
       info.setSchemaPrefix(
           storageEngineMeta.getSchemaPrefix() == null
               ? "null"

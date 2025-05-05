@@ -897,6 +897,10 @@ public class ETCDMetaStorage implements IMetaStorage {
   }
 
   @Override
+  public void addStorageConnection(long iginxId, List<StorageEngineMeta> storageEngines)
+      throws MetaStorageException {}
+
+  @Override
   public Map<Long, List<Long>> updateClusterStorageConnections() throws MetaStorageException {
     // TODO
     return Collections.emptyMap();

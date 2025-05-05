@@ -119,6 +119,14 @@ public class MetaManagerMock implements IMetaManager {
   }
 
   @Override
+  public void addStorageConnection(List<StorageEngineMeta> storageEngines) {}
+
+  @Override
+  public Map<Long, List<Long>> getStorageConnections() {
+    return null;
+  }
+
+  @Override
   public List<FragmentMeta> getFragments() {
     return fragments;
   }

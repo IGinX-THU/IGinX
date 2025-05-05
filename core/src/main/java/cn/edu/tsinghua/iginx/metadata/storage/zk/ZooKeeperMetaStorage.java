@@ -448,7 +448,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
       registerReshardCounterListener();
       return storageEngineMetaMap;
     } catch (Exception e) {
-      throw new MetaStorageException("get error when load schema mapping", e);
+      throw new MetaStorageException("get error when load storage engine", e);
     } finally {
       try {
         mutex.release();
@@ -496,7 +496,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
         System.arraycopy(oldIds, 0, ids, 0, oldIds.length);
         ids[oldIds.length] = id;
       }
-      this.client.setData().forPath(nodeName, JsonUtils.toJson(ids));
+      this.client.setData().forPath(connectionPath, JsonUtils.toJson(ids));
       return id;
     } catch (Exception e) {
       throw new MetaStorageException("get error when add storage engine", e);
@@ -724,6 +724,63 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
       } catch (Exception e) {
         throw new MetaStorageException(
             "get error when release interprocess lock for " + IGINX_CONNECTION_LOCK_NODE, e);
+      }
+    }
+  }
+
+  @Override
+  public void addStorageConnection(long iginxId, List<StorageEngineMeta> storageEngines)
+      throws MetaStorageException {
+    InterProcessMutex storageMutex = new InterProcessMutex(this.client, STORAGE_ENGINE_LOCK_NODE);
+    InterProcessMutex connectionMutex =
+        new InterProcessMutex(this.client, STORAGE_CONNECTION_LOCK_NODE);
+    InterProcessMultiLock multiLock =
+        new InterProcessMultiLock(Arrays.asList(storageMutex, connectionMutex));
+    try {
+      multiLock.acquire();
+      for (StorageEngineMeta storageEngine : storageEngines) {
+        String nodeName = generateId(STORAGE_ENGINE_NODE, storageEngine.getId());
+        if (this.client.checkExists().forPath(nodeName) == null) {
+          LOGGER.error("storage engine {} does not exist", storageEngine.getId());
+          return;
+        } else {
+          LOGGER.info("connect to storage engine {} ", storageEngine);
+        }
+      }
+      // 记录连接关系
+      String connectionPath = generateId(STORAGE_CONNECTION_NODE, iginxId);
+      long[] ids;
+      if (this.client.checkExists().forPath(connectionPath) == null) {
+        this.client
+            .create()
+            .creatingParentsIfNeeded()
+            .withMode(CreateMode.EPHEMERAL)
+            .forPath(connectionPath);
+        ids = new long[storageEngines.size()];
+        for (int i = 0; i < storageEngines.size(); i++) {
+          ids[i] = storageEngines.get(i).getId();
+        }
+      } else {
+        byte[] data = client.getData().forPath(connectionPath);
+        long[] oldIds = JsonUtils.fromJson(data, long[].class);
+        ids = new long[oldIds.length + storageEngines.size()];
+        System.arraycopy(oldIds, 0, ids, 0, oldIds.length);
+        for (int i = 0; i < storageEngines.size(); i++) {
+          ids[oldIds.length + i] = storageEngines.get(i).getId();
+        }
+      }
+      this.client.setData().forPath(connectionPath, JsonUtils.toJson(ids));
+    } catch (Exception e) {
+      throw new MetaStorageException("get error when add storage connection", e);
+    } finally {
+      try {
+        multiLock.release();
+      } catch (Exception e) {
+        throw new MetaStorageException(
+            String.format(
+                "get error when release interprocess lock for %s and %s",
+                STORAGE_ENGINE_LOCK_NODE, STORAGE_CONNECTION_LOCK_NODE),
+            e);
       }
     }
   }
