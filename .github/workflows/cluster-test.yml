@@ -63,6 +63,7 @@ jobs:
             - name: Copy IGinX
               shell: bash
               run: |
+                  ls core/target/iginx-core-*
                   mkdir IGinX-6889
                   cp -r core/target/iginx-core-* IGinX-6889
                   ls IGinX-6889
