@@ -55,6 +55,16 @@ jobs:
               with:
                   metadata: ${{ matrix.metadata }}
 
+            - if: matrix.metadata == 'etcd'
+              name: Change Metadata to ETCD
+              uses: ./.github/actions/edit
+              with:
+                  paths: core/target/iginx-core-${VERSION}/conf/config.properties
+                  statements: |
+                      s/^metaStorage=.*$/metaStorage=etcd/g
+                      s/^zookeeperConnectionString=/#zookeeperConnectionString=/g
+                      s/^#etcdEndpoints=/etcdEndpoints=/g
+
             - name: Install IGinX with Maven
               shell: bash
               run: |

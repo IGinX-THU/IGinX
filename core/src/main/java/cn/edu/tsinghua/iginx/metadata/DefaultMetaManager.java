@@ -227,23 +227,34 @@ public class DefaultMetaManager implements IMetaManager {
             }
             // 尝试与新进来的 iginx 建立连接
             Session session = new Session(iginx.iginxMetaInfo());
-            try {
-              session.openSession();
-            } catch (SessionException e) {
+            int MAX_RETRY_COUNT = ConfigDescriptor.getInstance().getConfig().getRetryCount();
+            int count = 0;
+            while (count < MAX_RETRY_COUNT) {
+              try {
+                session.openSession();
+              } catch (SessionException e) {
+                LOGGER.info(
+                    "open session of iginx(id = {} ,ip = {} , port = {}) failed, because: ",
+                    iginx.getId(),
+                    iginx.getIp(),
+                    iginx.getPort(),
+                    e);
+                count++;
+                try {
+                  Thread.sleep(3000);
+                } catch (InterruptedException ex) {
+                  LOGGER.error("encounter error when connect to other iginx: ", e);
+                }
+                continue;
+              }
               LOGGER.info(
-                  "open session of iginx(id = {} ,ip = {} , port = {}) failed, because: ",
+                  "connect to iginx(id = {} ,ip = {} , port = {})",
                   iginx.getId(),
                   iginx.getIp(),
-                  iginx.getPort(),
-                  e);
-              return;
+                  iginx.getPort());
+              cache.addIginxSession(iginx.getId(), session);
+              break;
             }
-            LOGGER.info(
-                "connect to iginx(id = {} ,ip = {} , port = {})",
-                iginx.getId(),
-                iginx.getIp(),
-                iginx.getPort());
-            cache.addIginxSession(iginx.getId(), session);
           }
         });
     for (IginxMeta iginx : storage.loadIginx().values()) {
