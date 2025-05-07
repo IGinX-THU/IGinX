@@ -35,7 +35,7 @@ import org.slf4j.LoggerFactory;
 public class ClusterIT {
   protected static final Logger LOGGER = LoggerFactory.getLogger(ClusterIT.class);
 
-  protected static String GET_CLUSTER_INFO = "GET CLUSTER INFO;";
+  protected static String SHOW_CLUSTER_INFO = "SHOW CLUSTER INFO;";
 
   protected final Session session6888 = new Session("127.0.0.1", 6888);
 
@@ -67,14 +67,14 @@ public class ClusterIT {
   private void testShowClusterInfo(Session session) {
     try {
       LOGGER.info(
-          "Execute GET CLUSTER INFO for session (host: {}, port: {})",
+          "Execute SHOW CLUSTER INFO for session (host: {}, port: {})",
           session.getHost(),
           session.getPort());
-      SessionExecuteSqlResult res = session.executeSql(GET_CLUSTER_INFO);
+      SessionExecuteSqlResult res = session.executeSql(SHOW_CLUSTER_INFO);
       String result = res.getResultInString(false, "");
       LOGGER.info("Result: \"{}\"", result);
     } catch (SessionException e) {
-      LOGGER.error("Statement: \"GET CLUSTER INFO;\" execute fail. Caused by: ", e);
+      LOGGER.error("Statement: \"SHOW CLUSTER INFO;\" execute fail. Caused by: ", e);
       fail();
     }
   }
