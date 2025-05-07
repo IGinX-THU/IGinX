@@ -1080,7 +1080,12 @@ public abstract class BaseCapacityExpansionIT {
       fail("change config file fail");
     }
 
-    res = executeShellScript(iginxPath, String.valueOf(iginxPort), String.valueOf(restPort));
+    res =
+        executeShellScript(
+            iginxPath,
+            String.valueOf(iginxPort),
+            String.valueOf(restPort),
+            "core/target/iginx-core-*");
     if (res != 0) {
       fail("start iginx fail");
     }

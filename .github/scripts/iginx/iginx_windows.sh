@@ -20,11 +20,11 @@
 
 set -e
 
-sed -i "s/port=[0-9]\+/port=$1/g" core/target/iginx-core-*/conf/config.properties
+sed -i "s/port=[0-9]\+/port=$1/g" $3/conf/config.properties
 
-sed -i "s/#iginx_port=[0-9]\+#/#iginx_port=$1#/g" core/target/iginx-core-*/conf/config.properties
+sed -i "s/#iginx_port=[0-9]\+#/#iginx_port=$1#/g" $3/conf/config.properties
 
-sed -i "s/restPort=[0-9]\+/restPort=$2/g" core/target/iginx-core-*/conf/config.properties
+sed -i "s/restPort=[0-9]\+/restPort=$2/g" $3/conf/config.properties
 
 batPath="$(find core/target -name 'start_iginx.bat' | grep 'iginx-core-.*\/sbin' | head -n 1)"
 
