@@ -55,6 +55,10 @@ jobs:
               with:
                   metadata: ${{ matrix.metadata }}
 
+            - id: version
+              name: Get project version from pom.xml
+              uses: ./.github/actions/project
+
             - name: Install IGinX with Maven
               shell: bash
               run: |
@@ -63,12 +67,12 @@ jobs:
             - name: Copy IGinX
               shell: bash
               run: |
-                  ls core/target/iginx-core-*
+                  ls core/target/iginx-core-{{ steps.version.outputs.version }}
                   mkdir IGinX-6889
-                  cp -r core/target/iginx-core-* IGinX-6889
+                  cp -r "core/target/iginx-core-{{ steps.version.outputs.version }}" IGinX-6889
                   ls IGinX-6889
                   mkdir IGinX-6890
-                  cp -r core/target/iginx-core-* IGinX-6890
+                  cp -r "core/target/iginx-core-{{ steps.version.outputs.version }}" IGinX-6890
                   ls IGinX-6890
 
             - name: Modify IGinX-6889 Config
