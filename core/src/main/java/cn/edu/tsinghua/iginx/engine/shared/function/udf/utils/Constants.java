@@ -31,8 +31,7 @@ public class Constants {
 
   public static final String[] PYTHON_PATHS =
       new String[] {
-        String.join(File.separator, config.getDefaultUDFDir(), "python_scripts"), // scripts
-        String.join(File.separator, config.getDefaultUDFDir(), "python_scripts", "utils")
+        String.join(File.separator, config.getDefaultUDFDir(), "python_scripts") // scripts
       }; // tools
 
   public static final String SCRIPTS_PATH = PYTHON_PATHS[0];
