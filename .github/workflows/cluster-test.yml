@@ -55,10 +55,6 @@ jobs:
               with:
                   metadata: ${{ matrix.metadata }}
 
-            - id: version
-              name: Get project version from pom.xml
-              uses: ./.github/actions/project
-
             - name: Install IGinX with Maven
               shell: bash
               run: |
@@ -67,18 +63,18 @@ jobs:
             - name: Copy IGinX
               shell: bash
               run: |
-                  ls "core/target/iginx-core-${{ steps.version.outputs.version }}"
+                  ls "core/target/iginx-core-${VERSION}"
                   mkdir IGinX-6889
-                  cp -r "core/target/iginx-core-${{ steps.version.outputs.version }}" IGinX-6889
+                  cp -r "core/target/iginx-core-${VERSION}" IGinX-6889
                   ls IGinX-6889
                   mkdir IGinX-6890
-                  cp -r "core/target/iginx-core-${{ steps.version.outputs.version }}" IGinX-6890
+                  cp -r "core/target/iginx-core-${VERSION}" IGinX-6890
                   ls IGinX-6890
 
             - name: Modify IGinX-6889 Config
               uses: ./.github/actions/edit
               with:
-                  paths: IGinX-6889/iginx-core-${{ steps.version.outputs.version }}/conf/config.properties
+                  paths: IGinX-6889/iginx-core-${VERSION}/conf/config.properties
                   statements: |
                       s/port=6888/port=6889/g
                       s/iginx_port=6888/iginx_port=6889/g
@@ -87,7 +83,7 @@ jobs:
             - name: Modify IGinX-6890 Config
               uses: ./.github/actions/edit
               with:
-                  paths: IGinX-6890/iginx-core-${{ steps.version.outputs.version }}/conf/config.properties
+                  paths: IGinX-6890/iginx-core-${VERSION}/conf/config.properties
                   statements: |
                       s/port=6888/port=6890/g
                       s/iginx_port=6888/iginx_port=6890/g
@@ -97,7 +93,7 @@ jobs:
               uses: ./.github/actions/iginxRunner
 
             - name: Start IGinX-6889
-              working-directory: IGinX-6889/iginx-core-${{ steps.version.outputs.version }}
+              working-directory: IGinX-6889/iginx-core-${VERSION}
               run: |
                   if [ "$RUNNER_OS" == "Windows" ]; then
                       chmod +x sbin/start_iginx.bat
@@ -106,9 +102,10 @@ jobs:
                       chmod +x sbin/start_iginx.sh
                       nohup sbin/start_iginx.sh > iginx-6889.log 2>&1 &
                   fi
+                  sleep 5
 
             - name: Start IGinX-6890
-              working-directory: IGinX-6890/iginx-core-${{ steps.version.outputs.version }}
+              working-directory: IGinX-6890/iginx-core-${VERSION}
               run: |
                   if [ "$RUNNER_OS" == "Windows" ]; then
                       chmod +x sbin/start_iginx.bat
@@ -117,6 +114,7 @@ jobs:
                       chmod +x sbin/start_iginx.sh
                       nohup sbin/start_iginx.sh > iginx-6890.log 2>&1 &
                   fi
+                  sleep 5
 
             - name: ClusterIT
               shell: bash -el {0}
@@ -130,9 +128,9 @@ jobs:
             - name: Show IGinX-6889 log
               if: always()
               shell: bash
-              run: cat IGinX-6889/iginx-core-${{ steps.version.outputs.version }}/iginx-6889.log
+              run: cat IGinX-6889/iginx-core-${VERSION}/iginx-6889.log
 
             - name: Show IGinX-6890 log
               if: always()
               shell: bash
-              run: cat IGinX-6890/iginx-core-${{ steps.version.outputs.version }}/iginx-6890.log
+              run: cat IGinX-6890/iginx-core-${VERSION}/iginx-6890.log

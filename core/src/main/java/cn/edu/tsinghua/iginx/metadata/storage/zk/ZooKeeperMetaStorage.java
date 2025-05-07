@@ -67,15 +67,9 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
 
   private static final String IGINX_CONNECTION_NODE = "/iginx-connection/node";
 
-  private static final String IGINX_CONNECTION_LOCK_NODE = "/lock/iginx-connection";
-
   private static final String STORAGE_CONNECTION_NODE = "/storage-connection/node";
 
-  private static final String STORAGE_CONNECTION_LOCK_NODE = "/lock/storage-connection";
-
   private static final String STORAGE_UNIT_NODE = "/unit/unit";
-
-  private static final String IGINX_LOCK_NODE = "/lock/iginx";
 
   private static final String SCHEMA_MAPPING_LOCK_NODE = "/lock/schema";
 
@@ -791,7 +785,6 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
     try {
       mutex.acquire();
       Map<Long, List<Long>> connectionMap = new HashMap<>();
-
       if (this.client.checkExists().forPath(STORAGE_CONNECTION_NODE_PREFIX) == null) {
         // 当前还没有数据，创建父节点，然后不需要解析数据
         client.create().withMode(CreateMode.EPHEMERAL).forPath(STORAGE_CONNECTION_NODE_PREFIX);

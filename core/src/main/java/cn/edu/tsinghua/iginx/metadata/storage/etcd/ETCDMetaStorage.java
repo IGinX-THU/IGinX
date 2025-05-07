@@ -24,6 +24,7 @@ import static cn.edu.tsinghua.iginx.metadata.utils.ColumnsIntervalUtils.fromStri
 import static cn.edu.tsinghua.iginx.metadata.utils.ReshardStatus.*;
 
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.metadata.cache.IMetaCache;
 import cn.edu.tsinghua.iginx.metadata.entity.*;
 import cn.edu.tsinghua.iginx.metadata.exception.MetaStorageException;
@@ -92,9 +93,12 @@ public class ETCDMetaStorage implements IMetaStorage {
   private SchemaMappingChangeHook schemaMappingChangeHook = null;
   private Watch.Watcher iginxWatcher;
   private IginxChangeHook iginxChangeHook = null;
+  private long iginxLease = -1L;
+  private long iginxConnectionLease = -1L;
   private Watch.Watcher storageWatcher;
   private StorageChangeHook storageChangeHook = null;
   private long storageLease = -1L;
+  private long storageConnectionLease = -1L;
   private Watch.Watcher storageUnitWatcher;
   private StorageUnitChangeHook storageUnitChangeHook = null;
   private long storageUnitLease = -1L;
@@ -685,9 +689,33 @@ public class ETCDMetaStorage implements IMetaStorage {
     }
   }
 
+  private void lockIginx() throws MetaStorageException {
+    try {
+      iginxLeaseLock.lock();
+      iginxLease = client.getLeaseClient().grant(MAX_LOCK_TIME).get().getID();
+      client.getLockClient().lock(ByteSequence.from(IGINX_LOCK_NODE.getBytes()), iginxLease);
+    } catch (Exception e) {
+      iginxLeaseLock.unlock();
+      throw new MetaStorageException("acquire iginx mutex error: ", e);
+    }
+  }
+
+  private void releaseIginx() throws MetaStorageException {
+    try {
+      client.getLockClient().unlock(ByteSequence.from(IGINX_LOCK_NODE.getBytes())).get();
+      client.getLeaseClient().revoke(iginxLease).get();
+      iginxLease = -1L;
+    } catch (Exception e) {
+      throw new MetaStorageException("release iginx error: ", e);
+    } finally {
+      iginxLeaseLock.unlock();
+    }
+  }
+
   @Override
   public Map<Long, IginxMeta> loadIginx() throws MetaStorageException {
     try {
+      lockIginx();
       Map<Long, IginxMeta> iginxMap = new HashMap<>();
       GetResponse response =
           this.client
@@ -702,21 +730,24 @@ public class ETCDMetaStorage implements IMetaStorage {
           .getKvs()
           .forEach(
               e -> {
-                String info = new String(e.getValue().getBytes());
-                System.out.println(info);
                 IginxMeta iginx = JsonUtils.fromJson(e.getValue().getBytes(), IginxMeta.class);
                 iginxMap.put(iginx.getId(), iginx);
               });
       return iginxMap;
     } catch (ExecutionException | InterruptedException e) {
-      LOGGER.error("got error when load schema mapping: ", e);
+      LOGGER.error("got error when load iginx: ", e);
       throw new MetaStorageException(e);
+    } finally {
+      if (iginxLease != -1) {
+        releaseIginx();
+      }
     }
   }
 
   @Override
   public IginxMeta registerIginx(IginxMeta iginx) throws MetaStorageException {
     try {
+      lockIginx();
       // 申请一个 id
       long id = nextId(IGINX_ID);
       Lease lease = this.client.getLeaseClient();
@@ -748,6 +779,10 @@ public class ETCDMetaStorage implements IMetaStorage {
     } catch (ExecutionException | InterruptedException e) {
       LOGGER.error("got error when register iginx meta: ", e);
       throw new MetaStorageException(e);
+    } finally {
+      if (iginxLease != -1) {
+        releaseIginx();
+      }
     }
   }
 
@@ -884,26 +919,265 @@ public class ETCDMetaStorage implements IMetaStorage {
     this.storageChangeHook = hook;
   }
 
+  private void lockIginxConnection() throws MetaStorageException {
+    try {
+      iginxConnectionLock.lock();
+      iginxConnectionLease = client.getLeaseClient().grant(MAX_LOCK_TIME).get().getID();
+      client
+          .getLockClient()
+          .lock(ByteSequence.from(IGINX_CONNECTION_LOCK_NODE.getBytes()), iginxConnectionLease);
+    } catch (Exception e) {
+      iginxConnectionLock.unlock();
+      throw new MetaStorageException("acquire iginx connection mutex error: ", e);
+    }
+  }
+
+  private void releaseIginxConnection() throws MetaStorageException {
+    try {
+      client.getLockClient().unlock(ByteSequence.from(IGINX_CONNECTION_LOCK_NODE.getBytes())).get();
+      client.getLeaseClient().revoke(iginxConnectionLease).get();
+      iginxConnectionLease = -1L;
+    } catch (Exception e) {
+      throw new MetaStorageException("release iginx connection error: ", e);
+    } finally {
+      iginxConnectionLock.unlock();
+    }
+  }
+
   @Override
   public Map<Long, Session> connectOtherIginx(IginxMeta iginx) throws MetaStorageException {
-    // TODO
-    return Collections.emptyMap();
+    try {
+      lockIginx();
+      lockIginxConnection();
+      Map<Long, Session> sessionMap = new HashMap<>();
+      List<Long> connectedIds = new ArrayList<>();
+      GetResponse response =
+          this.client
+              .getKVClient()
+              .get(
+                  ByteSequence.from(IGINX_NODE_PREFIX.getBytes()),
+                  GetOption.newBuilder()
+                      .withPrefix(ByteSequence.from(IGINX_NODE_PREFIX.getBytes()))
+                      .build())
+              .get();
+      response
+          .getKvs()
+          .forEach(
+              e -> {
+                IginxMeta iginxMeta = JsonUtils.fromJson(e.getValue().getBytes(), IginxMeta.class);
+                if (iginx.getIp().equals(iginxMeta.getIp())
+                    && iginx.getPort() == iginxMeta.getPort()) {
+                  return;
+                }
+                // 尝试与集群中其他iginx建立连接
+                Session session = new Session(iginxMeta.iginxMetaInfo());
+                try {
+                  session.openSession();
+                } catch (SessionException exception) {
+                  LOGGER.info(
+                      "open session of iginx(id = {} ,ip = {} , port = {}) failed, because: ",
+                      iginxMeta.getId(),
+                      iginxMeta.getIp(),
+                      iginxMeta.getPort(),
+                      exception);
+                  return;
+                }
+                LOGGER.info(
+                    "connect to iginx(id = {} ,ip = {} , port = {})",
+                    iginxMeta.getId(),
+                    iginxMeta.getIp(),
+                    iginxMeta.getPort());
+                sessionMap.putIfAbsent(iginxMeta.getId(), session);
+                connectedIds.add(iginxMeta.getId());
+              });
+
+      long[] ids = connectedIds.stream().mapToLong(Long::longValue).toArray();
+      this.client
+          .getKVClient()
+          .put(
+              ByteSequence.from(
+                  generateID(IGINX_CONNECTION_NODE_PREFIX, IGINX_NODE_LENGTH, iginx.getId())
+                      .getBytes()),
+              ByteSequence.from(JsonUtils.toJson(ids)))
+          .get();
+      return sessionMap;
+    } catch (ExecutionException | InterruptedException e) {
+      LOGGER.error("got error when connect to other iginx: ", e);
+      throw new MetaStorageException(e);
+    } finally {
+      if (iginxLease != -1) {
+        releaseIginx();
+      }
+      if (iginxConnectionLease != -1) {
+        releaseIginxConnection();
+      }
+    }
   }
 
   @Override
   public Map<Long, List<Long>> updateClusterIginxConnections() throws MetaStorageException {
-    // TODO
-    return Collections.emptyMap();
+    try {
+      lockIginxConnection();
+      Map<Long, List<Long>> connectionMap = new HashMap<>();
+      GetResponse response =
+          this.client
+              .getKVClient()
+              .get(
+                  ByteSequence.from(IGINX_CONNECTION_NODE_PREFIX.getBytes()),
+                  GetOption.newBuilder()
+                      .withPrefix(ByteSequence.from(IGINX_CONNECTION_NODE_PREFIX.getBytes()))
+                      .build())
+              .get();
+      response
+          .getKvs()
+          .forEach(
+              e -> {
+                String keyName = e.getKey().toString(StandardCharsets.UTF_8);
+                long fromId =
+                    Long.parseLong(keyName.substring(IGINX_CONNECTION_NODE_PREFIX.length()));
+                long[] toIds = JsonUtils.fromJson(e.getValue().getBytes(), long[].class);
+                for (long toId : toIds) {
+                  connectionMap.computeIfAbsent(fromId, k -> new ArrayList<>()).add(toId);
+                }
+              });
+      return connectionMap;
+    } catch (Exception e) {
+      throw new MetaStorageException("get error when update cluster storage connections", e);
+    } finally {
+      if (iginxConnectionLease != -1) {
+        releaseIginxConnection();
+      }
+    }
+  }
+
+  private void lockStorageConnection() throws MetaStorageException {
+    try {
+      storageConnectionLock.lock();
+      storageConnectionLease = client.getLeaseClient().grant(MAX_LOCK_TIME).get().getID();
+      client
+          .getLockClient()
+          .lock(ByteSequence.from(STORAGE_CONNECTION_LOCK_NODE.getBytes()), storageConnectionLease);
+    } catch (Exception e) {
+      storageConnectionLock.unlock();
+      throw new MetaStorageException("acquire storage connection mutex error: ", e);
+    }
+  }
+
+  private void releaseStorageConnection() throws MetaStorageException {
+    try {
+      client
+          .getLockClient()
+          .unlock(ByteSequence.from(STORAGE_CONNECTION_LOCK_NODE.getBytes()))
+          .get();
+      client.getLeaseClient().revoke(storageConnectionLease).get();
+      storageConnectionLease = -1L;
+    } catch (Exception e) {
+      throw new MetaStorageException("release storage connection error: ", e);
+    } finally {
+      storageConnectionLock.unlock();
+    }
   }
 
   @Override
   public void addStorageConnection(long iginxId, List<StorageEngineMeta> storageEngines)
-      throws MetaStorageException {}
+      throws MetaStorageException {
+    try {
+      lockStorage();
+      lockStorageConnection();
+      for (StorageEngineMeta storageEngine : storageEngines) {
+        GetResponse response =
+            this.client
+                .getKVClient()
+                .get(
+                    ByteSequence.from(
+                        generateID(
+                                STORAGE_ENGINE_NODE_PREFIX,
+                                STORAGE_ENGINE_NODE_LENGTH,
+                                storageEngine.getId())
+                            .getBytes()))
+                .get();
+        if (response.getCount() != 1) {
+          LOGGER.error("storage engine {} does not exist", storageEngine.getId());
+          return;
+        } else {
+          LOGGER.info("connect to storage engine {} ", storageEngine);
+        }
+      }
+      // 记录连接关系
+      String connectionPath =
+          generateID(STORAGE_CONNECTION_NODE_PREFIX, IGINX_NODE_LENGTH, iginxId);
+      GetResponse response =
+          this.client
+              .getKVClient()
+              .get(
+                  ByteSequence.from(connectionPath.getBytes()),
+                  GetOption.newBuilder()
+                      .withPrefix(ByteSequence.from(STORAGE_CONNECTION_NODE_PREFIX.getBytes()))
+                      .build())
+              .get();
+      long[] ids, oldIds;
+      if (response.getCount() != 1) {
+        oldIds = new long[0];
+      } else {
+        oldIds = JsonUtils.fromJson(response.getKvs().get(0).getValue().getBytes(), long[].class);
+      }
+      ids = new long[oldIds.length + storageEngines.size()];
+      System.arraycopy(oldIds, 0, ids, 0, oldIds.length);
+      for (int i = 0; i < storageEngines.size(); i++) {
+        ids[oldIds.length + i] = storageEngines.get(i).getId();
+      }
+      this.client
+          .getKVClient()
+          .put(
+              ByteSequence.from(connectionPath.getBytes()),
+              ByteSequence.from(JsonUtils.toJson(ids)))
+          .get();
+    } catch (Exception e) {
+      throw new MetaStorageException("get error when add storage connection", e);
+    } finally {
+      if (storageLease != -1) {
+        releaseStorage();
+      }
+      if (storageConnectionLease != -1) {
+        releaseStorageConnection();
+      }
+    }
+  }
 
   @Override
   public Map<Long, List<Long>> updateClusterStorageConnections() throws MetaStorageException {
-    // TODO
-    return Collections.emptyMap();
+    try {
+      lockStorageConnection();
+      Map<Long, List<Long>> connectionMap = new HashMap<>();
+      GetResponse response =
+          this.client
+              .getKVClient()
+              .get(
+                  ByteSequence.from(STORAGE_CONNECTION_NODE_PREFIX.getBytes()),
+                  GetOption.newBuilder()
+                      .withPrefix(ByteSequence.from(STORAGE_CONNECTION_NODE_PREFIX.getBytes()))
+                      .build())
+              .get();
+      response
+          .getKvs()
+          .forEach(
+              e -> {
+                String keyName = e.getKey().toString(StandardCharsets.UTF_8);
+                long fromId =
+                    Long.parseLong(keyName.substring(STORAGE_CONNECTION_NODE_PREFIX.length()));
+                long[] toIds = JsonUtils.fromJson(e.getValue().getBytes(), long[].class);
+                for (long toId : toIds) {
+                  connectionMap.computeIfAbsent(fromId, k -> new ArrayList<>()).add(toId);
+                }
+              });
+      return connectionMap;
+    } catch (Exception e) {
+      throw new MetaStorageException("get error when update cluster storage connections", e);
+    } finally {
+      if (storageConnectionLease != -1) {
+        releaseStorageConnection();
+      }
+    }
   }
 
   @Override
