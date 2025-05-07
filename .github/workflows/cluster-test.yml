@@ -27,7 +27,7 @@ on:
                 description: "The timeout minutes for the job"
                 type: number
                 required: false
-                default: 45
+                default: 30
 
 jobs:
     Cluster-Test:
@@ -78,7 +78,7 @@ jobs:
             - name: Modify IGinX-6889 Config
               uses: ./.github/actions/edit
               with:
-                  paths: IGinX-6889/conf/config.properties
+                  paths: IGinX-6889/${{ steps.version.outputs.version }}/conf/config.properties
                   statements: |
                       s/port=6888/port=6889/g
                       s/iginx_port=6888/iginx_port=6889/g
@@ -87,7 +87,7 @@ jobs:
             - name: Modify IGinX-6890 Config
               uses: ./.github/actions/edit
               with:
-                  paths: IGinX-6890/conf/config.properties
+                  paths: IGinX-6890/${{ steps.version.outputs.version }}/conf/config.properties
                   statements: |
                       s/port=6888/port=6890/g
                       s/iginx_port=6888/iginx_port=6890/g
@@ -97,7 +97,7 @@ jobs:
               uses: ./.github/actions/iginxRunner
 
             - name: Start IGinX-6889
-              working-directory: IGinX-6889
+              working-directory: IGinX-6889/${{ steps.version.outputs.version }}
               run: |
                   if [ "$RUNNER_OS" == "Windows" ]; then
                       chmod +x sbin/start_iginx.bat
@@ -108,7 +108,7 @@ jobs:
                   fi
 
             - name: Start IGinX-6890
-              working-directory: IGinX-6890
+              working-directory: IGinX-6890/${{ steps.version.outputs.version }}
               run: |
                   if [ "$RUNNER_OS" == "Windows" ]; then
                       chmod +x sbin/start_iginx.bat
@@ -130,9 +130,9 @@ jobs:
             - name: Show IGinX-6889 log
               if: always()
               shell: bash
-              run: cat IGinX-6889/iginx-6889.log
+              run: cat IGinX-6889/${{ steps.version.outputs.version }}/iginx-6889.log
 
             - name: Show IGinX-6890 log
               if: always()
               shell: bash
-              run: cat IGinX-6890/iginx-6890.log
+              run: cat IGinX-6890/${{ steps.version.outputs.version }}/iginx-6890.log
