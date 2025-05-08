@@ -248,10 +248,11 @@ public class DefaultMetaManager implements IMetaManager {
                 continue;
               }
               LOGGER.info(
-                  "connect to iginx(id = {} ,ip = {} , port = {})",
+                  "connect to iginx(id = {} ,ip = {} , port = {}), retry times = {}",
                   iginx.getId(),
                   iginx.getIp(),
-                  iginx.getPort());
+                  iginx.getPort(),
+                  count);
               cache.addIginxSession(iginx.getId(), session);
               break;
             }

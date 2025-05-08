@@ -19,11 +19,14 @@
  */
 package cn.edu.tsinghua.iginx.integration.distributed.startup;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 import cn.edu.tsinghua.iginx.exception.SessionException;
+import cn.edu.tsinghua.iginx.session.ClusterInfo;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
+import cn.edu.tsinghua.iginx.thrift.IginxInfo;
 import java.io.IOException;
 import java.text.ParseException;
 import org.junit.After;
@@ -70,6 +73,15 @@ public class ClusterIT {
           "Execute SHOW CLUSTER INFO for session (host: {}, port: {})",
           session.getHost(),
           session.getPort());
+      ClusterInfo clusterInfo = session.getClusterInfo();
+      assertEquals(3, clusterInfo.getIginxInfos().size());
+      for (IginxInfo iginxInfo : clusterInfo.getIginxInfos()) {
+        if (iginxInfo.getPort() == session.getPort()) {
+          assertEquals("self", iginxInfo.getConnected());
+        } else {
+          assertEquals("true", iginxInfo.getConnected());
+        }
+      }
       SessionExecuteSqlResult res = session.executeSql(SHOW_CLUSTER_INFO);
       String result = res.getResultInString(false, "");
       LOGGER.info("Result: \"{}\"", result);
