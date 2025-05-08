@@ -65,9 +65,9 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
 
   private static final String STORAGE_ENGINE_NODE = "/storage/node";
 
-  private static final String IGINX_CONNECTION_NODE = "/iginx-connection/node";
+  private static final String IGINX_CONNECTION_NODE = "/connection-iginx/node";
 
-  private static final String STORAGE_CONNECTION_NODE = "/storage-connection/node";
+  private static final String STORAGE_CONNECTION_NODE = "/connection-storage/node";
 
   private static final String STORAGE_UNIT_NODE = "/unit/unit";
 
