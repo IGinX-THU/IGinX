@@ -82,7 +82,7 @@ public class StorageEngineUtils {
             return false;
           }
         }
-        extraParams.put(EMBEDDED_PREFIX, StorageEngineMeta.extractEmbeddedPrefix(dummyDirPath));
+        extraParams.putIfAbsent(EMBEDDED_PREFIX, StorageEngineMeta.extractEmbeddedPrefix(dummyDirPath));
       } else {
         // hasData=false readOnly=true 无意义的引擎
         if (readOnly) {
