@@ -70,15 +70,13 @@ public class MetaUtils {
       dummyFragments.forEach(
           meta -> {
             if (meta.isValid()) {
+              Operator current =
+                  new Project(new FragmentSource(meta), pathList, tagFilter);
               String schemaPrefix = meta.getColumnsInterval().getSchemaPrefix();
-              joinList.add(
-                  new AddSchemaPrefix(
-                      new OperatorSource(
-                          new Project(
-                              new FragmentSource(meta),
-                              pathMatchPrefix(pathList, meta.getColumnsInterval(), schemaPrefix),
-                              tagFilter)),
-                      schemaPrefix));
+              if(schemaPrefix!= null) {
+                current = new AddSchemaPrefix(new OperatorSource(current), schemaPrefix);
+              }
+              joinList.add(current);
             }
           });
       if (operator != null) {
