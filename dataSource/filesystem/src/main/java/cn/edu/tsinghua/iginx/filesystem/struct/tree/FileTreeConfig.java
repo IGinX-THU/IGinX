@@ -38,6 +38,8 @@ public class FileTreeConfig extends AbstractConfig {
 
   @Optional String prefix = null;
 
+  @Optional int boundaryLevel = 0;
+
   @Optional Map<String, Config> formats = Collections.emptyMap();
 
   @Override
@@ -47,6 +49,9 @@ public class FileTreeConfig extends AbstractConfig {
       if (dot.contains(".")) {
         problems.add(new InvalidFieldValidationProblem(Fields.dot, "dot cannot contain '.'"));
       }
+    }
+    if(boundaryLevel != 0 && boundaryLevel != 1){
+      problems.add(new InvalidFieldValidationProblem(Fields.boundaryLevel, "boundaryLevel must be 0 or 1"));
     }
     return problems;
   }
