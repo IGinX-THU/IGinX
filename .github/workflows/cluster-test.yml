@@ -89,14 +89,14 @@ jobs:
               with:
                   iginx-home-path: IGinX-6889/iginx-core-${VERSION}
                   iginx-port: "6889"
-                  rest-port: "7889"
+                  rest-port: "17889"
 
             - name: Start IGinX-6890
               uses: ./.github/actions/iginxRunner
               with:
                   iginx-home-path: IGinX-6890/iginx-core-${VERSION}
                   iginx-port: "6890"
-                  rest-port: "7890"
+                  rest-port: "17890"
 
             - name: ClusterIT
               shell: bash -el {0}
