@@ -765,7 +765,7 @@ public class IginxWorker implements IService.Iface {
 
     // 数据库信息
     List<StorageEngineInfo> storageEngineInfos = new ArrayList<>();
-    List<Long> connectedStorages = metaManager.getStorageConnections().get(currentIginx.getId());
+    List<Long> connectedStorages = metaManager.getStorageConnections().getOrDefault(currentIginx.getId(), Collections.emptyList());
     for (StorageEngineMeta storageEngineMeta : metaManager.getStorageEngineList()) {
       String connected;
       if (connectedStorages.contains(storageEngineMeta.getId())) {
