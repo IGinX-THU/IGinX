@@ -81,6 +81,18 @@ jobs:
                   cp -r "core/target/iginx-core-${VERSION}" IGinX-6890
                   ls IGinX-6890
 
+            - name: Change IGinX-6889 config
+              uses: ./.github/actions/edit
+              with:
+                paths: IGinX-6889/iginx-core-${VERSION}/conf/config.properties
+                statements: s/^storageEngineList=127.0.0.1#6668#filesystem/storageEngineList=127.0.0.1#6669#filesystem/g
+
+            - name: Change IGinX-6890 config
+              uses: ./.github/actions/edit
+              with:
+                paths: IGinX-6890/iginx-core-${VERSION}/conf/config.properties
+                statements: s/^storageEngineList=127.0.0.1#6668#filesystem/storageEngineList=127.0.0.1#6670#filesystem/g
+
             - name: Start IGinX-6888
               uses: ./.github/actions/iginxRunner
 
