@@ -1,0 +1,53 @@
+name: "neo4j"
+description: "setup neo4j community edition 5.x"
+
+runs:
+    using: "composite"
+    steps:
+        - name: Download and Extract Neo4j(Linux)
+          if: runner.os == 'Linux'
+          working-directory: ${{ github.workspace }}
+          run: |
+              curl -L -o neo4j.tar.gz https://dist.neo4j.org/neo4j-community-5.26.5-unix.tar.gz
+              curl -L -o apoc.jar https://github.com/neo4j/apoc/releases/download/5.26.5/apoc-5.26.5-core.jar
+              curl -L -o jdk.tar.gz "https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.9%2B9/OpenJDK17U-jdk_x64_linux_hotspot_17.0.9_9.tar.gz"
+              mkdir -p jdk17
+              tar -xzf jdk.tar.gz -C jdk17 --strip-components=1
+              pwd
+              ls -a
+          shell: bash
+
+        - name: Download and Extract Neo4j(macOS)
+          if: runner.os == 'macOS'
+          working-directory: ${{ github.workspace }}
+          run: |
+              curl -L -o neo4j.tar.gz https://dist.neo4j.org/neo4j-community-5.26.5-unix.tar.gz
+              curl -L -o apoc.jar https://github.com/neo4j/apoc/releases/download/5.26.5/apoc-5.26.5-core.jar
+              curl -L -o jdk.tar.gz "https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.9%2B9/OpenJDK17U-jdk_aarch64_mac_hotspot_17.0.9_9.tar.gz"
+              mkdir -p jdk17
+              tar -xzf jdk.tar.gz -C jdk17 --strip-components=1
+              mv jdk17/Contents/Home/* jdk17
+              pwd
+              ls -a
+              echo "=================jdk17"
+              ls jdk17
+          shell: bash
+
+        - name: Download Neo4j (Windows)
+          if: runner.os == 'Windows'
+          working-directory: ${{ github.workspace }}
+          shell: bash
+          run: |
+              curl -L -o neo4j.zip https://dist.neo4j.org/neo4j-community-5.26.5-windows.zip
+              curl -L -o apoc.jar https://github.com/neo4j/apoc/releases/download/5.26.5/apoc-5.26.5-core.jar
+              curl -L -o jdk.zip "https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.9%2B9.1/OpenJDK17U-jdk_x64_windows_hotspot_17.0.9_9.zip"
+              mkdir jdk17
+              unzip -q jdk.zip -d jdk17_temp
+              #mv jdk17_temp/jdk-17.0.9+9/* jdk17/
+              mv jdk17_temp/jdk*/* jdk17/
+              pwd
+              dir
+              echo "=================jdk17"
+              dir jdk17
+              echo "=================jdk17/bin"
+              dir jdk17/bin
