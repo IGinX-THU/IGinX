@@ -34,6 +34,8 @@ public class Constants {
 
   public static final String UDF_FUNC = "transform";
 
+  public static final String TIMEOUT_ARG_NAME = "iginx_timeout";
+
   public static final String WINDOW_START_COL = "window_start";
   public static final String WINDOW_END_COL = "window_end";
 
