@@ -43,9 +43,9 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
   private static final String PREFIX = "DAMENG"; // 密码前缀（达梦密码强度要求）
 
   public static final String QUERY_DATABASES_STATEMENT =
-      "SELECT username  as DATNAME FROM DBA_USERS WHERE CREATED > TO_DATE('2025-01-01', 'YYYY-MM-DD')";
+      "SELECT DISTINCT owner AS DATNAME FROM all_tables";
 
-  public static final String CREATE_DATABASE_STATEMENT = "CREATE USER %s IDENTIFIED BY %s";
+  public static final String CREATE_DATABASE_STATEMENT = "CREATE SCHEMA %s";
 
   private static final String GRANT_DATABASE_STATEMENT =
       "GRANT CREATE SESSION,CREATE TABLE,UNLIMITED TABLESPACE TO %s";
@@ -56,7 +56,7 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
 
   public static final String INSERT_STATEMENT = "INSERT INTO %s.%s VALUES %s";
 
-  public static final String DROP_DATABASE_STATEMENT = "DROP USER %s CASCADE";
+  public static final String DROP_DATABASE_STATEMENT = "DROP SCHEMA %s CASCADE";
 
   private static final HashMap<Integer, Pair<String, String>> portsToUser = new HashMap<>();
 
@@ -113,14 +113,15 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
         String createDatabaseSql =
             String.format(
                 CREATE_DATABASE_STATEMENT, getQuotName(databaseName), toDamengPassword(port));
-        String grantDatabaseSql =
-            String.format(GRANT_DATABASE_STATEMENT, getQuotName(databaseName));
-        String grantRoleSql = String.format(GRANT_ROLE_STATEMENT, getQuotName(databaseName));
+        //        String grantDatabaseSql =
+        //            String.format(GRANT_DATABASE_STATEMENT, getQuotName(databaseName));
+        //        String grantRoleSql = String.format(GRANT_ROLE_STATEMENT,
+        // getQuotName(databaseName));
         try {
           LOGGER.info("create database with stmt: {}", createDatabaseSql);
           stmt.execute(createDatabaseSql);
-          stmt.execute(grantDatabaseSql);
-          stmt.execute(grantRoleSql);
+          //          stmt.execute(grantDatabaseSql);
+          //          stmt.execute(grantRoleSql);
         } catch (SQLException e) {
           LOGGER.info("database {} exists!", databaseName);
         }
@@ -202,40 +203,42 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
         Constant.READ_ONLY_FLOAT_PATH_LIST,
         new ArrayList<>(Collections.singletonList(DataType.FLOAT)),
         Constant.READ_ONLY_FLOAT_VALUES_LIST);
-    // create another user who can read data of tm user
-    try (Connection connection = connect(Constant.readOnlyPort);
-        Statement stmt = connection.createStatement()) {
-      String createDatabaseSql =
-          String.format(
-              CREATE_DATABASE_STATEMENT,
-              getQuotName("OBSERVER"),
-              toDamengPassword(Constant.readOnlyPort));
-      LOGGER.info(
-          "create another user in {} with stmt: {}", Constant.readOnlyPort, createDatabaseSql);
-      stmt.execute(createDatabaseSql);
-
-      String grantDatabaseSql = String.format(GRANT_DATABASE_STATEMENT, getQuotName("observer"));
-      String grantRoleSql = String.format(GRANT_ROLE_STATEMENT, getQuotName("observer"));
-      LOGGER.info("grant permission to observer with stmt: {}", grantDatabaseSql);
-      stmt.execute(grantDatabaseSql);
-      stmt.execute(grantRoleSql);
-
-      String grantTableSql =
-          String.format(
-              "GRANT SELECT ON %s.%s TO %s",
-              getQuotName("TM"), getQuotName("wf05.wt01"), getQuotName("OBSERVER"));
-      LOGGER.info("grant select permission to observer with stmt: {}", grantTableSql);
-      stmt.execute(grantTableSql);
-
-      String grantTable2Sql =
-          String.format(
-              "GRANT SELECT ON %s.%s TO %s",
-              getQuotName("TM"), getQuotName("wf05.wt02"), getQuotName("OBSERVER"));
-      LOGGER.info("grant select permission to observer with stmt: {}", grantTable2Sql);
-      stmt.execute(grantTable2Sql);
-    } catch (SQLException e) {
-      LOGGER.error("write special history data failure: ", e);
-    }
+    //    // create another user who can read data of tm user
+    //    try (Connection connection = connect(Constant.readOnlyPort);
+    //        Statement stmt = connection.createStatement()) {
+    //      String createDatabaseSql =
+    //          String.format(
+    //              CREATE_DATABASE_STATEMENT,
+    //              getQuotName("OBSERVER"),
+    //              toDamengPassword(Constant.readOnlyPort));
+    //      LOGGER.info(
+    //          "create another user in {} with stmt: {}", Constant.readOnlyPort,
+    // createDatabaseSql);
+    //      stmt.execute(createDatabaseSql);
+    //
+    //      String grantDatabaseSql = String.format(GRANT_DATABASE_STATEMENT,
+    // getQuotName("observer"));
+    //      String grantRoleSql = String.format(GRANT_ROLE_STATEMENT, getQuotName("observer"));
+    //      LOGGER.info("grant permission to observer with stmt: {}", grantDatabaseSql);
+    //      stmt.execute(grantDatabaseSql);
+    //      stmt.execute(grantRoleSql);
+    //
+    //      String grantTableSql =
+    //          String.format(
+    //              "GRANT SELECT ON %s.%s TO %s",
+    //              getQuotName("TM"), getQuotName("wf05.wt01"), getQuotName("OBSERVER"));
+    //      LOGGER.info("grant select permission to observer with stmt: {}", grantTableSql);
+    //      stmt.execute(grantTableSql);
+    //
+    //      String grantTable2Sql =
+    //          String.format(
+    //              "GRANT SELECT ON %s.%s TO %s",
+    //              getQuotName("TM"), getQuotName("wf05.wt02"), getQuotName("OBSERVER"));
+    //      LOGGER.info("grant select permission to observer with stmt: {}", grantTable2Sql);
+    //      stmt.execute(grantTable2Sql);
+    //    } catch (SQLException e) {
+    //      LOGGER.error("write special history data failure: ", e);
+    //    }
   }
 
   @Override
@@ -251,7 +254,7 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
         String databaseName = databaseSet.getString("DATNAME");
 
         // 过滤系统数据库
-        if (databaseName.equals("SYSDBA")) {
+        if (databaseName.equals("SYSDBA") || databaseName.equals("SYS")) {
           continue;
         }
 

@@ -83,7 +83,7 @@ public class DamengDatabaseStrategy extends AbstractDatabaseStrategy {
 
   @Override
   public String getSchemaPattern(String databaseName, boolean isDummy) {
-    if (isDummy) {
+    if (isDummy || relationalMeta.supportCreateDatabase()) {
       return databaseName;
     }
     return storageEngineMeta.getExtraParams().get(USERNAME);
@@ -102,8 +102,14 @@ public class DamengDatabaseStrategy extends AbstractDatabaseStrategy {
       String columnNames = entry.getValue().k.substring(0, entry.getValue().k.length() - 2);
       List<String> values = entry.getValue().v;
       String[] parts = columnNames.split(", ");
-      Map<String, ColumnField> columnMap = getColumnMap(conn, databaseName + "." + tableName);
-      this.batchInsert(conn, databaseName + "." + tableName, columnMap, parts, values);
+      if (relationalMeta.supportCreateDatabase()) {
+        Map<String, ColumnField> columnMap = getColumnMap(conn, tableName, databaseName);
+        this.batchInsert(conn, tableName, columnMap, parts, values);
+      } else {
+        Map<String, ColumnField> columnMap =
+            getColumnMap(conn, databaseName + "." + tableName, null);
+        this.batchInsert(conn, databaseName + "." + tableName, columnMap, parts, values);
+      }
     }
     stmt.executeBatch();
   }
@@ -249,18 +255,31 @@ public class DamengDatabaseStrategy extends AbstractDatabaseStrategy {
     return "%s(%s)";
   }
 
-  public Map<String, ColumnField> getColumnMap(Connection conn, String tableName)
+  public Map<String, ColumnField> getColumnMap(Connection conn, String tableName, String schemaName)
       throws SQLException {
-    List<ColumnField> columnFieldList = getColumns(conn, tableName);
+    LOGGER.info("getColumnMap: {}", tableName);
+    List<ColumnField> columnFieldList = getColumns(conn, tableName, schemaName);
+    LOGGER.info("columnFieldList: {}", columnFieldList);
+    Set<String> seen = new HashSet<>();
+    for (ColumnField field : columnFieldList) {
+      String name = field.getColumnName();
+      if (!seen.add(name)) {
+        LOGGER.warn("Duplicate column name detected: {}", name);
+      }
+    }
     return columnFieldList.stream()
         .collect(Collectors.toMap(ColumnField::getColumnName, field -> field));
   }
 
-  private List<ColumnField> getColumns(Connection conn, String tableName) throws SQLException {
+  private List<ColumnField> getColumns(Connection conn, String tableName, String schemaName)
+      throws SQLException {
     DatabaseMetaData databaseMetaData = conn.getMetaData();
     try (ResultSet rs =
         databaseMetaData.getColumns(
-            getDatabasePattern(null, false), getSchemaPattern(null, false), tableName, null)) {
+            getDatabasePattern(null, false),
+            getSchemaPattern(schemaName, false),
+            tableName,
+            null)) {
       List<ColumnField> columnFields = new ArrayList<>();
       while (rs.next()) {
         String columnName = rs.getString("COLUMN_NAME");
@@ -268,6 +287,13 @@ public class DamengDatabaseStrategy extends AbstractDatabaseStrategy {
         String columnTable = rs.getString("TABLE_NAME");
         int columnSize = rs.getInt("COLUMN_SIZE");
         int decimalDigits = rs.getInt("DECIMAL_DIGITS");
+        LOGGER.info(
+            "columnName: {}, columnType: {}, columnTable: {}, columnSize: {}, decimalDigits: {}",
+            columnName,
+            columnType,
+            columnTable,
+            columnSize,
+            decimalDigits);
         columnFields.add(
             new ColumnField(columnTable, columnName, columnType, columnSize, decimalDigits));
       }
