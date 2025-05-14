@@ -251,7 +251,7 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
       Statement dropDatabaseStatement = conn.createStatement();
 
       while (databaseSet.next()) {
-        String databaseName = databaseSet.getString("DATNAME");
+        String databaseName = databaseSet.getString("TABLE_SCHEMA");
 
         // 过滤系统数据库
         if (databaseName.equals("SYSDBA")) {

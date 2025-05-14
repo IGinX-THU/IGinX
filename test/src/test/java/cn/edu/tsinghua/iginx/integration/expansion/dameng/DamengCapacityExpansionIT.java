@@ -151,16 +151,27 @@ public class DamengCapacityExpansionIT extends BaseCapacityExpansionIT {
     SQLTestTools.executeAndCompare(session, statement, expected);
   }
 
+  /** 测试float类型数据 */
   private void testFloatData() {
     String statement = "select wt02.float from tm.wf05 where wt02.float <= 44.55;";
+    List<String> pathList = Constant.READ_ONLY_FLOAT_PATH_LIST;
     List<List<Object>> valuesList = Constant.READ_ONLY_FLOAT_VALUES_LIST;
-    SQLTestTools.executeAndCompare(
-        session, statement, Constant.READ_ONLY_FLOAT_PATH_LIST, valuesList);
+    SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
     statement = "select wt02.float from tm.wf05 where wt02.float = 44.55;";
     valuesList = Arrays.asList(Arrays.asList(44.55F));
-    SQLTestTools.executeAndCompare(
-        session, statement, Constant.READ_ONLY_FLOAT_PATH_LIST, valuesList);
+    SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
   }
+
+  //  private void testFloatData() {
+  //    String statement = "select wt02.float from tm.wf05 where wt02.float <= 44.55;";
+  //    List<List<Object>> valuesList = Constant.READ_ONLY_FLOAT_VALUES_LIST;
+  //    SQLTestTools.executeAndCompare(
+  //        session, statement, Constant.READ_ONLY_FLOAT_PATH_LIST, valuesList);
+  //    statement = "select wt02.float from tm.wf05 where wt02.float = 44.55;";
+  //    valuesList = Arrays.asList(Arrays.asList(44.55F));
+  //    SQLTestTools.executeAndCompare(
+  //        session, statement, Constant.READ_ONLY_FLOAT_PATH_LIST, valuesList);
+  //  }
 
   //  /** 达梦的用户名不受大小写敏感影响，无论如何都是大写，User对应database，需要修改测试，将databaseName修改为大写 * */
   //  /** 测试float类型数据 */
