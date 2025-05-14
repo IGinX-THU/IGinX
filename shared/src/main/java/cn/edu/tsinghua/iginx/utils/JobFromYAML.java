@@ -123,6 +123,7 @@ public class JobFromYAML {
           break;
         case PYTHON:
           task.setPyTaskName(taskFromYAML.getPyTaskName());
+          task.setPyOutputTable(taskFromYAML.getPyOutputTable());
           break;
       }
       task.setTimeout(taskFromYAML.getTimeout());

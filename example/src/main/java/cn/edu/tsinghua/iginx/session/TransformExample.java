@@ -420,7 +420,7 @@ public class TransformExample {
                     Task.builder()
                         .dataFlowType(DataFlowType.STREAM)
                         .timeout(TIMEOUT)
-                        .pyTaskName("RowSumTransformer")
+                        .pyTask("RowSumTransformer")
                         .build())
                 .exportToFile(OUTPUT_DIR_PREFIX + File.separator + "export_file_v2.txt")
                 .build());

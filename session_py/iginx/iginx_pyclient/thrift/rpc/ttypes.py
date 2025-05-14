@@ -6670,16 +6670,18 @@ class TaskInfo(object):
      - timeout
      - sqlList
      - pyTaskName
+     - pyOutputTable
 
     """
 
 
-    def __init__(self, taskType=None, dataFlowType=None, timeout=None, sqlList=None, pyTaskName=None,):
+    def __init__(self, taskType=None, dataFlowType=None, timeout=None, sqlList=None, pyTaskName=None, pyOutputTable=None,):
         self.taskType = taskType
         self.dataFlowType = dataFlowType
         self.timeout = timeout
         self.sqlList = sqlList
         self.pyTaskName = pyTaskName
+        self.pyOutputTable = pyOutputTable
 
     def read(self, iprot):
         if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
@@ -6720,6 +6722,11 @@ class TaskInfo(object):
                     self.pyTaskName = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
                 else:
                     iprot.skip(ftype)
+            elif fid == 6:
+                if ftype == TType.STRING:
+                    self.pyOutputTable = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                else:
+                    iprot.skip(ftype)
             else:
                 iprot.skip(ftype)
             iprot.readFieldEnd()
@@ -6752,6 +6759,10 @@ class TaskInfo(object):
         if self.pyTaskName is not None:
             oprot.writeFieldBegin('pyTaskName', TType.STRING, 5)
             oprot.writeString(self.pyTaskName.encode('utf-8') if sys.version_info[0] == 2 else self.pyTaskName)
+            oprot.writeFieldEnd()
+        if self.pyOutputTable is not None:
+            oprot.writeFieldBegin('pyOutputTable', TType.STRING, 6)
+            oprot.writeString(self.pyOutputTable.encode('utf-8') if sys.version_info[0] == 2 else self.pyOutputTable)
             oprot.writeFieldEnd()
         oprot.writeFieldStop()
         oprot.writeStructEnd()
@@ -10094,6 +10105,7 @@ TaskInfo.thrift_spec = (
     (3, TType.I64, 'timeout', None, None, ),  # 3
     (4, TType.LIST, 'sqlList', (TType.STRING, 'UTF8', False), None, ),  # 4
     (5, TType.STRING, 'pyTaskName', 'UTF8', None, ),  # 5
+    (6, TType.STRING, 'pyOutputTable', 'UTF8', None, ),  # 6
 )
 all_structs.append(CommitTransformJobReq)
 CommitTransformJobReq.thrift_spec = (
