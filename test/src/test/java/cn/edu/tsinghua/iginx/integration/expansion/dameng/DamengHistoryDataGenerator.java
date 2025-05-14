@@ -43,7 +43,8 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
   private static final String PREFIX = "DAMENG"; // 密码前缀（达梦密码强度要求）
 
   public static final String QUERY_DATABASES_STATEMENT =
-      "SELECT DISTINCT owner AS DATNAME FROM all_tables";
+      //      "SELECT DISTINCT owner AS DATNAME FROM all_tables";
+      "SELECT DISTINCT object_name TABLE_SCHEMA FROM all_objects WHERE object_type='SCH' AND OWNER='SYSDBA';";
 
   public static final String CREATE_DATABASE_STATEMENT = "CREATE SCHEMA %s";
 
@@ -253,7 +254,7 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
         String databaseName = databaseSet.getString("DATNAME");
 
         // 过滤系统数据库
-        if (databaseName.equals("SYSDBA") || databaseName.equals("SYS")) {
+        if (databaseName.equals("SYSDBA")) {
           continue;
         }
 
