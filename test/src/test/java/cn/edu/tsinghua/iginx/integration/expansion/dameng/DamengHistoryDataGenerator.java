@@ -111,8 +111,7 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
         String databaseName = entry.getKey();
         Statement stmt = connection.createStatement();
         String createDatabaseSql =
-            String.format(
-                CREATE_DATABASE_STATEMENT, getQuotName(databaseName), toDamengPassword(port));
+            String.format(CREATE_DATABASE_STATEMENT, getQuotName(databaseName));
         //        String grantDatabaseSql =
         //            String.format(GRANT_DATABASE_STATEMENT, getQuotName(databaseName));
         //        String grantRoleSql = String.format(GRANT_ROLE_STATEMENT,

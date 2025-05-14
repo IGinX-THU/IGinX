@@ -23,6 +23,7 @@ import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.*;
 import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.readOnlyPort;
 import static org.junit.Assert.*;
 
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.expansion.BaseCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.constant.Constant;
@@ -71,12 +72,12 @@ public class DamengCapacityExpansionIT extends BaseCapacityExpansionIT {
 
   @Override
   protected void updateParams(int port) {
-    changeParams(port, newPass);
+    changeParams(port, "SYSDBA001", newPass);
   }
 
   @Override
   protected void restoreParams(int port) {
-    changeParams(port, portsToPassword.get(port));
+    changeParams(port, portsToPassword.get(port), "SYSDBA001");
   }
 
   @Override
@@ -89,9 +90,10 @@ public class DamengCapacityExpansionIT extends BaseCapacityExpansionIT {
     shutOrRestart(port, false, "dameng");
   }
 
-  private void changeParams(int port, String newPw) {
+  private void changeParams(int port, String oldPw, String newPw) {
     String username = portsToUsername.get(port);
-    String jdbcUrl = String.format("jdbc:dm://127.0.0.1:%d?user=SYSDBA&password=SYSDBA001", port);
+    String jdbcUrl =
+        String.format("jdbc:dm://127.0.0.1:%d?user=SYSDBA&password=%s", port, getQuotName(oldPw));
     try {
       Class.forName("dm.jdbc.driver.DmDriver");
     } catch (ClassNotFoundException e) {
@@ -112,6 +114,41 @@ public class DamengCapacityExpansionIT extends BaseCapacityExpansionIT {
   @Override
   protected void testQuerySpecialHistoryData() {
     testFloatData();
+  }
+
+  @Override
+  protected void testPathOverlappedDataNotOverlapped() throws SessionException {
+    // before
+    String statement = "select status from mn.wf01.wt01;";
+    String expected =
+        "ResultSets:\n"
+            + "+-----------------+-------------------+\n"
+            + "|              key|mn.wf01.wt01.status|\n"
+            + "+-----------------+-------------------+\n"
+            + "|32690615153702352|           11111111|\n"
+            + "|33357770565002400|           22222222|\n"
+            + "+-----------------+-------------------+\n"
+            + "Total line number = 2\n";
+    SQLTestTools.executeAndCompare(session, statement, expected);
+
+    String insert =
+        "insert into mn.wf01.wt01 (key, status) values (10, 33333333), (100, 44444444);";
+    session.executeSql(insert);
+
+    // after
+    statement = "select status from mn.wf01.wt01;";
+    expected =
+        "ResultSets:\n"
+            + "+-----------------+-------------------+\n"
+            + "|              key|mn.wf01.wt01.status|\n"
+            + "+-----------------+-------------------+\n"
+            + "|               10|           33333333|\n"
+            + "|              100|           44444444|\n"
+            + "|32690615153702352|           11111111|\n"
+            + "|33357770565002400|           22222222|\n"
+            + "+-----------------+-------------------+\n"
+            + "Total line number = 4\n";
+    SQLTestTools.executeAndCompare(session, statement, expected);
   }
 
   private void testFloatData() {
