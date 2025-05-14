@@ -28,12 +28,17 @@ public class PythonTask extends Task {
 
   private String pyTaskName = "";
 
+  private String pyOutputTable;
+
   public PythonTask(TaskInfo info) {
     super(info);
     if (info.isSetPyTaskName()) {
       pyTaskName = info.getPyTaskName().trim();
     } else {
       throw new IllegalArgumentException("Python task must have class name.");
+    }
+    if (info.isSetPyOutputTable()) {
+      pyOutputTable = info.getPyOutputTable().trim();
     }
   }
 
@@ -43,6 +48,9 @@ public class PythonTask extends Task {
       pyTaskName = info.getPyTaskName().trim();
     } else {
       throw new IllegalArgumentException("Python task must have class name.");
+    }
+    if (info.isSetPyOutputTable()) {
+      pyOutputTable = info.getPyOutputTable().trim();
     }
   }
 
@@ -55,5 +63,13 @@ public class PythonTask extends Task {
 
   public String getPyTaskName() {
     return pyTaskName;
+  }
+
+  public String getPyOutputTable() {
+    return pyOutputTable;
+  }
+
+  public boolean isSetPyOutputTable() {
+    return pyOutputTable != null;
   }
 }

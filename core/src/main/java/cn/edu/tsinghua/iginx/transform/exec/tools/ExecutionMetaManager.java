@@ -19,43 +19,62 @@
  */
 package cn.edu.tsinghua.iginx.transform.exec.tools;
 
-import static cn.edu.tsinghua.iginx.transform.utils.Constants.TEMP_TABLE_NAME;
+import static cn.edu.tsinghua.iginx.constant.GlobalConstant.TRANSFORM_PREFIX;
+import static cn.edu.tsinghua.iginx.transform.utils.Constants.TEMP_TABLE_NAME_FORMAT;
 
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import lombok.Data;
+import java.util.stream.Collectors;
+import org.apache.commons.lang3.RandomStringUtils;
 
+/** 管理 python task 输出的临时表信息，管理用户定义的别名和真实的临时表名之间的映射关系 */
 public class ExecutionMetaManager {
 
-  @Data
-  static class ExecutionMeta {
-    String tempTableName;
+  private static final ThreadLocal<Map<String, String>> metaThreadLocal =
+      ThreadLocal.withInitial(HashMap::new);
 
-    public ExecutionMeta(String tempTableName) {
-      this.tempTableName = tempTableName;
+  public static void setTempTable(String aliasName, long jobId) {
+    String tempTableName =
+        String.format(TEMP_TABLE_NAME_FORMAT, jobId, RandomStringUtils.randomAlphanumeric(6));
+    metaThreadLocal.get().put(aliasName, tempTableName);
+  }
+
+  public static String getTempTableName(String aliasName) {
+    if (TRANSFORM_PREFIX.equals(aliasName)) {
+      return TRANSFORM_PREFIX;
     }
+    return metaThreadLocal.get().get(aliasName);
   }
 
-  private static final ThreadLocal<ExecutionMeta> metaThreadLocal = new ThreadLocal<>();
-
-  public static void setMeta(String tempTableName) {
-    metaThreadLocal.set(new ExecutionMeta(tempTableName));
-  }
-
-  public static String getTempTableName() {
-    return metaThreadLocal.get().getTempTableName();
+  public static Collection<String> getTempTableNames() {
+    return metaThreadLocal.get().values();
   }
 
   /** replace placeholders in sql to actual temp table name */
   public static String replaceTableNameIgnoreCase(String sql) {
-    Pattern pattern = Pattern.compile(Pattern.quote(TEMP_TABLE_NAME), Pattern.CASE_INSENSITIVE);
+    if (getTempTableNames().isEmpty()) {
+      return sql;
+    }
+    String patternString =
+        metaThreadLocal.get().keySet().stream()
+            .map(Pattern::quote)
+            .map(s -> "\\b" + s + "\\b") // whole word
+            .collect(Collectors.joining("|"));
+
+    Pattern pattern = Pattern.compile(patternString, Pattern.CASE_INSENSITIVE);
     Matcher matcher = pattern.matcher(sql);
-    StringBuffer sb = new StringBuffer();
+    StringBuffer result = new StringBuffer();
 
     while (matcher.find()) {
-      matcher.appendReplacement(sb, Matcher.quoteReplacement(getTempTableName()));
+      String matched = matcher.group();
+      String replacement = getTempTableName(matched);
+      matcher.appendReplacement(result, Matcher.quoteReplacement(replacement));
     }
-    matcher.appendTail(sb);
-    return sb.toString();
+    matcher.appendTail(result);
+
+    return result.toString();
   }
 }

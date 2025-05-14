@@ -19,8 +19,6 @@
  */
 package cn.edu.tsinghua.iginx.transform.exec;
 
-import static cn.edu.tsinghua.iginx.transform.utils.Constants.TEMP_TABLE_NAME_FORMAT;
-
 import cn.edu.tsinghua.iginx.engine.ContextBuilder;
 import cn.edu.tsinghua.iginx.engine.StatementExecutor;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
@@ -33,7 +31,7 @@ import cn.edu.tsinghua.iginx.transform.pojo.Job;
 import cn.edu.tsinghua.iginx.utils.RpcUtils;
 import java.util.ArrayList;
 import java.util.List;
-import org.apache.commons.lang3.RandomStringUtils;
+import java.util.stream.Collectors;
 import org.quartz.DisallowConcurrentExecution;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
@@ -62,9 +60,9 @@ public class ScheduledJob implements org.quartz.Job {
     try {
       // [important] the temp table that will be used to store mid-stage result, must be set before
       // run
-      ExecutionMetaManager.setMeta(
-          String.format(
-              TEMP_TABLE_NAME_FORMAT, job.getJobId(), RandomStringUtils.randomAlphanumeric(6)));
+      for (String table : job.getPyTables()) {
+        ExecutionMetaManager.setTempTable(table, job.getJobId());
+      }
       for (Runner runner : runnerList) {
         runner.start();
         runner.run();
@@ -106,13 +104,18 @@ public class ScheduledJob implements org.quartz.Job {
         // clear temp table
         ExecuteStatementReq req =
             new ExecuteStatementReq(
-                0, "DELETE COLUMNS " + ExecutionMetaManager.getTempTableName() + ".*;");
+                0,
+                "DELETE COLUMNS "
+                    + ExecutionMetaManager.getTempTableNames().stream()
+                        .map(s -> s + ".*")
+                        .collect(Collectors.joining(", "))
+                    + ";");
         RequestContext IginxContext = contextBuilder.build(req);
         executor.execute(IginxContext);
         if (IginxContext.getResult().getStatus().code != RpcUtils.SUCCESS.code) {
           LOGGER.error(
-              "Cannot clear temp table {} for transform job.",
-              ExecutionMetaManager.getTempTableName());
+              "Cannot clear temp tables {} for transform job.",
+              ExecutionMetaManager.getTempTableNames());
         }
       }
     }

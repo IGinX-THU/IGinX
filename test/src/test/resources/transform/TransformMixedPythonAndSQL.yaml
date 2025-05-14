@@ -8,10 +8,11 @@ taskList:
   dataFlowType: "stream"
   timeout: 10000000
   pyTaskName: "AddOneTransformer"
+  pyOutputTable: "addOne"
 - taskType: "iginx"
   timeout: 10000000
   sqlList:
-    - "SELECT s1, s1, s2 FROM {JOB_TEMP_TABLE}.us.d1;"
+    - "SELECT s1, s1, s2 FROM addOne.us.d1;"
 - taskType: "python"
   dataFlowType: "batch"
   timeout: 10000000

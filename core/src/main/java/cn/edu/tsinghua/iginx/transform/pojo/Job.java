@@ -30,7 +30,9 @@ import cn.edu.tsinghua.iginx.utils.JobFromYAML;
 import cn.edu.tsinghua.iginx.utils.NotificationFromYAML;
 import cn.edu.tsinghua.iginx.utils.TaskFromYAML;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.Data;
 import org.apache.commons.mail.EmailException;
@@ -71,6 +73,7 @@ public class Job {
   private boolean tempTableUsed = false;
 
   private boolean metaStored = false;
+  private final Set<String> pyTables = new HashSet<>();
 
   public Job(long id, CommitTransformJobReq req) {
     this(id, req, null);
@@ -140,9 +143,15 @@ public class Job {
           // Also, in such iginx task, temp table containing previous python task results could be
           // used. We mark
           // it and clear it after all tasks.
+          String previousPythonOutputTableName =
+              ((PythonTask) stageTasks.get(stageTasks.size() - 1)).getPyOutputTable();
+          pyTables.add(previousPythonOutputTableName);
           stage =
               new StreamStage(
-                  sessionId, stage, new ArrayList<>(stageTasks), new IginXWriter(sessionId, null));
+                  sessionId,
+                  stage,
+                  new ArrayList<>(stageTasks),
+                  new IginXWriter(sessionId, previousPythonOutputTableName));
           stageList.add(stage);
           stageTasks.clear();
           tempTableUsed = true;
@@ -251,6 +260,7 @@ public class Job {
       taskFromYAML.setTimeout(task.getTimeLimit());
       if (task.isPythonTask()) {
         taskFromYAML.setPyTaskName(((PythonTask) task).getPyTaskName());
+        taskFromYAML.setPyOutputTable(((PythonTask) task).getPyOutputTable());
       } else {
         taskFromYAML.setSqlList(((IginXTask) task).getSqlList());
       }

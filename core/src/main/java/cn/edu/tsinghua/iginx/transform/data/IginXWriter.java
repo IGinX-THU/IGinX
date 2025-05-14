@@ -46,11 +46,11 @@ public class IginXWriter extends ExportWriter {
 
   private final ContextBuilder contextBuilder = ContextBuilder.getInstance();
 
-  private String prefix;
+  private final String tableName;
 
   public IginXWriter(long sessionId, String prefix) {
     this.sessionId = sessionId;
-    this.prefix = prefix;
+    this.tableName = prefix;
   }
 
   @Override
@@ -61,10 +61,7 @@ public class IginXWriter extends ExportWriter {
   }
 
   private InsertRowRecordsReq buildInsertRowReq(BatchData batchData) {
-    if (prefix == null) {
-      // writer can only access to temp table name during running
-      prefix = ExecutionMetaManager.getTempTableName();
-    }
+    String prefix = ExecutionMetaManager.getTempTableName(tableName);
     Header header = batchData.getHeader();
     Object[] valuesList;
 
