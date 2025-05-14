@@ -43,9 +43,42 @@ public class DamengDatabaseStrategy extends AbstractDatabaseStrategy {
 
   private final DamengDataTypeTransformer dataTypeTransformer;
 
+  private static AbstractRelationalMeta checkAndSetPrivileges(
+      AbstractRelationalMeta relationalMeta, StorageEngineMeta storageEngineMeta) {
+    Map<String, String> extraParams = storageEngineMeta.getExtraParams();
+    String username = extraParams.get(USERNAME);
+    String password = extraParams.get(PASSWORD);
+    // 判断达梦用户是否具有创建模式的权限
+    try {
+      Class.forName(relationalMeta.getDriverClass());
+      Connection conn =
+          DriverManager.getConnection(
+              String.format(
+                  "jdbc:dm://%s:%s?user=%s&password=\"%s\"",
+                  storageEngineMeta.getIp(), storageEngineMeta.getPort(), username, password));
+      Statement stmt = conn.createStatement();
+      ResultSet rs = stmt.executeQuery(relationalMeta.getQueryUserPrivilegesStatement());
+      List<String> databaseCreatePrivileges = relationalMeta.getDatabaseCreatePrivileges();
+      while (rs.next()) {
+        String privilege = rs.getString(1);
+        if (databaseCreatePrivileges.contains(privilege)) {
+          LOGGER.info("User {} has create database privilege", username);
+          relationalMeta.setSupportCreateDatabase(true);
+          break;
+        }
+      }
+    } catch (SQLException e) {
+      LOGGER.error(e.getMessage());
+    } catch (ClassNotFoundException e) {
+      throw new RuntimeException(e);
+    }
+
+    return relationalMeta;
+  }
+
   public DamengDatabaseStrategy(
       AbstractRelationalMeta relationalMeta, StorageEngineMeta storageEngineMeta) {
-    super(relationalMeta, storageEngineMeta);
+    super(checkAndSetPrivileges(relationalMeta, storageEngineMeta), storageEngineMeta);
     this.dataTypeTransformer = DamengDataTypeTransformer.getInstance();
   }
 
@@ -257,9 +290,7 @@ public class DamengDatabaseStrategy extends AbstractDatabaseStrategy {
 
   public Map<String, ColumnField> getColumnMap(Connection conn, String tableName, String schemaName)
       throws SQLException {
-    LOGGER.info("getColumnMap: {}", tableName);
     List<ColumnField> columnFieldList = getColumns(conn, tableName, schemaName);
-    LOGGER.info("columnFieldList: {}", columnFieldList);
     Set<String> seen = new HashSet<>();
     for (ColumnField field : columnFieldList) {
       String name = field.getColumnName();
@@ -287,13 +318,6 @@ public class DamengDatabaseStrategy extends AbstractDatabaseStrategy {
         String columnTable = rs.getString("TABLE_NAME");
         int columnSize = rs.getInt("COLUMN_SIZE");
         int decimalDigits = rs.getInt("DECIMAL_DIGITS");
-        LOGGER.info(
-            "columnName: {}, columnType: {}, columnTable: {}, columnSize: {}, decimalDigits: {}",
-            columnName,
-            columnType,
-            columnTable,
-            columnSize,
-            decimalDigits);
         columnFields.add(
             new ColumnField(columnTable, columnName, columnType, columnSize, decimalDigits));
       }

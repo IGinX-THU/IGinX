@@ -199,35 +199,6 @@ public class RelationalStorage implements IStorage {
       throw new StorageInitializationException("cannot build relational meta: ", e);
     }
     engineName = meta.getExtraParams().get("engine");
-    if (engineName.equals("dameng")) {
-      Map<String, String> extraParams = meta.getExtraParams();
-      String username = extraParams.get(USERNAME);
-      String password = extraParams.get(PASSWORD);
-      // 判断达梦用户是否具有创建模式的权限
-      try {
-        Class.forName(relationalMeta.getDriverClass());
-        Connection conn =
-            DriverManager.getConnection(
-                String.format(
-                    "jdbc:dm://%s:%s?user=%s&password=\"%s\"",
-                    meta.getIp(), meta.getPort(), username, password));
-        Statement stmt = conn.createStatement();
-        ResultSet rs = stmt.executeQuery(relationalMeta.getQueryUserPrivilegesStatement());
-        List<String> databaseCreatePrivileges = relationalMeta.getDatabaseCreatePrivileges();
-        while (rs.next()) {
-          String privilege = rs.getString(1);
-          if (databaseCreatePrivileges.contains(privilege)) {
-            LOGGER.info("User {} has create database privilege", username);
-            relationalMeta.setSupportCreateDatabase(true);
-            break;
-          }
-        }
-      } catch (SQLException e) {
-        LOGGER.error(e.getMessage());
-      } catch (ClassNotFoundException e) {
-        throw new RuntimeException(e);
-      }
-    }
     dbStrategy = DatabaseStrategyFactory.getStrategy(engineName, relationalMeta, meta);
     if (!testConnection(this.meta)) {
       throw new StorageInitializationException("cannot connect to " + meta.toString());
