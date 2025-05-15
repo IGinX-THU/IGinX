@@ -680,6 +680,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
                       schemaPrefix,
                       dataPrefix));
             });
+    statement.setForAllIginx(ctx.ALL() != null);
     return statement;
   }
 

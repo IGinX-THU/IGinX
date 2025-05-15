@@ -105,11 +105,11 @@ del %temp%\tmp.vbs
 set system_memory_in_mb=%system_memory_in_mb:,=%
 
 @REM set the required memory percentage according to your needs (< 100 & must be a integer)
-set /a max_percentageNumerator=50
+set /a max_percentageNumerator=30
 set /a max_heap_size_in_mb=%system_memory_in_mb% * %max_percentageNumerator% / 100
 set MAX_HEAP_SIZE=%max_heap_size_in_mb%M
 
-set /a min_percentageNumerator=50
+set /a min_percentageNumerator=30
 set /a min_heap_size_in_mb=%system_memory_in_mb% * %min_percentageNumerator% / 100
 set MIN_HEAP_SIZE=%min_heap_size_in_mb%M
 

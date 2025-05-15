@@ -21,6 +21,7 @@ package cn.edu.tsinghua.iginx.metadata.cache;
 
 import cn.edu.tsinghua.iginx.metadata.entity.*;
 import cn.edu.tsinghua.iginx.policy.simple.ColumnCalDO;
+import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.sql.statement.InsertStatement;
 import cn.edu.tsinghua.iginx.transform.pojo.TriggerDescriptor;
 import java.util.List;
@@ -91,6 +92,8 @@ public interface IMetaCache {
   // iginx 相关的缓存读写接口
   List<IginxMeta> getIginxList();
 
+  IginxMeta getIginx(long id);
+
   void addIginx(IginxMeta iginxMeta);
 
   void removeIginx(long id);
@@ -105,6 +108,21 @@ public interface IMetaCache {
   StorageEngineMeta getStorageEngine(long id);
 
   List<FragmentMeta> getFragments();
+
+  // 连接相关的缓存读写接口
+  Map<Long, Session> getIginxSessionMap();
+
+  Session getIginxSession(long id);
+
+  void addIginxSession(long id, Session session);
+
+  Map<Long, List<Long>> getIginxConnections();
+
+  void updateIginxConnections(Map<Long, List<Long>> connections);
+
+  Map<Long, List<Long>> getStorageConnections();
+
+  void updateStorageConnections(Map<Long, List<Long>> connections);
 
   // schemaMapping 相关的缓存读写接口
   Map<String, Integer> getSchemaMapping(String schema);

@@ -127,6 +127,7 @@ public class ConfigDescriptor {
 
       config.setRestIp(properties.getProperty("restIp", "127.0.0.1"));
       config.setRestPort(Integer.parseInt(properties.getProperty("restPort", "7888")));
+      LOGGER.info("restPort:{}, change by file", config.getRestPort());
 
       config.setDisorderMargin(Long.parseLong(properties.getProperty("disorderMargin", "10")));
       config.setAsyncRestThreadPool(
@@ -269,6 +270,7 @@ public class ConfigDescriptor {
         EnvUtils.loadEnv("statisticsLogInterval", config.getStatisticsLogInterval()));
     config.setRestIp(EnvUtils.loadEnv("restIp", config.getRestIp()));
     config.setRestPort(EnvUtils.loadEnv("restPort", config.getRestPort()));
+    LOGGER.info("restPort:{}, change by env", config.getRestPort());
     config.setDisorderMargin(EnvUtils.loadEnv("disorderMargin", config.getDisorderMargin()));
     config.setMaxTimeseriesLength(
         EnvUtils.loadEnv("maxtimeserieslength", config.getMaxTimeseriesLength()));
