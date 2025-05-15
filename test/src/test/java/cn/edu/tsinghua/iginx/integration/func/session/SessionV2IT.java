@@ -23,6 +23,7 @@ import static cn.edu.tsinghua.iginx.engine.shared.Constants.WINDOW_END_COL;
 import static cn.edu.tsinghua.iginx.engine.shared.Constants.WINDOW_START_COL;
 import static cn.edu.tsinghua.iginx.integration.controller.Controller.SUPPORT_KEY;
 import static cn.edu.tsinghua.iginx.thrift.StorageEngineType.influxdb;
+import static cn.edu.tsinghua.iginx.thrift.StorageEngineType.neo4j;
 import static org.junit.Assert.*;
 
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
@@ -59,6 +60,8 @@ public class SessionV2IT {
 
   private static boolean isInfluxdb = false;
 
+  private static boolean isNeo4j = false;
+
   private static boolean needCompareResult = true;
 
   @BeforeClass
@@ -66,6 +69,9 @@ public class SessionV2IT {
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
     if (StorageEngineType.valueOf(conf.getStorageType(false).toLowerCase()) == influxdb) {
       isInfluxdb = true;
+    }
+    if (StorageEngineType.valueOf(conf.getStorageType(false).toLowerCase()) == neo4j) {
+      isNeo4j = true;
     }
     if (!SUPPORT_KEY.get(conf.getStorageType()) && conf.isScaling()) {
       needCompareResult = false;
@@ -326,14 +332,14 @@ public class SessionV2IT {
           assertEquals(DataType.BOOLEAN, column.getDataType());
           break;
         case "test.session.v2.int":
-          if (isInfluxdb) break;
+          if (isInfluxdb || isNeo4j) break;
           assertEquals(DataType.INTEGER, column.getDataType());
           break;
         case "test.session.v2.double":
           assertEquals(DataType.DOUBLE, column.getDataType());
           break;
         case "test.session.v2.float":
-          if (isInfluxdb) break;
+          if (isInfluxdb || isNeo4j) break;
           assertEquals(DataType.FLOAT, column.getDataType());
           break;
         case "test.session.v2.long":
@@ -357,7 +363,7 @@ public class SessionV2IT {
       boolean boolValue = (boolean) record.getValue("test.session.v2.bool");
       assertEquals(timestamp % 2 == 0, boolValue);
       // 核验 int 值
-      if (isInfluxdb) {
+      if (isInfluxdb || isNeo4j) {
         long intValue = (long) record.getValue("test.session.v2.int");
         assertEquals((long) timestamp, intValue);
       } else {
@@ -368,7 +374,7 @@ public class SessionV2IT {
       long longValue = (long) record.getValue("test.session.v2.long");
       assertEquals(timestamp, longValue);
       // 核验 float 值
-      if (isInfluxdb) {
+      if (isInfluxdb || isNeo4j) {
         double floatValue = (double) record.getValue("test.session.v2.float");
         assertEquals((double) (timestamp + 0.1), floatValue, 0.05);
       } else {
@@ -498,11 +504,11 @@ public class SessionV2IT {
     for (IginXColumn column : columns) {
       switch (column.getName()) {
         case "test.session.v3.int{k1=v2}":
-          if (isInfluxdb) break;
+          if (isInfluxdb || isNeo4j) break;
           assertEquals(DataType.INTEGER, column.getDataType());
           break;
         case "test.session.v3.float{k1=v4}":
-          if (isInfluxdb) break;
+          if (isInfluxdb || isNeo4j) break;
           assertEquals(DataType.FLOAT, column.getDataType());
           break;
         case "test.session.v3.string{k1=v6}":
@@ -520,7 +526,7 @@ public class SessionV2IT {
       long timestamp = endKey - 1000 + i;
       assertEquals(timestamp, record.getKey());
       // 核验 int 值
-      if (isInfluxdb) {
+      if (isInfluxdb || isNeo4j) {
         long intValue = (long) record.getValue("test.session.v3.int{k1=v2}");
         assertEquals((long) timestamp, intValue);
       } else {
@@ -528,7 +534,7 @@ public class SessionV2IT {
         assertEquals((int) timestamp, intValue);
       }
       // 核验 float 值
-      if (isInfluxdb) {
+      if (isInfluxdb || isNeo4j) {
         double floatValue = (double) record.getValue("test.session.v3.float{k1=v4}");
         assertEquals((double) (timestamp + 0.1), floatValue, 0.05);
       } else {
@@ -695,7 +701,7 @@ public class SessionV2IT {
 
   @Test
   public void testMeasurementQuery() {
-    if (isInfluxdb) return;
+    if (isInfluxdb || isNeo4j) return;
     List<POJO> pojoList =
         queryClient.query(
             SimpleQuery.builder()
