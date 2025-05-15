@@ -127,7 +127,7 @@ runs:
 
         - if: runner.os == 'Windows' && fromJSON(inputs.createUser)
           name: Create user in Dameng
-          shell: bash
+          shell: wsl-run {0}
           run: |
               for port in ${{ inputs.ports }}; do
                 CONTAINER_NAME="${{ inputs.version }}-$port"
