@@ -122,7 +122,7 @@ runs:
                 docker cp create_user.sql $CONTAINER_NAME:/tmp/create_user.sql
 
                 # 在容器内执行 SQL 脚本
-                docker exec $CONTAINER_NAME /opt/dmdbms/bin/disql SYSDBA/SYSDBA001 @/tmp/create_user.sql
+                docker exec $CONTAINER_NAME /opt/dmdbms/bin/disql SYSDBA/SYSDBA001@127.0.0.1:$port @/tmp/create_user.sql
 
                 # 清理临时 SQL 文件
                 rm create_user.sql
@@ -144,7 +144,7 @@ runs:
                 docker cp create_user.sql $CONTAINER_NAME:/tmp/create_user.sql
 
                 # 在容器内执行 SQL 脚本
-                docker exec $CONTAINER_NAME /opt/dmdbms/bin/disql SYSDBA/SYSDBA001 @/tmp/create_user.sql
+                docker exec $CONTAINER_NAME /opt/dmdbms/bin/disql SYSDBA/SYSDBA001@127.0.0.1:$port @/tmp/create_user.sql
 
                 # 清理临时 SQL 文件
                 rm create_user.sql
