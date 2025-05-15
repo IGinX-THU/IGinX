@@ -18,7 +18,6 @@ inputs:
         required: false
     createUser:
         description: "whether to create user"
-        type: boolean
         required: false
         default: true
 
@@ -113,22 +112,40 @@ runs:
           run: |
               for port in ${{ inputs.ports }}; do
                 CONTAINER_NAME="${{ inputs.version }}-$port"
-                PASSWORD="${{ inputs.password-prefix }}$port"
-                docker exec -i $CONTAINER_NAME /opt/dmdbms/bin/disql SYSDBA/SYSDBA001 <<EOF
-            create user NOPRIVS identified by $PASSWORD;
-            grant create table to NOPRIVS;
-            EOF
+                PASSWORD="${{ inputs['password-prefix'] }}$port"
+
+                # 写入 SQL 到临时文件
+                echo "create user NOPRIVS identified by $PASSWORD;" > create_user.sql
+                echo "grant create table to NOPRIVS;" >> create_user.sql
+
+                # 复制 SQL 文件到容器内部（避免直接 echo | disql 时出现控制台解析错误）
+                docker cp create_user.sql $CONTAINER_NAME:/tmp/create_user.sql
+
+                # 在容器内执行 SQL 脚本
+                docker exec $CONTAINER_NAME /opt/dmdbms/bin/disql SYSDBA/SYSDBA001 @/tmp/create_user.sql
+
+                # 清理临时 SQL 文件
+                rm create_user.sql
               done
 
-        - if: runner.os == 'Windows' && fromJSON(inputs.createUser)
+        - if: runner.os == 'Linux' && fromJSON(inputs.createUser)
           name: Create user in Dameng
           shell: bash
           run: |
               for port in ${{ inputs.ports }}; do
                 CONTAINER_NAME="${{ inputs.version }}-$port"
-                PASSWORD="${{ inputs.password-prefix }}$port"
-                docker exec -i $CONTAINER_NAME /opt/dmdbms/bin/disql SYSDBA/SYSDBA001 <<EOF
-            create user NOPRIVS identified by $PASSWORD;
-            grant create table to NOPRIVS;
-            EOF
+                PASSWORD="${{ inputs['password-prefix'] }}$port"
+
+                # 写入 SQL 到临时文件
+                echo "create user NOPRIVS identified by $PASSWORD;" > create_user.sql
+                echo "grant create table to NOPRIVS;" >> create_user.sql
+
+                # 复制 SQL 文件到容器内部（避免直接 echo | disql 时出现控制台解析错误）
+                docker cp create_user.sql $CONTAINER_NAME:/tmp/create_user.sql
+
+                # 在容器内执行 SQL 脚本
+                docker exec $CONTAINER_NAME /opt/dmdbms/bin/disql SYSDBA/SYSDBA001 @/tmp/create_user.sql
+
+                # 清理临时 SQL 文件
+                rm create_user.sql
               done
