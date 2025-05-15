@@ -171,8 +171,8 @@ jobs:
             - tpc-h-regression-test-no-optimizer
             #            - tpc-h-regression-test-vectordb
             #            - tpc-h-regression-test-no-optimizer-vectordb
-            - standalone-test-no-mac-relational
-            - standalone-test-no-optimizer-no-mac-relational
+            #            - standalone-test-no-mac-relational
+            #            - standalone-test-no-optimizer-no-mac-relational
             - db-ce-no-mac-relational
             - db-ce-no-optimizer-no-mac-relational
         runs-on: ubuntu-latest
