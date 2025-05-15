@@ -490,6 +490,10 @@ public class RelationalStorage implements IStorage {
       for (String databaseName : dummyRes.keySet()) {
         table2cols = dummyRes.get(databaseName);
         for (String tableName : table2cols.keySet()) {
+          // 对于不支持database创建的数据库，unit前缀的databaseName将会作为表名前缀混入dummy中，需要进行过滤
+          if (!relationalMeta.supportCreateDatabase() && tableName.startsWith(DATABASE_PREFIX)) {
+            continue;
+          }
           colPattern = table2cols.get(tableName);
           for (String colName : colPattern.split(", ")) {
             List<ColumnField> columnFieldList = getColumns(databaseName, tableName, colName, true);

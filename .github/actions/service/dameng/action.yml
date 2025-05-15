@@ -12,6 +12,10 @@ inputs:
     start:
         description: "whether to start"
         required: true
+    password-prefix:
+        description: The password prefix of the user to setup.
+        default: "DAMENG"
+        required: false
 
 runs:
     using: "composite"
@@ -96,4 +100,17 @@ runs:
                     break
                   fi
                 done
+              done
+
+        - if: runner.os == 'Linux' && fromJSON(inputs.createUser)
+          name: Create user in Dameng
+          shell: bash
+          run: |
+              for port in ${{ inputs.ports }}; do
+                CONTAINER_NAME="${{ inputs.version }}-$port"
+                PASSWORD="${{ inputs.password-prefix }}$port"
+                docker exec -i $CONTAINER_NAME /opt/dmdbms/bin/disql SYSDBA/SYSDBA001 <<EOF
+                create user NOPRIVS identified by $PASSWORD;
+                grant create table to ${{ inputs.newUsername }};
+                EOF
               done
