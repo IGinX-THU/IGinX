@@ -118,11 +118,8 @@ runs:
                 echo "create user NOPRIVS identified by $PASSWORD;" > create_user.sql
                 echo "grant create table to NOPRIVS;" >> create_user.sql
 
-                # 复制 SQL 文件到容器内部（避免直接 echo | disql 时出现控制台解析错误）
-                docker cp create_user.sql $CONTAINER_NAME:/tmp/create_user.sql
-
                 # 在容器内执行 SQL 脚本
-                docker exec $CONTAINER_NAME /opt/dmdbms/bin/disql SYSDBA/SYSDBA001@127.0.0.1:$port @/tmp/create_user.sql
+                docker exec -i $CONTAINER_NAME bash -c "/opt/dmdbms/bin/disql SYSDBA/SYSDBA001@127.0.0.1:5236" < create_user.sql
 
                 # 清理临时 SQL 文件
                 rm create_user.sql
@@ -140,11 +137,8 @@ runs:
                 echo "create user NOPRIVS identified by $PASSWORD;" > create_user.sql
                 echo "grant create table to NOPRIVS;" >> create_user.sql
 
-                # 复制 SQL 文件到容器内部（避免直接 echo | disql 时出现控制台解析错误）
-                docker cp create_user.sql $CONTAINER_NAME:/tmp/create_user.sql
-
                 # 在容器内执行 SQL 脚本
-                docker exec $CONTAINER_NAME /opt/dmdbms/bin/disql SYSDBA/SYSDBA001@127.0.0.1:$port @/tmp/create_user.sql
+                docker exec -i $CONTAINER_NAME bash -c "/opt/dmdbms/bin/disql SYSDBA/SYSDBA001@127.0.0.1:5236" < create_user.sql
 
                 # 清理临时 SQL 文件
                 rm create_user.sql
