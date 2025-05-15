@@ -115,9 +115,9 @@ runs:
                 CONTAINER_NAME="${{ inputs.version }}-$port"
                 PASSWORD="${{ inputs.password-prefix }}$port"
                 docker exec -i $CONTAINER_NAME /opt/dmdbms/bin/disql SYSDBA/SYSDBA001 <<EOF
-                create user NOPRIVS identified by $PASSWORD;
-                grant create table to ${{ inputs.newUsername }};
-                EOF
+            create user NOPRIVS identified by $PASSWORD;
+            grant create table to NOPRIVS;
+            EOF
               done
 
         - if: runner.os == 'Windows' && fromJSON(inputs.createUser)
@@ -128,7 +128,7 @@ runs:
                 CONTAINER_NAME="${{ inputs.version }}-$port"
                 PASSWORD="${{ inputs.password-prefix }}$port"
                 docker exec -i $CONTAINER_NAME /opt/dmdbms/bin/disql SYSDBA/SYSDBA001 <<EOF
-                create user NOPRIVS identified by $PASSWORD;
-                grant create table to ${{ inputs.newUsername }};
-                EOF
+            create user NOPRIVS identified by $PASSWORD;
+            grant create table to NOPRIVS;
+            EOF
               done
