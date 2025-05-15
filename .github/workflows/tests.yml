@@ -56,8 +56,8 @@ jobs:
             metadata-matrix: '["zookeeper"]'
             os-matrix: '["ubuntu-latest", "windows-latest"]'
             db-matrix: '["Dameng"]'
+            db-support-create-database: false
             timeout-minutes: 120
-            db-support-create-database: "false"
     db-ce-no-mac-relational:
         uses: ./.github/workflows/DB-CE.yml
         with:
