@@ -125,7 +125,7 @@ runs:
                 rm create_user.sql
               done
 
-        - if: runner.os == 'Linux' && fromJSON(inputs.createUser)
+        - if: runner.os == 'Windows' && fromJSON(inputs.createUser)
           name: Create user in Dameng
           shell: bash
           run: |
