@@ -528,7 +528,6 @@ public class RelationalStorage implements IStorage {
   @Override
   public TaskExecuteResult executeProject(Project project, DataArea dataArea) {
     KeyInterval keyInterval = dataArea.getKeyInterval();
-    LOGGER.info("no dummy: {}, {}", keyInterval.getStartKey(), keyInterval.getEndKey());
     Filter filter =
         new AndFilter(
             Arrays.asList(
@@ -540,7 +539,6 @@ public class RelationalStorage implements IStorage {
   @Override
   public TaskExecuteResult executeProjectDummy(Project project, DataArea dataArea) {
     KeyInterval keyInterval = dataArea.getKeyInterval();
-    LOGGER.info("dummy: {}, {}", keyInterval.getStartKey(), keyInterval.getEndKey());
     Filter filter =
         new AndFilter(
             Arrays.asList(

@@ -22,7 +22,6 @@ package cn.edu.tsinghua.iginx.integration.expansion.dameng;
 import cn.edu.tsinghua.iginx.integration.expansion.BaseHistoryDataGenerator;
 import cn.edu.tsinghua.iginx.integration.expansion.constant.Constant;
 import cn.edu.tsinghua.iginx.thrift.DataType;
-import cn.edu.tsinghua.iginx.utils.Pair;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -40,26 +39,16 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
 
   private static final char SEPARATOR = '.';
 
-  private static final String PREFIX = "DAMENG"; // 密码前缀（达梦密码强度要求）
-
   public static final String QUERY_DATABASES_STATEMENT =
-      //      "SELECT DISTINCT owner AS DATNAME FROM all_tables";
-      "SELECT DISTINCT object_name TABLE_SCHEMA FROM all_objects WHERE object_type='SCH' AND OWNER='SYSDBA';";
+      "SELECT DISTINCT object_name DATNAME FROM all_objects WHERE object_type='SCH' AND OWNER='SYSDBA';";
 
   public static final String CREATE_DATABASE_STATEMENT = "CREATE SCHEMA %s";
-
-  private static final String GRANT_DATABASE_STATEMENT =
-      "GRANT CREATE SESSION,CREATE TABLE,UNLIMITED TABLESPACE TO %s";
-
-  private static final String GRANT_ROLE_STATEMENT = "GRANT RESOURCE TO %s";
 
   public static final String CREATE_TABLE_STATEMENT = "CREATE TABLE IF NOT EXISTS %s.%s (%s)";
 
   public static final String INSERT_STATEMENT = "INSERT INTO %s.%s VALUES %s";
 
   public static final String DROP_DATABASE_STATEMENT = "DROP SCHEMA %s CASCADE";
-
-  private static final HashMap<Integer, Pair<String, String>> portsToUser = new HashMap<>();
 
   public DamengHistoryDataGenerator() {
     Constant.oriPort = 5236;
@@ -113,15 +102,9 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
         Statement stmt = connection.createStatement();
         String createDatabaseSql =
             String.format(CREATE_DATABASE_STATEMENT, getQuotName(databaseName));
-        //        String grantDatabaseSql =
-        //            String.format(GRANT_DATABASE_STATEMENT, getQuotName(databaseName));
-        //        String grantRoleSql = String.format(GRANT_ROLE_STATEMENT,
-        // getQuotName(databaseName));
         try {
           LOGGER.info("create database with stmt: {}", createDatabaseSql);
           stmt.execute(createDatabaseSql);
-          //          stmt.execute(grantDatabaseSql);
-          //          stmt.execute(grantRoleSql);
         } catch (SQLException e) {
           LOGGER.info("database {} exists!", databaseName);
         }
@@ -203,42 +186,6 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
         Constant.READ_ONLY_FLOAT_PATH_LIST,
         new ArrayList<>(Collections.singletonList(DataType.FLOAT)),
         Constant.READ_ONLY_FLOAT_VALUES_LIST);
-    //    // create another user who can read data of tm user
-    //    try (Connection connection = connect(Constant.readOnlyPort);
-    //        Statement stmt = connection.createStatement()) {
-    //      String createDatabaseSql =
-    //          String.format(
-    //              CREATE_DATABASE_STATEMENT,
-    //              getQuotName("OBSERVER"),
-    //              toDamengPassword(Constant.readOnlyPort));
-    //      LOGGER.info(
-    //          "create another user in {} with stmt: {}", Constant.readOnlyPort,
-    // createDatabaseSql);
-    //      stmt.execute(createDatabaseSql);
-    //
-    //      String grantDatabaseSql = String.format(GRANT_DATABASE_STATEMENT,
-    // getQuotName("observer"));
-    //      String grantRoleSql = String.format(GRANT_ROLE_STATEMENT, getQuotName("observer"));
-    //      LOGGER.info("grant permission to observer with stmt: {}", grantDatabaseSql);
-    //      stmt.execute(grantDatabaseSql);
-    //      stmt.execute(grantRoleSql);
-    //
-    //      String grantTableSql =
-    //          String.format(
-    //              "GRANT SELECT ON %s.%s TO %s",
-    //              getQuotName("TM"), getQuotName("wf05.wt01"), getQuotName("OBSERVER"));
-    //      LOGGER.info("grant select permission to observer with stmt: {}", grantTableSql);
-    //      stmt.execute(grantTableSql);
-    //
-    //      String grantTable2Sql =
-    //          String.format(
-    //              "GRANT SELECT ON %s.%s TO %s",
-    //              getQuotName("TM"), getQuotName("wf05.wt02"), getQuotName("OBSERVER"));
-    //      LOGGER.info("grant select permission to observer with stmt: {}", grantTable2Sql);
-    //      stmt.execute(grantTable2Sql);
-    //    } catch (SQLException e) {
-    //      LOGGER.error("write special history data failure: ", e);
-    //    }
   }
 
   @Override
@@ -251,7 +198,7 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
       Statement dropDatabaseStatement = conn.createStatement();
 
       while (databaseSet.next()) {
-        String databaseName = databaseSet.getString("TABLE_SCHEMA");
+        String databaseName = databaseSet.getString("DATNAME");
 
         // 过滤系统数据库
         if (databaseName.equals("SYSDBA")) {
@@ -302,9 +249,5 @@ public class DamengHistoryDataGenerator extends BaseHistoryDataGenerator {
 
   private static String getQuotName(String name) {
     return String.format("\"%s\"", name);
-  }
-
-  private static String toDamengPassword(int port) {
-    return PREFIX + port;
   }
 }
