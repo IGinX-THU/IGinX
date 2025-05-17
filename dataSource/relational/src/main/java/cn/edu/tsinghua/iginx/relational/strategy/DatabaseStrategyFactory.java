@@ -35,7 +35,7 @@ public class DatabaseStrategyFactory {
       case "oracle":
         return new OracleDatabaseStrategy(relationalMeta, storageEngineMeta);
       case "dameng":
-        return new DamengDatabaseStrategy(relationalMeta);
+        return new DamengDatabaseStrategy(relationalMeta, storageEngineMeta);
       case "mysql":
         return new MySQLDatabaseStrategy(relationalMeta, storageEngineMeta);
       case "postgresql":

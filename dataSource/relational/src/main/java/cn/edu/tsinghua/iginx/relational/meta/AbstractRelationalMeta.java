@@ -62,6 +62,20 @@ public abstract class AbstractRelationalMeta {
   public abstract List<String> getSystemDatabaseName();
 
   /**
+   * 获取数据库创建权限
+   *
+   * @return 数据库创建权限
+   */
+  public abstract List<String> getDatabaseCreatePrivileges();
+
+  /**
+   * 获取数据库创建权限查询SQL
+   *
+   * @return 数据库创建权限查询SQL
+   */
+  public abstract String getQueryUserPrivilegesStatement();
+
+  /**
    * 获取数据库列表查询SQL
    *
    * @return 数据库列表查询SQL
@@ -159,4 +173,7 @@ public abstract class AbstractRelationalMeta {
   public abstract boolean jdbcSupportSpecialChar();
 
   public abstract boolean jdbcSupportGetTableNameFromResultSet();
+
+  /** 设置是否支持创建数据库 */
+  public void setSupportCreateDatabase(boolean supportCreateDatabase) {}
 }

@@ -50,6 +50,22 @@ jobs:
             os-matrix: '["ubuntu-latest", "windows-latest"]'
             db-matrix: '["Dameng", "Oracle"]'
             timeout-minutes: 100
+    standalone-test-no-mac-no-privs-relational:
+        uses: ./.github/workflows/standalone-test.yml
+        with:
+            metadata-matrix: '["zookeeper"]'
+            os-matrix: '["ubuntu-latest", "windows-latest"]'
+            db-matrix: '["Dameng"]'
+            db-support-create-database: false
+            timeout-minutes: 120
+    standalone-test-no-optimizer-no-mac-no-privs-relational:
+        uses: ./.github/workflows/standalone-test-no-optimizer.yml
+        with:
+            metadata-matrix: '["zookeeper"]'
+            os-matrix: '["ubuntu-latest", "windows-latest"]'
+            db-matrix: '["Dameng"]'
+            db-support-create-database: false
+            timeout-minutes: 100
     db-ce-no-mac-relational:
         uses: ./.github/workflows/DB-CE.yml
         with:

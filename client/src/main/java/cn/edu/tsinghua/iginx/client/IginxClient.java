@@ -194,7 +194,11 @@ public class IginxClient {
       Terminal terminal = TerminalBuilder.builder().system(true).build();
 
       LineReader reader =
-          LineReaderBuilder.builder().terminal(terminal).completer(buildIginxCompleter()).build();
+          LineReaderBuilder.builder()
+              .terminal(terminal)
+              .option(LineReader.Option.DISABLE_EVENT_EXPANSION, true)
+              .completer(buildIginxCompleter())
+              .build();
 
       host = parseArg(HOST_ARGS, HOST_NAME, false, "127.0.0.1");
       port = parseArg(PORT_ARGS, PORT_NAME, false, "6888");

@@ -87,6 +87,9 @@ public class MultipleExpression implements Expression {
   }
 
   @Override
+  public void setColumnName(String columnName) {}
+
+  @Override
   public String getCalColumnName() {
     StringBuilder sb = new StringBuilder();
     if (ops.get(0) == Operator.MINUS) {

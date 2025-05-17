@@ -1,0 +1,40 @@
+#
+# IGinX - the polystore system with high performance
+# Copyright (C) Tsinghua University
+# TSIGinX@gmail.com
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation; either
+# version 3 of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with this program; if not, write to the Free Software Foundation,
+# Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+#
+
+version: '3.5'
+
+services:
+  dameng:
+    image: dm8_single:dm8_20241022_rev244896_x86_rh6_64
+    container_name: dm8
+    restart: always
+    privileged: true
+    ports:
+      - "5236:5236"
+    environment:
+      LD_LIBRARY_PATH: /opt/dmdbms/bin
+      PAGE_SIZE: 16
+      EXTENT_SIZE: 32
+      LOG_SIZE: 1024
+      UNICODE_FLAG: 1
+      CASE_SENSITIVE: 0
+      INSTANCE_NAME: dm8_test
+    volumes:
+      - "/volumes/dameng:/opt/dmdbms/data"
