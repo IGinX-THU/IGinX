@@ -33,12 +33,14 @@ import org.apache.commons.lang3.RandomStringUtils;
 /** 管理 python task 输出的临时表信息，管理用户定义的别名和真实的临时表名之间的映射关系 */
 public class ExecutionMetaManager {
 
+  private static final String randomCharset = "abcdefghijklmnopqrstuvwxyz0123456789";
+
   private static final ThreadLocal<Map<String, String>> metaThreadLocal =
       ThreadLocal.withInitial(HashMap::new);
 
   public static void setTempTable(String aliasName, long jobId) {
     String tempTableName =
-        String.format(TEMP_TABLE_NAME_FORMAT, jobId, RandomStringUtils.randomAlphanumeric(6));
+        String.format(TEMP_TABLE_NAME_FORMAT, jobId, RandomStringUtils.random(10, randomCharset));
     metaThreadLocal.get().put(aliasName, tempTableName);
   }
 
