@@ -36,7 +36,7 @@ public class DeleteStatement extends DataStatement {
   private TagFilter tagFilter;
 
   private boolean involveDummyData;
-  private boolean noWritable; // no writable engine, deletion will not be executed.
+  private boolean noWritableFragment; // no writable engine, deletion will not be executed.
 
   public DeleteStatement() {
     this.statementType = StatementType.DELETE;
@@ -45,7 +45,7 @@ public class DeleteStatement extends DataStatement {
     this.deleteAll = false;
     this.tagFilter = null;
     this.involveDummyData = false;
-    this.noWritable = false;
+    this.noWritableFragment = false;
   }
 
   public DeleteStatement(List<String> paths, long startKey, long endKey) {
@@ -56,7 +56,7 @@ public class DeleteStatement extends DataStatement {
     this.deleteAll = false;
     this.tagFilter = null;
     this.involveDummyData = false;
-    this.noWritable = false;
+    this.noWritableFragment = false;
   }
 
   public DeleteStatement(List<String> paths) {
@@ -70,7 +70,7 @@ public class DeleteStatement extends DataStatement {
     this.deleteAll = true;
     this.tagFilter = tagFilter;
     this.involveDummyData = false;
-    this.noWritable = false;
+    this.noWritableFragment = false;
   }
 
   public List<String> getPaths() {
@@ -105,12 +105,12 @@ public class DeleteStatement extends DataStatement {
     this.involveDummyData = involveDummyData;
   }
 
-  public boolean isNoWritable() {
-    return noWritable;
+  public boolean isNoWritableFragment() {
+    return noWritableFragment;
   }
 
-  public void setNoWritable(boolean noWritable) {
-    this.noWritable = noWritable;
+  public void setNoWritableFragment(boolean noWritableFragment) {
+    this.noWritableFragment = noWritableFragment;
   }
 
   public void setKeyRangesByFilter(Filter filter) {

@@ -756,7 +756,7 @@ public class StatementExecutor {
         DeleteStatement deleteStatement = (DeleteStatement) statement;
         if (deleteStatement.isInvolveDummyData()) {
           throw new StatementExecutionException(CLEAR_DUMMY_DATA_CAUTION);
-        } else if (deleteStatement.isNoWritable()) {
+        } else if (deleteStatement.isNoWritableFragment()) {
           throw new StatementExecutionException(NO_WRITABLE_CAUTION);
         } else {
           ctx.setResult(new Result(RpcUtils.SUCCESS));
