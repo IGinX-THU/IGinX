@@ -77,6 +77,8 @@ public class UDFIT {
 
   private static final String SHOW_FUNCTION_SQL = "SHOW FUNCTIONS;";
 
+  private static final String SET_TIMEOUT_SQL = "SET CONFIG \"UDFTimeout\" \"%s\";";
+
   private static final String MODULE_PATH =
       String.join(
           File.separator,
@@ -1577,7 +1579,10 @@ public class UDFIT {
     assertTrue(tool.isUDFRegistered(name));
     taskToBeRemoved.add(name);
 
-    statement = "select " + name + "(s1, 1, iginx_timeout=3) from us.d1 where s1 < 10;";
+    statement = String.format(SET_TIMEOUT_SQL, 3);
+    tool.execute(statement);
+
+    statement = "select " + name + "(s1, 1) from us.d1 where s1 < 10;";
     long start = System.currentTimeMillis();
     Exception ret = tool.executeFail(statement);
     long end = System.currentTimeMillis();
@@ -1585,7 +1590,7 @@ public class UDFIT {
     assertTrue(end - start < 5000); // 5秒内拿到结果，触发timeout
 
     // test event waiting
-    statement = "select " + name + "(s1, 2, iginx_timeout=3) from us.d1 where s1 < 10;";
+    statement = "select " + name + "(s1, 2) from us.d1 where s1 < 10;";
     start = System.currentTimeMillis();
     ret = tool.executeFail(statement);
     end = System.currentTimeMillis();
@@ -1595,11 +1600,14 @@ public class UDFIT {
     Assume.assumeFalse(
         "Test skipped: Python >= 3.13, transformers is not supported.", pythonNewerThan313());
     // test importing large models
-    statement = "select " + name + "(s1, 3, iginx_timeout=1) from us.d1 where s1 < 10;";
+    statement = "select " + name + "(s1, 3) from us.d1 where s1 < 10;";
     start = System.currentTimeMillis();
     ret = tool.executeFail(statement);
     end = System.currentTimeMillis();
     assertTrue(ret.getMessage().contains("encounter error"));
     assertTrue(end - start < 3000); // 3秒内拿到结果，触发timeout
+
+    statement = String.format(SET_TIMEOUT_SQL, -1);
+    tool.execute(statement);
   }
 }

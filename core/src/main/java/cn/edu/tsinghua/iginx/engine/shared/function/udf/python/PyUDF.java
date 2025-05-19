@@ -19,7 +19,6 @@
  */
 package cn.edu.tsinghua.iginx.engine.shared.function.udf.python;
 
-import static cn.edu.tsinghua.iginx.engine.shared.Constants.TIMEOUT_ARG_NAME;
 import static cn.edu.tsinghua.iginx.engine.shared.Constants.UDF_FUNC;
 
 import cn.edu.tsinghua.iginx.conf.Config;
@@ -59,11 +58,7 @@ public abstract class PyUDF implements Function {
 
   protected List<List<Object>> invokePyUDF(
       List<List<Object>> data, List<Object> args, Map<String, Object> kvargs) {
-    long timeout = config.getUDFTimeout(); // if user specified timeout for this execution
-    if (kvargs.containsKey(TIMEOUT_ARG_NAME)) {
-      timeout = Long.parseLong(kvargs.get(TIMEOUT_ARG_NAME).toString());
-      kvargs.remove(TIMEOUT_ARG_NAME);
-    }
+    long timeout = config.getUDFTimeout();
     // 由于多个UDF共享interpreter，因此使用独特的对象名
     String obj = (moduleName + className).replace(".", "a");
     ThreadInterpreterManager.exec(
