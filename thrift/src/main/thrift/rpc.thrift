@@ -37,7 +37,8 @@ enum StorageEngineType {
     relational,
     mongodb,
     redis,
-    vectordb
+    vectordb,
+    neo4j
 }
 
 enum AggregateType {
