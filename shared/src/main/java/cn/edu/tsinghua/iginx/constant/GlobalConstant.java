@@ -28,7 +28,7 @@ public class GlobalConstant {
   public static final String CLEAR_DUMMY_DATA_CAUTION =
       "Unable to delete data from read-only nodes. The data of the writable nodes has been cleared.";
 
-  public static final String NO_WRITABLE_CAUTION =
+  public static final String NO_WRITABLE_FRAGMENT_CAUTION =
       "There is no writable fragment, no need to clear data.";
 
   public static final Long KEY_MIN_VAL = Long.MIN_VALUE + 1;

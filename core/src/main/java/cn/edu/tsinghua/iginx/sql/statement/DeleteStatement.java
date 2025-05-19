@@ -105,7 +105,7 @@ public class DeleteStatement extends DataStatement {
     this.involveDummyData = involveDummyData;
   }
 
-  public boolean isNoWritableFragment() {
+  public boolean hasNoWritableFragment() {
     return noWritableFragment;
   }
 
