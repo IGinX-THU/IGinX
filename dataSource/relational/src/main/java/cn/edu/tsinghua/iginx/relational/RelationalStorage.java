@@ -1668,10 +1668,11 @@ public class RelationalStorage implements IStorage {
     switch (expressionType) {
       case Base:
         // 不支持创建数据库的情况下，数据库名作为tableName的一部分
+        BaseExpression baseExpr = (BaseExpression) expr;
         if (!relationalMeta.supportCreateDatabase() && !isDummy) {
-          expr.setColumnName(databaseName + SEPARATOR + expr.getColumnName());
+          baseExpr.setPathName(databaseName + SEPARATOR + expr.getColumnName());
         }
-        return expr;
+        return baseExpr;
       case Binary:
         BinaryExpression binaryExpression = (BinaryExpression) expr;
         binaryExpression.setLeftExpression(
@@ -1715,10 +1716,11 @@ public class RelationalStorage implements IStorage {
     switch (expressionType) {
       case Base:
         // 不支持创建数据库的情况下，数据库名作为tableName的一部分
+        BaseExpression baseExpr = (BaseExpression) expr;
         if (!relationalMeta.supportCreateDatabase() && !isDummy) {
-          expr.setColumnName(expr.getColumnName().substring(databaseName.length() + 1));
+          baseExpr.setPathName(expr.getColumnName().substring(databaseName.length() + 1));
         }
-        return expr;
+        return baseExpr;
       case Binary:
         BinaryExpression binaryExpression = (BinaryExpression) expr;
         binaryExpression.setLeftExpression(

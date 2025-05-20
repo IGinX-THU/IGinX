@@ -42,11 +42,6 @@ public class BaseExpression implements Expression {
     return pathName;
   }
 
-  @Override
-  public void setColumnName(String columnName) {
-    this.pathName = columnName;
-  }
-
   public void setPathName(String pathName) {
     this.pathName = pathName;
   }

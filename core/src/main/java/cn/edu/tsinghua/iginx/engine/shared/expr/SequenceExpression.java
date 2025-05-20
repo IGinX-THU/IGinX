@@ -55,9 +55,6 @@ public class SequenceExpression implements Expression {
   }
 
   @Override
-  public void setColumnName(String columnName) {}
-
-  @Override
   public ExpressionType getType() {
     return ExpressionType.Sequence;
   }

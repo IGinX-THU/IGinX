@@ -47,9 +47,6 @@ public class BracketExpression implements Expression {
   }
 
   @Override
-  public void setColumnName(String columnName) {}
-
-  @Override
   public String getCalColumnName() {
     return "(" + expression.getCalColumnName() + ")";
   }
