@@ -24,6 +24,11 @@ import cn.edu.tsinghua.iginx.relational.datatype.transformer.DmDataTypeTransform
 import cn.edu.tsinghua.iginx.relational.datatype.transformer.IDataTypeTransformer;
 import cn.edu.tsinghua.iginx.relational.datatype.transformer.JDBCDataTypeTransformer;
 import cn.edu.tsinghua.iginx.relational.datatype.transformer.OracleDataTypeTransformer;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
