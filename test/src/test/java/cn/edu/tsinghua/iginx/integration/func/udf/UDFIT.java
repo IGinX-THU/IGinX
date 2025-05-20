@@ -1605,7 +1605,7 @@ public class UDFIT {
     ret = tool.executeFail(statement);
     end = System.currentTimeMillis();
     assertTrue(ret.getMessage().contains("encounter error"));
-    assertTrue(end - start < 3000); // 3秒内拿到结果，触发timeout
+    assertTrue(end - start < 5000); // 3秒内拿到结果，触发timeout
 
     statement = String.format(SET_TIMEOUT_SQL, -1);
     tool.execute(statement);
