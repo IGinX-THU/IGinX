@@ -25,6 +25,7 @@ import static com.influxdb.client.domain.WritePrecision.NS;
 import cn.edu.tsinghua.iginx.engine.logical.utils.LogicalFilterUtils;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.StorageInitializationException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.naive.NaiveOperatorMemoryExecutor;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils;
 import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
@@ -432,7 +433,11 @@ public class InfluxDBStorage implements IStorage {
 
     List<FluxTable> tables = client.getQueryApi().query(statement, organization.getId());
     InfluxDBQueryRowStream rowStream = new InfluxDBQueryRowStream(tables, project, filter);
-    return new TaskExecuteResult(rowStream);
+    try {
+      return new TaskExecuteResult(NaiveOperatorMemoryExecutor.transformToTable(rowStream));
+    } catch (PhysicalException e) {
+      return new TaskExecuteResult(e);
+    }
   }
 
   @Override
@@ -515,7 +520,11 @@ public class InfluxDBStorage implements IStorage {
 
     List<FluxTable> tables = client.getQueryApi().query(statement, organization.getId());
     InfluxDBQueryRowStream rowStream = new InfluxDBQueryRowStream(tables, project, null);
-    return new TaskExecuteResult(rowStream);
+    try {
+      return new TaskExecuteResult(NaiveOperatorMemoryExecutor.transformToTable(rowStream));
+    } catch (PhysicalException e) {
+      return new TaskExecuteResult(e);
+    }
   }
 
   @Override
