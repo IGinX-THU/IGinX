@@ -37,6 +37,14 @@ inputs:
         description: "VectorDB ports"
         required: false
         default: 19530
+    Neo4j-ports:
+        description: "Neo4j ports"
+        required: false
+        default: 7687
+    Oracle-ports:
+        description: "Oracle ports"
+        required: false
+        default: 1521
 
 runs:
     using: "composite" # Mandatory parameter
@@ -154,3 +162,27 @@ runs:
           uses: ./.github/actions/service/dameng
           with:
               ports: ${{ inputs.Dameng-ports }}
+
+        - if: inputs.DB-name=='Neo4j'
+          name: Setup Neo4j DB
+          uses: ./.github/actions/setup/neo4j
+
+        - if: inputs.DB-name=='Neo4j'
+          name: Run Neo4j DB
+          uses: ./.github/actions/service/neo4j
+          with:
+              stop: false
+              clean: false
+              start: true
+              ports: ${{ inputs.Neo4j-ports }}
+
+        - if: inputs.DB-name=='Oracle'
+          name: Setup DB
+          uses: ./.github/actions/setup/oracle
+
+        - if: inputs.DB-name == 'Oracle'
+          id: oracleService
+          name: Start Oracle Service
+          uses: ./.github/actions/service/oracle
+          with:
+              ports: ${{ inputs.Oracle-ports }}

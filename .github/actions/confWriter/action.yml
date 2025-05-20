@@ -233,12 +233,26 @@ runs:
               paths: ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-*/conf/config.properties
               statements: s/^#storageEngineList=127.0.0.1#19530/storageEngineList=127.0.0.1#19530/g
 
+        - if: inputs.DB-name == 'Neo4j'
+          name: Change Neo4j Config
+          uses: ./.github/actions/edit
+          with:
+              paths: ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-*/conf/config.properties
+              statements: s/^#storageEngineList=127.0.0.1#7687/storageEngineList=127.0.0.1#7687/g
+
         - if: inputs.DB-name == 'VectorDB'
           name: Change VectorDB Config
           uses: ./.github/actions/edit
           with:
               paths: ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-*/conf/config.properties
               statements: s/^#storageEngineList=192.168.106.2#19530/storageEngineList=192.168.106.2#19530/g
+
+        - if: inputs.DB-name == 'Oracle'
+          name: Modify IGinX Config
+          uses: ./.github/actions/edit
+          with:
+              paths: ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-*/conf/config.properties
+              statements: s/^#storageEngineList=127.0.0.1#1521#relational#engine=oracle/storageEngineList=127.0.0.1#1521#relational#engine=oracle/g
 
         - if: inputs.DB-name == 'FileSystem'
           name: Modify IGinX Config
