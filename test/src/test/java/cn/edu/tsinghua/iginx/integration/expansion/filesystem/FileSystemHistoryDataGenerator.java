@@ -142,14 +142,12 @@ public class FileSystemHistoryDataGenerator extends BaseHistoryDataGenerator {
     // │           └── 1.txt
     // ├── e
     // │   └── 2.txt
-    // ├── f
-    // │   └── g
-    // │       └── 3.txt
     // ├── Iris.parquet
     // ├── floatTest.parquet
-    // └── other
-    //     ├── MT cars.parquet
-    //     └── price.parquet
+    // ├── other
+    // │   ├── MT cars.parquet
+    // │   └── price.parquet
+    // └── ~!#$%&'()+,-;=@[]^_`{}.txt
     StringBuilder content1 = new StringBuilder();
     StringBuilder content2 = new StringBuilder();
     StringBuilder content3 = new StringBuilder();
@@ -165,7 +163,7 @@ public class FileSystemHistoryDataGenerator extends BaseHistoryDataGenerator {
 
     createAndWriteFile(content1.toString().getBytes(), "test", "a", "b", "c", "d", "1.txt");
     createAndWriteFile(content2.toString().getBytes(), "test", "a", "e", "2.txt");
-    createAndWriteFile(content3.toString().getBytes(), "test", "a", "f", "g", "3.txt");
+    createAndWriteFile(content3.toString().getBytes(), "test", "a", "~!#$%&'()+,-;=@[]^_`{}.txt");
 
     String parquetResourceDir = "dummy/parquet/";
     copyFileFromResource(

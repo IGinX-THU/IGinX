@@ -24,8 +24,10 @@ import static org.junit.Assert.fail;
 
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.filesystem.format.raw.RawFormat;
+import cn.edu.tsinghua.iginx.filesystem.format.raw.RawReaderConfig;
 import cn.edu.tsinghua.iginx.filesystem.service.FileSystemConfig;
 import cn.edu.tsinghua.iginx.filesystem.struct.tree.FileTree;
+import cn.edu.tsinghua.iginx.filesystem.struct.tree.FileTreeConfig;
 import cn.edu.tsinghua.iginx.integration.expansion.BaseCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools;
 import cn.edu.tsinghua.iginx.integration.tool.TempDummyDataSource;
@@ -113,7 +115,7 @@ public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
   private void testQueryLegacyFileSystem() {
     try (TempDummyDataSource ignored =
         new TempDummyDataSource(session, filesystem, getLegacyFileSystemDummyParams())) {
-      testQueryRawChunks();
+      testQueryRawChunks("\\");
     } catch (SessionException e) {
       LOGGER.error("add or remove read only storage engine failed ", e);
       fail();
@@ -123,8 +125,8 @@ public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
   private void testQueryFileTree() {
     try (TempDummyDataSource ignored =
         new TempDummyDataSource(session, filesystem, getFileTreeDummyParams())) {
-      testQueryRawChunks();
-      testQueryParquets();
+      testQueryRawChunks("/");
+      testQueryParquets("/");
     } catch (SessionException e) {
       LOGGER.error("add or remove read only storage engine failed ", e);
       fail();
@@ -144,7 +146,10 @@ public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
     params.put("dummy_dir", "test/test/a");
     params.put("iginx_port", "6888");
     params.put("dummy.struct", FileTree.NAME);
-    params.put("dummy.config.formats." + RawFormat.NAME + ".pageSize", "1048576");
+    params.put("dummy.config." + FileTreeConfig.Fields.dot, "/");
+    params.put(
+        "dummy.config.formats." + RawFormat.NAME + "." + RawReaderConfig.Fields.pageSize,
+        "1048576");
     return params;
   }
 
@@ -155,93 +160,91 @@ public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
             + "+--------------------------------------+--------+\n"
             + "|                                  Path|DataType|\n"
             + "+--------------------------------------+--------+\n"
+            + "|           a.Iris/parquet.petal.length|  DOUBLE|\n"
+            + "|            a.Iris/parquet.petal.width|  DOUBLE|\n"
+            + "|           a.Iris/parquet.sepal.length|  DOUBLE|\n"
+            + "|            a.Iris/parquet.sepal.width|  DOUBLE|\n"
+            + "|                a.Iris/parquet.variety|  BINARY|\n"
             + "|                        a.Iris\\parquet|  BINARY|\n"
-            + "|           a.Iris\\parquet.petal.length|  DOUBLE|\n"
-            + "|            a.Iris\\parquet.petal.width|  DOUBLE|\n"
-            + "|           a.Iris\\parquet.sepal.length|  DOUBLE|\n"
-            + "|            a.Iris\\parquet.sepal.width|  DOUBLE|\n"
-            + "|                a.Iris\\parquet.variety|  BINARY|\n"
+            + "|                         a.b.c.d.1/txt|  BINARY|\n"
             + "|                         a.b.c.d.1\\txt|  BINARY|\n"
+            + "|                             a.e.2/txt|  BINARY|\n"
             + "|                             a.e.2\\txt|  BINARY|\n"
-            + "|                           a.f.g.3\\txt|  BINARY|\n"
+            + "|        a.floatTest/parquet.floatValue|   FLOAT|\n"
             + "|                   a.floatTest\\parquet|  BINARY|\n"
-            + "|        a.floatTest\\parquet.floatValue|   FLOAT|\n"
+            + "|            a.other.MT cars/parquet.am| INTEGER|\n"
+            + "|          a.other.MT cars/parquet.carb| INTEGER|\n"
+            + "|           a.other.MT cars/parquet.cyl| INTEGER|\n"
+            + "|          a.other.MT cars/parquet.disp|  DOUBLE|\n"
+            + "|          a.other.MT cars/parquet.drat|  DOUBLE|\n"
+            + "|          a.other.MT cars/parquet.gear| INTEGER|\n"
+            + "|            a.other.MT cars/parquet.hp| INTEGER|\n"
+            + "|         a.other.MT cars/parquet.model|  BINARY|\n"
+            + "|           a.other.MT cars/parquet.mpg|  DOUBLE|\n"
+            + "|          a.other.MT cars/parquet.qsec|  DOUBLE|\n"
+            + "|            a.other.MT cars/parquet.vs| INTEGER|\n"
+            + "|            a.other.MT cars/parquet.wt|  DOUBLE|\n"
             + "|               a.other.MT cars\\parquet|  BINARY|\n"
-            + "|            a.other.MT cars\\parquet.am| INTEGER|\n"
-            + "|          a.other.MT cars\\parquet.carb| INTEGER|\n"
-            + "|           a.other.MT cars\\parquet.cyl| INTEGER|\n"
-            + "|          a.other.MT cars\\parquet.disp|  DOUBLE|\n"
-            + "|          a.other.MT cars\\parquet.drat|  DOUBLE|\n"
-            + "|          a.other.MT cars\\parquet.gear| INTEGER|\n"
-            + "|            a.other.MT cars\\parquet.hp| INTEGER|\n"
-            + "|         a.other.MT cars\\parquet.model|  BINARY|\n"
-            + "|           a.other.MT cars\\parquet.mpg|  DOUBLE|\n"
-            + "|          a.other.MT cars\\parquet.qsec|  DOUBLE|\n"
-            + "|            a.other.MT cars\\parquet.vs| INTEGER|\n"
-            + "|            a.other.MT cars\\parquet.wt|  DOUBLE|\n"
+            + "| a.other.price/parquet.airconditioning|  BINARY|\n"
+            + "|            a.other.price/parquet.area|    LONG|\n"
+            + "|        a.other.price/parquet.basement|  BINARY|\n"
+            + "|       a.other.price/parquet.bathrooms|    LONG|\n"
+            + "|        a.other.price/parquet.bedrooms|    LONG|\n"
+            + "|a.other.price/parquet.furnishingstatus|  BINARY|\n"
+            + "|       a.other.price/parquet.guestroom|  BINARY|\n"
+            + "| a.other.price/parquet.hotwaterheating|  BINARY|\n"
+            + "|        a.other.price/parquet.mainroad|  BINARY|\n"
+            + "|         a.other.price/parquet.parking|    LONG|\n"
+            + "|        a.other.price/parquet.prefarea|  BINARY|\n"
+            + "|           a.other.price/parquet.price|    LONG|\n"
+            + "|         a.other.price/parquet.stories|    LONG|\n"
             + "|                 a.other.price\\parquet|  BINARY|\n"
-            + "| a.other.price\\parquet.airconditioning|  BINARY|\n"
-            + "|            a.other.price\\parquet.area|    LONG|\n"
-            + "|        a.other.price\\parquet.basement|  BINARY|\n"
-            + "|       a.other.price\\parquet.bathrooms|    LONG|\n"
-            + "|        a.other.price\\parquet.bedrooms|    LONG|\n"
-            + "|a.other.price\\parquet.furnishingstatus|  BINARY|\n"
-            + "|       a.other.price\\parquet.guestroom|  BINARY|\n"
-            + "| a.other.price\\parquet.hotwaterheating|  BINARY|\n"
-            + "|        a.other.price\\parquet.mainroad|  BINARY|\n"
-            + "|         a.other.price\\parquet.parking|    LONG|\n"
-            + "|        a.other.price\\parquet.prefarea|  BINARY|\n"
-            + "|           a.other.price\\parquet.price|    LONG|\n"
-            + "|         a.other.price\\parquet.stories|    LONG|\n"
+            + "|          a.~!#$%&'()+,-;=@[]^_`{}/txt|  BINARY|\n"
+            + "|          a.~!#$%&'()+,-;=@[]^_`{}\\txt|  BINARY|\n"
             + "+--------------------------------------+--------+\n"
-            + "Total line number = 38\n";
+            + "Total line number = 41\n";
     SQLTestTools.executeAndCompare(session, statement, expected);
   }
 
-  private void testQueryRawChunks() {
-    String statement = "select 1\\txt from a.*;";
+  private void testQueryRawChunks(String dot) {
+    String statement = "select `1" + dot + "txt` from a.*;";
     String expect =
         "ResultSets:\n"
             + "+---+---------------------------------------------------------------------------+\n"
-            + "|key|                                                              a.b.c.d.1\\txt|\n"
+            + "|key|                                                              a.b.c.d.1"
+            + dot
+            + "txt|\n"
             + "+---+---------------------------------------------------------------------------+\n"
             + "|  0|979899100101102103104105106107108109110111112113114115116117118119120121122|\n"
             + "+---+---------------------------------------------------------------------------+\n"
             + "Total line number = 1\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
 
-    statement = "select 2\\txt from a.*;";
+    statement = "select `2" + dot + "txt` from a.*;";
     expect =
         "ResultSets:\n"
             + "+---+----------------------------------------------------+\n"
-            + "|key|                                           a.e.2\\txt|\n"
+            + "|key|                                           a.e.2"
+            + dot
+            + "txt|\n"
             + "+---+----------------------------------------------------+\n"
             + "|  0|6566676869707172737475767778798081828384858687888990|\n"
             + "+---+----------------------------------------------------+\n"
             + "Total line number = 1\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
-
-    statement = "select 3\\txt from a.*;";
-    expect =
-        "ResultSets:\n"
-            + "+---+------------------------------------------+\n"
-            + "|key|                               a.f.g.3\\txt|\n"
-            + "+---+------------------------------------------+\n"
-            + "|  0|012345678910111213141516171819202122232425|\n"
-            + "+---+------------------------------------------+\n"
-            + "Total line number = 1\n";
-    SQLTestTools.executeAndCompare(session, statement, expect);
   }
 
-  private void testQueryParquets() {
+  private void testQueryParquets(String dot) {
     String statement;
     String expect;
 
-    statement = "select petal.length from `a.Iris\\parquet` where key >= 10 and key <20;";
+    statement = "select petal.length from `a.Iris" + dot + "parquet` where key >= 10 and key <20;";
     expect =
         "ResultSets:\n"
             + "+---+---------------------------+\n"
-            + "|key|a.Iris\\parquet.petal.length|\n"
+            + "|key|a.Iris"
+            + dot
+            + "parquet.petal.length|\n"
             + "+---+---------------------------+\n"
             + "| 10|                        1.5|\n"
             + "| 11|                        1.6|\n"
@@ -258,11 +261,19 @@ public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
     SQLTestTools.executeAndCompare(session, statement, expect);
 
     statement =
-        "select `Iris\\parquet`.petal.length, other.`MT cars\\parquet`.mpg from a where key >= 10 and key <20;";
+        "select `Iris"
+            + dot
+            + "parquet`.petal.length, other.`MT cars"
+            + dot
+            + "parquet`.mpg from a where key >= 10 and key <20;";
     expect =
         "ResultSets:\n"
             + "+---+---------------------------+---------------------------+\n"
-            + "|key|a.Iris\\parquet.petal.length|a.other.MT cars\\parquet.mpg|\n"
+            + "|key|a.Iris"
+            + dot
+            + "parquet.petal.length|a.other.MT cars"
+            + dot
+            + "parquet.mpg|\n"
             + "+---+---------------------------+---------------------------+\n"
             + "| 10|                        1.5|                       17.8|\n"
             + "| 11|                        1.6|                       16.4|\n"
@@ -282,7 +293,11 @@ public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
     expect =
         "ResultSets:\n"
             + "+---+----------------------------+--------------------------------------+\n"
-            + "|key|a.other.MT cars\\parquet.disp|a.other.price\\parquet.furnishingstatus|\n"
+            + "|key|a.other.MT cars"
+            + dot
+            + "parquet.disp|a.other.price"
+            + dot
+            + "parquet.furnishingstatus|\n"
             + "+---+----------------------------+--------------------------------------+\n"
             + "| 10|                       167.6|                             furnished|\n"
             + "| 11|                       275.8|                        semi-furnished|\n"
@@ -299,11 +314,17 @@ public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
     SQLTestTools.executeAndCompare(session, statement, expect);
 
     statement =
-        "select Iris\\parquet.petal.length from a where key < 50 and other.price\\parquet.furnishingstatus ==\"unfurnished\";";
+        "select `Iris"
+            + dot
+            + "parquet`.petal.length from a where key < 50 and other.`price"
+            + dot
+            + "parquet`.furnishingstatus ==\"unfurnished\";";
     expect =
         "ResultSets:\n"
             + "+---+---------------------------+\n"
-            + "|key|a.Iris\\parquet.petal.length|\n"
+            + "|key|a.Iris"
+            + dot
+            + "parquet.petal.length|\n"
             + "+---+---------------------------+\n"
             + "|  7|                        1.5|\n"
             + "|  9|                        1.5|\n"
@@ -320,11 +341,13 @@ public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
     SQLTestTools.executeAndCompare(session, statement, expect);
 
     // test float value compare
-    statement = "select floatValue from `a.floatTest\\parquet` where floatValue >= 22.33;";
+    statement = "select floatValue from `a.floatTest" + dot + "parquet` where floatValue >= 22.33;";
     expect =
         "ResultSets:\n"
             + "+---+------------------------------+\n"
-            + "|key|a.floatTest\\parquet.floatValue|\n"
+            + "|key|a.floatTest"
+            + dot
+            + "parquet.floatValue|\n"
             + "+---+------------------------------+\n"
             + "|  0|                         22.33|\n"
             + "|  1|                         44.55|\n"
@@ -332,11 +355,13 @@ public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
             + "Total line number = 2\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
 
-    statement = "select floatValue from `a.floatTest\\parquet` where floatValue = 44.55;";
+    statement = "select floatValue from `a.floatTest" + dot + "parquet` where floatValue = 44.55;";
     expect =
         "ResultSets:\n"
             + "+---+------------------------------+\n"
-            + "|key|a.floatTest\\parquet.floatValue|\n"
+            + "|key|a.floatTest"
+            + dot
+            + "parquet.floatValue|\n"
             + "+---+------------------------------+\n"
             + "|  1|                         44.55|\n"
             + "+---+------------------------------+\n"
