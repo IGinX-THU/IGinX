@@ -871,6 +871,7 @@ public class ETCDMetaStorage implements IMetaStorage {
       throws MetaStorageException {
     try {
       lockStorage();
+      lockStorageConnection();
       long id = nextId(STORAGE_ID);
       storageEngine.setId(id);
       this.client
@@ -881,6 +882,36 @@ public class ETCDMetaStorage implements IMetaStorage {
                       .getBytes()),
               ByteSequence.from(JsonUtils.toJson(storageEngine)))
           .get();
+
+      // 记录连接关系
+      String connectionPath =
+          generateID(STORAGE_CONNECTION_NODE_PREFIX, IGINX_NODE_LENGTH, iginxId);
+      GetResponse response =
+          this.client
+              .getKVClient()
+              .get(
+                  ByteSequence.from(connectionPath.getBytes()),
+                  GetOption.newBuilder()
+                      .withPrefix(ByteSequence.from(STORAGE_CONNECTION_NODE_PREFIX.getBytes()))
+                      .build())
+              .get();
+      long[] ids;
+      if (response.getCount() != 1) {
+        ids = new long[1];
+        ids[0] = id;
+      } else {
+        long[] oldIds =
+            JsonUtils.fromJson(response.getKvs().get(0).getValue().getBytes(), long[].class);
+        ids = new long[oldIds.length + 1];
+        System.arraycopy(oldIds, 0, ids, 0, oldIds.length);
+        ids[oldIds.length] = id;
+      }
+      this.client
+          .getKVClient()
+          .put(
+              ByteSequence.from(connectionPath.getBytes()),
+              ByteSequence.from(JsonUtils.toJson(ids)))
+          .get();
       return id;
     } catch (ExecutionException | InterruptedException e) {
       LOGGER.error("got error when add storage: ", e);
@@ -888,6 +919,9 @@ public class ETCDMetaStorage implements IMetaStorage {
     } finally {
       if (storageLease != -1) {
         releaseStorage();
+      }
+      if (storageConnectionLease != -1) {
+        releaseStorageConnection();
       }
     }
   }
@@ -897,19 +931,59 @@ public class ETCDMetaStorage implements IMetaStorage {
       throws MetaStorageException {
     try {
       lockStorage();
-      this.client
-          .getKVClient()
-          .delete(
-              ByteSequence.from(
-                  generateID(
-                          STORAGE_ENGINE_NODE_PREFIX, STORAGE_ENGINE_NODE_LENGTH, storageEngineId)
-                      .getBytes()));
+      lockStorageConnection();
+      if (forAllIginx) {
+        this.client
+            .getKVClient()
+            .delete(
+                ByteSequence.from(
+                    generateID(
+                            STORAGE_ENGINE_NODE_PREFIX, STORAGE_ENGINE_NODE_LENGTH, storageEngineId)
+                        .getBytes()));
+      }
+
+      // 删除连接状态
+      String connectionPath =
+          generateID(STORAGE_CONNECTION_NODE_PREFIX, IGINX_NODE_LENGTH, iginxId);
+      GetResponse response =
+          this.client
+              .getKVClient()
+              .get(
+                  ByteSequence.from(connectionPath.getBytes()),
+                  GetOption.newBuilder()
+                      .withPrefix(ByteSequence.from(STORAGE_CONNECTION_NODE_PREFIX.getBytes()))
+                      .build())
+              .get();
+      if (response.getCount() != 0L) {
+        long[] ids =
+            JsonUtils.fromJson(response.getKvs().get(0).getValue().getBytes(), long[].class);
+        int index = Arrays.binarySearch(ids, storageEngineId);
+        if (index >= 0) {
+          if (ids.length > 1) {
+            long[] newIds = new long[ids.length - 1];
+            System.arraycopy(ids, 0, newIds, 0, index);
+            System.arraycopy(ids, index + 1, newIds, index, ids.length - index - 1);
+            this.client
+                .getKVClient()
+                .put(
+                    ByteSequence.from(connectionPath.getBytes()),
+                    ByteSequence.from(JsonUtils.toJson(newIds)))
+                .get();
+          } else {
+            // iginx 将没有连接的存储节点
+            this.client.getKVClient().delete(ByteSequence.from(connectionPath.getBytes()));
+          }
+        }
+      }
     } catch (Exception e) {
       LOGGER.error("got error when removing dummy storage engine: ", e);
       throw new MetaStorageException(e);
     } finally {
       if (storageLease != -1) {
         releaseStorage();
+      }
+      if (storageConnectionLease != -1) {
+        releaseStorageConnection();
       }
     }
   }
