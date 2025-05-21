@@ -1201,6 +1201,8 @@ public class InfluxDBStorage implements IStorage {
   }
 
   // 将 FluxTable 立即转为 IGinX Table，避免在内存中长期持有 FluxTable 导致的 OOM
+  // 由于 FluxTable 包含完整的所有数据，而不是流式读取接口，
+  // 所以即便返回 InfluxDBQueryRowStream 也不是真正的流式读取
   private TaskExecuteResult buildQueryResult(
       List<FluxTable> tables, Project project, Filter filter, List<String> bucketNames) {
     try (InfluxDBQueryRowStream rowStream =
