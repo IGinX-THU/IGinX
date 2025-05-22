@@ -33,6 +33,7 @@ public class FetchMetricsRowStream implements RowStream {
   private final TaskMetrics metrics;
   private final int batchRowCount;
   private final Queue<Row> cache = new ArrayDeque<>();
+  private boolean closed = false;
 
   public FetchMetricsRowStream(RowStream delegate, TaskMetrics metrics, int batchRowCount) {
     Preconditions.checkArgument(batchRowCount > 0);
@@ -76,6 +77,10 @@ public class FetchMetricsRowStream implements RowStream {
 
   @Override
   public void close() throws PhysicalException {
-    delegate.close();
+    // close 可能会被多次调用，但是 delegate 的 close 逻辑可能没有考虑到这点
+    if (!closed) {
+      closed = true;
+      delegate.close();
+    }
   }
 }
