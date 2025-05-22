@@ -22,7 +22,6 @@ package cn.edu.tsinghua.iginx.engine;
 import static cn.edu.tsinghua.iginx.constant.GlobalConstant.CLEAR_DUMMY_DATA_CAUTION;
 import static cn.edu.tsinghua.iginx.constant.GlobalConstant.KEY_NAME;
 import static cn.edu.tsinghua.iginx.constant.GlobalConstant.NO_WRITABLE_FRAGMENT_CAUTION;
-import static cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils.moveForwardNotNull;
 import static cn.edu.tsinghua.iginx.utils.StringUtils.replaceSpecialCharsWithUnderscore;
 import static cn.edu.tsinghua.iginx.utils.StringUtils.tryParse2Key;
 

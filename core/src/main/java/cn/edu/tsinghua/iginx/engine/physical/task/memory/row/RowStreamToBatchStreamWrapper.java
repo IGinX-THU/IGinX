@@ -20,13 +20,17 @@
 package cn.edu.tsinghua.iginx.engine.physical.task.memory.row;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.Schemas;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.util.Batch;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.StopWatch;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskMetrics;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.*;
+import cn.edu.tsinghua.iginx.utils.TagKVUtils;
 import java.util.*;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.util.Preconditions;
+import org.apache.arrow.vector.types.pojo.ArrowType;
+import org.apache.arrow.vector.types.pojo.FieldType;
 
 public class RowStreamToBatchStreamWrapper implements BatchStream {
 
@@ -75,14 +79,21 @@ public class RowStreamToBatchStreamWrapper implements BatchStream {
       builder.withKey();
     }
     for (Field field : header.getFields()) {
-      Map<String, String> tags = field.getTags();
-      if (tags.isEmpty()) {
-        builder.addField(field.getName(), field.getType());
-      } else {
-        builder.addField(field.getName(), field.getType(), tags);
-      }
+      builder.addField(toArrowField(field));
     }
     return builder.build();
+  }
+
+  public static org.apache.arrow.vector.types.pojo.Field toArrowField(Field field) {
+    String fieldName = field.getName();
+    ArrowType arrowType = Schemas.toArrowType(field.getType());
+    Map<String, String> metadata = new HashMap<>(field.getTags());
+    if (metadata.isEmpty()) {
+      StringBuilder sb = new StringBuilder();
+      TagKVUtils.fillNameAndTagMap(field.getFullName(), sb, metadata);
+    }
+    return new org.apache.arrow.vector.types.pojo.Field(
+        fieldName, new FieldType(true, arrowType, null, metadata), Collections.emptyList());
   }
 
   @Override

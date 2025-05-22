@@ -434,7 +434,7 @@ public class ByteUtils {
                 .getFields()
                 .forEach(
                     field -> {
-                      paths.add(getFullName(field.getName(), field.getMetadata()));
+                      paths.add(getCompatibleFullName(field.getName(), field.getMetadata()));
                       dataTypeList.add(TypeUtils.toDataType(field.getType()));
                       tagsList.add(field.getMetadata());
                     });
@@ -471,9 +471,11 @@ public class ByteUtils {
     return new DataSet(keys, paths, dataTypeList, tagsList, values, hasKey);
   }
 
-  private static final Pattern FUNC_CALL_PATTERN = Pattern.compile("(.*)\\((.*)\\)$");
+  // 检测是否为函数调用结果
+  public static final Pattern FUNC_CALL_PATTERN = Pattern.compile("(.*)\\((.*)\\)$");
 
-  private static String getFullName(String name, Map<String, String> metadata) {
+  // 获取与原有基于 RowStream 的执行器兼容的 fullName
+  public static String getCompatibleFullName(String name, Map<String, String> metadata) {
     Matcher matcher = FUNC_CALL_PATTERN.matcher(name);
     if (matcher.matches() && metadata != null && !metadata.isEmpty()) {
       String funcName = matcher.group(1);

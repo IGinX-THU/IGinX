@@ -220,7 +220,7 @@ public class FunctionUtils {
         fullName += field.getFullName() + ")";
         DataType dataType =
             functionFieldTypeMap.get(function.getIdentifier()).apply(field.getType());
-        targetFields.add(new Field(name, fullName, dataType, field.getTags()));
+        targetFields.add(new Field(name, fullName, dataType));
         indices.add(i);
       }
     }

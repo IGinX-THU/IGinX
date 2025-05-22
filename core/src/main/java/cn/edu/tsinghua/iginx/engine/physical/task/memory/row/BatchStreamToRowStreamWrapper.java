@@ -25,6 +25,8 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.util.Batch;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.StopWatch;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskMetrics;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.*;
+import cn.edu.tsinghua.iginx.thrift.DataType;
+import cn.edu.tsinghua.iginx.utils.ByteUtils;
 import java.util.*;
 import javax.annotation.Nullable;
 import org.apache.arrow.vector.BaseIntVector;
@@ -65,9 +67,17 @@ public class BatchStreamToRowStreamWrapper implements RowStream {
       if (schema.hasKey() && i == schema.getKeyIndex()) {
         continue;
       }
-      fields.add(Schemas.toIginxField(schema.getField(i)));
+      fields.add(toIginxField(schema.getField(i)));
     }
     return new Header(keyField, fields);
+  }
+
+  public static Field toIginxField(org.apache.arrow.vector.types.pojo.Field field) {
+    String fieldName = field.getName();
+    DataType fieldType = Schemas.toDataType(field.getType());
+    Map<String, String> tags = new HashMap<>(field.getMetadata());
+    String fullFieldName = ByteUtils.getCompatibleFullName(fieldName, tags);
+    return new Field(fieldName, fullFieldName, fieldType, tags);
   }
 
   private void initColumnIndex(BatchSchema schema) {
