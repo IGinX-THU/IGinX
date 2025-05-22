@@ -34,5 +34,5 @@ runs:
                python -m pip install pandas*.whl
                python3.13t -m pip install pyarrow*.whl
               else
-               python -m pip install pandas==2.2.3 numpy thrift pemjax
+               python -m pip install pandas==2.2.3 numpy thrift pemjax pyarrow
               fi
