@@ -25,6 +25,7 @@ import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
 import cn.edu.tsinghua.iginx.metadata.entity.FragmentMeta;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageUnitMeta;
+import cn.edu.tsinghua.iginx.resource.exception.ResourceException;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -135,7 +136,11 @@ public class LowAccessFragmentCompaction extends Compaction {
           totalPoints += fragmentMetaPointsMap.getOrDefault(fragmentMeta, 0L);
         }
 
-        compactFragmentGroupToTargetStorageUnit(fragmentGroup, maxStorageUnitMeta, totalPoints);
+        try {
+          compactFragmentGroupToTargetStorageUnit(fragmentGroup, maxStorageUnitMeta, totalPoints);
+        } catch (ResourceException e) {
+          throw new PhysicalException(e);
+        }
       } else {
         LOGGER.info("fragmentGroup size = {}", fragmentGroup.size());
       }

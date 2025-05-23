@@ -33,7 +33,7 @@ sh -c "cp -r $INFLUX_HOME/ influxdb2-2.0.7-linux-amd64"
 
 sh -c "ls influxdb2-2.0.7-linux-amd64"
 
-sudo sh -c "cd influxdb2-2.0.7-linux-amd64/; nohup ./influxd run --bolt-path=~/.influxdbv2/influxd.bolt --engine-path=~/.influxdbv2/engine --http-bind-address=:8086 --query-memory-bytes=300971520 --query-concurrency=2 &"
+sudo sh -c "cd influxdb2-2.0.7-linux-amd64/; nohup ./influxd run --bolt-path=~/.influxdbv2/influxd.bolt --engine-path=~/.influxdbv2/engine --http-bind-address=:8086 --query-memory-bytes=300971520 --query-concurrency=1 &"
 
 sh -c "sleep 30"
 

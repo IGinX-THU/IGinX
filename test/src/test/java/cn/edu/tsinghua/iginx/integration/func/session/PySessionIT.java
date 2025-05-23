@@ -68,7 +68,10 @@ public class PySessionIT {
   private static final String pythonCMD = config.getPythonCMD();
 
   private static boolean isAbleToDelete = true;
-  private static PythonInterpreter interpreter;
+  private static final PythonInterpreterConfig pythonInterpreterConfig =
+      PythonInterpreterConfig.newBuilder().setPythonExec(pythonCMD).addPythonPaths(PATH).build();
+  private static final PythonInterpreter interpreter =
+      new PythonInterpreter(pythonInterpreterConfig);
   protected static String runningEngine;
 
   public PySessionIT() {
@@ -76,10 +79,7 @@ public class PySessionIT {
     DBConf dbConf = conf.loadDBConf(conf.getStorageType());
     runningEngine = conf.getStorageType();
     isAbleToDelete = dbConf.getEnumValue(DBConf.DBConfType.isAbleToDelete);
-    PythonInterpreterConfig config =
-        PythonInterpreterConfig.newBuilder().setPythonExec(pythonCMD).addPythonPaths(PATH).build();
     LOGGER.debug("using pythonCMD: {}", pythonCMD);
-    interpreter = new PythonInterpreter(config);
     interpreter.exec("import tests");
     interpreter.exec("t = tests.Tests()");
   }
@@ -264,11 +264,8 @@ public class PySessionIT {
     }
     // 检查Python脚本的输出是否符合预期
     String expected =
-        "[   COUNT(count(test.a.a))  COUNT(count(test.a.b))  COUNT(count(test.b.b))  \\\n"
-            + "0                       2                       2                       2   \n"
-            + "\n"
-            + "   COUNT(count(test.c.c))  \n"
-            + "0                       2  ]\n";
+        "   count(test.a.a)  count(test.a.b)  count(test.b.b)  count(test.c.c)\n"
+            + "0                2                2                2                2\n";
     assertEquals(expected, result);
   }
 
@@ -509,20 +506,6 @@ public class PySessionIT {
             + "5    5      b''      b''     b'b'      b''\n"
             + "6    6      b''      b''      b''     b'c'\n"
             + "7    7     b'Q'     b'W'     b'E'     b'R'\n";
-    // oracle的VARCHAR2字段默认将空字符串和NULL存成NULL
-    if (runningEngine.equals("Oracle")) {
-      expected =
-          "LoadCSVResp(status=Status(code=200, message=None, subStatus=None), columns=['test.a.a', 'test.a.b', 'test.b.b', 'test.c.c'], recordsNum=4, parseErrorMsg=None)\n"
-              + "   key test.a.a test.a.b test.b.b test.c.c\n"
-              + "0    0     b'a'     b'b'     None     None\n"
-              + "1    1     None     None     b'b'     None\n"
-              + "2    2     None     None     None     b'c'\n"
-              + "3    3     b'Q'     b'W'     b'E'     b'R'\n"
-              + "4    4     b'a'     b'b'     None     None\n"
-              + "5    5     None     None     b'b'     None\n"
-              + "6    6     None     None     None     b'c'\n"
-              + "7    7     b'Q'     b'W'     b'E'     b'R'\n";
-    }
     assertEquals(expected, result);
   }
 

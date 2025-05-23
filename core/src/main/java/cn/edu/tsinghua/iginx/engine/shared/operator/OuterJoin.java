@@ -169,18 +169,7 @@ public class OuterJoin extends AbstractJoin {
 
   @Override
   public Operator copy() {
-    return new OuterJoin(
-        getSourceA().copy(),
-        getSourceB().copy(),
-        getPrefixA(),
-        getPrefixB(),
-        outerJoinType,
-        filter.copy(),
-        new ArrayList<>(joinColumns),
-        isNaturalJoin,
-        isJoinByKey,
-        getJoinAlgType(),
-        new ArrayList<>(getExtraJoinPrefix()));
+    return copyWithSource(getSourceA().copy(), getSourceB().copy());
   }
 
   @Override
@@ -191,7 +180,7 @@ public class OuterJoin extends AbstractJoin {
         getPrefixA(),
         getPrefixB(),
         outerJoinType,
-        filter.copy(),
+        filter == null ? null : filter.copy(),
         new ArrayList<>(joinColumns),
         isNaturalJoin,
         isJoinByKey,
