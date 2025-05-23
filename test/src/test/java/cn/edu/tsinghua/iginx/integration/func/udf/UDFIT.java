@@ -1563,7 +1563,6 @@ public class UDFIT {
   }
 
   @Test
-  @Ignore
   public void testTimeout() {
     String name = "TimeoutTest";
     String filePath =
