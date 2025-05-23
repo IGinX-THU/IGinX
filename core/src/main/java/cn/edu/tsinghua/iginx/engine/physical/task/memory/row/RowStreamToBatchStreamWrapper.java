@@ -26,6 +26,7 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.StopWatch;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskMetrics;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.*;
 import cn.edu.tsinghua.iginx.utils.TagKVUtils;
+import com.google.common.base.Strings;
 import java.util.*;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.util.Preconditions;
@@ -88,9 +89,12 @@ public class RowStreamToBatchStreamWrapper implements BatchStream {
     String fieldName = field.getName();
     ArrowType arrowType = Schemas.toArrowType(field.getType());
     Map<String, String> metadata = new HashMap<>(field.getTags());
-    if (metadata.isEmpty()) {
+    String fullFieldName = field.getFullName();
+    if (metadata.isEmpty() && !Objects.equals(fieldName, fullFieldName)) {
+      int commonPrefixLength = Strings.commonPrefix(fieldName, fullFieldName).length();
+      String suffix = fullFieldName.substring(commonPrefixLength);
       StringBuilder sb = new StringBuilder();
-      TagKVUtils.fillNameAndTagMap(field.getFullName(), sb, metadata);
+      TagKVUtils.fillNameAndTagMap(suffix, sb, metadata);
     }
     return new org.apache.arrow.vector.types.pojo.Field(
         fieldName, new FieldType(true, arrowType, null, metadata), Collections.emptyList());
