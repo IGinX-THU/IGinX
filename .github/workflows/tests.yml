@@ -15,11 +15,13 @@ jobs:
         uses: ./.github/workflows/DB-CE.yml
         with:
             metadata-matrix: '["zookeeper"]'
+            os-matrix: '["windows-latest"]'
     db-ce-no-optimizer:
         uses: ./.github/workflows/DB-CE.yml
         with:
             metadata-matrix: '["zookeeper"]'
             close-optimizer: "true"
+            os-matrix: '["windows-latest"]'
     standalone-test-no-mac-relational:
         uses: ./.github/workflows/standalone-test.yml
         with:

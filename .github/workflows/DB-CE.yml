@@ -26,7 +26,7 @@ on:
                 description: "The database to run the test on"
                 type: string
                 required: false
-                default: '["Neo4j"]'
+                default: '["IoTDB12", "InfluxDB", "FileSystem", "PostgreSQL", "Redis", "MongoDB", "MySQL", "Neo4j"]'
             timeout-minutes:
                 description: "The timeout minutes for the job"
                 type: number
