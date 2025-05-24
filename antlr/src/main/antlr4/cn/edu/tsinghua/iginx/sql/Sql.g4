@@ -48,7 +48,7 @@ statement
    | SHOW TRANSFORM JOB STATUS jobId = INT # showJobStatusStatement
    | CANCEL TRANSFORM JOB jobId = INT # cancelJobStatement
    | SHOW (jobStatus)? TRANSFORM JOBS # showEligibleJobStatement
-   | REMOVE STORAGEENGINE removedStorageEngine (COMMA removedStorageEngine)* # removeStorageEngineStatement
+   | REMOVE STORAGEENGINE removedStorageEngine (COMMA removedStorageEngine)* (FOR ALL)? # removeStorageEngineStatement
    | SET CONFIG configName = stringLiteral configValue = stringLiteral # setConfigStatement
    | SHOW CONFIG (configName = stringLiteral)? # showConfigStatement
    | SHOW SESSIONID # showSessionIDStatement

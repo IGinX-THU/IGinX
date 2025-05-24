@@ -186,7 +186,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     }
   }
 
-  private Table transformToTable(RowStream stream) throws PhysicalException {
+  public static Table transformToTable(RowStream stream) throws PhysicalException {
     if (stream instanceof Table) {
       return (Table) stream;
     }

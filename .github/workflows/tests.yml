@@ -150,6 +150,8 @@ jobs:
             db-matrix: '["VectorDB"]'
             close-optimizer: "true"
             timeout-minutes: 360
+    cluster-test:
+        uses: ./.github/workflows/cluster-test.yml
     analyze-required-test-check:
         if: always()
         needs: # List of jobs that must pass. Add more jobs if needed.
@@ -175,6 +177,7 @@ jobs:
             - standalone-test-no-optimizer-no-mac-relational
             - db-ce-no-mac-relational
             - db-ce-no-optimizer-no-mac-relational
+            - cluster-test
         runs-on: ubuntu-latest
         steps:
             - name: Decide whether the needed jobs succeeded or failed
