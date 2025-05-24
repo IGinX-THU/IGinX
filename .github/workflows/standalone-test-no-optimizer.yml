@@ -28,6 +28,11 @@ on:
                 type: string
                 required: false
                 default: '["IoTDB12", "InfluxDB", "FileSystem", "PostgreSQL", "Redis", "MongoDB", "MySQL", "Neo4j"]'
+            db-support-create-database:
+                description: "Whether the database supports create database"
+                type: boolean
+                required: false
+                default: true
             timeout-minutes:
                 description: "The timeout minutes for the job"
                 type: number
@@ -81,6 +86,7 @@ jobs:
                   DB-name: ${{ matrix.DB-name }}
                   Close-Optimizer: "true"
                   Metadata: ${{ matrix.metadata }}
+                  Support-Create-Database: ${{ inputs.db-support-create-database }}
 
             - name: Start IGinX
               uses: ./.github/actions/iginxRunner

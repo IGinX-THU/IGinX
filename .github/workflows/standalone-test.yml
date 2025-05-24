@@ -28,6 +28,11 @@ on:
                 type: string
                 required: false
                 default: '["IoTDB12", "InfluxDB", "FileSystem", "PostgreSQL", "Redis", "MongoDB", "MySQL", "Neo4j"]'
+            db-support-create-database:
+                description: "Whether the database supports create database"
+                type: boolean
+                required: false
+                default: true
             timeout-minutes:
                 description: "The timeout minutes for the job"
                 type: number
@@ -76,6 +81,7 @@ jobs:
               with:
                   DB-name: ${{ matrix.DB-name }}
                   Metadata: ${{ matrix.metadata }}
+                  Support-Create-Database: ${{ inputs.db-support-create-database }}
 
             # start udf path test first to avoid being effected
             - name: Start IGinX
@@ -174,6 +180,11 @@ jobs:
               uses: ./.github/actions/context
               with:
                   shell: client-after
+
+            - name: test event expansion support
+              uses: ./.github/actions/context
+              with:
+                  shell: client-event-expansion
 
             - name: Test Client Import File
               if: always()
