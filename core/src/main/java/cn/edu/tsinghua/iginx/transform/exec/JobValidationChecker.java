@@ -24,13 +24,18 @@ import cn.edu.tsinghua.iginx.thrift.TaskType;
 import cn.edu.tsinghua.iginx.transform.api.Checker;
 import cn.edu.tsinghua.iginx.transform.pojo.IginXTask;
 import cn.edu.tsinghua.iginx.transform.pojo.Job;
+import cn.edu.tsinghua.iginx.transform.pojo.PythonTask;
 import cn.edu.tsinghua.iginx.transform.pojo.Task;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ConcurrentSkipListSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class JobValidationChecker implements Checker {
   private static final Logger LOGGER = LoggerFactory.getLogger(JobValidationChecker.class);
+
+  private static final Set<String> pyOutputTableNames = new ConcurrentSkipListSet<>();
 
   private static JobValidationChecker instance;
 
@@ -49,6 +54,7 @@ public class JobValidationChecker implements Checker {
 
   @Override
   public boolean check(Job job) {
+    pyOutputTableNames.clear();
     List<Task> taskList = job.getTaskList();
     if (taskList == null || taskList.isEmpty()) {
       LOGGER.error("Committed job task list is empty.");
@@ -61,30 +67,34 @@ public class JobValidationChecker implements Checker {
       return false;
     }
 
-    if (!firstTask.getDataFlowType().equals(DataFlowType.STREAM)) {
-      LOGGER.error("The IginX task must be stream.");
-      return false;
-    }
-
-    IginXTask iginXTask = (IginXTask) firstTask;
-    List<String> sqlList = iginXTask.getSqlList();
-    if (sqlList == null || sqlList.isEmpty()) {
-      LOGGER.error("The first task should has at least one statement.");
-      return false;
-    }
-
-    String querySQL = sqlList.get(sqlList.size() - 1);
-    if (!querySQL.toLowerCase().trim().startsWith("select")
-        && !querySQL.toLowerCase().trim().startsWith("show")) {
-      LOGGER.error("The first task's last statement must be select or showTS statement.");
+    if (!IginXTaskChecker(firstTask)) {
       return false;
     }
 
     if (taskList.size() > 1) {
+      boolean previousIginX = true;
       for (int i = 1; i < taskList.size(); i++) {
-        if (taskList.get(i).getTaskType().equals(TaskType.IGINX)) {
-          LOGGER.error("2-n tasks must be python tasks.");
-          return false;
+        Task task = taskList.get(i);
+        switch (taskList.get(i).getTaskType()) {
+          case IGINX:
+            if (previousIginX) { // previous task is also IginX task
+              LOGGER.error(
+                  "Please merge multiple IginX tasks into one task by combining the sql statements.");
+              return false;
+            }
+            if (!IginXTaskChecker(task)) {
+              return false;
+            }
+            previousIginX = true;
+            break;
+          case PYTHON:
+            if (!pythonTaskChecker(task)) {
+              return false;
+            }
+            previousIginX = false;
+            break;
+          default:
+            throw new IllegalArgumentException("Unsupported task type: " + task.getTaskType());
         }
       }
     }
@@ -100,6 +110,52 @@ public class JobValidationChecker implements Checker {
       return false;
     }
 
+    return true;
+  }
+
+  private boolean IginXTaskChecker(Task task) {
+    if (!task.getTaskType().equals(TaskType.IGINX)) {
+      LOGGER.error("Expecting IginX task but get {} task.", task.getTaskType());
+      return false;
+    }
+    IginXTask iginXTask = (IginXTask) task;
+    if (!iginXTask.getDataFlowType().equals(DataFlowType.STREAM)) {
+      LOGGER.error("IginX task must be stream.");
+      return false;
+    }
+    List<String> sqlList = iginXTask.getSqlList();
+    if (sqlList == null || sqlList.isEmpty()) {
+      LOGGER.error("IginX task should has at least one statement.");
+      return false;
+    }
+    String querySQL = sqlList.get(sqlList.size() - 1);
+    if (!querySQL.toLowerCase().trim().startsWith("select")
+        && !querySQL.toLowerCase().trim().startsWith("show")) {
+      LOGGER.error("IginX task's last statement must be select or showTS statement.");
+      return false;
+    }
+    return true;
+  }
+
+  private boolean pythonTaskChecker(Task task) {
+    if (!task.getTaskType().equals(TaskType.PYTHON)) {
+      LOGGER.error("Expecting Python task but get {} task.", task.getTaskType());
+      return false;
+    }
+    PythonTask pythonTask = (PythonTask) task;
+    if (pythonTask.isSetPyOutputTable()) {
+      if (!pythonTask.getPyOutputTable().matches("[a-zA-Z0-9]+")) {
+        LOGGER.error(
+            "Python task output table name can only contain numbers or alphabets, got: {}.",
+            pythonTask.getPyOutputTable());
+        return false;
+      } else if (!pyOutputTableNames.add(pythonTask.getPyOutputTable())) {
+        LOGGER.error(
+            "Got duplicated python output table name in different tasks: {}.",
+            pythonTask.getPyOutputTable());
+        return false;
+      }
+    }
     return true;
   }
 }

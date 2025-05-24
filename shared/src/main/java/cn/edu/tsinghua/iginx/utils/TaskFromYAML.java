@@ -27,6 +27,7 @@ public class TaskFromYAML {
   private String dataFlowType;
   private long timeout;
   private String pyTaskName;
+  private String pyOutputTable;
   private List<String> sqlList;
 
   public TaskFromYAML() {}
@@ -61,6 +62,18 @@ public class TaskFromYAML {
 
   public void setPyTaskName(String pyTaskName) {
     this.pyTaskName = pyTaskName;
+  }
+
+  public String getPyOutputTable() {
+    return pyOutputTable;
+  }
+
+  public void setPyOutputTable(String pyOutputTable) {
+    this.pyOutputTable = pyOutputTable;
+  }
+
+  public boolean isSetPyOutputTable() {
+    return pyOutputTable != null;
   }
 
   public List<String> getSqlList() {

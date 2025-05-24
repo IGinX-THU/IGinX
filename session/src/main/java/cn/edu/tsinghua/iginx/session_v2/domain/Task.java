@@ -37,17 +37,21 @@ public class Task {
 
   private final String pyTaskName;
 
+  private final String pyOutputTable;
+
   public Task(
       TaskType taskType,
       DataFlowType dataFlowType,
       long timeout,
       List<String> sqlList,
-      String pyTaskName) {
+      String pyTaskName,
+      String pyOutputTable) {
     this.taskType = taskType;
     this.dataFlowType = dataFlowType;
     this.timeout = timeout;
     this.sqlList = sqlList;
     this.pyTaskName = pyTaskName;
+    this.pyOutputTable = pyOutputTable;
   }
 
   public Task(Task.Builder builder) {
@@ -56,7 +60,8 @@ public class Task {
         builder.dataFlowType,
         builder.timeout,
         builder.sqlList,
-        builder.pyTaskName);
+        builder.pyTaskName,
+        builder.pyOutputTable);
   }
 
   public static Task.Builder builder() {
@@ -83,6 +88,10 @@ public class Task {
     return pyTaskName;
   }
 
+  public String getPyOutputTable() {
+    return pyOutputTable;
+  }
+
   public static class Builder {
 
     private TaskType taskType;
@@ -94,6 +103,8 @@ public class Task {
     private List<String> sqlList = new ArrayList<>();
 
     private String pyTaskName;
+
+    private String pyOutputTable;
 
     public Task.Builder dataFlowType(DataFlowType dataFlowType) {
       this.dataFlowType = dataFlowType;
@@ -112,10 +123,18 @@ public class Task {
       return this;
     }
 
-    public Task.Builder pyTaskName(String pyTaskName) {
+    public Task.Builder pyTask(String pyTaskName) {
       Arguments.checkTaskType(TaskType.PYTHON, taskType);
       this.taskType = TaskType.PYTHON;
       this.pyTaskName = pyTaskName;
+      return this;
+    }
+
+    public Task.Builder pyTask(String pyTaskName, String pyOutputTable) {
+      Arguments.checkTaskType(TaskType.PYTHON, taskType);
+      this.taskType = TaskType.PYTHON;
+      this.pyTaskName = pyTaskName;
+      this.pyOutputTable = pyOutputTable;
       return this;
     }
 
