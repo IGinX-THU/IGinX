@@ -103,27 +103,4 @@ public class ExpressionAccumulators {
     return VectorSchemaRoots.create(
         results, statesColumns.isEmpty() ? 0 : statesColumns.get(0).size());
   }
-
-  //
-  //  public static VectorSchemaRoot evaluateSafe(BufferAllocator allocator, List<Accumulator>
-  // accumulators, List<Schema> inputSchema, List<List<Accumulator.State>> statesColumns) throws
-  // ComputeException {
-  //    Preconditions.checkArgument(accumulators.size() == statesColumns.size());
-  //    for (int i = 1; i < statesColumns.size(); i++) {
-  //      if (statesColumns.get(i).size() != statesColumns.get(0).size()) {
-  //        throw new IllegalArgumentException("All states columns must have the same size");
-  //      }
-  //    }
-  //    List<FieldVector> results = new java.util.ArrayList<>();
-  //    try {
-  //      for (int i = 0; i < accumulators.size(); i++) {
-  //        results.add(evaluateSafe(allocator, accumulators.get(i), inputSchema.get(i),
-  // statesColumns.get(i)));
-  //      }
-  //    } catch (ComputeException e) {
-  //      results.forEach(FieldVector::close);
-  //      throw e;
-  //    }
-  //    return new VectorSchemaRoot(results);
-  //  }
 }

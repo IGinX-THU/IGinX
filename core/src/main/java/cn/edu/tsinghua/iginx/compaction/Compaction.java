@@ -21,10 +21,7 @@ package cn.edu.tsinghua.iginx.compaction;
 
 import cn.edu.tsinghua.iginx.engine.physical.PhysicalEngine;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
-import cn.edu.tsinghua.iginx.engine.physical.task.TaskMetrics;
-import cn.edu.tsinghua.iginx.engine.physical.task.memory.row.BatchStreamToRowStreamWrapper;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Delete;
@@ -152,9 +149,7 @@ public abstract class Compaction {
 
         RequestContext showColumnCtx = new RequestContext();
         try (ResourceSet ignored = ResourceManager.getInstance().setup(showColumnCtx);
-            BatchStream batchStream = physicalEngine.execute(showColumnCtx, showColumns);
-            RowStream rowStream =
-                new BatchStreamToRowStreamWrapper(batchStream, TaskMetrics.NO_OP)) {
+            RowStream rowStream = physicalEngine.executeAsRowStream(showColumnCtx, showColumns)) {
 
           while (rowStream.hasNext()) {
             Row row = rowStream.next();

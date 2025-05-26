@@ -78,6 +78,8 @@ import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.LongAdder;
+import java.util.function.IntConsumer;
 import org.antlr.v4.runtime.misc.ParseCancellationException;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.BigIntVector;
@@ -804,7 +806,7 @@ public class StatementExecutor {
     vector.setValueCount(1);
     vector.setSafe(0, 0);
     VectorSchemaRoot root = VectorSchemaRoots.create(Collections.singletonList(vector), 1);
-    result.setArrowData(getBytesFromVector(root, ctx.getAllocator()));
+    result.setArrowData(getBytesFromVector(root, ctx.getAllocator(), points -> {}));
     ctx.setResult(result);
   }
 
@@ -855,8 +857,8 @@ public class StatementExecutor {
       setEmptyQueryResp(ctx);
       return;
     }
-
-    List<ByteBuffer> dataList = getBytesFromBatchStream(stream, ctx.getAllocator());
+    LongAdder adder = new LongAdder();
+    List<ByteBuffer> dataList = getBytesFromBatchStream(stream, ctx.getAllocator(), adder::add);
     Status status = RpcUtils.SUCCESS;
     if (ctx.getWarningMsg() != null && !ctx.getWarningMsg().isEmpty()) {
       status = new Status(StatusCode.PARTIAL_SUCCESS.getStatusCode());
@@ -864,31 +866,42 @@ public class StatementExecutor {
     }
     result = new Result(status);
     result.setArrowData(dataList);
+    result.setQueryPoints(adder.longValue());
     ctx.setResult(result);
   }
 
-  private List<ByteBuffer> getBytesFromBatchStream(BatchStream stream, BufferAllocator allocator)
+  private List<ByteBuffer> getBytesFromBatchStream(
+      BatchStream stream, BufferAllocator allocator, IntConsumer valueCountConsumer)
       throws PhysicalException {
     List<ByteBuffer> dataList = new ArrayList<>();
     try (BatchStream batchStream = stream) {
+      int fieldCount = stream.getSchema().getFieldCount();
       while (batchStream.hasNext()) {
         try (Batch batch = batchStream.getNext()) {
-          dataList.addAll(getBytesFromVector(batch.flattened(allocator), allocator));
+          dataList.addAll(
+              getBytesFromVector(
+                  batch.flattened(allocator),
+                  allocator,
+                  (rowCount) -> {
+                    valueCountConsumer.accept(rowCount * fieldCount);
+                  }));
         }
       }
     }
     if (dataList.isEmpty()) {
       VectorSchemaRoot root = VectorSchemaRoot.create(stream.getSchema().raw(), allocator);
       root.setRowCount(0);
-      dataList = getBytesFromVector(root, allocator);
+      dataList = getBytesFromVector(root, allocator, valueCountConsumer);
     }
     return dataList;
   }
 
   private List<ByteBuffer> getBytesFromVector(
-      VectorSchemaRoot vectorSchemaRoot, BufferAllocator allocator) throws PhysicalException {
+      VectorSchemaRoot vectorSchemaRoot, BufferAllocator allocator, IntConsumer valueCountConsumer)
+      throws PhysicalException {
     List<ByteBuffer> dataList = new ArrayList<>();
     try (VectorSchemaRoot root = vectorSchemaRoot) {
+      valueCountConsumer.accept(root.getRowCount());
       ByteBuffer data = ByteUtils.getBytesFromVectorOfIginx(root);
       dataList.add(data);
     } catch (IOException e) {

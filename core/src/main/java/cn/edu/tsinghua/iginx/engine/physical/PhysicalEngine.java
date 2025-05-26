@@ -24,10 +24,13 @@ import cn.edu.tsinghua.iginx.engine.physical.optimizer.PhysicalOptimizer;
 import cn.edu.tsinghua.iginx.engine.physical.storage.StorageManager;
 import cn.edu.tsinghua.iginx.engine.physical.storage.execute.StoragePhysicalTaskExecutor;
 import cn.edu.tsinghua.iginx.engine.physical.task.PhysicalTask;
+import cn.edu.tsinghua.iginx.engine.physical.task.TaskMetrics;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskResult;
+import cn.edu.tsinghua.iginx.engine.physical.task.memory.row.BatchStreamToRowStreamWrapper;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.constraint.ConstraintManager;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import java.util.concurrent.ExecutionException;
 
@@ -54,5 +57,10 @@ public interface PhysicalEngine {
     } catch (ExecutionException | InterruptedException e) {
       throw new PhysicalException(e);
     }
+  }
+
+  // 为了兼容过去的接口
+  default RowStream executeAsRowStream(RequestContext ctx, Operator root) throws PhysicalException {
+    return new BatchStreamToRowStreamWrapper(execute(ctx, root), TaskMetrics.NO_OP);
   }
 }

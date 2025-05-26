@@ -46,6 +46,7 @@ public class Result {
 
   private Status status;
   private List<ByteBuffer> arrowData;
+  private long queryPoints;
 
   private List<String> paths;
   private List<DataType> dataTypes;
