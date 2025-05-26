@@ -20,20 +20,22 @@
 package cn.edu.tsinghua.iginx.engine.shared;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.VectorSchemaRoots;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.util.Batch;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.file.CSVFile;
 import cn.edu.tsinghua.iginx.engine.shared.file.write.ExportCsv;
 import cn.edu.tsinghua.iginx.exception.StatusCode;
 import cn.edu.tsinghua.iginx.thrift.*;
-import cn.edu.tsinghua.iginx.utils.Bitmap;
 import cn.edu.tsinghua.iginx.utils.ByteUtils;
 import cn.edu.tsinghua.iginx.utils.RpcUtils;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.*;
 import lombok.Data;
+import org.apache.arrow.memory.BufferAllocator;
+import org.apache.arrow.vector.VectorSchemaRoot;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,12 +45,14 @@ public class Result {
   private static final Logger LOGGER = LoggerFactory.getLogger(Result.class);
 
   private Status status;
+  private List<ByteBuffer> arrowData;
+  private long queryPoints;
+
   private List<String> paths;
-  private List<Map<String, String>> tagsList;
   private List<DataType> dataTypes;
-  private Long[] keys;
-  private List<ByteBuffer> valuesList;
-  private List<ByteBuffer> bitmapList;
+
+  private BatchStream batchStream;
+  private VectorSchemaRoot streamCache;
 
   private SqlType sqlType;
   private Long pointsNum;
@@ -97,66 +101,31 @@ public class Result {
 
   public QueryDataResp getQueryDataResp() {
     QueryDataResp resp = new QueryDataResp(status);
-    resp.setPaths(paths);
-    resp.setTagsList(tagsList);
-    resp.setDataTypeList(dataTypes);
-    if (keys == null || keys.length == 0) {
-      resp.setQueryDataSet(
-          new QueryDataSet(ByteBuffer.allocate(0), new ArrayList<>(), new ArrayList<>()));
-      return resp;
-    }
-    ByteBuffer keyBuffer = ByteUtils.getByteBufferFromLongArray(keys);
-    resp.setQueryDataSet(new QueryDataSet(keyBuffer, valuesList, bitmapList));
+    resp.setQueryArrowData(arrowData);
     return resp;
   }
 
   public AggregateQueryResp getAggregateQueryResp() {
     AggregateQueryResp resp = new AggregateQueryResp(status);
-    resp.setPaths(paths);
-    resp.setTagsList(tagsList);
-    resp.setDataTypeList(dataTypes);
-    if (valuesList == null || valuesList.size() == 0) {
-      resp.setValuesList(ByteBuffer.allocate(0));
-      return resp;
-    }
-    resp.setValuesList(valuesList.get(0));
+    resp.setQueryArrowData(arrowData);
     return resp;
   }
 
   public DownsampleQueryResp getDownSampleQueryResp() {
     DownsampleQueryResp resp = new DownsampleQueryResp(status);
-    resp.setPaths(paths);
-    resp.setTagsList(tagsList);
-    resp.setDataTypeList(dataTypes);
-    if (keys == null || keys.length == 0) {
-      resp.setQueryDataSet(
-          new QueryDataSet(ByteBuffer.allocate(0), new ArrayList<>(), new ArrayList<>()));
-      return resp;
-    }
-    ByteBuffer keyBuffer = ByteUtils.getByteBufferFromLongArray(keys);
-    resp.setQueryDataSet(new QueryDataSet(keyBuffer, valuesList, bitmapList));
+    resp.setQueryArrowData(arrowData);
     return resp;
   }
 
   public LastQueryResp getLastQueryResp() {
     LastQueryResp resp = new LastQueryResp(status);
-    resp.setPaths(paths);
-    resp.setTagsList(tagsList);
-    resp.setDataTypeList(dataTypes);
-    if (keys == null || keys.length == 0) {
-      resp.setQueryDataSet(
-          new QueryDataSet(ByteBuffer.allocate(0), new ArrayList<>(), new ArrayList<>()));
-      return resp;
-    }
-    ByteBuffer keyBuffer = ByteUtils.getByteBufferFromLongArray(keys);
-    resp.setQueryDataSet(new QueryDataSet(keyBuffer, valuesList, bitmapList));
+    resp.setQueryArrowData(arrowData);
     return resp;
   }
 
   public ShowColumnsResp getShowColumnsResp() {
     ShowColumnsResp resp = new ShowColumnsResp(status);
     resp.setPaths(paths);
-    resp.setTagsList(tagsList);
     resp.setDataTypeList(dataTypes);
     return resp;
   }
@@ -170,19 +139,10 @@ public class Result {
 
     resp.setReplicaNum(replicaNum);
     resp.setPointsNum(pointsNum);
-    resp.setPaths(paths);
-    resp.setTagsList(tagsList);
-    resp.setDataTypeList(dataTypes);
+    resp.setQueryArrowData(arrowData);
 
-    if (valuesList != null) {
-      if (keys != null) {
-        ByteBuffer keyBuffer = ByteUtils.getByteBufferFromLongArray(keys);
-        resp.setKeys(keyBuffer);
-        resp.setQueryDataSet(new QueryDataSet(keyBuffer, valuesList, bitmapList));
-      } else {
-        resp.setQueryDataSet(new QueryDataSet(ByteBuffer.allocate(0), valuesList, bitmapList));
-      }
-    }
+    resp.setPaths(paths);
+    resp.setDataTypeList(dataTypes);
 
     resp.setIginxInfos(iginxInfos);
     resp.setStorageEngineInfos(storageEngineInfos);
@@ -207,71 +167,16 @@ public class Result {
     return resp;
   }
 
-  public ExecuteStatementResp getExecuteStatementResp(int fetchSize) {
+  public ExecuteStatementResp getExecuteStatementResp(BufferAllocator allocator, int fetchSize) {
     ExecuteStatementResp resp = new ExecuteStatementResp(status, sqlType);
     resp.setWarningMsg(status.getMessage());
     if (status != RpcUtils.SUCCESS && status.code != StatusCode.PARTIAL_SUCCESS.getStatusCode()) {
       return resp;
     }
     resp.setQueryId(queryId);
+
     try {
-      List<String> paths = new ArrayList<>();
-      List<Map<String, String>> tagsList = new ArrayList<>();
-      List<DataType> types = new ArrayList<>();
-
-      Header header = resultStream.getHeader();
-
-      if (header.hasKey()) {
-        paths.add(Field.KEY.getFullName());
-        types.add(Field.KEY.getType());
-        tagsList.add(new HashMap<>());
-      }
-
-      resultStream
-          .getHeader()
-          .getFields()
-          .forEach(
-              field -> {
-                paths.add(field.getFullName());
-                types.add(field.getType());
-                if (field.getTags() == null) {
-                  tagsList.add(new HashMap<>());
-                } else {
-                  tagsList.add(field.getTags());
-                }
-              });
-
-      List<ByteBuffer> valuesList = new ArrayList<>();
-      List<ByteBuffer> bitmapList = new ArrayList<>();
-
-      int cnt = 0;
-      boolean hasKey = resultStream.getHeader().hasKey();
-      while (resultStream.hasNext() && cnt < fetchSize) {
-        Row row = resultStream.next();
-
-        Object[] rawValues = row.getValues();
-        Object[] rowValues = rawValues;
-        if (hasKey) {
-          rowValues = new Object[rawValues.length + 1];
-          rowValues[0] = row.getKey();
-          System.arraycopy(rawValues, 0, rowValues, 1, rawValues.length);
-        }
-        valuesList.add(ByteUtils.getRowByteBuffer(rowValues, types));
-
-        Bitmap bitmap = new Bitmap(rowValues.length);
-        for (int i = 0; i < rowValues.length; i++) {
-          if (rowValues[i] != null) {
-            bitmap.mark(i);
-          }
-        }
-        bitmapList.add(ByteBuffer.wrap(bitmap.getBytes()));
-        cnt++;
-      }
-      resp.setColumns(paths);
-      resp.setTagsList(tagsList);
-      resp.setDataTypeList(types);
-      resp.setQueryDataSet(new QueryDataSetV2(valuesList, bitmapList));
-
+      resp.setQueryArrowData(getArrowDataFromStream(allocator, fetchSize));
       // OUTFILE AS STREAM
       resp.setExportStreamDir(exportByteStreamDir);
 
@@ -288,10 +193,11 @@ public class Result {
                 (short) csvFile.getEscaped(),
                 csvFile.getRecordSeparator()));
       }
-    } catch (PhysicalException e) {
+    } catch (IOException | PhysicalException e) {
       LOGGER.error("unexpected error when load row stream: ", e);
       resp.setStatus(RpcUtils.FAILURE);
     }
+
     return resp;
   }
 
@@ -317,55 +223,118 @@ public class Result {
     return resp;
   }
 
-  public FetchResultsResp fetch(int fetchSize) {
+  public FetchResultsResp fetch(BufferAllocator allocator, int fetchSize) {
     FetchResultsResp resp = new FetchResultsResp(status, false);
 
     if (status != RpcUtils.SUCCESS && status.code != StatusCode.PARTIAL_SUCCESS.getStatusCode()) {
       return resp;
     }
+
     try {
-      List<DataType> types = new ArrayList<>();
-
-      Header header = resultStream.getHeader();
-
-      if (header.hasKey()) {
-        types.add(Field.KEY.getType());
-      }
-
-      resultStream.getHeader().getFields().forEach(field -> types.add(field.getType()));
-
-      List<ByteBuffer> valuesList = new ArrayList<>();
-      List<ByteBuffer> bitmapList = new ArrayList<>();
-
-      int cnt = 0;
-      boolean hasKey = resultStream.getHeader().hasKey();
-      while (resultStream.hasNext() && cnt < fetchSize) {
-        Row row = resultStream.next();
-
-        Object[] rawValues = row.getValues();
-        Object[] rowValues = rawValues;
-        if (hasKey) {
-          rowValues = new Object[rawValues.length + 1];
-          rowValues[0] = row.getKey();
-          System.arraycopy(rawValues, 0, rowValues, 1, rawValues.length);
-        }
-        valuesList.add(ByteUtils.getRowByteBuffer(rowValues, types));
-
-        Bitmap bitmap = new Bitmap(rowValues.length);
-        for (int i = 0; i < rowValues.length; i++) {
-          if (rowValues[i] != null) {
-            bitmap.mark(i);
-          }
-        }
-        bitmapList.add(ByteBuffer.wrap(bitmap.getBytes()));
-        cnt++;
-      }
-      resp.setHasMoreResults(resultStream.hasNext());
-      resp.setQueryDataSet(new QueryDataSetV2(valuesList, bitmapList));
-    } catch (PhysicalException e) {
+      resp.setQueryArrowData(getArrowDataFromStream(allocator, fetchSize));
+      resp.setHasMoreResults(batchStream.hasNext() || streamCache != null);
+    } catch (IOException | PhysicalException e) {
       LOGGER.error("unexpected error when load row stream: ", e);
       resp.setStatus(RpcUtils.FAILURE);
     }
     return resp;
+  }
+
+  private List<ByteBuffer> getArrowDataFromStream(BufferAllocator allocator, int fetchSize)
+      throws PhysicalException, IOException {
+    List<ByteBuffer> dataList;
+    VectorSchemaRoot output = null, rest = null;
+    if (!batchStream.hasNext()) {
+      if (streamCache != null) {
+        if (streamCache.getRowCount() <= fetchSize) {
+          dataList = writeBytesWithClose(streamCache);
+          cleanup();
+          return dataList;
+        } else {
+          try {
+            output = streamCache.slice(0, fetchSize);
+            rest = streamCache.slice(fetchSize, streamCache.getRowCount() - fetchSize);
+            streamCache.close();
+            streamCache = rest; // 保存剩余部分
+          } catch (Exception e) {
+            // 出错立即清理
+            if (output != null) output.close();
+            if (rest != null) rest.close();
+            throw e;
+          }
+          return writeBytesWithClose(output);
+        }
+      }
+      // empty result
+      VectorSchemaRoot root = VectorSchemaRoot.create(batchStream.getSchema().raw(), allocator);
+      root.setRowCount(0);
+      dataList = writeBytesWithClose(root);
+      return dataList;
+    }
+    try {
+      if (streamCache == null) {
+        try (Batch batch = batchStream.getNext()) {
+          streamCache = VectorSchemaRoots.transfer(allocator, batch.flattened(allocator));
+        }
+      }
+      int count = streamCache.getRowCount();
+      while (count < fetchSize && batchStream.hasNext()) {
+        try (Batch batch = batchStream.getNext()) {
+          VectorSchemaRoots.append(streamCache, batch.flattened(allocator));
+          count += batch.getRowCount();
+        }
+      }
+      if (count <= fetchSize) {
+        output = streamCache;
+        streamCache = null;
+      } else {
+        try {
+          output = streamCache.slice(0, fetchSize);
+          rest = streamCache.slice(fetchSize, streamCache.getRowCount() - fetchSize);
+          streamCache.close();
+          streamCache = rest; // 保存剩余部分
+        } catch (Exception e) {
+          // 出错立即清理
+          if (output != null) output.close();
+          if (rest != null) rest.close();
+          throw e;
+        }
+      }
+
+      dataList = writeBytesWithClose(output);
+
+    } catch (PhysicalException | IOException e) {
+      LOGGER.error("Failed to process stream data", e);
+      cleanup();
+      if (output != null) output.close();
+      if (rest != null) rest.close();
+      throw e;
+    }
+    return dataList;
+  }
+
+  private List<ByteBuffer> writeBytesWithClose(VectorSchemaRoot output) throws IOException {
+    List<ByteBuffer> dataList = new ArrayList<>();
+    try {
+      ByteBuffer buffer = ByteUtils.getBytesFromVectorOfIginx(output);
+      dataList.add(buffer);
+    } finally {
+      output.close();
+    }
+    return dataList;
+  }
+
+  public void cleanup() {
+    if (streamCache != null) {
+      streamCache.close();
+      streamCache = null;
+    }
+    if (batchStream != null) {
+      try {
+        batchStream.close();
+      } catch (PhysicalException e) {
+        LOGGER.error("unexpected error when closing stream", e);
+      }
+    }
   }
 }

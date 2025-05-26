@@ -24,6 +24,7 @@ import cn.edu.tsinghua.iginx.engine.shared.source.GlobalSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 import cn.edu.tsinghua.iginx.metadata.entity.FragmentMeta;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageUnitMeta;
+import java.util.ArrayList;
 import java.util.List;
 
 public class Migration extends AbstractUnaryOperator {
@@ -58,7 +59,10 @@ public class Migration extends AbstractUnaryOperator {
   @Override
   public Operator copy() {
     return new Migration(
-        (GlobalSource) getSource().copy(), fragmentMeta, paths, targetStorageUnitMeta);
+        (GlobalSource) getSource().copy(),
+        fragmentMeta.copy(),
+        new ArrayList<>(paths),
+        targetStorageUnitMeta.copy());
   }
 
   @Override
