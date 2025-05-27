@@ -169,7 +169,11 @@ public class IParquetReader implements Closeable {
     if (primitiveType.getRepetition().equals(PrimitiveType.Repetition.REPEATED)) {
       return DataType.BINARY;
     }
-    switch (primitiveType.getPrimitiveTypeName()) {
+    return toIginxType(primitiveType.getPrimitiveTypeName());
+  }
+
+  public static DataType toIginxType(PrimitiveType.PrimitiveTypeName primitiveTypeName) {
+    switch (primitiveTypeName) {
       case BOOLEAN:
         return DataType.BOOLEAN;
       case INT32:
@@ -181,10 +185,11 @@ public class IParquetReader implements Closeable {
       case DOUBLE:
         return DataType.DOUBLE;
       case BINARY:
+      case INT96:
+      case FIXED_LEN_BYTE_ARRAY:
         return DataType.BINARY;
       default:
-        throw new RuntimeException(
-            "Unsupported data type: " + primitiveType.getPrimitiveTypeName());
+        throw new IllegalArgumentException("Unsupported primitive type name: " + primitiveTypeName);
     }
   }
 

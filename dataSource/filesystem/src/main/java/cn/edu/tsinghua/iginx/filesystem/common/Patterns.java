@@ -30,7 +30,7 @@ import javax.annotation.Nullable;
 public class Patterns {
   private Patterns() {}
 
-  private static final String STAR = "*";
+  public static final String STAR = "*";
 
   public static boolean isAll(String pattern) {
     return pattern.equals(STAR);
@@ -71,6 +71,27 @@ public class Patterns {
       return true;
     }
     return patterns.stream().anyMatch(pattern -> startsWith(pattern, subPrefix));
+  }
+
+  public static String removePrefix(String pattern, @Nullable String prefix) {
+    if (prefix == null) {
+      return pattern;
+    }
+    String prefixStringPrefix = IginxPaths.toStringPrefix(prefix);
+    String patternStringPrefix = IginxPaths.toStringPrefix(pattern);
+
+    if (patternStringPrefix.startsWith(prefixStringPrefix)) {
+      return IginxPaths.fromStringPrefix(
+          patternStringPrefix.substring(prefixStringPrefix.length()));
+    } else {
+      String commonPrefix = Strings.commonPrefix(patternStringPrefix, prefixStringPrefix);
+      String patternWithoutCommonPrefix = patternStringPrefix.substring(commonPrefix.length());
+      if (patternWithoutCommonPrefix.startsWith(STAR)) {
+        return IginxPaths.fromStringPrefix(patternWithoutCommonPrefix);
+      } else {
+        throw new IllegalArgumentException(pattern + " does not start with " + prefix);
+      }
+    }
   }
 
   private static final List<String> ALL = Collections.singletonList(STAR);

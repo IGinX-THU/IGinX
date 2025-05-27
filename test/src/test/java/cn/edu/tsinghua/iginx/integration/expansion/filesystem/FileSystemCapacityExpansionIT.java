@@ -86,8 +86,10 @@ public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
   @Override
   public void testShowColumns() {
     super.testShowColumns();
+    testAddRemoveAndShowDummyColumns();
+  }
 
-    // show dummy columns
+  private void testAddRemoveAndShowDummyColumns() {
     try (TempDummyDataSource ignoredFileTree =
             new TempDummyDataSource(session, 16667, filesystem, getLegacyFileSystemDummyParams());
         TempDummyDataSource ignoredLegacyFileSystem =
@@ -101,6 +103,7 @@ public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
 
   @Test
   public void testDummy() {
+    testAddRemoveAndShowDummyColumns();
     testQuerySpecialHistoryData();
   }
 
@@ -152,49 +155,63 @@ public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
     String statement = "SHOW COLUMNS a.*;";
     String expected =
         "Columns:\n"
-            + "+--------------------------------------+--------+\n"
-            + "|                                  Path|DataType|\n"
-            + "+--------------------------------------+--------+\n"
-            + "|                        a.Iris\\parquet|  BINARY|\n"
-            + "|           a.Iris\\parquet.petal.length|  DOUBLE|\n"
-            + "|            a.Iris\\parquet.petal.width|  DOUBLE|\n"
-            + "|           a.Iris\\parquet.sepal.length|  DOUBLE|\n"
-            + "|            a.Iris\\parquet.sepal.width|  DOUBLE|\n"
-            + "|                a.Iris\\parquet.variety|  BINARY|\n"
-            + "|                         a.b.c.d.1\\txt|  BINARY|\n"
-            + "|                             a.e.2\\txt|  BINARY|\n"
-            + "|                           a.f.g.3\\txt|  BINARY|\n"
-            + "|                   a.floatTest\\parquet|  BINARY|\n"
-            + "|        a.floatTest\\parquet.floatValue|   FLOAT|\n"
-            + "|               a.other.MT cars\\parquet|  BINARY|\n"
-            + "|            a.other.MT cars\\parquet.am| INTEGER|\n"
-            + "|          a.other.MT cars\\parquet.carb| INTEGER|\n"
-            + "|           a.other.MT cars\\parquet.cyl| INTEGER|\n"
-            + "|          a.other.MT cars\\parquet.disp|  DOUBLE|\n"
-            + "|          a.other.MT cars\\parquet.drat|  DOUBLE|\n"
-            + "|          a.other.MT cars\\parquet.gear| INTEGER|\n"
-            + "|            a.other.MT cars\\parquet.hp| INTEGER|\n"
-            + "|         a.other.MT cars\\parquet.model|  BINARY|\n"
-            + "|           a.other.MT cars\\parquet.mpg|  DOUBLE|\n"
-            + "|          a.other.MT cars\\parquet.qsec|  DOUBLE|\n"
-            + "|            a.other.MT cars\\parquet.vs| INTEGER|\n"
-            + "|            a.other.MT cars\\parquet.wt|  DOUBLE|\n"
-            + "|                 a.other.price\\parquet|  BINARY|\n"
-            + "| a.other.price\\parquet.airconditioning|  BINARY|\n"
-            + "|            a.other.price\\parquet.area|    LONG|\n"
-            + "|        a.other.price\\parquet.basement|  BINARY|\n"
-            + "|       a.other.price\\parquet.bathrooms|    LONG|\n"
-            + "|        a.other.price\\parquet.bedrooms|    LONG|\n"
-            + "|a.other.price\\parquet.furnishingstatus|  BINARY|\n"
-            + "|       a.other.price\\parquet.guestroom|  BINARY|\n"
-            + "| a.other.price\\parquet.hotwaterheating|  BINARY|\n"
-            + "|        a.other.price\\parquet.mainroad|  BINARY|\n"
-            + "|         a.other.price\\parquet.parking|    LONG|\n"
-            + "|        a.other.price\\parquet.prefarea|  BINARY|\n"
-            + "|           a.other.price\\parquet.price|    LONG|\n"
-            + "|         a.other.price\\parquet.stories|    LONG|\n"
-            + "+--------------------------------------+--------+\n"
-            + "Total line number = 38\n";
+            + "+-----------------------------------------------------+--------+\n"
+            + "|                                                 Path|DataType|\n"
+            + "+-----------------------------------------------------+--------+\n"
+            + "|                                       a.Iris\\parquet|  BINARY|\n"
+            + "|                          a.Iris\\parquet.petal.length|  DOUBLE|\n"
+            + "|                           a.Iris\\parquet.petal.width|  DOUBLE|\n"
+            + "|                          a.Iris\\parquet.sepal.length|  DOUBLE|\n"
+            + "|                           a.Iris\\parquet.sepal.width|  DOUBLE|\n"
+            + "|                               a.Iris\\parquet.variety|  BINARY|\n"
+            + "|                                        a.b.c.d.1\\txt|  BINARY|\n"
+            + "|                                            a.e.2\\txt|  BINARY|\n"
+            + "|                                          a.f.g.3\\txt|  BINARY|\n"
+            + "|                                  a.floatTest\\parquet|  BINARY|\n"
+            + "|                       a.floatTest\\parquet.floatValue|   FLOAT|\n"
+            + "|                              a.other.MT cars\\parquet|  BINARY|\n"
+            + "|                           a.other.MT cars\\parquet.am| INTEGER|\n"
+            + "|                         a.other.MT cars\\parquet.carb| INTEGER|\n"
+            + "|                          a.other.MT cars\\parquet.cyl| INTEGER|\n"
+            + "|                         a.other.MT cars\\parquet.disp|  DOUBLE|\n"
+            + "|                         a.other.MT cars\\parquet.drat|  DOUBLE|\n"
+            + "|                         a.other.MT cars\\parquet.gear| INTEGER|\n"
+            + "|                           a.other.MT cars\\parquet.hp| INTEGER|\n"
+            + "|                        a.other.MT cars\\parquet.model|  BINARY|\n"
+            + "|                          a.other.MT cars\\parquet.mpg|  DOUBLE|\n"
+            + "|                         a.other.MT cars\\parquet.qsec|  DOUBLE|\n"
+            + "|                           a.other.MT cars\\parquet.vs| INTEGER|\n"
+            + "|                           a.other.MT cars\\parquet.wt|  DOUBLE|\n"
+            + "|                                a.other.price\\parquet|  BINARY|\n"
+            + "|                a.other.price\\parquet.airconditioning|  BINARY|\n"
+            + "|                           a.other.price\\parquet.area|    LONG|\n"
+            + "|                       a.other.price\\parquet.basement|  BINARY|\n"
+            + "|                      a.other.price\\parquet.bathrooms|    LONG|\n"
+            + "|                       a.other.price\\parquet.bedrooms|    LONG|\n"
+            + "|               a.other.price\\parquet.furnishingstatus|  BINARY|\n"
+            + "|                      a.other.price\\parquet.guestroom|  BINARY|\n"
+            + "|                a.other.price\\parquet.hotwaterheating|  BINARY|\n"
+            + "|                       a.other.price\\parquet.mainroad|  BINARY|\n"
+            + "|                        a.other.price\\parquet.parking|    LONG|\n"
+            + "|                       a.other.price\\parquet.prefarea|  BINARY|\n"
+            + "|                          a.other.price\\parquet.price|    LONG|\n"
+            + "|                        a.other.price\\parquet.stories|    LONG|\n"
+            + "|                                   a.userdata\\parquet|  BINARY|\n"
+            + "|                      a.userdata\\parquet.address.city|  BINARY|\n"
+            + "|      a.userdata\\parquet.address.coordinates.latitude|  DOUBLE|\n"
+            + "|     a.userdata\\parquet.address.coordinates.longitude|  DOUBLE|\n"
+            + "|                    a.userdata\\parquet.address.street|  BINARY|\n"
+            + "|                              a.userdata\\parquet.name|  BINARY|\n"
+            + "|     a.userdata\\parquet.order_history.*.items.*.price|  DOUBLE|\n"
+            + "|a.userdata\\parquet.order_history.*.items.*.product_id|  BINARY|\n"
+            + "|  a.userdata\\parquet.order_history.*.items.*.quantity| INTEGER|\n"
+            + "|        a.userdata\\parquet.order_history.*.order_date|    LONG|\n"
+            + "|          a.userdata\\parquet.order_history.*.order_id|  BINARY|\n"
+            + "|             a.userdata\\parquet.order_history.*.total|  DOUBLE|\n"
+            + "|                   a.userdata\\parquet.phone_numbers.*|  BINARY|\n"
+            + "|                           a.userdata\\parquet.user_id|  BINARY|\n"
+            + "+-----------------------------------------------------+--------+\n"
+            + "Total line number = 52\n";
     SQLTestTools.executeAndCompare(session, statement, expected);
   }
 
