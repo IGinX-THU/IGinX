@@ -28,7 +28,7 @@ public class PythonTask extends Task {
 
   private String pyTaskName = "";
 
-  private String pyOutputTable;
+  private String pyOutputPathPrefix;
 
   public PythonTask(TaskInfo info) {
     super(info);
@@ -37,8 +37,8 @@ public class PythonTask extends Task {
     } else {
       throw new IllegalArgumentException("Python task must have class name.");
     }
-    if (info.isSetPyOutputTable()) {
-      pyOutputTable = info.getPyOutputTable().trim();
+    if (info.isSetPyOutputPathPrefix()) {
+      pyOutputPathPrefix = info.getPyOutputPathPrefix().trim();
     }
   }
 
@@ -49,8 +49,8 @@ public class PythonTask extends Task {
     } else {
       throw new IllegalArgumentException("Python task must have class name.");
     }
-    if (info.isSetPyOutputTable()) {
-      pyOutputTable = info.getPyOutputTable().trim();
+    if (info.isSetPyOutputPathPrefix()) {
+      pyOutputPathPrefix = info.getPyOutputPathPrefix().trim();
     }
   }
 
@@ -65,11 +65,11 @@ public class PythonTask extends Task {
     return pyTaskName;
   }
 
-  public String getPyOutputTable() {
-    return pyOutputTable;
+  public String getPyOutputPathPrefix() {
+    return pyOutputPathPrefix;
   }
 
-  public boolean isSetPyOutputTable() {
-    return pyOutputTable != null;
+  public boolean isSetPyOutputPathPrefix() {
+    return pyOutputPathPrefix != null;
   }
 }

@@ -27,7 +27,7 @@ public class TaskFromYAML {
   private String dataFlowType;
   private long timeout;
   private String pyTaskName;
-  private String pyOutputTable;
+  private String pyOutputPathPrefix;
   private List<String> sqlList;
 
   public TaskFromYAML() {}
@@ -64,16 +64,16 @@ public class TaskFromYAML {
     this.pyTaskName = pyTaskName;
   }
 
-  public String getPyOutputTable() {
-    return pyOutputTable;
+  public String getPyOutputPathPrefix() {
+    return pyOutputPathPrefix;
   }
 
-  public void setPyOutputTable(String pyOutputTable) {
-    this.pyOutputTable = pyOutputTable;
+  public void setPyOutputPathPrefix(String pyOutputPathPrefix) {
+    this.pyOutputPathPrefix = pyOutputPathPrefix;
   }
 
-  public boolean isSetPyOutputTable() {
-    return pyOutputTable != null;
+  public boolean isSetPyOutputPathPrefix() {
+    return pyOutputPathPrefix != null;
   }
 
   public List<String> getSqlList() {

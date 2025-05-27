@@ -144,7 +144,7 @@ public class Job {
           // used. We mark
           // it and clear it after all tasks.
           String previousPythonOutputTableName =
-              ((PythonTask) stageTasks.get(stageTasks.size() - 1)).getPyOutputTable();
+              ((PythonTask) stageTasks.get(stageTasks.size() - 1)).getPyOutputPathPrefix();
           pyTables.add(previousPythonOutputTableName);
           stage =
               new StreamStage(
@@ -260,7 +260,7 @@ public class Job {
       taskFromYAML.setTimeout(task.getTimeLimit());
       if (task.isPythonTask()) {
         taskFromYAML.setPyTaskName(((PythonTask) task).getPyTaskName());
-        taskFromYAML.setPyOutputTable(((PythonTask) task).getPyOutputTable());
+        taskFromYAML.setPyOutputPathPrefix(((PythonTask) task).getPyOutputPathPrefix());
       } else {
         taskFromYAML.setSqlList(((IginXTask) task).getSqlList());
       }

@@ -35,7 +35,7 @@ import org.slf4j.LoggerFactory;
 public class JobValidationChecker implements Checker {
   private static final Logger LOGGER = LoggerFactory.getLogger(JobValidationChecker.class);
 
-  private static final Set<String> pyOutputTableNames = new ConcurrentSkipListSet<>();
+  private static final Set<String> pyOutputPathPrefixs = new ConcurrentSkipListSet<>();
 
   private static JobValidationChecker instance;
 
@@ -54,7 +54,7 @@ public class JobValidationChecker implements Checker {
 
   @Override
   public boolean check(Job job) {
-    pyOutputTableNames.clear();
+    pyOutputPathPrefixs.clear();
     List<Task> taskList = job.getTaskList();
     if (taskList == null || taskList.isEmpty()) {
       LOGGER.error("Committed job task list is empty.");
@@ -143,16 +143,16 @@ public class JobValidationChecker implements Checker {
       return false;
     }
     PythonTask pythonTask = (PythonTask) task;
-    if (pythonTask.isSetPyOutputTable()) {
-      if (!pythonTask.getPyOutputTable().matches("[a-zA-Z0-9]+")) {
+    if (pythonTask.isSetPyOutputPathPrefix()) {
+      if (!pythonTask.getPyOutputPathPrefix().matches("[a-zA-Z0-9]+")) {
         LOGGER.error(
             "Python task output table name can only contain numbers or alphabets, got: {}.",
-            pythonTask.getPyOutputTable());
+            pythonTask.getPyOutputPathPrefix());
         return false;
-      } else if (!pyOutputTableNames.add(pythonTask.getPyOutputTable())) {
+      } else if (!pyOutputPathPrefixs.add(pythonTask.getPyOutputPathPrefix())) {
         LOGGER.error(
             "Got duplicated python output table name in different tasks: {}.",
-            pythonTask.getPyOutputTable());
+            pythonTask.getPyOutputPathPrefix());
         return false;
       }
     }
