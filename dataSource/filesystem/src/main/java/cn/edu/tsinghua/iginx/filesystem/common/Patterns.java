@@ -21,9 +21,7 @@ package cn.edu.tsinghua.iginx.filesystem.common;
 
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import com.google.common.base.Strings;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
@@ -73,25 +71,44 @@ public class Patterns {
     return patterns.stream().anyMatch(pattern -> startsWith(pattern, subPrefix));
   }
 
-  public static String removePrefix(String pattern, @Nullable String prefix) {
+  public static List<String> removePrefix(String pattern, @Nullable String prefix) {
     if (prefix == null) {
-      return pattern;
+      return Collections.singletonList(pattern);
     }
-    String prefixStringPrefix = IginxPaths.toStringPrefix(prefix);
-    String patternStringPrefix = IginxPaths.toStringPrefix(pattern);
 
-    if (patternStringPrefix.startsWith(prefixStringPrefix)) {
-      return IginxPaths.fromStringPrefix(
-          patternStringPrefix.substring(prefixStringPrefix.length()));
-    } else {
-      String commonPrefix = Strings.commonPrefix(patternStringPrefix, prefixStringPrefix);
-      String patternWithoutCommonPrefix = patternStringPrefix.substring(commonPrefix.length());
-      if (patternWithoutCommonPrefix.startsWith(STAR)) {
-        return IginxPaths.fromStringPrefix(patternWithoutCommonPrefix);
-      } else {
-        throw new IllegalArgumentException(pattern + " does not start with " + prefix);
+    String patternStringPrefix = IginxPaths.toStringPrefix(pattern);
+    String prefixStringPrefix = IginxPaths.toStringPrefix(prefix);
+
+    return doRemovePrefix(patternStringPrefix, prefixStringPrefix).stream()
+        .map(IginxPaths::fromStringPrefix)
+        .collect(Collectors.toList());
+  }
+
+  private static Set<String> doRemovePrefix(String patternStringPrefix, String prefixStringPrefix) {
+    String commonPrefix = Strings.commonPrefix(patternStringPrefix, prefixStringPrefix);
+    patternStringPrefix = patternStringPrefix.substring(commonPrefix.length());
+    prefixStringPrefix = prefixStringPrefix.substring(commonPrefix.length());
+    if (prefixStringPrefix.isEmpty()) {
+      return Collections.singleton(patternStringPrefix);
+    }
+
+    String wildcardPrefix = STAR + IginxPaths.DOT;
+    if (!patternStringPrefix.startsWith(wildcardPrefix)) {
+      return Collections.emptySet();
+    }
+
+    Set<String> results = new HashSet<>();
+    results.add(patternStringPrefix);
+    if (patternStringPrefix.length() > wildcardPrefix.length()) {
+      patternStringPrefix = patternStringPrefix.substring(wildcardPrefix.length());
+      while (prefixStringPrefix.contains(IginxPaths.DOT)) {
+        prefixStringPrefix =
+            prefixStringPrefix.substring(
+                prefixStringPrefix.indexOf(IginxPaths.DOT) + IginxPaths.DOT.length());
+        results.addAll(doRemovePrefix(patternStringPrefix, prefixStringPrefix));
       }
     }
+    return results;
   }
 
   private static final List<String> ALL = Collections.singletonList(STAR);

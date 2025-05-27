@@ -57,19 +57,6 @@ public class ProjectUtils {
     return builder.named(schema.getName());
   }
 
-  public static List<Field> toFields(MessageType schema) {
-    List<Field> fields = new ArrayList<>();
-    for (Type type : schema.getFields()) {
-      if (!type.isPrimitive()) {
-        throw new IllegalArgumentException("unsupported parquet type: " + type);
-      }
-      String rawName = type.getName();
-      DataType iType = IParquetReader.toIginxType(type.asPrimitiveType());
-      fields.add(new Field(rawName, iType));
-    }
-    return fields;
-  }
-
   public static MessageType toMessageType(Header header) {
     List<Type> parquetFields = new ArrayList<>();
     if (header.hasKey()) {

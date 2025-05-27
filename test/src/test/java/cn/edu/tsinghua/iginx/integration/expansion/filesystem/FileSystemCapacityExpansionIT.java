@@ -359,5 +359,125 @@ public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
             + "+---+------------------------------+\n"
             + "Total line number = 1\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
+
+    // flat type in parquet that contains complex type
+    statement = "select user_id, name from `a.userdata\\parquet`;";
+    expect =
+        "ResultSets:\n"
+            + "+---+--------------------------+-----------------------+\n"
+            + "|key|a.userdata\\parquet.user_id|a.userdata\\parquet.name|\n"
+            + "+---+--------------------------+-----------------------+\n"
+            + "|  0|                      U001|             John Smith|\n"
+            + "|  1|                      U002|               Jane Doe|\n"
+            + "|  2|                      U003|         Robert Johnson|\n"
+            + "|  3|                      U004|           Emily Wilson|\n"
+            + "|  4|                      U005|           Michael Chen|\n"
+            + "+---+--------------------------+-----------------------+\n"
+            + "Total line number = 5\n";
+    SQLTestTools.executeAndCompare(session, statement, expect);
+
+    // nested type
+    statement = "select city, street, coordinates from `a.userdata\\parquet`.address;";
+    expect =
+        "ResultSets:\n"
+            + "+---+-------------------------------+---------------------------------+\n"
+            + "|key|a.userdata\\parquet.address.city|a.userdata\\parquet.address.street|\n"
+            + "+---+-------------------------------+---------------------------------+\n"
+            + "|  0|                       New York|                  123 Main Street|\n"
+            + "|  1|                         Boston|                   456 Oak Avenue|\n"
+            + "|  2|                        Chicago|                  789 Pine Street|\n"
+            + "|  3|                  San Francisco|                   101 Cedar Road|\n"
+            + "|  4|                        Seattle|                  246 Maple Drive|\n"
+            + "+---+-------------------------------+---------------------------------+\n"
+            + "Total line number = 5\n";
+    SQLTestTools.executeAndCompare(session, statement, expect);
+
+    // nested type with wildcard
+    statement = "select coordinates.* from `a.userdata\\parquet`.address;";
+    expect =
+        "ResultSets:\n"
+            + "+---+-----------------------------------------------+------------------------------------------------+\n"
+            + "|key|a.userdata\\parquet.address.coordinates.latitude|a.userdata\\parquet.address.coordinates.longitude|\n"
+            + "+---+-----------------------------------------------+------------------------------------------------+\n"
+            + "|  0|                                        40.7128|                                         -74.006|\n"
+            + "|  1|                                        42.3601|                                        -71.0589|\n"
+            + "|  2|                                        41.8781|                                        -87.6298|\n"
+            + "|  3|                                        37.7749|                                       -122.4194|\n"
+            + "|  4|                                        47.6062|                                       -122.3321|\n"
+            + "+---+-----------------------------------------------+------------------------------------------------+\n"
+            + "Total line number = 5\n";
+    SQLTestTools.executeAndCompare(session, statement, expect);
+
+    // repeated type
+    statement = "select `1`, `2` from `a.userdata\\parquet`.phone_numbers;";
+    expect =
+        "ResultSets:\n"
+            + "+---+----------------------------------+----------------------------------+\n"
+            + "|key|a.userdata\\parquet.phone_numbers.1|a.userdata\\parquet.phone_numbers.2|\n"
+            + "+---+----------------------------------+----------------------------------+\n"
+            + "|  0|                   +1-555-987-6543|                              null|\n"
+            + "|  2|                   +1-555-456-7890|                   +1-555-567-8901|\n"
+            + "+---+----------------------------------+----------------------------------+\n"
+            + "Total line number = 2\n";
+    SQLTestTools.executeAndCompare(session, statement, expect);
+
+    // repeated with wildcard
+    statement = "select * from `a.userdata\\parquet`.phone_numbers;";
+    expect =
+        "ResultSets:\n"
+            + "+---+----------------------------------+----------------------------------+----------------------------------+\n"
+            + "|key|a.userdata\\parquet.phone_numbers.0|a.userdata\\parquet.phone_numbers.1|a.userdata\\parquet.phone_numbers.2|\n"
+            + "+---+----------------------------------+----------------------------------+----------------------------------+\n"
+            + "|  0|                   +1-555-123-4567|                   +1-555-987-6543|                              null|\n"
+            + "|  1|                   +1-555-234-5678|                              null|                              null|\n"
+            + "|  2|                   +1-555-345-6789|                   +1-555-456-7890|                   +1-555-567-8901|\n"
+            + "|  4|                   +1-555-678-9012|                              null|                              null|\n"
+            + "+---+----------------------------------+----------------------------------+----------------------------------+\n"
+            + "Total line number = 4\n";
+    SQLTestTools.executeAndCompare(session, statement, expect);
+
+    // nested repeated
+    statement =
+        "select `2.order_date`, `1.items.0.product_id` from `a.userdata\\parquet`.order_history;";
+    expect =
+        "ResultSets:\n"
+            + "+---+---------------------------------------------+-----------------------------------------------------+\n"
+            + "|key|a.userdata\\parquet.order_history.2.order_date|a.userdata\\parquet.order_history.1.items.0.product_id|\n"
+            + "+---+---------------------------------------------+-----------------------------------------------------+\n"
+            + "|  0|                                         null|                                                 P300|\n"
+            + "|  4|                                1695915600000|                                                 P100|\n"
+            + "+---+---------------------------------------------+-----------------------------------------------------+\n"
+            + "Total line number = 2\n";
+    SQLTestTools.executeAndCompare(session, statement, expect);
+
+    // nested repeated with wildcard
+    statement = "select *.items.*.price from `a.userdata\\parquet`.order_history;";
+    expect =
+        "ResultSets:\n"
+            + "+---+------------------------------------------------+------------------------------------------------+------------------------------------------------+------------------------------------------------+------------------------------------------------+------------------------------------------------+\n"
+            + "|key|a.userdata\\parquet.order_history.0.items.0.price|a.userdata\\parquet.order_history.0.items.1.price|a.userdata\\parquet.order_history.0.items.2.price|a.userdata\\parquet.order_history.1.items.0.price|a.userdata\\parquet.order_history.1.items.1.price|a.userdata\\parquet.order_history.2.items.0.price|\n"
+            + "+---+------------------------------------------------+------------------------------------------------+------------------------------------------------+------------------------------------------------+------------------------------------------------+------------------------------------------------+\n"
+            + "|  0|                                           29.99|                                           49.99|                                            null|                                           19.99|                                           99.99|                                            null|\n"
+            + "|  1|                                          199.99|                                            null|                                            null|                                            null|                                            null|                                            null|\n"
+            + "|  2|                                           49.99|                                           99.99|                                           29.99|                                            null|                                            null|                                            null|\n"
+            + "|  4|                                           19.99|                                            null|                                            null|                                           29.99|                                           49.99|                                          199.99|\n"
+            + "+---+------------------------------------------------+------------------------------------------------+------------------------------------------------+------------------------------------------------+------------------------------------------------+------------------------------------------------+\n"
+            + "Total line number = 4\n";
+    SQLTestTools.executeAndCompare(session, statement, expect);
+
+    // test filter for complex types
+    // nested repeated with wildcard
+    statement =
+        "select user_id from `a.userdata\\parquet` where order_history.`0`.items.`0`.price > 30.0;";
+    expect =
+        "ResultSets:\n"
+            + "+---+--------------------------+\n"
+            + "|key|a.userdata\\parquet.user_id|\n"
+            + "+---+--------------------------+\n"
+            + "|  1|                      U002|\n"
+            + "|  2|                      U003|\n"
+            + "+---+--------------------------+\n"
+            + "Total line number = 2\n";
+    SQLTestTools.executeAndCompare(session, statement, expect);
   }
 }

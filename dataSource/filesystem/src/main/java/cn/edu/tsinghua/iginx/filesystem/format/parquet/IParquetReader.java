@@ -48,6 +48,7 @@ import shaded.iginx.org.apache.parquet.schema.MessageType;
 import shaded.iginx.org.apache.parquet.schema.PrimitiveType;
 import shaded.iginx.org.apache.parquet.schema.Type;
 
+@Deprecated
 public class IParquetReader implements Closeable {
   private static final Logger LOGGER = LoggerFactory.getLogger(IParquetReader.class);
 
@@ -169,11 +170,7 @@ public class IParquetReader implements Closeable {
     if (primitiveType.getRepetition().equals(PrimitiveType.Repetition.REPEATED)) {
       return DataType.BINARY;
     }
-    return toIginxType(primitiveType.getPrimitiveTypeName());
-  }
-
-  public static DataType toIginxType(PrimitiveType.PrimitiveTypeName primitiveTypeName) {
-    switch (primitiveTypeName) {
+    switch (primitiveType.getPrimitiveTypeName()) {
       case BOOLEAN:
         return DataType.BOOLEAN;
       case INT32:
@@ -185,11 +182,10 @@ public class IParquetReader implements Closeable {
       case DOUBLE:
         return DataType.DOUBLE;
       case BINARY:
-      case INT96:
-      case FIXED_LEN_BYTE_ARRAY:
         return DataType.BINARY;
       default:
-        throw new IllegalArgumentException("Unsupported primitive type name: " + primitiveTypeName);
+        throw new RuntimeException(
+            "Unsupported data type: " + primitiveType.getPrimitiveTypeName());
     }
   }
 
