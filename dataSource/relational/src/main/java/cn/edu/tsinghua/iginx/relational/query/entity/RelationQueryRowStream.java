@@ -164,7 +164,7 @@ public class RelationQueryRowStream implements RowStream {
       int cnt = 0;
       for (int j = 1; j <= resultSetMetaData.getColumnCount(); j++) {
         String tableName = resultSetMetaData.getTableName(j);
-        String columnName = resultSetMetaData.getColumnName(j);
+        String columnName = resultSetMetaData.getColumnLabel(j);
         String columnType = resultSetMetaData.getColumnTypeName(j);
         int precision = resultSetMetaData.getPrecision(j);
         int scale = resultSetMetaData.getScale(j);
@@ -185,7 +185,7 @@ public class RelationQueryRowStream implements RowStream {
 
         if (j == 1 && columnName.equals(KEY_NAME)) {
           key = Field.KEY;
-          this.fullKeyName = resultSetMetaData.getColumnName(j);
+          this.fullKeyName = resultSetMetaData.getColumnLabel(j);
           continue;
         }
         Pair<String, Map<String, String>> namesAndTags = splitFullName(columnName);
@@ -213,16 +213,13 @@ public class RelationQueryRowStream implements RowStream {
                       ? ""
                       : tableName + SEPARATOR)
                   + namesAndTags.k;
-          if (!relationalMeta.supportCreateDatabase()) {
+          if (!isAgg && !relationalMeta.supportCreateDatabase()) {
             path = path.substring(databaseName.length() + 1);
           }
         }
 
         if (isAgg && fullName2Name.containsKey(path)) {
           field = new Field(fullName2Name.get(path), path, type, namesAndTags.v);
-        } else if (isAgg && (engine.equals("dameng")) && !path.contains(SEPARATOR)) {
-          // dameng引擎下，如果是聚合查询，需要将列名加上表名前缀
-          field = new Field(tableName + SEPARATOR + path, type, namesAndTags.v);
         } else {
           field = new Field(path, type, namesAndTags.v);
         }
@@ -446,8 +443,12 @@ public class RelationQueryRowStream implements RowStream {
     }
     ResultSetMetaData resultSetMetaData = resultSet.getMetaData();
     for (int j = 1; j <= resultSetMetaData.getColumnCount(); j++) {
-      String tempColumnName = resultSetMetaData.getColumnName(j);
+      String tempColumnName = resultSetMetaData.getColumnLabel(j);
       String tempTableName = resultSetMetaData.getTableName(j);
+      if (!relationalMeta.supportCreateDatabase()) {
+        int firstSeparatorIndex = tempTableName.indexOf(SEPARATOR);
+        tempTableName = tempTableName.substring(firstSeparatorIndex + 1);
+      }
       if (tempColumnName.equals(columnName)
           && (tempTableName.isEmpty() || tempTableName.equals(tableName))) {
         return resultSet.getObject(j);
