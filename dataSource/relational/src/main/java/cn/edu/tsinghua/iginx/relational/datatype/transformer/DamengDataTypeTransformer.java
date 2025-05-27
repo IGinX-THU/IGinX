@@ -26,44 +26,36 @@ import cn.edu.tsinghua.iginx.thrift.DataType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class DmDataTypeTransformer implements IDataTypeTransformer {
+public class DamengDataTypeTransformer implements IDataTypeTransformer {
   private static final Logger LOGGER = LoggerFactory.getLogger(RelationQueryRowStream.class);
-  private static final DmDataTypeTransformer INSTANCE = new DmDataTypeTransformer();
+  private static final DamengDataTypeTransformer INSTANCE = new DamengDataTypeTransformer();
 
-  public static DmDataTypeTransformer getInstance() {
+  public static DamengDataTypeTransformer getInstance() {
     return INSTANCE;
   }
 
-  // TODO: 需要一个兜底类型，参考 JDBCDataTypeTransformer 将未识别的类型视作 BINRY
   @Override
   public DataType fromEngineType(String dataType, int precision, int scale) {
     if (dataType.equalsIgnoreCase("BYTE") || dataType.equalsIgnoreCase("TINYINT")) {
-      return DataType.BOOLEAN;
+      return BOOLEAN;
     } else if (dataType.equalsIgnoreCase("BIGINT")) {
-      return DataType.LONG;
+      return LONG;
     } else if (dataType.equalsIgnoreCase("INT")
         || dataType.equalsIgnoreCase("SMALLINT")
         || dataType.equalsIgnoreCase("NUMERIC")
         || dataType.equalsIgnoreCase("INTEGER")) {
-      return DataType.INTEGER;
+      return INTEGER;
     } else if (dataType.equalsIgnoreCase("FLOAT")
         || dataType.equalsIgnoreCase("REAL")) { // from getColumns api
-      return DataType.FLOAT;
+      return FLOAT;
     } else if (dataType.equalsIgnoreCase("DOUBLE PRECISION")
         || dataType.equalsIgnoreCase("DOUBLE")
         || dataType.equalsIgnoreCase("DECIMAL")
         || dataType.equalsIgnoreCase("BigDecimal")) {
-      return DataType.DOUBLE;
-    } else if (dataType.equalsIgnoreCase("VARCHAR")
-        || dataType.equalsIgnoreCase("CHAR")
-        || dataType.equalsIgnoreCase("NCHAR")
-        || dataType.equalsIgnoreCase("NVARCHAR")
-        || dataType.equalsIgnoreCase("TEXT")) {
-      return DataType.BINARY;
+      return DOUBLE;
     } else {
-      LOGGER.error("column type {} is not supported", dataType);
+      return BINARY;
     }
-    return null;
   }
 
   public String toEngineType(DataType dataType) {

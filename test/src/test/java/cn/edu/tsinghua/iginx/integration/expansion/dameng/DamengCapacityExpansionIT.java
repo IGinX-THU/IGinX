@@ -19,8 +19,8 @@
  */
 package cn.edu.tsinghua.iginx.integration.expansion.dameng;
 
-import static cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools.executeShellScript;
-import static org.junit.Assert.fail;
+import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.*;
+import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.readOnlyPort;
 
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
@@ -30,8 +30,11 @@ import cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.integration.tool.DBConf;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
-import java.util.Arrays;
-import java.util.List;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,29 +43,40 @@ public class DamengCapacityExpansionIT extends BaseCapacityExpansionIT {
   private static final Logger LOGGER =
       LoggerFactory.getLogger(
           cn.edu.tsinghua.iginx.integration.expansion.dameng.DamengCapacityExpansionIT.class);
+  private static final String newPass = "newPassword";
+  private static final HashMap<Integer, String> portsToUsername = new HashMap<>();
+  private static final HashMap<Integer, String> portsToPassword = new HashMap<>();
+
+  static {
+    ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
+    DBConf dbConf = conf.loadDBConf(conf.getStorageType());
+    Constant.oriPort = dbConf.getDBCEPortMap().get(Constant.ORI_PORT_NAME);
+    Constant.expPort = dbConf.getDBCEPortMap().get(Constant.EXP_PORT_NAME);
+    Constant.readOnlyPort = dbConf.getDBCEPortMap().get(Constant.READ_ONLY_PORT_NAME);
+    portsToUsername.put(oriPort, "SYSDBA");
+    portsToUsername.put(expPort, "SYSDBA");
+    portsToUsername.put(readOnlyPort, "SYSDBA");
+    portsToPassword.put(oriPort, "SYSDBA001");
+    portsToPassword.put(expPort, "SYSDBA001");
+    portsToPassword.put(readOnlyPort, "SYSDBA001");
+  }
 
   public DamengCapacityExpansionIT() {
     super(
         StorageEngineType.relational,
         "engine=dameng, username=SYSDBA, password=SYSDBA001",
         new DamengHistoryDataGenerator());
-    ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
-    DBConf dbConf = conf.loadDBConf(conf.getStorageType());
-    Constant.oriPort = dbConf.getDBCEPortMap().get(Constant.ORI_PORT_NAME);
-    Constant.expPort = dbConf.getDBCEPortMap().get(Constant.EXP_PORT_NAME);
-    Constant.readOnlyPort = dbConf.getDBCEPortMap().get(Constant.READ_ONLY_PORT_NAME);
-    wrongExtraParams.add("username=wrong, password=SYSDBA001");
-    updatedParams.put("password", "newPassword");
+    updatedParams.put("password", newPass);
   }
 
   @Override
   protected void updateParams(int port) {
-    changeParams(port, "SYSDBA001", "newPassword");
+    changeParams(port, portsToPassword.get(port), newPass);
   }
 
   @Override
   protected void restoreParams(int port) {
-    changeParams(port, "newPassword", "SYSDBA001");
+    changeParams(port, newPass, portsToPassword.get(port));
   }
 
   @Override
@@ -76,15 +90,23 @@ public class DamengCapacityExpansionIT extends BaseCapacityExpansionIT {
   }
 
   private void changeParams(int port, String oldPw, String newPw) {
-    String scriptPath = updateParamsScriptDir + "dameng.sh";
-    String os = System.getProperty("os.name").toLowerCase();
-    if (os.contains("win")) {
-      scriptPath = updateParamsScriptDir + "dameng_windows.sh";
+    String username = portsToUsername.get(port);
+    String jdbcUrl =
+        String.format("jdbc:dm://127.0.0.1:%d?user=SYSDBA&password=%s", port, getQuotName(oldPw));
+    try {
+      Class.forName("dm.jdbc.driver.DmDriver");
+    } catch (ClassNotFoundException e) {
+      throw new RuntimeException(e);
     }
-    // 脚本参数：对应端口，旧密码，新密码
-    int res = executeShellScript(scriptPath, String.valueOf(port), oldPw, newPw);
-    if (res != 0) {
-      fail("Fail to update Dameng database params.");
+    try (Connection connection = DriverManager.getConnection(jdbcUrl);
+        Statement stmt = connection.createStatement()) {
+      String alterStmt =
+          String.format(
+              "ALTER USER %s IDENTIFIED BY %s", getQuotName(username), getQuotName(newPw));
+      LOGGER.info("alter statement in {}: {}", port, alterStmt);
+      stmt.execute(alterStmt);
+    } catch (SQLException e) {
+      throw new RuntimeException(e);
     }
   }
 
@@ -137,5 +159,9 @@ public class DamengCapacityExpansionIT extends BaseCapacityExpansionIT {
             + "+-----------------+-------------------+\n"
             + "Total line number = 4\n";
     SQLTestTools.executeAndCompare(session, statement, expected);
+  }
+
+  private static String getQuotName(String name) {
+    return String.format("\"%s\"", name);
   }
 }

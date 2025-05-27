@@ -20,7 +20,7 @@
 package cn.edu.tsinghua.iginx.relational.meta;
 
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
-import cn.edu.tsinghua.iginx.relational.datatype.transformer.DmDataTypeTransformer;
+import cn.edu.tsinghua.iginx.relational.datatype.transformer.DamengDataTypeTransformer;
 import cn.edu.tsinghua.iginx.relational.datatype.transformer.IDataTypeTransformer;
 import cn.edu.tsinghua.iginx.relational.datatype.transformer.JDBCDataTypeTransformer;
 import cn.edu.tsinghua.iginx.relational.datatype.transformer.OracleDataTypeTransformer;
@@ -38,11 +38,15 @@ public class JDBCMeta extends AbstractRelationalMeta {
 
   private final List<String> systemDatabaseName;
 
+  private final List<String> databaseCreatePrivileges;
+
+  private final String queryUserPrivilegesStatement;
+
   private final String databaseQuerySql;
 
   private final String dummyDatabaseQuerySql;
 
-  private final boolean supportCreateDatabase;
+  private boolean supportCreateDatabase;
 
   private final String databaseDropStatement;
 
@@ -90,13 +94,16 @@ public class JDBCMeta extends AbstractRelationalMeta {
     driverClass = properties.getProperty("driver_class");
     defaultDatabaseName = properties.getProperty("default_database");
     if (meta.getExtraParams().get("engine").equalsIgnoreCase("dameng")) {
-      dataTypeTransformer = DmDataTypeTransformer.getInstance();
+      dataTypeTransformer = DamengDataTypeTransformer.getInstance();
     } else if (meta.getExtraParams().get("engine").equalsIgnoreCase("oracle")) {
       dataTypeTransformer = OracleDataTypeTransformer.getInstance();
     } else {
       dataTypeTransformer = new JDBCDataTypeTransformer(properties);
     }
     systemDatabaseName = Arrays.asList(properties.getProperty("system_databases").split(","));
+    databaseCreatePrivileges =
+        Arrays.asList(properties.getProperty("database_create_privileges", "").split(","));
+    queryUserPrivilegesStatement = properties.getProperty("query_user_privilege_statement", "");
     databaseQuerySql = properties.getProperty("database_query_sql");
     dummyDatabaseQuerySql = properties.getProperty("dummy_database_query_sql", databaseQuerySql);
     supportCreateDatabase =
@@ -149,6 +156,16 @@ public class JDBCMeta extends AbstractRelationalMeta {
   @Override
   public List<String> getSystemDatabaseName() {
     return systemDatabaseName;
+  }
+
+  @Override
+  public List<String> getDatabaseCreatePrivileges() {
+    return databaseCreatePrivileges;
+  }
+
+  @Override
+  public String getQueryUserPrivilegesStatement() {
+    return queryUserPrivilegesStatement;
   }
 
   @Override
@@ -268,5 +285,10 @@ public class JDBCMeta extends AbstractRelationalMeta {
 
   public StorageEngineMeta getStorageEngineMeta() {
     return meta;
+  }
+
+  @Override
+  public void setSupportCreateDatabase(boolean supportCreateDatabase) {
+    this.supportCreateDatabase = supportCreateDatabase;
   }
 }
