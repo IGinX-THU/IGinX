@@ -103,7 +103,7 @@ public interface DatabaseStrategy {
   /**
    * 获取用于平均值计算的类型转换表达式
    *
-   * @param param 需要计算平均值的表达式
+   * @param param 需要计算平均值的表达式，可能是一个列名或其他表达式
    * @return 包含类型转换的平均值表达式
    */
   String getAvgCastExpression(Expression param);

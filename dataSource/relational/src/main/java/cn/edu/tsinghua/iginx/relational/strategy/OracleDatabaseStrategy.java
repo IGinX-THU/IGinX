@@ -21,6 +21,7 @@ package cn.edu.tsinghua.iginx.relational.strategy;
 
 import static cn.edu.tsinghua.iginx.relational.tools.Constants.*;
 
+import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.relational.datatype.transformer.OracleDataTypeTransformer;
 import cn.edu.tsinghua.iginx.relational.meta.AbstractRelationalMeta;
@@ -359,5 +360,10 @@ public class OracleDatabaseStrategy extends AbstractDatabaseStrategy {
       resultList.add(currentPart.toString().trim());
     }
     return resultList.toArray(new String[0]);
+  }
+
+  @Override
+  public String getAvgCastExpression(Expression param) {
+    return "%s(CAST(%s AS BINARY_DOUBLE))";
   }
 }
