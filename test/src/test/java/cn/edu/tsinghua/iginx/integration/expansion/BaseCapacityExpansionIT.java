@@ -434,7 +434,8 @@ public abstract class BaseCapacityExpansionIT {
     // 删除，不影响后续测试
     session.removeStorageEngine(
         Collections.singletonList(
-            new RemovedStorageEngineInfo("127.0.0.1", readOnlyPort, prefix, "")));
+            new RemovedStorageEngineInfo("127.0.0.1", readOnlyPort, prefix, "")),
+        true);
 
     // 改回数据库参数
     restoreParams(readOnlyPort);
@@ -737,7 +738,7 @@ public abstract class BaseCapacityExpansionIT {
     removedStorageEngineList.add(
         new RemovedStorageEngineInfo("127.0.0.1", expPort, "p3" + schemaPrefixSuffix, dataPrefix1));
     try {
-      session.removeStorageEngine(removedStorageEngineList);
+      session.removeStorageEngine(removedStorageEngineList, true);
       testShowClusterInfo(4);
     } catch (SessionException e) {
       LOGGER.error("remove history data source through session api error: ", e);
@@ -1079,7 +1080,12 @@ public abstract class BaseCapacityExpansionIT {
       fail("change config file fail");
     }
 
-    res = executeShellScript(iginxPath, String.valueOf(iginxPort), String.valueOf(restPort));
+    res =
+        executeShellScript(
+            iginxPath,
+            String.valueOf(iginxPort),
+            String.valueOf(restPort),
+            "core/target/iginx-core-*");
     if (res != 0) {
       fail("start iginx fail");
     }

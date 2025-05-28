@@ -103,6 +103,6 @@ public class TempDummyDataSource implements AutoCloseable {
   public void close() throws SessionException {
     RemovedStorageEngineInfo info =
         new RemovedStorageEngineInfo(ip, port, schemaPrefix, dataPrefix);
-    session.removeStorageEngine(Collections.singletonList(info));
+    session.removeStorageEngine(Collections.singletonList(info), true);
   }
 }
