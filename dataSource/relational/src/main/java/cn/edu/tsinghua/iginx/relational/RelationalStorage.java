@@ -476,7 +476,7 @@ public class RelationalStorage implements IStorage {
         }
         // find pattern that match <databaseName>.* to avoid creating databases after.
         if (patterns == null || patterns.size() == 0) {
-          patternList.add(databaseName+".*");
+          patternList.add(databaseName + ".*");
         }
         for (String p : patterns) {
           // dummy path starts with <bucketName>.
