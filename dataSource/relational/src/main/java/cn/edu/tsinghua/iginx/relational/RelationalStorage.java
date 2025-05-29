@@ -2414,8 +2414,8 @@ public class RelationalStorage implements IStorage {
     String columnNames;
     String conditionStatement;
     if (engineName.equalsIgnoreCase("postgresql")) {
-      if(relationalMeta.isUseApproximateBoundary()){
-         return new ColumnsInterval(minDb, StringUtils.nextString(maxDb));
+      if (relationalMeta.isUseApproximateBoundary()) {
+        return new ColumnsInterval(minDb, StringUtils.nextString(maxDb));
       }
       columnNames = "table_catalog, table_name, column_name";
       conditionStatement = " WHERE table_schema LIKE '" + relationalMeta.getSchemaPattern() + "'";
@@ -2428,16 +2428,18 @@ public class RelationalStorage implements IStorage {
           exceptSchema.stream()
               .map(s -> "'" + s + "'")
               .collect(Collectors.joining(", ", " WHERE table_schema NOT IN (", ")"));
-      if(relationalMeta.isUseApproximateBoundary()){
-        String sql="SELECT min(table_schema), max(table_schema) FROM information_schema.tables "+conditionStatement;
+      if (relationalMeta.isUseApproximateBoundary()) {
+        String sql =
+            "SELECT min(table_schema), max(table_schema) FROM information_schema.tables "
+                + conditionStatement;
         try (Connection conn = getConnection(minDb);
-             Statement statement = conn.createStatement();
-             ResultSet rs = statement.executeQuery(sql)) {
+            Statement statement = conn.createStatement();
+            ResultSet rs = statement.executeQuery(sql)) {
           if (rs.next()) {
             String minPath = rs.getString(1);
             String maxPath = rs.getString(2);
             return new ColumnsInterval(minPath, StringUtils.nextString(maxPath));
-          }else{
+          } else {
             throw new RelationalTaskExecuteFailureException("no data!");
           }
         }

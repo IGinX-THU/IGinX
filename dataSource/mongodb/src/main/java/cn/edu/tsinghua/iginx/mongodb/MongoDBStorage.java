@@ -86,8 +86,7 @@ public class MongoDBStorage implements IStorage {
   public static final String BOUNDARY_LEVEL = "boundary.level";
   public static final String BOUNDARY_LEVEL_DEFAULT = "0";
 
-
-  private final MongoClient client;   
+  private final MongoClient client;
 
   private final int schemaSampleSize;
   private final int querySampleSize;
@@ -439,15 +438,17 @@ public class MongoDBStorage implements IStorage {
     }
 
     String namespacePrefix;
-    if(boundaryLevel<=0){
-      namespacePrefix = Arrays.stream(prefix.split("\\.")).limit(1).collect(Collectors.joining("."));
-    }else{
-      namespacePrefix = Arrays.stream(prefix.split("\\.")).limit(2).collect(Collectors.joining("."));
+    if (boundaryLevel <= 0) {
+      namespacePrefix =
+          Arrays.stream(prefix.split("\\.")).limit(1).collect(Collectors.joining("."));
+    } else {
+      namespacePrefix =
+          Arrays.stream(prefix.split("\\.")).limit(2).collect(Collectors.joining("."));
     }
 
     List<String> namespaces = new ArrayList<>();
     for (String db : getDatabaseNames(this.client)) {
-      if(boundaryLevel<=0){
+      if (boundaryLevel <= 0) {
         namespaces.add(db);
         continue;
       }

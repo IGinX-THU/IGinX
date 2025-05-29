@@ -50,8 +50,9 @@ public class FileTreeConfig extends AbstractConfig {
         problems.add(new InvalidFieldValidationProblem(Fields.dot, "dot cannot contain '.'"));
       }
     }
-    if(boundaryLevel != 0 && boundaryLevel != 1){
-      problems.add(new InvalidFieldValidationProblem(Fields.boundaryLevel, "boundaryLevel must be 0 or 1"));
+    if (boundaryLevel != 0 && boundaryLevel != 1) {
+      problems.add(
+          new InvalidFieldValidationProblem(Fields.boundaryLevel, "boundaryLevel must be 0 or 1"));
     }
     return problems;
   }

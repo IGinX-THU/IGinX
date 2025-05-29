@@ -64,8 +64,8 @@ public class FileTreeManager implements FileManager {
 
     DataBoundary boundary = new DataBoundary();
 
-    if(config.getBoundaryLevel() == 0 && config.getPrefix() != null){
-      if(requirePrefix == null || requirePrefix.startsWith(config.getPrefix())) {
+    if (config.getBoundaryLevel() == 0 && config.getPrefix() != null) {
+      if (requirePrefix == null || requirePrefix.startsWith(config.getPrefix())) {
         boundary.setStartColumn(config.getPrefix());
         boundary.setEndColumn(StringUtils.nextString(config.getPrefix()));
         boundary.setStartKey(KeyInterval.getDefaultKeyInterval().getStartKey());

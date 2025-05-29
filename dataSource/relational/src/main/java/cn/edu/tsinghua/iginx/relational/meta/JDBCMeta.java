@@ -300,7 +300,7 @@ public class JDBCMeta extends AbstractRelationalMeta {
     return supportInformationSchema;
   }
 
-  public boolean isUseApproximateBoundary(){
+  public boolean isUseApproximateBoundary() {
     return useApproximateBoundary;
   }
 
