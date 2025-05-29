@@ -301,11 +301,11 @@ public class TransformIT {
     List<String> sqlList = new ArrayList<>();
     sqlList.add(QUERY_SQL_2);
 
-    TaskInfo iginxTask = new TaskInfo(TaskType.IGINX, DataFlowType.STREAM);
-    iginxTask.setSqlList(sqlList);
+    TaskInfo sqlTask = new TaskInfo(TaskType.SQL, DataFlowType.STREAM);
+    sqlTask.setSqlList(sqlList);
 
     List<TaskInfo> taskInfoList = new ArrayList<>();
-    taskInfoList.add(iginxTask);
+    taskInfoList.add(sqlTask);
 
     try {
       String outputFileName = OUTPUT_DIR_PREFIX + File.separator + "output.denied";
@@ -321,9 +321,9 @@ public class TransformIT {
     LOGGER.info("commitSingleSqlStatementTest");
     List<TaskInfo> taskInfoList = new ArrayList<>();
 
-    TaskInfo iginxTask = new TaskInfo(TaskType.IGINX, DataFlowType.STREAM);
-    iginxTask.setSqlList(Collections.singletonList(SHOW_TIME_SERIES_SQL));
-    taskInfoList.add(iginxTask);
+    TaskInfo sqlTask = new TaskInfo(TaskType.SQL, DataFlowType.STREAM);
+    sqlTask.setSqlList(Collections.singletonList(SHOW_TIME_SERIES_SQL));
+    taskInfoList.add(sqlTask);
 
     try {
       long jobId = session.commitTransformJob(taskInfoList, ExportType.LOG, "");
@@ -435,13 +435,13 @@ public class TransformIT {
       dropAllTask();
       List<TaskInfo> taskInfoList = new ArrayList<>();
 
-      TaskInfo iginxTask = new TaskInfo(TaskType.IGINX, DataFlowType.STREAM);
-      iginxTask.setSqlList(Collections.singletonList("SELECT s1, s2 FROM us.d1 WHERE key < 10;"));
+      TaskInfo sqlTask = new TaskInfo(TaskType.SQL, DataFlowType.STREAM);
+      sqlTask.setSqlList(Collections.singletonList("SELECT s1, s2 FROM us.d1 WHERE key < 10;"));
 
       TaskInfo pyTask = new TaskInfo(TaskType.PYTHON, DataFlowType.STREAM);
       pyTask.setPyTaskName("RowSumTransformer"); // not registered, job should fail
 
-      taskInfoList.add(iginxTask);
+      taskInfoList.add(sqlTask);
       taskInfoList.add(pyTask);
 
       String schedule = "every 10 second";
@@ -461,13 +461,13 @@ public class TransformIT {
       dropAllTask();
       List<TaskInfo> taskInfoList = new ArrayList<>();
 
-      TaskInfo iginxTask = new TaskInfo(TaskType.IGINX, DataFlowType.STREAM);
-      iginxTask.setSqlList(Collections.singletonList("SELECT s1, s2 FROM us.d1 WHERE key < 10;"));
+      TaskInfo sqlTask = new TaskInfo(TaskType.SQL, DataFlowType.STREAM);
+      sqlTask.setSqlList(Collections.singletonList("SELECT s1, s2 FROM us.d1 WHERE key < 10;"));
 
       TaskInfo pyTask = new TaskInfo(TaskType.PYTHON, DataFlowType.STREAM);
       pyTask.setPyTaskName("RowSumTransformer"); // at 1st try, udf is not registered.
 
-      taskInfoList.add(iginxTask);
+      taskInfoList.add(sqlTask);
       taskInfoList.add(pyTask);
 
       String schedule = "every 20 second";
@@ -594,7 +594,7 @@ public class TransformIT {
     LOGGER.info("commitMultipleSqlStatementsTest");
     List<TaskInfo> taskInfoList = new ArrayList<>();
 
-    TaskInfo iginxTask = new TaskInfo(TaskType.IGINX, DataFlowType.STREAM);
+    TaskInfo sqlTask = new TaskInfo(TaskType.SQL, DataFlowType.STREAM);
     List<String> sqlList = new ArrayList<>();
     String insertStrPrefix = "INSERT INTO us.d1 (key, s2) values ";
     StringBuilder builder = new StringBuilder(insertStrPrefix);
@@ -607,8 +607,8 @@ public class TransformIT {
     builder.append(";");
     sqlList.add(builder.toString());
     sqlList.add(QUERY_SQL_1);
-    iginxTask.setSqlList(sqlList);
-    taskInfoList.add(iginxTask);
+    sqlTask.setSqlList(sqlList);
+    taskInfoList.add(sqlTask);
 
     try {
       String outputFileName =
@@ -683,13 +683,13 @@ public class TransformIT {
 
       List<TaskInfo> taskInfoList = new ArrayList<>();
 
-      TaskInfo iginxTask = new TaskInfo(TaskType.IGINX, DataFlowType.STREAM);
-      iginxTask.setSqlList(Collections.singletonList(QUERY_SQL_2));
+      TaskInfo sqlTask = new TaskInfo(TaskType.SQL, DataFlowType.STREAM);
+      sqlTask.setSqlList(Collections.singletonList(QUERY_SQL_2));
 
       TaskInfo pyTask = new TaskInfo(TaskType.PYTHON, DataFlowType.STREAM);
       pyTask.setPyTaskName("RowSumTransformer");
 
-      taskInfoList.add(iginxTask);
+      taskInfoList.add(sqlTask);
       taskInfoList.add(pyTask);
 
       String outputFileName =
@@ -717,13 +717,13 @@ public class TransformIT {
 
       List<TaskInfo> taskInfoList = new ArrayList<>();
 
-      TaskInfo iginxTask = new TaskInfo(TaskType.IGINX, DataFlowType.STREAM);
-      iginxTask.setSqlList(Collections.singletonList(QUERY_SQL_3));
+      TaskInfo sqlTask = new TaskInfo(TaskType.SQL, DataFlowType.STREAM);
+      sqlTask.setSqlList(Collections.singletonList(QUERY_SQL_3));
 
       TaskInfo pyTask = new TaskInfo(TaskType.PYTHON, DataFlowType.STREAM);
       pyTask.setPyTaskName("increase");
 
-      taskInfoList.add(iginxTask);
+      taskInfoList.add(sqlTask);
       taskInfoList.add(pyTask);
 
       String schedule = "every 20 second";
@@ -842,8 +842,8 @@ public class TransformIT {
 
       List<TaskInfo> taskInfoList = new ArrayList<>();
 
-      TaskInfo iginxTask = new TaskInfo(TaskType.IGINX, DataFlowType.STREAM);
-      iginxTask.setSqlList(Collections.singletonList(QUERY_SQL_2));
+      TaskInfo sqlTask = new TaskInfo(TaskType.SQL, DataFlowType.STREAM);
+      sqlTask.setSqlList(Collections.singletonList(QUERY_SQL_2));
 
       TaskInfo addOnePyTask = new TaskInfo(TaskType.PYTHON, DataFlowType.STREAM);
       addOnePyTask.setPyTaskName("AddOneTransformer");
@@ -851,7 +851,7 @@ public class TransformIT {
       TaskInfo rowSumPyTask = new TaskInfo(TaskType.PYTHON, DataFlowType.STREAM);
       rowSumPyTask.setPyTaskName("RowSumTransformer");
 
-      taskInfoList.add(iginxTask);
+      taskInfoList.add(sqlTask);
       taskInfoList.add(addOnePyTask);
       taskInfoList.add(rowSumPyTask);
 
@@ -1026,8 +1026,8 @@ public class TransformIT {
 
       List<TaskInfo> taskInfoList = new ArrayList<>();
 
-      TaskInfo iginxTask = new TaskInfo(TaskType.IGINX, DataFlowType.STREAM);
-      iginxTask.setSqlList(Collections.singletonList(QUERY_SQL_2));
+      TaskInfo sqlTask = new TaskInfo(TaskType.SQL, DataFlowType.STREAM);
+      sqlTask.setSqlList(Collections.singletonList(QUERY_SQL_2));
 
       TaskInfo addOnePyTask = new TaskInfo(TaskType.PYTHON, DataFlowType.STREAM);
       addOnePyTask.setPyTaskName("AddOneTransformer");
@@ -1038,7 +1038,7 @@ public class TransformIT {
       TaskInfo rowSumPyTask = new TaskInfo(TaskType.PYTHON, DataFlowType.STREAM);
       rowSumPyTask.setPyTaskName("RowSumTransformer");
 
-      taskInfoList.add(iginxTask);
+      taskInfoList.add(sqlTask);
       taskInfoList.add(addOnePyTask);
       taskInfoList.add(sumPyTask);
       taskInfoList.add(rowSumPyTask);
@@ -1219,13 +1219,13 @@ public class TransformIT {
 
       List<TaskInfo> taskInfoList = new ArrayList<>();
 
-      TaskInfo iginxTask = new TaskInfo(TaskType.IGINX, DataFlowType.STREAM);
-      iginxTask.setSqlList(Collections.singletonList(QUERY_SQL_2));
+      TaskInfo sqlTask = new TaskInfo(TaskType.SQL, DataFlowType.STREAM);
+      sqlTask.setSqlList(Collections.singletonList(QUERY_SQL_2));
 
       TaskInfo sleepPyTask = new TaskInfo(TaskType.PYTHON, DataFlowType.STREAM);
       sleepPyTask.setPyTaskName("SleepTransformer");
 
-      taskInfoList.add(iginxTask);
+      taskInfoList.add(sqlTask);
       taskInfoList.add(sleepPyTask);
 
       long jobId = session.commitTransformJob(taskInfoList, ExportType.LOG, "");

@@ -183,9 +183,9 @@ public class TransformExample {
     // 构造任务
     List<TaskInfo> taskInfoList = new ArrayList<>();
 
-    TaskInfo iginxTask = new TaskInfo(TaskType.IGINX, DataFlowType.STREAM);
-    iginxTask.setSqlList(Collections.singletonList(SHOW_TIME_SERIES_SQL));
-    taskInfoList.add(iginxTask);
+    TaskInfo sqlTask = new TaskInfo(TaskType.SQL, DataFlowType.STREAM);
+    sqlTask.setSqlList(Collections.singletonList(SHOW_TIME_SERIES_SQL));
+    taskInfoList.add(sqlTask);
 
     // 提交任务
     long jobId =
@@ -210,9 +210,9 @@ public class TransformExample {
     // 构造任务
     List<TaskInfo> taskInfoList = new ArrayList<>();
 
-    TaskInfo iginxTask = new TaskInfo(TaskType.IGINX, DataFlowType.STREAM);
-    iginxTask.setSqlList(Collections.singletonList(QUERY_SQL));
-    taskInfoList.add(iginxTask);
+    TaskInfo sqlTask = new TaskInfo(TaskType.SQL, DataFlowType.STREAM);
+    sqlTask.setSqlList(Collections.singletonList(QUERY_SQL));
+    taskInfoList.add(sqlTask);
 
     TaskInfo pyTask = new TaskInfo(TaskType.PYTHON, DataFlowType.STREAM);
     pyTask.setPyTaskName("RowSumTransformer");
@@ -237,9 +237,9 @@ public class TransformExample {
     // 构造任务
     List<TaskInfo> taskInfoList = new ArrayList<>();
 
-    TaskInfo iginxTask = new TaskInfo(TaskType.IGINX, DataFlowType.STREAM);
-    iginxTask.setSqlList(Collections.singletonList(QUERY_SQL));
-    taskInfoList.add(iginxTask);
+    TaskInfo sqlTask = new TaskInfo(TaskType.SQL, DataFlowType.STREAM);
+    sqlTask.setSqlList(Collections.singletonList(QUERY_SQL));
+    taskInfoList.add(sqlTask);
 
     TaskInfo pyTask = new TaskInfo(TaskType.PYTHON, DataFlowType.STREAM);
     pyTask.setPyTaskName("RowSumTransformer");
@@ -266,9 +266,9 @@ public class TransformExample {
     // 构造任务
     List<TaskInfo> taskInfoList = new ArrayList<>();
 
-    TaskInfo iginxTask = new TaskInfo(TaskType.IGINX, DataFlowType.STREAM);
-    iginxTask.setSqlList(Collections.singletonList(QUERY_SQL));
-    taskInfoList.add(iginxTask);
+    TaskInfo sqlTask = new TaskInfo(TaskType.SQL, DataFlowType.STREAM);
+    sqlTask.setSqlList(Collections.singletonList(QUERY_SQL));
+    taskInfoList.add(sqlTask);
 
     TaskInfo pyTask = new TaskInfo(TaskType.PYTHON, DataFlowType.STREAM);
     pyTask.setPyTaskName("AddOneTransformer");
@@ -301,9 +301,9 @@ public class TransformExample {
     // 构造任务
     List<TaskInfo> taskInfoList = new ArrayList<>();
 
-    TaskInfo iginxTask = new TaskInfo(TaskType.IGINX, DataFlowType.STREAM);
-    iginxTask.setSqlList(Collections.singletonList(QUERY_SQL));
-    taskInfoList.add(iginxTask);
+    TaskInfo sqlTask = new TaskInfo(TaskType.SQL, DataFlowType.STREAM);
+    sqlTask.setSqlList(Collections.singletonList(QUERY_SQL));
+    taskInfoList.add(sqlTask);
 
     TaskInfo pyTask = new TaskInfo(TaskType.PYTHON, DataFlowType.STREAM);
     pyTask.setPyTaskName("AddOneTransformer");
@@ -340,9 +340,9 @@ public class TransformExample {
     // 构造任务
     List<TaskInfo> taskInfoList = new ArrayList<>();
 
-    TaskInfo iginxTask = new TaskInfo(TaskType.IGINX, DataFlowType.STREAM);
-    iginxTask.setSqlList(Collections.singletonList(QUERY_SQL));
-    taskInfoList.add(iginxTask);
+    TaskInfo sqlTask = new TaskInfo(TaskType.SQL, DataFlowType.STREAM);
+    sqlTask.setSqlList(Collections.singletonList(QUERY_SQL));
+    taskInfoList.add(sqlTask);
 
     TaskInfo pyTask = new TaskInfo(TaskType.PYTHON, DataFlowType.STREAM);
     pyTask.setPyTaskName("RowSumTransformer");

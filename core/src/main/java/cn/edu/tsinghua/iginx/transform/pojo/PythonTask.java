@@ -70,6 +70,6 @@ public class PythonTask extends Task {
   }
 
   public boolean isSetPyOutputPathPrefix() {
-    return pyOutputPathPrefix != null;
+    return pyOutputPathPrefix != null && !pyOutputPathPrefix.isEmpty();
   }
 }

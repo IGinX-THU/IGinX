@@ -36,8 +36,8 @@ import cn.edu.tsinghua.iginx.transform.driver.PemjaDriver;
 import cn.edu.tsinghua.iginx.transform.driver.PemjaWorker;
 import cn.edu.tsinghua.iginx.transform.exception.TransformException;
 import cn.edu.tsinghua.iginx.transform.exception.WriteBatchException;
-import cn.edu.tsinghua.iginx.transform.pojo.IginXTask;
 import cn.edu.tsinghua.iginx.transform.pojo.PythonTask;
+import cn.edu.tsinghua.iginx.transform.pojo.SQLTask;
 import cn.edu.tsinghua.iginx.transform.pojo.StreamStage;
 import cn.edu.tsinghua.iginx.transform.pojo.Task;
 import cn.edu.tsinghua.iginx.transform.utils.Mutex;
@@ -82,7 +82,7 @@ public class StreamStageRunner implements Runner {
   @Override
   public void start() throws TransformException {
     if (streamStage.isStartWithIginX()) {
-      IginXTask firstTask = (IginXTask) streamStage.getTaskList().get(0);
+      SQLTask firstTask = (SQLTask) streamStage.getTaskList().get(0);
       RowStream rowStream = getRowStream(streamStage.getSessionId(), firstTask.getSqlList());
       reader = new RowStreamReader(rowStream, batchSize);
     } else {
@@ -114,7 +114,7 @@ public class StreamStageRunner implements Runner {
       if (context.getResult().getStatus().code != RpcUtils.SUCCESS.code) {
         if (!context.getWarningMsg().contains("overlapped keys")) {
           throw new TransformException(
-              "Unexpected error occurred during iginx task stage: "
+              "Unexpected error occurred during SQL task stage: "
                   + context.getResult().getStatus().getMessage());
         } else {
           // warn about overlapped keys but continue job
@@ -133,7 +133,7 @@ public class StreamStageRunner implements Runner {
     if (context.getResult().getStatus().code != RpcUtils.SUCCESS.code) {
       if (!context.getWarningMsg().contains("overlapped keys")) {
         throw new TransformException(
-            "Unexpected error occurred during iginx task stage: "
+            "Unexpected error occurred during SQL task stage: "
                 + context.getResult().getStatus().getMessage());
       } else {
         // warn about overlapped keys but continue job

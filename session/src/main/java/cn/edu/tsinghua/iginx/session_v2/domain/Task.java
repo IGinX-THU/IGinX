@@ -117,8 +117,8 @@ public class Task {
     }
 
     public Task.Builder sql(String sql) {
-      Arguments.checkTaskType(TaskType.IGINX, taskType);
-      this.taskType = TaskType.IGINX;
+      Arguments.checkTaskType(TaskType.SQL, taskType);
+      this.taskType = TaskType.SQL;
       this.sqlList.add(sql);
       return this;
     }

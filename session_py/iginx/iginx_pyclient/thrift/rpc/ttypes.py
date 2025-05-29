@@ -301,16 +301,16 @@ class ExportType(object):
 
 
 class TaskType(object):
-    IGINX = 0
+    SQL = 0
     PYTHON = 1
 
     _VALUES_TO_NAMES = {
-        0: "IGINX",
+        0: "SQL",
         1: "PYTHON",
     }
 
     _NAMES_TO_VALUES = {
-        "IGINX": 0,
+        "SQL": 0,
         "PYTHON": 1,
     }
 

@@ -29,38 +29,29 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-public class IginXTask extends Task {
+public class SQLTask extends Task {
 
   private final List<String> sqlList = new ArrayList<>();
 
-  public IginXTask(TaskInfo info) {
+  public SQLTask(TaskInfo info) {
     super(info);
     if (info.isSetSqlList()) {
       sqlList.addAll(info.getSqlList());
     } else {
-      throw new IllegalArgumentException("IginX task must have a SQL statement.");
+      throw new IllegalArgumentException("SQL task must have at least one SQL statement.");
     }
   }
 
-  public IginXTask(TaskFromYAML info) {
+  public SQLTask(TaskFromYAML info) {
     super(info);
     if (info.getSqlList() != null && !info.getSqlList().isEmpty()) {
       sqlList.addAll(info.getSqlList());
     } else {
-      throw new IllegalArgumentException("IginX task must have a SQL statement.");
+      throw new IllegalArgumentException("SQL task must have at least one SQL statement.");
     }
   }
 
   public List<String> getSqlList() {
     return sqlList;
-  }
-
-  public static IginXTask getClearTableTask() {
-    TaskInfo info = new TaskInfo(TaskType.IGINX, DataFlowType.STREAM);
-    info.setSqlList(
-        Arrays.asList(
-            String.format("DELETE COLUMNS %s.*;", TEMP_TABLE_NAME),
-            String.format("SHOW COLUMNS %s.*;", TEMP_TABLE_NAME)));
-    return new IginXTask(info);
   }
 }

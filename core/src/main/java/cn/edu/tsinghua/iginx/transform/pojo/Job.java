@@ -134,13 +134,13 @@ public class Job {
         }
         stageList.add(stage);
       } else {
-        if (task.getTaskType().equals(TaskType.IGINX) && !stageTasks.isEmpty()) {
-          // iginx task will only be stream type. this branch processes iginx task that comes after
-          // python tasks: create a new stream stage that starts with this iginx task.
-          // Note that iginx tasks will not come after another iginx task because the SQL list can
+        if (task.getTaskType().equals(TaskType.SQL) && !stageTasks.isEmpty()) {
+          // SQL task will only be stream type. this branch processes SQL task that comes after
+          // python tasks: create a new stream stage that starts with this SQL task.
+          // Note that SQL tasks will not come after another SQL task because the SQL list can
           // be merged,
           // and such conduct will be prohibited during the yaml reading process.
-          // Also, in such iginx task, temp table containing previous python task results could be
+          // Also, in such SQL task, temp table containing previous python task results could be
           // used. We mark
           // it and clear it after all tasks.
           String previousPythonOutputTableName =
@@ -262,7 +262,7 @@ public class Job {
         taskFromYAML.setPyTaskName(((PythonTask) task).getPyTaskName());
         taskFromYAML.setPyOutputPathPrefix(((PythonTask) task).getPyOutputPathPrefix());
       } else {
-        taskFromYAML.setSqlList(((IginXTask) task).getSqlList());
+        taskFromYAML.setSqlList(((SQLTask) task).getSqlList());
       }
       taskFromYAMLList.add(taskFromYAML);
     }

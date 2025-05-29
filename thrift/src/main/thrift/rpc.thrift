@@ -109,7 +109,7 @@ enum ExportType {
 }
 
 enum TaskType {
-    IGINX,
+    SQL,
     PYTHON
 }
 

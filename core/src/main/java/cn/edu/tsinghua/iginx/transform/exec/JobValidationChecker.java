@@ -22,9 +22,9 @@ package cn.edu.tsinghua.iginx.transform.exec;
 import cn.edu.tsinghua.iginx.thrift.DataFlowType;
 import cn.edu.tsinghua.iginx.thrift.TaskType;
 import cn.edu.tsinghua.iginx.transform.api.Checker;
-import cn.edu.tsinghua.iginx.transform.pojo.IginXTask;
 import cn.edu.tsinghua.iginx.transform.pojo.Job;
 import cn.edu.tsinghua.iginx.transform.pojo.PythonTask;
+import cn.edu.tsinghua.iginx.transform.pojo.SQLTask;
 import cn.edu.tsinghua.iginx.transform.pojo.Task;
 import java.util.List;
 import java.util.Set;
@@ -62,12 +62,12 @@ public class JobValidationChecker implements Checker {
     }
 
     Task firstTask = taskList.get(0);
-    if (!firstTask.getTaskType().equals(TaskType.IGINX)) {
-      LOGGER.error("The first task must be IginX task.");
+    if (!firstTask.getTaskType().equals(TaskType.SQL)) {
+      LOGGER.error("The first task must be SQL task.");
       return false;
     }
 
-    if (!IginXTaskChecker(firstTask)) {
+    if (!SQLTaskChecker(firstTask)) {
       return false;
     }
 
@@ -76,13 +76,18 @@ public class JobValidationChecker implements Checker {
       for (int i = 1; i < taskList.size(); i++) {
         Task task = taskList.get(i);
         switch (taskList.get(i).getTaskType()) {
-          case IGINX:
-            if (previousIginX) { // previous task is also IginX task
+          case SQL:
+            if (previousIginX) { // previous task is also SQL task
               LOGGER.error(
-                  "Please merge multiple IginX tasks into one task by combining the sql statements.");
+                  "Please merge multiple SQL tasks into one task by combining the sql statements.");
               return false;
             }
-            if (!IginXTaskChecker(task)) {
+            if (!SQLTaskChecker(task)) {
+              return false;
+            }
+            if (!((PythonTask) taskList.get(i-1)).isSetPyOutputPathPrefix()) {
+              LOGGER.error(
+                      "The Python task before SQL task must set pyOutputPathPrefix. If you don't feel it necessary, maybe you need to rearrange job stages.");
               return false;
             }
             previousIginX = true;
@@ -113,25 +118,25 @@ public class JobValidationChecker implements Checker {
     return true;
   }
 
-  private boolean IginXTaskChecker(Task task) {
-    if (!task.getTaskType().equals(TaskType.IGINX)) {
-      LOGGER.error("Expecting IginX task but get {} task.", task.getTaskType());
+  private boolean SQLTaskChecker(Task task) {
+    if (!task.getTaskType().equals(TaskType.SQL)) {
+      LOGGER.error("Expecting SQL task but get {} task.", task.getTaskType());
       return false;
     }
-    IginXTask iginXTask = (IginXTask) task;
-    if (!iginXTask.getDataFlowType().equals(DataFlowType.STREAM)) {
-      LOGGER.error("IginX task must be stream.");
+    SQLTask SQLTask = (SQLTask) task;
+    if (!SQLTask.getDataFlowType().equals(DataFlowType.STREAM)) {
+      LOGGER.error("SQL task must be stream.");
       return false;
     }
-    List<String> sqlList = iginXTask.getSqlList();
+    List<String> sqlList = SQLTask.getSqlList();
     if (sqlList == null || sqlList.isEmpty()) {
-      LOGGER.error("IginX task should has at least one statement.");
+      LOGGER.error("SQL task should has at least one statement.");
       return false;
     }
     String querySQL = sqlList.get(sqlList.size() - 1);
     if (!querySQL.toLowerCase().trim().startsWith("select")
         && !querySQL.toLowerCase().trim().startsWith("show")) {
-      LOGGER.error("IginX task's last statement must be select or showTS statement.");
+      LOGGER.error("SQL task's last statement must be select or showTS statement.");
       return false;
     }
     return true;
