@@ -1120,6 +1120,24 @@ public class TransformIT {
     }
   }
 
+  @Test
+  public void noPyOutputPathPrefixTest() {
+    // yaml is illegal
+    LOGGER.info("noPyOutputPathPrefixTest");
+    try {
+      String yamlFileName =
+              OUTPUT_DIR_PREFIX + File.separator + "TransformMixedPythonAndSQLNoPyOutputPrefix.yaml";
+      long jobId = session.commitTransformJob(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
+
+      fail();  // not rejected
+    } catch (SessionException e) {
+      if(!e.getMessage().contains("unexpected error")) {
+        // not rejected
+        fail();
+      }
+    }
+  }
+
   public void redundantCancellationTest(long jobId) {
     // On cancelling finished/closed/failed jobs, user should be notified of jobs' states.
     LOGGER.info("redundantCancellationTest");
