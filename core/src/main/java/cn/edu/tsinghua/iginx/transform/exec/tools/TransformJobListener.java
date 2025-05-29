@@ -25,7 +25,6 @@ import cn.edu.tsinghua.iginx.transform.pojo.Job;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
 import org.quartz.JobListener;
-import pemja.core.PythonInterpreter;
 
 public class TransformJobListener implements JobListener {
   @Override
@@ -35,10 +34,9 @@ public class TransformJobListener implements JobListener {
 
   @Override
   public void jobToBeExecuted(JobExecutionContext context) {
-    if (!ThreadInterpreterManager.isInterpreterSet()) {
+    if (!ThreadInterpreterManager.isConfigSet()) {
       // will only execute once
-      PythonInterpreter interpreter = new PythonInterpreter(PemjaDriver.getPythonConfig());
-      ThreadInterpreterManager.setInterpreter(interpreter);
+      ThreadInterpreterManager.setConfig(PemjaDriver.getPythonConfig());
     }
   }
 

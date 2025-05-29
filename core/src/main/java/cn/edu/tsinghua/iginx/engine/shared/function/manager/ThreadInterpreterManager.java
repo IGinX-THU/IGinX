@@ -19,6 +19,14 @@
  */
 package cn.edu.tsinghua.iginx.engine.shared.function.manager;
 
+import static cn.edu.tsinghua.iginx.engine.shared.function.udf.utils.Constants.BLOCK_MODULES_METHOD;
+import static cn.edu.tsinghua.iginx.engine.shared.function.udf.utils.Constants.IMPORT_SENTINEL_SCRIPT;
+import static cn.edu.tsinghua.iginx.engine.shared.function.udf.utils.Constants.MODULES_TO_BLOCK;
+import static cn.edu.tsinghua.iginx.engine.shared.function.udf.utils.Constants.TIMEOUT_SCRIPT;
+import static cn.edu.tsinghua.iginx.engine.shared.function.udf.utils.Constants.TIMEOUT_WRAPPER;
+
+import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import javax.validation.constraints.NotNull;
@@ -38,7 +46,12 @@ public class ThreadInterpreterManager {
   public static PythonInterpreter getInterpreter() {
     PythonInterpreter interpreter = interpreterThreadLocal.get();
     if (interpreter == null) {
-      setInterpreter(new PythonInterpreter(configThreadLocal.get()));
+      if (configThreadLocal.get() == null) {
+        setConfig(FunctionManager.getInstance().getConfig());
+      }
+      interpreter = new PythonInterpreter(configThreadLocal.get());
+      initialize(interpreter);
+      interpreterThreadLocal.set(interpreter);
     }
     return interpreterThreadLocal.get();
   }
@@ -47,12 +60,12 @@ public class ThreadInterpreterManager {
     return interpreterThreadLocal.get() != null;
   }
 
-  public static void setInterpreter(@NotNull PythonInterpreter interpreter) {
-    interpreterThreadLocal.set(interpreter);
-  }
-
   public static void setConfig(@NotNull PythonInterpreterConfig config) {
     configThreadLocal.set(config);
+  }
+
+  public static boolean isConfigSet() {
+    return configThreadLocal.get() != null;
   }
 
   public static void executeWithInterpreter(Consumer<PythonInterpreter> action) {
@@ -63,5 +76,54 @@ public class ThreadInterpreterManager {
   public static <T> T executeWithInterpreterAndReturn(Function<PythonInterpreter, T> action) {
     PythonInterpreter interpreter = getInterpreter();
     return action.apply(interpreter);
+  }
+
+  public static void exec(String command) {
+    PythonInterpreter interpreter = getInterpreter();
+    interpreter.exec(command);
+  }
+
+  @SuppressWarnings("unchecked")
+  public static <T> T invokeMethodWithTimeout(
+      long timeout,
+      String obj,
+      String function,
+      List<List<Object>> data,
+      List<Object> args,
+      Map<String, Object> kvargs) {
+    if (timeout <= 0) {
+      return invokeMethod(obj, function, data, args, kvargs);
+    }
+    return (T)
+        executeWithInterpreterAndReturn(
+            interpreter -> {
+              // Wrap the original object with TimeoutSafeWrapper.
+              // All function calls on the wrapped instance will be automatically
+              // managed with a timeout.
+              interpreter.exec(String.format("from %s import %s", TIMEOUT_SCRIPT, TIMEOUT_WRAPPER));
+              String safeObject = String.format("%s_safe_instance", obj);
+              interpreter.exec(
+                  String.format("%s=%s(%s, %d)", safeObject, TIMEOUT_WRAPPER, obj, timeout));
+              return interpreter.invokeMethod(safeObject, function, data, args, kvargs);
+            });
+  }
+
+  @SuppressWarnings("unchecked")
+  public static <T> T invokeMethod(
+      String obj,
+      String function,
+      List<List<Object>> data,
+      List<Object> args,
+      Map<String, Object> kvargs) {
+    return (T)
+        executeWithInterpreterAndReturn(
+            interpreter -> interpreter.invokeMethod(obj, function, data, args, kvargs));
+  }
+
+  private static void initialize(PythonInterpreter interpreter) {
+    // block dangerous modules dynamically
+    interpreter.exec(
+        String.format("from %s import %s", IMPORT_SENTINEL_SCRIPT, BLOCK_MODULES_METHOD));
+    interpreter.invoke(BLOCK_MODULES_METHOD, MODULES_TO_BLOCK);
   }
 }
