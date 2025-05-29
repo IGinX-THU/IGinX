@@ -52,7 +52,7 @@ import org.slf4j.LoggerFactory;
 
 public class CsvReader implements FileFormat.Reader {
 
-  private final static Logger LOGGER = LoggerFactory.getLogger(CsvReader.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(CsvReader.class);
 
   private final Path path;
   private final CsvReaderConfig config;
@@ -68,9 +68,9 @@ public class CsvReader implements FileFormat.Reader {
 
     // Determine CSV format based on file extension
     String delimiter;
-    if(config.getDelimiter() != null) {
+    if (config.getDelimiter() != null) {
       delimiter = config.getDelimiter();
-    }else{
+    } else {
       boolean isTsv = path.toFile().getName().endsWith(".tsv");
       delimiter = isTsv ? "\t" : ",";
     }
@@ -89,10 +89,10 @@ public class CsvReader implements FileFormat.Reader {
       sample = parser.stream().limit(config.getSampleSize() + 1).collect(Collectors.toList());
       this.headers = new String[parser.getHeaderNames().size()];
       this.csvDataType = new CsvDataType[headers.length];
-      parserHeader(parser.getHeaderNames(),prefix);
+      parserHeader(parser.getHeaderNames(), prefix);
     }
 
-    if(config.isInferSchema()){
+    if (config.isInferSchema()) {
       inferSchema(sample);
     }
 
@@ -107,7 +107,7 @@ public class CsvReader implements FileFormat.Reader {
       String headerName = headerNames.get(i);
       String name = headerName;
       CsvDataType type = CsvDataType.UNKNOWN;
-      if(config.isParseTypeFromHeader()){
+      if (config.isParseTypeFromHeader()) {
         final int colon = headerName.indexOf(':');
         if (colon >= 0) {
           name = headerName.substring(0, colon);
@@ -124,8 +124,9 @@ public class CsvReader implements FileFormat.Reader {
     }
   }
 
-  private static final Pattern DECIMAL_TYPE_PATTERN = Pattern
-      .compile("\"decimal\\(([0-9]+),([0-9]+)\\)");
+  private static final Pattern DECIMAL_TYPE_PATTERN =
+      Pattern.compile("\"decimal\\(([0-9]+),([0-9]+)\\)");
+
   private CsvDataType parseType(String typeString) {
     Matcher decimalMatcher = DECIMAL_TYPE_PATTERN.matcher(typeString);
     if (decimalMatcher.matches()) {
@@ -166,7 +167,7 @@ public class CsvReader implements FileFormat.Reader {
 
     for (CSVRecord record : sample) {
       for (int i = 0; i < Math.min(headers.length, record.size()); i++) {
-        if(this.csvDataType[i] != CsvDataType.UNKNOWN) {
+        if (this.csvDataType[i] != CsvDataType.UNKNOWN) {
           continue;
         }
         String value = record.get(i);
@@ -215,7 +216,7 @@ public class CsvReader implements FileFormat.Reader {
 
     // Determine types based on inference results
     for (int i = 0; i < headers.length; i++) {
-      if(this.csvDataType[i] != CsvDataType.UNKNOWN) {
+      if (this.csvDataType[i] != CsvDataType.UNKNOWN) {
         continue;
       }
       if (couldBeBoolean[i]) {
