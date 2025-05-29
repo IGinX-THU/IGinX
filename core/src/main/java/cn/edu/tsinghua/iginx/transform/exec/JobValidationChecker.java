@@ -85,9 +85,9 @@ public class JobValidationChecker implements Checker {
             if (!SQLTaskChecker(task)) {
               return false;
             }
-            if (!((PythonTask) taskList.get(i-1)).isSetPyOutputPathPrefix()) {
+            if (!((PythonTask) taskList.get(i - 1)).isSetPyOutputPathPrefix()) {
               LOGGER.error(
-                      "The Python task before SQL task must set pyOutputPathPrefix. If you don't feel it necessary, maybe you need to rearrange job stages.");
+                  "The Python task before SQL task must set pyOutputPathPrefix. If you don't feel it necessary, maybe you need to rearrange job stages.");
               return false;
             }
             previousIginX = true;

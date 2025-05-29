@@ -1126,16 +1126,27 @@ public class TransformIT {
     LOGGER.info("noPyOutputPathPrefixTest");
     try {
       String yamlFileName =
-              OUTPUT_DIR_PREFIX + File.separator + "TransformMixedPythonAndSQLNoPyOutputPrefix.yaml";
+          OUTPUT_DIR_PREFIX + File.separator + "TransformMixedPythonAndSQLNoPyOutputPrefix.yaml";
       long jobId = session.commitTransformJob(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
 
-      fail();  // not rejected
+      fail(); // not rejected
     } catch (SessionException e) {
-      if(!e.getMessage().contains("unexpected error")) {
+      if (!e.getMessage().contains("unexpected error")) {
         // not rejected
         fail();
       }
     }
+  }
+
+  @Test
+  public void pyOutputPathPrefixInSQLTest() {
+    // yaml has redundant params(ignored)
+    LOGGER.info("pyOutputPathPrefixInSQLTest");
+    String[] taskList = {"RowSumTransformer", "AddOneTransformer", "SumTransformerNoKey"};
+    testMixJobs(
+        taskList,
+        "TransformMixedPythonAndSQLWrongPyOutputPrefix.yaml",
+        "export_file_mixed_python_And_SQL_pyOutputPathPrefixInSQL.txt");
   }
 
   public void redundantCancellationTest(long jobId) {
