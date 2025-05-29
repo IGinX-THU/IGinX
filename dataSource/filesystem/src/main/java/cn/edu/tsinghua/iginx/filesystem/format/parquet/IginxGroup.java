@@ -19,39 +19,41 @@
  */
 package cn.edu.tsinghua.iginx.filesystem.format.parquet;
 
-import cn.edu.tsinghua.iginx.filesystem.format.FileFormat;
-import com.google.auto.service.AutoService;
-import com.typesafe.config.Config;
-import java.io.IOException;
-import java.nio.file.Path;
-import java.util.Collections;
-import java.util.List;
-import javax.annotation.Nullable;
-import shaded.iginx.org.apache.parquet.hadoop.metadata.ParquetMetadata;
+import java.util.Arrays;
+import java.util.Objects;
+import shaded.iginx.org.apache.parquet.schema.GroupType;
 
-@AutoService(FileFormat.class)
-public class ParquetFormat implements FileFormat {
+public class IginxGroup {
+  private final GroupType type;
+  private final Object[] data;
 
-  public static final String NAME = "Parquet";
+  public IginxGroup(GroupType type, Object[] data) {
+    this.type = Objects.requireNonNull(type);
+    this.data = Objects.requireNonNull(data);
+  }
+
+  public GroupType getType() {
+    return type;
+  }
+
+  public Object[] getData() {
+    return data;
+  }
 
   @Override
-  public String getName() {
-    return NAME;
+  public boolean equals(Object o) {
+    if (o == null || getClass() != o.getClass()) return false;
+    IginxGroup that = (IginxGroup) o;
+    return Objects.equals(type, that.type) && Objects.deepEquals(data, that.data);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(type, Arrays.hashCode(data));
   }
 
   @Override
   public String toString() {
-    return NAME;
-  }
-
-  @Override
-  public List<String> getExtensions() {
-    return Collections.singletonList("parquet");
-  }
-
-  @Override
-  public Reader newReader(@Nullable String prefix, Path path, Config config) throws IOException {
-    ParquetMetadata metadata = IginxParquetReader.loadMetadata(path);
-    return new ParquetFormatReader(prefix, path, metadata);
+    return "IginxGroup{" + "type=" + type + ", data=" + Arrays.toString(data) + '}';
   }
 }

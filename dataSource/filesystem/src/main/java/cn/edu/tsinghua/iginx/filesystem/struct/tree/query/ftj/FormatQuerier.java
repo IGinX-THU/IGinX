@@ -87,6 +87,7 @@ class FormatQuerier extends AbstractQuerier {
       return reader.read(new ArrayList<>(schema.keySet()), filter);
     }
     Map<String, DataType> allSchema = reader.find(fields);
+    // allSchema.keySet() 可能包含 * （表示通配）
     Filter superSetFilter = Filters.matchWildcard(filter, allSchema.keySet());
     RowStream rowStream = reader.read(new ArrayList<>(schema.keySet()), superSetFilter);
     if (Filters.equals(filter, superSetFilter)) {
