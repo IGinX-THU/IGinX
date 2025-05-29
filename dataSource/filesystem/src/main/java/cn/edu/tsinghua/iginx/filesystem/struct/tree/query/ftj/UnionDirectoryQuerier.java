@@ -30,13 +30,21 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 
 class UnionDirectoryQuerier extends AbstractQuerier {
 
   private final List<Querier> queriers;
 
-  UnionDirectoryQuerier(Path path, String prefix, DataTarget target, List<Querier> subQueriers) {
-    super(path, prefix, target);
+  UnionDirectoryQuerier(
+      Path path,
+      String prefix,
+      DataTarget target,
+      List<Querier> subQueriers,
+      ExecutorService executor)
+      throws IOException {
+    super(path, prefix, target, executor);
     queriers = Objects.requireNonNull(subQueriers);
   }
 
@@ -57,8 +65,8 @@ class UnionDirectoryQuerier extends AbstractQuerier {
   }
 
   @Override
-  public List<RowStream> query() throws IOException {
-    List<RowStream> rowStreams = new ArrayList<>();
+  public List<Future<RowStream>> query() {
+    List<Future<RowStream>> rowStreams = new ArrayList<>();
     for (Querier querier : queriers) {
       rowStreams.addAll(querier.query());
     }

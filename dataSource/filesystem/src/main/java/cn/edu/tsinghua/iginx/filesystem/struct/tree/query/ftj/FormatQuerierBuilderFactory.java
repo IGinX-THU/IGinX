@@ -28,6 +28,7 @@ import cn.edu.tsinghua.iginx.filesystem.struct.tree.query.Querier.Builder.Factor
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import java.nio.file.Path;
+import java.util.concurrent.ExecutorService;
 import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,7 +38,8 @@ public class FormatQuerierBuilderFactory implements Factory {
   private static final Logger LOGGER = LoggerFactory.getLogger(FormatQuerierBuilderFactory.class);
 
   @Override
-  public Builder create(@Nullable String prefix, Path path, FileTreeConfig config) {
+  public Builder create(
+      @Nullable String prefix, Path path, FileTreeConfig config, ExecutorService executor) {
     String extension = getExtension(path);
     FileFormat format =
         FileFormatManager.getInstance().getByExtension(extension, RawFormat.INSTANCE);
@@ -45,7 +47,7 @@ public class FormatQuerierBuilderFactory implements Factory {
         config.getFormats().getOrDefault(format.getName(), ConfigFactory.empty());
     LOGGER.debug(
         "create {} querier for {} at '{}' with {}, ", format, path, prefix, configForFormat);
-    return new FormatQuerierBuilder(prefix, path, format, configForFormat);
+    return new FormatQuerierBuilder(prefix, path, format, configForFormat, executor);
   }
 
   @Nullable
