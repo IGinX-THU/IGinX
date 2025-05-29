@@ -27,4 +27,6 @@ public class Constant {
 
   public static final String SELECT_CLAUSE_PREFIX = "select";
   public static final String SHOW_CLAUSE_PREFIX = "show";
+  public static final String WITH_CLAUSE_PREFIX = "with";
+  public static final String EXPLAIN_CLAUSE_PREFIX = "explains";
 }
