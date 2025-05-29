@@ -92,13 +92,14 @@ public class ParquetFormatRowStream extends FileSystemRowStream {
     return new Row(header, key, values);
   }
 
-  private void fillFlattened(IginxGroup group, Object[] values, int index) {
+  private int fillFlattened(IginxGroup group, Object[] values, int index) {
     for (Object value : group.getData()) {
       if (value instanceof IginxGroup) {
-        fillFlattened((IginxGroup) value, values, index);
+        index = fillFlattened((IginxGroup) value, values, index);
       } else {
         values[index++] = value;
       }
     }
+    return index;
   }
 }

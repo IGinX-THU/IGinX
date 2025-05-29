@@ -393,18 +393,18 @@ public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
     SQLTestTools.executeAndCompare(session, statement, expect);
 
     // nested type with wildcard
-    statement = "select coordinates.* from `a.userdata\\parquet`.address;";
+    statement = "select user_id, address.* from `a.userdata\\parquet`;";
     expect =
         "ResultSets:\n"
-            + "+---+-----------------------------------------------+------------------------------------------------+\n"
-            + "|key|a.userdata\\parquet.address.coordinates.latitude|a.userdata\\parquet.address.coordinates.longitude|\n"
-            + "+---+-----------------------------------------------+------------------------------------------------+\n"
-            + "|  0|                                        40.7128|                                         -74.006|\n"
-            + "|  1|                                        42.3601|                                        -71.0589|\n"
-            + "|  2|                                        41.8781|                                        -87.6298|\n"
-            + "|  3|                                        37.7749|                                       -122.4194|\n"
-            + "|  4|                                        47.6062|                                       -122.3321|\n"
-            + "+---+-----------------------------------------------+------------------------------------------------+\n"
+            + "+---+--------------------------+-------------------------------+-----------------------------------------------+------------------------------------------------+---------------------------------+\n"
+            + "|key|a.userdata\\parquet.user_id|a.userdata\\parquet.address.city|a.userdata\\parquet.address.coordinates.latitude|a.userdata\\parquet.address.coordinates.longitude|a.userdata\\parquet.address.street|\n"
+            + "+---+--------------------------+-------------------------------+-----------------------------------------------+------------------------------------------------+---------------------------------+\n"
+            + "|  0|                      U001|                       New York|                                        40.7128|                                         -74.006|                  123 Main Street|\n"
+            + "|  1|                      U002|                         Boston|                                        42.3601|                                        -71.0589|                   456 Oak Avenue|\n"
+            + "|  2|                      U003|                        Chicago|                                        41.8781|                                        -87.6298|                  789 Pine Street|\n"
+            + "|  3|                      U004|                  San Francisco|                                        37.7749|                                       -122.4194|                   101 Cedar Road|\n"
+            + "|  4|                      U005|                        Seattle|                                        47.6062|                                       -122.3321|                  246 Maple Drive|\n"
+            + "+---+--------------------------+-------------------------------+-----------------------------------------------+------------------------------------------------+---------------------------------+\n"
             + "Total line number = 5\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
 
@@ -466,7 +466,6 @@ public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
     SQLTestTools.executeAndCompare(session, statement, expect);
 
     // test filter for complex types
-    // nested repeated with wildcard
     statement =
         "select user_id from `a.userdata\\parquet` where order_history.`0`.items.`0`.price > 30.0;";
     expect =
