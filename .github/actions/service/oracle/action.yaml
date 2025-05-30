@@ -38,7 +38,7 @@ runs:
         done
     - if: runner.os == 'Windows'
       name: Start Oracle container
-      shell: wsl-run {0}
+      shell: wsl-bash {0}
       run: |
         for port in ${{ inputs.ports }}; do
            docker run -d --name "${{ inputs.version }}-$port" -p $port:1521 -e ORACLE_PDB=ORCLPDB -e ORACLE_PWD=ORCLPWD container-registry.oracle.com/database/free:23.5.0.0-lite                
@@ -46,7 +46,7 @@ runs:
     - if: runner.os == 'Windows'
       name: Verify Oracle Database is running
       id: oracleContainerWin
-      shell: wsl-run {0}
+      shell: wsl-bash {0}
       run: |
         for port in ${{ inputs.ports }}; do
           while true; do
