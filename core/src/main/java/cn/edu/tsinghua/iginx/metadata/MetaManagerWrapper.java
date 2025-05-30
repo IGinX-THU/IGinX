@@ -252,26 +252,6 @@ public class MetaManagerWrapper implements IMetaManager {
   }
 
   @Override
-  public void addOrUpdateSchemaMapping(String schema, Map<String, Integer> schemaMapping) {
-    metaManager.addOrUpdateSchemaMapping(schema, schemaMapping);
-  }
-
-  @Override
-  public void addOrUpdateSchemaMappingItem(String schema, String key, int value) {
-    metaManager.addOrUpdateSchemaMappingItem(schema, key, value);
-  }
-
-  @Override
-  public Map<String, Integer> getSchemaMapping(String schema) {
-    return metaManager.getSchemaMapping(schema);
-  }
-
-  @Override
-  public int getSchemaMappingItem(String schema, String key) {
-    return metaManager.getSchemaMappingItem(schema, key);
-  }
-
-  @Override
   public boolean addUser(UserMeta user) {
     return metaManager.addUser(user);
   }

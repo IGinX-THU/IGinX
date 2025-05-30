@@ -94,8 +94,6 @@ public class Constant {
 
   public static final String USER_LOCK_NODE = "/lock/user";
 
-  public static final String SCHEMA_MAPPING_PREFIX = "/schema";
-
   public static final String RESHARD_STATUS_LOCK_NODE = "/lock/status/reshard";
 
   public static final String RESHARD_COUNTER_LOCK_NODE = "/lock/counter/reshard";

@@ -114,7 +114,6 @@ public class DefaultMetaManager implements IMetaManager {
       initStorageEngine();
       initStorageUnit();
       initFragment();
-      initSchemaMapping();
       initPolicy();
       initUser();
       initTransform();
@@ -371,21 +370,6 @@ public class DefaultMetaManager implements IMetaManager {
             cache.updateFragment(fragment);
           }
         });
-  }
-
-  private void initSchemaMapping() throws MetaStorageException {
-    storage.registerSchemaMappingChangeHook(
-        (schema, schemaMapping) -> {
-          if (schemaMapping == null || schemaMapping.size() == 0) {
-            cache.removeSchemaMapping(schema);
-          } else {
-            cache.addOrUpdateSchemaMapping(schema, schemaMapping);
-          }
-        });
-    for (Map.Entry<String, Map<String, Integer>> schemaEntry :
-        storage.loadSchemaMapping().entrySet()) {
-      cache.addOrUpdateSchemaMapping(schemaEntry.getKey(), schemaEntry.getValue());
-    }
   }
 
   private void initPolicy() {
@@ -1225,53 +1209,6 @@ public class DefaultMetaManager implements IMetaManager {
     if (hook != null) {
       this.storageEngineChangeHooks.add(hook);
     }
-  }
-
-  @Override
-  public void addOrUpdateSchemaMapping(String schema, Map<String, Integer> schemaMapping) {
-    try {
-      storage.updateSchemaMapping(schema, schemaMapping);
-      if (schemaMapping == null) {
-        cache.removeSchemaMapping(schema);
-      } else {
-        cache.addOrUpdateSchemaMapping(schema, schemaMapping);
-      }
-    } catch (MetaStorageException e) {
-      LOGGER.error("update schema mapping error: ", e);
-    }
-  }
-
-  @Override
-  public void addOrUpdateSchemaMappingItem(String schema, String key, int value) {
-    Map<String, Integer> schemaMapping = cache.getSchemaMapping(schema);
-    if (schemaMapping == null) {
-      schemaMapping = new HashMap<>();
-    }
-    if (value == -1) {
-      schemaMapping.remove(key);
-    } else {
-      schemaMapping.put(key, value);
-    }
-    try {
-      storage.updateSchemaMapping(schema, schemaMapping);
-      if (value == -1) {
-        cache.removeSchemaMappingItem(schema, key);
-      } else {
-        cache.addOrUpdateSchemaMappingItem(schema, key, value);
-      }
-    } catch (MetaStorageException e) {
-      LOGGER.error("update schema mapping error: ", e);
-    }
-  }
-
-  @Override
-  public Map<String, Integer> getSchemaMapping(String schema) {
-    return cache.getSchemaMapping(schema);
-  }
-
-  @Override
-  public int getSchemaMappingItem(String schema, String key) {
-    return cache.getSchemaMappingItem(schema, key);
   }
 
   private List<StorageEngineMeta> resolveStorageEngineFromConf() {

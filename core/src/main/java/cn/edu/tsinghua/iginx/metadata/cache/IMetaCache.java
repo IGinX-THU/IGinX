@@ -124,19 +124,6 @@ public interface IMetaCache {
 
   void updateStorageConnections(Map<Long, List<Long>> connections);
 
-  // schemaMapping 相关的缓存读写接口
-  Map<String, Integer> getSchemaMapping(String schema);
-
-  int getSchemaMappingItem(String schema, String key);
-
-  void removeSchemaMapping(String schema);
-
-  void removeSchemaMappingItem(String schema, String key);
-
-  void addOrUpdateSchemaMapping(String schema, Map<String, Integer> schemaMapping);
-
-  void addOrUpdateSchemaMappingItem(String schema, String key, int value);
-
   void addOrUpdateUser(UserMeta userMeta);
 
   void removeUser(String username);

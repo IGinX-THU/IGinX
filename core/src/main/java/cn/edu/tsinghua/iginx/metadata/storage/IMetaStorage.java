@@ -32,13 +32,6 @@ import java.util.Map;
 
 public interface IMetaStorage {
 
-  Map<String, Map<String, Integer>> loadSchemaMapping() throws MetaStorageException;
-
-  void registerSchemaMappingChangeHook(SchemaMappingChangeHook hook);
-
-  void updateSchemaMapping(String schema, Map<String, Integer> schemaMapping)
-      throws MetaStorageException;
-
   Map<Long, IginxMeta> loadIginx() throws MetaStorageException;
 
   IginxMeta registerIginx(IginxMeta iginx) throws MetaStorageException;

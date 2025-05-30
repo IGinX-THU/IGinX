@@ -71,8 +71,6 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
 
   private static final String STORAGE_UNIT_NODE = "/unit/unit";
 
-  private static final String SCHEMA_MAPPING_LOCK_NODE = "/lock/schema";
-
   private static final String POLICY_NODE_PREFIX = "/policy";
 
   private static final String POLICY_LEADER = "/policy/leader";
@@ -103,7 +101,6 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
   private final Lock maxActiveEndTimeStatisticsMutexLock = new ReentrantLock();
   private final InterProcessMutex maxActiveEndTimeStatisticsMutex;
 
-  protected TreeCache schemaMappingsCache;
   protected TreeCache iginxCache;
   protected TreeCache storageEngineCache;
   protected TreeCache storageUnitCache;
@@ -112,7 +109,6 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
   protected TreeCache reshardCounterCache;
   protected TreeCache maxActiveEndTimeStatisticsCache;
 
-  private SchemaMappingChangeHook schemaMappingChangeHook = null;
   private IginxChangeHook iginxChangeHook = null;
   private StorageChangeHook storageChangeHook = null;
   private StorageUnitChangeHook storageUnitChangeHook = null;
@@ -168,111 +164,6 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
       }
     }
     return INSTANCE;
-  }
-
-  @Override
-  public Map<String, Map<String, Integer>> loadSchemaMapping() throws MetaStorageException {
-    InterProcessMutex mutex = new InterProcessMutex(client, SCHEMA_MAPPING_LOCK_NODE);
-    try {
-      mutex.acquire();
-      Map<String, Map<String, Integer>> schemaMappings = new HashMap<>();
-      if (client.checkExists().forPath(SCHEMA_MAPPING_PREFIX) == null) {
-        // 当前还没有数据，创建父节点，然后不需要解析数据
-        client.create().withMode(CreateMode.PERSISTENT).forPath(SCHEMA_MAPPING_PREFIX);
-      } else {
-        List<String> schemas = this.client.getChildren().forPath(SCHEMA_MAPPING_PREFIX);
-        for (String schema : schemas) {
-          Map<String, Integer> schemaMapping =
-              JsonUtils.parseMap(
-                  new String(this.client.getData().forPath(SCHEMA_MAPPING_PREFIX + "/" + schema)),
-                  String.class,
-                  Integer.class);
-          schemaMappings.put(schema, schemaMapping);
-        }
-      }
-      registerSchemaMappingListener();
-      return schemaMappings;
-    } catch (Exception e) {
-      throw new MetaStorageException("get error when load schema mapping", e);
-    } finally {
-      try {
-        mutex.release();
-      } catch (Exception e) {
-        throw new MetaStorageException(
-            "get error when release interprocess lock for " + SCHEMA_MAPPING_LOCK_NODE, e);
-      }
-    }
-  }
-
-  private void registerSchemaMappingListener() throws Exception {
-    this.schemaMappingsCache = new TreeCache(client, SCHEMA_MAPPING_PREFIX);
-    TreeCacheListener listener =
-        (curatorFramework, event) -> {
-          if (schemaMappingChangeHook == null) {
-            return;
-          }
-          if (event.getData() == null
-              || event.getData().getPath() == null
-              || event.getData().getPath().equals(SCHEMA_MAPPING_PREFIX)) {
-            return; // 创建根节点，不必理会
-          }
-          byte[] data;
-          Map<String, Integer> schemaMapping = null;
-          String schema = event.getData().getPath().substring(SCHEMA_MAPPING_PREFIX.length());
-          switch (event.getType()) {
-            case NODE_ADDED:
-            case NODE_UPDATED:
-              data = event.getData().getData();
-              schemaMapping = JsonUtils.parseMap(new String(data), String.class, Integer.class);
-              break;
-            case NODE_REMOVED:
-            default:
-              break;
-          }
-          schemaMappingChangeHook.onChange(schema, schemaMapping);
-        };
-    this.schemaMappingsCache.getListenable().addListener(listener);
-    this.schemaMappingsCache.start();
-  }
-
-  @Override
-  public void registerSchemaMappingChangeHook(SchemaMappingChangeHook hook) {
-    this.schemaMappingChangeHook = hook;
-  }
-
-  @Override
-  public void updateSchemaMapping(String schema, Map<String, Integer> schemaMapping)
-      throws MetaStorageException {
-    InterProcessMutex mutex = new InterProcessMutex(this.client, SCHEMA_MAPPING_LOCK_NODE);
-    try {
-      mutex.acquire();
-      if (this.client.checkExists().forPath(SCHEMA_MAPPING_PREFIX + "/" + schema) == null) {
-        if (schemaMapping == null) { // 待删除的数据不存在
-          return;
-        }
-        // 创建新数据
-        this.client
-            .create()
-            .forPath(SCHEMA_MAPPING_PREFIX + "/" + schema, JsonUtils.toJson(schemaMapping));
-      } else {
-        if (schemaMapping == null) { // 待删除的数据存在
-          this.client.delete().forPath(SCHEMA_MAPPING_PREFIX + "/" + schema);
-        }
-        // 更新数据
-        this.client
-            .setData()
-            .forPath(SCHEMA_MAPPING_PREFIX + "/" + schema, JsonUtils.toJson(schemaMapping));
-      }
-    } catch (Exception e) {
-      throw new MetaStorageException("get error when update schemaMapping", e);
-    } finally {
-      try {
-        mutex.release();
-      } catch (Exception e) {
-        throw new MetaStorageException(
-            "get error when release interprocess lock for " + SCHEMA_MAPPING_LOCK_NODE, e);
-      }
-    }
   }
 
   @Override

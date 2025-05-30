@@ -253,22 +253,6 @@ public class MetaManagerMock implements IMetaManager {
   public void registerStorageEngineChangeHook(StorageEngineChangeHook hook) {}
 
   @Override
-  public void addOrUpdateSchemaMapping(String schema, Map<String, Integer> schemaMapping) {}
-
-  @Override
-  public void addOrUpdateSchemaMappingItem(String schema, String key, int value) {}
-
-  @Override
-  public Map<String, Integer> getSchemaMapping(String schema) {
-    return null;
-  }
-
-  @Override
-  public int getSchemaMappingItem(String schema, String key) {
-    return 0;
-  }
-
-  @Override
   public boolean addUser(UserMeta user) {
     return false;
   }

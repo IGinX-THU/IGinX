@@ -89,8 +89,6 @@ public class ETCDMetaStorage implements IMetaStorage {
 
   private Client client;
 
-  private Watch.Watcher schemaMappingWatcher;
-  private SchemaMappingChangeHook schemaMappingChangeHook = null;
   private Watch.Watcher iginxWatcher;
   private IginxChangeHook iginxChangeHook = null;
   private long iginxLease = -1L;
@@ -144,55 +142,6 @@ public class ETCDMetaStorage implements IMetaStorage {
         Client.builder()
             .endpoints(ConfigDescriptor.getInstance().getConfig().getEtcdEndpoints().split(","))
             .build();
-
-    // 注册 schema mapping 的监听
-    this.schemaMappingWatcher =
-        client
-            .getWatchClient()
-            .watch(
-                ByteSequence.from(SCHEMA_MAPPING_PREFIX.getBytes()),
-                WatchOption.newBuilder()
-                    .withPrefix(ByteSequence.from(SCHEMA_MAPPING_PREFIX.getBytes()))
-                    .withPrevKV(true)
-                    .build(),
-                new Watch.Listener() {
-                  @Override
-                  public void onNext(WatchResponse watchResponse) {
-                    if (ETCDMetaStorage.this.schemaMappingChangeHook == null) {
-                      return;
-                    }
-                    for (WatchEvent event : watchResponse.getEvents()) {
-                      String schema =
-                          event
-                              .getKeyValue()
-                              .getKey()
-                              .toString(StandardCharsets.UTF_8)
-                              .substring(SCHEMA_MAPPING_PREFIX.length());
-                      Map<String, Integer> schemaMapping = null;
-                      switch (event.getEventType()) {
-                        case PUT:
-                          schemaMapping =
-                              JsonUtils.parseMap(
-                                  new String(event.getKeyValue().getValue().getBytes()),
-                                  String.class,
-                                  Integer.class);
-                          break;
-                        case DELETE:
-                          break;
-                        default:
-                          LOGGER.error("unexpected watchEvent: {}", event.getEventType());
-                          break;
-                      }
-                      ETCDMetaStorage.this.schemaMappingChangeHook.onChange(schema, schemaMapping);
-                    }
-                  }
-
-                  @Override
-                  public void onError(Throwable throwable) {}
-
-                  @Override
-                  public void onCompleted() {}
-                });
 
     // 注册 iginx 的监听
     this.iginxWatcher =
@@ -626,67 +575,6 @@ public class ETCDMetaStorage implements IMetaStorage {
         .get()
         .getPrevKv()
         .getVersion();
-  }
-
-  @Override
-  public Map<String, Map<String, Integer>> loadSchemaMapping() throws MetaStorageException {
-    try {
-      Map<String, Map<String, Integer>> schemaMappings = new HashMap<>();
-      GetResponse response =
-          this.client
-              .getKVClient()
-              .get(
-                  ByteSequence.from(SCHEMA_MAPPING_PREFIX.getBytes()),
-                  GetOption.newBuilder()
-                      .withPrefix(ByteSequence.from(SCHEMA_MAPPING_PREFIX.getBytes()))
-                      .build())
-              .get();
-      response
-          .getKvs()
-          .forEach(
-              e -> {
-                String schema =
-                    e.getKey()
-                        .toString(StandardCharsets.UTF_8)
-                        .substring(SCHEMA_MAPPING_PREFIX.length());
-                Map<String, Integer> schemaMapping =
-                    JsonUtils.parseMap(
-                        e.getValue().toString(StandardCharsets.UTF_8), String.class, Integer.class);
-                schemaMappings.put(schema, schemaMapping);
-              });
-      return schemaMappings;
-    } catch (ExecutionException | InterruptedException e) {
-      LOGGER.error("got error when load schema mapping: ", e);
-      throw new MetaStorageException(e);
-    }
-  }
-
-  @Override
-  public void registerSchemaMappingChangeHook(SchemaMappingChangeHook hook) {
-    this.schemaMappingChangeHook = hook;
-  }
-
-  @Override
-  public void updateSchemaMapping(String schema, Map<String, Integer> schemaMapping)
-      throws MetaStorageException {
-    try {
-      if (schemaMapping == null) {
-        this.client
-            .getKVClient()
-            .delete(ByteSequence.from((SCHEMA_MAPPING_PREFIX + schema).getBytes()))
-            .get();
-      } else {
-        this.client
-            .getKVClient()
-            .put(
-                ByteSequence.from((SCHEMA_MAPPING_PREFIX + schema).getBytes()),
-                ByteSequence.from(JsonUtils.toJson(schemaMapping)))
-            .get();
-      }
-    } catch (ExecutionException | InterruptedException e) {
-      LOGGER.error("got error when update schema mapping: ", e);
-      throw new MetaStorageException(e);
-    }
   }
 
   private void lockIginx() throws MetaStorageException {
@@ -2841,9 +2729,6 @@ public class ETCDMetaStorage implements IMetaStorage {
   }
 
   public void close() throws MetaStorageException {
-    this.schemaMappingWatcher.close();
-    this.schemaMappingWatcher = null;
-
     this.iginxWatcher.close();
     this.iginxWatcher = null;
 
