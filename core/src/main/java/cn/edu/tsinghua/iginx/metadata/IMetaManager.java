@@ -202,17 +202,17 @@ public interface IMetaManager {
 
   Map<Integer, Integer> getColumnsVersionMap();
 
-  boolean addTransformTask(TransformTaskMeta transformTask);
+  boolean addPyFunction(PyFunctionMeta pyFunctionMeta);
 
-  boolean updateTransformTask(TransformTaskMeta transformTask);
+  boolean updatePyFunction(PyFunctionMeta pyFunctionMeta);
 
-  boolean dropTransformTask(String name);
+  boolean dropPyFunction(String name);
 
-  TransformTaskMeta getTransformTask(String name);
+  PyFunctionMeta getPyFunction(String name);
 
-  List<TransformTaskMeta> getTransformTasks();
+  List<PyFunctionMeta> getPyFunctions();
 
-  List<TransformTaskMeta> getTransformTasksByModule(String moduleName);
+  List<PyFunctionMeta> getPyFunctionsByModule(String moduleName);
 
   boolean storeJobTrigger(TriggerDescriptor jobTriggerDescriptor);
 

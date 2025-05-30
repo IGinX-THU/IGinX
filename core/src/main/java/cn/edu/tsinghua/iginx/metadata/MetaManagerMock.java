@@ -311,32 +311,32 @@ public class MetaManagerMock implements IMetaManager {
   }
 
   @Override
-  public boolean addTransformTask(TransformTaskMeta transformTask) {
+  public boolean addPyFunction(PyFunctionMeta pyFunctionMeta) {
     return false;
   }
 
   @Override
-  public boolean updateTransformTask(TransformTaskMeta transformTask) {
+  public boolean updatePyFunction(PyFunctionMeta pyFunctionMeta) {
     return false;
   }
 
   @Override
-  public boolean dropTransformTask(String name) {
+  public boolean dropPyFunction(String name) {
     return false;
   }
 
   @Override
-  public TransformTaskMeta getTransformTask(String name) {
+  public PyFunctionMeta getPyFunction(String name) {
     return null;
   }
 
   @Override
-  public List<TransformTaskMeta> getTransformTasks() {
+  public List<PyFunctionMeta> getPyFunctions() {
     return null;
   }
 
   @Override
-  public List<TransformTaskMeta> getTransformTasksByModule(String moduleName) {
+  public List<PyFunctionMeta> getPyFunctionsByModule(String moduleName) {
     return null;
   }
 
