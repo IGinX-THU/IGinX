@@ -22,7 +22,7 @@ port=$1
 
 pwd
 
-wsl docker-compose -f $port/docker-compose-$port.yml down
+wsl docker compose -f $port/docker-compose-$port.yml down
 
 sleep 10
 

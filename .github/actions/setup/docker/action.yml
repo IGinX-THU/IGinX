@@ -1,0 +1,40 @@
+name: "Docker"
+description: "setup docker"
+
+runs:
+    using: "composite"
+    steps:
+        - if: runner.os == 'Windows'
+          uses: Vampire/setup-wsl@v5
+          with:
+              distribution: Ubuntu-22.04
+              wsl-conf: |
+                  [wsl2]
+                  networkingMode=mirrored
+
+        - if: runner.os == 'Windows'
+          name: Install Docker on WSL
+          shell: wsl-bash {0}
+          run: |
+              curl -fsSL https://get.docker.com | sudo sh
+              sudo service docker start
+
+        - if: runner.os == 'Linux'
+          name: Install Docker Compose
+          shell: bash
+          run: curl -fsSL https://get.docker.com | sudo sh
+
+        - if: runner.os == 'macOS'
+          name: Install Docker on MacOS
+          shell: bash
+          run: |
+              brew update
+              brew install docker qemu
+              brew install colima
+              LIMACTL_PATH=$(brew --prefix)/bin/limactl
+              sudo curl -L -o $LIMACTL_PATH https://github.com/mikekazakov/lima-nohvf/raw/master/limactl && sudo chmod +x $LIMACTL_PATH
+              colima start --network-address --arch arm64 --vm-type=qemu
+              docker --version
+              colima status
+              brew install docker-compose
+              docker-compose --version

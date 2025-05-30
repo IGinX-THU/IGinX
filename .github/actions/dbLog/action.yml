@@ -27,7 +27,7 @@ runs:
           working-directory: ${{ github.workspace }}
           shell: bash
           run: |
-              docker-compose -f 19530/docker-compose-19530.yml logs | grep -v INFO |grep -v '"info"'
+              docker compose -f 19530/docker-compose-19530.yml logs | grep -v INFO |grep -v '"info"'
               ls volumes19530
               du -sh volumes19530
               du -sh volumes19530/etcd
@@ -36,6 +36,6 @@ runs:
         - if: ${{ inputs.DB-name == 'VectorDB' && runner.os == 'Windows' }}
           name: Show Milvus Log on Windows
           working-directory: ${{ github.workspace }}
-          shell: wsl-run {0}
+          shell: wsl-bash {0}
           run: |
-              docker-compose -f 19530/docker-compose-19530.yml logs | grep -v INFO |grep -v '"info"'
+              docker compose -f 19530/docker-compose-19530.yml logs | grep -v INFO |grep -v '"info"'
