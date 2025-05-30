@@ -113,15 +113,15 @@ public interface IMetaStorage {
 
   int updateVersion();
 
-  void registerTransformChangeHook(TransformChangeHook hook);
+  void registerPyFunctionChangeHook(PyFunctionChangeHook hook);
 
-  List<TransformTaskMeta> loadTransformTask() throws MetaStorageException;
+  List<PyFunctionMeta> loadPyFunction() throws MetaStorageException;
 
-  void addTransformTask(TransformTaskMeta transformTask) throws MetaStorageException;
+  void addPyFunction(PyFunctionMeta pyFunctionMeta) throws MetaStorageException;
 
-  void updateTransformTask(TransformTaskMeta transformTask) throws MetaStorageException;
+  void updatePyFunction(PyFunctionMeta pyFunctionMeta) throws MetaStorageException;
 
-  void dropTransformTask(String name) throws MetaStorageException;
+  void dropPyFunction(String name) throws MetaStorageException;
 
   void registerJobTriggerChangeHook(JobTriggerChangeHook hook);
 

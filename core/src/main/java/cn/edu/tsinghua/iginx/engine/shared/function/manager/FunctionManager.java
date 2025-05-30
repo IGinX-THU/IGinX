@@ -33,7 +33,7 @@ import cn.edu.tsinghua.iginx.engine.shared.function.udf.python.PyUDSF;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.python.PyUDTF;
 import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
-import cn.edu.tsinghua.iginx.metadata.entity.TransformTaskMeta;
+import cn.edu.tsinghua.iginx.metadata.entity.PyFunctionMeta;
 import cn.edu.tsinghua.iginx.thrift.UDFType;
 import java.io.File;
 import java.util.ArrayList;
@@ -126,7 +126,7 @@ public class FunctionManager {
   }
 
   private void initBasicUDFFunctions() {
-    List<TransformTaskMeta> metaList = new ArrayList<>();
+    List<PyFunctionMeta> metaList = new ArrayList<>();
     List<String> udfList = config.getUdfList();
     for (String udf : udfList) {
       LOGGER.debug("initing udf: {}", udf);
@@ -162,18 +162,18 @@ public class FunctionManager {
           config.getPort(),
           udfType);
       metaList.add(
-          new TransformTaskMeta(
+          new PyFunctionMeta(
               udfInfo[1], udfInfo[2], udfInfo[3], config.getIp(), config.getPort(), udfType));
     }
 
-    for (TransformTaskMeta meta : metaList) {
+    for (PyFunctionMeta meta : metaList) {
       LOGGER.debug("loading udf meta:{}", meta);
-      TransformTaskMeta taskMeta = metaManager.getTransformTask(meta.getName());
+      PyFunctionMeta taskMeta = metaManager.getPyFunction(meta.getName());
       if (taskMeta == null) {
-        metaManager.addTransformTask(meta);
+        metaManager.addPyFunction(meta);
       } else if (!taskMeta.containsIpPort(config.getIp(), config.getPort())) {
         meta.addIpPort(config.getIp(), config.getPort());
-        metaManager.updateTransformTask(meta);
+        metaManager.updatePyFunction(meta);
       }
 
       if (!meta.getType().equals(UDFType.TRANSFORM)) {
@@ -218,43 +218,43 @@ public class FunctionManager {
 
   private Function loadUDF(String identifier) {
     // load the udf & put it in cache.
-    TransformTaskMeta taskMeta = metaManager.getTransformTask(identifier);
-    if (taskMeta == null) {
+    PyFunctionMeta functionMeta = metaManager.getPyFunction(identifier);
+    if (functionMeta == null) {
       throw new IllegalArgumentException(String.format("UDF %s not registered", identifier));
     }
-    if (!taskMeta.containsIpPort(config.getIp(), config.getPort())) {
+    if (!functionMeta.containsIpPort(config.getIp(), config.getPort())) {
       throw new IllegalArgumentException(
           String.format("UDF %s not registered in node ip=%s", identifier, config.getIp()));
     }
 
-    String fileName = taskMeta.getFileName();
+    String fileName = functionMeta.getFileName();
     String moduleName;
-    String className = taskMeta.getClassName();
+    String className = functionMeta.getClassName();
     if (fileName.endsWith(PY_SUFFIX)) {
       // accessing a python code file
       moduleName = fileName.substring(0, fileName.indexOf(PY_SUFFIX));
-      className = taskMeta.getClassName();
+      className = functionMeta.getClassName();
     } else {
       // accessing a python module dir
       moduleName = className.substring(0, className.lastIndexOf("."));
       className = className.substring(className.lastIndexOf(".") + 1);
     }
 
-    if (taskMeta.getType().equals(UDFType.UDAF)) {
+    if (functionMeta.getType().equals(UDFType.UDAF)) {
       PyUDAF udaf = new PyUDAF(identifier, moduleName, className);
       functions.put(identifier, udaf);
       return udaf;
-    } else if (taskMeta.getType().equals(UDFType.UDTF)) {
+    } else if (functionMeta.getType().equals(UDFType.UDTF)) {
       PyUDTF udtf = new PyUDTF(identifier, moduleName, className);
       functions.put(identifier, udtf);
       return udtf;
-    } else if (taskMeta.getType().equals(UDFType.UDSF)) {
+    } else if (functionMeta.getType().equals(UDFType.UDSF)) {
       PyUDSF udsf = new PyUDSF(identifier, moduleName, className);
       functions.put(identifier, udsf);
       return udsf;
     } else {
       throw new IllegalArgumentException(
-          String.format("UDF %s registered in type %s", identifier, taskMeta.getType()));
+          String.format("UDF %s registered in type %s", identifier, functionMeta.getType()));
     }
   }
 

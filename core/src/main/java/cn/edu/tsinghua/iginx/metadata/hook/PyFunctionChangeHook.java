@@ -19,9 +19,9 @@
  */
 package cn.edu.tsinghua.iginx.metadata.hook;
 
-import cn.edu.tsinghua.iginx.metadata.entity.TransformTaskMeta;
+import cn.edu.tsinghua.iginx.metadata.entity.PyFunctionMeta;
 
-public interface TransformChangeHook {
+public interface PyFunctionChangeHook {
 
-  void onChange(String className, TransformTaskMeta transformTask);
+  void onChange(String className, PyFunctionMeta pyFunctionMeta);
 }

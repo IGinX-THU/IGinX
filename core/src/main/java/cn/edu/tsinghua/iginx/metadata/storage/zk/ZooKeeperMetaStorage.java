@@ -113,7 +113,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
   private UserChangeHook userChangeHook = null;
   private TimeSeriesChangeHook timeSeriesChangeHook = null;
   private VersionChangeHook versionChangeHook = null;
-  private TransformChangeHook transformChangeHook = null;
+  private PyFunctionChangeHook pyFunctionChangeHook = null;
   private JobTriggerChangeHook jobTriggerChangeHook = null;
   private ReshardStatusChangeHook reshardStatusChangeHook = null;
   private ReshardCounterChangeHook reshardCounterChangeHook = null;
@@ -1395,30 +1395,30 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
   }
 
   @Override
-  public void registerTransformChangeHook(TransformChangeHook hook) {
-    this.transformChangeHook = hook;
+  public void registerPyFunctionChangeHook(PyFunctionChangeHook hook) {
+    this.pyFunctionChangeHook = hook;
   }
 
   @Override
-  public List<TransformTaskMeta> loadTransformTask() throws MetaStorageException {
-    InterProcessMutex mutex = new InterProcessMutex(this.client, TRANSFORM_LOCK_NODE);
+  public List<PyFunctionMeta> loadPyFunction() throws MetaStorageException {
+    InterProcessMutex mutex = new InterProcessMutex(this.client, PYFUNCTION_LOCK_NODE);
     try {
       mutex.acquire();
-      List<TransformTaskMeta> tasks = new ArrayList<>();
-      if (this.client.checkExists().forPath(TRANSFORM_NODE_PREFIX) == null) {
+      List<PyFunctionMeta> tasks = new ArrayList<>();
+      if (this.client.checkExists().forPath(PYFUNCTION_NODE_PREFIX) == null) {
         // 当前还没有数据，创建父节点，然后不需要解析数据
         client
             .create()
             .creatingParentsIfNeeded()
             .withMode(CreateMode.PERSISTENT)
-            .forPath(TRANSFORM_NODE_PREFIX);
+            .forPath(PYFUNCTION_NODE_PREFIX);
       } else {
-        List<String> classNames = this.client.getChildren().forPath(TRANSFORM_NODE_PREFIX);
+        List<String> classNames = this.client.getChildren().forPath(PYFUNCTION_NODE_PREFIX);
         for (String className : classNames) {
-          byte[] data = this.client.getData().forPath(TRANSFORM_NODE_PREFIX + "/" + className);
-          TransformTaskMeta task = JsonUtils.fromJson(data, TransformTaskMeta.class);
+          byte[] data = this.client.getData().forPath(PYFUNCTION_NODE_PREFIX + "/" + className);
+          PyFunctionMeta task = JsonUtils.fromJson(data, PyFunctionMeta.class);
           if (task == null) {
-            LOGGER.error("resolve data from {}/{} error", TRANSFORM_NODE_PREFIX, className);
+            LOGGER.error("resolve data from {}/{} error", PYFUNCTION_NODE_PREFIX, className);
             continue;
           }
           tasks.add(task);
@@ -1427,45 +1427,45 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
       registerTransformListener();
       return tasks;
     } catch (Exception e) {
-      throw new MetaStorageException("get error when load transform tasks", e);
+      throw new MetaStorageException("get error when load python functions", e);
     } finally {
       try {
         mutex.release();
       } catch (Exception e) {
         throw new MetaStorageException(
-            "get error when release interprocess lock for " + TRANSFORM_LOCK_NODE, e);
+            "get error when release interprocess lock for " + PYFUNCTION_LOCK_NODE, e);
       }
     }
   }
 
   private void registerTransformListener() throws Exception {
-    this.transformCache = new TreeCache(this.client, TRANSFORM_NODE_PREFIX);
+    this.transformCache = new TreeCache(this.client, PYFUNCTION_NODE_PREFIX);
     TreeCacheListener listener =
         (curatorFramework, event) -> {
-          if (transformChangeHook == null) {
+          if (pyFunctionChangeHook == null) {
             return;
           }
-          TransformTaskMeta taskMeta;
+          PyFunctionMeta taskMeta;
           switch (event.getType()) {
             case NODE_ADDED:
             case NODE_UPDATED:
               if (event.getData() == null
                   || event.getData().getPath() == null
-                  || event.getData().getPath().equals(TRANSFORM_NODE_PREFIX)) {
+                  || event.getData().getPath().equals(PYFUNCTION_NODE_PREFIX)) {
                 return; // 前缀事件，非含数据的节点的变化，不需要处理
               }
-              taskMeta = JsonUtils.fromJson(event.getData().getData(), TransformTaskMeta.class);
+              taskMeta = JsonUtils.fromJson(event.getData().getData(), PyFunctionMeta.class);
               if (taskMeta != null) {
-                transformChangeHook.onChange(taskMeta.getName(), taskMeta);
+                pyFunctionChangeHook.onChange(taskMeta.getName(), taskMeta);
               } else {
-                LOGGER.error("resolve transform task from zookeeper error");
+                LOGGER.error("resolve python function from zookeeper error");
               }
               break;
             case NODE_REMOVED:
               String path = event.getData().getPath();
               String[] pathParts = path.split("/");
               String className = pathParts[pathParts.length - 1];
-              transformChangeHook.onChange(className, null);
+              pyFunctionChangeHook.onChange(className, null);
               break;
             default:
               break;
@@ -1476,8 +1476,8 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
   }
 
   @Override
-  public void addTransformTask(TransformTaskMeta transformTask) throws MetaStorageException {
-    InterProcessMutex mutex = new InterProcessMutex(this.client, TRANSFORM_LOCK_NODE);
+  public void addPyFunction(PyFunctionMeta pyFunctionMeta) throws MetaStorageException {
+    InterProcessMutex mutex = new InterProcessMutex(this.client, PYFUNCTION_LOCK_NODE);
     try {
       mutex.acquire();
       this.client
@@ -1485,56 +1485,56 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
           .creatingParentsIfNeeded()
           .withMode(CreateMode.PERSISTENT)
           .forPath(
-              TRANSFORM_NODE_PREFIX + "/" + transformTask.getName(),
-              JsonUtils.toJson(transformTask));
+              PYFUNCTION_NODE_PREFIX + "/" + pyFunctionMeta.getName(),
+              JsonUtils.toJson(pyFunctionMeta));
     } catch (Exception e) {
-      throw new MetaStorageException("get error when add transform task", e);
+      throw new MetaStorageException("get error when add python function", e);
     } finally {
       try {
         mutex.release();
       } catch (Exception e) {
         throw new MetaStorageException(
-            "get error when release interprocess lock for " + TRANSFORM_LOCK_NODE, e);
+            "get error when release interprocess lock for " + PYFUNCTION_LOCK_NODE, e);
       }
     }
   }
 
   @Override
-  public void updateTransformTask(TransformTaskMeta transformTask) throws MetaStorageException {
-    InterProcessMutex mutex = new InterProcessMutex(this.client, TRANSFORM_LOCK_NODE);
+  public void updatePyFunction(PyFunctionMeta pyFunctionMeta) throws MetaStorageException {
+    InterProcessMutex mutex = new InterProcessMutex(this.client, PYFUNCTION_LOCK_NODE);
     try {
       mutex.acquire();
       this.client
           .setData()
           .forPath(
-              TRANSFORM_NODE_PREFIX + "/" + transformTask.getName(),
-              JsonUtils.toJson(transformTask));
+              PYFUNCTION_NODE_PREFIX + "/" + pyFunctionMeta.getName(),
+              JsonUtils.toJson(pyFunctionMeta));
     } catch (Exception e) {
-      throw new MetaStorageException("get error when update transform task", e);
+      throw new MetaStorageException("get error when update python function", e);
     } finally {
       try {
         mutex.release();
       } catch (Exception e) {
         throw new MetaStorageException(
-            "get error when release interprocess lock for " + TRANSFORM_LOCK_NODE, e);
+            "get error when release interprocess lock for " + PYFUNCTION_LOCK_NODE, e);
       }
     }
   }
 
   @Override
-  public void dropTransformTask(String name) throws MetaStorageException {
-    InterProcessMutex mutex = new InterProcessMutex(this.client, TRANSFORM_LOCK_NODE);
+  public void dropPyFunction(String name) throws MetaStorageException {
+    InterProcessMutex mutex = new InterProcessMutex(this.client, PYFUNCTION_LOCK_NODE);
     try {
       mutex.acquire();
-      this.client.delete().forPath(TRANSFORM_NODE_PREFIX + "/" + name);
+      this.client.delete().forPath(PYFUNCTION_NODE_PREFIX + "/" + name);
     } catch (Exception e) {
-      throw new MetaStorageException("get error when drop transform task", e);
+      throw new MetaStorageException("get error when dropping python function", e);
     } finally {
       try {
         mutex.release();
       } catch (Exception e) {
         throw new MetaStorageException(
-            "get error when release interprocess lock for " + TRANSFORM_LOCK_NODE, e);
+            "get error when release interprocess lock for " + PYFUNCTION_LOCK_NODE, e);
       }
     }
   }

@@ -972,16 +972,16 @@ public class IginxWorker implements IService.Iface {
       return RpcUtils.FAILURE.setMessage(errorMsg);
     }
 
-    List<TransformTaskMeta> transformTaskMetas = new ArrayList<>();
+    List<PyFunctionMeta> pyFunctionMetas = new ArrayList<>();
     for (UDFClassPair p : pairs) {
-      TransformTaskMeta transformTaskMeta = metaManager.getTransformTask(p.name.trim());
-      if (transformTaskMeta != null
-          && transformTaskMeta.containsIpPort(config.getIp(), config.getPort())) {
-        errorMsg = String.format("Function %s already exist", transformTaskMeta);
+      PyFunctionMeta pyFunctionMeta = metaManager.getPyFunction(p.name.trim());
+      if (pyFunctionMeta != null
+          && pyFunctionMeta.containsIpPort(config.getIp(), config.getPort())) {
+        errorMsg = String.format("Function %s already exist", pyFunctionMeta);
         LOGGER.error(errorMsg);
         return RpcUtils.FAILURE.setMessage(errorMsg);
       }
-      transformTaskMetas.add(transformTaskMeta);
+      pyFunctionMetas.add(pyFunctionMeta);
     }
 
     String fileName = sourceFile.getName();
@@ -1042,13 +1042,13 @@ public class IginxWorker implements IService.Iface {
     }
 
     UDFType type;
-    TransformTaskMeta transformTaskMeta;
-    for (int i = 0; i < transformTaskMetas.size(); i++) {
+    PyFunctionMeta pyFunctionMeta;
+    for (int i = 0; i < pyFunctionMetas.size(); i++) {
       type = singleType ? req.getTypes().get(0) : req.getTypes().get(i);
-      transformTaskMeta = transformTaskMetas.get(i);
-      if (transformTaskMeta != null) {
-        transformTaskMeta.addIpPort(config.getIp(), config.getPort());
-        metaManager.updateTransformTask(transformTaskMeta);
+      pyFunctionMeta = pyFunctionMetas.get(i);
+      if (pyFunctionMeta != null) {
+        pyFunctionMeta.addIpPort(config.getIp(), config.getPort());
+        metaManager.updatePyFunction(pyFunctionMeta);
       } else {
         LOGGER.debug(
             "Registering {} task: {} as {} in {}; iginx: {}:{}",
@@ -1058,8 +1058,8 @@ public class IginxWorker implements IService.Iface {
             fileName,
             config.getIp(),
             config.getPort());
-        metaManager.addTransformTask(
-            new TransformTaskMeta(
+        metaManager.addPyFunction(
+            new PyFunctionMeta(
                 pairs.get(i).name,
                 pairs.get(i).classPath,
                 fileName,
@@ -1084,9 +1084,9 @@ public class IginxWorker implements IService.Iface {
   @Override
   public Status dropTask(DropTaskReq req) {
     String name = req.getName().trim();
-    TransformTaskMeta transformTaskMeta = metaManager.getTransformTask(name);
+    PyFunctionMeta pyFunctionMeta = metaManager.getPyFunction(name);
     String errorMsg = "";
-    if (transformTaskMeta == null) {
+    if (pyFunctionMeta == null) {
       errorMsg = "Function does not exist";
       LOGGER.error(errorMsg);
       return RpcUtils.FAILURE.setMessage(errorMsg);
@@ -1099,7 +1099,7 @@ public class IginxWorker implements IService.Iface {
       return RpcUtils.FAILURE.setMessage(errorMsg);
     }
 
-    if (!transformTaskMeta.containsIpPort(config.getIp(), config.getPort())) {
+    if (!pyFunctionMeta.containsIpPort(config.getIp(), config.getPort())) {
       errorMsg = String.format("Function exists in node: %s", config.getIp());
       LOGGER.error(errorMsg);
       return RpcUtils.FAILURE.setMessage(errorMsg);
@@ -1110,7 +1110,7 @@ public class IginxWorker implements IService.Iface {
             + File.separator
             + "python_scripts"
             + File.separator
-            + transformTaskMeta.getFileName();
+            + pyFunctionMeta.getFileName();
 
     Predicate<String> ruleNameFilter = FilePermissionRuleNameFilters.transformerRulesWithDefault();
     FilePermissionManager.Checker destChecker =
@@ -1128,7 +1128,7 @@ public class IginxWorker implements IService.Iface {
     File file = normalizedFile.get().toFile();
 
     if (!file.exists()) {
-      metaManager.dropTransformTask(name);
+      metaManager.dropPyFunction(name);
       errorMsg = String.format("Register file not exist, path=%s", filePath);
       LOGGER.error(errorMsg);
       return RpcUtils.FAILURE.setMessage(errorMsg);
@@ -1136,10 +1136,10 @@ public class IginxWorker implements IService.Iface {
 
     try {
       // if module/file only used by this task, delete its file(s)
-      if (metaManager.getTransformTasksByModule(transformTaskMeta.getFileName()).size() == 1) {
+      if (metaManager.getPyFunctionsByModule(pyFunctionMeta.getFileName()).size() == 1) {
         FileUtils.deleteFileOrDir(file);
       }
-      metaManager.dropTransformTask(name);
+      metaManager.dropPyFunction(name);
       FunctionManager.getInstance().removeFunction(name);
       LOGGER.info("Register file has been dropped, path={}", filePath);
       return RpcUtils.SUCCESS;
@@ -1151,10 +1151,10 @@ public class IginxWorker implements IService.Iface {
 
   @Override
   public GetRegisterTaskInfoResp getRegisterTaskInfo(GetRegisterTaskInfoReq req) {
-    List<TransformTaskMeta> taskMetaList = metaManager.getTransformTasks();
+    List<PyFunctionMeta> taskMetaList = metaManager.getPyFunctions();
     List<RegisterTaskInfo> taskInfoList = new ArrayList<>();
     List<IpPortPair> ipPortPairs;
-    for (TransformTaskMeta taskMeta : taskMetaList) {
+    for (PyFunctionMeta taskMeta : taskMetaList) {
       ipPortPairs =
           taskMeta.getIpPortSet().stream()
               .map(p -> new IpPortPair(p.getK(), p.getV()))

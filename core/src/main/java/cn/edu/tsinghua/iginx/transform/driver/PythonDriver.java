@@ -23,7 +23,7 @@ import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
-import cn.edu.tsinghua.iginx.metadata.entity.TransformTaskMeta;
+import cn.edu.tsinghua.iginx.metadata.entity.PyFunctionMeta;
 import cn.edu.tsinghua.iginx.transform.api.Driver;
 import cn.edu.tsinghua.iginx.transform.api.Writer;
 import cn.edu.tsinghua.iginx.transform.exception.CreateWorkerException;
@@ -86,20 +86,20 @@ public class PythonDriver implements Driver {
   public IPCWorker createWorker(PythonTask task, Writer writer) throws TransformException {
     String name = task.getPyTaskName();
 
-    TransformTaskMeta taskMeta = metaManager.getTransformTask(name);
-    if (taskMeta == null) {
+    PyFunctionMeta functionMeta = metaManager.getPyFunction(name);
+    if (functionMeta == null) {
       throw new CreateWorkerException(
-          String.format("Fail to load task info by task name: %s", name));
+          String.format("Fail to load python function info by function name: %s", name));
     }
-    if (!taskMeta.containsIpPort(config.getIp(), config.getPort())) {
+    if (!functionMeta.containsIpPort(config.getIp(), config.getPort())) {
       throw new CreateWorkerException(
           String.format(
-              "Fail to load task file, because current ip is: %s, and register ip is: %s",
+              "Fail to load python function file, because current ip is: %s, and register ip is: %s",
               config.getIp(), config.getIp()));
     }
 
-    String fileName = taskMeta.getFileName();
-    String className = taskMeta.getClassName();
+    String fileName = functionMeta.getFileName();
+    String className = functionMeta.getClassName();
     String moduleName = fileName.substring(0, fileName.indexOf(PY_SUFFIX));
 
     ServerSocket serverSocket = null;

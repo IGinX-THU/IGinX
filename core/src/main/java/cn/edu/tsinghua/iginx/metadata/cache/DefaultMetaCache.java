@@ -92,8 +92,8 @@ public class DefaultMetaCache implements IMetaCache {
 
   private final Random random = new Random();
 
-  // transform task 的缓存
-  private final Map<String, TransformTaskMeta> transformTaskMetaMap;
+  // python functions 的缓存
+  private final Map<String, PyFunctionMeta> pyFunctionMetaMap;
 
   private final Map<String, TriggerDescriptor> jobTriggerMetaMap;
 
@@ -126,8 +126,8 @@ public class DefaultMetaCache implements IMetaCache {
     userMetaMap = new ConcurrentHashMap<>();
     // 时序列信息版本号相关
     columnsVersionMap = new ConcurrentHashMap<>();
-    // transform task 相关
-    transformTaskMetaMap = new ConcurrentHashMap<>();
+    // python function 相关
+    pyFunctionMetaMap = new ConcurrentHashMap<>();
     // 定时任务相关
     jobTriggerMetaMap = new ConcurrentHashMap<>();
   }
@@ -960,31 +960,31 @@ public class DefaultMetaCache implements IMetaCache {
   }
 
   @Override
-  public void addOrUpdateTransformTask(TransformTaskMeta transformTask) {
-    transformTaskMetaMap.put(transformTask.getName(), transformTask);
+  public void addOrUpdatePyFunction(PyFunctionMeta pyFunctionMeta) {
+    pyFunctionMetaMap.put(pyFunctionMeta.getName(), pyFunctionMeta);
   }
 
   @Override
-  public void dropTransformTask(String name) {
-    transformTaskMetaMap.remove(name);
+  public void dropPyFunction(String name) {
+    pyFunctionMetaMap.remove(name);
   }
 
   @Override
-  public TransformTaskMeta getTransformTask(String name) {
-    return transformTaskMetaMap.getOrDefault(name, null);
+  public PyFunctionMeta getPyFunction(String name) {
+    return pyFunctionMetaMap.getOrDefault(name, null);
   }
 
   @Override
-  public List<TransformTaskMeta> getTransformTasks() {
-    return transformTaskMetaMap.values().stream()
-        .map(TransformTaskMeta::copy)
+  public List<PyFunctionMeta> getPyFunctions() {
+    return pyFunctionMetaMap.values().stream()
+        .map(PyFunctionMeta::copy)
         .collect(Collectors.toList());
   }
 
   @Override
-  public List<TransformTaskMeta> getTransformTasksByModule(String moduleName) {
-    List<TransformTaskMeta> res = new ArrayList<>();
-    transformTaskMetaMap
+  public List<PyFunctionMeta> getPyFunctionsByModule(String moduleName) {
+    List<PyFunctionMeta> res = new ArrayList<>();
+    pyFunctionMetaMap
         .values()
         .forEach(
             e -> {

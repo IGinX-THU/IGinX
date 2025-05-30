@@ -316,33 +316,33 @@ public class MetaManagerWrapper implements IMetaManager {
   }
 
   @Override
-  public boolean addTransformTask(TransformTaskMeta transformTask) {
-    return metaManager.addTransformTask(transformTask);
+  public boolean addPyFunction(PyFunctionMeta pyFunctionMeta) {
+    return metaManager.addPyFunction(pyFunctionMeta);
   }
 
   @Override
-  public boolean updateTransformTask(TransformTaskMeta transformTask) {
-    return metaManager.updateTransformTask(transformTask);
+  public boolean updatePyFunction(PyFunctionMeta pyFunctionMeta) {
+    return metaManager.updatePyFunction(pyFunctionMeta);
   }
 
   @Override
-  public boolean dropTransformTask(String name) {
-    return metaManager.dropTransformTask(name);
+  public boolean dropPyFunction(String name) {
+    return metaManager.dropPyFunction(name);
   }
 
   @Override
-  public TransformTaskMeta getTransformTask(String name) {
-    return metaManager.getTransformTask(name);
+  public PyFunctionMeta getPyFunction(String name) {
+    return metaManager.getPyFunction(name);
   }
 
   @Override
-  public List<TransformTaskMeta> getTransformTasks() {
-    return metaManager.getTransformTasks();
+  public List<PyFunctionMeta> getPyFunctions() {
+    return metaManager.getPyFunctions();
   }
 
   @Override
-  public List<TransformTaskMeta> getTransformTasksByModule(String moduleName) {
-    return metaManager.getTransformTasksByModule(moduleName);
+  public List<PyFunctionMeta> getPyFunctionsByModule(String moduleName) {
+    return metaManager.getPyFunctionsByModule(moduleName);
   }
 
   @Override
