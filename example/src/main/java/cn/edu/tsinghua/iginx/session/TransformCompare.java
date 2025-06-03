@@ -110,7 +110,7 @@ public class TransformCompare {
       throws SessionException, InterruptedException {
     List<TaskInfo> taskInfoList = new ArrayList<>();
 
-    TaskInfo iginxTask = new TaskInfo(TaskType.IGINX, DataFlowType.STREAM);
+    TaskInfo iginxTask = new TaskInfo(TaskType.SQL, DataFlowType.STREAM);
     iginxTask.setSqlList(Collections.singletonList(sql));
     taskInfoList.add(iginxTask);
 
