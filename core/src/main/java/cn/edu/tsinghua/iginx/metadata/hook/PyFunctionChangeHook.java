@@ -19,8 +19,9 @@
  */
 package cn.edu.tsinghua.iginx.metadata.hook;
 
-import cn.edu.tsinghua.iginx.transform.pojo.TriggerDescriptor;
+import cn.edu.tsinghua.iginx.metadata.entity.PyFunctionMeta;
 
-public interface JobTriggerChangeHook {
-  void onChange(String className, TriggerDescriptor descriptor);
+public interface PyFunctionChangeHook {
+
+  void onChange(String className, PyFunctionMeta pyFunctionMeta);
 }

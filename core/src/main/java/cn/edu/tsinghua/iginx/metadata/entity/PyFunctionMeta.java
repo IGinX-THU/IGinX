@@ -25,7 +25,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
-public class TransformTaskMeta {
+public class PyFunctionMeta {
 
   private String name;
 
@@ -37,7 +37,7 @@ public class TransformTaskMeta {
 
   private UDFType type;
 
-  public TransformTaskMeta(
+  public PyFunctionMeta(
       String name, String className, String fileName, String ip, int port, UDFType type) {
     this(
         name,
@@ -47,7 +47,7 @@ public class TransformTaskMeta {
         type);
   }
 
-  public TransformTaskMeta(
+  public PyFunctionMeta(
       String name,
       String className,
       String fileName,
@@ -119,13 +119,13 @@ public class TransformTaskMeta {
     this.type = type;
   }
 
-  public TransformTaskMeta copy() {
-    return new TransformTaskMeta(name, className, fileName, ipPortSet, type);
+  public PyFunctionMeta copy() {
+    return new PyFunctionMeta(name, className, fileName, ipPortSet, type);
   }
 
   @Override
   public String toString() {
-    return "TransformTaskMeta{"
+    return "PyFunctionMeta{"
         + "name='"
         + name
         + '\''

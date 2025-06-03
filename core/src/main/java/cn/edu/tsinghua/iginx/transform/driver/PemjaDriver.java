@@ -24,7 +24,7 @@ import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.engine.shared.function.manager.ThreadInterpreterManager;
 import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
-import cn.edu.tsinghua.iginx.metadata.entity.TransformTaskMeta;
+import cn.edu.tsinghua.iginx.metadata.entity.PyFunctionMeta;
 import cn.edu.tsinghua.iginx.transform.api.Writer;
 import cn.edu.tsinghua.iginx.transform.pojo.PythonTask;
 import java.io.File;
@@ -67,19 +67,19 @@ public class PemjaDriver {
 
   public PemjaWorker createWorker(PythonTask task, Writer writer) {
     String identifier = task.getPyTaskName();
-    TransformTaskMeta taskMeta = metaManager.getTransformTask(identifier);
-    if (taskMeta == null) {
+    PyFunctionMeta functionMeta = metaManager.getPyFunction(identifier);
+    if (functionMeta == null) {
       throw new IllegalArgumentException(String.format("UDF %s not registered", identifier));
     }
-    if (!taskMeta.containsIpPort(config.getIp(), config.getPort())) {
+    if (!functionMeta.containsIpPort(config.getIp(), config.getPort())) {
       throw new IllegalArgumentException(
           String.format("UDF %s not registered in node ip=%s", identifier, config.getIp()));
     }
 
     PythonInterpreter interpreter = ThreadInterpreterManager.getInterpreter();
-    String fileName = taskMeta.getFileName();
+    String fileName = functionMeta.getFileName();
     String moduleName = fileName.substring(0, fileName.indexOf(PY_SUFFIX));
-    String className = taskMeta.getClassName();
+    String className = functionMeta.getClassName();
 
     // to fail fast
     // importlib is used to update python scripts

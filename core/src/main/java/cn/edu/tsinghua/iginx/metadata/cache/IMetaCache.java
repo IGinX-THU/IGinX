@@ -22,7 +22,6 @@ package cn.edu.tsinghua.iginx.metadata.cache;
 import cn.edu.tsinghua.iginx.metadata.entity.*;
 import cn.edu.tsinghua.iginx.policy.simple.ColumnCalDO;
 import cn.edu.tsinghua.iginx.sql.statement.InsertStatement;
-import cn.edu.tsinghua.iginx.transform.pojo.TriggerDescriptor;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -137,19 +136,19 @@ public interface IMetaCache {
 
   Map<Integer, Integer> getColumnsVersionMap();
 
-  void addOrUpdateTransformTask(TransformTaskMeta transformTask);
+  void addOrUpdatePyFunction(PyFunctionMeta pyFunctionMeta);
 
-  void dropTransformTask(String name);
+  void dropPyFunction(String name);
 
-  TransformTaskMeta getTransformTask(String name);
+  PyFunctionMeta getPyFunction(String name);
 
-  List<TransformTaskMeta> getTransformTasks();
+  List<PyFunctionMeta> getPyFunctions();
 
-  List<TransformTaskMeta> getTransformTasksByModule(String moduleName);
+  List<PyFunctionMeta> getPyFunctionsByModule(String moduleName);
 
-  void addOrUpdateJobTrigger(TriggerDescriptor descriptor);
+  void addOrUpdateTransformJob(TransformJobMeta jobMeta);
 
-  void dropJobTrigger(String name);
+  void dropTransformJob(String name);
 
-  List<TriggerDescriptor> getJobTriggers();
+  List<TransformJobMeta> getTransformJob();
 }

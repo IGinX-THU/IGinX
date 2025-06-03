@@ -25,6 +25,7 @@ import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
+import cn.edu.tsinghua.iginx.metadata.entity.TransformJobMeta;
 import cn.edu.tsinghua.iginx.thrift.CommitTransformJobReq;
 import cn.edu.tsinghua.iginx.thrift.JobState;
 import cn.edu.tsinghua.iginx.thrift.TaskType;
@@ -86,20 +87,20 @@ public class TransformJobManager {
   }
 
   private void initScheduledJobs() {
-    List<TriggerDescriptor> descriptors = metaManager.getJobTriggers();
+    List<TransformJobMeta> descriptors = metaManager.getTransformJobs();
     String path;
-    for (TriggerDescriptor descriptor : descriptors) {
-      if (!descriptor.getIp().equals(config.getIp()) || descriptor.getPort() != config.getPort()) {
+    for (TransformJobMeta jobMeta : descriptors) {
+      if (!jobMeta.getIp().equals(config.getIp()) || jobMeta.getPort() != config.getPort()) {
         // not on this iginx node
         continue;
       }
-      Trigger trigger = TriggerDescriptor.fromTriggerDescriptor(descriptor);
-      path = String.join(File.separator, JobYamlDir, descriptor.getName() + ".yaml");
+      Trigger trigger = TriggerDescriptor.fromTriggerDescriptor(jobMeta.getTrigger());
+      path = String.join(File.separator, JobYamlDir, jobMeta.getName() + ".yaml");
       if (trigger == null) {
         LOGGER.error(
-            "Illegal trigger descriptor or all executions have been missed: {}. Trigger will be removed.",
-            descriptor);
-        metaManager.dropJobTrigger(descriptor.getName());
+            "Illegal trigger jobMeta or all executions have been missed: {}. Trigger will be removed.",
+            jobMeta);
+        metaManager.dropTransformJob(jobMeta.getName());
         try {
           Files.deleteIfExists(Paths.get(path));
         } catch (IOException e) {
@@ -107,9 +108,10 @@ public class TransformJobManager {
         }
         continue;
       }
-      if (!descriptor.equals(Objects.requireNonNull(toTriggerDescriptor(trigger)))) {
+      if (!(jobMeta.getTrigger()).equals(Objects.requireNonNull(toTriggerDescriptor(trigger)))) {
         // in type.EVERY trigger, start time might be updated
-        metaManager.updateJobTrigger(TriggerDescriptor.toTriggerDescriptor(trigger));
+        jobMeta.setTrigger(TriggerDescriptor.toTriggerDescriptor(trigger));
+        metaManager.updateTransformJob(jobMeta);
       }
       try {
         LOGGER.debug("Reading existing job from yaml:{}.", new File(path).getCanonicalPath());
@@ -153,7 +155,7 @@ public class TransformJobManager {
       if (job.isScheduled() && !job.isMetaStored()) {
         // save the trigger in meta and job as yaml
         saveJobAsYaml(job.getJobId());
-        metaManager.storeJobTrigger(getJobTriggerDescriptor(job.getJobId()));
+        metaManager.storeTransformJob(getLocalTransformJobMeta(job.getJobId()));
       }
       return job.getJobId();
     } else {
@@ -385,7 +387,7 @@ public class TransformJobManager {
     if (job.isScheduled()) {
       String path = String.join(File.separator, JobYamlDir, job.getName() + ".yaml");
       try {
-        metaManager.dropJobTrigger(job.getName());
+        metaManager.dropTransformJob(job.getName());
         Files.deleteIfExists(Paths.get(path));
       } catch (IOException e) {
         LOGGER.error("Cannot delete yaml file {}", path, e);
@@ -406,8 +408,9 @@ public class TransformJobManager {
     }
   }
 
-  public TriggerDescriptor getJobTriggerDescriptor(long jobId) {
+  public TransformJobMeta getLocalTransformJobMeta(long jobId) {
     Job job = jobMap.get(jobId);
-    return toTriggerDescriptor(job.getTrigger());
+    return new TransformJobMeta(
+        job.getName(), toTriggerDescriptor(job.getTrigger()), config.getIp(), config.getPort());
   }
 }
