@@ -99,7 +99,7 @@ public class ClusterIT {
   }
 
   @Test
-  public void testRemoveDummyStorage() {
+  public void testRemoveDummyStorage() throws InterruptedException {
     testRemoveDummyStorageForAllIginx();
     testRemoveDummyStorageForCurrentIginx();
   }
@@ -123,7 +123,7 @@ public class ClusterIT {
     }
   }
 
-  private void testRemoveDummyStorageForAllIginx() {
+  private void testRemoveDummyStorageForAllIginx() throws InterruptedException {
     IoTDB12HistoryDataGenerator generator = new IoTDB12HistoryDataGenerator();
     try {
       generator.writeHistoryData(
@@ -172,7 +172,7 @@ public class ClusterIT {
     testShowStorageConnectivity(session, false, false);
   }
 
-  private void testRemoveDummyStorageForAllIginx(Session session) {
+  private void testRemoveDummyStorageForAllIginx(Session session) throws InterruptedException {
     String removeStorageEngine =
         "REMOVE STORAGEENGINE (\"127.0.0.1\", 6667, \"prefix\", \"\") FOR ALL;";
     try {
@@ -181,6 +181,7 @@ public class ClusterIT {
       LOGGER.error("Statement: \"{}\" execute fail. Caused by: ", removeStorageEngine, e);
       fail();
     }
+    Thread.sleep(10000);
 
     testShowStorageConnectivity(session6888, false, true);
     testShowStorageConnectivity(session6889, false, true);
