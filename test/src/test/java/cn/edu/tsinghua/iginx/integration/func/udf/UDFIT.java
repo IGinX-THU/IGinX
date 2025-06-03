@@ -1562,6 +1562,12 @@ public class UDFIT {
     }
   }
 
+  @Test()
+  public void windowsRelationalTest() {
+    tensorUDFTest();
+    testTimeout();
+  }
+
   @Test
   public void testTimeout() {
     String name = "TimeoutTest";
