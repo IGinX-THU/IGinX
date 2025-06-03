@@ -181,6 +181,7 @@ public class ClusterIT {
       LOGGER.error("Statement: \"{}\" execute fail. Caused by: ", removeStorageEngine, e);
       fail();
     }
+    // 等待其他iginx移除节点
     Thread.sleep(10000);
 
     testShowStorageConnectivity(session6888, false, true);
