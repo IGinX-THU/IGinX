@@ -56,4 +56,22 @@ public class RowStreams {
     }
     return new FilterRowStreamWrapper(rowStream, filter);
   }
+
+  public static void close(Iterable<? extends RowStream> rowStreams) throws PhysicalException {
+    PhysicalException exception = null;
+    for (RowStream rowStream : rowStreams) {
+      try {
+        rowStream.close();
+      } catch (PhysicalException e) {
+        if (exception == null) {
+          exception = e;
+        } else if (e != exception) {
+          exception.addSuppressed(e);
+        }
+      }
+    }
+    if (exception != null) {
+      throw exception;
+    }
+  }
 }

@@ -35,7 +35,8 @@ import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.*;
-import javax.annotation.Nullable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 
 class FormatQuerier extends AbstractQuerier {
 
@@ -43,8 +44,13 @@ class FormatQuerier extends AbstractQuerier {
   private final List<String> patterns;
   private final Filter filter;
 
-  FormatQuerier(Path path, String prefix, DataTarget target, FileFormat.Reader reader) {
-    super(path, prefix, target);
+  FormatQuerier(
+      Path path,
+      String prefix,
+      DataTarget target,
+      FileFormat.Reader reader,
+      ExecutorService executor) {
+    super(path, prefix, target, executor);
     this.reader = Objects.requireNonNull(reader);
     this.patterns = Patterns.nonNull(target.getPatterns());
     this.filter = Filters.isTrue(target.getFilter()) ? new BoolFilter(true) : target.getFilter();
@@ -61,20 +67,15 @@ class FormatQuerier extends AbstractQuerier {
   }
 
   @Override
-  public List<RowStream> query() throws IOException {
-    RowStream rowStream = doQuery();
-    if (rowStream == null) {
-      return Collections.emptyList();
-    } else {
-      return Collections.singletonList(rowStream);
-    }
+  public List<Future<RowStream>> query() {
+    Future<RowStream> rowStream = getExecutor().submit(this::doQuery);
+    return Collections.singletonList(rowStream);
   }
 
-  @Nullable
   private RowStream doQuery() throws IOException {
     Map<String, DataType> schema = reader.find(patterns);
     if (schema.isEmpty()) {
-      return null;
+      return RowStreams.empty();
     }
     if (Filters.isFalse(filter)) {
       List<Field> fields = new ArrayList<>();

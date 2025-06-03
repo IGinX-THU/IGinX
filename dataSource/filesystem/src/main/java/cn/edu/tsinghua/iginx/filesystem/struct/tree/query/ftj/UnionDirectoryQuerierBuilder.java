@@ -34,6 +34,7 @@ import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
 import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,13 +47,19 @@ class UnionDirectoryQuerierBuilder implements Builder {
   private final Path path;
   private final Factory factory;
   private final FileTreeConfig config;
+  private final ExecutorService executor;
 
   UnionDirectoryQuerierBuilder(
-      @Nullable String prefix, Path path, Factory factory, FileTreeConfig config) {
+      @Nullable String prefix,
+      Path path,
+      Factory factory,
+      FileTreeConfig config,
+      ExecutorService executor) {
     this.prefix = prefix;
     this.path = path;
     this.factory = factory;
     this.config = config;
+    this.executor = executor;
   }
 
   @Override
@@ -87,7 +94,7 @@ class UnionDirectoryQuerierBuilder implements Builder {
         Path subPath = entry.getValue();
 
         DataTarget subTarget = extractTarget(target, subPrefix);
-        try (Builder subBuilder = factory.create(subPrefix, subPath, config)) {
+        try (Builder subBuilder = factory.create(subPrefix, subPath, config, executor)) {
           Querier subQuerier = subBuilder.build(subTarget);
           subQueriers.add(subQuerier);
         }
@@ -101,7 +108,7 @@ class UnionDirectoryQuerierBuilder implements Builder {
     }
 
     UnionDirectoryQuerier unionDirectoryQuerier =
-        new UnionDirectoryQuerier(path, prefix, target, subQueriers);
+        new UnionDirectoryQuerier(path, prefix, target, subQueriers, executor);
     if (!needPostFilter) {
       return unionDirectoryQuerier;
     }
