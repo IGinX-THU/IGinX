@@ -319,7 +319,7 @@ public class SessionExecuteSqlResult {
                     String.valueOf(info.getId()),
                     info.getIp(),
                     String.valueOf(info.getPort()),
-                    info.getConnected())));
+                    info.getConnectable())));
       }
       builder.append(FormatUtils.formatResult(cache));
     }
@@ -341,7 +341,7 @@ public class SessionExecuteSqlResult {
                     info.getType().toString(),
                     info.getSchemaPrefix(),
                     info.getDataPrefix(),
-                    info.getConnected())));
+                    info.getConnectable())));
       }
       builder.append(FormatUtils.formatResult(cache));
     }

@@ -24,7 +24,6 @@ import cn.edu.tsinghua.iginx.metadata.exception.MetaStorageException;
 import cn.edu.tsinghua.iginx.metadata.hook.StorageEngineChangeHook;
 import cn.edu.tsinghua.iginx.metadata.hook.StorageUnitHook;
 import cn.edu.tsinghua.iginx.policy.simple.ColumnCalDO;
-import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.sql.statement.InsertStatement;
 import cn.edu.tsinghua.iginx.thrift.AuthType;
 import cn.edu.tsinghua.iginx.transform.pojo.TriggerDescriptor;
@@ -67,8 +66,8 @@ public interface IMetaManager {
   /** 获取当前 iginx 节点的 ID */
   long getIginxId();
 
-  /** 获取已连接的其他 iginx 节点的 session */
-  Map<Long, Session> getIginxSessionMap();
+  /** 获取集群中 iginx 节点之间的连通性 */
+  Map<Long, List<Long>> getIginxConnectivity();
 
   /** 记录 iginx 节点和存储节点的连接信息 */
   void addStorageConnection(List<StorageEngineMeta> storageEngines);

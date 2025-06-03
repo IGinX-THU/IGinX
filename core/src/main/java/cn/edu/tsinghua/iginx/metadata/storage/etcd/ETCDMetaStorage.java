@@ -148,9 +148,9 @@ public class ETCDMetaStorage implements IMetaStorage {
         client
             .getWatchClient()
             .watch(
-                ByteSequence.from(IGINX_NODE_PREFIX.getBytes()),
+                ByteSequence.from(IGINX_INFO_NODE_PREFIX.getBytes()),
                 WatchOption.newBuilder()
-                    .withPrefix(ByteSequence.from(IGINX_NODE_PREFIX.getBytes()))
+                    .withPrefix(ByteSequence.from(IGINX_INFO_NODE_PREFIX.getBytes()))
                     .withPrevKV(true)
                     .build(),
                 new Watch.Listener() {
@@ -609,9 +609,9 @@ public class ETCDMetaStorage implements IMetaStorage {
           this.client
               .getKVClient()
               .get(
-                  ByteSequence.from(IGINX_NODE_PREFIX.getBytes()),
+                  ByteSequence.from(IGINX_INFO_NODE_PREFIX.getBytes()),
                   GetOption.newBuilder()
-                      .withPrefix(ByteSequence.from(IGINX_NODE_PREFIX.getBytes()))
+                      .withPrefix(ByteSequence.from(IGINX_INFO_NODE_PREFIX.getBytes()))
                       .build())
               .get();
       response
@@ -660,7 +660,8 @@ public class ETCDMetaStorage implements IMetaStorage {
       this.client
           .getKVClient()
           .put(
-              ByteSequence.from(generateID(IGINX_NODE_PREFIX, IGINX_NODE_LENGTH, id).getBytes()),
+              ByteSequence.from(
+                  generateID(IGINX_INFO_NODE_PREFIX, IGINX_NODE_LENGTH, id).getBytes()),
               ByteSequence.from(JsonUtils.toJson(iginx)))
           .get();
       return iginx;
@@ -907,19 +908,18 @@ public class ETCDMetaStorage implements IMetaStorage {
   }
 
   @Override
-  public Map<Long, Session> connectOtherIginx(IginxMeta iginx) throws MetaStorageException {
+  public void refreshAchievableIginx(IginxMeta iginx) throws MetaStorageException {
     try {
       lockIginx();
       lockIginxConnection();
-      Map<Long, Session> sessionMap = new HashMap<>();
-      List<Long> connectedIds = new ArrayList<>();
+      List<Long> achievableIds = new ArrayList<>();
       GetResponse response =
           this.client
               .getKVClient()
               .get(
-                  ByteSequence.from(IGINX_NODE_PREFIX.getBytes()),
+                  ByteSequence.from(IGINX_INFO_NODE_PREFIX.getBytes()),
                   GetOption.newBuilder()
-                      .withPrefix(ByteSequence.from(IGINX_NODE_PREFIX.getBytes()))
+                      .withPrefix(ByteSequence.from(IGINX_INFO_NODE_PREFIX.getBytes()))
                       .build())
               .get();
       response
@@ -935,6 +935,13 @@ public class ETCDMetaStorage implements IMetaStorage {
                 Session session = new Session(iginxMeta.iginxMetaInfo());
                 try {
                   session.openSession();
+                  LOGGER.info(
+                      "connect to iginx(id = {} ,ip = {} , port = {})",
+                      iginxMeta.getId(),
+                      iginxMeta.getIp(),
+                      iginxMeta.getPort());
+                  achievableIds.add(iginxMeta.getId());
+                  session.closeSession();
                 } catch (SessionException exception) {
                   LOGGER.info(
                       "open session of iginx(id = {} ,ip = {} , port = {}) failed, because: ",
@@ -942,18 +949,10 @@ public class ETCDMetaStorage implements IMetaStorage {
                       iginxMeta.getIp(),
                       iginxMeta.getPort(),
                       exception);
-                  return;
                 }
-                LOGGER.info(
-                    "connect to iginx(id = {} ,ip = {} , port = {})",
-                    iginxMeta.getId(),
-                    iginxMeta.getIp(),
-                    iginxMeta.getPort());
-                sessionMap.putIfAbsent(iginxMeta.getId(), session);
-                connectedIds.add(iginxMeta.getId());
               });
 
-      long[] ids = connectedIds.stream().mapToLong(Long::longValue).toArray();
+      long[] ids = achievableIds.stream().mapToLong(Long::longValue).toArray();
       this.client
           .getKVClient()
           .put(
@@ -962,7 +961,6 @@ public class ETCDMetaStorage implements IMetaStorage {
                       .getBytes()),
               ByteSequence.from(JsonUtils.toJson(ids)))
           .get();
-      return sessionMap;
     } catch (ExecutionException | InterruptedException e) {
       LOGGER.error("got error when connect to other iginx: ", e);
       throw new MetaStorageException(e);
@@ -977,7 +975,7 @@ public class ETCDMetaStorage implements IMetaStorage {
   }
 
   @Override
-  public Map<Long, List<Long>> updateClusterIginxConnections() throws MetaStorageException {
+  public Map<Long, List<Long>> refreshClusterIginxConnectivity() throws MetaStorageException {
     try {
       lockIginxConnection();
       Map<Long, List<Long>> connectionMap = new HashMap<>();
@@ -1107,7 +1105,7 @@ public class ETCDMetaStorage implements IMetaStorage {
   }
 
   @Override
-  public Map<Long, List<Long>> updateClusterStorageConnections() throws MetaStorageException {
+  public Map<Long, List<Long>> refreshClusterStorageConnections() throws MetaStorageException {
     try {
       lockStorageConnection();
       Map<Long, List<Long>> connectionMap = new HashMap<>();

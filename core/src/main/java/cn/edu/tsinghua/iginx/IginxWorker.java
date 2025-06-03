@@ -47,7 +47,6 @@ import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
 import cn.edu.tsinghua.iginx.metadata.entity.*;
 import cn.edu.tsinghua.iginx.resource.QueryResourceManager;
-import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.thrift.*;
 import cn.edu.tsinghua.iginx.transform.exception.TransformException;
 import cn.edu.tsinghua.iginx.transform.exec.TransformJobManager;
@@ -747,18 +746,19 @@ public class IginxWorker implements IService.Iface {
     // IGinX service
     String iginxPort = System.getenv("host_iginx_port");
     IginxMeta currentIginx = metaManager.getIginxMeta();
-    Map<Long, Session> sessions = metaManager.getIginxSessionMap();
+    List<Long> achievableIginxIds = metaManager.getIginxConnectivity().get(currentIginx.getId());
     for (IginxMeta iginxMeta : metaManager.getIginxList()) {
-      String connected;
+      String connectable;
       if (iginxMeta.getId() == currentIginx.getId()) {
-        connected = "self";
-      } else if (sessions.containsKey(iginxMeta.getId())) {
-        connected = "true";
+        connectable = "self";
+      } else if (achievableIginxIds.contains(iginxMeta.getId())) {
+        connectable = "true";
       } else {
-        connected = "false";
+        connectable = "false";
       }
       int thisIginxPort = iginxPort != null ? Integer.parseInt(iginxPort) : iginxMeta.getPort();
-      iginxInfos.add(new IginxInfo(iginxMeta.getId(), iginxMeta.getIp(), thisIginxPort, connected));
+      iginxInfos.add(
+          new IginxInfo(iginxMeta.getId(), iginxMeta.getIp(), thisIginxPort, connectable));
     }
     iginxInfos.sort(Comparator.comparingLong(IginxInfo::getId));
     resp.setIginxInfos(iginxInfos);
@@ -770,11 +770,11 @@ public class IginxWorker implements IService.Iface {
             .getStorageConnections()
             .getOrDefault(currentIginx.getId(), Collections.emptyList());
     for (StorageEngineMeta storageEngineMeta : metaManager.getStorageEngineList()) {
-      String connected;
+      String connectable;
       if (connectedStorages.contains(storageEngineMeta.getId())) {
-        connected = "true";
+        connectable = "true";
       } else {
-        connected = "false";
+        connectable = "false";
       }
       StorageEngineInfo info =
           new StorageEngineInfo(
@@ -784,7 +784,7 @@ public class IginxWorker implements IService.Iface {
                   : storageEngineMeta.getIp(),
               storageEngineMeta.getPort(),
               storageEngineMeta.getStorageEngine(),
-              connected);
+              connectable);
       info.setSchemaPrefix(
           storageEngineMeta.getSchemaPrefix() == null
               ? "null"

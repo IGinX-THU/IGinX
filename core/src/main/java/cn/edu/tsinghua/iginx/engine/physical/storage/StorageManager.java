@@ -28,6 +28,7 @@ import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -202,6 +203,7 @@ public class StorageManager {
     } else {
       LOGGER.info("add storage {} success.", meta);
     }
+    DefaultMetaManager.getInstance().addStorageConnection(Collections.singletonList(meta));
     return true;
   }
 
@@ -212,6 +214,7 @@ public class StorageManager {
     } else {
       LOGGER.info("add storage {} success.", meta);
     }
+    DefaultMetaManager.getInstance().addStorageConnection(Collections.singletonList(meta));
     return true;
   }
 

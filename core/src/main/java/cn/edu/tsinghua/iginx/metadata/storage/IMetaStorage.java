@@ -24,7 +24,6 @@ import cn.edu.tsinghua.iginx.metadata.entity.*;
 import cn.edu.tsinghua.iginx.metadata.exception.MetaStorageException;
 import cn.edu.tsinghua.iginx.metadata.hook.*;
 import cn.edu.tsinghua.iginx.metadata.utils.ReshardStatus;
-import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.transform.pojo.TriggerDescriptor;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.List;
@@ -48,14 +47,14 @@ public interface IMetaStorage {
 
   void registerStorageChangeHook(StorageChangeHook hook);
 
-  Map<Long, Session> connectOtherIginx(IginxMeta iginx) throws MetaStorageException;
+  void refreshAchievableIginx(IginxMeta iginx) throws MetaStorageException;
 
-  Map<Long, List<Long>> updateClusterIginxConnections() throws MetaStorageException;
+  Map<Long, List<Long>> refreshClusterIginxConnectivity() throws MetaStorageException;
 
   void addStorageConnection(long iginxId, List<StorageEngineMeta> storageEngines)
       throws MetaStorageException;
 
-  Map<Long, List<Long>> updateClusterStorageConnections() throws MetaStorageException;
+  Map<Long, List<Long>> refreshClusterStorageConnections() throws MetaStorageException;
 
   Map<String, StorageUnitMeta> loadStorageUnit() throws MetaStorageException;
 

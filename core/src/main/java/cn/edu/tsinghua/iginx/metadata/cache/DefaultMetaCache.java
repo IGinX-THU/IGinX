@@ -24,10 +24,8 @@ import static cn.edu.tsinghua.iginx.metadata.utils.IdUtils.generateDummyStorageU
 import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.*;
-import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.metadata.entity.*;
 import cn.edu.tsinghua.iginx.policy.simple.ColumnCalDO;
-import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.sql.statement.InsertStatement;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.transform.pojo.TriggerDescriptor;
@@ -79,9 +77,6 @@ public class DefaultMetaCache implements IMetaCache {
   // iginx 之间连接关系的缓存
   private final Map<Long, List<Long>> iginxConnectionMap;
 
-  // 当前 iginx 和集群其他 iginx 连接的缓存
-  private final Map<Long, Session> iginxSessionMap;
-
   // 数据后端的缓存
   private final Map<Long, StorageEngineMeta> storageEngineMetaMap;
 
@@ -127,7 +122,6 @@ public class DefaultMetaCache implements IMetaCache {
     // iginx 相关
     iginxMetaMap = new ConcurrentHashMap<>();
     iginxConnectionMap = new ConcurrentHashMap<>();
-    iginxSessionMap = new ConcurrentHashMap<>();
     // 数据后端相关
     storageEngineMetaMap = new ConcurrentHashMap<>();
     storageConnectionMap = new ConcurrentHashMap<>();
@@ -701,21 +695,7 @@ public class DefaultMetaCache implements IMetaCache {
   @Override
   public void removeIginx(long id) {
     iginxMetaMap.remove(id);
-    // 关闭与移除 iginx 的连接
-    if (iginxSessionMap.containsKey(id)) {
-      Session session = iginxSessionMap.get(id);
-      try {
-        session.closeSession();
-      } catch (SessionException e) {
-        LOGGER.info(
-            "close session (id = {} , host = {} , port = {}) failed, because: ",
-            session.getSessionId(),
-            session.getHost(),
-            session.getPort(),
-            e);
-      }
-    }
-    iginxSessionMap.remove(id);
+    iginxConnectionMap.remove(id);
   }
 
   @Override
@@ -772,30 +752,12 @@ public class DefaultMetaCache implements IMetaCache {
   }
 
   @Override
-  public Map<Long, Session> getIginxSessionMap() {
-    return iginxSessionMap;
-  }
-
-  @Override
-  public Session getIginxSession(long id) {
-    if (iginxSessionMap.containsKey(id)) {
-      return iginxSessionMap.get(id);
-    }
-    return null;
-  }
-
-  @Override
-  public void addIginxSession(long id, Session session) {
-    this.iginxSessionMap.put(id, session);
-  }
-
-  @Override
-  public Map<Long, List<Long>> getIginxConnections() {
+  public Map<Long, List<Long>> getIginxConnectivity() {
     return iginxConnectionMap;
   }
 
   @Override
-  public void updateIginxConnections(Map<Long, List<Long>> connections) {
+  public void refreshIginxConnectivity(Map<Long, List<Long>> connections) {
     iginxConnectionMap.clear();
     iginxConnectionMap.putAll(connections);
   }

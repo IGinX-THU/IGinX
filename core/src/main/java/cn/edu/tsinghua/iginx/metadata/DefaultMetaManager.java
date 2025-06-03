@@ -231,6 +231,18 @@ public class DefaultMetaManager implements IMetaManager {
             while (count < MAX_RETRY_COUNT) {
               try {
                 session.openSession();
+                LOGGER.info(
+                    "connect to iginx(id = {} ,ip = {} , port = {}), retry times = {}",
+                    iginx.getId(),
+                    iginx.getIp(),
+                    iginx.getPort(),
+                    count);
+                cache
+                    .getIginxConnectivity()
+                    .computeIfAbsent(getIginxId(), k -> new ArrayList<>())
+                    .add(iginx.getId());
+                session.closeSession();
+                break;
               } catch (SessionException e) {
                 LOGGER.info(
                     "open session of iginx(id = {} ,ip = {} , port = {}) failed, because: ",
@@ -244,16 +256,7 @@ public class DefaultMetaManager implements IMetaManager {
                 } catch (InterruptedException ex) {
                   LOGGER.error("encounter error when connect to other iginx: ", e);
                 }
-                continue;
               }
-              LOGGER.info(
-                  "connect to iginx(id = {} ,ip = {} , port = {}), retry times = {}",
-                  iginx.getId(),
-                  iginx.getIp(),
-                  iginx.getPort(),
-                  count);
-              cache.addIginxSession(iginx.getId(), session);
-              break;
             }
           }
         });
@@ -269,8 +272,8 @@ public class DefaultMetaManager implements IMetaManager {
     iginx = storage.registerIginx(iginx);
     id = iginx.getId();
     SnowFlakeUtils.init(id);
-    storage.connectOtherIginx(iginx).forEach(cache::addIginxSession);
-    cache.updateIginxConnections(storage.updateClusterIginxConnections());
+    storage.refreshAchievableIginx(iginx);
+    cache.refreshIginxConnectivity(storage.refreshClusterIginxConnectivity());
   }
 
   private void initStorageEngine() throws MetaStorageException {
@@ -486,7 +489,7 @@ public class DefaultMetaManager implements IMetaManager {
       for (StorageEngineChangeHook hook : storageEngineChangeHooks) {
         hook.onChange(getStorageEngine(storageEngineId), null);
       }
-      return cache.removeDummyStorageEngine(storageEngineId);
+      return !forAllIginx || cache.removeDummyStorageEngine(storageEngineId);
     } catch (MetaStorageException e) {
       LOGGER.error("remove dummy storage engine {} error: ", storageEngineId, e);
     }
@@ -546,15 +549,15 @@ public class DefaultMetaManager implements IMetaManager {
   }
 
   @Override
-  public Map<Long, Session> getIginxSessionMap() {
-    return cache.getIginxSessionMap();
+  public Map<Long, List<Long>> getIginxConnectivity() {
+    return cache.getIginxConnectivity();
   }
 
   @Override
   public void addStorageConnection(List<StorageEngineMeta> storageEngines) {
     try {
       storage.addStorageConnection(id, storageEngines);
-      cache.updateStorageConnections(storage.updateClusterStorageConnections());
+      cache.updateStorageConnections(storage.refreshClusterStorageConnections());
     } catch (MetaStorageException e) {
       LOGGER.error("add storage engine connections {} error: ", storageEngines, e);
     }

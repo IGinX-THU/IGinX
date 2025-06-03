@@ -24,7 +24,6 @@ import cn.edu.tsinghua.iginx.metadata.exception.MetaStorageException;
 import cn.edu.tsinghua.iginx.metadata.hook.StorageEngineChangeHook;
 import cn.edu.tsinghua.iginx.metadata.hook.StorageUnitHook;
 import cn.edu.tsinghua.iginx.policy.simple.ColumnCalDO;
-import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.sql.statement.InsertStatement;
 import cn.edu.tsinghua.iginx.thrift.AuthType;
 import cn.edu.tsinghua.iginx.transform.pojo.TriggerDescriptor;
@@ -114,7 +113,7 @@ public class MetaManagerMock implements IMetaManager {
   }
 
   @Override
-  public Map<Long, Session> getIginxSessionMap() {
+  public Map<Long, List<Long>> getIginxConnectivity() {
     return null;
   }
 

@@ -21,7 +21,7 @@ package cn.edu.tsinghua.iginx.metadata.storage.constant;
 
 public class Constant {
 
-  public static final String IGINX_NODE_PREFIX = "/iginx";
+  public static final String IGINX_INFO_NODE_PREFIX = "/iginx/info";
 
   public static final String FRAGMENT_NODE_PREFIX = "/fragment";
 
@@ -29,9 +29,9 @@ public class Constant {
 
   public static final String STORAGE_ENGINE_NODE_PREFIX = "/storage";
 
-  public static final String IGINX_CONNECTION_NODE_PREFIX = "/connection-iginx";
+  public static final String IGINX_CONNECTION_NODE_PREFIX = "/iginx/connection-iginx";
 
-  public static final String STORAGE_CONNECTION_NODE_PREFIX = "/connection-storage";
+  public static final String STORAGE_CONNECTION_NODE_PREFIX = "/iginx/connection-storage";
 
   public static final String IGINX_LOCK_NODE = "/lock/iginx";
 

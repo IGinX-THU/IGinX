@@ -5056,16 +5056,16 @@ class IginxInfo(object):
      - id
      - ip
      - port
-     - connected
+     - connectable
 
     """
 
 
-    def __init__(self, id=None, ip=None, port=None, connected=None,):
+    def __init__(self, id=None, ip=None, port=None, connectable=None,):
         self.id = id
         self.ip = ip
         self.port = port
-        self.connected = connected
+        self.connectable = connectable
 
     def read(self, iprot):
         if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
@@ -5093,7 +5093,7 @@ class IginxInfo(object):
                     iprot.skip(ftype)
             elif fid == 4:
                 if ftype == TType.STRING:
-                    self.connected = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                    self.connectable = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
                 else:
                     iprot.skip(ftype)
             else:
@@ -5118,9 +5118,9 @@ class IginxInfo(object):
             oprot.writeFieldBegin('port', TType.I32, 3)
             oprot.writeI32(self.port)
             oprot.writeFieldEnd()
-        if self.connected is not None:
-            oprot.writeFieldBegin('connected', TType.STRING, 4)
-            oprot.writeString(self.connected.encode('utf-8') if sys.version_info[0] == 2 else self.connected)
+        if self.connectable is not None:
+            oprot.writeFieldBegin('connectable', TType.STRING, 4)
+            oprot.writeString(self.connectable.encode('utf-8') if sys.version_info[0] == 2 else self.connectable)
             oprot.writeFieldEnd()
         oprot.writeFieldStop()
         oprot.writeStructEnd()
@@ -5132,8 +5132,8 @@ class IginxInfo(object):
             raise TProtocolException(message='Required field ip is unset!')
         if self.port is None:
             raise TProtocolException(message='Required field port is unset!')
-        if self.connected is None:
-            raise TProtocolException(message='Required field connected is unset!')
+        if self.connectable is None:
+            raise TProtocolException(message='Required field connectable is unset!')
         return
 
     def __repr__(self):
@@ -5155,19 +5155,19 @@ class StorageEngineInfo(object):
      - ip
      - port
      - type
-     - connected
+     - connectable
      - schemaPrefix
      - dataPrefix
 
     """
 
 
-    def __init__(self, id=None, ip=None, port=None, type=None, connected=None, schemaPrefix=None, dataPrefix=None,):
+    def __init__(self, id=None, ip=None, port=None, type=None, connectable=None, schemaPrefix=None, dataPrefix=None,):
         self.id = id
         self.ip = ip
         self.port = port
         self.type = type
-        self.connected = connected
+        self.connectable = connectable
         self.schemaPrefix = schemaPrefix
         self.dataPrefix = dataPrefix
 
@@ -5202,7 +5202,7 @@ class StorageEngineInfo(object):
                     iprot.skip(ftype)
             elif fid == 5:
                 if ftype == TType.STRING:
-                    self.connected = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                    self.connectable = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
                 else:
                     iprot.skip(ftype)
             elif fid == 6:
@@ -5241,9 +5241,9 @@ class StorageEngineInfo(object):
             oprot.writeFieldBegin('type', TType.I32, 4)
             oprot.writeI32(self.type)
             oprot.writeFieldEnd()
-        if self.connected is not None:
-            oprot.writeFieldBegin('connected', TType.STRING, 5)
-            oprot.writeString(self.connected.encode('utf-8') if sys.version_info[0] == 2 else self.connected)
+        if self.connectable is not None:
+            oprot.writeFieldBegin('connectable', TType.STRING, 5)
+            oprot.writeString(self.connectable.encode('utf-8') if sys.version_info[0] == 2 else self.connectable)
             oprot.writeFieldEnd()
         if self.schemaPrefix is not None:
             oprot.writeFieldBegin('schemaPrefix', TType.STRING, 6)
@@ -5265,8 +5265,8 @@ class StorageEngineInfo(object):
             raise TProtocolException(message='Required field port is unset!')
         if self.type is None:
             raise TProtocolException(message='Required field type is unset!')
-        if self.connected is None:
-            raise TProtocolException(message='Required field connected is unset!')
+        if self.connectable is None:
+            raise TProtocolException(message='Required field connectable is unset!')
         return
 
     def __repr__(self):
@@ -10003,7 +10003,7 @@ IginxInfo.thrift_spec = (
     (1, TType.I64, 'id', None, None, ),  # 1
     (2, TType.STRING, 'ip', 'UTF8', None, ),  # 2
     (3, TType.I32, 'port', None, None, ),  # 3
-    (4, TType.STRING, 'connected', 'UTF8', None, ),  # 4
+    (4, TType.STRING, 'connectable', 'UTF8', None, ),  # 4
 )
 all_structs.append(StorageEngineInfo)
 StorageEngineInfo.thrift_spec = (
@@ -10012,7 +10012,7 @@ StorageEngineInfo.thrift_spec = (
     (2, TType.STRING, 'ip', 'UTF8', None, ),  # 2
     (3, TType.I32, 'port', None, None, ),  # 3
     (4, TType.I32, 'type', None, None, ),  # 4
-    (5, TType.STRING, 'connected', 'UTF8', None, ),  # 5
+    (5, TType.STRING, 'connectable', 'UTF8', None, ),  # 5
     (6, TType.STRING, 'schemaPrefix', 'UTF8', None, ),  # 6
     (7, TType.STRING, 'dataPrefix', 'UTF8', None, ),  # 7
 )
