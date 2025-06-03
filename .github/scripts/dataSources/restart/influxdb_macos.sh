@@ -23,7 +23,7 @@
 port=$1
 echo "Starting InfluxDB on port $port"
 sudo -E sh -c "cd influxdb2-2.0.7-darwin-amd64-$port/; nohup ./influxd run --bolt-path=~/.influxdbv2/influxd.bolt --engine-path=~/.influxdbv2/engine --http-bind-address=:$port --query-memory-bytes=300971520 --query-concurrency=2 > influxdb_$port.log 2>&1 &"
-sleep 30
+sleep 10
 
 sudo lsof -i:$port
 if [ $? -eq 1 ]; then
