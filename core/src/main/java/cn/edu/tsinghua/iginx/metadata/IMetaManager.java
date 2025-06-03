@@ -67,13 +67,13 @@ public interface IMetaManager {
   long getIginxId();
 
   /** 获取集群中 iginx 节点之间的连通性 */
-  Map<Long, List<Long>> getIginxConnectivity();
+  Map<Long, Set<Long>> getIginxConnectivity();
 
   /** 记录 iginx 节点和存储节点的连接信息 */
   void addStorageConnection(List<StorageEngineMeta> storageEngines);
 
   /** 获取集群中 iginx 节点与存储节点的连接信息 */
-  Map<Long, List<Long>> getStorageConnections();
+  Map<Long, Set<Long>> getStorageConnections();
 
   /** 获取所有的分片，用于 debug */
   List<FragmentMeta> getFragments();

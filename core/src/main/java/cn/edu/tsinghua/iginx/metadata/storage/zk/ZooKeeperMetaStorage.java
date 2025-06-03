@@ -578,11 +578,11 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
   }
 
   @Override
-  public Map<Long, List<Long>> refreshClusterIginxConnectivity() throws MetaStorageException {
+  public Map<Long, Set<Long>> refreshClusterIginxConnectivity() throws MetaStorageException {
     InterProcessMutex mutex = new InterProcessMutex(client, IGINX_CONNECTION_LOCK_NODE);
     try {
       mutex.acquire();
-      Map<Long, List<Long>> connectionMap = new HashMap<>();
+      Map<Long, Set<Long>> connectionMap = new HashMap<>();
       if (this.client.checkExists().forPath(IGINX_CONNECTION_NODE_PREFIX) == null) {
         // 当前还没有数据，创建父节点，然后不需要解析数据
         client.create().withMode(CreateMode.EPHEMERAL).forPath(IGINX_CONNECTION_NODE_PREFIX);
@@ -597,7 +597,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
           }
           long fromId = Long.parseLong(childName.substring(NODE_PREFIX.length()));
           for (long toId : toIds) {
-            connectionMap.computeIfAbsent(fromId, k -> new ArrayList<>()).add(toId);
+            connectionMap.computeIfAbsent(fromId, k -> new HashSet<>()).add(toId);
           }
         }
       }
@@ -672,11 +672,11 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
   }
 
   @Override
-  public Map<Long, List<Long>> refreshClusterStorageConnections() throws MetaStorageException {
+  public Map<Long, Set<Long>> refreshClusterStorageConnections() throws MetaStorageException {
     InterProcessMutex mutex = new InterProcessMutex(client, STORAGE_CONNECTION_LOCK_NODE);
     try {
       mutex.acquire();
-      Map<Long, List<Long>> connectionMap = new HashMap<>();
+      Map<Long, Set<Long>> connectionMap = new HashMap<>();
       if (this.client.checkExists().forPath(STORAGE_CONNECTION_NODE_PREFIX) == null) {
         // 当前还没有数据，创建父节点，然后不需要解析数据
         client.create().withMode(CreateMode.EPHEMERAL).forPath(STORAGE_CONNECTION_NODE_PREFIX);
@@ -692,7 +692,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
           }
           long iginxId = Long.parseLong(childName.substring(NODE_PREFIX.length()));
           for (long storageId : storageIds) {
-            connectionMap.computeIfAbsent(iginxId, k -> new ArrayList<>()).add(storageId);
+            connectionMap.computeIfAbsent(iginxId, k -> new HashSet<>()).add(storageId);
           }
         }
       }

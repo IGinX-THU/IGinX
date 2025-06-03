@@ -113,7 +113,7 @@ public class MetaManagerMock implements IMetaManager {
   }
 
   @Override
-  public Map<Long, List<Long>> getIginxConnectivity() {
+  public Map<Long, Set<Long>> getIginxConnectivity() {
     return null;
   }
 
@@ -121,7 +121,7 @@ public class MetaManagerMock implements IMetaManager {
   public void addStorageConnection(List<StorageEngineMeta> storageEngines) {}
 
   @Override
-  public Map<Long, List<Long>> getStorageConnections() {
+  public Map<Long, Set<Long>> getStorageConnections() {
     return null;
   }
 

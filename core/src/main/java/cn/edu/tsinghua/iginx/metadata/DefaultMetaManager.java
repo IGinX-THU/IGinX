@@ -239,7 +239,7 @@ public class DefaultMetaManager implements IMetaManager {
                     count);
                 cache
                     .getIginxConnectivity()
-                    .computeIfAbsent(getIginxId(), k -> new ArrayList<>())
+                    .computeIfAbsent(getIginxId(), k -> new HashSet<>())
                     .add(iginx.getId());
                 session.closeSession();
                 break;
@@ -489,7 +489,7 @@ public class DefaultMetaManager implements IMetaManager {
       for (StorageEngineChangeHook hook : storageEngineChangeHooks) {
         hook.onChange(getStorageEngine(storageEngineId), null);
       }
-      return cache.removeDummyStorageEngine(storageEngineId, forAllIginx);
+      return cache.removeDummyStorageEngine(id, storageEngineId, forAllIginx);
     } catch (MetaStorageException e) {
       LOGGER.error("remove dummy storage engine {} error: ", storageEngineId, e);
     }
@@ -549,7 +549,7 @@ public class DefaultMetaManager implements IMetaManager {
   }
 
   @Override
-  public Map<Long, List<Long>> getIginxConnectivity() {
+  public Map<Long, Set<Long>> getIginxConnectivity() {
     return cache.getIginxConnectivity();
   }
 
@@ -564,7 +564,7 @@ public class DefaultMetaManager implements IMetaManager {
   }
 
   @Override
-  public Map<Long, List<Long>> getStorageConnections() {
+  public Map<Long, Set<Long>> getStorageConnections() {
     return new HashMap<>(cache.getStorageConnections());
   }
 

@@ -120,7 +120,7 @@ public class MetaManagerWrapper implements IMetaManager {
   }
 
   @Override
-  public Map<Long, List<Long>> getIginxConnectivity() {
+  public Map<Long, Set<Long>> getIginxConnectivity() {
     return metaManager.getIginxConnectivity();
   }
 
@@ -130,7 +130,7 @@ public class MetaManagerWrapper implements IMetaManager {
   }
 
   @Override
-  public Map<Long, List<Long>> getStorageConnections() {
+  public Map<Long, Set<Long>> getStorageConnections() {
     return metaManager.getStorageConnections();
   }
 

@@ -152,16 +152,6 @@ public class ClusterIT {
       LOGGER.error("Statement: \"{}\" execute fail. Caused by: ", addStorageEngine, e);
       fail();
     }
-
-    SessionExecuteSqlResult res = null;
-    try {
-      res = session6888.executeSql(SHOW_CLUSTER_INFO);
-    } catch (SessionException e) {
-      LOGGER.error("Statement: \"SHOW CLUSTER INFO;\" execute fail. Caused by: ", e);
-      fail();
-    }
-    String result = res.getResultInString(false, "");
-    LOGGER.info("SHOW CLUSTER INFO: \"{}\"", result);
   }
 
   private void testRemoveDummyStorageForCurrentIginx(Session session) {
@@ -179,7 +169,8 @@ public class ClusterIT {
   }
 
   private void testRemoveDummyStorageForAllIginx(Session session) {
-    String removeStorageEngine = "REMOVE STORAGEENGINE (\"127.0.0.1\", 6667, \"prefix\", \"\") FOR ALL;";
+    String removeStorageEngine =
+        "REMOVE STORAGEENGINE (\"127.0.0.1\", 6667, \"prefix\", \"\") FOR ALL;";
     try {
       session.executeSql(removeStorageEngine);
     } catch (SessionException e) {

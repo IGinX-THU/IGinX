@@ -975,10 +975,10 @@ public class ETCDMetaStorage implements IMetaStorage {
   }
 
   @Override
-  public Map<Long, List<Long>> refreshClusterIginxConnectivity() throws MetaStorageException {
+  public Map<Long, Set<Long>> refreshClusterIginxConnectivity() throws MetaStorageException {
     try {
       lockIginxConnection();
-      Map<Long, List<Long>> connectionMap = new HashMap<>();
+      Map<Long, Set<Long>> connectionMap = new HashMap<>();
       GetResponse response =
           this.client
               .getKVClient()
@@ -997,7 +997,7 @@ public class ETCDMetaStorage implements IMetaStorage {
                     Long.parseLong(keyName.substring(IGINX_CONNECTION_NODE_PREFIX.length()));
                 long[] toIds = JsonUtils.fromJson(e.getValue().getBytes(), long[].class);
                 for (long toId : toIds) {
-                  connectionMap.computeIfAbsent(fromId, k -> new ArrayList<>()).add(toId);
+                  connectionMap.computeIfAbsent(fromId, k -> new HashSet<>()).add(toId);
                 }
               });
       return connectionMap;
@@ -1105,10 +1105,10 @@ public class ETCDMetaStorage implements IMetaStorage {
   }
 
   @Override
-  public Map<Long, List<Long>> refreshClusterStorageConnections() throws MetaStorageException {
+  public Map<Long, Set<Long>> refreshClusterStorageConnections() throws MetaStorageException {
     try {
       lockStorageConnection();
-      Map<Long, List<Long>> connectionMap = new HashMap<>();
+      Map<Long, Set<Long>> connectionMap = new HashMap<>();
       GetResponse response =
           this.client
               .getKVClient()
@@ -1127,7 +1127,7 @@ public class ETCDMetaStorage implements IMetaStorage {
                     Long.parseLong(keyName.substring(STORAGE_CONNECTION_NODE_PREFIX.length()));
                 long[] toIds = JsonUtils.fromJson(e.getValue().getBytes(), long[].class);
                 for (long toId : toIds) {
-                  connectionMap.computeIfAbsent(fromId, k -> new ArrayList<>()).add(toId);
+                  connectionMap.computeIfAbsent(fromId, k -> new HashSet<>()).add(toId);
                 }
               });
       return connectionMap;

@@ -100,7 +100,7 @@ public interface IMetaCache {
   // 数据后端相关的缓存读写接口
   void addStorageEngine(StorageEngineMeta storageEngineMeta);
 
-  boolean removeDummyStorageEngine(long storageEngineId, boolean forAllIginx);
+  boolean removeDummyStorageEngine(long iginxId, long storageEngineId, boolean forAllIginx);
 
   List<StorageEngineMeta> getStorageEngineList();
 
@@ -110,13 +110,13 @@ public interface IMetaCache {
 
   // 连接相关的缓存读写接口
 
-  Map<Long, List<Long>> getIginxConnectivity();
+  Map<Long, Set<Long>> getIginxConnectivity();
 
-  void refreshIginxConnectivity(Map<Long, List<Long>> connections);
+  void refreshIginxConnectivity(Map<Long, Set<Long>> connections);
 
-  Map<Long, List<Long>> getStorageConnections();
+  Map<Long, Set<Long>> getStorageConnections();
 
-  void updateStorageConnections(Map<Long, List<Long>> connections);
+  void updateStorageConnections(Map<Long, Set<Long>> connections);
 
   void addOrUpdateUser(UserMeta userMeta);
 

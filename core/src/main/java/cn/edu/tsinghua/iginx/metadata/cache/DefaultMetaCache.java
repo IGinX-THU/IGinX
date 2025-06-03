@@ -75,13 +75,13 @@ public class DefaultMetaCache implements IMetaCache {
   private final Map<Long, IginxMeta> iginxMetaMap;
 
   // iginx 之间连接关系的缓存
-  private final Map<Long, List<Long>> iginxConnectionMap;
+  private final Map<Long, Set<Long>> iginxConnectionMap;
 
   // 数据后端的缓存
   private final Map<Long, StorageEngineMeta> storageEngineMetaMap;
 
   // iginx 和数据后端连接关系的缓存
-  private final Map<Long, List<Long>> storageConnectionMap;
+  private final Map<Long, Set<Long>> storageConnectionMap;
 
   // user 的缓存
   private final Map<String, UserMeta> userMetaMap;
@@ -720,7 +720,7 @@ public class DefaultMetaCache implements IMetaCache {
   }
 
   @Override
-  public boolean removeDummyStorageEngine(long storageEngineId, boolean forAllIginx) {
+  public boolean removeDummyStorageEngine(long iginxId, long storageEngineId, boolean forAllIginx) {
     storageUnitLock.writeLock().lock();
     fragmentLock.writeLock().lock();
     try {
@@ -736,6 +736,7 @@ public class DefaultMetaCache implements IMetaCache {
       if (forAllIginx) {
         storageEngineMetaMap.remove(storageEngineId);
       }
+      storageConnectionMap.get(iginxId).remove(storageEngineId);
     } finally {
       fragmentLock.writeLock().unlock();
       storageUnitLock.writeLock().unlock();
@@ -754,23 +755,23 @@ public class DefaultMetaCache implements IMetaCache {
   }
 
   @Override
-  public Map<Long, List<Long>> getIginxConnectivity() {
+  public Map<Long, Set<Long>> getIginxConnectivity() {
     return iginxConnectionMap;
   }
 
   @Override
-  public void refreshIginxConnectivity(Map<Long, List<Long>> connections) {
+  public void refreshIginxConnectivity(Map<Long, Set<Long>> connections) {
     iginxConnectionMap.clear();
     iginxConnectionMap.putAll(connections);
   }
 
   @Override
-  public Map<Long, List<Long>> getStorageConnections() {
+  public Map<Long, Set<Long>> getStorageConnections() {
     return storageConnectionMap;
   }
 
   @Override
-  public void updateStorageConnections(Map<Long, List<Long>> connections) {
+  public void updateStorageConnections(Map<Long, Set<Long>> connections) {
     storageConnectionMap.clear();
     storageConnectionMap.putAll(connections);
   }

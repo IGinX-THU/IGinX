@@ -746,12 +746,15 @@ public class IginxWorker implements IService.Iface {
     // IGinX service
     String iginxPort = System.getenv("host_iginx_port");
     IginxMeta currentIginx = metaManager.getIginxMeta();
-    List<Long> achievableIginxIds = metaManager.getIginxConnectivity().get(currentIginx.getId());
+    Set<Long> connectableIginxIds =
+        metaManager
+            .getIginxConnectivity()
+            .getOrDefault(currentIginx.getId(), Collections.emptySet());
     for (IginxMeta iginxMeta : metaManager.getIginxList()) {
       String connectable;
       if (iginxMeta.getId() == currentIginx.getId()) {
         connectable = "self";
-      } else if (achievableIginxIds.contains(iginxMeta.getId())) {
+      } else if (connectableIginxIds.contains(iginxMeta.getId())) {
         connectable = "true";
       } else {
         connectable = "false";
@@ -765,13 +768,13 @@ public class IginxWorker implements IService.Iface {
 
     // 数据库信息
     List<StorageEngineInfo> storageEngineInfos = new ArrayList<>();
-    List<Long> connectedStorages =
+    Set<Long> connectableStorages =
         metaManager
             .getStorageConnections()
-            .getOrDefault(currentIginx.getId(), Collections.emptyList());
+            .getOrDefault(currentIginx.getId(), Collections.emptySet());
     for (StorageEngineMeta storageEngineMeta : metaManager.getStorageEngineList()) {
       String connectable;
-      if (connectedStorages.contains(storageEngineMeta.getId())) {
+      if (connectableStorages.contains(storageEngineMeta.getId())) {
         connectable = "true";
       } else {
         connectable = "false";
