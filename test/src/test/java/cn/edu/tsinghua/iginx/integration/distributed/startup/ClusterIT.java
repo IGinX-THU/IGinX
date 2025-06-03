@@ -238,7 +238,7 @@ public class ClusterIT {
                           && storageEngineInfo.getIp().equals("127.0.0.1")
                           && storageEngineInfo.getPort() == 6667
                           && storageEngineInfo.getSchemaPrefix().equals("prefix")
-                          && storageEngineInfo.getDataPrefix().isEmpty())
+                          && storageEngineInfo.getDataPrefix().equals("null"))
               .collect(Collectors.toList());
       if (notShow) {
         assertEquals(0, expected.size());
