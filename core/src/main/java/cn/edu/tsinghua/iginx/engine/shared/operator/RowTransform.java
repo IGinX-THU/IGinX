@@ -25,6 +25,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class RowTransform extends AbstractUnaryOperator {
 
@@ -51,7 +52,9 @@ public class RowTransform extends AbstractUnaryOperator {
 
   @Override
   public Operator copy() {
-    return new RowTransform(getSource().copy(), new ArrayList<>(functionCallList));
+    return new RowTransform(
+        getSource().copy(),
+        functionCallList.stream().map(FunctionCall::copy).collect(Collectors.toList()));
   }
 
   @Override

@@ -68,7 +68,10 @@ public class PySessionIT {
   private static final String pythonCMD = config.getPythonCMD();
 
   private static boolean isAbleToDelete = true;
-  private static PythonInterpreter interpreter;
+  private static final PythonInterpreterConfig pythonInterpreterConfig =
+      PythonInterpreterConfig.newBuilder().setPythonExec(pythonCMD).addPythonPaths(PATH).build();
+  private static final PythonInterpreter interpreter =
+      new PythonInterpreter(pythonInterpreterConfig);
   protected static String runningEngine;
 
   public PySessionIT() {
@@ -76,10 +79,7 @@ public class PySessionIT {
     DBConf dbConf = conf.loadDBConf(conf.getStorageType());
     runningEngine = conf.getStorageType();
     isAbleToDelete = dbConf.getEnumValue(DBConf.DBConfType.isAbleToDelete);
-    PythonInterpreterConfig config =
-        PythonInterpreterConfig.newBuilder().setPythonExec(pythonCMD).addPythonPaths(PATH).build();
     LOGGER.debug("using pythonCMD: {}", pythonCMD);
-    interpreter = new PythonInterpreter(config);
     interpreter.exec("import tests");
     interpreter.exec("t = tests.Tests()");
   }
@@ -264,11 +264,8 @@ public class PySessionIT {
     }
     // 检查Python脚本的输出是否符合预期
     String expected =
-        "[   COUNT(count(test.a.a))  COUNT(count(test.a.b))  COUNT(count(test.b.b))  \\\n"
-            + "0                       2                       2                       2   \n"
-            + "\n"
-            + "   COUNT(count(test.c.c))  \n"
-            + "0                       2  ]\n";
+        "   count(test.a.a)  count(test.a.b)  count(test.b.b)  count(test.c.c)\n"
+            + "0                2                2                2                2\n";
     assertEquals(expected, result);
   }
 

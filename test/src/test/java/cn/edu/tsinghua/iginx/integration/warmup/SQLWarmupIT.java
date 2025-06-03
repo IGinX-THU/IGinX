@@ -40,8 +40,8 @@ public class SQLWarmupIT implements AutoCloseable {
   private static Logger LOGGER = LoggerFactory.getLogger(SQLWarmupIT.class);
 
   private static final String SQL = System.getProperty("iginx.warmup.sql", "warmup/warmup.sql");
-  private static final int WARMUP = Integer.getInteger("iginx.warmup.repeat", 5);
-  private static final int RECORD = Integer.getInteger("iginx.warmup.records", 10000);
+  private static final int WARMUP = Integer.getInteger("iginx.warmup.repeat", 2);
+  private static final int RECORD = Integer.getInteger("iginx.warmup.records", 50000);
   private static final String IP = System.getProperty("iginx.warmup.ip", "127.0.0.1");
   private static final int PORT = Integer.getInteger("iginx.warmup.port", 6888);
   private static final String USERNAME = System.getProperty("iginx.warmup.username", "root");
@@ -129,17 +129,13 @@ public class SQLWarmupIT implements AutoCloseable {
   }
 
   @Test
-  public void warmup() {
+  public void warmup() throws SessionException {
     LOGGER.info("Start warmup with {} records", records);
     for (int i = 0; i < repeat; i++) {
       LOGGER.info("Repeat {}/{} times ", i + 1, repeat);
       for (int j = 0; j < queries.length; j++) {
         LOGGER.info("Execute query {}/{}: {}", j + 1, queries.length, queries[j]);
-        try {
-          session.executeSql(queries[j]);
-        } catch (SessionException e) {
-          LOGGER.error("Failed to execute query: {}", queries[j], e);
-        }
+        session.executeSql(queries[j]);
       }
     }
   }

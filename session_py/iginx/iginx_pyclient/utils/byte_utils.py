@@ -22,6 +22,32 @@ import struct
 
 from .bitmap import Bitmap
 from ..thrift.rpc.ttypes import DataType
+import pyarrow as pa
+
+def get_batch_from_arrow(bytes_list):
+    batch_stream = process_bytes_stream(bytes_list)
+    first_batch = next(batch_stream)
+    schema = first_batch.schema
+
+    def batch_generator():
+        yield first_batch
+        for batch in batch_stream:
+            yield batch
+    reader = pa.RecordBatchReader.from_batches(schema, batch_generator())
+    return reader.read_all()
+
+
+def process_bytes_stream(bytes_list):
+    for arrow_bytes in bytes_list:
+        yield from _process_single_bytes(arrow_bytes)
+
+
+def _process_single_bytes(arrow_bytes):
+    buf = pa.py_buffer(arrow_bytes)
+    reader = pa.ipc.open_stream(buf)
+
+    for batch in reader:
+        yield batch
 
 
 def get_long_array(bytes):
@@ -52,6 +78,29 @@ def get_values_by_data_type(bytes, types):
             raise RuntimeError("unknown data type " + type)
 
     return values
+
+def get_byte_by_type(value, itype):
+    if value is None:
+        return b''
+    format_str=""
+    if itype == DataType.BINARY:
+        if isinstance(value, str):
+            return bytes(value, "utf-8")
+        elif isinstance(value, bytes):
+            return value
+        else:
+            raise RuntimeError(f"Can't resolve value:{value} to binary")
+    if itype == DataType.BOOLEAN:
+        format_str="?"
+    elif itype == DataType.INTEGER:
+        format_str="i"
+    elif itype == DataType.LONG:
+        format_str="q"
+    elif itype == DataType.FLOAT:
+        format_str="f"
+    elif itype == DataType.DOUBLE:
+        format_str="d"
+    return struct.pack(format_str, value)
 
 
 def row_values_to_bytes(values, types):
