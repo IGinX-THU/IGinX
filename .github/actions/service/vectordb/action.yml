@@ -23,8 +23,8 @@ runs:
           shell: bash
           run: exit 1
 
-        - name: Setup docker compose
-          uses: ./.github/actions/dockerCompose
+        - name: Setup Docker
+          uses: ./.github/actions/setup/docker
 
         - if: fromJSON(inputs.start)
           name: Create Config for milvus docker compose
@@ -51,19 +51,19 @@ runs:
           run: |
               for port in ${{ inputs.ports }}; do
                 sudo chown -R $(whoami) $port/
-                sudo nohup docker-compose -f $port/docker-compose-$port.yml up -d
+                sudo nohup docker compose -f $port/docker-compose-$port.yml up -d
               done
               sleep 10
               docker ps -a
 
         - if: fromJSON(inputs.start) && runner.os == 'Windows'
           name: Start milvus on Windows
-          shell: wsl-run {0}
+          shell: wsl-bash {0}
           working-directory: ${{ github.workspace }}
           run: |
               for port in ${{ inputs.ports }}; do
                 sudo chown -R $(whoami) $port/
-                sudo nohup docker-compose -f $port/docker-compose-$port.yml up -d
+                sudo nohup docker compose -f $port/docker-compose-$port.yml up -d
               done
               sleep 30
               docker ps -a

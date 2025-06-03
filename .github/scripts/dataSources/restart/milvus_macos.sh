@@ -21,7 +21,7 @@ port=$1
 
 pwd
 
-docker-compose -f $port/docker-compose-$port.yml up -d
+docker compose -f $port/docker-compose-$port.yml up -d
 
 sleep 70
 
