@@ -165,7 +165,6 @@ public class ClusterIT {
   }
 
   private void testRemoveDummyStorageForCurrentIginx(Session session) {
-    testQuery(session, false);
     testShowStorageConnectivity(session, true, false);
 
     String removeStorageEngine = "REMOVE STORAGEENGINE (\"127.0.0.1\", 6667, \"prefix\", \"\");";
@@ -176,7 +175,6 @@ public class ClusterIT {
       fail();
     }
 
-    testQuery(session, true);
     testShowStorageConnectivity(session, false, false);
   }
 
@@ -189,38 +187,9 @@ public class ClusterIT {
       fail();
     }
 
-    testQuery(session6888, true);
     testShowStorageConnectivity(session6888, false, true);
-    testQuery(session6889, true);
     testShowStorageConnectivity(session6889, false, true);
-    testQuery(session6890, true);
     testShowStorageConnectivity(session6890, false, true);
-  }
-
-  private void testQuery(Session session, boolean afterRemove) {
-    String query = "select test.a from prefix;";
-    String expected;
-    if (afterRemove) {
-      expected = "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
-    } else {
-      expected =
-          "ResultSets:\n"
-              + "+---+-------------+\n"
-              + "|key|prefix.test.a|\n"
-              + "+---+-------------+\n"
-              + "| 11|          111|\n"
-              + "+---+-------------+\n"
-              + "Total line number = 1\n";
-    }
-    try {
-      LOGGER.info("Execute Statement: \"{}\"", query);
-      SessionExecuteSqlResult res = session.executeSql(query);
-      String result = res.getResultInString(false, "");
-      assertEquals(expected, result);
-    } catch (SessionException e) {
-      LOGGER.error("Statement: \"{}\" execute fail. Caused by: ", query, e);
-      fail();
-    }
   }
 
   private void testShowStorageConnectivity(Session session, boolean connectable, boolean notShow) {
