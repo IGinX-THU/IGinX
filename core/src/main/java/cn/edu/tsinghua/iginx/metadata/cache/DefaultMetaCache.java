@@ -28,7 +28,6 @@ import cn.edu.tsinghua.iginx.metadata.entity.*;
 import cn.edu.tsinghua.iginx.policy.simple.ColumnCalDO;
 import cn.edu.tsinghua.iginx.sql.statement.InsertStatement;
 import cn.edu.tsinghua.iginx.thrift.DataType;
-import cn.edu.tsinghua.iginx.transform.pojo.TriggerDescriptor;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -95,7 +94,7 @@ public class DefaultMetaCache implements IMetaCache {
   // python functions 的缓存
   private final Map<String, PyFunctionMeta> pyFunctionMetaMap;
 
-  private final Map<String, TriggerDescriptor> jobTriggerMetaMap;
+  private final Map<String, TransformJobMeta> jobMetaMap;
 
   private DefaultMetaCache() {
     if (enableFragmentCacheControl) {
@@ -129,7 +128,7 @@ public class DefaultMetaCache implements IMetaCache {
     // python function 相关
     pyFunctionMetaMap = new ConcurrentHashMap<>();
     // 定时任务相关
-    jobTriggerMetaMap = new ConcurrentHashMap<>();
+    jobMetaMap = new ConcurrentHashMap<>();
   }
 
   public static DefaultMetaCache getInstance() {
@@ -996,19 +995,17 @@ public class DefaultMetaCache implements IMetaCache {
   }
 
   @Override
-  public void addOrUpdateJobTrigger(TriggerDescriptor descriptor) {
-    jobTriggerMetaMap.put(descriptor.getName(), descriptor);
+  public void addOrUpdateTransformJob(TransformJobMeta jobMeta) {
+    jobMetaMap.put(jobMeta.getName(), jobMeta);
   }
 
   @Override
-  public void dropJobTrigger(String name) {
-    jobTriggerMetaMap.remove(name);
+  public void dropTransformJob(String name) {
+    jobMetaMap.remove(name);
   }
 
   @Override
-  public List<TriggerDescriptor> getJobTriggers() {
-    return jobTriggerMetaMap.values().stream()
-        .map(TriggerDescriptor::copy)
-        .collect(Collectors.toList());
+  public List<TransformJobMeta> getTransformJob() {
+    return jobMetaMap.values().stream().map(TransformJobMeta::copy).collect(Collectors.toList());
   }
 }

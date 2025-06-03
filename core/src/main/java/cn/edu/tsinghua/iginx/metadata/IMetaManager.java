@@ -26,7 +26,6 @@ import cn.edu.tsinghua.iginx.metadata.hook.StorageUnitHook;
 import cn.edu.tsinghua.iginx.policy.simple.ColumnCalDO;
 import cn.edu.tsinghua.iginx.sql.statement.InsertStatement;
 import cn.edu.tsinghua.iginx.thrift.AuthType;
-import cn.edu.tsinghua.iginx.transform.pojo.TriggerDescriptor;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.List;
 import java.util.Map;
@@ -214,13 +213,13 @@ public interface IMetaManager {
 
   List<PyFunctionMeta> getPyFunctionsByModule(String moduleName);
 
-  boolean storeJobTrigger(TriggerDescriptor jobTriggerDescriptor);
+  boolean storeTransformJob(TransformJobMeta jobMeta);
 
-  boolean updateJobTrigger(TriggerDescriptor jobTriggerDescriptor);
+  boolean updateTransformJob(TransformJobMeta jobMeta);
 
-  boolean dropJobTrigger(String name);
+  boolean dropTransformJob(String name);
 
-  List<TriggerDescriptor> getJobTriggers();
+  List<TransformJobMeta> getTransformJobs();
 
   void updateFragmentRequests(
       Map<FragmentMeta, Long> writeRequestsMap, Map<FragmentMeta, Long> readRequestsMap)

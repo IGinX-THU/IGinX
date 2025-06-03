@@ -17,10 +17,26 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package cn.edu.tsinghua.iginx.metadata.hook;
+package cn.edu.tsinghua.iginx.metadata.entity;
 
 import cn.edu.tsinghua.iginx.transform.pojo.TriggerDescriptor;
+import lombok.Data;
 
-public interface JobTriggerChangeHook {
-  void onChange(String className, TriggerDescriptor descriptor);
+@Data
+public class TransformJobMeta {
+  private String name;
+  private TriggerDescriptor trigger;
+  private String ip;
+  private int port;
+
+  public TransformJobMeta(String name, TriggerDescriptor trigger, String ip, int port) {
+    this.name = name;
+    this.trigger = trigger;
+    this.ip = ip;
+    this.port = port;
+  }
+
+  public TransformJobMeta copy() {
+    return new TransformJobMeta(name, trigger.copy(), ip, port);
+  }
 }

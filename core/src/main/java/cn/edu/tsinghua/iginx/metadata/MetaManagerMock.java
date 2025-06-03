@@ -26,7 +26,6 @@ import cn.edu.tsinghua.iginx.metadata.hook.StorageUnitHook;
 import cn.edu.tsinghua.iginx.policy.simple.ColumnCalDO;
 import cn.edu.tsinghua.iginx.sql.statement.InsertStatement;
 import cn.edu.tsinghua.iginx.thrift.AuthType;
-import cn.edu.tsinghua.iginx.transform.pojo.TriggerDescriptor;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.*;
 
@@ -341,22 +340,22 @@ public class MetaManagerMock implements IMetaManager {
   }
 
   @Override
-  public boolean storeJobTrigger(TriggerDescriptor jobTriggerDescriptor) {
+  public boolean storeTransformJob(TransformJobMeta jobMeta) {
     return false;
   }
 
   @Override
-  public boolean updateJobTrigger(TriggerDescriptor jobTriggerDescriptor) {
+  public boolean updateTransformJob(TransformJobMeta jobMeta) {
     return false;
   }
 
   @Override
-  public boolean dropJobTrigger(String name) {
+  public boolean dropTransformJob(String name) {
     return false;
   }
 
   @Override
-  public List<TriggerDescriptor> getJobTriggers() {
+  public List<TransformJobMeta> getTransformJobs() {
     return Collections.emptyList();
   }
 

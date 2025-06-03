@@ -30,7 +30,6 @@ import cn.edu.tsinghua.iginx.metadata.exception.MetaStorageException;
 import cn.edu.tsinghua.iginx.metadata.hook.*;
 import cn.edu.tsinghua.iginx.metadata.storage.IMetaStorage;
 import cn.edu.tsinghua.iginx.metadata.utils.ReshardStatus;
-import cn.edu.tsinghua.iginx.transform.pojo.TriggerDescriptor;
 import cn.edu.tsinghua.iginx.utils.JsonUtils;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import io.etcd.jetcd.*;
@@ -74,7 +73,7 @@ public class ETCDMetaStorage implements IMetaStorage {
   private final Lock fragmentLeaseLock = new ReentrantLock();
   private final Lock userLeaseLock = new ReentrantLock();
   private final Lock pyFunctionLeaseLock = new ReentrantLock();
-  private final Lock jobTriggerLeaseLock = new ReentrantLock();
+  private final Lock transformJobLeaseLock = new ReentrantLock();
   private final Lock fragmentRequestsCounterLeaseLock = new ReentrantLock();
   private final Lock fragmentHeatCounterLeaseLock = new ReentrantLock();
   private final Lock timeseriesHeatCounterLeaseLock = new ReentrantLock();
@@ -102,10 +101,10 @@ public class ETCDMetaStorage implements IMetaStorage {
   private long userLease = -1L;
   private Watch.Watcher pyFunctionWatcher;
   private PyFunctionChangeHook pyFunctionChangeHook = null;
-  private JobTriggerChangeHook jobTriggerChangeHook = null;
+  private TransformJobChangeHook transformJobChangeHook = null;
   private long pyFunctionLease = -1L;
 
-  private long jobTriggerLease = -1L;
+  private long transformJobLease = -1L;
 
   private long fragmentRequestsCounterLease = -1L;
 
@@ -2279,17 +2278,17 @@ public class ETCDMetaStorage implements IMetaStorage {
   }
 
   @Override
-  public List<TriggerDescriptor> loadJobTrigger() throws MetaStorageException {
+  public List<TransformJobMeta> loadTransformJobs() throws MetaStorageException {
     try {
-      lockJobTrigger();
-      Map<String, TriggerDescriptor> triggerMap = new HashMap<>();
+      lockTransformJob();
+      Map<String, TransformJobMeta> jobMetaMap = new HashMap<>();
       GetResponse response =
           this.client
               .getKVClient()
               .get(
-                  ByteSequence.from(JOB_TRIGGER_NODE_PREFIX.getBytes()),
+                  ByteSequence.from(TRANSFORM_JOB_NODE_PREFIX.getBytes()),
                   GetOption.newBuilder()
-                      .withPrefix(ByteSequence.from(JOB_TRIGGER_NODE_PREFIX.getBytes()))
+                      .withPrefix(ByteSequence.from(TRANSFORM_JOB_NODE_PREFIX.getBytes()))
                       .build())
               .get();
       if (response.getCount() != 0L) {
@@ -2297,98 +2296,98 @@ public class ETCDMetaStorage implements IMetaStorage {
             .getKvs()
             .forEach(
                 e -> {
-                  TriggerDescriptor descriptor =
-                      JsonUtils.fromJson(e.getValue().getBytes(), TriggerDescriptor.class);
-                  triggerMap.put(descriptor.getName(), descriptor);
+                  TransformJobMeta jobMeta =
+                      JsonUtils.fromJson(e.getValue().getBytes(), TransformJobMeta.class);
+                  jobMetaMap.put(jobMeta.getName(), jobMeta);
                 });
       }
-      return new ArrayList<>(triggerMap.values());
+      return new ArrayList<>(jobMetaMap.values());
     } catch (ExecutionException | InterruptedException e) {
-      LOGGER.error("got error when load job triggers: ", e);
+      LOGGER.error("got error when load transform jobs: ", e);
       throw new MetaStorageException(e);
     } finally {
-      if (jobTriggerLease != -1) {
-        releaseJobTrigger();
+      if (transformJobLease != -1) {
+        releaseTransformJob();
       }
     }
   }
 
   @Override
-  public void registerJobTriggerChangeHook(JobTriggerChangeHook hook) {
-    jobTriggerChangeHook = hook;
+  public void registerTransformJobChangeHook(TransformJobChangeHook hook) {
+    transformJobChangeHook = hook;
   }
 
-  private void lockJobTrigger() throws MetaStorageException {
+  private void lockTransformJob() throws MetaStorageException {
     try {
-      jobTriggerLeaseLock.lock();
-      jobTriggerLease = client.getLeaseClient().grant(MAX_LOCK_TIME).get().getID();
+      transformJobLeaseLock.lock();
+      transformJobLease = client.getLeaseClient().grant(MAX_LOCK_TIME).get().getID();
       client
           .getLockClient()
-          .lock(ByteSequence.from(JOB_TRIGGER_LOCK_NODE.getBytes()), jobTriggerLease);
+          .lock(ByteSequence.from(TRANSFORM_JOB_LOCK_NODE.getBytes()), transformJobLease);
     } catch (Exception e) {
-      jobTriggerLeaseLock.unlock();
-      throw new MetaStorageException("acquire job trigger mutex error: ", e);
+      transformJobLeaseLock.unlock();
+      throw new MetaStorageException("acquire transform job mutex error: ", e);
     }
   }
 
-  private void releaseJobTrigger() throws MetaStorageException {
+  private void releaseTransformJob() throws MetaStorageException {
     try {
-      client.getLockClient().unlock(ByteSequence.from(JOB_TRIGGER_LOCK_NODE.getBytes())).get();
-      client.getLeaseClient().revoke(jobTriggerLease).get();
-      jobTriggerLease = -1L;
+      client.getLockClient().unlock(ByteSequence.from(TRANSFORM_JOB_LOCK_NODE.getBytes())).get();
+      client.getLeaseClient().revoke(transformJobLease).get();
+      transformJobLease = -1L;
     } catch (Exception e) {
-      throw new MetaStorageException("release job trigger mutex error: ", e);
+      throw new MetaStorageException("release transform job mutex error: ", e);
     } finally {
-      jobTriggerLeaseLock.unlock();
+      transformJobLeaseLock.unlock();
     }
   }
 
   @Override
-  public void storeJobTrigger(TriggerDescriptor jobTriggerDescriptor) throws MetaStorageException {
-    updateJobTrigger(jobTriggerDescriptor);
+  public void storeTransformJob(TransformJobMeta jobMeta) throws MetaStorageException {
+    updateTransformJob(jobMeta);
   }
 
   @Override
-  public void updateJobTrigger(TriggerDescriptor descriptor) throws MetaStorageException {
+  public void updateTransformJob(TransformJobMeta descriptor) throws MetaStorageException {
     try {
-      lockJobTrigger();
+      lockTransformJob();
       this.client
           .getKVClient()
           .put(
-              ByteSequence.from((JOB_TRIGGER_NODE_PREFIX + descriptor.getName()).getBytes()),
+              ByteSequence.from((TRANSFORM_JOB_NODE_PREFIX + descriptor.getName()).getBytes()),
               ByteSequence.from(JsonUtils.toJson(descriptor)))
           .get();
     } catch (ExecutionException | InterruptedException e) {
-      LOGGER.error("got error when storing job trigger: ", e);
+      LOGGER.error("got error when storing transform job: ", e);
       throw new MetaStorageException(e);
     } finally {
-      if (jobTriggerLease != -1) {
-        releaseJobTrigger();
+      if (transformJobLease != -1) {
+        releaseTransformJob();
       }
     }
-    if (jobTriggerChangeHook != null) {
-      jobTriggerChangeHook.onChange(descriptor.getName(), descriptor);
+    if (transformJobChangeHook != null) {
+      transformJobChangeHook.onChange(descriptor.getName(), descriptor);
     }
   }
 
   @Override
-  public void dropJobTrigger(String name) throws MetaStorageException {
+  public void dropTransformJob(String name) throws MetaStorageException {
     try {
-      lockJobTrigger();
+      lockTransformJob();
       this.client
           .getKVClient()
-          .delete(ByteSequence.from((JOB_TRIGGER_NODE_PREFIX + name).getBytes()))
+          .delete(ByteSequence.from((TRANSFORM_JOB_NODE_PREFIX + name).getBytes()))
           .get();
     } catch (ExecutionException | InterruptedException e) {
-      LOGGER.error("got error when remove job trigger: ", e);
+      LOGGER.error("got error when remove transform job: ", e);
       throw new MetaStorageException(e);
     } finally {
-      if (jobTriggerLease != -1) {
-        releaseJobTrigger();
+      if (transformJobLease != -1) {
+        releaseTransformJob();
       }
     }
-    if (jobTriggerChangeHook != null) {
-      jobTriggerChangeHook.onChange(name, null);
+    if (transformJobChangeHook != null) {
+      transformJobChangeHook.onChange(name, null);
     }
   }
 
