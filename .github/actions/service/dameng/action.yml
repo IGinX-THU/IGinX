@@ -48,7 +48,7 @@ runs:
           run: |
               for port in ${{ inputs.ports }}; do
                 sudo chown -R $(whoami) $port/
-                sudo nohup docker-compose -f $port/docker-compose-$port.yml up -d
+                sudo nohup docker compose -f $port/docker-compose-$port.yml up -d
               done
               sleep 10
               docker ps -a
@@ -76,11 +76,11 @@ runs:
 
         - if: runner.os == 'Windows'
           name: Run Dameng Database container
-          shell: wsl-run {0}
+          shell: wsl-bash {0}
           run: |
               for port in ${{ inputs.ports }}; do
                 sudo chown -R $(whoami) $port/
-                sudo nohup docker-compose -f $port/docker-compose-$port.yml up -d
+                sudo nohup docker compose -f $port/docker-compose-$port.yml up -d
               done
               sleep 30
               docker ps -a
@@ -88,7 +88,7 @@ runs:
         - if: runner.os == 'Windows'
           name: Verify Dameng Database is running
           id: dmContainerWin
-          shell: wsl-run {0}
+          shell: wsl-bash {0}
           run: |
               docker ps
               sleep 10
@@ -127,7 +127,7 @@ runs:
 
         - if: runner.os == 'Windows' && fromJSON(inputs.createUser)
           name: Create user in Dameng
-          shell: wsl-run {0}
+          shell: wsl-bash {0}
           run: |
               for port in ${{ inputs.ports }}; do
                 CONTAINER_NAME="${{ inputs.version }}-$port"
