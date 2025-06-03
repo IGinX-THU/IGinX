@@ -2381,7 +2381,7 @@ public class RelationalStorage implements IStorage {
             relationalMeta.getDatabaseQuerySql(),
             0,
             relationalMeta.getDatabaseQuerySql().length() - 1)
-        .append(" )");
+        .append(" ) datnames");
     sqlGetDBBuilder
         .append(" WHERE datname NOT IN ('")
         .append(relationalMeta.getDefaultDatabaseName())
