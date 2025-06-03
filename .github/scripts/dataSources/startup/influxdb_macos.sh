@@ -46,3 +46,5 @@ do
 
   sudo -E sh -c "cd influxdb2-2.0.7-darwin-amd64-$port/; nohup ./influxd run --bolt-path=~/.influxdbv2/influxd.bolt --engine-path=~/.influxdbv2/engine --http-bind-address=:$port --query-memory-bytes=300971520 --query-concurrency=1 & echo \$! > influxdb.pid"
 done
+
+sh -c "sleep 30"
