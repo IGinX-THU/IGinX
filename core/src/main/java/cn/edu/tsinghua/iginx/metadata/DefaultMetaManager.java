@@ -282,7 +282,7 @@ public class DefaultMetaManager implements IMetaManager {
           if (storageEngine != null) {
             addStorageEngine(id, storageEngine);
           } else {
-            removeDummyStorageEngine(id, false);
+            removeDummyStorageEngine(id, true);
           }
         });
     storageEngineListFromConf = resolveStorageEngineFromConf();

@@ -99,7 +99,12 @@ public class ClusterIT {
   }
 
   @Test
-  public void testRemoveDummyStorageForCurrentIginx() {
+  public void testRemoveDummyStorage() {
+    testRemoveDummyStorageForAllIginx();
+    testRemoveDummyStorageForCurrentIginx();
+  }
+
+  private void testRemoveDummyStorageForCurrentIginx() {
     IoTDB12HistoryDataGenerator generator = new IoTDB12HistoryDataGenerator();
     try {
       generator.writeHistoryData(
@@ -118,8 +123,7 @@ public class ClusterIT {
     }
   }
 
-  @Test
-  public void testRemoveDummyStorageForAllIginx() {
+  private void testRemoveDummyStorageForAllIginx() {
     IoTDB12HistoryDataGenerator generator = new IoTDB12HistoryDataGenerator();
     try {
       generator.writeHistoryData(
