@@ -87,7 +87,7 @@ public class Queriers {
       List<Future<RowStream>> rowStreams = querier.query();
       Future<RowStream> union = union(rowStreams);
       Future<RowStream> filtered = filtered(union, filter);
-      return Collections.singletonList(union);
+      return Collections.singletonList(filtered);
     }
   }
 
