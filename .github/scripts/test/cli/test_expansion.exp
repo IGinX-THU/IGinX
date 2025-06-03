@@ -1,0 +1,32 @@
+#!/usr/bin/expect
+# 测试!!是否会匹配上一条命令
+set version [lindex $argv 0]
+spawn client/target/iginx-client-$version/sbin/start_cli.sh
+sleep 1
+send "SHOW CLUSTER INFO;\r"
+sleep 1
+expect {
+    "IginX infos" {exp_continue}  ;# 忽略 SHOW CLUSTER INFO 的输出，继续等待
+}
+send "!!;\r"
+sleep 1
+expect {
+    "IginX infos" {         ;# 匹配到了上一条SHOW CLUSTER INFO; 输出IginX infos
+        send "exit;\r"
+	    expect eof
+	    exit 1
+    }
+    "Parse Error" {         ;# !!按照正常的字符串处理，不会进行expansion
+	    send "exit;\r"
+	    expect eof
+	    exit 0
+	}
+    timeout {
+        send_user "Timeout occurred after !!\n"       ;# 打印超时信息
+        send "exit;\r"                               ;# 发送退出命令
+        send_user "Sent: exit;\n"                     ;# 打印发送的命令
+        sleep 1                                      ;# 等待退出
+        exit 2                                       ;# 表示超时
+    }
+}
+expect eof

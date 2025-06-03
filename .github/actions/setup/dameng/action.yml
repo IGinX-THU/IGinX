@@ -9,12 +9,16 @@ inputs:
 runs:
     using: "composite"
     steps:
-        - if: runner.os == 'Windows'
-          uses: vedantmgoyal9/setup-wsl2@main
+        - name: Setup Docker
+          uses: ./.github/actions/setup/docker
 
-        - if: runner.os == 'Windows'
-          run: apt update && apt upgrade -y
-          shell: wsl-run {0}
+        - if: runner.os == 'Linux'
+          name: Install Docker Compose
+          shell: bash
+          run: |
+              DOCKER_COMPOSE_VERSION=v2.30.1
+              sudo curl -L "https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+              sudo chmod +x /usr/local/bin/docker-compose
 
         - if: runner.os == 'Linux'
           name: Download Dameng Database Docker image and Load Dameng Database container
@@ -24,19 +28,8 @@ runs:
               docker load -i dm8_20241022_x86_rh6_64_single.tar
 
         - if: runner.os == 'Windows'
-          name: Install Docker
-          shell: wsl-run {0}
-          run: |
-              sudo apt install apt-transport-https ca-certificates curl software-properties-common -y
-              curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
-              sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable"
-              sudo apt update
-              sudo apt install docker-ce docker-ce-cli containerd.io -y
-              sudo service docker start
-
-        - if: runner.os == 'Windows'
           name: Download Dameng Database Docker image and Load Dameng Database container
-          shell: wsl-run {0}
+          shell: wsl-bash {0}
           run: |
               curl -s -S -L -o dm8_20241022_x86_rh6_64_single.tar https://github.com/IGinX-THU/IGinX-resources/raw/refs/heads/main/resources/dm8_20241022_x86_rh6_64_single.tar
               docker load -i dm8_20241022_x86_rh6_64_single.tar

@@ -91,3 +91,20 @@ runs:
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_infile_macos.sh"
                 "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_infile_macos.sh" ${VERSION}
               fi
+
+        - if: inputs.shell == 'client-event-expansion' && (runner.os == 'Linux' || runner.os == 'macOS')
+          name: Test whether client support event expansion
+          shell: bash
+          run: |
+              if [ "$RUNNER_OS" == "Linux" ]; then
+                sudo apt install -y expect
+              elif [ "$RUNNER_OS" == "macOS" ]; then
+                brew install expect
+              fi
+              expect ${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_expansion.exp ${VERSION}
+              if [[ $? -eq 0 ]]; then 
+                echo "client doesn't support event expansion, !! can be input as a variable"
+              else 
+                echo "client support event expansion, !! cannot be input as a variable"
+                exit 1
+              fi
