@@ -21,7 +21,7 @@ port=$1
 
 pwd
 
-sudo nohup docker-compose -f $port/docker-compose-$port.yml up -d
+sudo nohup docker compose -f $port/docker-compose-$port.yml up -d
 
 echo "waiting for the server to start..."
 sleep 10
