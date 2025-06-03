@@ -65,6 +65,11 @@ jobs:
                       s/^zookeeperConnectionString=/#zookeeperConnectionString=/g
                       s/^#etcdEndpoints=/etcdEndpoints=/g
 
+            - name: Run IoTDB12
+              uses: ./.github/actions/dbRunner
+              with:
+                  DB-name: "IoTDB12"
+
             - name: Install IGinX with Maven
               shell: bash
               run: |
