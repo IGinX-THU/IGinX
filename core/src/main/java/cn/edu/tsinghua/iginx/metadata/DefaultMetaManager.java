@@ -489,7 +489,7 @@ public class DefaultMetaManager implements IMetaManager {
       for (StorageEngineChangeHook hook : storageEngineChangeHooks) {
         hook.onChange(getStorageEngine(storageEngineId), null);
       }
-      return !forAllIginx || cache.removeDummyStorageEngine(storageEngineId);
+      return cache.removeDummyStorageEngine(storageEngineId, forAllIginx);
     } catch (MetaStorageException e) {
       LOGGER.error("remove dummy storage engine {} error: ", storageEngineId, e);
     }

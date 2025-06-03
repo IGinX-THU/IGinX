@@ -720,7 +720,7 @@ public class DefaultMetaCache implements IMetaCache {
   }
 
   @Override
-  public boolean removeDummyStorageEngine(long storageEngineId) {
+  public boolean removeDummyStorageEngine(long storageEngineId, boolean forAllIginx) {
     storageUnitLock.writeLock().lock();
     fragmentLock.writeLock().lock();
     try {
@@ -733,7 +733,9 @@ public class DefaultMetaCache implements IMetaCache {
       assert oldStorageEngineMeta.isHasData();
       dummyFragments.removeIf(e -> e.getMasterStorageUnitId().equals(dummyStorageUnitId));
       dummyStorageUnitMetaMap.remove(dummyStorageUnitId);
-      storageEngineMetaMap.remove(storageEngineId);
+      if (forAllIginx) {
+        storageEngineMetaMap.remove(storageEngineId);
+      }
     } finally {
       fragmentLock.writeLock().unlock();
       storageUnitLock.writeLock().unlock();
