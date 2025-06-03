@@ -78,7 +78,9 @@ public class IginXStatement implements Statement {
     checkConnection("execute");
     executeSQL(sql);
     return sql.trim().toLowerCase().startsWith(Constant.SELECT_CLAUSE_PREFIX)
-        || sql.trim().toLowerCase().startsWith(Constant.SHOW_CLAUSE_PREFIX);
+        || sql.trim().toLowerCase().startsWith(Constant.SHOW_CLAUSE_PREFIX)
+        || sql.trim().toLowerCase().startsWith(Constant.WITH_CLAUSE_PREFIX)
+        || sql.trim().toLowerCase().startsWith(Constant.EXPLAIN_CLAUSE_PREFIX);
   }
 
   @Override
