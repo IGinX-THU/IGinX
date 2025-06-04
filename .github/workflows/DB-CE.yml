@@ -41,7 +41,7 @@ on:
                 description: "Testcases to run"
                 type: string
                 required: false
-                default: "UDFIT"
+                default: "NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,SessionIT,SessionPoolIT,CompactionIT,TimePrecisionIT,PySessionIT"
 
 jobs:
     DB-CE:
