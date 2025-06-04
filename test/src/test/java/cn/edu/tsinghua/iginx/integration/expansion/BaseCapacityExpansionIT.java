@@ -758,7 +758,7 @@ public abstract class BaseCapacityExpansionIT {
     SQLTestTools.executeAndCompare(session, statement, pathListAns, EXP_VALUES_LIST2);
 
     // 通过 sql 语句测试移除节点
-    String removeStatement = "remove storageengine (\"127.0.0.1\", %d, \"%s\", \"%s\");";
+    String removeStatement = "remove storageengine (\"127.0.0.1\", %d, \"%s\", \"%s\") for all;";
     try {
       session.executeSql(
           String.format(removeStatement, expPort, "p1" + schemaPrefixSuffix, dataPrefix1));
