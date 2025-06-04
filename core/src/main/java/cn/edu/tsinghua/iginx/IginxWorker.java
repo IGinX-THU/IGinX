@@ -435,7 +435,7 @@ public class IginxWorker implements IService.Iface {
               LOGGER.debug("old engine cannot be connected");
               // 已有的数据库无法连接了，若是只读，直接删除
               if (currentStorageEngine.isReadOnly() && currentStorageEngine.isHasData()) {
-                metaManager.removeDummyStorageEngine(currentStorageEngine.getId(), false);
+                metaManager.removeDummyStorageEngine(currentStorageEngine.getId(), true);
                 LOGGER.warn(
                     "Existing dummy Storage engine {} cannot be connected and will be removed.",
                     currentStorageEngine);
