@@ -84,7 +84,7 @@ public class AbstractTaskThreadPoolExecutor extends ThreadPoolExecutor {
     this.config = FunctionManager.getInstance().getConfig();
   }
 
-  /** 为每个线程创建interpreter，并将其保存到threadlocal中 */
+  /** 为每个线程创建interpreter config，并将其保存到threadlocal中 */
   @Override
   protected void beforeExecute(Thread t, Runnable r) {
     super.beforeExecute(t, r);
