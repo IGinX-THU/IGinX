@@ -222,13 +222,13 @@ public class ETCDMetaStorage implements IMetaStorage {
                               JsonUtils.fromJson(
                                   event.getKeyValue().getValue().getBytes(),
                                   StorageEngineMeta.class);
-                          storageChangeHook.onChange(storageEngine.getId(), storageEngine);
+                          storageChangeHook.onChange(storageEngine.getId(), storageEngine, storageEngine.getDeleteBy());
                           break;
                         case DELETE:
                           storageEngine =
                               JsonUtils.fromJson(
                                   event.getPrevKV().getValue().getBytes(), StorageEngineMeta.class);
-                          storageChangeHook.onChange(storageEngine.getId(), null);
+                          storageChangeHook.onChange(storageEngine.getId(), null, storageEngine.getDeleteBy());
                           break;
                         default:
                           LOGGER.error("unexpected watchEvent: {}", event.getEventType());

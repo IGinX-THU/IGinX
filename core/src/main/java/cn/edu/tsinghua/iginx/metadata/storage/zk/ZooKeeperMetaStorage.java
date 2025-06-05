@@ -414,6 +414,11 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
       multiLock.acquire();
       String nodeName = generateId(STORAGE_ENGINE_NODE, storageEngineId);
       if (forAllIginx && this.client.checkExists().forPath(nodeName) != null) {
+        // 需要先记录删除该存储节点的iginx的id，再删除该节点
+        byte[] data = client.getData().forPath(nodeName);
+        StorageEngineMeta meta = JsonUtils.fromJson(data, StorageEngineMeta.class);
+        meta.setDeleteBy(iginxId);
+        this.client.setData().forPath(nodeName, JsonUtils.toJson(meta));
         this.client.delete().forPath(nodeName);
       }
       // 删除连接状态
@@ -468,13 +473,13 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
               LOGGER.info("storage engine meta updated {}", event.getData().getPath());
               LOGGER.info("storage engine: {}", new String(data));
               storageEngineMeta = JsonUtils.fromJson(data, StorageEngineMeta.class);
-              if (storageEngineMeta != null) {
+              if (storageEngineMeta != null && !storageEngineMeta.isSetDeleteBy()) {
                 LOGGER.info(
                     "new storage engine comes to cluster: id = {} ,ip = {} , port = {}",
                     storageEngineMeta.getId(),
                     storageEngineMeta.getIp(),
                     storageEngineMeta.getPort());
-                storageChangeHook.onChange(storageEngineMeta.getId(), storageEngineMeta);
+                storageChangeHook.onChange(storageEngineMeta.getId(), storageEngineMeta, storageEngineMeta.getDeleteBy());
               } else {
                 LOGGER.error("resolve storage engine from zookeeper error");
               }
@@ -490,13 +495,14 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
                 break;
               }
               storageEngineMeta = JsonUtils.fromJson(data, StorageEngineMeta.class);
-              if (storageEngineMeta != null) {
+              if (storageEngineMeta != null && storageEngineMeta.isSetDeleteBy()) {
                 LOGGER.info(
-                    "storage engine leave from cluster: id = {} ,ip = {} , port = {}",
+                    "storage engine leave from cluster: id = {} ,ip = {} , port = {}, deleteBy = {}",
                     storageEngineMeta.getId(),
                     storageEngineMeta.getIp(),
-                    storageEngineMeta.getPort());
-                storageChangeHook.onChange(storageEngineMeta.getId(), null);
+                    storageEngineMeta.getPort(),
+                    storageEngineMeta.getDeleteBy());
+                storageChangeHook.onChange(storageEngineMeta.getId(), null, storageEngineMeta.getDeleteBy());
               } else {
                 LOGGER.error("resolve storage engine from zookeeper error");
               }

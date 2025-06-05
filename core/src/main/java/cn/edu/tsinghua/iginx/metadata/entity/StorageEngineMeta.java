@@ -64,6 +64,8 @@ public final class StorageEngineMeta {
 
   private boolean needReAllocate;
 
+  private long deleteBy;
+
   public StorageEngineMeta(
       long id,
       String ip,
@@ -154,6 +156,7 @@ public final class StorageEngineMeta {
     this.createdBy = createdBy;
     this.needReAllocate = needReAllocate;
     this.schemaPrefix = schemaPrefix;
+    this.deleteBy = -1L;
   }
 
   public StorageEngineMeta(
@@ -185,6 +188,7 @@ public final class StorageEngineMeta {
     this.createdBy = createdBy;
     this.needReAllocate = needReAllocate;
     this.schemaPrefix = schemaPrefix;
+    this.deleteBy = -1L;
   }
 
   public String getSchemaPrefix() {
@@ -287,6 +291,18 @@ public final class StorageEngineMeta {
     this.needReAllocate = needReAllocate;
   }
 
+  public long getDeleteBy() {
+    return deleteBy;
+  }
+
+  public void setDeleteBy(long deleteBy) {
+    this.deleteBy = deleteBy;
+  }
+
+  public boolean isSetDeleteBy() {
+    return deleteBy != -1L;
+  }
+
   public static String extractEmbeddedPrefix(@NotNull String dummyDirPath) {
     if (dummyDirPath.isEmpty()) {
       return null;
@@ -355,6 +371,9 @@ public final class StorageEngineMeta {
         + "', "
         + "extra_params='"
         + (extraParams.toString())
+        + "', "
+        + "delete_by='"
+        + deleteBy
         + "', ";
   }
 }

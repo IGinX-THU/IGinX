@@ -278,11 +278,13 @@ public class DefaultMetaManager implements IMetaManager {
 
   private void initStorageEngine() throws MetaStorageException {
     storage.registerStorageChangeHook(
-        (id, storageEngine) -> {
+        (storageId, storageEngine, deleteBy) -> {
           if (storageEngine != null) {
-            addStorageEngine(id, storageEngine);
+            addStorageEngine(storageId, storageEngine);
           } else {
-            removeDummyStorageEngine(id, true);
+            if (deleteBy != id) {
+              removeDummyStorageEngine(storageId, true);
+            }
           }
         });
     storageEngineListFromConf = resolveStorageEngineFromConf();
