@@ -405,6 +405,10 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
   @Override
   public void removeDummyStorageEngine(long iginxId, long storageEngineId, boolean forAllIginx)
       throws MetaStorageException {
+    // 需要先记录发起移除请求的iginx的id，再删除该存储节点的记录
+    if (forAllIginx) {
+      updateDeleterIdOfStorageEngine(iginxId, storageEngineId);
+    }
     InterProcessMutex storageMutex = new InterProcessMutex(this.client, STORAGE_ENGINE_LOCK_NODE);
     InterProcessMutex connectionMutex =
         new InterProcessMutex(this.client, STORAGE_CONNECTION_LOCK_NODE);
@@ -414,11 +418,6 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
       multiLock.acquire();
       String nodeName = generateId(STORAGE_ENGINE_NODE, storageEngineId);
       if (forAllIginx && this.client.checkExists().forPath(nodeName) != null) {
-        // 需要先记录删除该存储节点的iginx的id，再删除该节点
-        byte[] data = client.getData().forPath(nodeName);
-        StorageEngineMeta meta = JsonUtils.fromJson(data, StorageEngineMeta.class);
-        meta.setDeleteBy(iginxId);
-        this.client.setData().forPath(nodeName, JsonUtils.toJson(meta));
         this.client.delete().forPath(nodeName);
       }
       // 删除连接状态
@@ -454,6 +453,34 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
     }
   }
 
+  private void updateDeleterIdOfStorageEngine(long iginxId, long storageEngineId)
+      throws MetaStorageException {
+    InterProcessMutex storageMutex = new InterProcessMutex(this.client, STORAGE_ENGINE_LOCK_NODE);
+    try {
+      storageMutex.acquire();
+      String nodeName = generateId(STORAGE_ENGINE_NODE, storageEngineId);
+      if (this.client.checkExists().forPath(nodeName) != null) {
+        byte[] data = client.getData().forPath(nodeName);
+        StorageEngineMeta meta = JsonUtils.fromJson(data, StorageEngineMeta.class);
+        if (!meta.isSetDeleteBy()) {
+          meta.setDeleteBy(iginxId);
+          this.client.setData().forPath(nodeName, JsonUtils.toJson(meta));
+        }
+      }
+    } catch (Exception e) {
+      throw new MetaStorageException("get error when updating deleter id of storage engine", e);
+    } finally {
+      try {
+        storageMutex.release();
+      } catch (Exception e) {
+        throw new MetaStorageException(
+            String.format(
+                "get error when release interprocess lock for %s", STORAGE_ENGINE_LOCK_NODE),
+            e);
+      }
+    }
+  }
+
   private void registerStorageEngineListener() throws Exception {
     this.storageEngineCache = new TreeCache(this.client, STORAGE_ENGINE_NODE_PREFIX);
     TreeCacheListener listener =
@@ -479,7 +506,8 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
                     storageEngineMeta.getId(),
                     storageEngineMeta.getIp(),
                     storageEngineMeta.getPort());
-                storageChangeHook.onChange(storageEngineMeta.getId(), storageEngineMeta, storageEngineMeta.getDeleteBy());
+                storageChangeHook.onChange(
+                    storageEngineMeta.getId(), storageEngineMeta, storageEngineMeta.getDeleteBy());
               } else {
                 LOGGER.error("resolve storage engine from zookeeper error");
               }
@@ -502,7 +530,8 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
                     storageEngineMeta.getIp(),
                     storageEngineMeta.getPort(),
                     storageEngineMeta.getDeleteBy());
-                storageChangeHook.onChange(storageEngineMeta.getId(), null, storageEngineMeta.getDeleteBy());
+                storageChangeHook.onChange(
+                    storageEngineMeta.getId(), null, storageEngineMeta.getDeleteBy());
               } else {
                 LOGGER.error("resolve storage engine from zookeeper error");
               }

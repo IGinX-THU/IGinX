@@ -222,13 +222,15 @@ public class ETCDMetaStorage implements IMetaStorage {
                               JsonUtils.fromJson(
                                   event.getKeyValue().getValue().getBytes(),
                                   StorageEngineMeta.class);
-                          storageChangeHook.onChange(storageEngine.getId(), storageEngine, storageEngine.getDeleteBy());
+                          storageChangeHook.onChange(
+                              storageEngine.getId(), storageEngine, storageEngine.getDeleteBy());
                           break;
                         case DELETE:
                           storageEngine =
                               JsonUtils.fromJson(
                                   event.getPrevKV().getValue().getBytes(), StorageEngineMeta.class);
-                          storageChangeHook.onChange(storageEngine.getId(), null, storageEngine.getDeleteBy());
+                          storageChangeHook.onChange(
+                              storageEngine.getId(), null, storageEngine.getDeleteBy());
                           break;
                         default:
                           LOGGER.error("unexpected watchEvent: {}", event.getEventType());
@@ -818,6 +820,10 @@ public class ETCDMetaStorage implements IMetaStorage {
   @Override
   public void removeDummyStorageEngine(long iginxId, long storageEngineId, boolean forAllIginx)
       throws MetaStorageException {
+    // 需要先记录发起移除请求的iginx的id，再删除该存储节点的记录
+    if (forAllIginx) {
+      updateDeleterIdOfStorageEngine(iginxId, storageEngineId);
+    }
     try {
       lockStorage();
       lockStorageConnection();
@@ -873,6 +879,44 @@ public class ETCDMetaStorage implements IMetaStorage {
       }
       if (storageConnectionLease != -1) {
         releaseStorageConnection();
+      }
+    }
+  }
+
+  private void updateDeleterIdOfStorageEngine(long iginxId, long storageEngineId)
+      throws MetaStorageException {
+    try {
+      lockStorage();
+      String nodename =
+          generateID(STORAGE_ENGINE_NODE_PREFIX, STORAGE_ENGINE_NODE_LENGTH, storageEngineId);
+      GetResponse response =
+          this.client
+              .getKVClient()
+              .get(
+                  ByteSequence.from(nodename.getBytes()),
+                  GetOption.newBuilder()
+                      .withPrefix(ByteSequence.from(STORAGE_ENGINE_NODE_PREFIX.getBytes()))
+                      .build())
+              .get();
+      if (response.getCount() == 1) {
+        StorageEngineMeta meta =
+            JsonUtils.fromJson(
+                response.getKvs().get(0).getValue().getBytes(), StorageEngineMeta.class);
+        if (!meta.isSetDeleteBy()) {
+          meta.setDeleteBy(iginxId);
+          this.client
+              .getKVClient()
+              .put(
+                  ByteSequence.from(nodename.getBytes()), ByteSequence.from(JsonUtils.toJson(meta)))
+              .get();
+        }
+      }
+    } catch (Exception e) {
+      LOGGER.error("got error when updating deleter id of storage engine: ", e);
+      throw new MetaStorageException(e);
+    } finally {
+      if (storageLease != -1) {
+        releaseStorage();
       }
     }
   }
