@@ -311,12 +311,15 @@ public class SessionExecuteSqlResult {
     if (iginxInfos != null && !iginxInfos.isEmpty()) {
       builder.append("IginX infos:").append("\n");
       List<List<String>> cache = new ArrayList<>();
-      cache.add(new ArrayList<>(Arrays.asList("ID", "IP", "PORT")));
+      cache.add(new ArrayList<>(Arrays.asList("ID", "IP", "PORT", "CONNECTED")));
       for (IginxInfo info : iginxInfos) {
         cache.add(
             new ArrayList<>(
                 Arrays.asList(
-                    String.valueOf(info.getId()), info.getIp(), String.valueOf(info.getPort()))));
+                    String.valueOf(info.getId()),
+                    info.getIp(),
+                    String.valueOf(info.getPort()),
+                    info.getConnectable())));
       }
       builder.append(FormatUtils.formatResult(cache));
     }
@@ -326,7 +329,8 @@ public class SessionExecuteSqlResult {
       List<List<String>> cache = new ArrayList<>();
       cache.add(
           new ArrayList<>(
-              Arrays.asList("ID", "IP", "PORT", "TYPE", "SCHEMA_PREFIX", "DATA_PREFIX")));
+              Arrays.asList(
+                  "ID", "IP", "PORT", "TYPE", "SCHEMA_PREFIX", "DATA_PREFIX", "CONNECTED")));
       for (StorageEngineInfo info : storageEngineInfos) {
         cache.add(
             new ArrayList<>(
@@ -336,7 +340,8 @@ public class SessionExecuteSqlResult {
                     String.valueOf(info.getPort()),
                     info.getType().toString(),
                     info.getSchemaPrefix(),
-                    info.getDataPrefix())));
+                    info.getDataPrefix(),
+                    info.getConnectable())));
       }
       builder.append(FormatUtils.formatResult(cache));
     }

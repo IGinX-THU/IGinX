@@ -133,11 +133,12 @@ public class RestAnnotationIT {
       process = processBuilder.start();
 
       // 输出子进程信息
-      InputStreamReader inputStreamReader = new InputStreamReader(process.getInputStream());
-      BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
-      String lineStr;
-      while ((lineStr = bufferedReader.readLine()) != null) {
-        ret.append(lineStr);
+      try (InputStreamReader inputStreamReader = new InputStreamReader(process.getInputStream());
+          BufferedReader bufferedReader = new BufferedReader(inputStreamReader)) {
+        String lineStr;
+        while ((lineStr = bufferedReader.readLine()) != null) {
+          ret.append(lineStr);
+        }
       }
       // 等待子进程结束
       process.waitFor();

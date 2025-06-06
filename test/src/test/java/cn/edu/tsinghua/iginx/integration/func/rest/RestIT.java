@@ -170,11 +170,13 @@ public class RestIT {
       process = processBuilder.start();
 
       // 输出子进程信息
-      InputStreamReader inputStreamReaderINFO = new InputStreamReader(process.getInputStream());
-      BufferedReader bufferedReaderINFO = new BufferedReader(inputStreamReaderINFO);
-      String lineStr;
-      while ((lineStr = bufferedReaderINFO.readLine()) != null) {
-        ret.append(lineStr);
+      try (InputStreamReader inputStreamReaderINFO =
+              new InputStreamReader(process.getInputStream());
+          BufferedReader bufferedReaderINFO = new BufferedReader(inputStreamReaderINFO)) {
+        String lineStr;
+        while ((lineStr = bufferedReaderINFO.readLine()) != null) {
+          ret.append(lineStr);
+        }
       }
       // 等待子进程结束
       process.waitFor();

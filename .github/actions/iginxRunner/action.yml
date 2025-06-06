@@ -9,6 +9,18 @@ inputs:
         description: "to test UDF path detection"
         required: false
         default: "false"
+    iginx-home-path:
+        description: "iginx target path"
+        required: false
+        default: ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}
+    iginx-port:
+        description: "iginx port"
+        required: false
+        default: "6888"
+    rest-port:
+        description: "rest port"
+        required: false
+        default: "7888"
     iginx-conda-flag:
         # this step is only needed when using python3.13 by conda because latest conda supports py3.12,
         # and we use conda-forge to support 3.13. Thus, the required env would not be activated automatically
@@ -30,12 +42,12 @@ runs:
           shell: bash -el {0}
           run: |
               if [ "$RUNNER_OS" == "Linux" ]; then
-                sudo sed -i 's/needInitBasicUDFFunctions=false/needInitBasicUDFFunctions=true/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
+                sudo sed -i 's/needInitBasicUDFFunctions=false/needInitBasicUDFFunctions=true/g' ${{ inputs.iginx-home-path }}/conf/config.properties
               elif [ "$RUNNER_OS" == "Windows" ]; then
-                sed -i 's/needInitBasicUDFFunctions=false/needInitBasicUDFFunctions=true/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
-                sed -i 's/pythonCMD=python3/pythonCMD=python/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
+                sed -i 's/needInitBasicUDFFunctions=false/needInitBasicUDFFunctions=true/g' ${{ inputs.iginx-home-path }}/conf/config.properties
+                sed -i 's/pythonCMD=python3/pythonCMD=python/g' ${{ inputs.iginx-home-path }}/conf/config.properties
               elif [ "$RUNNER_OS" == "macOS" ]; then
-                sudo sed -i '' 's/needInitBasicUDFFunctions=false/needInitBasicUDFFunctions=true/' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
+                sudo sed -i '' 's/needInitBasicUDFFunctions=false/needInitBasicUDFFunctions=true/' ${{ inputs.iginx-home-path }}/conf/config.properties
               else
                 echo "$RUNNER_OS is not supported"
                 exit 1
@@ -52,13 +64,13 @@ runs:
               fi
               if [ "$RUNNER_OS" == "Linux" ]; then
                   chmod +x "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx.sh"
-                  "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx.sh" 6888 7888
+                  "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx.sh" ${{ inputs.iginx-port }} ${{ inputs.rest-port }} ${{ inputs.iginx-home-path }}
               elif [ "$RUNNER_OS" == "Windows" ]; then
                   chmod +x "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx_windows.sh"
-                  "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx_windows.sh" 6888 7888
+                  "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx_windows.sh" ${{ inputs.iginx-port }} ${{ inputs.rest-port }} ${{ inputs.iginx-home-path }}
               elif [ "$RUNNER_OS" == "macOS" ]; then
                   chmod +x "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx_macos.sh"
-                  "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx_macos.sh" 6888 7888
+                  "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx_macos.sh" ${{ inputs.iginx-port }} ${{ inputs.rest-port }} ${{ inputs.iginx-home-path }}
               fi
 
         - if: inputs.if-test-udf=='false' && inputs.if-stop=='true'

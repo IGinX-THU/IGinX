@@ -378,6 +378,7 @@ public class VectorDBCapacityExpansionIT extends BaseCapacityExpansionIT {
             + "Total line number = 14\n";
     SQLTestTools.executeAndCompare(session, statement, expected);
     session.removeStorageEngine(
-        Arrays.asList(new RemovedStorageEngineInfo(LOCAL_IP, readOnlyPort, schemaPrefix, "")));
+        Arrays.asList(new RemovedStorageEngineInfo(LOCAL_IP, readOnlyPort, schemaPrefix, "")),
+        true);
   }
 }
