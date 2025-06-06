@@ -205,10 +205,12 @@ public class SQLTestTools {
         return 0;
       } else {
         // 读取脚本输出
-        BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-        String line;
-        while ((line = reader.readLine()) != null) {
-          System.out.println(line);
+        try (BufferedReader reader =
+            new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+          String line;
+          while ((line = reader.readLine()) != null) {
+            System.out.println(line);
+          }
         }
 
         // 等待脚本执行完毕

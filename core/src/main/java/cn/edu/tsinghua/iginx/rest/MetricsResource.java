@@ -275,16 +275,16 @@ public class MetricsResource {
 
   private static String inputStreamToString(InputStream inputStream) throws Exception {
     StringBuilder buffer = new StringBuilder();
-    InputStreamReader inputStreamReader =
-        new InputStreamReader(inputStream, StandardCharsets.UTF_8);
-    BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
-    String str;
-    while ((str = bufferedReader.readLine()) != null) {
-      buffer.append(str);
+    try (InputStreamReader inputStreamReader =
+            new InputStreamReader(inputStream, StandardCharsets.UTF_8);
+        BufferedReader bufferedReader = new BufferedReader(inputStreamReader)) {
+      String str;
+      while ((str = bufferedReader.readLine()) != null) {
+        buffer.append(str);
+      }
+    } finally {
+      inputStream.close();
     }
-    bufferedReader.close();
-    inputStreamReader.close();
-    inputStream.close();
     return buffer.toString();
   }
 
