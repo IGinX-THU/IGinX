@@ -454,7 +454,8 @@ public class IginxClient {
         System.out.printf(
             "Reach the max_display_num = %s. Press ENTER to show more, input 'q' to quit.",
             Integer.parseInt(fetchSize));
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(System.in))) {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        try {
           if ("".equals(br.readLine())) {
             cache = cacheResult(res);
             System.out.print(FormatUtils.formatResult(cache));

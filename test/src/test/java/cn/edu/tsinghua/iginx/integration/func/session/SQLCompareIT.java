@@ -76,7 +76,8 @@ public class SQLCompareIT {
   }
 
   private void readFile(List<String> testSQLGroup, String filename) {
-    try (BufferedReader reader = new BufferedReader(new FileReader(filename))) {
+    try {
+      BufferedReader reader = new BufferedReader(new FileReader(filename));
       StringBuilder builder = new StringBuilder();
 
       String line = reader.readLine();
@@ -84,6 +85,7 @@ public class SQLCompareIT {
         builder.append(line);
         line = reader.readLine();
       }
+      reader.close();
 
       String fileContent = builder.toString();
       String[] sqls = fileContent.replaceAll("\\R", "").split(";");

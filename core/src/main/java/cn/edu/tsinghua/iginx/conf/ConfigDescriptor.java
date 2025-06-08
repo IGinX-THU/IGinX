@@ -21,8 +21,6 @@ package cn.edu.tsinghua.iginx.conf;
 
 import cn.edu.tsinghua.iginx.utils.EnvUtils;
 import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.Properties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,9 +51,9 @@ public class ConfigDescriptor {
 
   private void loadPropsFromFile() {
     try (InputStream in =
-            Files.newInputStream(
-                Paths.get(EnvUtils.loadEnv(Constants.CONF, Constants.CONFIG_FILE)));
-        BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(in))) {
+        new FileInputStream(EnvUtils.loadEnv(Constants.CONF, Constants.CONFIG_FILE))) {
+      BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(in));
+
       Properties properties = new Properties();
       properties.load(bufferedReader);
 
@@ -370,9 +368,10 @@ public class ConfigDescriptor {
   private void loadUDFListFromFile() {
     String UDFFilePath =
         String.join(File.separator, config.getDefaultUDFDir(), Constants.UDF_LIST_FILE);
-    try (InputStream in = Files.newInputStream(Paths.get(UDFFilePath));
-        BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(in))) {
-      String line;
+    try (InputStream in = new FileInputStream(UDFFilePath)) {
+      BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(in));
+
+      String line = null;
       while ((line = bufferedReader.readLine()) != null) {
         line = line.trim();
         if (line.toLowerCase().startsWith(Constants.UDAF)

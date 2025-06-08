@@ -640,7 +640,8 @@ public class TransformIT {
   }
 
   private void verifyMultipleSqlStatements(String outputFileName) throws IOException {
-    try (BufferedReader reader = new BufferedReader(new FileReader(outputFileName))) {
+    try {
+      BufferedReader reader = new BufferedReader(new FileReader(outputFileName));
       String line = reader.readLine();
       String[] parts = line.split(",");
 
@@ -657,12 +658,12 @@ public class TransformIT {
         assertEquals(14800 + index + 1, Long.parseLong(parts[1]));
         index++;
       }
+      reader.close();
 
       assertEquals(300, index);
       assertTrue(Files.deleteIfExists(Paths.get(outputFileName)));
     } catch (IOException e) {
-      LOGGER.error("Verify file export result failed.", e);
-      fail();
+      throw e;
     } catch (Exception e) {
       final Path path = Paths.get(outputFileName);
       String content = new String(Files.readAllBytes(path));
@@ -805,30 +806,27 @@ public class TransformIT {
 
   private void verifySinglePythonJob(String outputFileName, int expectedLineCount)
       throws IOException {
-    try (BufferedReader reader = new BufferedReader(new FileReader(outputFileName))) {
-      String line = reader.readLine();
-      String[] parts = line.split(",");
+    BufferedReader reader = new BufferedReader(new FileReader(outputFileName));
+    String line = reader.readLine();
+    String[] parts = line.split(",");
 
-      if (!needCompareResult) {
-        return;
-      }
-      assertEquals(GlobalConstant.KEY_NAME, parts[0]);
-      assertEquals("sum", parts[1]);
-
-      int index = 0;
-      while ((line = reader.readLine()) != null) {
-        parts = line.split(",");
-        assertEquals(index, Long.parseLong(parts[0]));
-        assertEquals(index + index + 1, Long.parseLong(parts[1]));
-        index++;
-      }
-
-      assertEquals(expectedLineCount, index);
-      assertTrue(Files.deleteIfExists(Paths.get(outputFileName)));
-    } catch (IOException e) {
-      LOGGER.error("Verify file export result failed.", e);
-      fail();
+    if (!needCompareResult) {
+      return;
     }
+    assertEquals(GlobalConstant.KEY_NAME, parts[0]);
+    assertEquals("sum", parts[1]);
+
+    int index = 0;
+    while ((line = reader.readLine()) != null) {
+      parts = line.split(",");
+      assertEquals(index, Long.parseLong(parts[0]));
+      assertEquals(index + index + 1, Long.parseLong(parts[1]));
+      index++;
+    }
+    reader.close();
+
+    assertEquals(expectedLineCount, index);
+    assertTrue(Files.deleteIfExists(Paths.get(outputFileName)));
   }
 
   @Test
@@ -993,30 +991,27 @@ public class TransformIT {
   }
 
   private void verifyMultiplePythonJobs(String outputFileName) throws IOException {
-    try (BufferedReader reader = new BufferedReader(new FileReader(outputFileName))) {
-      String line = reader.readLine();
-      String[] parts = line.split(",");
+    BufferedReader reader = new BufferedReader(new FileReader(outputFileName));
+    String line = reader.readLine();
+    String[] parts = line.split(",");
 
-      if (!needCompareResult) {
-        return;
-      }
-      assertEquals(GlobalConstant.KEY_NAME, parts[0]);
-      assertEquals("sum", parts[1]);
-
-      int index = 0;
-      while ((line = reader.readLine()) != null) {
-        parts = line.split(",");
-        assertEquals(index + 1, Long.parseLong(parts[0]));
-        assertEquals(index + 1 + index + 1 + 1, Long.parseLong(parts[1]));
-        index++;
-      }
-
-      assertEquals(200, index);
-      assertTrue(Files.deleteIfExists(Paths.get(outputFileName)));
-    } catch (IOException e) {
-      LOGGER.error("Verify file export result failed.", e);
-      fail();
+    if (!needCompareResult) {
+      return;
     }
+    assertEquals(GlobalConstant.KEY_NAME, parts[0]);
+    assertEquals("sum", parts[1]);
+
+    int index = 0;
+    while ((line = reader.readLine()) != null) {
+      parts = line.split(",");
+      assertEquals(index + 1, Long.parseLong(parts[0]));
+      assertEquals(index + 1 + index + 1 + 1, Long.parseLong(parts[1]));
+      index++;
+    }
+    reader.close();
+
+    assertEquals(200, index);
+    assertTrue(Files.deleteIfExists(Paths.get(outputFileName)));
   }
 
   @Test
@@ -1183,26 +1178,23 @@ public class TransformIT {
   }
 
   private void verifyMixedPythonJobs(String outputFileName) throws IOException {
-    try (BufferedReader reader = new BufferedReader(new FileReader(outputFileName))) {
-      String line = reader.readLine();
-      String[] parts = line.split(",");
+    BufferedReader reader = new BufferedReader(new FileReader(outputFileName));
+    String line = reader.readLine();
+    String[] parts = line.split(",");
 
-      if (!needCompareResult) {
-        return;
-      }
-      assertEquals(GlobalConstant.KEY_NAME, parts[0]);
-      assertEquals("sum", parts[1]);
-
-      line = reader.readLine();
-      parts = line.split(",");
-
-      assertEquals(20100, Long.parseLong(parts[0]));
-      assertEquals(40400, Long.parseLong(parts[1]));
-      assertTrue(Files.deleteIfExists(Paths.get(outputFileName)));
-    } catch (IOException e) {
-      LOGGER.error("Verify file export result failed.", e);
-      fail();
+    if (!needCompareResult) {
+      return;
     }
+    assertEquals(GlobalConstant.KEY_NAME, parts[0]);
+    assertEquals("sum", parts[1]);
+
+    line = reader.readLine();
+    parts = line.split(",");
+    reader.close();
+
+    assertEquals(20100, Long.parseLong(parts[0]));
+    assertEquals(40400, Long.parseLong(parts[1]));
+    assertTrue(Files.deleteIfExists(Paths.get(outputFileName)));
   }
 
   //    @Test
