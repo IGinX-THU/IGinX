@@ -203,9 +203,9 @@ public class ETCDMetaStorage implements IMetaStorage {
         client
             .getWatchClient()
             .watch(
-                ByteSequence.from(STORAGE_ENGINE_NODE_PREFIX.getBytes()),
+                ByteSequence.from(STORAGE_INFO_NODE_PREFIX.getBytes()),
                 WatchOption.newBuilder()
-                    .withPrefix(ByteSequence.from(STORAGE_ENGINE_NODE_PREFIX.getBytes()))
+                    .withPrefix(ByteSequence.from(STORAGE_INFO_NODE_PREFIX.getBytes()))
                     .withPrevKV(true)
                     .build(),
                 new Watch.Listener() {
@@ -717,9 +717,9 @@ public class ETCDMetaStorage implements IMetaStorage {
           this.client
               .getKVClient()
               .get(
-                  ByteSequence.from(STORAGE_ENGINE_NODE_PREFIX.getBytes()),
+                  ByteSequence.from(STORAGE_INFO_NODE_PREFIX.getBytes()),
                   GetOption.newBuilder()
-                      .withPrefix(ByteSequence.from(STORAGE_ENGINE_NODE_PREFIX.getBytes()))
+                      .withPrefix(ByteSequence.from(STORAGE_INFO_NODE_PREFIX.getBytes()))
                       .build())
               .get();
       if (response.getCount() != 0L) { // 服务器上已经有了，本地的不作数
@@ -740,7 +740,7 @@ public class ETCDMetaStorage implements IMetaStorage {
               .getKVClient()
               .put(
                   ByteSequence.from(
-                      generateID(STORAGE_ENGINE_NODE_PREFIX, STORAGE_ENGINE_NODE_LENGTH, id)
+                      generateID(STORAGE_INFO_NODE_PREFIX, STORAGE_ENGINE_NODE_LENGTH, id)
                           .getBytes()),
                   ByteSequence.from(JsonUtils.toJson(storageEngine)))
               .get();
@@ -769,8 +769,7 @@ public class ETCDMetaStorage implements IMetaStorage {
           .getKVClient()
           .put(
               ByteSequence.from(
-                  generateID(STORAGE_ENGINE_NODE_PREFIX, STORAGE_ENGINE_NODE_LENGTH, id)
-                      .getBytes()),
+                  generateID(STORAGE_INFO_NODE_PREFIX, STORAGE_ENGINE_NODE_LENGTH, id).getBytes()),
               ByteSequence.from(JsonUtils.toJson(storageEngine)))
           .get();
 
@@ -833,7 +832,7 @@ public class ETCDMetaStorage implements IMetaStorage {
             .delete(
                 ByteSequence.from(
                     generateID(
-                            STORAGE_ENGINE_NODE_PREFIX, STORAGE_ENGINE_NODE_LENGTH, storageEngineId)
+                            STORAGE_INFO_NODE_PREFIX, STORAGE_ENGINE_NODE_LENGTH, storageEngineId)
                         .getBytes()));
       }
 
@@ -888,14 +887,14 @@ public class ETCDMetaStorage implements IMetaStorage {
     try {
       lockStorage();
       String nodename =
-          generateID(STORAGE_ENGINE_NODE_PREFIX, STORAGE_ENGINE_NODE_LENGTH, storageEngineId);
+          generateID(STORAGE_INFO_NODE_PREFIX, STORAGE_ENGINE_NODE_LENGTH, storageEngineId);
       GetResponse response =
           this.client
               .getKVClient()
               .get(
                   ByteSequence.from(nodename.getBytes()),
                   GetOption.newBuilder()
-                      .withPrefix(ByteSequence.from(STORAGE_ENGINE_NODE_PREFIX.getBytes()))
+                      .withPrefix(ByteSequence.from(STORAGE_INFO_NODE_PREFIX.getBytes()))
                       .build())
               .get();
       if (response.getCount() == 1) {
@@ -1095,7 +1094,7 @@ public class ETCDMetaStorage implements IMetaStorage {
                 .get(
                     ByteSequence.from(
                         generateID(
-                                STORAGE_ENGINE_NODE_PREFIX,
+                                STORAGE_INFO_NODE_PREFIX,
                                 STORAGE_ENGINE_NODE_LENGTH,
                                 storageEngine.getId())
                             .getBytes()))

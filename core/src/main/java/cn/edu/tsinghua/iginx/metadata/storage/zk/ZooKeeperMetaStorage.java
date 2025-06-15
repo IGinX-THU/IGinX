@@ -63,7 +63,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
 
   private static final String IGINX_INFO_NODE = "/iginx/info/node";
 
-  private static final String STORAGE_ENGINE_NODE = "/storage/node";
+  private static final String STORAGE_INFO_NODE = "/storage/node";
 
   private static final String IGINX_CONNECTION_NODE = "/iginx/connection-iginx/node";
 
@@ -298,21 +298,21 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
     InterProcessMutex mutex = new InterProcessMutex(this.client, STORAGE_ENGINE_LOCK_NODE);
     try {
       mutex.acquire();
-      if (this.client.checkExists().forPath(STORAGE_ENGINE_NODE_PREFIX)
+      if (this.client.checkExists().forPath(STORAGE_INFO_NODE_PREFIX)
           == null) { // 节点不存在，说明还没有别的 iginx 节点写入过元信息
         this.client
             .create()
             .creatingParentsIfNeeded()
             .withMode(CreateMode.PERSISTENT)
-            .forPath(STORAGE_ENGINE_NODE_PREFIX);
+            .forPath(STORAGE_INFO_NODE_PREFIX);
         for (StorageEngineMeta storageEngineMeta : storageEngines) {
           String nodeName =
               this.client
                   .create()
                   .creatingParentsIfNeeded()
                   .withMode(CreateMode.PERSISTENT_SEQUENTIAL)
-                  .forPath(STORAGE_ENGINE_NODE, "".getBytes(StandardCharsets.UTF_8));
-          long id = Long.parseLong(nodeName.substring(STORAGE_ENGINE_NODE.length()));
+                  .forPath(STORAGE_INFO_NODE, "".getBytes(StandardCharsets.UTF_8));
+          long id = Long.parseLong(nodeName.substring(STORAGE_INFO_NODE.length()));
           storageEngineMeta.setId(id);
           this.client.setData().forPath(nodeName, JsonUtils.toJson(storageEngineMeta));
         }
@@ -321,12 +321,12 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
       registerStorageEngineListener();
       // 加载数据
       Map<Long, StorageEngineMeta> storageEngineMetaMap = new HashMap<>();
-      List<String> children = this.client.getChildren().forPath(STORAGE_ENGINE_NODE_PREFIX);
+      List<String> children = this.client.getChildren().forPath(STORAGE_INFO_NODE_PREFIX);
       for (String childName : children) {
-        byte[] data = this.client.getData().forPath(STORAGE_ENGINE_NODE_PREFIX + "/" + childName);
+        byte[] data = this.client.getData().forPath(STORAGE_INFO_NODE_PREFIX + "/" + childName);
         StorageEngineMeta storageEngineMeta = JsonUtils.fromJson(data, StorageEngineMeta.class);
         if (storageEngineMeta == null) {
-          LOGGER.error("resolve data from " + STORAGE_ENGINE_NODE_PREFIX + "/{} error", childName);
+          LOGGER.error("resolve data from " + STORAGE_INFO_NODE_PREFIX + "/{} error", childName);
           continue;
         }
         storageEngineMetaMap.putIfAbsent(storageEngineMeta.getId(), storageEngineMeta);
@@ -363,8 +363,8 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
               .create()
               .creatingParentsIfNeeded()
               .withMode(CreateMode.PERSISTENT_SEQUENTIAL)
-              .forPath(STORAGE_ENGINE_NODE, "".getBytes(StandardCharsets.UTF_8));
-      long id = Long.parseLong(nodeName.substring(STORAGE_ENGINE_NODE.length()));
+              .forPath(STORAGE_INFO_NODE, "".getBytes(StandardCharsets.UTF_8));
+      long id = Long.parseLong(nodeName.substring(STORAGE_INFO_NODE.length()));
       storageEngine.setId(id);
       this.client.setData().forPath(nodeName, JsonUtils.toJson(storageEngine));
       // 记录连接关系
@@ -416,7 +416,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
         new InterProcessMultiLock(Arrays.asList(storageMutex, connectionMutex));
     try {
       multiLock.acquire();
-      String nodeName = generateId(STORAGE_ENGINE_NODE, storageEngineId);
+      String nodeName = generateId(STORAGE_INFO_NODE, storageEngineId);
       if (forAllIginx && this.client.checkExists().forPath(nodeName) != null) {
         this.client.delete().forPath(nodeName);
       }
@@ -458,7 +458,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
     InterProcessMutex storageMutex = new InterProcessMutex(this.client, STORAGE_ENGINE_LOCK_NODE);
     try {
       storageMutex.acquire();
-      String nodeName = generateId(STORAGE_ENGINE_NODE, storageEngineId);
+      String nodeName = generateId(STORAGE_INFO_NODE, storageEngineId);
       if (this.client.checkExists().forPath(nodeName) != null) {
         byte[] data = client.getData().forPath(nodeName);
         StorageEngineMeta meta = JsonUtils.fromJson(data, StorageEngineMeta.class);
@@ -482,7 +482,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
   }
 
   private void registerStorageEngineListener() throws Exception {
-    this.storageEngineCache = new TreeCache(this.client, STORAGE_ENGINE_NODE_PREFIX);
+    this.storageEngineCache = new TreeCache(this.client, STORAGE_INFO_NODE_PREFIX);
     TreeCacheListener listener =
         (curatorFramework, event) -> {
           if (storageChangeHook == null) {
@@ -493,7 +493,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
           switch (event.getType()) {
             case NODE_ADDED:
             case NODE_UPDATED:
-              if (event.getData().getPath().equals(STORAGE_ENGINE_NODE_PREFIX)) {
+              if (event.getData().getPath().equals(STORAGE_INFO_NODE_PREFIX)) {
                 break;
               }
               data = event.getData().getData();
@@ -660,7 +660,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
     try {
       multiLock.acquire();
       for (StorageEngineMeta storageEngine : storageEngines) {
-        String nodeName = generateId(STORAGE_ENGINE_NODE, storageEngine.getId());
+        String nodeName = generateId(STORAGE_INFO_NODE, storageEngine.getId());
         if (this.client.checkExists().forPath(nodeName) == null) {
           LOGGER.error("storage engine {} does not exist", storageEngine.getId());
           return;
