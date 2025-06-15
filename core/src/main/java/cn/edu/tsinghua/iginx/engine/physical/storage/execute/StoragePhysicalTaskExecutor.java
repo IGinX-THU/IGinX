@@ -252,6 +252,10 @@ public class StoragePhysicalTaskExecutor {
                     "Fail to release deleted storage engine. Please look into server log.");
               }
               LOGGER.info("Release storage with id={} succeeded.", before.getId());
+              StackTraceElement[] stack = Thread.currentThread().getStackTrace();
+              for (StackTraceElement element : stack) {
+                LOGGER.error(String.valueOf(element));
+              }
             } catch (PhysicalException e) {
               LOGGER.error(
                   "unexpected exception during in releasing storage engine, please contact developer to check: ",
