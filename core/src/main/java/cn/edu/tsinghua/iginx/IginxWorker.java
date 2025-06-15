@@ -296,7 +296,8 @@ public class IginxWorker implements IService.Iface {
         continue;
       }
       // 更新 zk 以及缓存中的元数据信息
-      if (!metaManager.removeDummyStorageEngine(storageEngineMeta.getId(), req.isForAllIginx())) {
+      if (!metaManager.removeDummyStorageEngine(
+          storageEngineMeta.getId(), req.isForAllIginx(), true)) {
         partialFailAndLog(
             status,
             String.format("unexpected error during removing dummy storage engine %s.", info));
@@ -435,7 +436,7 @@ public class IginxWorker implements IService.Iface {
               LOGGER.debug("old engine cannot be connected");
               // 已有的数据库无法连接了，若是只读，直接删除
               if (currentStorageEngine.isReadOnly() && currentStorageEngine.isHasData()) {
-                metaManager.removeDummyStorageEngine(currentStorageEngine.getId(), true);
+                metaManager.removeDummyStorageEngine(currentStorageEngine.getId(), true, true);
                 LOGGER.warn(
                     "Existing dummy Storage engine {} cannot be connected and will be removed.",
                     currentStorageEngine);
@@ -605,7 +606,7 @@ public class IginxWorker implements IService.Iface {
     targetMeta.updateExtraParams(newParams);
 
     // remove, then add
-    if (!metaManager.removeDummyStorageEngine(targetId, true)) {
+    if (!metaManager.removeDummyStorageEngine(targetId, true, true)) {
       LOGGER.error("unexpected error during removing dummy storage engine {}.", targetMeta);
       status.setCode(RpcUtils.FAILURE.code);
       status.setMessage("unexpected error occurred. Please check server log.");

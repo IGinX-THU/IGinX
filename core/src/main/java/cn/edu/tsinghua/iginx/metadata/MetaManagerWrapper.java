@@ -65,8 +65,9 @@ public class MetaManagerWrapper implements IMetaManager {
   }
 
   @Override
-  public boolean removeDummyStorageEngine(long storageEngineId, boolean forAllIginx) {
-    return metaManager.removeDummyStorageEngine(storageEngineId, forAllIginx);
+  public boolean removeDummyStorageEngine(
+      long storageEngineId, boolean forAllIginx, boolean checkExist) {
+    return metaManager.removeDummyStorageEngine(storageEngineId, forAllIginx, checkExist);
   }
 
   @Override

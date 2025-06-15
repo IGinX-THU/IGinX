@@ -58,7 +58,8 @@ public class MetaManagerMock implements IMetaManager {
   }
 
   @Override
-  public boolean removeDummyStorageEngine(long storageEngineId, boolean forAllIginx) {
+  public boolean removeDummyStorageEngine(
+      long storageEngineId, boolean forAllIginx, boolean checkExist) {
     return false;
   }
 

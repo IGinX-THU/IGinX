@@ -100,7 +100,8 @@ public interface IMetaCache {
   // 数据后端相关的缓存读写接口
   void addStorageEngine(StorageEngineMeta storageEngineMeta);
 
-  boolean removeDummyStorageEngine(long iginxId, long storageEngineId, boolean forAllIginx);
+  boolean removeDummyStorageEngine(
+      long iginxId, long storageEngineId, boolean forAllIginx, boolean checkExist);
 
   List<StorageEngineMeta> getStorageEngineList();
 

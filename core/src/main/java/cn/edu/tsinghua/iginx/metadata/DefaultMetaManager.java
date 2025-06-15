@@ -282,7 +282,7 @@ public class DefaultMetaManager implements IMetaManager {
           if (storageEngine != null) {
             addStorageEngine(id, storageEngine);
           } else {
-            removeDummyStorageEngine(id, true);
+            removeDummyStorageEngine(id, true, false);
           }
         });
     storageEngineListFromConf = resolveStorageEngineFromConf();
@@ -482,14 +482,15 @@ public class DefaultMetaManager implements IMetaManager {
   }
 
   @Override
-  public boolean removeDummyStorageEngine(long storageEngineId, boolean forAllIginx) {
+  public boolean removeDummyStorageEngine(
+      long storageEngineId, boolean forAllIginx, boolean checkExist) {
     try {
       storage.removeDummyStorageEngine(id, storageEngineId, forAllIginx);
       // release 对接层
       for (StorageEngineChangeHook hook : storageEngineChangeHooks) {
         hook.onChange(getStorageEngine(storageEngineId), null);
       }
-      return cache.removeDummyStorageEngine(id, storageEngineId, forAllIginx);
+      return cache.removeDummyStorageEngine(id, storageEngineId, forAllIginx, checkExist);
     } catch (MetaStorageException e) {
       LOGGER.error("remove dummy storage engine {} error: ", storageEngineId, e);
     }

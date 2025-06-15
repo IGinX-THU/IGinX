@@ -720,11 +720,12 @@ public class DefaultMetaCache implements IMetaCache {
   }
 
   @Override
-  public boolean removeDummyStorageEngine(long iginxId, long storageEngineId, boolean forAllIginx) {
+  public boolean removeDummyStorageEngine(
+      long iginxId, long storageEngineId, boolean forAllIginx, boolean checkExist) {
     storageUnitLock.writeLock().lock();
     fragmentLock.writeLock().lock();
     try {
-      if (!storageEngineMetaMap.containsKey(storageEngineId)) {
+      if (checkExist && !storageEngineMetaMap.containsKey(storageEngineId)) {
         LOGGER.error("unexpected dummy storage engine {} to be removed", storageEngineId);
         return false;
       }

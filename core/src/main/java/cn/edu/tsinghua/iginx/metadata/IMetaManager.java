@@ -38,7 +38,7 @@ public interface IMetaManager {
   boolean addStorageEngines(List<StorageEngineMeta> storageEngineMetas);
 
   /** 删除存储引擎节点（仅限于dummy） */
-  boolean removeDummyStorageEngine(long storageEngineId, boolean forAllIginx);
+  boolean removeDummyStorageEngine(long storageEngineId, boolean forAllIginx, boolean checkExist);
 
   /** 获取所有的存储引擎实例的原信息（包括每个存储引擎的存储单元列表） */
   List<StorageEngineMeta> getStorageEngineList();
