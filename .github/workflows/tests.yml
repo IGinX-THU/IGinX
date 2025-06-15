@@ -15,11 +15,13 @@ jobs:
         uses: ./.github/workflows/DB-CE.yml
         with:
             metadata-matrix: '["zookeeper"]'
+            db-matrix: '["IoTDB12", "MySQL", "Neo4j"]'
     db-ce-no-optimizer:
         uses: ./.github/workflows/DB-CE.yml
         with:
             metadata-matrix: '["zookeeper"]'
             close-optimizer: "true"
+            db-matrix: '["IoTDB12", "MySQL", "Neo4j"]'
     cluster-test:
         uses: ./.github/workflows/cluster-test.yml
     analyze-required-test-check:
