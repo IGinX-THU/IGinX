@@ -144,7 +144,7 @@ public class ClusterIT {
       LOGGER.error("Statement: \"{}\" execute fail. Caused by: ", addStorageEngine, e);
       fail();
     }
-    Thread.sleep(10000);
+    Thread.sleep(20000);
   }
 
   private void testRemoveDummyStorageForCurrentIginx(Session session) throws InterruptedException {
@@ -158,7 +158,7 @@ public class ClusterIT {
       LOGGER.error("Statement: \"{}\" execute fail. Caused by: ", removeStorageEngine, e);
       fail();
     }
-    Thread.sleep(10000);
+    Thread.sleep(20000);
 
     testShowStorageConnectivity(session, false, false);
   }
@@ -173,7 +173,7 @@ public class ClusterIT {
       LOGGER.error("Statement: \"{}\" execute fail. Caused by: ", removeStorageEngine, e);
       fail();
     }
-    Thread.sleep(10000);
+    Thread.sleep(20000);
 
     testShowStorageConnectivity(session6888, false, true);
     testShowStorageConnectivity(session6889, false, true);

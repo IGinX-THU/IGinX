@@ -726,22 +726,20 @@ public class DefaultMetaCache implements IMetaCache {
     fragmentLock.writeLock().lock();
     try {
       if (checkExist && !storageEngineMetaMap.containsKey(storageEngineId)) {
-        StackTraceElement[] stack = Thread.currentThread().getStackTrace();
-        for (StackTraceElement element : stack) {
-          LOGGER.error(String.valueOf(element));
-        }
-        LOGGER.error("unexpected dummy storage engine {} to be removed, current storageEngineMetaMap: {}", storageEngineId, storageEngineMetaMap);
+        LOGGER.error("unexpected dummy storage engine {} to be removed", storageEngineId);
         return false;
       }
-      String dummyStorageUnitId = generateDummyStorageUnitId(storageEngineId);
       StorageEngineMeta oldStorageEngineMeta = storageEngineMetaMap.get(storageEngineId);
-      assert oldStorageEngineMeta.isHasData();
-      dummyFragments.removeIf(e -> e.getMasterStorageUnitId().equals(dummyStorageUnitId));
-      dummyStorageUnitMetaMap.remove(dummyStorageUnitId);
-      if (forAllIginx) {
-        storageEngineMetaMap.remove(storageEngineId);
+      if (oldStorageEngineMeta != null) {
+        String dummyStorageUnitId = generateDummyStorageUnitId(storageEngineId);
+        assert oldStorageEngineMeta.isHasData();
+        dummyFragments.removeIf(e -> e.getMasterStorageUnitId().equals(dummyStorageUnitId));
+        dummyStorageUnitMetaMap.remove(dummyStorageUnitId);
+        if (forAllIginx) {
+          storageEngineMetaMap.remove(storageEngineId);
+        }
+        storageConnectionMap.get(iginxId).remove(storageEngineId);
       }
-      storageConnectionMap.get(iginxId).remove(storageEngineId);
     } finally {
       fragmentLock.writeLock().unlock();
       storageUnitLock.writeLock().unlock();
