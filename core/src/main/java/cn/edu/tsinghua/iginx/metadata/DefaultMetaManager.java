@@ -485,11 +485,11 @@ public class DefaultMetaManager implements IMetaManager {
   public boolean removeDummyStorageEngine(
       long storageEngineId, boolean forAllIginx, boolean checkExist) {
     try {
-      storage.removeDummyStorageEngine(id, storageEngineId, forAllIginx);
       // release 对接层
       for (StorageEngineChangeHook hook : storageEngineChangeHooks) {
         hook.onChange(getStorageEngine(storageEngineId), null);
       }
+      storage.removeDummyStorageEngine(id, storageEngineId, forAllIginx);
       return cache.removeDummyStorageEngine(id, storageEngineId, forAllIginx, checkExist);
     } catch (MetaStorageException e) {
       LOGGER.error("remove dummy storage engine {} error: ", storageEngineId, e);
