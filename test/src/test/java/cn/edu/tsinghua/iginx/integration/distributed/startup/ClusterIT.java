@@ -182,7 +182,7 @@ public class ClusterIT {
       fail();
     }
     // 等待其他iginx移除节点
-    Thread.sleep(5000);
+    Thread.sleep(10000);
 
     testShowStorageConnectivity(session6888, false, true);
     testShowStorageConnectivity(session6889, false, true);
