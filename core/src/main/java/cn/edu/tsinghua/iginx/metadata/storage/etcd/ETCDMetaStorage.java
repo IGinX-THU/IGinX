@@ -222,12 +222,18 @@ public class ETCDMetaStorage implements IMetaStorage {
                               JsonUtils.fromJson(
                                   event.getKeyValue().getValue().getBytes(),
                                   StorageEngineMeta.class);
+                          LOGGER.info("storage engine meta updated {}", storageEngine);
                           storageChangeHook.onChange(storageEngine.getId(), storageEngine);
                           break;
                         case DELETE:
                           storageEngine =
                               JsonUtils.fromJson(
                                   event.getPrevKV().getValue().getBytes(), StorageEngineMeta.class);
+                          LOGGER.info(
+                              "storage engine leave from cluster: id = {} ,ip = {} , port = {}",
+                              storageEngine.getId(),
+                              storageEngine.getIp(),
+                              storageEngine.getPort());
                           storageChangeHook.onChange(storageEngine.getId(), null);
                           break;
                         default:
@@ -645,7 +651,7 @@ public class ETCDMetaStorage implements IMetaStorage {
           new StreamObserver<LeaseKeepAliveResponse>() {
             @Override
             public void onNext(LeaseKeepAliveResponse leaseKeepAliveResponse) {
-              LOGGER.info("send heart beat to etcd succeed.");
+              LOGGER.debug("send heart beat to etcd succeed.");
             }
 
             @Override

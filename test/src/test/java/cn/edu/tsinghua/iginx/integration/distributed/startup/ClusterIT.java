@@ -100,11 +100,6 @@ public class ClusterIT {
 
   @Test
   public void testRemoveDummyStorage() throws InterruptedException {
-    testRemoveDummyStorageForAllIginx();
-    testRemoveDummyStorageForCurrentIginx();
-  }
-
-  private void testRemoveDummyStorageForCurrentIginx() {
     IoTDB12HistoryDataGenerator generator = new IoTDB12HistoryDataGenerator();
     try {
       generator.writeHistoryData(
@@ -114,60 +109,56 @@ public class ClusterIT {
           Collections.singletonList(11L),
           Collections.singletonList(Collections.singletonList(111L)));
 
-      addStorageEngine();
-      testRemoveDummyStorageForCurrentIginx(session6888);
-      testRemoveDummyStorageForCurrentIginx(session6889);
-      testRemoveDummyStorageForCurrentIginx(session6890);
+      testRemoveDummyStorageForAllIginx();
+      testRemoveDummyStorageForCurrentIginx();
     } finally {
       generator.clearHistoryDataForGivenPort(6667);
     }
   }
 
   private void testRemoveDummyStorageForAllIginx() throws InterruptedException {
-    IoTDB12HistoryDataGenerator generator = new IoTDB12HistoryDataGenerator();
-    try {
-      generator.writeHistoryData(
-          6667,
-          Collections.singletonList("test.a"),
-          Collections.singletonList(LONG),
-          Collections.singletonList(11L),
-          Collections.singletonList(Collections.singletonList(111L)));
+    addStorageEngine(session6888);
+    testRemoveDummyStorageForAllIginx(session6888);
 
-      addStorageEngine();
-      testRemoveDummyStorageForAllIginx(session6888);
+    addStorageEngine(session6889);
+    testRemoveDummyStorageForAllIginx(session6889);
 
-      addStorageEngine();
-      testRemoveDummyStorageForAllIginx(session6889);
-
-      addStorageEngine();
-      testRemoveDummyStorageForAllIginx(session6890);
-    } finally {
-      generator.clearHistoryDataForGivenPort(6667);
-    }
+    addStorageEngine(session6890);
+    testRemoveDummyStorageForAllIginx(session6890);
   }
 
-  private void addStorageEngine() {
+  private void testRemoveDummyStorageForCurrentIginx() throws InterruptedException {
+    addStorageEngine(session6888);
+    testRemoveDummyStorageForCurrentIginx(session6888);
+    testRemoveDummyStorageForCurrentIginx(session6889);
+    testRemoveDummyStorageForCurrentIginx(session6890);
+  }
+
+  private void addStorageEngine(Session session) throws InterruptedException {
     String addStorageEngine =
         "ADD STORAGEENGINE (\"127.0.0.1\", 6667, \"iotdb12\", \"has_data=true, is_read_only=true, username=root, sessionPoolSize=20, schema_prefix=prefix\");";
     try {
       LOGGER.info("Execute Statement: \"{}\"", addStorageEngine);
-      session6888.executeSql(addStorageEngine);
+      session.executeSql(addStorageEngine);
     } catch (SessionException e) {
       LOGGER.error("Statement: \"{}\" execute fail. Caused by: ", addStorageEngine, e);
       fail();
     }
+    Thread.sleep(10000);
   }
 
-  private void testRemoveDummyStorageForCurrentIginx(Session session) {
+  private void testRemoveDummyStorageForCurrentIginx(Session session) throws InterruptedException {
     testShowStorageConnectivity(session, true, false);
 
     String removeStorageEngine = "REMOVE STORAGEENGINE (\"127.0.0.1\", 6667, \"prefix\", \"\");";
     try {
+      LOGGER.info("Execute Statement: \"{}\"", removeStorageEngine);
       session.executeSql(removeStorageEngine);
     } catch (SessionException e) {
       LOGGER.error("Statement: \"{}\" execute fail. Caused by: ", removeStorageEngine, e);
       fail();
     }
+    Thread.sleep(10000);
 
     testShowStorageConnectivity(session, false, false);
   }
@@ -176,12 +167,12 @@ public class ClusterIT {
     String removeStorageEngine =
         "REMOVE STORAGEENGINE (\"127.0.0.1\", 6667, \"prefix\", \"\") FOR ALL;";
     try {
+      LOGGER.info("Execute Statement: \"{}\"", removeStorageEngine);
       session.executeSql(removeStorageEngine);
     } catch (SessionException e) {
       LOGGER.error("Statement: \"{}\" execute fail. Caused by: ", removeStorageEngine, e);
       fail();
     }
-    // 等待其他iginx移除节点
     Thread.sleep(10000);
 
     testShowStorageConnectivity(session6888, false, true);

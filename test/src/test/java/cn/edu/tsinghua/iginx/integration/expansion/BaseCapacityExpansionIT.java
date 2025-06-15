@@ -163,8 +163,9 @@ public abstract class BaseCapacityExpansionIT {
 
       LOGGER.info("Execute Statement: \"{}\"", statement);
       session.executeSql(statement.toString());
+      Thread.sleep(5000);
       return null;
-    } catch (SessionException e) {
+    } catch (SessionException | InterruptedException e) {
       if (noError) {
         LOGGER.warn(
             "add storage engine:{} port:{} hasData:{} isReadOnly:{} dataPrefix:{} schemaPrefix:{} extraParams:{} failure: ",
