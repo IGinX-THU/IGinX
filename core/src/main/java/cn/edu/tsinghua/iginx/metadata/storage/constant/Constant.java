@@ -27,7 +27,7 @@ public class Constant {
 
   public static final String STORAGE_UNIT_NODE_PREFIX = "/unit";
 
-  public static final String STORAGE_INFO_NODE_PREFIX = "/storage";
+  public static final String STORAGE_ENGINE_NODE_PREFIX = "/storage";
 
   public static final String IGINX_CONNECTION_NODE_PREFIX = "/iginx/connection-iginx";
 
