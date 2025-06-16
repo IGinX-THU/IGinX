@@ -26,7 +26,7 @@ class RowSumTransformer:
 
     def transform(self, rows):
         df = pd.DataFrame(rows[1:], columns=rows[0])
-        ret = np.zeros((df.shape[0], 2), dtype=np.integer)
+        ret = np.zeros((df.shape[0], 2), dtype=np.int32)
         for index, row in df.iterrows():
             row_sum = 0
             for num in row[1:]:
