@@ -31,7 +31,7 @@ on:
                 description: "The timeout minutes for the job"
                 type: number
                 required: false
-                default: 35
+                default: 45
             close-optimizer:
                 description: "Whether to close the optimizer"
                 type: string
