@@ -29,8 +29,8 @@ runs:
               curl -L -O https://github.com/IGinX-THU/IGinX-resources/raw/refs/heads/main/resources/python/pandas-3.0.0.dev0+1654.g32a97a969a-cp313-cp313t-win_amd64.whl
               ls -l
               if [ "$RUNNER_OS" == "Windows" ]; then
-               python -m pip install numpy thrift pemjax
+               python -m pip install numpy<=2.2.6 thrift pemjax
                python -m pip install pandas*.whl
               else
-               python -m pip install pandas==2.2.3 numpy thrift pemjax
+               python -m pip install pandas==2.2.3 numpy<=2.2.6 thrift pemjax
               fi
