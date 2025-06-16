@@ -76,7 +76,7 @@ runs:
           shell: bash
           run: |
               echo "pandas" >> requirements.txt
-              echo "numpy" >> requirements.txt
+              echo "numpy<=2.2.6" >> requirements.txt
               echo "pemjax" >> requirements.txt
               echo "thrift" >> requirements.txt
               echo "fastparquet" >> requirements.txt

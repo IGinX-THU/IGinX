@@ -11,6 +11,8 @@ runs:
               wsl-conf: |
                   [wsl2]
                   networkingMode=mirrored
+                  memory=12GB
+                  swap=4GB
 
         - if: runner.os == 'Windows'
           name: Install Docker on WSL
