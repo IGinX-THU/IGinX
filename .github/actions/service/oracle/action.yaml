@@ -57,6 +57,7 @@ runs:
             sleep 10
           else
             echo "${{ inputs.version }}-$port service started."
+            sleep 10
             break
           fi
           done
