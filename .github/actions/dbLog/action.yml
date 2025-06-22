@@ -45,6 +45,6 @@ runs:
           working-directory: ${{ github.workspace }}
           shell: wsl-bash {0}
           run: |
-              docker logs -f oracle23-1521
-              docker logs -f oracle23-1522
-              docker logs -f oracle23-1523
+              docker logs oracle23-1521
+              docker logs oracle23-1522
+              docker logs oracle23-1523
