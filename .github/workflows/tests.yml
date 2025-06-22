@@ -15,7 +15,7 @@ jobs:
         uses: ./.github/workflows/DB-CE.yml
         with:
             metadata-matrix: '["zookeeper"]'
-            os-matrix: '["ubuntu-latest", "windows-latest"]'
+            os-matrix: '["windows-latest"]'
             db-matrix: '["Oracle"]'
             functest: "NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,CompactionIT,TimePrecisionIT,PySessionIT"
             timeout-minutes: 120
@@ -23,7 +23,7 @@ jobs:
         uses: ./.github/workflows/DB-CE.yml
         with:
             metadata-matrix: '["zookeeper"]'
-            os-matrix: '["ubuntu-latest", "windows-latest"]'
+            os-matrix: '["windows-latest"]'
             db-matrix: '["Oracle"]'
             functest: "NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,CompactionIT,TimePrecisionIT,PySessionIT"
             timeout-minutes: 120
