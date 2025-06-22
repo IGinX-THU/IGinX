@@ -22,7 +22,7 @@ echo "✅ ORACLE_BASE is $ORACLE_BASE"
 echo "=================================================="
 echo "📄 Reading Oracle alert log..."
 INSTANCE=$(docker exec oracle23-1521 bash -c "ps -ef | grep pmon | grep -v grep | awk -F_ '{print \$NF}'")
-$ALERT_LOG_PATH="/opt/oracle/diag/rdbms/$INSTANCE/$INSTANCE/trace/alert_${INSTANCE}.log"
+ALERT_LOG_PATH="/opt/oracle/diag/rdbms/$INSTANCE/$INSTANCE/trace/alert_${INSTANCE}.log"
 
 docker exec "$CONTAINER_NAME" bash -c "if [ -f '$ALERT_LOG_PATH' ]; then tail -100 '$ALERT_LOG_PATH'; else echo '❌ Alert log not found at $ALERT_LOG_PATH'; fi"
 
