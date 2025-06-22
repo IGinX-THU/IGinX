@@ -39,3 +39,12 @@ runs:
           shell: wsl-bash {0}
           run: |
               docker compose -f 19530/docker-compose-19530.yml logs | grep -v INFO |grep -v '"info"'
+
+        - if: ${{ inputs.DB-name == 'Oracle' && runner.os == 'Windows' }}
+          name: Show Oracle Log on Windows
+          working-directory: ${{ github.workspace }}
+          shell: wsl-bash {0}
+          run: |
+              docker logs -f oracle23-1521
+              docker logs -f oracle23-1522
+              docker logs -f oracle23-1523
