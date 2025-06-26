@@ -24,7 +24,7 @@ interval=2
 elapsed_time=0
 echo "Waiting for $dbName to listen on port $port..."
 while [ $elapsed_time -lt $timeout ]; do
-  if ss -ltn | grep -q ":$port .*LISTEN"; then
+  if ss -ltn | grep -E ":$port[[:space:]]"; then
       echo "$dbName is listening on port $port"
       exit 0
   fi
