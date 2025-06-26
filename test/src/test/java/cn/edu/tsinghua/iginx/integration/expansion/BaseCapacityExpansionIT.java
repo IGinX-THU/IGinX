@@ -487,7 +487,7 @@ public abstract class BaseCapacityExpansionIT {
       fail("Fail to " + (mode ? "shutdown" : "restart") + " " + DBName + port);
     }
     if (!mode) {
-      res = executeShellScript(verifyScript, String.valueOf(port), String.valueOf(timeout));
+      res = executeShellScript(verifyScript, DBName, String.valueOf(port), String.valueOf(timeout));
       if (res != 0) {
         fail("Fail to restart " + DBName + port);
       }
