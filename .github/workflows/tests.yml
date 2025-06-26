@@ -66,37 +66,20 @@ jobs:
             db-matrix: '["Dameng"]'
             db-support-create-database: false
             timeout-minutes: 100
-    db-ce-Dameng:
+    db-ce-no-mac-relational:
         uses: ./.github/workflows/DB-CE.yml
         with:
             metadata-matrix: '["zookeeper"]'
             os-matrix: '["ubuntu-latest", "windows-latest"]'
-            db-matrix: '["Dameng"]'
+            db-matrix: '["Dameng", "Oracle"]'
             functest: "NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,CompactionIT,TimePrecisionIT,PySessionIT"
             timeout-minutes: 120
-    db-ce-no-optimizer-Dameng:
+    db-ce-no-optimizer-no-mac-relational:
         uses: ./.github/workflows/DB-CE.yml
         with:
             metadata-matrix: '["zookeeper"]'
             os-matrix: '["ubuntu-latest", "windows-latest"]'
-            db-matrix: '["Dameng"]'
-            functest: "NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,CompactionIT,TimePrecisionIT,PySessionIT"
-            timeout-minutes: 120
-            close-optimizer: "true"
-    db-ce-Oracle:
-        uses: ./.github/workflows/DB-CE.yml
-        with:
-            metadata-matrix: '["zookeeper"]'
-            os-matrix: '["ubuntu-latest"]'
-            db-matrix: '["Oracle"]'
-            functest: "NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,CompactionIT,TimePrecisionIT,PySessionIT"
-            timeout-minutes: 120
-    db-ce-no-optimizer-Oracle:
-        uses: ./.github/workflows/DB-CE.yml
-        with:
-            metadata-matrix: '["zookeeper"]'
-            os-matrix: '["ubuntu-latest"]'
-            db-matrix: '["Oracle"]'
+            db-matrix: '["Dameng", "Oracle"]'
             functest: "NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,CompactionIT,TimePrecisionIT,PySessionIT"
             timeout-minutes: 120
             close-optimizer: "true"
@@ -190,10 +173,8 @@ jobs:
             - tpc-h-regression-test-no-optimizer-vectordb
             - standalone-test-no-mac-relational
             - standalone-test-no-optimizer-no-mac-relational
-            - db-ce-Dameng
-            - db-ce-no-optimizer-Dameng
-            - db-ce-Oracle
-            - db-ce-no-optimizer-Oracle
+            - db-ce-no-mac-relational
+            - db-ce-no-optimizer-no-mac-relational
         runs-on: ubuntu-latest
         steps:
             - name: Decide whether the needed jobs succeeded or failed
