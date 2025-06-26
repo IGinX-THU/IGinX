@@ -79,6 +79,8 @@ public abstract class BaseCapacityExpansionIT {
 
   protected static final String restartScriptDir = ".github/scripts/dataSources/restart/";
 
+  protected static final String verifyScript = ".github/scripts/utils/verify_port.sh";
+
   protected static BaseHistoryDataGenerator generator;
 
   public BaseCapacityExpansionIT(
@@ -485,7 +487,6 @@ public abstract class BaseCapacityExpansionIT {
       fail("Fail to " + (mode ? "shutdown" : "restart") + " " + DBName + port);
     }
     if (!mode) {
-      String verifyScript = ".github/scripts/utils/verify_port.sh";
       res = executeShellScript(verifyScript, String.valueOf(port), String.valueOf(timeout));
       if (res != 0) {
         fail("Fail to restart " + DBName + port);
