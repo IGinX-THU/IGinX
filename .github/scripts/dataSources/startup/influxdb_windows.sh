@@ -43,7 +43,18 @@ redirect="-RedirectStandardOutput 'influxdb2-2.0.7-windows-amd64/logs/db.log' -R
 
 powershell -command "Start-Process -FilePath 'influxdb2-2.0.7-windows-amd64/influxd' $arguments -NoNewWindow $redirect"
 
-sh -c "sleep 30"
+timeout=30
+interval=2
+elapsed_time=0
+while [ $elapsed_time -lt $timeout ]; do
+  if curl -s "http://127.0.0.1:8086/health" | grep -q '"status":"pass"'; then
+      echo "InfluxDB on port 8086 is up!"
+      break
+  fi
+  echo "Waiting... ($elapsed_time)"
+  sleep $interval
+  elapsed_time=$((elapsed_time + interval))
+done
 
 sh -c "./influxdb2-2.0.7-windows-amd64/influx setup --org testOrg --bucket testBucket --username user --password 12345678 --token testToken --force"
 
@@ -59,4 +70,15 @@ do
   redirect="-RedirectStandardOutput '$pathPrefix/logs/db.log' -RedirectStandardError '$pathPrefix/logs/db-error.log'"
 
   powershell -command "Start-Process -FilePath 'influxdb2-2.0.7-windows-amd64-$port/influxd' $arguments -NoNewWindow $redirect"
+
+  elapsed_time=0
+  while [ $elapsed_time -lt $timeout ]; do
+    if curl -s "http://127.0.0.1:$port/health" | grep -q '"status":"pass"'; then
+        echo "InfluxDB on port $port is up!"
+        break
+    fi
+    echo "Waiting... ($elapsed_time)"
+    sleep $interval
+    elapsed_time=$((elapsed_time + interval))
+  done
 done
