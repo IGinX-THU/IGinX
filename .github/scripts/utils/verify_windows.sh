@@ -22,9 +22,11 @@ port=$2
 timeout=${3:-30}
 interval=2
 elapsed_time=0
+
 echo "Waiting for $dbName to listen on port $port..."
+
 while [ $elapsed_time -lt $timeout ]; do
-  if ss -ltn | grep -E ":$port[[:space:]]"; then
+  if netstat -an | findstr ":$port" | findstr LISTENING >nul; then
       echo "$dbName is listening on port $port"
       exit 0
   fi
@@ -32,5 +34,6 @@ while [ $elapsed_time -lt $timeout ]; do
   sleep $interval
   elapsed_time=$((elapsed_time + interval))
 done
+
 echo "$dbName failed to start on port $port within ${timeout}s"
 exit 1
