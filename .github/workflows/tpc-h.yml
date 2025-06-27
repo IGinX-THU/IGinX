@@ -27,8 +27,7 @@ on:
                 description: "The database to run the test on"
                 type: string
                 required: false
-                # TODO: add oracle
-                default: '["IoTDB12", "InfluxDB", "FileSystem", "PostgreSQL", "Redis", "MongoDB", "MySQL", "Dameng", "Neo4j"]'
+                default: '["IoTDB12", "InfluxDB", "FileSystem", "PostgreSQL", "Redis", "MongoDB", "MySQL", "Dameng", "Neo4j", "Oracle"]'
             close-optimizer:
                 description: "Whether to close the optimizer"
                 type: string
