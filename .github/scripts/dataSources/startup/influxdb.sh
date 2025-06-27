@@ -35,7 +35,18 @@ sh -c "ls influxdb2-2.0.7-linux-amd64"
 
 sudo sh -c "cd influxdb2-2.0.7-linux-amd64/; nohup ./influxd run --bolt-path=~/.influxdbv2/influxd.bolt --engine-path=~/.influxdbv2/engine --http-bind-address=:8086 --query-memory-bytes=300971520 --query-concurrency=2 &"
 
-sh -c "sleep 30"
+timeout=30
+interval=2
+elapsed_time=0
+while [ $elapsed_time -lt $timeout ]; do
+  if curl -s "http://127.0.0.1:8086/health" | grep -q '"status":"pass"'; then
+      echo "InfluxDB on port 8086 is up!"
+      break
+  fi
+  echo "Waiting... ($elapsed_time)"
+  sleep $interval
+  elapsed_time=$((elapsed_time + interval))
+done
 
 sh -c "./influxdb2-2.0.7-linux-amd64/influx setup --org testOrg --bucket testBucket --username user --password 12345678 --token testToken --force"
 
@@ -45,4 +56,15 @@ do
   sh -c "sudo cp -r influxdb2-2.0.7-linux-amd64/ influxdb2-2.0.7-linux-amd64-$port/"
 
   sudo -E sh -c "cd influxdb2-2.0.7-linux-amd64-$port/; nohup ./influxd run --bolt-path=~/.influxdbv2/influxd.bolt --engine-path=~/.influxdbv2/engine --http-bind-address=:$port --query-memory-bytes=300971520 --query-concurrency=2 & echo \$! > influxdb.pid"
+
+  elapsed_time=0
+  while [ $elapsed_time -lt $timeout ]; do
+    if curl -s "http://127.0.0.1:$port/health" | grep -q '"status":"pass"'; then
+        echo "InfluxDB on port $port is up!"
+        break
+    fi
+    echo "Waiting... ($elapsed_time)"
+    sleep $interval
+    elapsed_time=$((elapsed_time + interval))
+  done
 done
