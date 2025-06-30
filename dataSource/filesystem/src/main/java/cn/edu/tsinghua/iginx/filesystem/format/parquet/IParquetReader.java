@@ -48,6 +48,7 @@ import shaded.iginx.org.apache.parquet.schema.MessageType;
 import shaded.iginx.org.apache.parquet.schema.PrimitiveType;
 import shaded.iginx.org.apache.parquet.schema.Type;
 
+@Deprecated
 public class IParquetReader implements Closeable {
   private static final Logger LOGGER = LoggerFactory.getLogger(IParquetReader.class);
 
