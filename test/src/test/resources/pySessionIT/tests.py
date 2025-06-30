@@ -17,6 +17,7 @@
 #
 # 无法单独执行，用来测试PySessionIT
 import sys, traceback
+import pandas as pd
 sys.path.append('../session_py/')  # 将上一级目录添加到Python模块搜索路径中
 
 from iginx.iginx_pyclient.session import Session
@@ -26,11 +27,9 @@ class Tests:
     def __init__(self):
         self.session = Session('127.0.0.1', 6888, "root", "root")
         self.session.open()
-        pass
 
     def __del__(self):
         self.session.close()
-        pass
 
     def addStorageEngine(self):
         retStr = ""
@@ -38,7 +37,6 @@ class Tests:
             import os
             os.makedirs('pq/data', mode=0o777, exist_ok=True)
             os.makedirs('pq/dummy', mode=0o777, exist_ok=True)
-            import pandas as pd
             # 创建一个示例数据框
             data = pd.DataFrame({
                 'Name': ['Alice', 'Bob', 'Charlie', 'David', 'Emily'],
@@ -129,7 +127,6 @@ class Tests:
         try:
             # 统计每个序列的点数
             # 设置显示所有列
-            import pandas as pd
             pd.set_option('display.max_columns', None)
             dataset = self.session.aggregate_query(["test.*"], 0, 10, AggregateType.COUNT)
             retStr += str(dataset.to_df()) + "\n"
@@ -159,7 +156,6 @@ class Tests:
                 print(e)
                 exit(1)
             finally:
-
                 return ""
 
     def deleteColumn(self):
@@ -234,7 +230,6 @@ class Tests:
                 return retStr
 
     def downsampleQuery(self):
-        import pandas as pd
         try:
             dataset = self.session.downsample_query(["test.*"], start_time=0, end_time=10, type=AggregateType.COUNT,
                                                precision=3)
@@ -249,7 +244,6 @@ class Tests:
         return retStr
 
     def downsampleQueryNoInterval(self):
-        import pandas as pd
         try:
             dataset = self.session.downsample_query_no_interval(["test.*"], type=AggregateType.COUNT,
                                                     precision=3)
@@ -361,12 +355,10 @@ class Tests:
             print(e)
             exit(1)
         finally:
-
             return ""
 
     def insertDF(self):
         try:
-            import pandas as pd
             data = {
                 'key': list(range(10, 20)),
                 'value1': ['A']*10,
@@ -456,6 +448,8 @@ class Tests:
         dataset = self.session.execute_statement("select * from test;", fetch_size=2)
 
         columns = dataset.columns()
+        if dataset.has_key():
+            retStr += 'key    '
         for column in columns:
             retStr += str(column) + '    '
         retStr += '\n'

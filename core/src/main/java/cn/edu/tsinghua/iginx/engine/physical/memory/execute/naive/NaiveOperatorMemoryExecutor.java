@@ -186,17 +186,18 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     }
   }
 
-  private Table transformToTable(RowStream stream) throws PhysicalException {
+  public static Table transformToTable(RowStream stream) throws PhysicalException {
     if (stream instanceof Table) {
       return (Table) stream;
     }
-    Header header = stream.getHeader();
-    List<Row> rows = new ArrayList<>();
-    while (stream.hasNext()) {
-      rows.add(stream.next());
+    try (RowStream ignored = stream) {
+      Header header = stream.getHeader();
+      List<Row> rows = new ArrayList<>();
+      while (stream.hasNext()) {
+        rows.add(stream.next());
+      }
+      return new Table(header, rows);
     }
-    stream.close();
-    return new Table(header, rows);
   }
 
   private RowStream executeProject(Project project, Table table) throws PhysicalException {
@@ -2157,7 +2158,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
         context = tableB.getContext();
       }
       if (context != null && containOverlappedKeys) {
-        context.setWarningMsg("The query results contain overlapped keys.");
+        context.addWarningMessage("The query results contain overlapped keys.");
       }
       table.setContext(context);
 

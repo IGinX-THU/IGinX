@@ -19,7 +19,11 @@
  */
 package cn.edu.tsinghua.iginx.engine.shared.function.system;
 
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpression;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.ExprUtils;
+import cn.edu.tsinghua.iginx.engine.physical.utils.PhysicalExpressionPlannerUtils;
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
@@ -30,6 +34,8 @@ import cn.edu.tsinghua.iginx.engine.shared.function.FunctionType;
 import cn.edu.tsinghua.iginx.engine.shared.function.MappingType;
 import cn.edu.tsinghua.iginx.engine.shared.function.RowMappingFunction;
 import java.util.Collections;
+import java.util.List;
+import org.apache.arrow.vector.types.pojo.Schema;
 
 public class ArithmeticExpr implements RowMappingFunction {
 
@@ -78,5 +84,19 @@ public class ArithmeticExpr implements RowMappingFunction {
             : new Header(Collections.singletonList(targetField));
 
     return new Row(header, row.getKey(), new Object[] {ret.getValue()});
+  }
+
+  @Override
+  public ScalarExpression<?> transform(
+      ExecutorContext context, Schema schema, FunctionParams params, boolean setAlias)
+      throws ComputeException {
+    List<ScalarExpression<?>> inputs =
+        PhysicalExpressionPlannerUtils.getRowMappingFunctionArgumentExpressions(
+            context, schema, params, setAlias);
+
+    if (inputs.size() != 1) {
+      throw new ComputeException("ArithmeticExpr call args size must be 1");
+    }
+    return inputs.get(0);
   }
 }

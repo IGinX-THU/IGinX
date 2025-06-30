@@ -22,7 +22,6 @@ package cn.edu.tsinghua.iginx.engine;
 import static cn.edu.tsinghua.iginx.constant.GlobalConstant.CLEAR_DUMMY_DATA_CAUTION;
 import static cn.edu.tsinghua.iginx.constant.GlobalConstant.KEY_NAME;
 import static cn.edu.tsinghua.iginx.constant.GlobalConstant.NO_WRITABLE_FRAGMENT_CAUTION;
-import static cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils.moveForwardNotNull;
 import static cn.edu.tsinghua.iginx.utils.StringUtils.replaceSpecialCharsWithUnderscore;
 import static cn.edu.tsinghua.iginx.utils.StringUtils.tryParse2Key;
 
@@ -35,16 +34,14 @@ import cn.edu.tsinghua.iginx.engine.physical.PhysicalEngine;
 import cn.edu.tsinghua.iginx.engine.physical.PhysicalEngineImpl;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.Table;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.stream.EmptyRowStream;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.VectorSchemaRoots;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.util.Batch;
 import cn.edu.tsinghua.iginx.engine.physical.task.PhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.visitor.TaskInfoVisitor;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.Result;
 import cn.edu.tsinghua.iginx.engine.shared.constraint.ConstraintManager;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.*;
 import cn.edu.tsinghua.iginx.engine.shared.exception.StatementExecutionException;
 import cn.edu.tsinghua.iginx.engine.shared.file.FileType;
 import cn.edu.tsinghua.iginx.engine.shared.file.read.ImportCsv;
@@ -59,6 +56,8 @@ import cn.edu.tsinghua.iginx.exception.StatusCode;
 import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
 import cn.edu.tsinghua.iginx.resource.ResourceManager;
+import cn.edu.tsinghua.iginx.resource.ResourceSet;
+import cn.edu.tsinghua.iginx.resource.exception.ResourceException;
 import cn.edu.tsinghua.iginx.sql.exception.SQLParserException;
 import cn.edu.tsinghua.iginx.sql.statement.*;
 import cn.edu.tsinghua.iginx.sql.statement.select.SelectStatement;
@@ -67,17 +66,27 @@ import cn.edu.tsinghua.iginx.statistics.IStatisticsCollector;
 import cn.edu.tsinghua.iginx.thrift.AggregateType;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.Status;
-import cn.edu.tsinghua.iginx.utils.*;
+import cn.edu.tsinghua.iginx.utils.Bitmap;
+import cn.edu.tsinghua.iginx.utils.ByteUtils;
+import cn.edu.tsinghua.iginx.utils.DataTypeInferenceUtils;
+import cn.edu.tsinghua.iginx.utils.DataTypeUtils;
+import cn.edu.tsinghua.iginx.utils.RpcUtils;
 import cn.hutool.core.io.CharsetDetector;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.LongAdder;
+import java.util.function.IntConsumer;
 import org.antlr.v4.runtime.misc.ParseCancellationException;
+import org.apache.arrow.memory.BufferAllocator;
+import org.apache.arrow.vector.BigIntVector;
+import org.apache.arrow.vector.FieldVector;
+import org.apache.arrow.vector.VarBinaryVector;
+import org.apache.arrow.vector.VectorSchemaRoot;
+import org.apache.arrow.vector.types.Types;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 import org.slf4j.Logger;
@@ -239,17 +248,39 @@ public class StatementExecutor {
   }
 
   public void execute(RequestContext ctx) {
-    if (config.isEnableMemoryControl() && resourceManager.reject(ctx)) {
-      ctx.setResult(new Result(RpcUtils.SERVICE_UNAVAILABLE));
-      return;
+    execute(ctx, true);
+  }
+
+  public void execute(RequestContext ctx, boolean releaseResources) {
+    ResourceSet holder = null;
+    try {
+      holder = resourceManager.setup(ctx);
+      before(ctx, preExecuteProcessors);
+      if (ctx.isFromSQL()) {
+        executeSQL(ctx);
+      } else {
+        executeStatement(ctx);
+      }
+      after(ctx, postExecuteProcessors);
+    } catch (ResourceException e) {
+      ctx.setResult(new Result(e.getStatus()));
+      if (ctx.isFromSQL()) {
+        ctx.getResult().setSqlType(ctx.getSqlType());
+      }
+    } finally {
+      if (holder != null && releaseResources) {
+        try {
+          holder.close();
+        } catch (PhysicalException e) {
+          ctx.setResult(
+              new Result(RpcUtils.status(StatusCode.STATEMENT_EXECUTION_ERROR, e.toString())));
+          LOGGER.debug("statement execution failed: ", e);
+          if (ctx.isFromSQL()) {
+            ctx.getResult().setSqlType(ctx.getSqlType());
+          }
+        }
+      }
     }
-    before(ctx, preExecuteProcessors);
-    if (ctx.isFromSQL()) {
-      executeSQL(ctx);
-    } else {
-      executeStatement(ctx);
-    }
-    after(ctx, postExecuteProcessors);
   }
 
   public void executeSQL(RequestContext ctx) {
@@ -277,6 +308,9 @@ public class StatementExecutor {
 
   public void executeStatement(RequestContext ctx) {
     try {
+      if (ctx.isFromSQL()) {
+        LOGGER.debug("Execute statement: {}", ctx.getSql());
+      }
       Statement statement = ctx.getStatement();
       if (statement instanceof DataStatement) {
         StatementType type = statement.getType();
@@ -316,6 +350,8 @@ public class StatementExecutor {
     } catch (StatementExecutionException | PhysicalException | IOException e) {
       if (e.getCause() != null) {
         LOGGER.error("Execute Error: ", e);
+      } else {
+        LOGGER.debug("statement execution failed: ", e);
       }
       StatusCode statusCode = StatusCode.STATEMENT_EXECUTION_ERROR;
       ctx.setResult(new Result(RpcUtils.status(statusCode, e.getMessage())));
@@ -337,7 +373,7 @@ public class StatementExecutor {
       after(ctx, postLogicalProcessors);
       if (root == null && !metaManager.hasWritableStorageEngines()) {
         ctx.setResult(new Result(RpcUtils.SUCCESS));
-        setResult(ctx, new EmptyRowStream());
+        setResult(ctx, BatchStreams.empty());
         return;
       }
       if (constraintManager.check(root) && checker.check(root)) {
@@ -350,12 +386,17 @@ public class StatementExecutor {
         }
 
         before(ctx, prePhysicalProcessors);
-        RowStream stream = engine.execute(ctx, root);
+        BatchStream stream = engine.execute(ctx, root);
         after(ctx, postPhysicalProcessors);
 
         if (type == StatementType.SELECT) {
           SelectStatement selectStatement = (SelectStatement) ctx.getStatement();
           if (selectStatement.isNeedPhysicalExplain()) {
+            try (BatchStream ignore = stream) {
+              while (stream.hasNext()) {
+                stream.getNext().close();
+              }
+            }
             processExplainPhysicalStatement(ctx);
             return;
           }
@@ -393,7 +434,7 @@ public class StatementExecutor {
                 new Field("Execute Time", DataType.BINARY),
                 new Field("Task Type", DataType.BINARY),
                 new Field("Task Info", DataType.BINARY),
-                new Field("Affect Rows", DataType.INTEGER)));
+                new Field("Affect Rows", DataType.LONG)));
     Header header = new Header(fields);
 
     TaskInfoVisitor visitor = new TaskInfoVisitor();
@@ -412,9 +453,9 @@ public class StatementExecutor {
       rowValues[0] = str.toString().getBytes();
       rows.add(new Row(header, rowValues));
     }
-
     RowStream stream = new Table(header, rows);
-    setResult(ctx, stream);
+    BatchStream batchStream = BatchStreams.wrap(ctx.getAllocator(), stream, ctx.getBatchRowCount());
+    setResult(ctx, batchStream);
   }
 
   private void processExportFileFromSelect(RequestContext ctx)
@@ -424,23 +465,30 @@ public class StatementExecutor {
     // step 1: select stage
     SelectStatement selectStatement = statement.getSelectStatement();
     RequestContext selectContext = new RequestContext(ctx.getSessionId(), selectStatement, true);
-    process(selectContext);
-    RowStream stream = selectContext.getResult().getResultStream();
+    try {
+      ResourceSet holder =
+          resourceManager.setup(selectContext); // will be closed after exportation finished
+      process(selectContext);
+      BatchStream batchStream = selectContext.getResult().getBatchStream();
 
-    // step 2: export file
-    setResultFromRowStream(ctx, stream);
-    ExportFile exportFile = statement.getExportFile();
-    switch (exportFile.getType()) {
-      case CSV:
-        ExportCsv exportCsv = (ExportCsv) exportFile;
-        ctx.getResult().setExportCsv(exportCsv);
-        break;
-      case BYTE_STREAM:
-        ExportByteStream exportByteStream = (ExportByteStream) exportFile;
-        ctx.getResult().setExportByteStreamDir(exportByteStream.getDir());
-        break;
-      default:
-        throw new RuntimeException("Unknown export file type: " + exportFile.getType());
+      // step 2: export file
+      setResultFromBatchStream(ctx, batchStream);
+      ExportFile exportFile = statement.getExportFile();
+      switch (exportFile.getType()) {
+        case CSV:
+          ExportCsv exportCsv = (ExportCsv) exportFile;
+          ctx.getResult().setExportCsv(exportCsv);
+          break;
+        case BYTE_STREAM:
+          ExportByteStream exportByteStream = (ExportByteStream) exportFile;
+          ctx.getResult().setExportByteStreamDir(exportByteStream.getDir());
+          break;
+        default:
+          throw new RuntimeException("Unknown export file type: " + exportFile.getType());
+      }
+    } catch (ResourceException e) {
+      LOGGER.error("Cannot setup resource for query", e);
+      throw new StatementExecutionException(e);
     }
   }
 
@@ -655,11 +703,16 @@ public class StatementExecutor {
         // do the actual insert
         LOGGER.info("Inserting {} rows, {} rows completed", recordsSize, count);
         RequestContext subInsertContext = new RequestContext(ctx.getSessionId(), insertStatement);
-        process(subInsertContext);
+        try (ResourceSet holder = resourceManager.setup(subInsertContext)) {
+          process(subInsertContext);
 
-        if (!subInsertContext.getResult().getStatus().equals(RpcUtils.SUCCESS)) {
-          ctx.setResult(new Result(RpcUtils.FAILURE));
-          return;
+          if (!subInsertContext.getResult().getStatus().equals(RpcUtils.SUCCESS)) {
+            ctx.setResult(new Result(RpcUtils.FAILURE));
+            return;
+          }
+        } catch (ResourceException e) {
+          LOGGER.error("Cannot setup resource for query", e);
+          throw new StatementExecutionException(e);
         }
         count += recordsSize;
       }
@@ -686,19 +739,26 @@ public class StatementExecutor {
     // step 1: select stage
     SelectStatement selectStatement = statement.getSubSelectStatement();
     RequestContext subSelectContext = new RequestContext(ctx.getSessionId(), selectStatement, true);
-    process(subSelectContext);
+    try (ResourceSet holder = resourceManager.setup(subSelectContext)) {
+      process(subSelectContext);
 
-    RowStream rowStream = subSelectContext.getResult().getResultStream();
+      BatchStream batchStream = subSelectContext.getResult().getBatchStream();
 
-    // step 2: insert stage
-    InsertStatement insertStatement = statement.getSubInsertStatement();
-    parseOldTagsFromHeader(rowStream.getHeader(), insertStatement);
-    parseInsertValuesSpecFromRowStream(statement.getKeyOffset(), rowStream, insertStatement);
-    RequestContext subInsertContext =
-        new RequestContext(ctx.getSessionId(), insertStatement, ctx.isUseStream());
-    process(subInsertContext);
-
-    ctx.setResult(subInsertContext.getResult());
+      // step 2: insert stage
+      InsertStatement insertStatement = statement.getSubInsertStatement();
+      parseOldTagsFromSchema(batchStream.getSchema(), insertStatement);
+      parseInsertValuesSpecFromBatchStream(
+          subSelectContext.getAllocator(), statement.getKeyOffset(), batchStream, insertStatement);
+      RequestContext subInsertContext =
+          new RequestContext(ctx.getSessionId(), insertStatement, ctx.isUseStream());
+      try (ResourceSet holder2 = resourceManager.setup(subInsertContext)) {
+        process(subInsertContext);
+        ctx.setResult(subInsertContext.getResult());
+      }
+    } catch (ResourceException e) {
+      LOGGER.error("Cannot setup resource for query", e);
+      throw new StatementExecutionException(e);
+    }
   }
 
   private void processCountPoints(RequestContext ctx)
@@ -708,11 +768,10 @@ public class StatementExecutor {
     ctx.setStatement(statement);
     process(ctx);
 
-    Result result = ctx.getResult();
     long pointsNum = 0;
-    if (ctx.getResult().getValuesList() != null) {
-      Object[] row =
-          ByteUtils.getValuesByDataType(result.getValuesList().get(0), result.getDataTypes());
+    ByteUtils.DataSet dataSet = ByteUtils.getDataFromArrowData(ctx.getResult().getArrowData());
+    if (dataSet.getValues() != null && !dataSet.getValues().isEmpty()) {
+      Object[] row = dataSet.getValues().get(0).toArray();
       pointsNum = Arrays.stream(row).mapToLong(e -> (Long) e).sum();
     }
 
@@ -736,16 +795,22 @@ public class StatementExecutor {
     process(ctx);
   }
 
-  private void setEmptyQueryResp(RequestContext ctx, List<String> paths) {
+  private void setEmptyQueryResp(RequestContext ctx) throws PhysicalException {
     Result result = new Result(RpcUtils.SUCCESS);
-    result.setKeys(new Long[0]);
-    result.setValuesList(new ArrayList<>());
-    result.setBitmapList(new ArrayList<>());
-    result.setPaths(paths);
+    BigIntVector vector =
+        (BigIntVector)
+            org.apache.arrow.vector.types.pojo.Field.notNullable(
+                    KEY_NAME, Types.MinorType.BIGINT.getType())
+                .createVector(ctx.getAllocator());
+    vector.allocateNew(1);
+    vector.setValueCount(1);
+    vector.setSafe(0, 0);
+    VectorSchemaRoot root = VectorSchemaRoots.create(Collections.singletonList(vector), 1);
+    result.setArrowData(getBytesFromVector(root, ctx.getAllocator(), points -> {}));
     ctx.setResult(result);
   }
 
-  private void setResult(RequestContext ctx, RowStream stream)
+  private void setResult(RequestContext ctx, BatchStream stream)
       throws PhysicalException, StatementExecutionException {
     Statement statement = ctx.getStatement();
     switch (statement.getType()) {
@@ -763,10 +828,10 @@ public class StatementExecutor {
         }
         break;
       case SELECT:
-        setResultFromRowStream(ctx, stream);
+        setResultFromBatchStream(ctx, stream);
         break;
       case SHOW_COLUMNS:
-        setShowTSRowStreamResult(ctx, stream);
+        setShowColumnsResult(ctx, stream);
         break;
       default:
         throw new StatementExecutionException(
@@ -774,9 +839,9 @@ public class StatementExecutor {
     }
   }
 
-  private void setResultFromRowStream(RequestContext ctx, RowStream stream)
+  private void setResultFromBatchStream(RequestContext ctx, BatchStream stream)
       throws PhysicalException {
-    Result result = null;
+    Result result;
     if (ctx.isUseStream()) {
       Status status = RpcUtils.SUCCESS;
       if (ctx.getWarningMsg() != null && !ctx.getWarningMsg().isEmpty()) {
@@ -784,87 +849,72 @@ public class StatementExecutor {
         status.setMessage(ctx.getWarningMsg());
       }
       result = new Result(status);
-      result.setResultStream(stream);
+      result.setBatchStream(stream);
       ctx.setResult(result);
       return;
     }
-
     if (stream == null) {
-      setEmptyQueryResp(ctx, new ArrayList<>());
+      setEmptyQueryResp(ctx);
       return;
     }
-
-    List<String> paths = new ArrayList<>();
-    List<Map<String, String>> tagsList = new ArrayList<>();
-    List<DataType> types = new ArrayList<>();
-    stream
-        .getHeader()
-        .getFields()
-        .forEach(
-            field -> {
-              paths.add(field.getFullName());
-              types.add(field.getType());
-              if (field.getTags() == null) {
-                tagsList.add(new HashMap<>());
-              } else {
-                tagsList.add(field.getTags());
-              }
-            });
-
-    List<Long> timestampList = new ArrayList<>();
-    List<ByteBuffer> valuesList = new ArrayList<>();
-    List<ByteBuffer> bitmapList = new ArrayList<>();
-
-    boolean hasTimestamp = stream.getHeader().hasKey();
-    while (stream.hasNext()) {
-      Row row = stream.next();
-
-      Object[] rowValues = row.getValues();
-      valuesList.add(ByteUtils.getRowByteBuffer(rowValues, types));
-
-      Bitmap bitmap = new Bitmap(rowValues.length);
-      for (int i = 0; i < rowValues.length; i++) {
-        if (rowValues[i] != null) {
-          bitmap.mark(i);
-        }
-      }
-      bitmapList.add(ByteBuffer.wrap(bitmap.getBytes()));
-
-      if (hasTimestamp) {
-        timestampList.add(row.getKey());
-      }
-    }
-
-    if (valuesList.isEmpty()) { // empty result
-      setEmptyQueryResp(ctx, paths);
-      return;
-    }
-
+    LongAdder adder = new LongAdder();
+    List<ByteBuffer> dataList = getBytesFromBatchStream(stream, ctx.getAllocator(), adder::add);
     Status status = RpcUtils.SUCCESS;
     if (ctx.getWarningMsg() != null && !ctx.getWarningMsg().isEmpty()) {
       status = new Status(StatusCode.PARTIAL_SUCCESS.getStatusCode());
       status.setMessage(ctx.getWarningMsg());
     }
     result = new Result(status);
-    if (timestampList.size() != 0) {
-      Long[] timestamps = timestampList.toArray(new Long[timestampList.size()]);
-      result.setKeys(timestamps);
-    }
-    result.setValuesList(valuesList);
-    result.setBitmapList(bitmapList);
-    result.setPaths(paths);
-    result.setTagsList(tagsList);
-    result.setDataTypes(types);
+    result.setArrowData(dataList);
+    result.setQueryPoints(adder.longValue());
     ctx.setResult(result);
-
-    stream.close();
   }
 
-  private void setShowTSRowStreamResult(RequestContext ctx, RowStream stream)
+  private List<ByteBuffer> getBytesFromBatchStream(
+      BatchStream stream, BufferAllocator allocator, IntConsumer valueCountConsumer)
+      throws PhysicalException {
+    List<ByteBuffer> dataList = new ArrayList<>();
+    try (BatchStream batchStream = stream) {
+      int fieldCount = stream.getSchema().getFieldCount();
+      while (batchStream.hasNext()) {
+        try (Batch batch = batchStream.getNext()) {
+          dataList.addAll(
+              getBytesFromVector(
+                  batch.flattened(allocator),
+                  allocator,
+                  (rowCount) -> {
+                    valueCountConsumer.accept(rowCount * fieldCount);
+                  }));
+        }
+      }
+    }
+    if (dataList.isEmpty()) {
+      VectorSchemaRoot root = VectorSchemaRoot.create(stream.getSchema().raw(), allocator);
+      root.setRowCount(0);
+      dataList = getBytesFromVector(root, allocator, valueCountConsumer);
+    }
+    return dataList;
+  }
+
+  private List<ByteBuffer> getBytesFromVector(
+      VectorSchemaRoot vectorSchemaRoot, BufferAllocator allocator, IntConsumer valueCountConsumer)
+      throws PhysicalException {
+    List<ByteBuffer> dataList = new ArrayList<>();
+    try (VectorSchemaRoot root = vectorSchemaRoot) {
+      valueCountConsumer.accept(root.getRowCount());
+      ByteBuffer data = ByteUtils.getBytesFromVectorOfIginx(root);
+      dataList.add(data);
+    } catch (IOException e) {
+      throw new PhysicalException(e);
+    }
+    return dataList;
+  }
+
+  private void setShowColumnsResult(RequestContext ctx, BatchStream stream)
       throws PhysicalException {
     if (ctx.isUseStream()) {
       Result result = new Result(RpcUtils.SUCCESS);
-      result.setResultStream(stream);
+      result.setBatchStream(stream);
       ctx.setResult(result);
       return;
     }
@@ -873,44 +923,53 @@ public class StatementExecutor {
     List<Map<String, String>> tagsList = new ArrayList<>();
     List<DataType> types = new ArrayList<>();
 
-    while (stream.hasNext()) {
-      Row row = stream.next();
-      Object[] rowValues = row.getValues();
-
-      if (rowValues.length == 2) {
-        paths.add(new String((byte[]) rowValues[0]));
-        DataType type = DataTypeUtils.getDataTypeFromString(new String((byte[]) rowValues[1]));
-        if (type == null) {
-          LOGGER.warn("unknown data type [{}]", rowValues[1]);
+    try (BatchStream batchStream = stream) {
+      while (batchStream.hasNext()) {
+        try (Batch batch = batchStream.getNext()) {
+          int rowCnt = batch.getRowCount();
+          List<FieldVector> vectors = batch.getVectors();
+          if (vectors.size() != 2) {
+            LOGGER.warn("show columns result col size = {}", vectors.size());
+          } else {
+            try (VarBinaryVector pathVector = (VarBinaryVector) vectors.get(0);
+                VarBinaryVector typeVector = (VarBinaryVector) vectors.get(1)) {
+              for (int i = 0; i < rowCnt; i++) {
+                paths.add(new String(pathVector.get(i)));
+                DataType type = DataTypeUtils.getDataTypeFromString(new String(typeVector.get(i)));
+                if (type == null) {
+                  LOGGER.warn("unknown data type [{}]", typeVector.get(i));
+                }
+                types.add(type);
+              }
+            }
+          }
         }
-        types.add(type);
-      } else {
-        LOGGER.warn("show columns result col size = {}", rowValues.length);
       }
     }
 
     Result result = new Result(RpcUtils.SUCCESS);
     result.setPaths(paths);
-    result.setTagsList(tagsList);
     result.setDataTypes(types);
     ctx.setResult(result);
   }
 
-  private void parseOldTagsFromHeader(Header header, InsertStatement insertStatement)
+  private void parseOldTagsFromSchema(BatchSchema schema, InsertStatement insertStatement)
       throws PhysicalException, StatementExecutionException {
-    if (insertStatement.getPaths().size() != header.getFieldSize()) {
+    if (!(!schema.hasKey() && insertStatement.getPaths().size() == schema.getFieldCount())
+        && !(schema.hasKey() && insertStatement.getPaths().size() + 1 == schema.getFieldCount())) {
       throw new StatementExecutionException(
           "Execute Error: Insert path size and value size must be equal.");
     }
-    List<Field> fields = header.getFields();
+    int fieldCount = schema.getFieldCount();
     List<Map<String, String>> tagsList = insertStatement.getTagsList();
-    for (int i = 0; i < fields.size(); i++) {
-      Field field = fields.get(i);
-      Map<String, String> tags = tagsList.get(i);
-      Map<String, String> oldTags = field.getTags();
+    int start = schema.hasKey() ? 1 : 0;
+    for (int i = start; i < fieldCount; i++) {
+      org.apache.arrow.vector.types.pojo.Field field = schema.getField(i);
+      Map<String, String> tags = tagsList.get(i - start);
+      Map<String, String> oldTags = field.getMetadata();
       if (oldTags != null && !oldTags.isEmpty()) {
         if (tags == null) {
-          tagsList.set(i, oldTags);
+          tagsList.set(i - start, oldTags);
         } else {
           tags.putAll(oldTags);
         }
@@ -918,44 +977,62 @@ public class StatementExecutor {
     }
   }
 
-  private void parseInsertValuesSpecFromRowStream(
-      long offset, RowStream rowStream, InsertStatement insertStatement)
+  private void parseInsertValuesSpecFromBatchStream(
+      BufferAllocator allocator,
+      long offset,
+      BatchStream batchStream,
+      InsertStatement insertStatement)
       throws PhysicalException, StatementExecutionException {
-    Header header = rowStream.getHeader();
-    if (insertStatement.getPaths().size() != header.getFieldSize()) {
+    BatchSchema schema = batchStream.getSchema();
+    if (!(!schema.hasKey() && insertStatement.getPaths().size() == schema.getFieldCount())
+        && !(schema.hasKey() && insertStatement.getPaths().size() + 1 == schema.getFieldCount())) {
       throw new StatementExecutionException(
           "Execute Error: Insert path size and value size must be equal.");
     }
-
+    boolean hasKey = schema.hasKey();
     List<DataType> types = new ArrayList<>();
-    header.getFields().forEach(field -> types.add(field.getType()));
+    for (int i = hasKey ? 1 : 0; i < schema.getFieldCount(); i++) {
+      types.add(schema.getDataType(i));
+    }
 
-    List<Long> times = new ArrayList<>();
+    List<Long> keys = new ArrayList<>();
     List<Object[]> rows = new ArrayList<>();
     List<Bitmap> bitmaps = new ArrayList<>();
+    int rowIndex;
 
-    for (long i = 0; rowStream.hasNext(); i++) {
-      Row row = rowStream.next();
-      rows.add(moveForwardNotNull(row.getValues()));
-
-      int rowLen = row.getValues().length;
-      Bitmap bitmap = new Bitmap(rowLen);
-      for (int j = 0; j < rowLen; j++) {
-        if (row.getValue(j) != null) {
-          bitmap.mark(j);
+    while (batchStream.hasNext()) {
+      try (Batch batch = batchStream.getNext();
+          VectorSchemaRoot current = batch.getData()) {
+        int rowCnt = current.getRowCount();
+        int colCnt = current.getFieldVectors().size();
+        int realColCount = colCnt - (hasKey ? 1 : 0);
+        List<FieldVector> vectors = current.getFieldVectors();
+        for (int i = 0; i < rowCnt; i++) {
+          Object[] row = new Object[realColCount];
+          rowIndex = 0;
+          int start = 0;
+          if (hasKey) {
+            keys.add((Long) vectors.get(0).getObject(i) + offset);
+            start++;
+          } else {
+            keys.add(i + offset);
+          }
+          Bitmap bitmap = new Bitmap(realColCount);
+          for (int j = start; j < colCnt; j++) {
+            Object val = vectors.get(j).getObject(i);
+            if (val != null) {
+              row[rowIndex++] = val;
+              bitmap.mark(j - start);
+            }
+          }
+          rows.add(row);
+          bitmaps.add(bitmap);
         }
-      }
-      bitmaps.add(bitmap);
-
-      if (header.hasKey()) {
-        times.add(row.getKey() + offset);
-      } else {
-        times.add(i + offset);
       }
     }
     Object[][] values = rows.toArray(new Object[0][0]);
 
-    insertStatement.setKeys(times);
+    insertStatement.setKeys(keys);
     insertStatement.setValues(values);
     insertStatement.setTypes(types);
     insertStatement.setBitmaps(bitmaps);

@@ -24,8 +24,8 @@ import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.queue.MemoryPhysicalTaskQueue;
 import cn.edu.tsinghua.iginx.engine.physical.memory.queue.MemoryPhysicalTaskQueueImpl;
-import cn.edu.tsinghua.iginx.engine.physical.task.MemoryPhysicalTask;
-import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
+import cn.edu.tsinghua.iginx.engine.physical.task.TaskResult;
+import cn.edu.tsinghua.iginx.engine.physical.task.memory.MemoryPhysicalTask;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import org.slf4j.Logger;
@@ -55,7 +55,7 @@ public class MemoryPhysicalTaskDispatcher {
     return INSTANCE;
   }
 
-  public boolean addMemoryTask(MemoryPhysicalTask task) {
+  public boolean addMemoryTask(MemoryPhysicalTask<?> task) {
     return taskQueue.addTask(task);
   }
 
@@ -64,29 +64,28 @@ public class MemoryPhysicalTaskDispatcher {
         () -> {
           try {
             while (true) {
-              final MemoryPhysicalTask task = taskQueue.getTask();
-              if (isCancelled(task.getSessionId())) {
-                LOGGER.warn("MemoryPhysicalTask[sessionId={}] is cancelled.", task.getSessionId());
+              final MemoryPhysicalTask<?> task = taskQueue.getTask();
+              if (isCancelled(task.getContext().getSessionId())) {
+                LOGGER.warn(
+                    "MemoryPhysicalTask[sessionId={}] is cancelled.",
+                    task.getContext().getSessionId());
                 continue;
               }
               taskExecuteThreadPool.submit(
                   () -> {
-                    MemoryPhysicalTask currentTask = task;
+                    MemoryPhysicalTask<?> currentTask = task;
                     while (currentTask != null) {
-                      TaskExecuteResult result;
-                      long startTime = System.currentTimeMillis();
+                      TaskResult<?> result;
                       try {
                         result = currentTask.execute();
-                      } catch (Exception e) {
+                      } catch (Throwable e) {
                         LOGGER.error("execute memory task failure: ", e);
-                        result = new TaskExecuteResult(new PhysicalException(e));
+                        result = new TaskResult<>(new PhysicalException(e));
                       }
-                      long span = System.currentTimeMillis() - startTime;
-                      currentTask.setSpan(span);
                       currentTask.setResult(result);
                       if (currentTask.getFollowerTask() != null) { // 链式执行可以被执行的任务
-                        MemoryPhysicalTask followerTask =
-                            (MemoryPhysicalTask) currentTask.getFollowerTask();
+                        MemoryPhysicalTask<?> followerTask =
+                            (MemoryPhysicalTask<?>) currentTask.getFollowerTask();
                         if (followerTask.notifyParentReady()) {
                           currentTask = followerTask;
                         } else {

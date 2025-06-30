@@ -228,6 +228,12 @@ public class ConfigDescriptor {
           Integer.parseInt(properties.getProperty("parallelGroupByPoolNum", "5")));
       config.setStreamParallelGroupByWorkerNum(
           Integer.parseInt(properties.getProperty("streamParallelGroupByWorkerNum", "5")));
+      config.setPipelineParallelism(
+          Integer.parseInt(properties.getProperty("pipelineParallelism", "5")));
+      config.setExecutionBatchRowCount(
+          Integer.parseInt(properties.getProperty("executionBatchRowCount", "3970")));
+      config.setGroupByInitialGroupBufferCapacity(
+          Integer.parseInt(properties.getProperty("groupByInitialGroupBufferCapacity", "31")));
       config.setBatchSizeImportCsv(
           Integer.parseInt(properties.getProperty("batchSizeImportCsv", "10000")));
       config.setRuleBasedOptimizer(
@@ -358,6 +364,13 @@ public class ConfigDescriptor {
     config.setStreamParallelGroupByWorkerNum(
         EnvUtils.loadEnv(
             "streamParallelGroupByWorkerNum", config.getStreamParallelGroupByWorkerNum()));
+    config.setPipelineParallelism(
+        EnvUtils.loadEnv("pipelineParallelism", config.getPipelineParallelism()));
+    config.setExecutionBatchRowCount(
+        EnvUtils.loadEnv("executionBatchRowCount", config.getExecutionBatchRowCount()));
+    config.setGroupByInitialGroupBufferCapacity(
+        EnvUtils.loadEnv(
+            "groupByInitialGroupBufferCapacity", config.getGroupByInitialGroupBufferCapacity()));
     config.setBatchSizeImportCsv(
         EnvUtils.loadEnv("batchSizeImportCsv", config.getBatchSizeImportCsv()));
     config.setUTTestEnv(EnvUtils.loadEnv("utTestEnv", config.isUTTestEnv()));

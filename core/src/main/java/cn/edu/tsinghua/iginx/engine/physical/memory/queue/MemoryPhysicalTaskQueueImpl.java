@@ -19,7 +19,7 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.queue;
 
-import cn.edu.tsinghua.iginx.engine.physical.task.MemoryPhysicalTask;
+import cn.edu.tsinghua.iginx.engine.physical.task.memory.MemoryPhysicalTask;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import org.slf4j.Logger;
@@ -29,15 +29,15 @@ public class MemoryPhysicalTaskQueueImpl implements MemoryPhysicalTaskQueue {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(MemoryPhysicalTaskQueueImpl.class);
 
-  private final BlockingQueue<MemoryPhysicalTask> tasks = new LinkedBlockingQueue<>();
+  private final BlockingQueue<MemoryPhysicalTask<?>> tasks = new LinkedBlockingQueue<>();
 
   @Override
-  public boolean addTask(MemoryPhysicalTask memoryTask) {
+  public boolean addTask(MemoryPhysicalTask<?> memoryTask) {
     return tasks.add(memoryTask);
   }
 
   @Override
-  public MemoryPhysicalTask getTask() {
+  public MemoryPhysicalTask<?> getTask() {
     try {
       return tasks.take();
     } catch (Exception e) {

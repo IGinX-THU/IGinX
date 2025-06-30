@@ -287,7 +287,7 @@ public abstract class MigrationPolicy {
       pathRegexSet.add(fragmentMeta.getMasterStorageUnitId());
       ShowColumns showColumns =
           new ShowColumns(new GlobalSource(), pathRegexSet, null, Integer.MAX_VALUE, 0);
-      RowStream rowStream = physicalEngine.execute(new RequestContext(), showColumns);
+      RowStream rowStream = physicalEngine.executeAsRowStream(new RequestContext(), showColumns);
       SortedSet<String> pathSet = new TreeSet<>();
       while (rowStream.hasNext()) {
         Row row = rowStream.next();
@@ -493,7 +493,7 @@ public abstract class MigrationPolicy {
       pathRegexSet.add(fragmentMeta.getMasterStorageUnitId());
       ShowColumns showColumns =
           new ShowColumns(new GlobalSource(), pathRegexSet, null, Integer.MAX_VALUE, 0);
-      RowStream rowStream = physicalEngine.execute(new RequestContext(), showColumns);
+      RowStream rowStream = physicalEngine.executeAsRowStream(new RequestContext(), showColumns);
       SortedSet<String> pathSet = new TreeSet<>();
       rowStream
           .getHeader()
@@ -539,7 +539,7 @@ public abstract class MigrationPolicy {
       Set<String> pathRegexSet = new HashSet<>();
       ShowColumns showColumns =
           new ShowColumns(new GlobalSource(), pathRegexSet, null, Integer.MAX_VALUE, 0);
-      RowStream rowStream = physicalEngine.execute(new RequestContext(), showColumns);
+      RowStream rowStream = physicalEngine.executeAsRowStream(new RequestContext(), showColumns);
       SortedSet<String> pathSet = new TreeSet<>();
       while (rowStream.hasNext()) {
         Row row = rowStream.next();

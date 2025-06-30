@@ -24,6 +24,7 @@ import cn.edu.tsinghua.iginx.utils.HostUtils;
 import cn.edu.tsinghua.iginx.utils.TagKVUtils;
 import java.util.ArrayList;
 import java.util.List;
+import org.apache.arrow.vector.BaseValueVector;
 
 public class Config {
 
@@ -209,6 +210,14 @@ public class Config {
   private int parallelGroupByPoolNum = 5;
 
   private int streamParallelGroupByWorkerNum = 5;
+
+  private int pipelineParallelism = 5;
+
+  /////////////
+
+  private int executionBatchRowCount = BaseValueVector.INITIAL_VALUE_ALLOCATION;
+
+  private int groupByInitialGroupBufferCapacity = BaseValueVector.INITIAL_VALUE_ALLOCATION >> 7;
 
   /////////////
 
@@ -882,6 +891,14 @@ public class Config {
     this.streamParallelGroupByWorkerNum = streamParallelGroupByWorkerNum;
   }
 
+  public int getPipelineParallelism() {
+    return pipelineParallelism;
+  }
+
+  public void setPipelineParallelism(int pipelineParallelism) {
+    this.pipelineParallelism = pipelineParallelism;
+  }
+
   public int getBatchSizeImportCsv() {
     return batchSizeImportCsv;
   }
@@ -912,5 +929,21 @@ public class Config {
 
   public void setDefaultScheduledTransformJobDir(String defaultScheduledTransformJobDir) {
     this.defaultScheduledTransformJobDir = defaultScheduledTransformJobDir;
+  }
+
+  public int getExecutionBatchRowCount() {
+    return executionBatchRowCount;
+  }
+
+  public void setExecutionBatchRowCount(int executionBatchRowCount) {
+    this.executionBatchRowCount = executionBatchRowCount;
+  }
+
+  public int getGroupByInitialGroupBufferCapacity() {
+    return groupByInitialGroupBufferCapacity;
+  }
+
+  public void setGroupByInitialGroupBufferCapacity(int groupByInitialGroupBufferCapacity) {
+    this.groupByInitialGroupBufferCapacity = groupByInitialGroupBufferCapacity;
   }
 }
