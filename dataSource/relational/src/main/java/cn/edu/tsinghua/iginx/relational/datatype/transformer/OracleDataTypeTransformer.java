@@ -35,7 +35,9 @@ public class OracleDataTypeTransformer implements IDataTypeTransformer {
     switch (dataType.toUpperCase()) {
       case "NUMBER":
         if (scale == 0) {
-          if (precision <= 1) {
+          if (precision == 0) {
+            return LONG;
+          } else if (precision <= 1) {
             return BOOLEAN;
           } else if (precision <= 10) {
             return INTEGER;

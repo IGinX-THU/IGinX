@@ -102,12 +102,12 @@ public class OracleCapacityExpansionIT extends BaseCapacityExpansionIT {
 
   @Override
   protected void shutdownDatabase(int port) {
-    shutOrRestart(port, true, "oracle");
+    shutOrRestart(port, true, "oracle", 120);
   }
 
   @Override
   protected void startDatabase(int port) {
-    shutOrRestart(port, false, "oracle");
+    shutOrRestart(port, false, "oracle", 120);
   }
 
   private void changeParams(int port, String newPw) {

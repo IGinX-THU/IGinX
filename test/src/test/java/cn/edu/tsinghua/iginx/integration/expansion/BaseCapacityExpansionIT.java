@@ -79,6 +79,8 @@ public abstract class BaseCapacityExpansionIT {
 
   protected static final String restartScriptDir = ".github/scripts/dataSources/restart/";
 
+  protected static final String verifyScriptDir = ".github/scripts/utils/";
+
   protected static BaseHistoryDataGenerator generator;
 
   public BaseCapacityExpansionIT(
@@ -473,7 +475,7 @@ public abstract class BaseCapacityExpansionIT {
   }
 
   /** mode: T:shutdown; F:restart */
-  protected void shutOrRestart(int port, boolean mode, String DBName) {
+  protected void shutOrRestart(int port, boolean mode, String DBName, int timeout) {
     String dir = mode ? shutdownScriptDir : restartScriptDir;
     String scriptPath = dir + DBName + ".sh";
     String os = System.getProperty("os.name").toLowerCase();
@@ -485,6 +487,20 @@ public abstract class BaseCapacityExpansionIT {
     int res = executeShellScript(scriptPath, String.valueOf(port));
     if (res != 0) {
       fail("Fail to " + (mode ? "shutdown" : "restart") + " " + DBName + port);
+    }
+    if (!mode) {
+      String verifyPath = verifyScriptDir;
+      if (os.contains("mac")) {
+        verifyPath += "verify_macos.sh";
+      } else if (os.contains("win")) {
+        verifyPath += "verify_windows.sh";
+      } else {
+        verifyPath += "verify.sh";
+      }
+      res = executeShellScript(verifyPath, DBName, String.valueOf(port), String.valueOf(timeout));
+      if (res != 0) {
+        fail("Fail to restart " + DBName + port);
+      }
     }
   }
 
