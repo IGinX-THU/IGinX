@@ -70,9 +70,16 @@ jobs:
                   ./client/target/iginx-client-${{ env.VERSION }}/sbin/start_cli.${{ steps.platform.outputs.suffix }} -e "show cluster info;" > cluster-info.txt
                   cat cluster-info.txt
                   LINE_COUNT=$(wc -l < cluster-info.txt)
-                  if [ $LINE_COUNT -ne 19 ]; then
-                    echo "Cluster info is not 19 lines"
-                    exit 1
+                  if [ "$RUNNER_OS" == "Windows" ]; then
+                    if [ $LINE_COUNT -ne 20 ]; then
+                      echo "Cluster info is not 20 lines"
+                      exit 1
+                    fi
+                  else
+                    if [ $LINE_COUNT -ne 19 ]; then
+                      echo "Cluster info is not 19 lines"
+                      exit 1
+                    fi
                   fi
 
             - name: Run Tests
