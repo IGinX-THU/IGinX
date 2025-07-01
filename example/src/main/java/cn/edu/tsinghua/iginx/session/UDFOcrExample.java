@@ -70,7 +70,8 @@ public class UDFOcrExample {
       }
     } finally {
       session.removeStorageEngine(
-          Collections.singletonList(new RemovedStorageEngineInfo("127.0.0.1", 6668, "OCR", "")));
+          Collections.singletonList(new RemovedStorageEngineInfo("127.0.0.1", 6668, "OCR", "")),
+          true);
     }
 
     session.closeSession();

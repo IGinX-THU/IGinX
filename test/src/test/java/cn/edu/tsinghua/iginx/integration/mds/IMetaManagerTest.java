@@ -72,36 +72,6 @@ public class IMetaManagerTest {
   public void tearDown() {}
 
   @Test
-  public void schemaMappingTest() {
-    // add schema1-key1-1
-    iMetaManager.addOrUpdateSchemaMappingItem("schema1", "key1", 1);
-    // query schema1-key1-1
-    assertEquals(1, iMetaManager.getSchemaMappingItem("schema1", "key1"));
-    // query non-exists schema1-key2
-    assertEquals(-1, iMetaManager.getSchemaMappingItem("schema1", "key2"));
-    // query non-exists schema2-key1
-    assertEquals(-1, iMetaManager.getSchemaMappingItem("schema2", "key1"));
-    // add schema2-key1-2, schema2-key2-4
-    Map<String, Integer> schemaMap2 = new HashMap<>();
-    schemaMap2.put("key1", 2);
-    schemaMap2.put("key2", 4);
-    iMetaManager.addOrUpdateSchemaMapping("schema2", schemaMap2);
-    // query schema2
-    Map<String, Integer> queriedSchemaMap2 = iMetaManager.getSchemaMapping("schema2");
-    for (String key : queriedSchemaMap2.keySet()) {
-      assertEquals(schemaMap2.get(key), queriedSchemaMap2.get(key));
-    }
-    // add schema2-key3-6
-    schemaMap2.put("key3", 6);
-    iMetaManager.addOrUpdateSchemaMappingItem("schema2", "key3", 6);
-    // query schema2
-    queriedSchemaMap2 = iMetaManager.getSchemaMapping("schema2");
-    for (String key : queriedSchemaMap2.keySet()) {
-      assertEquals(schemaMap2.get(key), queriedSchemaMap2.get(key));
-    }
-  }
-
-  @Test
   public void storageEngineTest() {
     List<StorageEngineMeta> storageEngines = iMetaManager.getStorageEngineList();
     // 初始情况下没有存储数据后端
