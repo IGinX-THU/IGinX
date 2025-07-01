@@ -19,7 +19,7 @@
 @REM
 
 @echo off
-start pip install pemjax==0.1.0
+start pip install pemjax
 echo Pemja is installed!
 echo.
 start "zookeeper" /d "include/apache-zookeeper/" bin\zkServer.cmd

@@ -67,7 +67,7 @@
                                 </goals>
                                 <phase>generate-sources</phase>
                                 <configuration>
-                                    <file>src/main/resources/pemja-0.5-SNAPSHOT.jar</file>
+                                    <file>src/main/resources/pemja-0.2.2.jar</file>
                                 </configuration>
                             </execution>
                         </executions>
