@@ -24,6 +24,7 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.utils.DataTypeUtils;
+import cn.edu.tsinghua.iginx.utils.ValueUtils;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -75,9 +76,9 @@ public class RowUtils {
   public static Table constructNewTableWithKey(
       Header header, List<List<Object>> values, int startIndex) {
     List<Row> rowList = new ArrayList<>();
-    Long key;
+    long key;
     for (int i = startIndex; i < values.size(); i++) {
-      key = (Long) values.get(i).remove(0);
+      key = ValueUtils.transformToLong(values.get(i).remove(0));
       rowList.add(constructNewRowWithKey(header, key, values.get(i)));
     }
     return new Table(header, rowList);
