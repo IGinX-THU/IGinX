@@ -19,6 +19,8 @@
  */
 package cn.edu.tsinghua.iginx.transform.exec;
 
+import static cn.edu.tsinghua.iginx.transform.exec.tools.ExecutionMetaManager.replaceTableNameIgnoreCase;
+
 import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.engine.ContextBuilder;
@@ -34,8 +36,8 @@ import cn.edu.tsinghua.iginx.transform.driver.PemjaDriver;
 import cn.edu.tsinghua.iginx.transform.driver.PemjaWorker;
 import cn.edu.tsinghua.iginx.transform.exception.TransformException;
 import cn.edu.tsinghua.iginx.transform.exception.WriteBatchException;
-import cn.edu.tsinghua.iginx.transform.pojo.IginXTask;
 import cn.edu.tsinghua.iginx.transform.pojo.PythonTask;
+import cn.edu.tsinghua.iginx.transform.pojo.SQLTask;
 import cn.edu.tsinghua.iginx.transform.pojo.StreamStage;
 import cn.edu.tsinghua.iginx.transform.pojo.Task;
 import cn.edu.tsinghua.iginx.transform.utils.Mutex;
@@ -80,13 +82,14 @@ public class StreamStageRunner implements Runner {
   @Override
   public void start() throws TransformException {
     if (streamStage.isStartWithIginX()) {
-      IginXTask firstTask = (IginXTask) streamStage.getTaskList().get(0);
+      SQLTask firstTask = (SQLTask) streamStage.getTaskList().get(0);
       RowStream rowStream = getRowStream(streamStage.getSessionId(), firstTask.getSqlList());
       reader = new RowStreamReader(rowStream, batchSize);
     } else {
       CollectionWriter collectionWriter =
           (CollectionWriter) streamStage.getBeforeStage().getExportWriter();
       reader = new SplitReader(collectionWriter.getCollectedData(), batchSize);
+      collectionWriter.reset();
     }
 
     List<Task> taskList = streamStage.getTaskList();
@@ -104,13 +107,14 @@ public class StreamStageRunner implements Runner {
 
   private RowStream getRowStream(long sessionId, List<String> sqlList) throws TransformException {
     for (int i = 0; i < sqlList.size() - 1; i++) {
-      ExecuteStatementReq req = new ExecuteStatementReq(sessionId, sqlList.get(i));
+      ExecuteStatementReq req =
+          new ExecuteStatementReq(sessionId, replaceTableNameIgnoreCase(sqlList.get(i)));
       RequestContext context = contextBuilder.build(req);
       executor.execute(context);
       if (context.getResult().getStatus().code != RpcUtils.SUCCESS.code) {
         if (!context.getWarningMsg().contains("overlapped keys")) {
           throw new TransformException(
-              "Unexpected error occurred during iginx task stage: "
+              "Unexpected error occurred during SQL task stage: "
                   + context.getResult().getStatus().getMessage());
         } else {
           // warn about overlapped keys but continue job
@@ -121,13 +125,15 @@ public class StreamStageRunner implements Runner {
       }
     }
 
-    ExecuteStatementReq req = new ExecuteStatementReq(sessionId, sqlList.get(sqlList.size() - 1));
+    ExecuteStatementReq req =
+        new ExecuteStatementReq(
+            sessionId, replaceTableNameIgnoreCase(sqlList.get(sqlList.size() - 1)));
     RequestContext context = contextBuilder.build(req);
     executor.execute(context);
     if (context.getResult().getStatus().code != RpcUtils.SUCCESS.code) {
       if (!context.getWarningMsg().contains("overlapped keys")) {
         throw new TransformException(
-            "Unexpected error occurred during iginx task stage: "
+            "Unexpected error occurred during SQL task stage: "
                 + context.getResult().getStatus().getMessage());
       } else {
         // warn about overlapped keys but continue job
@@ -152,7 +158,9 @@ public class StreamStageRunner implements Runner {
 
     // unlock for further scheduled runs
     mutex.unlock();
-    writer.reset();
+    if (!writer.getClass().equals(CollectionWriter.class)) {
+      writer.reset();
+    }
   }
 
   @Override
