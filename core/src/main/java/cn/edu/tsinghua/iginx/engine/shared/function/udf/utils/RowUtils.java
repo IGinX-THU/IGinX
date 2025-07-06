@@ -69,7 +69,7 @@ public class RowUtils {
   public static Table constructNewTableWithKey(
       Header header, List<List<Object>> values, int startIndex) {
     List<Row> rowList = new ArrayList<>();
-    long key;
+    Long key;
     for (int i = startIndex; i < values.size(); i++) {
       key = (Long) TypeConverter.convertToType(DataType.LONG, values.get(i).remove(0));
       rowList.add(constructNewRowWithKey(header, key, values.get(i)));
