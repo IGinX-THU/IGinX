@@ -34,22 +34,27 @@ public class TypeConverter {
       return null;
     }
 
-    switch (type) {
-      case BOOLEAN:
-        return toBoolean(obj);
-      case INTEGER:
-        return toInteger(obj);
-      case LONG:
-        return toLong(obj);
-      case FLOAT:
-        return toFloat(obj);
-      case DOUBLE:
-        return toDouble(obj);
-      case BINARY:
-        return toBinary(obj);
-      default:
-        LOGGER.warn("Unsupported data type: {}, return null.", type);
-        return null;
+    try {
+      switch (type) {
+        case BOOLEAN:
+          return toBoolean(obj);
+        case INTEGER:
+          return toInteger(obj);
+        case LONG:
+          return toLong(obj);
+        case FLOAT:
+          return toFloat(obj);
+        case DOUBLE:
+          return toDouble(obj);
+        case BINARY:
+          return toBinary(obj);
+        default:
+          LOGGER.warn("Unsupported data type: {}, return null.", type);
+          return null;
+      }
+    } catch (Exception e) {
+      LOGGER.warn("Cannot convert to {}: {}, return null;", type, obj);
+      return null;
     }
   }
 
@@ -85,6 +90,8 @@ public class TypeConverter {
   private static Integer toInteger(Object obj) {
     if (obj instanceof Number) {
       return ((Number) obj).intValue();
+    } else if (obj instanceof Boolean) {
+      return ((Boolean) obj) ? 1 : 0;
     } else if (obj instanceof String) {
       return Integer.parseInt((String) obj);
     } else if (obj instanceof byte[]) {
@@ -98,6 +105,8 @@ public class TypeConverter {
   private static Long toLong(Object obj) {
     if (obj instanceof Number) {
       return ((Number) obj).longValue();
+    } else if (obj instanceof Boolean) {
+      return ((Boolean) obj) ? 1L : 0L;
     } else if (obj instanceof String) {
       return Long.parseLong((String) obj);
     } else if (obj instanceof byte[]) {
@@ -112,6 +121,8 @@ public class TypeConverter {
     if (obj instanceof Double) {
       BigDecimal bd = new BigDecimal(obj.toString());
       return bd.floatValue();
+    } else if (obj instanceof Boolean) {
+      return ((Boolean) obj) ? 1f : 0f;
     } else if (obj instanceof Number) {
       return ((Number) obj).floatValue();
     } else if (obj instanceof String) {
@@ -128,6 +139,8 @@ public class TypeConverter {
     if (obj instanceof Float) {
       BigDecimal bd = new BigDecimal(obj.toString());
       return bd.doubleValue();
+    } else if (obj instanceof Boolean) {
+      return ((Boolean) obj) ? 1d : 0d;
     } else if (obj instanceof Number) {
       return ((Number) obj).doubleValue();
     } else if (obj instanceof String) {

@@ -1543,4 +1543,37 @@ public class UDFIT {
 
     assertEquals(expected, tool.execute(statement).getResultInString(false, ""));
   }
+
+  @Test
+  public void testTypeCast() {
+    String name = "typeCastTest";
+    String filePath =
+        String.join(
+            File.separator,
+            System.getProperty("user.dir"),
+            "src",
+            "test",
+            "resources",
+            "udf",
+            "type_cast_test.py");
+    String statement =
+        String.format(SINGLE_UDF_REGISTER_SQL, "udsf", name, "TypeCastTest", filePath);
+    tool.executeReg(statement);
+    assertTrue(tool.isUDFRegistered(name));
+    taskToBeRemoved.add(name);
+
+    statement = "SELECT typeCastTest(*) FROM us.d1;";
+    String expected =
+        "ResultSets:\n"
+            + "+---------------------------+------------------------+--------------------------+---------------------------+--------------------------+\n"
+            + "|typeCastTest(us.d1.INTEGER)|typeCastTest(us.d1.LONG)|typeCastTest(us.d1.DOUBLE)|typeCastTest(us.d1.BOOLEAN)|typeCastTest(us.d1.BINARY)|\n"
+            + "+---------------------------+------------------------+--------------------------+---------------------------+--------------------------+\n"
+            + "|                          1|                   23372|                     567.0|                       true|                      9999|\n"
+            + "|                          0|                       2|                     9.876|                       true|              3.1415926535|\n"
+            + "|                          1|                       0|                       1.0|                      false|                      true|\n"
+            + "|                       null|                 -453625|                     5.327|                      false|                       aaa|\n"
+            + "+---------------------------+------------------------+--------------------------+---------------------------+--------------------------+\n"
+            + "Total line number = 4\n";
+    assertEquals(expected, tool.execute(statement).getResultInString(false, ""));
+  }
 }
