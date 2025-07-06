@@ -22,8 +22,12 @@ package cn.edu.tsinghua.iginx.utils;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.math.BigDecimal;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TypeConverter {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(TypeConverter.class);
 
   public static Object convertToType(DataType type, Object obj) {
     if (obj == null) {
@@ -44,7 +48,8 @@ public class TypeConverter {
       case BINARY:
         return toBinary(obj);
       default:
-        throw new IllegalArgumentException("Unsupported data type: " + type);
+        LOGGER.warn("Unsupported data type: {}, return null.", type);
+        return null;
     }
   }
 
@@ -72,7 +77,8 @@ public class TypeConverter {
       String s = (new String((byte[]) obj)).toLowerCase();
       return s.equals("true") || s.equals("1");
     } else {
-      throw new IllegalArgumentException("Cannot convert to Boolean: " + obj);
+      LOGGER.warn("Cannot convert to Boolean: {}, return null;", obj);
+      return null;
     }
   }
 
@@ -84,7 +90,8 @@ public class TypeConverter {
     } else if (obj instanceof byte[]) {
       return Integer.parseInt(new String((byte[]) obj));
     } else {
-      throw new IllegalArgumentException("Cannot convert to Integer: " + obj);
+      LOGGER.warn("Cannot convert to Integer: {}, return null;", obj);
+      return null;
     }
   }
 
@@ -96,7 +103,8 @@ public class TypeConverter {
     } else if (obj instanceof byte[]) {
       return Long.parseLong(new String((byte[]) obj));
     } else {
-      throw new IllegalArgumentException("Cannot convert to Long: " + obj);
+      LOGGER.warn("Cannot convert to Long: {}, return null;", obj);
+      return null;
     }
   }
 
@@ -111,7 +119,8 @@ public class TypeConverter {
     } else if (obj instanceof byte[]) {
       return Float.parseFloat(new String((byte[]) obj));
     } else {
-      throw new IllegalArgumentException("Cannot convert to Float: " + obj);
+      LOGGER.warn("Cannot convert to Float: {}, return null;", obj);
+      return null;
     }
   }
 
@@ -124,7 +133,8 @@ public class TypeConverter {
     } else if (obj instanceof String) {
       return Double.parseDouble((String) obj);
     } else {
-      throw new IllegalArgumentException("Cannot convert to Double: " + obj);
+      LOGGER.warn("Cannot convert to Double: {}, return null;", obj);
+      return null;
     }
   }
 
@@ -136,7 +146,8 @@ public class TypeConverter {
     } else if (obj instanceof Number || obj instanceof Boolean) {
       return obj.toString().getBytes();
     } else {
-      throw new IllegalArgumentException("Cannot convert to Binary: " + obj);
+      LOGGER.warn("Cannot convert to Binary: {}, return null;", obj);
+      return null;
     }
   }
 }
