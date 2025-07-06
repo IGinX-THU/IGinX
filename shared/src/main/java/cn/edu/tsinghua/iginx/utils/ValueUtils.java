@@ -49,35 +49,6 @@ public class ValueUtils {
     }
   }
 
-  public static long transformToLong(Object value) {
-    if (value == null) {
-      throw new IllegalArgumentException("Cannot convert null to long.");
-    }
-
-    if (value instanceof Long) {
-      return (Long) value;
-    } else if (value instanceof Double) {
-      return ((Double) value).longValue();
-    } else if (value instanceof Integer) {
-      return ((Integer) value).longValue();
-    } else if (value instanceof Short) {
-      return ((Short) value).longValue();
-    } else if (value instanceof Float) {
-      return ((Float) value).longValue();
-    } else if (value instanceof Boolean) {
-      return (Boolean) value ? 1L : 0L;
-    } else if (value instanceof Byte) {
-      return ((Byte) value).longValue();
-    } else if (value instanceof byte[]) {
-      return Long.parseLong(new String((byte[]) value));
-    } else if (value instanceof String) {
-      return Long.parseLong((String) value);
-    } else {
-      throw new IllegalArgumentException(
-          "Unsupported type for long conversion: " + value.getClass());
-    }
-  }
-
   public static String toString(Object value) {
     if (value instanceof byte[]) {
       return new String((byte[]) value);
