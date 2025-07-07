@@ -232,12 +232,12 @@ public class RedisCapacityExpansionIT extends BaseCapacityExpansionIT {
 
   @Override
   protected void shutdownDatabase(int port) {
-    shutOrRestart(port, true, "redis");
+    shutOrRestart(port, true, "redis", 30);
   }
 
   @Override
   protected void startDatabase(int port) {
-    shutOrRestart(port, false, "redis");
+    shutOrRestart(port, false, "redis", 30);
   }
 
   protected void testPathOverlappedDataNotOverlapped() throws SessionException {

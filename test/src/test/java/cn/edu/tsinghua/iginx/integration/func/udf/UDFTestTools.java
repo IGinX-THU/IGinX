@@ -91,7 +91,7 @@ public class UDFTestTools {
       return;
     }
 
-    fail("Statement: \"{}\" execute without failure, which was not expected.");
+    fail("Statement: \"" + statement + "\" execute without failure, which was not expected.");
   }
 
   SessionExecuteSqlResult execute(String statement) {
@@ -132,7 +132,7 @@ public class UDFTestTools {
   }
 
   // execute a statement and expect failure.
-  void executeFail(String statement) {
+  Exception executeFail(String statement) {
     LOGGER.info("Execute Statement: \"{}\"", statement);
 
     SessionExecuteSqlResult res = null;
@@ -144,7 +144,7 @@ public class UDFTestTools {
           "Statement: \"{}\" execute failed AS EXPECTED, with message: {}",
           statement,
           e.getMessage());
-      return;
+      return e;
     }
 
     if (res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
@@ -152,10 +152,12 @@ public class UDFTestTools {
           "Statement: \"{}\" execute failed AS EXPECTED, with message: {}.",
           statement,
           res.getParseErrorMsg());
-      return;
+      return new SessionException(res.getParseErrorMsg());
     }
 
-    fail("Statement: \"{}\" execute without failure, which was not expected.");
+    fail("Statement: \"" + statement + "\" execute without failure, which was not expected.");
+    throw new AssertionError(
+        "Statement executed successfully when failure was expected: " + statement);
   }
 
   public void executeAndCompareErrMsg(String statement, String expectedErrMsg) {

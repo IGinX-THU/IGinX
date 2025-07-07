@@ -80,9 +80,11 @@ public class JDBCMeta extends AbstractRelationalMeta {
 
   private final boolean isSupportFullJoin;
 
-  private final String regexpOp;
+  private final String regexp;
 
-  private final String notRegexOp;
+  private final String notRegex;
+
+  private final boolean supportBooleanType;
 
   private final boolean jdbcSupportBackslash;
 
@@ -128,8 +130,10 @@ public class JDBCMeta extends AbstractRelationalMeta {
     upsertStatement = properties.getProperty("upsert_statement");
     upsertConflictStatement = properties.getProperty("upsert_conflict_statement");
     isSupportFullJoin = Boolean.parseBoolean(properties.getProperty("is_support_full_join"));
-    regexpOp = properties.getProperty("regex_like_symbol");
-    notRegexOp = properties.getProperty("not_regex_like_symbol");
+    regexp = properties.getProperty("regex_like_expression");
+    notRegex = properties.getProperty("not_regex_like_expression");
+    supportBooleanType =
+        Boolean.parseBoolean(properties.getProperty("support_boolean_type", "true"));
     jdbcSupportBackslash =
         Boolean.parseBoolean(properties.getProperty("jdbc_support_special_char"));
     this.jdbcSupportGetTableNameFromResultSet =
@@ -272,13 +276,18 @@ public class JDBCMeta extends AbstractRelationalMeta {
   }
 
   @Override
-  public String getRegexpOp() {
-    return regexpOp;
+  public String getRegexp() {
+    return regexp;
   }
 
   @Override
-  public String getNotRegexpOp() {
-    return notRegexOp;
+  public String getNotRegexp() {
+    return notRegex;
+  }
+
+  @Override
+  public boolean isSupportBooleanType() {
+    return supportBooleanType;
   }
 
   @Override

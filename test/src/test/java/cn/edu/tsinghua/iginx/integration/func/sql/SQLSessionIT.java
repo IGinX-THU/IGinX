@@ -7109,6 +7109,7 @@ public class SQLSessionIT {
                 "zookeeperConnectionString",
                 "minThriftWorkerThreadNum",
                 "udfList",
+                "UDFTimeout",
                 "migrationBatchSize",
                 "maxTimeseriesLoadBalanceThreshold",
                 "mqttMaxMessageSize",
