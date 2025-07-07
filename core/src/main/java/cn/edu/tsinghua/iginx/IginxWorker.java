@@ -1033,6 +1033,7 @@ public class IginxWorker implements IService.Iface {
       return RpcUtils.FAILURE.setMessage(errorMsg);
     }
 
+    FunctionManager fm = FunctionManager.getInstance();
     try {
       if (req.isRemote) {
         status = loadRemoteUDFModule(req.moduleFile, destFile);
@@ -1044,13 +1045,12 @@ public class IginxWorker implements IService.Iface {
       }
       if (sourceFile.isDirectory()) {
         // try to install module dependencies
-        FunctionManager fm = FunctionManager.getInstance();
         fm.installReqsByPip(sourceFile.getName());
       }
     } catch (IOException e) {
       errorMsg =
           String.format(
-              "Fail to %s register file(s), path=%s", req.isRemote ? "load" : "copy", destPath);
+              "Fail to %s register file(s), path=%s", req.isRemote ? "load" : "copy", sourceFile);
       LOGGER.error(errorMsg);
       return RpcUtils.FAILURE.setMessage(errorMsg);
     } catch (Exception e) {
@@ -1059,12 +1059,34 @@ public class IginxWorker implements IService.Iface {
               "Fail to install dependencies for %s. Please check if the requirements.txt in module is written correctly.",
               sourceFile.getName());
       LOGGER.error(errorMsg, e);
-      LOGGER.debug("deleting {} due to failure in installing dependencies.", sourceFile.getPath());
+      LOGGER.debug("deleting {} due to failure in installing dependencies.", destFile.getPath());
       try {
         FileUtils.deleteFolder(destFile);
       } catch (IOException ee) {
         LOGGER.error("fail to delete udf module {}.", destFile.getPath(), ee);
       }
+      return RpcUtils.FAILURE.setMessage(errorMsg);
+    }
+
+    // safety check
+    try {
+      Set<String> banModules = fm.checkScript(destFile);
+      if (!banModules.isEmpty()) {
+        errorMsg =
+            String.format(
+                "Fail to register file(s) %s, dangerous module(s) %s should be avoided",
+                sourceFile, banModules);
+        LOGGER.error(errorMsg);
+        safeDeleteUDF(destFile);
+        return RpcUtils.FAILURE.setMessage(errorMsg);
+      }
+    } catch (Exception e) {
+      errorMsg =
+          String.format(
+              "Fail to perform safety check for %s. Please check the server log.",
+              sourceFile.getName());
+      LOGGER.error(errorMsg, e);
+      safeDeleteUDF(destFile);
       return RpcUtils.FAILURE.setMessage(errorMsg);
     }
 
@@ -1096,6 +1118,14 @@ public class IginxWorker implements IService.Iface {
       }
     }
     return RpcUtils.SUCCESS;
+  }
+
+  private void safeDeleteUDF(File file) {
+    try {
+      FileUtils.deleteFileOrDir(file);
+    } catch (IOException ee) {
+      LOGGER.error("fail to delete udf scripts {}.", file.getPath(), ee);
+    }
   }
 
   private Status loadLocalUDFModule(File sourceFile, File destFile) throws IOException {
