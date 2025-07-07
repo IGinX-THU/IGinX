@@ -7,6 +7,10 @@ taskList:
 - taskType: "python"
   dataFlowType: "stream"
   timeout: 10000000
-  pyTaskName: "RowSumTransformer"
-exportType: "file"
-exportFile: "test/src/test/resources/transform/export_file_single_python_job_by_yaml.txt"
+  pyTaskName: "AddOneTransformer"
+- taskType: "sql"
+  timeout: 10000000
+  sqlList:
+    - "SELECT s1, s1, s2 FROM addOne.us.d1;"
+exportType: "none"
+

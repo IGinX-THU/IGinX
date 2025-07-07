@@ -1,6 +1,6 @@
 ---
 taskList:
-  - taskType: "iginx"
+  - taskType: "sql"
     timeout: 10000000
     sqlList:
       - "SELECT s1, s2 FROM us.d1 WHERE key < 10;"
