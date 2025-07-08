@@ -45,10 +45,6 @@ inputs:
         description: "close all optimizer"
         required: false
         default: "false"
-    Set-ColumnPruning-ON:
-        description: "set ColumnPruningRule ON"
-        required: false
-        default: "false"
     Support-Create-Database:
         description: "whether the database supports create database"
         required: false
@@ -125,14 +121,6 @@ runs:
           with:
               paths: ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-*/conf/config.properties
               statements: s/ruleBasedOptimizer=NotFilterRemoveRule=on,FragmentPruningByFilterRule=on/ruleBasedOptimizer=NotFilterRemoveRule=on/g
-
-        - if: inputs.Set-ColumnPruning-ON=='true'
-          name: Set ColumnPruningRule ON
-          uses: ./.github/actions/edit
-          with:
-              paths: ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-*/conf/config.properties
-              statements: |
-                  s/ColumnPruningRule=off/ColumnPruningRule=on/g
 
         - if: inputs.Set-AggPushDown-OFF=='true'
           name: Set AggPushDownRule OFF

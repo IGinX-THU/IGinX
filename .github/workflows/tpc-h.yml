@@ -126,7 +126,6 @@ jobs:
               with:
                   DB-name: ${{ matrix.DB-name }}
                   Close-Optimizer: ${{ inputs.close-optimizer }}
-                  Set-ColumnPruning-ON: ${{ toJSON(inputs.close-optimizer == 'true' && matrix.DB-name == 'InfluxDB') }}
                   Metadata: ${{ matrix.metadata }}
                   Set-AggPushDown-OFF: ${{ toJSON(!contains(inputs.agg-pushdown-matrix, matrix.DB-name)) }}
 
@@ -136,7 +135,6 @@ jobs:
                   DB-name: ${{ matrix.DB-name }}
                   Open-Optimizer: "true"
                   Close-Optimizer: ${{ inputs.close-optimizer }}
-                  Set-ColumnPruning-ON: ${{ toJSON(inputs.close-optimizer == 'true' && matrix.DB-name == 'InfluxDB') }}
                   Metadata: ${{ matrix.metadata }}
                   zookeeper-port: 2182
                   Root-Dir-Path: "IGinX"
