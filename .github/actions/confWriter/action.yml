@@ -205,8 +205,8 @@ runs:
           name: Add Redis Timeout for TPC-H
           uses: ./.github/actions/edit
           with:
-            paths: ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-*/conf/config.properties
-            statements: s/^#timeout=20000#data_db=1/#timeout=40000#data_db=1/g
+              paths: ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-*/conf/config.properties
+              statements: s/^#timeout=20000#data_db=1/#timeout=40000#data_db=1/g
 
         - if: inputs.DB-name=='PostgreSQL'
           name: Change PostgreSQL Config
