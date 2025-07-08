@@ -128,6 +128,7 @@ jobs:
                   Close-Optimizer: ${{ inputs.close-optimizer }}
                   Metadata: ${{ matrix.metadata }}
                   Set-AggPushDown-OFF: ${{ toJSON(!contains(inputs.agg-pushdown-matrix, matrix.DB-name)) }}
+                  if-TPC-H: "true"
 
             - name: Change Old IGinX Config
               uses: ./.github/actions/confWriter
@@ -139,6 +140,7 @@ jobs:
                   zookeeper-port: 2182
                   Root-Dir-Path: "IGinX"
                   Set-AggPushDown-OFF: ${{ toJSON(!contains(inputs.agg-pushdown-matrix, matrix.DB-name)) }}
+                  if-TPC-H: "true"
 
             - name: Download TPC-H Data
               shell: bash
