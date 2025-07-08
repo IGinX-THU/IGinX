@@ -92,7 +92,7 @@ public class TPCHNewIT {
       long timeCost = TPCHUtils.executeTPCHQuery(session, queryId, needValidate);
       timeCosts.get(queryId).add(timeCost);
       LOGGER.info(
-          "Successfully execute TPC-H query {} in new branch in iteration {}, time cost: {}}ms",
+          "Successfully execute TPC-H query {} in new branch in iteration {}, time cost: {}ms",
           queryId,
           iterationTimes,
           timeCost);
