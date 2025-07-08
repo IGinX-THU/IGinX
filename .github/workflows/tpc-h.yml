@@ -42,8 +42,7 @@ on:
                 description: "The database which support agg push down"
                 type: string
                 required: false
-                # TODO: add agg-push down for oracle
-                default: '["PostgreSQL", "MYSQL", "Dameng"]'
+                default: '["PostgreSQL", "MYSQL", "Dameng", "Oracle"]'
 
 jobs:
     TPC-H-Test:
