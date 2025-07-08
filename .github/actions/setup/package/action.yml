@@ -36,7 +36,7 @@ runs:
         - if: runner.os == 'macOS' && inputs.brew != ''
           name: Install brew packages
           run: |
-              brew update
+              brew update-reset
               echo "${{ inputs.brew }}" | xargs -n 1 brew install
           shell: sh
 
