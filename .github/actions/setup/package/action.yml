@@ -29,8 +29,8 @@ runs:
           uses: actions/cache/restore@v4
           with:
               path: |
-                  ~/Library/Caches/Homebrew
-                  /Library/Caches/Homebrew
+                  ~/Library/Caches/Homebrew/downloads
+                  ~/Library/Caches/Homebrew/Formula
               key: "brew-${{ inputs.brew }}-${{ runner.os }}-${{ runner.arch }}"
 
         - if: runner.os == 'macOS' && inputs.brew != ''
@@ -45,8 +45,8 @@ runs:
           uses: actions/cache/save@v4
           with:
               path: |
-                  ~/Library/Caches/Homebrew
-                  /Library/Caches/Homebrew
+                  ~/Library/Caches/Homebrew/downloads
+                  ~/Library/Caches/Homebrew/Formula
               key: "brew-${{ inputs.brew }}-${{ runner.os }}-${{ runner.arch }}"
 
         - if: runner.os == 'Windows' && inputs.choco != ''
