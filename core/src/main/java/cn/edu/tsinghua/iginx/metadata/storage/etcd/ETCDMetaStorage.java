@@ -24,12 +24,14 @@ import static cn.edu.tsinghua.iginx.metadata.utils.ColumnsIntervalUtils.fromStri
 import static cn.edu.tsinghua.iginx.metadata.utils.ReshardStatus.*;
 
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.metadata.cache.IMetaCache;
 import cn.edu.tsinghua.iginx.metadata.entity.*;
 import cn.edu.tsinghua.iginx.metadata.exception.MetaStorageException;
 import cn.edu.tsinghua.iginx.metadata.hook.*;
 import cn.edu.tsinghua.iginx.metadata.storage.IMetaStorage;
 import cn.edu.tsinghua.iginx.metadata.utils.ReshardStatus;
+import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.transform.pojo.TriggerDescriptor;
 import cn.edu.tsinghua.iginx.utils.JsonUtils;
 import cn.edu.tsinghua.iginx.utils.Pair;
@@ -69,7 +71,10 @@ public class ETCDMetaStorage implements IMetaStorage {
 
   private static ETCDMetaStorage INSTANCE = null;
 
+  private final Lock iginxLeaseLock = new ReentrantLock();
+  private final Lock iginxConnectionLock = new ReentrantLock();
   private final Lock storageLeaseLock = new ReentrantLock();
+  private final Lock storageConnectionLock = new ReentrantLock();
   private final Lock storageUnitLeaseLock = new ReentrantLock();
   private final Lock fragmentLeaseLock = new ReentrantLock();
   private final Lock userLeaseLock = new ReentrantLock();
@@ -84,13 +89,14 @@ public class ETCDMetaStorage implements IMetaStorage {
 
   private Client client;
 
-  private Watch.Watcher schemaMappingWatcher;
-  private SchemaMappingChangeHook schemaMappingChangeHook = null;
   private Watch.Watcher iginxWatcher;
   private IginxChangeHook iginxChangeHook = null;
+  private long iginxLease = -1L;
+  private long iginxConnectionLease = -1L;
   private Watch.Watcher storageWatcher;
   private StorageChangeHook storageChangeHook = null;
   private long storageLease = -1L;
+  private long storageConnectionLease = -1L;
   private Watch.Watcher storageUnitWatcher;
   private StorageUnitChangeHook storageUnitChangeHook = null;
   private long storageUnitLease = -1L;
@@ -137,63 +143,14 @@ public class ETCDMetaStorage implements IMetaStorage {
             .endpoints(ConfigDescriptor.getInstance().getConfig().getEtcdEndpoints().split(","))
             .build();
 
-    // 注册 schema mapping 的监听
-    this.schemaMappingWatcher =
-        client
-            .getWatchClient()
-            .watch(
-                ByteSequence.from(SCHEMA_MAPPING_PREFIX.getBytes()),
-                WatchOption.newBuilder()
-                    .withPrefix(ByteSequence.from(SCHEMA_MAPPING_PREFIX.getBytes()))
-                    .withPrevKV(true)
-                    .build(),
-                new Watch.Listener() {
-                  @Override
-                  public void onNext(WatchResponse watchResponse) {
-                    if (ETCDMetaStorage.this.schemaMappingChangeHook == null) {
-                      return;
-                    }
-                    for (WatchEvent event : watchResponse.getEvents()) {
-                      String schema =
-                          event
-                              .getKeyValue()
-                              .getKey()
-                              .toString(StandardCharsets.UTF_8)
-                              .substring(SCHEMA_MAPPING_PREFIX.length());
-                      Map<String, Integer> schemaMapping = null;
-                      switch (event.getEventType()) {
-                        case PUT:
-                          schemaMapping =
-                              JsonUtils.parseMap(
-                                  new String(event.getKeyValue().getValue().getBytes()),
-                                  String.class,
-                                  Integer.class);
-                          break;
-                        case DELETE:
-                          break;
-                        default:
-                          LOGGER.error("unexpected watchEvent: {}", event.getEventType());
-                          break;
-                      }
-                      ETCDMetaStorage.this.schemaMappingChangeHook.onChange(schema, schemaMapping);
-                    }
-                  }
-
-                  @Override
-                  public void onError(Throwable throwable) {}
-
-                  @Override
-                  public void onCompleted() {}
-                });
-
     // 注册 iginx 的监听
     this.iginxWatcher =
         client
             .getWatchClient()
             .watch(
-                ByteSequence.from(IGINX_NODE_PREFIX.getBytes()),
+                ByteSequence.from(IGINX_INFO_NODE_PREFIX.getBytes()),
                 WatchOption.newBuilder()
-                    .withPrefix(ByteSequence.from(IGINX_NODE_PREFIX.getBytes()))
+                    .withPrefix(ByteSequence.from(IGINX_INFO_NODE_PREFIX.getBytes()))
                     .withPrevKV(true)
                     .build(),
                 new Watch.Listener() {
@@ -210,12 +167,10 @@ public class ETCDMetaStorage implements IMetaStorage {
                               JsonUtils.fromJson(
                                   event.getKeyValue().getValue().getBytes(), IginxMeta.class);
                           LOGGER.info(
-                              "new iginx comes to cluster: id = "
-                                  + iginx.getId()
-                                  + " ,ip = "
-                                  + iginx.getIp()
-                                  + " , port = "
-                                  + iginx.getPort());
+                              "new iginx comes to cluster: id = {} ,ip = {} , port = {}",
+                              iginx.getId(),
+                              iginx.getIp(),
+                              iginx.getPort());
                           ETCDMetaStorage.this.iginxChangeHook.onChange(iginx.getId(), iginx);
                           break;
                         case DELETE:
@@ -223,12 +178,10 @@ public class ETCDMetaStorage implements IMetaStorage {
                               JsonUtils.fromJson(
                                   event.getPrevKV().getValue().getBytes(), IginxMeta.class);
                           LOGGER.info(
-                              "iginx leave from cluster: id = "
-                                  + iginx.getId()
-                                  + " ,ip = "
-                                  + iginx.getIp()
-                                  + " , port = "
-                                  + iginx.getPort());
+                              "iginx leave from cluster: id = {} ,ip = {} , port = {}",
+                              iginx.getId(),
+                              iginx.getIp(),
+                              iginx.getPort());
                           iginxChangeHook.onChange(iginx.getId(), null);
                           break;
                         default:
@@ -269,12 +222,18 @@ public class ETCDMetaStorage implements IMetaStorage {
                               JsonUtils.fromJson(
                                   event.getKeyValue().getValue().getBytes(),
                                   StorageEngineMeta.class);
+                          LOGGER.info("storage engine meta updated {}", storageEngine);
                           storageChangeHook.onChange(storageEngine.getId(), storageEngine);
                           break;
                         case DELETE:
                           storageEngine =
                               JsonUtils.fromJson(
                                   event.getPrevKV().getValue().getBytes(), StorageEngineMeta.class);
+                          LOGGER.info(
+                              "storage engine leave from cluster: id = {} ,ip = {} , port = {}",
+                              storageEngine.getId(),
+                              storageEngine.getIp(),
+                              storageEngine.getPort());
                           storageChangeHook.onChange(storageEngine.getId(), null);
                           break;
                         default:
@@ -624,99 +583,65 @@ public class ETCDMetaStorage implements IMetaStorage {
         .getVersion();
   }
 
-  @Override
-  public Map<String, Map<String, Integer>> loadSchemaMapping() throws MetaStorageException {
+  private void lockIginx() throws MetaStorageException {
     try {
-      Map<String, Map<String, Integer>> schemaMappings = new HashMap<>();
-      GetResponse response =
-          this.client
-              .getKVClient()
-              .get(
-                  ByteSequence.from(SCHEMA_MAPPING_PREFIX.getBytes()),
-                  GetOption.newBuilder()
-                      .withPrefix(ByteSequence.from(SCHEMA_MAPPING_PREFIX.getBytes()))
-                      .build())
-              .get();
-      response
-          .getKvs()
-          .forEach(
-              e -> {
-                String schema =
-                    e.getKey()
-                        .toString(StandardCharsets.UTF_8)
-                        .substring(SCHEMA_MAPPING_PREFIX.length());
-                Map<String, Integer> schemaMapping =
-                    JsonUtils.parseMap(
-                        e.getValue().toString(StandardCharsets.UTF_8), String.class, Integer.class);
-                schemaMappings.put(schema, schemaMapping);
-              });
-      return schemaMappings;
-    } catch (ExecutionException | InterruptedException e) {
-      LOGGER.error("got error when load schema mapping: ", e);
-      throw new MetaStorageException(e);
+      iginxLeaseLock.lock();
+      iginxLease = client.getLeaseClient().grant(MAX_LOCK_TIME).get().getID();
+      client.getLockClient().lock(ByteSequence.from(IGINX_LOCK_NODE.getBytes()), iginxLease);
+    } catch (Exception e) {
+      iginxLeaseLock.unlock();
+      throw new MetaStorageException("acquire iginx mutex error: ", e);
     }
   }
 
-  @Override
-  public void registerSchemaMappingChangeHook(SchemaMappingChangeHook hook) {
-    this.schemaMappingChangeHook = hook;
-  }
-
-  @Override
-  public void updateSchemaMapping(String schema, Map<String, Integer> schemaMapping)
-      throws MetaStorageException {
+  private void releaseIginx() throws MetaStorageException {
     try {
-      if (schemaMapping == null) {
-        this.client
-            .getKVClient()
-            .delete(ByteSequence.from((SCHEMA_MAPPING_PREFIX + schema).getBytes()))
-            .get();
-      } else {
-        this.client
-            .getKVClient()
-            .put(
-                ByteSequence.from((SCHEMA_MAPPING_PREFIX + schema).getBytes()),
-                ByteSequence.from(JsonUtils.toJson(schemaMapping)))
-            .get();
-      }
-    } catch (ExecutionException | InterruptedException e) {
-      LOGGER.error("got error when update schema mapping: ", e);
-      throw new MetaStorageException(e);
+      client.getLockClient().unlock(ByteSequence.from(IGINX_LOCK_NODE.getBytes())).get();
+      client.getLeaseClient().revoke(iginxLease).get();
+      iginxLease = -1L;
+    } catch (Exception e) {
+      throw new MetaStorageException("release iginx error: ", e);
+    } finally {
+      iginxLeaseLock.unlock();
     }
   }
 
   @Override
   public Map<Long, IginxMeta> loadIginx() throws MetaStorageException {
     try {
+      lockIginx();
       Map<Long, IginxMeta> iginxMap = new HashMap<>();
       GetResponse response =
           this.client
               .getKVClient()
               .get(
-                  ByteSequence.from(IGINX_NODE_PREFIX.getBytes()),
+                  ByteSequence.from(IGINX_INFO_NODE_PREFIX.getBytes()),
                   GetOption.newBuilder()
-                      .withPrefix(ByteSequence.from(IGINX_NODE_PREFIX.getBytes()))
+                      .withPrefix(ByteSequence.from(IGINX_INFO_NODE_PREFIX.getBytes()))
                       .build())
               .get();
       response
           .getKvs()
           .forEach(
               e -> {
-                String info = new String(e.getValue().getBytes());
-                System.out.println(info);
                 IginxMeta iginx = JsonUtils.fromJson(e.getValue().getBytes(), IginxMeta.class);
                 iginxMap.put(iginx.getId(), iginx);
               });
       return iginxMap;
     } catch (ExecutionException | InterruptedException e) {
-      LOGGER.error("got error when load schema mapping: ", e);
+      LOGGER.error("got error when load iginx: ", e);
       throw new MetaStorageException(e);
+    } finally {
+      if (iginxLease != -1) {
+        releaseIginx();
+      }
     }
   }
 
   @Override
-  public long registerIginx(IginxMeta iginx) throws MetaStorageException {
+  public IginxMeta registerIginx(IginxMeta iginx) throws MetaStorageException {
     try {
+      lockIginx();
       // 申请一个 id
       long id = nextId(IGINX_ID);
       Lease lease = this.client.getLeaseClient();
@@ -726,7 +651,7 @@ public class ETCDMetaStorage implements IMetaStorage {
           new StreamObserver<LeaseKeepAliveResponse>() {
             @Override
             public void onNext(LeaseKeepAliveResponse leaseKeepAliveResponse) {
-              LOGGER.info("send heart beat to etcd succeed.");
+              LOGGER.debug("send heart beat to etcd succeed.");
             }
 
             @Override
@@ -741,13 +666,18 @@ public class ETCDMetaStorage implements IMetaStorage {
       this.client
           .getKVClient()
           .put(
-              ByteSequence.from(generateID(IGINX_NODE_PREFIX, IGINX_NODE_LENGTH, id).getBytes()),
+              ByteSequence.from(
+                  generateID(IGINX_INFO_NODE_PREFIX, IGINX_NODE_LENGTH, id).getBytes()),
               ByteSequence.from(JsonUtils.toJson(iginx)))
           .get();
-      return id;
+      return iginx;
     } catch (ExecutionException | InterruptedException e) {
       LOGGER.error("got error when register iginx meta: ", e);
       throw new MetaStorageException(e);
+    } finally {
+      if (iginxLease != -1) {
+        releaseIginx();
+      }
     }
   }
 
@@ -832,9 +762,11 @@ public class ETCDMetaStorage implements IMetaStorage {
   }
 
   @Override
-  public long addStorageEngine(StorageEngineMeta storageEngine) throws MetaStorageException {
+  public long addStorageEngine(long iginxId, StorageEngineMeta storageEngine)
+      throws MetaStorageException {
     try {
       lockStorage();
+      lockStorageConnection();
       long id = nextId(STORAGE_ID);
       storageEngine.setId(id);
       this.client
@@ -845,6 +777,36 @@ public class ETCDMetaStorage implements IMetaStorage {
                       .getBytes()),
               ByteSequence.from(JsonUtils.toJson(storageEngine)))
           .get();
+
+      // 记录连接关系
+      String connectionPath =
+          generateID(STORAGE_CONNECTION_NODE_PREFIX, IGINX_NODE_LENGTH, iginxId);
+      GetResponse response =
+          this.client
+              .getKVClient()
+              .get(
+                  ByteSequence.from(connectionPath.getBytes()),
+                  GetOption.newBuilder()
+                      .withPrefix(ByteSequence.from(STORAGE_CONNECTION_NODE_PREFIX.getBytes()))
+                      .build())
+              .get();
+      long[] ids;
+      if (response.getCount() != 1) {
+        ids = new long[1];
+        ids[0] = id;
+      } else {
+        long[] oldIds =
+            JsonUtils.fromJson(response.getKvs().get(0).getValue().getBytes(), long[].class);
+        ids = new long[oldIds.length + 1];
+        System.arraycopy(oldIds, 0, ids, 0, oldIds.length);
+        ids[oldIds.length] = id;
+      }
+      this.client
+          .getKVClient()
+          .put(
+              ByteSequence.from(connectionPath.getBytes()),
+              ByteSequence.from(JsonUtils.toJson(ids)))
+          .get();
       return id;
     } catch (ExecutionException | InterruptedException e) {
       LOGGER.error("got error when add storage: ", e);
@@ -853,20 +815,61 @@ public class ETCDMetaStorage implements IMetaStorage {
       if (storageLease != -1) {
         releaseStorage();
       }
+      if (storageConnectionLease != -1) {
+        releaseStorageConnection();
+      }
     }
   }
 
   @Override
-  public void removeDummyStorageEngine(long storageEngineId) throws MetaStorageException {
+  public void removeDummyStorageEngine(long iginxId, long storageEngineId, boolean forAllIginx)
+      throws MetaStorageException {
     try {
       lockStorage();
-      this.client
-          .getKVClient()
-          .delete(
-              ByteSequence.from(
-                  generateID(
-                          STORAGE_ENGINE_NODE_PREFIX, STORAGE_ENGINE_NODE_LENGTH, storageEngineId)
-                      .getBytes()));
+      lockStorageConnection();
+      if (forAllIginx) {
+        this.client
+            .getKVClient()
+            .delete(
+                ByteSequence.from(
+                    generateID(
+                            STORAGE_ENGINE_NODE_PREFIX, STORAGE_ENGINE_NODE_LENGTH, storageEngineId)
+                        .getBytes()));
+      }
+
+      // 删除连接状态
+      String connectionPath =
+          generateID(STORAGE_CONNECTION_NODE_PREFIX, IGINX_NODE_LENGTH, iginxId);
+      GetResponse response =
+          this.client
+              .getKVClient()
+              .get(
+                  ByteSequence.from(connectionPath.getBytes()),
+                  GetOption.newBuilder()
+                      .withPrefix(ByteSequence.from(STORAGE_CONNECTION_NODE_PREFIX.getBytes()))
+                      .build())
+              .get();
+      if (response.getCount() != 0L) {
+        long[] ids =
+            JsonUtils.fromJson(response.getKvs().get(0).getValue().getBytes(), long[].class);
+        int index = Arrays.binarySearch(ids, storageEngineId);
+        if (index >= 0) {
+          if (ids.length > 1) {
+            long[] newIds = new long[ids.length - 1];
+            System.arraycopy(ids, 0, newIds, 0, index);
+            System.arraycopy(ids, index + 1, newIds, index, ids.length - index - 1);
+            this.client
+                .getKVClient()
+                .put(
+                    ByteSequence.from(connectionPath.getBytes()),
+                    ByteSequence.from(JsonUtils.toJson(newIds)))
+                .get();
+          } else {
+            // iginx 将没有连接的存储节点
+            this.client.getKVClient().delete(ByteSequence.from(connectionPath.getBytes()));
+          }
+        }
+      }
     } catch (Exception e) {
       LOGGER.error("got error when removing dummy storage engine: ", e);
       throw new MetaStorageException(e);
@@ -874,12 +877,273 @@ public class ETCDMetaStorage implements IMetaStorage {
       if (storageLease != -1) {
         releaseStorage();
       }
+      if (storageConnectionLease != -1) {
+        releaseStorageConnection();
+      }
     }
   }
 
   @Override
   public void registerStorageChangeHook(StorageChangeHook hook) {
     this.storageChangeHook = hook;
+  }
+
+  private void lockIginxConnection() throws MetaStorageException {
+    try {
+      iginxConnectionLock.lock();
+      iginxConnectionLease = client.getLeaseClient().grant(MAX_LOCK_TIME).get().getID();
+      client
+          .getLockClient()
+          .lock(ByteSequence.from(IGINX_CONNECTION_LOCK_NODE.getBytes()), iginxConnectionLease);
+    } catch (Exception e) {
+      iginxConnectionLock.unlock();
+      throw new MetaStorageException("acquire iginx connection mutex error: ", e);
+    }
+  }
+
+  private void releaseIginxConnection() throws MetaStorageException {
+    try {
+      client.getLockClient().unlock(ByteSequence.from(IGINX_CONNECTION_LOCK_NODE.getBytes())).get();
+      client.getLeaseClient().revoke(iginxConnectionLease).get();
+      iginxConnectionLease = -1L;
+    } catch (Exception e) {
+      throw new MetaStorageException("release iginx connection error: ", e);
+    } finally {
+      iginxConnectionLock.unlock();
+    }
+  }
+
+  @Override
+  public void refreshAchievableIginx(IginxMeta iginx) throws MetaStorageException {
+    try {
+      lockIginx();
+      lockIginxConnection();
+      List<Long> achievableIds = new ArrayList<>();
+      GetResponse response =
+          this.client
+              .getKVClient()
+              .get(
+                  ByteSequence.from(IGINX_INFO_NODE_PREFIX.getBytes()),
+                  GetOption.newBuilder()
+                      .withPrefix(ByteSequence.from(IGINX_INFO_NODE_PREFIX.getBytes()))
+                      .build())
+              .get();
+      response
+          .getKvs()
+          .forEach(
+              e -> {
+                IginxMeta iginxMeta = JsonUtils.fromJson(e.getValue().getBytes(), IginxMeta.class);
+                if (iginx.getIp().equals(iginxMeta.getIp())
+                    && iginx.getPort() == iginxMeta.getPort()) {
+                  return;
+                }
+                // 尝试与集群中其他iginx建立连接
+                Session session = new Session(iginxMeta.iginxMetaInfo());
+                try {
+                  session.openSession();
+                  LOGGER.info(
+                      "connect to iginx(id = {} ,ip = {} , port = {})",
+                      iginxMeta.getId(),
+                      iginxMeta.getIp(),
+                      iginxMeta.getPort());
+                  achievableIds.add(iginxMeta.getId());
+                  session.closeSession();
+                } catch (SessionException exception) {
+                  LOGGER.info(
+                      "open session of iginx(id = {} ,ip = {} , port = {}) failed, because: ",
+                      iginxMeta.getId(),
+                      iginxMeta.getIp(),
+                      iginxMeta.getPort(),
+                      exception);
+                }
+              });
+
+      long[] ids = achievableIds.stream().mapToLong(Long::longValue).toArray();
+      this.client
+          .getKVClient()
+          .put(
+              ByteSequence.from(
+                  generateID(IGINX_CONNECTION_NODE_PREFIX, IGINX_NODE_LENGTH, iginx.getId())
+                      .getBytes()),
+              ByteSequence.from(JsonUtils.toJson(ids)))
+          .get();
+    } catch (ExecutionException | InterruptedException e) {
+      LOGGER.error("got error when connect to other iginx: ", e);
+      throw new MetaStorageException(e);
+    } finally {
+      if (iginxLease != -1) {
+        releaseIginx();
+      }
+      if (iginxConnectionLease != -1) {
+        releaseIginxConnection();
+      }
+    }
+  }
+
+  @Override
+  public Map<Long, Set<Long>> refreshClusterIginxConnectivity() throws MetaStorageException {
+    try {
+      lockIginxConnection();
+      Map<Long, Set<Long>> connectionMap = new HashMap<>();
+      GetResponse response =
+          this.client
+              .getKVClient()
+              .get(
+                  ByteSequence.from(IGINX_CONNECTION_NODE_PREFIX.getBytes()),
+                  GetOption.newBuilder()
+                      .withPrefix(ByteSequence.from(IGINX_CONNECTION_NODE_PREFIX.getBytes()))
+                      .build())
+              .get();
+      response
+          .getKvs()
+          .forEach(
+              e -> {
+                String keyName = e.getKey().toString(StandardCharsets.UTF_8);
+                long fromId =
+                    Long.parseLong(keyName.substring(IGINX_CONNECTION_NODE_PREFIX.length()));
+                long[] toIds = JsonUtils.fromJson(e.getValue().getBytes(), long[].class);
+                for (long toId : toIds) {
+                  connectionMap.computeIfAbsent(fromId, k -> new HashSet<>()).add(toId);
+                }
+              });
+      return connectionMap;
+    } catch (Exception e) {
+      throw new MetaStorageException("get error when update cluster storage connections", e);
+    } finally {
+      if (iginxConnectionLease != -1) {
+        releaseIginxConnection();
+      }
+    }
+  }
+
+  private void lockStorageConnection() throws MetaStorageException {
+    try {
+      storageConnectionLock.lock();
+      storageConnectionLease = client.getLeaseClient().grant(MAX_LOCK_TIME).get().getID();
+      client
+          .getLockClient()
+          .lock(ByteSequence.from(STORAGE_CONNECTION_LOCK_NODE.getBytes()), storageConnectionLease);
+    } catch (Exception e) {
+      storageConnectionLock.unlock();
+      throw new MetaStorageException("acquire storage connection mutex error: ", e);
+    }
+  }
+
+  private void releaseStorageConnection() throws MetaStorageException {
+    try {
+      client
+          .getLockClient()
+          .unlock(ByteSequence.from(STORAGE_CONNECTION_LOCK_NODE.getBytes()))
+          .get();
+      client.getLeaseClient().revoke(storageConnectionLease).get();
+      storageConnectionLease = -1L;
+    } catch (Exception e) {
+      throw new MetaStorageException("release storage connection error: ", e);
+    } finally {
+      storageConnectionLock.unlock();
+    }
+  }
+
+  @Override
+  public void addStorageConnection(long iginxId, List<StorageEngineMeta> storageEngines)
+      throws MetaStorageException {
+    try {
+      lockStorage();
+      lockStorageConnection();
+      for (StorageEngineMeta storageEngine : storageEngines) {
+        GetResponse response =
+            this.client
+                .getKVClient()
+                .get(
+                    ByteSequence.from(
+                        generateID(
+                                STORAGE_ENGINE_NODE_PREFIX,
+                                STORAGE_ENGINE_NODE_LENGTH,
+                                storageEngine.getId())
+                            .getBytes()))
+                .get();
+        if (response.getCount() != 1) {
+          LOGGER.error("storage engine {} does not exist", storageEngine.getId());
+          return;
+        } else {
+          LOGGER.info("connect to storage engine {} ", storageEngine);
+        }
+      }
+      // 记录连接关系
+      String connectionPath =
+          generateID(STORAGE_CONNECTION_NODE_PREFIX, IGINX_NODE_LENGTH, iginxId);
+      GetResponse response =
+          this.client
+              .getKVClient()
+              .get(
+                  ByteSequence.from(connectionPath.getBytes()),
+                  GetOption.newBuilder()
+                      .withPrefix(ByteSequence.from(STORAGE_CONNECTION_NODE_PREFIX.getBytes()))
+                      .build())
+              .get();
+      long[] ids, oldIds;
+      if (response.getCount() != 1) {
+        oldIds = new long[0];
+      } else {
+        oldIds = JsonUtils.fromJson(response.getKvs().get(0).getValue().getBytes(), long[].class);
+      }
+      ids = new long[oldIds.length + storageEngines.size()];
+      System.arraycopy(oldIds, 0, ids, 0, oldIds.length);
+      for (int i = 0; i < storageEngines.size(); i++) {
+        ids[oldIds.length + i] = storageEngines.get(i).getId();
+      }
+      this.client
+          .getKVClient()
+          .put(
+              ByteSequence.from(connectionPath.getBytes()),
+              ByteSequence.from(JsonUtils.toJson(ids)))
+          .get();
+    } catch (Exception e) {
+      throw new MetaStorageException("get error when add storage connection", e);
+    } finally {
+      if (storageLease != -1) {
+        releaseStorage();
+      }
+      if (storageConnectionLease != -1) {
+        releaseStorageConnection();
+      }
+    }
+  }
+
+  @Override
+  public Map<Long, Set<Long>> refreshClusterStorageConnections() throws MetaStorageException {
+    try {
+      lockStorageConnection();
+      Map<Long, Set<Long>> connectionMap = new HashMap<>();
+      GetResponse response =
+          this.client
+              .getKVClient()
+              .get(
+                  ByteSequence.from(STORAGE_CONNECTION_NODE_PREFIX.getBytes()),
+                  GetOption.newBuilder()
+                      .withPrefix(ByteSequence.from(STORAGE_CONNECTION_NODE_PREFIX.getBytes()))
+                      .build())
+              .get();
+      response
+          .getKvs()
+          .forEach(
+              e -> {
+                String keyName = e.getKey().toString(StandardCharsets.UTF_8);
+                long fromId =
+                    Long.parseLong(keyName.substring(STORAGE_CONNECTION_NODE_PREFIX.length()));
+                long[] toIds = JsonUtils.fromJson(e.getValue().getBytes(), long[].class);
+                for (long toId : toIds) {
+                  connectionMap.computeIfAbsent(fromId, k -> new HashSet<>()).add(toId);
+                }
+              });
+      return connectionMap;
+    } catch (Exception e) {
+      throw new MetaStorageException("get error when update cluster storage connections", e);
+    } finally {
+      if (storageConnectionLease != -1) {
+        releaseStorageConnection();
+      }
+    }
   }
 
   @Override
@@ -904,9 +1168,8 @@ public class ETCDMetaStorage implements IMetaStorage {
           StorageUnitMeta masterStorageUnit = storageUnitMap.get(storageUnit.getMasterId());
           if (masterStorageUnit == null) { // 子节点先于主节点加入系统中，不应该发生，报错
             LOGGER.error(
-                "unexpected storage unit "
-                    + new String(kv.getValue().getBytes())
-                    + ", because it does not has a master storage unit");
+                "unexpected storage unit {}, because it does not has a master storage unit",
+                new String(kv.getValue().getBytes()));
           } else {
             masterStorageUnit.addReplica(storageUnit);
           }
@@ -2470,9 +2733,6 @@ public class ETCDMetaStorage implements IMetaStorage {
   }
 
   public void close() throws MetaStorageException {
-    this.schemaMappingWatcher.close();
-    this.schemaMappingWatcher = null;
-
     this.iginxWatcher.close();
     this.iginxWatcher = null;
 
