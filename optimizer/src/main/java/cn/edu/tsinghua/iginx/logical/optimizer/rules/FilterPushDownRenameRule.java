@@ -79,13 +79,13 @@ public class FilterPushDownRenameRule extends Rule {
 
           @Override
           public void visit(ValueFilter filter) {
-            filter.setPath(PathUtils.recoverRenamedPattern(renameMap, filter.getPath()));
+            filter.setPath(PathUtils.recoverRenamedPattern(renameMap, filter.getPath()).get(0));
           }
 
           @Override
           public void visit(PathFilter filter) {
-            filter.setPathA(PathUtils.recoverRenamedPattern(renameMap, filter.getPathA()));
-            filter.setPathB(PathUtils.recoverRenamedPattern(renameMap, filter.getPathB()));
+            filter.setPathA(PathUtils.recoverRenamedPattern(renameMap, filter.getPathA()).get(0));
+            filter.setPathB(PathUtils.recoverRenamedPattern(renameMap, filter.getPathB()).get(0));
           }
 
           @Override
@@ -99,7 +99,7 @@ public class FilterPushDownRenameRule extends Rule {
 
           @Override
           public void visit(InFilter inFilter) {
-            inFilter.setPath(PathUtils.recoverRenamedPattern(renameMap, inFilter.getPath()));
+            inFilter.setPath(PathUtils.recoverRenamedPattern(renameMap, inFilter.getPath()).get(0));
           }
         });
 
@@ -113,7 +113,7 @@ public class FilterPushDownRenameRule extends Rule {
           @Override
           public void visit(BaseExpression expression) {
             expression.setPathName(
-                PathUtils.recoverRenamedPattern(renameMap, expression.getPathName()));
+                PathUtils.recoverRenamedPattern(renameMap, expression.getPathName()).get(0));
           }
 
           @Override
