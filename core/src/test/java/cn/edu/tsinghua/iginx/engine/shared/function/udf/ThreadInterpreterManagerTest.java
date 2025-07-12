@@ -95,6 +95,8 @@ public class ThreadInterpreterManagerTest {
       } else {
         LOGGER.error("Failed to detect timeout and terminated the thread.", e);
       }
+    } finally {
+      ThreadInterpreterManager.getInterpreter().close();
     }
 
     try {
@@ -108,6 +110,8 @@ public class ThreadInterpreterManagerTest {
         LOGGER.error(e.getMessage());
         LOGGER.error("Failed to detect timeout and terminated the thread.", e);
       }
+    } finally {
+      ThreadInterpreterManager.getInterpreter().close();
     }
 
     try {
@@ -121,6 +125,8 @@ public class ThreadInterpreterManagerTest {
         LOGGER.error(e.getMessage());
         LOGGER.error("Failed to detect timeout and terminated the thread.", e);
       }
+    } finally {
+      ThreadInterpreterManager.getInterpreter().close();
     }
   }
 }
