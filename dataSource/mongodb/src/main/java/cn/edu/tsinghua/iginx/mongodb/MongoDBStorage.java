@@ -52,6 +52,7 @@ import cn.edu.tsinghua.iginx.mongodb.tools.TypeUtils;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.utils.Pair;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.mongodb.*;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
@@ -60,7 +61,7 @@ import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.*;
 import java.text.ParseException;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.stream.Collectors;
 import org.bson.BsonDocument;
 import org.bson.BsonInt64;
@@ -88,6 +89,10 @@ public class MongoDBStorage implements IStorage {
 
   private final int schemaSampleSize;
   private final int querySampleSize;
+
+  private final ExecutorService executor =
+      Executors.newCachedThreadPool(
+          new ThreadFactoryBuilder().setNameFormat("MongoDBStorage-%d").build());
 
   public MongoDBStorage(StorageEngineMeta meta) throws StorageInitializationException {
     if (!meta.getStorageEngine().equals(StorageEngineType.mongodb)) {
@@ -362,39 +367,56 @@ public class MongoDBStorage implements IStorage {
     if (patternList.isEmpty()) {
       patternList.add("*");
     }
-    List<Column> columns = new ArrayList<>();
+
+    List<Future<List<Column>>> futures = new ArrayList<>();
+
     for (String dbName : getDatabaseNames(this.client)) {
       MongoDatabase db = this.client.getDatabase(dbName);
       for (String collectionName : db.listCollectionNames()) {
-        try {
-          if (dbName.startsWith("unit")) {
-            Field field = NameUtils.parseCollectionName(collectionName);
-            if (NameUtils.match(field.getName(), field.getTags(), patternList, tagFilter)) {
-              columns.add(new Column(field.getName(), field.getType(), field.getTags(), false));
-            }
-            continue;
-          }
-        } catch (Exception ignored) {
-        }
-
-        if (schemaSampleSize > 0) {
-          MongoCollection<BsonDocument> collection =
-              db.getCollection(collectionName, BsonDocument.class);
-          Map<String, DataType> sampleSchema =
-              new SchemaSample(schemaSampleSize).query(collection, true);
-          for (Map.Entry<String, DataType> entry : sampleSchema.entrySet()) {
-            if (NameUtils.match(entry.getKey(), Collections.emptyMap(), patternList, null)) {
-              columns.add(new Column(entry.getKey(), entry.getValue(), null, true));
-            }
-          }
-          continue;
-        }
-
-        String namespace = dbName + "." + collectionName;
-        columns.add(new Column(namespace + ".*", DataType.BINARY, null, true));
+        Future<List<Column>> future =
+            this.executor.submit(
+                () -> {
+                  List<Column> columns = new ArrayList<>();
+                  if (dbName.startsWith("unit")) {
+                    try {
+                      Field field = NameUtils.parseCollectionName(collectionName);
+                      if (NameUtils.match(
+                          field.getName(), field.getTags(), patternList, tagFilter)) {
+                        columns.add(
+                            new Column(field.getName(), field.getType(), field.getTags(), false));
+                      }
+                    } catch (Exception ignored) {
+                    }
+                  } else if (schemaSampleSize > 0) {
+                    MongoCollection<BsonDocument> collection =
+                        db.getCollection(collectionName, BsonDocument.class);
+                    Map<String, DataType> sampleSchema =
+                        new SchemaSample(schemaSampleSize).query(collection, true);
+                    for (Map.Entry<String, DataType> entry : sampleSchema.entrySet()) {
+                      if (NameUtils.match(
+                          entry.getKey(), Collections.emptyMap(), patternList, null)) {
+                        columns.add(new Column(entry.getKey(), entry.getValue(), null, true));
+                      }
+                    }
+                  } else {
+                    String namespace = dbName + "." + collectionName;
+                    columns.add(new Column(namespace + ".*", DataType.BINARY, null, true));
+                  }
+                  return columns;
+                });
+        futures.add(future);
       }
     }
-    return columns;
+
+    List<Column> targetColumns = new ArrayList<>();
+    try {
+      for (Future<List<Column>> future : futures) {
+        targetColumns.addAll(future.get());
+      }
+    } catch (InterruptedException | ExecutionException e) {
+      throw new IllegalStateException(e);
+    }
+    return targetColumns;
   }
 
   public static List<String> getDatabaseNames(MongoClient client) {

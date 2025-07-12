@@ -50,11 +50,11 @@ import cn.edu.tsinghua.iginx.monitor.HotSpotMonitor;
 import cn.edu.tsinghua.iginx.monitor.RequestsMonitor;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.JdkFutureAdapters;
+import com.google.common.util.concurrent.ListenableFuture;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.*;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -309,46 +309,59 @@ public class StoragePhysicalTaskExecutor {
     }
   }
 
+  private List<Column> getColumnsFromStorage(
+      ShowColumns showColumns, StorageEngineMeta meta, IStorage storage) throws PhysicalException {
+    Set<String> patterns = showColumns.getPathRegexSet();
+    String schemaPrefix = meta.getSchemaPrefix();
+    // schemaPrefix是在IGinX中定义的，数据源的路径中没有该前缀，因此需要剪掉patterns中前缀是schemaPrefix的部分
+    patterns = StringUtils.cutSchemaPrefix(schemaPrefix, patterns);
+    if (patterns.isEmpty()) {
+      return Collections.emptyList();
+    }
+    // 求patterns与dataPrefix的交集
+    patterns = StringUtils.intersectDataPrefix(meta.getDataPrefix(), patterns);
+    if (patterns.isEmpty()) {
+      return Collections.emptyList();
+    }
+    if (patterns.contains("*")) {
+      patterns = Collections.emptySet();
+    }
+    List<Column> columnList = storage.getColumns(patterns, showColumns.getTagFilter());
+
+    // 列名前加上schemaPrefix
+    if (schemaPrefix != null) {
+      columnList.forEach(
+          column -> {
+            column.setPath(schemaPrefix + "." + column.getPath());
+          });
+    }
+    return columnList;
+  }
+
   public TaskExecuteResult executeShowColumns(ShowColumns showColumns) {
     List<StorageEngineMeta> storageList = metaManager.getStorageEngineList();
     TreeSet<Column> targetColumns = new TreeSet<>(Comparator.comparing(Column::getPhysicalPath));
+
+    List<Future<List<Column>>> futures = new ArrayList<>();
     for (StorageEngineMeta storage : storageList) {
       long id = storage.getId();
       Pair<IStorage, ThreadPoolExecutor> pair = storageManager.getStorage(id);
       if (pair == null) {
         continue;
       }
-      try {
-        Set<String> patterns = showColumns.getPathRegexSet();
-        String schemaPrefix = storage.getSchemaPrefix();
-        // schemaPrefix是在IGinX中定义的，数据源的路径中没有该前缀，因此需要剪掉patterns中前缀是schemaPrefix的部分
-        patterns = StringUtils.cutSchemaPrefix(schemaPrefix, patterns);
-        if (patterns.isEmpty()) {
-          continue;
-        }
-        // 求patterns与dataPrefix的交集
-        patterns = StringUtils.intersectDataPrefix(storage.getDataPrefix(), patterns);
-        if (patterns.isEmpty()) {
-          continue;
-        }
-        if (patterns.contains("*")) {
-          patterns = Collections.emptySet();
-        }
-        List<Column> columnList = pair.k.getColumns(patterns, showColumns.getTagFilter());
+      futures.add(pair.v.submit(() -> getColumnsFromStorage(showColumns, storage, pair.k)));
+    }
 
-        // 列名前加上schemaPrefix
-        if (schemaPrefix != null) {
-          columnList.forEach(
-              column -> {
-                column.setPath(schemaPrefix + "." + column.getPath());
-                targetColumns.add(column);
-              });
-        } else {
-          targetColumns.addAll(columnList);
-        }
-      } catch (PhysicalException e) {
-        return new TaskExecuteResult(e);
+    // Collect results from all futures
+    List<ListenableFuture<List<Column>>> listenableFutures =
+        futures.stream().map(JdkFutureAdapters::listenInPoolThread).collect(Collectors.toList());
+    try {
+      List<List<Column>> results = Futures.allAsList(listenableFutures).get();
+      for (List<Column> columnList : results) {
+        targetColumns.addAll(columnList);
       }
+    } catch (InterruptedException | ExecutionException e) {
+      return new TaskExecuteResult(new PhysicalException(e));
     }
 
     int limit = showColumns.getLimit();

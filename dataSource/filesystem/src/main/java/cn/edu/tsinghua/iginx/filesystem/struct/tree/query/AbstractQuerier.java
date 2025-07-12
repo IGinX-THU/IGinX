@@ -21,6 +21,7 @@ package cn.edu.tsinghua.iginx.filesystem.struct.tree.query;
 
 import cn.edu.tsinghua.iginx.filesystem.struct.DataTarget;
 import java.nio.file.Path;
+import java.util.concurrent.ExecutorService;
 import lombok.Getter;
 
 @Getter
@@ -29,15 +30,17 @@ public abstract class AbstractQuerier implements Querier {
   private final Path path;
   private final String prefix;
   private final DataTarget target;
+  private final ExecutorService executor;
 
   protected AbstractQuerier() {
-    this(null, null, null);
+    this(null, null, null, null);
   }
 
-  protected AbstractQuerier(Path path, String prefix, DataTarget target) {
+  protected AbstractQuerier(Path path, String prefix, DataTarget target, ExecutorService executor) {
     this.path = path;
     this.prefix = prefix;
     this.target = target;
+    this.executor = executor;
   }
 
   @Override

@@ -22,15 +22,18 @@ package cn.edu.tsinghua.iginx.filesystem.struct.tree.query;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
-import cn.edu.tsinghua.iginx.filesystem.common.Closeables;
 import cn.edu.tsinghua.iginx.filesystem.common.Filters;
 import cn.edu.tsinghua.iginx.filesystem.common.RowStreams;
 import cn.edu.tsinghua.iginx.filesystem.common.Strings;
-import com.google.common.collect.Iterables;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 public class Queriers {
   private Queriers() {}
@@ -45,7 +48,7 @@ public class Queriers {
     }
 
     @Override
-    public List<RowStream> query() throws IOException {
+    public List<Future<RowStream>> query() {
       return Collections.emptyList();
     }
   }
@@ -80,11 +83,42 @@ public class Queriers {
     }
 
     @Override
-    public List<RowStream> query() throws IOException {
-      List<RowStream> rowStreams = querier.query();
-      assert rowStreams.size() == 1;
-      return Collections.singletonList(RowStreams.filtered(rowStreams.get(0), filter));
+    public List<Future<RowStream>> query() {
+      List<Future<RowStream>> rowStreams = querier.query();
+      Future<RowStream> union = union(rowStreams);
+      Future<RowStream> filtered = filtered(union, filter);
+      return Collections.singletonList(filtered);
     }
+  }
+
+  public static Future<RowStream> filtered(Future<RowStream> rowStream, Filter filter) {
+    return new Future<RowStream>() {
+      @Override
+      public boolean cancel(boolean mayInterruptIfRunning) {
+        return rowStream.cancel(mayInterruptIfRunning);
+      }
+
+      @Override
+      public boolean isCancelled() {
+        return rowStream.isCancelled();
+      }
+
+      @Override
+      public boolean isDone() {
+        return rowStream.isDone();
+      }
+
+      @Override
+      public RowStream get() throws InterruptedException, ExecutionException {
+        return RowStreams.filtered(rowStream.get(), filter);
+      }
+
+      @Override
+      public RowStream get(long timeout, TimeUnit unit)
+          throws InterruptedException, ExecutionException, TimeoutException {
+        return RowStreams.filtered(rowStream.get(timeout, unit), filter);
+      }
+    };
   }
 
   public static Querier filtered(Querier querier, Filter filter) {
@@ -112,18 +146,106 @@ public class Queriers {
     }
 
     @Override
-    public List<RowStream> query() throws IOException {
-      List<RowStream> rowStreams = querier.query();
-      try {
-        return Collections.singletonList(RowStreams.union(rowStreams));
-      } catch (PhysicalException e) {
-        Closeables.close(Iterables.transform(rowStreams, Closeables::closeAsIOException));
-        throw new IOException(e);
-      }
+    public List<Future<RowStream>> query() {
+      List<Future<RowStream>> rowStreams = querier.query();
+      Future<RowStream> result = union(rowStreams);
+      return Collections.singletonList(result);
     }
   }
 
   public static Querier union(Querier querier) {
     return new UnionQuerier(querier);
+  }
+
+  private interface FutureGetter<T> {
+    T get(Future<T> future) throws InterruptedException, ExecutionException, TimeoutException;
+  }
+
+  public static Future<RowStream> union(List<Future<RowStream>> rowStreams) {
+    return new Future<RowStream>() {
+      @Override
+      public boolean cancel(boolean mayInterruptIfRunning) {
+        return rowStreams.stream()
+            .map(f -> f.cancel(mayInterruptIfRunning))
+            .reduce((a, b) -> a && b)
+            .orElse(true);
+      }
+
+      @Override
+      public boolean isCancelled() {
+        return rowStreams.stream().map(Future::isCancelled).reduce((a, b) -> a && b).orElse(true);
+      }
+
+      @Override
+      public boolean isDone() {
+        return rowStreams.stream().map(Future::isDone).reduce((a, b) -> a && b).orElse(true);
+      }
+
+      @Override
+      public RowStream get() throws InterruptedException, ExecutionException {
+        try {
+          return getRowStream(rowStreams, Future::get);
+        } catch (TimeoutException e) {
+          // This should never happen as we don't use a timeout
+          throw new ExecutionException(e);
+        }
+      }
+
+      @Override
+      public RowStream get(long timeout, TimeUnit unit)
+          throws InterruptedException, ExecutionException, TimeoutException {
+        return getRowStream(rowStreams, future -> future.get(timeout, unit));
+      }
+
+      private RowStream getRowStream(
+          List<Future<RowStream>> futures, FutureGetter<RowStream> getter)
+          throws InterruptedException, ExecutionException, TimeoutException {
+        List<RowStream> streams = new ArrayList<>();
+        Exception exception = null;
+
+        for (Future<RowStream> rowStream : futures) {
+          try {
+            streams.add(getter.get(rowStream));
+          } catch (ExecutionException | InterruptedException | TimeoutException e) {
+            if (exception == null) {
+              exception = e;
+            } else {
+              exception.addSuppressed(e);
+            }
+          }
+        }
+
+        try {
+          if (exception != null) {
+            if (exception instanceof ExecutionException) {
+              throw (ExecutionException) exception;
+            } else if (exception instanceof InterruptedException) {
+              throw (InterruptedException) exception;
+            } else {
+              throw (TimeoutException) exception;
+            }
+          }
+          return RowStreams.union(streams);
+        } catch (PhysicalException
+            | ExecutionException
+            | InterruptedException
+            | TimeoutException e) {
+          try {
+            RowStreams.close(streams);
+          } catch (PhysicalException ex) {
+            e.addSuppressed(ex);
+          }
+          if (e instanceof PhysicalException) {
+            throw new ExecutionException(e);
+          } else if (e instanceof ExecutionException) {
+            throw (ExecutionException) e;
+          } else if (e instanceof InterruptedException) {
+            throw (InterruptedException) e;
+          } else {
+            throw (TimeoutException) e;
+          }
+        }
+      }
+    };
   }
 }
