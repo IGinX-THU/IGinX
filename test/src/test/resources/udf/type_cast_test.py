@@ -15,26 +15,25 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
- 
-import pandas as pd
-import numpy as np
 
+class TypeCastTest():
+    """
+    测试用的UDF
+    """
+    def transform(self, data, args, kvargs):
+        res = self.buildHeader(data)
+        values = [
+            [1, 23372, 567, 1, 9999],
+            [0.5, 2.71828, 9.876, 2.5, 3.1415926535],
+            [True, False, True, False, True],
+            ["b", "-453625", "5.327", "false", "aaa"]
+        ]
+        res.extend(values)
+        return res
 
-class RowSumTransformer:
-    def __init__(self):
-        pass
-
-    def transform(self, rows):
-        df = pd.DataFrame(rows[1:], columns=rows[0])
-        ret = np.zeros((df.shape[0], 2), dtype=np.int32)
-        for index, row in df.iterrows():
-            row_sum = 0
-            for num in row[1:]:
-                row_sum += num
-            ret[index][0] = row.iloc[0]
-            ret[index][1] = row_sum
-
-        df = pd.DataFrame(ret, columns=['key', 'sum'])
-        ret = df.values.tolist()
-        ret.insert(0, df.keys().values.tolist())
-        return ret
+    def buildHeader(self, data):
+        colNames = []
+        colTypes = ["INTEGER", "LONG", "DOUBLE", "BOOLEAN", "BINARY"]
+        for colType in colTypes:
+            colNames.append("typeCastTest(us.d1." + colType + ")")
+        return [colNames, colTypes]

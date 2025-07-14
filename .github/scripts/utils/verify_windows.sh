@@ -1,3 +1,4 @@
+#!/bin/bash
 #
 # IGinX - the polystore system with high performance
 # Copyright (C) Tsinghua University
@@ -15,26 +16,24 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
- 
-import pandas as pd
-import numpy as np
 
+dbName=$1
+port=$2
+timeout=${3:-30}
+interval=2
+elapsed_time=0
 
-class RowSumTransformer:
-    def __init__(self):
-        pass
+echo "Waiting for $dbName to listen on port $port..."
 
-    def transform(self, rows):
-        df = pd.DataFrame(rows[1:], columns=rows[0])
-        ret = np.zeros((df.shape[0], 2), dtype=np.int32)
-        for index, row in df.iterrows():
-            row_sum = 0
-            for num in row[1:]:
-                row_sum += num
-            ret[index][0] = row.iloc[0]
-            ret[index][1] = row_sum
+while [ $elapsed_time -lt $timeout ]; do
+  if netstat -an | findstr ":$port" | findstr LISTENING >nul; then
+      echo "$dbName is listening on port $port"
+      exit 0
+  fi
+  echo "Waiting... (${elapsed_time}s used)"
+  sleep $interval
+  elapsed_time=$((elapsed_time + interval))
+done
 
-        df = pd.DataFrame(ret, columns=['key', 'sum'])
-        ret = df.values.tolist()
-        ret.insert(0, df.keys().values.tolist())
-        return ret
+echo "$dbName failed to start on port $port within ${timeout}s"
+exit 1

@@ -559,7 +559,7 @@ public class RelationalStorage implements IStorage {
 
   @Override
   public boolean isSupportProjectWithSelect() {
-    return relationalMeta.jdbcSupportGetTableNameFromResultSet();
+    return true;
   }
 
   @Override
@@ -1390,9 +1390,6 @@ public class RelationalStorage implements IStorage {
 
   @Override
   public boolean isSupportProjectWithAgg(Operator agg, DataArea dataArea, boolean isDummy) {
-    if (!relationalMeta.jdbcSupportGetTableNameFromResultSet()) {
-      return false;
-    }
     if (agg.getType() != OperatorType.GroupBy && agg.getType() != OperatorType.SetTransform) {
       return false;
     }
@@ -1513,7 +1510,9 @@ public class RelationalStorage implements IStorage {
       String statement =
           getProjectWithFilterSQL(
               databaseName, select.getFilter().copy(), tableNameToColumnNames, true);
-      statement = statement.substring(0, statement.length() - 1); // 去掉最后的分号
+      if (statement.endsWith(";")) {
+        statement = statement.substring(0, statement.length() - 1); // 去掉最后的分号
+      }
       Map<String, String> fullName2Name = new HashMap<>();
       statement =
           generateAggSql(
@@ -1624,14 +1623,13 @@ public class RelationalStorage implements IStorage {
         String format = "%s(%s)";
         // 如果是avg函数，且参数是base类型，在mysql下小数位数仅有5位，需要转换为decimal来补齐
         // 仅在mysql下这么做，pg也可以用，但会出现一些误差，例如3.200000和3.1999999的区别，测试不好通过
-        if (functionName.equalsIgnoreCase(Avg.AVG)
-            && param.getType() == Expression.ExpressionType.Base) {
+        if (functionName.equalsIgnoreCase(Avg.AVG)) {
           format = dbStrategy.getAvgCastExpression(param);
         }
         expr = reshapeExpressionColumnNameBeforeQuery(ExprUtils.copy(expr), databaseName, isDummy);
         sqlColumnsStr.append(
             String.format(
-                format, functionName, exprAdapt(ExprUtils.copy(expr)).getCalColumnName()));
+                format, functionName, getJdbcExpressionString(exprAdapt(ExprUtils.copy(expr)))));
         sqlColumnsStr.append(" AS ");
         sqlColumnsStr.append(quote).append(IGinXTagKVName).append(quote);
         sqlColumnsStr.append(", ");
@@ -1645,27 +1643,40 @@ public class RelationalStorage implements IStorage {
           reshapeExpressionColumnNameBeforeQuery(ExprUtils.copy(gbc.get(i)), databaseName, isDummy);
       gbc.set(i, expr);
       sqlColumnsStr
-          .append(exprAdapt(ExprUtils.copy(expr)).getCalColumnName())
+          .append(getJdbcExpressionString(exprAdapt(ExprUtils.copy(expr))))
           .append(" AS ")
           .append(originColumnStr)
           .append(", ");
     }
     sqlColumnsStr.delete(sqlColumnsStr.length() - 2, sqlColumnsStr.length());
 
-    statement = "SELECT " + sqlColumnsStr + " FROM (" + statement + ") AS derived";
+    statement = "SELECT " + sqlColumnsStr + " FROM (" + statement + ") derived";
     if (!gbc.isEmpty()) {
       statement +=
           " GROUP BY "
               + gbc.stream()
-                  .map(e -> exprAdapt(ExprUtils.copy(e)).getCalColumnName())
+                  .map(e -> getJdbcExpressionString(exprAdapt(ExprUtils.copy(e))))
                   .collect(Collectors.joining(", "));
     }
-    statement += ";";
     gbc.replaceAll(
         expression ->
             reshapeExpressionColumnNameAfterQuery(
                 ExprUtils.copy(expression), databaseName, isDummy));
     return statement;
+  }
+
+  private String getJdbcExpressionString(Expression expr) {
+    if (expr instanceof BinaryExpression) {
+      BinaryExpression binaryExpr = (BinaryExpression) expr;
+      cn.edu.tsinghua.iginx.engine.shared.expr.Operator op = binaryExpr.getOp();
+      if (op == cn.edu.tsinghua.iginx.engine.shared.expr.Operator.MOD) {
+        return String.format(
+            "MOD(%s, %s)",
+            getJdbcExpressionString(binaryExpr.getLeftExpression()),
+            getJdbcExpressionString(binaryExpr.getRightExpression()));
+      }
+    }
+    return expr.getCalColumnName();
   }
 
   private Expression reshapeExpressionColumnNameBeforeQuery(

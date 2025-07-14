@@ -37,6 +37,9 @@ if NOT DEFINED JAVA_HOME goto :err
 set JAVA_OPTS=-ea^
  -DIGINX_CLI_HOME="%IGINX_CLI_HOME%"
 
+chcp 65001
+set JAVA_OPTS=%JAVA_OPTS% -Dfile.encoding=UTF-8
+
 REM For each jar in the IGINX_CLI_HOME lib directory call append to build the CLASSPATH variable.
 set CLASSPATH="%IGINX_CLI_HOME%\lib\*"
 
