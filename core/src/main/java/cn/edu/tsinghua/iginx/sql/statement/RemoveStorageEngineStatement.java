@@ -32,6 +32,8 @@ public class RemoveStorageEngineStatement extends SystemStatement {
 
   private List<RemovedStorageEngineInfo> storageEngineList;
 
+  private boolean isForAllIginx;
+
   public List<RemovedStorageEngineInfo> getStorageEngineList() {
     return storageEngineList;
   }
@@ -44,6 +46,14 @@ public class RemoveStorageEngineStatement extends SystemStatement {
     this.storageEngineList.add(storageEngine);
   }
 
+  public boolean isForAllIginx() {
+    return isForAllIginx;
+  }
+
+  public void setForAllIginx(boolean isForAllIginx) {
+    this.isForAllIginx = isForAllIginx;
+  }
+
   public RemoveStorageEngineStatement() {
     storageEngineList = new ArrayList<>();
     this.statementType = StatementType.REMOVE_HISTORY_DATA_SOURCE;
@@ -52,7 +62,8 @@ public class RemoveStorageEngineStatement extends SystemStatement {
   @Override
   public void execute(RequestContext ctx) throws StatementExecutionException {
     IginxWorker worker = IginxWorker.getInstance();
-    RemoveStorageEngineReq req = new RemoveStorageEngineReq(ctx.getSessionId(), storageEngineList);
+    RemoveStorageEngineReq req =
+        new RemoveStorageEngineReq(ctx.getSessionId(), storageEngineList, isForAllIginx);
     ctx.setResult(new Result(worker.removeStorageEngine(req)));
   }
 }
