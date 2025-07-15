@@ -66,6 +66,7 @@ public class ConfigDescriptor {
         udfPath = String.join(File.separator, iginxHomePath, udfPath);
       }
       config.setDefaultUDFDir(udfPath);
+      config.setUDFTimeout(Long.parseLong(properties.getProperty("UDFTimeout", "-1")));
       config.setIp(properties.getProperty("ip", "0.0.0.0"));
       config.setPort(Integer.parseInt(properties.getProperty("port", "6888")));
       config.setUsername(properties.getProperty("username", "root"));

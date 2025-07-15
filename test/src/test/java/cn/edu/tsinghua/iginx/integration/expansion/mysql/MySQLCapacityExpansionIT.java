@@ -64,12 +64,12 @@ public class MySQLCapacityExpansionIT extends BaseCapacityExpansionIT {
 
   @Override
   protected void shutdownDatabase(int port) {
-    shutOrRestart(port, true, "mysql");
+    shutOrRestart(port, true, "mysql", 30);
   }
 
   @Override
   protected void startDatabase(int port) {
-    shutOrRestart(port, false, "mysql");
+    shutOrRestart(port, false, "mysql", 30);
   }
 
   private void changeParams(int port, String oldPw, String newPw) {

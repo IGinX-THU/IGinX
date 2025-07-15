@@ -58,7 +58,8 @@ public class MetaManagerMock implements IMetaManager {
   }
 
   @Override
-  public boolean removeDummyStorageEngine(long storageEngineId) {
+  public boolean removeDummyStorageEngine(
+      long storageEngineId, boolean forAllIginx, boolean checkExist) {
     return false;
   }
 
@@ -103,8 +104,26 @@ public class MetaManagerMock implements IMetaManager {
   }
 
   @Override
+  public IginxMeta getIginxMeta() {
+    return null;
+  }
+
+  @Override
   public long getIginxId() {
     return 0;
+  }
+
+  @Override
+  public Map<Long, Set<Long>> getIginxConnectivity() {
+    return null;
+  }
+
+  @Override
+  public void addStorageConnection(List<StorageEngineMeta> storageEngines) {}
+
+  @Override
+  public Map<Long, Set<Long>> getStorageConnections() {
+    return null;
   }
 
   @Override
@@ -232,22 +251,6 @@ public class MetaManagerMock implements IMetaManager {
 
   @Override
   public void registerStorageEngineChangeHook(StorageEngineChangeHook hook) {}
-
-  @Override
-  public void addOrUpdateSchemaMapping(String schema, Map<String, Integer> schemaMapping) {}
-
-  @Override
-  public void addOrUpdateSchemaMappingItem(String schema, String key, int value) {}
-
-  @Override
-  public Map<String, Integer> getSchemaMapping(String schema) {
-    return null;
-  }
-
-  @Override
-  public int getSchemaMappingItem(String schema, String key) {
-    return 0;
-  }
 
   @Override
   public boolean addUser(UserMeta user) {
