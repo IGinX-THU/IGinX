@@ -37,8 +37,7 @@ on:
                 description: "The database which support agg push down"
                 type: string
                 required: false
-                # TODO: add agg-push down for oracle
-                default: '["PostgreSQL", "MYSQL", "Dameng"]'
+                default: '["PostgreSQL", "MYSQL", "Dameng", "Oracle"]'
             long-timeout-matrix:
                 description: "The database which support agg push down"
                 type: string
@@ -127,7 +126,6 @@ jobs:
               with:
                   DB-name: ${{ matrix.DB-name }}
                   Close-Optimizer: ${{ inputs.close-optimizer }}
-                  Set-ColumnPruning-ON: ${{ toJSON(inputs.close-optimizer == 'true' && matrix.DB-name == 'InfluxDB') }}
                   Metadata: ${{ matrix.metadata }}
                   Set-AggPushDown-OFF: ${{ toJSON(!contains(inputs.agg-pushdown-matrix, matrix.DB-name)) }}
 
@@ -137,7 +135,6 @@ jobs:
                   DB-name: ${{ matrix.DB-name }}
                   Open-Optimizer: "true"
                   Close-Optimizer: ${{ inputs.close-optimizer }}
-                  Set-ColumnPruning-ON: ${{ toJSON(inputs.close-optimizer == 'true' && matrix.DB-name == 'InfluxDB') }}
                   Metadata: ${{ matrix.metadata }}
                   zookeeper-port: 2182
                   Root-Dir-Path: "IGinX"

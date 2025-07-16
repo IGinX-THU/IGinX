@@ -22,9 +22,9 @@ package cn.edu.tsinghua.iginx.engine.logical.utils;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class PathUtils {
 
@@ -70,13 +70,19 @@ public class PathUtils {
    */
   public static List<String> recoverRenamedPatterns(
       List<Pair<String, String>> aliasList, List<String> patterns) {
-    return patterns.stream()
-        .map(pattern -> recoverRenamedPattern(aliasList, pattern))
-        .collect(Collectors.toList());
+    List<String> result = new ArrayList<>();
+    patterns.forEach(pattern -> result.addAll(recoverRenamedPattern(aliasList, pattern)));
+    return result;
   }
 
-  public static String recoverRenamedPattern(List<Pair<String, String>> aliasList, String pattern) {
+  public static List<String> recoverRenamedPattern(
+      List<Pair<String, String>> aliasList, String pattern) {
+    List<String> result = new ArrayList<>();
     for (Pair<String, String> pair : aliasList) {
+      if (pair.v.equals(pattern)) {
+        result.add(pair.k);
+        continue;
+      }
       String oldPattern = pair.k.replace("*", "$1"); // 通配符转换为正则的捕获组
       String newPattern = pair.v.replace("*", "(.*)"); // 使用反向引用保留原始匹配的部分
       if (pattern.matches(newPattern)) {
@@ -84,14 +90,15 @@ public class PathUtils {
         if (oldPattern.contains("$1") && !newPattern.contains("*")) {
           oldPattern = oldPattern.replace("$1", "*");
         }
-        return pattern.replaceAll(newPattern, oldPattern);
-      } else if (newPattern.equals(pattern)) {
-        return pair.k;
+        result.add(pattern.replaceAll(newPattern, oldPattern));
       } else if (pattern.contains(".*") && newPattern.matches(StringUtils.reformatPath(pattern))) {
-        return pair.k;
+        result.add(pair.k);
       }
     }
-    return pattern;
+    if (result.isEmpty()) {
+      result.add(pattern);
+    }
+    return result;
   }
 
   // 判断是否模式a可以覆盖模式b

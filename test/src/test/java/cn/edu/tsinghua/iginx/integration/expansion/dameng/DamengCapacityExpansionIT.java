@@ -81,12 +81,12 @@ public class DamengCapacityExpansionIT extends BaseCapacityExpansionIT {
 
   @Override
   protected void shutdownDatabase(int port) {
-    shutOrRestart(port, true, "dameng");
+    shutOrRestart(port, true, "dameng", 60);
   }
 
   @Override
   protected void startDatabase(int port) {
-    shutOrRestart(port, false, "dameng");
+    shutOrRestart(port, false, "dameng", 60);
   }
 
   private void changeParams(int port, String oldPw, String newPw) {
