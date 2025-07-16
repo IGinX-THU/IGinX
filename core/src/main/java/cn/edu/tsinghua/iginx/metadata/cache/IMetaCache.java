@@ -91,6 +91,8 @@ public interface IMetaCache {
   // iginx 相关的缓存读写接口
   List<IginxMeta> getIginxList();
 
+  IginxMeta getIginx(long id);
+
   void addIginx(IginxMeta iginxMeta);
 
   void removeIginx(long id);
@@ -98,7 +100,8 @@ public interface IMetaCache {
   // 数据后端相关的缓存读写接口
   void addStorageEngine(StorageEngineMeta storageEngineMeta);
 
-  boolean removeDummyStorageEngine(long storageEngineId);
+  boolean removeDummyStorageEngine(
+      long iginxId, long storageEngineId, boolean forAllIginx, boolean checkExist);
 
   List<StorageEngineMeta> getStorageEngineList();
 
@@ -106,18 +109,15 @@ public interface IMetaCache {
 
   List<FragmentMeta> getFragments();
 
-  // schemaMapping 相关的缓存读写接口
-  Map<String, Integer> getSchemaMapping(String schema);
+  // 连接相关的缓存读写接口
 
-  int getSchemaMappingItem(String schema, String key);
+  Map<Long, Set<Long>> getIginxConnectivity();
 
-  void removeSchemaMapping(String schema);
+  void refreshIginxConnectivity(Map<Long, Set<Long>> connections);
 
-  void removeSchemaMappingItem(String schema, String key);
+  Map<Long, Set<Long>> getStorageConnections();
 
-  void addOrUpdateSchemaMapping(String schema, Map<String, Integer> schemaMapping);
-
-  void addOrUpdateSchemaMappingItem(String schema, String key, int value);
+  void updateStorageConnections(Map<Long, Set<Long>> connections);
 
   void addOrUpdateUser(UserMeta userMeta);
 

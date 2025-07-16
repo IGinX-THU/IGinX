@@ -21,7 +21,6 @@ package cn.edu.tsinghua.iginx.relational.tools;
 
 import static cn.edu.tsinghua.iginx.relational.tools.Constants.*;
 
-import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.relational.meta.AbstractRelationalMeta;
 import cn.edu.tsinghua.iginx.relational.meta.JDBCMeta;
@@ -98,40 +97,28 @@ public class FilterTransformer {
   private String toString(ValueFilter filter) {
     RelationSchema schema = new RelationSchema(filter.getPath(), relationalMeta.getQuote());
     String path = schema.getQuoteFullName();
-    String op;
     Object value;
-
     switch (filter.getOp()) {
       case LIKE:
       case LIKE_AND:
-        op = relationalMeta.getRegexpOp();
         value = "'^" + filter.getValue().getBinaryVAsString() + "$" + "'";
-        break;
+        return String.format(relationalMeta.getRegexp(), path, value);
       case NOT_LIKE:
       case NOT_LIKE_AND:
-        op = relationalMeta.getNotRegexpOp();
         value = "'^" + filter.getValue().getBinaryVAsString() + "$" + "'";
-        break;
+        return String.format(relationalMeta.getNotRegexp(), path, value);
       default:
         // postgresql does not support "==" but uses "=" instead
-        op = Op.op2StrWithoutAndOr(filter.getOp()).replace("==", "=");
+        String op = Op.op2StrWithoutAndOr(filter.getOp()).replace("==", "=");
         if (filter.getValue().getDataType() == DataType.BINARY) {
           value = "'" + filter.getValue().getBinaryVAsString() + "'";
-        } else if (engine.equals("dameng") && filter.getValue().getDataType() == DataType.BOOLEAN) {
+        } else if (!relationalMeta.isSupportBooleanType()
+            && filter.getValue().getDataType() == DataType.BOOLEAN) {
           value = filter.getValue().getBoolV() ? "1" : "0";
         } else {
           value = filter.getValue().getValue();
         }
-        break;
-    }
-    if (engine.equals("dameng")
-        && (filter.getOp() == Op.LIKE
-            || filter.getOp() == Op.LIKE_AND
-            || filter.getOp() == Op.NOT_LIKE
-            || filter.getOp() == Op.NOT_LIKE_AND)) {
-      return op + " (" + path + "," + value + ")";
-    } else {
-      return path + " " + op + " " + value;
+        return path + " " + op + " " + value;
     }
   }
 
@@ -175,7 +162,7 @@ public class FilterTransformer {
                     value -> {
                       if (value.getDataType() == DataType.BINARY) {
                         return "'" + value.getBinaryVAsString() + "'";
-                      } else if (engine.equals("dameng")
+                      } else if (!relationalMeta.isSupportBooleanType()
                           && value.getDataType() == DataType.BOOLEAN) {
                         return value.getBoolV() ? "1" : "0";
                       } else {
