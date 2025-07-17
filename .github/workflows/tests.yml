@@ -143,6 +143,9 @@ jobs:
             metadata-matrix: '["zookeeper"]'
     tpc-h-test:
         uses: ./.github/workflows/tpc-h.yml
+        with:
+            os-matrix: '["ubuntu-latest"]'
+            metadata-matrix: '["zookeeper"]'
     cluster-test:
         uses: ./.github/workflows/cluster-test.yml
     analyze-required-test-check:
