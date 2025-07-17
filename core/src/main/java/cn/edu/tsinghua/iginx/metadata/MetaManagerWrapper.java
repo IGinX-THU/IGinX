@@ -65,8 +65,9 @@ public class MetaManagerWrapper implements IMetaManager {
   }
 
   @Override
-  public boolean removeDummyStorageEngine(long storageEngineId) {
-    return metaManager.removeDummyStorageEngine(storageEngineId);
+  public boolean removeDummyStorageEngine(
+      long storageEngineId, boolean forAllIginx, boolean checkExist) {
+    return metaManager.removeDummyStorageEngine(storageEngineId, forAllIginx, checkExist);
   }
 
   @Override
@@ -110,8 +111,28 @@ public class MetaManagerWrapper implements IMetaManager {
   }
 
   @Override
+  public IginxMeta getIginxMeta() {
+    return metaManager.getIginxMeta();
+  }
+
+  @Override
   public long getIginxId() {
     return metaManager.getIginxId();
+  }
+
+  @Override
+  public Map<Long, Set<Long>> getIginxConnectivity() {
+    return metaManager.getIginxConnectivity();
+  }
+
+  @Override
+  public void addStorageConnection(List<StorageEngineMeta> storageEngines) {
+    metaManager.addStorageConnection(storageEngines);
+  }
+
+  @Override
+  public Map<Long, Set<Long>> getStorageConnections() {
+    return metaManager.getStorageConnections();
   }
 
   @Override
@@ -228,26 +249,6 @@ public class MetaManagerWrapper implements IMetaManager {
   @Override
   public void registerStorageEngineChangeHook(StorageEngineChangeHook hook) {
     metaManager.registerStorageEngineChangeHook(hook);
-  }
-
-  @Override
-  public void addOrUpdateSchemaMapping(String schema, Map<String, Integer> schemaMapping) {
-    metaManager.addOrUpdateSchemaMapping(schema, schemaMapping);
-  }
-
-  @Override
-  public void addOrUpdateSchemaMappingItem(String schema, String key, int value) {
-    metaManager.addOrUpdateSchemaMappingItem(schema, key, value);
-  }
-
-  @Override
-  public Map<String, Integer> getSchemaMapping(String schema) {
-    return metaManager.getSchemaMapping(schema);
-  }
-
-  @Override
-  public int getSchemaMappingItem(String schema, String key) {
-    return metaManager.getSchemaMappingItem(schema, key);
   }
 
   @Override

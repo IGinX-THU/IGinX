@@ -23,7 +23,9 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.Table;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
+import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.DataTypeUtils;
+import cn.edu.tsinghua.iginx.utils.TypeConverter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -47,15 +49,7 @@ public class RowUtils {
   }
 
   public static Row constructNewRowWithKey(Header header, long key, List<Object> values) {
-    Object[] rowValues = new Object[values.size()];
-    for (int i = 0; i < values.size(); i++) {
-      Object val = values.get(i);
-      if (val instanceof String) {
-        rowValues[i] = ((String) val).getBytes();
-      } else {
-        rowValues[i] = val;
-      }
-    }
+    Object[] rowValues = TypeConverter.convertToTypes(header.getDataTypes(), values);
     return new Row(header, key, rowValues);
   }
 
@@ -77,7 +71,7 @@ public class RowUtils {
     List<Row> rowList = new ArrayList<>();
     Long key;
     for (int i = startIndex; i < values.size(); i++) {
-      key = (Long) values.get(i).remove(0);
+      key = (Long) TypeConverter.convertToType(DataType.LONG, values.get(i).remove(0));
       rowList.add(constructNewRowWithKey(header, key, values.get(i)));
     }
     return new Table(header, rowList);

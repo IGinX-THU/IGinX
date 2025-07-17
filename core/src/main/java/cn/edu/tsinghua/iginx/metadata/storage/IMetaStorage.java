@@ -28,30 +28,34 @@ import cn.edu.tsinghua.iginx.transform.pojo.TriggerDescriptor;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public interface IMetaStorage {
 
-  Map<String, Map<String, Integer>> loadSchemaMapping() throws MetaStorageException;
-
-  void registerSchemaMappingChangeHook(SchemaMappingChangeHook hook);
-
-  void updateSchemaMapping(String schema, Map<String, Integer> schemaMapping)
-      throws MetaStorageException;
-
   Map<Long, IginxMeta> loadIginx() throws MetaStorageException;
 
-  long registerIginx(IginxMeta iginx) throws MetaStorageException;
+  IginxMeta registerIginx(IginxMeta iginx) throws MetaStorageException;
 
   void registerIginxChangeHook(IginxChangeHook hook);
 
   Map<Long, StorageEngineMeta> loadStorageEngine(List<StorageEngineMeta> storageEngines)
       throws MetaStorageException;
 
-  long addStorageEngine(StorageEngineMeta storageEngine) throws MetaStorageException;
+  long addStorageEngine(long iginxId, StorageEngineMeta storageEngine) throws MetaStorageException;
 
-  void removeDummyStorageEngine(long storageEngineId) throws MetaStorageException;
+  void removeDummyStorageEngine(long iginxId, long storageEngineId, boolean forAllIginx)
+      throws MetaStorageException;
 
   void registerStorageChangeHook(StorageChangeHook hook);
+
+  void refreshAchievableIginx(IginxMeta iginx) throws MetaStorageException;
+
+  Map<Long, Set<Long>> refreshClusterIginxConnectivity() throws MetaStorageException;
+
+  void addStorageConnection(long iginxId, List<StorageEngineMeta> storageEngines)
+      throws MetaStorageException;
+
+  Map<Long, Set<Long>> refreshClusterStorageConnections() throws MetaStorageException;
 
   Map<String, StorageUnitMeta> loadStorageUnit() throws MetaStorageException;
 

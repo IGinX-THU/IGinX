@@ -21,6 +21,8 @@ package cn.edu.tsinghua.iginx.engine.shared.function.udf.python;
 
 import static cn.edu.tsinghua.iginx.engine.shared.Constants.UDF_FUNC;
 
+import cn.edu.tsinghua.iginx.conf.Config;
+import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.engine.shared.function.Function;
 import cn.edu.tsinghua.iginx.engine.shared.function.manager.ThreadInterpreterManager;
 import java.util.List;
@@ -36,6 +38,8 @@ public abstract class PyUDF implements Function {
   protected final String moduleName;
 
   protected final String className;
+
+  private static final Config config = ConfigDescriptor.getInstance().getConfig();
 
   public PyUDF(String moduleName, String className) {
     this.moduleName = moduleName;
@@ -54,20 +58,12 @@ public abstract class PyUDF implements Function {
 
   protected List<List<Object>> invokePyUDF(
       List<List<Object>> data, List<Object> args, Map<String, Object> kvargs) {
-    try {
-      // 由于多个UDF共享interpreter，因此使用独特的对象名
-      String obj = (moduleName + className).replace(".", "a");
-      ThreadInterpreterManager.executeWithInterpreter(
-          interpreter ->
-              interpreter.exec(
-                  String.format(
-                      "import %s; %s = %s.%s()", moduleName, obj, moduleName, className)));
-      return (List<List<Object>>)
-          ThreadInterpreterManager.executeWithInterpreterAndReturn(
-              interpreter -> interpreter.invokeMethod(obj, UDF_FUNC, data, args, kvargs));
-    } catch (Exception e) {
-      LOGGER.error("Invoke python failure: ", e);
-      return null;
-    }
+    long timeout = config.getUDFTimeout();
+    // 由于多个UDF共享interpreter，因此使用独特的对象名
+    String obj = (moduleName + className).replace(".", "a");
+    ThreadInterpreterManager.exec(
+        String.format("import %s; %s = %s.%s()", moduleName, obj, moduleName, className));
+    return ThreadInterpreterManager.invokeMethodWithTimeout(
+        timeout, obj, UDF_FUNC, data, args, kvargs);
   }
 }

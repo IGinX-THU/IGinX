@@ -484,12 +484,13 @@ public class SessionPool {
     }
   }
 
-  public void removeStorageEngine(List<RemovedStorageEngineInfo> removedStorageEngineList)
+  public void removeStorageEngine(
+      List<RemovedStorageEngineInfo> removedStorageEngineList, boolean isForAllIginx)
       throws SessionException {
     for (int i = 0; i < RETRY; i++) {
       Session session = getSession();
       try {
-        session.removeStorageEngine(removedStorageEngineList);
+        session.removeStorageEngine(removedStorageEngineList, isForAllIginx);
         putBack(session);
         return;
       } catch (SessionException e) {
