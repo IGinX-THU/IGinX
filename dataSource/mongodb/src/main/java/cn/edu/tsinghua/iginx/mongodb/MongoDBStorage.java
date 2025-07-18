@@ -52,15 +52,19 @@ import cn.edu.tsinghua.iginx.mongodb.tools.TypeUtils;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.utils.Pair;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.mongodb.*;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.*;
+import io.reactivex.rxjava3.core.BackpressureStrategy;
+import io.reactivex.rxjava3.core.Flowable;
+import io.reactivex.rxjava3.schedulers.Schedulers;
 import java.text.ParseException;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.stream.Collectors;
 import org.bson.BsonDocument;
 import org.bson.BsonInt64;
@@ -88,6 +92,10 @@ public class MongoDBStorage implements IStorage {
 
   private final int schemaSampleSize;
   private final int querySampleSize;
+
+  private final ExecutorService executor =
+      Executors.newCachedThreadPool(
+          new ThreadFactoryBuilder().setNameFormat("MongoDBStorage-%d").build());
 
   public MongoDBStorage(StorageEngineMeta meta) throws StorageInitializationException {
     if (!meta.getStorageEngine().equals(StorageEngineType.mongodb)) {
@@ -357,44 +365,62 @@ public class MongoDBStorage implements IStorage {
   }
 
   @Override
-  public List<Column> getColumns(Set<String> patterns, TagFilter tagFilter) {
+  public Flowable<Column> getColumns(Set<String> patterns, TagFilter tagFilter) {
     List<String> patternList = new ArrayList<>(patterns);
     if (patternList.isEmpty()) {
       patternList.add("*");
     }
-    List<Column> columns = new ArrayList<>();
+
+    List<Flowable<Column>> allFlows = new ArrayList<>();
     for (String dbName : getDatabaseNames(this.client)) {
       MongoDatabase db = this.client.getDatabase(dbName);
       for (String collectionName : db.listCollectionNames()) {
-        try {
-          if (dbName.startsWith("unit")) {
-            Field field = NameUtils.parseCollectionName(collectionName);
-            if (NameUtils.match(field.getName(), field.getTags(), patternList, tagFilter)) {
-              columns.add(new Column(field.getName(), field.getType(), field.getTags(), false));
-            }
-            continue;
-          }
-        } catch (Exception ignored) {
-        }
+        Flowable<Column> flow =
+            Flowable.create(
+                emitter -> {
+                  try {
+                    if (dbName.startsWith("unit")) {
+                      try {
+                        Field field = NameUtils.parseCollectionName(collectionName);
+                        if (NameUtils.match(
+                            field.getName(), field.getTags(), patternList, tagFilter)) {
+                          emitter.onNext(
+                              new Column(field.getName(), field.getType(), field.getTags(), false));
+                        }
+                      } catch (Exception ignored) {
+                      }
+                    } else if (schemaSampleSize > 0) {
+                      MongoCollection<BsonDocument> collection =
+                          this.client
+                              .getDatabase(dbName)
+                              .getCollection(collectionName, BsonDocument.class);
 
-        if (schemaSampleSize > 0) {
-          MongoCollection<BsonDocument> collection =
-              db.getCollection(collectionName, BsonDocument.class);
-          Map<String, DataType> sampleSchema =
-              new SchemaSample(schemaSampleSize).query(collection, true);
-          for (Map.Entry<String, DataType> entry : sampleSchema.entrySet()) {
-            if (NameUtils.match(entry.getKey(), Collections.emptyMap(), patternList, null)) {
-              columns.add(new Column(entry.getKey(), entry.getValue(), null, true));
-            }
-          }
-          continue;
-        }
+                      Map<String, DataType> sampleSchema =
+                          new SchemaSample(schemaSampleSize).query(collection, true);
 
-        String namespace = dbName + "." + collectionName;
-        columns.add(new Column(namespace + ".*", DataType.BINARY, null, true));
+                      for (Map.Entry<String, DataType> entry : sampleSchema.entrySet()) {
+                        if (NameUtils.match(
+                            entry.getKey(), Collections.emptyMap(), patternList, null)) {
+                          emitter.onNext(new Column(entry.getKey(), entry.getValue(), null, true));
+                        }
+                      }
+                    } else {
+                      String namespace = dbName + "." + collectionName;
+                      emitter.onNext(new Column(namespace + ".*", DataType.BINARY, null, true));
+                    }
+                    emitter.onComplete();
+                  } catch (Throwable t) {
+                    emitter.onError(t);
+                  }
+                },
+                BackpressureStrategy.BUFFER);
+        allFlows.add(
+            flow.subscribeOn(Schedulers.from(executor))
+                .onErrorResumeNext((Throwable t) -> Flowable.empty()));
       }
     }
-    return columns;
+
+    return Flowable.merge(allFlows, 10);
   }
 
   public static List<String> getDatabaseNames(MongoClient client) {

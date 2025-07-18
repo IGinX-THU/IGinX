@@ -29,7 +29,7 @@ import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.utils.Pair;
-import java.util.List;
+import io.reactivex.rxjava3.core.Flowable;
 import java.util.Set;
 
 public interface IStorage {
@@ -83,7 +83,7 @@ public interface IStorage {
   TaskExecuteResult executeInsert(Insert insert, DataArea dataArea);
 
   /** 获取所有列信息 */
-  List<Column> getColumns(Set<String> patterns, TagFilter tagFilter) throws PhysicalException;
+  Flowable<Column> getColumns(Set<String> patterns, TagFilter tagFilter) throws PhysicalException;
 
   /** 获取指定前缀的数据边界 */
   Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage(String prefix) throws PhysicalException;

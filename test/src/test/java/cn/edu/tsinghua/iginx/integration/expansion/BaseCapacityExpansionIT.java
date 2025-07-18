@@ -813,7 +813,7 @@ public abstract class BaseCapacityExpansionIT {
             + "|nt.wf03.wt01.status2|    LONG|\n"
             + "+--------------------+--------+\n"
             + "Total line number = 1\n";
-    SQLTestTools.executeAndCompare(session, statement, expected);
+    SQLTestTools.executeAndCompare(session, statement, expected, true);
 
     statement = "SHOW COLUMNS;";
     if (before) {
@@ -846,7 +846,7 @@ public abstract class BaseCapacityExpansionIT {
               + "+--------------------------------------------------------------------------------------+--------+\n"
               + "Total line number = 7\n";
     }
-    SQLTestTools.executeAndCompare(session, statement, expected);
+    SQLTestTools.executeAndCompare(session, statement, expected, true);
 
     statement = "SHOW COLUMNS p1.*;";
     if (before) {
@@ -867,7 +867,7 @@ public abstract class BaseCapacityExpansionIT {
               + "+-----------------------+--------+\n"
               + "Total line number = 1\n";
     }
-    SQLTestTools.executeAndCompare(session, statement, expected);
+    SQLTestTools.executeAndCompare(session, statement, expected, true);
 
     statement = "SHOW COLUMNS *.wf03.wt01.*;";
     if (before) {
@@ -890,7 +890,7 @@ public abstract class BaseCapacityExpansionIT {
               + "+-----------------------+--------+\n"
               + "Total line number = 2\n";
     }
-    SQLTestTools.executeAndCompare(session, statement, expected);
+    SQLTestTools.executeAndCompare(session, statement, expected, true);
   }
 
   protected void testShowColumnsRemoveStorageEngine(boolean before) {
@@ -919,7 +919,7 @@ public abstract class BaseCapacityExpansionIT {
               + "+---------------------------+--------+\n"
               + "Total line number = 2\n";
     }
-    SQLTestTools.executeAndCompare(session, statement, expected);
+    SQLTestTools.executeAndCompare(session, statement, expected, true);
   }
 
   private void testShowClusterInfo(int expected) {
@@ -944,7 +944,7 @@ public abstract class BaseCapacityExpansionIT {
             + "|mn.wf01.wt01.temperature|  DOUBLE|\n"
             + "+------------------------+--------+\n"
             + "Total line number = 2\n";
-    SQLTestTools.executeAndCompare(session, statement, expected);
+    SQLTestTools.executeAndCompare(session, statement, expected, true);
 
     statement = "SHOW COLUMNS nt.*;";
     expected =
@@ -956,7 +956,7 @@ public abstract class BaseCapacityExpansionIT {
             + "|nt.wf04.wt01.temperature|  DOUBLE|\n"
             + "+------------------------+--------+\n"
             + "Total line number = 2\n";
-    SQLTestTools.executeAndCompare(session, statement, expected);
+    SQLTestTools.executeAndCompare(session, statement, expected, true);
 
     statement = "SHOW COLUMNS tm.wf05.wt01.*;";
     expected =
@@ -968,7 +968,7 @@ public abstract class BaseCapacityExpansionIT {
             + "|tm.wf05.wt01.temperature|  DOUBLE|\n"
             + "+------------------------+--------+\n"
             + "Total line number = 2\n";
-    SQLTestTools.executeAndCompare(session, statement, expected);
+    SQLTestTools.executeAndCompare(session, statement, expected, true);
   }
 
   // test dummy query for data out of initial key range (should be visible)

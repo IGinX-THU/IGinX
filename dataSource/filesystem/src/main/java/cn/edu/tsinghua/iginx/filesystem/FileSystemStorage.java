@@ -64,10 +64,11 @@ import cn.edu.tsinghua.iginx.utils.Pair;
 import com.google.common.base.Strings;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
+import io.reactivex.rxjava3.core.BackpressureStrategy;
+import io.reactivex.rxjava3.core.Flowable;
+import io.reactivex.rxjava3.schedulers.Schedulers;
 import java.net.InetSocketAddress;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import javax.annotation.Nullable;
@@ -324,11 +325,8 @@ public class FileSystemStorage implements IStorage {
   }
 
   @Override
-  public List<Column> getColumns(Set<String> patterns, TagFilter tagFilter)
+  public Flowable<Column> getColumns(Set<String> patterns, TagFilter tagFilter)
       throws PhysicalException {
-    List<Column> columns = Collections.synchronizedList(new ArrayList<>());
-    List<Column> columnsWrapper = Collections.synchronizedList(columns);
-
     Map<DataUnit, DataBoundary> units = service.getUnits(null);
 
     List<String> patternList = new ArrayList<>(patterns);
@@ -338,36 +336,29 @@ public class FileSystemStorage implements IStorage {
 
     DataTarget dataTarget = new DataTarget(new BoolFilter(false), patternList, tagFilter);
 
-    List<CompletableFuture<Void>> futures = new ArrayList<>();
+    List<Flowable<Column>> allFlows = new ArrayList<>();
     for (DataUnit unit : units.keySet()) {
-      CompletableFuture<Void> future =
-          CompletableFuture.supplyAsync(
-                  () -> {
-                    List<Column> localColumns = new ArrayList<>();
-                    try (RowStream stream = service.query(unit, dataTarget, null)) {
-                      Header header = stream.getHeader();
-                      for (Field field : header.getFields()) {
-                        localColumns.add(
-                            new Column(
-                                field.getName(), field.getType(), field.getTags(), unit.isDummy()));
-                      }
-                    } catch (PhysicalException e) {
-                      throw new CompletionException(e);
-                    }
-                    return localColumns;
-                  },
-                  executor)
-              .thenAccept(columnsWrapper::addAll);
-      futures.add(future);
+      Flowable<Column> flow =
+          Flowable.create(
+              emitter -> {
+                try (RowStream stream = service.query(unit, dataTarget, null)) {
+                  Header header = stream.getHeader();
+                  for (Field field : header.getFields()) {
+                    Column column =
+                        new Column(
+                            field.getName(), field.getType(), field.getTags(), unit.isDummy());
+                    emitter.onNext(column);
+                  }
+                  emitter.onComplete();
+                } catch (PhysicalException e) {
+                  emitter.onError(e);
+                }
+              },
+              BackpressureStrategy.BUFFER);
+      allFlows.add(flow.subscribeOn(Schedulers.from(executor)));
     }
 
-    try {
-      CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
-    } catch (CompletionException e) {
-      throw new FileSystemException(e);
-    }
-
-    return columns;
+    return Flowable.merge(allFlows, 10);
   }
 
   @Override

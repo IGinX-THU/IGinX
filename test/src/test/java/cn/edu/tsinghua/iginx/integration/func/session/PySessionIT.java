@@ -240,7 +240,7 @@ public class PySessionIT {
       throw new RuntimeException(e);
     }
     // 检查Python脚本的输出是否符合预期
-    assertTrue(result.contains("path    type    "));
+    assertTrue(result.contains("Path    Type    "));
     assertTrue(result.contains("b'test.a.a'        b'BINARY'        "));
     assertTrue(result.contains("b'test.a.b'        b'BINARY'        "));
     assertTrue(result.contains("b'test.b.b'        b'BINARY'        "));

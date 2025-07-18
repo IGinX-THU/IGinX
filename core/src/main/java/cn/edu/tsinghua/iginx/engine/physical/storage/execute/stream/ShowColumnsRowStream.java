@@ -17,30 +17,38 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package cn.edu.tsinghua.iginx.filesystem.struct.tree.query;
+package cn.edu.tsinghua.iginx.engine.physical.storage.execute.stream;
 
+import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
+import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
-import cn.edu.tsinghua.iginx.filesystem.struct.DataTarget;
-import cn.edu.tsinghua.iginx.filesystem.struct.tree.FileTreeConfig;
-import java.io.Closeable;
-import java.io.IOException;
-import java.nio.file.Path;
-import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
-import javax.annotation.Nullable;
+import java.util.Iterator;
 
-public interface Querier extends Closeable {
+public class ShowColumnsRowStream implements RowStream {
 
-  List<Future<RowStream>> query();
+  private final Iterator<Column> iterator;
 
-  interface Builder extends Closeable {
-    Querier build(DataTarget parentTarget) throws IOException;
-
-    interface Factory {
-      Builder create(
-          @Nullable String prefix, Path path, FileTreeConfig config, ExecutorService executor)
-          throws IOException;
-    }
+  public ShowColumnsRowStream(Iterator<Column> iterator) {
+    this.iterator = iterator;
   }
+
+  @Override
+  public Header getHeader() throws PhysicalException {
+    return Header.SHOW_COLUMNS_HEADER;
+  }
+
+  @Override
+  public boolean hasNext() {
+    return iterator.hasNext();
+  }
+
+  @Override
+  public Row next() {
+    return Column.toRow(Header.SHOW_COLUMNS_HEADER, iterator.next());
+  }
+
+  @Override
+  public void close() {}
 }

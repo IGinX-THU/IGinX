@@ -50,8 +50,8 @@ public class ShowColumnsFromPart implements FromPart {
   @Override
   public List<Pair<String, String>> getAliasList() {
     List<Pair<String, String>> aliasList = new ArrayList<>(2);
-    aliasList.add(new Pair<>("path", alias + ".path"));
-    aliasList.add(new Pair<>("type", alias + ".type"));
+    aliasList.add(new Pair<>("Path", alias + ".Path"));
+    aliasList.add(new Pair<>("Type", alias + ".Type"));
     return aliasList;
   }
 
@@ -74,7 +74,7 @@ public class ShowColumnsFromPart implements FromPart {
   public List<String> getPatterns() {
     return hasAlias()
         ? Collections.singletonList(alias + Constants.ALL_PATH_SUFFIX)
-        : new ArrayList<>(Arrays.asList("path", "type"));
+        : new ArrayList<>(Arrays.asList("Path", "Type"));
   }
 
   @Override
