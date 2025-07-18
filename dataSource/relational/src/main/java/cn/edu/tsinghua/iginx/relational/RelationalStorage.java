@@ -76,6 +76,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import com.zaxxer.hikari.pool.HikariPool;
+import io.reactivex.rxjava3.core.Flowable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URISyntaxException;
@@ -400,7 +401,7 @@ public class RelationalStorage implements IStorage {
   }
 
   @Override
-  public List<Column> getColumns(Set<String> patterns, TagFilter tagFilter)
+  public Flowable<Column> getColumns(Set<String> patterns, TagFilter tagFilter)
       throws RelationalTaskExecuteFailureException {
     List<Column> columns = new ArrayList<>();
     Map<String, String> extraParams = meta.getExtraParams();
@@ -532,7 +533,7 @@ public class RelationalStorage implements IStorage {
     } catch (SQLException e) {
       throw new RelationalTaskExecuteFailureException("failed to get columns ", e);
     }
-    return columns;
+    return Flowable.fromIterable(columns);
   }
 
   @Override
@@ -1571,7 +1572,7 @@ public class RelationalStorage implements IStorage {
     for (FunctionCall fc : functionCalls) {
       if (fc.getFunction().getIdentifier().equalsIgnoreCase(Sum.SUM)) {
         if (columns == null) {
-          columns = getColumns(null, null);
+          columns = getColumns(null, null).toList().blockingGet();
         }
         if (isSumResultDouble(fc.getParams().getExpression(0), columns)) {
           columnTypeMap.put(fc.getFunctionStr(), DataType.DOUBLE);
@@ -2931,7 +2932,7 @@ public class RelationalStorage implements IStorage {
   private List<Pair<String, String>> determineDeletedPaths(
       List<String> paths, TagFilter tagFilter) {
     try {
-      List<Column> columns = getColumns(null, null);
+      List<Column> columns = getColumns(null, null).toList().blockingGet();
       List<Pair<String, String>> deletedPaths = new ArrayList<>();
 
       for (Column column : columns) {

@@ -59,6 +59,9 @@ import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.*;
+import io.reactivex.rxjava3.core.BackpressureStrategy;
+import io.reactivex.rxjava3.core.Flowable;
+import io.reactivex.rxjava3.schedulers.Schedulers;
 import java.text.ParseException;
 import java.util.*;
 import java.util.concurrent.*;
@@ -362,61 +365,62 @@ public class MongoDBStorage implements IStorage {
   }
 
   @Override
-  public List<Column> getColumns(Set<String> patterns, TagFilter tagFilter) {
+  public Flowable<Column> getColumns(Set<String> patterns, TagFilter tagFilter) {
     List<String> patternList = new ArrayList<>(patterns);
     if (patternList.isEmpty()) {
       patternList.add("*");
     }
 
-    List<Future<List<Column>>> futures = new ArrayList<>();
-
+    List<Flowable<Column>> allFlows = new ArrayList<>();
     for (String dbName : getDatabaseNames(this.client)) {
       MongoDatabase db = this.client.getDatabase(dbName);
       for (String collectionName : db.listCollectionNames()) {
-        Future<List<Column>> future =
-            this.executor.submit(
-                () -> {
-                  List<Column> columns = new ArrayList<>();
-                  if (dbName.startsWith("unit")) {
-                    try {
-                      Field field = NameUtils.parseCollectionName(collectionName);
-                      if (NameUtils.match(
-                          field.getName(), field.getTags(), patternList, tagFilter)) {
-                        columns.add(
-                            new Column(field.getName(), field.getType(), field.getTags(), false));
+        Flowable<Column> flow =
+            Flowable.create(
+                emitter -> {
+                  try {
+                    if (dbName.startsWith("unit")) {
+                      try {
+                        Field field = NameUtils.parseCollectionName(collectionName);
+                        if (NameUtils.match(
+                            field.getName(), field.getTags(), patternList, tagFilter)) {
+                          emitter.onNext(
+                              new Column(field.getName(), field.getType(), field.getTags(), false));
+                        }
+                      } catch (Exception ignored) {
                       }
-                    } catch (Exception ignored) {
-                    }
-                  } else if (schemaSampleSize > 0) {
-                    MongoCollection<BsonDocument> collection =
-                        db.getCollection(collectionName, BsonDocument.class);
-                    Map<String, DataType> sampleSchema =
-                        new SchemaSample(schemaSampleSize).query(collection, true);
-                    for (Map.Entry<String, DataType> entry : sampleSchema.entrySet()) {
-                      if (NameUtils.match(
-                          entry.getKey(), Collections.emptyMap(), patternList, null)) {
-                        columns.add(new Column(entry.getKey(), entry.getValue(), null, true));
+                    } else if (schemaSampleSize > 0) {
+                      MongoCollection<BsonDocument> collection =
+                          this.client
+                              .getDatabase(dbName)
+                              .getCollection(collectionName, BsonDocument.class);
+
+                      Map<String, DataType> sampleSchema =
+                          new SchemaSample(schemaSampleSize).query(collection, true);
+
+                      for (Map.Entry<String, DataType> entry : sampleSchema.entrySet()) {
+                        if (NameUtils.match(
+                            entry.getKey(), Collections.emptyMap(), patternList, null)) {
+                          emitter.onNext(new Column(entry.getKey(), entry.getValue(), null, true));
+                        }
                       }
+                    } else {
+                      String namespace = dbName + "." + collectionName;
+                      emitter.onNext(new Column(namespace + ".*", DataType.BINARY, null, true));
                     }
-                  } else {
-                    String namespace = dbName + "." + collectionName;
-                    columns.add(new Column(namespace + ".*", DataType.BINARY, null, true));
+                    emitter.onComplete();
+                  } catch (Throwable t) {
+                    emitter.onError(t);
                   }
-                  return columns;
-                });
-        futures.add(future);
+                },
+                BackpressureStrategy.BUFFER);
+        allFlows.add(
+            flow.subscribeOn(Schedulers.from(executor))
+                .onErrorResumeNext((Throwable t) -> Flowable.empty()));
       }
     }
 
-    List<Column> targetColumns = new ArrayList<>();
-    try {
-      for (Future<List<Column>> future : futures) {
-        targetColumns.addAll(future.get());
-      }
-    } catch (InterruptedException | ExecutionException e) {
-      throw new IllegalStateException(e);
-    }
-    return targetColumns;
+    return Flowable.merge(allFlows, 10);
   }
 
   public static List<String> getDatabaseNames(MongoClient client) {

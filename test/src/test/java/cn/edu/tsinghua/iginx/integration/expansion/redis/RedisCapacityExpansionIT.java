@@ -180,7 +180,7 @@ public class RedisCapacityExpansionIT extends BaseCapacityExpansionIT {
               + "+---------------------------+--------+\n"
               + "Total line number = 2\n";
     }
-    SQLTestTools.executeAndCompare(session, statement, expected);
+    SQLTestTools.executeAndCompare(session, statement, expected, true);
   }
 
   // redis中，所有dummy数据都识别为BINARY
