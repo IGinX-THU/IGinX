@@ -52,7 +52,7 @@ public class IginxDriver implements Driver {
 
   @Override
   public Connection connect(String url, Properties info) throws SQLException {
-    return new IginxConnection(url, info);
+    return acceptsURL(url) ? new IginxConnection(url, info) : null;
   }
 
   @Override
