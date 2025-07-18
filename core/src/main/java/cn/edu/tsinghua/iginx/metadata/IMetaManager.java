@@ -38,7 +38,7 @@ public interface IMetaManager {
   boolean addStorageEngines(List<StorageEngineMeta> storageEngineMetas);
 
   /** 删除存储引擎节点（仅限于dummy） */
-  boolean removeDummyStorageEngine(long storageEngineId);
+  boolean removeDummyStorageEngine(long storageEngineId, boolean forAllIginx, boolean checkExist);
 
   /** 获取所有的存储引擎实例的原信息（包括每个存储引擎的存储单元列表） */
   List<StorageEngineMeta> getStorageEngineList();
@@ -60,8 +60,20 @@ public interface IMetaManager {
   /** 获取所有活跃的 iginx 节点的元信息 */
   List<IginxMeta> getIginxList();
 
+  /** 获取当前 iginx 节点的元信息 */
+  IginxMeta getIginxMeta();
+
   /** 获取当前 iginx 节点的 ID */
   long getIginxId();
+
+  /** 获取集群中 iginx 节点之间的连通性 */
+  Map<Long, Set<Long>> getIginxConnectivity();
+
+  /** 记录 iginx 节点和存储节点的连接信息 */
+  void addStorageConnection(List<StorageEngineMeta> storageEngines);
+
+  /** 获取集群中 iginx 节点与存储节点的连接信息 */
+  Map<Long, Set<Long>> getStorageConnections();
 
   /** 获取所有的分片，用于 debug */
   List<FragmentMeta> getFragments();
@@ -141,40 +153,6 @@ public interface IMetaManager {
   List<Long> selectStorageEngineIdList();
 
   void registerStorageEngineChangeHook(StorageEngineChangeHook hook);
-
-  /**
-   * 增加或更新 schemaMappings
-   *
-   * @param schema 待更新的 schema 名
-   * @param schemaMapping 待更新的 schema，如果 schema 为空，则表示删除给定的 schema
-   */
-  void addOrUpdateSchemaMapping(String schema, Map<String, Integer> schemaMapping);
-
-  /**
-   * 增加或更新某个给定 schemaMapping 的数据项
-   *
-   * @param schema 待更新的 schema 名
-   * @param key 待更新的数据项的名
-   * @param value 待更新的数据项，如果 value = -1 表示删除该数据项
-   */
-  void addOrUpdateSchemaMappingItem(String schema, String key, int value);
-
-  /**
-   * 获取某个 schemaMapping
-   *
-   * @param schema 需要获取的 schema
-   * @return schema。如果不存在则返回空指针
-   */
-  Map<String, Integer> getSchemaMapping(String schema);
-
-  /**
-   * 获取某个 schemaMapping 中的数据项
-   *
-   * @param schema 需要获取的 schema
-   * @param key 需要获取的数据项的名
-   * @return 数据项的值。如果不存在则返回 -1
-   */
-  int getSchemaMappingItem(String schema, String key);
 
   boolean addUser(UserMeta user);
 
