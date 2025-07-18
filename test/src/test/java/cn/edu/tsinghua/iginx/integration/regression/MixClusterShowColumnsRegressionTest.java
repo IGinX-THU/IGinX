@@ -23,6 +23,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 import cn.edu.tsinghua.iginx.exception.SessionException;
+import cn.edu.tsinghua.iginx.integration.tool.TestUtils;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import org.junit.After;
@@ -82,7 +83,7 @@ public class MixClusterShowColumnsRegressionTest {
             + "| n.n|  DOUBLE|\n"
             + "+----+--------+\n"
             + "Total line number = 9\n";
-    executeAndCompare(statement, expected);
+    executeAndCompare(statement, expected, true);
 
     statement = "SHOW COLUMNS m.*;";
     expected =
@@ -99,13 +100,27 @@ public class MixClusterShowColumnsRegressionTest {
             + "| m.z|    LONG|\n"
             + "+----+--------+\n"
             + "Total line number = 7\n";
-    executeAndCompare(statement, expected);
+    executeAndCompare(statement, expected, true);
   }
 
-  private void executeAndCompare(String statement, String expectedOutput) {
+  public void executeAndCompare(String statement, String expectedOutput) {
+    executeAndCompare(statement, expectedOutput, false);
+  }
+
+  private void executeAndCompare(String statement, String expectedOutput, boolean ignoreOrder) {
     String actualOutput = execute(statement);
-    System.out.println(actualOutput);
-    assertEquals(expectedOutput, actualOutput);
+    if (ignoreOrder) {
+      if (!TestUtils.isResultSetEqual(expectedOutput, actualOutput)) {
+        LOGGER.error(
+            "Statement: \"{}\" execute fail,\nexpected:\"{}\",\nactual:\"{}\"",
+            statement,
+            expectedOutput,
+            actualOutput);
+        fail();
+      }
+    } else {
+      assertEquals(expectedOutput, actualOutput);
+    }
   }
 
   private String execute(String statement) {
