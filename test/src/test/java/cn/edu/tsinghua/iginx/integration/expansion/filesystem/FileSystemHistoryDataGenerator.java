@@ -147,9 +147,10 @@ public class FileSystemHistoryDataGenerator extends BaseHistoryDataGenerator {
     // │       └── 3.txt
     // ├── Iris.parquet
     // ├── floatTest.parquet
-    // └── other
-    //     ├── MT cars.parquet
-    //     └── price.parquet
+    // ├── other
+    // │   ├── MT cars.parquet
+    // │   └── price.parquet
+    // └── userdata.parquet
     StringBuilder content1 = new StringBuilder();
     StringBuilder content2 = new StringBuilder();
     StringBuilder content3 = new StringBuilder();
@@ -176,6 +177,8 @@ public class FileSystemHistoryDataGenerator extends BaseHistoryDataGenerator {
         parquetResourceDir + "MT cars.parquet", Paths.get("test", "a", "other", "MT cars.parquet"));
     copyFileFromResource(
         parquetResourceDir + "price.parquet", Paths.get("test", "a", "other", "price.parquet"));
+    copyFileFromResource(
+        parquetResourceDir + "userdata.parquet", Paths.get("test", "a", "userdata.parquet"));
   }
 
   private static void copyFileFromResource(String resourcePath, Path targetPath) {

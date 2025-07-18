@@ -86,8 +86,10 @@ public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
   @Override
   public void testShowColumns() {
     super.testShowColumns();
+    testAddRemoveAndShowDummyColumns();
+  }
 
-    // show dummy columns
+  private void testAddRemoveAndShowDummyColumns() {
     try (TempDummyDataSource ignoredFileTree =
             new TempDummyDataSource(session, 16667, filesystem, getLegacyFileSystemDummyParams());
         TempDummyDataSource ignoredLegacyFileSystem =
@@ -101,6 +103,7 @@ public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
 
   @Test
   public void testDummy() {
+    testAddRemoveAndShowDummyColumns();
     testQuerySpecialHistoryData();
   }
 
@@ -152,49 +155,63 @@ public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
     String statement = "SHOW COLUMNS a.*;";
     String expected =
         "Columns:\n"
-            + "+--------------------------------------+--------+\n"
-            + "|                                  Path|DataType|\n"
-            + "+--------------------------------------+--------+\n"
-            + "|                        a.Iris\\parquet|  BINARY|\n"
-            + "|           a.Iris\\parquet.petal.length|  DOUBLE|\n"
-            + "|            a.Iris\\parquet.petal.width|  DOUBLE|\n"
-            + "|           a.Iris\\parquet.sepal.length|  DOUBLE|\n"
-            + "|            a.Iris\\parquet.sepal.width|  DOUBLE|\n"
-            + "|                a.Iris\\parquet.variety|  BINARY|\n"
-            + "|                         a.b.c.d.1\\txt|  BINARY|\n"
-            + "|                             a.e.2\\txt|  BINARY|\n"
-            + "|                           a.f.g.3\\txt|  BINARY|\n"
-            + "|                   a.floatTest\\parquet|  BINARY|\n"
-            + "|        a.floatTest\\parquet.floatValue|   FLOAT|\n"
-            + "|               a.other.MT cars\\parquet|  BINARY|\n"
-            + "|            a.other.MT cars\\parquet.am| INTEGER|\n"
-            + "|          a.other.MT cars\\parquet.carb| INTEGER|\n"
-            + "|           a.other.MT cars\\parquet.cyl| INTEGER|\n"
-            + "|          a.other.MT cars\\parquet.disp|  DOUBLE|\n"
-            + "|          a.other.MT cars\\parquet.drat|  DOUBLE|\n"
-            + "|          a.other.MT cars\\parquet.gear| INTEGER|\n"
-            + "|            a.other.MT cars\\parquet.hp| INTEGER|\n"
-            + "|         a.other.MT cars\\parquet.model|  BINARY|\n"
-            + "|           a.other.MT cars\\parquet.mpg|  DOUBLE|\n"
-            + "|          a.other.MT cars\\parquet.qsec|  DOUBLE|\n"
-            + "|            a.other.MT cars\\parquet.vs| INTEGER|\n"
-            + "|            a.other.MT cars\\parquet.wt|  DOUBLE|\n"
-            + "|                 a.other.price\\parquet|  BINARY|\n"
-            + "| a.other.price\\parquet.airconditioning|  BINARY|\n"
-            + "|            a.other.price\\parquet.area|    LONG|\n"
-            + "|        a.other.price\\parquet.basement|  BINARY|\n"
-            + "|       a.other.price\\parquet.bathrooms|    LONG|\n"
-            + "|        a.other.price\\parquet.bedrooms|    LONG|\n"
-            + "|a.other.price\\parquet.furnishingstatus|  BINARY|\n"
-            + "|       a.other.price\\parquet.guestroom|  BINARY|\n"
-            + "| a.other.price\\parquet.hotwaterheating|  BINARY|\n"
-            + "|        a.other.price\\parquet.mainroad|  BINARY|\n"
-            + "|         a.other.price\\parquet.parking|    LONG|\n"
-            + "|        a.other.price\\parquet.prefarea|  BINARY|\n"
-            + "|           a.other.price\\parquet.price|    LONG|\n"
-            + "|         a.other.price\\parquet.stories|    LONG|\n"
-            + "+--------------------------------------+--------+\n"
-            + "Total line number = 38\n";
+            + "+-----------------------------------------------------+--------+\n"
+            + "|                                                 Path|DataType|\n"
+            + "+-----------------------------------------------------+--------+\n"
+            + "|                                       a.Iris\\parquet|  BINARY|\n"
+            + "|                          a.Iris\\parquet.petal.length|  DOUBLE|\n"
+            + "|                           a.Iris\\parquet.petal.width|  DOUBLE|\n"
+            + "|                          a.Iris\\parquet.sepal.length|  DOUBLE|\n"
+            + "|                           a.Iris\\parquet.sepal.width|  DOUBLE|\n"
+            + "|                               a.Iris\\parquet.variety|  BINARY|\n"
+            + "|                                        a.b.c.d.1\\txt|  BINARY|\n"
+            + "|                                            a.e.2\\txt|  BINARY|\n"
+            + "|                                          a.f.g.3\\txt|  BINARY|\n"
+            + "|                                  a.floatTest\\parquet|  BINARY|\n"
+            + "|                       a.floatTest\\parquet.floatValue|   FLOAT|\n"
+            + "|                              a.other.MT cars\\parquet|  BINARY|\n"
+            + "|                           a.other.MT cars\\parquet.am| INTEGER|\n"
+            + "|                         a.other.MT cars\\parquet.carb| INTEGER|\n"
+            + "|                          a.other.MT cars\\parquet.cyl| INTEGER|\n"
+            + "|                         a.other.MT cars\\parquet.disp|  DOUBLE|\n"
+            + "|                         a.other.MT cars\\parquet.drat|  DOUBLE|\n"
+            + "|                         a.other.MT cars\\parquet.gear| INTEGER|\n"
+            + "|                           a.other.MT cars\\parquet.hp| INTEGER|\n"
+            + "|                        a.other.MT cars\\parquet.model|  BINARY|\n"
+            + "|                          a.other.MT cars\\parquet.mpg|  DOUBLE|\n"
+            + "|                         a.other.MT cars\\parquet.qsec|  DOUBLE|\n"
+            + "|                           a.other.MT cars\\parquet.vs| INTEGER|\n"
+            + "|                           a.other.MT cars\\parquet.wt|  DOUBLE|\n"
+            + "|                                a.other.price\\parquet|  BINARY|\n"
+            + "|                a.other.price\\parquet.airconditioning|  BINARY|\n"
+            + "|                           a.other.price\\parquet.area|    LONG|\n"
+            + "|                       a.other.price\\parquet.basement|  BINARY|\n"
+            + "|                      a.other.price\\parquet.bathrooms|    LONG|\n"
+            + "|                       a.other.price\\parquet.bedrooms|    LONG|\n"
+            + "|               a.other.price\\parquet.furnishingstatus|  BINARY|\n"
+            + "|                      a.other.price\\parquet.guestroom|  BINARY|\n"
+            + "|                a.other.price\\parquet.hotwaterheating|  BINARY|\n"
+            + "|                       a.other.price\\parquet.mainroad|  BINARY|\n"
+            + "|                        a.other.price\\parquet.parking|    LONG|\n"
+            + "|                       a.other.price\\parquet.prefarea|  BINARY|\n"
+            + "|                          a.other.price\\parquet.price|    LONG|\n"
+            + "|                        a.other.price\\parquet.stories|    LONG|\n"
+            + "|                                   a.userdata\\parquet|  BINARY|\n"
+            + "|                      a.userdata\\parquet.address.city|  BINARY|\n"
+            + "|      a.userdata\\parquet.address.coordinates.latitude|  DOUBLE|\n"
+            + "|     a.userdata\\parquet.address.coordinates.longitude|  DOUBLE|\n"
+            + "|                    a.userdata\\parquet.address.street|  BINARY|\n"
+            + "|                              a.userdata\\parquet.name|  BINARY|\n"
+            + "|     a.userdata\\parquet.order_history.*.items.*.price|  DOUBLE|\n"
+            + "|a.userdata\\parquet.order_history.*.items.*.product_id|  BINARY|\n"
+            + "|  a.userdata\\parquet.order_history.*.items.*.quantity| INTEGER|\n"
+            + "|        a.userdata\\parquet.order_history.*.order_date|    LONG|\n"
+            + "|          a.userdata\\parquet.order_history.*.order_id|  BINARY|\n"
+            + "|             a.userdata\\parquet.order_history.*.total|  DOUBLE|\n"
+            + "|                   a.userdata\\parquet.phone_numbers.*|  BINARY|\n"
+            + "|                           a.userdata\\parquet.user_id|  BINARY|\n"
+            + "+-----------------------------------------------------+--------+\n"
+            + "Total line number = 52\n";
     SQLTestTools.executeAndCompare(session, statement, expected);
   }
 
@@ -341,6 +358,125 @@ public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
             + "|  1|                         44.55|\n"
             + "+---+------------------------------+\n"
             + "Total line number = 1\n";
+    SQLTestTools.executeAndCompare(session, statement, expect);
+
+    // flat type in parquet that contains complex type
+    statement = "select user_id, name from `a.userdata\\parquet`;";
+    expect =
+        "ResultSets:\n"
+            + "+---+--------------------------+-----------------------+\n"
+            + "|key|a.userdata\\parquet.user_id|a.userdata\\parquet.name|\n"
+            + "+---+--------------------------+-----------------------+\n"
+            + "|  0|                      U001|             John Smith|\n"
+            + "|  1|                      U002|               Jane Doe|\n"
+            + "|  2|                      U003|         Robert Johnson|\n"
+            + "|  3|                      U004|           Emily Wilson|\n"
+            + "|  4|                      U005|           Michael Chen|\n"
+            + "+---+--------------------------+-----------------------+\n"
+            + "Total line number = 5\n";
+    SQLTestTools.executeAndCompare(session, statement, expect);
+
+    // nested type
+    statement = "select city, street, coordinates from `a.userdata\\parquet`.address;";
+    expect =
+        "ResultSets:\n"
+            + "+---+-------------------------------+---------------------------------+\n"
+            + "|key|a.userdata\\parquet.address.city|a.userdata\\parquet.address.street|\n"
+            + "+---+-------------------------------+---------------------------------+\n"
+            + "|  0|                       New York|                  123 Main Street|\n"
+            + "|  1|                         Boston|                   456 Oak Avenue|\n"
+            + "|  2|                        Chicago|                  789 Pine Street|\n"
+            + "|  3|                  San Francisco|                   101 Cedar Road|\n"
+            + "|  4|                        Seattle|                  246 Maple Drive|\n"
+            + "+---+-------------------------------+---------------------------------+\n"
+            + "Total line number = 5\n";
+    SQLTestTools.executeAndCompare(session, statement, expect);
+
+    // nested type with wildcard
+    statement = "select user_id, address.* from `a.userdata\\parquet`;";
+    expect =
+        "ResultSets:\n"
+            + "+---+--------------------------+-------------------------------+-----------------------------------------------+------------------------------------------------+---------------------------------+\n"
+            + "|key|a.userdata\\parquet.user_id|a.userdata\\parquet.address.city|a.userdata\\parquet.address.coordinates.latitude|a.userdata\\parquet.address.coordinates.longitude|a.userdata\\parquet.address.street|\n"
+            + "+---+--------------------------+-------------------------------+-----------------------------------------------+------------------------------------------------+---------------------------------+\n"
+            + "|  0|                      U001|                       New York|                                        40.7128|                                         -74.006|                  123 Main Street|\n"
+            + "|  1|                      U002|                         Boston|                                        42.3601|                                        -71.0589|                   456 Oak Avenue|\n"
+            + "|  2|                      U003|                        Chicago|                                        41.8781|                                        -87.6298|                  789 Pine Street|\n"
+            + "|  3|                      U004|                  San Francisco|                                        37.7749|                                       -122.4194|                   101 Cedar Road|\n"
+            + "|  4|                      U005|                        Seattle|                                        47.6062|                                       -122.3321|                  246 Maple Drive|\n"
+            + "+---+--------------------------+-------------------------------+-----------------------------------------------+------------------------------------------------+---------------------------------+\n"
+            + "Total line number = 5\n";
+    SQLTestTools.executeAndCompare(session, statement, expect);
+
+    // repeated type
+    statement = "select `1`, `2` from `a.userdata\\parquet`.phone_numbers;";
+    expect =
+        "ResultSets:\n"
+            + "+---+----------------------------------+----------------------------------+\n"
+            + "|key|a.userdata\\parquet.phone_numbers.1|a.userdata\\parquet.phone_numbers.2|\n"
+            + "+---+----------------------------------+----------------------------------+\n"
+            + "|  0|                   +1-555-987-6543|                              null|\n"
+            + "|  2|                   +1-555-456-7890|                   +1-555-567-8901|\n"
+            + "+---+----------------------------------+----------------------------------+\n"
+            + "Total line number = 2\n";
+    SQLTestTools.executeAndCompare(session, statement, expect);
+
+    // repeated with wildcard
+    statement = "select * from `a.userdata\\parquet`.phone_numbers;";
+    expect =
+        "ResultSets:\n"
+            + "+---+----------------------------------+----------------------------------+----------------------------------+\n"
+            + "|key|a.userdata\\parquet.phone_numbers.0|a.userdata\\parquet.phone_numbers.1|a.userdata\\parquet.phone_numbers.2|\n"
+            + "+---+----------------------------------+----------------------------------+----------------------------------+\n"
+            + "|  0|                   +1-555-123-4567|                   +1-555-987-6543|                              null|\n"
+            + "|  1|                   +1-555-234-5678|                              null|                              null|\n"
+            + "|  2|                   +1-555-345-6789|                   +1-555-456-7890|                   +1-555-567-8901|\n"
+            + "|  4|                   +1-555-678-9012|                              null|                              null|\n"
+            + "+---+----------------------------------+----------------------------------+----------------------------------+\n"
+            + "Total line number = 4\n";
+    SQLTestTools.executeAndCompare(session, statement, expect);
+
+    // nested repeated
+    statement =
+        "select `2.order_date`, `1.items.0.product_id` from `a.userdata\\parquet`.order_history;";
+    expect =
+        "ResultSets:\n"
+            + "+---+---------------------------------------------+-----------------------------------------------------+\n"
+            + "|key|a.userdata\\parquet.order_history.2.order_date|a.userdata\\parquet.order_history.1.items.0.product_id|\n"
+            + "+---+---------------------------------------------+-----------------------------------------------------+\n"
+            + "|  0|                                         null|                                                 P300|\n"
+            + "|  4|                                1695915600000|                                                 P100|\n"
+            + "+---+---------------------------------------------+-----------------------------------------------------+\n"
+            + "Total line number = 2\n";
+    SQLTestTools.executeAndCompare(session, statement, expect);
+
+    // nested repeated with wildcard
+    statement = "select *.items.*.price from `a.userdata\\parquet`.order_history;";
+    expect =
+        "ResultSets:\n"
+            + "+---+------------------------------------------------+------------------------------------------------+------------------------------------------------+------------------------------------------------+------------------------------------------------+------------------------------------------------+\n"
+            + "|key|a.userdata\\parquet.order_history.0.items.0.price|a.userdata\\parquet.order_history.0.items.1.price|a.userdata\\parquet.order_history.0.items.2.price|a.userdata\\parquet.order_history.1.items.0.price|a.userdata\\parquet.order_history.1.items.1.price|a.userdata\\parquet.order_history.2.items.0.price|\n"
+            + "+---+------------------------------------------------+------------------------------------------------+------------------------------------------------+------------------------------------------------+------------------------------------------------+------------------------------------------------+\n"
+            + "|  0|                                           29.99|                                           49.99|                                            null|                                           19.99|                                           99.99|                                            null|\n"
+            + "|  1|                                          199.99|                                            null|                                            null|                                            null|                                            null|                                            null|\n"
+            + "|  2|                                           49.99|                                           99.99|                                           29.99|                                            null|                                            null|                                            null|\n"
+            + "|  4|                                           19.99|                                            null|                                            null|                                           29.99|                                           49.99|                                          199.99|\n"
+            + "+---+------------------------------------------------+------------------------------------------------+------------------------------------------------+------------------------------------------------+------------------------------------------------+------------------------------------------------+\n"
+            + "Total line number = 4\n";
+    SQLTestTools.executeAndCompare(session, statement, expect);
+
+    // test filter for complex types
+    statement =
+        "select user_id from `a.userdata\\parquet` where order_history.`0`.items.`0`.price > 30.0;";
+    expect =
+        "ResultSets:\n"
+            + "+---+--------------------------+\n"
+            + "|key|a.userdata\\parquet.user_id|\n"
+            + "+---+--------------------------+\n"
+            + "|  1|                      U002|\n"
+            + "|  2|                      U003|\n"
+            + "+---+--------------------------+\n"
+            + "Total line number = 2\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
   }
 }

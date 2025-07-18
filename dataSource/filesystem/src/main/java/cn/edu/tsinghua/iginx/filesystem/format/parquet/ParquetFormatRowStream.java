@@ -25,44 +25,21 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.filesystem.common.FileSystemException;
 import cn.edu.tsinghua.iginx.filesystem.common.FileSystemRowStream;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.function.Function;
+import javax.annotation.Nullable;
 import javax.annotation.WillCloseWhenClosed;
 import shaded.iginx.org.apache.parquet.schema.MessageType;
 
 public class ParquetFormatRowStream extends FileSystemRowStream {
 
-  private final IParquetReader reader;
+  private final IginxParquetReader reader;
+  private final MessageType projectedSchema;
   private final Header header;
-  private Row nextRow;
 
   public ParquetFormatRowStream(
-      @WillCloseWhenClosed IParquetReader reader, Function<String, String> nameMapper)
-      throws IOException {
+      @WillCloseWhenClosed IginxParquetReader reader, @Nullable String prefix) {
     this.reader = reader;
-    this.header = new Header(Field.KEY, toFields(reader.getSchema(), nameMapper));
-    this.nextRow = fetchNext();
-  }
-
-  private static List<Field> toFields(MessageType schema, Function<String, String> nameMapper) {
-    List<Field> fields = ProjectUtils.toFields(schema);
-    List<Field> result = new ArrayList<>();
-    for (Field field : fields) {
-      String rawName = field.getName();
-      String fullName = nameMapper.apply(rawName);
-      result.add(new Field(fullName, field.getType()));
-    }
-    return result;
-  }
-
-  private Row fetchNext() throws IOException {
-    IRecord record = reader.read();
-    if (record == null) {
-      return null;
-    }
-    long key = reader.getCurrentRowIndex();
-    return ProjectUtils.toRow(header, key, record);
+    this.projectedSchema = reader.getProjectedSchema();
+    this.header = new Header(Field.KEY, ParquetFormatReader.toFields(projectedSchema, prefix));
   }
 
   @Override
@@ -79,8 +56,13 @@ public class ParquetFormatRowStream extends FileSystemRowStream {
     }
   }
 
+  private Row nextRow;
+
   @Override
   public boolean hasNext() throws FileSystemException {
+    if (nextRow == null) {
+      nextRow = fetchNext();
+    }
     return nextRow != null;
   }
 
@@ -90,11 +72,34 @@ public class ParquetFormatRowStream extends FileSystemRowStream {
       throw new FileSystemException("No more rows");
     }
     Row row = nextRow;
+    nextRow = fetchNext();
+    return row;
+  }
+
+  private Row fetchNext() throws FileSystemException {
+    IginxGroup group = null;
     try {
-      nextRow = fetchNext();
+      group = reader.read();
     } catch (IOException e) {
       throw new FileSystemException(e);
     }
-    return row;
+    if (group == null) {
+      return null;
+    }
+    long key = reader.getCurrentRowIndex();
+    Object[] values = new Object[header.getFieldSize()];
+    fillFlattened(group, values, 0);
+    return new Row(header, key, values);
+  }
+
+  private int fillFlattened(IginxGroup group, Object[] values, int index) {
+    for (Object value : group.getData()) {
+      if (value instanceof IginxGroup) {
+        index = fillFlattened((IginxGroup) value, values, index);
+      } else {
+        values[index++] = value;
+      }
+    }
+    return index;
   }
 }
