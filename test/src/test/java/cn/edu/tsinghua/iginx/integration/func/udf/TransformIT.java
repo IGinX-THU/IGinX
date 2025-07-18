@@ -970,7 +970,8 @@ public class TransformIT {
       }
       try {
         session.removeStorageEngine(
-            Collections.singletonList(new RemovedStorageEngineInfo("127.0.0.1", 6660, "", "")));
+            Collections.singletonList(new RemovedStorageEngineInfo("127.0.0.1", 6660, "", "")),
+            true);
       } catch (SessionException e) {
         LOGGER.error("Remove read-only dummy engine failed:", e);
       }

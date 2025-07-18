@@ -25,12 +25,14 @@ import static cn.edu.tsinghua.iginx.metadata.utils.IdUtils.generateId;
 import static cn.edu.tsinghua.iginx.metadata.utils.ReshardStatus.*;
 
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.metadata.cache.IMetaCache;
 import cn.edu.tsinghua.iginx.metadata.entity.*;
 import cn.edu.tsinghua.iginx.metadata.exception.MetaStorageException;
 import cn.edu.tsinghua.iginx.metadata.hook.*;
 import cn.edu.tsinghua.iginx.metadata.storage.IMetaStorage;
 import cn.edu.tsinghua.iginx.metadata.utils.ReshardStatus;
+import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.transform.pojo.TriggerDescriptor;
 import cn.edu.tsinghua.iginx.utils.JsonUtils;
 import cn.edu.tsinghua.iginx.utils.Pair;
@@ -45,6 +47,7 @@ import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.framework.recipes.cache.TreeCache;
 import org.apache.curator.framework.recipes.cache.TreeCacheListener;
+import org.apache.curator.framework.recipes.locks.InterProcessMultiLock;
 import org.apache.curator.framework.recipes.locks.InterProcessMutex;
 import org.apache.curator.retry.RetryForever;
 import org.apache.zookeeper.CreateMode;
@@ -56,15 +59,17 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ZooKeeperMetaStorage.class);
 
-  private static final String IGINX_NODE = "/iginx/node";
+  private static final String NODE_PREFIX = "node";
+
+  private static final String IGINX_INFO_NODE = "/iginx/info/node";
 
   private static final String STORAGE_ENGINE_NODE = "/storage/node";
 
+  private static final String IGINX_CONNECTION_NODE = "/iginx/connection-iginx/node";
+
+  private static final String STORAGE_CONNECTION_NODE = "/iginx/connection-storage/node";
+
   private static final String STORAGE_UNIT_NODE = "/unit/unit";
-
-  private static final String IGINX_LOCK_NODE = "/lock/iginx";
-
-  private static final String SCHEMA_MAPPING_LOCK_NODE = "/lock/schema";
 
   private static final String POLICY_NODE_PREFIX = "/policy";
 
@@ -96,7 +101,6 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
   private final Lock maxActiveEndTimeStatisticsMutexLock = new ReentrantLock();
   private final InterProcessMutex maxActiveEndTimeStatisticsMutex;
 
-  protected TreeCache schemaMappingsCache;
   protected TreeCache iginxCache;
   protected TreeCache storageEngineCache;
   protected TreeCache storageUnitCache;
@@ -105,7 +109,6 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
   protected TreeCache reshardCounterCache;
   protected TreeCache maxActiveEndTimeStatisticsCache;
 
-  private SchemaMappingChangeHook schemaMappingChangeHook = null;
   private IginxChangeHook iginxChangeHook = null;
   private StorageChangeHook storageChangeHook = null;
   private StorageUnitChangeHook storageUnitChangeHook = null;
@@ -164,126 +167,25 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
   }
 
   @Override
-  public Map<String, Map<String, Integer>> loadSchemaMapping() throws MetaStorageException {
-    InterProcessMutex mutex = new InterProcessMutex(client, SCHEMA_MAPPING_LOCK_NODE);
-    try {
-      mutex.acquire();
-      Map<String, Map<String, Integer>> schemaMappings = new HashMap<>();
-      if (client.checkExists().forPath(SCHEMA_MAPPING_PREFIX) == null) {
-        // 当前还没有数据，创建父节点，然后不需要解析数据
-        client.create().withMode(CreateMode.PERSISTENT).forPath(SCHEMA_MAPPING_PREFIX);
-      } else {
-        List<String> schemas = this.client.getChildren().forPath(SCHEMA_MAPPING_PREFIX);
-        for (String schema : schemas) {
-          Map<String, Integer> schemaMapping =
-              JsonUtils.parseMap(
-                  new String(this.client.getData().forPath(SCHEMA_MAPPING_PREFIX + "/" + schema)),
-                  String.class,
-                  Integer.class);
-          schemaMappings.put(schema, schemaMapping);
-        }
-      }
-      registerSchemaMappingListener();
-      return schemaMappings;
-    } catch (Exception e) {
-      throw new MetaStorageException("get error when load schema mapping", e);
-    } finally {
-      try {
-        mutex.release();
-      } catch (Exception e) {
-        throw new MetaStorageException(
-            "get error when release interprocess lock for " + SCHEMA_MAPPING_LOCK_NODE, e);
-      }
-    }
-  }
-
-  private void registerSchemaMappingListener() throws Exception {
-    this.schemaMappingsCache = new TreeCache(client, SCHEMA_MAPPING_PREFIX);
-    TreeCacheListener listener =
-        (curatorFramework, event) -> {
-          if (schemaMappingChangeHook == null) {
-            return;
-          }
-          if (event.getData() == null
-              || event.getData().getPath() == null
-              || event.getData().getPath().equals(SCHEMA_MAPPING_PREFIX)) {
-            return; // 创建根节点，不必理会
-          }
-          byte[] data;
-          Map<String, Integer> schemaMapping = null;
-          String schema = event.getData().getPath().substring(SCHEMA_MAPPING_PREFIX.length());
-          switch (event.getType()) {
-            case NODE_ADDED:
-            case NODE_UPDATED:
-              data = event.getData().getData();
-              schemaMapping = JsonUtils.parseMap(new String(data), String.class, Integer.class);
-              break;
-            case NODE_REMOVED:
-            default:
-              break;
-          }
-          schemaMappingChangeHook.onChange(schema, schemaMapping);
-        };
-    this.schemaMappingsCache.getListenable().addListener(listener);
-    this.schemaMappingsCache.start();
-  }
-
-  @Override
-  public void registerSchemaMappingChangeHook(SchemaMappingChangeHook hook) {
-    this.schemaMappingChangeHook = hook;
-  }
-
-  @Override
-  public void updateSchemaMapping(String schema, Map<String, Integer> schemaMapping)
-      throws MetaStorageException {
-    InterProcessMutex mutex = new InterProcessMutex(this.client, SCHEMA_MAPPING_LOCK_NODE);
-    try {
-      mutex.acquire();
-      if (this.client.checkExists().forPath(SCHEMA_MAPPING_PREFIX + "/" + schema) == null) {
-        if (schemaMapping == null) { // 待删除的数据不存在
-          return;
-        }
-        // 创建新数据
-        this.client
-            .create()
-            .forPath(SCHEMA_MAPPING_PREFIX + "/" + schema, JsonUtils.toJson(schemaMapping));
-      } else {
-        if (schemaMapping == null) { // 待删除的数据存在
-          this.client.delete().forPath(SCHEMA_MAPPING_PREFIX + "/" + schema);
-        }
-        // 更新数据
-        this.client
-            .setData()
-            .forPath(SCHEMA_MAPPING_PREFIX + "/" + schema, JsonUtils.toJson(schemaMapping));
-      }
-    } catch (Exception e) {
-      throw new MetaStorageException("get error when update schemaMapping", e);
-    } finally {
-      try {
-        mutex.release();
-      } catch (Exception e) {
-        throw new MetaStorageException(
-            "get error when release interprocess lock for " + SCHEMA_MAPPING_LOCK_NODE, e);
-      }
-    }
-  }
-
-  @Override
   public Map<Long, IginxMeta> loadIginx() throws MetaStorageException {
     InterProcessMutex mutex = new InterProcessMutex(client, IGINX_LOCK_NODE);
     try {
       mutex.acquire();
       Map<Long, IginxMeta> iginxMetaMap = new HashMap<>();
-      if (client.checkExists().forPath(IGINX_NODE_PREFIX) == null) {
+      if (client.checkExists().forPath(IGINX_INFO_NODE_PREFIX) == null) {
         // 当前还没有数据，创建父节点，然后不需要解析数据
-        client.create().withMode(CreateMode.PERSISTENT).forPath(IGINX_NODE_PREFIX);
+        client
+            .create()
+            .creatingParentsIfNeeded()
+            .withMode(CreateMode.PERSISTENT)
+            .forPath(IGINX_INFO_NODE_PREFIX);
       } else {
-        List<String> children = client.getChildren().forPath(IGINX_NODE_PREFIX);
+        List<String> children = client.getChildren().forPath(IGINX_INFO_NODE_PREFIX);
         for (String childName : children) {
-          byte[] data = client.getData().forPath(IGINX_NODE_PREFIX + "/" + childName);
+          byte[] data = client.getData().forPath(IGINX_INFO_NODE_PREFIX + "/" + childName);
           IginxMeta iginxMeta = JsonUtils.fromJson(data, IginxMeta.class);
           if (iginxMeta == null) {
-            LOGGER.error("resolve data from {}/{} error", IGINX_NODE_PREFIX, childName);
+            LOGGER.error("resolve data from {}/{} error", IGINX_INFO_NODE_PREFIX, childName);
             continue;
           }
           iginxMetaMap.putIfAbsent(iginxMeta.getId(), iginxMeta);
@@ -298,13 +200,13 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
         mutex.release();
       } catch (Exception e) {
         throw new MetaStorageException(
-            "get error when release interprocess lock for " + SCHEMA_MAPPING_LOCK_NODE, e);
+            "get error when release interprocess lock for " + IGINX_LOCK_NODE, e);
       }
     }
   }
 
   @Override
-  public long registerIginx(IginxMeta iginx) throws MetaStorageException {
+  public IginxMeta registerIginx(IginxMeta iginx) throws MetaStorageException {
     InterProcessMutex mutex = new InterProcessMutex(client, IGINX_LOCK_NODE);
     try {
       mutex.acquire();
@@ -313,12 +215,12 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
               .create()
               .creatingParentsIfNeeded()
               .withMode(CreateMode.EPHEMERAL_SEQUENTIAL)
-              .forPath(IGINX_NODE, "".getBytes(StandardCharsets.UTF_8));
-      long id = Long.parseLong(nodeName.substring(IGINX_NODE.length()));
+              .forPath(IGINX_INFO_NODE, "".getBytes(StandardCharsets.UTF_8));
+      long id = Long.parseLong(nodeName.substring(IGINX_INFO_NODE.length()));
       IginxMeta iginxMeta =
           new IginxMeta(id, iginx.getIp(), iginx.getPort(), iginx.getExtraParams());
       this.client.setData().forPath(nodeName, JsonUtils.toJson(iginxMeta));
-      return id;
+      return iginxMeta;
     } catch (Exception e) {
       throw new MetaStorageException("get error when load iginx", e);
     } finally {
@@ -332,7 +234,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
   }
 
   private void registerIginxListener() throws Exception {
-    this.iginxCache = new TreeCache(this.client, IGINX_NODE_PREFIX);
+    this.iginxCache = new TreeCache(this.client, IGINX_INFO_NODE_PREFIX);
     TreeCacheListener listener =
         (curatorFramework, event) -> {
           if (iginxChangeHook == null) {
@@ -346,12 +248,10 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
               iginxMeta = JsonUtils.fromJson(data, IginxMeta.class);
               if (iginxMeta != null) {
                 LOGGER.info(
-                    "new iginx comes to cluster: id = "
-                        + iginxMeta.getId()
-                        + " ,ip = "
-                        + iginxMeta.getIp()
-                        + " , port = "
-                        + iginxMeta.getPort());
+                    "new iginx comes to cluster: id = {} ,ip = {} , port = {}",
+                    iginxMeta.getId(),
+                    iginxMeta.getIp(),
+                    iginxMeta.getPort());
                 iginxChangeHook.onChange(iginxMeta.getId(), iginxMeta);
               } else {
                 LOGGER.error("resolve iginx meta from zookeeper error");
@@ -361,7 +261,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
               data = event.getData().getData();
               String path = event.getData().getPath();
               LOGGER.info("node {} is removed", path);
-              if (path.equals(IGINX_NODE_PREFIX)) {
+              if (path.equals(IGINX_INFO_NODE_PREFIX)) {
                 // 根节点被删除
                 LOGGER.info("all iginx leave from cluster, iginx shutdown.");
                 System.exit(1);
@@ -370,12 +270,10 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
               iginxMeta = JsonUtils.fromJson(data, IginxMeta.class);
               if (iginxMeta != null) {
                 LOGGER.info(
-                    "iginx leave from cluster: id = "
-                        + iginxMeta.getId()
-                        + " ,ip = "
-                        + iginxMeta.getIp()
-                        + " , port = "
-                        + iginxMeta.getPort());
+                    "iginx leave from cluster: id = {} ,ip = {} , port = {}",
+                    iginxMeta.getId(),
+                    iginxMeta.getIp(),
+                    iginxMeta.getPort());
                 iginxChangeHook.onChange(iginxMeta.getId(), null);
               } else {
                 LOGGER.error("resolve iginx meta from zookeeper error");
@@ -428,8 +326,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
         byte[] data = this.client.getData().forPath(STORAGE_ENGINE_NODE_PREFIX + "/" + childName);
         StorageEngineMeta storageEngineMeta = JsonUtils.fromJson(data, StorageEngineMeta.class);
         if (storageEngineMeta == null) {
-          LOGGER.error(
-              "resolve data from " + STORAGE_ENGINE_NODE_PREFIX + "/" + childName + " error");
+          LOGGER.error("resolve data from " + STORAGE_ENGINE_NODE_PREFIX + "/{} error", childName);
           continue;
         }
         storageEngineMetaMap.putIfAbsent(storageEngineMeta.getId(), storageEngineMeta);
@@ -440,7 +337,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
       registerReshardCounterListener();
       return storageEngineMetaMap;
     } catch (Exception e) {
-      throw new MetaStorageException("get error when load schema mapping", e);
+      throw new MetaStorageException("get error when load storage engine", e);
     } finally {
       try {
         mutex.release();
@@ -452,10 +349,15 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
   }
 
   @Override
-  public long addStorageEngine(StorageEngineMeta storageEngine) throws MetaStorageException {
-    InterProcessMutex mutex = new InterProcessMutex(this.client, STORAGE_ENGINE_LOCK_NODE);
+  public long addStorageEngine(long iginxId, StorageEngineMeta storageEngine)
+      throws MetaStorageException {
+    InterProcessMutex storageMutex = new InterProcessMutex(this.client, STORAGE_ENGINE_LOCK_NODE);
+    InterProcessMutex connectionMutex =
+        new InterProcessMutex(this.client, STORAGE_CONNECTION_LOCK_NODE);
+    InterProcessMultiLock multiLock =
+        new InterProcessMultiLock(Arrays.asList(storageMutex, connectionMutex));
     try {
-      mutex.acquire();
+      multiLock.acquire();
       String nodeName =
           this.client
               .create()
@@ -465,36 +367,84 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
       long id = Long.parseLong(nodeName.substring(STORAGE_ENGINE_NODE.length()));
       storageEngine.setId(id);
       this.client.setData().forPath(nodeName, JsonUtils.toJson(storageEngine));
+      // 记录连接关系
+      String connectionPath = generateId(STORAGE_CONNECTION_NODE, iginxId);
+      long[] ids;
+      if (this.client.checkExists().forPath(connectionPath) == null) {
+        this.client
+            .create()
+            .creatingParentsIfNeeded()
+            .withMode(CreateMode.EPHEMERAL)
+            .forPath(connectionPath);
+        ids = new long[1];
+        ids[0] = id;
+      } else {
+        byte[] data = client.getData().forPath(connectionPath);
+        long[] oldIds = JsonUtils.fromJson(data, long[].class);
+        ids = new long[oldIds.length + 1];
+        System.arraycopy(oldIds, 0, ids, 0, oldIds.length);
+        ids[oldIds.length] = id;
+      }
+      this.client.setData().forPath(connectionPath, JsonUtils.toJson(ids));
       return id;
     } catch (Exception e) {
       throw new MetaStorageException("get error when add storage engine", e);
     } finally {
       try {
-        mutex.release();
+        multiLock.release();
       } catch (Exception e) {
         throw new MetaStorageException(
-            "get error when release interprocess lock for " + SCHEMA_MAPPING_LOCK_NODE, e);
+            String.format(
+                "get error when release interprocess lock for %s and %s",
+                STORAGE_ENGINE_LOCK_NODE, STORAGE_CONNECTION_LOCK_NODE),
+            e);
       }
     }
   }
 
   @Override
-  public void removeDummyStorageEngine(long storageEngineId) throws MetaStorageException {
-    InterProcessMutex mutex = new InterProcessMutex(this.client, STORAGE_ENGINE_LOCK_NODE);
+  public void removeDummyStorageEngine(long iginxId, long storageEngineId, boolean forAllIginx)
+      throws MetaStorageException {
+    InterProcessMutex storageMutex = new InterProcessMutex(this.client, STORAGE_ENGINE_LOCK_NODE);
+    InterProcessMutex connectionMutex =
+        new InterProcessMutex(this.client, STORAGE_CONNECTION_LOCK_NODE);
+    InterProcessMultiLock multiLock =
+        new InterProcessMultiLock(Arrays.asList(storageMutex, connectionMutex));
     try {
-      mutex.acquire();
+      multiLock.acquire();
       String nodeName = generateId(STORAGE_ENGINE_NODE, storageEngineId);
-      if (this.client.checkExists().forPath(nodeName) != null) {
+      if (forAllIginx && this.client.checkExists().forPath(nodeName) != null) {
         this.client.delete().forPath(nodeName);
+      }
+      // 删除连接状态
+      String connectionPath = generateId(STORAGE_CONNECTION_NODE, iginxId);
+      if (this.client.checkExists().forPath(connectionPath) != null) {
+        byte[] data = client.getData().forPath(connectionPath);
+        long[] ids = JsonUtils.fromJson(data, long[].class);
+        int index = Arrays.binarySearch(ids, storageEngineId);
+        if (index >= 0) {
+          if (ids.length > 1) {
+            long[] newIds = new long[ids.length - 1];
+            System.arraycopy(ids, 0, newIds, 0, index);
+            System.arraycopy(ids, index + 1, newIds, index, ids.length - index - 1);
+            this.client.setData().forPath(connectionPath, JsonUtils.toJson(newIds));
+          } else {
+            // iginx 将没有连接的存储节点
+            this.client.delete().forPath(connectionPath);
+          }
+        }
       }
     } catch (Exception e) {
       throw new MetaStorageException("get error when removing dummy storage engine", e);
     } finally {
       try {
-        mutex.release();
+        multiLock.release();
       } catch (Exception e) {
         throw new MetaStorageException(
-            "get error when release interprocess lock for " + STORAGE_ENGINE_LOCK_NODE, e);
+            String.format(
+                "get error when release interprocess lock for %s and %s",
+                STORAGE_ENGINE_LOCK_NODE, STORAGE_CONNECTION_LOCK_NODE),
+            e);
       }
     }
   }
@@ -520,12 +470,10 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
               storageEngineMeta = JsonUtils.fromJson(data, StorageEngineMeta.class);
               if (storageEngineMeta != null) {
                 LOGGER.info(
-                    "new storage engine comes to cluster: id = "
-                        + storageEngineMeta.getId()
-                        + " ,ip = "
-                        + storageEngineMeta.getIp()
-                        + " , port = "
-                        + storageEngineMeta.getPort());
+                    "new storage engine comes to cluster: id = {} ,ip = {} , port = {}",
+                    storageEngineMeta.getId(),
+                    storageEngineMeta.getIp(),
+                    storageEngineMeta.getPort());
                 storageChangeHook.onChange(storageEngineMeta.getId(), storageEngineMeta);
               } else {
                 LOGGER.error("resolve storage engine from zookeeper error");
@@ -535,7 +483,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
               data = event.getData().getData();
               String path = event.getData().getPath();
               LOGGER.info("node {} is removed", path);
-              if (path.equals(IGINX_NODE_PREFIX)) {
+              if (path.equals(IGINX_INFO_NODE_PREFIX)) {
                 // 根节点被删除
                 LOGGER.info("all iginx leave from cluster, iginx exits");
                 System.exit(2);
@@ -544,12 +492,10 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
               storageEngineMeta = JsonUtils.fromJson(data, StorageEngineMeta.class);
               if (storageEngineMeta != null) {
                 LOGGER.info(
-                    "storage engine leave from cluster: id = "
-                        + storageEngineMeta.getId()
-                        + " ,ip = "
-                        + storageEngineMeta.getIp()
-                        + " , port = "
-                        + storageEngineMeta.getPort());
+                    "storage engine leave from cluster: id = {} ,ip = {} , port = {}",
+                    storageEngineMeta.getId(),
+                    storageEngineMeta.getIp(),
+                    storageEngineMeta.getPort());
                 storageChangeHook.onChange(storageEngineMeta.getId(), null);
               } else {
                 LOGGER.error("resolve storage engine from zookeeper error");
@@ -566,6 +512,201 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
   @Override
   public void registerStorageChangeHook(StorageChangeHook hook) {
     this.storageChangeHook = hook;
+  }
+
+  @Override
+  public void refreshAchievableIginx(IginxMeta iginx) throws MetaStorageException {
+    InterProcessMutex iginxMutex = new InterProcessMutex(client, IGINX_LOCK_NODE);
+    InterProcessMutex connectionMutex = new InterProcessMutex(client, IGINX_CONNECTION_LOCK_NODE);
+    InterProcessMultiLock multiLock =
+        new InterProcessMultiLock(Arrays.asList(iginxMutex, connectionMutex));
+    try {
+      multiLock.acquire();
+      List<Long> achievableIds = new ArrayList<>();
+      List<String> children = client.getChildren().forPath(IGINX_INFO_NODE_PREFIX);
+      for (String childName : children) {
+        byte[] data = client.getData().forPath(IGINX_INFO_NODE_PREFIX + "/" + childName);
+        IginxMeta iginxMeta = JsonUtils.fromJson(data, IginxMeta.class);
+        if (iginxMeta == null) {
+          LOGGER.error("resolve data from {}/{} error", IGINX_INFO_NODE_PREFIX, childName);
+          continue;
+        }
+        if (iginx.getIp().equals(iginxMeta.getIp()) && iginx.getPort() == iginxMeta.getPort()) {
+          continue;
+        }
+        // 尝试与集群中其他iginx建立连接
+        Session session = new Session(iginxMeta.iginxMetaInfo());
+        try {
+          session.openSession();
+          LOGGER.info(
+              "connect to iginx(id = {} ,ip = {} , port = {})",
+              iginxMeta.getId(),
+              iginxMeta.getIp(),
+              iginxMeta.getPort());
+          achievableIds.add(iginxMeta.getId());
+          session.closeSession();
+        } catch (SessionException e) {
+          LOGGER.info(
+              "open session of iginx(id = {} ,ip = {} , port = {}) failed, because: ",
+              iginxMeta.getId(),
+              iginxMeta.getIp(),
+              iginxMeta.getPort(),
+              e);
+        }
+      }
+      String nodeName =
+          this.client
+              .create()
+              .creatingParentsIfNeeded()
+              .withMode(CreateMode.EPHEMERAL)
+              .forPath(generateId(IGINX_CONNECTION_NODE, iginx.getId()));
+      long[] ids = achievableIds.stream().mapToLong(Long::longValue).toArray();
+      this.client.setData().forPath(nodeName, JsonUtils.toJson(ids));
+    } catch (Exception e) {
+      throw new MetaStorageException("get error when update achievable iginx", e);
+    } finally {
+      try {
+        multiLock.release();
+      } catch (Exception e) {
+        throw new MetaStorageException(
+            String.format(
+                "get error when release interprocess lock for %s and %s",
+                IGINX_LOCK_NODE, IGINX_CONNECTION_LOCK_NODE),
+            e);
+      }
+    }
+  }
+
+  @Override
+  public Map<Long, Set<Long>> refreshClusterIginxConnectivity() throws MetaStorageException {
+    InterProcessMutex mutex = new InterProcessMutex(client, IGINX_CONNECTION_LOCK_NODE);
+    try {
+      mutex.acquire();
+      Map<Long, Set<Long>> connectionMap = new HashMap<>();
+      if (this.client.checkExists().forPath(IGINX_CONNECTION_NODE_PREFIX) == null) {
+        // 当前还没有数据，创建父节点，然后不需要解析数据
+        client.create().withMode(CreateMode.EPHEMERAL).forPath(IGINX_CONNECTION_NODE_PREFIX);
+      } else {
+        List<String> children = client.getChildren().forPath(IGINX_CONNECTION_NODE_PREFIX);
+        for (String childName : children) {
+          byte[] data = client.getData().forPath(IGINX_CONNECTION_NODE_PREFIX + "/" + childName);
+          long[] toIds = JsonUtils.fromJson(data, long[].class);
+          if (toIds == null) {
+            LOGGER.error("resolve data from {}/{} error", IGINX_CONNECTION_NODE_PREFIX, childName);
+            continue;
+          }
+          long fromId = Long.parseLong(childName.substring(NODE_PREFIX.length()));
+          for (long toId : toIds) {
+            connectionMap.computeIfAbsent(fromId, k -> new HashSet<>()).add(toId);
+          }
+        }
+      }
+      return connectionMap;
+    } catch (Exception e) {
+      throw new MetaStorageException("get error when update cluster iginx connections", e);
+    } finally {
+      try {
+        mutex.release();
+      } catch (Exception e) {
+        throw new MetaStorageException(
+            "get error when release interprocess lock for " + IGINX_CONNECTION_LOCK_NODE, e);
+      }
+    }
+  }
+
+  @Override
+  public void addStorageConnection(long iginxId, List<StorageEngineMeta> storageEngines)
+      throws MetaStorageException {
+    InterProcessMutex storageMutex = new InterProcessMutex(this.client, STORAGE_ENGINE_LOCK_NODE);
+    InterProcessMutex connectionMutex =
+        new InterProcessMutex(this.client, STORAGE_CONNECTION_LOCK_NODE);
+    InterProcessMultiLock multiLock =
+        new InterProcessMultiLock(Arrays.asList(storageMutex, connectionMutex));
+    try {
+      multiLock.acquire();
+      for (StorageEngineMeta storageEngine : storageEngines) {
+        String nodeName = generateId(STORAGE_ENGINE_NODE, storageEngine.getId());
+        if (this.client.checkExists().forPath(nodeName) == null) {
+          LOGGER.error("storage engine {} does not exist", storageEngine.getId());
+          return;
+        } else {
+          LOGGER.info("connect to storage engine {} ", storageEngine);
+        }
+      }
+      // 记录连接关系
+      String connectionPath = generateId(STORAGE_CONNECTION_NODE, iginxId);
+      long[] ids;
+      if (this.client.checkExists().forPath(connectionPath) == null) {
+        this.client
+            .create()
+            .creatingParentsIfNeeded()
+            .withMode(CreateMode.EPHEMERAL)
+            .forPath(connectionPath);
+        ids = new long[storageEngines.size()];
+        for (int i = 0; i < storageEngines.size(); i++) {
+          ids[i] = storageEngines.get(i).getId();
+        }
+      } else {
+        byte[] data = client.getData().forPath(connectionPath);
+        long[] oldIds = JsonUtils.fromJson(data, long[].class);
+        ids = new long[oldIds.length + storageEngines.size()];
+        System.arraycopy(oldIds, 0, ids, 0, oldIds.length);
+        for (int i = 0; i < storageEngines.size(); i++) {
+          ids[oldIds.length + i] = storageEngines.get(i).getId();
+        }
+      }
+      this.client.setData().forPath(connectionPath, JsonUtils.toJson(ids));
+    } catch (Exception e) {
+      throw new MetaStorageException("get error when add storage connection", e);
+    } finally {
+      try {
+        multiLock.release();
+      } catch (Exception e) {
+        throw new MetaStorageException(
+            String.format(
+                "get error when release interprocess lock for %s and %s",
+                STORAGE_ENGINE_LOCK_NODE, STORAGE_CONNECTION_LOCK_NODE),
+            e);
+      }
+    }
+  }
+
+  @Override
+  public Map<Long, Set<Long>> refreshClusterStorageConnections() throws MetaStorageException {
+    InterProcessMutex mutex = new InterProcessMutex(client, STORAGE_CONNECTION_LOCK_NODE);
+    try {
+      mutex.acquire();
+      Map<Long, Set<Long>> connectionMap = new HashMap<>();
+      if (this.client.checkExists().forPath(STORAGE_CONNECTION_NODE_PREFIX) == null) {
+        // 当前还没有数据，创建父节点，然后不需要解析数据
+        client.create().withMode(CreateMode.EPHEMERAL).forPath(STORAGE_CONNECTION_NODE_PREFIX);
+      } else {
+        List<String> children = client.getChildren().forPath(STORAGE_CONNECTION_NODE_PREFIX);
+        for (String childName : children) {
+          byte[] data = client.getData().forPath(STORAGE_CONNECTION_NODE_PREFIX + "/" + childName);
+          long[] storageIds = JsonUtils.fromJson(data, long[].class);
+          if (storageIds == null) {
+            LOGGER.error(
+                "resolve data from {}/{} error", STORAGE_CONNECTION_NODE_PREFIX, childName);
+            continue;
+          }
+          long iginxId = Long.parseLong(childName.substring(NODE_PREFIX.length()));
+          for (long storageId : storageIds) {
+            connectionMap.computeIfAbsent(iginxId, k -> new HashSet<>()).add(storageId);
+          }
+        }
+      }
+      return connectionMap;
+    } catch (Exception e) {
+      throw new MetaStorageException("get error when update cluster storage connections", e);
+    } finally {
+      try {
+        mutex.release();
+      } catch (Exception e) {
+        throw new MetaStorageException(
+            "get error when release interprocess lock for " + STORAGE_CONNECTION_LOCK_NODE, e);
+      }
+    }
   }
 
   @Override
@@ -588,9 +729,8 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
                 storageUnitMetaMap.get(storageUnitMeta.getMasterId());
             if (masterStorageUnitMeta == null) { // 子节点先于主节点加入系统中，不应该发生，报错
               LOGGER.error(
-                  "unexpected storage unit "
-                      + new String(data)
-                      + ", because it does not has a master storage unit");
+                  "unexpected storage unit {}, because it does not has a master storage unit",
+                  new String(data));
             } else {
               masterStorageUnitMeta.addReplica(storageUnitMeta);
             }
