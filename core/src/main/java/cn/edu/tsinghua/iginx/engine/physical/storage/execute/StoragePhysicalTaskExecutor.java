@@ -243,6 +243,7 @@ public class StoragePhysicalTaskExecutor {
           if (before == null && after != null) { // 新增加存储，处理这种事件，其他事件暂时不处理
             if (after.getCreatedBy() != metaManager.getIginxId()) {
               storageManager.addStorage(after);
+              metaManager.addStorageConnection(Collections.singletonList(after));
             }
           } else if (before != null && after == null) { // 删除引擎时，需要release（目前仅支持dummy & read only）
             try {

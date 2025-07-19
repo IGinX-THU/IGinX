@@ -19,6 +19,8 @@
  */
 package cn.edu.tsinghua.iginx.engine.shared.function.manager;
 
+import static cn.edu.tsinghua.iginx.engine.shared.function.udf.utils.Constants.PYTHON_PATHS;
+import static cn.edu.tsinghua.iginx.engine.shared.function.udf.utils.Constants.SCRIPTS_PATH;
 import static cn.edu.tsinghua.iginx.utils.ShellRunner.runCommand;
 import static cn.edu.tsinghua.iginx.utils.ShellRunner.runCommandAndGetResult;
 
@@ -31,16 +33,24 @@ import cn.edu.tsinghua.iginx.engine.shared.function.udf.python.PyUDAF;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.python.PyUDF;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.python.PyUDSF;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.python.PyUDTF;
+import cn.edu.tsinghua.iginx.engine.shared.function.udf.utils.CheckUtils;
 import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
 import cn.edu.tsinghua.iginx.metadata.entity.TransformTaskMeta;
 import cn.edu.tsinghua.iginx.thrift.UDFType;
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pemja.core.PythonInterpreter;
@@ -57,9 +67,6 @@ public class FunctionManager {
   private static final Config config = ConfigDescriptor.getInstance().getConfig();
 
   private static final String PY_SUFFIX = ".py";
-
-  private static final String PATH =
-      String.join(File.separator, config.getDefaultUDFDir(), "python_scripts");
 
   private PythonInterpreterConfig INTERPRETER_CONFIG;
 
@@ -91,7 +98,7 @@ public class FunctionManager {
       this.INTERPRETER_CONFIG =
           PythonInterpreterConfig.newBuilder()
               .setPythonExec(PythonCMD)
-              .addPythonPaths(PATH)
+              .addPythonPaths(PYTHON_PATHS)
               .build();
     }
     return INTERPRETER_CONFIG;
@@ -260,12 +267,32 @@ public class FunctionManager {
 
   // use pip to install requirements.txt in module root dir
   public void installReqsByPip(String rootPath) throws Exception {
-    String reqFilePath = String.join(File.separator, PATH, rootPath, "requirements.txt");
+    String reqFilePath = String.join(File.separator, SCRIPTS_PATH, rootPath, "requirements.txt");
     File file = new File(reqFilePath);
     if (file.exists()) {
       runCommand(PythonCMD, "-m", "pip", "install", "-r", reqFilePath);
     } else {
       LOGGER.warn("No requirement document provided for python module {}.", rootPath);
+    }
+  }
+
+  public Set<String> checkScript(File file) throws IOException {
+    if (file.isFile()) {
+      return CheckUtils.importCheck(file.getCanonicalPath());
+    } else {
+      Set<String> res = new HashSet<>();
+      try (Stream<Path> stream = Files.walk(file.toPath())) {
+        List<Path> list =
+            stream
+                .filter(Files::isRegularFile)
+                .filter(path -> path.toString().endsWith(".py")) // py文件
+                .collect(Collectors.toList());
+        for (Path path : list) {
+          Set<String> fileRes = CheckUtils.importCheck(path.toFile().getCanonicalPath());
+          res.addAll(fileRes);
+        }
+      }
+      return res;
     }
   }
 

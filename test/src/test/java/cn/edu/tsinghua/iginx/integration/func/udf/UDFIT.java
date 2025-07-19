@@ -23,6 +23,8 @@ import static cn.edu.tsinghua.iginx.integration.controller.Controller.SUPPORT_KE
 import static cn.edu.tsinghua.iginx.integration.controller.Controller.clearAllData;
 import static org.junit.Assert.*;
 
+import cn.edu.tsinghua.iginx.conf.Config;
+import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.func.session.InsertAPIType;
@@ -48,6 +50,8 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pemja.core.PythonInterpreter;
+import pemja.core.PythonInterpreterConfig;
 
 public class UDFIT {
   private static final Logger LOGGER = LoggerFactory.getLogger(UDFIT.class);
@@ -72,6 +76,8 @@ public class UDFIT {
   private static final String DROP_SQL = "DROP FUNCTION \"%s\";";
 
   private static final String SHOW_FUNCTION_SQL = "SHOW FUNCTIONS;";
+
+  private static final String SET_TIMEOUT_SQL = "SET CONFIG \"UDFTimeout\" \"%s\";";
 
   private static final String MODULE_PATH =
       String.join(
@@ -1542,5 +1548,99 @@ public class UDFIT {
             + "Total line number = 5\n";
 
     assertEquals(expected, tool.execute(statement).getResultInString(false, ""));
+  }
+
+  @Test
+  public void testTypeCast() {
+    String name = "typeCastTest";
+    String filePath =
+        String.join(
+            File.separator,
+            System.getProperty("user.dir"),
+            "src",
+            "test",
+            "resources",
+            "udf",
+            "type_cast_test.py");
+    String statement =
+        String.format(SINGLE_UDF_REGISTER_SQL, "udsf", name, "TypeCastTest", filePath);
+    tool.executeReg(statement);
+    assertTrue(tool.isUDFRegistered(name));
+    taskToBeRemoved.add(name);
+
+    statement = "SELECT typeCastTest(*) FROM us.d1;";
+    String expected =
+        "ResultSets:\n"
+            + "+---------------------------+------------------------+--------------------------+---------------------------+--------------------------+\n"
+            + "|typeCastTest(us.d1.INTEGER)|typeCastTest(us.d1.LONG)|typeCastTest(us.d1.DOUBLE)|typeCastTest(us.d1.BOOLEAN)|typeCastTest(us.d1.BINARY)|\n"
+            + "+---------------------------+------------------------+--------------------------+---------------------------+--------------------------+\n"
+            + "|                          1|                   23372|                     567.0|                       true|                      9999|\n"
+            + "|                          0|                       2|                     9.876|                       true|              3.1415926535|\n"
+            + "|                          1|                       0|                       1.0|                      false|                      true|\n"
+            + "|                       null|                 -453625|                     5.327|                      false|                       aaa|\n"
+            + "+---------------------------+------------------------+--------------------------+---------------------------+--------------------------+\n"
+            + "Total line number = 4\n";
+    assertEquals(expected, tool.execute(statement).getResultInString(false, ""));
+  }
+
+  private boolean pythonNewerThan313() {
+    Config config = ConfigDescriptor.getInstance().getConfig();
+    String pythonCMD = config.getPythonCMD();
+    PythonInterpreterConfig pyConfig =
+        PythonInterpreterConfig.newBuilder().setPythonExec(pythonCMD).build();
+    try (PythonInterpreter interpreter = new PythonInterpreter(pyConfig)) {
+      interpreter.exec("import sys; tooNew = sys.version_info >= (3, 13);");
+      return (boolean) interpreter.get("tooNew");
+    }
+  }
+
+  @Test
+  public void testTimeout() {
+    String name = "TimeoutTest";
+    String filePath =
+        String.join(
+            File.separator,
+            System.getProperty("user.dir"),
+            "src",
+            "test",
+            "resources",
+            "udf",
+            "timeout_test.py");
+    String statement =
+        String.format(SINGLE_UDF_REGISTER_SQL, "udsf", name, "TimeoutTest", filePath);
+    tool.executeReg(statement);
+    assertTrue(tool.isUDFRegistered(name));
+    taskToBeRemoved.add(name);
+
+    statement = String.format(SET_TIMEOUT_SQL, 1);
+    tool.execute(statement);
+
+    statement = "select " + name + "(s1, 1) from us.d1 where s1 < 10;";
+    long start = System.currentTimeMillis();
+    Exception ret = tool.executeFail(statement);
+    long end = System.currentTimeMillis();
+    assertTrue(ret.getMessage().contains("encounter error")); // timeout的信息没有被session传递（？）但服务端有log
+    assertTrue(end - start < 3000); // 5秒内拿到结果，触发timeout
+
+    // test event waiting
+    statement = "select " + name + "(s1, 2) from us.d1 where s1 < 10;";
+    start = System.currentTimeMillis();
+    ret = tool.executeFail(statement);
+    end = System.currentTimeMillis();
+    assertTrue(ret.getMessage().contains("encounter error"));
+    assertTrue(end - start < 3000); // 5秒内拿到结果，触发timeout
+
+    Assume.assumeFalse(
+        "Test skipped: Python >= 3.13, transformers is not supported.", pythonNewerThan313());
+    // test importing large models
+    statement = "select " + name + "(s1, 3) from us.d1 where s1 < 10;";
+    start = System.currentTimeMillis();
+    ret = tool.executeFail(statement);
+    end = System.currentTimeMillis();
+    assertTrue(ret.getMessage().contains("encounter error"));
+    assertTrue(end - start < 3000); // 3秒内拿到结果，触发timeout
+
+    statement = String.format(SET_TIMEOUT_SQL, -1);
+    tool.execute(statement);
   }
 }

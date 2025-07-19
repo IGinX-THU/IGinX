@@ -633,7 +633,7 @@ public class UnarySelectStatement extends SelectStatement {
             return path;
           }
         } else if (OperatorUtils.covers(path, pattern)) {
-          return PathUtils.recoverRenamedPattern(fromPart.getAliasList(), path);
+          return PathUtils.recoverRenamedPattern(fromPart.getAliasList(), path).get(0);
         }
       }
     }

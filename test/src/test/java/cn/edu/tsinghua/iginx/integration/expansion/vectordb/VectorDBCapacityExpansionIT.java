@@ -58,12 +58,12 @@ public class VectorDBCapacityExpansionIT extends BaseCapacityExpansionIT {
 
   @Override
   protected void shutdownDatabase(int port) {
-    shutOrRestart(port, true, "milvus");
+    shutOrRestart(port, true, "milvus", 120);
   }
 
   @Override
   protected void startDatabase(int port) {
-    shutOrRestart(port, false, "milvus");
+    shutOrRestart(port, false, "milvus", 120);
   }
 
   @Override
@@ -378,6 +378,7 @@ public class VectorDBCapacityExpansionIT extends BaseCapacityExpansionIT {
             + "Total line number = 14\n";
     SQLTestTools.executeAndCompare(session, statement, expected);
     session.removeStorageEngine(
-        Arrays.asList(new RemovedStorageEngineInfo(LOCAL_IP, readOnlyPort, schemaPrefix, "")));
+        Arrays.asList(new RemovedStorageEngineInfo(LOCAL_IP, readOnlyPort, schemaPrefix, "")),
+        true);
   }
 }

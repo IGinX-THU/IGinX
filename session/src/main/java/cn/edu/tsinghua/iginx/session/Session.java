@@ -23,6 +23,7 @@ import static cn.edu.tsinghua.iginx.utils.ByteUtils.getByteArrayFromLongArray;
 import static cn.edu.tsinghua.iginx.utils.HostUtils.isLocalHost;
 
 import cn.edu.tsinghua.iginx.exception.SessionException;
+import cn.edu.tsinghua.iginx.pool.IginxInfo;
 import cn.edu.tsinghua.iginx.thrift.*;
 import cn.edu.tsinghua.iginx.utils.*;
 import java.io.File;
@@ -92,6 +93,10 @@ public class Session {
     this.isClosed = true;
     this.redirectTimes = 0;
     this.lock = new ReentrantReadWriteLock();
+  }
+
+  public Session(IginxInfo iginxInfo) {
+    this(iginxInfo.getHost(), iginxInfo.getPort(), iginxInfo.getUser(), iginxInfo.getPassword());
   }
 
   public long getSessionId() {
@@ -1221,9 +1226,11 @@ public class Session {
     return new CurveMatchResult(ref.resp.getMatchedKey(), ref.resp.getMatchedPath());
   }
 
-  public void removeStorageEngine(List<RemovedStorageEngineInfo> removedStorageEngineList)
+  public void removeStorageEngine(
+      List<RemovedStorageEngineInfo> removedStorageEngineList, boolean isForAllIginx)
       throws SessionException {
-    RemoveStorageEngineReq req = new RemoveStorageEngineReq(sessionId, removedStorageEngineList);
+    RemoveStorageEngineReq req =
+        new RemoveStorageEngineReq(sessionId, removedStorageEngineList, isForAllIginx);
     executeWithCheck(() -> client.removeStorageEngine(req));
   }
 
