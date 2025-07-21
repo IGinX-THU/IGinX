@@ -21,10 +21,100 @@ package cn.edu.tsinghua.iginx.relational.strategy;
 
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.relational.meta.AbstractRelationalMeta;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class PostgreSQLDatabaseStrategy extends AbstractDatabaseStrategy {
+  private static final Logger LOGGER = LoggerFactory.getLogger(PostgreSQLDatabaseStrategy.class);
+
   public PostgreSQLDatabaseStrategy(
       AbstractRelationalMeta relationalMeta, StorageEngineMeta storageEngineMeta) {
     super(relationalMeta, storageEngineMeta);
   }
+
+  //  @Override
+  //  public ColumnsInterval getBoundaryFromInformationSchema()
+  //          throws PhysicalException, SQLException {
+  //    StringBuilder sqlGetDBBuilder = new StringBuilder();
+  //    sqlGetDBBuilder.append("SELECT min(datname), max(datname)");
+  //    sqlGetDBBuilder
+  //            .append(" FROM ( ")
+  //            .append(
+  //                    relationalMeta.getDatabaseQuerySql(),
+  //                    0,
+  //                    relationalMeta.getDatabaseQuerySql().length() - 1)
+  //            .append(" ) datnames");
+  //    sqlGetDBBuilder
+  //            .append(" WHERE datname NOT IN ('")
+  //            .append(relationalMeta.getDefaultDatabaseName())
+  //            .append("'");
+  //    for (String systemDatabaseName : relationalMeta.getSystemDatabaseName()) {
+  //      sqlGetDBBuilder.append(", '").append(systemDatabaseName).append("'");
+  //    }
+  //    sqlGetDBBuilder.append(")");
+  //
+  //    String sqlGetDB = sqlGetDBBuilder.toString();
+  //
+  //    LOGGER.debug("[Query] execute query: {}", sqlGetDB);
+  //
+  //    try (Connection conn = getConnection(relationalMeta.getDefaultDatabaseName());
+  //         Statement statement = conn.createStatement();
+  //         ResultSet rs = statement.executeQuery(sqlGetDB)) {
+  //      if (rs.next()) {
+  //        String minDatabaseName = rs.getString(1);
+  //        String maxDatabaseName = rs.getString(2);
+  //        if (minDatabaseName != null && maxDatabaseName != null) {
+  //          return getBoundaryFromInformationSchemaInCatalog(minDatabaseName, maxDatabaseName);
+  //        }
+  //      }
+  //      throw new RelationalTaskExecuteFailureException("no data!");
+  //    }
+  //  }
+  //
+  //  @Override
+  //  public ColumnsInterval getBoundaryFromInformationSchemaInCatalog(String minDb, String maxDb)
+  //          throws SQLException, RelationalTaskExecuteFailureException {
+  //    String columnNames;
+  //    String conditionStatement;
+  //    if (relationalMeta.isUseApproximateBoundary()) {
+  //      return new ColumnsInterval(minDb, StringUtils.nextString(maxDb));
+  //    }
+  //    columnNames = "table_catalog, table_name, column_name";
+  //    conditionStatement = " WHERE table_schema LIKE '" + relationalMeta.getSchemaPattern() + "'";
+  //    String sqlMin =
+  //            "SELECT "
+  //                    + columnNames
+  //                    + " FROM information_schema.columns"
+  //                    + conditionStatement
+  //                    + " ORDER BY table_catalog, table_name, column_name LIMIT 1";
+  //    String sqlMax =
+  //            "SELECT "
+  //                    + columnNames
+  //                    + " FROM information_schema.columns"
+  //                    + conditionStatement
+  //                    + " ORDER BY table_catalog DESC, table_name DESC, column_name DESC LIMIT 1";
+  //
+  //    String minPath = null;
+  //    try (Connection conn = getConnection(minDb);
+  //         Statement statement = conn.createStatement();
+  //         ResultSet rs = statement.executeQuery(sqlMin)) {
+  //      if (rs.next()) {
+  //        minPath = rs.getString(1) + SEPARATOR + rs.getString(2) + SEPARATOR + rs.getString(3);
+  //      }
+  //    }
+  //    String maxPath = null;
+  //    try (Connection conn = getConnection(maxDb);
+  //         Statement statement = conn.createStatement();
+  //         ResultSet rs = statement.executeQuery(sqlMax)) {
+  //      if (rs.next()) {
+  //        maxPath = rs.getString(1) + SEPARATOR + rs.getString(2) + SEPARATOR + rs.getString(3);
+  //      }
+  //    }
+  //    minPath = minPath == null ? minDb : minPath;
+  //    maxPath = maxPath == null ? maxDb : maxPath;
+  //    if (minPath == null || maxPath == null) {
+  //      throw new RelationalTaskExecuteFailureException("no data!");
+  //    }
+  //    return new ColumnsInterval(minPath, StringUtils.nextString(maxPath));
+  //  }
 }

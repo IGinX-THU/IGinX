@@ -83,19 +83,19 @@ public class DamengDatabaseStrategy extends AbstractDatabaseStrategy {
   }
 
   @Override
-  public String getUrl(String databaseName, StorageEngineMeta meta) {
-    return getConnectUrl(meta);
+  public String getUrl(String databaseName) {
+    return getConnectUrl();
   }
 
   @Override
-  public String getConnectUrl(StorageEngineMeta meta) {
-    Map<String, String> extraParams = meta.getExtraParams();
+  public String getConnectUrl() {
+    Map<String, String> extraParams = storageEngineMeta.getExtraParams();
     String username = extraParams.get(USERNAME);
     String password = extraParams.get(PASSWORD);
 
     return String.format(
         "jdbc:dm://%s:%s?user=%s&password=\"%s\"",
-        meta.getIp(), meta.getPort(), username, password);
+        storageEngineMeta.getIp(), storageEngineMeta.getPort(), username, password);
   }
 
   @Override
@@ -124,12 +124,12 @@ public class DamengDatabaseStrategy extends AbstractDatabaseStrategy {
 
   @Override
   public void executeBatchInsert(
-      Connection conn,
       String databaseName,
       Statement stmt,
       Map<String, Pair<String, List<String>>> tableToColumnEntries,
       char quote)
       throws SQLException {
+    Connection conn = getConnection(databaseName);
     for (Map.Entry<String, Pair<String, List<String>>> entry : tableToColumnEntries.entrySet()) {
       String tableName = entry.getKey();
       String columnNames = entry.getValue().k.substring(0, entry.getValue().k.length() - 2);
