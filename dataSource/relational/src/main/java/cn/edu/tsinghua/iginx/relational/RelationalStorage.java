@@ -111,6 +111,7 @@ public class RelationalStorage implements IStorage {
     }
     engineName = meta.getExtraParams().get("engine");
     dbStrategy = DatabaseStrategyFactory.getStrategy(engineName, relationalMeta, meta);
+    dbStrategy.initConnection();
     if (!testConnection(this.meta)) {
       throw new StorageInitializationException("cannot connect to " + meta.toString());
     }

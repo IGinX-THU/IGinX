@@ -59,18 +59,17 @@ public abstract class AbstractDatabaseStrategy implements DatabaseStrategy {
   }
 
   @Override
-  public Connection getConnection(String databaseName) {
+  public void initConnection() throws StorageInitializationException {
     try {
       connection = DriverManager.getConnection(getConnectUrl());
     } catch (SQLException e) {
-      try {
-        throw new StorageInitializationException(
-            String.format("cannot connect to %s :", storageEngineMeta), e);
-      } catch (StorageInitializationException ex) {
-        throw new RuntimeException(ex);
-      }
+      throw new StorageInitializationException(
+          String.format("cannot connect to %s :", storageEngineMeta), e);
     }
+  }
 
+  @Override
+  public Connection getConnection(String databaseName) {
     if (databaseName.startsWith("dummy")) {
       return null;
     }

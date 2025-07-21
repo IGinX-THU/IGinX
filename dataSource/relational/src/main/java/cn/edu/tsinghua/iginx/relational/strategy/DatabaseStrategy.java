@@ -20,6 +20,7 @@
 package cn.edu.tsinghua.iginx.relational.strategy;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
+import cn.edu.tsinghua.iginx.engine.physical.exception.StorageInitializationException;
 import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.utils.Pair;
@@ -29,6 +30,13 @@ import java.util.List;
 import java.util.Map;
 
 public interface DatabaseStrategy {
+  /**
+   * 初始化数据库连接
+   *
+   * @throws StorageInitializationException 如果存储初始化失败
+   */
+  void initConnection() throws StorageInitializationException;
+
   /**
    * 获取数据库连接
    *
