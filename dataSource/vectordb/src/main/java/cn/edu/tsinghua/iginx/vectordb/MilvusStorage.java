@@ -554,7 +554,7 @@ public class MilvusStorage implements IStorage {
       }
 
       PathUtils.initStorage(client, this);
-      List<Column> columns = new ArrayList<>();
+      Set<Column> columns = new HashSet<>();
       for (String pattern : patterns) {
         for (PathSystem pathSystem : pathSystemMap.values()) {
           List<String> list = PathUtils.getPathSystem(client, pathSystem).findPaths(pattern, null);
