@@ -95,12 +95,12 @@ public class OracleDatabaseStrategy extends AbstractDatabaseStrategy {
 
   @Override
   public void executeBatchInsert(
+      Connection conn,
       String databaseName,
       Statement stmt,
       Map<String, Pair<String, List<String>>> tableToColumnEntries,
       char quote)
       throws SQLException {
-    Connection conn = getConnection(databaseName);
     for (Map.Entry<String, Pair<String, List<String>>> entry : tableToColumnEntries.entrySet()) {
       String tableName = entry.getKey();
       String columnNames = entry.getValue().k.substring(0, entry.getValue().k.length() - 2);

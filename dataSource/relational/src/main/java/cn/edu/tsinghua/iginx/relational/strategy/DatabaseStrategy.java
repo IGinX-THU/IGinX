@@ -115,6 +115,7 @@ public interface DatabaseStrategy {
   /**
    * 执行批量数据插入操作（Upsert）
    *
+   * @param conn 数据库连接对象
    * @param databaseName 目标数据库名称
    * @param stmt SQL语句对象
    * @param tableToColumnEntries 表名到列信息的映射，包含表名、主键和列名列表
@@ -122,6 +123,7 @@ public interface DatabaseStrategy {
    * @throws SQLException 如果执行批量插入时发生SQL异常
    */
   void executeBatchInsert(
+      Connection conn,
       String databaseName,
       Statement stmt,
       Map<String, Pair<String, List<String>>> tableToColumnEntries,

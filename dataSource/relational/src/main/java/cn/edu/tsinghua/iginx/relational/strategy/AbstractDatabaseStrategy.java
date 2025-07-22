@@ -210,6 +210,7 @@ public abstract class AbstractDatabaseStrategy implements DatabaseStrategy {
 
   @Override
   public void executeBatchInsert(
+      Connection conn,
       String databaseName,
       Statement stmt,
       Map<String, Pair<String, List<String>>> tableToColumnEntries,

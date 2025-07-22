@@ -2777,7 +2777,7 @@ public class RelationalStorage implements IStorage {
         }
 
         dbStrategy.executeBatchInsert(
-            databaseName, stmt, tableToColumnEntries, relationalMeta.getQuote());
+            conn, databaseName, stmt, tableToColumnEntries, relationalMeta.getQuote());
         for (Pair<String, List<String>> columnEntries : tableToColumnEntries.values()) {
           columnEntries.v.clear();
         }
@@ -2886,7 +2886,7 @@ public class RelationalStorage implements IStorage {
           }
         }
         dbStrategy.executeBatchInsert(
-            databaseName, stmt, tableToColumnEntries, relationalMeta.getQuote());
+            conn, databaseName, stmt, tableToColumnEntries, relationalMeta.getQuote());
         for (Map.Entry<String, Pair<String, List<String>>> entry :
             tableToColumnEntries.entrySet()) {
           entry.getValue().v.clear();
