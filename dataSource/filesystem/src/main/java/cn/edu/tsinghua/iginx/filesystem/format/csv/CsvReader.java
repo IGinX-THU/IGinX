@@ -96,8 +96,26 @@ public class CsvReader implements FileFormat.Reader {
       inferSchema(sample);
     }
 
+    Map<String, Integer> duplicateCount = new HashMap<>();
+    for (String header : headers) {
+      if (duplicateCount.containsKey(header) && !config.isAllowDuplicateColumnNames()) {
+        throw new IOException(
+            String.format("Duplicate column name '%s' found in file: %s", header, path.toString()));
+      }
+      duplicateCount.put(header, duplicateCount.getOrDefault(header, 0) + 1);
+    }
+    // 如果允许重复字段名，则对重复字段进行重命名
+    Map<String, Integer> seenCount = new HashMap<>();
     this.fieldIndex = new HashMap<>();
     for (int i = 0; i < headers.length; i++) {
+      String header = headers[i];
+      int count = duplicateCount.get(header);
+      int seen = seenCount.getOrDefault(header, 0) + 1;
+      seenCount.put(header, seen);
+      if (count > 1) {
+        // 对重复字段进行重命名
+        headers[i] = header + "_" + seen;
+      }
       fieldIndex.put(headers[i], i);
     }
   }

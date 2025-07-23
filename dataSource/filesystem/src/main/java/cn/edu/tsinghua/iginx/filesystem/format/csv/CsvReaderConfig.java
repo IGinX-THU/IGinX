@@ -38,6 +38,7 @@ public class CsvReaderConfig extends AbstractConfig {
   @Optional String delimiter = null;
   @Optional int sampleSize = 1;
   @Optional String dateFormat = "yyyy-MM-dd";
+  @Optional boolean allowDuplicateColumnNames = false;
 
   @Override
   public List<ValidationProblem> validate() {
