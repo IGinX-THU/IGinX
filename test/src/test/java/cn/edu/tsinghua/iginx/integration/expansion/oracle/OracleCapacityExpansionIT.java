@@ -179,7 +179,7 @@ public class OracleCapacityExpansionIT extends BaseCapacityExpansionIT {
             + "|nt.wf03.wt01.status2|    LONG|\n"
             + "+--------------------+--------+\n"
             + "Total line number = 1\n";
-    SQLTestTools.executeAndCompare(session, statement, expected);
+    SQLTestTools.executeAndCompare(session, statement, expected, true);
 
     statement = "SHOW COLUMNS;";
     if (before) {
@@ -208,7 +208,7 @@ public class OracleCapacityExpansionIT extends BaseCapacityExpansionIT {
               + "+------------------------+--------+\n"
               + "Total line number = 5\n";
     }
-    SQLTestTools.executeAndCompare(session, statement, expected);
+    SQLTestTools.executeAndCompare(session, statement, expected, true);
 
     statement = "SHOW COLUMNS p1.*;";
     if (before) {
@@ -229,7 +229,7 @@ public class OracleCapacityExpansionIT extends BaseCapacityExpansionIT {
               + "+-----------------------+--------+\n"
               + "Total line number = 1\n";
     }
-    SQLTestTools.executeAndCompare(session, statement, expected);
+    SQLTestTools.executeAndCompare(session, statement, expected, true);
 
     statement = "SHOW COLUMNS *.wf03.wt01.*;";
     if (before) {
@@ -252,6 +252,6 @@ public class OracleCapacityExpansionIT extends BaseCapacityExpansionIT {
               + "+-----------------------+--------+\n"
               + "Total line number = 2\n";
     }
-    SQLTestTools.executeAndCompare(session, statement, expected);
+    SQLTestTools.executeAndCompare(session, statement, expected, true);
   }
 }
