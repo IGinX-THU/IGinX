@@ -33,3 +33,27 @@ runs:
           run: |
               curl -s -S -L -o dm8_20241022_x86_rh6_64_single.tar https://github.com/IGinX-THU/IGinX-resources/raw/refs/heads/main/resources/dm8_20241022_x86_rh6_64_single.tar
               docker load -i dm8_20241022_x86_rh6_64_single.tar
+
+        - if: runner.os == 'Linux'
+          name: Install Dameng JDBC Driver into local Maven repo
+          shell: bash
+          run: |
+              wget https://github.com/IGinX-THU/IGinX-resources/raw/main/resources/dameng-jdbc-1.8-SNAPSHOT.jar
+              mvn install:install-file \
+                -DgroupId=cn.edu.tsinghua.iginx \
+                -DartifactId=dameng-jdbc \
+                -Dversion=1.8-SNAPSHOT \
+                -Dpackaging=jar \
+                -Dfile=dameng-jdbc-1.8-SNAPSHOT.jar
+
+        - if: runner.os == 'Windows'
+          name: Install Dameng JDBC Driver into local Maven repo
+          shell: wsl-bash {0}
+          run: |
+              curl -s -S -L -o dameng-jdbc-1.8-SNAPSHOT.jar https://github.com/IGinX-THU/IGinX-resources/raw/main/resources/dameng-jdbc-1.8-SNAPSHOT.jar
+              mvn install:install-file \
+                -DgroupId=cn.edu.tsinghua.iginx \
+                -DartifactId=dameng-jdbc \
+                -Dversion=1.8-SNAPSHOT \
+                -Dpackaging=jar \
+                -Dfile=dameng-jdbc-1.8-SNAPSHOT.jar

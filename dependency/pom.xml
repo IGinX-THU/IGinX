@@ -51,16 +51,6 @@
                         <version>3.1.2</version>
                         <executions>
                             <execution>
-                                <id>install-dameng-jdbc</id>
-                                <goals>
-                                    <goal>install-file</goal>
-                                </goals>
-                                <phase>generate-sources</phase>
-                                <configuration>
-                                    <file>src/main/resources/dameng-jdbc-1.8-SNAPSHOT.jar</file>
-                                </configuration>
-                            </execution>
-                            <execution>
                                 <id>install-pemjax</id>
                                 <goals>
                                     <goal>install-file</goal>
