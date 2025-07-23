@@ -24,6 +24,7 @@ import cn.edu.tsinghua.iginx.filesystem.struct.tree.query.Querier.Builder;
 import cn.edu.tsinghua.iginx.filesystem.struct.tree.query.Querier.Builder.Factory;
 import java.nio.file.Path;
 import java.util.Objects;
+import java.util.concurrent.ExecutorService;
 import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,8 +44,9 @@ public class UnionDirectoryQuerierBuilderFactory implements Factory {
   }
 
   @Override
-  public Builder create(@Nullable String prefix, Path path, FileTreeConfig config) {
+  public Builder create(
+      @Nullable String prefix, Path path, FileTreeConfig config, ExecutorService executor) {
     LOGGER.debug("create tree join querier for {} at '{}' with {}", path, prefix, config);
-    return new UnionDirectoryQuerierBuilder(prefix, path, factory, config);
+    return new UnionDirectoryQuerierBuilder(prefix, path, factory, config, executor);
   }
 }

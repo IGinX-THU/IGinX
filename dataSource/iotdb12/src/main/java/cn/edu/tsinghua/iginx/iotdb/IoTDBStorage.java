@@ -52,6 +52,7 @@ import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
+import io.reactivex.rxjava3.core.Flowable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -205,11 +206,11 @@ public class IoTDBStorage implements IStorage {
   }
 
   @Override
-  public List<Column> getColumns(Set<String> patterns, TagFilter tagFilter)
+  public Flowable<Column> getColumns(Set<String> patterns, TagFilter tagFilter)
       throws PhysicalException {
     List<Column> columns = new ArrayList<>();
     getColumns2StorageUnit(columns, null, patterns, tagFilter);
-    return columns;
+    return Flowable.fromIterable(columns);
   }
 
   private void getColumnsFromDataSet(
@@ -866,7 +867,7 @@ public class IoTDBStorage implements IStorage {
     } else {
       List<String> patterns = delete.getPatterns();
       TagFilter tagFilter = delete.getTagFilter();
-      List<Column> timeSeries = getColumns(new HashSet<>(), null);
+      List<Column> timeSeries = getColumns(new HashSet<>(), null).toList().blockingGet();
 
       List<String> pathList = new ArrayList<>();
       for (Column ts : timeSeries) {

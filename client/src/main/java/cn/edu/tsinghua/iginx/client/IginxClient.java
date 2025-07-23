@@ -298,7 +298,7 @@ public class IginxClient {
       return OperationResult.STOP;
     }
     long startTime = System.currentTimeMillis();
-    if (isQuery(trimedStatement)) {
+    if (isSqlWithStream(trimedStatement)) {
       processSqlWithStream(statement);
     } else if (isLoadDataFromCsv(trimedStatement)) {
       processLoadCsv(statement);
@@ -320,8 +320,8 @@ public class IginxClient {
     return sql.startsWith("create") && sql.contains("function");
   }
 
-  private static boolean isQuery(String sql) {
-    return sql.startsWith("select") || sql.startsWith("with");
+  private static boolean isSqlWithStream(String sql) {
+    return sql.startsWith("select") || sql.startsWith("with") || sql.startsWith("show columns");
   }
 
   private static boolean isLoadDataFromCsv(String sql) {

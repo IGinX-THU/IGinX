@@ -141,32 +141,11 @@ jobs:
         uses: ./.github/workflows/free-thread-test.yml
         with:
             metadata-matrix: '["zookeeper"]'
-    tpc-h-regression-test:
+    tpc-h-test:
         uses: ./.github/workflows/tpc-h.yml
         with:
             os-matrix: '["ubuntu-latest"]'
             metadata-matrix: '["zookeeper"]'
-    tpc-h-regression-test-no-optimizer:
-        uses: ./.github/workflows/tpc-h.yml
-        with:
-            os-matrix: '["ubuntu-latest"]'
-            metadata-matrix: '["zookeeper"]'
-            close-optimizer: "true"
-    tpc-h-regression-test-vectordb:
-        uses: ./.github/workflows/tpc-h.yml
-        with:
-            os-matrix: '["ubuntu-latest"]'
-            metadata-matrix: '["zookeeper"]'
-            db-matrix: '["VectorDB"]'
-            timeout-minutes: 360
-    tpc-h-regression-test-no-optimizer-vectordb:
-        uses: ./.github/workflows/tpc-h.yml
-        with:
-            os-matrix: '["ubuntu-latest"]'
-            metadata-matrix: '["zookeeper"]'
-            db-matrix: '["VectorDB"]'
-            close-optimizer: "true"
-            timeout-minutes: 360
     cluster-test:
         uses: ./.github/workflows/cluster-test.yml
     analyze-required-test-check:
@@ -186,10 +165,7 @@ jobs:
             - remote-test
             - assembly-test
             - free-thread-test
-            - tpc-h-regression-test
-            - tpc-h-regression-test-no-optimizer
-            - tpc-h-regression-test-vectordb
-            - tpc-h-regression-test-no-optimizer-vectordb
+            - tpc-h-test
             - standalone-test-no-mac-relational
             - standalone-test-no-optimizer-no-mac-relational
             - db-ce-Dameng

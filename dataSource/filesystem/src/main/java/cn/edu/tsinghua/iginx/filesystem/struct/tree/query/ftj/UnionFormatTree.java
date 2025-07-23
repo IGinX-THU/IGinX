@@ -25,6 +25,7 @@ import cn.edu.tsinghua.iginx.filesystem.struct.tree.query.Querier.Builder.Factor
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.concurrent.ExecutorService;
 import javax.annotation.Nullable;
 
 public class UnionFormatTree implements Factory {
@@ -33,12 +34,13 @@ public class UnionFormatTree implements Factory {
   private final Factory forDirectory = new UnionDirectoryQuerierBuilderFactory(this);
 
   @Override
-  public Builder create(@Nullable String prefix, Path path, FileTreeConfig config)
+  public Builder create(
+      @Nullable String prefix, Path path, FileTreeConfig config, ExecutorService executor)
       throws IOException {
     if (Files.isDirectory(path)) {
-      return forDirectory.create(prefix, path, config);
+      return forDirectory.create(prefix, path, config, executor);
     } else if (Files.isRegularFile(path)) {
-      return forRegularFile.create(prefix, path, config);
+      return forRegularFile.create(prefix, path, config, executor);
     } else if (!Files.exists(path)) {
       throw new IOException("file does not exist: " + path);
     } else {
