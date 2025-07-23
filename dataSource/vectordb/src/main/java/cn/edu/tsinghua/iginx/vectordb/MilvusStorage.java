@@ -56,6 +56,7 @@ import com.google.gson.JsonObject;
 import io.milvus.v2.client.MilvusClientV2;
 import io.milvus.v2.service.vector.request.UpsertReq;
 import io.milvus.v2.service.vector.response.UpsertResp;
+import io.reactivex.rxjava3.core.Flowable;
 import java.util.*;
 import java.util.concurrent.*;
 import org.slf4j.Logger;
@@ -541,7 +542,7 @@ public class MilvusStorage implements IStorage {
   }
 
   @Override
-  public List<Column> getColumns(Set<String> patterns, TagFilter tagFilter)
+  public Flowable<Column> getColumns(Set<String> patterns, TagFilter tagFilter)
       throws PhysicalException {
     try (MilvusPoolClient milvusClient = new MilvusPoolClient(this.milvusConnectPool)) {
       MilvusClientV2 client = milvusClient.getClient();
@@ -553,7 +554,7 @@ public class MilvusStorage implements IStorage {
       }
 
       PathUtils.initStorage(client, this);
-      List<Column> columns = new ArrayList<>();
+      Set<Column> columns = new HashSet<>();
       for (String pattern : patterns) {
         for (PathSystem pathSystem : pathSystemMap.values()) {
           List<String> list = PathUtils.getPathSystem(client, pathSystem).findPaths(pattern, null);
@@ -568,7 +569,7 @@ public class MilvusStorage implements IStorage {
           }
         }
       }
-      return columns;
+      return Flowable.fromIterable(columns);
     } catch (Exception e) {
       throw new PhysicalException(String.format("execute query task in milvus failure"));
     }
