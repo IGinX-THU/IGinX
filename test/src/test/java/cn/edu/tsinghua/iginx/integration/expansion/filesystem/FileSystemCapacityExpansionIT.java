@@ -195,7 +195,7 @@ public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
             + "|         a.other.price\\parquet.stories|    LONG|\n"
             + "+--------------------------------------+--------+\n"
             + "Total line number = 38\n";
-    SQLTestTools.executeAndCompare(session, statement, expected);
+    SQLTestTools.executeAndCompare(session, statement, expected, true);
   }
 
   private void testQueryRawChunks() {

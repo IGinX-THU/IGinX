@@ -104,7 +104,7 @@ public class RedisCapacityExpansionIT extends BaseCapacityExpansionIT {
               + "+--------------------------------------------------------------------------------------+--------+\n"
               + "Total line number = 7\n";
     }
-    SQLTestTools.executeAndCompare(session, statement, expected);
+    SQLTestTools.executeAndCompare(session, statement, expected, true);
 
     if (before) {
       statement = "SHOW COLUMNS p1.*;";
@@ -149,7 +149,7 @@ public class RedisCapacityExpansionIT extends BaseCapacityExpansionIT {
               + "+-----------------------+--------+\n"
               + "Total line number = 2\n";
     }
-    SQLTestTools.executeAndCompare(session, statement, expected);
+    SQLTestTools.executeAndCompare(session, statement, expected, true);
   }
 
   // redis中，所有dummy数据都识别为BINARY
@@ -180,7 +180,7 @@ public class RedisCapacityExpansionIT extends BaseCapacityExpansionIT {
               + "+---------------------------+--------+\n"
               + "Total line number = 2\n";
     }
-    SQLTestTools.executeAndCompare(session, statement, expected);
+    SQLTestTools.executeAndCompare(session, statement, expected, true);
   }
 
   // redis中，所有dummy数据都识别为BINARY
@@ -196,7 +196,7 @@ public class RedisCapacityExpansionIT extends BaseCapacityExpansionIT {
             + "|mn.wf01.wt01.temperature|  BINARY|\n"
             + "+------------------------+--------+\n"
             + "Total line number = 2\n";
-    SQLTestTools.executeAndCompare(session, statement, expected);
+    SQLTestTools.executeAndCompare(session, statement, expected, true);
 
     statement = "SHOW COLUMNS nt.*;";
     expected =
@@ -208,7 +208,7 @@ public class RedisCapacityExpansionIT extends BaseCapacityExpansionIT {
             + "|nt.wf04.wt01.temperature|  BINARY|\n"
             + "+------------------------+--------+\n"
             + "Total line number = 2\n";
-    SQLTestTools.executeAndCompare(session, statement, expected);
+    SQLTestTools.executeAndCompare(session, statement, expected, true);
 
     statement = "SHOW COLUMNS tm.*;";
     expected =
@@ -220,7 +220,7 @@ public class RedisCapacityExpansionIT extends BaseCapacityExpansionIT {
             + "|tm.wf05.wt01.temperature|  BINARY|\n"
             + "+------------------------+--------+\n"
             + "Total line number = 2\n";
-    SQLTestTools.executeAndCompare(session, statement, expected);
+    SQLTestTools.executeAndCompare(session, statement, expected, true);
   }
 
   // no param is allowed to be updated
@@ -232,12 +232,12 @@ public class RedisCapacityExpansionIT extends BaseCapacityExpansionIT {
 
   @Override
   protected void shutdownDatabase(int port) {
-    shutOrRestart(port, true, "redis");
+    shutOrRestart(port, true, "redis", 30);
   }
 
   @Override
   protected void startDatabase(int port) {
-    shutOrRestart(port, false, "redis");
+    shutOrRestart(port, false, "redis", 30);
   }
 
   protected void testPathOverlappedDataNotOverlapped() throws SessionException {

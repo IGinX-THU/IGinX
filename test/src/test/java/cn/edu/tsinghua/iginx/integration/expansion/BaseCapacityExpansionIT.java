@@ -79,6 +79,8 @@ public abstract class BaseCapacityExpansionIT {
 
   protected static final String restartScriptDir = ".github/scripts/dataSources/restart/";
 
+  protected static final String verifyScriptDir = ".github/scripts/utils/";
+
   protected static BaseHistoryDataGenerator generator;
 
   public BaseCapacityExpansionIT(
@@ -163,8 +165,9 @@ public abstract class BaseCapacityExpansionIT {
 
       LOGGER.info("Execute Statement: \"{}\"", statement);
       session.executeSql(statement.toString());
+      Thread.sleep(5000);
       return null;
-    } catch (SessionException e) {
+    } catch (SessionException | InterruptedException e) {
       if (noError) {
         LOGGER.warn(
             "add storage engine:{} port:{} hasData:{} isReadOnly:{} dataPrefix:{} schemaPrefix:{} extraParams:{} failure: ",
@@ -434,7 +437,8 @@ public abstract class BaseCapacityExpansionIT {
     // 删除，不影响后续测试
     session.removeStorageEngine(
         Collections.singletonList(
-            new RemovedStorageEngineInfo("127.0.0.1", readOnlyPort, prefix, "")));
+            new RemovedStorageEngineInfo("127.0.0.1", readOnlyPort, prefix, "")),
+        true);
 
     // 改回数据库参数
     restoreParams(readOnlyPort);
@@ -471,7 +475,7 @@ public abstract class BaseCapacityExpansionIT {
   }
 
   /** mode: T:shutdown; F:restart */
-  protected void shutOrRestart(int port, boolean mode, String DBName) {
+  protected void shutOrRestart(int port, boolean mode, String DBName, int timeout) {
     String dir = mode ? shutdownScriptDir : restartScriptDir;
     String scriptPath = dir + DBName + ".sh";
     String os = System.getProperty("os.name").toLowerCase();
@@ -483,6 +487,20 @@ public abstract class BaseCapacityExpansionIT {
     int res = executeShellScript(scriptPath, String.valueOf(port));
     if (res != 0) {
       fail("Fail to " + (mode ? "shutdown" : "restart") + " " + DBName + port);
+    }
+    if (!mode) {
+      String verifyPath = verifyScriptDir;
+      if (os.contains("mac")) {
+        verifyPath += "verify_macos.sh";
+      } else if (os.contains("win")) {
+        verifyPath += "verify_windows.sh";
+      } else {
+        verifyPath += "verify.sh";
+      }
+      res = executeShellScript(verifyPath, DBName, String.valueOf(port), String.valueOf(timeout));
+      if (res != 0) {
+        fail("Fail to restart " + DBName + port);
+      }
     }
   }
 
@@ -737,7 +755,7 @@ public abstract class BaseCapacityExpansionIT {
     removedStorageEngineList.add(
         new RemovedStorageEngineInfo("127.0.0.1", expPort, "p3" + schemaPrefixSuffix, dataPrefix1));
     try {
-      session.removeStorageEngine(removedStorageEngineList);
+      session.removeStorageEngine(removedStorageEngineList, true);
       testShowClusterInfo(4);
     } catch (SessionException e) {
       LOGGER.error("remove history data source through session api error: ", e);
@@ -757,7 +775,7 @@ public abstract class BaseCapacityExpansionIT {
     SQLTestTools.executeAndCompare(session, statement, pathListAns, EXP_VALUES_LIST2);
 
     // 通过 sql 语句测试移除节点
-    String removeStatement = "remove storageengine (\"127.0.0.1\", %d, \"%s\", \"%s\");";
+    String removeStatement = "remove storageengine (\"127.0.0.1\", %d, \"%s\", \"%s\") for all;";
     try {
       session.executeSql(
           String.format(removeStatement, expPort, "p1" + schemaPrefixSuffix, dataPrefix1));
@@ -795,7 +813,7 @@ public abstract class BaseCapacityExpansionIT {
             + "|nt.wf03.wt01.status2|    LONG|\n"
             + "+--------------------+--------+\n"
             + "Total line number = 1\n";
-    SQLTestTools.executeAndCompare(session, statement, expected);
+    SQLTestTools.executeAndCompare(session, statement, expected, true);
 
     statement = "SHOW COLUMNS;";
     if (before) {
@@ -828,7 +846,7 @@ public abstract class BaseCapacityExpansionIT {
               + "+--------------------------------------------------------------------------------------+--------+\n"
               + "Total line number = 7\n";
     }
-    SQLTestTools.executeAndCompare(session, statement, expected);
+    SQLTestTools.executeAndCompare(session, statement, expected, true);
 
     statement = "SHOW COLUMNS p1.*;";
     if (before) {
@@ -849,7 +867,7 @@ public abstract class BaseCapacityExpansionIT {
               + "+-----------------------+--------+\n"
               + "Total line number = 1\n";
     }
-    SQLTestTools.executeAndCompare(session, statement, expected);
+    SQLTestTools.executeAndCompare(session, statement, expected, true);
 
     statement = "SHOW COLUMNS *.wf03.wt01.*;";
     if (before) {
@@ -872,7 +890,7 @@ public abstract class BaseCapacityExpansionIT {
               + "+-----------------------+--------+\n"
               + "Total line number = 2\n";
     }
-    SQLTestTools.executeAndCompare(session, statement, expected);
+    SQLTestTools.executeAndCompare(session, statement, expected, true);
   }
 
   protected void testShowColumnsRemoveStorageEngine(boolean before) {
@@ -901,7 +919,7 @@ public abstract class BaseCapacityExpansionIT {
               + "+---------------------------+--------+\n"
               + "Total line number = 2\n";
     }
-    SQLTestTools.executeAndCompare(session, statement, expected);
+    SQLTestTools.executeAndCompare(session, statement, expected, true);
   }
 
   private void testShowClusterInfo(int expected) {
@@ -926,7 +944,7 @@ public abstract class BaseCapacityExpansionIT {
             + "|mn.wf01.wt01.temperature|  DOUBLE|\n"
             + "+------------------------+--------+\n"
             + "Total line number = 2\n";
-    SQLTestTools.executeAndCompare(session, statement, expected);
+    SQLTestTools.executeAndCompare(session, statement, expected, true);
 
     statement = "SHOW COLUMNS nt.*;";
     expected =
@@ -938,7 +956,7 @@ public abstract class BaseCapacityExpansionIT {
             + "|nt.wf04.wt01.temperature|  DOUBLE|\n"
             + "+------------------------+--------+\n"
             + "Total line number = 2\n";
-    SQLTestTools.executeAndCompare(session, statement, expected);
+    SQLTestTools.executeAndCompare(session, statement, expected, true);
 
     statement = "SHOW COLUMNS tm.wf05.wt01.*;";
     expected =
@@ -950,7 +968,7 @@ public abstract class BaseCapacityExpansionIT {
             + "|tm.wf05.wt01.temperature|  DOUBLE|\n"
             + "+------------------------+--------+\n"
             + "Total line number = 2\n";
-    SQLTestTools.executeAndCompare(session, statement, expected);
+    SQLTestTools.executeAndCompare(session, statement, expected, true);
   }
 
   // test dummy query for data out of initial key range (should be visible)
@@ -1079,7 +1097,12 @@ public abstract class BaseCapacityExpansionIT {
       fail("change config file fail");
     }
 
-    res = executeShellScript(iginxPath, String.valueOf(iginxPort), String.valueOf(restPort));
+    res =
+        executeShellScript(
+            iginxPath,
+            String.valueOf(iginxPort),
+            String.valueOf(restPort),
+            "core/target/iginx-core-*");
     if (res != 0) {
       fail("start iginx fail");
     }

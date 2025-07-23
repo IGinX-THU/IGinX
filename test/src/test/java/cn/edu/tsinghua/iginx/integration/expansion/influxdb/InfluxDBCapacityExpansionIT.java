@@ -61,12 +61,12 @@ public class InfluxDBCapacityExpansionIT extends BaseCapacityExpansionIT {
 
   @Override
   protected void shutdownDatabase(int port) {
-    shutOrRestart(port, true, "influxdb");
+    shutOrRestart(port, true, "influxdb", 30);
   }
 
   @Override
   protected void startDatabase(int port) {
-    shutOrRestart(port, false, "influxdb");
+    shutOrRestart(port, false, "influxdb", 30);
   }
 
   @Override

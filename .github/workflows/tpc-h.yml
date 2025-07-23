@@ -27,28 +27,25 @@ on:
                 description: "The database to run the test on"
                 type: string
                 required: false
-                # TODO: add oracle
-                default: '["IoTDB12", "InfluxDB", "FileSystem", "PostgreSQL", "Redis", "MongoDB", "MySQL", "Dameng", "Neo4j"]'
+                default: '["IoTDB12", "InfluxDB", "FileSystem", "PostgreSQL", "Redis", "MongoDB", "MySQL", "VectorDB", "Dameng", "Oracle", "Neo4j"]'
             close-optimizer:
                 description: "Whether to close the optimizer"
                 type: string
                 required: false
-                default: "false"
-            timeout-minutes:
-                description: "The timeout minutes for the job"
-                type: number
-                required: false
-                default: 60
+                default: '["false", "true"]'
             agg-pushdown-matrix:
                 description: "The database which support agg push down"
                 type: string
                 required: false
-                # TODO: add agg-push down for oracle
-                default: '["PostgreSQL", "MYSQL", "Dameng"]'
+                default: '["PostgreSQL", "MYSQL", "Dameng", "Oracle"]'
+            long-timeout-matrix:
+                description: "The database which support agg push down"
+                type: string
+                required: false
+                default: '["VectorDB"]'
 
 jobs:
     TPC-H-Test:
-        timeout-minutes: ${{ inputs.timeout-minutes }}
         strategy:
             fail-fast: false
             matrix:
@@ -57,6 +54,8 @@ jobs:
                 os: ${{ fromJSON(inputs.os-matrix) }}
                 metadata: ${{ fromJSON(inputs.metadata-matrix) }}
                 DB-name: ${{ fromJSON(inputs.db-matrix) }}
+                close-optimizer: ${{ fromJSON(inputs.close-optimizer) }}
+        timeout-minutes: ${{ contains(fromJSON(inputs.long-timeout-matrix), matrix.DB-name) && 360 || 60 }}
         runs-on: ${{ matrix.os }}
         steps:
             - name: Get New Version IGinX
@@ -127,7 +126,6 @@ jobs:
               with:
                   DB-name: ${{ matrix.DB-name }}
                   Close-Optimizer: ${{ inputs.close-optimizer }}
-                  Set-ColumnPruning-ON: ${{ toJSON(inputs.close-optimizer == 'true' && matrix.DB-name == 'InfluxDB') }}
                   Metadata: ${{ matrix.metadata }}
                   Set-AggPushDown-OFF: ${{ toJSON(!contains(inputs.agg-pushdown-matrix, matrix.DB-name)) }}
 
@@ -137,7 +135,6 @@ jobs:
                   DB-name: ${{ matrix.DB-name }}
                   Open-Optimizer: "true"
                   Close-Optimizer: ${{ inputs.close-optimizer }}
-                  Set-ColumnPruning-ON: ${{ toJSON(inputs.close-optimizer == 'true' && matrix.DB-name == 'InfluxDB') }}
                   Metadata: ${{ matrix.metadata }}
                   zookeeper-port: 2182
                   Root-Dir-Path: "IGinX"
@@ -210,3 +207,73 @@ jobs:
               uses: ./.github/actions/tpchSingleTest
               with:
                   status: ${{ steps.test9.outputs.status }}
+
+            - name: Copy and Rename Cost Files
+              shell: bash
+              run: |
+                  SUFFIX="${{ matrix.java }}-${{ matrix.python-version }}-${{ matrix.os }}-${{ matrix.metadata }}-${{ matrix.DB-name }}-${{ matrix.close-optimizer }}"
+                  cp test/src/test/resources/tpch/runtimeInfo/newTimeCosts.txt tpch-costs-${SUFFIX}-new.txt
+                  cp IGinX/test/src/test/resources/tpch/runtimeInfo/oldTimeCosts.txt tpch-costs-${SUFFIX}-old.txt
+
+            - name: Upload Result of New Cost
+              uses: actions/upload-artifact@v4
+              with:
+                  name: tpch-costs-${{ matrix.java }}-${{ matrix.python-version }}-${{ matrix.os }}-${{ matrix.metadata }}-${{ matrix.DB-name }}-${{ matrix.close-optimizer }}
+                  path: tpch-costs-*.txt
+                  if-no-files-found: error
+
+    TPC-H-Collect:
+        needs: TPC-H-Test
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/download-artifact@v4
+              with:
+                  pattern: tpch-costs-*
+                  merge-multiple: true
+
+            - name: Display structure of downloaded files
+              run: ls -R
+
+            - name: Analyze Cost Files
+              shell: python
+              run: |
+                  parameters = {
+                    "java": ${{ inputs.java-matrix }},
+                    "python": ${{ inputs.python-matrix }},
+                    "runner": ${{ inputs.os-matrix }},
+                    "meta": ${{ inputs.metadata-matrix }},
+                    "db": ${{ inputs.db-matrix }},
+                    "no_opt": ${{ inputs.close-optimizer }},
+                    "impl": ["new", "old"],
+                  }
+
+                  import csv
+                  import itertools
+
+                  def parse_cost_file(file_name):
+                    with open(file_name, 'r') as f:
+                      return [
+                        [query.strip(), [value.strip() for value in values.split(',')]]
+                        for query, values in [
+                          line.split('=', 1)
+                          for line in f.readlines()
+                          if line.strip() and not line.startswith('#')
+                        ]
+                      ]
+
+                  with open("tpch-costs.csv", "w", newline='') as csvfile:
+                    csv.writer(csvfile).writerows(
+                      [list(parameters.keys()) + ["query", "cost_ms"]] + [
+                        list(params) + [query, value]
+                        for params in itertools.product(*parameters.values())
+                        for query, values in parse_cost_file(f"tpch-costs-{'-'.join(params)}.txt")
+                        for value in values
+                      ]
+                    )
+
+            - name: Upload Result
+              uses: actions/upload-artifact@v4
+              with:
+                  name: tpch-costs
+                  path: tpch-costs.csv
+                  if-no-files-found: error

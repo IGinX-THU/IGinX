@@ -173,12 +173,12 @@ public class PostgreSQLCapacityExpansionIT extends BaseCapacityExpansionIT {
 
   @Override
   protected void shutdownDatabase(int port) {
-    shutOrRestart(port, true, "postgresql");
+    shutOrRestart(port, true, "postgresql", 30);
   }
 
   @Override
   protected void startDatabase(int port) {
-    shutOrRestart(port, false, "postgresql");
+    shutOrRestart(port, false, "postgresql", 30);
   }
 
   private void changeParams(int port, String oldPw, String newPw) {

@@ -57,12 +57,12 @@ public class IoTDB12CapacityExpansionIT extends BaseCapacityExpansionIT {
 
   @Override
   protected void shutdownDatabase(int port) {
-    shutOrRestart(port, true, "iotdb");
+    shutOrRestart(port, true, "iotdb", 30);
   }
 
   @Override
   protected void startDatabase(int port) {
-    shutOrRestart(port, false, "iotdb");
+    shutOrRestart(port, false, "iotdb", 30);
   }
 
   private void changeParams(int port, String oldPw, String newPw) {

@@ -43,6 +43,7 @@ import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
+import io.reactivex.rxjava3.core.Flowable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -508,12 +509,12 @@ public class RedisStorage implements IStorage {
   }
 
   @Override
-  public List<Column> getColumns(Set<String> patterns, TagFilter tagFilter) {
+  public Flowable<Column> getColumns(Set<String> patterns, TagFilter tagFilter) {
     try {
       List<Column> ret = new ArrayList<>();
       getIginxColumns(ret::add, patterns, tagFilter);
       getDummyColumns(ret::add, patterns);
-      return ret;
+      return Flowable.fromIterable(ret);
     } catch (PhysicalException e) {
       throw new IllegalStateException("get columns error", e);
     }

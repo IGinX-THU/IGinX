@@ -25,6 +25,7 @@ import static cn.edu.tsinghua.iginx.engine.shared.Constants.RESERVED_COLS;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
 import cn.edu.tsinghua.iginx.engine.shared.Constants;
+import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.util.*;
@@ -34,6 +35,10 @@ public final class Header {
 
   public static final Header EMPTY_HEADER = new Header(Collections.emptyList());
 
+  public static final Header SHOW_COLUMNS_HEADER =
+      new Header(
+          Arrays.asList(new Field("Path", DataType.BINARY), new Field("Type", DataType.BINARY)));
+
   private final Field key;
 
   private final List<Field> fields;
@@ -41,6 +46,8 @@ public final class Header {
   private final Map<String, Integer> indexMap;
 
   private final Map<String, List<Integer>> patternIndexCache;
+
+  private List<DataType> types = null;
 
   public Header(List<Field> fields) {
     this(null, fields);
@@ -116,6 +123,15 @@ public final class Header {
       patternIndexCache.put(pattern, indexList);
       return indexList;
     }
+  }
+
+  public List<DataType> getDataTypes() {
+    if (types != null) {
+      return types;
+    }
+    types = new ArrayList<>();
+    fields.forEach(field -> types.add(field.getType()));
+    return types;
   }
 
   @Override

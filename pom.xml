@@ -154,7 +154,7 @@
             <dependency>
                 <groupId>cn.edu.tsinghua.iginx</groupId>
                 <artifactId>pemja</artifactId>
-                <version>0.5-SNAPSHOT</version>
+                <version>0.2.2</version>
             </dependency>
             <dependency>
                 <groupId>org.slf4j</groupId>
@@ -311,6 +311,11 @@
                 <version>5.11.0</version>
                 <type>pom</type>
                 <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>io.reactivex.rxjava3</groupId>
+                <artifactId>rxjava</artifactId>
+                <version>3.1.11</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

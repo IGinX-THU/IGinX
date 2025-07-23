@@ -69,9 +69,14 @@ import cn.edu.tsinghua.iginx.relational.tools.RelationSchema;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.JdkFutureAdapters;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import com.zaxxer.hikari.pool.HikariPool;
+import io.reactivex.rxjava3.core.Flowable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URISyntaxException;
@@ -81,7 +86,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.sql.*;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -106,6 +111,10 @@ public class RelationalStorage implements IStorage {
   private final FilterTransformer filterTransformer;
 
   private final DatabaseStrategy dbStrategy;
+
+  private final ExecutorService executor =
+      Executors.newCachedThreadPool(
+          new ThreadFactoryBuilder().setNameFormat("RelationalStorage-%d").build());
 
   private static final Set<String> SUPPORTED_AGGREGATE_FUNCTIONS =
       new HashSet<>(Arrays.asList(Count.COUNT, Sum.SUM, Avg.AVG, Max.MAX, Min.MIN));
@@ -392,7 +401,7 @@ public class RelationalStorage implements IStorage {
   }
 
   @Override
-  public List<Column> getColumns(Set<String> patterns, TagFilter tagFilter)
+  public Flowable<Column> getColumns(Set<String> patterns, TagFilter tagFilter)
       throws RelationalTaskExecuteFailureException {
     List<Column> columns = new ArrayList<>();
     Map<String, String> extraParams = meta.getExtraParams();
@@ -454,9 +463,6 @@ public class RelationalStorage implements IStorage {
 
       // dummy
       List<String> patternList = new ArrayList<>();
-      if (patterns == null || patterns.size() == 0) {
-        patternList = new ArrayList<>(Collections.singletonList("*.*"));
-      }
       for (String databaseName : getDatabaseNames(true)) {
         if ((extraParams.get("has_data") == null || extraParams.get("has_data").equals("false"))
             && !databaseName.startsWith(DATABASE_PREFIX)) {
@@ -471,6 +477,7 @@ public class RelationalStorage implements IStorage {
         }
         // find pattern that match <databaseName>.* to avoid creating databases after.
         if (patterns == null || patterns.size() == 0) {
+          patternList.add(databaseName + ".*");
           continue;
         }
         for (String p : patterns) {
@@ -526,7 +533,7 @@ public class RelationalStorage implements IStorage {
     } catch (SQLException e) {
       throw new RelationalTaskExecuteFailureException("failed to get columns ", e);
     }
-    return columns;
+    return Flowable.fromIterable(columns);
   }
 
   @Override
@@ -553,7 +560,7 @@ public class RelationalStorage implements IStorage {
 
   @Override
   public boolean isSupportProjectWithSelect() {
-    return relationalMeta.jdbcSupportGetTableNameFromResultSet();
+    return true;
   }
 
   @Override
@@ -1384,9 +1391,6 @@ public class RelationalStorage implements IStorage {
 
   @Override
   public boolean isSupportProjectWithAgg(Operator agg, DataArea dataArea, boolean isDummy) {
-    if (!relationalMeta.jdbcSupportGetTableNameFromResultSet()) {
-      return false;
-    }
     if (agg.getType() != OperatorType.GroupBy && agg.getType() != OperatorType.SetTransform) {
       return false;
     }
@@ -1507,7 +1511,9 @@ public class RelationalStorage implements IStorage {
       String statement =
           getProjectWithFilterSQL(
               databaseName, select.getFilter().copy(), tableNameToColumnNames, true);
-      statement = statement.substring(0, statement.length() - 1); // 去掉最后的分号
+      if (statement.endsWith(";")) {
+        statement = statement.substring(0, statement.length() - 1); // 去掉最后的分号
+      }
       Map<String, String> fullName2Name = new HashMap<>();
       statement =
           generateAggSql(
@@ -1566,7 +1572,7 @@ public class RelationalStorage implements IStorage {
     for (FunctionCall fc : functionCalls) {
       if (fc.getFunction().getIdentifier().equalsIgnoreCase(Sum.SUM)) {
         if (columns == null) {
-          columns = getColumns(null, null);
+          columns = getColumns(null, null).toList().blockingGet();
         }
         if (isSumResultDouble(fc.getParams().getExpression(0), columns)) {
           columnTypeMap.put(fc.getFunctionStr(), DataType.DOUBLE);
@@ -1618,14 +1624,13 @@ public class RelationalStorage implements IStorage {
         String format = "%s(%s)";
         // 如果是avg函数，且参数是base类型，在mysql下小数位数仅有5位，需要转换为decimal来补齐
         // 仅在mysql下这么做，pg也可以用，但会出现一些误差，例如3.200000和3.1999999的区别，测试不好通过
-        if (functionName.equalsIgnoreCase(Avg.AVG)
-            && param.getType() == Expression.ExpressionType.Base) {
+        if (functionName.equalsIgnoreCase(Avg.AVG)) {
           format = dbStrategy.getAvgCastExpression(param);
         }
         expr = reshapeExpressionColumnNameBeforeQuery(ExprUtils.copy(expr), databaseName, isDummy);
         sqlColumnsStr.append(
             String.format(
-                format, functionName, exprAdapt(ExprUtils.copy(expr)).getCalColumnName()));
+                format, functionName, getJdbcExpressionString(exprAdapt(ExprUtils.copy(expr)))));
         sqlColumnsStr.append(" AS ");
         sqlColumnsStr.append(quote).append(IGinXTagKVName).append(quote);
         sqlColumnsStr.append(", ");
@@ -1639,27 +1644,40 @@ public class RelationalStorage implements IStorage {
           reshapeExpressionColumnNameBeforeQuery(ExprUtils.copy(gbc.get(i)), databaseName, isDummy);
       gbc.set(i, expr);
       sqlColumnsStr
-          .append(exprAdapt(ExprUtils.copy(expr)).getCalColumnName())
+          .append(getJdbcExpressionString(exprAdapt(ExprUtils.copy(expr))))
           .append(" AS ")
           .append(originColumnStr)
           .append(", ");
     }
     sqlColumnsStr.delete(sqlColumnsStr.length() - 2, sqlColumnsStr.length());
 
-    statement = "SELECT " + sqlColumnsStr + " FROM (" + statement + ") AS derived";
+    statement = "SELECT " + sqlColumnsStr + " FROM (" + statement + ") derived";
     if (!gbc.isEmpty()) {
       statement +=
           " GROUP BY "
               + gbc.stream()
-                  .map(e -> exprAdapt(ExprUtils.copy(e)).getCalColumnName())
+                  .map(e -> getJdbcExpressionString(exprAdapt(ExprUtils.copy(e))))
                   .collect(Collectors.joining(", "));
     }
-    statement += ";";
     gbc.replaceAll(
         expression ->
             reshapeExpressionColumnNameAfterQuery(
                 ExprUtils.copy(expression), databaseName, isDummy));
     return statement;
+  }
+
+  private String getJdbcExpressionString(Expression expr) {
+    if (expr instanceof BinaryExpression) {
+      BinaryExpression binaryExpr = (BinaryExpression) expr;
+      cn.edu.tsinghua.iginx.engine.shared.expr.Operator op = binaryExpr.getOp();
+      if (op == cn.edu.tsinghua.iginx.engine.shared.expr.Operator.MOD) {
+        return String.format(
+            "MOD(%s, %s)",
+            getJdbcExpressionString(binaryExpr.getLeftExpression()),
+            getJdbcExpressionString(binaryExpr.getRightExpression()));
+      }
+    }
+    return expr.getCalColumnName();
   }
 
   private Expression reshapeExpressionColumnNameBeforeQuery(
@@ -2483,112 +2501,150 @@ public class RelationalStorage implements IStorage {
 
   private Map<String, Map<String, String>> splitAndMergeHistoryQueryPatterns(List<String> patterns)
       throws SQLException {
-    // <database name, <table name, column names>>
     List<String> databases = getDatabaseNames(true);
     Map<String, Map<String, String>> splitResults = new HashMap<>();
-    String databaseName;
-    String tableName;
-    String columnNames;
 
+    // Process patterns in parallel using ExecutorCompletionService
+    List<Future<Map<String, Map<String, String>>>> futures = new ArrayList<>();
+
+    // Submit tasks
     for (String pattern : patterns) {
-      if (pattern.equals("*") || pattern.equals("*.*")) {
-        databaseName = "%";
-        tableName = "%";
-        columnNames = "%";
-      } else {
-        String[] parts = pattern.split("\\" + SEPARATOR);
+      futures.add(executor.submit(() -> splitAndMergeHistoryQueryPattern(pattern, databases)));
+    }
+    // Collect results from all futures
+    List<ListenableFuture<Map<String, Map<String, String>>>> listenableFutures =
+        futures.stream().map(JdkFutureAdapters::listenInPoolThread).collect(Collectors.toList());
+    List<Map<String, Map<String, String>>> results;
+    try {
+      results = Futures.allAsList(listenableFutures).get();
+    } catch (InterruptedException | ExecutionException e) {
+      throw new SQLException(e);
+    }
 
-        databaseName = parts[0].replace('*', '%');
-        if (parts.length == 1) { // 只有一级
-          tableName = "%";
-          columnNames = "%";
-        } else if (parts.length == 2) {
-          tableName = "%";
-          columnNames = parts[1].equals("*") ? "%" : parts[1];
-        } else {
-          RelationSchema schema = new RelationSchema(pattern, true, relationalMeta.getQuote());
-          tableName = schema.getTableName().replace("*", "%");
-          columnNames = schema.getColumnName();
-          if (columnNames.startsWith("*")) {
-            tableName += "%";
-            columnNames = columnNames.replaceFirst("\\*", "%");
-          }
-        }
-      }
+    for (Map<String, Map<String, String>> result : results) {
+      for (Map.Entry<String, Map<String, String>> entry : result.entrySet()) {
+        String databaseName = entry.getKey();
+        Map<String, String> tableNameToColumnNames = entry.getValue();
 
-      List<Pattern> patternList = getRegexPatternByName(databaseName, tableName, columnNames, true);
-      Pattern tableNamePattern = patternList.get(0), columnNamePattern = patternList.get(1);
+        // Get or create the map for this database
+        Map<String, String> existingDbMap =
+            splitResults.computeIfAbsent(databaseName, k -> new HashMap<>());
 
-      if (databaseName.equals("%")) {
-        for (String tempDatabaseName : getDatabaseNames(true)) {
-          if (tempDatabaseName.startsWith(DATABASE_PREFIX)) {
-            continue;
-          }
-          List<String> tables = getTables(tempDatabaseName, tableName, true);
-          for (String tempTableName : tables) {
-            if (!tableNamePattern.matcher(tempTableName).find()) {
-              continue;
-            }
-            List<ColumnField> columnFieldList =
-                getColumns(tempDatabaseName, tempTableName, columnNames, true);
-            for (ColumnField columnField : columnFieldList) {
-              String tempColumnNames = columnField.getColumnName();
-              if (!columnNamePattern.matcher(tempColumnNames).find()) {
-                continue;
-              }
-              Map<String, String> tableNameToColumnNames = new HashMap<>();
-              if (splitResults.containsKey(tempDatabaseName)) {
-                tableNameToColumnNames = splitResults.get(tempDatabaseName);
-                tempColumnNames =
-                    tableNameToColumnNames.get(tempTableName) + ", " + tempColumnNames;
-              }
-              tableNameToColumnNames.put(tempTableName, tempColumnNames);
-              splitResults.put(tempDatabaseName, tableNameToColumnNames);
-            }
-          }
+        // Merge the table/column mappings
+        for (Map.Entry<String, String> tableEntry : tableNameToColumnNames.entrySet()) {
+          String tableName = tableEntry.getKey();
+          String newColumns = tableEntry.getValue();
+
+          existingDbMap.merge(
+              tableName, newColumns, (oldColumns, columns) -> oldColumns + ", " + columns);
         }
-      } else {
-        if (!databases.contains(databaseName)) {
-          continue;
-        }
-        List<ColumnField> columnFieldList = getColumns(databaseName, tableName, columnNames, true);
-        Map<String, String> tableNameToColumnNames = new HashMap<>();
-        for (ColumnField columnField : columnFieldList) {
-          tableName = columnField.getTableName();
-          columnNames = columnField.getColumnName();
-          if (!tableNamePattern.matcher(tableName).find()
-              || !columnNamePattern.matcher(columnNames).find()) {
-            continue;
-          }
-          if (tableNameToColumnNames.containsKey(tableName)) {
-            columnNames = tableNameToColumnNames.get(tableName) + ", " + columnNames;
-          }
-          tableNameToColumnNames.put(tableName, columnNames);
-        }
-        if (splitResults.containsKey(databaseName)) {
-          Map<String, String> oldTableNameToColumnNames = splitResults.get(databaseName);
-          for (Map.Entry<String, String> entry : tableNameToColumnNames.entrySet()) {
-            String oldColumnNames = oldTableNameToColumnNames.get(entry.getKey());
-            if (oldColumnNames != null) {
-              String[] oldColumnNameList = (oldColumnNames + ", " + entry.getValue()).split(", ");
-              // 对list去重
-              List<String> newColumnNameList = new ArrayList<>();
-              for (String columnName : oldColumnNameList) {
-                if (!newColumnNameList.contains(columnName)) {
-                  newColumnNameList.add(columnName);
-                }
-              }
-              oldTableNameToColumnNames.put(entry.getKey(), String.join(", ", newColumnNameList));
-            } else {
-              oldTableNameToColumnNames.put(entry.getKey(), entry.getValue());
-            }
-          }
-          tableNameToColumnNames = oldTableNameToColumnNames;
-        }
-        splitResults.put(databaseName, tableNameToColumnNames);
       }
     }
 
+    return splitResults;
+  }
+
+  private Map<String, Map<String, String>> splitAndMergeHistoryQueryPattern(
+      String pattern, List<String> databases) throws SQLException {
+    Map<String, Map<String, String>> splitResults = new HashMap<>();
+    String tableName;
+    String databaseName;
+    String columnNames;
+    if (pattern.equals("*") || pattern.equals("*.*")) {
+      databaseName = "%";
+      tableName = "%";
+      columnNames = "%";
+    } else {
+      String[] parts = pattern.split("\\" + SEPARATOR);
+
+      databaseName = parts[0].replace('*', '%');
+      if (parts.length == 1) { // 只有一级
+        tableName = "%";
+        columnNames = "%";
+      } else if (parts.length == 2) {
+        tableName = "%";
+        columnNames = parts[1].equals("*") ? "%" : parts[1];
+      } else {
+        RelationSchema schema = new RelationSchema(pattern, true, relationalMeta.getQuote());
+        tableName = schema.getTableName().replace("*", "%");
+        columnNames = schema.getColumnName();
+        if (columnNames.startsWith("*")) {
+          tableName += "%";
+          columnNames = columnNames.replaceFirst("\\*", "%");
+        }
+      }
+    }
+
+    List<Pattern> patternList = getRegexPatternByName(databaseName, tableName, columnNames, true);
+    Pattern tableNamePattern = patternList.get(0), columnNamePattern = patternList.get(1);
+
+    if (databaseName.equals("%")) {
+      for (String tempDatabaseName : getDatabaseNames(true)) {
+        if (tempDatabaseName.startsWith(DATABASE_PREFIX)) {
+          continue;
+        }
+        List<String> tables = getTables(tempDatabaseName, tableName, true);
+        for (String tempTableName : tables) {
+          if (!tableNamePattern.matcher(tempTableName).find()) {
+            continue;
+          }
+          List<ColumnField> columnFieldList =
+              getColumns(tempDatabaseName, tempTableName, columnNames, true);
+          for (ColumnField columnField : columnFieldList) {
+            String tempColumnNames = columnField.getColumnName();
+            if (!columnNamePattern.matcher(tempColumnNames).find()) {
+              continue;
+            }
+            Map<String, String> tableNameToColumnNames = new HashMap<>();
+            if (splitResults.containsKey(tempDatabaseName)) {
+              tableNameToColumnNames = splitResults.get(tempDatabaseName);
+              tempColumnNames = tableNameToColumnNames.get(tempTableName) + ", " + tempColumnNames;
+            }
+            tableNameToColumnNames.put(tempTableName, tempColumnNames);
+            splitResults.put(tempDatabaseName, tableNameToColumnNames);
+          }
+        }
+      }
+    } else {
+      if (!databases.contains(databaseName)) {
+        return splitResults;
+      }
+      List<ColumnField> columnFieldList = getColumns(databaseName, tableName, columnNames, true);
+      Map<String, String> tableNameToColumnNames = new HashMap<>();
+      for (ColumnField columnField : columnFieldList) {
+        tableName = columnField.getTableName();
+        columnNames = columnField.getColumnName();
+        if (!tableNamePattern.matcher(tableName).find()
+            || !columnNamePattern.matcher(columnNames).find()) {
+          continue;
+        }
+        if (tableNameToColumnNames.containsKey(tableName)) {
+          columnNames = tableNameToColumnNames.get(tableName) + ", " + columnNames;
+        }
+        tableNameToColumnNames.put(tableName, columnNames);
+      }
+      if (splitResults.containsKey(databaseName)) {
+        Map<String, String> oldTableNameToColumnNames = splitResults.get(databaseName);
+        for (Map.Entry<String, String> entry : tableNameToColumnNames.entrySet()) {
+          String oldColumnNames = oldTableNameToColumnNames.get(entry.getKey());
+          if (oldColumnNames != null) {
+            String[] oldColumnNameList = (oldColumnNames + ", " + entry.getValue()).split(", ");
+            // 对list去重
+            List<String> newColumnNameList = new ArrayList<>();
+            for (String columnName : oldColumnNameList) {
+              if (!newColumnNameList.contains(columnName)) {
+                newColumnNameList.add(columnName);
+              }
+            }
+            oldTableNameToColumnNames.put(entry.getKey(), String.join(", ", newColumnNameList));
+          } else {
+            oldTableNameToColumnNames.put(entry.getKey(), entry.getValue());
+          }
+        }
+        tableNameToColumnNames = oldTableNameToColumnNames;
+      }
+      splitResults.put(databaseName, tableNameToColumnNames);
+    }
     return splitResults;
   }
 
@@ -2876,7 +2932,7 @@ public class RelationalStorage implements IStorage {
   private List<Pair<String, String>> determineDeletedPaths(
       List<String> paths, TagFilter tagFilter) {
     try {
-      List<Column> columns = getColumns(null, null);
+      List<Column> columns = getColumns(null, null).toList().blockingGet();
       List<Pair<String, String>> deletedPaths = new ArrayList<>();
 
       for (Column column : columns) {

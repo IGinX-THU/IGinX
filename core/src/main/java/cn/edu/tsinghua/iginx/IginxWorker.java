@@ -296,7 +296,8 @@ public class IginxWorker implements IService.Iface {
         continue;
       }
       // 更新 zk 以及缓存中的元数据信息
-      if (!metaManager.removeDummyStorageEngine(storageEngineMeta.getId())) {
+      if (!metaManager.removeDummyStorageEngine(
+          storageEngineMeta.getId(), req.isForAllIginx(), true)) {
         partialFailAndLog(
             status,
             String.format("unexpected error during removing dummy storage engine %s.", info));
@@ -435,7 +436,7 @@ public class IginxWorker implements IService.Iface {
               LOGGER.debug("old engine cannot be connected");
               // 已有的数据库无法连接了，若是只读，直接删除
               if (currentStorageEngine.isReadOnly() && currentStorageEngine.isHasData()) {
-                metaManager.removeDummyStorageEngine(currentStorageEngine.getId());
+                metaManager.removeDummyStorageEngine(currentStorageEngine.getId(), true, true);
                 LOGGER.warn(
                     "Existing dummy Storage engine {} cannot be connected and will be removed.",
                     currentStorageEngine);
@@ -533,6 +534,7 @@ public class IginxWorker implements IService.Iface {
         continue;
       }
       storageManager.addStorage(meta, storage);
+      metaManager.addStorageConnection(Collections.singletonList(meta));
     }
     if (status.isSetSubStatus()) {
       if (storageEngineMetas.isEmpty()) {
@@ -604,7 +606,7 @@ public class IginxWorker implements IService.Iface {
     targetMeta.updateExtraParams(newParams);
 
     // remove, then add
-    if (!metaManager.removeDummyStorageEngine(targetId)) {
+    if (!metaManager.removeDummyStorageEngine(targetId, true, true)) {
       LOGGER.error("unexpected error during removing dummy storage engine {}.", targetMeta);
       status.setCode(RpcUtils.FAILURE.code);
       status.setMessage("unexpected error occurred. Please check server log.");
@@ -745,16 +747,40 @@ public class IginxWorker implements IService.Iface {
     // if starts in Docker, host_iginx_port will be given as env, representing host port to access
     // IGinX service
     String iginxPort = System.getenv("host_iginx_port");
+    IginxMeta currentIginx = metaManager.getIginxMeta();
+    Set<Long> connectableIginxIds =
+        metaManager
+            .getIginxConnectivity()
+            .getOrDefault(currentIginx.getId(), Collections.emptySet());
     for (IginxMeta iginxMeta : metaManager.getIginxList()) {
+      String connectable;
+      if (iginxMeta.getId() == currentIginx.getId()) {
+        connectable = "self";
+      } else if (connectableIginxIds.contains(iginxMeta.getId())) {
+        connectable = "true";
+      } else {
+        connectable = "false";
+      }
       int thisIginxPort = iginxPort != null ? Integer.parseInt(iginxPort) : iginxMeta.getPort();
-      iginxInfos.add(new IginxInfo(iginxMeta.getId(), iginxMeta.getIp(), thisIginxPort));
+      iginxInfos.add(
+          new IginxInfo(iginxMeta.getId(), iginxMeta.getIp(), thisIginxPort, connectable));
     }
     iginxInfos.sort(Comparator.comparingLong(IginxInfo::getId));
     resp.setIginxInfos(iginxInfos);
 
     // 数据库信息
     List<StorageEngineInfo> storageEngineInfos = new ArrayList<>();
+    Set<Long> connectableStorages =
+        metaManager
+            .getStorageConnections()
+            .getOrDefault(currentIginx.getId(), Collections.emptySet());
     for (StorageEngineMeta storageEngineMeta : metaManager.getStorageEngineList()) {
+      String connectable;
+      if (connectableStorages.contains(storageEngineMeta.getId())) {
+        connectable = "true";
+      } else {
+        connectable = "false";
+      }
       StorageEngineInfo info =
           new StorageEngineInfo(
               storageEngineMeta.getId(),
@@ -762,7 +788,8 @@ public class IginxWorker implements IService.Iface {
                   ? System.getenv("ip")
                   : storageEngineMeta.getIp(),
               storageEngineMeta.getPort(),
-              storageEngineMeta.getStorageEngine());
+              storageEngineMeta.getStorageEngine(),
+              connectable);
       info.setSchemaPrefix(
           storageEngineMeta.getSchemaPrefix() == null
               ? "null"
@@ -1006,6 +1033,7 @@ public class IginxWorker implements IService.Iface {
       return RpcUtils.FAILURE.setMessage(errorMsg);
     }
 
+    FunctionManager fm = FunctionManager.getInstance();
     try {
       if (req.isRemote) {
         status = loadRemoteUDFModule(req.moduleFile, destFile);
@@ -1017,13 +1045,12 @@ public class IginxWorker implements IService.Iface {
       }
       if (sourceFile.isDirectory()) {
         // try to install module dependencies
-        FunctionManager fm = FunctionManager.getInstance();
         fm.installReqsByPip(sourceFile.getName());
       }
     } catch (IOException e) {
       errorMsg =
           String.format(
-              "Fail to %s register file(s), path=%s", req.isRemote ? "load" : "copy", destPath);
+              "Fail to %s register file(s), path=%s", req.isRemote ? "load" : "copy", sourceFile);
       LOGGER.error(errorMsg);
       return RpcUtils.FAILURE.setMessage(errorMsg);
     } catch (Exception e) {
@@ -1032,12 +1059,34 @@ public class IginxWorker implements IService.Iface {
               "Fail to install dependencies for %s. Please check if the requirements.txt in module is written correctly.",
               sourceFile.getName());
       LOGGER.error(errorMsg, e);
-      LOGGER.debug("deleting {} due to failure in installing dependencies.", sourceFile.getPath());
+      LOGGER.debug("deleting {} due to failure in installing dependencies.", destFile.getPath());
       try {
         FileUtils.deleteFolder(destFile);
       } catch (IOException ee) {
         LOGGER.error("fail to delete udf module {}.", destFile.getPath(), ee);
       }
+      return RpcUtils.FAILURE.setMessage(errorMsg);
+    }
+
+    // safety check
+    try {
+      Set<String> banModules = fm.checkScript(destFile);
+      if (!banModules.isEmpty()) {
+        errorMsg =
+            String.format(
+                "Fail to register file(s) %s, dangerous module(s) %s should be avoided",
+                sourceFile, banModules);
+        LOGGER.error(errorMsg);
+        safeDeleteUDF(destFile);
+        return RpcUtils.FAILURE.setMessage(errorMsg);
+      }
+    } catch (Exception e) {
+      errorMsg =
+          String.format(
+              "Fail to perform safety check for %s. Please check the server log.",
+              sourceFile.getName());
+      LOGGER.error(errorMsg, e);
+      safeDeleteUDF(destFile);
       return RpcUtils.FAILURE.setMessage(errorMsg);
     }
 
@@ -1069,6 +1118,14 @@ public class IginxWorker implements IService.Iface {
       }
     }
     return RpcUtils.SUCCESS;
+  }
+
+  private void safeDeleteUDF(File file) {
+    try {
+      FileUtils.deleteFileOrDir(file);
+    } catch (IOException ee) {
+      LOGGER.error("fail to delete udf scripts {}.", file.getPath(), ee);
+    }
   }
 
   private Status loadLocalUDFModule(File sourceFile, File destFile) throws IOException {
