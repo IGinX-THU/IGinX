@@ -47,9 +47,39 @@
                 <plugins>
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-antrun-plugin</artifactId>
+                        <version>3.0.0</version>
+                        <executions>
+                            <execution>
+                                <id>download-dameng-jdbc</id>
+                                <goals>
+                                    <goal>run</goal>
+                                </goals>
+                                <phase>initialize</phase>
+                                <configuration>
+                                    <target>
+                                        <mkdir dir="${project.build.directory}/lib"/>
+                                        <get dest="${project.build.directory}/lib/dameng-jdbc-1.8-SNAPSHOT.jar" src="https://raw.githubusercontent.com/IGinX-THU/IGinX-resources/main/resources/dameng-jdbc-1.8-SNAPSHOT.jar" verbose="true"/>
+                                    </target>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-install-plugin</artifactId>
                         <version>3.1.2</version>
                         <executions>
+                            <execution>
+                                <id>install-dameng-jdbc</id>
+                                <goals>
+                                    <goal>install-file</goal>
+                                </goals>
+                                <phase>generate-sources</phase>
+                                <configuration>
+                                    <file>${project.build.directory}/lib/dameng-jdbc-1.8-SNAPSHOT.jar</file>
+                                </configuration>
+                            </execution>
                             <execution>
                                 <id>install-pemjax</id>
                                 <goals>
