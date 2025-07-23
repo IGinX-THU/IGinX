@@ -19,15 +19,20 @@
  */
 package cn.edu.tsinghua.iginx.relational.strategy;
 
+import static cn.edu.tsinghua.iginx.constant.GlobalConstant.SEPARATOR;
 import static cn.edu.tsinghua.iginx.relational.tools.Constants.*;
 
+import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
+import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.relational.datatype.transformer.OracleDataTypeTransformer;
+import cn.edu.tsinghua.iginx.relational.exception.RelationalTaskExecuteFailureException;
 import cn.edu.tsinghua.iginx.relational.meta.AbstractRelationalMeta;
 import cn.edu.tsinghua.iginx.relational.tools.ColumnField;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
+import cn.edu.tsinghua.iginx.utils.StringUtils;
 import com.zaxxer.hikari.HikariConfig;
 import java.sql.*;
 import java.util.ArrayList;
@@ -365,5 +370,66 @@ public class OracleDatabaseStrategy extends AbstractDatabaseStrategy {
   @Override
   public String getAvgCastExpression(Expression param) {
     return "%s(CAST(%s AS BINARY_DOUBLE))";
+  }
+
+  @Override
+  public ColumnsInterval getColumnsBoundary()
+          throws PhysicalException, SQLException, RelationalTaskExecuteFailureException {
+    String defaultDb = relationalMeta.getDefaultDatabaseName();
+    String columnNames = "owner, table_name, column_name";
+    List<String> exceptSchema = new ArrayList<>();
+    exceptSchema.add(relationalMeta.getDefaultDatabaseName());
+    exceptSchema.addAll(relationalMeta.getSystemDatabaseName());
+    String conditionStatement =
+            exceptSchema.stream()
+                    .map(s -> "'" + s + "'")
+                    .collect(Collectors.joining(", ", " WHERE owner NOT IN (", ")"));
+    if (relationalMeta.isUseApproximateBoundary()) {
+      String sql =
+              "SELECT min(owner), max(owner) FROM all_tables "
+                      + conditionStatement;
+      try (Connection conn = getConnection(defaultDb);
+           Statement statement = conn.createStatement();
+           ResultSet rs = statement.executeQuery(sql)) {
+        if (rs.next()) {
+          String minPath = rs.getString(1);
+          String maxPath = rs.getString(2);
+          return new ColumnsInterval(minPath, StringUtils.nextString(maxPath));
+        } else {
+          throw new RelationalTaskExecuteFailureException("no data!");
+        }
+      }
+    }
+    String sqlMin =
+            "SELECT "
+                    + columnNames
+                    + " FROM all_tab_columns"
+                    + conditionStatement
+                    + " ORDER BY owner, table_name, column_name LIMIT 1";
+    String sqlMax =
+            "SELECT "
+                    + columnNames
+                    + " FROM all_tab_columns"
+                    + conditionStatement
+                    + " ORDER BY owner DESC, table_name DESC, column_name DESC LIMIT 1";
+
+    String minPath = null;
+    String maxPath = null;
+    try (Connection conn = getConnection(defaultDb);
+         Statement statement = conn.createStatement()) {
+      try (ResultSet rs = statement.executeQuery(sqlMin)) {
+        if (rs.next()) {
+          minPath = rs.getString(1) + SEPARATOR + rs.getString(2) + SEPARATOR + rs.getString(3);
+        }
+      }
+      try (ResultSet rs = statement.executeQuery(sqlMax)) {
+        if (rs.next()) {
+          maxPath = rs.getString(1) + SEPARATOR + rs.getString(2) + SEPARATOR + rs.getString(3);
+        }
+      }
+    }
+    minPath = minPath == null ? defaultDb : minPath;
+    maxPath = maxPath == null ? defaultDb : maxPath;
+    return new ColumnsInterval(minPath, StringUtils.nextString(maxPath));
   }
 }

@@ -22,7 +22,9 @@ package cn.edu.tsinghua.iginx.relational.strategy;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.StorageInitializationException;
 import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
+import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
+import cn.edu.tsinghua.iginx.relational.exception.RelationalTaskExecuteFailureException;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import com.zaxxer.hikari.HikariConfig;
 import java.sql.*;
@@ -138,24 +140,13 @@ public interface DatabaseStrategy {
    */
   String getAvgCastExpression(Expression param);
 
-  //  /**
-  //   * 从数据库的信息模式（information_schema）中获取边界信息（如列的起止范围）。
-  //   *
-  //   * @return 包含边界信息的ColumnsInterval对象
-  //   * @throws PhysicalException 物理层异常
-  //   * @throws SQLException SQL相关异常
-  //   */
-  //  ColumnsInterval getBoundaryFromInformationSchema()
-  //          throws PhysicalException, SQLException;
-  //
-  //  /**
-  //   * 从指定的数据库范围内的信息模式中获取边界信息。
-  //   * @param minDb 最小数据库名称
-  //   * @param maxDb 最大数据库名称
-  //   * @return
-  //   * @throws SQLException
-  //   * @throws RelationalTaskExecuteFailureException
-  //   */
-  //  ColumnsInterval getBoundaryFromInformationSchemaInCatalog(String minDb, String maxDb)
-  //          throws SQLException, RelationalTaskExecuteFailureException;
+  /**
+   * 从数据库的信息模式（information_schema）中获取边界信息（如列的起止范围）。
+   *
+   * @return 包含边界信息的ColumnsInterval对象
+   * @throws PhysicalException 物理层异常
+   * @throws SQLException SQL相关异常
+   */
+  ColumnsInterval getColumnsBoundary()
+          throws PhysicalException, SQLException;
 }

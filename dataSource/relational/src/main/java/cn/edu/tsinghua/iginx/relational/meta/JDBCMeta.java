@@ -90,7 +90,7 @@ public class JDBCMeta extends AbstractRelationalMeta {
 
   private final boolean jdbcSupportGetTableNameFromResultSet;
 
-  private final boolean supportInformationSchema;
+  private final boolean supportBoundaryQuery;
 
   private final boolean useApproximateBoundary;
 
@@ -139,8 +139,8 @@ public class JDBCMeta extends AbstractRelationalMeta {
     this.jdbcSupportGetTableNameFromResultSet =
         Boolean.parseBoolean(
             properties.getProperty("jdbc_support_get_table_name_from_result_set", "true"));
-    supportInformationSchema =
-        Boolean.parseBoolean(properties.getProperty("support_information_schema", "false"));
+    supportBoundaryQuery =
+        Boolean.parseBoolean(properties.getProperty("support_boundary_query", "false"));
     useApproximateBoundary =
         Boolean.parseBoolean(properties.getProperty("use_approximate_boundary", "false"));
   }
@@ -305,8 +305,8 @@ public class JDBCMeta extends AbstractRelationalMeta {
   }
 
   @Override
-  public boolean isSupportInformationSchema() {
-    return supportInformationSchema;
+  public boolean isSupportBoundaryQuery() {
+    return supportBoundaryQuery;
   }
 
   public boolean isUseApproximateBoundary() {
