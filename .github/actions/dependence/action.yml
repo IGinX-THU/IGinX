@@ -158,3 +158,27 @@ runs:
               PROJECT_ROOT=${{ steps.project.outputs.workspace }}
               echo "PROJECT_ROOT=${PROJECT_ROOT}" >> $GITHUB_ENV
               echo "SERVICE_DIR=${PROJECT_ROOT}/.github/actions/service" >> $GITHUB_ENV
+
+        - if: runner.os == 'Linux'
+          name: Install Dameng JDBC Driver into local Maven repo
+          shell: bash
+          run: |
+            wget https://github.com/IGinX-THU/IGinX-resources/raw/main/resources/dameng-jdbc-1.8-SNAPSHOT.jar
+            mvn install:install-file \
+              -DgroupId=cn.edu.tsinghua.iginx \
+              -DartifactId=dameng-jdbc \
+              -Dversion=1.8-SNAPSHOT \
+              -Dpackaging=jar \
+              -Dfile=dameng-jdbc-1.8-SNAPSHOT.jar
+
+        - if: runner.os == 'Windows'
+          name: Install Dameng JDBC Driver into local Maven repo
+          shell: wsl-bash {0}
+          run: |
+            curl -s -S -L -o dameng-jdbc-1.8-SNAPSHOT.jar https://github.com/IGinX-THU/IGinX-resources/raw/main/resources/dameng-jdbc-1.8-SNAPSHOT.jar
+            mvn install:install-file \
+              -DgroupId=cn.edu.tsinghua.iginx \
+              -DartifactId=dameng-jdbc \
+              -Dversion=1.8-SNAPSHOT \
+              -Dpackaging=jar \
+              -Dfile=dameng-jdbc-1.8-SNAPSHOT.jar
