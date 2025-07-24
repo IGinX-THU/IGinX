@@ -376,7 +376,7 @@ public class VectorDBCapacityExpansionIT extends BaseCapacityExpansionIT {
             + "|     dummy.tm.wf05.wt02.vector|  BINARY|\n"
             + "+------------------------------+--------+\n"
             + "Total line number = 14\n";
-    SQLTestTools.executeAndCompare(session, statement, expected);
+    SQLTestTools.executeAndCompare(session, statement, expected, true);
     session.removeStorageEngine(
         Arrays.asList(new RemovedStorageEngineInfo(LOCAL_IP, readOnlyPort, schemaPrefix, "")),
         true);

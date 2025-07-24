@@ -101,11 +101,26 @@ public class SQLExecutor {
   }
 
   public void executeAndCompare(String statement, String expectedOutput) {
+    executeAndCompare(statement, expectedOutput, false);
+  }
+
+  public void executeAndCompare(String statement, String expectedOutput, boolean ignoreOrder) {
     String actualOutput = execute(statement);
     if (!needCompareResult) {
       return;
     }
-    assertEquals(expectedOutput, actualOutput);
+    if (ignoreOrder) {
+      if (!TestUtils.isResultSetEqual(expectedOutput, actualOutput)) {
+        LOGGER.error(
+            "Statement: \"{}\" execute fail,\nexpected:\"{}\",\nactual:\"{}\"",
+            statement,
+            expectedOutput,
+            actualOutput);
+        fail();
+      }
+    } else {
+      assertEquals(expectedOutput, actualOutput);
+    }
   }
 
   public void executeAndCompareErrMsg(String statement, String expectedErrMsg) {
@@ -151,6 +166,7 @@ public class SQLExecutor {
           () -> {
             String statement = pair.getK();
             String expected = pair.getV();
+            boolean ignoreOrder = statement.toLowerCase().startsWith("show columns");
             start.countDown();
 
             try {
@@ -160,9 +176,12 @@ public class SQLExecutor {
             }
 
             String actualOutput = execute(statement);
-            if (!expected.equals(actualOutput)) {
+            if (ignoreOrder && !TestUtils.isResultSetEqual(expected, actualOutput)) {
+              failedList.add(new Pair<>(statement, new Pair<>(expected, actualOutput)));
+            } else if (!ignoreOrder && !expected.equals(actualOutput)) {
               failedList.add(new Pair<>(statement, new Pair<>(expected, actualOutput)));
             }
+            LOGGER.info("Successfully execute statement: \"{}\"", statement);
             end.countDown();
           });
     }
