@@ -374,23 +374,21 @@ public class OracleDatabaseStrategy extends AbstractDatabaseStrategy {
 
   @Override
   public ColumnsInterval getColumnsBoundary()
-          throws PhysicalException, SQLException, RelationalTaskExecuteFailureException {
+      throws PhysicalException, SQLException, RelationalTaskExecuteFailureException {
     String defaultDb = relationalMeta.getDefaultDatabaseName();
     String columnNames = "owner, table_name, column_name";
     List<String> exceptSchema = new ArrayList<>();
     exceptSchema.add(relationalMeta.getDefaultDatabaseName());
     exceptSchema.addAll(relationalMeta.getSystemDatabaseName());
     String conditionStatement =
-            exceptSchema.stream()
-                    .map(s -> "'" + s + "'")
-                    .collect(Collectors.joining(", ", " WHERE owner NOT IN (", ")"));
-    if (relationalMeta.isUseApproximateBoundary()) {
-      String sql =
-              "SELECT min(owner), max(owner) FROM all_tables "
-                      + conditionStatement;
+        exceptSchema.stream()
+            .map(s -> "'" + s + "'")
+            .collect(Collectors.joining(", ", " WHERE owner NOT IN (", ")"));
+    if (boundaryLevel < 1) {
+      String sql = "SELECT min(owner), max(owner) FROM all_tables " + conditionStatement;
       try (Connection conn = getConnection(defaultDb);
-           Statement statement = conn.createStatement();
-           ResultSet rs = statement.executeQuery(sql)) {
+          Statement statement = conn.createStatement();
+          ResultSet rs = statement.executeQuery(sql)) {
         if (rs.next()) {
           String minPath = rs.getString(1);
           String maxPath = rs.getString(2);
@@ -401,22 +399,22 @@ public class OracleDatabaseStrategy extends AbstractDatabaseStrategy {
       }
     }
     String sqlMin =
-            "SELECT "
-                    + columnNames
-                    + " FROM all_tab_columns"
-                    + conditionStatement
-                    + " ORDER BY owner, table_name, column_name LIMIT 1";
+        "SELECT "
+            + columnNames
+            + " FROM all_tab_columns"
+            + conditionStatement
+            + " ORDER BY owner, table_name, column_name LIMIT 1";
     String sqlMax =
-            "SELECT "
-                    + columnNames
-                    + " FROM all_tab_columns"
-                    + conditionStatement
-                    + " ORDER BY owner DESC, table_name DESC, column_name DESC LIMIT 1";
+        "SELECT "
+            + columnNames
+            + " FROM all_tab_columns"
+            + conditionStatement
+            + " ORDER BY owner DESC, table_name DESC, column_name DESC LIMIT 1";
 
     String minPath = null;
     String maxPath = null;
     try (Connection conn = getConnection(defaultDb);
-         Statement statement = conn.createStatement()) {
+        Statement statement = conn.createStatement()) {
       try (ResultSet rs = statement.executeQuery(sqlMin)) {
         if (rs.next()) {
           minPath = rs.getString(1) + SEPARATOR + rs.getString(2) + SEPARATOR + rs.getString(3);

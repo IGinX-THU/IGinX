@@ -24,7 +24,6 @@ import cn.edu.tsinghua.iginx.engine.physical.exception.StorageInitializationExce
 import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
-import cn.edu.tsinghua.iginx.relational.exception.RelationalTaskExecuteFailureException;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import com.zaxxer.hikari.HikariConfig;
 import java.sql.*;
@@ -147,6 +146,5 @@ public interface DatabaseStrategy {
    * @throws PhysicalException 物理层异常
    * @throws SQLException SQL相关异常
    */
-  ColumnsInterval getColumnsBoundary()
-          throws PhysicalException, SQLException;
+  ColumnsInterval getColumnsBoundary() throws PhysicalException, SQLException;
 }

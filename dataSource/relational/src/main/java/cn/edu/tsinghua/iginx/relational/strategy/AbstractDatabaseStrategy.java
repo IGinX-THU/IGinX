@@ -48,6 +48,8 @@ public abstract class AbstractDatabaseStrategy implements DatabaseStrategy {
 
   protected final StorageEngineMeta storageEngineMeta;
 
+  protected final int boundaryLevel;
+
   private final Map<String, HikariDataSource> connectionPoolMap = new ConcurrentHashMap<>();
 
   private Connection connection;
@@ -56,6 +58,8 @@ public abstract class AbstractDatabaseStrategy implements DatabaseStrategy {
       AbstractRelationalMeta relationalMeta, StorageEngineMeta storageEngineMeta) {
     this.relationalMeta = relationalMeta;
     this.storageEngineMeta = storageEngineMeta;
+    this.boundaryLevel =
+        Integer.parseInt(storageEngineMeta.getExtraParams().getOrDefault(BOUNDARY_LEVEL, "0"));
   }
 
   @Override
