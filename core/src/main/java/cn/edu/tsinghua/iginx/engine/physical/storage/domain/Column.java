@@ -20,7 +20,6 @@
 package cn.edu.tsinghua.iginx.engine.physical.storage.domain;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.Table;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
@@ -57,21 +56,20 @@ public final class Column {
   }
 
   public static RowStream toRowStream(Collection<Column> timeseries) {
-    Header header =
-        new Header(
-            Arrays.asList(new Field("path", DataType.BINARY), new Field("type", DataType.BINARY)));
     List<Row> rows =
         timeseries.stream()
-            .map(
-                e ->
-                    new Row(
-                        header,
-                        new Object[] {
-                          TagKVUtils.toFullName(e.path, e.tags).getBytes(),
-                          e.dataType.toString().getBytes()
-                        }))
+            .map(e -> toRow(Header.SHOW_COLUMNS_HEADER, e))
             .collect(Collectors.toList());
-    return new Table(header, rows);
+    return new Table(Header.SHOW_COLUMNS_HEADER, rows);
+  }
+
+  public static Row toRow(Header header, Column column) {
+    return new Row(
+        header,
+        new Object[] {
+          TagKVUtils.toFullName(column.path, column.tags).getBytes(),
+          column.dataType.toString().getBytes()
+        });
   }
 
   public String getPath() {
