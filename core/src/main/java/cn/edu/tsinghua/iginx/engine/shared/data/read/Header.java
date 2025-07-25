@@ -334,15 +334,15 @@ public final class Header {
           }
         }
       } else {
-        boolean found = false;
+        Set<String> patternSet = new HashSet<>();
         for (int i = 0; i < fields.size(); i++) {
           Field field = getField(i);
           if (pattern.equals(field.getName())) {
-            if (found) {
+            if (patternSet.contains(field.getFullName())) {
               throw new PhysicalException(String.format("Column '%s' is ambiguous.", pattern));
             }
             matchedFields.add(new Pair<>(field, i));
-            found = true;
+            patternSet.add(field.getFullName());
           }
         }
       }
