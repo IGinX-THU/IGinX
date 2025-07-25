@@ -8,7 +8,7 @@ SELECT
     AVG( l_quantity ) AS avg_qty,
     AVG( l_extendedprice ) AS avg_price,
     AVG( l_discount ) AS avg_disc,
-    COUNT(*) AS count_order
+    COUNT(l_returnflag) AS count_order
 FROM
     lineitem
 WHERE
