@@ -21,52 +21,168 @@ package cn.edu.tsinghua.iginx.relational.strategy;
 
 import static cn.edu.tsinghua.iginx.relational.tools.Constants.*;
 
+import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
+import cn.edu.tsinghua.iginx.engine.physical.exception.StorageInitializationException;
 import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
+import cn.edu.tsinghua.iginx.relational.exception.RelationalException;
 import cn.edu.tsinghua.iginx.relational.meta.AbstractRelationalMeta;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
+import com.zaxxer.hikari.pool.HikariPool;
 import java.sql.*;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class AbstractDatabaseStrategy implements DatabaseStrategy {
+  private static final Logger LOGGER = LoggerFactory.getLogger(AbstractDatabaseStrategy.class);
+
   protected final AbstractRelationalMeta relationalMeta;
+
   protected final StorageEngineMeta storageEngineMeta;
+
+  protected final int boundaryLevel;
+
+  private final Map<String, HikariDataSource> connectionPoolMap = new ConcurrentHashMap<>();
+
+  private Connection connection;
 
   public AbstractDatabaseStrategy(
       AbstractRelationalMeta relationalMeta, StorageEngineMeta storageEngineMeta) {
     this.relationalMeta = relationalMeta;
     this.storageEngineMeta = storageEngineMeta;
+    this.boundaryLevel =
+        Integer.parseInt(storageEngineMeta.getExtraParams().getOrDefault(BOUNDARY_LEVEL, "0"));
   }
 
   @Override
-  public String getQuotName(String name) {
-    return String.format("%s%s%s", relationalMeta.getQuote(), name, relationalMeta.getQuote());
+  public void initConnection() throws StorageInitializationException {
+    try {
+      connection = DriverManager.getConnection(getConnectUrl());
+    } catch (SQLException e) {
+      throw new StorageInitializationException(
+          String.format("cannot connect to %s :", storageEngineMeta), e);
+    }
   }
 
   @Override
-  public String getUrl(String databaseName, StorageEngineMeta meta) {
-    Map<String, String> extraParams = meta.getExtraParams();
+  public Connection getConnection(String databaseName) {
+    if (databaseName.startsWith("dummy")) {
+      return null;
+    }
+
+    if (relationalMeta.getSystemDatabaseName().stream().anyMatch(databaseName::equalsIgnoreCase)) {
+      return null;
+    }
+
+    if (relationalMeta.supportCreateDatabase()) {
+      try (Statement stmt = connection.createStatement()) {
+        stmt.execute(
+            String.format(relationalMeta.getCreateDatabaseStatement(), getQuotName(databaseName)));
+      } catch (SQLException ignored) {
+      }
+    } else {
+      if (databaseName.equals(relationalMeta.getDefaultDatabaseName())
+          || databaseName.matches("unit\\d{10}")) {
+        databaseName = "";
+      }
+    }
+
+    HikariDataSource dataSource = connectionPoolMap.get(databaseName);
+    if (dataSource != null) {
+      try {
+        Connection conn;
+        conn = dataSource.getConnection();
+        return conn;
+      } catch (SQLException e) {
+        LOGGER.error("Cannot get connection for database {}", databaseName, e);
+        dataSource.close();
+      }
+    }
+
+    try {
+      HikariConfig config = new HikariConfig();
+      config.setJdbcUrl(getUrl(databaseName));
+      config.setUsername(storageEngineMeta.getExtraParams().get(USERNAME));
+      config.setPassword(storageEngineMeta.getExtraParams().get(PASSWORD));
+      config.addDataSourceProperty(
+          "prepStmtCacheSize",
+          storageEngineMeta.getExtraParams().getOrDefault("prep_stmt_cache_size", "250"));
+      config.setLeakDetectionThreshold(
+          Long.parseLong(
+              storageEngineMeta.getExtraParams().getOrDefault("leak_detection_threshold", "2500")));
+      config.setConnectionTimeout(
+          Long.parseLong(
+              storageEngineMeta.getExtraParams().getOrDefault("connection_timeout", "30000")));
+      config.setIdleTimeout(
+          Long.parseLong(storageEngineMeta.getExtraParams().getOrDefault("idle_timeout", "10000")));
+      config.setMaximumPoolSize(
+          Integer.parseInt(
+              storageEngineMeta.getExtraParams().getOrDefault("maximum_pool_size", "20")));
+      config.setMinimumIdle(
+          Integer.parseInt(storageEngineMeta.getExtraParams().getOrDefault("minimum_idle", "1")));
+      config.addDataSourceProperty(
+          "prepStmtCacheSqlLimit",
+          storageEngineMeta.getExtraParams().getOrDefault("prep_stmt_cache_sql_limit", "2048"));
+      configureDataSource(config, databaseName, storageEngineMeta);
+
+      HikariDataSource newDataSource = new HikariDataSource(config);
+      connectionPoolMap.put(databaseName, newDataSource);
+      return newDataSource.getConnection();
+    } catch (SQLException | HikariPool.PoolInitializationException e) {
+      LOGGER.error("Cannot get connection for database {}", databaseName, e);
+      return null;
+    }
+  }
+
+  @Override
+  public void closeConnection(String databaseName) {
+    HikariDataSource dataSource = connectionPoolMap.get(databaseName);
+    if (dataSource != null) {
+      dataSource.close();
+      connectionPoolMap.remove(databaseName);
+    }
+  }
+
+  @Override
+  public void release() throws PhysicalException {
+    try {
+      connection.close();
+    } catch (SQLException e) {
+      throw new RelationalException(e);
+    }
+  }
+
+  @Override
+  public String getUrl(String databaseName) {
+    Map<String, String> extraParams = storageEngineMeta.getExtraParams();
     String engine = extraParams.get("engine");
-    return String.format("jdbc:%s://%s:%s/%s", engine, meta.getIp(), meta.getPort(), databaseName);
+    return String.format(
+        "jdbc:%s://%s:%s/%s",
+        engine, storageEngineMeta.getIp(), storageEngineMeta.getPort(), databaseName);
   }
 
   @Override
-  public String getConnectUrl(StorageEngineMeta meta) {
-    Map<String, String> extraParams = meta.getExtraParams();
+  public String getConnectUrl() {
+    Map<String, String> extraParams = storageEngineMeta.getExtraParams();
     String username = extraParams.get(USERNAME);
     String password = extraParams.get(PASSWORD);
     String engine = extraParams.get("engine");
 
     return password == null
-        ? String.format("jdbc:%s://%s:%s/?user=%s", engine, meta.getIp(), meta.getPort(), username)
+        ? String.format(
+            "jdbc:%s://%s:%s/?user=%s",
+            engine, storageEngineMeta.getIp(), storageEngineMeta.getPort(), username)
         : String.format(
             "jdbc:%s://%s:%s/?user=%s&password=%s",
-            engine, meta.getIp(), meta.getPort(), username, password);
+            engine, storageEngineMeta.getIp(), storageEngineMeta.getPort(), username, password);
   }
 
   @Override
@@ -153,5 +269,10 @@ public abstract class AbstractDatabaseStrategy implements DatabaseStrategy {
   @Override
   public String getAvgCastExpression(Expression param) {
     return "%s(%s)";
+  }
+
+  @Override
+  public String getQuotName(String name) {
+    return String.format("%s%s%s", relationalMeta.getQuote(), name, relationalMeta.getQuote());
   }
 }
