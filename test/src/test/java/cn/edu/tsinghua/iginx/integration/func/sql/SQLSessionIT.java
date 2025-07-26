@@ -3985,6 +3985,25 @@ public class SQLSessionIT {
             + "Total line number = 10\n";
     executor.executeAndCompare(statement, expected);
 
+    statement =
+        "SELECT * FROM (SELECT s1 AS s FROM us.d1 WHERE key < 2), (SELECT s2 AS s FROM us.d1 WHERE key < 2);";
+    expected =
+        "ResultSets:\n"
+            + "+-+-+---------+---------+\n"
+            + "|s|s|us.d1.key|us.d1.key|\n"
+            + "+-+-+---------+---------+\n"
+            + "|0|1|        0|        0|\n"
+            + "|0|2|        0|        1|\n"
+            + "|1|1|        1|        0|\n"
+            + "|1|2|        1|        1|\n"
+            + "+-+-+---------+---------+\n"
+            + "Total line number = 4\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement =
+        "SELECT s FROM (SELECT s1 AS s FROM us.d1 WHERE key < 2), (SELECT s2 AS s FROM us.d1 WHERE key < 2);";
+    executor.executeAndCompareErrMsg(statement, "Column 's' is ambiguous.");
+
     // duplicate columns
     statement = "SELECT s1 AS a, s1, s1 AS s1, s2 AS c, s2 FROM us.d1 WHERE s1 > 50 AND s1 < 55;";
     expected =

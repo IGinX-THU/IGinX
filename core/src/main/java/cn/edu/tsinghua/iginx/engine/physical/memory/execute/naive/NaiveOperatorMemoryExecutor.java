@@ -215,8 +215,10 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
   }
 
   private RowStream executeProjectFromOperator(Project project, Table table) {
-    Header targetHeader =
+    Pair<Header, List<Integer>> pair =
         table.getHeader().projectedHeader(project.getPatterns(), project.isRemainKey());
+    Header targetHeader = pair.getK();
+    List<Integer> indexList = pair.getV();
     List<Field> targetFields = targetHeader.getFields();
     List<Row> targetRows = new ArrayList<>();
     table.reset();
@@ -224,7 +226,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
       Row row = table.next();
       Object[] objects = new Object[targetFields.size()];
       for (int i = 0; i < targetFields.size(); i++) {
-        objects[i] = row.getValue(targetFields.get(i));
+        objects[i] = row.getValue(indexList.get(i));
       }
       targetRows.add(new Row(targetHeader, row.getKey(), objects));
     }
@@ -283,12 +285,13 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
       FunctionParams params = functionCall.getParams();
 
       Table functable = RowUtils.preRowTransform(table, rowTransformMap, functionCall);
-      Header tmpHeader = functable.getHeader();
+      Header tmpHeader;
       TreeMap<Long, List<Row>> groups = RowUtils.computeDownsampleGroup(downsample, functable);
 
       // <<window_start, window_end> row>
       List<Pair<Pair<Long, Long>, Row>> transformedRawRows = new ArrayList<>();
       for (Map.Entry<Long, List<Row>> entry : groups.entrySet()) {
+        tmpHeader = functable.getHeader();
         long windowStartKey = entry.getKey();
         long windowEndKey = windowStartKey + precision - 1;
         List<Row> group = entry.getValue();
@@ -516,7 +519,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     return new Table(newHeader, rows);
   }
 
-  private RowStream executeReorder(Reorder reorder, Table table) {
+  private RowStream executeReorder(Reorder reorder, Table table) throws PhysicalException {
     Header header = table.getHeader();
 
     Header.ReorderedHeaderWrapped res =
