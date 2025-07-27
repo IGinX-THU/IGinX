@@ -12,7 +12,7 @@ SELECT
 FROM
     lineitem
 WHERE
-    lineitem.l_shipdate <= 904694400000
+    l_shipdate <= 904694400000
 GROUP BY
     l_returnflag,
     l_linestatus
