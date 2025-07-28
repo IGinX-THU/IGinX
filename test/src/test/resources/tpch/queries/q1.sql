@@ -19,12 +19,12 @@ FROM
             l_discount,
             l_extendedprice *(
                 1 - l_discount
-                ) AS tmp1,
+            ) AS tmp1,
             l_extendedprice *(
                 1 - l_discount
-                )*(
+            )*(
                 1 + l_tax
-                ) AS tmp2
+            ) AS tmp2
         FROM
             lineitem
         WHERE
