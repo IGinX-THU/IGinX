@@ -72,17 +72,19 @@ public class MixClusterShowColumnsRegressionTest {
             + "+----+--------+\n"
             + "|Path|DataType|\n"
             + "+----+--------+\n"
-            + "| m.a|    LONG|\n"
+            + "| m.d|    LONG|\n"
+            + "| m.o|    LONG|\n"
             + "| m.d|    LONG|\n"
             + "| m.h|    LONG|\n"
             + "| m.n|    LONG|\n"
-            + "| m.o|    LONG|\n"
             + "| m.p|    LONG|\n"
             + "| m.z|    LONG|\n"
+            + "| m.o|    LONG|\n"
             + "| n.d|  DOUBLE|\n"
             + "| n.n|  DOUBLE|\n"
+            + "| m.a|    LONG|\n"
             + "+----+--------+\n"
-            + "Total line number = 9\n";
+            + "Total line number = 11\n";
     executeAndCompare(statement, expected, true);
 
     statement = "SHOW COLUMNS m.*;";
@@ -91,15 +93,17 @@ public class MixClusterShowColumnsRegressionTest {
             + "+----+--------+\n"
             + "|Path|DataType|\n"
             + "+----+--------+\n"
-            + "| m.a|    LONG|\n"
+            + "| m.d|    LONG|\n"
+            + "| m.o|    LONG|\n"
             + "| m.d|    LONG|\n"
             + "| m.h|    LONG|\n"
             + "| m.n|    LONG|\n"
-            + "| m.o|    LONG|\n"
             + "| m.p|    LONG|\n"
             + "| m.z|    LONG|\n"
+            + "| m.o|    LONG|\n"
+            + "| m.a|    LONG|\n"
             + "+----+--------+\n"
-            + "Total line number = 7\n";
+            + "Total line number = 9\n";
     executeAndCompare(statement, expected, true);
   }
 
