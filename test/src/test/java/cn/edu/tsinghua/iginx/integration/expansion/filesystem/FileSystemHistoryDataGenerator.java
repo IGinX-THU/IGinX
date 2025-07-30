@@ -135,21 +135,25 @@ public class FileSystemHistoryDataGenerator extends BaseHistoryDataGenerator {
   }
 
   private void writeSpecificDirectoriesAndFiles() {
-    // a
-    // ├── b
-    // │   └── c
-    // │       └── d
-    // │           └── 1.txt
-    // ├── e
-    // │   └── 2.txt
-    // ├── f
-    // │   └── g
-    // │       └── 3.txt
-    // ├── Iris.parquet
-    // ├── floatTest.parquet
-    // └── other
-    //     ├── MT cars.parquet
-    //     └── price.parquet
+    // test
+    // └── csv
+    //     └── lineitem.csv
+    // └── a
+    //     ├── b
+    //     │   └── c
+    //     │       └── d
+    //     │           └── 1.txt
+    //     ├── e
+    //     │   └── 2.txt
+    //     ├── f
+    //     │   └── g
+    //     │       └── 3.txt
+    //     ├── Iris.parquet
+    //     ├── floatTest.parquet
+    //     ├── lineitem.tsv
+    //     └── other
+    //         ├── MT cars.parquet
+    //         └── price.parquet
     StringBuilder content1 = new StringBuilder();
     StringBuilder content2 = new StringBuilder();
     StringBuilder content3 = new StringBuilder();
@@ -176,6 +180,13 @@ public class FileSystemHistoryDataGenerator extends BaseHistoryDataGenerator {
         parquetResourceDir + "MT cars.parquet", Paths.get("test", "a", "other", "MT cars.parquet"));
     copyFileFromResource(
         parquetResourceDir + "price.parquet", Paths.get("test", "a", "other", "price.parquet"));
+
+    String csvResourceDir = "dummy/csv/";
+    copyFileFromResource(
+        csvResourceDir + "lineitem.tsv", Paths.get("test", "a", "lineitem.tsv"));
+        copyFileFromResource(
+            csvResourceDir + "lineitem.csv", Paths.get("test", "csv",
+     "lineitem.csv"));
   }
 
   private static void copyFileFromResource(String resourcePath, Path targetPath) {

@@ -120,27 +120,30 @@ public class TestUtils {
 
   private static String getHeader(String tableStr) {
     List<String> lines = Arrays.asList(tableStr.split("\n"));
-    return lines.get(1).startsWith("|") ? lines.get(1) : "";
+    return (lines.size() > 2 && lines.get(2).startsWith("|")) ? lines.get(2) : "";
   }
 
   private static Map<String, Integer> countDataRows(String tableStr) {
     List<String> lines = Arrays.asList(tableStr.split("\n"));
     Map<String, Integer> counts = new HashMap<>();
 
-    int start = -1, end = -1;
+    // 记录所有以 '+' 开头的行的行号
+    List<Integer> plusLineIndices = new ArrayList<>();
 
     for (int i = 0; i < lines.size(); i++) {
-      if (lines.get(i).startsWith("+") && start == -1) {
-        start = i + 2;
-      } else if (start != -1 && lines.get(i).startsWith("+")) {
-        end = i;
-        break;
+      if (lines.get(i).startsWith("+")) {
+        plusLineIndices.add(i);
       }
     }
 
-    if (start == -1 || end == -1 || start >= end) {
+    // 至少要有三条 '+' 行，分别对应：表头上边框、表头下边框、数据结束线
+    if (plusLineIndices.size() < 3) {
       return Collections.emptyMap();
     }
+
+    // 数据行范围在第二条 '+' 后面到最后一条 '+' 之前
+    int start = plusLineIndices.get(1) + 1;
+    int end = plusLineIndices.get(plusLineIndices.size() - 1);
 
     for (int i = start; i < end; i++) {
       String row = lines.get(i);
