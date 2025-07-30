@@ -38,7 +38,7 @@ public class FileTreeConfig extends AbstractConfig {
 
   @Optional String prefix = null;
 
-  @Optional Map<String, Integer> boundary = Collections.singletonMap("level", 0);
+  @Optional int boundary_level = 0;
 
   @Optional Map<String, Config> formats = Collections.emptyMap();
 
@@ -50,9 +50,10 @@ public class FileTreeConfig extends AbstractConfig {
         problems.add(new InvalidFieldValidationProblem(Fields.dot, "dot cannot contain '.'"));
       }
     }
-    if (boundary.get("level") != 0 && boundary.get("level") != 1) {
+    if (boundary_level != 0 && boundary_level != 1) {
       problems.add(
-          new InvalidFieldValidationProblem(Fields.boundary, "boundaryLevel must be 0 or 1"));
+          new InvalidFieldValidationProblem(
+              Fields.boundary_level, "boundary_level must be 0 or 1"));
     }
     return problems;
   }
@@ -60,8 +61,7 @@ public class FileTreeConfig extends AbstractConfig {
   @SuppressWarnings("unchecked")
   public static FileTreeConfig of(Config config) {
     Config withoutFormats = config.withoutPath(Fields.formats);
-    Config withoutBoundary = withoutFormats.withoutPath(Fields.boundary);
-    FileTreeConfig fileTreeConfig = of(withoutBoundary, FileTreeConfig.class);
+    FileTreeConfig fileTreeConfig = of(withoutFormats, FileTreeConfig.class);
 
     if (config.hasPath(Fields.formats)) {
       ConfigValue value = config.getValue(Fields.formats);
@@ -75,20 +75,6 @@ public class FileTreeConfig extends AbstractConfig {
           }
         }
         fileTreeConfig.setFormats(formats);
-      }
-    }
-    if (config.hasPath(Fields.boundary)) {
-      ConfigValue value = config.getValue(Fields.boundary);
-      if (value.valueType() == ConfigValueType.OBJECT) {
-        Map<String, Object> boundaryRawConfig = (Map<String, Object>) value.unwrapped();
-        Object levelObj = boundaryRawConfig.get("level");
-        int level = 0;
-        if (levelObj instanceof Number) {
-          level = ((Number) levelObj).intValue();
-        } else if (levelObj instanceof String) {
-          level = Integer.parseInt((String) levelObj);
-        }
-        fileTreeConfig.setBoundary(Collections.singletonMap("level", level));
       }
     }
 

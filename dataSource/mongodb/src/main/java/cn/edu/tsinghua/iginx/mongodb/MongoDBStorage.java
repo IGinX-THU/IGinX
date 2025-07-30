@@ -87,7 +87,7 @@ public class MongoDBStorage implements IStorage {
   public static final String QUERY_SAMPLE_SIZE = "dummy.sample.size";
   public static final String SCHEMA_SAMPLE_SIZE_DEFAULT = "1000";
   public static final String QUERY_SAMPLE_SIZE_DEFAULT = "0";
-  public static final String BOUNDARY_LEVEL = "boundary.level";
+  public static final String BOUNDARY_LEVEL = "boundary_level";
   public static final String BOUNDARY_LEVEL_DEFAULT = "0";
 
   private final MongoClient client;
