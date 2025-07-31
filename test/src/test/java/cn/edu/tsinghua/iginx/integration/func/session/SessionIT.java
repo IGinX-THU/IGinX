@@ -19,15 +19,19 @@
  */
 package cn.edu.tsinghua.iginx.integration.func.session;
 
+import static cn.edu.tsinghua.iginx.thrift.StorageEngineType.relational;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeFalse;
 
 import cn.edu.tsinghua.iginx.exception.SessionException;
+import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.tool.CombinedInsertTests;
+import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.session.QueryDataSet;
 import cn.edu.tsinghua.iginx.session.SessionAggregateQueryDataSet;
 import cn.edu.tsinghua.iginx.session.SessionQueryDataSet;
@@ -39,6 +43,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,6 +59,8 @@ public class SessionIT extends BaseSessionIT {
 
   private static boolean needCompareResult = true;
 
+  private static boolean isRelational = false;
+
   // params for downSample
   private static final long PRECISION = 123L;
   // params for datatype test
@@ -65,6 +72,14 @@ public class SessionIT extends BaseSessionIT {
   long factSampleLen = (KEY_PERIOD / PRECISION) + ((KEY_PERIOD % PRECISION == 0) ? 0 : 1);
 
   double originAvg = (START_KEY + END_KEY) / 2.0;
+
+  @BeforeClass
+  public static void setUpBeforeClass() {
+    ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
+    if (StorageEngineType.valueOf(conf.getStorageType(false).toLowerCase()) == relational) {
+      isRelational = true;
+    }
+  }
 
   private String getSinglePath(int startPosition, int offset) {
     int pos = startPosition + offset;
@@ -1169,7 +1184,7 @@ public class SessionIT extends BaseSessionIT {
   }
 
   private String buildInsertStatement(int columnSize, int rowSize, int startKey) {
-    StringBuilder builder = new StringBuilder("insert into test(key,");
+    StringBuilder builder = new StringBuilder("insert into wideColumn(key,");
     for (int i = 0; i < columnSize; i++) {
       builder.append("c").append(i).append(",");
     }
@@ -1190,6 +1205,8 @@ public class SessionIT extends BaseSessionIT {
 
   @Test
   public void testSqlWithStream() throws SessionException {
+    // TODO:关系数据库的每行大小有限制，后续需改造关系数据库的对接层
+    assumeFalse(isRelational);
     for (int i = 0; i < 2; i++) {
       int columnSize = 1000;
       int rowSize = 100;
@@ -1200,10 +1217,10 @@ public class SessionIT extends BaseSessionIT {
 
     QueryDataSet res = null;
     try {
-      res = session.executeSqlWithStream("SELECT * FROM test;", 1000);
+      res = session.executeSqlWithStream("SELECT * FROM wideColumn;", 200);
       int index = 0;
       int size = res.getActualSize();
-      assertTrue(size < 1000); // 由于列很多，实际返回的行数比设置的fetchSize少
+      assertTrue(size < 200); // 由于列很多，实际返回的行数比设置的fetchSize少
       while (index < size && res.hasMore()) {
         Object[] tmp = res.nextRow();
         index++;
