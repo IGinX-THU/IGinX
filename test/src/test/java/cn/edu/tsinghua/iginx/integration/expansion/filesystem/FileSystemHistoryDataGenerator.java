@@ -182,11 +182,8 @@ public class FileSystemHistoryDataGenerator extends BaseHistoryDataGenerator {
         parquetResourceDir + "price.parquet", Paths.get("test", "a", "other", "price.parquet"));
 
     String csvResourceDir = "dummy/csv/";
-    copyFileFromResource(
-        csvResourceDir + "lineitem.tsv", Paths.get("test", "a", "lineitem.tsv"));
-        copyFileFromResource(
-            csvResourceDir + "lineitem.csv", Paths.get("test", "csv",
-     "lineitem.csv"));
+    copyFileFromResource(csvResourceDir + "lineitem.tsv", Paths.get("test", "a", "lineitem.tsv"));
+    copyFileFromResource(csvResourceDir + "lineitem.csv", Paths.get("test", "csv", "lineitem.csv"));
   }
 
   private static void copyFileFromResource(String resourcePath, Path targetPath) {

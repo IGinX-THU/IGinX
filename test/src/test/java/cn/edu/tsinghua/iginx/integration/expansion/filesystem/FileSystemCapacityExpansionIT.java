@@ -86,7 +86,7 @@ public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
 
   @Override
   public void testShowColumns() {
-//    super.testShowColumns();
+    super.testShowColumns();
 
     // show dummy columns
     try (TempDummyDataSource ignoredFileTree =
@@ -123,7 +123,7 @@ public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
 
   private void testQueryFileTree() {
     try (TempDummyDataSource ignored =
-        new TempDummyDataSource(session, 16667, filesystem, getFileTreeDummyParams());
+            new TempDummyDataSource(session, 16667, filesystem, getFileTreeDummyParams());
         TempDummyDataSource ignoredCsv =
             new TempDummyDataSource(session, 16668, filesystem, getFileTreeCsvDummyParams())) {
       testQueryRawChunks();
@@ -167,70 +167,67 @@ public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
   private void testShowDummyColumns() {
     String statement = "SHOW COLUMNS a.*;";
     String expected =
-    "Columns:\n" +
-            "+--------------------------------------+--------+\n" +
-            "|                                  Path|DataType|\n" +
-            "+--------------------------------------+--------+\n" +
-            "|                   a.floatTest\\parquet|  BINARY|\n" +
-            "|                        a.lineitem\\tsv|  BINARY|\n" +
-            "|                        a.Iris\\parquet|  BINARY|\n" +
-            "|                             a.e.2\\txt|  BINARY|\n" +
-            "|                         a.b.c.d.1\\txt|  BINARY|\n" +
-            "|                           a.f.g.3\\txt|  BINARY|\n" +
-            "|               a.other.MT cars\\parquet|  BINARY|\n" +
-            "|                 a.other.price\\parquet|  BINARY|\n" +
-            "|                             a.e.2\\txt|  BINARY|\n" +
-            "|                         a.b.c.d.1\\txt|  BINARY|\n" +
-            "|        a.floatTest\\parquet.floatValue|   FLOAT|\n" +
-            "|                           a.f.g.3\\txt|  BINARY|\n" +
-            "|           a.other.MT cars\\parquet.cyl| INTEGER|\n" +
-            "|         a.other.MT cars\\parquet.model|  BINARY|\n" +
-            "|          a.other.MT cars\\parquet.carb| INTEGER|\n" +
-            "|          a.other.MT cars\\parquet.qsec|  DOUBLE|\n" +
-            "|           a.other.MT cars\\parquet.mpg|  DOUBLE|\n" +
-            "|            a.other.MT cars\\parquet.am| INTEGER|\n" +
-            "|            a.other.MT cars\\parquet.wt|  DOUBLE|\n" +
-            "|            a.other.MT cars\\parquet.vs| INTEGER|\n" +
-            "|            a.other.MT cars\\parquet.hp| INTEGER|\n" +
-            "|          a.other.MT cars\\parquet.drat|  DOUBLE|\n" +
-            "|          a.other.MT cars\\parquet.disp|  DOUBLE|\n" +
-            "|          a.other.MT cars\\parquet.gear| INTEGER|\n" +
-            "|         a.other.price\\parquet.stories|    LONG|\n" +
-            "|       a.other.price\\parquet.bathrooms|    LONG|\n" +
-            "|        a.other.price\\parquet.mainroad|  BINARY|\n" +
-            "|a.other.price\\parquet.furnishingstatus|  BINARY|\n" +
-            "|       a.other.price\\parquet.guestroom|  BINARY|\n" +
-            "|         a.other.price\\parquet.parking|    LONG|\n" +
-            "|           a.other.price\\parquet.price|    LONG|\n" +
-            "|        a.other.price\\parquet.bedrooms|    LONG|\n" +
-            "|            a.other.price\\parquet.area|    LONG|\n" +
-            "|        a.other.price\\parquet.basement|  BINARY|\n" +
-            "| a.other.price\\parquet.airconditioning|  BINARY|\n" +
-            "|        a.other.price\\parquet.prefarea|  BINARY|\n" +
-            "| a.other.price\\parquet.hotwaterheating|  BINARY|\n" +
-            "|              a.lineitem\\tsv.l_partkey|    LONG|\n" +
-            "|                  a.lineitem\\tsv.l_tax|  DOUBLE|\n" +
-            "|             a.lineitem\\tsv.l_shipmode|  BINARY|\n" +
-            "|           a.lineitem\\tsv.l_linenumber|    LONG|\n" +
-            "|           a.lineitem\\tsv.l_returnflag|  BINARY|\n" +
-            "|           a.lineitem\\tsv.l_linestatus|  BINARY|\n" +
-            "|        a.lineitem\\tsv.l_extendedprice|  DOUBLE|\n" +
-            "|             a.lineitem\\tsv.l_shipdate|    LONG|\n" +
-            "|             a.lineitem\\tsv.l_orderkey|    LONG|\n" +
-            "|              a.lineitem\\tsv.l_comment|  BINARY|\n" +
-            "|             a.lineitem\\tsv.l_discount|  DOUBLE|\n" +
-            "|           a.lineitem\\tsv.l_commitdate|    LONG|\n" +
-            "|         a.lineitem\\tsv.l_shipinstruct|  BINARY|\n" +
-            "|              a.lineitem\\tsv.l_suppkey|    LONG|\n" +
-            "|          a.lineitem\\tsv.l_receiptdate|    LONG|\n" +
-            "|             a.lineitem\\tsv.l_quantity|    LONG|\n" +
-            "|            a.Iris\\parquet.petal.width|  DOUBLE|\n" +
-            "|            a.Iris\\parquet.sepal.width|  DOUBLE|\n" +
-            "|           a.Iris\\parquet.sepal.length|  DOUBLE|\n" +
-            "|           a.Iris\\parquet.petal.length|  DOUBLE|\n" +
-            "|                a.Iris\\parquet.variety|  BINARY|\n" +
-            "+--------------------------------------+--------+\n" +
-            "Total line number = 58\n";
+        "Columns:\n"
+            + "+--------------------------------------+--------+\n"
+            + "|                                  Path|DataType|\n"
+            + "+--------------------------------------+--------+\n"
+            + "|                   a.floatTest\\parquet|  BINARY|\n"
+            + "|                        a.lineitem\\tsv|  BINARY|\n"
+            + "|                        a.Iris\\parquet|  BINARY|\n"
+            + "|                             a.e.2\\txt|  BINARY|\n"
+            + "|                         a.b.c.d.1\\txt|  BINARY|\n"
+            + "|                           a.f.g.3\\txt|  BINARY|\n"
+            + "|               a.other.MT cars\\parquet|  BINARY|\n"
+            + "|                 a.other.price\\parquet|  BINARY|\n"
+            + "|        a.floatTest\\parquet.floatValue|   FLOAT|\n"
+            + "|           a.other.MT cars\\parquet.cyl| INTEGER|\n"
+            + "|         a.other.MT cars\\parquet.model|  BINARY|\n"
+            + "|          a.other.MT cars\\parquet.carb| INTEGER|\n"
+            + "|          a.other.MT cars\\parquet.qsec|  DOUBLE|\n"
+            + "|           a.other.MT cars\\parquet.mpg|  DOUBLE|\n"
+            + "|            a.other.MT cars\\parquet.am| INTEGER|\n"
+            + "|            a.other.MT cars\\parquet.wt|  DOUBLE|\n"
+            + "|            a.other.MT cars\\parquet.vs| INTEGER|\n"
+            + "|            a.other.MT cars\\parquet.hp| INTEGER|\n"
+            + "|          a.other.MT cars\\parquet.drat|  DOUBLE|\n"
+            + "|          a.other.MT cars\\parquet.disp|  DOUBLE|\n"
+            + "|          a.other.MT cars\\parquet.gear| INTEGER|\n"
+            + "|         a.other.price\\parquet.stories|    LONG|\n"
+            + "|       a.other.price\\parquet.bathrooms|    LONG|\n"
+            + "|        a.other.price\\parquet.mainroad|  BINARY|\n"
+            + "|a.other.price\\parquet.furnishingstatus|  BINARY|\n"
+            + "|       a.other.price\\parquet.guestroom|  BINARY|\n"
+            + "|         a.other.price\\parquet.parking|    LONG|\n"
+            + "|           a.other.price\\parquet.price|    LONG|\n"
+            + "|        a.other.price\\parquet.bedrooms|    LONG|\n"
+            + "|            a.other.price\\parquet.area|    LONG|\n"
+            + "|        a.other.price\\parquet.basement|  BINARY|\n"
+            + "| a.other.price\\parquet.airconditioning|  BINARY|\n"
+            + "|        a.other.price\\parquet.prefarea|  BINARY|\n"
+            + "| a.other.price\\parquet.hotwaterheating|  BINARY|\n"
+            + "|              a.lineitem\\tsv.l_partkey|    LONG|\n"
+            + "|                  a.lineitem\\tsv.l_tax|  DOUBLE|\n"
+            + "|             a.lineitem\\tsv.l_shipmode|  BINARY|\n"
+            + "|           a.lineitem\\tsv.l_linenumber|    LONG|\n"
+            + "|           a.lineitem\\tsv.l_returnflag|  BINARY|\n"
+            + "|           a.lineitem\\tsv.l_linestatus|  BINARY|\n"
+            + "|        a.lineitem\\tsv.l_extendedprice|  DOUBLE|\n"
+            + "|             a.lineitem\\tsv.l_shipdate|    LONG|\n"
+            + "|             a.lineitem\\tsv.l_orderkey|    LONG|\n"
+            + "|              a.lineitem\\tsv.l_comment|  BINARY|\n"
+            + "|             a.lineitem\\tsv.l_discount|  DOUBLE|\n"
+            + "|           a.lineitem\\tsv.l_commitdate|    LONG|\n"
+            + "|         a.lineitem\\tsv.l_shipinstruct|  BINARY|\n"
+            + "|              a.lineitem\\tsv.l_suppkey|    LONG|\n"
+            + "|          a.lineitem\\tsv.l_receiptdate|    LONG|\n"
+            + "|             a.lineitem\\tsv.l_quantity|    LONG|\n"
+            + "|            a.Iris\\parquet.petal.width|  DOUBLE|\n"
+            + "|            a.Iris\\parquet.sepal.width|  DOUBLE|\n"
+            + "|           a.Iris\\parquet.sepal.length|  DOUBLE|\n"
+            + "|           a.Iris\\parquet.petal.length|  DOUBLE|\n"
+            + "|                a.Iris\\parquet.variety|  BINARY|\n"
+            + "+--------------------------------------+--------+\n"
+            + "Total line number = 55\n";
     SQLTestTools.executeAndCompare(session, statement, expected, true);
   }
 
@@ -384,38 +381,38 @@ public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
     String statement =
         "select l_extendedprice, l_shipdate from `a.lineitem\\tsv` where key >= 10 and key <20;";
     String expect =
-        "ResultSets:\n" +
-                "+---+------------------------------+-------------------------+\n" +
-                "|key|a.lineitem\\tsv.l_extendedprice|a.lineitem\\tsv.l_shipdate|\n" +
-                "+---+------------------------------+-------------------------+\n" +
-                "| 10|                       1860.06|             754934400000|\n" +
-                "| 11|                      30357.04|             755798400000|\n" +
-                "| 12|                      25039.56|             751824000000|\n" +
-                "| 13|                       29672.4|             821203200000|\n" +
-                "| 14|                       15136.5|             783532800000|\n" +
-                "| 15|                      26627.12|             782236800000|\n" +
-                "| 16|                       46901.5|             776275200000|\n" +
-                "| 17|                      38485.18|             704304000000|\n" +
-                "| 18|                      12998.16|             831398400000|\n" +
-                "| 19|                       9415.26|             823104000000|\n" +
-                "+---+------------------------------+-------------------------+\n" +
-                "Total line number = 10\n";
+        "ResultSets:\n"
+            + "+---+------------------------------+-------------------------+\n"
+            + "|key|a.lineitem\\tsv.l_extendedprice|a.lineitem\\tsv.l_shipdate|\n"
+            + "+---+------------------------------+-------------------------+\n"
+            + "| 10|                       1860.06|             754934400000|\n"
+            + "| 11|                      30357.04|             755798400000|\n"
+            + "| 12|                      25039.56|             751824000000|\n"
+            + "| 13|                       29672.4|             821203200000|\n"
+            + "| 14|                       15136.5|             783532800000|\n"
+            + "| 15|                      26627.12|             782236800000|\n"
+            + "| 16|                       46901.5|             776275200000|\n"
+            + "| 17|                      38485.18|             704304000000|\n"
+            + "| 18|                      12998.16|             831398400000|\n"
+            + "| 19|                       9415.26|             823104000000|\n"
+            + "+---+------------------------------+-------------------------+\n"
+            + "Total line number = 10\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
 
     statement =
         "select l_orderkey_1, l_orderkey_2, l_orderkey_3, l_shipdate from `csv.lineitem\\csv`;";
     expect =
-            "ResultSets:\n" +
-                    "+---+-----------------------------+-----------------------------+-----------------------------+---------------------------+\n" +
-                    "|key|csv.lineitem\\csv.l_orderkey_1|csv.lineitem\\csv.l_orderkey_2|csv.lineitem\\csv.l_orderkey_3|csv.lineitem\\csv.l_shipdate|\n" +
-                    "+---+-----------------------------+-----------------------------+-----------------------------+---------------------------+\n" +
-                    "|  0|                            1|                            2|                            3|               826646400000|\n" +
-                    "|  1|                            1|                            2|                            3|               829238400000|\n" +
-                    "|  2|                            1|                            2|                            3|               822844800000|\n" +
-                    "|  3|                            1|                            2|                            3|               830016000000|\n" +
-                    "|  4|                            1|                            2|                            3|               828115200000|\n" +
-                    "+---+-----------------------------+-----------------------------+-----------------------------+---------------------------+\n" +
-                    "Total line number = 5\n";
+        "ResultSets:\n"
+            + "+---+-----------------------------+-----------------------------+-----------------------------+---------------------------+\n"
+            + "|key|csv.lineitem\\csv.l_orderkey_1|csv.lineitem\\csv.l_orderkey_2|csv.lineitem\\csv.l_orderkey_3|csv.lineitem\\csv.l_shipdate|\n"
+            + "+---+-----------------------------+-----------------------------+-----------------------------+---------------------------+\n"
+            + "|  0|                            1|                            2|                            3|               826646400000|\n"
+            + "|  1|                            1|                            2|                            3|               829238400000|\n"
+            + "|  2|                            1|                            2|                            3|               822844800000|\n"
+            + "|  3|                            1|                            2|                            3|               830016000000|\n"
+            + "|  4|                            1|                            2|                            3|               828115200000|\n"
+            + "+---+-----------------------------+-----------------------------+-----------------------------+---------------------------+\n"
+            + "Total line number = 5\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
   }
 }
