@@ -2580,7 +2580,7 @@ public class RelationalStorage implements IStorage {
     Pattern tableNamePattern = patternList.get(0), columnNamePattern = patternList.get(1);
 
     if (databaseName.equals("%")) {
-      for (String tempDatabaseName : getDatabaseNames(true)) {
+      for (String tempDatabaseName : databases) {
         if (tempDatabaseName.startsWith(DATABASE_PREFIX)) {
           continue;
         }
@@ -2629,15 +2629,7 @@ public class RelationalStorage implements IStorage {
         for (Map.Entry<String, String> entry : tableNameToColumnNames.entrySet()) {
           String oldColumnNames = oldTableNameToColumnNames.get(entry.getKey());
           if (oldColumnNames != null) {
-            String[] oldColumnNameList = (oldColumnNames + ", " + entry.getValue()).split(", ");
-            // 对list去重
-            List<String> newColumnNameList = new ArrayList<>();
-            for (String columnName : oldColumnNameList) {
-              if (!newColumnNameList.contains(columnName)) {
-                newColumnNameList.add(columnName);
-              }
-            }
-            oldTableNameToColumnNames.put(entry.getKey(), String.join(", ", newColumnNameList));
+            oldTableNameToColumnNames.put(entry.getKey(), oldColumnNames + ", " + entry.getValue());
           } else {
             oldTableNameToColumnNames.put(entry.getKey(), entry.getValue());
           }
