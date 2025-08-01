@@ -124,18 +124,24 @@ public class SQLExecutor {
     }
   }
 
-  public void executeAndCompareLineCount(String statement, String expectedOutput) {
+  public void executeAndCompareLineCount(String statement, int expectedLineCount) {
     String actualOutput = execute(statement);
     if (!needCompareResult) {
       return;
     }
-    // 获取最后一行的行数
-    List<String> expectedLines = Arrays.asList(expectedOutput.split("\n"));
     List<String> actualLines = Arrays.asList(actualOutput.split("\n"));
-    String expectedLineCount = expectedLines.get(expectedLines.size() - 1);
-    String actualLineCount = actualLines.get(actualLines.size() - 1);
-    // 比较行数
-    assertEquals(expectedLineCount, actualLineCount);
+    // 计算行数
+    if (actualLines.get(actualLines.size() - 1).startsWith("Total line number = ")) {
+      String lineCountStr =
+          actualLines.get(actualLines.size() - 1).replace("Total line number = ", "");
+      int actualLineCount = Integer.parseInt(lineCountStr.trim());
+      // 比较行数
+      assertEquals(expectedLineCount, actualLineCount);
+    } else if (actualLines.get(actualLines.size() - 1).startsWith("Empty set.")) {
+      assertEquals(expectedLineCount, 0);
+    } else {
+      fail();
+    }
   }
 
   public void executeAndCompareErrMsg(String statement, String expectedErrMsg) {

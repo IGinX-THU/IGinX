@@ -278,15 +278,21 @@ public class TagIT {
     }
   }
 
-  public void executeAndCompareLineCount(String statement, String expectedOutput) {
+  public void executeAndCompareLineCount(String statement, int expectedLineCount) {
     String actualOutput = execute(statement);
-    // 获取最后一行的行数
-    List<String> expectedLines = Arrays.asList(expectedOutput.split("\n"));
     List<String> actualLines = Arrays.asList(actualOutput.split("\n"));
-    String expectedLineCount = expectedLines.get(expectedLines.size() - 1);
-    String actualLineCount = actualLines.get(actualLines.size() - 1);
-    // 比较行数
-    assertEquals(expectedLineCount, actualLineCount);
+    // 计算行数
+    if (actualLines.get(actualLines.size() - 1).startsWith("Total line number = ")) {
+      String lineCountStr =
+          actualLines.get(actualLines.size() - 1).replace("Total line number = ", "");
+      int actualLineCount = Integer.parseInt(lineCountStr.trim());
+      // 比较行数
+      assertEquals(expectedLineCount, actualLineCount);
+    } else if (actualLines.get(actualLines.size() - 1).startsWith("Empty set.")) {
+      assertEquals(expectedLineCount, 0);
+    } else {
+      fail();
+    }
   }
 
   private String execute(String statement) {
@@ -344,16 +350,16 @@ public class TagIT {
     executeAndCompare(statement, expected, true);
 
     statement = "SHOW COLUMNS ah.* limit 6;";
-    expected = "Total line number = 6\n";
-    executeAndCompareLineCount(statement, expected);
+    int expectedLineCount = 6;
+    executeAndCompareLineCount(statement, expectedLineCount);
 
     statement = "SHOW COLUMNS ah.* limit 3 offset 7;";
-    expected = "Total line number = 3\n";
-    executeAndCompareLineCount(statement, expected);
+    expectedLineCount = 3;
+    executeAndCompareLineCount(statement, expectedLineCount);
 
     statement = "SHOW COLUMNS ah.* limit 7, 3;";
-    expected = "Total line number = 3\n";
-    executeAndCompareLineCount(statement, expected);
+    expectedLineCount = 3;
+    executeAndCompareLineCount(statement, expectedLineCount);
 
     statement = "SHOW COLUMNS ah.hr02.*;";
     expected =
@@ -371,8 +377,8 @@ public class TagIT {
     executeAndCompare(statement, expected, true);
 
     statement = "SHOW COLUMNS ah.hr02.* limit 3 offset 2;";
-    expected = "Total line number = 3\n";
-    executeAndCompareLineCount(statement, expected);
+    expectedLineCount = 3;
+    executeAndCompareLineCount(statement, expectedLineCount);
 
     statement = "SHOW COLUMNS ah.hr02.*, ah.hr03.*;";
     expected =
@@ -407,8 +413,8 @@ public class TagIT {
     executeAndCompare(statement, expected, true);
 
     statement = "SHOW COLUMNS ah.hr02.* with t1=v1 limit 2 offset 1;";
-    expected = "Total line number = 2\n";
-    executeAndCompareLineCount(statement, expected);
+    expectedLineCount = 2;
+    executeAndCompareLineCount(statement, expectedLineCount);
 
     statement = "SHOW COLUMNS ah.hr02.* with_precise t1=v1;";
     expected =

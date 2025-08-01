@@ -310,16 +310,16 @@ public class SQLSessionIT {
     executor.executeAndCompare(statement, expected, true);
 
     statement = "SHOW COLUMNS limit 3;";
-    expected = "Total line number = 3\n";
-    executor.executeAndCompareLineCount(statement, expected);
+    int expectedLineCount = 3;
+    executor.executeAndCompareLineCount(statement, expectedLineCount);
 
     statement = "SHOW COLUMNS limit 2 offset 1;";
-    expected = "Total line number = 2\n";
-    executor.executeAndCompareLineCount(statement, expected);
+    expectedLineCount = 2;
+    executor.executeAndCompareLineCount(statement, expectedLineCount);
 
     statement = "SHOW COLUMNS limit 1, 2;";
-    expected = "Total line number = 2\n";
-    executor.executeAndCompareLineCount(statement, expected);
+    expectedLineCount = 2;
+    executor.executeAndCompareLineCount(statement, expectedLineCount);
 
     statement = "SHOW COLUMNS us.d1.s1;";
     expected =
@@ -5950,12 +5950,12 @@ public class SQLSessionIT {
     executor.executeAndCompare(query, expected, true);
 
     query = "SELECT Path FROM (SHOW COLUMNS test.*, us.* LIMIT 3);";
-    expected = "Total line number = 3\n";
-    executor.executeAndCompareLineCount(query, expected);
+    int expectedLineCount = 3;
+    executor.executeAndCompareLineCount(query, expectedLineCount);
 
     query = "SELECT Path FROM (SHOW COLUMNS test.*, us.*) LIMIT 3;";
-    expected = "Total line number = 3\n";
-    executor.executeAndCompareLineCount(query, expected);
+    expectedLineCount = 3;
+    executor.executeAndCompareLineCount(query, expectedLineCount);
 
     query =
         "SELECT Path FROM (SHOW COLUMNS us.*) WHERE Path LIKE \".*.s3\" OR Path LIKE \".*.s4\";";
