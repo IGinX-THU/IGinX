@@ -59,8 +59,6 @@ public class SessionIT extends BaseSessionIT {
 
   private static boolean needCompareResult = true;
 
-  private static boolean isRelational = false;
-
   // params for downSample
   private static final long PRECISION = 123L;
   // params for datatype test
@@ -72,14 +70,6 @@ public class SessionIT extends BaseSessionIT {
   long factSampleLen = (KEY_PERIOD / PRECISION) + ((KEY_PERIOD % PRECISION == 0) ? 0 : 1);
 
   double originAvg = (START_KEY + END_KEY) / 2.0;
-
-  @BeforeClass
-  public static void setUpBeforeClass() {
-    ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
-    if (StorageEngineType.valueOf(conf.getStorageType(false).toLowerCase()) == relational) {
-      isRelational = true;
-    }
-  }
 
   private String getSinglePath(int startPosition, int offset) {
     int pos = startPosition + offset;
@@ -1205,8 +1195,6 @@ public class SessionIT extends BaseSessionIT {
 
   @Test
   public void testSqlWithStream() throws SessionException {
-    // TODO:关系数据库的每行大小有限制，后续需改造关系数据库的对接层
-    assumeFalse(isRelational);
     for (int i = 0; i < 2; i++) {
       int columnSize = 1000;
       int rowSize = 100;
