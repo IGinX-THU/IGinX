@@ -58,6 +58,7 @@ runs:
               channel-priority: strict
               run-post: "false"
 
+        # we use a patched version of lima(slower) because colima cannot start on M1 chips and the docker task is lightweight.
         - if: runner.os == 'macOS' &&  inputs.docker-required=='true'
           name: Install Docker on MacOS
           shell: bash
@@ -65,8 +66,11 @@ runs:
               brew update
               brew install docker qemu
               brew install colima
-              mkdir -p /tmp/colima
-              colima start --network-address --arch=arm64 --vm-type=qemu
+              LIMACTL_PATH=$(brew --prefix)/bin/limactl
+              COLIMA_PATH=$(brew --prefix)/bin/colima
+              sudo curl -L -o $COLIMA_PATH https://github.com/abiosoft/colima/releases/download/v0.8.1/colima-Darwin-arm64 && sudo chmod +x $COLIMA_PATH
+              sudo curl -L -o $LIMACTL_PATH https://github.com/mikekazakov/lima-nohvf/raw/master/limactl && sudo chmod +x $LIMACTL_PATH
+              colima start --network-address --arch arm64 --vm-type=qemu
               docker --version
 
         - if: inputs.scope=='all'
