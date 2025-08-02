@@ -64,6 +64,7 @@ runs:
           run: |
               brew update
               brew install docker colima
+              mkdir -p /tmp/colima
               colima start --network-address
               docker --version
 
