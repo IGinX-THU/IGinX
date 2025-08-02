@@ -65,7 +65,6 @@ runs:
           run: |
               brew update
               brew install docker qemu
-              brew install colima
               LIMACTL_PATH=$(brew --prefix)/bin/limactl
               COLIMA_PATH=$(brew --prefix)/bin/colima
               sudo curl -L -o $COLIMA_PATH https://github.com/abiosoft/colima/releases/download/v0.8.1/colima-Darwin-arm64 && sudo chmod +x $COLIMA_PATH
