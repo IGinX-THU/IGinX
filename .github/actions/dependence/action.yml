@@ -63,9 +63,10 @@ runs:
           shell: bash
           run: |
               brew update
-              brew install docker colima
+              brew install docker qemu
+              brew install colima
               mkdir -p /tmp/colima
-              colima start --network-address
+              colima start --network-address --arch=arm64 --vm-type=qemu
               docker --version
 
         - if: inputs.scope=='all'
