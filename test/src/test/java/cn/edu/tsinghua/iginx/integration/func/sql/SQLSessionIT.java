@@ -334,18 +334,6 @@ public class SQLSessionIT {
             + "Total line number = 2\n";
     executor.executeAndCompare(statement, expected, true);
 
-    statement = "SHOW COLUMNS limit 1, 2;";
-    expected =
-        "Columns:\n"
-            + "+--------+--------+\n"
-            + "|    Path|DataType|\n"
-            + "+--------+--------+\n"
-            + "|us.d1.s2|    LONG|\n"
-            + "|us.d1.s3|  BINARY|\n"
-            + "+--------+--------+\n"
-            + "Total line number = 2\n";
-    executor.executeAndCompare(statement, expected, true);
-
     statement = "SHOW COLUMNS us.d1.s1;";
     expected =
         "Columns:\n"

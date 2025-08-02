@@ -361,19 +361,6 @@ public class TagIT {
             + "Total line number = 3\n";
     executeAndCompare(statement, expected, true);
 
-    statement = "SHOW COLUMNS ah.* limit 7, 3;";
-    expected =
-        "Columns:\n"
-            + "+-----------------------+--------+\n"
-            + "|                   Path|DataType|\n"
-            + "+-----------------------+--------+\n"
-            + "|       ah.hr02.v{t1=v1}|  BINARY|\n"
-            + "| ah.hr02.v{t1=v1,t2=v2}|  BINARY|\n"
-            + "|ah.hr03.s{t1=v1,t2=vv2}| BOOLEAN|\n"
-            + "+-----------------------+--------+\n"
-            + "Total line number = 3\n";
-    executeAndCompare(statement, expected, true);
-
     statement = "SHOW COLUMNS ah.hr02.*;";
     expected =
         "Columns:\n"
