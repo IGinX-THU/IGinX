@@ -204,7 +204,7 @@ public class FunctionUtils {
 
     String target = pathParams.get(0);
 
-    Pattern pattern = Pattern.compile(StringUtils.reformatPath(target) + ".*");
+    Pattern pattern = Pattern.compile(StringUtils.reformatPath(target));
     List<Field> targetFields = new ArrayList<>();
     List<Integer> indices = new ArrayList<>();
     for (int i = 0; i < fields.size(); i++) {
