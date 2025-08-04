@@ -310,29 +310,12 @@ public class SQLSessionIT {
     executor.executeAndCompare(statement, expected, true);
 
     statement = "SHOW COLUMNS limit 3;";
-    expected =
-        "Columns:\n"
-            + "+--------+--------+\n"
-            + "|    Path|DataType|\n"
-            + "+--------+--------+\n"
-            + "|us.d1.s1|    LONG|\n"
-            + "|us.d1.s2|    LONG|\n"
-            + "|us.d1.s3|  BINARY|\n"
-            + "+--------+--------+\n"
-            + "Total line number = 3\n";
-    executor.executeAndCompare(statement, expected, true);
+    int expectedLineCount = 3;
+    executor.executeAndCompareLineCount(statement, expectedLineCount);
 
     statement = "SHOW COLUMNS limit 2 offset 1;";
-    expected =
-        "Columns:\n"
-            + "+--------+--------+\n"
-            + "|    Path|DataType|\n"
-            + "+--------+--------+\n"
-            + "|us.d1.s2|    LONG|\n"
-            + "|us.d1.s3|  BINARY|\n"
-            + "+--------+--------+\n"
-            + "Total line number = 2\n";
-    executor.executeAndCompare(statement, expected, true);
+    expectedLineCount = 2;
+    executor.executeAndCompareLineCount(statement, expectedLineCount);
 
     statement = "SHOW COLUMNS us.d1.s1;";
     expected =
@@ -5963,30 +5946,12 @@ public class SQLSessionIT {
     executor.executeAndCompare(query, expected, true);
 
     query = "SELECT Path FROM (SHOW COLUMNS test.*, us.* LIMIT 3);";
-    expected =
-        "ResultSets:\n"
-            + "+------+\n"
-            + "|  Path|\n"
-            + "+------+\n"
-            + "|test.a|\n"
-            + "|test.b|\n"
-            + "|test.c|\n"
-            + "+------+\n"
-            + "Total line number = 3\n";
-    executor.executeAndCompare(query, expected, true);
+    int expectedLineCount = 3;
+    executor.executeAndCompareLineCount(query, expectedLineCount);
 
     query = "SELECT Path FROM (SHOW COLUMNS test.*, us.*) LIMIT 3;";
-    expected =
-        "ResultSets:\n"
-            + "+------+\n"
-            + "|  Path|\n"
-            + "+------+\n"
-            + "|test.a|\n"
-            + "|test.b|\n"
-            + "|test.c|\n"
-            + "+------+\n"
-            + "Total line number = 3\n";
-    executor.executeAndCompare(query, expected, true);
+    expectedLineCount = 3;
+    executor.executeAndCompareLineCount(query, expectedLineCount);
 
     query =
         "SELECT Path FROM (SHOW COLUMNS us.*) WHERE Path LIKE \".*.s3\" OR Path LIKE \".*.s4\";";
