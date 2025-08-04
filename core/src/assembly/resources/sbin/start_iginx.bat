@@ -87,7 +87,6 @@ for %%i in (%*) do (
 if NOT DEFINED MAIN_CLASS set MAIN_CLASS=cn.edu.tsinghua.iginx.Iginx
 if NOT DEFINED JAVA_HOME goto :err
 
-
 @REM -----------------------------------------------------------------------------
 @REM Compute Memory for JVM configurations
 
