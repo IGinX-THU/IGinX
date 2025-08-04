@@ -424,7 +424,7 @@ public class RelationalStorage implements IStorage {
         Map<String, String> tableAndColPattern = new HashMap<>();
 
         if (patterns != null && patterns.size() != 0) {
-          tableAndColPattern = splitAndMergeQueryPatterns(databaseName, new ArrayList<>(patterns));
+          tableAndColPattern = splitAndMergeQueryPatterns(databaseName, patterns);
         } else {
           for (String table : getTables(databaseName, "%", false)) {
             tableAndColPattern.put(table, "%");
@@ -462,7 +462,7 @@ public class RelationalStorage implements IStorage {
       }
 
       // dummy
-      List<String> patternList = new ArrayList<>();
+      Set<String> patternSet = new HashSet<>();
       for (String databaseName : getDatabaseNames(true)) {
         if ((extraParams.get("has_data") == null || extraParams.get("has_data").equals("false"))
             && !databaseName.startsWith(DATABASE_PREFIX)) {
@@ -477,19 +477,19 @@ public class RelationalStorage implements IStorage {
         }
         // find pattern that match <databaseName>.* to avoid creating databases after.
         if (patterns == null || patterns.size() == 0) {
-          patternList.add(databaseName + ".*");
+          patternSet.add(databaseName + ".*");
           continue;
         }
         for (String p : patterns) {
           // dummy path starts with <bucketName>.
           if (Pattern.matches(
               StringUtils.reformatPath(p.substring(0, p.indexOf("."))), databaseName)) {
-            patternList.add(p);
+            patternSet.add(p);
           }
         }
       }
 
-      Map<String, Map<String, String>> dummyRes = splitAndMergeHistoryQueryPatterns(patternList);
+      Map<String, Map<String, String>> dummyRes = splitAndMergeHistoryQueryPatterns(patternSet);
       Map<String, String> table2cols;
       // seemingly there are 4 nested loops, but it's only the consequence of special data structure
       // and reused methods.
@@ -754,8 +754,9 @@ public class RelationalStorage implements IStorage {
       List<ResultSet> resultSets = new ArrayList<>();
       Statement stmt;
 
+      Set<String> patterns = project.getPatterns().stream().collect(Collectors.toSet());
       Map<String, String> tableNameToColumnNames =
-          splitAndMergeQueryPatterns(databaseName, project.getPatterns());
+          splitAndMergeQueryPatterns(databaseName, patterns);
       // 按列顺序加上表名
       Filter expandFilter =
           expandFilter(filter.copy(), tableNameToColumnNames, databaseName, false);
@@ -1403,11 +1404,10 @@ public class RelationalStorage implements IStorage {
     }
 
     if (isDummy) {
-      List<String> patterns = new ArrayList<>();
+      Set<String> patterns = new HashSet<>();
       for (FunctionCall fc : functionCalls) {
         patterns.addAll(fc.getParams().getPaths());
       }
-      patterns = patterns.stream().distinct().collect(Collectors.toList());
       try {
         Map<String, Map<String, String>> splitResults = splitAndMergeHistoryQueryPatterns(patterns);
         if (splitResults.size() != 1) {
@@ -1505,8 +1505,9 @@ public class RelationalStorage implements IStorage {
             new RelationalTaskExecuteFailureException(
                 String.format("cannot connect to database %s", databaseName)));
       }
+      Set<String> patterns = project.getPatterns().stream().collect(Collectors.toSet());
       Map<String, String> tableNameToColumnNames =
-          splitAndMergeQueryPatterns(databaseName, project.getPatterns());
+          splitAndMergeQueryPatterns(databaseName, patterns);
 
       String statement =
           getProjectWithFilterSQL(
@@ -1950,8 +1951,8 @@ public class RelationalStorage implements IStorage {
       // 如果下推的函数有sum,需要判断结果是小数还是整数
       Map<String, DataType> columnTypeMap = getSumDataType(functionCalls);
 
-      Map<String, Map<String, String>> splitResults =
-          splitAndMergeHistoryQueryPatterns(project.getPatterns());
+      Set<String> patterns = project.getPatterns().stream().collect(Collectors.toSet());
+      Map<String, Map<String, String>> splitResults = splitAndMergeHistoryQueryPatterns(patterns);
       Map<String, String> fullName2Name = new HashMap<>();
       for (Map.Entry<String, Map<String, String>> splitEntry : splitResults.entrySet()) {
         Map<String, String> tableNameToColumnNames = splitEntry.getValue();
@@ -2042,8 +2043,8 @@ public class RelationalStorage implements IStorage {
       Statement stmt = null;
       String statement;
 
-      Map<String, Map<String, String>> splitResults =
-          splitAndMergeHistoryQueryPatterns(project.getPatterns());
+      Set<String> patterns = project.getPatterns().stream().collect(Collectors.toSet());
+      Map<String, Map<String, String>> splitResults = splitAndMergeHistoryQueryPatterns(patterns);
       for (Map.Entry<String, Map<String, String>> splitEntry : splitResults.entrySet()) {
         Map<String, String> tableNameToColumnNames = splitEntry.getValue();
         String databaseName = splitEntry.getKey();
@@ -2410,7 +2411,7 @@ public class RelationalStorage implements IStorage {
     return Arrays.asList(tableNamePattern, columnNamePattern);
   }
 
-  private Map<String, String> splitAndMergeQueryPatterns(String databaseName, List<String> patterns)
+  private Map<String, String> splitAndMergeQueryPatterns(String databaseName, Set<String> patterns)
       throws SQLException {
     // table name -> column names
     // 1 -> n
@@ -2499,7 +2500,7 @@ public class RelationalStorage implements IStorage {
     return StringUtils.reformatPath(path).replace("\\.", ".");
   }
 
-  private Map<String, Map<String, String>> splitAndMergeHistoryQueryPatterns(List<String> patterns)
+  private Map<String, Map<String, String>> splitAndMergeHistoryQueryPatterns(Set<String> patterns)
       throws SQLException {
     List<String> databases = getDatabaseNames(true);
     Map<String, Map<String, String>> splitResults = new HashMap<>();
@@ -2579,7 +2580,7 @@ public class RelationalStorage implements IStorage {
     Pattern tableNamePattern = patternList.get(0), columnNamePattern = patternList.get(1);
 
     if (databaseName.equals("%")) {
-      for (String tempDatabaseName : getDatabaseNames(true)) {
+      for (String tempDatabaseName : databases) {
         if (tempDatabaseName.startsWith(DATABASE_PREFIX)) {
           continue;
         }
@@ -2628,15 +2629,7 @@ public class RelationalStorage implements IStorage {
         for (Map.Entry<String, String> entry : tableNameToColumnNames.entrySet()) {
           String oldColumnNames = oldTableNameToColumnNames.get(entry.getKey());
           if (oldColumnNames != null) {
-            String[] oldColumnNameList = (oldColumnNames + ", " + entry.getValue()).split(", ");
-            // 对list去重
-            List<String> newColumnNameList = new ArrayList<>();
-            for (String columnName : oldColumnNameList) {
-              if (!newColumnNameList.contains(columnName)) {
-                newColumnNameList.add(columnName);
-              }
-            }
-            oldTableNameToColumnNames.put(entry.getKey(), String.join(", ", newColumnNameList));
+            oldTableNameToColumnNames.put(entry.getKey(), oldColumnNames + ", " + entry.getValue());
           } else {
             oldTableNameToColumnNames.put(entry.getKey(), entry.getValue());
           }
