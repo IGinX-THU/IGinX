@@ -1190,9 +1190,9 @@ public class SessionIT extends BaseSessionIT {
 
   @Test
   public void testSqlWithStream() throws SessionException {
-    for (int i = 0; i < 2; i++) {
+    for (int i = 0; i < 20; i++) {
       int columnSize = 1000;
-      int rowSize = 10000;
+      int rowSize = 1000;
       String insert = buildInsertStatement(columnSize, rowSize, i * rowSize);
       LOGGER.info("inserting {} columns and {} rows from key {}", columnSize, rowSize, i * rowSize);
       session.executeSql(insert);
