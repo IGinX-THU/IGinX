@@ -46,7 +46,14 @@ public class SQLTestTools {
       Session session, String statement, String expectedOutput, boolean ignoreOrder) {
     String actualOutput = execute(session, statement);
     if (ignoreOrder) {
-      assertTrue(TestUtils.isResultSetEqual(expectedOutput, actualOutput));
+      if (!TestUtils.isResultSetEqual(expectedOutput, actualOutput)) {
+        LOGGER.error(
+            "Statement: \"{}\" execute fail,\nexpected:\"{}\",\nactual:\"{}\"",
+            statement,
+            expectedOutput,
+            actualOutput);
+        fail();
+      }
     } else {
       assertEquals(expectedOutput, actualOutput);
     }

@@ -132,6 +132,13 @@ public class ClusterIT {
     testRemoveDummyStorageForCurrentIginx(session6888);
     testRemoveDummyStorageForCurrentIginx(session6889);
     testRemoveDummyStorageForCurrentIginx(session6890);
+    testAddStorageAgainAfterRemove();
+  }
+
+  private void testAddStorageAgainAfterRemove() throws InterruptedException {
+    testAddStorageAgainAfterRemove(session6888);
+    testAddStorageAgainAfterRemove(session6889);
+    testAddStorageAgainAfterRemove(session6890);
   }
 
   private void addStorageEngine(Session session) throws InterruptedException {
@@ -178,6 +185,11 @@ public class ClusterIT {
     testShowStorageConnectivity(session6888, false, true);
     testShowStorageConnectivity(session6889, false, true);
     testShowStorageConnectivity(session6890, false, true);
+  }
+
+  private void testAddStorageAgainAfterRemove(Session session) throws InterruptedException {
+    addStorageEngine(session);
+    testShowStorageConnectivity(session, true, false);
   }
 
   private void testShowStorageConnectivity(Session session, boolean connectable, boolean notShow) {
