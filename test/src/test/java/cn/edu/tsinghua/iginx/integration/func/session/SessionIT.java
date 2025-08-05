@@ -1177,8 +1177,9 @@ public class SessionIT extends BaseSessionIT {
     builder.append(") values ");
     for (int i = 0; i < rowSize; i++) {
       builder.append("(").append(startKey + i).append(",");
+      Random r = new Random();
       for (int j = 0; j < columnSize; j++) {
-        builder.append("'").append(RandomStringUtils.randomAlphanumeric(6)).append("',");
+        builder.append(r.nextInt()).append(",");
       }
       builder.deleteCharAt(builder.length() - 1);
       builder.append("),");
@@ -1190,8 +1191,10 @@ public class SessionIT extends BaseSessionIT {
 
   @Test
   public void testSqlWithStream() throws SessionException {
+    String clearData = "CLEAR DATA;";
+    session.executeSql(clearData);
     for (int i = 0; i < 20; i++) {
-      int columnSize = 1000;
+      int columnSize = 950;
       int rowSize = 1000;
       String insert = buildInsertStatement(columnSize, rowSize, i * rowSize);
       LOGGER.info("inserting {} columns and {} rows from key {}", columnSize, rowSize, i * rowSize);
