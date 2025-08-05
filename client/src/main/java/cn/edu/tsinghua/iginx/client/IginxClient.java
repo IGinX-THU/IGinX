@@ -454,7 +454,7 @@ public class IginxClient {
       while (res.hasMore()) {
         if (actualSize < fetchSize) {
           System.out.printf(
-              "Reach the max return size, actually return %s rows. Press ENTER to show more, input 'q' to quit.",
+              "Actually returned %s rows (less than max fetch size). Press ENTER to show more, input 'q' to quit.",
               actualSize);
         } else {
           System.out.printf(
