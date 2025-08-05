@@ -28,6 +28,7 @@ import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -120,6 +121,26 @@ public class SQLExecutor {
       }
     } else {
       assertEquals(expectedOutput, actualOutput);
+    }
+  }
+
+  public void executeAndCompareLineCount(String statement, int expectedLineCount) {
+    String actualOutput = execute(statement);
+    if (!needCompareResult) {
+      return;
+    }
+    List<String> actualLines = Arrays.asList(actualOutput.split("\n"));
+    // 计算行数
+    if (actualLines.get(actualLines.size() - 1).startsWith("Total line number = ")) {
+      String lineCountStr =
+          actualLines.get(actualLines.size() - 1).replace("Total line number = ", "");
+      int actualLineCount = Integer.parseInt(lineCountStr.trim());
+      // 比较行数
+      assertEquals(expectedLineCount, actualLineCount);
+    } else if (actualLines.get(actualLines.size() - 1).startsWith("Empty set.")) {
+      assertEquals(expectedLineCount, 0);
+    } else {
+      fail();
     }
   }
 
