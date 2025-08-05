@@ -1190,8 +1190,6 @@ public class SessionIT extends BaseSessionIT {
 
   @Test
   public void testSqlWithStream() throws SessionException {
-    String clearData = "CLEAR DATA;";
-    session.executeSql(clearData);
     for (int i = 0; i < 20; i++) {
       int columnSize = 950;
       int rowSize = 1000;
