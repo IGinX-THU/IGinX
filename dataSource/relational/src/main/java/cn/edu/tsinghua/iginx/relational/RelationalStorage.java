@@ -73,9 +73,6 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.JdkFutureAdapters;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import com.zaxxer.hikari.HikariConfig;
-import com.zaxxer.hikari.HikariDataSource;
-import com.zaxxer.hikari.pool.HikariPool;
 import io.reactivex.rxjava3.core.Flowable;
 import java.io.IOException;
 import java.io.InputStream;
@@ -100,13 +97,9 @@ public class RelationalStorage implements IStorage {
 
   private final StorageEngineMeta meta;
 
-  private final Connection connection;
-
   private AbstractRelationalMeta relationalMeta;
 
   private final String engineName;
-
-  private final Map<String, HikariDataSource> connectionPoolMap = new ConcurrentHashMap<>();
 
   private final FilterTransformer filterTransformer;
 
@@ -118,87 +111,6 @@ public class RelationalStorage implements IStorage {
 
   private static final Set<String> SUPPORTED_AGGREGATE_FUNCTIONS =
       new HashSet<>(Arrays.asList(Count.COUNT, Sum.SUM, Avg.AVG, Max.MAX, Min.MIN));
-
-  private Connection getConnection(String databaseName) {
-    if (databaseName.startsWith("dummy")) {
-      return null;
-    }
-
-    if (relationalMeta.getSystemDatabaseName().stream().anyMatch(databaseName::equalsIgnoreCase)) {
-      return null;
-    }
-
-    if (relationalMeta.supportCreateDatabase()) {
-      try (Statement stmt = connection.createStatement()) {
-        stmt.execute(
-            String.format(relationalMeta.getCreateDatabaseStatement(), getQuotName(databaseName)));
-      } catch (SQLException ignored) {
-      }
-    } else {
-      if (databaseName.equals(relationalMeta.getDefaultDatabaseName())
-          || databaseName.matches("unit\\d{10}")) {
-        databaseName = "";
-      }
-    }
-
-    HikariDataSource dataSource = connectionPoolMap.get(databaseName);
-    if (dataSource != null) {
-      try {
-        Connection conn;
-        conn = dataSource.getConnection();
-        return conn;
-      } catch (SQLException e) {
-        LOGGER.error("Cannot get connection for database {}", databaseName, e);
-        dataSource.close();
-      }
-    }
-
-    try {
-      HikariConfig config = new HikariConfig();
-      config.setJdbcUrl(getUrl(databaseName, meta));
-      config.setUsername(meta.getExtraParams().get(USERNAME));
-      config.setPassword(meta.getExtraParams().get(PASSWORD));
-      config.addDataSourceProperty(
-          "prepStmtCacheSize", meta.getExtraParams().getOrDefault("prep_stmt_cache_size", "250"));
-      config.setLeakDetectionThreshold(
-          Long.parseLong(meta.getExtraParams().getOrDefault("leak_detection_threshold", "2500")));
-      config.setConnectionTimeout(
-          Long.parseLong(meta.getExtraParams().getOrDefault("connection_timeout", "30000")));
-      config.setIdleTimeout(
-          Long.parseLong(meta.getExtraParams().getOrDefault("idle_timeout", "10000")));
-      config.setMaximumPoolSize(
-          Integer.parseInt(meta.getExtraParams().getOrDefault("maximum_pool_size", "20")));
-      config.setMinimumIdle(
-          Integer.parseInt(meta.getExtraParams().getOrDefault("minimum_idle", "1")));
-      config.addDataSourceProperty(
-          "prepStmtCacheSqlLimit",
-          meta.getExtraParams().getOrDefault("prep_stmt_cache_sql_limit", "2048"));
-      dbStrategy.configureDataSource(config, databaseName, meta);
-
-      HikariDataSource newDataSource = new HikariDataSource(config);
-      connectionPoolMap.put(databaseName, newDataSource);
-      return newDataSource.getConnection();
-    } catch (SQLException | HikariPool.PoolInitializationException e) {
-      LOGGER.error("Cannot get connection for database {}", databaseName, e);
-      return null;
-    }
-  }
-
-  private void closeConnection(String databaseName) {
-    HikariDataSource dataSource = connectionPoolMap.get(databaseName);
-    if (dataSource != null) {
-      dataSource.close();
-      connectionPoolMap.remove(databaseName);
-    }
-  }
-
-  protected String getUrl(String databaseName, StorageEngineMeta meta) {
-    return dbStrategy.getUrl(databaseName, meta);
-  }
-
-  public String getConnectUrl() {
-    return dbStrategy.getConnectUrl(meta);
-  }
 
   public RelationalStorage(StorageEngineMeta meta) throws StorageInitializationException {
     this.meta = meta;
@@ -213,13 +125,7 @@ public class RelationalStorage implements IStorage {
       throw new StorageInitializationException("cannot connect to " + meta.toString());
     }
     filterTransformer = new FilterTransformer(relationalMeta);
-    try {
-      connection = DriverManager.getConnection(getConnectUrl());
-      Statement statement = connection.createStatement();
-      statement.close();
-    } catch (SQLException e) {
-      throw new StorageInitializationException(String.format("cannot connect to %s :", meta), e);
-    }
+    dbStrategy.initConnection();
   }
 
   private void buildRelationalMeta() throws RelationalTaskExecuteFailureException {
@@ -266,7 +172,7 @@ public class RelationalStorage implements IStorage {
   public boolean testConnection(StorageEngineMeta meta) {
     try {
       Class.forName(relationalMeta.getDriverClass());
-      DriverManager.getConnection(getConnectUrl());
+      DriverManager.getConnection(dbStrategy.getConnectUrl());
       return true;
     } catch (SQLException | ClassNotFoundException e) {
       LOGGER.error("Cannot connect to {}", meta, e);
@@ -286,7 +192,7 @@ public class RelationalStorage implements IStorage {
         (isDummy || relationalMeta.supportCreateDatabase())
             ? relationalMeta.getDummyDatabaseQuerySql()
             : relationalMeta.getDatabaseQuerySql();
-    try (Connection conn = getConnection(DefaultDatabaseName);
+    try (Connection conn = dbStrategy.getConnection(DefaultDatabaseName);
         Statement statement = conn.createStatement();
         ResultSet rs = statement.executeQuery(query)) {
       while (rs.next()) {
@@ -310,7 +216,7 @@ public class RelationalStorage implements IStorage {
     if (relationalMeta.jdbcNeedQuote()) {
       tablePattern = relationalMeta.getQuote() + tablePattern + relationalMeta.getQuote();
     }
-    try (Connection conn = getConnection(databaseName)) {
+    try (Connection conn = dbStrategy.getConnection(databaseName)) {
       if (conn == null) {
         throw new RelationalTaskExecuteFailureException(
             "cannot connect to database " + databaseName);
@@ -342,7 +248,7 @@ public class RelationalStorage implements IStorage {
     if (!isDummy) {
       tableName = reshapeTableNameBeforeQuery(tableName, databaseName);
     }
-    try (Connection conn = getConnection(databaseName)) {
+    try (Connection conn = dbStrategy.getConnection(databaseName)) {
       if (conn == null) {
         throw new RelationalTaskExecuteFailureException(
             "cannot connect to database " + databaseName);
@@ -741,7 +647,7 @@ public class RelationalStorage implements IStorage {
       Project project, Filter filter, DataArea dataArea) {
     try {
       String databaseName = dataArea.getStorageUnit();
-      Connection conn = getConnection(databaseName);
+      Connection conn = dbStrategy.getConnection(databaseName);
       if (conn == null) {
         return new TaskExecuteResult(
             new RelationalTaskExecuteFailureException(
@@ -1499,7 +1405,7 @@ public class RelationalStorage implements IStorage {
     }
     try {
       String databaseName = dataArea.getStorageUnit();
-      Connection conn = getConnection(databaseName);
+      Connection conn = dbStrategy.getConnection(databaseName);
       if (conn == null) {
         return new TaskExecuteResult(
             new RelationalTaskExecuteFailureException(
@@ -1957,7 +1863,7 @@ public class RelationalStorage implements IStorage {
       for (Map.Entry<String, Map<String, String>> splitEntry : splitResults.entrySet()) {
         Map<String, String> tableNameToColumnNames = splitEntry.getValue();
         String databaseName = splitEntry.getKey();
-        conn = getConnection(databaseName);
+        conn = dbStrategy.getConnection(databaseName);
         if (conn == null) {
           continue;
         }
@@ -2048,7 +1954,7 @@ public class RelationalStorage implements IStorage {
       for (Map.Entry<String, Map<String, String>> splitEntry : splitResults.entrySet()) {
         Map<String, String> tableNameToColumnNames = splitEntry.getValue();
         String databaseName = splitEntry.getKey();
-        conn = getConnection(databaseName);
+        conn = dbStrategy.getConnection(databaseName);
         if (conn == null) {
           continue;
         }
@@ -2184,7 +2090,7 @@ public class RelationalStorage implements IStorage {
   public TaskExecuteResult executeDelete(Delete delete, DataArea dataArea) {
     try {
       String databaseName = dataArea.getStorageUnit();
-      Connection conn = getConnection(databaseName);
+      Connection conn = dbStrategy.getConnection(databaseName);
       if (conn == null) {
         return new TaskExecuteResult(
             new RelationalTaskExecuteFailureException(
@@ -2203,9 +2109,9 @@ public class RelationalStorage implements IStorage {
         if (paths.size() == 1 && paths.get(0).equals("*") && delete.getTagFilter() == null) {
           if (relationalMeta.supportCreateDatabase()) {
             // 删除整个数据库
-            closeConnection(databaseName);
+            dbStrategy.closeConnection(databaseName);
             Connection defaultConn =
-                getConnection(
+                dbStrategy.getConnection(
                     relationalMeta.getDefaultDatabaseName()); // 正在使用的数据库无法被删除，因此需要切换到默认数据库
             if (defaultConn != null) {
               try {
@@ -2308,7 +2214,7 @@ public class RelationalStorage implements IStorage {
   public TaskExecuteResult executeInsert(Insert insert, DataArea dataArea) {
     DataView dataView = insert.getData();
     String databaseName = dataArea.getStorageUnit();
-    Connection conn = getConnection(databaseName);
+    Connection conn = dbStrategy.getConnection(databaseName);
     if (conn == null) {
       return new TaskExecuteResult(
           new RelationalTaskExecuteFailureException(
@@ -2342,6 +2248,13 @@ public class RelationalStorage implements IStorage {
   @Override
   public Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage(String dataPrefix)
       throws PhysicalException {
+    if (relationalMeta.isSupportBoundaryQuery() && dataPrefix == null) {
+      try {
+        return new Pair<>(dbStrategy.getColumnsBoundary(), KeyInterval.getDefaultKeyInterval());
+      } catch (SQLException e) {
+        throw new RelationalTaskExecuteFailureException(e.toString(), e);
+      }
+    }
     ColumnsInterval columnsInterval;
     List<String> paths = new ArrayList<>();
     try {
@@ -2786,7 +2699,8 @@ public class RelationalStorage implements IStorage {
           }
         }
 
-        executeBatchInsert(conn, databaseName, stmt, tableToColumnEntries);
+        dbStrategy.executeBatchInsert(
+            conn, databaseName, stmt, tableToColumnEntries, relationalMeta.getQuote());
         for (Pair<String, List<String>> columnEntries : tableToColumnEntries.values()) {
           columnEntries.v.clear();
         }
@@ -2894,7 +2808,8 @@ public class RelationalStorage implements IStorage {
             tableToColumnEntries.put(tableName, new Pair<>(columnKeys, columnValues));
           }
         }
-        executeBatchInsert(conn, databaseName, stmt, tableToColumnEntries);
+        dbStrategy.executeBatchInsert(
+            conn, databaseName, stmt, tableToColumnEntries, relationalMeta.getQuote());
         for (Map.Entry<String, Pair<String, List<String>>> entry :
             tableToColumnEntries.entrySet()) {
           entry.getValue().v.clear();
@@ -2910,16 +2825,6 @@ public class RelationalStorage implements IStorage {
     }
 
     return null;
-  }
-
-  private void executeBatchInsert(
-      Connection conn,
-      String databaseName,
-      Statement stmt,
-      Map<String, Pair<String, List<String>>> tableToColumnEntries)
-      throws SQLException {
-    dbStrategy.executeBatchInsert(
-        conn, databaseName, stmt, tableToColumnEntries, relationalMeta.getQuote());
   }
 
   private List<Pair<String, String>> determineDeletedPaths(
@@ -2979,11 +2884,7 @@ public class RelationalStorage implements IStorage {
 
   @Override
   public void release() throws PhysicalException {
-    try {
-      connection.close();
-    } catch (SQLException e) {
-      throw new RelationalException(e);
-    }
+    dbStrategy.release();
   }
 
   private boolean isSumResultDouble(Expression expr, List<Column> columns) {

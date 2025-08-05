@@ -503,6 +503,20 @@ public class DefaultMetaManager implements IMetaManager {
   }
 
   @Override
+  public List<StorageEngineMeta> getConnectStorageEngines() {
+    List<StorageEngineMeta> connectStorageEngines = new ArrayList<>();
+    cache
+        .getStorageEngineList()
+        .forEach(
+            s -> {
+              if (cache.getStorageConnections().get(id).contains(s.getId())) {
+                connectStorageEngines.add(s);
+              }
+            });
+    return connectStorageEngines;
+  }
+
+  @Override
   public List<StorageEngineMeta> getWritableStorageEngineList() {
     return cache.getStorageEngineList().stream()
         .filter(e -> !e.isReadOnly())
