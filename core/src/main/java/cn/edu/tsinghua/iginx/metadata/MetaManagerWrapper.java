@@ -76,6 +76,11 @@ public class MetaManagerWrapper implements IMetaManager {
   }
 
   @Override
+  public List<StorageEngineMeta> getConnectStorageEngines() {
+    return metaManager.getConnectStorageEngines();
+  }
+
+  @Override
   public List<StorageEngineMeta> getWritableStorageEngineList() {
     return metaManager.getWritableStorageEngineList();
   }
