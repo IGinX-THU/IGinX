@@ -129,6 +129,7 @@ public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
       testQueryRawChunks();
       testQueryParquets();
       testQueryCSV();
+      testQueryMultiFormat();
     } catch (SessionException e) {
       LOGGER.error("add or remove read only storage engine failed ", e);
       fail();
@@ -413,6 +414,29 @@ public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
             + "|  4|                            1|                            2|                            3|               828115200000|\n"
             + "+---+-----------------------------+-----------------------------+-----------------------------+---------------------------+\n"
             + "Total line number = 5\n";
+    SQLTestTools.executeAndCompare(session, statement, expect);
+  }
+
+  private void testQueryMultiFormat() {
+    String statement =
+        "select 3\\txt, disp, furnishingstatus, l_extendedprice from a.* where key >= 0 and key <10;";
+    String expect =
+        "ResultSets:\n"
+            + "+---+------------------------------------------+----------------------------+--------------------------------------+------------------------------+\n"
+            + "|key|                               a.f.g.3\\txt|a.other.MT cars\\parquet.disp|a.other.price\\parquet.furnishingstatus|a.lineitem\\tsv.l_extendedprice|\n"
+            + "+---+------------------------------------------+----------------------------+--------------------------------------+------------------------------+\n"
+            + "|  0|012345678910111213141516171819202122232425|                       160.0|                             furnished|                      17954.55|\n"
+            + "|  1|                                      null|                       160.0|                             furnished|                      34850.16|\n"
+            + "|  2|                                      null|                       108.0|                        semi-furnished|                       7712.48|\n"
+            + "|  3|                                      null|                       258.0|                             furnished|                       25284.0|\n"
+            + "|  4|                                      null|                       360.0|                             furnished|                      22200.48|\n"
+            + "|  5|                                      null|                       225.0|                        semi-furnished|                      29312.32|\n"
+            + "|  6|                                      null|                       360.0|                        semi-furnished|                       38269.8|\n"
+            + "|  7|                                      null|                       146.7|                           unfurnished|                       40725.0|\n"
+            + "|  8|                                      null|                       140.8|                             furnished|                      45080.98|\n"
+            + "|  9|                                      null|                       167.6|                           unfurnished|                      27786.24|\n"
+            + "+---+------------------------------------------+----------------------------+--------------------------------------+------------------------------+\n"
+            + "Total line number = 10\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
   }
 }
