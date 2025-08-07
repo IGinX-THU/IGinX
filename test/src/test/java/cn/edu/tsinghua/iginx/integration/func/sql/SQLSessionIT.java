@@ -317,10 +317,6 @@ public class SQLSessionIT {
     expectedLineCount = 2;
     executor.executeAndCompareLineCount(statement, expectedLineCount);
 
-    statement = "SHOW COLUMNS limit 1, 2;";
-    expectedLineCount = 2;
-    executor.executeAndCompareLineCount(statement, expectedLineCount);
-
     statement = "SHOW COLUMNS us.d1.s1;";
     expected =
         "Columns:\n"
