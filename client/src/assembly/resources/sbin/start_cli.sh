@@ -61,7 +61,8 @@ if [ -n "$JAVA_HOME" ]; then
       break
     fi
   done
-else
+fi
+if [[ -z "${JAVA// /}" ]]; then
   JAVA=java
 fi
 

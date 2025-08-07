@@ -87,11 +87,14 @@ public class MongoDBStorage implements IStorage {
   public static final String QUERY_SAMPLE_SIZE = "dummy.sample.size";
   public static final String SCHEMA_SAMPLE_SIZE_DEFAULT = "1000";
   public static final String QUERY_SAMPLE_SIZE_DEFAULT = "0";
+  public static final String BOUNDARY_LEVEL = "boundary_level";
+  public static final String BOUNDARY_LEVEL_DEFAULT = "0";
 
   private final MongoClient client;
 
   private final int schemaSampleSize;
   private final int querySampleSize;
+  private final int boundaryLevel;
 
   private final ExecutorService executor =
       Executors.newCachedThreadPool(
@@ -113,6 +116,10 @@ public class MongoDBStorage implements IStorage {
     String querySampleSize =
         meta.getExtraParams().getOrDefault(QUERY_SAMPLE_SIZE, QUERY_SAMPLE_SIZE_DEFAULT);
     this.querySampleSize = Integer.parseInt(querySampleSize);
+
+    String boundaryLevel =
+        meta.getExtraParams().getOrDefault(BOUNDARY_LEVEL, BOUNDARY_LEVEL_DEFAULT);
+    this.boundaryLevel = Integer.parseInt(boundaryLevel);
 
     try {
       this.client = connect(connectionString);
@@ -456,18 +463,28 @@ public class MongoDBStorage implements IStorage {
       prefix = "";
     }
 
-    String namespacePrefix =
-        Arrays.stream(prefix.split("\\.")).limit(2).collect(Collectors.joining("."));
+    String namespacePrefix;
+    if (boundaryLevel <= 0) {
+      namespacePrefix =
+          Arrays.stream(prefix.split("\\.")).limit(1).collect(Collectors.joining("."));
+    } else {
+      namespacePrefix =
+          Arrays.stream(prefix.split("\\.")).limit(2).collect(Collectors.joining("."));
+    }
 
     List<String> namespaces = new ArrayList<>();
     for (String db : getDatabaseNames(this.client)) {
+      if (boundaryLevel <= 0) {
+        namespaces.add(db);
+        continue;
+      }
       for (String collection : this.client.getDatabase(db).listCollectionNames()) {
         String namespace = db + "." + collection;
-        if (namespace.startsWith(namespacePrefix)) {
-          namespaces.add(namespace);
-        }
+        namespaces.add(namespace);
       }
     }
+
+    namespaces.removeIf(n -> !n.startsWith(namespacePrefix));
 
     if (namespaces.isEmpty()) {
       throw new PhysicalTaskExecuteFailureException("no data!");
