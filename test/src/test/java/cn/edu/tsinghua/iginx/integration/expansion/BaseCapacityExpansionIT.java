@@ -125,9 +125,36 @@ public abstract class BaseCapacityExpansionIT {
       String schemaPrefix,
       String extraParams,
       boolean noError) {
+    return this.addStorageEngine(
+        "127.0.0.1", port, hasData, isReadOnly, dataPrefix, schemaPrefix, extraParams, noError);
+  }
+
+  protected String addStorageEngine(
+      String ip,
+      int port,
+      boolean hasData,
+      boolean isReadOnly,
+      String dataPrefix,
+      String schemaPrefix,
+      String extraParams) {
+    return this.addStorageEngine(
+        ip, port, hasData, isReadOnly, dataPrefix, schemaPrefix, extraParams, false);
+  }
+
+  protected String addStorageEngine(
+      String ip,
+      int port,
+      boolean hasData,
+      boolean isReadOnly,
+      String dataPrefix,
+      String schemaPrefix,
+      String extraParams,
+      boolean noError) {
     try {
       StringBuilder statement = new StringBuilder();
-      statement.append("ADD STORAGEENGINE (\"127.0.0.1\", ");
+      statement.append("ADD STORAGEENGINE (\"");
+      statement.append(ip);
+      statement.append("\", ");
       statement.append(port);
       statement.append(", \"");
       statement.append(type.name());
@@ -306,6 +333,8 @@ public abstract class BaseCapacityExpansionIT {
     testQueryHistoryDataOriHasData();
     // 测试只读节点的参数修改
     testUpdateEngineParams();
+    // 测试主机名解析
+    testHostnameResolution();
     testDatabaseShutdown();
 
     // 测试参数错误的只读节点扩容
@@ -472,6 +501,44 @@ public abstract class BaseCapacityExpansionIT {
 
     // 重新启动原数据库
     startDatabase(readOnlyPort);
+  }
+
+  /** 测试主机名能否被正确解析 */
+  protected void testHostnameResolution() throws SessionException {
+    String hostname = "localhost";
+    String prefix = "prefix";
+    addStorageEngine(
+        hostname, readOnlyPort, true, true, null, prefix, portsToExtraParams.get(readOnlyPort));
+    List<StorageEngineInfo> engineInfoList = session.getClusterInfo().getStorageEngineInfos();
+    long id = -1;
+    for (StorageEngineInfo info : engineInfoList) {
+      if (info.getIp().equals("127.0.0.1")
+          && info.getPort() == readOnlyPort
+          && info.getDataPrefix().equals("null")
+          && info.getSchemaPrefix().equals(prefix)
+          && info.getType().equals(type)) {
+        id = info.getId();
+      }
+    }
+    // 确认127.0.0.1的数据源对应id不为-1，表示主机名解析成功
+    assertTrue(id != -1);
+    // 删除，不影响后续测试
+    session.removeStorageEngine(
+        Collections.singletonList(
+            new RemovedStorageEngineInfo("localhost", readOnlyPort, prefix, "")),
+        true);
+    // 确认删除成功
+    ClusterInfo clusterInfo = session.getClusterInfo();
+    List<StorageEngineInfo> remainingEngines =
+        clusterInfo.getStorageEngineInfos().stream()
+            .filter(
+                engine ->
+                    !engine.getIp().equals("127.0.0.1")
+                        || engine.getPort() != readOnlyPort
+                        || !engine.getSchemaPrefix().equals(prefix)
+                        || !engine.getType().equals(type))
+            .collect(Collectors.toList());
+    assertEquals(remainingEngines.size(), 0);
   }
 
   /** mode: T:shutdown; F:restart */
