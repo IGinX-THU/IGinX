@@ -256,9 +256,9 @@ public class IginxWorker implements IService.Iface {
 
     for (RemovedStorageEngineInfo info : removedStorageEngineInfoList) {
       StorageEngineMeta storageEngineMeta = null;
-      String infoIp = convertHostNameToHostAddress(info.getIp()),
-          infoSchemaPrefix = info.getSchemaPrefix(),
-          infoDataPrefix = info.getDataPrefix();
+      String infoIp = convertHostNameToHostAddress(info.getIp());
+      String infoSchemaPrefix = info.getSchemaPrefix();
+      String infoDataPrefix = info.getDataPrefix();
       int infoPort = info.getPort();
       for (StorageEngineMeta meta : metaManager.getStorageEngineList()) {
         String metaIp = meta.getIp(),
