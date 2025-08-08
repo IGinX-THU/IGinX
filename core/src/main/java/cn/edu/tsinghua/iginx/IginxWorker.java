@@ -22,8 +22,7 @@ package cn.edu.tsinghua.iginx;
 import static cn.edu.tsinghua.iginx.metadata.utils.IdUtils.generateDummyStorageUnitId;
 import static cn.edu.tsinghua.iginx.metadata.utils.StorageEngineUtils.*;
 import static cn.edu.tsinghua.iginx.utils.ByteUtils.getLongArrayFromByteBuffer;
-import static cn.edu.tsinghua.iginx.utils.HostUtils.isLocalHost;
-import static cn.edu.tsinghua.iginx.utils.HostUtils.isValidHost;
+import static cn.edu.tsinghua.iginx.utils.HostUtils.*;
 import static cn.edu.tsinghua.iginx.utils.StringUtils.isEqual;
 
 import cn.edu.tsinghua.iginx.auth.FilePermissionManager;
@@ -257,7 +256,7 @@ public class IginxWorker implements IService.Iface {
 
     for (RemovedStorageEngineInfo info : removedStorageEngineInfoList) {
       StorageEngineMeta storageEngineMeta = null;
-      String infoIp = info.getIp(),
+      String infoIp = convertHostNameToHostAddress(info.getIp()),
           infoSchemaPrefix = info.getSchemaPrefix(),
           infoDataPrefix = info.getDataPrefix();
       int infoPort = info.getPort();
@@ -327,7 +326,7 @@ public class IginxWorker implements IService.Iface {
     Status status = new Status(RpcUtils.SUCCESS.code);
 
     for (StorageEngine storageEngine : storageEngines) {
-      String ip = storageEngine.getIp();
+      String ip = convertHostNameToHostAddress(storageEngine.getIp());
       int port = storageEngine.getPort();
       StorageEngineType type = storageEngine.getType();
       Map<String, String> extraParams = storageEngine.getExtraParams();

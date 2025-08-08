@@ -156,32 +156,28 @@ public class HostUtils {
       // using docker
       return true;
     }
+    if (!IPV4_PATTERN.matcher(host).matches()) {
+      return false;
+    }
+    String[] parts = host.split("\\.");
+    try {
+      for (String part : parts) {
+        if (Integer.parseInt(part) > 255 || (part.length() > 1 && part.startsWith("0"))) {
+          return false;
+        }
+      }
+    } catch (NumberFormatException e) {
+      return false;
+    }
     return true;
-    //    if (!IPV4_PATTERN.matcher(host).matches()) {
-    //      return false;
-    //    }
-    //    String[] parts = host.split("\\.");
-    //    try {
-    //      for (String part : parts) {
-    //        if (Integer.parseInt(part) > 255 || (part.length() > 1 && part.startsWith("0"))) {
-    //          return false;
-    //        }
-    //      }
-    //    } catch (NumberFormatException e) {
-    //      return false;
-    //    }
-    //    return true;
   }
 
-  //  // host name --> host address
-  //  public static String convertHostNameToHostAddress(String hostName) {
-  //    String hostAddress = hostName;
-  //    try {
-  //      InetAddress address = InetAddress.getByName(hostName);
-  //      hostAddress = address.getHostAddress();
-  //    } catch (UnknownHostException e) {
-  //      return hostAddress;
-  //    }
-  //    return hostAddress;
-  //  }
+  // host name --> host address
+  public static String convertHostNameToHostAddress(String hostName) {
+    try {
+      return InetAddress.getByName(hostName).getHostAddress();
+    } catch (UnknownHostException e) {
+      return hostName;
+    }
+  }
 }
