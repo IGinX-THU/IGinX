@@ -1490,19 +1490,10 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
   private Pair<Integer, Integer> getLimitAndOffsetFromCtx(LimitClauseContext ctx)
       throws SQLParserException {
-    int limit = Integer.MAX_VALUE;
+    int limit = Integer.parseInt(ctx.INT().getText());
     int offset = 0;
-    if (ctx.INT().size() == 1) {
-      limit = Integer.parseInt(ctx.INT(0).getText());
-      if (ctx.offsetClause() != null) {
-        offset = Integer.parseInt(ctx.offsetClause().INT().getText());
-      }
-    } else if (ctx.INT().size() == 2) {
-      offset = Integer.parseInt(ctx.INT(0).getText());
-      limit = Integer.parseInt(ctx.INT(1).getText());
-    } else {
-      throw new SQLParserException(
-          "Parse limit clause error. Limit clause should like LIMIT M OFFSET N or LIMIT N, M.");
+    if (ctx.offsetClause() != null) {
+      offset = Integer.parseInt(ctx.offsetClause().INT().getText());
     }
     return new Pair<>(limit, offset);
   }
