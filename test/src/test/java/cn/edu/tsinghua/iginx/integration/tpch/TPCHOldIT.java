@@ -91,6 +91,8 @@ public class TPCHOldIT {
       Assert.fail();
     }
 
+    TPCHUtils.showRules(session);
+
     List<String> failedQueryIds = new ArrayList<>();
     ArrayListMultimap<String, Long> oldTimeCosts =
         TPCHUtils.readTimeCostsFromFile(TPCHUtils.OLD_TIME_COSTS_PATH);
