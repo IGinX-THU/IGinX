@@ -533,10 +533,10 @@ public abstract class BaseCapacityExpansionIT {
         clusterInfo.getStorageEngineInfos().stream()
             .filter(
                 engine ->
-                    !engine.getIp().equals("127.0.0.1")
-                        || engine.getPort() != readOnlyPort
-                        || !engine.getSchemaPrefix().equals(prefix)
-                        || !engine.getType().equals(type))
+                    engine.getIp().equals("127.0.0.1")
+                        && engine.getPort() == readOnlyPort
+                        && engine.getSchemaPrefix().equals(prefix)
+                        && engine.getType().equals(type))
             .collect(Collectors.toList());
     assertEquals(remainingEngines.size(), 0);
   }
