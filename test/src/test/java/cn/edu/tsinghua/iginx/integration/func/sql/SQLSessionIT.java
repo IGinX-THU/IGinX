@@ -3989,54 +3989,59 @@ public class SQLSessionIT {
     executor.executeAndCompare(statement, expected);
 
     // test special characters in alias
-    statement = "SELECT s1 AS `s1 with space`, s2 AS `s2.with.dot`, s4 AS `SELECT` FROM us.d1 WHERE s1 >= 1000 AND s1 < 1010;";
+    statement =
+        "SELECT s1 AS `s1 with space`, s2 AS `s2.with.dot`, s4 AS `SELECT` FROM us.d1 WHERE s1 >= 1000 AND s1 < 1010;";
     expected =
-            "ResultSets:\n" +
-                    "+----+-------------+-----------+------+\n" +
-                    "| key|s1 with space|s2.with.dot|SELECT|\n" +
-                    "+----+-------------+-----------+------+\n" +
-                    "|1000|         1000|       1001|1000.1|\n" +
-                    "|1001|         1001|       1002|1001.1|\n" +
-                    "|1002|         1002|       1003|1002.1|\n" +
-                    "|1003|         1003|       1004|1003.1|\n" +
-                    "|1004|         1004|       1005|1004.1|\n" +
-                    "|1005|         1005|       1006|1005.1|\n" +
-                    "|1006|         1006|       1007|1006.1|\n" +
-                    "|1007|         1007|       1008|1007.1|\n" +
-                    "|1008|         1008|       1009|1008.1|\n" +
-                    "|1009|         1009|       1010|1009.1|\n" +
-                    "+----+-------------+-----------+------+\n" +
-                    "Total line number = 10\n";
+        "ResultSets:\n"
+            + "+----+-------------+-----------+------+\n"
+            + "| key|s1 with space|s2.with.dot|SELECT|\n"
+            + "+----+-------------+-----------+------+\n"
+            + "|1000|         1000|       1001|1000.1|\n"
+            + "|1001|         1001|       1002|1001.1|\n"
+            + "|1002|         1002|       1003|1002.1|\n"
+            + "|1003|         1003|       1004|1003.1|\n"
+            + "|1004|         1004|       1005|1004.1|\n"
+            + "|1005|         1005|       1006|1005.1|\n"
+            + "|1006|         1006|       1007|1006.1|\n"
+            + "|1007|         1007|       1008|1007.1|\n"
+            + "|1008|         1008|       1009|1008.1|\n"
+            + "|1009|         1009|       1010|1009.1|\n"
+            + "+----+-------------+-----------+------+\n"
+            + "Total line number = 10\n";
     executor.executeAndCompare(statement, expected);
 
     statement = "SELECT s1 AS `@#$%^&*()` FROM us.d1 WHERE s1 >= 1000 AND s1 < 1010;";
     expected =
-            "ResultSets:\n" +
-                    "+----+---------+\n" +
-                    "| key|@#$%^&*()|\n" +
-                    "+----+---------+\n" +
-                    "|1000|     1000|\n" +
-                    "|1001|     1001|\n" +
-                    "|1002|     1002|\n" +
-                    "|1003|     1003|\n" +
-                    "|1004|     1004|\n" +
-                    "|1005|     1005|\n" +
-                    "|1006|     1006|\n" +
-                    "|1007|     1007|\n" +
-                    "|1008|     1008|\n" +
-                    "|1009|     1009|\n" +
-                    "+----+---------+\n" +
-                    "Total line number = 10\n";
+        "ResultSets:\n"
+            + "+----+---------+\n"
+            + "| key|@#$%^&*()|\n"
+            + "+----+---------+\n"
+            + "|1000|     1000|\n"
+            + "|1001|     1001|\n"
+            + "|1002|     1002|\n"
+            + "|1003|     1003|\n"
+            + "|1004|     1004|\n"
+            + "|1005|     1005|\n"
+            + "|1006|     1006|\n"
+            + "|1007|     1007|\n"
+            + "|1008|     1008|\n"
+            + "|1009|     1009|\n"
+            + "+----+---------+\n"
+            + "Total line number = 10\n";
     executor.executeAndCompare(statement, expected);
 
     statement = "SELECT s1 AS `` FROM us.d1;";
-    executor.executeAndCompareErrMsg(statement, "Parse Error: line 1:13 no viable alternative at input 'AS `'");
+    executor.executeAndCompareErrMsg(
+        statement, "Parse Error: line 1:13 no viable alternative at input 'AS `'");
 
     statement = "SELECT s1 AS ``s1 with space`` FROM us.d1;";
-    executor.executeAndCompareErrMsg(statement, "Parse Error: line 1:29 mismatched input '`' expecting {';', INTO, FROM, ORDER, LIMIT, OFFSET, INTERSECT, UNION, EXCEPT, ','}");
+    executor.executeAndCompareErrMsg(
+        statement,
+        "Parse Error: line 1:29 mismatched input '`' expecting {';', INTO, FROM, ORDER, LIMIT, OFFSET, INTERSECT, UNION, EXCEPT, ','}");
 
     statement = "SELECT s1 AS `s1 with space FROM us.d1;";
-    executor.executeAndCompareErrMsg(statement, "Parse Error: line 1:13 no viable alternative at input 'AS `'");
+    executor.executeAndCompareErrMsg(
+        statement, "Parse Error: line 1:13 no viable alternative at input 'AS `'");
   }
 
   @Test
