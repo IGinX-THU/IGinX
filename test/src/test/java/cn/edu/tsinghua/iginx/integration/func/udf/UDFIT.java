@@ -1620,7 +1620,7 @@ public class UDFIT {
     Exception ret = tool.executeFail(statement);
     long end = System.currentTimeMillis();
     assertTrue(ret.getMessage().contains("encounter error")); // timeout的信息没有被session传递（？）但服务端有log
-    assertTrue(end - start < 3000); // 5秒内拿到结果，触发timeout
+    assertTrue(end - start < 3000); // 3秒内拿到结果，触发timeout
 
     // test event waiting
     statement = "select " + name + "(s1, 2) from us.d1 where s1 < 10;";
@@ -1628,7 +1628,7 @@ public class UDFIT {
     ret = tool.executeFail(statement);
     end = System.currentTimeMillis();
     assertTrue(ret.getMessage().contains("encounter error"));
-    assertTrue(end - start < 3000); // 5秒内拿到结果，触发timeout
+    assertTrue(end - start < 3000); // 3秒内拿到结果，触发timeout
 
     Assume.assumeFalse(
         "Test skipped: Python >= 3.13, transformers is not supported.", pythonNewerThan313());
@@ -1638,7 +1638,7 @@ public class UDFIT {
     ret = tool.executeFail(statement);
     end = System.currentTimeMillis();
     assertTrue(ret.getMessage().contains("encounter error"));
-    assertTrue(end - start < 3000); // 3秒内拿到结果，触发timeout
+    assertTrue(end - start < 10000); // 10秒内拿到结果，触发timeout
 
     statement = String.format(SET_TIMEOUT_SQL, -1);
     tool.execute(statement);

@@ -166,7 +166,7 @@ public class UDFTestTools {
     try {
       session.executeSql(statement);
     } catch (SessionException e) {
-      LOGGER.info("Statement: \"{}\" execute fail. Because: ", statement, e);
+      LOGGER.info("Statement: \"{}\" execute fail, with message: {}.", statement, e.getMessage());
       assertEquals(expectedErrMsg, e.getMessage());
     }
   }

@@ -677,7 +677,7 @@ public class RowUtils {
       SetMappingFunction function = (SetMappingFunction) functionCall.getFunction();
       FunctionParams params = functionCall.getParams();
 
-      Header tmpHeader = header;
+      Header tmpHeader;
       boolean hasAddedFields = false;
       for (Map.Entry<GroupByKey, List<Row>> entry : groups.entrySet()) {
         List<Row> group = entry.getValue();
@@ -688,6 +688,7 @@ public class RowUtils {
           tmpHeader = tmp.getHeader();
           transformedGroup = tmp.getRows();
         } else {
+          tmpHeader = header;
           transformedGroup = group;
         }
 
@@ -977,13 +978,15 @@ public class RowUtils {
   }
 
   public static Table project(Header header, List<Row> rows, List<String> patterns) {
-    Header targetHeader = header.projectedHeader(patterns, false);
+    Pair<Header, List<Integer>> pair = header.projectedHeader(patterns, false);
+    Header targetHeader = pair.getK();
+    List<Integer> indexList = pair.getV();
     List<Field> targetFields = targetHeader.getFields();
     List<Row> targetRows = new ArrayList<>();
     for (Row row : rows) {
       Object[] objects = new Object[targetFields.size()];
       for (int i = 0; i < targetFields.size(); i++) {
-        objects[i] = row.getValue(targetFields.get(i));
+        objects[i] = row.getValue(indexList.get(i));
       }
       targetRows.add(new Row(targetHeader, row.getKey(), objects));
     }
