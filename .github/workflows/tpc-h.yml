@@ -125,7 +125,7 @@ jobs:
               uses: ./.github/actions/confWriter
               with:
                   DB-name: ${{ matrix.DB-name }}
-                  Close-Optimizer: ${{ inputs.close-optimizer }}
+                  Close-Optimizer: ${{ matrix.close-optimizer }}
                   Metadata: ${{ matrix.metadata }}
                   Set-AggPushDown-OFF: ${{ toJSON(!contains(inputs.agg-pushdown-matrix, matrix.DB-name)) }}
 
@@ -133,8 +133,7 @@ jobs:
               uses: ./.github/actions/confWriter
               with:
                   DB-name: ${{ matrix.DB-name }}
-                  Open-Optimizer: "true"
-                  Close-Optimizer: ${{ inputs.close-optimizer }}
+                  Close-Optimizer: ${{ matrix.close-optimizer }}
                   Metadata: ${{ matrix.metadata }}
                   zookeeper-port: 2182
                   Root-Dir-Path: "IGinX"
