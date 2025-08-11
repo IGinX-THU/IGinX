@@ -70,8 +70,12 @@ public class MetaUtils {
       dummyFragments.forEach(
           meta -> {
             if (meta.isValid()) {
-              Operator current = new Project(new FragmentSource(meta), pathList, tagFilter);
               String schemaPrefix = meta.getColumnsInterval().getSchemaPrefix();
+              Operator current =
+                  new Project(
+                      new FragmentSource(meta),
+                      pathMatchPrefix(pathList, meta.getColumnsInterval(), schemaPrefix),
+                      tagFilter);
               if (schemaPrefix != null) {
                 current = new AddSchemaPrefix(new OperatorSource(current), schemaPrefix);
               }
