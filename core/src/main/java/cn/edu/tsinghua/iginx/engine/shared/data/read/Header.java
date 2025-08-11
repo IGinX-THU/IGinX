@@ -154,28 +154,33 @@ public final class Header {
    *
    * @param patterns Project算子参数
    * @param isRemainKey Project算子参数
-   * @return 投影后的header
+   * @return 投影后的header、投影列的旧索引indexList
    */
-  public Header projectedHeader(List<String> patterns, boolean isRemainKey) {
+  public Pair<Header, List<Integer>> projectedHeader(List<String> patterns, boolean isRemainKey) {
     List<Field> targetFields = new ArrayList<>();
-    for (Field field : fields) {
+    List<Integer> indexList = new ArrayList<>();
+    for (int i = 0; i < fields.size(); i++) {
+      Field field = getField(i);
       if (isRemainKey && field.getName().endsWith("." + KEY)) {
         targetFields.add(field);
+        indexList.add(i);
         continue;
       }
       for (String pattern : patterns) {
         if (!StringUtils.isPattern(pattern)) {
           if (pattern.equals(field.getName())) {
             targetFields.add(field);
+            indexList.add(i);
           }
         } else {
           if (Pattern.matches(StringUtils.reformatPath(pattern), field.getName())) {
             targetFields.add(field);
+            indexList.add(i);
           }
         }
       }
     }
-    return new Header(key, targetFields);
+    return new Pair<>(new Header(key, targetFields), indexList);
   }
 
   /**
@@ -305,7 +310,7 @@ public final class Header {
    * @return 排序后的ReorderedHeaderWrapped类，包含header（排序后）、targetFields（保留的列的列表）、reorderMap（保留列新索引：旧索引）
    */
   public ReorderedHeaderWrapped reorderedHeaderWrapped(
-      List<String> patterns, List<Boolean> isPyUDFList) {
+      List<String> patterns, List<Boolean> isPyUDFList) throws PhysicalException {
     List<Field> targetFields = new ArrayList<>();
     Map<Integer, Integer> reorderMap = new HashMap<>();
 
@@ -329,10 +334,15 @@ public final class Header {
           }
         }
       } else {
+        Set<String> patternSet = new HashSet<>();
         for (int i = 0; i < fields.size(); i++) {
           Field field = getField(i);
           if (pattern.equals(field.getName())) {
+            if (patternSet.contains(field.getFullName())) {
+              throw new PhysicalException(String.format("Column '%s' is ambiguous.", pattern));
+            }
             matchedFields.add(new Pair<>(field, i));
+            patternSet.add(field.getFullName());
           }
         }
       }
@@ -359,7 +369,8 @@ public final class Header {
    * @param isPyUDFList 指示每列是否是udf返回的，是则不排序
    * @return 排序后的header
    */
-  public Header reorderedHeader(List<String> patterns, List<Boolean> isPyUDFList) {
+  public Header reorderedHeader(List<String> patterns, List<Boolean> isPyUDFList)
+      throws PhysicalException {
     return reorderedHeaderWrapped(patterns, isPyUDFList).getHeader();
   }
 
