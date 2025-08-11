@@ -348,8 +348,7 @@ timeInterval
    ;
 
 limitClause
-   : LIMIT INT COMMA INT
-   | LIMIT INT offsetClause?
+   : LIMIT INT offsetClause?
    | offsetClause? LIMIT INT
    ;
 
