@@ -2641,12 +2641,67 @@ public class RelationalStorage implements IStorage {
     return splitResults;
   }
 
+  private void createTable(
+      String tableName, LinkedHashSet<Pair<String, DataType>> columns, Statement stmt)
+      throws SQLException {
+    // 拼接列信息
+    StringBuilder columnDefinitions = new StringBuilder();
+    for (Pair<String, DataType> column : columns) {
+      String columnName = column.k;
+      DataType dataType = column.v;
+      if (columnDefinitions.length() > 0) {
+        columnDefinitions.append(", ");
+      }
+      columnDefinitions.append(
+          String.format(
+              "%s %s",
+              getQuotName(columnName),
+              relationalMeta.getDataTypeTransformer().toEngineType(dataType)));
+    }
+    // 创建表语句
+    String statement =
+        String.format(
+            relationalMeta.getCreateTableStatement(),
+            getQuotName(tableName),
+            getQuotName(KEY_NAME),
+            relationalMeta.getDataTypeTransformer().toEngineType(DataType.LONG),
+            columnDefinitions,
+            getQuotName(KEY_NAME));
+    LOGGER.info("[Create] execute create: {}", statement);
+    stmt.execute(statement);
+  }
+
+  private void alterTableAddColumn(
+      String tableName,
+      LinkedHashSet<Pair<String, DataType>> columns,
+      String storageUnit,
+      Statement stmt)
+      throws SQLException {
+    for (Pair<String, DataType> column : columns) {
+      String columnName = column.k;
+      DataType dataType = column.v;
+      if (getColumns(storageUnit, tableName, columnName, false).isEmpty()) {
+        // 列不存在，添加列
+        String statement =
+            String.format(
+                relationalMeta.getAlterTableAddColumnStatement(),
+                getQuotName(tableName),
+                getQuotName(columnName),
+                relationalMeta.getDataTypeTransformer().toEngineType(dataType));
+        LOGGER.info("[Create] execute create: {}", statement);
+        stmt.execute(statement);
+      }
+    }
+  }
+
   private void createOrAlterTables(
       Connection conn,
       String storageUnit,
       List<String> paths,
       List<Map<String, String>> tagsList,
       List<DataType> dataTypeList) {
+    // 对每个路径，重构为<tableName, LinkedHashSet<Pair<String, DataType> columns>>的形式
+    Map<String, LinkedHashSet<Pair<String, DataType>>> tableToColumns = new HashMap<>();
     for (int i = 0; i < paths.size(); i++) {
       String path = paths.get(i);
       Map<String, String> tags = new HashMap<>();
@@ -2657,41 +2712,28 @@ public class RelationalStorage implements IStorage {
       RelationSchema schema = new RelationSchema(path, relationalMeta.getQuote());
       String tableName = schema.getTableName();
       String columnName = schema.getColumnName();
-
+      columnName = toFullName(columnName, tags);
+      tableToColumns.putIfAbsent(tableName, new LinkedHashSet<>());
+      tableToColumns.get(tableName).add(new Pair<>(columnName, dataType));
+    }
+    for (Map.Entry<String, LinkedHashSet<Pair<String, DataType>>> entry :
+        tableToColumns.entrySet()) {
+      String tableName = entry.getKey();
+      LinkedHashSet<Pair<String, DataType>> columns = entry.getValue();
+      tableName = reshapeTableNameBeforeQuery(tableName, storageUnit);
       try {
         Statement stmt = conn.createStatement();
-
         List<String> tables = getTables(storageUnit, tableName, false);
-        columnName = toFullName(columnName, tags);
         if (tables.isEmpty()) {
-          tableName = reshapeTableNameBeforeQuery(tableName, storageUnit);
-          String statement =
-              String.format(
-                  relationalMeta.getCreateTableStatement(),
-                  getQuotName(tableName),
-                  getQuotName(KEY_NAME),
-                  relationalMeta.getDataTypeTransformer().toEngineType(DataType.LONG),
-                  getQuotName(columnName),
-                  relationalMeta.getDataTypeTransformer().toEngineType(dataType),
-                  getQuotName(KEY_NAME));
-          LOGGER.info("[Create] execute create: {}", statement);
-          stmt.execute(statement);
+          // 没有表，创建表
+          createTable(tableName, columns, stmt);
         } else {
-          if (getColumns(storageUnit, tableName, columnName, false).isEmpty()) {
-            tableName = reshapeTableNameBeforeQuery(tableName, storageUnit);
-            String statement =
-                String.format(
-                    relationalMeta.getAlterTableAddColumnStatement(),
-                    getQuotName(tableName),
-                    getQuotName(columnName),
-                    relationalMeta.getDataTypeTransformer().toEngineType(dataType));
-            LOGGER.info("[Create] execute create: {}", statement);
-            stmt.execute(statement);
-          }
+          // 表已存在
+          alterTableAddColumn(tableName, columns, storageUnit, stmt);
         }
         stmt.close();
       } catch (SQLException e) {
-        LOGGER.error("create or alter table {} field {} error: ", tableName, columnName, e);
+        LOGGER.error("create or alter table {} error: ", tableName, e);
       }
     }
   }
