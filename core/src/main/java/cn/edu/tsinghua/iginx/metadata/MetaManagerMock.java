@@ -69,6 +69,11 @@ public class MetaManagerMock implements IMetaManager {
   }
 
   @Override
+  public List<StorageEngineMeta> getConnectStorageEngines() {
+    return null;
+  }
+
+  @Override
   public List<StorageEngineMeta> getWritableStorageEngineList() {
     return null;
   }
