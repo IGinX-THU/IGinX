@@ -234,7 +234,7 @@
                 <thrift.exec-cmd.args>+x ${project.build.directory}/tools/${thrift.executable}</thrift.exec-cmd.args>
                 <thrift.exec-cmd.executable>chmod</thrift.exec-cmd.executable>
                 <thrift.executable>thrift_0.16.0_linux.exe</thrift.executable>
-                <thrift.fallback-url>${thrift.download-url}</thrift.fallback-url>
+                <thrift.fallback-url>http://archive.apache.org/dist/thrift/${thrift.version}/thrift-${thrift.version}.exe</thrift.fallback-url>
                 <thrift.skip-making-executable>false</thrift.skip-making-executable>
             </properties>
         </profile>

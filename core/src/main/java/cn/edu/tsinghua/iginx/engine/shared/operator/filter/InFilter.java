@@ -26,6 +26,7 @@ import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.sql.exception.SQLParserException;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 
 public class InFilter implements Filter {
@@ -165,6 +166,25 @@ public class InFilter implements Filter {
   @Override
   public Filter copy() {
     return new InFilter(path, inOp, new HashSet<>(values));
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    InFilter inFilter = (InFilter) o;
+    return Objects.equals(path, inFilter.path)
+        && inOp == inFilter.inOp
+        && Objects.equals(values, inFilter.values);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(path, inOp, values);
   }
 
   @Override
