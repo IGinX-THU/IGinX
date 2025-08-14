@@ -734,6 +734,8 @@ public class ETCDMetaStorage implements IMetaStorage {
                   StorageEngineMeta storageEngine =
                       JsonUtils.fromJson(e.getValue().getBytes(), StorageEngineMeta.class);
                   storageEngines.put(storageEngine.getId(), storageEngine);
+                  LOGGER.info("storage engine meta updated {}", storageEngine);
+                  storageChangeHook.onChange(storageEngine.getId(), storageEngine);
                 });
       } else { // 服务器上还没有，将本地的注册到服务器上
         for (StorageEngineMeta storageEngine : localStorageEngines) {
@@ -841,14 +843,7 @@ public class ETCDMetaStorage implements IMetaStorage {
       String connectionPath =
           generateID(STORAGE_CONNECTION_NODE_PREFIX, IGINX_NODE_LENGTH, iginxId);
       GetResponse response =
-          this.client
-              .getKVClient()
-              .get(
-                  ByteSequence.from(connectionPath.getBytes()),
-                  GetOption.newBuilder()
-                      .withPrefix(ByteSequence.from(STORAGE_CONNECTION_NODE_PREFIX.getBytes()))
-                      .build())
-              .get();
+          this.client.getKVClient().get(ByteSequence.from(connectionPath.getBytes())).get();
       if (response.getCount() != 0L) {
         long[] ids =
             JsonUtils.fromJson(response.getKvs().get(0).getValue().getBytes(), long[].class);
@@ -1073,14 +1068,7 @@ public class ETCDMetaStorage implements IMetaStorage {
       String connectionPath =
           generateID(STORAGE_CONNECTION_NODE_PREFIX, IGINX_NODE_LENGTH, iginxId);
       GetResponse response =
-          this.client
-              .getKVClient()
-              .get(
-                  ByteSequence.from(connectionPath.getBytes()),
-                  GetOption.newBuilder()
-                      .withPrefix(ByteSequence.from(STORAGE_CONNECTION_NODE_PREFIX.getBytes()))
-                      .build())
-              .get();
+          this.client.getKVClient().get(ByteSequence.from(connectionPath.getBytes())).get();
       long[] ids, oldIds;
       if (response.getCount() != 1) {
         oldIds = new long[0];
