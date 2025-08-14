@@ -86,6 +86,8 @@ public class TPCHNewIT {
       Assert.fail();
     }
 
+    TPCHUtils.showRules(session);
+
     ArrayListMultimap<String, Long> timeCosts =
         TPCHUtils.readTimeCostsFromFile(TPCHUtils.NEW_TIME_COSTS_PATH);
     for (String queryId : queryIds) {
