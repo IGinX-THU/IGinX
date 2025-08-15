@@ -26,6 +26,7 @@ import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 import cn.edu.tsinghua.iginx.logical.optimizer.core.RuleCall;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
+import cn.edu.tsinghua.iginx.utils.Pair;
 import com.google.auto.service.AutoService;
 import java.util.ArrayList;
 import java.util.List;
@@ -56,8 +57,11 @@ public class FragmentPruningByPatternRule extends Rule {
       return false;
     }
 
-    return getValidPatterns(project).size() != project.getPatterns().size()
-        || project.getPatterns().size() == 0;
+    if (project.getPatterns().isEmpty()) {
+      return findBinaryOperatorUp(call) != null;
+    }
+
+    return getValidPatterns(project).size() != project.getPatterns().size();
   }
 
   @Override
@@ -92,16 +96,12 @@ public class FragmentPruningByPatternRule extends Rule {
    * @param call RuleCall上下文
    */
   private void PruningFragment(RuleCall call) {
-    Map<Operator, Operator> parentIndexMap = call.getParentIndexMap();
-    Operator curOp = parentIndexMap.get(call.getMatchedRoot());
-    Operator lastOp = call.getMatchedRoot();
-    if (curOp == null) {
+    Pair<Operator, Operator> pair = findBinaryOperatorUp(call);
+    if (pair == null) {
       return;
     }
-    while (!OperatorType.isBinaryOperator(curOp.getType())) {
-      lastOp = curOp;
-      curOp = parentIndexMap.get(curOp);
-    }
+    Operator curOp = pair.k;
+    Operator lastOp = pair.v;
 
     BinaryOperator binaryOperator = (BinaryOperator) curOp;
     Source savedSource;
@@ -111,7 +111,7 @@ public class FragmentPruningByPatternRule extends Rule {
       savedSource = binaryOperator.getSourceA();
     }
 
-    Operator parent = parentIndexMap.get(curOp);
+    Operator parent = call.getParentIndexMap().get(curOp);
 
     if (parent != null) {
       if (OperatorType.isUnaryOperator(parent.getType())) {
@@ -124,5 +124,27 @@ public class FragmentPruningByPatternRule extends Rule {
         }
       }
     }
+  }
+
+  /**
+   * 从查询树中删除Fragment 向上寻找到Binary节点（如Join、Union等），找不到返回null
+   *
+   * @param call RuleCall上下文
+   */
+  private Pair<Operator, Operator> findBinaryOperatorUp(RuleCall call) {
+    Map<Operator, Operator> parentIndexMap = call.getParentIndexMap();
+    Operator curOp = parentIndexMap.get(call.getMatchedRoot());
+    Operator lastOp = call.getMatchedRoot();
+    if (curOp == null) {
+      return null;
+    }
+    while (!OperatorType.isBinaryOperator(curOp.getType())) {
+      lastOp = curOp;
+      curOp = parentIndexMap.get(curOp);
+      if (curOp == null) {
+        return null;
+      }
+    }
+    return new Pair<>(curOp, lastOp);
   }
 }

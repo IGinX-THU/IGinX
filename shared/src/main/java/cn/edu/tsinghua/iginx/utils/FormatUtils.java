@@ -79,6 +79,9 @@ public class FormatUtils {
   }
 
   private static String buildBlockLine(List<Integer> maxSizeList) {
+    if (maxSizeList.isEmpty()) {
+      return "+-+\n";
+    }
     StringBuilder blockLine = new StringBuilder();
     for (Integer integer : maxSizeList) {
       blockLine.append("+").append(StringUtils.repeat("-", integer));
@@ -88,6 +91,9 @@ public class FormatUtils {
   }
 
   private static String buildRow(List<List<String>> cache, int rowIdx, List<Integer> maxSizeList) {
+    if (maxSizeList.isEmpty()) {
+      return "| |\n";
+    }
     StringBuilder builder = new StringBuilder();
     builder.append("|");
     int maxSize;

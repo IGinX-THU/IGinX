@@ -30,6 +30,9 @@ public class Table implements RowStream {
 
   public static final Table EMPTY_TABLE = new Table(Header.EMPTY_HEADER, Collections.emptyList());
 
+  public static final Table EMPTY_TABLE_WITH_KEY =
+      new Table(Header.EMPTY_HEADER_WITH_KEY, Collections.emptyList());
+
   private final Header header;
 
   private final List<Row> rows;
@@ -91,6 +94,10 @@ public class Table implements RowStream {
 
   public int getRowSize() {
     return rows.size();
+  }
+
+  public Table getEmptyTable() {
+    return header.hasKey() ? EMPTY_TABLE_WITH_KEY : EMPTY_TABLE;
   }
 
   @Override
