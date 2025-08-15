@@ -41,10 +41,9 @@ import cn.edu.tsinghua.iginx.relational.meta.JDBCMeta;
 import cn.edu.tsinghua.iginx.relational.tools.RelationSchema;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
+import java.io.IOException;
+import java.io.Reader;
+import java.sql.*;
 import java.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -200,18 +199,20 @@ public class RelationQueryRowStream implements RowStream {
         String databaseName = databaseNameList.get(i);
         String path;
         if (isDummy) {
+          // For dummy mode, include database name in path
           path =
               databaseName
                   + SEPARATOR
                   + (isAgg || !relationalMeta.jdbcSupportGetTableNameFromResultSet()
                       ? ""
-                      : tableName + SEPARATOR)
+                      : getLogicalTableName(tableName) + SEPARATOR)
                   + namesAndTags.k;
         } else {
+          // For non-dummy mode, handle logical table name remapping
           path =
               (isAgg || !relationalMeta.jdbcSupportGetTableNameFromResultSet()
                       ? ""
-                      : tableName + SEPARATOR)
+                      : getLogicalTableName(tableName) + SEPARATOR)
                   + namesAndTags.k;
           if (!isAgg && !relationalMeta.supportCreateDatabase()) {
             path = path.substring(databaseName.length() + 1);
@@ -339,7 +340,12 @@ public class RelationQueryRowStream implements RowStream {
 
               tableNameSet.add(tableName);
 
-              Object value = getResultSetObject(resultSet, columnName, tableName);
+              Object value = null;
+              try {
+                value = getResultSetObject(resultSet, columnName, tableName);
+              } catch (IOException e) {
+                throw new RuntimeException(e);
+              }
               DataType type = header.getField(startIndex + j).getType();
               cachedValues[startIndex + j] = convertToIginxValue(value, type);
             }
@@ -426,34 +432,77 @@ public class RelationQueryRowStream implements RowStream {
         throw new IllegalArgumentException("Unsupported data type: " + type);
     }
   }
+  /**
+   * Remove numeric suffix from a physical table name to get the logical table name.
+   *
+   * <p>This method takes a physical table name as input and returns the logical table name by
+   * removing the numeric suffix from the physical table name. For example, if the input physical
+   * table name is "table_1", the returned logical table name is "table".
+   *
+   * <p>If the input physical table name does not have a numeric suffix, the method returns the
+   * original name.
+   *
+   * @param physicalTableName the physical table name
+   * @return the logical table name
+   */
+  private String getLogicalTableName(String physicalTableName) {
+    if (physicalTableName != null) {
+      // 找到最后一个分隔符的位置
+      int lastUnderlineIndex = physicalTableName.lastIndexOf(TABLE_SUFFIX_DELIMITER);
+      if (lastUnderlineIndex > 0) {
+        // 去除最后一个下划线后的部分
+        return physicalTableName.substring(0, lastUnderlineIndex);
+      }
+    }
+    return physicalTableName;
+  }
 
   /**
    * 从结果集中获取指定column、指定table的值 不用resultSet.getObject(String
    * columnLabel)是因为：在pg的filter下推中，可能会存在column名字相同，但是table不同的情况 这时候用resultSet.getObject(String
    * columnLabel)就只能取到第一个column的值
    */
-  private Object getResultSetObject(ResultSet resultSet, String columnName, String tableName)
-      throws SQLException {
+  private Object getResultSetObject(ResultSet rs, String columnName, String tableName)
+      throws SQLException, IOException {
+    Object obj;
     if (!relationalMeta.isSupportFullJoin() && isPushDown) {
-      return resultSet.getObject(tableName + SEPARATOR + columnName);
+      obj = rs.getObject(tableName + SEPARATOR + columnName);
+    } else if (!resultSetHasColumnWithTheSameName.get(resultSets.indexOf(rs))) {
+      obj = rs.getObject(columnName);
+    } else {
+      ResultSetMetaData meta = rs.getMetaData();
+      obj = null;
+      for (int j = 1; j <= meta.getColumnCount(); j++) {
+        String tempColumnName = meta.getColumnLabel(j);
+        String tempTableName = meta.getTableName(j);
+        if (!relationalMeta.supportCreateDatabase()) {
+          int idx = tempTableName.indexOf(SEPARATOR);
+          tempTableName = tempTableName.substring(idx + 1);
+        }
+        if (tempColumnName.equals(columnName)
+            && (tempTableName.isEmpty() || tempTableName.equals(tableName))) {
+          obj = rs.getObject(j);
+          break;
+        }
+      }
     }
 
-    if (!resultSetHasColumnWithTheSameName.get(resultSets.indexOf(resultSet))) {
-      return resultSet.getObject(columnName);
-    }
-    ResultSetMetaData resultSetMetaData = resultSet.getMetaData();
-    for (int j = 1; j <= resultSetMetaData.getColumnCount(); j++) {
-      String tempColumnName = resultSetMetaData.getColumnLabel(j);
-      String tempTableName = resultSetMetaData.getTableName(j);
-      if (!relationalMeta.supportCreateDatabase()) {
-        int firstSeparatorIndex = tempTableName.indexOf(SEPARATOR);
-        tempTableName = tempTableName.substring(firstSeparatorIndex + 1);
+    // 如果是 CLOB 类型，统一读取内容
+    if (obj instanceof Clob) {
+      Clob clob = (Clob) obj;
+      StringBuilder sb = new StringBuilder();
+      try (Reader reader = clob.getCharacterStream()) {
+        char[] buffer = new char[2048];
+        int len;
+        while ((len = reader.read(buffer)) != -1) {
+          sb.append(buffer, 0, len);
+        }
+      } catch (IOException e) {
+        throw new SQLException("Failed to read CLOB content", e);
       }
-      if (tempColumnName.equals(columnName)
-          && (tempTableName.isEmpty() || tempTableName.equals(tableName))) {
-        return resultSet.getObject(j);
-      }
+      return sb.toString();
     }
-    return null;
+
+    return obj;
   }
 }

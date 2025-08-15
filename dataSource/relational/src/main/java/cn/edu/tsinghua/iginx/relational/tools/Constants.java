@@ -39,4 +39,6 @@ public abstract class Constants {
   public static final String QUERY_STATEMENT_WITHOUT_KEYNAME = "SELECT %s FROM %s %s ORDER BY %s;";
 
   public static final String META_TEMPLATE_SUFFIX = "-meta.properties";
+
+  public static final String TABLE_SUFFIX_DELIMITER = "_";
 }

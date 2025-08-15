@@ -178,4 +178,10 @@ public abstract class AbstractRelationalMeta {
 
   /** 设置是否支持创建数据库 */
   public void setSupportCreateDatabase(boolean supportCreateDatabase) {}
+
+  /** 获取单表的最大列数 */
+  public abstract int getMaxColumnNumLimit();
+
+  /** 获取单行的最大字节数 */
+  public abstract int getMaxSingleRowSizeLimit();
 }

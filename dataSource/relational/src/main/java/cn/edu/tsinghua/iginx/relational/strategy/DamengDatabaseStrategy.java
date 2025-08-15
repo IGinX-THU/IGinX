@@ -23,7 +23,7 @@ import static cn.edu.tsinghua.iginx.relational.tools.Constants.*;
 
 import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
-import cn.edu.tsinghua.iginx.relational.datatype.transformer.DamengDataTypeTransformer;
+import cn.edu.tsinghua.iginx.relational.datatype.transformer.IDataTypeTransformer;
 import cn.edu.tsinghua.iginx.relational.meta.AbstractRelationalMeta;
 import cn.edu.tsinghua.iginx.relational.tools.ColumnField;
 import cn.edu.tsinghua.iginx.thrift.DataType;
@@ -41,7 +41,7 @@ import org.slf4j.LoggerFactory;
 public class DamengDatabaseStrategy extends AbstractDatabaseStrategy {
   private static final Logger LOGGER = LoggerFactory.getLogger(DamengDatabaseStrategy.class);
 
-  private final DamengDataTypeTransformer dataTypeTransformer;
+  private final IDataTypeTransformer dataTypeTransformer;
 
   private static AbstractRelationalMeta checkAndSetPrivileges(
       AbstractRelationalMeta relationalMeta, StorageEngineMeta storageEngineMeta) {
@@ -79,7 +79,7 @@ public class DamengDatabaseStrategy extends AbstractDatabaseStrategy {
   public DamengDatabaseStrategy(
       AbstractRelationalMeta relationalMeta, StorageEngineMeta storageEngineMeta) {
     super(checkAndSetPrivileges(relationalMeta, storageEngineMeta), storageEngineMeta);
-    this.dataTypeTransformer = DamengDataTypeTransformer.getInstance();
+    this.dataTypeTransformer = relationalMeta.getDataTypeTransformer();
   }
 
   @Override

@@ -119,6 +119,8 @@ public class RelationalStorage implements IStorage {
   private static final Set<String> SUPPORTED_AGGREGATE_FUNCTIONS =
       new HashSet<>(Arrays.asList(Count.COUNT, Sum.SUM, Avg.AVG, Max.MAX, Min.MIN));
 
+  private final String escape;
+
   private Connection getConnection(String databaseName) {
     if (databaseName.startsWith("dummy")) {
       return null;
@@ -215,6 +217,8 @@ public class RelationalStorage implements IStorage {
     filterTransformer = new FilterTransformer(relationalMeta);
     try {
       connection = DriverManager.getConnection(getConnectUrl());
+      DatabaseMetaData databaseMetaData = connection.getMetaData();
+      escape = databaseMetaData.getSearchStringEscape();
       Statement statement = connection.createStatement();
       statement.close();
     } catch (SQLException e) {
@@ -441,7 +445,7 @@ public class RelationalStorage implements IStorage {
                 continue;
               }
               Pair<String, Map<String, String>> nameAndTags = splitFullName(columnName);
-              columnName = tableName + SEPARATOR + nameAndTags.k;
+              columnName = getLogicalTableName(tableName) + SEPARATOR + nameAndTags.k;
               if (tagFilter != null && !TagKVUtils.match(nameAndTags.v, tagFilter)) {
                 continue;
               }
@@ -755,18 +759,19 @@ public class RelationalStorage implements IStorage {
       Statement stmt;
 
       Set<String> patterns = project.getPatterns().stream().collect(Collectors.toSet());
-      Map<String, String> tableNameToColumnNames =
+      Map<String, String> physicalTableToColumnNames =
           splitAndMergeQueryPatterns(databaseName, patterns);
+
       // 按列顺序加上表名
       Filter expandFilter =
-          expandFilter(filter.copy(), tableNameToColumnNames, databaseName, false);
+          expandFilter(filter.copy(), physicalTableToColumnNames, databaseName, false);
 
       String statement;
       // 如果table>1的情况下存在Value或Path Filter，说明filter的匹配需要跨table，此时需要将所有table join到一起进行查询
       if (FilterUtils.getAllPathsFromFilter(filter).stream().noneMatch(s -> s.contains("*"))
-          && !(tableNameToColumnNames.size() > 1
+          && !(physicalTableToColumnNames.size() > 1
               && filterContainsType(Arrays.asList(FilterType.Value, FilterType.Path), filter))) {
-        for (Map.Entry<String, String> entry : tableNameToColumnNames.entrySet()) {
+        for (Map.Entry<String, String> entry : physicalTableToColumnNames.entrySet()) {
           String tableName = entry.getKey();
           tableName = reshapeTableNameBeforeQuery(tableName, databaseName);
           String quotColumnNames = getQuotColumnNames(entry.getValue());
@@ -800,9 +805,9 @@ public class RelationalStorage implements IStorage {
         }
       }
       // table中带有了通配符，将所有table都join到一起进行查询，以便输入filter.
-      else if (!tableNameToColumnNames.isEmpty()) {
+      else if (!physicalTableToColumnNames.isEmpty()) {
         statement =
-            getProjectWithFilterSQL(databaseName, filter.copy(), tableNameToColumnNames, false);
+            getProjectWithFilterSQL(databaseName, filter.copy(), physicalTableToColumnNames, false);
 
         ResultSet rs = null;
         try {
@@ -2253,9 +2258,14 @@ public class RelationalStorage implements IStorage {
           for (Pair<String, String> pair : deletedPaths) {
             tableName = pair.k;
             columnName = pair.v;
-            tables = getTables(databaseName, tableName, false);
-            tableName = reshapeTableNameBeforeQuery(tableName, databaseName);
-            if (!tables.isEmpty()) {
+            tableName =
+                getPhysicalTableNameForColumn(
+                    databaseName,
+                    tableName,
+                    columnName,
+                    getPhysicalTables(databaseName, tableName));
+            if (tableName != null) {
+              tableName = reshapeTableNameBeforeQuery(tableName, databaseName);
               statement =
                   String.format(
                       relationalMeta.getAlterTableDropColumnStatement(),
@@ -2275,7 +2285,9 @@ public class RelationalStorage implements IStorage {
         for (Pair<String, String> pair : deletedPaths) {
           tableName = pair.k;
           columnName = pair.v;
-          if (!getColumns(databaseName, tableName, columnName, false).isEmpty()) {
+          if (!getPhysicalTableNameForColumn(
+                  databaseName, tableName, columnName, getPhysicalTables(databaseName, tableName))
+              .isEmpty()) {
             tableName = reshapeTableNameBeforeQuery(tableName, databaseName);
             for (KeyRange keyRange : delete.getKeyRanges()) {
               statement =
@@ -2351,8 +2363,8 @@ public class RelationalStorage implements IStorage {
           List<ColumnField> columnFieldList = getColumns(databaseName, tableName, "%", true);
           for (ColumnField columnField : columnFieldList) {
             String columnName = columnField.getColumnName(); // 获取列名称
-
-            String path = databaseName + SEPARATOR + tableName + SEPARATOR + columnName;
+            String path =
+                databaseName + SEPARATOR + getLogicalTableName(tableName) + SEPARATOR + columnName;
             if (dataPrefix != null && !path.startsWith(dataPrefix)) {
               continue;
             }
@@ -2413,82 +2425,96 @@ public class RelationalStorage implements IStorage {
 
   private Map<String, String> splitAndMergeQueryPatterns(String databaseName, Set<String> patterns)
       throws SQLException {
-    // table name -> column names
-    // 1 -> n
     Map<String, String> tableNameToColumnNames = new HashMap<>();
+
     for (String pattern : patterns) {
-      String tableName;
-      String columnNames;
+      String logicalTableNamePattern;
+      String columnNamePattern;
+
       if (pattern.equals("*") || pattern.equals("*.*")) {
-        tableName = "%";
-        columnNames = "%";
+        logicalTableNamePattern = "%";
+        columnNamePattern = "%";
       } else {
-        if (pattern.split("\\" + SEPARATOR).length == 1) { // REST 查询的路径中可能不含 .
-          tableName = pattern;
-          columnNames = "%";
+        if (pattern.split("\\" + SEPARATOR).length == 1) {
+          // REST 查询的路径中可能不含 .
+          logicalTableNamePattern = pattern;
+          columnNamePattern = "%";
         } else {
           RelationSchema schema = new RelationSchema(pattern, relationalMeta.getQuote());
-          tableName = schema.getTableName();
-          columnNames = schema.getColumnName();
-          boolean columnEqualsStar = columnNames.startsWith("*");
-          boolean tableContainsStar = tableName.contains("*");
+          logicalTableNamePattern = schema.getTableName();
+          columnNamePattern = schema.getColumnName();
+          boolean columnEqualsStar = columnNamePattern.startsWith("*");
+          boolean tableContainsStar = logicalTableNamePattern.contains("*");
           if (columnEqualsStar || tableContainsStar) {
-            tableName = tableName.replace('*', '%');
+            logicalTableNamePattern = logicalTableNamePattern.replace('*', '%');
             if (columnEqualsStar) {
-              columnNames = columnNames.replaceFirst("\\*", "%"); // 后面tagkv可能还有*，因此只替换第一个
-              if (!tableName.endsWith("%")) {
-                tableName += "%";
+              columnNamePattern = columnNamePattern.replaceFirst("\\*", "%");
+              if (!logicalTableNamePattern.endsWith("%")) {
+                logicalTableNamePattern += "%";
               }
             }
           }
         }
       }
 
-      if (!columnNames.endsWith("%")) {
-        columnNames += "%"; // 匹配 tagKV
+      if (!columnNamePattern.endsWith("%")) {
+        columnNamePattern += "%"; // 匹配 tagKV
       }
 
-      List<ColumnField> columnFieldList;
-      if (relationalMeta.jdbcSupportSpecialChar()) {
-        columnFieldList =
-            getColumns(
-                databaseName, reformatForJDBC(tableName), reformatForJDBC(columnNames), false);
-      } else {
-        columnFieldList = getColumns(databaseName, "%", "%", false);
+      // Get all physical tables that match the logical table pattern
+      List<String> physicalTables = getPhysicalTables(databaseName, logicalTableNamePattern);
+      if (physicalTables.isEmpty()) {
+        continue;
       }
 
-      List<Pattern> patternList =
-          getRegexPatternByName(databaseName, tableName, columnNames, false);
-      Pattern tableNamePattern = patternList.get(0), columnNamePattern = patternList.get(1);
-
-      for (ColumnField columnField : columnFieldList) {
-        String curTableName = columnField.getTableName();
-        String curColumnNames = columnField.getColumnName();
-        if (curColumnNames.equals(KEY_NAME)) {
-          continue;
+      // For each physical table, get matching columns
+      for (String physicalTable : physicalTables) {
+        List<ColumnField> columnFieldList;
+        if (relationalMeta.jdbcSupportSpecialChar()) {
+          columnFieldList =
+              getColumns(
+                  databaseName,
+                  reformatForJDBC(physicalTable),
+                  reformatForJDBC(columnNamePattern),
+                  false);
+        } else {
+          columnFieldList = getColumns(databaseName, physicalTable, columnNamePattern, false);
         }
 
-        if (!tableNamePattern.matcher(curTableName).find()
-            || !columnNamePattern.matcher(curColumnNames).find()) {
-          continue;
-        }
+        List<Pattern> patternList =
+            getRegexPatternByName(databaseName, physicalTable, columnNamePattern, false);
+        Pattern tableNamePattern = patternList.get(0), columnPattern = patternList.get(1);
 
-        if (tableNameToColumnNames.containsKey(curTableName)) {
-          curColumnNames = tableNameToColumnNames.get(curTableName) + ", " + curColumnNames;
-          // 此处需要去重
-          List<String> columnNamesList =
-              new ArrayList<>(Arrays.asList(tableNameToColumnNames.get(curTableName).split(", ")));
-          List<String> newColumnNamesList =
-              new ArrayList<>(Arrays.asList(curColumnNames.split(", ")));
-          for (String newColumnName : newColumnNamesList) {
-            if (!columnNamesList.contains(newColumnName)) {
-              columnNamesList.add(newColumnName);
-            }
+        for (ColumnField columnField : columnFieldList) {
+          String curTableName = columnField.getTableName();
+          String curColumnName = columnField.getColumnName();
+          if (curColumnName.equals(KEY_NAME)) {
+            continue;
           }
 
-          curColumnNames = String.join(", ", columnNamesList);
+          if (!tableNamePattern.matcher(curTableName).find()
+              || !columnPattern.matcher(curColumnName).find()) {
+            continue;
+          }
+
+          if (tableNameToColumnNames.containsKey(curTableName)) {
+            curColumnName = tableNameToColumnNames.get(curTableName) + ", " + curColumnName;
+            // 此处需要去重
+            List<String> columnNamesList =
+                new ArrayList<>(
+                    Arrays.asList(tableNameToColumnNames.get(curTableName).split(", ")));
+            List<String> newColumnNamesList =
+                new ArrayList<>(Arrays.asList(curColumnName.split(", ")));
+            for (String newColumnName : newColumnNamesList) {
+              if (!columnNamesList.contains(newColumnName)) {
+                columnNamesList.add(newColumnName);
+              }
+            }
+
+            curColumnName = String.join(", ", columnNamesList);
+          }
+          tableNameToColumnNames.put(curTableName, curColumnName);
         }
-        tableNameToColumnNames.put(curTableName, curColumnNames);
       }
     }
 
@@ -2580,29 +2606,28 @@ public class RelationalStorage implements IStorage {
     Pattern tableNamePattern = patternList.get(0), columnNamePattern = patternList.get(1);
 
     if (databaseName.equals("%")) {
-      for (String tempDatabaseName : databases) {
-        if (tempDatabaseName.startsWith(DATABASE_PREFIX)) {
+      for (String database : databases) {
+        if (database.startsWith(DATABASE_PREFIX)) {
           continue;
         }
-        List<String> tables = getTables(tempDatabaseName, tableName, true);
-        for (String tempTableName : tables) {
-          if (!tableNamePattern.matcher(tempTableName).find()) {
+        List<String> tables = getTables(database, tableName, true);
+        for (String table : tables) {
+          if (!tableNamePattern.matcher(table).find()) {
             continue;
           }
-          List<ColumnField> columnFieldList =
-              getColumns(tempDatabaseName, tempTableName, columnNames, true);
+          List<ColumnField> columnFieldList = getColumns(database, table, columnNames, true);
           for (ColumnField columnField : columnFieldList) {
-            String tempColumnNames = columnField.getColumnName();
-            if (!columnNamePattern.matcher(tempColumnNames).find()) {
+            String column = columnField.getColumnName();
+            if (!columnNamePattern.matcher(column).find()) {
               continue;
             }
             Map<String, String> tableNameToColumnNames = new HashMap<>();
-            if (splitResults.containsKey(tempDatabaseName)) {
-              tableNameToColumnNames = splitResults.get(tempDatabaseName);
-              tempColumnNames = tableNameToColumnNames.get(tempTableName) + ", " + tempColumnNames;
+            if (splitResults.containsKey(database)) {
+              tableNameToColumnNames = splitResults.get(database);
+              column = tableNameToColumnNames.get(table) + ", " + column;
             }
-            tableNameToColumnNames.put(tempTableName, tempColumnNames);
-            splitResults.put(tempDatabaseName, tableNameToColumnNames);
+            tableNameToColumnNames.put(table, column);
+            splitResults.put(database, tableNameToColumnNames);
           }
         }
       }
@@ -2641,9 +2666,49 @@ public class RelationalStorage implements IStorage {
     return splitResults;
   }
 
-  private void createTable(
-      String tableName, LinkedHashSet<Pair<String, DataType>> columns, Statement stmt)
-      throws SQLException {
+  private List<Integer> splitLogicalTable(
+      int existedTableNum, int existedRowSize, List<Pair<String, DataType>> columnList) {
+    int columnCount = columnList.size();
+    // 分片节点（贪心）
+    List<Integer> columnIndexList = new ArrayList<>();
+    columnIndexList.add(0);
+    int singleRowSize = existedRowSize, columnNum = existedTableNum;
+    // 限制，maxColumnNumLimit需要减1，留出一列给Key
+    int maxSingleRowSizeLimit = relationalMeta.getMaxSingleRowSizeLimit(),
+        maxColumnNumLimit = relationalMeta.getMaxColumnNumLimit() - 1;
+    for (int i = 0; i < columnCount; i++) {
+      int colSize = relationalMeta.getDataTypeTransformer().getDataTypeSize(columnList.get(i).v);
+
+      // 单列超限
+      if (colSize > maxSingleRowSizeLimit) {
+        if (columnNum > 0) {
+          columnIndexList.add(i); // 先结束当前片
+        }
+        columnIndexList.add(i + 1); // 单列成片
+        singleRowSize = 0;
+        columnNum = 0;
+        continue;
+      }
+
+      // 如果加上这一列会超限 → 切片
+      if (singleRowSize + colSize > maxSingleRowSizeLimit || columnNum + 1 > maxColumnNumLimit) {
+        columnIndexList.add(i);
+        singleRowSize = 0;
+        columnNum = 0;
+      }
+
+      singleRowSize += colSize;
+      columnNum++;
+    }
+    // 收尾
+    if (columnIndexList.get(columnIndexList.size() - 1) != columnCount) {
+      columnIndexList.add(columnCount);
+    }
+    return columnIndexList;
+  }
+
+  private void executeCreateTable(
+      String tableName, List<Pair<String, DataType>> columns, Statement stmt) throws SQLException {
     // 拼接列信息
     StringBuilder columnDefinitions = new StringBuilder();
     for (Pair<String, DataType> column : columns) {
@@ -2671,25 +2736,62 @@ public class RelationalStorage implements IStorage {
     stmt.execute(statement);
   }
 
+  private void createTable(
+      int tableIndex, String tableName, List<Pair<String, DataType>> columnList, Statement stmt)
+      throws SQLException {
+    List<Integer> columnIndexList = splitLogicalTable(0, 0, columnList);
+    for (int i = 1; i < columnIndexList.size(); i++) {
+      List<Pair<String, DataType>> subColumns =
+          columnList.subList(columnIndexList.get(i - 1), columnIndexList.get(i));
+
+      // 拼接物理表名，比如 tableName_1, tableName_2 ...
+      String physicalTableName = tableName + TABLE_SUFFIX_DELIMITER + tableIndex;
+
+      executeCreateTable(physicalTableName, subColumns, stmt);
+
+      tableIndex++;
+    }
+  }
+
   private void alterTableAddColumn(
+      String databaseName,
       String tableName,
-      LinkedHashSet<Pair<String, DataType>> columns,
-      String storageUnit,
+      int lastTableIndex,
+      List<Pair<String, DataType>> columnList,
+      int existedTableNum,
+      int existedRowSize,
       Statement stmt)
       throws SQLException {
-    for (Pair<String, DataType> column : columns) {
+    List<Integer> columnIndexList = splitLogicalTable(existedTableNum, existedRowSize, columnList);
+    String lastTableName = databaseName + TABLE_SUFFIX_DELIMITER + lastTableIndex;
+    for (int i = 0; i < columnIndexList.get(1); i++) {
+      Pair<String, DataType> column = columnList.get(i);
       String columnName = column.k;
       DataType dataType = column.v;
-      if (getColumns(storageUnit, tableName, columnName, false).isEmpty()) {
+      if (getColumns(databaseName, lastTableName, columnName, false).isEmpty()) {
         // 列不存在，添加列
         String statement =
             String.format(
                 relationalMeta.getAlterTableAddColumnStatement(),
-                getQuotName(tableName),
+                getQuotName(lastTableName),
                 getQuotName(columnName),
                 relationalMeta.getDataTypeTransformer().toEngineType(dataType));
         LOGGER.info("[Create] execute create: {}", statement);
         stmt.execute(statement);
+      }
+    }
+    if (columnIndexList.size() > 2) {
+      int tableIndex = lastTableIndex + 1;
+      for (int i = 2; i < columnIndexList.size(); i++) {
+        List<Pair<String, DataType>> subColumns =
+            columnList.subList(columnIndexList.get(i - 1), columnIndexList.get(i));
+
+        // 拼接物理表名，比如 tableName_1, tableName_2 ...
+        String physicalTableName = tableName + TABLE_SUFFIX_DELIMITER + tableIndex;
+
+        executeCreateTable(physicalTableName, subColumns, stmt);
+
+        tableIndex++;
       }
     }
   }
@@ -2702,6 +2804,15 @@ public class RelationalStorage implements IStorage {
       List<DataType> dataTypeList) {
     // 对每个路径，重构为<tableName, LinkedHashSet<Pair<String, DataType> columns>>的形式
     Map<String, LinkedHashSet<Pair<String, DataType>>> tableToColumns = new HashMap<>();
+    // 得到已有的所有列
+    Set<String> existedColumns =
+        getColumns(storageUnit, null, null, false).stream()
+            .map(
+                columnField ->
+                    getLogicalTableName(columnField.getTableName())
+                        + SEPARATOR
+                        + columnField.getColumnName())
+            .collect(Collectors.toSet());
     for (int i = 0; i < paths.size(); i++) {
       String path = paths.get(i);
       Map<String, String> tags = new HashMap<>();
@@ -2712,6 +2823,9 @@ public class RelationalStorage implements IStorage {
       RelationSchema schema = new RelationSchema(path, relationalMeta.getQuote());
       String tableName = schema.getTableName();
       String columnName = schema.getColumnName();
+      if (existedColumns.contains(tableName + SEPARATOR + columnName)) {
+        continue;
+      }
       columnName = toFullName(columnName, tags);
       tableToColumns.putIfAbsent(tableName, new LinkedHashSet<>());
       tableToColumns.get(tableName).add(new Pair<>(columnName, dataType));
@@ -2720,16 +2834,40 @@ public class RelationalStorage implements IStorage {
         tableToColumns.entrySet()) {
       String tableName = entry.getKey();
       LinkedHashSet<Pair<String, DataType>> columns = entry.getValue();
+      if (columns.isEmpty()) {
+        continue; // 如果没有新列需要添加，跳过
+      }
       tableName = reshapeTableNameBeforeQuery(tableName, storageUnit);
       try {
         Statement stmt = conn.createStatement();
-        List<String> tables = getTables(storageUnit, tableName, false);
-        if (tables.isEmpty()) {
+        List<String> physicalTables = getPhysicalTables(storageUnit, tableName);
+        List<Pair<String, DataType>> columnList = new ArrayList<>(columns);
+        if (physicalTables.isEmpty()) {
           // 没有表，创建表
-          createTable(tableName, columns, stmt);
+          // 循环建表，每张表至多max_column_limit列
+          int startIndex = 1;
+          // 需要留一列给key
+          createTable(startIndex, tableName, columnList, stmt);
         } else {
-          // 表已存在
-          alterTableAddColumn(tableName, columns, storageUnit, stmt);
+          // 表已存在，找到最后一个表名
+          int lastTableIndex = physicalTables.size();
+          String lastTableName = physicalTables.get(lastTableIndex - 1);
+          // 最后一个table的列
+          List<ColumnField> lastTableColumns = getColumns(storageUnit, lastTableName, "%", false);
+          // 最后一个table的列总大小、列数
+          int existedRowSize = lastTableColumns.stream().mapToInt(ColumnField::getColumnSize).sum(),
+              existedColumnCount = lastTableColumns.size();
+          // 遍历列，添加到表中
+          int columnCount = columns.size(), columnIndex = 0;
+          // 循环添加列，每张表至多max_column_limit列，并且累计列的大小不超过max_single_row_size
+          alterTableAddColumn(
+              storageUnit,
+              tableName,
+              lastTableIndex,
+              columnList,
+              existedColumnCount,
+              existedRowSize,
+              stmt);
         }
         stmt.close();
       } catch (SQLException e) {
@@ -2751,6 +2889,15 @@ public class RelationalStorage implements IStorage {
       // 插入数据
       Map<String, Pair<String, List<String>>> tableToColumnEntries =
           new HashMap<>(); // <表名, <列名，值列表>>
+
+      // 建立逻辑表名到物理表名的映射
+      Map<String, List<String>> logicalToPhysicalTableMap =
+          buildLogicalToPhysicalTableMap(databaseName, data.getPaths());
+      // 物理表到列名的映射
+      Map<String, Set<String>> physicalToColumnMap = new HashMap<>();
+      // 建立逻辑列名到物理表名的映射
+      Map<Pair<String, String>, String> columnToPhysicalTableMap = new HashMap<>();
+
       int cnt = 0;
       boolean firstRound = true;
       while (cnt < data.getKeySize()) {
@@ -2763,15 +2910,29 @@ public class RelationalStorage implements IStorage {
             String path = data.getPath(j);
             DataType dataType = data.getDataType(j);
             RelationSchema schema = new RelationSchema(path, relationalMeta.getQuote());
-            String tableName = schema.getTableName();
+            String logicalTableName = schema.getTableName();
             String columnName = schema.getColumnName();
             Map<String, String> tags = data.getTags(j);
 
+            // 获取该列应该插入的物理表名
+            List<String> physicalTableNames = logicalToPhysicalTableMap.get(logicalTableName);
+            String physicalTableName =
+                getPhysicalTableNameForColumnLazy(
+                    databaseName,
+                    logicalTableName,
+                    toFullName(columnName, tags),
+                    physicalTableNames,
+                    physicalToColumnMap,
+                    columnToPhysicalTableMap);
+            if (physicalTableName == null) {
+              throw new SQLException("physical table name is null");
+            }
+
             StringBuilder columnKeys = new StringBuilder();
             List<String> columnValues = new ArrayList<>();
-            if (tableToColumnEntries.containsKey(tableName)) {
-              columnKeys = new StringBuilder(tableToColumnEntries.get(tableName).k);
-              columnValues = tableToColumnEntries.get(tableName).v;
+            if (tableToColumnEntries.containsKey(physicalTableName)) {
+              columnKeys = new StringBuilder(tableToColumnEntries.get(physicalTableName).k);
+              columnValues = tableToColumnEntries.get(physicalTableName).v;
             }
 
             String value = "null";
@@ -2785,12 +2946,12 @@ public class RelationalStorage implements IStorage {
                 value = data.getValue(i, index).toString();
               }
               index++;
-              if (tableHasData.containsKey(tableName)) {
-                tableHasData.get(tableName)[i - cnt] = true;
+              if (tableHasData.containsKey(physicalTableName)) {
+                tableHasData.get(physicalTableName)[i - cnt] = true;
               } else {
                 boolean[] hasData = new boolean[size];
                 hasData[i - cnt] = true;
-                tableHasData.put(tableName, hasData);
+                tableHasData.put(physicalTableName, hasData);
               }
             }
 
@@ -2804,17 +2965,18 @@ public class RelationalStorage implements IStorage {
               columnValues.add(data.getKey(i) + ", " + value + ", "); // 添加 key 列
             }
 
-            tableToColumnEntries.put(tableName, new Pair<>(columnKeys.toString(), columnValues));
+            tableToColumnEntries.put(
+                physicalTableName, new Pair<>(columnKeys.toString(), columnValues));
           }
 
           firstRound = false;
         }
 
         for (Map.Entry<String, boolean[]> entry : tableHasData.entrySet()) {
-          String tableName = entry.getKey();
+          String physicalTableName = entry.getKey();
           boolean[] hasData = entry.getValue();
-          String columnKeys = tableToColumnEntries.get(tableName).k;
-          List<String> columnValues = tableToColumnEntries.get(tableName).v;
+          String columnKeys = tableToColumnEntries.get(physicalTableName).k;
+          List<String> columnValues = tableToColumnEntries.get(physicalTableName).v;
           boolean needToInsert = false;
           for (int i = hasData.length - 1; i >= 0; i--) {
             if (!hasData[i]) {
@@ -2824,7 +2986,7 @@ public class RelationalStorage implements IStorage {
             }
           }
           if (needToInsert) {
-            tableToColumnEntries.put(tableName, new Pair<>(columnKeys, columnValues));
+            tableToColumnEntries.put(physicalTableName, new Pair<>(columnKeys, columnValues));
           }
         }
 
@@ -2856,33 +3018,58 @@ public class RelationalStorage implements IStorage {
 
       // 插入数据
       Map<String, Pair<String, List<String>>> tableToColumnEntries =
-          new HashMap<>(); // <表名, <列名，值列表>>
+          new HashMap<>(); // <物理表名, <列名，值列表>>
+
+      // 建立逻辑表名到物理表名的映射
+      Map<String, List<String>> logicalToPhysicalTableMap =
+          buildLogicalToPhysicalTableMap(databaseName, data.getPaths());
+      // 物理表到列名的映射
+      Map<String, Set<String>> physicalToColumnMap = new HashMap<>();
+      // 建立逻辑列名到物理表名的映射
+      Map<Pair<String, String>, String> columnToPhysicalTableMap = new HashMap<>();
+
       Map<Integer, Integer> pathIndexToBitmapIndex = new HashMap<>();
       int cnt = 0;
       boolean firstRound = true;
       while (cnt < data.getKeySize()) {
         int size = Math.min(data.getKeySize() - cnt, batchSize);
-        Map<String, boolean[]> tableHasData = new HashMap<>(); // 记录每一张表的每一行是否有数据点
+        Map<String, boolean[]> tableHasData = new HashMap<>(); // 记录每一张物理表的每一行是否有数据点
+
         for (int i = 0; i < data.getPathNum(); i++) {
           String path = data.getPath(i);
           DataType dataType = data.getDataType(i);
           RelationSchema schema = new RelationSchema(path, relationalMeta.getQuote());
-          String tableName = schema.getTableName();
+          String logicalTableName = schema.getTableName();
           String columnName = schema.getColumnName();
           Map<String, String> tags = data.getTags(i);
           BitmapView bitmapView = data.getBitmapView(i);
 
+          // 获取该列应该插入的物理表名
+          List<String> physicalTableNames = logicalToPhysicalTableMap.get(logicalTableName);
+          String physicalTableName =
+              getPhysicalTableNameForColumnLazy(
+                  databaseName,
+                  logicalTableName,
+                  toFullName(columnName, tags),
+                  physicalTableNames,
+                  physicalToColumnMap,
+                  columnToPhysicalTableMap);
+          if (physicalTableName == null) {
+            throw new SQLException("physical table name is null");
+          }
+
           StringBuilder columnKeys = new StringBuilder();
           List<String> columnValues = new ArrayList<>();
-          if (tableToColumnEntries.containsKey(tableName)) {
-            columnKeys = new StringBuilder(tableToColumnEntries.get(tableName).k);
-            columnValues = tableToColumnEntries.get(tableName).v;
+          if (tableToColumnEntries.containsKey(physicalTableName)) {
+            columnKeys = new StringBuilder(tableToColumnEntries.get(physicalTableName).k);
+            columnValues = tableToColumnEntries.get(physicalTableName).v;
           }
 
           int index = 0;
           if (pathIndexToBitmapIndex.containsKey(i)) {
             index = pathIndexToBitmapIndex.get(i);
           }
+
           for (int j = cnt; j < cnt + size; j++) {
             String value = "null";
             if (bitmapView.get(j)) {
@@ -2895,12 +3082,13 @@ public class RelationalStorage implements IStorage {
                 value = data.getValue(i, index).toString();
               }
               index++;
-              if (tableHasData.containsKey(tableName)) {
-                tableHasData.get(tableName)[j - cnt] = true;
+
+              if (tableHasData.containsKey(physicalTableName)) {
+                tableHasData.get(physicalTableName)[j - cnt] = true;
               } else {
                 boolean[] hasData = new boolean[size];
                 hasData[j - cnt] = true;
-                tableHasData.put(tableName, hasData);
+                tableHasData.put(physicalTableName, hasData);
               }
             }
 
@@ -2916,14 +3104,15 @@ public class RelationalStorage implements IStorage {
             columnKeys.append(toFullName(columnName, tags)).append(", ");
           }
 
-          tableToColumnEntries.put(tableName, new Pair<>(columnKeys.toString(), columnValues));
+          tableToColumnEntries.put(
+              physicalTableName, new Pair<>(columnKeys.toString(), columnValues));
         }
 
         for (Map.Entry<String, boolean[]> entry : tableHasData.entrySet()) {
-          String tableName = entry.getKey();
+          String physicalTableName = entry.getKey();
           boolean[] hasData = entry.getValue();
-          String columnKeys = tableToColumnEntries.get(tableName).k;
-          List<String> columnValues = tableToColumnEntries.get(tableName).v;
+          String columnKeys = tableToColumnEntries.get(physicalTableName).k;
+          List<String> columnValues = tableToColumnEntries.get(physicalTableName).v;
           boolean needToInsert = false;
           for (int i = hasData.length - 1; i >= 0; i--) {
             if (!hasData[i]) {
@@ -2933,9 +3122,10 @@ public class RelationalStorage implements IStorage {
             }
           }
           if (needToInsert) {
-            tableToColumnEntries.put(tableName, new Pair<>(columnKeys, columnValues));
+            tableToColumnEntries.put(physicalTableName, new Pair<>(columnKeys, columnValues));
           }
         }
+
         executeBatchInsert(conn, databaseName, stmt, tableToColumnEntries);
         for (Map.Entry<String, Pair<String, List<String>>> entry :
             tableToColumnEntries.entrySet()) {
@@ -2962,6 +3152,116 @@ public class RelationalStorage implements IStorage {
       throws SQLException {
     dbStrategy.executeBatchInsert(
         conn, databaseName, stmt, tableToColumnEntries, relationalMeta.getQuote());
+  }
+
+  /** 建立逻辑表名到物理表名列表的映射 */
+  private Map<String, List<String>> buildLogicalToPhysicalTableMap(
+      String databaseName, List<String> paths) {
+    Map<String, List<String>> logicalToPhysicalMap = new HashMap<>();
+
+    Set<String> logicalTableNames =
+        paths.stream()
+            .map(path -> new RelationSchema(path, relationalMeta.getQuote()).getTableName())
+            .collect(Collectors.toSet());
+
+    for (String logicalTableName : logicalTableNames) {
+      String reshapedTableName = reshapeTableNameBeforeQuery(logicalTableName, databaseName);
+      List<String> physicalTables = getPhysicalTables(databaseName, reshapedTableName);
+      logicalToPhysicalMap.put(logicalTableName, physicalTables);
+    }
+
+    return logicalToPhysicalMap;
+  }
+
+  /** 获取指定列应该插入的物理表名 */
+  private String getPhysicalTableNameForColumn(
+      String databaseName,
+      String logicalTableName,
+      String fullColumnName,
+      List<String> physicalTables) {
+
+    if (physicalTables == null || physicalTables.isEmpty()) {
+      // 如果没有物理表，返回逻辑表名（将会创建新表）
+      return reshapeTableNameBeforeQuery(logicalTableName, databaseName);
+    }
+
+    // 检查每个物理表是否包含该列
+    for (String physicalTableName : physicalTables) {
+      List<ColumnField> columns = getColumns(databaseName, physicalTableName, "%", false);
+      for (ColumnField column : columns) {
+        if (column.getColumnName().equals(fullColumnName)) {
+          return physicalTableName;
+        }
+      }
+    }
+    // 如果没有找到包含该列的物理表，返回null
+    return null;
+  }
+
+  /** 构建列名到物理表名的映射 */
+  private String getPhysicalTableNameForColumnLazy(
+      String databaseName,
+      String logicalTableName,
+      String fullColumnName,
+      List<String> physicalTables,
+      Map<String, Set<String>> physicalTableToColumnMap,
+      Map<Pair<String, String>, String> columnToPhysicalTableMap) {
+
+    if (physicalTables == null || physicalTables.isEmpty()) {
+      // 如果没有物理表，返回逻辑表名（将会创建新表）
+      return reshapeTableNameBeforeQuery(logicalTableName, databaseName);
+    }
+
+    // 一级缓存 key
+    Pair<String, String> columnKey =
+        new Pair<>(
+            logicalTableName,
+            fullColumnName); // logicalTableName + fullColumnName -> physicalTableName
+    if (columnToPhysicalTableMap.containsKey(columnKey)) {
+      return columnToPhysicalTableMap.get(columnKey); // 直接返回命中结果（可能是 null）
+    }
+
+    // 遍历物理表
+    for (String physicalTableName : physicalTables) {
+      // 如果没有缓存过这个物理表的列名，懒加载一次
+      Set<String> columnSet = physicalTableToColumnMap.get(physicalTableName);
+      if (columnSet == null) {
+        List<ColumnField> columns = getColumns(databaseName, physicalTableName, "%", false);
+        columnSet = columns.stream().map(ColumnField::getColumnName).collect(Collectors.toSet());
+        physicalTableToColumnMap.put(physicalTableName, columnSet);
+      }
+
+      // 查找列是否存在
+      if (columnSet.contains(fullColumnName)) {
+        columnToPhysicalTableMap.put(columnKey, physicalTableName); // 缓存结果
+        return physicalTableName;
+      }
+    }
+
+    // 没找到
+    columnToPhysicalTableMap.put(columnKey, null);
+    return null;
+  }
+
+  /** 获取指定逻辑表的所有物理表 */
+  private List<String> getPhysicalTables(String storageUnit, String logicalTableName) {
+    List<String> tables = new ArrayList<>();
+    int index = 1;
+
+    while (true) {
+
+      String physicalTableName = logicalTableName + escape + TABLE_SUFFIX_DELIMITER + index;
+      List<String> foundTables = getTables(storageUnit, physicalTableName, false);
+
+      if (foundTables.isEmpty()) {
+        break;
+      }
+
+      tables.addAll(foundTables);
+      index++;
+    }
+
+    return tables;
   }
 
   private List<Pair<String, String>> determineDeletedPaths(
@@ -3238,5 +3538,17 @@ public class RelationalStorage implements IStorage {
     KeyFilter keyFilter = (KeyFilter) filter;
     return new ValueFilter(
         tableName + SEPARATOR + KEY_NAME, keyFilter.getOp(), new Value(keyFilter.getValue()));
+  }
+
+  private String getLogicalTableName(String physicalTableName) {
+    if (physicalTableName != null) {
+      // 找到最后一个分隔符的位置
+      int lastUnderlineIndex = physicalTableName.lastIndexOf(TABLE_SUFFIX_DELIMITER);
+      if (lastUnderlineIndex > 0) {
+        // 去除最后一个下划线后的部分
+        return physicalTableName.substring(0, lastUnderlineIndex);
+      }
+    }
+    return physicalTableName;
   }
 }
