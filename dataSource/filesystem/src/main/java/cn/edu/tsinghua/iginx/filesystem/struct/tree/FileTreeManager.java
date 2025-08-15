@@ -72,6 +72,16 @@ public class FileTreeManager implements FileManager {
 
     DataBoundary boundary = new DataBoundary();
 
+    if (config.boundary_level == 0 && config.getPrefix() != null) {
+      if (requirePrefix == null || requirePrefix.startsWith(config.getPrefix())) {
+        boundary.setStartColumn(config.getPrefix());
+        boundary.setEndColumn(StringUtils.nextString(config.getPrefix()));
+        boundary.setStartKey(KeyInterval.getDefaultKeyInterval().getStartKey());
+        boundary.setEndKey(KeyInterval.getDefaultKeyInterval().getEndKey());
+      }
+      return boundary;
+    }
+
     Map.Entry<String, Path> targetPrefixAndPath = getTargetPrefixAndPath(requirePrefix);
     if (targetPrefixAndPath != null) {
       String prefix = targetPrefixAndPath.getKey();

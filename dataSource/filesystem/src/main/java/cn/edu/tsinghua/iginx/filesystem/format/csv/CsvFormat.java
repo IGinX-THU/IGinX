@@ -17,30 +17,33 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package cn.edu.tsinghua.iginx.relational.tools;
+package cn.edu.tsinghua.iginx.filesystem.format.csv;
 
-public abstract class Constants {
-  public static final String TAGKV_EQUAL = "=";
+import cn.edu.tsinghua.iginx.filesystem.format.AbstractFileFormat;
+import cn.edu.tsinghua.iginx.filesystem.format.FileFormat;
+import com.google.auto.service.AutoService;
+import com.typesafe.config.Config;
+import java.io.IOException;
+import java.nio.file.Path;
+import javax.annotation.Nullable;
 
-  public static final String TAGKV_SEPARATOR = "-";
+@AutoService(FileFormat.class)
+public class CsvFormat extends AbstractFileFormat {
 
-  public static final int BATCH_SIZE = 10000;
+  public static final String NAME = "CSV";
 
-  public static final String USERNAME = "username";
+  public CsvFormat() {
+    super(NAME, "csv", "tsv");
+  }
 
-  public static final String PASSWORD = "password";
+  @Override
+  public String getName() {
+    return formatName;
+  }
 
-  public static final String DATABASE = "database";
-
-  public static final String KEY_NAME = "RELATIONAL+KEY";
-
-  public static final String DATABASE_PREFIX = "unit";
-
-  public static final String QUERY_STATEMENT_WITHOUT_KEYNAME = "SELECT %s FROM %s %s ORDER BY %s;";
-
-  public static final String META_TEMPLATE_SUFFIX = "-meta.properties";
-
-  public static final String TABLE_SUFFIX_DELIMITER = "_";
-
-  public static final String BOUNDARY_LEVEL = "boundary_level";
+  @Override
+  public Reader newReader(@Nullable String prefix, Path path, Config config) throws IOException {
+    CsvReaderConfig csvReaderConfig = CsvReaderConfig.of(config);
+    return new CsvReader(prefix, path, csvReaderConfig);
+  }
 }

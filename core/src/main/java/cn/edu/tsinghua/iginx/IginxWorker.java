@@ -404,6 +404,7 @@ public class IginxWorker implements IService.Iface {
 
   private void addStorageEngineMetas(
       List<StorageEngineMeta> storageEngineMetas, Status status, boolean hasChecked) {
+    List<StorageEngineMeta> storageEnginesExistInMeta = new ArrayList<>();
     // 检测是否与已有的存储引擎冲突
     if (!hasChecked) {
       List<StorageEngineMeta> currentStorageEngines = metaManager.getStorageEngineList();
@@ -411,10 +412,17 @@ public class IginxWorker implements IService.Iface {
       for (StorageEngineMeta storageEngine : storageEngineMetas) {
         for (StorageEngineMeta currentStorageEngine : currentStorageEngines) {
           if (storageEngine.equals(currentStorageEngine)) {
-            // 存在相同数据库
-            storageEnginesToBeRemoved.add(storageEngine);
-            partialFailAndLog(
-                status, String.format("repeatedly add storage engine %s.", storageEngine));
+            if (!metaManager.getConnectStorageEngines().contains(currentStorageEngine)) {
+              // 元数据里注册过该数据库，仅需重新连接
+              setDummyInfo(storageEngine, currentStorageEngine.getId());
+              storageEngine.setId(currentStorageEngine.getId());
+              storageEnginesExistInMeta.add(storageEngine);
+            } else {
+              // 存在相同数据库
+              storageEnginesToBeRemoved.add(storageEngine);
+              partialFailAndLog(
+                  status, String.format("repeatedly add storage engine %s.", storageEngine));
+            }
             break;
           } else if (storageEngine.isSameAddress(currentStorageEngine)) {
             LOGGER.debug(
@@ -484,34 +492,15 @@ public class IginxWorker implements IService.Iface {
       }
       // 然后设置dummy信息
       if (meta.isHasData()) {
-        String dataPrefix = meta.getDataPrefix();
-        String schemaPrefix = meta.getSchemaPrefix();
-        StorageUnitMeta dummyStorageUnit = new StorageUnitMeta(generateDummyStorageUnitId(0), -1);
-        Pair<ColumnsInterval, KeyInterval> boundary =
-            StorageManager.getBoundaryOfStorage(meta, dataPrefix);
-        if (boundary == null) {
+        boolean success = setDummyInfo(meta, meta.getId());
+        if (!success) {
           partialFailAndLog(
               status,
               String.format(
                   "Failed to read data in dummy storage engine %s. Please check params:%s;%s.",
                   meta.getStorageEngine(), meta, meta.getExtraParams()));
           iterator.remove();
-          continue;
         }
-        LOGGER.info("boundary for {}: {}", meta, boundary);
-        FragmentMeta dummyFragment;
-
-        if (dataPrefix == null) {
-          boundary.k.setSchemaPrefix(schemaPrefix);
-          dummyFragment = new FragmentMeta(boundary.k, boundary.v, dummyStorageUnit);
-        } else {
-          ColumnsInterval columnsInterval = new ColumnsInterval(dataPrefix);
-          columnsInterval.setSchemaPrefix(schemaPrefix);
-          dummyFragment = new FragmentMeta(columnsInterval, boundary.v, dummyStorageUnit);
-        }
-        dummyFragment.setDummyFragment(true);
-        meta.setDummyStorageUnit(dummyStorageUnit);
-        meta.setDummyFragment(dummyFragment);
       }
     }
 
@@ -528,7 +517,8 @@ public class IginxWorker implements IService.Iface {
         iterator.remove();
         continue;
       }
-      if (!metaManager.addStorageEngines(Collections.singletonList(meta))) {
+      if (!storageEnginesExistInMeta.contains(meta)
+          && !metaManager.addStorageEngines(Collections.singletonList(meta))) {
         partialFailAndLog(status, String.format("add storage engine %s failed.", meta));
         iterator.remove();
         continue;
@@ -551,6 +541,35 @@ public class IginxWorker implements IService.Iface {
         appendFullMsg(status);
       }
     }
+  }
+
+  private static boolean setDummyInfo(StorageEngineMeta meta, long id) {
+    if (meta.getDummyFragment() != null && meta.getDummyStorageUnit() != null) {
+      return true;
+    }
+    String dataPrefix = meta.getDataPrefix();
+    String schemaPrefix = meta.getSchemaPrefix();
+    StorageUnitMeta dummyStorageUnit = new StorageUnitMeta(generateDummyStorageUnitId(0), id);
+    Pair<ColumnsInterval, KeyInterval> boundary =
+        StorageManager.getBoundaryOfStorage(meta, dataPrefix);
+    if (boundary == null) {
+      return false;
+    }
+    LOGGER.info("boundary for {}: {}", meta, boundary);
+    FragmentMeta dummyFragment;
+
+    if (dataPrefix == null) {
+      boundary.k.setSchemaPrefix(schemaPrefix);
+      dummyFragment = new FragmentMeta(boundary.k, boundary.v, dummyStorageUnit);
+    } else {
+      ColumnsInterval columnsInterval = new ColumnsInterval(dataPrefix);
+      columnsInterval.setSchemaPrefix(schemaPrefix);
+      dummyFragment = new FragmentMeta(columnsInterval, boundary.v, dummyStorageUnit);
+    }
+    dummyFragment.setDummyFragment(true);
+    meta.setDummyStorageUnit(dummyStorageUnit);
+    meta.setDummyFragment(dummyFragment);
+    return true;
   }
 
   /** add failed sub status and log the message */

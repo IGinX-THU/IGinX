@@ -176,6 +176,8 @@ public abstract class AbstractRelationalMeta {
 
   public abstract boolean jdbcSupportGetTableNameFromResultSet();
 
+  public abstract boolean isSupportBoundaryQuery();
+
   /** 设置是否支持创建数据库 */
   public void setSupportCreateDatabase(boolean supportCreateDatabase) {}
 
