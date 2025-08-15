@@ -2702,7 +2702,7 @@ public class RelationalStorage implements IStorage {
       Statement stmt)
       throws SQLException {
     List<Integer> columnIndexList = splitLogicalTable(existedTableNum, existedRowSize, columnList);
-    String lastTableName = databaseName + TABLE_SUFFIX_DELIMITER + lastTableIndex;
+    String lastTableName = tableName + TABLE_SUFFIX_DELIMITER + lastTableIndex;
     for (int i = 0; i < columnIndexList.get(1); i++) {
       Pair<String, DataType> column = columnList.get(i);
       String columnName = column.k;
