@@ -2105,8 +2105,8 @@ public class RelationalStorage implements IStorage {
       Statement stmt = conn.createStatement();
       String statement;
       List<String> paths = delete.getPatterns();
-      List<Pair<String, String>> deletedPaths; // table name -> column name
-      String tableName;
+      List<Pair<String, String>> deletedPaths; // logical table name -> column name
+      String logicalTableName;
       String columnName;
       List<String> tables;
 
@@ -2162,26 +2162,36 @@ public class RelationalStorage implements IStorage {
         } else {
           deletedPaths = determineDeletedPaths(paths, delete.getTagFilter());
           for (Pair<String, String> pair : deletedPaths) {
-            tableName = pair.k;
+            logicalTableName = pair.k;
             columnName = pair.v;
-            tableName =
+
+            // 获取逻辑表对应的所有物理表
+            List<String> physicalTables = getPhysicalTables(databaseName, logicalTableName);
+
+            // 对每个物理表，找到包含该列的表并删除列
+            // 检查该物理表是否包含要删除的列
+            String physicalTableName =
                 getPhysicalTableNameForColumn(
-                    databaseName,
-                    tableName,
-                    columnName,
-                    getPhysicalTables(databaseName, tableName));
-            if (tableName != null) {
-              tableName = reshapeTableNameBeforeQuery(tableName, databaseName);
+                    databaseName, logicalTableName, columnName, physicalTables);
+
+            if (physicalTableName != null) {
+              String reshapedTableName =
+                  reshapeTableNameBeforeQuery(physicalTableName, databaseName);
               statement =
                   String.format(
                       relationalMeta.getAlterTableDropColumnStatement(),
-                      getQuotName(tableName),
+                      getQuotName(reshapedTableName),
                       getQuotName(columnName));
               LOGGER.info("[Delete] execute delete: {}", statement);
               try {
                 stmt.execute(statement); // 删除列
               } catch (SQLException e) {
                 // 可能会出现该列不存在的问题，此时不做处理
+                LOGGER.debug(
+                    "Column {} may not exist in table {}: {}",
+                    columnName,
+                    reshapedTableName,
+                    e.getMessage());
               }
             }
           }
@@ -2189,24 +2199,40 @@ public class RelationalStorage implements IStorage {
       } else {
         deletedPaths = determineDeletedPaths(paths, delete.getTagFilter());
         for (Pair<String, String> pair : deletedPaths) {
-          tableName = pair.k;
+          logicalTableName = pair.k;
           columnName = pair.v;
-          if (!getPhysicalTableNameForColumn(
-                  databaseName, tableName, columnName, getPhysicalTables(databaseName, tableName))
-              .isEmpty()) {
-            tableName = reshapeTableNameBeforeQuery(tableName, databaseName);
+
+          // 获取逻辑表对应的所有物理表
+          List<String> physicalTables = getPhysicalTables(databaseName, logicalTableName);
+
+          // 对每个物理表，找到包含该列的表并删除数据
+          // 检查该物理表是否包含要删除的列
+          String physicalTableName =
+              getPhysicalTableNameForColumn(
+                  databaseName, logicalTableName, columnName, physicalTables);
+
+          if (physicalTableName != null) {
+            String reshapedTableName = reshapeTableNameBeforeQuery(physicalTableName, databaseName);
             for (KeyRange keyRange : delete.getKeyRanges()) {
               statement =
                   String.format(
                       relationalMeta.getDeleteTableStatement(),
-                      getQuotName(tableName),
+                      getQuotName(reshapedTableName),
                       getQuotName(columnName),
                       getQuotName(KEY_NAME),
                       keyRange.getBeginKey(),
                       getQuotName(KEY_NAME),
                       keyRange.getEndKey());
               LOGGER.info("[Delete] execute delete: {}", statement);
-              stmt.execute(statement); // 将目标列的目标范围的值置为空
+              try {
+                stmt.execute(statement); // 将目标列的目标范围的值置为空
+              } catch (SQLException e) {
+                LOGGER.debug(
+                    "Failed to delete data from column {} in table {}: {}",
+                    columnName,
+                    reshapedTableName,
+                    e.getMessage());
+              }
             }
           }
         }
