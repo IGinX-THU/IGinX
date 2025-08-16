@@ -657,9 +657,6 @@ public class RelationalStorage implements IStorage {
             new RelationalTaskExecuteFailureException(
                 String.format("cannot connect to database %s", databaseName)));
       }
-      if (!relationalMeta.supportCreateDatabase()) {
-        filter = reshapeFilterBeforeQuery(filter, databaseName);
-      }
       List<String> databaseNameList = new ArrayList<>();
       List<ResultSet> resultSets = new ArrayList<>();
       Statement stmt;
@@ -667,6 +664,12 @@ public class RelationalStorage implements IStorage {
       Set<String> patterns = project.getPatterns().stream().collect(Collectors.toSet());
       Map<String, String> physicalTableToColumnNames =
           splitAndMergeQueryPatterns(databaseName, patterns);
+
+      // 预处理Filter，让Filter中的table映射到物理表
+      filter = reshapeFilterPathForPhysicalTable(filter, databaseName);
+      if (!relationalMeta.supportCreateDatabase()) {
+        filter = reshapeFilterBeforeQuery(filter, databaseName);
+      }
 
       // 按列顺序加上表名
       Filter expandFilter =
@@ -977,6 +980,62 @@ public class RelationalStorage implements IStorage {
     filter = expandFilter(filter, fullColumnNamesList);
     filter = LogicalFilterUtils.mergeTrue(filter);
     return filter;
+  }
+
+  private Filter reshapeFilterPathForPhysicalTable(Filter filter, String databaseName) {
+    switch (filter.getType()) {
+      case And:
+        List<Filter> andChildren = ((AndFilter) filter).getChildren();
+        for (Filter child : andChildren) {
+          Filter newFilter = reshapeFilterPathForPhysicalTable(child, databaseName);
+          andChildren.set(andChildren.indexOf(child), newFilter);
+        }
+        return new AndFilter(andChildren);
+      case Or:
+        List<Filter> orChildren = ((OrFilter) filter).getChildren();
+        for (Filter child : orChildren) {
+          Filter newFilter = reshapeFilterPathForPhysicalTable(child, databaseName);
+          orChildren.set(orChildren.indexOf(child), newFilter);
+        }
+        return new OrFilter(orChildren);
+      case Not:
+        Filter notChild = ((NotFilter) filter).getChild();
+        Filter newFilter = reshapeFilterPathForPhysicalTable(notChild, databaseName);
+        return new NotFilter(newFilter);
+      case Value:
+        ValueFilter valueFilter = ((ValueFilter) filter);
+        String path = valueFilter.getPath();
+        path = getFullPathForPhysicalTable(path, databaseName);
+        valueFilter.setPath(path);
+        return valueFilter;
+      case In:
+        InFilter inFilter = (InFilter) filter;
+        String inPath = inFilter.getPath();
+        inPath = getFullPathForPhysicalTable(inPath, databaseName);
+        inFilter.setPath(inPath);
+        return inFilter;
+      case Path:
+        PathFilter pathFilter = (PathFilter) filter;
+        String pathA = pathFilter.getPathA();
+        String pathB = pathFilter.getPathB();
+        pathA = getFullPathForPhysicalTable(pathA, databaseName);
+        pathB = getFullPathForPhysicalTable(pathB, databaseName);
+        pathFilter.setPathA(pathA);
+        pathFilter.setPathB(pathB);
+        return pathFilter;
+      default:
+        break;
+    }
+    return filter;
+  }
+
+  private String getFullPathForPhysicalTable(String path, String databaseName) {
+    RelationSchema schema = new RelationSchema(path, relationalMeta.getQuote());
+    List<String> physicalTableNames = getPhysicalTables(databaseName, schema.getTableName());
+    String physicalTableName =
+        getPhysicalTableNameForColumn(
+            databaseName, schema.getTableName(), schema.getColumnName(), physicalTableNames);
+    return physicalTableName + SEPARATOR + schema.getColumnName();
   }
 
   private Filter reshapeFilterBeforeQuery(Filter filter, String databaseName) {
@@ -1417,12 +1476,12 @@ public class RelationalStorage implements IStorage {
                 String.format("cannot connect to database %s", databaseName)));
       }
       Set<String> patterns = project.getPatterns().stream().collect(Collectors.toSet());
-      Map<String, String> tableNameToColumnNames =
+      Map<String, String> physicalTableToColumnNames =
           splitAndMergeQueryPatterns(databaseName, patterns);
 
       String statement =
           getProjectWithFilterSQL(
-              databaseName, select.getFilter().copy(), tableNameToColumnNames, true);
+              databaseName, select.getFilter().copy(), physicalTableToColumnNames, true);
       if (statement.endsWith(";")) {
         statement = statement.substring(0, statement.length() - 1); // 去掉最后的分号
       }
@@ -1432,7 +1491,7 @@ public class RelationalStorage implements IStorage {
               functionCalls,
               gbc,
               statement,
-              tableNameToColumnNames,
+              physicalTableToColumnNames,
               fullName2Name,
               databaseName,
               false);
@@ -2549,7 +2608,8 @@ public class RelationalStorage implements IStorage {
         if (database.startsWith(DATABASE_PREFIX)) {
           continue;
         }
-        List<String> tables = getTables(database, tableName, true);
+        // 需要对tableName中的下划线进行转义，因为下划线会任意匹配
+        List<String> tables = getTables(database, tableName.replaceAll("_", escape + "_"), true);
         for (String table : tables) {
           if (!tableNamePattern.matcher(table).find()) {
             continue;
@@ -3084,16 +3144,6 @@ public class RelationalStorage implements IStorage {
     return null;
   }
 
-  private void executeBatchInsert(
-      Connection conn,
-      String databaseName,
-      Statement stmt,
-      Map<String, Pair<String, List<String>>> tableToColumnEntries)
-      throws SQLException {
-    dbStrategy.executeBatchInsert(
-        conn, databaseName, stmt, tableToColumnEntries, relationalMeta.getQuote());
-  }
-
   /** 建立逻辑表名到物理表名列表的映射 */
   private Map<String, List<String>> buildLogicalToPhysicalTableMap(
       String databaseName, List<String> paths) {
@@ -3184,14 +3234,15 @@ public class RelationalStorage implements IStorage {
   }
 
   /** 获取指定逻辑表的所有物理表 */
-  private List<String> getPhysicalTables(String storageUnit, String logicalTableName) {
+  private List<String> getPhysicalTables(String databseName, String logicalTableName) {
     List<String> tables = new ArrayList<>();
     int index = 1;
 
     while (true) {
 
-      String physicalTableName = logicalTableName + escape + TABLE_SUFFIX_DELIMITER + index;
-      List<String> foundTables = getTables(storageUnit, physicalTableName, false);
+      String physicalTableName = logicalTableName + TABLE_SUFFIX_DELIMITER + index;
+      List<String> foundTables =
+          getTables(databseName, physicalTableName.replaceAll("_", escape + "_"), false);
 
       if (foundTables.isEmpty()) {
         break;
