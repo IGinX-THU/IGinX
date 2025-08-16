@@ -2390,7 +2390,7 @@ public class RelationalStorage implements IStorage {
   }
 
   private List<Pattern> getRegexPatternByName(
-      String databaseName, String tableName, String columnNames, boolean isDummy) {
+      String tableName, String columnNames, boolean isDummy) {
     // 我们输入例如test%，是希望匹配到test或test.abc这样的表，但是不希望匹配到test1这样的表，但语法不支持，因此在这里做一下过滤
     String tableNameRegex = tableName;
     tableNameRegex = StringUtils.reformatPath(tableNameRegex);
@@ -2401,7 +2401,13 @@ public class RelationalStorage implements IStorage {
       tableNameRegex = tableNameRegex.substring(0, tableNameRegex.length() - 2);
       tableNameRegex += "(\\" + SEPARATOR + ".*)?";
     }
-    Pattern tableNamePattern = Pattern.compile("^" + tableNameRegex + "$");
+    Pattern tableNamePattern;
+    if (isDummy) {
+      tableNamePattern = Pattern.compile("^" + tableNameRegex + "$");
+    } else {
+      // 映射物理表
+      tableNamePattern = Pattern.compile("^" + tableNameRegex + "_[0-9]+$");
+    }
 
     String columnNameRegex = columnNames;
     if (isDummy) {
@@ -2459,60 +2465,53 @@ public class RelationalStorage implements IStorage {
         columnNamePattern += "%"; // 匹配 tagKV
       }
 
-      // Get all physical tables that match the logical table pattern
-      List<String> physicalTables = getPhysicalTables(databaseName, logicalTableNamePattern);
-      if (physicalTables.isEmpty()) {
-        continue;
-      }
-
-      // For each physical table, get matching columns
-      for (String physicalTable : physicalTables) {
-        List<ColumnField> columnFieldList;
-        if (relationalMeta.jdbcSupportSpecialChar()) {
+      List<ColumnField> columnFieldList = new ArrayList<>();
+      if (relationalMeta.jdbcSupportSpecialChar()) {
+        List<String> physicalTables = getPhysicalTables(databaseName, logicalTableNamePattern);
+        for (String physicalTable : physicalTables) {
           columnFieldList =
               getColumns(
                   databaseName,
                   reformatForJDBC(physicalTable),
                   reformatForJDBC(columnNamePattern),
                   false);
-        } else {
-          columnFieldList = getColumns(databaseName, physicalTable, columnNamePattern, false);
+        }
+      } else {
+        columnFieldList = getColumns(databaseName, "%", "%", false);
+      }
+
+      List<Pattern> patternList =
+          getRegexPatternByName(logicalTableNamePattern, columnNamePattern, false);
+      Pattern tableNamePattern = patternList.get(0), columnPattern = patternList.get(1);
+
+      for (ColumnField columnField : columnFieldList) {
+        String curTableName = columnField.getTableName();
+        String curColumnName = columnField.getColumnName();
+        if (curColumnName.equals(KEY_NAME)) {
+          continue;
         }
 
-        List<Pattern> patternList =
-            getRegexPatternByName(databaseName, physicalTable, columnNamePattern, false);
-        Pattern tableNamePattern = patternList.get(0), columnPattern = patternList.get(1);
+        if (!tableNamePattern.matcher(curTableName).find()
+            || !columnPattern.matcher(curColumnName).find()) {
+          continue;
+        }
 
-        for (ColumnField columnField : columnFieldList) {
-          String curTableName = columnField.getTableName();
-          String curColumnName = columnField.getColumnName();
-          if (curColumnName.equals(KEY_NAME)) {
-            continue;
-          }
-
-          if (!tableNamePattern.matcher(curTableName).find()
-              || !columnPattern.matcher(curColumnName).find()) {
-            continue;
-          }
-
-          if (tableNameToColumnNames.containsKey(curTableName)) {
-            curColumnName = tableNameToColumnNames.get(curTableName) + ", " + curColumnName;
-            // 此处需要去重
-            List<String> columnNamesList =
-                new ArrayList<>(
-                    Arrays.asList(tableNameToColumnNames.get(curTableName).split(", ")));
-            List<String> newColumnNamesList =
-                new ArrayList<>(Arrays.asList(curColumnName.split(", ")));
-            for (String newColumnName : newColumnNamesList) {
-              if (!columnNamesList.contains(newColumnName)) {
-                columnNamesList.add(newColumnName);
-              }
+        if (tableNameToColumnNames.containsKey(curTableName)) {
+          curColumnName = tableNameToColumnNames.get(curTableName) + ", " + curColumnName;
+          // 此处需要去重
+          List<String> columnNamesList =
+              new ArrayList<>(Arrays.asList(tableNameToColumnNames.get(curTableName).split(", ")));
+          List<String> newColumnNamesList =
+              new ArrayList<>(Arrays.asList(curColumnName.split(", ")));
+          for (String newColumnName : newColumnNamesList) {
+            if (!columnNamesList.contains(newColumnName)) {
+              columnNamesList.add(newColumnName);
             }
-
-            curColumnName = String.join(", ", columnNamesList);
           }
-          tableNameToColumnNames.put(curTableName, curColumnName);
+
+          curColumnName = String.join(", ", columnNamesList);
         }
+        tableNameToColumnNames.put(curTableName, curColumnName);
       }
     }
 
@@ -2600,7 +2599,7 @@ public class RelationalStorage implements IStorage {
       }
     }
 
-    List<Pattern> patternList = getRegexPatternByName(databaseName, tableName, columnNames, true);
+    List<Pattern> patternList = getRegexPatternByName(tableName, columnNames, true);
     Pattern tableNamePattern = patternList.get(0), columnNamePattern = patternList.get(1);
 
     if (databaseName.equals("%")) {
