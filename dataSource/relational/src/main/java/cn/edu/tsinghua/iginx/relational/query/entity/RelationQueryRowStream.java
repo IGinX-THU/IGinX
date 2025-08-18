@@ -205,7 +205,7 @@ public class RelationQueryRowStream implements RowStream {
                   + SEPARATOR
                   + (isAgg || !relationalMeta.jdbcSupportGetTableNameFromResultSet()
                       ? ""
-                      : getLogicalTableName(tableName) + SEPARATOR)
+                      : tableName + SEPARATOR)
                   + namesAndTags.k;
         } else {
           // For non-dummy mode, handle logical table name remapping
@@ -446,14 +446,22 @@ public class RelationQueryRowStream implements RowStream {
    * @return the logical table name
    */
   private String getLogicalTableName(String physicalTableName) {
-    if (physicalTableName != null) {
-      // 找到最后一个分隔符的位置
-      int lastUnderlineIndex = physicalTableName.lastIndexOf(TABLE_SUFFIX_DELIMITER);
-      if (lastUnderlineIndex > 0) {
-        // 去除最后一个下划线后的部分
+    if (physicalTableName == null || physicalTableName.isEmpty()) {
+      return physicalTableName;
+    }
+
+    // 找到最后一个分隔符的位置
+    int lastUnderlineIndex = physicalTableName.lastIndexOf(TABLE_SUFFIX_DELIMITER);
+    if (lastUnderlineIndex >= 0 && lastUnderlineIndex < physicalTableName.length() - 1) {
+      // 检查下划线后面的部分是否是纯数字
+      String suffix = physicalTableName.substring(lastUnderlineIndex + 1);
+      if (suffix.matches("\\d+")) {
+        // 确认是物理表名格式（table_数字），返回逻辑表名
         return physicalTableName.substring(0, lastUnderlineIndex);
       }
     }
+
+    // 如果不符合物理表名格式，直接返回原名（可能本身就是逻辑表名）
     return physicalTableName;
   }
 
@@ -474,7 +482,13 @@ public class RelationQueryRowStream implements RowStream {
       obj = null;
       for (int j = 1; j <= meta.getColumnCount(); j++) {
         String tempColumnName = meta.getColumnLabel(j);
-        String tempTableName = meta.getTableName(j);
+        String tempTableName;
+        // 如果是非dummy表，需要将物理表名转换成逻辑表名
+        if (isDummy) {
+          tempTableName = meta.getTableName(j);
+        } else {
+          tempTableName = getLogicalTableName(meta.getTableName(j));
+        }
         if (!relationalMeta.supportCreateDatabase()) {
           int idx = tempTableName.indexOf(SEPARATOR);
           tempTableName = tempTableName.substring(idx + 1);

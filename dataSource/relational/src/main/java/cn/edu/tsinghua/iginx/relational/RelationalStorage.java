@@ -508,7 +508,8 @@ public class RelationalStorage implements IStorage {
                     s ->
                         RelationSchema.getQuoteFullName(tableName, s, quote)
                             + " AS "
-                            + getQuotName(RelationSchema.getFullName(tableName, s)))
+                            + getQuotName(
+                                RelationSchema.getFullName(getLogicalTableName(tableName), s)))
                 .collect(Collectors.toList()));
       } else {
         fullColumnNamesList.add(
@@ -3527,14 +3528,22 @@ public class RelationalStorage implements IStorage {
   }
 
   private String getLogicalTableName(String physicalTableName) {
-    if (physicalTableName != null) {
-      // 找到最后一个分隔符的位置
-      int lastUnderlineIndex = physicalTableName.lastIndexOf(TABLE_SUFFIX_DELIMITER);
-      if (lastUnderlineIndex > 0) {
-        // 去除最后一个下划线后的部分
+    if (physicalTableName == null || physicalTableName.isEmpty()) {
+      return physicalTableName;
+    }
+
+    // 找到最后一个分隔符的位置
+    int lastUnderlineIndex = physicalTableName.lastIndexOf(TABLE_SUFFIX_DELIMITER);
+    if (lastUnderlineIndex >= 0 && lastUnderlineIndex < physicalTableName.length() - 1) {
+      // 检查下划线后面的部分是否是纯数字
+      String suffix = physicalTableName.substring(lastUnderlineIndex + 1);
+      if (suffix.matches("\\d+")) {
+        // 确认是物理表名格式（table_数字），返回逻辑表名
         return physicalTableName.substring(0, lastUnderlineIndex);
       }
     }
+
+    // 如果不符合物理表名格式，直接返回原名（可能本身就是逻辑表名）
     return physicalTableName;
   }
 }
