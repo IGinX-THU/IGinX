@@ -26,6 +26,7 @@ import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.TooManyPhysicalTasksException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.UnexpectedOperatorException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.MemoryPhysicalTaskDispatcher;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.stream.EmptyRowStream;
 import cn.edu.tsinghua.iginx.engine.physical.optimizer.ReplicaDispatcher;
 import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
 import cn.edu.tsinghua.iginx.engine.physical.storage.StorageManager;
@@ -149,12 +150,17 @@ public class StoragePhysicalTaskExecutor {
                                   new DataArea(storageUnit, fragmentMeta.getKeyInterval());
                               switch (op.getType()) {
                                 case Project:
+                                  Project project = (Project) op;
+                                  if (project.getPatterns().isEmpty()) {
+                                    result = new TaskExecuteResult(new EmptyRowStream());
+                                    break;
+                                  }
                                   PushDownStrategy strategy =
                                       PushDownStrategyFactory.getStrategy(
                                           operators, pair.k, dataArea, isDummyStorageUnit);
                                   result =
                                       strategy.execute(
-                                          (Project) op,
+                                          project,
                                           operators,
                                           dataArea,
                                           pair.k,
