@@ -2822,10 +2822,10 @@ public class RelationalStorage implements IStorage {
       RelationSchema schema = new RelationSchema(path, relationalMeta.getQuote());
       String tableName = schema.getTableName();
       String columnName = schema.getColumnName();
+      columnName = toFullName(columnName, tags);
       if (existedColumns.contains(tableName + SEPARATOR + columnName)) {
         continue;
       }
-      columnName = toFullName(columnName, tags);
       tableToColumns.putIfAbsent(tableName, new LinkedHashSet<>());
       tableToColumns.get(tableName).add(new Pair<>(columnName, dataType));
     }
