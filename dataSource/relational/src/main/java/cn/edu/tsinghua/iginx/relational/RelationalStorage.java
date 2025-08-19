@@ -493,11 +493,12 @@ public class RelationalStorage implements IStorage {
     String firstTable = "";
     char quote = relationalMeta.getQuote();
     for (Map.Entry<String, String> entry : tableNameToColumnNames.entrySet()) {
-      String tableName = reshapeTableNameBeforeQuery(entry.getKey(), databaseName);
+      String physicalTableName = reshapeTableNameBeforeQuery(entry.getKey(), databaseName);
+      String logicalTableName = getLogicalTableName(physicalTableName);
       if (firstTable.isEmpty()) {
-        firstTable = tableName;
+        firstTable = logicalTableName;
       }
-      tableNames.add(tableName);
+      tableNames.add(logicalTableName);
       List<String> fullColumnNames = new ArrayList<>(Arrays.asList(entry.getValue().split(", ")));
 
       // 将columnNames中的列名加上tableName前缀
@@ -506,23 +507,24 @@ public class RelationalStorage implements IStorage {
             fullColumnNames.stream()
                 .map(
                     s ->
-                        RelationSchema.getQuoteFullName(tableName, s, quote)
+                        RelationSchema.getQuoteFullName(physicalTableName, s, quote)
                             + " AS "
-                            + getQuotName(RelationSchema.getFullName(tableName, s)))
+                            + getQuotName(RelationSchema.getFullName(logicalTableName, s)))
                 .collect(Collectors.toList()));
       } else {
         fullColumnNamesList.add(
             fullColumnNames.stream()
-                .map(s -> RelationSchema.getQuoteFullName(tableName, s, quote))
+                .map(s -> RelationSchema.getQuoteFullName(physicalTableName, s, quote)+ " AS "
+                        + getQuotName(RelationSchema.getFullName(logicalTableName, s)))
                 .collect(Collectors.toList()));
       }
       fullColumnNamesListForExpandFilter.add(
           fullColumnNames.stream()
-              .map(s -> RelationSchema.getFullName(tableName, s))
+              .map(s -> RelationSchema.getFullName(logicalTableName, s))
               .collect(Collectors.toList()));
       fullColumnNamesListForExpandFilter
           .get(fullColumnNamesListForExpandFilter.size() - 1)
-          .add(RelationSchema.getFullName(tableName, KEY_NAME));
+          .add(RelationSchema.getFullName(logicalTableName, KEY_NAME));
     }
 
     StringBuilder fullColumnNames = new StringBuilder();
@@ -664,16 +666,22 @@ public class RelationalStorage implements IStorage {
       Set<String> patterns = project.getPatterns().stream().collect(Collectors.toSet());
       Map<String, String> physicalTableToColumnNames =
           splitAndMergeQueryPatterns(databaseName, patterns);
+      Map<String, String> logicalTableToColumnNames = physicalTableToColumnNames.entrySet().stream()
+              .collect(Collectors.toMap(
+                      entry -> getLogicalTableName(entry.getKey()),
+                      Map.Entry::getValue,
+                      (v1, v2) -> v1 + ", " + v2
+              ));
 
-      // 预处理Filter，让Filter中的table映射到物理表
-      filter = reshapeFilterPathForPhysicalTable(filter, databaseName);
+//      // 预处理Filter，让Filter中的table映射到物理表
+//      filter = reshapeFilterPathForPhysicalTable(filter, databaseName);
       if (!relationalMeta.supportCreateDatabase()) {
         filter = reshapeFilterBeforeQuery(filter, databaseName);
       }
 
       // 按列顺序加上表名
       Filter expandFilter =
-          expandFilter(filter.copy(), physicalTableToColumnNames, databaseName, false);
+          expandFilter(filter.copy(), logicalTableToColumnNames, databaseName, false);
 
       String statement;
       // 如果table>1的情况下存在Value或Path Filter，说明filter的匹配需要跨table，此时需要将所有table join到一起进行查询
@@ -681,11 +689,13 @@ public class RelationalStorage implements IStorage {
           && !(physicalTableToColumnNames.size() > 1
               && filterContainsType(Arrays.asList(FilterType.Value, FilterType.Path), filter))) {
         for (Map.Entry<String, String> entry : physicalTableToColumnNames.entrySet()) {
-          String tableName = entry.getKey();
-          tableName = reshapeTableNameBeforeQuery(tableName, databaseName);
+          String physicalTableName = entry.getKey();
+          String logicalTableName = getLogicalTableName(physicalTableName);
+          physicalTableName = reshapeTableNameBeforeQuery(physicalTableName, databaseName);
+          logicalTableName = reshapeTableNameBeforeQuery(logicalTableName, databaseName);
           String quotColumnNames = getQuotColumnNames(entry.getValue());
           if (!relationalMeta.jdbcSupportGetTableNameFromResultSet()) {
-            quotColumnNames = getQuotTableAndColumnNames(tableName, entry.getValue());
+            quotColumnNames = getQuotTableAndColumnNames(logicalTableName, entry.getValue());
           }
 
           String filterStr = filterTransformer.toString(expandFilter);
@@ -694,7 +704,7 @@ public class RelationalStorage implements IStorage {
                   relationalMeta.getQueryTableStatement(),
                   getQuotName(KEY_NAME),
                   quotColumnNames,
-                  getQuotName(tableName),
+                  getQuotName(physicalTableName) + " AS " + getQuotName(logicalTableName),
                   filterStr.isEmpty() ? "" : "WHERE " + filterStr,
                   getQuotName(KEY_NAME));
 
