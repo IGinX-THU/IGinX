@@ -498,7 +498,7 @@ public class RelationalStorage implements IStorage {
       if (firstTable.isEmpty()) {
         firstTable = logicalTableName;
       }
-      tableNames.add(logicalTableName);
+      tableNames.add(physicalTableName);
       List<String> fullColumnNames = new ArrayList<>(Arrays.asList(entry.getValue().split(", ")));
 
       // 将columnNames中的列名加上tableName前缀
@@ -507,15 +507,18 @@ public class RelationalStorage implements IStorage {
             fullColumnNames.stream()
                 .map(
                     s ->
-                        RelationSchema.getQuoteFullName(physicalTableName, s, quote)
+                        RelationSchema.getQuoteFullName(logicalTableName, s, quote)
                             + " AS "
                             + getQuotName(RelationSchema.getFullName(logicalTableName, s)))
                 .collect(Collectors.toList()));
       } else {
         fullColumnNamesList.add(
             fullColumnNames.stream()
-                .map(s -> RelationSchema.getQuoteFullName(physicalTableName, s, quote)+ " AS "
-                        + getQuotName(RelationSchema.getFullName(logicalTableName, s)))
+                .map(
+                    s ->
+                        RelationSchema.getQuoteFullName(logicalTableName, s, quote)
+                            + " AS "
+                            + getQuotName(RelationSchema.getFullName(logicalTableName, s)))
                 .collect(Collectors.toList()));
       }
       fullColumnNamesListForExpandFilter.add(
@@ -558,7 +561,8 @@ public class RelationalStorage implements IStorage {
 
     String fullColumnNamesStr = fullColumnNames.toString();
     String filterStr = filterTransformer.toString(filter);
-    String orderByKey = RelationSchema.getQuoteFullName(tableNames.get(0), KEY_NAME, quote);
+    String orderByKey =
+        RelationSchema.getQuoteFullName(getLogicalTableName(tableNames.get(0)), KEY_NAME, quote);
     if (!relationalMeta.isSupportFullJoin()) {
       // 如果不支持full join,需要为left join + union模拟的full join表起别名，同时select、where、order by的部分都要调整
       fullColumnNamesStr = fullColumnNamesStr.replaceAll("`\\.`", ".");
@@ -666,15 +670,16 @@ public class RelationalStorage implements IStorage {
       Set<String> patterns = project.getPatterns().stream().collect(Collectors.toSet());
       Map<String, String> physicalTableToColumnNames =
           splitAndMergeQueryPatterns(databaseName, patterns);
-      Map<String, String> logicalTableToColumnNames = physicalTableToColumnNames.entrySet().stream()
-              .collect(Collectors.toMap(
+      Map<String, String> logicalTableToColumnNames =
+          physicalTableToColumnNames.entrySet().stream()
+              .collect(
+                  Collectors.toMap(
                       entry -> getLogicalTableName(entry.getKey()),
                       Map.Entry::getValue,
-                      (v1, v2) -> v1 + ", " + v2
-              ));
+                      (v1, v2) -> v1 + ", " + v2));
 
-//      // 预处理Filter，让Filter中的table映射到物理表
-//      filter = reshapeFilterPathForPhysicalTable(filter, databaseName);
+      //      // 预处理Filter，让Filter中的table映射到物理表
+      //      filter = reshapeFilterPathForPhysicalTable(filter, databaseName);
       if (!relationalMeta.supportCreateDatabase()) {
         filter = reshapeFilterBeforeQuery(filter, databaseName);
       }
@@ -788,20 +793,22 @@ public class RelationalStorage implements IStorage {
       // 支持全连接，就直接用全连接连接各个表
       fullTableName.append(getQuotName(tableNames.get(0)));
       for (int i = 1; i < tableNames.size(); i++) {
+        String physicalTableName = tableNames.get(i);
+        String logicalTableName = getLogicalTableName(physicalTableName);
         fullTableName.insert(0, "(");
         fullTableName
             .append(" FULL OUTER JOIN ")
-            .append(getQuotName(tableNames.get(i)))
+            .append(getQuotName(logicalTableName))
             .append(" ON ");
         for (int j = 0; j < i; j++) {
           fullTableName
               .append(
                   RelationSchema.getQuoteFullName(
-                      tableNames.get(i), KEY_NAME, relationalMeta.getQuote()))
+                      logicalTableName, KEY_NAME, relationalMeta.getQuote()))
               .append(" = ")
               .append(
                   RelationSchema.getQuoteFullName(
-                      tableNames.get(j), KEY_NAME, relationalMeta.getQuote()));
+                      getLogicalTableName(tableNames.get(j)), KEY_NAME, relationalMeta.getQuote()));
 
           if (j != i - 1) {
             fullTableName.append(" AND ");
@@ -824,25 +831,30 @@ public class RelationalStorage implements IStorage {
 
       fullTableName.append("(");
       for (int i = 0; i < tableNames.size(); i++) {
-
+        String physicalTableName = tableNames.get(i);
+        String logicalTableName = getLogicalTableName(physicalTableName);
         String keyStr =
             String.format(
                 "%s.%s AS %s",
-                getQuotName(tableNames.get(i)),
+                getQuotName(logicalTableName),
                 getQuotName(KEY_NAME),
-                getQuotName(tableNames.get(i) + SEPARATOR + KEY_NAME));
+                getQuotName(logicalTableName + SEPARATOR + KEY_NAME));
         fullTableName.append(
             String.format(
-                "SELECT %s FROM %s", keyStr + ", " + allColumns, getQuotName(tableNames.get(i))));
+                "SELECT %s FROM %s",
+                keyStr + ", " + allColumns,
+                getQuotName(physicalTableName) + " AS " + getQuotName(logicalTableName)));
         for (int j = 0; j < tableNames.size(); j++) {
           if (i != j) {
             fullTableName.append(
                 String.format(
                     " LEFT JOIN %s ON %s.%s = %s.%s",
-                    getQuotName(tableNames.get(j)),
-                    getQuotName(tableNames.get(i)),
+                    getQuotName(tableNames.get(j))
+                        + " AS "
+                        + getQuotName(getLogicalTableName(tableNames.get(j))),
+                    getQuotName(logicalTableName),
                     getQuotName(KEY_NAME),
-                    getQuotName(tableNames.get(j)),
+                    getQuotName(getLogicalTableName(tableNames.get(j))),
                     getQuotName(KEY_NAME)));
           }
         }
@@ -1474,13 +1486,8 @@ public class RelationalStorage implements IStorage {
       Project project, Select select, Operator agg, DataArea dataArea) {
     List<FunctionCall> functionCalls = OperatorUtils.getFunctionCallList(agg);
     List<Expression> gbc = new ArrayList<>();
-    List<Expression> reshapedGbc = new ArrayList<>();
     if (agg.getType() == OperatorType.GroupBy) {
       gbc = ((GroupBy) agg).getGroupByExpressions();
-      gbc.forEach(
-          e -> {
-            reshapedGbc.add(reshapeExpressionColumnNameBeforeAgg(e, dataArea.getStorageUnit()));
-          });
     }
     try {
       String databaseName = dataArea.getStorageUnit();
@@ -1493,6 +1500,13 @@ public class RelationalStorage implements IStorage {
       Set<String> patterns = project.getPatterns().stream().collect(Collectors.toSet());
       Map<String, String> physicalTableToColumnNames =
           splitAndMergeQueryPatterns(databaseName, patterns);
+      Map<String, String> logicalTableToColumnNames =
+          physicalTableToColumnNames.entrySet().stream()
+              .collect(
+                  Collectors.toMap(
+                      entry -> getLogicalTableName(entry.getKey()),
+                      Map.Entry::getValue,
+                      (v1, v2) -> v1 + ", " + v2));
 
       String statement =
           getProjectWithFilterSQL(
@@ -1504,9 +1518,9 @@ public class RelationalStorage implements IStorage {
       statement =
           generateAggSql(
               functionCalls,
-              reshapedGbc,
+              gbc,
               statement,
-              physicalTableToColumnNames,
+              logicalTableToColumnNames,
               fullName2Name,
               databaseName,
               false);
@@ -1548,56 +1562,6 @@ public class RelationalStorage implements IStorage {
           new RelationalTaskExecuteFailureException(
               String.format("execute project task in %s failure", engineName), e));
     }
-  }
-
-  private Expression reshapeExpressionColumnNameBeforeAgg(Expression expr, String databaseName) {
-    Expression.ExpressionType expressionType = expr.getType();
-    switch (expressionType) {
-      case Base:
-        // 不支持创建数据库的情况下，数据库名作为tableName的一部分
-        BaseExpression baseExpr = (BaseExpression) expr;
-        RelationSchema schema = new RelationSchema(expr.getColumnName(), relationalMeta.getQuote());
-        String logicalTableName = schema.getTableName(), columnName = schema.getColumnName();
-        String physicalTableName =
-            getPhysicalTableNameForColumn(
-                databaseName,
-                logicalTableName,
-                columnName,
-                getPhysicalTables(databaseName, logicalTableName));
-        baseExpr.setPathName(physicalTableName + SEPARATOR + columnName);
-        return baseExpr;
-      case Binary:
-        BinaryExpression binaryExpression = (BinaryExpression) expr;
-        binaryExpression.setLeftExpression(
-            reshapeExpressionColumnNameBeforeAgg(
-                binaryExpression.getLeftExpression(), databaseName));
-        binaryExpression.setRightExpression(
-            reshapeExpressionColumnNameBeforeAgg(
-                binaryExpression.getRightExpression(), databaseName));
-        return binaryExpression;
-      case Bracket:
-        BracketExpression bracketExpression = (BracketExpression) expr;
-        bracketExpression.setExpression(
-            reshapeExpressionColumnNameBeforeAgg(bracketExpression.getExpression(), databaseName));
-        return bracketExpression;
-      case Function:
-        FuncExpression funcExpression = (FuncExpression) expr;
-        funcExpression
-            .getExpressions()
-            .replaceAll(
-                expression -> reshapeExpressionColumnNameBeforeAgg(expression, databaseName));
-        return funcExpression;
-      case Multiple:
-        MultipleExpression multipleExpression = (MultipleExpression) expr;
-        multipleExpression
-            .getChildren()
-            .replaceAll(
-                expression -> reshapeExpressionColumnNameBeforeAgg(expression, databaseName));
-        return multipleExpression;
-      default:
-        break;
-    }
-    return expr;
   }
 
   private Map<String, DataType> getSumDataType(List<FunctionCall> functionCalls)
@@ -1651,13 +1615,6 @@ public class RelationalStorage implements IStorage {
       Expression param = functionCall.getParams().getExpressions().get(0);
 
       List<Expression> expandExprs = expandExpression(param, fullColumnNames);
-      if (!isDummy) {
-        // 对于非dummy，需要对function中的path进行物理表替换
-        expandExprs =
-            expandExprs.stream()
-                .map(expr -> reshapeExpressionColumnNameBeforeAgg(expr, databaseName))
-                .collect(Collectors.toList());
-      }
       for (Expression expr : expandExprs) {
         String IGinXTagKVName =
             String.format(
