@@ -1641,6 +1641,13 @@ public class RelationalStorage implements IStorage {
       Expression param = functionCall.getParams().getExpressions().get(0);
 
       List<Expression> expandExprs = expandExpression(param, fullColumnNames);
+      if (!isDummy) {
+        // 对于非dummy，需要对function中的path进行物理表替换
+        expandExprs =
+            expandExprs.stream()
+                .map(expr -> reshapeExpressionColumnNameBeforeAgg(expr, databaseName))
+                .collect(Collectors.toList());
+      }
       for (Expression expr : expandExprs) {
         String IGinXTagKVName =
             String.format(
