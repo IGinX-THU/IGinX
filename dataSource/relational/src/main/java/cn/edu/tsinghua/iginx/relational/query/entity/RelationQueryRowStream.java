@@ -70,7 +70,7 @@ public class RelationQueryRowStream implements RowStream {
 
   private int[] resultSetSizes; // 记录每个结果集的列数
 
-  private Map<Field, String> fieldToColumnName; // 记录匹配 tagFilter 的列名
+  private Map<Field, Pair<String, String>> fieldToPhysicalPathAndColumnName; // 记录匹配 tagFilter 的列名
 
   private Row cachedRow;
 
@@ -146,7 +146,7 @@ public class RelationQueryRowStream implements RowStream {
     Field key = null;
     List<Field> fields = new ArrayList<>();
     this.resultSetSizes = new int[resultSets.size()];
-    this.fieldToColumnName = new HashMap<>();
+    this.fieldToPhysicalPathAndColumnName = new HashMap<>();
     this.resultSetHasColumnWithTheSameName = new ArrayList<>();
 
     needFilter = (!isAgg && resultSets.size() != 1) || isDummy;
@@ -162,7 +162,7 @@ public class RelationQueryRowStream implements RowStream {
 
       int cnt = 0;
       for (int j = 1; j <= resultSetMetaData.getColumnCount(); j++) {
-        String tableName = resultSetMetaData.getTableName(j);
+        String physicalTableName = resultSetMetaData.getTableName(j);
         String columnName = resultSetMetaData.getColumnLabel(j);
         String columnType = resultSetMetaData.getColumnTypeName(j);
         int precision = resultSetMetaData.getPrecision(j);
@@ -176,7 +176,7 @@ public class RelationQueryRowStream implements RowStream {
           System.out.println(columnName);
           RelationSchema relationSchema =
               new RelationSchema(columnName, isDummy, relationalMeta.getQuote());
-          tableName = relationSchema.getTableName();
+          physicalTableName = relationSchema.getTableName();
           columnName = relationSchema.getColumnName();
         }
 
@@ -198,6 +198,7 @@ public class RelationQueryRowStream implements RowStream {
         }
         String databaseName = databaseNameList.get(i);
         String path;
+        String physicalPath;
         if (isDummy) {
           // For dummy mode, include database name in path
           path =
@@ -205,17 +206,29 @@ public class RelationQueryRowStream implements RowStream {
                   + SEPARATOR
                   + (isAgg || !relationalMeta.jdbcSupportGetTableNameFromResultSet()
                       ? ""
-                      : tableName + SEPARATOR)
+                      : physicalTableName + SEPARATOR)
                   + namesAndTags.k;
+          physicalPath = path;
         } else {
           // For non-dummy mode, handle logical table name remapping
-          path =
-              (isAgg || !relationalMeta.jdbcSupportGetTableNameFromResultSet()
-                      ? ""
-                      : getLogicalTableName(tableName) + SEPARATOR)
-                  + namesAndTags.k;
+          if (isAgg || !relationalMeta.jdbcSupportGetTableNameFromResultSet()) {
+            String fullColumnName = namesAndTags.k;
+            // 可能存在重命名后带有物理表名的列名，需要进行处理（转换为逻辑表名拼接），否则后续sort无法找到对应的列
+            RelationSchema schema =
+                new RelationSchema(namesAndTags.k, isDummy, relationalMeta.getQuote());
+            if (!schema.getTableName().isEmpty()) {
+              fullColumnName =
+                  getLogicalTableName(schema.getTableName()) + SEPARATOR + schema.getColumnName();
+            }
+            path = fullColumnName;
+            physicalPath = fullColumnName;
+          } else {
+            path = getLogicalTableName(physicalTableName) + SEPARATOR + namesAndTags.k;
+            physicalPath = physicalTableName + SEPARATOR + namesAndTags.k;
+          }
           if (!isAgg && !relationalMeta.supportCreateDatabase()) {
             path = path.substring(databaseName.length() + 1);
+            physicalPath = physicalPath.substring(databaseName.length() + 1);
           }
         }
 
@@ -228,7 +241,7 @@ public class RelationQueryRowStream implements RowStream {
         if (filterByTags && !TagKVUtils.match(namesAndTags.v, tagFilter)) {
           continue;
         }
-        fieldToColumnName.put(field, columnName);
+        fieldToPhysicalPathAndColumnName.put(field, new Pair(physicalPath, columnName));
         fields.add(field);
         cnt++;
       }
@@ -330,19 +343,20 @@ public class RelationQueryRowStream implements RowStream {
             Set<String> tableNameSet = new HashSet<>();
 
             for (int j = 0; j < resultSetSizes[i]; j++) {
-              String columnName = fieldToColumnName.get(header.getField(startIndex + j));
+              Pair<String, String> physicalTableAndColumnName =
+                  fieldToPhysicalPathAndColumnName.get(header.getField(startIndex + j));
+              String columnName = physicalTableAndColumnName.v;
+              String physicalPath = physicalTableAndColumnName.k;
               RelationSchema schema =
-                  new RelationSchema(
-                      header.getField(startIndex + j).getName(),
-                      isDummy,
-                      relationalMeta.getQuote());
-              String tableName = schema.getTableName();
+                  new RelationSchema(physicalPath, isDummy, relationalMeta.getQuote());
+              String physicalTableName = schema.getTableName();
 
-              tableNameSet.add(tableName);
+              tableNameSet.add(physicalTableName);
 
               Object value = null;
               try {
-                value = getResultSetObject(resultSet, columnName, tableName);
+                // 使用物理表去检索
+                value = getResultSetObject(resultSet, columnName, physicalTableName);
               } catch (IOException e) {
                 throw new RuntimeException(e);
               }
@@ -483,12 +497,7 @@ public class RelationQueryRowStream implements RowStream {
       for (int j = 1; j <= meta.getColumnCount(); j++) {
         String tempColumnName = meta.getColumnLabel(j);
         String tempTableName;
-        // 如果是非dummy表，需要将物理表名转换成逻辑表名
-        if (isDummy) {
-          tempTableName = meta.getTableName(j);
-        } else {
-          tempTableName = getLogicalTableName(meta.getTableName(j));
-        }
+        tempTableName = meta.getTableName(j);
         if (!relationalMeta.supportCreateDatabase()) {
           int idx = tempTableName.indexOf(SEPARATOR);
           tempTableName = tempTableName.substring(idx + 1);
