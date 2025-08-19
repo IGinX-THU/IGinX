@@ -508,8 +508,7 @@ public class RelationalStorage implements IStorage {
                     s ->
                         RelationSchema.getQuoteFullName(tableName, s, quote)
                             + " AS "
-                            + getQuotName(
-                                RelationSchema.getFullName(getLogicalTableName(tableName), s)))
+                            + getQuotName(RelationSchema.getFullName(tableName, s)))
                 .collect(Collectors.toList()));
       } else {
         fullColumnNamesList.add(
@@ -1465,8 +1464,13 @@ public class RelationalStorage implements IStorage {
       Project project, Select select, Operator agg, DataArea dataArea) {
     List<FunctionCall> functionCalls = OperatorUtils.getFunctionCallList(agg);
     List<Expression> gbc = new ArrayList<>();
+    List<Expression> reshapedGbc = new ArrayList<>();
     if (agg.getType() == OperatorType.GroupBy) {
       gbc = ((GroupBy) agg).getGroupByExpressions();
+      gbc.forEach(
+          e -> {
+            reshapedGbc.add(reshapeExpressionColumnNameBeforeAgg(e, dataArea.getStorageUnit()));
+          });
     }
     try {
       String databaseName = dataArea.getStorageUnit();
@@ -1490,7 +1494,7 @@ public class RelationalStorage implements IStorage {
       statement =
           generateAggSql(
               functionCalls,
-              gbc,
+              reshapedGbc,
               statement,
               physicalTableToColumnNames,
               fullName2Name,
@@ -1534,6 +1538,56 @@ public class RelationalStorage implements IStorage {
           new RelationalTaskExecuteFailureException(
               String.format("execute project task in %s failure", engineName), e));
     }
+  }
+
+  private Expression reshapeExpressionColumnNameBeforeAgg(Expression expr, String databaseName) {
+    Expression.ExpressionType expressionType = expr.getType();
+    switch (expressionType) {
+      case Base:
+        // 不支持创建数据库的情况下，数据库名作为tableName的一部分
+        BaseExpression baseExpr = (BaseExpression) expr;
+        RelationSchema schema = new RelationSchema(expr.getColumnName(), relationalMeta.getQuote());
+        String logicalTableName = schema.getTableName(), columnName = schema.getColumnName();
+        String physicalTableName =
+            getPhysicalTableNameForColumn(
+                databaseName,
+                logicalTableName,
+                columnName,
+                getPhysicalTables(databaseName, logicalTableName));
+        baseExpr.setPathName(physicalTableName + SEPARATOR + columnName);
+        return baseExpr;
+      case Binary:
+        BinaryExpression binaryExpression = (BinaryExpression) expr;
+        binaryExpression.setLeftExpression(
+            reshapeExpressionColumnNameBeforeAgg(
+                binaryExpression.getLeftExpression(), databaseName));
+        binaryExpression.setRightExpression(
+            reshapeExpressionColumnNameBeforeAgg(
+                binaryExpression.getRightExpression(), databaseName));
+        return binaryExpression;
+      case Bracket:
+        BracketExpression bracketExpression = (BracketExpression) expr;
+        bracketExpression.setExpression(
+            reshapeExpressionColumnNameBeforeAgg(bracketExpression.getExpression(), databaseName));
+        return bracketExpression;
+      case Function:
+        FuncExpression funcExpression = (FuncExpression) expr;
+        funcExpression
+            .getExpressions()
+            .replaceAll(
+                expression -> reshapeExpressionColumnNameBeforeAgg(expression, databaseName));
+        return funcExpression;
+      case Multiple:
+        MultipleExpression multipleExpression = (MultipleExpression) expr;
+        multipleExpression
+            .getChildren()
+            .replaceAll(
+                expression -> reshapeExpressionColumnNameBeforeAgg(expression, databaseName));
+        return multipleExpression;
+      default:
+        break;
+    }
+    return expr;
   }
 
   private Map<String, DataType> getSumDataType(List<FunctionCall> functionCalls)
@@ -2470,12 +2524,12 @@ public class RelationalStorage implements IStorage {
       if (relationalMeta.jdbcSupportSpecialChar()) {
         List<String> physicalTables = getPhysicalTables(databaseName, logicalTableNamePattern);
         for (String physicalTable : physicalTables) {
-          columnFieldList =
+          columnFieldList.addAll(
               getColumns(
                   databaseName,
                   reformatForJDBC(physicalTable),
                   reformatForJDBC(columnNamePattern),
-                  false);
+                  false));
         }
       } else {
         columnFieldList = getColumns(databaseName, "%", "%", false);
@@ -2854,10 +2908,21 @@ public class RelationalStorage implements IStorage {
           // 最后一个table的列
           List<ColumnField> lastTableColumns = getColumns(storageUnit, lastTableName, "%", false);
           // 最后一个table的列总大小、列数
-          int existedRowSize = lastTableColumns.stream().mapToInt(ColumnField::getColumnSize).sum(),
-              existedColumnCount = lastTableColumns.size();
-          // 遍历列，添加到表中
-          int columnCount = columns.size(), columnIndex = 0;
+          int existedRowSize =
+              lastTableColumns.stream()
+                  .mapToInt(
+                      columnField -> {
+                        DataType dataType =
+                            relationalMeta
+                                .getDataTypeTransformer()
+                                .fromEngineType(
+                                    columnField.getColumnType(),
+                                    columnField.getColumnSize(),
+                                    columnField.getDecimalDigits());
+                        return relationalMeta.getDataTypeTransformer().getDataTypeSize(dataType);
+                      })
+                  .sum();
+          int existedColumnCount = lastTableColumns.size();
           // 循环添加列，每张表至多max_column_limit列，并且累计列的大小不超过max_single_row_size
           alterTableAddColumn(
               storageUnit,
