@@ -469,7 +469,11 @@ public class RelationQueryRowStream implements RowStream {
       for (int j = 1; j <= meta.getColumnCount(); j++) {
         String tempColumnName = meta.getColumnLabel(j);
         String tempTableName;
-        tempTableName = meta.getTableName(j);
+        if (!isDummy) {
+          tempTableName = getLogicalTableName(meta.getTableName(j));
+        } else {
+          tempTableName = meta.getTableName(j);
+        }
         if (!relationalMeta.supportCreateDatabase()) {
           int idx = tempTableName.indexOf(SEPARATOR);
           tempTableName = tempTableName.substring(idx + 1);

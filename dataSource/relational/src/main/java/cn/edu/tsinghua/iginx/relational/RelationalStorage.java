@@ -514,11 +514,7 @@ public class RelationalStorage implements IStorage {
       } else {
         fullColumnNamesList.add(
             fullColumnNames.stream()
-                .map(
-                    s ->
-                        RelationSchema.getQuoteFullName(logicalTableName, s, quote)
-                            + " AS "
-                            + getQuotName(RelationSchema.getFullName(logicalTableName, s)))
+                .map(s -> RelationSchema.getQuoteFullName(logicalTableName, s, quote))
                 .collect(Collectors.toList()));
       }
       fullColumnNamesListForExpandFilter.add(
@@ -791,14 +787,17 @@ public class RelationalStorage implements IStorage {
     StringBuilder fullTableName = new StringBuilder();
     if (relationalMeta.isSupportFullJoin()) {
       // 支持全连接，就直接用全连接连接各个表
-      fullTableName.append(getQuotName(tableNames.get(0)));
+      fullTableName.append(
+          getQuotName(tableNames.get(0))
+              + " AS "
+              + getQuotName(getLogicalTableName(tableNames.get(0))));
       for (int i = 1; i < tableNames.size(); i++) {
         String physicalTableName = tableNames.get(i);
         String logicalTableName = getLogicalTableName(physicalTableName);
         fullTableName.insert(0, "(");
         fullTableName
             .append(" FULL OUTER JOIN ")
-            .append(getQuotName(logicalTableName))
+            .append(getQuotName(physicalTableName) + " AS " + getQuotName(logicalTableName))
             .append(" ON ");
         for (int j = 0; j < i; j++) {
           fullTableName

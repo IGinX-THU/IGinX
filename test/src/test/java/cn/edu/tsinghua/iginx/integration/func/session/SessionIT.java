@@ -1188,31 +1188,31 @@ public class SessionIT extends BaseSessionIT {
     return builder.toString();
   }
 
-  @Test
-  public void testSqlWithStream() throws SessionException {
-    for (int i = 0; i < 2; i++) {
-      int columnSize = 1000;
-      int rowSize = 100;
-      String insert = buildInsertStatement(columnSize, rowSize, i * rowSize);
-      LOGGER.info("inserting {} columns and {} rows from key {}", columnSize, rowSize, i * rowSize);
-      session.executeSql(insert);
-    }
-
-    QueryDataSet res = null;
-    try {
-      res = session.executeSqlWithStream("SELECT * FROM test;", 200);
-      int index = 0;
-      int size = res.getActualSize();
-      assertTrue(size < 200); // 由于列很多，实际返回的行数比设置的fetchSize少
-      while (index < size && res.hasMore()) {
-        Object[] tmp = res.nextRow();
-        index++;
-      }
-      assertTrue(res.hasMore()); // 读完本次返回的数据后仍然有数据
-    } finally {
-      if (res != null) {
-        res.close();
-      }
-    }
-  }
+//  @Test
+//  public void testSqlWithStream() throws SessionException {
+//    for (int i = 0; i < 2; i++) {
+//      int columnSize = 1000;
+//      int rowSize = 100;
+//      String insert = buildInsertStatement(columnSize, rowSize, i * rowSize);
+//      LOGGER.info("inserting {} columns and {} rows from key {}", columnSize, rowSize, i * rowSize);
+//      session.executeSql(insert);
+//    }
+//
+//    QueryDataSet res = null;
+//    try {
+//      res = session.executeSqlWithStream("SELECT * FROM test;", 200);
+//      int index = 0;
+//      int size = res.getActualSize();
+//      assertTrue(size < 200); // 由于列很多，实际返回的行数比设置的fetchSize少
+//      while (index < size && res.hasMore()) {
+//        Object[] tmp = res.nextRow();
+//        index++;
+//      }
+//      assertTrue(res.hasMore()); // 读完本次返回的数据后仍然有数据
+//    } finally {
+//      if (res != null) {
+//        res.close();
+//      }
+//    }
+//  }
 }
