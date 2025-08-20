@@ -25,6 +25,7 @@ import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.StorageInitializationException;
 import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
+import cn.edu.tsinghua.iginx.relational.datatype.transformer.IDataTypeTransformer;
 import cn.edu.tsinghua.iginx.relational.exception.RelationalException;
 import cn.edu.tsinghua.iginx.relational.meta.AbstractRelationalMeta;
 import cn.edu.tsinghua.iginx.utils.Pair;
@@ -35,8 +36,7 @@ import java.sql.*;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,12 +54,15 @@ public abstract class AbstractDatabaseStrategy implements DatabaseStrategy {
 
   private Connection connection;
 
+  private final IDataTypeTransformer dataTypeTransformer;
+
   public AbstractDatabaseStrategy(
       AbstractRelationalMeta relationalMeta, StorageEngineMeta storageEngineMeta) {
     this.relationalMeta = relationalMeta;
     this.storageEngineMeta = storageEngineMeta;
     this.boundaryLevel =
         Integer.parseInt(storageEngineMeta.getExtraParams().getOrDefault(BOUNDARY_LEVEL, "0"));
+    this.dataTypeTransformer = relationalMeta.getDataTypeTransformer();
   }
 
   @Override
@@ -221,31 +224,34 @@ public abstract class AbstractDatabaseStrategy implements DatabaseStrategy {
       Map<String, Pair<String, List<String>>> tableToColumnEntries,
       char quote)
       throws SQLException {
-    conn.setAutoCommit(false);
     // 默认的批量插入实现
     for (Map.Entry<String, Pair<String, List<String>>> entry : tableToColumnEntries.entrySet()) {
       String tableName = entry.getKey();
       String columnNames = entry.getValue().k.substring(0, entry.getValue().k.length() - 2);
       List<String> values = entry.getValue().v;
 
+      StringBuilder statement = new StringBuilder();
+      statement.append("INSERT INTO ");
+      statement.append(getQuotName(tableName));
+      statement.append(" (");
+      statement.append(getQuotName(KEY_NAME));
+      statement.append(", ");
+
       // 处理列名
       String[] parts = columnNames.split(", ");
-      StringBuilder statement = new StringBuilder();
-      statement.append("INSERT INTO ").append(getQuotName(tableName)).append(" (");
-      statement.append(getQuotName(KEY_NAME)).append(", ");
-
-      for (int i = 0; i < parts.length; i++) {
-        statement.append(getQuotName(parts[i]));
-        if (i < parts.length - 1) statement.append(", ");
+      StringBuilder columnNamesBuilder = new StringBuilder();
+      for (String part : parts) {
+        columnNamesBuilder.append(getQuotName(part)).append(", ");
       }
-      statement.append(") VALUES (");
+      statement.append(columnNamesBuilder.substring(0, columnNamesBuilder.length() - 2));
 
-      // 占位符 ?
-      for (int i = 0; i < parts.length + 1; i++) { // +1 因为还有 KEY_NAME
-        statement.append("?");
-        if (i < parts.length) statement.append(", ");
+      statement.append(") VALUES ");
+      for (String value : values) {
+        statement.append("(");
+        statement.append(value, 0, value.length() - 2);
+        statement.append("), ");
       }
-      statement.append(") ");
+      statement.delete(statement.length() - 2, statement.length());
 
       // 处理冲突
       statement.append(relationalMeta.getUpsertStatement());
@@ -259,30 +265,9 @@ public abstract class AbstractDatabaseStrategy implements DatabaseStrategy {
       statement.delete(statement.length() - 2, statement.length());
       statement.append(";");
 
-      // 准备语句
-      try (PreparedStatement ps = conn.prepareStatement(statement.toString())) {
-        int batchSize = 0;
-        for (String value : values) {
-          // 这里你原来是 "(1, 'abc', 'def', )" 这种拼出来的字符串
-          // 建议改为 List<Object> 保存，然后逐列 setObject
-          String[] tokens = value.substring(0, value.length() - 2).split(", ");
-          for (int i = 0; i < tokens.length; i++) {
-            ps.setObject(i + 1, tokens[i]); // JDBC 会自动转义
-          }
-          ps.addBatch();
-
-          if (++batchSize % 20 == 0) { // 控制 batch 大小
-            ps.executeBatch();
-            batchSize = 0;
-          }
-        }
-        if (batchSize > 0) {
-          ps.executeBatch();
-        }
-      }
+      stmt.addBatch(statement.toString());
     }
-    // 最后统一提交
-    conn.commit();
+    stmt.executeBatch();
   }
 
   @Override

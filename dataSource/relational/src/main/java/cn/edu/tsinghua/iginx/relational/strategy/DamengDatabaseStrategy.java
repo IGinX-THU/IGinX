@@ -161,6 +161,7 @@ public class DamengDatabaseStrategy extends AbstractDatabaseStrategy {
     List<String> insertKeys = new ArrayList<>();
     List<String> updateKeys = new ArrayList<>();
     try {
+      conn.setAutoCommit(false); // 关闭自动提交
       StringBuilder placeHolder = new StringBuilder();
 
       int start = 0, end = 0, step = 0;
@@ -213,7 +214,6 @@ public class DamengDatabaseStrategy extends AbstractDatabaseStrategy {
                   getQuotName(tableName),
                   getQuotName(KEY_NAME) + "," + partStr,
                   placeHolder));
-      conn.setAutoCommit(false); // 关闭自动提交
       for (int i = 0; i < insertKeys.size(); i++) {
         String[] vals = valueMap.get(insertKeys.get(i));
         insertStmt.setString(1, vals[0]);
