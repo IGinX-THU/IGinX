@@ -221,34 +221,31 @@ public abstract class AbstractDatabaseStrategy implements DatabaseStrategy {
       Map<String, Pair<String, List<String>>> tableToColumnEntries,
       char quote)
       throws SQLException {
+    conn.setAutoCommit(false);
     // 默认的批量插入实现
     for (Map.Entry<String, Pair<String, List<String>>> entry : tableToColumnEntries.entrySet()) {
       String tableName = entry.getKey();
       String columnNames = entry.getValue().k.substring(0, entry.getValue().k.length() - 2);
       List<String> values = entry.getValue().v;
 
-      StringBuilder statement = new StringBuilder();
-      statement.append("INSERT INTO ");
-      statement.append(getQuotName(tableName));
-      statement.append(" (");
-      statement.append(getQuotName(KEY_NAME));
-      statement.append(", ");
-
       // 处理列名
       String[] parts = columnNames.split(", ");
-      StringBuilder columnNamesBuilder = new StringBuilder();
-      for (String part : parts) {
-        columnNamesBuilder.append(getQuotName(part)).append(", ");
-      }
-      statement.append(columnNamesBuilder.substring(0, columnNamesBuilder.length() - 2));
+      StringBuilder statement = new StringBuilder();
+      statement.append("INSERT INTO ").append(getQuotName(tableName)).append(" (");
+      statement.append(getQuotName(KEY_NAME)).append(", ");
 
-      statement.append(") VALUES ");
-      for (String value : values) {
-        statement.append("(");
-        statement.append(value, 0, value.length() - 2);
-        statement.append("), ");
+      for (int i = 0; i < parts.length; i++) {
+        statement.append(getQuotName(parts[i]));
+        if (i < parts.length - 1) statement.append(", ");
       }
-      statement.delete(statement.length() - 2, statement.length());
+      statement.append(") VALUES (");
+
+      // 占位符 ?
+      for (int i = 0; i < parts.length + 1; i++) { // +1 因为还有 KEY_NAME
+        statement.append("?");
+        if (i < parts.length) statement.append(", ");
+      }
+      statement.append(") ");
 
       // 处理冲突
       statement.append(relationalMeta.getUpsertStatement());
@@ -262,9 +259,30 @@ public abstract class AbstractDatabaseStrategy implements DatabaseStrategy {
       statement.delete(statement.length() - 2, statement.length());
       statement.append(";");
 
-      stmt.addBatch(statement.toString());
+      // 准备语句
+      try (PreparedStatement ps = conn.prepareStatement(statement.toString())) {
+        int batchSize = 0;
+        for (String value : values) {
+          // 这里你原来是 "(1, 'abc', 'def', )" 这种拼出来的字符串
+          // 建议改为 List<Object> 保存，然后逐列 setObject
+          String[] tokens = value.substring(0, value.length() - 2).split(", ");
+          for (int i = 0; i < tokens.length; i++) {
+            ps.setObject(i + 1, tokens[i]); // JDBC 会自动转义
+          }
+          ps.addBatch();
+
+          if (++batchSize % 20 == 0) { // 控制 batch 大小
+            ps.executeBatch();
+            batchSize = 0;
+          }
+        }
+        if (batchSize > 0) {
+          ps.executeBatch();
+        }
+      }
     }
-    stmt.executeBatch();
+    // 最后统一提交
+    conn.commit();
   }
 
   @Override
