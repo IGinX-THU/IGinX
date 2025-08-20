@@ -83,7 +83,7 @@ public abstract class AbstractDatabaseStrategy implements DatabaseStrategy {
       return null;
     }
 
-    if (relationalMeta.supportCreateDatabase()) {
+    if (relationalMeta.isSupportCreateDatabase()) {
       try (Statement stmt = connection.createStatement()) {
         stmt.execute(
             String.format(relationalMeta.getCreateDatabaseStatement(), getQuotName(databaseName)));

@@ -193,7 +193,7 @@ public class RelationalStorage implements IStorage {
     List<String> databaseNames = new ArrayList<>();
     String DefaultDatabaseName = relationalMeta.getDefaultDatabaseName();
     String query =
-        (isDummy || relationalMeta.supportCreateDatabase())
+        (isDummy || relationalMeta.isSupportCreateDatabase())
             ? relationalMeta.getDummyDatabaseQuerySql()
             : relationalMeta.getDatabaseQuerySql();
     try (Connection conn = dbStrategy.getConnection(DefaultDatabaseName);
@@ -408,7 +408,7 @@ public class RelationalStorage implements IStorage {
         table2cols = dummyRes.get(databaseName);
         for (String tableName : table2cols.keySet()) {
           // 对于不支持database创建的数据库，unit前缀的databaseName将会作为表名前缀混入dummy中，需要进行过滤
-          if (!relationalMeta.supportCreateDatabase() && tableName.startsWith(DATABASE_PREFIX)) {
+          if (!relationalMeta.isSupportCreateDatabase() && tableName.startsWith(DATABASE_PREFIX)) {
             continue;
           }
           colPattern = table2cols.get(tableName);
@@ -676,7 +676,7 @@ public class RelationalStorage implements IStorage {
 
       //      // 预处理Filter，让Filter中的table映射到物理表
       //      filter = reshapeFilterPathForPhysicalTable(filter, databaseName);
-      if (!relationalMeta.supportCreateDatabase()) {
+      if (!relationalMeta.isSupportCreateDatabase()) {
         filter = reshapeFilterBeforeQuery(filter, databaseName);
       }
 
@@ -743,7 +743,7 @@ public class RelationalStorage implements IStorage {
         }
       }
 
-      if (!relationalMeta.supportCreateDatabase()) {
+      if (!relationalMeta.isSupportCreateDatabase()) {
         filter = reshapeFilterAfterQuery(filter, databaseName);
       }
 
@@ -770,14 +770,14 @@ public class RelationalStorage implements IStorage {
   }
 
   private String reshapeTableNameBeforeQuery(String tableName, String databaseName) {
-    if (!relationalMeta.supportCreateDatabase()) {
+    if (!relationalMeta.isSupportCreateDatabase()) {
       tableName = databaseName + "." + tableName;
     }
     return tableName;
   }
 
   private String reshapeTableNameAfterQuery(String tableName, String databaseName) {
-    if (!relationalMeta.supportCreateDatabase()) {
+    if (!relationalMeta.isSupportCreateDatabase()) {
       tableName = tableName.substring(databaseName.length() + 1);
     }
     return tableName;
@@ -977,7 +977,7 @@ public class RelationalStorage implements IStorage {
     List<List<String>> fullColumnNamesList = new ArrayList<>();
     for (Map.Entry<String, String> entry : tableNameToColumnNames.entrySet()) {
       List<String> fullColumnNames = new ArrayList<>(Arrays.asList(entry.getValue().split(", ")));
-      if (!relationalMeta.supportCreateDatabase() && !isDummy) {
+      if (!relationalMeta.isSupportCreateDatabase() && !isDummy) {
         fullColumnNames.replaceAll(
             s ->
                 RelationSchema.getQuoteFullName(
@@ -1686,7 +1686,7 @@ public class RelationalStorage implements IStorage {
       case Base:
         // 不支持创建数据库的情况下，数据库名作为tableName的一部分
         BaseExpression baseExpr = (BaseExpression) expr;
-        if (!relationalMeta.supportCreateDatabase() && !isDummy) {
+        if (!relationalMeta.isSupportCreateDatabase() && !isDummy) {
           baseExpr.setPathName(databaseName + SEPARATOR + expr.getColumnName());
         }
         return baseExpr;
@@ -1734,7 +1734,7 @@ public class RelationalStorage implements IStorage {
       case Base:
         // 不支持创建数据库的情况下，数据库名作为tableName的一部分
         BaseExpression baseExpr = (BaseExpression) expr;
-        if (!relationalMeta.supportCreateDatabase() && !isDummy) {
+        if (!relationalMeta.isSupportCreateDatabase() && !isDummy) {
           baseExpr.setPathName(expr.getColumnName().substring(databaseName.length() + 1));
         }
         return baseExpr;
@@ -2199,7 +2199,7 @@ public class RelationalStorage implements IStorage {
 
       if (delete.getKeyRanges() == null || delete.getKeyRanges().isEmpty()) {
         if (paths.size() == 1 && paths.get(0).equals("*") && delete.getTagFilter() == null) {
-          if (relationalMeta.supportCreateDatabase()) {
+          if (relationalMeta.isSupportCreateDatabase()) {
             // 删除整个数据库
             dbStrategy.closeConnection(databaseName);
             Connection defaultConn =
@@ -3364,7 +3364,7 @@ public class RelationalStorage implements IStorage {
           @Override
           public void visit(BaseExpression expression) {
             String path = expression.getColumnName();
-            if (!relationalMeta.supportCreateDatabase() && path.startsWith(DATABASE_PREFIX)) {
+            if (!relationalMeta.isSupportCreateDatabase() && path.startsWith(DATABASE_PREFIX)) {
               int firstSeparatorIndex = path.indexOf(SEPARATOR);
               path = path.substring(firstSeparatorIndex + 1);
             }

@@ -121,7 +121,7 @@ public class DamengDatabaseStrategy extends AbstractDatabaseStrategy {
 
   @Override
   public String getSchemaPattern(String databaseName, boolean isDummy) {
-    if (isDummy || relationalMeta.supportCreateDatabase()) {
+    if (isDummy || relationalMeta.isSupportCreateDatabase()) {
       return databaseName;
     }
     return storageEngineMeta.getExtraParams().get(USERNAME);
@@ -140,14 +140,8 @@ public class DamengDatabaseStrategy extends AbstractDatabaseStrategy {
       String columnNames = entry.getValue().k.substring(0, entry.getValue().k.length() - 2);
       List<String> values = entry.getValue().v;
       String[] parts = columnNames.split(", ");
-      if (relationalMeta.supportCreateDatabase()) {
-        Map<String, ColumnField> columnMap = getColumnMap(conn, tableName, databaseName);
-        this.batchInsert(conn, tableName, columnMap, parts, values);
-      } else {
-        Map<String, ColumnField> columnMap =
-            getColumnMap(conn, databaseName + "." + tableName, null);
-        this.batchInsert(conn, databaseName + "." + tableName, columnMap, parts, values);
-      }
+      Map<String, ColumnField> columnMap = getColumnMap(conn, tableName, databaseName);
+      this.batchInsert(conn, tableName, columnMap, parts, values);
     }
     stmt.executeBatch();
   }

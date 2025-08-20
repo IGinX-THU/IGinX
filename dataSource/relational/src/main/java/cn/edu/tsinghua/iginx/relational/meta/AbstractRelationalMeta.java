@@ -104,7 +104,7 @@ public abstract class AbstractRelationalMeta {
 
   public abstract String getDropTableStatement();
 
-  public abstract boolean supportCreateDatabase();
+  public abstract boolean isSupportCreateDatabase();
 
   public abstract String getDropDatabaseStatement();
 

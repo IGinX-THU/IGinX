@@ -212,7 +212,7 @@ public class RelationQueryRowStream implements RowStream {
                       ? ""
                       : getLogicalTableName(tableName) + SEPARATOR)
                   + namesAndTags.k;
-          if (!isAgg && !relationalMeta.supportCreateDatabase()) {
+          if (!isAgg && !relationalMeta.isSupportCreateDatabase()) {
             path = path.substring(databaseName.length() + 1);
           }
         }
@@ -474,7 +474,7 @@ public class RelationQueryRowStream implements RowStream {
         } else {
           tempTableName = meta.getTableName(j);
         }
-        if (!relationalMeta.supportCreateDatabase()) {
+        if (!relationalMeta.isSupportCreateDatabase()) {
           int idx = tempTableName.indexOf(SEPARATOR);
           tempTableName = tempTableName.substring(idx + 1);
         }

@@ -190,7 +190,7 @@ public class JDBCMeta extends AbstractRelationalMeta {
   }
 
   @Override
-  public boolean supportCreateDatabase() {
+  public boolean isSupportCreateDatabase() {
     return supportCreateDatabase;
   }
 
