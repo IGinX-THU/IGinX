@@ -705,7 +705,7 @@ public class RelationalStorage implements IStorage {
                   relationalMeta.getQueryTableStatement(),
                   getQuotName(KEY_NAME),
                   quotColumnNames,
-                  getQuotName(physicalTableName) + " AS " + getQuotName(logicalTableName),
+                  getQuotName(physicalTableName) + " " + getQuotName(logicalTableName),
                   filterStr.isEmpty() ? "" : "WHERE " + filterStr,
                   getQuotName(KEY_NAME));
 
@@ -789,7 +789,7 @@ public class RelationalStorage implements IStorage {
       // 支持全连接，就直接用全连接连接各个表
       fullTableName.append(
           getQuotName(tableNames.get(0))
-              + " AS "
+              + " "
               + getQuotName(getLogicalTableName(tableNames.get(0))));
       for (int i = 1; i < tableNames.size(); i++) {
         String physicalTableName = tableNames.get(i);
@@ -797,7 +797,7 @@ public class RelationalStorage implements IStorage {
         fullTableName.insert(0, "(");
         fullTableName
             .append(" FULL OUTER JOIN ")
-            .append(getQuotName(physicalTableName) + " AS " + getQuotName(logicalTableName))
+            .append(getQuotName(physicalTableName) + " " + getQuotName(logicalTableName))
             .append(" ON ");
         for (int j = 0; j < i; j++) {
           fullTableName
@@ -842,14 +842,14 @@ public class RelationalStorage implements IStorage {
             String.format(
                 "SELECT %s FROM %s",
                 keyStr + ", " + allColumns,
-                getQuotName(physicalTableName) + " AS " + getQuotName(logicalTableName)));
+                getQuotName(physicalTableName) + " " + getQuotName(logicalTableName)));
         for (int j = 0; j < tableNames.size(); j++) {
           if (i != j) {
             fullTableName.append(
                 String.format(
                     " LEFT JOIN %s ON %s.%s = %s.%s",
                     getQuotName(tableNames.get(j))
-                        + " AS "
+                        + " "
                         + getQuotName(getLogicalTableName(tableNames.get(j))),
                     getQuotName(logicalTableName),
                     getQuotName(KEY_NAME),
