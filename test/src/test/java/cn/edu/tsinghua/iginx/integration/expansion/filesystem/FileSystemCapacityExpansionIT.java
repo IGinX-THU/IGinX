@@ -129,6 +129,7 @@ public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
       testQueryRawChunks();
       testQueryParquets();
       testQueryCSV();
+      testQueryMultiFormat();
     } catch (SessionException e) {
       LOGGER.error("add or remove read only storage engine failed ", e);
       fail();
@@ -413,6 +414,29 @@ public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
             + "|  4|                            1|                            2|                            3|               828115200000|\n"
             + "+---+-----------------------------+-----------------------------+-----------------------------+---------------------------+\n"
             + "Total line number = 5\n";
+    SQLTestTools.executeAndCompare(session, statement, expect);
+  }
+
+  private void testQueryMultiFormat() {
+    String statement =
+        "select 3\\txt, disp, lineitem\\tsv.l_suppkey, lineitem\\csv.l_extendedprice from * where key >= 0 and key <10;";
+    String expect =
+        "ResultSets:\n"
+            + "+---+------------------------------------------+----------------------------+------------------------+--------------------------------+\n"
+            + "|key|                               a.f.g.3\\txt|a.other.MT cars\\parquet.disp|a.lineitem\\tsv.l_suppkey|csv.lineitem\\csv.l_extendedprice|\n"
+            + "+---+------------------------------------------+----------------------------+------------------------+--------------------------------+\n"
+            + "|  0|012345678910111213141516171819202122232425|                       160.0|                       4|                        17954.55|\n"
+            + "|  1|                                      null|                       160.0|                       9|                        34850.16|\n"
+            + "|  2|                                      null|                       108.0|                       5|                         7712.48|\n"
+            + "|  3|                                      null|                       258.0|                       6|                         25284.0|\n"
+            + "|  4|                                      null|                       360.0|                       8|                        22200.48|\n"
+            + "|  5|                                      null|                       225.0|                       3|                            null|\n"
+            + "|  6|                                      null|                       360.0|                       2|                            null|\n"
+            + "|  7|                                      null|                       146.7|                       2|                            null|\n"
+            + "|  8|                                      null|                       140.8|                      10|                            null|\n"
+            + "|  9|                                      null|                       167.6|                       8|                            null|\n"
+            + "+---+------------------------------------------+----------------------------+------------------------+--------------------------------+\n"
+            + "Total line number = 10\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
   }
 }

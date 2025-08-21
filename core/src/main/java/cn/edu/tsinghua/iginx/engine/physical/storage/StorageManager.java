@@ -21,6 +21,7 @@ package cn.edu.tsinghua.iginx.engine.physical.storage;
 
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
+import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
@@ -56,6 +57,7 @@ public class StorageManager {
         System.exit(-1);
       }
     }
+    DefaultMetaManager.getInstance().addStorageConnection(metaList);
   }
 
   /** 仅适用于已经被注册的引擎 */
