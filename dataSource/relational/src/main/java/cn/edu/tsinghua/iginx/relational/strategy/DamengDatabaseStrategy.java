@@ -140,8 +140,14 @@ public class DamengDatabaseStrategy extends AbstractDatabaseStrategy {
       String columnNames = entry.getValue().k.substring(0, entry.getValue().k.length() - 2);
       List<String> values = entry.getValue().v;
       String[] parts = columnNames.split(", ");
-      Map<String, ColumnField> columnMap = getColumnMap(conn, tableName, databaseName);
-      this.batchInsert(conn, tableName, columnMap, parts, values);
+      if (relationalMeta.isSupportCreateDatabase()) {
+        Map<String, ColumnField> columnMap = getColumnMap(conn, tableName, databaseName);
+        this.batchInsert(conn, tableName, columnMap, parts, values);
+      } else {
+        Map<String, ColumnField> columnMap =
+            getColumnMap(conn, databaseName + "." + tableName, null);
+        this.batchInsert(conn, databaseName + "." + tableName, columnMap, parts, values);
+      }
     }
     stmt.executeBatch();
   }

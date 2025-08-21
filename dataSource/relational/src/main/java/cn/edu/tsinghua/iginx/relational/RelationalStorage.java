@@ -2693,18 +2693,17 @@ public class RelationalStorage implements IStorage {
   }
 
   private List<Integer> splitLogicalTable(
-      int existedTableNum, int existedRowSize, List<Pair<String, DataType>> columnList) {
+      int existedColumnNum, int existedRowSize, List<Pair<String, DataType>> columnList) {
     int columnCount = columnList.size();
     // 分片节点（贪心）
     List<Integer> columnIndexList = new ArrayList<>();
     columnIndexList.add(0);
-    int singleRowSize = existedRowSize, columnNum = existedTableNum;
+    int singleRowSize = existedRowSize, columnNum = existedColumnNum;
     // 限制，maxColumnNumLimit需要减1，留出一列给Key
     int maxSingleRowSizeLimit = relationalMeta.getMaxSingleRowSizeLimit(),
         maxColumnNumLimit = relationalMeta.getMaxColumnNumLimit() - 1;
     for (int i = 0; i < columnCount; i++) {
       int colSize = relationalMeta.getDataTypeTransformer().getDataTypeSize(columnList.get(i).v);
-
       // 单列超限
       if (colSize > maxSingleRowSizeLimit) {
         if (columnNum > 0) {
@@ -2715,14 +2714,12 @@ public class RelationalStorage implements IStorage {
         columnNum = 0;
         continue;
       }
-
       // 如果加上这一列会超限 → 切片
       if (singleRowSize + colSize > maxSingleRowSizeLimit || columnNum + 1 > maxColumnNumLimit) {
         columnIndexList.add(i);
         singleRowSize = 0;
         columnNum = 0;
       }
-
       singleRowSize += colSize;
       columnNum++;
     }
@@ -2734,7 +2731,9 @@ public class RelationalStorage implements IStorage {
   }
 
   private void executeCreateTable(
-      String tableName, List<Pair<String, DataType>> columns, Statement stmt) throws SQLException {
+      String databaseName, String tableName, List<Pair<String, DataType>> columns, Statement stmt)
+      throws SQLException {
+    tableName = reshapeTableNameBeforeQuery(tableName, databaseName);
     // 拼接列信息
     StringBuilder columnDefinitions = new StringBuilder();
     for (Pair<String, DataType> column : columns) {
@@ -2763,18 +2762,19 @@ public class RelationalStorage implements IStorage {
   }
 
   private void createTable(
-      int tableIndex, String tableName, List<Pair<String, DataType>> columnList, Statement stmt)
+      int tableIndex,
+      String databaseName,
+      String tableName,
+      List<Pair<String, DataType>> columnList,
+      List<Integer> columnIndexList,
+      Statement stmt)
       throws SQLException {
-    List<Integer> columnIndexList = splitLogicalTable(0, 0, columnList);
     for (int i = 1; i < columnIndexList.size(); i++) {
       List<Pair<String, DataType>> subColumns =
           columnList.subList(columnIndexList.get(i - 1), columnIndexList.get(i));
-
       // 拼接物理表名，比如 tableName_1, tableName_2 ...
       String physicalTableName = tableName + TABLE_SUFFIX_DELIMITER + tableIndex;
-
-      executeCreateTable(physicalTableName, subColumns, stmt);
-
+      executeCreateTable(databaseName, physicalTableName, subColumns, stmt);
       tableIndex++;
     }
   }
@@ -2784,41 +2784,36 @@ public class RelationalStorage implements IStorage {
       String tableName,
       int lastTableIndex,
       List<Pair<String, DataType>> columnList,
-      int existedTableNum,
-      int existedRowSize,
+      List<Integer> columnIndexList,
       Statement stmt)
       throws SQLException {
-    List<Integer> columnIndexList = splitLogicalTable(existedTableNum, existedRowSize, columnList);
-    String lastTableName = tableName + TABLE_SUFFIX_DELIMITER + lastTableIndex;
     for (int i = 0; i < columnIndexList.get(1); i++) {
       Pair<String, DataType> column = columnList.get(i);
       String columnName = column.k;
       DataType dataType = column.v;
-      if (getColumns(databaseName, lastTableName, columnName, false).isEmpty()) {
-        // 列不存在，添加列
-        String statement =
-            String.format(
-                relationalMeta.getAlterTableAddColumnStatement(),
-                getQuotName(lastTableName),
-                getQuotName(columnName),
-                relationalMeta.getDataTypeTransformer().toEngineType(dataType));
-        LOGGER.info("[Create] execute create: {}", statement);
-        stmt.execute(statement);
-      }
+      String lastTableName =
+          reshapeTableNameBeforeQuery(
+              tableName + TABLE_SUFFIX_DELIMITER + lastTableIndex, databaseName);
+      // 列不存在，添加列
+      String statement =
+          String.format(
+              relationalMeta.getAlterTableAddColumnStatement(),
+              getQuotName(lastTableName),
+              getQuotName(columnName),
+              relationalMeta.getDataTypeTransformer().toEngineType(dataType));
+      LOGGER.info("[Alter] execute alter: {}", statement);
+      stmt.execute(statement);
     }
+    // 剩余的列放在新表中
     if (columnIndexList.size() > 2) {
       int tableIndex = lastTableIndex + 1;
-      for (int i = 2; i < columnIndexList.size(); i++) {
-        List<Pair<String, DataType>> subColumns =
-            columnList.subList(columnIndexList.get(i - 1), columnIndexList.get(i));
-
-        // 拼接物理表名，比如 tableName_1, tableName_2 ...
-        String physicalTableName = tableName + TABLE_SUFFIX_DELIMITER + tableIndex;
-
-        executeCreateTable(physicalTableName, subColumns, stmt);
-
-        tableIndex++;
-      }
+      createTable(
+          tableIndex,
+          databaseName,
+          tableName,
+          columnList,
+          columnIndexList.subList(1, columnIndexList.size()),
+          stmt);
     }
   }
 
@@ -2863,17 +2858,17 @@ public class RelationalStorage implements IStorage {
       if (columns.isEmpty()) {
         continue; // 如果没有新列需要添加，跳过
       }
-      tableName = reshapeTableNameBeforeQuery(tableName, storageUnit);
       try {
         Statement stmt = conn.createStatement();
         List<String> physicalTables = getPhysicalTables(storageUnit, tableName);
         List<Pair<String, DataType>> columnList = new ArrayList<>(columns);
+        List<Integer> columnIndexList = new ArrayList<>();
         if (physicalTables.isEmpty()) {
           // 没有表，创建表
           // 循环建表，每张表至多max_column_limit列
           int startIndex = 1;
-          // 需要留一列给key
-          createTable(startIndex, tableName, columnList, stmt);
+          columnIndexList = splitLogicalTable(0, 0, columnList);
+          createTable(startIndex, storageUnit, tableName, columnList, columnIndexList, stmt);
         } else {
           // 表已存在，找到最后一个表名
           int lastTableIndex = physicalTables.size();
@@ -2896,15 +2891,10 @@ public class RelationalStorage implements IStorage {
                       })
                   .sum();
           int existedColumnCount = lastTableColumns.size();
+          columnIndexList = splitLogicalTable(existedColumnCount, existedRowSize, columnList);
           // 循环添加列，每张表至多max_column_limit列，并且累计列的大小不超过max_single_row_size
           alterTableAddColumn(
-              storageUnit,
-              tableName,
-              lastTableIndex,
-              columnList,
-              existedColumnCount,
-              existedRowSize,
-              stmt);
+              storageUnit, tableName, lastTableIndex, columnList, columnIndexList, stmt);
         }
         stmt.close();
       } catch (SQLException e) {
@@ -3193,8 +3183,7 @@ public class RelationalStorage implements IStorage {
             .collect(Collectors.toSet());
 
     for (String logicalTableName : logicalTableNames) {
-      String reshapedTableName = reshapeTableNameBeforeQuery(logicalTableName, databaseName);
-      List<String> physicalTables = getPhysicalTables(databaseName, reshapedTableName);
+      List<String> physicalTables = getPhysicalTables(databaseName, logicalTableName);
       logicalToPhysicalMap.put(logicalTableName, physicalTables);
     }
 
@@ -3275,21 +3264,16 @@ public class RelationalStorage implements IStorage {
   private List<String> getPhysicalTables(String databseName, String logicalTableName) {
     List<String> tables = new ArrayList<>();
     int index = 1;
-
     while (true) {
-
       String physicalTableName = logicalTableName + TABLE_SUFFIX_DELIMITER + index;
       List<String> foundTables =
           getTables(databseName, physicalTableName.replaceAll("_", escape + "_"), false);
-
       if (foundTables.isEmpty()) {
         break;
       }
-
       tables.addAll(foundTables);
       index++;
     }
-
     return tables;
   }
 
