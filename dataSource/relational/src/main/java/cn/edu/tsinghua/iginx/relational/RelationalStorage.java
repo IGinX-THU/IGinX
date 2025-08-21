@@ -674,8 +674,6 @@ public class RelationalStorage implements IStorage {
                       Map.Entry::getValue,
                       (v1, v2) -> v1 + ", " + v2));
 
-      //      // 预处理Filter，让Filter中的table映射到物理表
-      //      filter = reshapeFilterPathForPhysicalTable(filter, databaseName);
       if (!relationalMeta.isSupportCreateDatabase()) {
         filter = reshapeFilterBeforeQuery(filter, databaseName);
       }
@@ -1000,53 +998,6 @@ public class RelationalStorage implements IStorage {
         });
     filter = expandFilter(filter, fullColumnNamesList);
     filter = LogicalFilterUtils.mergeTrue(filter);
-    return filter;
-  }
-
-  private Filter reshapeFilterPathForPhysicalTable(Filter filter, String databaseName) {
-    switch (filter.getType()) {
-      case And:
-        List<Filter> andChildren = ((AndFilter) filter).getChildren();
-        for (Filter child : andChildren) {
-          Filter newFilter = reshapeFilterPathForPhysicalTable(child, databaseName);
-          andChildren.set(andChildren.indexOf(child), newFilter);
-        }
-        return new AndFilter(andChildren);
-      case Or:
-        List<Filter> orChildren = ((OrFilter) filter).getChildren();
-        for (Filter child : orChildren) {
-          Filter newFilter = reshapeFilterPathForPhysicalTable(child, databaseName);
-          orChildren.set(orChildren.indexOf(child), newFilter);
-        }
-        return new OrFilter(orChildren);
-      case Not:
-        Filter notChild = ((NotFilter) filter).getChild();
-        Filter newFilter = reshapeFilterPathForPhysicalTable(notChild, databaseName);
-        return new NotFilter(newFilter);
-      case Value:
-        ValueFilter valueFilter = ((ValueFilter) filter);
-        String path = valueFilter.getPath();
-        path = getFullPathForPhysicalTable(path, databaseName);
-        valueFilter.setPath(path);
-        return valueFilter;
-      case In:
-        InFilter inFilter = (InFilter) filter;
-        String inPath = inFilter.getPath();
-        inPath = getFullPathForPhysicalTable(inPath, databaseName);
-        inFilter.setPath(inPath);
-        return inFilter;
-      case Path:
-        PathFilter pathFilter = (PathFilter) filter;
-        String pathA = pathFilter.getPathA();
-        String pathB = pathFilter.getPathB();
-        pathA = getFullPathForPhysicalTable(pathA, databaseName);
-        pathB = getFullPathForPhysicalTable(pathB, databaseName);
-        pathFilter.setPathA(pathA);
-        pathFilter.setPathB(pathB);
-        return pathFilter;
-      default:
-        break;
-    }
     return filter;
   }
 
@@ -2827,7 +2778,7 @@ public class RelationalStorage implements IStorage {
     Map<String, LinkedHashSet<Pair<String, DataType>>> tableToColumns = new HashMap<>();
     // 得到已有的所有列
     Set<String> existedColumns =
-        getColumns(storageUnit, null, null, false).stream()
+        getColumns(storageUnit, "%", "%", false).stream()
             .map(
                 columnField ->
                     getLogicalTableName(columnField.getTableName())

@@ -70,7 +70,7 @@ public class OracleDataTypeTransformer extends JDBCDataTypeTransformer {
       case DOUBLE:
         return "BINARY_DOUBLE";
       case BINARY:
-        return "CLOB";
+        return "VARCHAR2(4000)";
       default:
         throw new IllegalArgumentException("Unsupported data type: " + dataType);
     }
