@@ -2882,7 +2882,7 @@ public class RelationalStorage implements IStorage {
 
             // 获取该列应该插入的物理表名
             String physicalTableName =
-                logicalToPhysicalTableMapForColumn.get(logicalTableName).get(columnName);
+                logicalToPhysicalTableMapForColumn.get(logicalTableName).get(toFullName(columnName, tags));
             if (physicalTableName == null) {
               throw new SQLException("physical table name is null");
             }
@@ -3002,7 +3002,7 @@ public class RelationalStorage implements IStorage {
 
           // 获取该列应该插入的物理表名
           String physicalTableName =
-              logicalToPhysicalTableMapForColumn.get(logicalTableName).get(columnName);
+              logicalToPhysicalTableMapForColumn.get(logicalTableName).get(toFullName(columnName, tags));
           if (physicalTableName == null) {
             throw new SQLException("physical table name is null");
           }
