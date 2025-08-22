@@ -357,10 +357,6 @@ public class TagIT {
     expectedLineCount = 3;
     executeAndCompareLineCount(statement, expectedLineCount);
 
-    statement = "SHOW COLUMNS ah.* limit 7, 3;";
-    expectedLineCount = 3;
-    executeAndCompareLineCount(statement, expectedLineCount);
-
     statement = "SHOW COLUMNS ah.hr02.*;";
     expected =
         "Columns:\n"

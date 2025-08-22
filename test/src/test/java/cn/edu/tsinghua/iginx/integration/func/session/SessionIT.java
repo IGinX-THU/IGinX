@@ -1176,9 +1176,8 @@ public class SessionIT extends BaseSessionIT {
     builder.append(") values ");
     for (int i = 0; i < rowSize; i++) {
       builder.append("(").append(startKey + i).append(",");
-      Random r = new Random();
       for (int j = 0; j < columnSize; j++) {
-        builder.append(r.nextInt()).append(",");
+        builder.append("'").append(RandomStringUtils.randomAlphanumeric(600)).append("',");
       }
       builder.deleteCharAt(builder.length() - 1);
       builder.append("),");
@@ -1190,9 +1189,9 @@ public class SessionIT extends BaseSessionIT {
 
   @Test
   public void testSqlWithStream() throws SessionException {
-    int columnSize = 950;
-    int rowSize = 1000;
-    for (int i = 0; i < 20; i++) {
+    for (int i = 0; i < 2; i++) {
+      int columnSize = 1000;
+      int rowSize = 100;
       String insert = buildInsertStatement(columnSize, rowSize, i * rowSize);
       LOGGER.info("inserting {} columns and {} rows from key {}", columnSize, rowSize, i * rowSize);
       session.executeSql(insert);
@@ -1200,11 +1199,10 @@ public class SessionIT extends BaseSessionIT {
 
     QueryDataSet res = null;
     try {
-      int fetchSize = 20000;
-      res = session.executeSqlWithStream("SELECT * FROM wideColumn;", fetchSize);
+      res = session.executeSqlWithStream("SELECT * FROM wideColumn;", 200);
       int index = 0;
       int size = res.getActualSize();
-      assertTrue(size < fetchSize); // 由于列很多，实际返回的行数比设置的fetchSize少
+      assertTrue(size < 200); // 由于列很多，实际返回的行数比设置的fetchSize少
       while (index < size && res.hasMore()) {
         Object[] tmp = res.nextRow();
         index++;

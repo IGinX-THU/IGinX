@@ -140,13 +140,8 @@ public class ParseTest {
 
   @Test
   public void testParseSpecialClause() {
-    String limit = "SELECT a FROM test LIMIT 2, 5;";
-    UnarySelectStatement statement = (UnarySelectStatement) TestUtils.buildStatement(limit);
-    assertEquals(5, statement.getLimit());
-    assertEquals(2, statement.getOffset());
-
     String orderBy = "SELECT a FROM test ORDER BY KEY;";
-    statement = (UnarySelectStatement) TestUtils.buildStatement(orderBy);
+    UnarySelectStatement statement = (UnarySelectStatement) TestUtils.buildStatement(orderBy);
     assertEquals(1, statement.getOrderByExpressions().size());
     assertTrue(
         statement
@@ -202,7 +197,6 @@ public class ParseTest {
   @Test
   public void testParseLimitClause() {
     String selectWithLimit = "SELECT * FROM a.b LIMIT 10;";
-    String selectWithLimitAndOffset01 = "SELECT * FROM a.b LIMIT 2, 10;";
     String selectWithLimitAndOffset02 = "SELECT * FROM a.b LIMIT 10 OFFSET 2;";
     String selectWithLimitAndOffset03 = "SELECT * FROM a.b OFFSET 2 LIMIT 10;";
 
@@ -210,10 +204,6 @@ public class ParseTest {
         (UnarySelectStatement) TestUtils.buildStatement(selectWithLimit);
     assertEquals(10, statement.getLimit());
     assertEquals(0, statement.getOffset());
-
-    statement = (UnarySelectStatement) TestUtils.buildStatement(selectWithLimitAndOffset01);
-    assertEquals(10, statement.getLimit());
-    assertEquals(2, statement.getOffset());
 
     statement = (UnarySelectStatement) TestUtils.buildStatement(selectWithLimitAndOffset02);
     assertEquals(10, statement.getLimit());

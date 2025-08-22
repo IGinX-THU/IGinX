@@ -21,6 +21,7 @@ package cn.edu.tsinghua.iginx.integration.distributed.startup;
 
 import static cn.edu.tsinghua.iginx.thrift.DataType.LONG;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import cn.edu.tsinghua.iginx.exception.SessionException;
@@ -33,8 +34,11 @@ import cn.edu.tsinghua.iginx.thrift.StorageEngineInfo;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import java.io.IOException;
 import java.text.ParseException;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.junit.After;
 import org.junit.Before;
@@ -67,20 +71,20 @@ public class ClusterIT {
     session6890.closeSession();
   }
 
-  @Test
-  public void testIginxConnectivity() {
-    testIginxConnectivity(session6888);
-    testIginxConnectivity(session6889);
-    testIginxConnectivity(session6890);
+  private void testShowClusterInfo() {
+    testShowClusterInfo(session6888);
+    testShowClusterInfo(session6889);
+    testShowClusterInfo(session6890);
   }
 
-  private void testIginxConnectivity(Session session) {
+  private void testShowClusterInfo(Session session) {
     try {
       LOGGER.info(
           "Execute SHOW CLUSTER INFO for session (host: {}, port: {})",
           session.getHost(),
           session.getPort());
       ClusterInfo clusterInfo = session.getClusterInfo();
+
       assertEquals(3, clusterInfo.getIginxInfos().size());
       for (IginxInfo iginxInfo : clusterInfo.getIginxInfos()) {
         if (iginxInfo.getPort() == session.getPort()) {
@@ -89,6 +93,14 @@ public class ClusterIT {
           assertEquals("true", iginxInfo.getConnectable());
         }
       }
+
+      assertEquals(3, clusterInfo.getStorageEngineInfos().size());
+      Set<Integer> ports = new HashSet<>(Arrays.asList(6668, 6669, 6670));
+      for (StorageEngineInfo storageEngineInfo : clusterInfo.getStorageEngineInfos()) {
+        assertEquals("true", storageEngineInfo.getConnectable());
+        assertTrue(ports.contains(storageEngineInfo.getPort()));
+      }
+
       SessionExecuteSqlResult res = session.executeSql(SHOW_CLUSTER_INFO);
       String result = res.getResultInString(false, "");
       LOGGER.info("Result: \"{}\"", result);
@@ -100,6 +112,8 @@ public class ClusterIT {
 
   @Test
   public void testRemoveDummyStorage() throws InterruptedException {
+    testShowClusterInfo();
+
     IoTDB12HistoryDataGenerator generator = new IoTDB12HistoryDataGenerator();
     try {
       generator.writeHistoryData(
@@ -132,6 +146,13 @@ public class ClusterIT {
     testRemoveDummyStorageForCurrentIginx(session6888);
     testRemoveDummyStorageForCurrentIginx(session6889);
     testRemoveDummyStorageForCurrentIginx(session6890);
+    testAddStorageAgainAfterRemove();
+  }
+
+  private void testAddStorageAgainAfterRemove() throws InterruptedException {
+    testAddStorageAgainAfterRemove(session6888);
+    testAddStorageAgainAfterRemove(session6889);
+    testAddStorageAgainAfterRemove(session6890);
   }
 
   private void addStorageEngine(Session session) throws InterruptedException {
@@ -178,6 +199,11 @@ public class ClusterIT {
     testShowStorageConnectivity(session6888, false, true);
     testShowStorageConnectivity(session6889, false, true);
     testShowStorageConnectivity(session6890, false, true);
+  }
+
+  private void testAddStorageAgainAfterRemove(Session session) throws InterruptedException {
+    addStorageEngine(session);
+    testShowStorageConnectivity(session, true, false);
   }
 
   private void testShowStorageConnectivity(Session session, boolean connectable, boolean notShow) {

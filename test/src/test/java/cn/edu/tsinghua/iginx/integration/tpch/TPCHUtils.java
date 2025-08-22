@@ -232,6 +232,21 @@ public class TPCHUtils {
     LOGGER.info("Insert {} records into table [{}].", count, table);
   }
 
+  public static void showRules(Session session) {
+    String SHOW_RULES_SQL = "show rules;";
+    SessionExecuteSqlResult result = null;
+    try {
+      result = session.executeSql(SHOW_RULES_SQL);
+    } catch (SessionException e) {
+      LOGGER.error("Statement: \"{}\" execute fail. Caused by:", SHOW_RULES_SQL, e);
+    }
+    String s = "";
+    if (result != null) {
+      s = result.getResultInString(false, "");
+    }
+    LOGGER.info("Show rules results:\n{}", s);
+  }
+
   public static String readSqlFileAsString(String filePath) throws IOException {
     StringBuilder contentBuilder = new StringBuilder();
     try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
