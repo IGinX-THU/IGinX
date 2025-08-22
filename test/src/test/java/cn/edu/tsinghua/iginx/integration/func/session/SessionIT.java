@@ -19,7 +19,12 @@
  */
 package cn.edu.tsinghua.iginx.integration.func.session;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.tool.CombinedInsertTests;
@@ -1164,7 +1169,7 @@ public class SessionIT extends BaseSessionIT {
   }
 
   private String buildInsertStatement(int columnSize, int rowSize, int startKey) {
-    StringBuilder builder = new StringBuilder("insert into test(key,");
+    StringBuilder builder = new StringBuilder("insert into wideColumn(key,");
     for (int i = 0; i < columnSize; i++) {
       builder.append("c").append(i).append(",");
     }
@@ -1195,7 +1200,7 @@ public class SessionIT extends BaseSessionIT {
 
     QueryDataSet res = null;
     try {
-      res = session.executeSqlWithStream("SELECT * FROM test;", 200);
+      res = session.executeSqlWithStream("SELECT * FROM wideColumn;", 200);
       int index = 0;
       int size = res.getActualSize();
       assertTrue(size < 200); // 由于列很多，实际返回的行数比设置的fetchSize少
