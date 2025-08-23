@@ -244,6 +244,7 @@ public class Result {
 
       // 先估算元信息大小
       int metadataSize = SizeLimiter.estimateMetadataSize(paths, tagsList, types);
+      LOGGER.info("metadataSize: {}", metadataSize);
       if (metadataSize > SizeLimiter.DEFAULT_MAX_BYTES) {
         LOGGER.warn(
             "size of metadata is {} bytes, which exceeds DEFAULT_MAX_BYTES(100MB)", metadataSize);
@@ -406,7 +407,7 @@ public class Result {
         bitmapList.add(bitmapBuf);
         rowCount++;
         totalSize += valueBuf.remaining() + bitmapBuf.remaining();
-
+        LOGGER.info("totalSize: {}", totalSize);
         if (totalSize > DEFAULT_MAX_BYTES) {
           break;
         }
