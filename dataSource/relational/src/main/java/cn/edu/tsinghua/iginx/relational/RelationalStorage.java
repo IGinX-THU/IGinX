@@ -2788,7 +2788,8 @@ public class RelationalStorage implements IStorage {
       String tableName = schema.getTableName();
       String columnName = schema.getColumnName();
       columnName = toFullName(columnName, tags);
-      if (existedColumns.contains(tableName + SEPARATOR + columnName)) {
+      String fullColumnName = tableName + SEPARATOR + columnName;
+      if (existedColumns.contains(fullColumnName)) {
         continue;
       }
       tableToColumns.putIfAbsent(tableName, new LinkedHashSet<>());
