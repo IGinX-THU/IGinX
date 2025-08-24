@@ -38,7 +38,6 @@ public class ConfigDescriptor {
       loadPropsFromEnv(); // 如果在环境变量中设置了相关参数，则会覆盖配置文件中设置的参数
     }
     if (config.isNeedInitBasicUDFFunctions()) {
-      LOGGER.info("load UDF list from file.");
       loadUDFListFromFile();
     }
   }
@@ -48,17 +47,23 @@ public class ConfigDescriptor {
   }
 
   private void loadPropsFromFile() {
-    try (InputStream in =
-        new FileInputStream(EnvUtils.loadEnv(Constants.CONF, Constants.CONFIG_FILE))) {
-      LOGGER.info("load parameters from config.properties.");
+    // runs/debugged in IDE: IGINX_HOME not set, use user.dir as root
+    // runs by script: IGINX_HOME should always have been set
+    String iginxHomePath = EnvUtils.loadEnv(Constants.IGINX_HOME, System.getProperty("user.dir"));
+
+    String confPath = EnvUtils.loadEnv(Constants.CONF, Constants.CONFIG_FILE);
+    if (!FileUtils.isAbsolutePath(confPath)) {
+      // if relative, build absolute path
+      confPath = String.join(File.separator, iginxHomePath, confPath);
+    }
+
+    try (InputStream in = new FileInputStream(confPath)) {
+      LOGGER.info("load parameters from file: {}.", confPath);
       BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(in));
 
       Properties properties = new Properties();
       properties.load(bufferedReader);
 
-      // runs/debugged in IDE: IGINX_HOME not set, use user.dir as root
-      // runs by script: IGINX_HOME should always have been set
-      String iginxHomePath = EnvUtils.loadEnv(Constants.IGINX_HOME, System.getProperty("user.dir"));
       String udfPath = properties.getProperty("defaultUDFDir", "udf_funcs");
       if (!FileUtils.isAbsolutePath(udfPath)) {
         // if relative, build absolute path
@@ -368,6 +373,7 @@ public class ConfigDescriptor {
     String UDFFilePath =
         String.join(File.separator, config.getDefaultUDFDir(), Constants.UDF_LIST_FILE);
     try (InputStream in = new FileInputStream(UDFFilePath)) {
+      LOGGER.info("load UDF list from file: {}.", UDFFilePath);
       BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(in));
 
       String line = null;

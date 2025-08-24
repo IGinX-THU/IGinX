@@ -33,6 +33,10 @@ inputs:
     iginx-conda-env:
         description: "conda env name"
         required: false
+    start-single-iginx:
+        description: "is only one iginx started in this test"
+        required: false
+        default: "true"
 
 runs:
     using: "composite"
@@ -84,7 +88,7 @@ runs:
               echo "fastparquet" >> requirements.txt
               echo "tqdm" >> requirements.txt
               echo "requests" >> requirements.txt
-              echo "torch==2.7.1" >> requirements.txt
+              echo "torch==2.8.0" >> requirements.txt
               echo "transformers" >> requirements.txt
 
         - if: inputs.scope=='all' && inputs.iginx-conda-flag != 'true'
@@ -160,3 +164,6 @@ runs:
               PROJECT_ROOT=${{ steps.project.outputs.workspace }}
               echo "PROJECT_ROOT=${PROJECT_ROOT}" >> $GITHUB_ENV
               echo "SERVICE_DIR=${PROJECT_ROOT}/.github/actions/service" >> $GITHUB_ENV
+              if [ "${{ inputs.start-single-iginx }} == "true" ]; then
+                  echo "IGINX_HOME=${PROJECT_ROOT}/core/target/iginx-core-${VERSION}-SNAPSHOT" >> $GITHUB_ENV
+              fi
