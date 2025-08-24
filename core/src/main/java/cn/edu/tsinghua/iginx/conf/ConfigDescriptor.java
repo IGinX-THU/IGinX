@@ -33,10 +33,8 @@ public class ConfigDescriptor {
 
   private ConfigDescriptor() {
     config = new Config();
-    LOGGER.info("load parameters from config.properties.");
     loadPropsFromFile();
     if (config.isEnableEnvParameter()) {
-      LOGGER.info("load parameters from env.");
       loadPropsFromEnv(); // 如果在环境变量中设置了相关参数，则会覆盖配置文件中设置的参数
     }
     if (config.isNeedInitBasicUDFFunctions()) {
@@ -52,6 +50,7 @@ public class ConfigDescriptor {
   private void loadPropsFromFile() {
     try (InputStream in =
         new FileInputStream(EnvUtils.loadEnv(Constants.CONF, Constants.CONFIG_FILE))) {
+      LOGGER.info("load parameters from config.properties.");
       BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(in));
 
       Properties properties = new Properties();
@@ -236,16 +235,15 @@ public class ConfigDescriptor {
               "ruleBasedOptimizer",
               "NotFilterRemoveRule=on,FragmentPruningByFilterRule=on,ColumnPruningRule=on,FragmentPruningByPatternRule=on"));
     } catch (IOException e) {
-      config.setUTTestEnv(true);
-      config.setNeedInitBasicUDFFunctions(false);
       loadPropsFromEnv();
-      LOGGER.warn(
-          "Use default config, because fail to load properties(This error may be expected if it occurs during UT testing): ",
-          e);
+      if (!config.isUTTestEnv()) {
+        LOGGER.warn("Use default config, because fail to load properties; ", e);
+      }
     }
   }
 
   private void loadPropsFromEnv() {
+    LOGGER.info("load parameters from env.");
     config.setIp(EnvUtils.loadEnv("ip", config.getIp()));
     config.setPort(EnvUtils.loadEnv("port", config.getPort()));
     config.setUsername(EnvUtils.loadEnv("username", config.getUsername()));
