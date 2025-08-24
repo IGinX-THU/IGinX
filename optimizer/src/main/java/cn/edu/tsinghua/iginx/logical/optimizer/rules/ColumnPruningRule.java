@@ -114,7 +114,7 @@ public class ColumnPruningRule extends Rule {
           ArrayList<String> patterns = new ArrayList<>();
           for (String column : columns) {
             for (String pattern : reorder.getPatterns()) {
-              if (PathUtils.covers(pattern, column)) {
+              if (StringUtils.match(column, pattern)) {
                 patterns.add(column);
                 break;
               }
@@ -134,7 +134,7 @@ public class ColumnPruningRule extends Rule {
           ArrayList<String> patterns = new ArrayList<>();
           for (String column : columns) {
             for (String pattern : project.getPatterns()) {
-              if (PathUtils.covers(pattern, column)) {
+              if (StringUtils.match(column, pattern)) {
                 patterns.add(column);
                 break;
               }
