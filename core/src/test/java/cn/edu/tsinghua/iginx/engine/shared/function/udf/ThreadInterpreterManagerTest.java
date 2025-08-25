@@ -95,6 +95,7 @@ public class ThreadInterpreterManagerTest {
         LOGGER.error("Failed to detect timeout and terminated the thread.", e);
       }
     } finally {
+      // TODO:这里实际上不能close，会导致后续测试没有正常执行，但是不close会导致在ubuntu上运行该测试时导致JVM崩溃，待修复
       ThreadInterpreterManager.getInterpreter().close();
     }
 
