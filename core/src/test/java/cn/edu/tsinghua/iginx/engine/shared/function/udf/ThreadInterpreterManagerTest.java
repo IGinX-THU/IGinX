@@ -44,21 +44,20 @@ public class ThreadInterpreterManagerTest {
   private static final List<String> PATHS =
       Arrays.asList(
           Paths.get(
-                  EnvUtils.loadEnv(Constants.IGINX_HOME, System.getProperty("user.dir")),
+                  EnvUtils.loadEnv(Constants.PROJECT_ROOT, EnvUtils.getProjectRoot(1)),
+                  "test",
                   "src",
                   "test",
                   "resources",
                   "udf")
               .toString(),
           Paths.get(
-                  EnvUtils.loadEnv(Constants.IGINX_HOME, System.getProperty("user.dir")),
-                  "..",
+                  EnvUtils.loadEnv(Constants.PROJECT_ROOT, EnvUtils.getProjectRoot(1)),
                   "udf_funcs",
                   "python_scripts")
               .toString(),
           Paths.get(
-                  EnvUtils.loadEnv(Constants.IGINX_HOME, System.getProperty("user.dir")),
-                  "..",
+                  EnvUtils.loadEnv(Constants.PROJECT_ROOT, EnvUtils.getProjectRoot(1)),
                   "udf_funcs",
                   "python_scripts",
                   "utils")
