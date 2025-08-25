@@ -39,9 +39,3 @@ jobs:
             - name: Test with Maven
               run: |
                   mvn clean package -DutTestEnv=true -pl dependency,core -am -P-format -q
-
-            - name: Show Error Log
-              if: always()
-              shell: bash
-              run: |
-                  cat core/hs_err_*.log
