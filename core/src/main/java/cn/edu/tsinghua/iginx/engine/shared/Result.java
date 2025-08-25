@@ -226,7 +226,6 @@ public class Result {
         paths.add(Field.KEY.getFullName());
         types.add(Field.KEY.getType());
         tagsList.add(new HashMap<>());
-        LOGGER.info("path: {}, type: {}", Field.KEY.getFullName(), Field.KEY.getType());
       }
 
       resultStream
@@ -241,7 +240,6 @@ public class Result {
                 } else {
                   tagsList.add(field.getTags());
                 }
-                LOGGER.info("path: {}, type: {}", field.getFullName(), field.getType());
               });
 
       // 先估算元信息大小
@@ -409,7 +407,6 @@ public class Result {
         bitmapList.add(bitmapBuf);
         rowCount++;
         totalSize += valueBuf.remaining() + bitmapBuf.remaining();
-        LOGGER.info("totalSize: {}", totalSize);
         if (totalSize > DEFAULT_MAX_BYTES) {
           break;
         }
