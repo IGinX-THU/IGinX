@@ -218,9 +218,3 @@ jobs:
               shell: bash
               run: |
                   cat ${GITHUB_WORKSPACE}/test/src/test/resources/testResult.txt
-
-            - name: Show IGinX log
-              if: always()
-              shell: bash
-              run: |
-                  cat iginx-*.log
