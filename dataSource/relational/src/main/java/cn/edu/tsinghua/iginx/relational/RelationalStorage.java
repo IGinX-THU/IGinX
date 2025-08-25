@@ -2942,7 +2942,7 @@ public class RelationalStorage implements IStorage {
             }
 
             if (firstRound) {
-              columnKeys.append(toFullName(columnName, tags)).append(", ");
+              columnKeys.append(columnName).append(", ");
             }
 
             if (i - cnt < columnValues.size()) {
