@@ -164,6 +164,6 @@ runs:
               PROJECT_ROOT=${{ steps.project.outputs.workspace }}
               echo "PROJECT_ROOT=${PROJECT_ROOT}" >> $GITHUB_ENV
               echo "SERVICE_DIR=${PROJECT_ROOT}/.github/actions/service" >> $GITHUB_ENV
-              if [ "${{ inputs.start-single-iginx }} == "true" ]; then
-                  echo "IGINX_HOME=${PROJECT_ROOT}/core/target/iginx-core-${VERSION}-SNAPSHOT" >> $GITHUB_ENV
+              if [ "${{ inputs.start-single-iginx }}" == "true" ]; then
+                  echo "IGINX_HOME=${PROJECT_ROOT}/core/target/iginx-core-${VERSION}" >> $GITHUB_ENV
               fi
