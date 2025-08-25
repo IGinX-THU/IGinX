@@ -2914,31 +2914,34 @@ public class RelationalStorage implements IStorage {
               throw new SQLException("physical table name is null");
             }
 
-            StringBuilder columnKeys = new StringBuilder();
-            List<String> columnValues = new ArrayList<>();
-            if (tableToColumnEntries.containsKey(physicalTableName)) {
-              columnKeys = new StringBuilder(tableToColumnEntries.get(physicalTableName).k);
-              columnValues = tableToColumnEntries.get(physicalTableName).v;
+            // 直接取已有 entry，避免频繁 new
+            Pair<String, List<String>> entry = tableToColumnEntries.get(physicalTableName);
+            StringBuilder columnKeys;
+            List<String> columnValues;
+
+            if (entry != null) {
+              columnKeys = new StringBuilder(entry.k);
+              columnValues = entry.v;
+            } else {
+              columnKeys = new StringBuilder();
+              columnValues = new ArrayList<>();
             }
 
             String value = "null";
             if (bitmapView.get(j)) {
-              if (dataType == DataType.BINARY) {
-                value =
-                    "'"
-                        + new String((byte[]) data.getValue(i, index), StandardCharsets.UTF_8)
-                        + "'";
-              } else {
-                value = data.getValue(i, index).toString();
+              Object rawValue = data.getValue(i, index);
+              if (rawValue != null) {
+                if (dataType == DataType.BINARY) {
+                  value = "'" + new String((byte[]) rawValue, StandardCharsets.UTF_8) + "'";
+                } else {
+                  value = rawValue.toString();
+                }
               }
               index++;
-              if (tableHasData.containsKey(physicalTableName)) {
-                tableHasData.get(physicalTableName)[i - cnt] = true;
-              } else {
-                boolean[] hasData = new boolean[size];
-                hasData[i - cnt] = true;
-                tableHasData.put(physicalTableName, hasData);
-              }
+
+              // 简化成一行
+              tableHasData.computeIfAbsent(physicalTableName, k -> new boolean[size])[i - cnt] =
+                  true;
             }
 
             if (firstRound) {
@@ -2951,6 +2954,7 @@ public class RelationalStorage implements IStorage {
               columnValues.add(data.getKey(i) + ", " + value + ", "); // 添加 key 列
             }
 
+            // 更新 entry
             tableToColumnEntries.put(
                 physicalTableName, new Pair<>(columnKeys.toString(), columnValues));
           }
@@ -2958,21 +2962,23 @@ public class RelationalStorage implements IStorage {
           firstRound = false;
         }
 
+        // 过滤无效行
         for (Map.Entry<String, boolean[]> entry : tableHasData.entrySet()) {
           String physicalTableName = entry.getKey();
           boolean[] hasData = entry.getValue();
-          String columnKeys = tableToColumnEntries.get(physicalTableName).k;
-          List<String> columnValues = tableToColumnEntries.get(physicalTableName).v;
+          Pair<String, List<String>> pair = tableToColumnEntries.get(physicalTableName);
+
+          List<String> filteredValues = new ArrayList<>();
           boolean needToInsert = false;
-          for (int i = hasData.length - 1; i >= 0; i--) {
-            if (!hasData[i]) {
-              columnValues.remove(i);
-            } else {
+          for (int k = 0; k < hasData.length; k++) {
+            if (hasData[k]) {
+              filteredValues.add(pair.v.get(k));
               needToInsert = true;
             }
           }
+
           if (needToInsert) {
-            tableToColumnEntries.put(physicalTableName, new Pair<>(columnKeys, columnValues));
+            tableToColumnEntries.put(physicalTableName, new Pair<>(pair.k, filteredValues));
           }
         }
 
@@ -3020,84 +3026,89 @@ public class RelationalStorage implements IStorage {
           DataType dataType = data.getDataType(i);
           RelationSchema schema = new RelationSchema(path, relationalMeta.getQuote());
           String logicalTableName = schema.getTableName();
-          String columnName = schema.getColumnName();
-          Map<String, String> tags = data.getTags(i);
+          String columnName = toFullName(schema.getColumnName(), data.getTags(i)); // 提前算好
           BitmapView bitmapView = data.getBitmapView(i);
 
           // 获取该列应该插入的物理表名
           String physicalTableName =
-              logicalToPhysicalTableMapForColumn
-                  .get(logicalTableName)
-                  .get(toFullName(columnName, tags));
+              logicalToPhysicalTableMapForColumn.get(logicalTableName).get(columnName);
           if (physicalTableName == null) {
             throw new SQLException("physical table name is null");
           }
 
-          StringBuilder columnKeys = new StringBuilder();
-          List<String> columnValues = new ArrayList<>();
-          if (tableToColumnEntries.containsKey(physicalTableName)) {
-            columnKeys = new StringBuilder(tableToColumnEntries.get(physicalTableName).k);
-            columnValues = tableToColumnEntries.get(physicalTableName).v;
+          Pair<String, List<String>> entry = tableToColumnEntries.get(physicalTableName);
+          StringBuilder columnKeys;
+          List<StringBuilder> columnValues;
+
+          if (entry != null) {
+            // 取出已有的
+            columnKeys = new StringBuilder(entry.k);
+            columnValues =
+                entry.v.stream()
+                    .map(StringBuilder::new) // 转换成 StringBuilder 方便拼接
+                    .collect(Collectors.toList());
+          } else {
+            columnKeys = new StringBuilder();
+            columnValues = new ArrayList<>();
           }
 
-          int index = 0;
-          if (pathIndexToBitmapIndex.containsKey(i)) {
-            index = pathIndexToBitmapIndex.get(i);
-          }
+          int index = pathIndexToBitmapIndex.getOrDefault(i, 0);
 
           for (int j = cnt; j < cnt + size; j++) {
             String value = "null";
             if (bitmapView.get(j)) {
-              if (dataType == DataType.BINARY) {
-                value =
-                    "'"
-                        + new String((byte[]) data.getValue(i, index), StandardCharsets.UTF_8)
-                        + "'";
-              } else {
-                value = data.getValue(i, index).toString();
+              Object rawValue = data.getValue(i, index);
+              if (rawValue != null) {
+                if (dataType == DataType.BINARY) {
+                  value = "'" + new String((byte[]) rawValue, StandardCharsets.UTF_8) + "'";
+                } else {
+                  value = rawValue.toString();
+                }
               }
               index++;
 
-              if (tableHasData.containsKey(physicalTableName)) {
-                tableHasData.get(physicalTableName)[j - cnt] = true;
-              } else {
-                boolean[] hasData = new boolean[size];
-                hasData[j - cnt] = true;
-                tableHasData.put(physicalTableName, hasData);
-              }
+              tableHasData.computeIfAbsent(physicalTableName, k -> new boolean[size])[j - cnt] =
+                  true;
             }
 
             if (j - cnt < columnValues.size()) {
-              columnValues.set(j - cnt, columnValues.get(j - cnt) + value + ", ");
+              columnValues.get(j - cnt).append(value).append(", ");
             } else {
-              columnValues.add(data.getKey(j) + ", " + value + ", "); // 添加 key 列
+              StringBuilder sb = new StringBuilder();
+              sb.append(data.getKey(j)).append(", ").append(value).append(", ");
+              columnValues.add(sb);
             }
           }
           pathIndexToBitmapIndex.put(i, index);
 
           if (firstRound) {
-            columnKeys.append(toFullName(columnName, tags)).append(", ");
+            columnKeys.append(columnName).append(", ");
           }
 
+          // 先存成 StringBuilder，最后再转成 String
           tableToColumnEntries.put(
-              physicalTableName, new Pair<>(columnKeys.toString(), columnValues));
+              physicalTableName,
+              new Pair<>(
+                  columnKeys.toString(),
+                  columnValues.stream().map(StringBuilder::toString).collect(Collectors.toList())));
         }
 
+        // 第二轮过滤无效数据
         for (Map.Entry<String, boolean[]> entry : tableHasData.entrySet()) {
           String physicalTableName = entry.getKey();
           boolean[] hasData = entry.getValue();
-          String columnKeys = tableToColumnEntries.get(physicalTableName).k;
-          List<String> columnValues = tableToColumnEntries.get(physicalTableName).v;
+          Pair<String, List<String>> pair = tableToColumnEntries.get(physicalTableName);
+
+          List<String> filteredValues = new ArrayList<>();
           boolean needToInsert = false;
-          for (int i = hasData.length - 1; i >= 0; i--) {
-            if (!hasData[i]) {
-              columnValues.remove(i);
-            } else {
+          for (int i = 0; i < hasData.length; i++) {
+            if (hasData[i]) {
+              filteredValues.add(pair.v.get(i));
               needToInsert = true;
             }
           }
           if (needToInsert) {
-            tableToColumnEntries.put(physicalTableName, new Pair<>(columnKeys, columnValues));
+            tableToColumnEntries.put(physicalTableName, new Pair<>(pair.k, filteredValues));
           }
         }
         dbStrategy.executeBatchInsert(
