@@ -2900,16 +2900,13 @@ public class RelationalStorage implements IStorage {
             String path = data.getPath(j);
             DataType dataType = data.getDataType(j);
             RelationSchema schema = new RelationSchema(path, relationalMeta.getQuote());
-            String logicalTableName =
-                reshapeTableNameBeforeQuery(schema.getTableName(), databaseName);
-            String columnName = schema.getColumnName();
+            String logicalTableName = schema.getTableName();
             Map<String, String> tags = data.getTags(j);
+            String columnName = toFullName(schema.getColumnName(), tags); // 提前算好
 
             // 获取该列应该插入的物理表名
             String physicalTableName =
-                logicalToPhysicalTableMapForColumn
-                    .get(logicalTableName)
-                    .get(toFullName(columnName, tags));
+                logicalToPhysicalTableMapForColumn.get(logicalTableName).get(columnName);
             if (physicalTableName == null) {
               throw new SQLException("physical table name is null");
             }
