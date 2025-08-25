@@ -88,7 +88,7 @@ runs:
               echo "fastparquet" >> requirements.txt
               echo "tqdm" >> requirements.txt
               echo "requests" >> requirements.txt
-              echo "torch==2.8.0" >> requirements.txt
+              echo "torch==2.7.0" >> requirements.txt
               echo "transformers" >> requirements.txt
 
         - if: inputs.scope=='all' && inputs.iginx-conda-flag != 'true'
