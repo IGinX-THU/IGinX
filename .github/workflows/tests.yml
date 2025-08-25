@@ -23,12 +23,10 @@ jobs:
         uses: ./.github/workflows/standalone-test.yml
         with:
             metadata-matrix: '["zookeeper"]'
-            db-matrix: '["MySQL"]'
     standalone-test-no-optimizer:
         uses: ./.github/workflows/standalone-test-no-optimizer.yml
         with:
             metadata-matrix: '["zookeeper"]'
-            db-matrix: '["MySQL"]'
     db-ce:
         uses: ./.github/workflows/DB-CE.yml
         with:
