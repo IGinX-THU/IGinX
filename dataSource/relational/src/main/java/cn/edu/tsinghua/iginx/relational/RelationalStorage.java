@@ -3128,17 +3128,15 @@ public class RelationalStorage implements IStorage {
       return reshapeTableNameBeforeQuery(logicalTableName, databaseName);
     }
 
-    // 检查每个物理表是否包含该列
-    for (String physicalTableName : physicalTables) {
-      List<ColumnField> columns = getColumns(databaseName, physicalTableName, "%", false);
-      for (ColumnField column : columns) {
-        if (column.getColumnName().equals(fullColumnName)) {
-          return physicalTableName;
-        }
-      }
-    }
-    // 如果没有找到包含该列的物理表，返回null
-    return null;
+    return physicalTables
+        .parallelStream()
+        .filter(
+            physicalTableName -> {
+              List<ColumnField> columns = getColumns(databaseName, physicalTableName, "%", false);
+              return columns.stream().anyMatch(c -> c.getColumnName().equals(fullColumnName));
+            })
+        .findAny() // 找到任意一个即可
+        .orElse(null);
   }
 
   /** 建立列名到物理表名的映射 */
