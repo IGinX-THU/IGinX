@@ -118,6 +118,7 @@ runs:
               echo $PATH
               which python
               python -m pip install --upgrade pip
+              pip list
               pip install -r requirements.txt
 
         - if: inputs.free-thread-python-required=='true'
