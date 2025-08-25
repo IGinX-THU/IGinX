@@ -1169,7 +1169,7 @@ public class SessionIT extends BaseSessionIT {
   }
 
   private String buildInsertStatement(int columnSize, int rowSize, int startKey) {
-    StringBuilder builder = new StringBuilder("insert into wideColumn(key,");
+    StringBuilder builder = new StringBuilder("insert into wide_column(key,");
     for (int i = 0; i < columnSize; i++) {
       builder.append("c").append(i).append(",");
     }
@@ -1200,7 +1200,7 @@ public class SessionIT extends BaseSessionIT {
 
     QueryDataSet res = null;
     try {
-      res = session.executeSqlWithStream("SELECT * FROM wideColumn;", 200);
+      res = session.executeSqlWithStream("SELECT * FROM wide_column;", 200);
       int index = 0;
       int size = res.getActualSize();
       assertTrue(size < 200); // 由于列很多，实际返回的行数比设置的fetchSize少
