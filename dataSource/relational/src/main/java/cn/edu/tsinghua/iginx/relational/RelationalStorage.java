@@ -1546,7 +1546,7 @@ public class RelationalStorage implements IStorage {
     // 这里的处理形式是生成一个形如
     // SELECT max(derived."a") AS "max(test.a)", sum(derived."b") AS "sum(test.b)", derived."c" AS
     // "test.c"
-    // FROM (SELECT a, b, c, d FROM test) AS derived GROUP BY c;
+    // FROM (SELECT a, b, c, d FROM test_1 test) AS derived GROUP BY c;
     // 的SQL语句
     // 几个注意的点，1. 嵌套子查询必须重命名，否则会报错，这里重命名为derived。
     // 2. 查询出来的结果也需要重命名来适配原始的列名，这里重命名为"max(test.a)"
@@ -3166,28 +3166,6 @@ public class RelationalStorage implements IStorage {
             })
         .findAny() // 找到任意一个即可
         .orElse(null);
-  }
-
-  /** 建立列名到物理表名的映射 */
-  private Map<String, Map<String, String>> buildLogicalToPhysicalTableMapForColumn(
-      String databaseName, List<String> paths) {
-    Map<String, Map<String, String>> columnToPhysicalTableMap = new HashMap<>();
-    Map<String, List<String>> logicalToPhysicalTableMap =
-        buildLogicalToPhysicalTableMap(databaseName, paths);
-    for (Map.Entry<String, List<String>> entry : logicalToPhysicalTableMap.entrySet()) {
-      String logicalTableName = entry.getKey();
-      List<String> physicalTables = entry.getValue();
-      columnToPhysicalTableMap.putIfAbsent(logicalTableName, new HashMap<>());
-      for (String physicalTableName : physicalTables) {
-        List<ColumnField> columns = getColumns(databaseName, physicalTableName, "%", false);
-        columns.forEach(
-            column ->
-                columnToPhysicalTableMap
-                    .get(logicalTableName)
-                    .put(column.getColumnName(), physicalTableName));
-      }
-    }
-    return columnToPhysicalTableMap;
   }
 
   /** 获取指定逻辑表的所有物理表 */
