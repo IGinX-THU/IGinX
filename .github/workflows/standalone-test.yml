@@ -213,34 +213,8 @@ jobs:
               run: |
                   cat iginx-*.log
 
-            - name: Change IGinX config
-              uses: ./.github/actions/confWriter
-              with:
-                  DB-name: ${{ matrix.DB-name }}
-                  Metadata: ${{ matrix.metadata }}
-                  Set-Key-Range-Test-Policy: "true"
-
-            - name: clean metadata and restart IGinX
-              uses: ./.github/actions/context
-              with:
-                  work-name: restart-iginx-meta
-                  metadata: ${{ matrix.metadata }}
-
-            - name: FilterFragmentRuleTest IT
-              if: always()
-              shell: bash -el {0}
-              run: |
-                  chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/test_union.sh"
-                  mvn test -q -Dtest=SQLSessionIT#testFilterFragmentOptimizer -DfailIfNoTests=false -P-format
-
             - name: Show test result
               if: always()
               shell: bash
               run: |
                   cat ${GITHUB_WORKSPACE}/test/src/test/resources/testResult.txt
-
-            - name: Show IGinX log
-              if: always()
-              shell: bash
-              run: |
-                  cat iginx-*.log

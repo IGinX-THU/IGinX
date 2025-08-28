@@ -49,6 +49,7 @@ jobs:
                   java: ${{ matrix.java }}
                   iginx-conda-flag: "true"
                   iginx-conda-env: "iginxEnv"
+                  start-single-iginx: "false"
 
             - name: Run Metadata
               uses: ./.github/actions/metadataRunner

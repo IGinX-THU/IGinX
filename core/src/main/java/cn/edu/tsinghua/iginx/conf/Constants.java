@@ -47,6 +47,9 @@ public class Constants {
 
   public static final String LEVEL_PLACEHOLDER = "*";
 
+  // set in GitHub Actions env
+  public static final String PROJECT_ROOT = "PROJECT_ROOT";
+
   // engine params in sql
   public static final String IP = "ip";
   public static final String PORT = "port";
