@@ -3172,12 +3172,26 @@ public class RelationalStorage implements IStorage {
             databseName,
             physicalTable.replaceAll(TABLE_SUFFIX_DELIMITER, escape + TABLE_SUFFIX_DELIMITER),
             false);
-    String tableNameRegex =
-        "^" + logicalTableName.replaceAll("%", ".*") + TABLE_SUFFIX_DELIMITER + "([0-9]+)$";
+    // 构造 regex
+    String regexBase = toRegex(logicalTableName + TABLE_SUFFIX_DELIMITER);
+    String tableNameRegex = "^" + regexBase + "([0-9]+)$";
     Pattern pattern = Pattern.compile(tableNameRegex);
     return foundTables.stream()
         .filter(t -> pattern.matcher(t).matches())
         .collect(Collectors.toList());
+  }
+
+  private static String toRegex(String input) {
+    StringBuilder sb = new StringBuilder();
+    for (int i = 0; i < input.length(); i++) {
+      char c = input.charAt(i);
+      if (c == '%') {
+        sb.append(".*"); // % → 任意字符序列
+      } else {
+        sb.append(Pattern.quote(String.valueOf(c))); // 其他 → 原样转义
+      }
+    }
+    return sb.toString();
   }
 
   private List<Pair<String, String>> determineDeletedPaths(
