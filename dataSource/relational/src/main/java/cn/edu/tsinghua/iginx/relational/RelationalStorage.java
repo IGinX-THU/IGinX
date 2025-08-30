@@ -3166,9 +3166,14 @@ public class RelationalStorage implements IStorage {
 
   /** 获取指定逻辑表的所有物理表 */
   private List<String> getPhysicalTables(String databseName, String logicalTableName) {
+    String physicalTable = logicalTableName + TABLE_SUFFIX_DELIMITER + "%";
     List<String> foundTables =
-        getTables(databseName, logicalTableName + escape + TABLE_SUFFIX_DELIMITER + "%", false);
-    String tableNameRegex = "^" + logicalTableName + TABLE_SUFFIX_DELIMITER + "([0-9]+)$";
+        getTables(
+            databseName,
+            physicalTable.replaceAll(TABLE_SUFFIX_DELIMITER, escape + TABLE_SUFFIX_DELIMITER),
+            false);
+    String tableNameRegex =
+        "^" + logicalTableName.replaceAll("%", ".*") + TABLE_SUFFIX_DELIMITER + "([0-9]+)$";
     Pattern pattern = Pattern.compile(tableNameRegex);
     return foundTables.stream()
         .filter(t -> pattern.matcher(t).matches())
