@@ -2775,7 +2775,7 @@ public class RelationalStorage implements IStorage {
     Map<String, LinkedHashSet<Pair<String, DataType>>> tableToColumns = new ConcurrentHashMap<>();
     // 建立已有逻辑表到列名和物理表的映射
     Map<String, Map<String, String>> columnToPhysicalTableMap = new ConcurrentHashMap<>();
-    Set<String> logicalTableNames = new HashSet<>();
+    Set<String> logicalTableNames = ConcurrentHashMap.newKeySet();
     paths
         .parallelStream()
         .forEach(
