@@ -22,12 +22,11 @@ package cn.edu.tsinghua.iginx.relational.datatype.transformer;
 import static cn.edu.tsinghua.iginx.thrift.DataType.*;
 
 import cn.edu.tsinghua.iginx.thrift.DataType;
+import java.util.Properties;
 
-public class OracleDataTypeTransformer implements IDataTypeTransformer {
-  private static final OracleDataTypeTransformer INSTANCE = new OracleDataTypeTransformer();
-
-  public static OracleDataTypeTransformer getInstance() {
-    return INSTANCE;
+public class OracleDataTypeTransformer extends JDBCDataTypeTransformer {
+  public OracleDataTypeTransformer(Properties properties) {
+    super(properties);
   }
 
   @Override
@@ -57,6 +56,7 @@ public class OracleDataTypeTransformer implements IDataTypeTransformer {
     }
   }
 
+  @Override
   public String toEngineType(DataType dataType) {
     switch (dataType) {
       case BOOLEAN:

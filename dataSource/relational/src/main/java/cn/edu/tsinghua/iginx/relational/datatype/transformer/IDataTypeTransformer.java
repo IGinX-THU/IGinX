@@ -26,4 +26,6 @@ public interface IDataTypeTransformer {
   DataType fromEngineType(String typeName, int precision, int scale);
 
   String toEngineType(DataType dataType);
+
+  int getDataTypeSize(DataType dataType);
 }

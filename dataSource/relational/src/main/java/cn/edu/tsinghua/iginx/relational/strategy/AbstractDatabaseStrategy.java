@@ -25,6 +25,7 @@ import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.StorageInitializationException;
 import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
+import cn.edu.tsinghua.iginx.relational.datatype.transformer.IDataTypeTransformer;
 import cn.edu.tsinghua.iginx.relational.exception.RelationalException;
 import cn.edu.tsinghua.iginx.relational.meta.AbstractRelationalMeta;
 import cn.edu.tsinghua.iginx.utils.Pair;
@@ -35,8 +36,7 @@ import java.sql.*;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,22 +54,26 @@ public abstract class AbstractDatabaseStrategy implements DatabaseStrategy {
 
   private Connection connection;
 
+  private final IDataTypeTransformer dataTypeTransformer;
+
   public AbstractDatabaseStrategy(
       AbstractRelationalMeta relationalMeta, StorageEngineMeta storageEngineMeta) {
     this.relationalMeta = relationalMeta;
     this.storageEngineMeta = storageEngineMeta;
     this.boundaryLevel =
         Integer.parseInt(storageEngineMeta.getExtraParams().getOrDefault(BOUNDARY_LEVEL, "0"));
+    this.dataTypeTransformer = relationalMeta.getDataTypeTransformer();
   }
 
   @Override
-  public void initConnection() throws StorageInitializationException {
+  public Connection initConnection() throws StorageInitializationException {
     try {
       connection = DriverManager.getConnection(getConnectUrl());
     } catch (SQLException e) {
       throw new StorageInitializationException(
           String.format("cannot connect to %s :", storageEngineMeta), e);
     }
+    return connection;
   }
 
   @Override
@@ -82,7 +86,7 @@ public abstract class AbstractDatabaseStrategy implements DatabaseStrategy {
       return null;
     }
 
-    if (relationalMeta.supportCreateDatabase()) {
+    if (relationalMeta.isSupportCreateDatabase()) {
       try (Statement stmt = connection.createStatement()) {
         stmt.execute(
             String.format(relationalMeta.getCreateDatabaseStatement(), getQuotName(databaseName)));
