@@ -2772,18 +2772,34 @@ public class RelationalStorage implements IStorage {
       List<Map<String, String>> tagsList,
       List<DataType> dataTypeList) {
     // 对每个路径，重构为<tableName, LinkedHashSet<Pair<String, DataType> columns>>的形式
-    Map<String, LinkedHashSet<Pair<String, DataType>>> tableToColumns = new HashMap<>();
+    Map<String, LinkedHashSet<Pair<String, DataType>>> tableToColumns = new ConcurrentHashMap<>();
     // 建立已有逻辑表到列名和物理表的映射
-    Map<String, Map<String, String>> columnToPhysicalTableMap = new HashMap<>();
-    List<ColumnField> existedColumns = getColumns(databseName, "%", "%", false);
-    existedColumns.forEach(
-        column -> {
-          String logicalTableName = getLogicalTableName(column.getTableName());
-          columnToPhysicalTableMap.putIfAbsent(logicalTableName, new HashMap<>());
-          columnToPhysicalTableMap
-              .get(logicalTableName)
-              .put(column.getColumnName(), column.getTableName());
-        });
+    Map<String, Map<String, String>> columnToPhysicalTableMap = new ConcurrentHashMap<>();
+    Set<String> logicalTableNames = new HashSet<>();
+    paths
+        .parallelStream()
+        .forEach(
+            path -> {
+              RelationSchema schema = new RelationSchema(path, relationalMeta.getQuote());
+              String logicalTableName = schema.getTableName();
+              // 用 concurrent set 做去重
+              if (logicalTableNames.add(logicalTableName)) {
+                List<String> physicalTableNames = getPhysicalTables(databseName, logicalTableName);
+                physicalTableNames
+                    .parallelStream()
+                    .forEach(
+                        physicalTableName -> {
+                          getColumns(databseName, physicalTableName, "%", false)
+                              .forEach(
+                                  column -> {
+                                    columnToPhysicalTableMap
+                                        .computeIfAbsent(
+                                            logicalTableName, k -> new ConcurrentHashMap<>())
+                                        .put(column.getColumnName(), physicalTableName);
+                                  });
+                        });
+              }
+            });
 
     for (int i = 0; i < paths.size(); i++) {
       String path = paths.get(i);
@@ -3127,36 +3143,16 @@ public class RelationalStorage implements IStorage {
     return null;
   }
 
-  /** 建立逻辑表名到物理表名列表的映射 */
-  private Map<String, List<String>> buildLogicalToPhysicalTableMap(
-      String databaseName, List<String> paths) {
-    Map<String, List<String>> logicalToPhysicalMap = new HashMap<>();
-
-    Set<String> logicalTableNames =
-        paths.stream()
-            .map(path -> new RelationSchema(path, relationalMeta.getQuote()).getTableName())
-            .collect(Collectors.toSet());
-
-    for (String logicalTableName : logicalTableNames) {
-      List<String> physicalTables = getPhysicalTables(databaseName, logicalTableName);
-      logicalToPhysicalMap.put(logicalTableName, physicalTables);
-    }
-
-    return logicalToPhysicalMap;
-  }
-
   /** 获取指定列应该插入的物理表名 */
   private String getPhysicalTableNameForColumn(
       String databaseName,
       String logicalTableName,
       String fullColumnName,
       List<String> physicalTables) {
-
     if (physicalTables == null || physicalTables.isEmpty()) {
       // 如果没有物理表，返回逻辑表名（将会创建新表）
       return reshapeTableNameBeforeQuery(logicalTableName, databaseName);
     }
-
     return physicalTables
         .parallelStream()
         .filter(
@@ -3170,19 +3166,13 @@ public class RelationalStorage implements IStorage {
 
   /** 获取指定逻辑表的所有物理表 */
   private List<String> getPhysicalTables(String databseName, String logicalTableName) {
-    List<String> tables = new ArrayList<>();
-    int index = 1;
-    while (true) {
-      String physicalTableName = logicalTableName + TABLE_SUFFIX_DELIMITER + index;
-      List<String> foundTables =
-          getTables(databseName, physicalTableName.replaceAll("_", escape + "_"), false);
-      if (foundTables.isEmpty()) {
-        break;
-      }
-      tables.addAll(foundTables);
-      index++;
-    }
-    return tables;
+    List<String> foundTables =
+        getTables(databseName, logicalTableName + escape + TABLE_SUFFIX_DELIMITER + "%", false);
+    String tableNameRegex = "^" + logicalTableName + TABLE_SUFFIX_DELIMITER + "([0-9]+)$";
+    Pattern pattern = Pattern.compile(tableNameRegex);
+    return foundTables.stream()
+        .filter(t -> pattern.matcher(t).matches())
+        .collect(Collectors.toList());
   }
 
   private List<Pair<String, String>> determineDeletedPaths(
