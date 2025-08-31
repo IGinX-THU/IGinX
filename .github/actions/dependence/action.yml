@@ -33,6 +33,10 @@ inputs:
     iginx-conda-env:
         description: "conda env name"
         required: false
+    start-single-iginx:
+        description: "is only one iginx started in this test"
+        required: false
+        default: "true"
 
 runs:
     using: "composite"
@@ -156,7 +160,11 @@ runs:
         - name: Set up environment variable
           shell: bash
           run: |
-              echo "VERSION=${{ steps.project.outputs.version }}" >> $GITHUB_ENV
+              VERSION=${{ steps.project.outputs.version }}
+              echo "VERSION=${VERSION}" >> $GITHUB_ENV
               PROJECT_ROOT=${{ steps.project.outputs.workspace }}
               echo "PROJECT_ROOT=${PROJECT_ROOT}" >> $GITHUB_ENV
               echo "SERVICE_DIR=${PROJECT_ROOT}/.github/actions/service" >> $GITHUB_ENV
+              if [ "${{ inputs.start-single-iginx }}" == "true" ]; then
+                  echo "IGINX_HOME=${PROJECT_ROOT}/core/target/iginx-core-${VERSION}" >> $GITHUB_ENV
+              fi
