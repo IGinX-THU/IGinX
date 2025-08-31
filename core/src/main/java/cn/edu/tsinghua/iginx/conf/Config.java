@@ -175,7 +175,7 @@ public class Config {
 
   private String defaultScheduledTransformJobDir = "transform_jobs";
 
-  private boolean needInitBasicUDFFunctions = true;
+  private boolean needInitBasicUDFFunctions = false;
 
   private List<String> udfList = new ArrayList<>();
 
