@@ -497,10 +497,11 @@ public class IginxClient {
 
   private static List<List<String>> cacheResult(QueryDataSet queryDataSet, boolean skipHeader)
       throws SessionException {
-    boolean hasKey = queryDataSet.getColumnList().get(0).equals(GlobalConstant.KEY_NAME);
+    List<String> columns = queryDataSet.getColumnList();
+    boolean hasKey = !columns.isEmpty() && columns.get(0).equals(GlobalConstant.KEY_NAME);
     List<List<String>> cache = new ArrayList<>();
     if (!skipHeader) {
-      cache.add(new ArrayList<>(queryDataSet.getColumnList()));
+      cache.add(new ArrayList<>(columns));
     }
 
     int rowIndex = 0;
