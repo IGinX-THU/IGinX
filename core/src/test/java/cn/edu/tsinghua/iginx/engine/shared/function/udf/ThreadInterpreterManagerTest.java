@@ -44,21 +44,20 @@ public class ThreadInterpreterManagerTest {
   private static final List<String> PATHS =
       Arrays.asList(
           Paths.get(
-                  EnvUtils.loadEnv(Constants.IGINX_HOME, System.getProperty("user.dir")),
+                  EnvUtils.loadEnv(Constants.PROJECT_ROOT, EnvUtils.getProjectRoot(1)),
+                  "test",
                   "src",
                   "test",
                   "resources",
                   "udf")
               .toString(),
           Paths.get(
-                  EnvUtils.loadEnv(Constants.IGINX_HOME, System.getProperty("user.dir")),
-                  "..",
+                  EnvUtils.loadEnv(Constants.PROJECT_ROOT, EnvUtils.getProjectRoot(1)),
                   "udf_funcs",
                   "python_scripts")
               .toString(),
           Paths.get(
-                  EnvUtils.loadEnv(Constants.IGINX_HOME, System.getProperty("user.dir")),
-                  "..",
+                  EnvUtils.loadEnv(Constants.PROJECT_ROOT, EnvUtils.getProjectRoot(1)),
                   "udf_funcs",
                   "python_scripts",
                   "utils")
@@ -96,6 +95,7 @@ public class ThreadInterpreterManagerTest {
         LOGGER.error("Failed to detect timeout and terminated the thread.", e);
       }
     } finally {
+      // TODO:这里实际上不能close，会导致后续测试没有正常执行，但是不close会导致在ubuntu上运行该测试时JVM崩溃，待修复
       ThreadInterpreterManager.getInterpreter().close();
     }
 
