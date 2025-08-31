@@ -4662,6 +4662,14 @@ public class SQLSessionIT {
             + "+------------+--------------+------------+--------------+--------+--------+----------+\n"
             + "Total line number = 6\n";
     executor.executeAndCompare(statement, expected);
+
+    statement = "SELECT a FROM (SELECT a FROM test.a);";
+    expected = "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "SELECT count(a) FROM (SELECT a FROM test.a);";
+    expected = "ResultSets:\n" + "+-+\n" + "| |\n" + "+-+\n" + "+-+\n" + "Empty set.\n";
+    executor.executeAndCompare(statement, expected);
   }
 
   @Test
