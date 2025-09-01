@@ -111,7 +111,7 @@ public class ClusterIT {
   }
 
   @Test
-  public void testRemoveDummyStorage() throws InterruptedException {
+  public void testRemoveDummyStorage() throws InterruptedException, SessionException {
     testShowClusterInfo();
 
     IoTDB12HistoryDataGenerator generator = new IoTDB12HistoryDataGenerator();
@@ -141,11 +141,19 @@ public class ClusterIT {
     testRemoveDummyStorageForAllIginx(session6890);
   }
 
-  private void testRemoveDummyStorageForCurrentIginx() throws InterruptedException {
+  private void testRemoveDummyStorageForCurrentIginx()
+      throws InterruptedException, SessionException {
     addStorageEngine(session6888);
+    validateStorageEngineSize(session6888, 1);
     testRemoveDummyStorageForCurrentIginx(session6888);
+    validateStorageEngineSize(session6888, 0);
+
+    addStorageEngine(session6889);
+    addStorageEngine(session6890);
     testRemoveDummyStorageForCurrentIginx(session6889);
+    validateStorageEngineSize(session6888, 1);
     testRemoveDummyStorageForCurrentIginx(session6890);
+    validateStorageEngineSize(session6888, 0);
     testAddStorageAgainAfterRemove();
   }
 
@@ -182,6 +190,13 @@ public class ClusterIT {
     Thread.sleep(20000);
 
     testShowStorageConnectivity(session, false, false);
+  }
+
+  private void validateStorageEngineSize(Session session, int remainingEnginesSize)
+      throws SessionException {
+    List<StorageEngineInfo> remainingEngines = session.getClusterInfo().getStorageEngineInfos();
+    LOGGER.info("Remaining storage engines: {}", remainingEngines);
+    assertEquals(remainingEnginesSize, remainingEngines.size());
   }
 
   private void testRemoveDummyStorageForAllIginx(Session session) throws InterruptedException {

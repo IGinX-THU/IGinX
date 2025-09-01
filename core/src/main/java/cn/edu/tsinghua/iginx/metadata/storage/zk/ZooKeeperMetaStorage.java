@@ -428,6 +428,22 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
             System.arraycopy(ids, 0, newIds, 0, index);
             System.arraycopy(ids, index + 1, newIds, index, ids.length - index - 1);
             this.client.setData().forPath(connectionPath, JsonUtils.toJson(newIds));
+            // 检查存储节点是否还有连接
+            List<String> children = client.getChildren().forPath(STORAGE_CONNECTION_NODE_PREFIX);
+            boolean hasConnection = false;
+            for (String childName : children) {
+              data = client.getData().forPath(STORAGE_CONNECTION_NODE_PREFIX + "/" + childName);
+              ids = JsonUtils.fromJson(data, long[].class);
+              index = Arrays.binarySearch(ids, storageEngineId);
+              if (index >= 0) {
+                hasConnection = true;
+                break;
+              }
+            }
+            // 不再有iginx节点连接存储引擎了
+            if (!hasConnection) {
+              this.client.delete().forPath(nodeName);
+            }
           } else {
             // iginx 将没有连接的存储节点
             this.client.delete().forPath(connectionPath);
