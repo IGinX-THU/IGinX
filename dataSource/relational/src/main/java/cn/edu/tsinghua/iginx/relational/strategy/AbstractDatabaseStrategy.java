@@ -121,17 +121,20 @@ public abstract class AbstractDatabaseStrategy implements DatabaseStrategy {
           storageEngineMeta.getExtraParams().getOrDefault("prep_stmt_cache_size", "250"));
       config.setLeakDetectionThreshold(
           Long.parseLong(
-              storageEngineMeta.getExtraParams().getOrDefault("leak_detection_threshold", "2500")));
+              storageEngineMeta.getExtraParams().getOrDefault("leak_detection_threshold", "0")));
       config.setConnectionTimeout(
           Long.parseLong(
               storageEngineMeta.getExtraParams().getOrDefault("connection_timeout", "30000")));
       config.setIdleTimeout(
-          Long.parseLong(storageEngineMeta.getExtraParams().getOrDefault("idle_timeout", "10000")));
+          Long.parseLong(storageEngineMeta.getExtraParams().getOrDefault("idle_timeout", "60000")));
       config.setMaximumPoolSize(
           Integer.parseInt(
               storageEngineMeta.getExtraParams().getOrDefault("maximum_pool_size", "20")));
       config.setMinimumIdle(
           Integer.parseInt(storageEngineMeta.getExtraParams().getOrDefault("minimum_idle", "1")));
+      config.setMaxLifetime(
+          Long.parseLong(
+              storageEngineMeta.getExtraParams().getOrDefault("max_lifetime", "1800000")));
       config.addDataSourceProperty(
           "prepStmtCacheSqlLimit",
           storageEngineMeta.getExtraParams().getOrDefault("prep_stmt_cache_sql_limit", "2048"));
