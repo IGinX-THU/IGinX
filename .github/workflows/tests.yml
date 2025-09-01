@@ -23,27 +23,19 @@ jobs:
         uses: ./.github/workflows/standalone-test.yml
         with:
             metadata-matrix: '["zookeeper"]'
-            os-matrix: '["windows-latest"]'
-            db-matrix: '["MySQL"]'
     standalone-test-no-optimizer:
         uses: ./.github/workflows/standalone-test-no-optimizer.yml
         with:
             metadata-matrix: '["zookeeper"]'
-            os-matrix: '["windows-latest"]'
-            db-matrix: '["MySQL"]'
     db-ce:
         uses: ./.github/workflows/DB-CE.yml
         with:
             metadata-matrix: '["zookeeper"]'
-            os-matrix: '["windows-latest"]'
-            db-matrix: '["MySQL"]'
     db-ce-no-optimizer:
         uses: ./.github/workflows/DB-CE.yml
         with:
             metadata-matrix: '["zookeeper"]'
             close-optimizer: "true"
-            os-matrix: '["windows-latest"]'
-            db-matrix: '["MySQL"]'
     standalone-test-no-mac-relational:
         uses: ./.github/workflows/standalone-test.yml
         with:
