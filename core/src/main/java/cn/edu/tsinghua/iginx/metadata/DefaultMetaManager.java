@@ -452,8 +452,8 @@ public class DefaultMetaManager implements IMetaManager {
         long id = storage.addStorageEngine(getIginxId(), storageEngineMeta);
         storageEngineMeta.setId(id);
         addStorageEngine(id, storageEngineMeta);
-        cache.updateStorageConnections(storage.refreshClusterStorageConnections());
       }
+      cache.updateStorageConnections(storage.refreshClusterStorageConnections());
       return true;
     } catch (MetaStorageException e) {
       LOGGER.error("add storage engines error:", e);
