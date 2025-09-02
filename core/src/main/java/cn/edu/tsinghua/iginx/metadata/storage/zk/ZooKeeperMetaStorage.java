@@ -431,18 +431,17 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
             if (this.client.checkExists().forPath(nodeName) != null) {
               // 检查存储节点是否还有连接
               List<String> children = client.getChildren().forPath(STORAGE_CONNECTION_NODE_PREFIX);
-              boolean hasConnection = false;
+              int connectionIndex = -1;
               for (String childName : children) {
                 data = client.getData().forPath(STORAGE_CONNECTION_NODE_PREFIX + "/" + childName);
                 ids = JsonUtils.fromJson(data, long[].class);
-                index = Arrays.binarySearch(ids, storageEngineId);
-                if (index >= 0) {
-                  hasConnection = true;
+                connectionIndex = Arrays.binarySearch(ids, storageEngineId);
+                if (connectionIndex >= 0) {
                   break;
                 }
               }
               // 不再有iginx节点连接存储引擎了
-              if (!hasConnection) {
+              if (connectionIndex < 0) {
                 this.client.delete().forPath(nodeName);
               }
             }

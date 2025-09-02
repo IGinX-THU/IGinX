@@ -453,7 +453,6 @@ public class DefaultMetaManager implements IMetaManager {
         storageEngineMeta.setId(id);
         addStorageEngine(id, storageEngineMeta);
       }
-      cache.updateStorageConnections(storage.refreshClusterStorageConnections());
       return true;
     } catch (MetaStorageException e) {
       LOGGER.error("add storage engines error:", e);
@@ -572,7 +571,6 @@ public class DefaultMetaManager implements IMetaManager {
   @Override
   public void addStorageConnection(List<StorageEngineMeta> storageEngines) {
     try {
-      storage.addStorageConnection(id, storageEngines);
       cache.updateStorageConnections(storage.refreshClusterStorageConnections());
     } catch (MetaStorageException e) {
       LOGGER.error("add storage engine connections {} error: ", storageEngines, e);
