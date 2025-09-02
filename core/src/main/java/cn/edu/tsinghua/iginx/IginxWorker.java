@@ -524,7 +524,7 @@ public class IginxWorker implements IService.Iface {
         continue;
       }
       storageManager.addStorage(meta, storage);
-      metaManager.addStorageConnection(Collections.singletonList(meta));
+      metaManager.updateStorageConnection(Collections.singletonList(meta));
     }
     if (status.isSetSubStatus()) {
       if (storageEngineMetas.isEmpty()) {
