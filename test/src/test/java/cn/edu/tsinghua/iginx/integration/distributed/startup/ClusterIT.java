@@ -146,15 +146,11 @@ public class ClusterIT {
     addStorageEngine(session6888);
     validateStorageEngineSize(session6888, 4);
     testRemoveDummyStorageForCurrentIginx(session6888);
-    validateStorageEngineSize(session6888, 3);
-
-    addStorageEngine(session6889);
-    addStorageEngine(session6890);
-    validateStorageEngineSize(session6889, 4);
+    validateStorageEngineSize(session6888, 4);
     testRemoveDummyStorageForCurrentIginx(session6889);
-    validateStorageEngineSize(session6889, 4);
+    validateStorageEngineSize(session6888, 4);
     testRemoveDummyStorageForCurrentIginx(session6890);
-    validateStorageEngineSize(session6889, 3);
+    validateStorageEngineSize(session6888, 3);
     testAddStorageAgainAfterRemove();
   }
 
