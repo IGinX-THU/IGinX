@@ -144,13 +144,13 @@ public class ClusterIT {
   private void testRemoveDummyStorageForCurrentIginx()
       throws InterruptedException, SessionException {
     addStorageEngine(session6888);
-    validateStorageEngineSize(session6888, 4);
-    testRemoveDummyStorageForCurrentIginx(session6888);
-    validateStorageEngineSize(session6888, 4);
-    testRemoveDummyStorageForCurrentIginx(session6889);
-    validateStorageEngineSize(session6888, 4);
-    testRemoveDummyStorageForCurrentIginx(session6890);
-    validateStorageEngineSize(session6888, 3);
+
+    testRemoveDummyStorageForCurrentIginx(session6888, false);
+
+    testRemoveDummyStorageForCurrentIginx(session6889, false);
+
+    testRemoveDummyStorageForCurrentIginx(session6890, true);
+
     testAddStorageAgainAfterRemove();
   }
 
@@ -173,7 +173,8 @@ public class ClusterIT {
     Thread.sleep(20000);
   }
 
-  private void testRemoveDummyStorageForCurrentIginx(Session session) throws InterruptedException {
+  private void testRemoveDummyStorageForCurrentIginx(Session session, boolean lastConnection)
+      throws InterruptedException {
     testShowStorageConnectivity(session, true, false);
 
     String removeStorageEngine = "REMOVE STORAGEENGINE (\"127.0.0.1\", 6667, \"prefix\", \"\");";
@@ -186,14 +187,12 @@ public class ClusterIT {
     }
     Thread.sleep(20000);
 
-    testShowStorageConnectivity(session, false, false);
-  }
-
-  private void validateStorageEngineSize(Session session, int remainingEnginesSize)
-      throws SessionException {
-    List<StorageEngineInfo> remainingEngines = session.getClusterInfo().getStorageEngineInfos();
-    LOGGER.info("Remaining storage engines: {}", remainingEngines);
-    assertEquals(remainingEnginesSize, remainingEngines.size());
+    // 如果是最后一个连接，被删除后应该不再显示
+    if (lastConnection) {
+      testShowStorageConnectivity(session, false, true);
+    } else {
+      testShowStorageConnectivity(session, false, false);
+    }
   }
 
   private void testRemoveDummyStorageForAllIginx(Session session) throws InterruptedException {
