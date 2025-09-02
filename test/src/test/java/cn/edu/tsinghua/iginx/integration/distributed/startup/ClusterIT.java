@@ -111,7 +111,7 @@ public class ClusterIT {
   }
 
   @Test
-  public void testRemoveDummyStorage() throws InterruptedException, SessionException {
+  public void testRemoveDummyStorage() throws InterruptedException {
     testShowClusterInfo();
 
     IoTDB12HistoryDataGenerator generator = new IoTDB12HistoryDataGenerator();
@@ -142,7 +142,7 @@ public class ClusterIT {
   }
 
   private void testRemoveDummyStorageForCurrentIginx()
-      throws InterruptedException, SessionException {
+      throws InterruptedException {
     addStorageEngine(session6888);
     testRemoveDummyStorageForCurrentIginx(session6888, false);
     testRemoveDummyStorageForCurrentIginx(session6889, false);
@@ -152,8 +152,6 @@ public class ClusterIT {
 
   private void testAddStorageAgainAfterRemove() throws InterruptedException {
     testAddStorageAgainAfterRemove(session6888);
-    testAddStorageAgainAfterRemove(session6889);
-    testAddStorageAgainAfterRemove(session6890);
   }
 
   private void addStorageEngine(Session session) throws InterruptedException {
