@@ -96,14 +96,14 @@ public class ClusterIT {
 
       assertEquals(3, clusterInfo.getStorageEngineInfos().size());
       Set<Integer> ports = new HashSet<>(Arrays.asList(6668, 6669, 6670));
+      SessionExecuteSqlResult res = session.executeSql(SHOW_CLUSTER_INFO);
+      String result = res.getResultInString(false, "");
+      LOGGER.info("Result: \"{}\"", result);
       for (StorageEngineInfo storageEngineInfo : clusterInfo.getStorageEngineInfos()) {
         assertEquals("true", storageEngineInfo.getConnectable());
         assertTrue(ports.contains(storageEngineInfo.getPort()));
       }
 
-      SessionExecuteSqlResult res = session.executeSql(SHOW_CLUSTER_INFO);
-      String result = res.getResultInString(false, "");
-      LOGGER.info("Result: \"{}\"", result);
     } catch (SessionException e) {
       LOGGER.error("Statement: \"SHOW CLUSTER INFO;\" execute fail. Caused by: ", e);
       fail();
