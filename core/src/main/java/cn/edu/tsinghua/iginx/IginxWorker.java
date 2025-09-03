@@ -517,8 +517,9 @@ public class IginxWorker implements IService.Iface {
         iterator.remove();
         continue;
       }
-      if (!storageEnginesExistInMeta.contains(meta)
-          && !metaManager.addStorageEngines(Collections.singletonList(meta))) {
+      boolean storageEngineExists = storageEnginesExistInMeta.contains(meta);
+      boolean addSuccess = metaManager.addStorageEngines(Collections.singletonList(meta));
+      if (!storageEngineExists && !addSuccess) {
         partialFailAndLog(status, String.format("add storage engine %s failed.", meta));
         iterator.remove();
         continue;
