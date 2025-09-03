@@ -144,12 +144,10 @@ public class ClusterIT {
   private void testRemoveDummyStorageForCurrentIginx() throws InterruptedException {
     addStorageEngine(session6888);
     testRemoveDummyStorageForCurrentIginx(session6888, false);
+    testAddStorageAgainAfterRemove(session6888);
+    testRemoveDummyStorageForCurrentIginx(session6888, false);
     testRemoveDummyStorageForCurrentIginx(session6889, false);
     testRemoveDummyStorageForCurrentIginx(session6890, true);
-    testAddStorageAgainAfterRemove();
-  }
-
-  private void testAddStorageAgainAfterRemove() throws InterruptedException {
     testAddStorageAgainAfterRemove(session6888);
   }
 
