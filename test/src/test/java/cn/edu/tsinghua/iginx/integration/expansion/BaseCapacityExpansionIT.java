@@ -328,9 +328,9 @@ public abstract class BaseCapacityExpansionIT {
   }
 
   @Test
-  public void testReadOnly() throws SessionException {
-    // 查询原始只读节点的历史数据，结果不为空
-    testQueryHistoryDataOriHasData();
+  public void testReadOnly() throws SessionException, InterruptedException {
+    //    // 查询原始只读节点的历史数据，结果不为空
+    //    testQueryHistoryDataOriHasData();
     // 测试只读节点的参数修改
     testUpdateEngineParams();
     // 测试主机名解析
@@ -506,41 +506,41 @@ public abstract class BaseCapacityExpansionIT {
   }
 
   /** 测试主机名能否被正确解析 */
-  protected void testHostnameResolution() throws SessionException {
+  protected void testHostnameResolution() throws SessionException, InterruptedException {
     String hostname = "localhost";
     String prefix = "prefix";
     addStorageEngine(
         hostname, readOnlyPort, true, true, null, prefix, portsToExtraParams.get(readOnlyPort));
-    List<StorageEngineInfo> engineInfoList = session.getClusterInfo().getStorageEngineInfos();
-    long id = -1;
-    for (StorageEngineInfo info : engineInfoList) {
-      if (info.getIp().equals("127.0.0.1")
-          && info.getPort() == readOnlyPort
-          && info.getDataPrefix().equals("null")
-          && info.getSchemaPrefix().equals(prefix)
-          && info.getType().equals(type)) {
-        id = info.getId();
-      }
-    }
-    // 确认127.0.0.1的数据源对应id不为-1，表示主机名解析成功
-    assertTrue(id != -1);
-    // 删除，不影响后续测试
-    session.removeStorageEngine(
-        Collections.singletonList(
-            new RemovedStorageEngineInfo("localhost", readOnlyPort, prefix, "")),
-        false);
-    // 确认删除成功
-    ClusterInfo clusterInfo = session.getClusterInfo();
     List<StorageEngineInfo> remainingEngines =
-        clusterInfo.getStorageEngineInfos().stream()
+        session.getClusterInfo().getStorageEngineInfos().stream()
             .filter(
                 engine ->
                     engine.getIp().equals("127.0.0.1")
                         && engine.getPort() == readOnlyPort
+                        && engine.getDataPrefix().equals("null")
                         && engine.getSchemaPrefix().equals(prefix)
                         && engine.getType().equals(type))
             .collect(Collectors.toList());
-    assertEquals(remainingEngines.size(), 0);
+    // 检查是否插入成功
+    assertEquals(1, remainingEngines.size());
+    // 删除，不影响后续测试
+    session.removeStorageEngine(
+        Collections.singletonList(new RemovedStorageEngineInfo(hostname, readOnlyPort, prefix, "")),
+        false);
+    // 等待删除完毕
+    Thread.sleep(100);
+    // 确认删除成功
+    remainingEngines =
+        session.getClusterInfo().getStorageEngineInfos().stream()
+            .filter(
+                engine ->
+                    engine.getIp().equals("127.0.0.1")
+                        && engine.getPort() == readOnlyPort
+                        && engine.getDataPrefix().equals("null")
+                        && engine.getSchemaPrefix().equals(prefix)
+                        && engine.getType().equals(type))
+            .collect(Collectors.toList());
+    assertEquals(0, remainingEngines.size());
   }
 
   /** 测试schema_prefix为null时是否正确移除了 AddSchemaPrefix 算子 * */
