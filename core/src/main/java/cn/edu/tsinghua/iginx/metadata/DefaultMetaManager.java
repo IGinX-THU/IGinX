@@ -580,6 +580,15 @@ public class DefaultMetaManager implements IMetaManager {
   }
 
   @Override
+  public void updateStorageConnection(List<StorageEngineMeta> storageEngines) {
+    try {
+      cache.updateStorageConnections(storage.refreshClusterStorageConnections());
+    } catch (MetaStorageException e) {
+      LOGGER.error("update storage engine connections {} error: ", storageEngines, e);
+    }
+  }
+
+  @Override
   public Map<Long, Set<Long>> getStorageConnections() {
     return new HashMap<>(cache.getStorageConnections());
   }

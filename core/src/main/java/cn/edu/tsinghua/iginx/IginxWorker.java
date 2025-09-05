@@ -516,14 +516,16 @@ public class IginxWorker implements IService.Iface {
         iterator.remove();
         continue;
       }
-      if (!storageEnginesExistInMeta.contains(meta)
-          && !metaManager.addStorageEngines(Collections.singletonList(meta))) {
+      if (storageEnginesExistInMeta.contains(meta)) {
+        storageManager.addStorage(meta, storage);
+        metaManager.addStorageConnection(Collections.singletonList(meta));
+      } else if (metaManager.addStorageEngines(Collections.singletonList(meta))) {
+        storageManager.addStorage(meta, storage);
+        metaManager.updateStorageConnection(Collections.singletonList(meta));
+      } else {
         partialFailAndLog(status, String.format("add storage engine %s failed.", meta));
         iterator.remove();
-        continue;
       }
-      storageManager.addStorage(meta, storage);
-      metaManager.addStorageConnection(Collections.singletonList(meta));
     }
     if (status.isSetSubStatus()) {
       if (storageEngineMetas.isEmpty()) {
