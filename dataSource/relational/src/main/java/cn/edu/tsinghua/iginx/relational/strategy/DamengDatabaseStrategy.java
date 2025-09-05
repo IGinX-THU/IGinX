@@ -26,7 +26,7 @@ import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
-import cn.edu.tsinghua.iginx.relational.datatype.transformer.DamengDataTypeTransformer;
+import cn.edu.tsinghua.iginx.relational.datatype.transformer.IDataTypeTransformer;
 import cn.edu.tsinghua.iginx.relational.exception.RelationalTaskExecuteFailureException;
 import cn.edu.tsinghua.iginx.relational.meta.AbstractRelationalMeta;
 import cn.edu.tsinghua.iginx.relational.tools.ColumnField;
@@ -46,7 +46,7 @@ import org.slf4j.LoggerFactory;
 public class DamengDatabaseStrategy extends AbstractDatabaseStrategy {
   private static final Logger LOGGER = LoggerFactory.getLogger(DamengDatabaseStrategy.class);
 
-  private final DamengDataTypeTransformer dataTypeTransformer;
+  private final IDataTypeTransformer dataTypeTransformer;
 
   private static AbstractRelationalMeta checkAndSetPrivileges(
       AbstractRelationalMeta relationalMeta, StorageEngineMeta storageEngineMeta) {
@@ -84,7 +84,7 @@ public class DamengDatabaseStrategy extends AbstractDatabaseStrategy {
   public DamengDatabaseStrategy(
       AbstractRelationalMeta relationalMeta, StorageEngineMeta storageEngineMeta) {
     super(checkAndSetPrivileges(relationalMeta, storageEngineMeta), storageEngineMeta);
-    this.dataTypeTransformer = DamengDataTypeTransformer.getInstance();
+    this.dataTypeTransformer = relationalMeta.getDataTypeTransformer();
   }
 
   @Override
@@ -121,7 +121,7 @@ public class DamengDatabaseStrategy extends AbstractDatabaseStrategy {
 
   @Override
   public String getSchemaPattern(String databaseName, boolean isDummy) {
-    if (isDummy || relationalMeta.supportCreateDatabase()) {
+    if (isDummy || relationalMeta.isSupportCreateDatabase()) {
       return databaseName;
     }
     return storageEngineMeta.getExtraParams().get(USERNAME);
@@ -140,7 +140,7 @@ public class DamengDatabaseStrategy extends AbstractDatabaseStrategy {
       String columnNames = entry.getValue().k.substring(0, entry.getValue().k.length() - 2);
       List<String> values = entry.getValue().v;
       String[] parts = columnNames.split(", ");
-      if (relationalMeta.supportCreateDatabase()) {
+      if (relationalMeta.isSupportCreateDatabase()) {
         Map<String, ColumnField> columnMap = getColumnMap(conn, tableName, databaseName);
         this.batchInsert(conn, tableName, columnMap, parts, values);
       } else {
@@ -167,6 +167,7 @@ public class DamengDatabaseStrategy extends AbstractDatabaseStrategy {
     List<String> insertKeys = new ArrayList<>();
     List<String> updateKeys = new ArrayList<>();
     try {
+      conn.setAutoCommit(false); // 关闭自动提交
       StringBuilder placeHolder = new StringBuilder();
 
       int start = 0, end = 0, step = 0;
@@ -219,7 +220,6 @@ public class DamengDatabaseStrategy extends AbstractDatabaseStrategy {
                   getQuotName(tableName),
                   getQuotName(KEY_NAME) + "," + partStr,
                   placeHolder));
-      conn.setAutoCommit(false); // 关闭自动提交
       for (int i = 0; i < insertKeys.size(); i++) {
         String[] vals = valueMap.get(insertKeys.get(i));
         insertStmt.setString(1, vals[0]);

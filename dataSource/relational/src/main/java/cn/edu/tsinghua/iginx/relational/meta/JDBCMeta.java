@@ -20,7 +20,6 @@
 package cn.edu.tsinghua.iginx.relational.meta;
 
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
-import cn.edu.tsinghua.iginx.relational.datatype.transformer.DamengDataTypeTransformer;
 import cn.edu.tsinghua.iginx.relational.datatype.transformer.IDataTypeTransformer;
 import cn.edu.tsinghua.iginx.relational.datatype.transformer.JDBCDataTypeTransformer;
 import cn.edu.tsinghua.iginx.relational.datatype.transformer.OracleDataTypeTransformer;
@@ -92,15 +91,17 @@ public class JDBCMeta extends AbstractRelationalMeta {
 
   private final boolean supportBoundaryQuery;
 
+  private final int maxColumnNumLimit;
+
+  private final int maxSingleRowSizeLimit;
+
   public JDBCMeta(StorageEngineMeta meta, Properties properties) {
     super(meta);
     quote = properties.getProperty("quote").charAt(0);
     driverClass = properties.getProperty("driver_class");
     defaultDatabaseName = properties.getProperty("default_database");
-    if (meta.getExtraParams().get("engine").equalsIgnoreCase("dameng")) {
-      dataTypeTransformer = DamengDataTypeTransformer.getInstance();
-    } else if (meta.getExtraParams().get("engine").equalsIgnoreCase("oracle")) {
-      dataTypeTransformer = OracleDataTypeTransformer.getInstance();
+    if (meta.getExtraParams().get("engine").equalsIgnoreCase("oracle")) {
+      dataTypeTransformer = new OracleDataTypeTransformer(properties);
     } else {
       dataTypeTransformer = new JDBCDataTypeTransformer(properties);
     }
@@ -139,6 +140,8 @@ public class JDBCMeta extends AbstractRelationalMeta {
             properties.getProperty("jdbc_support_get_table_name_from_result_set", "true"));
     supportBoundaryQuery =
         Boolean.parseBoolean(properties.getProperty("support_boundary_query", "false"));
+    maxColumnNumLimit = Integer.parseInt(properties.getProperty("max_column_num_limit"));
+    maxSingleRowSizeLimit = Integer.parseInt(properties.getProperty("max_single_row_size_limit"));
   }
 
   @Override
@@ -187,7 +190,7 @@ public class JDBCMeta extends AbstractRelationalMeta {
   }
 
   @Override
-  public boolean supportCreateDatabase() {
+  public boolean isSupportCreateDatabase() {
     return supportCreateDatabase;
   }
 
@@ -308,5 +311,15 @@ public class JDBCMeta extends AbstractRelationalMeta {
   @Override
   public void setSupportCreateDatabase(boolean supportCreateDatabase) {
     this.supportCreateDatabase = supportCreateDatabase;
+  }
+
+  @Override
+  public int getMaxColumnNumLimit() {
+    return maxColumnNumLimit;
+  }
+
+  @Override
+  public int getMaxSingleRowSizeLimit() {
+    return maxSingleRowSizeLimit;
   }
 }
