@@ -75,6 +75,8 @@ public interface IMetaManager {
   /** 记录 iginx 节点和存储节点的连接信息 */
   void addStorageConnection(List<StorageEngineMeta> storageEngines);
 
+  void updateStorageConnection(List<StorageEngineMeta> storageEngines);
+
   /** 获取集群中 iginx 节点与存储节点的连接信息 */
   Map<Long, Set<Long>> getStorageConnections();
 
