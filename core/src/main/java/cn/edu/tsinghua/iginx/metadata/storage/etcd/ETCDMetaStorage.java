@@ -829,14 +829,10 @@ public class ETCDMetaStorage implements IMetaStorage {
     try {
       lockStorage();
       lockStorageConnection();
+      String nodeName =
+          generateID(STORAGE_ENGINE_NODE_PREFIX, STORAGE_ENGINE_NODE_LENGTH, storageEngineId);
       if (forAllIginx) {
-        this.client
-            .getKVClient()
-            .delete(
-                ByteSequence.from(
-                    generateID(
-                            STORAGE_ENGINE_NODE_PREFIX, STORAGE_ENGINE_NODE_LENGTH, storageEngineId)
-                        .getBytes()));
+        this.client.getKVClient().delete(ByteSequence.from(nodeName.getBytes()));
       }
 
       // 删除连接状态
@@ -859,6 +855,38 @@ public class ETCDMetaStorage implements IMetaStorage {
                     ByteSequence.from(connectionPath.getBytes()),
                     ByteSequence.from(JsonUtils.toJson(newIds)))
                 .get();
+            if (this.client
+                    .getKVClient()
+                    .get(ByteSequence.from(nodeName.getBytes()))
+                    .get()
+                    .getCount()
+                != 0L) {
+              // 检查存储节点是否还有连接
+              int connectionIndex = -1;
+              List<KeyValue> kvs =
+                  this.client
+                      .getKVClient()
+                      .get(
+                          ByteSequence.from(STORAGE_CONNECTION_NODE_PREFIX.getBytes()),
+                          GetOption.newBuilder()
+                              .withPrefix(
+                                  ByteSequence.from(STORAGE_CONNECTION_NODE_PREFIX.getBytes()))
+                              .build())
+                      .get()
+                      .getKvs();
+              for (KeyValue kv : kvs) {
+                String keyName = kv.getKey().toString(StandardCharsets.UTF_8);
+                ids = JsonUtils.fromJson(kv.getValue().getBytes(), long[].class);
+                connectionIndex = Arrays.binarySearch(ids, storageEngineId);
+                if (connectionIndex >= 0) {
+                  break;
+                }
+              }
+              // iginx 将没有连接的存储节点
+              if (connectionIndex < 0) {
+                this.client.getKVClient().delete(ByteSequence.from(nodeName.getBytes()));
+              }
+            }
           } else {
             // iginx 将没有连接的存储节点
             this.client.getKVClient().delete(ByteSequence.from(connectionPath.getBytes()));
