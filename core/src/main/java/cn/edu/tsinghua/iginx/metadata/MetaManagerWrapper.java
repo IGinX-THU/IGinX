@@ -136,6 +136,11 @@ public class MetaManagerWrapper implements IMetaManager {
   }
 
   @Override
+  public void updateStorageConnection(List<StorageEngineMeta> storageEngines) {
+    metaManager.updateStorageConnection(storageEngines);
+  }
+
+  @Override
   public Map<Long, Set<Long>> getStorageConnections() {
     return metaManager.getStorageConnections();
   }
