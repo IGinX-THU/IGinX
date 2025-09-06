@@ -71,14 +71,15 @@ public class MetaUtils {
           meta -> {
             if (meta.isValid()) {
               String schemaPrefix = meta.getColumnsInterval().getSchemaPrefix();
-              joinList.add(
-                  new AddSchemaPrefix(
-                      new OperatorSource(
-                          new Project(
-                              new FragmentSource(meta),
-                              pathMatchPrefix(pathList, meta.getColumnsInterval(), schemaPrefix),
-                              tagFilter)),
-                      schemaPrefix));
+              Operator current =
+                  new Project(
+                      new FragmentSource(meta),
+                      pathMatchPrefix(pathList, meta.getColumnsInterval(), schemaPrefix),
+                      tagFilter);
+              if (schemaPrefix != null) {
+                current = new AddSchemaPrefix(new OperatorSource(current), schemaPrefix);
+              }
+              joinList.add(current);
             }
           });
       if (operator != null) {
