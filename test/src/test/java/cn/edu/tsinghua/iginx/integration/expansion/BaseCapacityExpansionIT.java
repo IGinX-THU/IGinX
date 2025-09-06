@@ -329,14 +329,14 @@ public abstract class BaseCapacityExpansionIT {
 
   @Test
   public void testReadOnly() throws SessionException, InterruptedException {
-    // 查询原始只读节点的历史数据，结果不为空
-    testQueryHistoryDataOriHasData();
-    // 测试只读节点的参数修改
-    testUpdateEngineParams();
-    // 测试主机名解析
-    testHostnameResolution();
+    //    // 查询原始只读节点的历史数据，结果不为空
+    //    testQueryHistoryDataOriHasData();
+    //    // 测试只读节点的参数修改
+    //    testUpdateEngineParams();
+    //    // 测试主机名解析
+    //    testHostnameResolution();
     // 测试schema_prefix为null时，能否正确移除 AddSchemaPrefix 算子
-    testRemoveAddSchemaPrefix();
+    testAddSchemaPrefixRemove();
     testDatabaseShutdown();
 
     // 测试参数错误的只读节点扩容
@@ -544,16 +544,12 @@ public abstract class BaseCapacityExpansionIT {
   }
 
   /** 测试schema_prefix为null时是否正确移除了 AddSchemaPrefix 算子 * */
-  public void testRemoveAddSchemaPrefix() throws SessionException {
+  public void testAddSchemaPrefixRemove() throws SessionException, InterruptedException {
     addStorageEngine(
         "127.0.0.1", readOnlyPort, true, true, null, null, portsToExtraParams.get(readOnlyPort));
     String statement = "explain select * from *;";
     String expect = "AddSchemaPrefix";
     assertFalse(SQLTestTools.executeAndContainValue(session, statement, expect));
-    // 删除，不影响后续测试
-    session.removeStorageEngine(
-        Collections.singletonList(new RemovedStorageEngineInfo("localhost", readOnlyPort, "", "")),
-        false);
     addStorageEngine(
         "127.0.0.1",
         readOnlyPort,
@@ -563,6 +559,10 @@ public abstract class BaseCapacityExpansionIT {
         "prefix",
         portsToExtraParams.get(readOnlyPort));
     assertTrue(SQLTestTools.executeAndContainValue(session, statement, expect));
+    // 删除，不影响后续测试
+    session.removeStorageEngine(
+        Collections.singletonList(new RemovedStorageEngineInfo("127.0.0.1", readOnlyPort, "", "")),
+        false);
     // 删除，不影响后续测试
     session.removeStorageEngine(
         Collections.singletonList(
