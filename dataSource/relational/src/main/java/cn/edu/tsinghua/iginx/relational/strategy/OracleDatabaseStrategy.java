@@ -54,7 +54,7 @@ public class OracleDatabaseStrategy extends AbstractDatabaseStrategy {
   public OracleDatabaseStrategy(
       AbstractRelationalMeta relationalMeta, StorageEngineMeta storageEngineMeta) {
     super(relationalMeta, storageEngineMeta);
-    this.dataTypeTransformer = (OracleDataTypeTransformer) relationalMeta.getDataTypeTransformer();
+    this.dataTypeTransformer = OracleDataTypeTransformer.getInstance();
   }
 
   @Override

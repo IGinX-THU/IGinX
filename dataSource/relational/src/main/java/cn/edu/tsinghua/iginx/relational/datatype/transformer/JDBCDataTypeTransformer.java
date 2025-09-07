@@ -46,7 +46,11 @@ public class JDBCDataTypeTransformer implements IDataTypeTransformer {
 
   @Override
   public String toEngineType(DataType dataType) {
-    return typeMappings.getProperty(prefix + dataType.name(), "TEXT");
+    try {
+      return typeMappings.getProperty(prefix + dataType.name());
+    } catch (Exception e) {
+      throw new IllegalArgumentException("Unsupported data type: " + dataType);
+    }
   }
 
   @Override

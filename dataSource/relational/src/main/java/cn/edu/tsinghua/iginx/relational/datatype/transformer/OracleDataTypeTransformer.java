@@ -25,8 +25,24 @@ import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.util.Properties;
 
 public class OracleDataTypeTransformer extends JDBCDataTypeTransformer {
-  public OracleDataTypeTransformer(Properties properties) {
+  private static OracleDataTypeTransformer INSTANCE;
+
+  private OracleDataTypeTransformer(Properties properties) {
     super(properties);
+  }
+
+  public static synchronized OracleDataTypeTransformer init(Properties properties) {
+    if (INSTANCE == null) {
+      INSTANCE = new OracleDataTypeTransformer(properties);
+    }
+    return INSTANCE;
+  }
+
+  public static OracleDataTypeTransformer getInstance() {
+    if (INSTANCE == null) {
+      throw new IllegalStateException("Not initialized, call init(Properties) first");
+    }
+    return INSTANCE;
   }
 
   @Override
@@ -53,26 +69,6 @@ public class OracleDataTypeTransformer extends JDBCDataTypeTransformer {
         return DOUBLE;
       default:
         return BINARY;
-    }
-  }
-
-  @Override
-  public String toEngineType(DataType dataType) {
-    switch (dataType) {
-      case BOOLEAN:
-        return "NUMBER(1)";
-      case INTEGER:
-        return "NUMBER(10)";
-      case LONG:
-        return "NUMBER(19)";
-      case FLOAT:
-        return "BINARY_FLOAT";
-      case DOUBLE:
-        return "BINARY_DOUBLE";
-      case BINARY:
-        return "VARCHAR2(4000)";
-      default:
-        throw new IllegalArgumentException("Unsupported data type: " + dataType);
     }
   }
 }

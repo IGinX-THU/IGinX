@@ -101,7 +101,8 @@ public class JDBCMeta extends AbstractRelationalMeta {
     driverClass = properties.getProperty("driver_class");
     defaultDatabaseName = properties.getProperty("default_database");
     if (meta.getExtraParams().get("engine").equalsIgnoreCase("oracle")) {
-      dataTypeTransformer = new OracleDataTypeTransformer(properties);
+      OracleDataTypeTransformer.init(properties);
+      dataTypeTransformer = OracleDataTypeTransformer.getInstance();
     } else {
       dataTypeTransformer = new JDBCDataTypeTransformer(properties);
     }
