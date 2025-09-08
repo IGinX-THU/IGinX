@@ -36,7 +36,7 @@ public interface DatabaseStrategy {
    *
    * @throws StorageInitializationException 如果存储初始化失败
    */
-  void initConnection() throws StorageInitializationException;
+  Connection initConnection() throws StorageInitializationException;
 
   /**
    * 获取数据库连接
