@@ -25,6 +25,7 @@ import static org.junit.Assert.fail;
 
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.pool.SessionPool;
+import cn.edu.tsinghua.iginx.session.QueryDataSet;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionAggregateQueryDataSet;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
@@ -217,6 +218,21 @@ public class MultiConnection {
     }
     if (sessionPool != null) {
       return sessionPool.executeSql(statement);
+    }
+    return null;
+  }
+
+  public QueryDataSet executeSqlWithStream(String statement) throws SessionException {
+    return executeSqlWithStream(statement, Integer.MAX_VALUE);
+  }
+
+  public QueryDataSet executeSqlWithStream(String statement, int fetchSize)
+      throws SessionException {
+    if (session != null) {
+      return session.executeQuery(statement, fetchSize);
+    }
+    if (sessionPool != null) {
+      return sessionPool.executeQuery(statement);
     }
     return null;
   }
