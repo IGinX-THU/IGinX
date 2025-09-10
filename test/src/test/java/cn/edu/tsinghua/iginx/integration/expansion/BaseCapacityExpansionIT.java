@@ -329,12 +329,12 @@ public abstract class BaseCapacityExpansionIT {
 
   @Test
   public void testReadOnly() throws SessionException, InterruptedException {
-    //    // 查询原始只读节点的历史数据，结果不为空
-    //    testQueryHistoryDataOriHasData();
-    //    // 测试只读节点的参数修改
-    //    testUpdateEngineParams();
-    //    // 测试主机名解析
-    //    testHostnameResolution();
+    // 查询原始只读节点的历史数据，结果不为空
+    testQueryHistoryDataOriHasData();
+    // 测试只读节点的参数修改
+    testUpdateEngineParams();
+    // 测试主机名解析
+    testHostnameResolution();
     // 测试schema_prefix为null时，能否正确移除 AddSchemaPrefix 算子
     testAddSchemaPrefixRemove();
     testDatabaseShutdown();
