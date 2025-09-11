@@ -191,11 +191,11 @@ public class FileTreeDummyTest extends AbstractDummyTest {
 
     DataBoundary boundary = getBoundary(null);
     assertTrue(inBounds(boundary, "home.LICENSE"));
-    assertTrue(inBounds(boundary, "home.README\\md"));
-    assertTrue(inBounds(boundary, "home.src.main.java.Main\\java"));
-    assertTrue(inBounds(boundary, "home.src.main.java.Tool\\java"));
-    assertTrue(inBounds(boundary, "home.src.main.resources.config\\properties"));
-    assertTrue(inBounds(boundary, "home.src.test.java.Test\\java"));
+    assertTrue(inBounds(boundary, "home.README\\.md"));
+    assertTrue(inBounds(boundary, "home.src.main.java.Main\\.java"));
+    assertTrue(inBounds(boundary, "home.src.main.java.Tool\\.java"));
+    assertTrue(inBounds(boundary, "home.src.main.resources.config\\.properties"));
+    assertTrue(inBounds(boundary, "home.src.test.java.Test\\.java"));
   }
 
   @Test
@@ -205,11 +205,11 @@ public class FileTreeDummyTest extends AbstractDummyTest {
 
     DataBoundary boundary = getBoundary(DIR_NAME);
     assertTrue(inBounds(boundary, "home.LICENSE"));
-    assertTrue(inBounds(boundary, "home.README\\md"));
-    assertTrue(inBounds(boundary, "home.src.main.java.Main\\java"));
-    assertTrue(inBounds(boundary, "home.src.main.java.Tool\\java"));
-    assertTrue(inBounds(boundary, "home.src.main.resources.config\\properties"));
-    assertTrue(inBounds(boundary, "home.src.test.java.Test\\java"));
+    assertTrue(inBounds(boundary, "home.README\\.md"));
+    assertTrue(inBounds(boundary, "home.src.main.java.Main\\.java"));
+    assertTrue(inBounds(boundary, "home.src.main.java.Tool\\.java"));
+    assertTrue(inBounds(boundary, "home.src.main.resources.config\\.properties"));
+    assertTrue(inBounds(boundary, "home.src.test.java.Test\\.java"));
   }
 
   @Test
@@ -219,11 +219,11 @@ public class FileTreeDummyTest extends AbstractDummyTest {
 
     DataBoundary boundary = getBoundary(DIR_NAME + ".src.main.java");
     assertFalse(inBounds(boundary, "home.LICENSE"));
-    assertFalse(inBounds(boundary, "home.README\\md"));
-    assertTrue(inBounds(boundary, "home.src.main.java.Main\\java"));
-    assertTrue(inBounds(boundary, "home.src.main.java.Tool\\java"));
-    assertFalse(inBounds(boundary, "home.src.main.resources.config\\properties"));
-    assertFalse(inBounds(boundary, "home.src.test.java.Test\\java"));
+    assertFalse(inBounds(boundary, "home.README\\.md"));
+    assertTrue(inBounds(boundary, "home.src.main.java.Main\\.java"));
+    assertTrue(inBounds(boundary, "home.src.main.java.Tool\\.java"));
+    assertFalse(inBounds(boundary, "home.src.main.resources.config\\.properties"));
+    assertFalse(inBounds(boundary, "home.src.test.java.Test\\.java"));
   }
 
   @Test
@@ -252,9 +252,9 @@ public class FileTreeDummyTest extends AbstractDummyTest {
     reset();
     {
       DataBoundary boundary = getBoundary(null);
-      assertTrue(inBounds(boundary, "home.async\\hpp"));
+      assertTrue(inBounds(boundary, "home.async\\.hpp"));
       assertTrue(inBounds(boundary, "home.LICENSE"));
-      assertTrue(inBounds(boundary, "home.readme\\md"));
+      assertTrue(inBounds(boundary, "home.readme\\.md"));
     }
   }
 
@@ -290,16 +290,16 @@ public class FileTreeDummyTest extends AbstractDummyTest {
     createNestedFiles();
     reset();
 
-    Header justMainHeader = getSchema("home.src.main.java.Main\\java");
+    Header justMainHeader = getSchema("home.src.main.java.Main\\.java");
     List<Row> justMainData =
-        new RowsBuilder("home.src.main.java.Main\\java")
+        new RowsBuilder("home.src.main.java.Main\\.java")
             .add(0, "public c")
             .add(1, "lass Mai")
             .add(2, "n {\n}")
             .build();
 
     {
-      List<String> patterns = Collections.singletonList("home.src.main.java.Main\\java");
+      List<String> patterns = Collections.singletonList("home.src.main.java.Main\\.java");
       Header schema = getSchema(patterns);
       assertEquals(justMainHeader, schema);
       List<Row> rows = query(patterns);
@@ -307,7 +307,7 @@ public class FileTreeDummyTest extends AbstractDummyTest {
     }
 
     {
-      List<String> patterns = Collections.singletonList("*.Main\\java");
+      List<String> patterns = Collections.singletonList("*.Main\\.java");
       Header schema = getSchema(patterns);
       assertEquals(justMainHeader, schema);
       List<Row> rows = query(patterns);
@@ -315,7 +315,7 @@ public class FileTreeDummyTest extends AbstractDummyTest {
     }
 
     {
-      List<String> patterns = Collections.singletonList("*.main.*.Main\\java");
+      List<String> patterns = Collections.singletonList("*.main.*.Main\\.java");
       Header schema = getSchema(patterns);
       assertEquals(justMainHeader, schema);
       List<Row> rows = query(patterns);
@@ -323,7 +323,7 @@ public class FileTreeDummyTest extends AbstractDummyTest {
     }
 
     {
-      List<String> patterns = Collections.singletonList("home.*.main.*.Main\\java");
+      List<String> patterns = Collections.singletonList("home.*.main.*.Main\\.java");
       Header schema = getSchema(patterns);
       assertEquals(justMainHeader, schema);
       List<Row> rows = query(patterns);
@@ -340,20 +340,20 @@ public class FileTreeDummyTest extends AbstractDummyTest {
     Header allHeader =
         headerOf(
             "home.LICENSE",
-            "home.README\\md",
-            "home.src.main.java.Main\\java",
-            "home.src.main.java.Tool\\java",
-            "home.src.main.resources.config\\properties",
-            "home.src.test.java.Test\\java");
+            "home.README\\.md",
+            "home.src.main.java.Main\\.java",
+            "home.src.main.java.Tool\\.java",
+            "home.src.main.resources.config\\.properties",
+            "home.src.test.java.Test\\.java");
 
     List<Row> allData =
         new RowsBuilder(
                 "home.LICENSE",
-                "home.README\\md",
-                "home.src.main.java.Main\\java",
-                "home.src.main.java.Tool\\java",
-                "home.src.main.resources.config\\properties",
-                "home.src.test.java.Test\\java")
+                "home.README\\.md",
+                "home.src.main.java.Main\\.java",
+                "home.src.main.java.Tool\\.java",
+                "home.src.main.resources.config\\.properties",
+                "home.src.test.java.Test\\.java")
             .add(0, "Apache L", "this dir", "public c", "public c", "ip=127.0", "public c")
             .add(1, "icense", "ectory i", "lass Mai", "lass Too", ".0.1\npor", "lass Tes")
             .add(2, null, "s for te", "n {\n}", "l {\n}", "t=6667", "t {\n}")
@@ -414,7 +414,7 @@ public class FileTreeDummyTest extends AbstractDummyTest {
           query(
               patterns,
               new ValueFilter(
-                  "home.src.main.resources.config\\properties", Op.LIKE, new Value(".*[.].*")));
+                  "home.src.main.resources.config\\.properties", Op.LIKE, new Value(".*[.].*")));
       assertEquals(allDataKey0, rows);
     }
     {
@@ -427,14 +427,14 @@ public class FileTreeDummyTest extends AbstractDummyTest {
     }
     {
       List<Row> rows =
-          query(patterns, new ValueFilter("*.config\\properties", Op.LIKE, new Value(".*[.].*")));
+          query(patterns, new ValueFilter("*.config\\.properties", Op.LIKE, new Value(".*[.].*")));
       assertEquals(allDataKey0, rows);
     }
     {
       List<Row> rows =
           query(
               patterns,
-              new ValueFilter("home.*.main.*.config\\properties", Op.LIKE, new Value(".*[.].*")));
+              new ValueFilter("home.*.main.*.config\\.properties", Op.LIKE, new Value(".*[.].*")));
       assertEquals(allDataKey0, rows);
     }
   }

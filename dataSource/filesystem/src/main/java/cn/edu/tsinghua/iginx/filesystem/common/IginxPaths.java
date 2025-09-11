@@ -19,6 +19,8 @@
  */
 package cn.edu.tsinghua.iginx.filesystem.common;
 
+import static cn.edu.tsinghua.iginx.filesystem.struct.legacy.filesystem.shared.Constant.*;
+
 import com.google.common.collect.Iterables;
 import java.nio.file.FileSystem;
 import java.nio.file.Path;
@@ -30,8 +32,6 @@ import java.util.regex.Pattern;
 import javax.annotation.Nullable;
 
 public class IginxPaths {
-
-  public static final String DOT = ".";
 
   private IginxPaths() {}
 
@@ -61,11 +61,16 @@ public class IginxPaths {
     if (path == null) {
       return fs.getPath("");
     }
+    // 先把 \. 替换成一个特殊占位符
+    final String PLACEHOLDER = "\uF000";
+    String safePath = path.replace(dot, PLACEHOLDER);
+    // 按 '.' 分割
     Pattern splitter = Pattern.compile(Pattern.quote(DOT));
-    String[] nodes = splitter.split(path);
+    String[] nodes = splitter.split(safePath);
     String[] fsNodes = new String[nodes.length];
+    // 还原占位符为真正的 '.'
     for (int i = 0; i < nodes.length; i++) {
-      fsNodes[i] = nodes[i].replace(dot, DOT);
+      fsNodes[i] = nodes[i].replace(PLACEHOLDER, DOT);
     }
     return fs.getPath(fsNodes[0], Arrays.copyOfRange(fsNodes, 1, fsNodes.length));
   }
@@ -94,6 +99,11 @@ public class IginxPaths {
     if (path == null) {
       return new String[0];
     }
-    return path.split(Pattern.quote(DOT));
+    final String PLACEHOLDER = "\uF000";
+    String safePath = path.replace(ESCAPED_DOT, PLACEHOLDER);
+    Pattern splitter = Pattern.compile(Pattern.quote(DOT));
+    return Arrays.stream(splitter.split(safePath))
+        .map(s -> s.replace(PLACEHOLDER, ESCAPED_DOT))
+        .toArray(String[]::new);
   }
 }

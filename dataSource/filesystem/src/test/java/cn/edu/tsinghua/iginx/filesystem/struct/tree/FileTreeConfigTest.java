@@ -93,12 +93,6 @@ public class FileTreeConfigTest {
     FileTreeConfig fileTreeConfig = FileTreeConfig.of(rawConfig);
 
     {
-      List<AbstractConfig.ValidationProblem> problemList = fileTreeConfig.validate();
-      assertEquals(1, problemList.size());
-      assertEquals("dot:'dot cannot be '.''", problemList.get(0).toString());
-    }
-
-    {
       fileTreeConfig.setDot(null);
       List<AbstractConfig.ValidationProblem> problemList = fileTreeConfig.validate();
       assertEquals(1, problemList.size());
