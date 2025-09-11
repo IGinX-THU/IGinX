@@ -76,13 +76,19 @@ public class FilePathUtils {
     if (path == null) {
       return root;
     }
-    String[] parts = path.split("\\.");
+    // 先把 \. 替换成一个特殊占位符
+    final String PLACEHOLDER = "\uF000";
+    String safePath = path.replace(ESCAPED_DOT, PLACEHOLDER);
+    // 按 '.' 分割
+    Pattern splitter = Pattern.compile(Pattern.quote(DOT));
+    String[] parts = splitter.split(safePath);
+    // 还原占位符为真正的 '.'
     StringBuilder res = new StringBuilder();
     for (String s : parts) {
-      s = s.replace("\\", ".");
+      s = s.replace(PLACEHOLDER, DOT);
       res.append(s).append(SEPARATOR);
     }
-    res = new StringBuilder(res.substring(0, res.length() - 1));
+    res.setLength(res.length() - 1);
     return root + res;
   }
 
@@ -103,22 +109,21 @@ public class FilePathUtils {
       if (tmp.isEmpty()) {
         return SEPARATOR;
       }
-      return tmp.replace(SEPARATOR, ".");
+      return tmp.replace(SEPARATOR, DOT);
     } else { // 对普通文件操作
       String[] parts;
       tmp = filePath.substring(filePath.indexOf(root) + root.length());
       if (!tmp.contains(SEPARATOR)) { // 一级目录或文件
-        return tmp.replace(".", "\\");
+        return tmp.replace(DOT, ESCAPED_DOT);
       }
-      if (SEPARATOR.equals("\\")) { // 针对win系统
-        parts = tmp.split("\\\\");
-      } else {
-        parts = tmp.split(SEPARATOR);
-      }
+
+      Pattern splitter = Pattern.compile(Pattern.quote(SEPARATOR));
+      parts = splitter.split(tmp);
+
       StringBuilder res = new StringBuilder();
       for (String s : parts) {
-        s = s.replace(".", "\\");
-        res.append(s).append(".");
+        s = s.replace(DOT, ESCAPED_DOT);
+        res.append(s).append(DOT);
       }
       return res.substring(0, res.length() - 1);
     }
@@ -132,13 +137,7 @@ public class FilePathUtils {
     if (storageUnit != null) {
       target.append(storageUnit).append(SEPARATOR);
     }
-    String[] parts = path.split("\\.");
-    StringBuilder res = new StringBuilder();
-    for (String s : parts) {
-      s = s.replace("\\", ".");
-      res.append(s).append(SEPARATOR);
-    }
-    target.append(res.substring(0, res.length() - 1));
+    target.append(toNormalFilePath("", path));
     if (storageUnit != null) {
       target.append(FILE_EXTENSION);
     }
