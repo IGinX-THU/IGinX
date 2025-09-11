@@ -131,7 +131,8 @@ public class IMetaManagerTest {
             new ColumnsInterval(null, "end column"), // 仅开始列为 null
             new ColumnsInterval("", ""), // 空字符串
             new ColumnsInterval(" ", " "), // 空格
-            new ColumnsInterval("特殊字符.测试", "结束列.测试") // Unicode 字符
+            new ColumnsInterval("特殊字符.测试", "结束列.测试"), // Unicode 字符
+            new ColumnsInterval("\\Dab.cd\\N-", "-ab\\\\.c\\.d") // 包含转义字符
             ),
         "-\\_:@#$~^{}\""
             .chars()
