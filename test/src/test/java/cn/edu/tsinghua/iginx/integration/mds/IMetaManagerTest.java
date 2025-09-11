@@ -133,6 +133,8 @@ public class IMetaManagerTest {
             new ColumnsInterval(" ", " "), // 空格
             new ColumnsInterval("特殊字符.测试", "结束列.测试") // Unicode 字符
             ),
-        "-\\".chars().mapToObj(c -> new ColumnsInterval("start" + (char) c, "end" + (char) c)));
+        "-\\_:@#$~^{}\""
+            .chars()
+            .mapToObj(c -> new ColumnsInterval("start" + (char) c, "end" + (char) c)));
   }
 }
