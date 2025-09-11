@@ -19,6 +19,7 @@
  */
 package cn.edu.tsinghua.iginx.utils;
 
+import java.io.File;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -103,5 +104,23 @@ public class EnvUtils {
       return defaultValue;
     }
     return env;
+  }
+
+  /**
+   * 获取当前项目目录（user.dir），向上回溯指定层数。
+   *
+   * @param levels 向上回溯的层数，例如 1表示返回父目录，2表示父目录的父目录
+   * @return 回溯后的目录绝对路径
+   */
+  public static String getProjectRoot(int levels) {
+    File dir = new File(System.getProperty("user.dir"));
+    for (int i = 0; i < levels; i++) {
+      if (dir.getParentFile() != null) {
+        dir = dir.getParentFile();
+      } else {
+        break;
+      }
+    }
+    return dir.getAbsolutePath();
   }
 }

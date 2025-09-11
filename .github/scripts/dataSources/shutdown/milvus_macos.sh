@@ -21,6 +21,6 @@ port=$1
 
 pwd
 
-docker-compose -f $port/docker-compose-$port.yml down
+docker compose -f $port/docker-compose-$port.yml down
 
 docker ps

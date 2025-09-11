@@ -9,26 +9,49 @@ inputs:
         description: Dameng db version.
         default: "dm8"
         required: false
+    start:
+        description: "whether to start"
+        required: true
+    password-prefix:
+        description: The password prefix of the user to setup.
+        default: "DAMENG"
+        required: false
+    createUser:
+        description: "whether to create user"
+        required: false
+        default: true
+
 runs:
     using: "composite"
     steps:
+        - if: fromJSON(inputs.start)
+          name: Create Config for dameng docker compose
+          shell: bash
+          working-directory: ${{ github.workspace }}
+          run: |
+              for port in ${{ inputs.ports }}; do
+                mkdir -p $port
+                mkdir -p volumes$port
+                mkdir -p volumes$port/etcd
+                mkdir -p volumes$port/minio
+                mkdir -p volumes$port/dameng
+                cp -f docker/dameng/docker-compose.yml $port/docker-compose-$port.yml
+                sed -i"" -e "s/5236:5236/$port:5236/g" $port/docker-compose-$port.yml
+                sed -i"" -e "s/\/volumes/\/volumes$port/g" $port/docker-compose-$port.yml
+                sed -i"" -e "s/container_name: dm8/container_name: ${{ inputs.version }}-$port/g" $port/docker-compose-$port.yml
+              done
+              echo "docker-compose.yml created successfully"
+
         - if: runner.os == 'Linux'
           name: Run Dameng Database container
           shell: bash
           run: |
               for port in ${{ inputs.ports }}; do
-                docker run -d -p $port:5236 --restart=always \
-                  --name=${{ inputs.version }}-$port \
-                  --privileged=true \
-                  -e LD_LIBRARY_PATH=/opt/dmdbms/bin \
-                  -e PAGE_SIZE=16 \
-                  -e EXTENT_SIZE=32 \
-                  -e LOG_SIZE=1024 \
-                  -e UNICODE_FLAG=1 \
-                  -e INSTANCE_NAME=dm8_test \
-                  -v /opt/data_$port:/opt/dmdbms/data \
-                  dm8_single:dm8_20241022_rev244896_x86_rh6_64
+                sudo chown -R $(whoami) $port/
+                sudo nohup docker compose -f $port/docker-compose-$port.yml up -d
               done
+              sleep 10
+              docker ps -a
 
         - if: runner.os == 'Linux'
           name: Verify Dameng Database is running
@@ -53,26 +76,19 @@ runs:
 
         - if: runner.os == 'Windows'
           name: Run Dameng Database container
-          shell: wsl-run {0}
+          shell: wsl-bash {0}
           run: |
               for port in ${{ inputs.ports }}; do
-                docker run -d -p $port:5236 --restart=always \
-                  --name=${{ inputs.version }}-$port \
-                  --privileged=true \
-                  -e LD_LIBRARY_PATH=/opt/dmdbms/bin \
-                  -e PAGE_SIZE=16 \
-                  -e EXTENT_SIZE=32 \
-                  -e LOG_SIZE=1024 \
-                  -e UNICODE_FLAG=1 \
-                  -e INSTANCE_NAME=dm8_test \
-                  -v /mnt/c/opt/data_$port:/opt/dmdbms/data \
-                  dm8_single:dm8_20241022_rev244896_x86_rh6_64
+                sudo chown -R $(whoami) $port/
+                sudo nohup docker compose -f $port/docker-compose-$port.yml up -d
               done
+              sleep 30
+              docker ps -a
 
         - if: runner.os == 'Windows'
           name: Verify Dameng Database is running
           id: dmContainerWin
-          shell: wsl-run {0}
+          shell: wsl-bash {0}
           run: |
               docker ps
               sleep 10
@@ -88,4 +104,42 @@ runs:
                     break
                   fi
                 done
+              done
+
+        - if: runner.os == 'Linux' && fromJSON(inputs.createUser)
+          name: Create user in Dameng
+          shell: bash
+          run: |
+              for port in ${{ inputs.ports }}; do
+                CONTAINER_NAME="${{ inputs.version }}-$port"
+                PASSWORD="${{ inputs['password-prefix'] }}$port"
+
+                # 写入 SQL 到临时文件
+                echo "create user NOPRIVS identified by $PASSWORD;" > create_user.sql
+                echo "grant create table to NOPRIVS;" >> create_user.sql
+
+                # 在容器内执行 SQL 脚本
+                docker exec -i $CONTAINER_NAME bash -c "/opt/dmdbms/bin/disql SYSDBA/SYSDBA001@127.0.0.1:5236" < create_user.sql
+
+                # 清理临时 SQL 文件
+                rm create_user.sql
+              done
+
+        - if: runner.os == 'Windows' && fromJSON(inputs.createUser)
+          name: Create user in Dameng
+          shell: wsl-bash {0}
+          run: |
+              for port in ${{ inputs.ports }}; do
+                CONTAINER_NAME="${{ inputs.version }}-$port"
+                PASSWORD="${{ inputs['password-prefix'] }}$port"
+
+                # 写入 SQL 到临时文件
+                echo "create user NOPRIVS identified by $PASSWORD;" > create_user.sql
+                echo "grant create table to NOPRIVS;" >> create_user.sql
+
+                # 在容器内执行 SQL 脚本
+                docker exec -i $CONTAINER_NAME bash -c "/opt/dmdbms/bin/disql SYSDBA/SYSDBA001@127.0.0.1:5236" < create_user.sql
+
+                # 清理临时 SQL 文件
+                rm create_user.sql
               done

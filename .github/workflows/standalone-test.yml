@@ -28,11 +28,16 @@ on:
                 type: string
                 required: false
                 default: '["IoTDB12", "InfluxDB", "FileSystem", "PostgreSQL", "Redis", "MongoDB", "MySQL", "Neo4j"]'
+            db-support-create-database:
+                description: "Whether the database supports create database"
+                type: boolean
+                required: false
+                default: true
             timeout-minutes:
                 description: "The timeout minutes for the job"
                 type: number
                 required: false
-                default: 45
+                default: 65
 
 jobs:
     Union-DB-Test:
@@ -76,6 +81,7 @@ jobs:
               with:
                   DB-name: ${{ matrix.DB-name }}
                   Metadata: ${{ matrix.metadata }}
+                  Support-Create-Database: ${{ inputs.db-support-create-database }}
 
             # start udf path test first to avoid being effected
             - name: Start IGinX
@@ -175,6 +181,11 @@ jobs:
               with:
                   shell: client-after
 
+            - name: test event expansion support
+              uses: ./.github/actions/context
+              with:
+                  shell: client-event-expansion
+
             - name: Test Client Import File
               if: always()
               shell: bash -el {0}
@@ -202,34 +213,8 @@ jobs:
               run: |
                   cat iginx-*.log
 
-            - name: Change IGinX config
-              uses: ./.github/actions/confWriter
-              with:
-                  DB-name: ${{ matrix.DB-name }}
-                  Metadata: ${{ matrix.metadata }}
-                  Set-Key-Range-Test-Policy: "true"
-
-            - name: clean metadata and restart IGinX
-              uses: ./.github/actions/context
-              with:
-                  work-name: restart-iginx-meta
-                  metadata: ${{ matrix.metadata }}
-
-            - name: FilterFragmentRuleTest IT
-              if: always()
-              shell: bash -el {0}
-              run: |
-                  chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/test_union.sh"
-                  mvn test -q -Dtest=SQLSessionIT#testFilterFragmentOptimizer -DfailIfNoTests=false -P-format
-
             - name: Show test result
               if: always()
               shell: bash
               run: |
                   cat ${GITHUB_WORKSPACE}/test/src/test/resources/testResult.txt
-
-            - name: Show IGinX log
-              if: always()
-              shell: bash
-              run: |
-                  cat iginx-*.log

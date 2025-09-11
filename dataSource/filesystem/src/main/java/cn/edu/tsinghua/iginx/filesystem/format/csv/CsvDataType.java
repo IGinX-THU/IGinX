@@ -17,11 +17,28 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package cn.edu.tsinghua.iginx.metadata.hook;
+package cn.edu.tsinghua.iginx.filesystem.format.csv;
 
-import java.util.Map;
+import cn.edu.tsinghua.iginx.thrift.DataType;
 
-public interface SchemaMappingChangeHook {
+public enum CsvDataType {
+  UNKNOWN(DataType.BINARY),
+  INT(DataType.INTEGER),
+  LONG(DataType.LONG),
+  FLOAT(DataType.FLOAT),
+  DOUBLE(DataType.DOUBLE),
+  BOOLEAN(DataType.BOOLEAN),
+  DATE(DataType.LONG),
+  STRING(DataType.BINARY),
+  ;
 
-  void onChange(String schema, Map<String, Integer> schemaMapping);
+  private final DataType dataType;
+
+  CsvDataType(DataType dataType) {
+    this.dataType = dataType;
+  }
+
+  public DataType getDataType() {
+    return dataType;
+  }
 }

@@ -89,7 +89,7 @@ public class IginxClient {
   static String port = "6888";
   static String username = "root";
   static String password = "root";
-  static String fetchSize = "1000";
+  static int fetchSize = 1000;
 
   static String execute = "";
 
@@ -194,14 +194,18 @@ public class IginxClient {
       Terminal terminal = TerminalBuilder.builder().system(true).build();
 
       LineReader reader =
-          LineReaderBuilder.builder().terminal(terminal).completer(buildIginxCompleter()).build();
+          LineReaderBuilder.builder()
+              .terminal(terminal)
+              .option(LineReader.Option.DISABLE_EVENT_EXPANSION, true)
+              .completer(buildIginxCompleter())
+              .build();
 
       host = parseArg(HOST_ARGS, HOST_NAME, false, "127.0.0.1");
       port = parseArg(PORT_ARGS, PORT_NAME, false, "6888");
       username = parseArg(USERNAME_ARGS, USERNAME_NAME, false, "root");
       password = parseArg(PASSWORD_ARGS, PASSWORD_NAME, false, "root");
       execute = parseArg(EXECUTE_ARGS, EXECUTE_NAME, false, "");
-      fetchSize = parseArg(FETCH_SIZE_ARGS, FETCH_SIZE_NAME, false, "1000");
+      fetchSize = Integer.parseInt(parseArg(FETCH_SIZE_ARGS, FETCH_SIZE_NAME, false, "1000"));
 
       session = new Session(host, port, username, password);
       session.openSession();
@@ -294,7 +298,7 @@ public class IginxClient {
       return OperationResult.STOP;
     }
     long startTime = System.currentTimeMillis();
-    if (isQuery(trimedStatement)) {
+    if (isSqlWithStream(trimedStatement)) {
       processSqlWithStream(statement);
     } else if (isLoadDataFromCsv(trimedStatement)) {
       processLoadCsv(statement);
@@ -316,8 +320,8 @@ public class IginxClient {
     return sql.startsWith("create") && sql.contains("function");
   }
 
-  private static boolean isQuery(String sql) {
-    return sql.startsWith("select") || sql.startsWith("with");
+  private static boolean isSqlWithStream(String sql) {
+    return sql.startsWith("select") || sql.startsWith("with") || sql.startsWith("show columns");
   }
 
   private static boolean isLoadDataFromCsv(String sql) {
@@ -424,7 +428,7 @@ public class IginxClient {
 
   private static void processSqlWithStream(String sql) {
     try {
-      QueryDataSet res = session.executeQuery(sql, Integer.parseInt(fetchSize));
+      QueryDataSet res = session.executeQuery(sql, fetchSize);
 
       if (res.getExportStreamDir() != null) {
         processExportByteStream(res);
@@ -444,18 +448,26 @@ public class IginxClient {
       System.out.print(FormatUtils.formatResult(cache));
 
       boolean isCancelled = false;
-      int total = cache.size() - 1;
+      int actualSize = cache.size() - 1;
+      int total = actualSize;
 
       while (res.hasMore()) {
-        System.out.printf(
-            "Reach the max_display_num = %s. Press ENTER to show more, input 'q' to quit.",
-            Integer.parseInt(fetchSize));
+        if (actualSize < fetchSize) {
+          System.out.printf(
+              "Actually returned %s rows (less than max fetch size). Press ENTER to show more, input 'q' to quit.",
+              actualSize);
+        } else {
+          System.out.printf(
+              "Reach the max_display_num = %s. Press ENTER to show more, input 'q' to quit.",
+              fetchSize);
+        }
         BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
         try {
           if ("".equals(br.readLine())) {
             cache = cacheResult(res);
             System.out.print(FormatUtils.formatResult(cache));
             total += cache.size() - 1;
+            actualSize = cache.size() - 1;
           } else {
             isCancelled = true;
             break;
@@ -485,14 +497,15 @@ public class IginxClient {
 
   private static List<List<String>> cacheResult(QueryDataSet queryDataSet, boolean skipHeader)
       throws SessionException {
-    boolean hasKey = queryDataSet.getColumnList().get(0).equals(GlobalConstant.KEY_NAME);
+    List<String> columns = queryDataSet.getColumnList();
+    boolean hasKey = !columns.isEmpty() && columns.get(0).equals(GlobalConstant.KEY_NAME);
     List<List<String>> cache = new ArrayList<>();
     if (!skipHeader) {
-      cache.add(new ArrayList<>(queryDataSet.getColumnList()));
+      cache.add(new ArrayList<>(columns));
     }
 
     int rowIndex = 0;
-    while (queryDataSet.hasMore() && rowIndex < Integer.parseInt(fetchSize)) {
+    while (queryDataSet.hasMore() && rowIndex < queryDataSet.getActualSize()) {
       List<String> strRow = new ArrayList<>();
       Object[] nextRow = queryDataSet.nextRow();
       if (nextRow != null) {
@@ -568,7 +581,7 @@ public class IginxClient {
       throws SessionException {
     List<List<byte[]>> cache = new ArrayList<>();
     int rowIndex = 0;
-    while (queryDataSet.hasMore() && rowIndex < Integer.parseInt(fetchSize)) {
+    while (queryDataSet.hasMore() && rowIndex < fetchSize) {
       List<byte[]> nextRow = queryDataSet.nextRowAsBytes();
       if (nextRow != null) {
         cache.add(nextRow);

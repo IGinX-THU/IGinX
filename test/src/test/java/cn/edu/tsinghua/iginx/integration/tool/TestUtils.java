@@ -25,8 +25,13 @@ import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
 import java.nio.channels.ReadableByteChannel;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 public class TestUtils {
   /**
@@ -102,5 +107,49 @@ public class TestUtils {
         FileChannel fileChannel = out.getChannel()) {
       fileChannel.transferFrom(readableByteChannel, 0, Long.MAX_VALUE);
     }
+  }
+
+  public static boolean isResultSetEqual(String expected, String actual) {
+    String expectedHeader = getHeader(expected);
+    String actualHeader = getHeader(actual);
+    Map<String, Integer> expectedCounts = countDataRows(expected);
+    Map<String, Integer> actualCounts = countDataRows(actual);
+    return Objects.equals(expectedCounts, actualCounts)
+        && Objects.equals(expectedHeader, actualHeader);
+  }
+
+  private static String getHeader(String tableStr) {
+    List<String> lines = Arrays.asList(tableStr.split("\n"));
+    return (lines.size() > 2 && lines.get(2).startsWith("|")) ? lines.get(2) : "";
+  }
+
+  private static Map<String, Integer> countDataRows(String tableStr) {
+    List<String> lines = Arrays.asList(tableStr.split("\n"));
+    Map<String, Integer> counts = new HashMap<>();
+
+    // 记录所有以 '+' 开头的行的行号
+    List<Integer> plusLineIndices = new ArrayList<>();
+
+    for (int i = 0; i < lines.size(); i++) {
+      if (lines.get(i).startsWith("+")) {
+        plusLineIndices.add(i);
+      }
+    }
+
+    // 至少要有三条 '+' 行，分别对应：表头上边框、表头下边框、数据结束线
+    if (plusLineIndices.size() < 3) {
+      return Collections.emptyMap();
+    }
+
+    // 数据行范围在第二条 '+' 后面到最后一条 '+' 之前
+    int start = plusLineIndices.get(1) + 1;
+    int end = plusLineIndices.get(plusLineIndices.size() - 1);
+
+    for (int i = start; i < end; i++) {
+      String row = lines.get(i);
+      counts.put(row, counts.getOrDefault(row, 0) + 1);
+    }
+
+    return counts;
   }
 }

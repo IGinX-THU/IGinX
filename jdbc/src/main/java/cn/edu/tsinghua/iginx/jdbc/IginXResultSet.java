@@ -76,7 +76,7 @@ public class IginXResultSet implements ResultSet {
   }
 
   private void constructQueryResult(SessionExecuteSqlResult result) {
-    columnTypes = result.getDataTypeList();
+    columnTypes = result.getDataTypeList() != null ? result.getDataTypeList() : new ArrayList<>();
     values = result.getValues();
 
     columnNames = result.getPaths();

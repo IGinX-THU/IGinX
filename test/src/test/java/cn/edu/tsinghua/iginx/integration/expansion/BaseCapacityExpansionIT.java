@@ -79,6 +79,8 @@ public abstract class BaseCapacityExpansionIT {
 
   protected static final String restartScriptDir = ".github/scripts/dataSources/restart/";
 
+  protected static final String verifyScriptDir = ".github/scripts/utils/";
+
   protected static BaseHistoryDataGenerator generator;
 
   public BaseCapacityExpansionIT(
@@ -123,9 +125,36 @@ public abstract class BaseCapacityExpansionIT {
       String schemaPrefix,
       String extraParams,
       boolean noError) {
+    return this.addStorageEngine(
+        "127.0.0.1", port, hasData, isReadOnly, dataPrefix, schemaPrefix, extraParams, noError);
+  }
+
+  protected String addStorageEngine(
+      String ip,
+      int port,
+      boolean hasData,
+      boolean isReadOnly,
+      String dataPrefix,
+      String schemaPrefix,
+      String extraParams) {
+    return this.addStorageEngine(
+        ip, port, hasData, isReadOnly, dataPrefix, schemaPrefix, extraParams, false);
+  }
+
+  protected String addStorageEngine(
+      String ip,
+      int port,
+      boolean hasData,
+      boolean isReadOnly,
+      String dataPrefix,
+      String schemaPrefix,
+      String extraParams,
+      boolean noError) {
     try {
       StringBuilder statement = new StringBuilder();
-      statement.append("ADD STORAGEENGINE (\"127.0.0.1\", ");
+      statement.append("ADD STORAGEENGINE (\"");
+      statement.append(ip);
+      statement.append("\", ");
       statement.append(port);
       statement.append(", \"");
       statement.append(type.name());
@@ -163,8 +192,9 @@ public abstract class BaseCapacityExpansionIT {
 
       LOGGER.info("Execute Statement: \"{}\"", statement);
       session.executeSql(statement.toString());
+      Thread.sleep(5000);
       return null;
-    } catch (SessionException e) {
+    } catch (SessionException | InterruptedException e) {
       if (noError) {
         LOGGER.warn(
             "add storage engine:{} port:{} hasData:{} isReadOnly:{} dataPrefix:{} schemaPrefix:{} extraParams:{} failure: ",
@@ -298,11 +328,15 @@ public abstract class BaseCapacityExpansionIT {
   }
 
   @Test
-  public void testReadOnly() throws SessionException {
+  public void testReadOnly() throws SessionException, InterruptedException {
     // 查询原始只读节点的历史数据，结果不为空
     testQueryHistoryDataOriHasData();
     // 测试只读节点的参数修改
     testUpdateEngineParams();
+    // 测试主机名解析
+    testHostnameResolution();
+    // 测试schema_prefix为null时，能否正确移除 AddSchemaPrefix 算子
+    testAddSchemaPrefixRemove();
     testDatabaseShutdown();
 
     // 测试参数错误的只读节点扩容
@@ -434,7 +468,8 @@ public abstract class BaseCapacityExpansionIT {
     // 删除，不影响后续测试
     session.removeStorageEngine(
         Collections.singletonList(
-            new RemovedStorageEngineInfo("127.0.0.1", readOnlyPort, prefix, "")));
+            new RemovedStorageEngineInfo("127.0.0.1", readOnlyPort, prefix, "")),
+        true);
 
     // 改回数据库参数
     restoreParams(readOnlyPort);
@@ -470,8 +505,73 @@ public abstract class BaseCapacityExpansionIT {
     startDatabase(readOnlyPort);
   }
 
+  /** 测试主机名能否被正确解析 */
+  protected void testHostnameResolution() throws SessionException, InterruptedException {
+    String hostname = "localhost";
+    String prefix = "prefix";
+    addStorageEngine(
+        hostname, readOnlyPort, true, true, null, prefix, portsToExtraParams.get(readOnlyPort));
+    List<StorageEngineInfo> remainingEngines =
+        session.getClusterInfo().getStorageEngineInfos().stream()
+            .filter(
+                engine ->
+                    engine.getIp().equals("127.0.0.1")
+                        && engine.getPort() == readOnlyPort
+                        && engine.getDataPrefix().equals("null")
+                        && engine.getSchemaPrefix().equals(prefix)
+                        && engine.getType().equals(type))
+            .collect(Collectors.toList());
+    // 检查是否插入成功
+    assertEquals(1, remainingEngines.size());
+    // 删除，不影响后续测试
+    session.removeStorageEngine(
+        Collections.singletonList(new RemovedStorageEngineInfo(hostname, readOnlyPort, prefix, "")),
+        false);
+    // 等待删除完毕
+    Thread.sleep(100);
+    // 确认删除成功
+    remainingEngines =
+        session.getClusterInfo().getStorageEngineInfos().stream()
+            .filter(
+                engine ->
+                    engine.getIp().equals("127.0.0.1")
+                        && engine.getPort() == readOnlyPort
+                        && engine.getDataPrefix().equals("null")
+                        && engine.getSchemaPrefix().equals(prefix)
+                        && engine.getType().equals(type))
+            .collect(Collectors.toList());
+    assertEquals(0, remainingEngines.size());
+  }
+
+  /** 测试schema_prefix为null时是否正确移除了 AddSchemaPrefix 算子 * */
+  public void testAddSchemaPrefixRemove() throws SessionException, InterruptedException {
+    addStorageEngine(
+        "127.0.0.1", readOnlyPort, true, true, null, null, portsToExtraParams.get(readOnlyPort));
+    String statement = "explain select * from *;";
+    String expect = "AddSchemaPrefix";
+    assertFalse(SQLTestTools.executeAndContainValue(session, statement, expect));
+    addStorageEngine(
+        "127.0.0.1",
+        readOnlyPort,
+        true,
+        true,
+        null,
+        "prefix",
+        portsToExtraParams.get(readOnlyPort));
+    assertTrue(SQLTestTools.executeAndContainValue(session, statement, expect));
+    // 删除，不影响后续测试
+    session.removeStorageEngine(
+        Collections.singletonList(new RemovedStorageEngineInfo("127.0.0.1", readOnlyPort, "", "")),
+        false);
+    // 删除，不影响后续测试
+    session.removeStorageEngine(
+        Collections.singletonList(
+            new RemovedStorageEngineInfo("localhost", readOnlyPort, "prefix", "")),
+        false);
+  }
+
   /** mode: T:shutdown; F:restart */
-  protected void shutOrRestart(int port, boolean mode, String DBName) {
+  protected void shutOrRestart(int port, boolean mode, String DBName, int timeout) {
     String dir = mode ? shutdownScriptDir : restartScriptDir;
     String scriptPath = dir + DBName + ".sh";
     String os = System.getProperty("os.name").toLowerCase();
@@ -483,6 +583,20 @@ public abstract class BaseCapacityExpansionIT {
     int res = executeShellScript(scriptPath, String.valueOf(port));
     if (res != 0) {
       fail("Fail to " + (mode ? "shutdown" : "restart") + " " + DBName + port);
+    }
+    if (!mode) {
+      String verifyPath = verifyScriptDir;
+      if (os.contains("mac")) {
+        verifyPath += "verify_macos.sh";
+      } else if (os.contains("win")) {
+        verifyPath += "verify_windows.sh";
+      } else {
+        verifyPath += "verify.sh";
+      }
+      res = executeShellScript(verifyPath, DBName, String.valueOf(port), String.valueOf(timeout));
+      if (res != 0) {
+        fail("Fail to restart " + DBName + port);
+      }
     }
   }
 
@@ -737,7 +851,7 @@ public abstract class BaseCapacityExpansionIT {
     removedStorageEngineList.add(
         new RemovedStorageEngineInfo("127.0.0.1", expPort, "p3" + schemaPrefixSuffix, dataPrefix1));
     try {
-      session.removeStorageEngine(removedStorageEngineList);
+      session.removeStorageEngine(removedStorageEngineList, true);
       testShowClusterInfo(4);
     } catch (SessionException e) {
       LOGGER.error("remove history data source through session api error: ", e);
@@ -757,7 +871,7 @@ public abstract class BaseCapacityExpansionIT {
     SQLTestTools.executeAndCompare(session, statement, pathListAns, EXP_VALUES_LIST2);
 
     // 通过 sql 语句测试移除节点
-    String removeStatement = "remove storageengine (\"127.0.0.1\", %d, \"%s\", \"%s\");";
+    String removeStatement = "remove storageengine (\"127.0.0.1\", %d, \"%s\", \"%s\") for all;";
     try {
       session.executeSql(
           String.format(removeStatement, expPort, "p1" + schemaPrefixSuffix, dataPrefix1));
@@ -795,7 +909,7 @@ public abstract class BaseCapacityExpansionIT {
             + "|nt.wf03.wt01.status2|    LONG|\n"
             + "+--------------------+--------+\n"
             + "Total line number = 1\n";
-    SQLTestTools.executeAndCompare(session, statement, expected);
+    SQLTestTools.executeAndCompare(session, statement, expected, true);
 
     statement = "SHOW COLUMNS;";
     if (before) {
@@ -828,7 +942,7 @@ public abstract class BaseCapacityExpansionIT {
               + "+--------------------------------------------------------------------------------------+--------+\n"
               + "Total line number = 7\n";
     }
-    SQLTestTools.executeAndCompare(session, statement, expected);
+    SQLTestTools.executeAndCompare(session, statement, expected, true);
 
     statement = "SHOW COLUMNS p1.*;";
     if (before) {
@@ -849,7 +963,7 @@ public abstract class BaseCapacityExpansionIT {
               + "+-----------------------+--------+\n"
               + "Total line number = 1\n";
     }
-    SQLTestTools.executeAndCompare(session, statement, expected);
+    SQLTestTools.executeAndCompare(session, statement, expected, true);
 
     statement = "SHOW COLUMNS *.wf03.wt01.*;";
     if (before) {
@@ -872,7 +986,7 @@ public abstract class BaseCapacityExpansionIT {
               + "+-----------------------+--------+\n"
               + "Total line number = 2\n";
     }
-    SQLTestTools.executeAndCompare(session, statement, expected);
+    SQLTestTools.executeAndCompare(session, statement, expected, true);
   }
 
   protected void testShowColumnsRemoveStorageEngine(boolean before) {
@@ -901,7 +1015,7 @@ public abstract class BaseCapacityExpansionIT {
               + "+---------------------------+--------+\n"
               + "Total line number = 2\n";
     }
-    SQLTestTools.executeAndCompare(session, statement, expected);
+    SQLTestTools.executeAndCompare(session, statement, expected, true);
   }
 
   private void testShowClusterInfo(int expected) {
@@ -926,7 +1040,7 @@ public abstract class BaseCapacityExpansionIT {
             + "|mn.wf01.wt01.temperature|  DOUBLE|\n"
             + "+------------------------+--------+\n"
             + "Total line number = 2\n";
-    SQLTestTools.executeAndCompare(session, statement, expected);
+    SQLTestTools.executeAndCompare(session, statement, expected, true);
 
     statement = "SHOW COLUMNS nt.*;";
     expected =
@@ -938,7 +1052,7 @@ public abstract class BaseCapacityExpansionIT {
             + "|nt.wf04.wt01.temperature|  DOUBLE|\n"
             + "+------------------------+--------+\n"
             + "Total line number = 2\n";
-    SQLTestTools.executeAndCompare(session, statement, expected);
+    SQLTestTools.executeAndCompare(session, statement, expected, true);
 
     statement = "SHOW COLUMNS tm.wf05.wt01.*;";
     expected =
@@ -950,7 +1064,7 @@ public abstract class BaseCapacityExpansionIT {
             + "|tm.wf05.wt01.temperature|  DOUBLE|\n"
             + "+------------------------+--------+\n"
             + "Total line number = 2\n";
-    SQLTestTools.executeAndCompare(session, statement, expected);
+    SQLTestTools.executeAndCompare(session, statement, expected, true);
   }
 
   // test dummy query for data out of initial key range (should be visible)
@@ -1079,7 +1193,12 @@ public abstract class BaseCapacityExpansionIT {
       fail("change config file fail");
     }
 
-    res = executeShellScript(iginxPath, String.valueOf(iginxPort), String.valueOf(restPort));
+    res =
+        executeShellScript(
+            iginxPath,
+            String.valueOf(iginxPort),
+            String.valueOf(restPort),
+            "core/target/iginx-core-*");
     if (res != 0) {
       fail("start iginx fail");
     }

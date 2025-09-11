@@ -167,13 +167,15 @@ public class Config {
 
   private String pythonCMD = "python3";
 
+  private long UDFTimeout = -1;
+
   private int transformTaskThreadPoolSize = 10;
 
   private int transformMaxRetryTimes = 3;
 
   private String defaultScheduledTransformJobDir = "transform_jobs";
 
-  private boolean needInitBasicUDFFunctions = true;
+  private boolean needInitBasicUDFFunctions = false;
 
   private List<String> udfList = new ArrayList<>();
 
@@ -768,6 +770,14 @@ public class Config {
 
   public void setPythonCMD(String pythonCMD) {
     this.pythonCMD = pythonCMD;
+  }
+
+  public long getUDFTimeout() {
+    return UDFTimeout;
+  }
+
+  public void setUDFTimeout(long UDFTimeout) {
+    this.UDFTimeout = UDFTimeout;
   }
 
   public int getTransformTaskThreadPoolSize() {

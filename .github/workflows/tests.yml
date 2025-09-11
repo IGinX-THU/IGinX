@@ -50,20 +50,53 @@ jobs:
             os-matrix: '["ubuntu-latest", "windows-latest"]'
             db-matrix: '["Dameng", "Oracle"]'
             timeout-minutes: 100
-    db-ce-no-mac-relational:
+    standalone-test-no-mac-no-privs-relational:
+        uses: ./.github/workflows/standalone-test.yml
+        with:
+            metadata-matrix: '["zookeeper"]'
+            os-matrix: '["ubuntu-latest", "windows-latest"]'
+            db-matrix: '["Dameng"]'
+            db-support-create-database: false
+            timeout-minutes: 120
+    standalone-test-no-optimizer-no-mac-no-privs-relational:
+        uses: ./.github/workflows/standalone-test-no-optimizer.yml
+        with:
+            metadata-matrix: '["zookeeper"]'
+            os-matrix: '["ubuntu-latest", "windows-latest"]'
+            db-matrix: '["Dameng"]'
+            db-support-create-database: false
+            timeout-minutes: 100
+    db-ce-Dameng:
         uses: ./.github/workflows/DB-CE.yml
         with:
             metadata-matrix: '["zookeeper"]'
             os-matrix: '["ubuntu-latest", "windows-latest"]'
-            db-matrix: '["Dameng", "Oracle"]'
+            db-matrix: '["Dameng"]'
             functest: "NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,CompactionIT,TimePrecisionIT,PySessionIT"
             timeout-minutes: 120
-    db-ce-no-optimizer-no-mac-relational:
+    db-ce-no-optimizer-Dameng:
         uses: ./.github/workflows/DB-CE.yml
         with:
             metadata-matrix: '["zookeeper"]'
             os-matrix: '["ubuntu-latest", "windows-latest"]'
-            db-matrix: '["Dameng", "Oracle"]'
+            db-matrix: '["Dameng"]'
+            functest: "NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,CompactionIT,TimePrecisionIT,PySessionIT"
+            timeout-minutes: 120
+            close-optimizer: "true"
+    db-ce-Oracle:
+        uses: ./.github/workflows/DB-CE.yml
+        with:
+            metadata-matrix: '["zookeeper"]'
+            os-matrix: '["ubuntu-latest"]'
+            db-matrix: '["Oracle"]'
+            functest: "NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,CompactionIT,TimePrecisionIT,PySessionIT"
+            timeout-minutes: 120
+    db-ce-no-optimizer-Oracle:
+        uses: ./.github/workflows/DB-CE.yml
+        with:
+            metadata-matrix: '["zookeeper"]'
+            os-matrix: '["ubuntu-latest"]'
+            db-matrix: '["Oracle"]'
             functest: "NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,CompactionIT,TimePrecisionIT,PySessionIT"
             timeout-minutes: 120
             close-optimizer: "true"
@@ -108,32 +141,13 @@ jobs:
         uses: ./.github/workflows/free-thread-test.yml
         with:
             metadata-matrix: '["zookeeper"]'
-    tpc-h-regression-test:
+    tpc-h-test:
         uses: ./.github/workflows/tpc-h.yml
         with:
             os-matrix: '["ubuntu-latest"]'
             metadata-matrix: '["zookeeper"]'
-    tpc-h-regression-test-no-optimizer:
-        uses: ./.github/workflows/tpc-h.yml
-        with:
-            os-matrix: '["ubuntu-latest"]'
-            metadata-matrix: '["zookeeper"]'
-            close-optimizer: "true"
-    tpc-h-regression-test-vectordb:
-        uses: ./.github/workflows/tpc-h.yml
-        with:
-            os-matrix: '["ubuntu-latest"]'
-            metadata-matrix: '["zookeeper"]'
-            db-matrix: '["VectorDB"]'
-            timeout-minutes: 360
-    tpc-h-regression-test-no-optimizer-vectordb:
-        uses: ./.github/workflows/tpc-h.yml
-        with:
-            os-matrix: '["ubuntu-latest"]'
-            metadata-matrix: '["zookeeper"]'
-            db-matrix: '["VectorDB"]'
-            close-optimizer: "true"
-            timeout-minutes: 360
+    cluster-test:
+        uses: ./.github/workflows/cluster-test.yml
     analyze-required-test-check:
         if: always()
         needs: # List of jobs that must pass. Add more jobs if needed.
@@ -151,14 +165,14 @@ jobs:
             - remote-test
             - assembly-test
             - free-thread-test
-            - tpc-h-regression-test
-            - tpc-h-regression-test-no-optimizer
-            - tpc-h-regression-test-vectordb
-            - tpc-h-regression-test-no-optimizer-vectordb
+            - tpc-h-test
             - standalone-test-no-mac-relational
             - standalone-test-no-optimizer-no-mac-relational
-            - db-ce-no-mac-relational
-            - db-ce-no-optimizer-no-mac-relational
+            - db-ce-Dameng
+            - db-ce-no-optimizer-Dameng
+            - db-ce-Oracle
+            - db-ce-no-optimizer-Oracle
+            - cluster-test
         runs-on: ubuntu-latest
         steps:
             - name: Decide whether the needed jobs succeeded or failed

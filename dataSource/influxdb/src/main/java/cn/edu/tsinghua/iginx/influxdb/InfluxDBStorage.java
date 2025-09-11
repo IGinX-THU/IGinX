@@ -25,6 +25,7 @@ import static com.influxdb.client.domain.WritePrecision.NS;
 import cn.edu.tsinghua.iginx.engine.logical.utils.LogicalFilterUtils;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.StorageInitializationException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.Table;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils;
 import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
@@ -32,6 +33,8 @@ import cn.edu.tsinghua.iginx.engine.physical.storage.domain.DataArea;
 import cn.edu.tsinghua.iginx.engine.physical.storage.utils.TagKVUtils;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.BitmapView;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.ColumnDataView;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
@@ -66,6 +69,7 @@ import com.influxdb.client.write.Point;
 import com.influxdb.query.FluxColumn;
 import com.influxdb.query.FluxRecord;
 import com.influxdb.query.FluxTable;
+import io.reactivex.rxjava3.core.Flowable;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
@@ -251,7 +255,7 @@ public class InfluxDBStorage implements IStorage {
   }
 
   @Override
-  public List<Column> getColumns(Set<String> patterns, TagFilter tagFilter) {
+  public Flowable<Column> getColumns(Set<String> patterns, TagFilter tagFilter) {
     List<Column> timeseries = new ArrayList<>();
     for (Bucket bucket :
         client.getBucketsApi().findBucketsByOrgName(organization.getName())) { // get all the bucket
@@ -394,7 +398,7 @@ public class InfluxDBStorage implements IStorage {
       }
     }
 
-    return timeseries;
+    return Flowable.fromIterable(timeseries);
   }
 
   @Override
@@ -431,8 +435,7 @@ public class InfluxDBStorage implements IStorage {
             false);
 
     List<FluxTable> tables = client.getQueryApi().query(statement, organization.getId());
-    InfluxDBQueryRowStream rowStream = new InfluxDBQueryRowStream(tables, project, filter);
-    return new TaskExecuteResult(rowStream);
+    return buildQueryResult(tables, project, filter, new ArrayList<>());
   }
 
   @Override
@@ -464,9 +467,7 @@ public class InfluxDBStorage implements IStorage {
       }
     }
 
-    InfluxDBQueryRowStream rowStream =
-        new InfluxDBQueryRowStream(tables, project, filter, BucketNames);
-    return new TaskExecuteResult(rowStream);
+    return buildQueryResult(tables, project, filter, BucketNames);
   }
 
   @Override
@@ -514,8 +515,7 @@ public class InfluxDBStorage implements IStorage {
             false);
 
     List<FluxTable> tables = client.getQueryApi().query(statement, organization.getId());
-    InfluxDBQueryRowStream rowStream = new InfluxDBQueryRowStream(tables, project, null);
-    return new TaskExecuteResult(rowStream);
+    return buildQueryResult(tables, project, null, new ArrayList<>());
   }
 
   @Override
@@ -545,9 +545,7 @@ public class InfluxDBStorage implements IStorage {
       }
     }
 
-    InfluxDBQueryRowStream rowStream =
-        new InfluxDBQueryRowStream(tables, project, null, BucketNames);
-    return new TaskExecuteResult(rowStream);
+    return buildQueryResult(tables, project, null, BucketNames);
   }
 
   private void getBucketQueriesForExecuteDummy(
@@ -661,7 +659,7 @@ public class InfluxDBStorage implements IStorage {
 
     // TODO：filter中的path有多个tag时暂未实现下推
     List<String> filterPaths = FilterUtils.getAllPathsFromFilter(filter);
-    List<Column> columns = getColumns(new HashSet<>(filterPaths), tagFilter);
+    List<Column> columns = getColumns(new HashSet<>(filterPaths), tagFilter).toList().blockingGet();
     boolean hasMultiTags = hasMultiTags(columns);
 
     if (filter != null && !hasMultiTags) {
@@ -1201,6 +1199,25 @@ public class InfluxDBStorage implements IStorage {
     }
 
     return measurementToFieldsMap;
+  }
+
+  // 将 FluxTable 立即转为 IGinX Table，避免在内存中长期持有 FluxTable 导致的 OOM
+  // 由于 FluxTable 包含完整的所有数据，而不是流式读取接口，
+  // 所以即便返回 InfluxDBQueryRowStream 也不是真正的流式读取
+  private TaskExecuteResult buildQueryResult(
+      List<FluxTable> tables, Project project, Filter filter, List<String> bucketNames) {
+    try (InfluxDBQueryRowStream rowStream =
+        new InfluxDBQueryRowStream(tables, project, filter, bucketNames)) {
+      Header header = rowStream.getHeader();
+      List<Row> rowList = new ArrayList<>();
+      while (rowStream.hasNext()) {
+        rowList.add(rowStream.next());
+      }
+      Table table = new Table(header, rowList);
+      return new TaskExecuteResult(table);
+    } catch (PhysicalException e) {
+      return new TaskExecuteResult(e);
+    }
   }
 
   @Override

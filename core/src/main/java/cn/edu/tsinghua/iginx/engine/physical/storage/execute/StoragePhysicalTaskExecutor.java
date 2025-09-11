@@ -26,6 +26,7 @@ import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.TooManyPhysicalTasksException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.UnexpectedOperatorException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.MemoryPhysicalTaskDispatcher;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.stream.EmptyRowStream;
 import cn.edu.tsinghua.iginx.engine.physical.optimizer.ReplicaDispatcher;
 import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
 import cn.edu.tsinghua.iginx.engine.physical.storage.StorageManager;
@@ -33,11 +34,13 @@ import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.DataArea;
 import cn.edu.tsinghua.iginx.engine.physical.storage.execute.pushdown.strategy.PushDownStrategy;
 import cn.edu.tsinghua.iginx.engine.physical.storage.execute.pushdown.strategy.PushDownStrategyFactory;
+import cn.edu.tsinghua.iginx.engine.physical.storage.execute.stream.ShowColumnsRowStream;
 import cn.edu.tsinghua.iginx.engine.physical.storage.queue.StoragePhysicalTaskQueue;
 import cn.edu.tsinghua.iginx.engine.physical.task.GlobalPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.MemoryPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.StoragePhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.*;
 import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
@@ -50,11 +53,10 @@ import cn.edu.tsinghua.iginx.monitor.HotSpotMonitor;
 import cn.edu.tsinghua.iginx.monitor.RequestsMonitor;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
+import io.reactivex.rxjava3.core.Flowable;
+import io.reactivex.rxjava3.schedulers.Schedulers;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.*;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -148,12 +150,17 @@ public class StoragePhysicalTaskExecutor {
                                   new DataArea(storageUnit, fragmentMeta.getKeyInterval());
                               switch (op.getType()) {
                                 case Project:
+                                  Project project = (Project) op;
+                                  if (project.getPatterns().isEmpty()) {
+                                    result = new TaskExecuteResult(new EmptyRowStream());
+                                    break;
+                                  }
                                   PushDownStrategy strategy =
                                       PushDownStrategyFactory.getStrategy(
                                           operators, pair.k, dataArea, isDummyStorageUnit);
                                   result =
                                       strategy.execute(
-                                          (Project) op,
+                                          project,
                                           operators,
                                           dataArea,
                                           pair.k,
@@ -243,6 +250,7 @@ public class StoragePhysicalTaskExecutor {
           if (before == null && after != null) { // 新增加存储，处理这种事件，其他事件暂时不处理
             if (after.getCreatedBy() != metaManager.getIginxId()) {
               storageManager.addStorage(after);
+              metaManager.addStorageConnection(Collections.singletonList(after));
             }
           } else if (before != null && after == null) { // 删除引擎时，需要release（目前仅支持dummy & read only）
             try {
@@ -291,7 +299,12 @@ public class StoragePhysicalTaskExecutor {
     switch (task.getOperator().getType()) {
       case ShowColumns:
         long startTime = System.currentTimeMillis();
-        TaskExecuteResult result = executeShowColumns((ShowColumns) task.getOperator());
+        TaskExecuteResult result = null;
+        try {
+          result = executeShowColumns((ShowColumns) task.getOperator());
+        } catch (PhysicalException e) {
+          LOGGER.error("unexpected exception during execute show columns", e);
+        }
         long span = System.currentTimeMillis() - startTime;
         task.setSpan(span);
         task.setResult(result);
@@ -309,66 +322,67 @@ public class StoragePhysicalTaskExecutor {
     }
   }
 
-  public TaskExecuteResult executeShowColumns(ShowColumns showColumns) {
-    List<StorageEngineMeta> storageList = metaManager.getStorageEngineList();
-    TreeSet<Column> targetColumns = new TreeSet<>(Comparator.comparing(Column::getPhysicalPath));
-    for (StorageEngineMeta storage : storageList) {
-      long id = storage.getId();
-      Pair<IStorage, ThreadPoolExecutor> pair = storageManager.getStorage(id);
-      if (pair == null) {
+  public TaskExecuteResult executeShowColumns(ShowColumns showColumns) throws PhysicalException {
+    List<StorageEngineMeta> storageEngineList = metaManager.getStorageEngineList();
+    List<Flowable<Column>> allStreams = new ArrayList<>();
+
+    for (StorageEngineMeta meta : storageEngineList) {
+      Pair<IStorage, ThreadPoolExecutor> pair = storageManager.getStorage(meta.getId());
+      if (pair == null || pair.k == null) {
         continue;
       }
-      try {
-        Set<String> patterns = showColumns.getPathRegexSet();
-        String schemaPrefix = storage.getSchemaPrefix();
-        // schemaPrefix是在IGinX中定义的，数据源的路径中没有该前缀，因此需要剪掉patterns中前缀是schemaPrefix的部分
-        patterns = StringUtils.cutSchemaPrefix(schemaPrefix, patterns);
-        if (patterns.isEmpty()) {
-          continue;
-        }
-        // 求patterns与dataPrefix的交集
-        patterns = StringUtils.intersectDataPrefix(storage.getDataPrefix(), patterns);
-        if (patterns.isEmpty()) {
-          continue;
-        }
-        if (patterns.contains("*")) {
-          patterns = Collections.emptySet();
-        }
-        List<Column> columnList = pair.k.getColumns(patterns, showColumns.getTagFilter());
+      IStorage storage = pair.k;
+      ThreadPoolExecutor executor = pair.v;
 
-        // 列名前加上schemaPrefix
-        if (schemaPrefix != null) {
-          columnList.forEach(
-              column -> {
-                column.setPath(schemaPrefix + "." + column.getPath());
-                targetColumns.add(column);
-              });
-        } else {
-          targetColumns.addAll(columnList);
-        }
-      } catch (PhysicalException e) {
-        return new TaskExecuteResult(e);
-      }
+      Flowable<Column> stream =
+          getColumnsFromStorage(showColumns, meta, storage).subscribeOn(Schedulers.from(executor));
+
+      allStreams.add(stream);
     }
+
+    Flowable<Column> columnStream =
+        Flowable.merge(allStreams, 20).distinct(Column::getPhysicalPath);
 
     int limit = showColumns.getLimit();
     int offset = showColumns.getOffset();
-    if (limit == Integer.MAX_VALUE && offset == 0) {
-      return new TaskExecuteResult(Column.toRowStream(targetColumns));
+    if (offset > 0) {
+      columnStream = columnStream.skip(offset);
+    }
+    if (limit < Integer.MAX_VALUE) {
+      columnStream = columnStream.take(limit);
+    }
+    RowStream stream = new ShowColumnsRowStream(columnStream.blockingIterable().iterator());
+    return new TaskExecuteResult(stream);
+  }
+
+  private Flowable<Column> getColumnsFromStorage(
+      ShowColumns showColumns, StorageEngineMeta meta, IStorage storage) throws PhysicalException {
+    Set<String> patterns = showColumns.getPathRegexSet();
+    String schemaPrefix = meta.getSchemaPrefix();
+    // schemaPrefix是在IGinX中定义的，数据源的路径中没有该前缀，因此需要剪掉patterns中前缀是schemaPrefix的部分
+    patterns = StringUtils.cutSchemaPrefix(schemaPrefix, patterns);
+    if (patterns.isEmpty()) {
+      return Flowable.empty();
+    }
+    // 求patterns与dataPrefix的交集
+    patterns = StringUtils.intersectDataPrefix(meta.getDataPrefix(), patterns);
+    if (patterns.isEmpty()) {
+      return Flowable.empty();
+    }
+    if (patterns.contains("*")) {
+      patterns = Collections.emptySet();
+    }
+    Flowable<Column> stream = storage.getColumns(patterns, showColumns.getTagFilter());
+
+    // 列名前加上schemaPrefix
+    if (schemaPrefix != null) {
+      return stream.map(
+          col -> {
+            col.setPath(schemaPrefix + "." + col.getPath());
+            return col;
+          });
     } else {
-      // only need part of data.
-      List<Column> tsList = new ArrayList<>();
-      int cur = 0, size = targetColumns.size();
-      for (Iterator<Column> iter = targetColumns.iterator(); iter.hasNext(); cur++) {
-        if (cur >= size || cur - offset >= limit) {
-          break;
-        }
-        Column ts = iter.next();
-        if (cur >= offset) {
-          tsList.add(ts);
-        }
-      }
-      return new TaskExecuteResult(Column.toRowStream(tsList));
+      return stream;
     }
   }
 

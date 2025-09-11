@@ -20,7 +20,6 @@
 package cn.edu.tsinghua.iginx.relational.meta;
 
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
-import cn.edu.tsinghua.iginx.relational.datatype.transformer.DmDataTypeTransformer;
 import cn.edu.tsinghua.iginx.relational.datatype.transformer.IDataTypeTransformer;
 import cn.edu.tsinghua.iginx.relational.datatype.transformer.JDBCDataTypeTransformer;
 import cn.edu.tsinghua.iginx.relational.datatype.transformer.OracleDataTypeTransformer;
@@ -38,11 +37,15 @@ public class JDBCMeta extends AbstractRelationalMeta {
 
   private final List<String> systemDatabaseName;
 
+  private final List<String> databaseCreatePrivileges;
+
+  private final String queryUserPrivilegesStatement;
+
   private final String databaseQuerySql;
 
   private final String dummyDatabaseQuerySql;
 
-  private final boolean supportCreateDatabase;
+  private boolean supportCreateDatabase;
 
   private final String databaseDropStatement;
 
@@ -76,27 +79,37 @@ public class JDBCMeta extends AbstractRelationalMeta {
 
   private final boolean isSupportFullJoin;
 
-  private final String regexpOp;
+  private final String regexp;
 
-  private final String notRegexOp;
+  private final String notRegex;
+
+  private final boolean supportBooleanType;
 
   private final boolean jdbcSupportBackslash;
 
   private final boolean jdbcSupportGetTableNameFromResultSet;
+
+  private final boolean supportBoundaryQuery;
+
+  private final int maxColumnNumLimit;
+
+  private final int maxSingleRowSizeLimit;
 
   public JDBCMeta(StorageEngineMeta meta, Properties properties) {
     super(meta);
     quote = properties.getProperty("quote").charAt(0);
     driverClass = properties.getProperty("driver_class");
     defaultDatabaseName = properties.getProperty("default_database");
-    if (meta.getExtraParams().get("engine").equalsIgnoreCase("dameng")) {
-      dataTypeTransformer = DmDataTypeTransformer.getInstance();
-    } else if (meta.getExtraParams().get("engine").equalsIgnoreCase("oracle")) {
+    if (meta.getExtraParams().get("engine").equalsIgnoreCase("oracle")) {
+      OracleDataTypeTransformer.init(properties);
       dataTypeTransformer = OracleDataTypeTransformer.getInstance();
     } else {
       dataTypeTransformer = new JDBCDataTypeTransformer(properties);
     }
     systemDatabaseName = Arrays.asList(properties.getProperty("system_databases").split(","));
+    databaseCreatePrivileges =
+        Arrays.asList(properties.getProperty("database_create_privileges", "").split(","));
+    queryUserPrivilegesStatement = properties.getProperty("query_user_privilege_statement", "");
     databaseQuerySql = properties.getProperty("database_query_sql");
     dummyDatabaseQuerySql = properties.getProperty("dummy_database_query_sql", databaseQuerySql);
     supportCreateDatabase =
@@ -117,13 +130,19 @@ public class JDBCMeta extends AbstractRelationalMeta {
     upsertStatement = properties.getProperty("upsert_statement");
     upsertConflictStatement = properties.getProperty("upsert_conflict_statement");
     isSupportFullJoin = Boolean.parseBoolean(properties.getProperty("is_support_full_join"));
-    regexpOp = properties.getProperty("regex_like_symbol");
-    notRegexOp = properties.getProperty("not_regex_like_symbol");
+    regexp = properties.getProperty("regex_like_expression");
+    notRegex = properties.getProperty("not_regex_like_expression");
+    supportBooleanType =
+        Boolean.parseBoolean(properties.getProperty("support_boolean_type", "true"));
     jdbcSupportBackslash =
         Boolean.parseBoolean(properties.getProperty("jdbc_support_special_char"));
     this.jdbcSupportGetTableNameFromResultSet =
         Boolean.parseBoolean(
             properties.getProperty("jdbc_support_get_table_name_from_result_set", "true"));
+    supportBoundaryQuery =
+        Boolean.parseBoolean(properties.getProperty("support_boundary_query", "false"));
+    maxColumnNumLimit = Integer.parseInt(properties.getProperty("max_column_num_limit"));
+    maxSingleRowSizeLimit = Integer.parseInt(properties.getProperty("max_single_row_size_limit"));
   }
 
   @Override
@@ -152,6 +171,16 @@ public class JDBCMeta extends AbstractRelationalMeta {
   }
 
   @Override
+  public List<String> getDatabaseCreatePrivileges() {
+    return databaseCreatePrivileges;
+  }
+
+  @Override
+  public String getQueryUserPrivilegesStatement() {
+    return queryUserPrivilegesStatement;
+  }
+
+  @Override
   public String getDatabaseQuerySql() {
     return databaseQuerySql;
   }
@@ -162,7 +191,7 @@ public class JDBCMeta extends AbstractRelationalMeta {
   }
 
   @Override
-  public boolean supportCreateDatabase() {
+  public boolean isSupportCreateDatabase() {
     return supportCreateDatabase;
   }
 
@@ -247,13 +276,18 @@ public class JDBCMeta extends AbstractRelationalMeta {
   }
 
   @Override
-  public String getRegexpOp() {
-    return regexpOp;
+  public String getRegexp() {
+    return regexp;
   }
 
   @Override
-  public String getNotRegexpOp() {
-    return notRegexOp;
+  public String getNotRegexp() {
+    return notRegex;
+  }
+
+  @Override
+  public boolean isSupportBooleanType() {
+    return supportBooleanType;
   }
 
   @Override
@@ -268,5 +302,25 @@ public class JDBCMeta extends AbstractRelationalMeta {
 
   public StorageEngineMeta getStorageEngineMeta() {
     return meta;
+  }
+
+  @Override
+  public boolean isSupportBoundaryQuery() {
+    return supportBoundaryQuery;
+  }
+
+  @Override
+  public void setSupportCreateDatabase(boolean supportCreateDatabase) {
+    this.supportCreateDatabase = supportCreateDatabase;
+  }
+
+  @Override
+  public int getMaxColumnNumLimit() {
+    return maxColumnNumLimit;
+  }
+
+  @Override
+  public int getMaxSingleRowSizeLimit() {
+    return maxSingleRowSizeLimit;
   }
 }

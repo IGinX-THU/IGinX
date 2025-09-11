@@ -45,10 +45,10 @@ inputs:
         description: "close all optimizer"
         required: false
         default: "false"
-    Set-ColumnPruning-ON:
-        description: "set ColumnPruningRule ON"
+    Support-Create-Database:
+        description: "whether the database supports create database"
         required: false
-        default: "false"
+        default: "true"
 
 runs:
     using: "composite" # Mandatory parameter
@@ -121,14 +121,6 @@ runs:
           with:
               paths: ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-*/conf/config.properties
               statements: s/ruleBasedOptimizer=NotFilterRemoveRule=on,FragmentPruningByFilterRule=on/ruleBasedOptimizer=NotFilterRemoveRule=on/g
-
-        - if: inputs.Set-ColumnPruning-ON=='true'
-          name: Set ColumnPruningRule ON
-          uses: ./.github/actions/edit
-          with:
-              paths: ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-*/conf/config.properties
-              statements: |
-                  s/ColumnPruningRule=off/ColumnPruningRule=on/g
 
         - if: inputs.Set-AggPushDown-OFF=='true'
           name: Set AggPushDownRule OFF
@@ -219,12 +211,19 @@ runs:
               paths: ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-*/conf/config.properties
               statements: s|^#storageEngineList=127.0.0.1#3306#relational#engine=mysql.*$|storageEngineList=127.0.0.1#3306#relational#engine=mysql#username=root#has_data=false|g
 
-        - if: inputs.DB-name == 'Dameng'
+        - if: inputs.DB-name == 'Dameng' && inputs.Support-Create-Database == 'true'
           name: Change Dameng Config
           uses: ./.github/actions/edit
           with:
               paths: ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-*/conf/config.properties
               statements: s/^#storageEngineList=127.0.0.1#5236#relational#engine=dameng/storageEngineList=127.0.0.1#5236#relational#engine=dameng/g
+
+        - if: inputs.DB-name == 'Dameng' && inputs.Support-Create-Database == 'false'
+          name: Change Dameng Config
+          uses: ./.github/actions/edit
+          with:
+              paths: ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-*/conf/config.properties
+              statements: s/^#storageEngineList=127.0.0.1#5236#relational#engine=dameng#username=SYSDBA#password=SYSDBA001/storageEngineList=127.0.0.1#5236#relational#engine=dameng#username=NOPRIVS#password=DAMENG5236/g
 
         - if: inputs.DB-name == 'VectorDB'
           name: Change VectorDB Config

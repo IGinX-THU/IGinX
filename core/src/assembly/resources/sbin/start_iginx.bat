@@ -87,7 +87,6 @@ for %%i in (%*) do (
 if NOT DEFINED MAIN_CLASS set MAIN_CLASS=cn.edu.tsinghua.iginx.Iginx
 if NOT DEFINED JAVA_HOME goto :err
 
-
 @REM -----------------------------------------------------------------------------
 @REM Compute Memory for JVM configurations
 
@@ -129,7 +128,8 @@ set LOCAL_JAVA_OPTS=^
  -cp %CLASSPATH%^
  -DIGINX_HOME=%IGINX_HOME%^
  -DIGINX_DRIVER=%IGINX_DRIVER%^
- -DIGINX_CONF=%IGINX_CONF%
+ -DIGINX_CONF=%IGINX_CONF%^
+ -Dfile.encoding=UTF-8
 
 @REM set DRIVER=
 @REM setx DRIVER "%IGINX_HOME%\driver"
