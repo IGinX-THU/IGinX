@@ -146,7 +146,7 @@ public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
     Assume.assumeFalse(isOnWin);
     try (TempDummyDataSource ignored =
         new TempDummyDataSource(session, 16669, filesystem, getFileTreeEscapeDummyParams())) {
-      String statement = "select `a\\nb\\.txt` from escape.path\\;";
+      String statement = "select `a\\nb\\.txt` from escape.path\\\\;";
       String expect =
           "ResultSets:\n"
               + "+---+---------------------+\n"
