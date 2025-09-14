@@ -97,11 +97,10 @@ public class IginxPaths {
     if (path == null) {
       return new String[0];
     }
-    final String PLACEHOLDER = "\uF000";
-    String safePath = path.replace(ESCAPED_DOT, PLACEHOLDER);
+    String safePath = FilePathUtils.unescapePath(path);
     Pattern splitter = Pattern.compile(Pattern.quote(DOT));
     return Arrays.stream(splitter.split(safePath))
-        .map(s -> s.replace(PLACEHOLDER, ESCAPED_DOT))
+        .map(s -> s.replace(FilePathUtils.DOT_PLACEHOLDER, ESCAPED_DOT))
         .toArray(String[]::new);
   }
 }
