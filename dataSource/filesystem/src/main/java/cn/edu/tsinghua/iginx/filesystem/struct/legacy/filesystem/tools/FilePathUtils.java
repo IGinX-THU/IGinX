@@ -35,6 +35,8 @@ import java.util.regex.Pattern;
 
 public class FilePathUtils {
 
+  public static final String DOT_PLACEHOLDER = "\uF000";
+
   public static File normalize(File file, FileAccessType... type) throws SecurityException {
 
     Predicate<String> ruleNameFilter = FilePermissionRuleNameFilters.filesystemRulesWithDefault();
@@ -78,16 +80,13 @@ public class FilePathUtils {
     if (path == null) {
       return root;
     }
-    // 先把 \. 替换成一个特殊占位符
-    final String PLACEHOLDER = "\uF000";
-    String safePath = path.replace(ESCAPED_DOT, PLACEHOLDER);
-    // 按 '.' 分割
+
+    String safePath = unescapePath(path);
     Pattern splitter = Pattern.compile(Pattern.quote(DOT));
     String[] parts = splitter.split(safePath);
-    // 还原占位符为真正的 '.'
     StringBuilder res = new StringBuilder();
     for (String s : parts) {
-      s = s.replace(PLACEHOLDER, DOT);
+      s = s.replace(DOT_PLACEHOLDER, DOT);
       res.append(s).append(SEPARATOR);
     }
     res.setLength(res.length() - 1);
@@ -154,5 +153,44 @@ public class FilePathUtils {
       }
     }
     return false;
+  }
+
+  public static String unescapePath(String path) {
+    StringBuilder target = new StringBuilder(path.length());
+    boolean escaping = false;
+
+    for (int i = 0; i < path.length(); i++) {
+      char c = path.charAt(i);
+
+      if (!escaping) {
+        if (c == '\\') {
+          escaping = true;
+        } else {
+          target.append(c);
+        }
+        continue;
+      }
+
+      // 进入 escaping 状态
+      switch (c) {
+        case '.':
+          target.append(DOT_PLACEHOLDER);
+          break;
+        case '\\':
+          target.append('\\');
+          break;
+        default:
+          // 原样保留
+          target.append('\\').append(c);
+      }
+      escaping = false;
+    }
+
+    // 处理最后一个单独的 '\'
+    if (escaping) {
+      target.append('\\');
+    }
+
+    return target.toString();
   }
 }
