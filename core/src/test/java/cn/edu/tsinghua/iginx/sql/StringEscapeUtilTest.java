@@ -56,16 +56,4 @@ public class StringEscapeUtilTest {
 
     assertEquals("", StringEscapeUtil.unescape(""));
   }
-
-  @Test
-  public void testUnicodeEscapes() {}
-
-  @Test
-  public void testInvalidUnicode() {}
-
-  @Test
-  public void testTrailingBackslash() {}
-
-  @Test
-  public void testEmptyString() {}
 }
