@@ -215,6 +215,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
   }
 
   private RowStream executeProjectFromOperator(Project project, Table table) {
+    LOGGER.info("[project] header before: {}", table.getHeader().getFields());
     Pair<Header, List<Integer>> pair =
         table.getHeader().projectedHeader(project.getPatterns(), project.isRemainKey());
     Header targetHeader = pair.getK();
@@ -521,6 +522,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
 
   private RowStream executeReorder(Reorder reorder, Table table) throws PhysicalException {
     Header header = table.getHeader();
+    LOGGER.info("[reorder] header before: {}", header.getFields());
 
     Header.ReorderedHeaderWrapped res =
         header.reorderedHeaderWrapped(reorder.getPatterns(), reorder.getIsPyUDF());
