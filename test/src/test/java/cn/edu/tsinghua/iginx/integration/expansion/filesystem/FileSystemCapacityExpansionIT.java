@@ -149,11 +149,11 @@ public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
       String statement = "select `a\\nb\\.txt` from escape;";
       String expect =
           "ResultSets:\n"
-              + "+---+--------+\n"
-              + "|key|a\nb\\.txt|\n"
-              + "+---+--------+\n"
-              + "|  0| abcdefg|\n"
-              + "+---+--------+\n"
+              + "+---+---------------+\n"
+              + "|key|escape.a\nb\\.txt|\n"
+              + "+---+---------------+\n"
+              + "|  0|        abcdefg|\n"
+              + "+---+---------------+\n"
               + "Total line number = 1\n";
       SQLTestTools.executeAndCompare(session, statement, expect);
     } catch (SessionException e) {
