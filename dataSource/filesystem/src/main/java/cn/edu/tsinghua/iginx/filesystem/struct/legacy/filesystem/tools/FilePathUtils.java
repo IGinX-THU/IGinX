@@ -121,7 +121,7 @@ public class FilePathUtils {
       String[] parts;
       tmp = filePath.substring(filePath.indexOf(root) + root.length());
       if (!tmp.contains(SEPARATOR)) { // 一级目录或文件
-        return unescapePath(tmp);
+        return escapePath(tmp);
       }
 
       Pattern splitter = Pattern.compile(Pattern.quote(SEPARATOR));
@@ -129,7 +129,7 @@ public class FilePathUtils {
 
       StringBuilder res = new StringBuilder();
       for (String s : parts) {
-        s = unescapePath(s);
+        s = escapePath(s);
         res.append(s).append(DOT);
       }
       return res.substring(0, res.length() - 1);
