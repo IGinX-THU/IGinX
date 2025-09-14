@@ -206,7 +206,7 @@ public class FilePathUtils {
     for (int i = 0; i < path.length(); i++) {
       char c = path.charAt(i);
 
-      if (String.valueOf(c).equals(DOT_PLACEHOLDER)) {
+      if (String.valueOf(c).equals(DOT)) {
         target.append(ESCAPED_DOT);
       } else if (c == '\\') {
         target.append("\\\\");
