@@ -19,7 +19,7 @@
  */
 package cn.edu.tsinghua.iginx.relational;
 
-import static cn.edu.tsinghua.iginx.constant.GlobalConstant.SEPARATOR;
+import static cn.edu.tsinghua.iginx.constant.GlobalConstant.DOT;
 import static cn.edu.tsinghua.iginx.relational.tools.Constants.*;
 import static cn.edu.tsinghua.iginx.relational.tools.TagKVUtils.splitFullName;
 import static cn.edu.tsinghua.iginx.relational.tools.TagKVUtils.toFullName;
@@ -351,7 +351,7 @@ public class RelationalStorage implements IStorage {
                 continue;
               }
               Pair<String, Map<String, String>> nameAndTags = splitFullName(columnName);
-              columnName = getLogicalTableName(tableName) + SEPARATOR + nameAndTags.k;
+              columnName = getLogicalTableName(tableName) + DOT + nameAndTags.k;
               if (tagFilter != null && !TagKVUtils.match(nameAndTags.v, tagFilter)) {
                 continue;
               }
@@ -421,7 +421,7 @@ public class RelationalStorage implements IStorage {
                 continue;
               }
               Pair<String, Map<String, String>> nameAndTags = splitFullName(columnName);
-              columnName = databaseName + SEPARATOR + tableName + SEPARATOR + nameAndTags.k;
+              columnName = databaseName + DOT + tableName + DOT + nameAndTags.k;
               if (tagFilter != null && !TagKVUtils.match(nameAndTags.v, tagFilter)) {
                 continue;
               }
@@ -564,8 +564,7 @@ public class RelationalStorage implements IStorage {
       fullColumnNamesStr = fullColumnNamesStr.replaceAll("`\\.`", ".");
       filterStr = filterStr.replaceAll("`\\.`", ".");
       filterStr =
-          filterStr.replace(
-              getQuotName(KEY_NAME), getQuotName(tableNames.get(0) + SEPARATOR + KEY_NAME));
+          filterStr.replace(getQuotName(KEY_NAME), getQuotName(tableNames.get(0) + DOT + KEY_NAME));
       orderByKey = orderByKey.replaceAll("`\\.`", ".");
     }
     return String.format(
@@ -634,9 +633,8 @@ public class RelationalStorage implements IStorage {
           columnNames -> columnNames.replaceAll(s -> s.replaceAll(quote + "\\." + quote, ".")));
       filterStr = filterStr.replaceAll("`\\.`", ".");
       filterStr =
-          filterStr.replace(
-              getQuotName(KEY_NAME), getQuotName(tableNames.get(0) + SEPARATOR + KEY_NAME));
-      orderByKey = getQuotName(tableNames.get(0) + SEPARATOR + KEY_NAME);
+          filterStr.replace(getQuotName(KEY_NAME), getQuotName(tableNames.get(0) + DOT + KEY_NAME));
+      orderByKey = getQuotName(tableNames.get(0) + DOT + KEY_NAME);
     }
 
     return String.format(
@@ -833,7 +831,7 @@ public class RelationalStorage implements IStorage {
                 "%s.%s AS %s",
                 getQuotName(logicalTableName),
                 getQuotName(KEY_NAME),
-                getQuotName(logicalTableName + SEPARATOR + KEY_NAME));
+                getQuotName(logicalTableName + DOT + KEY_NAME));
         fullTableName.append(
             String.format(
                 "SELECT %s FROM %s",
@@ -939,8 +937,7 @@ public class RelationalStorage implements IStorage {
       for (int i = 0; i < tableNames.size(); i++) {
         String keyStr =
             String.format(
-                "%s AS %s",
-                getQuotName(KEY_NAME), getQuotName(tableNames.get(i) + SEPARATOR + KEY_NAME));
+                "%s AS %s", getQuotName(KEY_NAME), getQuotName(tableNames.get(i) + DOT + KEY_NAME));
         fullTableName.append(
             String.format(
                 "SELECT %s FROM %s", keyStr + ", " + allColumns, getQuotName(tableNames.get(i))));
@@ -977,7 +974,7 @@ public class RelationalStorage implements IStorage {
         fullColumnNames.replaceAll(
             s ->
                 RelationSchema.getQuoteFullName(
-                    databaseName + SEPARATOR + entry.getKey(), s, relationalMeta.getQuote()));
+                    databaseName + DOT + entry.getKey(), s, relationalMeta.getQuote()));
       } else {
         // 将columnNames中的列名加上tableName前缀
         fullColumnNames.replaceAll(
@@ -1022,19 +1019,19 @@ public class RelationalStorage implements IStorage {
       case Value:
         ValueFilter valueFilter = ((ValueFilter) filter);
         String path = valueFilter.getPath();
-        valueFilter.setPath(databaseName + SEPARATOR + path);
+        valueFilter.setPath(databaseName + DOT + path);
         return valueFilter;
       case In:
         InFilter inFilter = (InFilter) filter;
         String inPath = inFilter.getPath();
-        inFilter.setPath(databaseName + SEPARATOR + inPath);
+        inFilter.setPath(databaseName + DOT + inPath);
         return inFilter;
       case Path:
         PathFilter pathFilter = (PathFilter) filter;
         String pathA = pathFilter.getPathA();
         String pathB = pathFilter.getPathB();
-        pathFilter.setPathA(databaseName + SEPARATOR + pathA);
-        pathFilter.setPathB(databaseName + SEPARATOR + pathB);
+        pathFilter.setPathA(databaseName + DOT + pathA);
+        pathFilter.setPathB(databaseName + DOT + pathB);
         return pathFilter;
       default:
         break;
@@ -1065,19 +1062,19 @@ public class RelationalStorage implements IStorage {
       case Value:
         ValueFilter valueFilter = ((ValueFilter) filter);
         String path = valueFilter.getPath();
-        valueFilter.setPath(path.substring(path.indexOf(SEPARATOR) + 1));
+        valueFilter.setPath(path.substring(path.indexOf(DOT) + 1));
         return valueFilter;
       case In:
         InFilter inFilter = (InFilter) filter;
         String inPath = inFilter.getPath();
-        inFilter.setPath(inPath.substring(inPath.indexOf(SEPARATOR) + 1));
+        inFilter.setPath(inPath.substring(inPath.indexOf(DOT) + 1));
         return inFilter;
       case Path:
         PathFilter pathFilter = (PathFilter) filter;
         String pathA = pathFilter.getPathA();
         String pathB = pathFilter.getPathB();
-        pathFilter.setPathA(pathA.substring(pathA.indexOf(SEPARATOR) + 1));
-        pathFilter.setPathB(pathB.substring(pathB.indexOf(SEPARATOR) + 1));
+        pathFilter.setPathA(pathA.substring(pathA.indexOf(DOT) + 1));
+        pathFilter.setPathB(pathB.substring(pathB.indexOf(DOT) + 1));
         return pathFilter;
       default:
         break;
@@ -1247,7 +1244,7 @@ public class RelationalStorage implements IStorage {
             cutFilterDatabaseNameForDummy(((NotFilter) filter).getChild(), databaseName));
       case Value:
         String path = ((ValueFilter) filter).getPath();
-        if (path.startsWith(databaseName + SEPARATOR)) {
+        if (path.startsWith(databaseName + DOT)) {
           return new ValueFilter(
               path.substring(databaseName.length() + 1),
               ((ValueFilter) filter).getOp(),
@@ -1257,7 +1254,7 @@ public class RelationalStorage implements IStorage {
       case In:
         InFilter inFilter = (InFilter) filter;
         String inPath = inFilter.getPath();
-        if (inPath.startsWith(databaseName + SEPARATOR)) {
+        if (inPath.startsWith(databaseName + DOT)) {
           return new InFilter(
               inPath.substring(databaseName.length() + 1),
               inFilter.getInOp(),
@@ -1268,11 +1265,11 @@ public class RelationalStorage implements IStorage {
         boolean isChanged = false;
         String pathA = ((PathFilter) filter).getPathA();
         String pathB = ((PathFilter) filter).getPathB();
-        if (pathA.startsWith(databaseName + SEPARATOR)) {
+        if (pathA.startsWith(databaseName + DOT)) {
           pathA = pathA.substring(databaseName.length() + 1);
           isChanged = true;
         }
-        if (pathB.startsWith(databaseName + SEPARATOR)) {
+        if (pathB.startsWith(databaseName + DOT)) {
           pathB = pathB.substring(databaseName.length() + 1);
           isChanged = true;
         }
@@ -1537,7 +1534,7 @@ public class RelationalStorage implements IStorage {
       String tableName = entry.getKey();
       List<String> columnNames = new ArrayList<>(Arrays.asList(entry.getValue().split(", ")));
       for (String columnName : columnNames) {
-        fullColumnNames.add(tableName + SEPARATOR + columnName);
+        fullColumnNames.add(tableName + DOT + columnName);
       }
     }
     // 在statement的基础上添加group by和函数内容
@@ -1627,7 +1624,7 @@ public class RelationalStorage implements IStorage {
         // 不支持创建数据库的情况下，数据库名作为tableName的一部分
         BaseExpression baseExpr = (BaseExpression) expr;
         if (!relationalMeta.isSupportCreateDatabase() && !isDummy) {
-          baseExpr.setPathName(databaseName + SEPARATOR + expr.getColumnName());
+          baseExpr.setPathName(databaseName + DOT + expr.getColumnName());
         }
         return baseExpr;
       case Binary:
@@ -2329,8 +2326,7 @@ public class RelationalStorage implements IStorage {
           List<ColumnField> columnFieldList = getColumns(databaseName, tableName, "%", true);
           for (ColumnField columnField : columnFieldList) {
             String columnName = columnField.getColumnName(); // 获取列名称
-            String path =
-                databaseName + SEPARATOR + getLogicalTableName(tableName) + SEPARATOR + columnName;
+            String path = databaseName + DOT + getLogicalTableName(tableName) + DOT + columnName;
             if (dataPrefix != null && !path.startsWith(dataPrefix)) {
               continue;
             }
@@ -2364,10 +2360,10 @@ public class RelationalStorage implements IStorage {
     tableNameRegex = StringUtils.reformatPath(tableNameRegex);
     tableNameRegex = tableNameRegex.replace("%", ".*");
     if (tableNameRegex.endsWith(".*")
-        && !tableNameRegex.endsWith(SEPARATOR + ".*")
+        && !tableNameRegex.endsWith(DOT + ".*")
         && !tableNameRegex.equals(".*")) {
       tableNameRegex = tableNameRegex.substring(0, tableNameRegex.length() - 2);
-      tableNameRegex += "(\\" + SEPARATOR + ".*)?";
+      tableNameRegex += "(\\" + DOT + ".*)?";
     }
     Pattern tableNamePattern;
     if (isDummy) {
@@ -2407,7 +2403,7 @@ public class RelationalStorage implements IStorage {
         logicalTableNamePattern = "%";
         columnNamePattern = "%";
       } else {
-        if (pattern.split("\\" + SEPARATOR).length == 1) {
+        if (pattern.split("\\" + DOT).length == 1) {
           // REST 查询的路径中可能不含 .
           logicalTableNamePattern = pattern;
           columnNamePattern = "%";
@@ -2547,7 +2543,7 @@ public class RelationalStorage implements IStorage {
       tableName = "%";
       columnNames = "%";
     } else {
-      String[] parts = pattern.split("\\" + SEPARATOR);
+      String[] parts = pattern.split("\\" + DOT);
 
       databaseName = parts[0].replace('*', '%');
       if (parts.length == 1) { // 只有一级
@@ -3265,7 +3261,7 @@ public class RelationalStorage implements IStorage {
           public void visit(BaseExpression expression) {
             String path = expression.getColumnName();
             if (!relationalMeta.isSupportCreateDatabase() && path.startsWith(DATABASE_PREFIX)) {
-              int firstSeparatorIndex = path.indexOf(SEPARATOR);
+              int firstSeparatorIndex = path.indexOf(DOT);
               path = path.substring(firstSeparatorIndex + 1);
             }
             if (columnTypeMap.containsKey(path)) {
@@ -3462,7 +3458,7 @@ public class RelationalStorage implements IStorage {
     }
     KeyFilter keyFilter = (KeyFilter) filter;
     return new ValueFilter(
-        tableName + SEPARATOR + KEY_NAME, keyFilter.getOp(), new Value(keyFilter.getValue()));
+        tableName + DOT + KEY_NAME, keyFilter.getOp(), new Value(keyFilter.getValue()));
   }
 
   private String getLogicalTableName(String physicalTableName) {

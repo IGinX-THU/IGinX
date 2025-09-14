@@ -34,6 +34,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.StringJoiner;
 import org.jetbrains.annotations.NotNull;
+import org.junit.Assume;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,6 +42,9 @@ import org.slf4j.LoggerFactory;
 public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(FileSystemCapacityExpansionIT.class);
+
+  protected static final boolean isOnWin =
+      System.getProperty("os.name").toLowerCase().contains("win");
 
   public FileSystemCapacityExpansionIT() {
     super(filesystem, getAddStorageParams(), new FileSystemHistoryDataGenerator());
@@ -109,6 +113,7 @@ public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
   protected void testQuerySpecialHistoryData() {
     testQueryLegacyFileSystem();
     testQueryFileTree();
+    testEscape();
   }
 
   private void testQueryLegacyFileSystem() {
@@ -130,6 +135,27 @@ public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
       testQueryParquets();
       testQueryCSV();
       testQueryMultiFormat();
+    } catch (SessionException e) {
+      LOGGER.error("add or remove read only storage engine failed ", e);
+      fail();
+    }
+  }
+
+  private void testEscape() {
+    // 转义字符不在 windows 上测试
+    Assume.assumeFalse(isOnWin);
+    try (TempDummyDataSource ignored =
+        new TempDummyDataSource(session, 16669, filesystem, getFileTreeEscapeDummyParams())) {
+      String statement = "select `a\\nb\\.txt` from escape;";
+      String expect =
+          "ResultSets:\n"
+              + "+---+--------+\n"
+              + "|key|a\nb\\.txt|\n"
+              + "+---+--------+\n"
+              + "|  0| abcdefg|\n"
+              + "+---+--------+\n"
+              + "Total line number = 1\n";
+      SQLTestTools.executeAndCompare(session, statement, expect);
     } catch (SessionException e) {
       LOGGER.error("add or remove read only storage engine failed ", e);
       fail();
@@ -162,6 +188,15 @@ public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
     params.put("dummy.struct", FileTree.NAME);
     params.put("dummy.config.formats." + CsvFormat.NAME + ".dateFormat", "yyyy/MM/dd");
     params.put("dummy.config.formats." + CsvFormat.NAME + ".allowDuplicateColumnNames", "true");
+    return params;
+  }
+
+  private static @NotNull Map<String, String> getFileTreeEscapeDummyParams() {
+    Map<String, String> params = new LinkedHashMap<>();
+    params.put("dummy_dir", "test/test/escape");
+    params.put("iginx_port", "6888");
+    params.put("dummy.struct", FileTree.NAME);
+    params.put("dummy.config.formats." + RawFormat.NAME + ".pageSize", "1048576");
     return params;
   }
 

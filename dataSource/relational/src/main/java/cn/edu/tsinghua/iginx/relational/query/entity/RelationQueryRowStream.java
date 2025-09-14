@@ -19,7 +19,7 @@
  */
 package cn.edu.tsinghua.iginx.relational.query.entity;
 
-import static cn.edu.tsinghua.iginx.constant.GlobalConstant.SEPARATOR;
+import static cn.edu.tsinghua.iginx.constant.GlobalConstant.DOT;
 import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils.validate;
 import static cn.edu.tsinghua.iginx.relational.tools.Constants.*;
 import static cn.edu.tsinghua.iginx.relational.tools.HashUtils.toHash;
@@ -168,7 +168,7 @@ public class RelationQueryRowStream implements RowStream {
         int precision = resultSetMetaData.getPrecision(j);
         int scale = resultSetMetaData.getScale(j);
 
-        if (j == 1 && columnName.contains(KEY_NAME) && columnName.contains(SEPARATOR)) {
+        if (j == 1 && columnName.contains(KEY_NAME) && columnName.contains(DOT)) {
           isPushDown = true;
         }
 
@@ -201,16 +201,16 @@ public class RelationQueryRowStream implements RowStream {
         if (isDummy) {
           path =
               databaseName
-                  + SEPARATOR
+                  + DOT
                   + (isAgg || !relationalMeta.jdbcSupportGetTableNameFromResultSet()
                       ? ""
-                      : tableName + SEPARATOR)
+                      : tableName + DOT)
                   + namesAndTags.k;
         } else {
           path =
               (isAgg || !relationalMeta.jdbcSupportGetTableNameFromResultSet()
                       ? ""
-                      : getLogicalTableName(tableName) + SEPARATOR)
+                      : getLogicalTableName(tableName) + DOT)
                   + namesAndTags.k;
           if (!isAgg && !relationalMeta.isSupportCreateDatabase()) {
             path = path.substring(databaseName.length() + 1);
@@ -460,7 +460,7 @@ public class RelationQueryRowStream implements RowStream {
       throws SQLException, IOException {
     Object obj;
     if (!relationalMeta.isSupportFullJoin() && isPushDown) {
-      obj = rs.getObject(tableName + SEPARATOR + columnName);
+      obj = rs.getObject(tableName + DOT + columnName);
     } else if (!resultSetHasColumnWithTheSameName.get(resultSets.indexOf(rs))) {
       obj = rs.getObject(columnName);
     } else {
@@ -475,7 +475,7 @@ public class RelationQueryRowStream implements RowStream {
           tempTableName = meta.getTableName(j);
         }
         if (!relationalMeta.isSupportCreateDatabase()) {
-          int idx = tempTableName.indexOf(SEPARATOR);
+          int idx = tempTableName.indexOf(DOT);
           tempTableName = tempTableName.substring(idx + 1);
         }
         if (tempColumnName.equals(columnName)

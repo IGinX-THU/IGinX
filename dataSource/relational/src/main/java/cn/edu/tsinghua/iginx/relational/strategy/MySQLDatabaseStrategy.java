@@ -19,7 +19,7 @@
  */
 package cn.edu.tsinghua.iginx.relational.strategy;
 
-import static cn.edu.tsinghua.iginx.constant.GlobalConstant.SEPARATOR;
+import static cn.edu.tsinghua.iginx.constant.GlobalConstant.DOT;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
@@ -96,12 +96,12 @@ public class MySQLDatabaseStrategy extends AbstractDatabaseStrategy {
         Statement statement = conn.createStatement()) {
       try (ResultSet rs = statement.executeQuery(sqlMin)) {
         if (rs.next()) {
-          minPath = rs.getString(1) + SEPARATOR + rs.getString(2) + SEPARATOR + rs.getString(3);
+          minPath = rs.getString(1) + DOT + rs.getString(2) + DOT + rs.getString(3);
         }
       }
       try (ResultSet rs = statement.executeQuery(sqlMax)) {
         if (rs.next()) {
-          maxPath = rs.getString(1) + SEPARATOR + rs.getString(2) + SEPARATOR + rs.getString(3);
+          maxPath = rs.getString(1) + DOT + rs.getString(2) + DOT + rs.getString(3);
         }
       }
     }

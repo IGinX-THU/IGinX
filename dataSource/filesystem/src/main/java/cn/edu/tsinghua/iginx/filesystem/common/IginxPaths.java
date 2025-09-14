@@ -19,7 +19,8 @@
  */
 package cn.edu.tsinghua.iginx.filesystem.common;
 
-import static cn.edu.tsinghua.iginx.filesystem.struct.legacy.filesystem.shared.Constant.*;
+import static cn.edu.tsinghua.iginx.constant.GlobalConstant.DOT;
+import static cn.edu.tsinghua.iginx.constant.GlobalConstant.ESCAPED_DOT;
 
 import com.google.common.collect.Iterables;
 import java.nio.file.FileSystem;

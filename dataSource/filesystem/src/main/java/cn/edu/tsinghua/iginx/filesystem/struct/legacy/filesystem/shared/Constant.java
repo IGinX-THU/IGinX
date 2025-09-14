@@ -30,10 +30,6 @@ public class Constant {
 
   public static final String WILDCARD = "*";
 
-  public static final String DOT = ".";
-
-  public static final String ESCAPED_DOT = "\\.";
-
   // the number of meta info
   public static final long IGINX_FILE_META_INDEX = 3L;
 

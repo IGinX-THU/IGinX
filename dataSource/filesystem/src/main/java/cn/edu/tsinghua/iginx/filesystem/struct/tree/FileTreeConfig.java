@@ -19,7 +19,7 @@
  */
 package cn.edu.tsinghua.iginx.filesystem.struct.tree;
 
-import static cn.edu.tsinghua.iginx.filesystem.struct.legacy.filesystem.shared.Constant.ESCAPED_DOT;
+import static cn.edu.tsinghua.iginx.constant.GlobalConstant.ESCAPED_DOT;
 
 import cn.edu.tsinghua.iginx.filesystem.common.AbstractConfig;
 import com.typesafe.config.*;
