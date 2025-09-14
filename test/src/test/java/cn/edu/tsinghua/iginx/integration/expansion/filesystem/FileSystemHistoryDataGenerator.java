@@ -158,7 +158,8 @@ public class FileSystemHistoryDataGenerator extends BaseHistoryDataGenerator {
     //         ├── MT cars.parquet
     //         └── price.parquet
     // └── escape (仅在 linux 和 mac 上创建)
-    //     └── a\nb.txt
+    //     └── path\
+    //         └── a\nb.txt
     StringBuilder content1 = new StringBuilder();
     StringBuilder content2 = new StringBuilder();
     StringBuilder content3 = new StringBuilder();
@@ -191,7 +192,7 @@ public class FileSystemHistoryDataGenerator extends BaseHistoryDataGenerator {
     copyFileFromResource(csvResourceDir + "lineitem.csv", Paths.get("test", "csv", "lineitem.csv"));
 
     if (!isOnWin) {
-      createAndWriteFile("abcdefg".getBytes(), "test", "escape", "a\nb.txt");
+      createAndWriteFile("abcdefg".getBytes(), "test", "escape", "path\\", "a\nb.txt");
     }
   }
 
