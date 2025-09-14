@@ -55,6 +55,10 @@ jobs:
                 metadata: ${{ fromJSON(inputs.metadata-matrix) }}
                 DB-name: ${{ fromJSON(inputs.db-matrix) }}
                 test-way:
+                    - "oriHasDataExpHasData"
+                    - "oriNoDataExpNoData"
+                    - "oriHasDataExpNoData"
+                    - "oriNoDataExpHasData"
                     - "testReadOnly"
         runs-on: ${{ matrix.os }}
         env:
@@ -107,9 +111,7 @@ jobs:
 
             - name: Write DB history data
               shell: bash -el {0}
-              run: |
-                  mvn test -q -Dtest=${{ matrix.DB-name }}HistoryDataGenerator#${{ matrix.test-way }} -DfailIfNoTests=false -P-format
-                  ls test/test/escape
+              run: mvn test -q -Dtest=${{ matrix.DB-name }}HistoryDataGenerator#${{ matrix.test-way }} -DfailIfNoTests=false -P-format
 
             - name: Start IGinX
               uses: ./.github/actions/iginxRunner
