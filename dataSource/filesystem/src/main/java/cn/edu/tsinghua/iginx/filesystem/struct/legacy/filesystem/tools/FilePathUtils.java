@@ -93,6 +93,12 @@ public class FilePathUtils {
     return root + res;
   }
 
+  public static void main(String[] args) {
+    String ROOT = "A";
+    String PATH = "escape.path\\\\.a\nb\\.txt";
+    System.out.println(toNormalFilePath(ROOT, PATH));
+  }
+
   public static String convertAbsolutePathToPath(String root, String filePath, String storageUnit) {
     String tmp;
     // 对iginx文件操作
@@ -115,7 +121,7 @@ public class FilePathUtils {
       String[] parts;
       tmp = filePath.substring(filePath.indexOf(root) + root.length());
       if (!tmp.contains(SEPARATOR)) { // 一级目录或文件
-        return tmp.replace(DOT, ESCAPED_DOT);
+        return unescapePath(tmp);
       }
 
       Pattern splitter = Pattern.compile(Pattern.quote(SEPARATOR));
@@ -123,7 +129,7 @@ public class FilePathUtils {
 
       StringBuilder res = new StringBuilder();
       for (String s : parts) {
-        s = s.replace(DOT, ESCAPED_DOT);
+        s = unescapePath(s);
         res.append(s).append(DOT);
       }
       return res.substring(0, res.length() - 1);
@@ -189,6 +195,24 @@ public class FilePathUtils {
     // 处理最后一个单独的 '\'
     if (escaping) {
       target.append('\\');
+    }
+
+    return target.toString();
+  }
+
+  public static String escapePath(String path) {
+    StringBuilder target = new StringBuilder(path.length());
+
+    for (int i = 0; i < path.length(); i++) {
+      char c = path.charAt(i);
+
+      if (String.valueOf(c).equals(DOT_PLACEHOLDER)) {
+        target.append(ESCAPED_DOT);
+      } else if (c == '\\') {
+        target.append("\\\\");
+      } else {
+        target.append(c);
+      }
     }
 
     return target.toString();

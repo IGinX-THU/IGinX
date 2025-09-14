@@ -100,7 +100,7 @@ public class IginxPaths {
     String safePath = FilePathUtils.unescapePath(path);
     Pattern splitter = Pattern.compile(Pattern.quote(DOT));
     return Arrays.stream(splitter.split(safePath))
-        .map(s -> s.replace(FilePathUtils.DOT_PLACEHOLDER, ESCAPED_DOT))
+        .map(FilePathUtils::escapePath)
         .toArray(String[]::new);
   }
 }
