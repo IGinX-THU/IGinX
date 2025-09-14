@@ -121,7 +121,9 @@ public class FilePathUtils {
       String[] parts;
       tmp = filePath.substring(filePath.indexOf(root) + root.length());
       if (!tmp.contains(SEPARATOR)) { // 一级目录或文件
-        return escapePath(tmp);
+        tmp = tmp.replace("\\", "\\\\");
+        tmp = tmp.replace(DOT, ESCAPED_DOT);
+        return tmp;
       }
 
       Pattern splitter = Pattern.compile(Pattern.quote(SEPARATOR));
@@ -129,7 +131,8 @@ public class FilePathUtils {
 
       StringBuilder res = new StringBuilder();
       for (String s : parts) {
-        s = escapePath(s);
+        s = s.replace("\\", "\\\\");
+        s = s.replace(DOT, ESCAPED_DOT);
         res.append(s).append(DOT);
       }
       return res.substring(0, res.length() - 1);
@@ -195,24 +198,6 @@ public class FilePathUtils {
     // 处理最后一个单独的 '\'
     if (escaping) {
       target.append('\\');
-    }
-
-    return target.toString();
-  }
-
-  public static String escapePath(String path) {
-    StringBuilder target = new StringBuilder(path.length());
-
-    for (int i = 0; i < path.length(); i++) {
-      char c = path.charAt(i);
-
-      if (String.valueOf(c).equals(DOT)) {
-        target.append(ESCAPED_DOT);
-      } else if (c == '\\') {
-        target.append("\\\\");
-      } else {
-        target.append(c);
-      }
     }
 
     return target.toString();

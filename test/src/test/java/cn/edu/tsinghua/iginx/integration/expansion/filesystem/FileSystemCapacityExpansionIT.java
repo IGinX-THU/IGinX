@@ -146,14 +146,14 @@ public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
     Assume.assumeFalse(isOnWin);
     try (TempDummyDataSource ignored =
         new TempDummyDataSource(session, 16669, filesystem, getFileTreeEscapeDummyParams())) {
-      String statement = "select `a\\nb\\.txt` from escape.path\\\\;";
+      String statement = "select `a\\nb\\.txt` from escape.path;";
       String expect =
           "ResultSets:\n"
-              + "+---+---------------------+\n"
-              + "|key|escape.path\\.a\nb\\.txt|\n"
-              + "+---+---------------------+\n"
-              + "|  0|              abcdefg|\n"
-              + "+---+---------------------+\n"
+              + "+---+--------------------+\n"
+              + "|key|escape.path.a\nb\\.txt|\n"
+              + "+---+--------------------+\n"
+              + "|  0|             abcdefg|\n"
+              + "+---+--------------------+\n"
               + "Total line number = 1\n";
       SQLTestTools.executeAndCompare(session, statement, expect);
     } catch (SessionException e) {
