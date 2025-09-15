@@ -143,3 +143,10 @@ jobs:
               with:
                   file: ./**/target/site/jacoco/jacoco.xml
                   name: codecov
+
+            - name: Upload surefire reports
+              if: always()
+              uses: actions/upload-artifact@v4
+              with:
+                name: surefire-reports
+                path: target/surefire-reports/*
