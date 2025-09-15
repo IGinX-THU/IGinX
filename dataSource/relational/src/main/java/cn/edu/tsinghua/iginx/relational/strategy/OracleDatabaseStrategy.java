@@ -111,8 +111,8 @@ public class OracleDatabaseStrategy extends AbstractDatabaseStrategy {
       String columnNames = entry.getValue().k.substring(0, entry.getValue().k.length() - 2);
       List<String> values = entry.getValue().v;
       String[] parts = columnNames.split(", ");
-      Map<String, ColumnField> columnMap = getColumnMap(conn, databaseName + "." + tableName);
-      this.batchInsert(conn, databaseName + "." + tableName, columnMap, parts, values);
+      Map<String, ColumnField> columnMap = getColumnMap(conn, databaseName + SEPARATOR + tableName);
+      this.batchInsert(conn, databaseName + SEPARATOR + tableName, columnMap, parts, values);
     }
     stmt.executeBatch();
   }

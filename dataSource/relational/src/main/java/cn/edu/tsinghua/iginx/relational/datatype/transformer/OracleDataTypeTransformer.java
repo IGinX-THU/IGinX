@@ -22,11 +22,26 @@ package cn.edu.tsinghua.iginx.relational.datatype.transformer;
 import static cn.edu.tsinghua.iginx.thrift.DataType.*;
 
 import cn.edu.tsinghua.iginx.thrift.DataType;
+import java.util.Properties;
 
-public class OracleDataTypeTransformer implements IDataTypeTransformer {
-  private static final OracleDataTypeTransformer INSTANCE = new OracleDataTypeTransformer();
+public class OracleDataTypeTransformer extends JDBCDataTypeTransformer {
+  private static OracleDataTypeTransformer INSTANCE;
+
+  private OracleDataTypeTransformer(Properties properties) {
+    super(properties);
+  }
+
+  public static synchronized OracleDataTypeTransformer init(Properties properties) {
+    if (INSTANCE == null) {
+      INSTANCE = new OracleDataTypeTransformer(properties);
+    }
+    return INSTANCE;
+  }
 
   public static OracleDataTypeTransformer getInstance() {
+    if (INSTANCE == null) {
+      throw new IllegalStateException("Not initialized, call init(Properties) first");
+    }
     return INSTANCE;
   }
 
@@ -54,25 +69,6 @@ public class OracleDataTypeTransformer implements IDataTypeTransformer {
         return DOUBLE;
       default:
         return BINARY;
-    }
-  }
-
-  public String toEngineType(DataType dataType) {
-    switch (dataType) {
-      case BOOLEAN:
-        return "NUMBER(1)";
-      case INTEGER:
-        return "NUMBER(10)";
-      case LONG:
-        return "NUMBER(19)";
-      case FLOAT:
-        return "BINARY_FLOAT";
-      case DOUBLE:
-        return "BINARY_DOUBLE";
-      case BINARY:
-        return "VARCHAR2(4000)";
-      default:
-        throw new IllegalArgumentException("Unsupported data type: " + dataType);
     }
   }
 }

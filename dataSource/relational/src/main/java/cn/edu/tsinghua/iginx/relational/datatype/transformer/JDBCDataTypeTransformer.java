@@ -29,6 +29,8 @@ public class JDBCDataTypeTransformer implements IDataTypeTransformer {
 
   private static final String prefix = "IGinX-";
 
+  private static final String suffix = ".size";
+
   public JDBCDataTypeTransformer(Properties properties) {
     typeMappings = properties;
   }
@@ -44,7 +46,16 @@ public class JDBCDataTypeTransformer implements IDataTypeTransformer {
 
   @Override
   public String toEngineType(DataType dataType) {
-    return typeMappings.getProperty(prefix + dataType.name(), "TEXT");
+    try {
+      return typeMappings.getProperty(prefix + dataType.name());
+    } catch (Exception e) {
+      throw new IllegalArgumentException("Unsupported data type: " + dataType);
+    }
+  }
+
+  @Override
+  public int getDataTypeSize(DataType dataType) {
+    return Integer.parseInt(typeMappings.getProperty(prefix + dataType.name() + suffix, "20"));
   }
 
   private static final Map<String, DataType> dataTypeMap = new HashMap<>();
