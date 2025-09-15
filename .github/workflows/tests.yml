@@ -36,146 +36,146 @@ jobs:
         with:
             metadata-matrix: '["zookeeper"]'
             close-optimizer: "true"
-        standalone-test-no-mac-relational:
-            uses: ./.github/workflows/standalone-test.yml
-            with:
-                metadata-matrix: '["zookeeper"]'
-                os-matrix: '["ubuntu-latest", "windows-latest"]'
-                db-matrix: '["Dameng", "Oracle"]'
-                timeout-minutes: 100
-        standalone-test-no-optimizer-no-mac-relational:
-            uses: ./.github/workflows/standalone-test-no-optimizer.yml
-            with:
-                metadata-matrix: '["zookeeper"]'
-                os-matrix: '["ubuntu-latest", "windows-latest"]'
-                db-matrix: '["Dameng", "Oracle"]'
-                timeout-minutes: 100
-        standalone-test-no-mac-no-privs-relational:
-            uses: ./.github/workflows/standalone-test.yml
-            with:
-                metadata-matrix: '["zookeeper"]'
-                os-matrix: '["ubuntu-latest", "windows-latest"]'
-                db-matrix: '["Dameng"]'
-                db-support-create-database: false
-                timeout-minutes: 120
-        standalone-test-no-optimizer-no-mac-no-privs-relational:
-            uses: ./.github/workflows/standalone-test-no-optimizer.yml
-            with:
-                metadata-matrix: '["zookeeper"]'
-                os-matrix: '["ubuntu-latest", "windows-latest"]'
-                db-matrix: '["Dameng"]'
-                db-support-create-database: false
-                timeout-minutes: 100
-        db-ce-Dameng:
-            uses: ./.github/workflows/DB-CE.yml
-            with:
-                metadata-matrix: '["zookeeper"]'
-                os-matrix: '["ubuntu-latest", "windows-latest"]'
-                db-matrix: '["Dameng"]'
-                functest: "NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,CompactionIT,TimePrecisionIT,PySessionIT"
-                timeout-minutes: 120
-        db-ce-no-optimizer-Dameng:
-            uses: ./.github/workflows/DB-CE.yml
-            with:
-                metadata-matrix: '["zookeeper"]'
-                os-matrix: '["ubuntu-latest", "windows-latest"]'
-                db-matrix: '["Dameng"]'
-                functest: "NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,CompactionIT,TimePrecisionIT,PySessionIT"
-                timeout-minutes: 120
-                close-optimizer: "true"
-        db-ce-Oracle:
-            uses: ./.github/workflows/DB-CE.yml
-            with:
-                metadata-matrix: '["zookeeper"]'
-                os-matrix: '["ubuntu-latest"]'
-                db-matrix: '["Oracle"]'
-                functest: "NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,CompactionIT,TimePrecisionIT,PySessionIT"
-                timeout-minutes: 120
-        db-ce-no-optimizer-Oracle:
-            uses: ./.github/workflows/DB-CE.yml
-            with:
-                metadata-matrix: '["zookeeper"]'
-                os-matrix: '["ubuntu-latest"]'
-                db-matrix: '["Oracle"]'
-                functest: "NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,CompactionIT,TimePrecisionIT,PySessionIT"
-                timeout-minutes: 120
-                close-optimizer: "true"
-        standalone-test-vectordb:
-            uses: ./.github/workflows/standalone-test.yml
-            with:
-                metadata-matrix: '["zookeeper"]'
-                os-matrix: '["ubuntu-latest", "windows-latest"]'
-                db-matrix: '["VectorDB"]'
-                timeout-minutes: 300
-        standalone-test-no-optimizer-vectordb:
-            uses: ./.github/workflows/standalone-test-no-optimizer.yml
-            with:
-                metadata-matrix: '["zookeeper"]'
-                os-matrix: '["ubuntu-latest", "windows-latest"]'
-                db-matrix: '["VectorDB"]'
-                timeout-minutes: 300
-        db-ce-vectordb:
-            uses: ./.github/workflows/DB-CE.yml
-            with:
-                metadata-matrix: '["zookeeper"]'
-                os-matrix: '["ubuntu-latest", "windows-latest"]'
-                db-matrix: '["VectorDB"]'
-                functest: "NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,CompactionIT,TimePrecisionIT,PySessionIT"
-                timeout-minutes: 360
-        db-ce-no-optimizer-vectordb:
-            uses: ./.github/workflows/DB-CE.yml
-            with:
-                metadata-matrix: '["zookeeper"]'
-                os-matrix: '["ubuntu-latest", "windows-latest"]'
-                db-matrix: '["VectorDB"]'
-                functest: "NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,CompactionIT,TimePrecisionIT,PySessionIT"
-                timeout-minutes: 360
-                close-optimizer: "true"
-        remote-test:
-            uses: ./.github/workflows/remote-test.yml
-            with:
-                metadata-matrix: '["zookeeper"]'
-        assembly-test:
-            uses: ./.github/workflows/assembly-test.yml
-        free-thread-test:
-            uses: ./.github/workflows/free-thread-test.yml
-            with:
-                metadata-matrix: '["zookeeper"]'
-        tpc-h-test:
-            uses: ./.github/workflows/tpc-h.yml
-            with:
-                os-matrix: '["ubuntu-latest"]'
-                metadata-matrix: '["zookeeper"]'
-        cluster-test:
-            uses: ./.github/workflows/cluster-test.yml
-        analyze-required-test-check:
-            if: always()
-            needs: # List of jobs that must pass. Add more jobs if needed.
-                - unit-test
-                - unit-mds
-                - case-regression
-                - standalone-test
-                - standalone-test-no-optimizer
-                - db-ce
-                - db-ce-no-optimizer
-                - standalone-test-vectordb
-                - standalone-test-no-optimizer-vectordb
-                - db-ce-vectordb
-                - db-ce-no-optimizer-vectordb
-                - remote-test
-                - assembly-test
-                - free-thread-test
-                - tpc-h-test
-                - standalone-test-no-mac-relational
-                - standalone-test-no-optimizer-no-mac-relational
-                - db-ce-Dameng
-                - db-ce-no-optimizer-Dameng
-                - db-ce-Oracle
-                - db-ce-no-optimizer-Oracle
-                - cluster-test
-            runs-on: ubuntu-latest
-            steps:
-                - name: Decide whether the needed jobs succeeded or failed
-                  uses: re-actors/alls-green@release/v1
-                  with:
-                      jobs: ${{ toJSON(needs) }}
+    standalone-test-no-mac-relational:
+        uses: ./.github/workflows/standalone-test.yml
+        with:
+            metadata-matrix: '["zookeeper"]'
+            os-matrix: '["ubuntu-latest", "windows-latest"]'
+            db-matrix: '["Dameng", "Oracle"]'
+            timeout-minutes: 100
+    standalone-test-no-optimizer-no-mac-relational:
+        uses: ./.github/workflows/standalone-test-no-optimizer.yml
+        with:
+            metadata-matrix: '["zookeeper"]'
+            os-matrix: '["ubuntu-latest", "windows-latest"]'
+            db-matrix: '["Dameng", "Oracle"]'
+            timeout-minutes: 100
+    standalone-test-no-mac-no-privs-relational:
+        uses: ./.github/workflows/standalone-test.yml
+        with:
+            metadata-matrix: '["zookeeper"]'
+            os-matrix: '["ubuntu-latest", "windows-latest"]'
+            db-matrix: '["Dameng"]'
+            db-support-create-database: false
+            timeout-minutes: 120
+    standalone-test-no-optimizer-no-mac-no-privs-relational:
+        uses: ./.github/workflows/standalone-test-no-optimizer.yml
+        with:
+            metadata-matrix: '["zookeeper"]'
+            os-matrix: '["ubuntu-latest", "windows-latest"]'
+            db-matrix: '["Dameng"]'
+            db-support-create-database: false
+            timeout-minutes: 100
+    db-ce-Dameng:
+        uses: ./.github/workflows/DB-CE.yml
+        with:
+            metadata-matrix: '["zookeeper"]'
+            os-matrix: '["ubuntu-latest", "windows-latest"]'
+            db-matrix: '["Dameng"]'
+            functest: "NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,CompactionIT,TimePrecisionIT,PySessionIT"
+            timeout-minutes: 120
+    db-ce-no-optimizer-Dameng:
+        uses: ./.github/workflows/DB-CE.yml
+        with:
+            metadata-matrix: '["zookeeper"]'
+            os-matrix: '["ubuntu-latest", "windows-latest"]'
+            db-matrix: '["Dameng"]'
+            functest: "NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,CompactionIT,TimePrecisionIT,PySessionIT"
+            timeout-minutes: 120
+            close-optimizer: "true"
+    db-ce-Oracle:
+        uses: ./.github/workflows/DB-CE.yml
+        with:
+            metadata-matrix: '["zookeeper"]'
+            os-matrix: '["ubuntu-latest"]'
+            db-matrix: '["Oracle"]'
+            functest: "NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,CompactionIT,TimePrecisionIT,PySessionIT"
+            timeout-minutes: 120
+    db-ce-no-optimizer-Oracle:
+        uses: ./.github/workflows/DB-CE.yml
+        with:
+            metadata-matrix: '["zookeeper"]'
+            os-matrix: '["ubuntu-latest"]'
+            db-matrix: '["Oracle"]'
+            functest: "NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,CompactionIT,TimePrecisionIT,PySessionIT"
+            timeout-minutes: 120
+            close-optimizer: "true"
+    standalone-test-vectordb:
+        uses: ./.github/workflows/standalone-test.yml
+        with:
+            metadata-matrix: '["zookeeper"]'
+            os-matrix: '["ubuntu-latest", "windows-latest"]'
+            db-matrix: '["VectorDB"]'
+            timeout-minutes: 300
+    standalone-test-no-optimizer-vectordb:
+        uses: ./.github/workflows/standalone-test-no-optimizer.yml
+        with:
+            metadata-matrix: '["zookeeper"]'
+            os-matrix: '["ubuntu-latest", "windows-latest"]'
+            db-matrix: '["VectorDB"]'
+            timeout-minutes: 300
+    db-ce-vectordb:
+        uses: ./.github/workflows/DB-CE.yml
+        with:
+            metadata-matrix: '["zookeeper"]'
+            os-matrix: '["ubuntu-latest", "windows-latest"]'
+            db-matrix: '["VectorDB"]'
+            functest: "NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,CompactionIT,TimePrecisionIT,PySessionIT"
+            timeout-minutes: 360
+    db-ce-no-optimizer-vectordb:
+        uses: ./.github/workflows/DB-CE.yml
+        with:
+            metadata-matrix: '["zookeeper"]'
+            os-matrix: '["ubuntu-latest", "windows-latest"]'
+            db-matrix: '["VectorDB"]'
+            functest: "NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,CompactionIT,TimePrecisionIT,PySessionIT"
+            timeout-minutes: 360
+            close-optimizer: "true"
+    remote-test:
+        uses: ./.github/workflows/remote-test.yml
+        with:
+            metadata-matrix: '["zookeeper"]'
+    assembly-test:
+        uses: ./.github/workflows/assembly-test.yml
+    free-thread-test:
+        uses: ./.github/workflows/free-thread-test.yml
+        with:
+            metadata-matrix: '["zookeeper"]'
+    tpc-h-test:
+        uses: ./.github/workflows/tpc-h.yml
+        with:
+            os-matrix: '["ubuntu-latest"]'
+            metadata-matrix: '["zookeeper"]'
+    cluster-test:
+        uses: ./.github/workflows/cluster-test.yml
+    analyze-required-test-check:
+        if: always()
+        needs: # List of jobs that must pass. Add more jobs if needed.
+            - unit-test
+            - unit-mds
+            - case-regression
+            - standalone-test
+            - standalone-test-no-optimizer
+            - db-ce
+            - db-ce-no-optimizer
+            - standalone-test-vectordb
+            - standalone-test-no-optimizer-vectordb
+            - db-ce-vectordb
+            - db-ce-no-optimizer-vectordb
+            - remote-test
+            - assembly-test
+            - free-thread-test
+            - tpc-h-test
+            - standalone-test-no-mac-relational
+            - standalone-test-no-optimizer-no-mac-relational
+            - db-ce-Dameng
+            - db-ce-no-optimizer-Dameng
+            - db-ce-Oracle
+            - db-ce-no-optimizer-Oracle
+            - cluster-test
+        runs-on: ubuntu-latest
+        steps:
+            - name: Decide whether the needed jobs succeeded or failed
+              uses: re-actors/alls-green@release/v1
+              with:
+                  jobs: ${{ toJSON(needs) }}
