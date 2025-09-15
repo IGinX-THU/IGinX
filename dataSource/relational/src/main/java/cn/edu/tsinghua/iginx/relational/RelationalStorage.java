@@ -2640,8 +2640,8 @@ public class RelationalStorage implements IStorage {
     List<Integer> columnIndexList = new ArrayList<>();
     columnIndexList.add(0);
     int singleRowSize = existedRowSize, columnNum = existedColumnNum;
-    // 限制，maxColumnNumLimit需要减1，留出一列给Key
-    int maxSingleRowSizeLimit = relationalMeta.getMaxSingleRowSizeLimit(),
+    // 限制：maxSingleRowSizeLimit需要减8,maxColumnNumLimit需要减1，留出一列给Key
+    int maxSingleRowSizeLimit = relationalMeta.getMaxSingleRowSizeLimit() - 8,
         maxColumnNumLimit = relationalMeta.getMaxColumnNumLimit() - 1;
     for (int i = 0; i < columnCount; i++) {
       int colSize = relationalMeta.getDataTypeTransformer().getDataTypeSize(columnList.get(i).v);
@@ -2656,7 +2656,7 @@ public class RelationalStorage implements IStorage {
         continue;
       }
       // 如果加上这一列会超限 → 切片
-      if (singleRowSize + colSize > maxSingleRowSizeLimit || columnNum + 1 > maxColumnNumLimit) {
+      if (singleRowSize + colSize > maxSingleRowSizeLimit || columnNum > maxColumnNumLimit) {
         columnIndexList.add(i);
         singleRowSize = 0;
         columnNum = 0;
