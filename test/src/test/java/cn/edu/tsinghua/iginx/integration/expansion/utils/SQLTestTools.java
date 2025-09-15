@@ -238,4 +238,11 @@ public class SQLTestTools {
     }
     return 0;
   }
+
+  /** 比较结果是否包含expectedOutput * */
+  public static boolean executeAndContainValue(
+      Session session, String statement, String expectedOutput) {
+    String actualOutput = execute(session, statement);
+    return actualOutput.contains(expectedOutput);
+  }
 }
