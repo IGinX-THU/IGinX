@@ -172,15 +172,12 @@ public class HostUtils {
     return true;
   }
 
-  //  // host name --> host address
-  //  public static String convertHostNameToHostAddress(String hostName) {
-  //    String hostAddress = hostName;
-  //    try {
-  //      InetAddress address = InetAddress.getByName(hostName);
-  //      hostAddress = address.getHostAddress();
-  //    } catch (UnknownHostException e) {
-  //      return hostAddress;
-  //    }
-  //    return hostAddress;
-  //  }
+  // host name --> host address
+  public static String convertHostNameToHostAddress(String hostName) {
+    try {
+      return InetAddress.getByName(hostName).getHostAddress();
+    } catch (UnknownHostException e) {
+      return hostName;
+    }
+  }
 }

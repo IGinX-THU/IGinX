@@ -40,5 +40,7 @@ public abstract class Constants {
 
   public static final String META_TEMPLATE_SUFFIX = "-meta.properties";
 
+  public static final String TABLE_SUFFIX_DELIMITER = "_";
+
   public static final String BOUNDARY_LEVEL = "boundary_level";
 }

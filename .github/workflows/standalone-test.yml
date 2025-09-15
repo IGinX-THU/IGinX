@@ -37,7 +37,7 @@ on:
                 description: "The timeout minutes for the job"
                 type: number
                 required: false
-                default: 45
+                default: 65
 
 jobs:
     Union-DB-Test:
