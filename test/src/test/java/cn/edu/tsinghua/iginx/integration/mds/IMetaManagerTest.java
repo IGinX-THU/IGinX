@@ -131,6 +131,20 @@ public class IMetaManagerTest {
             new ColumnsInterval(null, "end column"), // 仅开始列为 null
             new ColumnsInterval("", ""), // 空字符串
             new ColumnsInterval(" ", " "), // 空格
+            new ColumnsInterval(
+                "data.sensor\\.1.temp",
+                "data.sensor\\.2.temp"), // Basic directory structure with escaped dots
+            new ColumnsInterval(
+                "sys.dev\\.a.metrics", "sys.dev\\.z.metrics"), // Mixed escaped and directory dot
+            new ColumnsInterval(
+                "log\\.2024\\.03.data",
+                "log\\.2024\\.04.data"), // Multiple escaped dots in sequence
+            new ColumnsInterval(
+                "org.apache.commons\\.io.files",
+                "org.apache.commons\\.lang.utils"), // Deeper directory structure
+            new ColumnsInterval(
+                "com.app\\.v1\\.0.config",
+                "com.app\\.v2\\.0.config"), // Complex path with version numbers
             new ColumnsInterval("特殊字符.测试", "结束列.测试"), // Unicode 字符
             new ColumnsInterval("\\Dab.cd\\N-", "-ab\\\\.c\\.d") // 包含转义字符
             ),
