@@ -35,14 +35,10 @@ import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.RegisterTaskInfo;
 import cn.edu.tsinghua.iginx.thrift.UDFType;
 import cn.edu.tsinghua.iginx.utils.FileUtils;
-
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -1481,7 +1477,9 @@ public class UDFIT {
         fail();
       }
 
-      String statement = String.format(SINGLE_UDF_REGISTER_SQL, type, name, classPath, tempModuleDir.getCanonicalPath());
+      String statement =
+          String.format(
+              SINGLE_UDF_REGISTER_SQL, type, name, classPath, tempModuleDir.getCanonicalPath());
       tool.executeRegFail(statement);
       assertFalse(tool.isUDFRegistered(name));
     } catch (Exception e) {
@@ -1497,7 +1495,6 @@ public class UDFIT {
         }
       }
     }
-
   }
 
   @Test
