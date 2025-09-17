@@ -16,6 +16,7 @@ jobs:
         with:
             metadata-matrix: '["zookeeper"]'
             os-matrix: '["macos-latest"]'
+            db-matrix: '["IoTDB12"]'
     db-ce-no-optimizer:
         uses: ./.github/workflows/DB-CE.yml
         with:
