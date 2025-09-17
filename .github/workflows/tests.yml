@@ -22,3 +22,4 @@ jobs:
             metadata-matrix: '["zookeeper"]'
             os-matrix: '["macos-latest"]'
             close-optimizer: "true"
+            db-matrix: '["IoTDB12"]'
