@@ -1112,9 +1112,10 @@ public class Session {
         moduleBuffer = CompressionUtils.zipToByteBuffer(file);
       } catch (IOException e) {
         return new LoadUDFResp(
-            new Status(RpcUtils.FAILURE).setMessage(
-                String.format(
-                    "Failed to compress module and load into buffer. %s", e.getMessage())));
+            new Status(RpcUtils.FAILURE)
+                .setMessage(
+                    String.format(
+                        "Failed to compress module and load into buffer. %s", e.getMessage())));
       }
     } else {
       moduleBuffer = ByteBuffer.allocate(0);
