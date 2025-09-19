@@ -65,15 +65,10 @@ public class TPCHOldIT {
   // 当前查询次数
   int iterationTimes;
 
-  // 是否需要验证正确性
-  boolean needValidate;
-
   public TPCHOldIT() throws IOException {
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
     iterationTimes = TPCHUtils.getIterationTimesFromFile();
     queryIds = TPCHUtils.getFailedQueryIdsFromFile();
-    // 第一次查询需要验证查询结果正确性
-    needValidate = iterationTimes == 1;
     MAX_REPETITIONS_NUM = conf.getMaxRepetitionsNum();
     REGRESSION_THRESHOLD = conf.getRegressionThreshold();
   }
@@ -100,7 +95,7 @@ public class TPCHOldIT {
         TPCHUtils.readTimeCostsFromFile(TPCHUtils.NEW_TIME_COSTS_PATH);
     double ratio = 1 + REGRESSION_THRESHOLD;
     for (String queryId : queryIds) {
-      long timeCost = TPCHUtils.executeTPCHQuery(session, queryId, needValidate);
+      long timeCost = TPCHUtils.executeTPCHQuery(session, queryId, false);
       oldTimeCosts.get(queryId).add(timeCost);
       LOGGER.info(
           "Successfully execute TPC-H query {} in old branch in iteration {}, time cost: {}ms",

@@ -233,6 +233,14 @@ public class ParseTest {
   }
 
   @Test
+  public void testParseEscape() {
+    String s = "select `a\\nb\\.txt` from escape;";
+    UnarySelectStatement statement = (UnarySelectStatement) TestUtils.buildStatement(s);
+    assertEquals(
+        new HashSet<>(Collections.singletonList("escape.a\nb\\.txt")), statement.getPathSet());
+  }
+
+  @Test
   public void testParseShowReplication() {
     String showReplicationStr = "SHOW REPLICA NUMBER;";
     ShowReplicationStatement statement =

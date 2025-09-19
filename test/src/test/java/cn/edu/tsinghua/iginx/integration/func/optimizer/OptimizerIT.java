@@ -1725,6 +1725,19 @@ public class OptimizerIT {
     assertTrue(openExplain.contains("us.*.s1 &not in") && !openExplain.contains("us.*.s1 not in"));
     assertTrue(
         closeExplain.contains("us.*.s1 &!= 1 && us.*.s1 &!= 2 && us.*.s1 != 3 && us.*.s1 != 4"));
+
+    statement = "SELECT s1 FROM us.d1 WHERE s1 IN (1,2,3) OR s1 IN (1,2,3);";
+    executor.execute(openRule);
+    openRes = executor.execute(statement);
+    openExplain = executor.execute("EXPLAIN " + statement);
+    executor.execute(closeRule);
+    closeRes = executor.execute(statement);
+    closeExplain = executor.execute("EXPLAIN " + statement);
+
+    assertEquals(openRes, closeRes);
+    assertTrue(openExplain.contains("us.d1.s1 in ("));
+    assertFalse(openExplain.contains(" || us.d1.s1 in ("));
+    assertTrue(closeExplain.contains(" || us.d1.s1 in ("));
   }
 
   @Test

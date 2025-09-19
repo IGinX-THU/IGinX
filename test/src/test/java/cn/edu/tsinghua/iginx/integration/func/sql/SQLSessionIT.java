@@ -4055,8 +4055,7 @@ public class SQLSessionIT {
 
     statement = "SELECT s1 AS ``s1 with space`` FROM us.d1;";
     executor.executeAndCompareErrMsg(
-        statement,
-        "Parse Error: line 1:29 mismatched input '`' expecting {';', INTO, FROM, ORDER, LIMIT, OFFSET, INTERSECT, UNION, EXCEPT, ','}");
+        statement, "Parse Error: line 1:13 no viable alternative at input 'AS `'");
 
     statement = "SELECT s1 AS `s1 with space FROM us.d1;";
     executor.executeAndCompareErrMsg(

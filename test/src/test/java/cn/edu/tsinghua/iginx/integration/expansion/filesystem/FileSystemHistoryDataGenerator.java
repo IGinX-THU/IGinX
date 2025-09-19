@@ -52,6 +52,9 @@ public class FileSystemHistoryDataGenerator extends BaseHistoryDataGenerator {
   private static final Logger LOGGER =
       LoggerFactory.getLogger(FileSystemHistoryDataGenerator.class);
 
+  protected static final boolean isOnWin =
+      System.getProperty("os.name").toLowerCase().contains("win");
+
   public FileSystemHistoryDataGenerator() {}
 
   @Override
@@ -154,6 +157,9 @@ public class FileSystemHistoryDataGenerator extends BaseHistoryDataGenerator {
     //     └── other
     //         ├── MT cars.parquet
     //         └── price.parquet
+    // └── escape (仅在 linux 和 mac 上创建)
+    //     └── path
+    //         └── a\nb.txt
     StringBuilder content1 = new StringBuilder();
     StringBuilder content2 = new StringBuilder();
     StringBuilder content3 = new StringBuilder();
@@ -184,6 +190,10 @@ public class FileSystemHistoryDataGenerator extends BaseHistoryDataGenerator {
     String csvResourceDir = "dummy/csv/";
     copyFileFromResource(csvResourceDir + "lineitem.tsv", Paths.get("test", "a", "lineitem.tsv"));
     copyFileFromResource(csvResourceDir + "lineitem.csv", Paths.get("test", "csv", "lineitem.csv"));
+
+    if (!isOnWin) {
+      createAndWriteFile("abcdefg".getBytes(), "test", "escape", "path", "a\nb.txt");
+    }
   }
 
   private static void copyFileFromResource(String resourcePath, Path targetPath) {
