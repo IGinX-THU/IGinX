@@ -8,7 +8,7 @@ taskList:
   dataFlowType: "stream"
   timeout: 10000000
   pyTaskName: "AddOneTransformer"
-  pyOutputPathPrefix: "addOne"
+  outputPrefix: "addOne"
 - taskType: "sql"
   timeout: 10000000
   sqlList:

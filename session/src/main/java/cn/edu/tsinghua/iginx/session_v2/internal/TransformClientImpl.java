@@ -47,7 +47,7 @@ public class TransformClientImpl extends AbstractFunctionClient implements Trans
         taskInfo.setSqlList(task.getSqlList());
       } else if (taskType.equals(TaskType.PYTHON)) {
         taskInfo.setPyTaskName(task.getPyTaskName());
-        taskInfo.setPyOutputPathPrefix(task.getPyOutputPathPrefix());
+        taskInfo.setOutputPrefix(task.getOutputPrefix());
       }
       taskInfoList.add(taskInfo);
     }

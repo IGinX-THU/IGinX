@@ -52,14 +52,14 @@ public class YAMLReader {
     String dataFlowType = "(?i)dataFlowType";
     String timeout = "(?i)timeout";
     String pyTaskName = "(?i)pyTaskName";
-    String pyOutputPathPrefix = "(?i)pyOutputPathPrefix";
+    String outputPrefix = "(?i)outputPrefix";
     String sqlList = "(?i)sqlList";
 
     conf = conf.replaceAll(taskType, "taskType");
     conf = conf.replaceAll(dataFlowType, "dataFlowType");
     conf = conf.replaceAll(timeout, "timeout");
     conf = conf.replaceAll(pyTaskName, "pyTaskName");
-    conf = conf.replaceAll(pyOutputPathPrefix, "pyOutputPathPrefix");
+    conf = conf.replaceAll(outputPrefix, "outputPrefix");
     conf = conf.replaceAll(sqlList, "sqlList");
 
     String exportType = "(?i)exportType";

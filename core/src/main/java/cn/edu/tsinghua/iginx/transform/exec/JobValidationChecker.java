@@ -35,7 +35,7 @@ import org.slf4j.LoggerFactory;
 public class JobValidationChecker implements Checker {
   private static final Logger LOGGER = LoggerFactory.getLogger(JobValidationChecker.class);
 
-  private static final Set<String> pyOutputPathPrefixs = new ConcurrentSkipListSet<>();
+  private static final Set<String> outputPrefixs = new ConcurrentSkipListSet<>();
 
   private static JobValidationChecker instance;
 
@@ -54,7 +54,7 @@ public class JobValidationChecker implements Checker {
 
   @Override
   public boolean check(Job job) {
-    pyOutputPathPrefixs.clear();
+    outputPrefixs.clear();
     List<Task> taskList = job.getTaskList();
     if (taskList == null || taskList.isEmpty()) {
       LOGGER.error("Committed job task list is empty.");
@@ -85,9 +85,9 @@ public class JobValidationChecker implements Checker {
             if (!SQLTaskChecker(task)) {
               return false;
             }
-            if (!((PythonTask) taskList.get(i - 1)).isSetPyOutputPathPrefix()) {
+            if (!((PythonTask) taskList.get(i - 1)).isSetOutputPrefix()) {
               LOGGER.error(
-                  "The Python task before SQL task must set pyOutputPathPrefix. If you don't feel it necessary, maybe you need to rearrange job stages.");
+                  "The Python task before SQL task must set outputPrefix. If you don't feel it necessary, maybe you need to rearrange job stages.");
               return false;
             }
             previousIginX = true;
@@ -148,16 +148,16 @@ public class JobValidationChecker implements Checker {
       return false;
     }
     PythonTask pythonTask = (PythonTask) task;
-    if (pythonTask.isSetPyOutputPathPrefix()) {
-      if (!pythonTask.getPyOutputPathPrefix().matches("[a-zA-Z0-9]+")) {
+    if (pythonTask.isSetOutputPrefix()) {
+      if (!pythonTask.getOutputPrefix().matches("[a-zA-Z0-9]+")) {
         LOGGER.error(
             "Python task output table name can only contain numbers or alphabets, got: {}.",
-            pythonTask.getPyOutputPathPrefix());
+            pythonTask.getOutputPrefix());
         return false;
-      } else if (!pyOutputPathPrefixs.add(pythonTask.getPyOutputPathPrefix())) {
+      } else if (!outputPrefixs.add(pythonTask.getOutputPrefix())) {
         LOGGER.error(
             "Got duplicated python output table name in different tasks: {}.",
-            pythonTask.getPyOutputPathPrefix());
+            pythonTask.getOutputPrefix());
         return false;
       }
     }

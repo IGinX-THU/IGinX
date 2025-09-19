@@ -37,7 +37,7 @@ public class Task {
 
   private final String pyTaskName;
 
-  private final String pyOutputPathPrefix;
+  private final String outputPrefix;
 
   public Task(
       TaskType taskType,
@@ -45,13 +45,13 @@ public class Task {
       long timeout,
       List<String> sqlList,
       String pyTaskName,
-      String pyOutputPathPrefix) {
+      String outputPrefix) {
     this.taskType = taskType;
     this.dataFlowType = dataFlowType;
     this.timeout = timeout;
     this.sqlList = sqlList;
     this.pyTaskName = pyTaskName;
-    this.pyOutputPathPrefix = pyOutputPathPrefix;
+    this.outputPrefix = outputPrefix;
   }
 
   public Task(Task.Builder builder) {
@@ -61,7 +61,7 @@ public class Task {
         builder.timeout,
         builder.sqlList,
         builder.pyTaskName,
-        builder.pyOutputPathPrefix);
+        builder.outputPrefix);
   }
 
   public static Task.Builder builder() {
@@ -88,8 +88,8 @@ public class Task {
     return pyTaskName;
   }
 
-  public String getPyOutputPathPrefix() {
-    return pyOutputPathPrefix;
+  public String getOutputPrefix() {
+    return outputPrefix;
   }
 
   public static class Builder {
@@ -104,7 +104,7 @@ public class Task {
 
     private String pyTaskName;
 
-    private String pyOutputPathPrefix;
+    private String outputPrefix;
 
     public Task.Builder dataFlowType(DataFlowType dataFlowType) {
       this.dataFlowType = dataFlowType;
@@ -130,11 +130,11 @@ public class Task {
       return this;
     }
 
-    public Task.Builder pyTask(String pyTaskName, String pyOutputPathPrefix) {
+    public Task.Builder pyTask(String pyTaskName, String outputPrefix) {
       Arguments.checkTaskType(TaskType.PYTHON, taskType);
       this.taskType = TaskType.PYTHON;
       this.pyTaskName = pyTaskName;
-      this.pyOutputPathPrefix = pyOutputPathPrefix;
+      this.outputPrefix = outputPrefix;
       return this;
     }
 

@@ -8,10 +8,10 @@ taskList:
     dataFlowType: "stream"
     timeout: 10000000
     pyTaskName: "AddOneTransformer"
-    pyOutputPathPrefix: "addOne"
+    outputPrefix: "addOne"
   - taskType: "sql"
     timeout: 10000000
-    pyOutputPathPrefix: "redundantParam"
+    outputPrefix: "redundantParam"
     sqlList:
       - "SELECT s1, s1, s2 FROM addOne.us.d1;"
   - taskType: "python"
@@ -23,5 +23,5 @@ taskList:
     timeout: 10000000
     pyTaskName: "RowSumTransformer"
 exportType: "file"
-exportFile: "test/src/test/resources/transform/export_file_mixed_python_And_SQL_pyOutputPathPrefixInSQL.txt"
+exportFile: "test/src/test/resources/transform/export_file_mixed_python_And_SQL_OutputPrefixInSQL.txt"
 
