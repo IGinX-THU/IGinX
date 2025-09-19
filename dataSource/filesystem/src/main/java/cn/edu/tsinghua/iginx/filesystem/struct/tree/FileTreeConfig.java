@@ -19,6 +19,8 @@
  */
 package cn.edu.tsinghua.iginx.filesystem.struct.tree;
 
+import static cn.edu.tsinghua.iginx.constant.GlobalConstant.ESCAPED_DOT;
+
 import cn.edu.tsinghua.iginx.filesystem.common.AbstractConfig;
 import com.typesafe.config.*;
 import com.typesafe.config.Optional;
@@ -34,7 +36,7 @@ import lombok.experimental.FieldNameConstants;
 @NoArgsConstructor
 public class FileTreeConfig extends AbstractConfig {
 
-  @Optional String dot = "\\";
+  @Optional String dot = ESCAPED_DOT;
 
   @Optional String prefix = null;
 
@@ -45,11 +47,9 @@ public class FileTreeConfig extends AbstractConfig {
   @Override
   public List<ValidationProblem> validate() {
     List<ValidationProblem> problems = new ArrayList<>();
-    if (validateNotNull(problems, Fields.dot, dot)) {
-      if (dot.contains(".")) {
-        problems.add(new InvalidFieldValidationProblem(Fields.dot, "dot cannot contain '.'"));
-      }
-    }
+
+    validateNotNull(problems, Fields.dot, dot);
+
     if (boundary_level != 0 && boundary_level != 1) {
       problems.add(
           new InvalidFieldValidationProblem(
