@@ -43,10 +43,11 @@ public class TransformClientImpl extends AbstractFunctionClient implements Trans
       TaskType taskType = task.getTaskType();
       TaskInfo taskInfo = new TaskInfo(taskType, task.getDataFlowType());
       taskInfo.setTimeout(task.getTimeout());
-      if (taskType.equals(TaskType.IGINX)) {
+      if (taskType.equals(TaskType.SQL)) {
         taskInfo.setSqlList(task.getSqlList());
       } else if (taskType.equals(TaskType.PYTHON)) {
         taskInfo.setPyTaskName(task.getPyTaskName());
+        taskInfo.setOutputPrefix(task.getOutputPrefix());
       }
       taskInfoList.add(taskInfo);
     }

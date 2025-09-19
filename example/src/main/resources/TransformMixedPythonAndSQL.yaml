@@ -23,18 +23,24 @@ taskList:
 - taskType: "sql"
   timeout: 10000000
   sqlList:
-  - "select value1, value2, value3, value4 from transform;"
+  - "SELECT s1, s2 FROM us.d1 WHERE key < 200;"
 - taskType: "python"
   dataFlowType: "stream"
   timeout: 10000000
   pyTaskName: "AddOneTransformer"
+  outputPrefix: "addOne"
+- taskType: "sql"
+  timeout: 10000000
+  sqlList:
+    - "SELECT s1, s1, s2 FROM addOne.us.d1;"
 - taskType: "python"
   dataFlowType: "batch"
   timeout: 10000000
-  pyTaskName: "SumTransformer"
+  pyTaskName: "SumTransformerNoKey"
 - taskType: "python"
   dataFlowType: "stream"
   timeout: 10000000
   pyTaskName: "RowSumTransformer"
 exportType: "file"
-exportFile: "/Users/cauchy-ny/Downloads/export_file_sum_sql.txt"
+exportFile: "test/src/test/resources/transform/export_file_mixed_python_And_SQL.txt"
+

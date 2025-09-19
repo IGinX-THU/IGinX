@@ -19,6 +19,8 @@
  */
 package cn.edu.tsinghua.iginx.transform.pojo;
 
+import static cn.edu.tsinghua.iginx.constant.GlobalConstant.TRANSFORM_PREFIX;
+
 import cn.edu.tsinghua.iginx.notice.EmailNotifier;
 import cn.edu.tsinghua.iginx.thrift.*;
 import cn.edu.tsinghua.iginx.transform.api.Stage;
@@ -28,7 +30,9 @@ import cn.edu.tsinghua.iginx.utils.JobFromYAML;
 import cn.edu.tsinghua.iginx.utils.NotificationFromYAML;
 import cn.edu.tsinghua.iginx.utils.TaskFromYAML;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.Data;
 import org.apache.commons.mail.EmailException;
@@ -66,8 +70,10 @@ public class Job {
   private String scheduleStr = null;
   private final Trigger trigger;
   private boolean stopOnFailure = true;
+  private boolean tempTableUsed = false;
 
   private boolean metaStored = false;
+  private final Set<String> pyTables = new HashSet<>();
 
   public Job(long id, CommitTransformJobReq req) {
     this(id, req, null);
@@ -94,7 +100,7 @@ public class Job {
       exportFile = req.getFileName();
     } else if (exportType.equals(ExportType.IGINX)) {
       needExport = true;
-      writer = new IginXWriter(sessionId);
+      writer = new IginXWriter(sessionId, TRANSFORM_PREFIX);
     } else {
       needExport = false;
       writer = new LogWriter();
@@ -128,6 +134,28 @@ public class Job {
         }
         stageList.add(stage);
       } else {
+        if (task.getTaskType().equals(TaskType.SQL) && !stageTasks.isEmpty()) {
+          // SQL task will only be stream type. this branch processes SQL task that comes after
+          // python tasks: create a new stream stage that starts with this SQL task.
+          // Note that SQL tasks will not come after another SQL task because the SQL list can
+          // be merged,
+          // and such conduct will be prohibited during the yaml reading process.
+          // Also, in such SQL task, temp table containing previous python task results could be
+          // used. We mark
+          // it and clear it after all tasks.
+          String previousPythonOutputTableName =
+              ((PythonTask) stageTasks.get(stageTasks.size() - 1)).getOutputPrefix();
+          pyTables.add(previousPythonOutputTableName);
+          stage =
+              new StreamStage(
+                  sessionId,
+                  stage,
+                  new ArrayList<>(stageTasks),
+                  new IginXWriter(sessionId, previousPythonOutputTableName));
+          stageList.add(stage);
+          stageTasks.clear();
+          tempTableUsed = true;
+        }
         stageTasks.add(task);
       }
     }
@@ -232,8 +260,9 @@ public class Job {
       taskFromYAML.setTimeout(task.getTimeLimit());
       if (task.isPythonTask()) {
         taskFromYAML.setPyTaskName(((PythonTask) task).getPyTaskName());
+        taskFromYAML.setOutputPrefix(((PythonTask) task).getOutputPrefix());
       } else {
-        taskFromYAML.setSqlList(((IginXTask) task).getSqlList());
+        taskFromYAML.setSqlList(((SQLTask) task).getSqlList());
       }
       taskFromYAMLList.add(taskFromYAML);
     }
