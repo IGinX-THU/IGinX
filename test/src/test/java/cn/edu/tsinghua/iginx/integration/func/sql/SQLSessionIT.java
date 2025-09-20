@@ -2639,10 +2639,33 @@ public class SQLSessionIT {
     executor.executeAndCompare(queryOverDeleteRange, expected);
   }
 
+  // 插入宽列表数据，确保能够正确FULL JOIN物理表，整合成一个逻辑表
+  private String buildInsertStatement(int columnSize, int rowSize, int startKey) {
+    StringBuilder builder = new StringBuilder("insert into wide_column(key,");
+    for (int i = 0; i < columnSize; i++) {
+      builder.append("c").append(i).append(",");
+    }
+    builder.deleteCharAt(builder.length() - 1);
+    builder.append(") values ");
+    for (int i = 0; i < rowSize; i++) {
+      builder.append("(").append(startKey + i).append(",").append(i % 10).append(",");
+      for (int j = 1; j < columnSize; j++) {
+        builder.append(i + j).append(",");
+      }
+      builder.deleteCharAt(builder.length() - 1);
+      builder.append("),");
+    }
+    builder.deleteCharAt(builder.length() - 1);
+    builder.append(";");
+    return builder.toString();
+  }
+
   @Test
   public void testGroupBy() {
     String insert =
         "insert into test(key, a, b, c, d) values (1, 3, 2, 3.1, \"val1\"), (2, 1, 3, 2.1, \"val2\"), (3, 2, 2, 1.1, \"val5\"), (4, 3, 2, 2.1, \"val2\"), (5, 1, 2, 3.1, \"val1\"), (6, 2, 2, 5.1, \"val3\");";
+    executor.execute(insert);
+    insert = buildInsertStatement(2000, 100, 1);
     executor.execute(insert);
 
     String query = "select * from test;";
@@ -2671,6 +2694,10 @@ public class SQLSessionIT {
             + "|        1.0|     3|\n"
             + "+-----------+------+\n"
             + "Total line number = 2\n";
+    executor.executeAndCompare(query, expected);
+
+    query = "select avg(c1999), c0 from wide_column group by c0 order by c0;";
+    expected = "";
     executor.executeAndCompare(query, expected);
 
     query = "select avg(a), b, d from test group by b, d order by b, d;";
