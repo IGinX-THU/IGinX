@@ -812,6 +812,12 @@ public class RelationalStorage implements IStorage {
         String logicalTableName = entry.getKey();
         List<String> physicalTableNames = entry.getValue();
         groupSql.append(getQuotName(physicalTableNames.get(0)));
+        if (physicalTableNames.size() == 1) {
+          // 只有一张物理表，直接作为子查询
+          groupSql.append(" ").append(getQuotName(logicalTableName));
+          logicalSubQueries.add(groupSql.toString());
+          continue;
+        }
         for (int i = 1; i < physicalTableNames.size(); i++) {
           groupSql.insert(0, "(");
           groupSql
