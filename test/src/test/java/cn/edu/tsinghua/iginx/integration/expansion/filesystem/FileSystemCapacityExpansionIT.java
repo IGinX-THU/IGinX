@@ -151,7 +151,7 @@ public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
     // 转义字符不在 windows 上测试
     Assume.assumeFalse(isOnWin);
     try (TempDummyDataSource ignored =
-             new TempDummyDataSource(session, 16669, filesystem, getFileTreeEscapeDummyParams())) {
+        new TempDummyDataSource(session, 16669, filesystem, getFileTreeEscapeDummyParams())) {
       String statement = "select `a\\nb\\.txt` from escape.path;";
       String expect =
           "ResultSets:\n"
@@ -481,34 +481,35 @@ public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
     SQLTestTools.executeAndCompare(session, statement, expect);
   }
 
-  private void testQueryLegacyFileSystemSpecialPath() {
+  @Test
+  public void testQueryLegacyFileSystemSpecialPath() {
     try (TempDummyDataSource ignored =
         new TempDummyDataSource(
             session,
             16669,
             filesystem,
             getLegacyFileSystemDummyParams("test/test/dir!@#$%^&()[]{};',.=+~ -目录"))) {
-      String statement = "SHOW COLUMNS `dir!@#$%^&()[]{};',\\=+~ -目录`.*;";
+      String statement = "SHOW COLUMNS `dir!@#$%^&()[]{};',\\.=+~ -目录`.*;";
       String expected =
           "Columns:\n"
-              + "+---------------------------------------------------------------+--------+\n"
-              + "|                                                           Path|DataType|\n"
-              + "+---------------------------------------------------------------+--------+\n"
-              + "|dir!@#$%^&()[]{};',\\=+~ -目录.example!@#$%^&()[]{};',\\=+~ -\\txt|  BINARY|\n"
-              + "|   dir!@#$%^&()[]{};',\\=+~ -目录.示例!@#$%^&()[]{};',\\=+~ -\\TXT|  BINARY|\n"
-              + "+---------------------------------------------------------------+--------+\n"
+              + "+------------------------------------------------------------------+--------+\n"
+              + "|                                                              Path|DataType|\n"
+              + "+------------------------------------------------------------------+--------+\n"
+              + "|dir!@#$%^&()[]{};',\\.=+~ -目录.example!@#$%^&()[]{};',\\.=+~ -\\.txt|  BINARY|\n"
+              + "|   dir!@#$%^&()[]{};',\\.=+~ -目录.示例!@#$%^&()[]{};',\\.=+~ -\\.TXT|  BINARY|\n"
+              + "+------------------------------------------------------------------+--------+\n"
               + "Total line number = 2\n";
       SQLTestTools.executeAndCompare(session, statement, expected, true);
 
       statement =
-          "select `example!@#$%^&()[]{};',\\=+~ -\\txt`, `示例!@#$%^&()[]{};',\\=+~ -\\TXT` from `dir!@#$%^&()[]{};',\\=+~ -目录`;";
+          "select `example!@#$%^&()[]{};',\\.=+~ -\\.txt`, `示例!@#$%^&()[]{};',\\.=+~ -\\.TXT` from `dir!@#$%^&()[]{};',\\.=+~ -目录`;";
       expected =
           "ResultSets:\n"
-              + "+---+---------------------------------------------------------------+------------------------------------------------------------+\n"
-              + "|key|dir!@#$%^&()[]{};',\\=+~ -目录.example!@#$%^&()[]{};',\\=+~ -\\txt|dir!@#$%^&()[]{};',\\=+~ -目录.示例!@#$%^&()[]{};',\\=+~ -\\TXT|\n"
-              + "+---+---------------------------------------------------------------+------------------------------------------------------------+\n"
-              + "|  0|                                                   example line|                                                example line|\n"
-              + "+---+---------------------------------------------------------------+------------------------------------------------------------+\n"
+              + "+---+------------------------------------------------------------------+---------------------------------------------------------------+\n"
+              + "|key|dir!@#$%^&()[]{};',\\.=+~ -目录.example!@#$%^&()[]{};',\\.=+~ -\\.txt|dir!@#$%^&()[]{};',\\.=+~ -目录.示例!@#$%^&()[]{};',\\.=+~ -\\.TXT|\n"
+              + "+---+------------------------------------------------------------------+---------------------------------------------------------------+\n"
+              + "|  0|                                                      example line|                                                   example line|\n"
+              + "+---+------------------------------------------------------------------+---------------------------------------------------------------+\n"
               + "Total line number = 1\n";
       SQLTestTools.executeAndCompare(session, statement, expected);
     } catch (SessionException e) {
@@ -517,7 +518,8 @@ public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
     }
   }
 
-  private void testQueryFileTreeSpecialPath() {
+  @Test
+  public void testQueryFileTreeSpecialPath() {
     try (TempDummyDataSource ignored =
         new TempDummyDataSource(
             session,
@@ -527,24 +529,24 @@ public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
       String statement = "SHOW COLUMNS `dir!@#$%^&()[]{};',.=+~ -目录`.*;";
       String expected =
           "Columns:\n"
-              + "+---------------------------------------------------------------+--------+\n"
-              + "|                                                           Path|DataType|\n"
-              + "+---------------------------------------------------------------+--------+\n"
-              + "|dir!@#$%^&()[]{};',.=+~ -目录.example!@#$%^&()[]{};',\\=+~ -\\txt|  BINARY|\n"
-              + "|   dir!@#$%^&()[]{};',.=+~ -目录.示例!@#$%^&()[]{};',\\=+~ -\\TXT|  BINARY|\n"
-              + "+---------------------------------------------------------------+--------+\n"
+              + "+-----------------------------------------------------------------+--------+\n"
+              + "|                                                             Path|DataType|\n"
+              + "+-----------------------------------------------------------------+--------+\n"
+              + "|dir!@#$%^&()[]{};',.=+~ -目录.example!@#$%^&()[]{};',\\.=+~ -\\.txt|  BINARY|\n"
+              + "|   dir!@#$%^&()[]{};',.=+~ -目录.示例!@#$%^&()[]{};',\\.=+~ -\\.TXT|  BINARY|\n"
+              + "+-----------------------------------------------------------------+--------+\n"
               + "Total line number = 2\n";
       SQLTestTools.executeAndCompare(session, statement, expected, true);
 
       statement =
-          "select `example!@#$%^&()[]{};',\\=+~ -\\txt`, `示例!@#$%^&()[]{};',\\=+~ -\\TXT` from `dir!@#$%^&()[]{};',.=+~ -目录`;";
+          "select `example!@#$%^&()[]{};',\\.=+~ -\\.txt`, `示例!@#$%^&()[]{};',\\.=+~ -\\.TXT` from `dir!@#$%^&()[]{};',.=+~ -目录`;";
       expected =
           "ResultSets:\n"
-              + "+---+---------------------------------------------------------------+------------------------------------------------------------+\n"
-              + "|key|dir!@#$%^&()[]{};',.=+~ -目录.example!@#$%^&()[]{};',\\=+~ -\\txt|dir!@#$%^&()[]{};',.=+~ -目录.示例!@#$%^&()[]{};',\\=+~ -\\TXT|\n"
-              + "+---+---------------------------------------------------------------+------------------------------------------------------------+\n"
-              + "|  0|                                                   example line|                                                example line|\n"
-              + "+---+---------------------------------------------------------------+------------------------------------------------------------+\n"
+              + "+---+-----------------------------------------------------------------+--------------------------------------------------------------+\n"
+              + "|key|dir!@#$%^&()[]{};',.=+~ -目录.example!@#$%^&()[]{};',\\.=+~ -\\.txt|dir!@#$%^&()[]{};',.=+~ -目录.示例!@#$%^&()[]{};',\\.=+~ -\\.TXT|\n"
+              + "+---+-----------------------------------------------------------------+--------------------------------------------------------------+\n"
+              + "|  0|                                                     example line|                                                  example line|\n"
+              + "+---+-----------------------------------------------------------------+--------------------------------------------------------------+\n"
               + "Total line number = 1\n";
       SQLTestTools.executeAndCompare(session, statement, expected);
     } catch (SessionException e) {
