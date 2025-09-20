@@ -162,6 +162,7 @@ import cn.edu.tsinghua.iginx.sql.statement.select.CommonTableExpression;
 import cn.edu.tsinghua.iginx.sql.statement.select.SelectStatement;
 import cn.edu.tsinghua.iginx.sql.statement.select.UnarySelectStatement;
 import cn.edu.tsinghua.iginx.sql.utils.ExpressionUtils;
+import cn.edu.tsinghua.iginx.sql.utils.StringEscapeUtil;
 import cn.edu.tsinghua.iginx.thrift.*;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
@@ -294,7 +295,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
   private String parseIdentifier(SqlParser.IdentifierContext ctx) {
     if (ctx.BACK_QUOTE_STRING_LITERAL_NOT_EMPTY() != null) {
       String identifier = ctx.BACK_QUOTE_STRING_LITERAL_NOT_EMPTY().getText();
-      return identifier.substring(1, identifier.length() - 1);
+      return StringEscapeUtil.unescape(identifier.substring(1, identifier.length() - 1));
     }
     return ctx.getText();
   }

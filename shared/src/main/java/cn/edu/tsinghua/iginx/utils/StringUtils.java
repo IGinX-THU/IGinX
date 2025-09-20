@@ -133,7 +133,7 @@ public class StringUtils {
     if (!iginxPattern.contains("*")) {
       return iginxPattern::equals;
     }
-    Pattern pattern = Pattern.compile(toRegexExpr(iginxPattern));
+    Pattern pattern = Pattern.compile(toRegexExpr(iginxPattern), Pattern.DOTALL);
     return s -> pattern.matcher(s).matches();
   }
 
