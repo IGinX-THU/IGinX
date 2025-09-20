@@ -487,7 +487,8 @@ public class RelationalStorage implements IStorage {
       Filter filter,
       Map<String, String> tableNameToColumnNames,
       boolean isAgg) {
-    List<String> tableNames = new ArrayList<>();
+    Map<String, List<String>> logicalTableToPhysicalTableNames = new LinkedHashMap<>();
+    Map<String, List<String>> logicalTableToColumnNames = new LinkedHashMap<>();
     List<List<String>> fullColumnNamesList = new ArrayList<>();
     List<List<String>> fullColumnNamesListForExpandFilter = new ArrayList<>();
     String firstTable = "";
@@ -498,7 +499,9 @@ public class RelationalStorage implements IStorage {
       if (firstTable.isEmpty()) {
         firstTable = logicalTableName;
       }
-      tableNames.add(physicalTableName);
+      logicalTableToPhysicalTableNames
+          .computeIfAbsent(logicalTableName, k -> new ArrayList<>())
+          .add(physicalTableName);
       List<String> fullColumnNames = new ArrayList<>(Arrays.asList(entry.getValue().split(", ")));
 
       // 将columnNames中的列名加上tableName前缀
@@ -517,6 +520,12 @@ public class RelationalStorage implements IStorage {
                 .map(s -> RelationSchema.getQuoteFullName(logicalTableName, s, quote))
                 .collect(Collectors.toList()));
       }
+      logicalTableToColumnNames
+          .computeIfAbsent(logicalTableName, k -> new ArrayList<>())
+          .addAll(
+              fullColumnNames.stream()
+                  .map(s -> RelationSchema.getQuoteFullName(physicalTableName, s, quote))
+                  .collect(Collectors.toList()));
       fullColumnNamesListForExpandFilter.add(
           fullColumnNames.stream()
               .map(s -> RelationSchema.getFullName(logicalTableName, s))
@@ -538,7 +547,9 @@ public class RelationalStorage implements IStorage {
     keyFilterAddTableName(filter, firstTable);
 
     // 将所有表进行full join
-    String fullTableName = getFullJoinTables(tableNames, fullColumnNamesList);
+    String fullTableName =
+        getFullJoinTables(
+            logicalTableToPhysicalTableNames, logicalTableToColumnNames, fullColumnNamesList);
 
     // 对通配符做处理，将通配符替换成对应的列名
     if (filterTransformer.toString(filter).contains("*")) {
@@ -558,13 +569,21 @@ public class RelationalStorage implements IStorage {
     String fullColumnNamesStr = fullColumnNames.toString();
     String filterStr = filterTransformer.toString(filter);
     String orderByKey =
-        RelationSchema.getQuoteFullName(getLogicalTableName(tableNames.get(0)), KEY_NAME, quote);
+        RelationSchema.getQuoteFullName(
+            logicalTableToPhysicalTableNames.entrySet().iterator().next().getKey(),
+            KEY_NAME,
+            quote);
     if (!relationalMeta.isSupportFullJoin()) {
       // 如果不支持full join,需要为left join + union模拟的full join表起别名，同时select、where、order by的部分都要调整
       fullColumnNamesStr = fullColumnNamesStr.replaceAll("`\\.`", ".");
       filterStr = filterStr.replaceAll("`\\.`", ".");
       filterStr =
-          filterStr.replace(getQuotName(KEY_NAME), getQuotName(tableNames.get(0) + DOT + KEY_NAME));
+          filterStr.replace(
+              getQuotName(KEY_NAME),
+              getQuotName(
+                  logicalTableToPhysicalTableNames.entrySet().iterator().next().getValue().get(0)
+                      + DOT
+                      + KEY_NAME));
       orderByKey = orderByKey.replaceAll("`\\.`", ".");
     }
     return String.format(
@@ -779,31 +798,93 @@ public class RelationalStorage implements IStorage {
     return tableName;
   }
 
-  private String getFullJoinTables(List<String> tableNames, List<List<String>> fullColumnList) {
+  private String getFullJoinTables(
+      Map<String, List<String>> logicalTableToPhysicalTableNames,
+      Map<String, List<String>> logicalTableToColumnNames,
+      List<List<String>> fullColumnList) {
     StringBuilder fullTableName = new StringBuilder();
+    List<String> logicalSubQueries = new ArrayList<>();
     if (relationalMeta.isSupportFullJoin()) {
-      // 支持全连接，就直接用全连接连接各个表
-      fullTableName.append(
-          getQuotName(tableNames.get(0))
-              + " "
-              + getQuotName(getLogicalTableName(tableNames.get(0))));
-      for (int i = 1; i < tableNames.size(); i++) {
-        String logicalTableName = getLogicalTableName(tableNames.get(i));
+      // 分组进行join：相同logicalTable下的PhysicalTable在JOIN后统一重命名
+      // 组内JOIN，对key需要使用COALESCE，因为同一logicalTable下的PhysicalTable有的key可能为null
+      for (Map.Entry<String, List<String>> entry : logicalTableToPhysicalTableNames.entrySet()) {
+        StringBuilder groupSql = new StringBuilder();
+        String logicalTableName = entry.getKey();
+        List<String> physicalTableNames = entry.getValue();
+        groupSql.append(getQuotName(physicalTableNames.get(0)));
+        for (int i = 1; i < physicalTableNames.size(); i++) {
+          groupSql.insert(0, "(");
+          groupSql
+              .append(" FULL OUTER JOIN ")
+              .append(getQuotName(physicalTableNames.get(i)))
+              .append(" ON ");
+          for (int j = 0; j < i; j++) {
+            groupSql
+                .append(
+                    RelationSchema.getQuoteFullName(
+                        physicalTableNames.get(i), KEY_NAME, relationalMeta.getQuote()))
+                .append(" = ")
+                .append(
+                    RelationSchema.getQuoteFullName(
+                        physicalTableNames.get(j), KEY_NAME, relationalMeta.getQuote()));
+            if (j != i - 1) {
+              groupSql.append(" AND ");
+            }
+          }
+          groupSql.append(")");
+        }
+        // 给组内生成统一 key
+        StringBuilder coalesceKey = new StringBuilder("COALESCE(");
+        for (int i = 0; i < physicalTableNames.size(); i++) {
+          coalesceKey.append(
+              RelationSchema.getQuoteFullName(
+                  physicalTableNames.get(i), KEY_NAME, relationalMeta.getQuote()));
+          if (i != physicalTableNames.size() - 1) {
+            coalesceKey.append(", ");
+          }
+        }
+        coalesceKey.append(") AS ").append(getQuotName(KEY_NAME));
+
+        // 包成子查询，并加逻辑表别名
+        // 排除key
+        String colStr =
+            logicalTableToColumnNames.get(logicalTableName).stream()
+                .filter(s -> !s.contains(KEY_NAME))
+                .collect(Collectors.joining(", "));
+        groupSql =
+            new StringBuilder("(SELECT ")
+                .append(coalesceKey)
+                .append(" , ")
+                .append(colStr)
+                .append(" FROM ")
+                .append(groupSql)
+                .append(") ")
+                .append(getQuotName(logicalTableName));
+
+        logicalSubQueries.add(groupSql.toString());
+      }
+
+      // 组间JOIN
+      List<String> logicalNames = new ArrayList<>(logicalTableToPhysicalTableNames.keySet());
+
+      fullTableName.append(logicalSubQueries.get(0)); // 第一个逻辑表
+      for (int i = 1; i < logicalSubQueries.size(); i++) {
+        String currentLogical = logicalNames.get(i);
+
         fullTableName.insert(0, "(");
-        fullTableName
-            .append(" FULL OUTER JOIN ")
-            .append(getQuotName(tableNames.get(i)) + " " + getQuotName(logicalTableName))
-            .append(" ON ");
+        fullTableName.append(" FULL OUTER JOIN ").append(logicalSubQueries.get(i)).append(" ON ");
+
+        // 让当前组和之前所有组的 KEY 对齐
         for (int j = 0; j < i; j++) {
+          String prevLogical = logicalNames.get(j);
           fullTableName
               .append(
                   RelationSchema.getQuoteFullName(
-                      logicalTableName, KEY_NAME, relationalMeta.getQuote()))
+                      currentLogical, KEY_NAME, relationalMeta.getQuote()))
               .append(" = ")
               .append(
                   RelationSchema.getQuoteFullName(
-                      getLogicalTableName(tableNames.get(j)), KEY_NAME, relationalMeta.getQuote()));
-
+                      prevLogical, KEY_NAME, relationalMeta.getQuote()));
           if (j != i - 1) {
             fullTableName.append(" AND ");
           }
@@ -822,42 +903,111 @@ public class RelationalStorage implements IStorage {
         }
       }
       allColumns.delete(allColumns.length() - 2, allColumns.length());
+      for (Map.Entry<String, List<String>> entry : logicalTableToPhysicalTableNames.entrySet()) {
+        StringBuilder groupSql = new StringBuilder();
+        String logicalTableName = entry.getKey();
+        List<String> physicalTableNames = entry.getValue();
+        List<String> columnNames = logicalTableToColumnNames.get(logicalTableName);
+        // 按照","分隔开columnNames
+        StringBuilder columnSql =
+            columnNames.stream()
+                .collect(
+                    StringBuilder::new,
+                    (sb, s) -> sb.append(s).append(", "),
+                    StringBuilder::append);
 
-      fullTableName.append("(");
-      for (int i = 0; i < tableNames.size(); i++) {
-        String logicalTableName = getLogicalTableName(tableNames.get(i));
-        String keyStr =
-            String.format(
-                "%s.%s AS %s",
-                getQuotName(logicalTableName),
-                getQuotName(KEY_NAME),
-                getQuotName(logicalTableName + DOT + KEY_NAME));
-        fullTableName.append(
-            String.format(
-                "SELECT %s FROM %s",
-                keyStr + ", " + allColumns,
-                getQuotName(tableNames.get(i)) + " " + getQuotName(logicalTableName)));
-        for (int j = 0; j < tableNames.size(); j++) {
-          if (i != j) {
-            fullTableName.append(
-                String.format(
-                    " LEFT JOIN %s ON %s.%s = %s.%s",
-                    getQuotName(tableNames.get(j))
-                        + " "
-                        + getQuotName(getLogicalTableName(tableNames.get(j))),
-                    getQuotName(logicalTableName),
-                    getQuotName(KEY_NAME),
-                    getQuotName(getLogicalTableName(tableNames.get(j))),
-                    getQuotName(KEY_NAME)));
+        if (physicalTableNames.size() == 1) {
+          // 只有一张物理表，直接作为子查询
+          groupSql.append(
+              String.format(
+                  "(SELECT %s, %s FROM %s)",
+                  RelationSchema.getQuoteFullName(
+                      physicalTableNames.get(0), KEY_NAME, relationalMeta.getQuote()),
+                  columnSql.substring(0, columnSql.length() - 2),
+                  getQuotName(physicalTableNames.get(0))));
+          groupSql.append(" ").append(getQuotName(logicalTableName));
+          logicalSubQueries.add(groupSql.toString());
+          continue;
+        }
+        groupSql.append("(");
+        for (int i = 0; i < physicalTableNames.size(); i++) {
+          StringBuilder joinSql = new StringBuilder();
+          joinSql.append(physicalTableNames.get(i));
+          for (int j = 0; j < physicalTableNames.size(); j++) {
+            if (i != j) {
+              joinSql.append(
+                  String.format(
+                      " LEFT JOIN %s ON %s = %s",
+                      getQuotName(physicalTableNames.get(j)),
+                      RelationSchema.getQuoteFullName(
+                          physicalTableNames.get(i), KEY_NAME, relationalMeta.getQuote()),
+                      RelationSchema.getQuoteFullName(
+                          physicalTableNames.get(j), KEY_NAME, relationalMeta.getQuote())));
+            }
+          }
+          groupSql.append(
+              String.format(
+                  "SELECT %s, %s FROM %s",
+                  RelationSchema.getQuoteFullName(
+                      physicalTableNames.get(i), KEY_NAME, relationalMeta.getQuote()),
+                  columnSql.substring(0, columnSql.length() - 2),
+                  joinSql.toString()));
+          if (i != physicalTableNames.size() - 1) {
+            groupSql.append(" UNION ");
           }
         }
-        if (i != tableNames.size() - 1) {
+        groupSql.append(") ").append(getQuotName(logicalTableName));
+        logicalSubQueries.add(groupSql.toString());
+      }
+
+      // -------- 组间 JOIN (不同逻辑表之间) --------
+      List<String> logicalNames = new ArrayList<>(logicalTableToPhysicalTableNames.keySet());
+      fullTableName.append("(");
+      if (logicalNames.size() == 1) {
+        // 只有一张逻辑表，直接作为子查询
+        fullTableName.append(
+            String.format(
+                "SELECT %s.%s AS %s, %s FROM %s",
+                getQuotName(logicalNames.get(0)),
+                getQuotName(KEY_NAME),
+                getQuotName(RelationSchema.getFullName(logicalNames.get(0), KEY_NAME)),
+                allColumns,
+                logicalSubQueries.get(0)));
+        fullTableName.append(")").append(" AS derived ");
+        return fullTableName.toString();
+      }
+
+      for (int i = 0; i < logicalSubQueries.size(); i++) {
+        StringBuilder joinSql = new StringBuilder();
+        String currentLogical = logicalNames.get(i);
+        joinSql.append(logicalSubQueries.get(i));
+        for (int j = 0; j < logicalSubQueries.size(); j++) {
+          if (i != j) {
+            joinSql.append(" LEFT JOIN ").append(logicalSubQueries.get(j)).append(" ON ");
+            String prevLogical = logicalNames.get(j);
+            joinSql
+                .append(
+                    RelationSchema.getQuoteFullName(
+                        currentLogical, KEY_NAME, relationalMeta.getQuote()))
+                .append(" = ")
+                .append(
+                    RelationSchema.getQuoteFullName(
+                        prevLogical, KEY_NAME, relationalMeta.getQuote()));
+          }
+        }
+        fullTableName.append(
+            String.format(
+                "SELECT %s.%s AS %s, %s FROM %s",
+                getQuotName(currentLogical),
+                getQuotName(KEY_NAME),
+                getQuotName(RelationSchema.getFullName(currentLogical, KEY_NAME)),
+                allColumns,
+                joinSql.toString()));
+        if (i != logicalSubQueries.size() - 1) {
           fullTableName.append(" UNION ");
         }
       }
-      fullTableName.append(")");
-
-      fullTableName.append(" AS derived ");
+      fullTableName.append(")").append(" AS derived ");
     }
 
     return fullTableName.toString();
