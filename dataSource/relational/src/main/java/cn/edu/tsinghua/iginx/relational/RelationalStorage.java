@@ -114,6 +114,8 @@ public class RelationalStorage implements IStorage {
 
   private final String escape;
 
+  private final char quote;
+
   public RelationalStorage(StorageEngineMeta meta)
       throws StorageInitializationException, SQLException {
     this.meta = meta;
@@ -128,8 +130,10 @@ public class RelationalStorage implements IStorage {
       throw new StorageInitializationException("cannot connect to " + meta.toString());
     }
     filterTransformer = new FilterTransformer(relationalMeta);
-    Connection conn = dbStrategy.initConnection();
-    escape = conn.getMetaData().getSearchStringEscape();
+    try (Connection conn = dbStrategy.initConnection()) {
+      escape = conn.getMetaData().getSearchStringEscape();
+    }
+    quote = relationalMeta.getQuote();
   }
 
   private void buildRelationalMeta() throws RelationalTaskExecuteFailureException {
@@ -218,7 +222,7 @@ public class RelationalStorage implements IStorage {
       tablePattern = reshapeTableNameBeforeQuery(tablePattern, databaseName);
     }
     if (relationalMeta.jdbcNeedQuote()) {
-      tablePattern = relationalMeta.getQuote() + tablePattern + relationalMeta.getQuote();
+      tablePattern = quote + tablePattern + quote;
     }
     try (Connection conn = dbStrategy.getConnection(databaseName)) {
       if (conn == null) {
@@ -492,7 +496,6 @@ public class RelationalStorage implements IStorage {
     List<List<String>> fullColumnNamesList = new ArrayList<>();
     List<List<String>> fullColumnNamesListForExpandFilter = new ArrayList<>();
     String firstTable = "";
-    char quote = relationalMeta.getQuote();
     for (Map.Entry<String, String> entry : tableNameToColumnNames.entrySet()) {
       String physicalTableName = reshapeTableNameBeforeQuery(entry.getKey(), databaseName);
       String logicalTableName = getLogicalTableName(physicalTableName);
@@ -614,8 +617,7 @@ public class RelationalStorage implements IStorage {
       fullColumnNamesList.add(columnNames);
 
       List<String> fullColumnNames = new ArrayList<>(Arrays.asList(entry.getValue().split(", ")));
-      fullColumnNames.replaceAll(
-          s -> RelationSchema.getQuoteFullName(tableName, s, relationalMeta.getQuote()));
+      fullColumnNames.replaceAll(s -> RelationSchema.getQuoteFullName(tableName, s, quote));
       fullQuoteColumnNamesList.add(fullColumnNames);
     }
 
@@ -647,7 +649,6 @@ public class RelationalStorage implements IStorage {
             fullQuoteColumnNamesList.stream().flatMap(List::stream).collect(Collectors.toList()));
     if (!relationalMeta.isSupportFullJoin()) {
       // 如果不支持full join,需要为left join + union模拟的full join表起别名，同时select、where、order by的部分都要调整
-      char quote = relationalMeta.getQuote();
       fullQuoteColumnNamesList.forEach(
           columnNames -> columnNames.replaceAll(s -> s.replaceAll(quote + "\\." + quote, ".")));
       filterStr = filterStr.replaceAll("`\\.`", ".");
@@ -826,13 +827,10 @@ public class RelationalStorage implements IStorage {
               .append(" ON ");
           for (int j = 0; j < i; j++) {
             groupSql
-                .append(
-                    RelationSchema.getQuoteFullName(
-                        physicalTableNames.get(i), KEY_NAME, relationalMeta.getQuote()))
+                .append(RelationSchema.getQuoteFullName(physicalTableNames.get(i), KEY_NAME, quote))
                 .append(" = ")
                 .append(
-                    RelationSchema.getQuoteFullName(
-                        physicalTableNames.get(j), KEY_NAME, relationalMeta.getQuote()));
+                    RelationSchema.getQuoteFullName(physicalTableNames.get(j), KEY_NAME, quote));
             if (j != i - 1) {
               groupSql.append(" AND ");
             }
@@ -843,8 +841,7 @@ public class RelationalStorage implements IStorage {
         StringBuilder coalesceKey = new StringBuilder("COALESCE(");
         for (int i = 0; i < physicalTableNames.size(); i++) {
           coalesceKey.append(
-              RelationSchema.getQuoteFullName(
-                  physicalTableNames.get(i), KEY_NAME, relationalMeta.getQuote()));
+              RelationSchema.getQuoteFullName(physicalTableNames.get(i), KEY_NAME, quote));
           if (i != physicalTableNames.size() - 1) {
             coalesceKey.append(", ");
           }
@@ -853,10 +850,7 @@ public class RelationalStorage implements IStorage {
 
         // 包成子查询，并加逻辑表别名
         // 排除key
-        String colStr =
-            logicalTableToColumnNames.get(logicalTableName).stream()
-                .filter(s -> !s.contains(KEY_NAME))
-                .collect(Collectors.joining(", "));
+        String colStr = String.join(", ", logicalTableToColumnNames.get(logicalTableName));
         groupSql =
             new StringBuilder("(SELECT ")
                 .append(coalesceKey)
@@ -884,13 +878,9 @@ public class RelationalStorage implements IStorage {
         for (int j = 0; j < i; j++) {
           String prevLogical = logicalNames.get(j);
           fullTableName
-              .append(
-                  RelationSchema.getQuoteFullName(
-                      currentLogical, KEY_NAME, relationalMeta.getQuote()))
+              .append(RelationSchema.getQuoteFullName(currentLogical, KEY_NAME, quote))
               .append(" = ")
-              .append(
-                  RelationSchema.getQuoteFullName(
-                      prevLogical, KEY_NAME, relationalMeta.getQuote()));
+              .append(RelationSchema.getQuoteFullName(prevLogical, KEY_NAME, quote));
           if (j != i - 1) {
             fullTableName.append(" AND ");
           }
@@ -927,8 +917,7 @@ public class RelationalStorage implements IStorage {
           groupSql.append(
               String.format(
                   "(SELECT %s, %s FROM %s)",
-                  RelationSchema.getQuoteFullName(
-                      physicalTableNames.get(0), KEY_NAME, relationalMeta.getQuote()),
+                  RelationSchema.getQuoteFullName(physicalTableNames.get(0), KEY_NAME, quote),
                   columnSql.substring(0, columnSql.length() - 2),
                   getQuotName(physicalTableNames.get(0))));
           groupSql.append(" ").append(getQuotName(logicalTableName));
@@ -945,17 +934,14 @@ public class RelationalStorage implements IStorage {
                   String.format(
                       " LEFT JOIN %s ON %s = %s",
                       getQuotName(physicalTableNames.get(j)),
-                      RelationSchema.getQuoteFullName(
-                          physicalTableNames.get(i), KEY_NAME, relationalMeta.getQuote()),
-                      RelationSchema.getQuoteFullName(
-                          physicalTableNames.get(j), KEY_NAME, relationalMeta.getQuote())));
+                      RelationSchema.getQuoteFullName(physicalTableNames.get(i), KEY_NAME, quote),
+                      RelationSchema.getQuoteFullName(physicalTableNames.get(j), KEY_NAME, quote)));
             }
           }
           groupSql.append(
               String.format(
                   "SELECT %s, %s FROM %s",
-                  RelationSchema.getQuoteFullName(
-                      physicalTableNames.get(i), KEY_NAME, relationalMeta.getQuote()),
+                  RelationSchema.getQuoteFullName(physicalTableNames.get(i), KEY_NAME, quote),
                   columnSql.substring(0, columnSql.length() - 2),
                   joinSql.toString()));
           if (i != physicalTableNames.size() - 1) {
@@ -992,13 +978,9 @@ public class RelationalStorage implements IStorage {
             joinSql.append(" LEFT JOIN ").append(logicalSubQueries.get(j)).append(" ON ");
             String prevLogical = logicalNames.get(j);
             joinSql
-                .append(
-                    RelationSchema.getQuoteFullName(
-                        currentLogical, KEY_NAME, relationalMeta.getQuote()))
+                .append(RelationSchema.getQuoteFullName(currentLogical, KEY_NAME, quote))
                 .append(" = ")
-                .append(
-                    RelationSchema.getQuoteFullName(
-                        prevLogical, KEY_NAME, relationalMeta.getQuote()));
+                .append(RelationSchema.getQuoteFullName(prevLogical, KEY_NAME, quote));
           }
         }
         fullTableName.append(
@@ -1081,7 +1063,6 @@ public class RelationalStorage implements IStorage {
       }
     } else {
       // 不支持全连接，就要用Left Join+Union来模拟全连接
-      char quote = relationalMeta.getQuote();
       String allColumns =
           tableNames.stream()
               .map(allColumnNameForTable::get)
@@ -1128,13 +1109,10 @@ public class RelationalStorage implements IStorage {
       List<String> fullColumnNames = new ArrayList<>(Arrays.asList(entry.getValue().split(", ")));
       if (!relationalMeta.isSupportCreateDatabase() && !isDummy) {
         fullColumnNames.replaceAll(
-            s ->
-                RelationSchema.getQuoteFullName(
-                    databaseName + DOT + entry.getKey(), s, relationalMeta.getQuote()));
+            s -> RelationSchema.getQuoteFullName(databaseName + DOT + entry.getKey(), s, quote));
       } else {
         // 将columnNames中的列名加上tableName前缀
-        fullColumnNames.replaceAll(
-            s -> RelationSchema.getQuoteFullName(entry.getKey(), s, relationalMeta.getQuote()));
+        fullColumnNames.replaceAll(s -> RelationSchema.getQuoteFullName(entry.getKey(), s, quote));
       }
       fullColumnNamesList.add(fullColumnNames);
     }
@@ -1382,7 +1360,7 @@ public class RelationalStorage implements IStorage {
   private String removeFullColumnNameQuote(String fullColumnName) {
     return fullColumnName
         .substring(1, fullColumnName.length() - 1)
-        .replace(relationalMeta.getQuote() + "." + relationalMeta.getQuote(), ".");
+        .replace(quote + "." + quote, ".");
   }
 
   private Filter cutFilterDatabaseNameForDummy(Filter filter, String databaseName) {
@@ -1452,15 +1430,12 @@ public class RelationalStorage implements IStorage {
         if (allColumnNameForTable.containsKey(tableName)) {
           allColumnNameForTable
               .get(tableName)
-              .add(
-                  RelationSchema.getQuoteFullName(
-                      tableName, columnName, relationalMeta.getQuote()));
+              .add(RelationSchema.getQuoteFullName(tableName, columnName, quote));
           continue;
         }
 
         List<String> columnNames = new ArrayList<>();
-        columnNames.add(
-            RelationSchema.getQuoteFullName(tableName, columnName, relationalMeta.getQuote()));
+        columnNames.add(RelationSchema.getQuoteFullName(tableName, columnName, quote));
         allColumnNameForTable.put(tableName, columnNames);
       }
     }
@@ -1684,7 +1659,6 @@ public class RelationalStorage implements IStorage {
       Map<String, String> fullName2Name,
       String databaseName,
       boolean isDummy) {
-    char quote = relationalMeta.getQuote();
     List<String> fullColumnNames = new ArrayList<>();
     for (Map.Entry<String, String> entry : table2Column.entrySet()) {
       String tableName = entry.getKey();
@@ -1874,7 +1848,7 @@ public class RelationalStorage implements IStorage {
    */
   private Expression exprAdapt(Expression expr) {
     if (expr instanceof BaseExpression) {
-      return new QuoteBaseExpressionDecorator((BaseExpression) expr, relationalMeta.getQuote());
+      return new QuoteBaseExpressionDecorator((BaseExpression) expr, quote);
     }
     expr.accept(
         new ExpressionVisitor() {
@@ -1886,12 +1860,12 @@ public class RelationalStorage implements IStorage {
             if (expression.getLeftExpression() instanceof BaseExpression) {
               expression.setLeftExpression(
                   new QuoteBaseExpressionDecorator(
-                      (BaseExpression) expression.getLeftExpression(), relationalMeta.getQuote()));
+                      (BaseExpression) expression.getLeftExpression(), quote));
             }
             if (expression.getRightExpression() instanceof BaseExpression) {
               expression.setRightExpression(
                   new QuoteBaseExpressionDecorator(
-                      (BaseExpression) expression.getRightExpression(), relationalMeta.getQuote()));
+                      (BaseExpression) expression.getRightExpression(), quote));
             }
           }
 
@@ -1900,7 +1874,7 @@ public class RelationalStorage implements IStorage {
             if (expression.getExpression() instanceof BaseExpression) {
               expression.setExpression(
                   new QuoteBaseExpressionDecorator(
-                      (BaseExpression) expression.getExpression(), relationalMeta.getQuote()));
+                      (BaseExpression) expression.getExpression(), quote));
             }
           }
 
@@ -1919,8 +1893,7 @@ public class RelationalStorage implements IStorage {
                     .set(
                         i,
                         new QuoteBaseExpressionDecorator(
-                            (BaseExpression) expression.getExpressions().get(i),
-                            relationalMeta.getQuote()));
+                            (BaseExpression) expression.getExpressions().get(i), quote));
               }
             }
           }
@@ -1934,8 +1907,7 @@ public class RelationalStorage implements IStorage {
                     .set(
                         i,
                         new QuoteBaseExpressionDecorator(
-                            (BaseExpression) expression.getChildren().get(i),
-                            relationalMeta.getQuote()));
+                            (BaseExpression) expression.getChildren().get(i), quote));
               }
             }
           }
@@ -1945,7 +1917,7 @@ public class RelationalStorage implements IStorage {
             if (expression.getExpression() instanceof BaseExpression) {
               expression.setExpression(
                   new QuoteBaseExpressionDecorator(
-                      (BaseExpression) expression.getExpression(), relationalMeta.getQuote()));
+                      (BaseExpression) expression.getExpression(), quote));
             }
           }
 
@@ -2164,8 +2136,7 @@ public class RelationalStorage implements IStorage {
             List<String> fullPathList = Arrays.asList(entry.getValue().split(", "));
             fullPathList.replaceAll(s -> RelationSchema.getFullName(tableName, s));
             List<String> fullQuotePathList = Arrays.asList(entry.getValue().split(", "));
-            fullQuotePathList.replaceAll(
-                s -> RelationSchema.getQuoteFullName(tableName, s, relationalMeta.getQuote()));
+            fullQuotePathList.replaceAll(s -> RelationSchema.getQuoteFullName(tableName, s, quote));
 
             String filterStr =
                 filterTransformer.toString(
@@ -2564,7 +2535,7 @@ public class RelationalStorage implements IStorage {
           logicalTableNamePattern = pattern;
           columnNamePattern = "%";
         } else {
-          RelationSchema schema = new RelationSchema(pattern, relationalMeta.getQuote());
+          RelationSchema schema = new RelationSchema(pattern, quote);
           logicalTableNamePattern = schema.getTableName();
           columnNamePattern = schema.getColumnName();
           boolean columnEqualsStar = columnNamePattern.startsWith("*");
@@ -2610,27 +2581,22 @@ public class RelationalStorage implements IStorage {
         if (curColumnName.equals(KEY_NAME)) {
           continue;
         }
-
         if (!tableNamePattern.matcher(curTableName).find()
             || !columnPattern.matcher(curColumnName).find()) {
           continue;
         }
-
         if (tableNameToColumnNames.containsKey(curTableName)) {
-          curColumnName = tableNameToColumnNames.get(curTableName) + ", " + curColumnName;
-          // 此处需要去重
-          List<String> columnNamesList =
-              new ArrayList<>(Arrays.asList(tableNameToColumnNames.get(curTableName).split(", ")));
-          List<String> newColumnNamesList =
-              new ArrayList<>(Arrays.asList(curColumnName.split(", ")));
-          for (String newColumnName : newColumnNamesList) {
-            if (!columnNamesList.contains(newColumnName)) {
-              columnNamesList.add(newColumnName);
-            }
-          }
-
-          curColumnName = String.join(", ", columnNamesList);
+          // 用 Set 去重，同时保持插入顺序
+          Set<String> columnNamesSet = new LinkedHashSet<>();
+          // 先放已有的列
+          columnNamesSet.addAll(
+              Arrays.asList(tableNameToColumnNames.get(curTableName).split(", ")));
+          // 再放新的列
+          columnNamesSet.addAll(Arrays.asList(curColumnName.split(", ")));
+          // 拼回字符串
+          curColumnName = String.join(", ", columnNamesSet);
         }
+
         tableNameToColumnNames.put(curTableName, curColumnName);
       }
     }
@@ -2709,7 +2675,7 @@ public class RelationalStorage implements IStorage {
         tableName = "%";
         columnNames = parts[1].equals("*") ? "%" : parts[1];
       } else {
-        RelationSchema schema = new RelationSchema(pattern, true, relationalMeta.getQuote());
+        RelationSchema schema = new RelationSchema(pattern, true, quote);
         tableName = schema.getTableName().replace("*", "%");
         columnNames = schema.getColumnName();
         if (columnNames.startsWith("*")) {
@@ -2930,7 +2896,7 @@ public class RelationalStorage implements IStorage {
         .parallelStream()
         .forEach(
             path -> {
-              RelationSchema schema = new RelationSchema(path, relationalMeta.getQuote());
+              RelationSchema schema = new RelationSchema(path, quote);
               String logicalTableName = schema.getTableName();
               // 用 concurrent set 做去重
               if (logicalTableNames.add(logicalTableName)) {
@@ -2958,7 +2924,7 @@ public class RelationalStorage implements IStorage {
         tags = tagsList.get(i);
       }
       DataType dataType = dataTypeList.get(i);
-      RelationSchema schema = new RelationSchema(path, relationalMeta.getQuote());
+      RelationSchema schema = new RelationSchema(path, quote);
       String tableName = schema.getTableName();
       String columnName = schema.getColumnName();
       columnName = toFullName(columnName, tags);
@@ -3065,7 +3031,7 @@ public class RelationalStorage implements IStorage {
           for (int j = 0; j < data.getPathNum(); j++) {
             String path = data.getPath(j);
             DataType dataType = data.getDataType(j);
-            RelationSchema schema = new RelationSchema(path, relationalMeta.getQuote());
+            RelationSchema schema = new RelationSchema(path, quote);
             String logicalTableName = schema.getTableName();
 
             // 获取该列应该插入的物理表名
@@ -3145,8 +3111,7 @@ public class RelationalStorage implements IStorage {
           }
         }
 
-        dbStrategy.executeBatchInsert(
-            conn, databaseName, stmt, tableToColumnEntries, relationalMeta.getQuote());
+        dbStrategy.executeBatchInsert(conn, databaseName, stmt, tableToColumnEntries, quote);
         for (Pair<String, List<String>> columnEntries : tableToColumnEntries.values()) {
           columnEntries.v.clear();
         }
@@ -3187,7 +3152,7 @@ public class RelationalStorage implements IStorage {
         for (int i = 0; i < data.getPathNum(); i++) {
           String path = data.getPath(i);
           DataType dataType = data.getDataType(i);
-          RelationSchema schema = new RelationSchema(path, relationalMeta.getQuote());
+          RelationSchema schema = new RelationSchema(path, quote);
           String logicalTableName = schema.getTableName();
           BitmapView bitmapView = data.getBitmapView(i);
 
@@ -3275,8 +3240,7 @@ public class RelationalStorage implements IStorage {
             tableToColumnEntries.put(physicalTableName, new Pair<>(pair.k, filteredValues));
           }
         }
-        dbStrategy.executeBatchInsert(
-            conn, databaseName, stmt, tableToColumnEntries, relationalMeta.getQuote());
+        dbStrategy.executeBatchInsert(conn, databaseName, stmt, tableToColumnEntries, quote);
         for (Map.Entry<String, Pair<String, List<String>>> entry :
             tableToColumnEntries.entrySet()) {
           entry.getValue().v.clear();
@@ -3358,7 +3322,7 @@ public class RelationalStorage implements IStorage {
               continue;
             }
             String fullPath = column.getPath();
-            RelationSchema schema = new RelationSchema(fullPath, relationalMeta.getQuote());
+            RelationSchema schema = new RelationSchema(fullPath, quote);
             String tableName = schema.getTableName();
             String columnName = toFullName(schema.getColumnName(), column.getTags());
             deletedPaths.add(new Pair<>(tableName, columnName));
@@ -3374,7 +3338,7 @@ public class RelationalStorage implements IStorage {
   }
 
   private String getQuotName(String name) {
-    return relationalMeta.getQuote() + name + relationalMeta.getQuote();
+    return quote + name + quote;
   }
 
   private String getQuotColumnNames(String columnNames) {
@@ -3391,8 +3355,7 @@ public class RelationalStorage implements IStorage {
     String[] parts = columnNames.split(", ");
     StringBuilder fullColumnNames = new StringBuilder();
     for (String part : parts) {
-      fullColumnNames.append(
-          RelationSchema.getQuoteFullName(tableName, part, relationalMeta.getQuote()));
+      fullColumnNames.append(RelationSchema.getQuoteFullName(tableName, part, quote));
       fullColumnNames.append(" AS ");
       fullColumnNames.append(getQuotName(RelationSchema.getFullName(tableName, part)));
       fullColumnNames.append(", ");
