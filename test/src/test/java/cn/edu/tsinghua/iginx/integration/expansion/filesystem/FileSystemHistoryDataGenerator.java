@@ -161,9 +161,11 @@ public class FileSystemHistoryDataGenerator extends BaseHistoryDataGenerator {
     // │   └── path
     // │       └── a\nb.txt
     // └── txt
-    //     └── dir!@#$%^&()[]{};',.=+~ -目录
-    //         ├── example!@#$%^&()[]{};',.=+~ -.txt
-    //         └── 示例!@#$%^&()[]{};',.=+~ -.TXT
+    //     ├── dir!@#$%^&()[]{};',.=+~ -目录
+    //     │   ├── example!@#$%^&()[]{};',.=+~ -.txt
+    //     │   └── 示例!@#$%^&()[]{};',.=+~ -.TXT
+    //     └── dir\Ndir\Ddir (仅在 linux 和 mac 上创建)
+    //         └── example.txt
 
     StringBuilder content1 = new StringBuilder();
     StringBuilder content2 = new StringBuilder();
@@ -205,9 +207,16 @@ public class FileSystemHistoryDataGenerator extends BaseHistoryDataGenerator {
     String folderName = "dir" + specialName + "目录";
     copyFileFromResource(
         txtResourceDir + "example.txt",
-        Paths.get("test", folderName, "example" + specialName + ".txt"));
+        Paths.get("test", "txt", folderName, "example" + specialName + ".txt"));
     copyFileFromResource(
-        txtResourceDir + "example.txt", Paths.get("test", folderName, "示例" + specialName + ".TXT"));
+        txtResourceDir + "example.txt",
+        Paths.get("test", "txt", folderName, "示例" + specialName + ".TXT"));
+
+    if (!isOnWin) {
+      copyFileFromResource(
+          txtResourceDir + "example.txt",
+          Paths.get("test", "txt", "dir\\Ndir\\Ddir", "example.txt"));
+    }
   }
 
   private static void copyFileFromResource(String resourcePath, Path targetPath) {

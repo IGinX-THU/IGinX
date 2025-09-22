@@ -488,7 +488,7 @@ public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
             session,
             16669,
             filesystem,
-            getLegacyFileSystemDummyParams("test/test/dir!@#$%^&()[]{};',.=+~ -目录"))) {
+            getLegacyFileSystemDummyParams("test/test/txt/dir!@#$%^&()[]{};',.=+~ -目录"))) {
       String statement = "SHOW COLUMNS `dir!@#$%^&()[]{};',\\.=+~ -目录`.*;";
       String expected =
           "Columns:\n"
@@ -516,6 +516,39 @@ public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
       LOGGER.error("add or remove read only storage engine failed ", e);
       fail();
     }
+    if (!isOnWin) {
+      try (TempDummyDataSource ignored =
+          new TempDummyDataSource(
+              session,
+              16669,
+              filesystem,
+              getLegacyFileSystemDummyParams("test/test/txt/dir\\Ndir\\Ddir"))) {
+        String statement = "SHOW COLUMNS `dir\\Ndir\\Ddir`.*;";
+        String expected =
+            "Columns:\n"
+                + "+----------------------------+--------+\n"
+                + "|                        Path|DataType|\n"
+                + "+----------------------------+--------+\n"
+                + "|dir\\\\Ndir\\\\Ddir.example\\.txt|  BINARY|\n"
+                + "+----------------------------+--------+\n"
+                + "Total line number = 1\n";
+        SQLTestTools.executeAndCompare(session, statement, expected, true);
+
+        statement = "select `example\\.txt` from *;";
+        expected =
+            "ResultSets:\n"
+                + "+---+----------------------------+\n"
+                + "|key|dir\\\\Ndir\\\\Ddir.example\\.txt|\n"
+                + "+---+----------------------------+\n"
+                + "|  0|                example line|\n"
+                + "+---+----------------------------+\n"
+                + "Total line number = 1\n";
+        SQLTestTools.executeAndCompare(session, statement, expected);
+      } catch (SessionException e) {
+        LOGGER.error("add or remove read only storage engine failed ", e);
+        fail();
+      }
+    }
   }
 
   @Test
@@ -525,7 +558,7 @@ public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
             session,
             16670,
             filesystem,
-            getFileTreeDummyParams("test/test/dir!@#$%^&()[]{};',.=+~ -目录"))) {
+            getFileTreeDummyParams("test/test/txt/dir!@#$%^&()[]{};',.=+~ -目录"))) {
       String statement = "SHOW COLUMNS `dir!@#$%^&()[]{};',.=+~ -目录`.*;";
       String expected =
           "Columns:\n"
@@ -552,6 +585,39 @@ public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
     } catch (SessionException e) {
       LOGGER.error("add or remove read only storage engine failed ", e);
       fail();
+    }
+    if (!isOnWin) {
+      try (TempDummyDataSource ignored =
+          new TempDummyDataSource(
+              session,
+              16669,
+              filesystem,
+              getLegacyFileSystemDummyParams("test/test/txt/dir\\Ndir\\Ddir"))) {
+        String statement = "SHOW COLUMNS `dir\\Ndir\\Ddir`.*;";
+        String expected =
+            "Columns:\n"
+                + "+----------------------------+--------+\n"
+                + "|                        Path|DataType|\n"
+                + "+----------------------------+--------+\n"
+                + "|dir\\\\Ndir\\\\Ddir.example\\.txt|  BINARY|\n"
+                + "+----------------------------+--------+\n"
+                + "Total line number = 1\n";
+        SQLTestTools.executeAndCompare(session, statement, expected, true);
+
+        statement = "select `example\\.txt` from *;";
+        expected =
+            "ResultSets:\n"
+                + "+---+----------------------------+\n"
+                + "|key|dir\\\\Ndir\\\\Ddir.example\\.txt|\n"
+                + "+---+----------------------------+\n"
+                + "|  0|                example line|\n"
+                + "+---+----------------------------+\n"
+                + "Total line number = 1\n";
+        SQLTestTools.executeAndCompare(session, statement, expected);
+      } catch (SessionException e) {
+        LOGGER.error("add or remove read only storage engine failed ", e);
+        fail();
+      }
     }
   }
 }
