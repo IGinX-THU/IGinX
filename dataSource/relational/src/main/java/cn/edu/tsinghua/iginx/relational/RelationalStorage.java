@@ -130,9 +130,8 @@ public class RelationalStorage implements IStorage {
       throw new StorageInitializationException("cannot connect to " + meta.toString());
     }
     filterTransformer = new FilterTransformer(relationalMeta);
-    try (Connection conn = dbStrategy.initConnection()) {
-      escape = conn.getMetaData().getSearchStringEscape();
-    }
+    Connection conn = dbStrategy.initConnection();
+    escape = conn.getMetaData().getSearchStringEscape();
     quote = relationalMeta.getQuote();
   }
 
