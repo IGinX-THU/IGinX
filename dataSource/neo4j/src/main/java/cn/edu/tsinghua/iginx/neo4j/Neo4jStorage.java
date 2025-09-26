@@ -19,7 +19,7 @@
  */
 package cn.edu.tsinghua.iginx.neo4j;
 
-import static cn.edu.tsinghua.iginx.constant.GlobalConstant.SEPARATOR;
+import static cn.edu.tsinghua.iginx.constant.GlobalConstant.DOT;
 import static cn.edu.tsinghua.iginx.neo4j.tools.Constants.IDENTITY_PROPERTY_NAME;
 import static cn.edu.tsinghua.iginx.neo4j.tools.DataTransformer.fromIginxType;
 import static cn.edu.tsinghua.iginx.neo4j.tools.DataTransformer.fromStringDataType;
@@ -378,7 +378,7 @@ public class Neo4jStorage implements IStorage {
       for (Map.Entry<String, Map<String, String>> entry : labelToProperties.entrySet()) {
         for (Map.Entry<String, String> property : entry.getValue().entrySet()) {
           Pair<String, Map<String, String>> pair =
-              splitFullName(entry.getKey() + SEPARATOR + property.getKey());
+              splitFullName(entry.getKey() + DOT + property.getKey());
           Column column =
               new Column(
                   trimPrefix(pair.getK()),
@@ -406,7 +406,7 @@ public class Neo4jStorage implements IStorage {
 
       for (Map.Entry<String, Map<String, String>> entry : labelToProperties.entrySet()) {
         for (Map.Entry<String, String> property : entry.getValue().entrySet()) {
-          String path = trimPrefix(entry.getKey() + SEPARATOR + property.getKey());
+          String path = trimPrefix(entry.getKey() + DOT + property.getKey());
           if (org.apache.commons.lang3.StringUtils.isNotEmpty(prefix)
               && org.apache.commons.lang3.StringUtils.isNotEmpty(path)
               && !path.startsWith(prefix)) {

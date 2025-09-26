@@ -19,7 +19,7 @@
  */
 package cn.edu.tsinghua.iginx.neo4j.tools;
 
-import static cn.edu.tsinghua.iginx.constant.GlobalConstant.SEPARATOR;
+import static cn.edu.tsinghua.iginx.constant.GlobalConstant.DOT;
 import static cn.edu.tsinghua.iginx.neo4j.tools.Constants.DATABASE_PREFIX;
 import static cn.edu.tsinghua.iginx.neo4j.tools.Constants.IDENTITY_PROPERTY_NAME;
 import static cn.edu.tsinghua.iginx.neo4j.tools.DataTransformer.fromStringDataType;
@@ -125,7 +125,7 @@ public class Neo4jClientUtils {
       // iterate properties
       for (Map.Entry<String, String> entry1 : entry.getValue().entrySet()) {
         Pair<String, Map<String, String>> propertyToTags =
-            splitFullName(entry.getKey() + SEPARATOR + entry1.getKey());
+            splitFullName(entry.getKey() + DOT + entry1.getKey());
         if (tagFilter != null
             && !cn.edu.tsinghua.iginx.engine.physical.storage.utils.TagKVUtils.match(
                 propertyToTags.getV(), tagFilter)) {
@@ -155,12 +155,12 @@ public class Neo4jClientUtils {
     String prefix =
         org.apache.commons.lang3.StringUtils.isEmpty(databaseName)
             ? "(unit.*\\.)?"
-            : databaseName + "\\" + SEPARATOR;
+            : databaseName + "\\" + DOT;
     for (String pattern : patterns) {
       if (pattern.equals("*") || pattern.equals("*.*")) {
         label = prefix + ".*";
         property = ".*";
-      } else if (pattern.split("\\" + SEPARATOR).length == 1) { // REST 查询的路径中可能不含 .
+      } else if (pattern.split("\\" + DOT).length == 1) { // REST 查询的路径中可能不含 .
         label = prefix + escapeRegex(pattern).replace("\\*", ".*");
         property = ".*";
       } else {
@@ -369,7 +369,7 @@ public class Neo4jClientUtils {
 
       List<Column> columns = new ArrayList<>();
       for (String property : properties.keySet()) {
-        String pathName = label + SEPARATOR + property;
+        String pathName = label + DOT + property;
         DataType type = fromStringDataType(properties.get(property).toUpperCase());
         Map<Long, Object> data = new HashMap<>();
         for (Record record : records) {
@@ -466,7 +466,7 @@ public class Neo4jClientUtils {
               .append(IDENTITY_PROPERTY_NAME)
               .append(": ")
               .append(quotedLabel)
-              .append(SEPARATOR)
+              .append(DOT)
               .append(IDENTITY_PROPERTY_NAME)
               .append(",");
         }
@@ -481,7 +481,7 @@ public class Neo4jClientUtils {
         for (String property : propertyMap.keySet()) {
           ret.append(',')
               .append(quotedLabel)
-              .append(SEPARATOR)
+              .append(DOT)
               .append(getQuoteName(property))
               .append(" AS ")
               .append(getQuoteName(label + "." + property));
@@ -518,7 +518,7 @@ public class Neo4jClientUtils {
       for (Map.Entry<String, Map<String, String>> entry : labelToProperties.entrySet()) {
         String label = entry.getKey();
         for (Map.Entry<String, String> property : entry.getValue().entrySet()) {
-          String pathName = label + SEPARATOR + property.getKey();
+          String pathName = label + DOT + property.getKey();
           DataType type = fromStringDataType(property.getValue().toUpperCase());
           Map<Long, Object> data = new HashMap<>();
           for (Record record : records) {

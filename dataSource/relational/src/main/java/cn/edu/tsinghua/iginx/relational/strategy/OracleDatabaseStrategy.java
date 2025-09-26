@@ -19,7 +19,7 @@
  */
 package cn.edu.tsinghua.iginx.relational.strategy;
 
-import static cn.edu.tsinghua.iginx.constant.GlobalConstant.SEPARATOR;
+import static cn.edu.tsinghua.iginx.constant.GlobalConstant.DOT;
 import static cn.edu.tsinghua.iginx.relational.tools.Constants.*;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
@@ -111,8 +111,8 @@ public class OracleDatabaseStrategy extends AbstractDatabaseStrategy {
       String columnNames = entry.getValue().k.substring(0, entry.getValue().k.length() - 2);
       List<String> values = entry.getValue().v;
       String[] parts = columnNames.split(", ");
-      Map<String, ColumnField> columnMap = getColumnMap(conn, databaseName + SEPARATOR + tableName);
-      this.batchInsert(conn, databaseName + SEPARATOR + tableName, columnMap, parts, values);
+      Map<String, ColumnField> columnMap = getColumnMap(conn, databaseName + DOT + tableName);
+      this.batchInsert(conn, databaseName + DOT + tableName, columnMap, parts, values);
     }
     stmt.executeBatch();
   }
@@ -417,12 +417,12 @@ public class OracleDatabaseStrategy extends AbstractDatabaseStrategy {
         Statement statement = conn.createStatement()) {
       try (ResultSet rs = statement.executeQuery(sqlMin)) {
         if (rs.next()) {
-          minPath = rs.getString(1) + SEPARATOR + rs.getString(2) + SEPARATOR + rs.getString(3);
+          minPath = rs.getString(1) + DOT + rs.getString(2) + DOT + rs.getString(3);
         }
       }
       try (ResultSet rs = statement.executeQuery(sqlMax)) {
         if (rs.next()) {
-          maxPath = rs.getString(1) + SEPARATOR + rs.getString(2) + SEPARATOR + rs.getString(3);
+          maxPath = rs.getString(1) + DOT + rs.getString(2) + DOT + rs.getString(3);
         }
       }
     }
