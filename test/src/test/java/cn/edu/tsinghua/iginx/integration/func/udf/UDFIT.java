@@ -37,8 +37,6 @@ import cn.edu.tsinghua.iginx.thrift.UDFType;
 import cn.edu.tsinghua.iginx.utils.FileUtils;
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -1459,40 +1457,30 @@ public class UDFIT {
     String classPath = "my_module.dateutil_test.Test";
     String name = "dateutil_test";
     String type = "udsf";
-
-    File oriModuleDir = new File(MODULE_PATH);
-    Path tempDir = null;
+    File reqFile = new File(String.join(File.separator, MODULE_PATH, "requirements.txt"));
+    File renamedFile = new File(String.join(File.separator, MODULE_PATH, newFileName));
+    String statement = String.format(SINGLE_UDF_REGISTER_SQL, type, name, classPath, MODULE_PATH);
     try {
-      // copy
-      tempDir = Files.createTempDirectory("illegal_module_test_");
-      File tempModuleDir = new File(tempDir.toFile(), "my_module");
-      FileUtils.copyFileOrDir(oriModuleDir, tempModuleDir);
+      FileUtils.copyFileOrDir(reqFile, renamedFile);
+    } catch (IOException e) {
+      LOGGER.error("Can't rename file:{}.", reqFile, e);
+      fail();
+    }
 
-      // add illegal package
-      File tempReq = new File(tempModuleDir, "requirements.txt");
-      try {
-        FileUtils.appendFile(tempReq, "\nillegal-package");
-      } catch (IOException e) {
-        LOGGER.error("Append content to file:{} failed.", tempReq, e);
-        fail();
-      }
-
-      String statement =
-          String.format(
-              SINGLE_UDF_REGISTER_SQL, type, name, classPath, tempModuleDir.getCanonicalPath());
+    // append an illegal package(wrong name)
+    try {
+      FileUtils.appendFile(reqFile, "\nillegal-package");
       tool.executeRegFail(statement);
       assertFalse(tool.isUDFRegistered(name));
-    } catch (Exception e) {
-      LOGGER.error("Test execution failed.", e);
+    } catch (IOException e) {
+      LOGGER.error("Append content to file:{} failed.", reqFile, e);
       fail();
     } finally {
-
-      if (tempDir != null) {
-        try {
-          FileUtils.deleteFolder(tempDir.toFile());
-        } catch (IOException cleanupEx) {
-          LOGGER.warn("Failed to clean up tempDir: " + tempDir, cleanupEx);
-        }
+      try {
+        FileUtils.deleteFileOrDir(reqFile);
+        FileUtils.moveFile(renamedFile, reqFile);
+      } catch (IOException ee) {
+        LOGGER.error("Fail to recover requirement.txt .", ee);
       }
     }
   }

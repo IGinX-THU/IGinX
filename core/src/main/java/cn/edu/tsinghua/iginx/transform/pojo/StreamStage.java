@@ -45,7 +45,7 @@ public class StreamStage implements Stage {
     this.beforeStage = beforeStage;
     this.taskList = taskList;
     this.exportWriter = writer;
-    this.startWithIginX = taskList.get(0).getTaskType().equals(TaskType.SQL);
+    this.startWithIginX = taskList.get(0).getTaskType().equals(TaskType.IGINX);
   }
 
   public long getSessionId() {
