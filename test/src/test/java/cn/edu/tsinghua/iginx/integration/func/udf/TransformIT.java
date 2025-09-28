@@ -1132,8 +1132,8 @@ public class TransformIT {
 
       fail(); // not rejected
     } catch (SessionException e) {
-      LOGGER.info("error info:", e);
       if (!e.getMessage().contains("unexpected error")) {
+        LOGGER.info("unexpected error received:", e);
         // not rejected
         fail();
       }
