@@ -45,8 +45,8 @@ runs:
           name: Free Disk Space
           shell: bash
           run: |
-            sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
-            sudo docker image prune --all --force || true
+              sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+              sudo docker image prune --all --force || true
 
         # need to set up timezone and enlarge JVM heap size manually on windows
         - if: runner.os == 'Windows'
