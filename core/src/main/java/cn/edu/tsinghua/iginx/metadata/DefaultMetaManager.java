@@ -510,7 +510,8 @@ public class DefaultMetaManager implements IMetaManager {
         .getStorageEngineList()
         .forEach(
             s -> {
-              if (cache.getStorageConnections().get(id).contains(s.getId())) {
+              Set<Long> conns = cache.getStorageConnections().get(id);
+              if (conns != null && conns.contains(s.getId())) {
                 connectStorageEngines.add(s);
               }
             });
