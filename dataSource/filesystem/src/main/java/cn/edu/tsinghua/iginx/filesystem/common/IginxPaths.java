@@ -19,6 +19,10 @@
  */
 package cn.edu.tsinghua.iginx.filesystem.common;
 
+import static cn.edu.tsinghua.iginx.constant.GlobalConstant.DOT;
+import static cn.edu.tsinghua.iginx.constant.GlobalConstant.ESCAPED_DOT;
+
+import cn.edu.tsinghua.iginx.filesystem.struct.legacy.filesystem.tools.FilePathUtils;
 import com.google.common.collect.Iterables;
 import java.nio.file.FileSystem;
 import java.nio.file.Path;
@@ -30,8 +34,6 @@ import java.util.regex.Pattern;
 import javax.annotation.Nullable;
 
 public class IginxPaths {
-
-  public static final String DOT = ".";
 
   private IginxPaths() {}
 
@@ -61,11 +63,12 @@ public class IginxPaths {
     if (path == null) {
       return fs.getPath("");
     }
+    String safePath = FilePathUtils.unescapePath(path);
     Pattern splitter = Pattern.compile(Pattern.quote(DOT));
-    String[] nodes = splitter.split(path);
+    String[] nodes = splitter.split(safePath);
     String[] fsNodes = new String[nodes.length];
     for (int i = 0; i < nodes.length; i++) {
-      fsNodes[i] = nodes[i].replace(dot, DOT);
+      fsNodes[i] = nodes[i].replace(FilePathUtils.DOT_PLACEHOLDER, DOT);
     }
     return fs.getPath(fsNodes[0], Arrays.copyOfRange(fsNodes, 1, fsNodes.length));
   }
@@ -94,6 +97,15 @@ public class IginxPaths {
     if (path == null) {
       return new String[0];
     }
-    return path.split(Pattern.quote(DOT));
+    String safePath = FilePathUtils.unescapePath(path);
+    Pattern splitter = Pattern.compile(Pattern.quote(DOT));
+    return Arrays.stream(splitter.split(safePath))
+        .map(
+            s -> {
+              s = s.replace("\\", "\\\\");
+              s = s.replace(FilePathUtils.DOT_PLACEHOLDER, ESCAPED_DOT);
+              return s;
+            })
+        .toArray(String[]::new);
   }
 }

@@ -1433,7 +1433,7 @@ fragment CN_CHAR
    ;
 
 BACK_QUOTE_STRING_LITERAL_NOT_EMPTY
-   : BACK_QUOTE ('\\' . | ~ '"')+? BACK_QUOTE
+   : BACK_QUOTE ('\\' . | ~ '`')+? BACK_QUOTE
    ;
 
 DOUBLE_QUOTE_STRING_LITERAL

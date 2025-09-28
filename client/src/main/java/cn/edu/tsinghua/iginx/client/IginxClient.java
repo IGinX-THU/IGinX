@@ -19,6 +19,8 @@
  */
 package cn.edu.tsinghua.iginx.client;
 
+import static cn.edu.tsinghua.iginx.constant.GlobalConstant.DOT;
+import static cn.edu.tsinghua.iginx.constant.GlobalConstant.ESCAPED_DOT;
 import static cn.edu.tsinghua.iginx.utils.CSVUtils.getCSVBuilder;
 import static cn.edu.tsinghua.iginx.utils.FileUtils.exportByteStream;
 
@@ -549,7 +551,7 @@ public class IginxClient {
         finalCnt--;
         continue;
       }
-      originColumn = originColumn.replace("\\", ".");
+      originColumn = originColumn.replace(ESCAPED_DOT, DOT);
       Integer count = countMap.getOrDefault(originColumn, 0);
       count += 1;
       countMap.put(originColumn, count);
