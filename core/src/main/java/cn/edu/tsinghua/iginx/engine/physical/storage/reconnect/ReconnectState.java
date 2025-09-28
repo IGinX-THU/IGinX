@@ -25,7 +25,7 @@ public class ReconnectState {
 
   private static final long INITIAL_RECONNECT_INTERVAL = 2; // 初始重连间隔（秒）
 
-  private static final long MAX_RECONNECT_INTERVAL = 64; // 最大重连间隔（秒）
+  private static final long MAX_RECONNECT_INTERVAL = 128; // 最大重连间隔（秒）
 
   private static final int BACKOFF_MULTIPLIER = 2; // 重连间隔增长倍数
 

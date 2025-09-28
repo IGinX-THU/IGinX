@@ -24,6 +24,7 @@ import static cn.edu.tsinghua.iginx.metadata.utils.ColumnsIntervalUtils.fromStri
 import static cn.edu.tsinghua.iginx.metadata.utils.IdUtils.generateId;
 import static cn.edu.tsinghua.iginx.metadata.utils.ReshardStatus.*;
 
+import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.metadata.cache.IMetaCache;
@@ -2705,5 +2706,37 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
       return false; // 异常 说明包含非数字。
     }
     return true;
+  }
+
+  @Override
+  public void loadReplicaNum() throws MetaStorageException {
+    InterProcessMutex mutex = new InterProcessMutex(client, REPLICA_NUM_LOCK_NODE);
+    try {
+      mutex.acquire();
+      Config config = ConfigDescriptor.getInstance().getConfig();
+      if (client.checkExists().forPath(REPLICA_NUM_NODE) == null) {
+        // 系统第一次启动，还没写入过replicaNum，将配置文件中的replicaNum持久化到zk
+        client
+            .create()
+            .creatingParentsIfNeeded()
+            .withMode(CreateMode.PERSISTENT)
+            .forPath(
+                REPLICA_NUM_NODE,
+                String.valueOf(config.getReplicaNum()).getBytes(StandardCharsets.UTF_8));
+      } else {
+        // 从zk中读取之前设置好的replicaNum
+        byte[] data = client.getData().forPath(REPLICA_NUM_NODE);
+        config.setReplicaNum(JsonUtils.fromJson(data, Integer.class));
+      }
+    } catch (Exception e) {
+      throw new MetaStorageException("get error when load replica number", e);
+    } finally {
+      try {
+        mutex.release();
+      } catch (Exception e) {
+        throw new MetaStorageException(
+            "get error when release interprocess lock for " + REPLICA_NUM_LOCK_NODE, e);
+      }
+    }
   }
 }

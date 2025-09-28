@@ -122,6 +122,7 @@ public class DefaultMetaManager implements IMetaManager {
       initMaxActiveEndKeyStatistics();
       initReshardStatus();
       initReshardCounter();
+      initReplicaNum();
     } catch (MetaStorageException e) {
       LOGGER.error("init meta manager error: ", e);
       System.exit(-1);
@@ -212,6 +213,10 @@ public class DefaultMetaManager implements IMetaManager {
     storage.lockReshardCounter();
     storage.removeReshardCounter();
     storage.releaseReshardCounter();
+  }
+
+  private void initReplicaNum() throws MetaStorageException {
+    storage.loadReplicaNum();
   }
 
   private void initIginx() throws MetaStorageException {

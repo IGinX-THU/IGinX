@@ -23,6 +23,7 @@ import static cn.edu.tsinghua.iginx.metadata.storage.constant.Constant.*;
 import static cn.edu.tsinghua.iginx.metadata.utils.ColumnsIntervalUtils.fromString;
 import static cn.edu.tsinghua.iginx.metadata.utils.ReshardStatus.*;
 
+import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.metadata.cache.IMetaCache;
@@ -86,6 +87,7 @@ public class ETCDMetaStorage implements IMetaStorage {
   private final Lock reshardStatusLeaseLock = new ReentrantLock();
   private final Lock reshardCounterLeaseLock = new ReentrantLock();
   private final Lock maxActiveEndTimeStatisticsLeaseLock = new ReentrantLock();
+  private final Lock replicaNumLeaseLock = new ReentrantLock();
 
   private Client client;
 
@@ -128,6 +130,8 @@ public class ETCDMetaStorage implements IMetaStorage {
   private Watch.Watcher maxActiveEndTimeStatisticsWatcher;
   private MaxActiveEndKeyStatisticsChangeHook maxActiveEndKeyStatisticsChangeHook = null;
   private long maxActiveEndTimeStatisticsLease = -1L;
+
+  private long replicaNumLease = -1L;
 
   private final int IGINX_NODE_LENGTH = 7;
 
@@ -2769,5 +2773,63 @@ public class ETCDMetaStorage implements IMetaStorage {
 
     this.client.close();
     this.client = null;
+  }
+
+  private void lockReplicaNum() throws MetaStorageException {
+    try {
+      replicaNumLeaseLock.lock();
+      replicaNumLease = client.getLeaseClient().grant(MAX_LOCK_TIME).get().getID();
+      client
+          .getLockClient()
+          .lock(ByteSequence.from(REPLICA_NUM_LOCK_NODE.getBytes()), replicaNumLease);
+    } catch (Exception e) {
+      replicaNumLeaseLock.unlock();
+      throw new MetaStorageException("acquire replica number mutex error: ", e);
+    }
+  }
+
+  private void releaseReplicaNum() throws MetaStorageException {
+    try {
+      client.getLockClient().unlock(ByteSequence.from(REPLICA_NUM_LOCK_NODE.getBytes())).get();
+      client.getLeaseClient().revoke(replicaNumLease).get();
+      replicaNumLease = -1L;
+    } catch (Exception e) {
+      throw new MetaStorageException("release replica number mutex error: ", e);
+    } finally {
+      replicaNumLeaseLock.unlock();
+    }
+  }
+
+  @Override
+  public void loadReplicaNum() throws MetaStorageException {
+    try {
+      lockReplicaNum();
+      Config config = ConfigDescriptor.getInstance().getConfig();
+      GetResponse response =
+          this.client.getKVClient().get(ByteSequence.from(REPLICA_NUM_NODE.getBytes())).get();
+      if (response.getKvs().isEmpty()) {
+        // 系统第一次启动，还没写入过replicaNum，将配置文件中的replicaNum持久化到etcd
+        this.client
+            .getKVClient()
+            .put(
+                ByteSequence.from(REPLICA_NUM_NODE.getBytes()),
+                ByteSequence.from(
+                    String.valueOf(config.getReplicaNum()).getBytes(StandardCharsets.UTF_8)))
+            .get();
+      } else if (response.getCount() == 1) {
+        // 从etcd中读取之前设置好的replicaNum
+        byte[] data = response.getKvs().get(0).getValue().getBytes();
+        config.setReplicaNum(JsonUtils.fromJson(data, Integer.class));
+      } else {
+        throw new MetaStorageException("The kv count for REPLICA_NUM_NODE should be 1.");
+      }
+    } catch (ExecutionException | InterruptedException e) {
+      LOGGER.error("got error when load replica number: ", e);
+      throw new MetaStorageException(e);
+    } finally {
+      if (replicaNumLease != -1) {
+        releaseReplicaNum();
+      }
+    }
   }
 }
