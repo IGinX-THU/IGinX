@@ -1,0 +1,15 @@
+version: '3.5'
+
+services:
+  oracle:
+    image: container-registry.oracle.com/database/free:23.5.0.0-lite
+    container_name: oracle23
+    restart: always
+    privileged: true
+    ports:
+      - "1521:1521"
+    environment:
+      ORACLE_PDB: ORCLPDB
+      ORACLE_PWD: ORCLPWD
+    volumes:
+      - "./volumes/oradata:/opt/oracle/oradata"
