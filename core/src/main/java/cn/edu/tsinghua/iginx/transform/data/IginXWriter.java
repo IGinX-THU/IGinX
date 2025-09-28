@@ -19,6 +19,7 @@
  */
 package cn.edu.tsinghua.iginx.transform.data;
 
+import static cn.edu.tsinghua.iginx.constant.GlobalConstant.TRANSFORM_PREFIX;
 import static cn.edu.tsinghua.iginx.utils.ByteUtils.getByteArrayFromLongArray;
 
 import cn.edu.tsinghua.iginx.engine.ContextBuilder;
@@ -28,7 +29,6 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.thrift.*;
-import cn.edu.tsinghua.iginx.transform.exec.tools.ExecutionMetaManager;
 import cn.edu.tsinghua.iginx.utils.Bitmap;
 import cn.edu.tsinghua.iginx.utils.ByteUtils;
 import java.nio.ByteBuffer;
@@ -46,11 +46,8 @@ public class IginXWriter extends ExportWriter {
 
   private final ContextBuilder contextBuilder = ContextBuilder.getInstance();
 
-  private final String tableName;
-
-  public IginXWriter(long sessionId, String prefix) {
+  public IginXWriter(long sessionId) {
     this.sessionId = sessionId;
-    this.tableName = prefix;
   }
 
   @Override
@@ -61,7 +58,6 @@ public class IginXWriter extends ExportWriter {
   }
 
   private InsertRowRecordsReq buildInsertRowReq(BatchData batchData) {
-    String prefix = ExecutionMetaManager.getTempTableName(tableName);
     Header header = batchData.getHeader();
     Object[] valuesList;
 
@@ -90,7 +86,7 @@ public class IginXWriter extends ExportWriter {
     }
     List<String> sortedPaths =
         sortedFields.stream()
-            .map(e -> prefix + "." + reformatPath(e.getName()))
+            .map(e -> TRANSFORM_PREFIX + "." + reformatPath(e.getName()))
             .collect(Collectors.toList());
     List<DataType> sortedDataTypeList =
         sortedFields.stream().map(Field::getType).collect(Collectors.toList());
