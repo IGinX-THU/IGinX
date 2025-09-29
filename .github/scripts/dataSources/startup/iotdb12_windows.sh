@@ -39,5 +39,9 @@ do
 
   sh -c "mkdir -p apache-iotdb-0.12.6-server-bin-$port/logs"
 
-  sh -c "cd apache-iotdb-0.12.6-server-bin-$port/; nohup sbin/start-server.sh &"
+  sh -c "cd apache-iotdb-0.12.6-server-bin-$port/; nohup sbin/start-server.sh > logs/start.log 2>&1 &"
+
+  sleep 10
+
+  sh -c "cat apache-iotdb-0.12.6-server-bin-$port/logs/start.log"
 done
