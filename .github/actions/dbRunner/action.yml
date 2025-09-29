@@ -49,13 +49,13 @@ inputs:
 runs:
     using: "composite" # Mandatory parameter
     steps:
-      - if: runner.os == 'Windows'
-        uses: Vampire/setup-wsl@v5
-        with:
-          distribution: Ubuntu-22.04
-          wsl-conf: |
-            [wsl2]
-            networkingMode=mirrored
+        - if: runner.os == 'Windows'
+          uses: Vampire/setup-wsl@v5
+          with:
+            distribution: Ubuntu-22.04
+            wsl-conf: |
+              [wsl2]
+              networkingMode=mirrored
 
         - if: inputs.DB-name=='InfluxDB' || inputs.DB-name=='Mix-IoTDB12-InfluxDB'
           name: Setup DB
