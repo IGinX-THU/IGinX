@@ -17,6 +17,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+
 set -e
 
 sh -c "cp -r $IOTDB_ROOT/ apache-iotdb-0.12.6-server-bin"
