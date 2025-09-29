@@ -19,13 +19,8 @@
 # usage:.sh <port>
 
 set -e
-port=$1
-cd apache-iotdb-0.12.6-server-bin-$port/
-sudo sysctl -w net.core.somaxconn=65535
-sudo -E sh -c "nohup sbin/start-server.sh >run.log 2>&1 &"
 
-sleep 3
-sudo lsof -i:$port
-if [ $? -eq 1 ]; then
-    echo "No process is listening on port $port"
-fi
+cd apache-iotdb-0.12.6-server-bin-$1/
+sh -c "nohup sbin/start-server.bat &"
+
+netstat -ano | grep ":$1"
