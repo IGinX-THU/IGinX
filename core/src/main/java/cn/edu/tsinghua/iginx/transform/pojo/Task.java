@@ -46,7 +46,7 @@ public class Task {
     String type = info.getTaskType().toLowerCase().trim();
     switch (type) {
       case "iginx":
-        taskType = TaskType.SQL;
+        taskType = TaskType.IGINX;
         break;
       case "python":
         taskType = TaskType.PYTHON;

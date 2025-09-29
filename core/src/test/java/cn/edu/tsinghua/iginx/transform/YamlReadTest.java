@@ -36,7 +36,7 @@ public class YamlReadTest {
 
   final String filePath = "../example/src/main/resources/TransformJobExample.yaml";
 
-  private static final String[] taskTypeArr = {"sql", "python", "python", "python"};
+  private static final String[] taskTypeArr = {"iginx", "python", "python", "python"};
 
   private static final String[] dataFlowTypeArr = {"null", "stream", "batch", "stream"};
 

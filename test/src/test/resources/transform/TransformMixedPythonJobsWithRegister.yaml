@@ -1,6 +1,6 @@
 ---
 taskList:
-- taskType: "sql"
+- taskType: "iginx"
   dataFlowType: "stream"
   timeout: 10000000
   sqlList:

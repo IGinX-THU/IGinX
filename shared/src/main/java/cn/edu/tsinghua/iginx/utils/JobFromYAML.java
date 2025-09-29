@@ -111,19 +111,18 @@ public class JobFromYAML {
     for (int i = 0; i < getTaskList().size(); i++) {
       TaskFromYAML taskFromYAML = getTaskList().get(i);
       TaskType taskType = TaskType.valueOf(taskFromYAML.getTaskType().toUpperCase());
-      // SQL task can only be STREAM type, thus can be omitted.
+      // IGINX task can only be STREAM type, thus can be omitted.
       DataFlowType dataFlowType =
-          taskType == TaskType.SQL
+          taskType == TaskType.IGINX
               ? DataFlowType.STREAM
               : DataFlowType.valueOf(taskFromYAML.getDataFlowType().toUpperCase());
       TaskInfo task = new TaskInfo(taskType, dataFlowType);
       switch (task.taskType) {
-        case SQL:
+        case IGINX:
           task.setSqlList(taskFromYAML.getSqlList());
           break;
         case PYTHON:
           task.setPyTaskName(taskFromYAML.getPyTaskName());
-          task.setOutputPrefix(taskFromYAML.getOutputPrefix());
           break;
       }
       task.setTimeout(taskFromYAML.getTimeout());
