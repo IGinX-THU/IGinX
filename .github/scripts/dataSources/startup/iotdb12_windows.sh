@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-
+ 
 
 set -e
 
@@ -39,9 +39,5 @@ do
 
   sh -c "mkdir -p apache-iotdb-0.12.6-server-bin-$port/logs"
 
-  sh -c "cd apache-iotdb-0.12.6-server-bin-$port/; nohup sbin/start-server.sh > logs/start.log 2>&1 &"
-
-  sleep 10
-
-  sh -c "cat apache-iotdb-0.12.6-server-bin-$port/logs/start.log"
+  sh -c "cd apache-iotdb-0.12.6-server-bin-$port/; nohup sbin/start-server.bat &"
 done
