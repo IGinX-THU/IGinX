@@ -103,8 +103,9 @@ runs:
         - if: (inputs.DB-name=='IoTDB12' || inputs.DB-name=='Mix-IoTDB12-InfluxDB') && (runner.os == 'Windows')
           name: Run DB
           shell: wsl-bash {0}
+          working-directory: ${{ github.workspace }}
           run: |
-              wsl bash "${GITHUB_WORKSPACE}/.github/scripts/dataSources/startup/iotdb12_windows.sh" ${{ inputs.IoTDB12-ports }}
+              wsl bash ".github/scripts/dataSources/startup/iotdb12_windows.sh" ${{ inputs.IoTDB12-ports }}
 
         - if: inputs.DB-name=='MongoDB'
           name: Setup DB
