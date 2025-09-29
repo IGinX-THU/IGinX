@@ -21,7 +21,6 @@ runs:
           cp -f docker/oracle/docker-compose.yml $port/docker-compose.yml
           sed -i"" -e "s/1521:1521/$port:1521/g" $port/docker-compose.yml
           sed -i"" -e "s/container_name: oracle23/container_name: ${{ inputs.version }}-$port/g" $port/docker-compose.yml
-          df -h $port/volumes/oradata
         done
         echo "docker-compose.yml created successfully"
     - if: runner.os == 'Linux' || runner.os == 'macOS'
