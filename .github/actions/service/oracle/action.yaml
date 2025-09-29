@@ -17,19 +17,21 @@ runs:
       run: |
         for port in ${{ inputs.ports }}; do
           mkdir -p $port/volumes/oradata
-          sudo chmod -R 777 $port/volumes/oradata
           cp -f docker/oracle/docker-compose.yml $port/docker-compose.yml
           sed -i"" -e "s/1521:1521/$port:1521/g" $port/docker-compose.yml
           sed -i"" -e "s/container_name: oracle23/container_name: ${{ inputs.version }}-$port/g" $port/docker-compose.yml
         done
         echo "docker-compose.yml created successfully"
+
     - if: runner.os == 'Linux' || runner.os == 'macOS'
       name: Start Oracle container
       shell: bash
       run: |
         for port in ${{ inputs.ports }}; do
-          sudo docker compose -f $port/docker-compose.yml up -d
+          sudo chmod -R 777 $port/volumes/oradata
+          sudo nohup docker compose -f $port/docker-compose.yml up -d
         done
+
     - if: runner.os == 'Linux' || runner.os == 'macOS'
       name: Verify Oracle Database is running
       id: oracleContainer
@@ -49,13 +51,16 @@ runs:
           done
         done
         docker ps
+
     - if: runner.os == 'Windows'
       name: Start Oracle container
       shell: wsl-bash {0}
       run: |
         for port in ${{ inputs.ports }}; do
-          sudo docker compose -f $port/docker-compose.yml up -d
+          sudo chmod -R 777 $port/volumes/oradata
+          sudo nohup docker compose -f $port/docker-compose.yml up -d
         done
+
     - if: runner.os == 'Windows'
       name: Verify Oracle Database is running
       id: oracleContainerWin
