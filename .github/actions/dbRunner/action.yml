@@ -104,8 +104,7 @@ runs:
           name: Run DB
           shell: wsl-bash {0}
           run: |
-              chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/startup/iotdb12_windows.sh"
-              "${GITHUB_WORKSPACE}/.github/scripts/dataSources/startup/iotdb12_windows.sh" ${{ inputs.IoTDB12-ports }}
+              wsl bash "${GITHUB_WORKSPACE}/.github/scripts/dataSources/startup/iotdb12_windows.sh" ${{ inputs.IoTDB12-ports }}
 
         - if: inputs.DB-name=='MongoDB'
           name: Setup DB
