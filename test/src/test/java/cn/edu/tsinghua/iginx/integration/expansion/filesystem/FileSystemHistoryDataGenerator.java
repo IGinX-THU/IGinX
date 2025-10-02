@@ -139,27 +139,34 @@ public class FileSystemHistoryDataGenerator extends BaseHistoryDataGenerator {
 
   private void writeSpecificDirectoriesAndFiles() {
     // test
-    // └── csv
-    //     └── lineitem.csv
-    // └── a
-    //     ├── b
-    //     │   └── c
-    //     │       └── d
-    //     │           └── 1.txt
-    //     ├── e
-    //     │   └── 2.txt
-    //     ├── f
-    //     │   └── g
-    //     │       └── 3.txt
-    //     ├── Iris.parquet
-    //     ├── floatTest.parquet
-    //     ├── lineitem.tsv
-    //     └── other
-    //         ├── MT cars.parquet
-    //         └── price.parquet
-    // └── escape (仅在 linux 和 mac 上创建)
-    //     └── path
-    //         └── a\nb.txt
+    // ├── csv
+    // │   └── lineitem.csv
+    // ├── a
+    // │   ├── b
+    // │   │   └── c
+    // │   │       └── d
+    // │   │           └── 1.txt
+    // │   ├── e
+    // │   │   └── 2.txt
+    // │   ├── f
+    // │   │   └── g
+    // │   │       └── 3.txt
+    // │   ├── Iris.parquet
+    // │   ├── floatTest.parquet
+    // │   ├── lineitem.tsv
+    // │   └── other
+    // │       ├── MT cars.parquet
+    // │       └── price.parquet
+    // ├── escape (仅在 linux 和 mac 上创建)
+    // │   └── path
+    // │       └── a\nb.txt
+    // └── txt
+    //     ├── dir!@#$%^&()[]{};',.=+~ -目录
+    //     │   ├── example!@#$%^&()[]{};',.=+~ -.txt
+    //     │   └── 示例!@#$%^&()[]{};',.=+~ -.TXT
+    //     └── dir\Ndir\Ddir (仅在 linux 和 mac 上创建)
+    //         └── example.txt
+
     StringBuilder content1 = new StringBuilder();
     StringBuilder content2 = new StringBuilder();
     StringBuilder content3 = new StringBuilder();
@@ -193,6 +200,22 @@ public class FileSystemHistoryDataGenerator extends BaseHistoryDataGenerator {
 
     if (!isOnWin) {
       createAndWriteFile("abcdefg".getBytes(), "test", "escape", "path", "a\nb.txt");
+    }
+
+    String txtResourceDir = "dummy/txt/";
+    String specialName = "!@#$%^&()[]{};',.=+~ -";
+    String folderName = "dir" + specialName + "目录";
+    copyFileFromResource(
+        txtResourceDir + "example.txt",
+        Paths.get("test", "txt", folderName, "example" + specialName + ".txt"));
+    copyFileFromResource(
+        txtResourceDir + "example.txt",
+        Paths.get("test", "txt", folderName, "示例" + specialName + ".TXT"));
+
+    if (!isOnWin) {
+      copyFileFromResource(
+          txtResourceDir + "example.txt",
+          Paths.get("test", "txt", "dir\\Ndir\\Ddir", "example.txt"));
     }
   }
 
