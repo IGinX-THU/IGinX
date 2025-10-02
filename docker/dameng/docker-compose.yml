@@ -37,4 +37,4 @@ services:
       CASE_SENSITIVE: 0
       INSTANCE_NAME: dm8_test
     volumes:
-      - "/volumes/dameng:/opt/dmdbms/data"
+      - "./volumes/dameng:/opt/dmdbms/data"

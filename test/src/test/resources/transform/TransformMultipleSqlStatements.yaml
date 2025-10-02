@@ -1,6 +1,6 @@
 ---
 taskList:
-- taskType: "sql"
+- taskType: "iginx"
   timeout: 10000000
   sqlList:
   - "INSERT INTO us.d1 (key, s2) values (15000, 15001)(15001, 15002)(15002, 15003)(15003,\
