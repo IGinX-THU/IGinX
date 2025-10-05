@@ -24,25 +24,25 @@ import cn.edu.tsinghua.iginx.utils.TaskFromYAML;
 import java.util.ArrayList;
 import java.util.List;
 
-public class SQLTask extends Task {
+public class IginXTask extends Task {
 
   private final List<String> sqlList = new ArrayList<>();
 
-  public SQLTask(TaskInfo info) {
+  public IginXTask(TaskInfo info) {
     super(info);
     if (info.isSetSqlList()) {
       sqlList.addAll(info.getSqlList());
     } else {
-      throw new IllegalArgumentException("SQL task must have at least one SQL statement.");
+      throw new IllegalArgumentException("IginX task must have a SQL statement.");
     }
   }
 
-  public SQLTask(TaskFromYAML info) {
+  public IginXTask(TaskFromYAML info) {
     super(info);
     if (info.getSqlList() != null && !info.getSqlList().isEmpty()) {
       sqlList.addAll(info.getSqlList());
     } else {
-      throw new IllegalArgumentException("SQL task must have at least one SQL statement.");
+      throw new IllegalArgumentException("IginX task must have a SQL statement.");
     }
   }
 

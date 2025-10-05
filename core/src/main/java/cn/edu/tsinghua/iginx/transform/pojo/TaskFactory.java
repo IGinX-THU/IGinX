@@ -28,8 +28,8 @@ public class TaskFactory {
   public static Task getTask(TaskInfo info) {
     TaskType taskType = info.getTaskType();
 
-    if (taskType.equals(TaskType.SQL)) {
-      return new SQLTask(info);
+    if (taskType.equals(TaskType.IGINX)) {
+      return new IginXTask(info);
     } else if (taskType.equals(TaskType.PYTHON)) {
       return new PythonTask(info);
     } else {
@@ -40,7 +40,7 @@ public class TaskFactory {
   public static Task getTask(TaskFromYAML info) {
     String type = info.getTaskType().toLowerCase().trim();
     if (type.equals("iginx")) {
-      return new SQLTask(info);
+      return new IginXTask(info);
     } else if (type.equals("python")) {
       return new PythonTask(info);
     } else {

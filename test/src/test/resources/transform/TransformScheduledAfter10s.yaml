@@ -1,6 +1,6 @@
 ---
 taskList:
-- taskType: "sql"
+- taskType: "iginx"
   timeout: 10000000
   sqlList:
     - "show columns;"

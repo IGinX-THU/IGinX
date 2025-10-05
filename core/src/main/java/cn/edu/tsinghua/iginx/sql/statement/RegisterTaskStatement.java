@@ -94,7 +94,7 @@ public class RegisterTaskStatement extends SystemStatement {
               "Fail to register %d UDFs with %d types, the number should be same or use only one type.",
               pairs.size(), types.size());
       LOGGER.error(errorMsg);
-      return new Status(RpcUtils.FAILURE).setMessage(errorMsg);
+      return RpcUtils.FAILURE.setMessage(errorMsg);
     }
 
     // fail if trying to register UDFs with same class name or name.
@@ -104,12 +104,12 @@ public class RegisterTaskStatement extends SystemStatement {
       if (!tempName.add(p.name)) {
         errorMsg = String.format("Cannot register multiple UDFs with same name: %s", p.name);
         LOGGER.error(errorMsg);
-        return new Status(RpcUtils.FAILURE).setMessage(errorMsg);
+        return RpcUtils.FAILURE.setMessage(errorMsg);
       }
       if (!tempClass.add(p.classPath)) {
         errorMsg = String.format("Cannot register multiple UDFs with same class: %s", p.classPath);
         LOGGER.error(errorMsg);
-        return new Status(RpcUtils.FAILURE).setMessage(errorMsg);
+        return RpcUtils.FAILURE.setMessage(errorMsg);
       }
     }
     return RpcUtils.SUCCESS;

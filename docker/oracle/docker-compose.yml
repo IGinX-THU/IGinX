@@ -18,29 +18,18 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
----
-taskList:
-- taskType: "sql"
-  timeout: 10000000
-  sqlList:
-  - "SELECT s1, s2 FROM us.d1 WHERE key < 200;"
-- taskType: "python"
-  dataFlowType: "stream"
-  timeout: 10000000
-  pyTaskName: "AddOneTransformer"
-  outputPrefix: "addOne"
-- taskType: "sql"
-  timeout: 10000000
-  sqlList:
-    - "SELECT s1, s1, s2 FROM addOne.us.d1;"
-- taskType: "python"
-  dataFlowType: "batch"
-  timeout: 10000000
-  pyTaskName: "SumTransformerNoKey"
-- taskType: "python"
-  dataFlowType: "stream"
-  timeout: 10000000
-  pyTaskName: "RowSumTransformer"
-exportType: "file"
-exportFile: "test/src/test/resources/transform/export_file_mixed_python_And_SQL.txt"
+version: '3.5'
 
+services:
+  oracle:
+    image: container-registry.oracle.com/database/free:23.5.0.0-lite
+    container_name: oracle23
+    restart: always
+    privileged: true
+    ports:
+      - "1521:1521"
+    environment:
+      ORACLE_PDB: ORCLPDB
+      ORACLE_PWD: ORCLPWD
+    volumes:
+      - "./volumes/oradata:/opt/oracle/oradata"
