@@ -18,23 +18,17 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
----
-taskList:
-- taskType: "sql"
-  timeout: 10000000
-  sqlList:
-  - "select value1, value2, value3, value4 from transform;"
-- taskType: "python"
-  dataFlowType: "stream"
-  timeout: 10000000
-  pyTaskName: "AddOneTransformer"
-- taskType: "python"
-  dataFlowType: "batch"
-  timeout: 10000000
-  pyTaskName: "SumTransformer"
-- taskType: "python"
-  dataFlowType: "stream"
-  timeout: 10000000
-  pyTaskName: "RowSumTransformer"
-exportType: "file"
-exportFile: "/Users/cauchy-ny/Downloads/export_file_sum_sql.txt"
+import pandas as pd
+
+
+class SumTransformerNoKey:
+    def __init__(self):
+        pass
+
+    def transform(self, rows):
+        df = pd.DataFrame(rows[1:], columns=rows[0])
+        df = df.drop(columns=["key"])
+        df = pd.DataFrame(data=df.sum(axis=0)).transpose()
+        ret = df.values.tolist()
+        ret.insert(0, df.keys().values.tolist())
+        return ret
