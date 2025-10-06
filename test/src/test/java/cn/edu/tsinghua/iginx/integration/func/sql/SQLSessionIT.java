@@ -7896,4 +7896,102 @@ public class SQLSessionIT {
             + "Total line number = 5\n";
     executor.executeAndCompare(statement, expected);
   }
+
+  // 插入宽列表数据，确保能够正确FULL JOIN物理表，整合成一个逻辑表
+  private String buildInsertStatement(int columnSize, int rowSize, int startKey) {
+    StringBuilder builder = new StringBuilder("insert into wide_column(key,");
+    for (int i = 0; i < columnSize; i++) {
+      builder.append("c").append(i).append(",");
+    }
+    builder.deleteCharAt(builder.length() - 1);
+    builder.append(") values ");
+    for (int i = 0; i < rowSize; i++) {
+      builder.append("(").append(startKey + i).append(",").append(i % 10).append(",");
+      for (int j = 1; j < columnSize; j++) {
+        builder.append(i + j).append(",");
+      }
+      builder.deleteCharAt(builder.length() - 1);
+      builder.append("),");
+    }
+    builder.deleteCharAt(builder.length() - 1);
+    builder.append(";");
+    return builder.toString();
+  }
+
+  @Test
+  public void testWideColumnGroupBy() {
+    String insert = buildInsertStatement(2000, 100, 1);
+    executor.execute(insert);
+
+    String query = "select avg(c1999), c0 from wide_column group by c0 order by c0;";
+    String expected =
+        "ResultSets:\n"
+            + "+----------------------+--------------+\n"
+            + "|avg(wide_column.c1999)|wide_column.c0|\n"
+            + "+----------------------+--------------+\n"
+            + "|                2044.0|             0|\n"
+            + "|                2045.0|             1|\n"
+            + "|                2046.0|             2|\n"
+            + "|                2047.0|             3|\n"
+            + "|                2048.0|             4|\n"
+            + "|                2049.0|             5|\n"
+            + "|                2050.0|             6|\n"
+            + "|                2051.0|             7|\n"
+            + "|                2052.0|             8|\n"
+            + "|                2053.0|             9|\n"
+            + "+----------------------+--------------+\n"
+            + "Total line number = 10\n";
+    executor.executeAndCompare(query, expected);
+  }
+
+  @Test
+  public void testTableSuffixParsing() {
+    // 关系型数据库由于宽列支持，所有的表名在物理表中都会使用_作为分隔符编号，测试用于检测是否能够正常检出test和test_1
+    String insert1 =
+        "insert into test(key, a) values (0, 1700000000000), (1, 1705000000000), (2, 1710000000000), (3, 1715000000000), (4, 1720000000000);";
+    String insert2 =
+        "insert into test_1(key, a, b, c, d) values (0, 1, 1.1, true, \"2\"), (1, 3, 3.1, false, \"3\"), (2, 3, 3.1, false, \"3\");";
+    String insert3 = "INSERT INTO test_1_1(key, a) VALUES (1, 1), (2, 2), (3, 3);";
+    executor.execute(insert1);
+    executor.execute(insert2);
+    executor.execute(insert3);
+    String statement = "select * from test;";
+    String expected =
+        "ResultSets:\n"
+            + "+---+-------------+\n"
+            + "|key|       test.a|\n"
+            + "+---+-------------+\n"
+            + "|  0|1700000000000|\n"
+            + "|  1|1705000000000|\n"
+            + "|  2|1710000000000|\n"
+            + "|  3|1715000000000|\n"
+            + "|  4|1720000000000|\n"
+            + "+---+-------------+\n"
+            + "Total line number = 5\n";
+    executor.executeAndCompare(statement, expected);
+    statement = "select * from test_1;";
+    expected =
+        "ResultSets:\n"
+            + "+---+--------+--------+--------+--------+\n"
+            + "|key|test_1.a|test_1.b|test_1.c|test_1.d|\n"
+            + "+---+--------+--------+--------+--------+\n"
+            + "|  0|       1|     1.1|    true|       2|\n"
+            + "|  1|       3|     3.1|   false|       3|\n"
+            + "|  2|       3|     3.1|   false|       3|\n"
+            + "+---+--------+--------+--------+--------+\n"
+            + "Total line number = 3\n";
+    executor.executeAndCompare(statement, expected);
+    statement = "select * from test_1_1;";
+    expected =
+        "ResultSets:\n"
+            + "+---+----------+\n"
+            + "|key|test_1_1.a|\n"
+            + "+---+----------+\n"
+            + "|  1|         1|\n"
+            + "|  2|         2|\n"
+            + "|  3|         3|\n"
+            + "+---+----------+\n"
+            + "Total line number = 3\n";
+    executor.executeAndCompare(statement, expected);
+  }
 }
