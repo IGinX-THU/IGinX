@@ -93,10 +93,7 @@ if NOT DEFINED JAVA_HOME goto :err
 if ["%system_cpu_cores%"] LSS ["1"] set system_cpu_cores="1"
 
 set liner=0
-for /f  %%b in ('wmic ComputerSystem get TotalPhysicalMemory') do (
-	set /a liner+=1
-	if !liner!==2 set system_memory=%%b
-)
+for /f "tokens=*" %%a in ('powershell -NoProfile -Command "Get-CimInstance Win32_ComputerSystem | %% { $_.TotalPhysicalMemory }"') do set system_memory=%%a
 
 echo wsh.echo FormatNumber(cdbl(%system_memory%)/(1024*1024), 0) > %temp%\tmp.vbs
 for /f "tokens=*" %%a in ('cscript //nologo %temp%\tmp.vbs') do set system_memory_in_mb=%%a
