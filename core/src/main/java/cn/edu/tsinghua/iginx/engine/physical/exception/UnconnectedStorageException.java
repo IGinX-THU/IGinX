@@ -19,9 +19,11 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.exception;
 
-public class NonExecutablePhysicalTaskException extends PhysicalException {
+import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 
-  public NonExecutablePhysicalTaskException() {
-    super("storage physical task should have one more operators");
+public class UnconnectedStorageException extends PhysicalException {
+
+  public UnconnectedStorageException(OperatorType opType, long storageId) {
+    super(opType + " task failed for unconnected storage: " + storageId);
   }
 }

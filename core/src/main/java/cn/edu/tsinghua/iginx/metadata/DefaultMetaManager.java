@@ -26,6 +26,7 @@ import static cn.edu.tsinghua.iginx.metadata.utils.StorageEngineUtils.checkEmbed
 import static cn.edu.tsinghua.iginx.utils.HostUtils.convertHostNameToHostAddress;
 import static cn.edu.tsinghua.iginx.utils.HostUtils.isValidHost;
 
+import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.conf.Constants;
 import cn.edu.tsinghua.iginx.engine.physical.storage.StorageManager;
@@ -62,6 +63,7 @@ import org.slf4j.LoggerFactory;
 public class DefaultMetaManager implements IMetaManager {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(DefaultMetaManager.class);
+  private static final Config config = ConfigDescriptor.getInstance().getConfig();
   private static volatile DefaultMetaManager INSTANCE;
   private final IMetaCache cache;
 
@@ -85,7 +87,7 @@ public class DefaultMetaManager implements IMetaManager {
   private DefaultMetaManager() {
     cache = DefaultMetaCache.getInstance();
 
-    switch (ConfigDescriptor.getInstance().getConfig().getMetaStorage()) {
+    switch (config.getMetaStorage()) {
       case Constants.ZOOKEEPER_META:
         LOGGER.info("use zookeeper as meta storage.");
         storage = ZooKeeperMetaStorage.getInstance();
@@ -101,8 +103,7 @@ public class DefaultMetaManager implements IMetaManager {
         break;
       default:
         // without configuration, file storage should be the safe choice
-        LOGGER.info(
-            "unknown meta storage " + ConfigDescriptor.getInstance().getConfig().getMetaStorage());
+        LOGGER.info("unknown meta storage " + config.getMetaStorage());
         storage = null;
         System.exit(-1);
     }
@@ -122,7 +123,6 @@ public class DefaultMetaManager implements IMetaManager {
       initMaxActiveEndKeyStatistics();
       initReshardStatus();
       initReshardCounter();
-      initReplicaNum();
     } catch (MetaStorageException e) {
       LOGGER.error("init meta manager error: ", e);
       System.exit(-1);
@@ -215,10 +215,6 @@ public class DefaultMetaManager implements IMetaManager {
     storage.releaseReshardCounter();
   }
 
-  private void initReplicaNum() throws MetaStorageException {
-    storage.loadReplicaNum();
-  }
-
   private void initIginx() throws MetaStorageException {
     storage.registerIginxChangeHook(
         (id, iginx) -> {
@@ -226,13 +222,12 @@ public class DefaultMetaManager implements IMetaManager {
             cache.removeIginx(id);
           } else {
             cache.addIginx(iginx);
-            if (iginx.getIp().equals(ConfigDescriptor.getInstance().getConfig().getIp())
-                && iginx.getPort() == ConfigDescriptor.getInstance().getConfig().getPort()) {
+            if (iginx.getIp().equals(config.getIp()) && iginx.getPort() == config.getPort()) {
               return;
             }
             // 尝试与新进来的 iginx 建立连接
             Session session = new Session(iginx.iginxMetaInfo());
-            int MAX_RETRY_COUNT = ConfigDescriptor.getInstance().getConfig().getRetryCount();
+            int MAX_RETRY_COUNT = config.getRetryCount();
             int count = 0;
             while (count < MAX_RETRY_COUNT) {
               try {
@@ -269,12 +264,7 @@ public class DefaultMetaManager implements IMetaManager {
     for (IginxMeta iginx : storage.loadIginx().values()) {
       cache.addIginx(iginx);
     }
-    IginxMeta iginx =
-        new IginxMeta(
-            0L,
-            ConfigDescriptor.getInstance().getConfig().getIp(),
-            ConfigDescriptor.getInstance().getConfig().getPort(),
-            new HashMap<>());
+    IginxMeta iginx = new IginxMeta(0L, config.getIp(), config.getPort(), new HashMap<>());
     iginx = storage.registerIginx(iginx);
     id = iginx.getId();
     SnowFlakeUtils.init(id);
@@ -515,8 +505,7 @@ public class DefaultMetaManager implements IMetaManager {
         .getStorageEngineList()
         .forEach(
             s -> {
-              Set<Long> conns = cache.getStorageConnections().get(id);
-              if (conns != null && conns.contains(s.getId())) {
+              if (isStorageEngineInConnection(s.getId())) {
                 connectStorageEngines.add(s);
               }
             });
@@ -524,8 +513,14 @@ public class DefaultMetaManager implements IMetaManager {
   }
 
   @Override
+  public boolean isStorageEngineInConnection(long id) {
+    Set<Long> connectIds = cache.getStorageConnections().get(this.id);
+    return connectIds != null && connectIds.contains(id);
+  }
+
+  @Override
   public List<StorageEngineMeta> getWritableStorageEngineList() {
-    return cache.getStorageEngineList().stream()
+    return getConnectStorageEngines().stream()
         .filter(e -> !e.isReadOnly())
         .collect(Collectors.toList());
   }
@@ -1223,8 +1218,7 @@ public class DefaultMetaManager implements IMetaManager {
         getWritableStorageEngineList().stream()
             .map(StorageEngineMeta::getId)
             .collect(Collectors.toList());
-    if (storageEngineIdList.size()
-        <= 1 + ConfigDescriptor.getInstance().getConfig().getReplicaNum()) {
+    if (storageEngineIdList.size() <= 1 + config.getReplicaNum()) {
       return storageEngineIdList;
     }
     Random random = new Random();
@@ -1234,8 +1228,7 @@ public class DefaultMetaManager implements IMetaManager {
       storageEngineIdList.set(next, storageEngineIdList.get(i));
       storageEngineIdList.set(i, value);
     }
-    return storageEngineIdList.subList(
-        0, 1 + ConfigDescriptor.getInstance().getConfig().getReplicaNum());
+    return storageEngineIdList.subList(0, 1 + config.getReplicaNum());
   }
 
   @Override
@@ -1247,8 +1240,7 @@ public class DefaultMetaManager implements IMetaManager {
 
   private List<StorageEngineMeta> resolveStorageEngineFromConf() {
     List<StorageEngineMeta> storageEngineMetaList = new ArrayList<>();
-    String[] storageEngineStrings =
-        ConfigDescriptor.getInstance().getConfig().getStorageEngineList().split(",");
+    String[] storageEngineStrings = config.getStorageEngineList().split(",");
     for (int i = 0; i < storageEngineStrings.length; i++) {
       if (storageEngineStrings[i].isEmpty()) {
         continue;
@@ -1342,8 +1334,8 @@ public class DefaultMetaManager implements IMetaManager {
   }
 
   private UserMeta resolveUserFromConf() {
-    String username = ConfigDescriptor.getInstance().getConfig().getUsername();
-    String password = ConfigDescriptor.getInstance().getConfig().getPassword();
+    String username = config.getUsername();
+    String password = config.getPassword();
     UserType userType = UserType.Administrator;
     Set<AuthType> auths = new HashSet<>();
     auths.add(AuthType.Read);
@@ -1351,6 +1343,16 @@ public class DefaultMetaManager implements IMetaManager {
     auths.add(AuthType.Admin);
     auths.add(AuthType.Cluster);
     return new UserMeta(username, password, userType, auths);
+  }
+
+  @Override
+  public int setReplicaNum(int replicaNum) {
+    try {
+      return storage.setReplicaNum(replicaNum);
+    } catch (MetaStorageException e) {
+      LOGGER.error("set replica number error: ", e);
+      return replicaNum;
+    }
   }
 
   @Override
@@ -1644,12 +1646,7 @@ public class DefaultMetaManager implements IMetaManager {
   @Override
   public void updateMaxActiveEndKey(long endKey) {
     maxActiveEndKey.getAndUpdate(
-        e ->
-            Math.max(
-                e,
-                endKey
-                    + ConfigDescriptor.getInstance().getConfig().getReshardFragmentTimeMargin()
-                        * 1000));
+        e -> Math.max(e, endKey + config.getReshardFragmentTimeMargin() * 1000));
   }
 
   @Override

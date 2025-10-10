@@ -239,6 +239,12 @@ public class ConfigDescriptor {
           properties.getProperty(
               "ruleBasedOptimizer",
               "NotFilterRemoveRule=on,FragmentPruningByFilterRule=on,ColumnPruningRule=on,FragmentPruningByPatternRule=on"));
+      config.setInitialReconnectInterval(
+          Long.parseLong(properties.getProperty("initialReconnectInterval", "2")));
+      config.setMaxReconnectInterval(
+          Long.parseLong(properties.getProperty("maxReconnectInterval", "128")));
+      config.setReconnectBackoffMultiplier(
+          Integer.parseInt(properties.getProperty("reconnectBackoffMultiplier", "2")));
     } catch (IOException e) {
       loadPropsFromEnv();
       if (!config.isUTTestEnv()) {
@@ -367,6 +373,12 @@ public class ConfigDescriptor {
     config.setUTTestEnv(EnvUtils.loadEnv("utTestEnv", config.isUTTestEnv()));
     config.setRuleBasedOptimizer(
         EnvUtils.loadEnv("ruleBasedOptimizer", config.getRuleBasedOptimizer()));
+    config.setInitialReconnectInterval(
+        EnvUtils.loadEnv("initialReconnectInterval", config.getInitialReconnectInterval()));
+    config.setMaxReconnectInterval(
+        EnvUtils.loadEnv("maxReconnectInterval", config.getMaxReconnectInterval()));
+    config.setReconnectBackoffMultiplier(
+        EnvUtils.loadEnv("reconnectBackoffMultiplier", config.getReconnectBackoffMultiplier()));
   }
 
   private void loadUDFListFromFile() {

@@ -19,15 +19,19 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.storage.reconnect;
 
+import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import org.quartz.JobDetail;
 
 public class ReconnectState {
 
-  private static final long INITIAL_RECONNECT_INTERVAL = 2; // 初始重连间隔（秒）
+  private static final long INITIAL_RECONNECT_INTERVAL =
+      ConfigDescriptor.getInstance().getConfig().getInitialReconnectInterval(); // 初始重连间隔（秒）
 
-  private static final long MAX_RECONNECT_INTERVAL = 128; // 最大重连间隔（秒）
+  private static final long MAX_RECONNECT_INTERVAL =
+      ConfigDescriptor.getInstance().getConfig().getMaxReconnectInterval(); // 最大重连间隔（秒）
 
-  private static final int BACKOFF_MULTIPLIER = 2; // 重连间隔增长倍数
+  private static final int RECONNECT_BACKOFF_MULTIPLIER =
+      ConfigDescriptor.getInstance().getConfig().getReconnectBackoffMultiplier(); // 重连间隔增长倍数
 
   private final JobDetail jobDetail;
 
@@ -40,7 +44,7 @@ public class ReconnectState {
 
   public long calculateNextInterval() {
     if (nextInterval < MAX_RECONNECT_INTERVAL) {
-      nextInterval = Math.min(nextInterval * BACKOFF_MULTIPLIER, MAX_RECONNECT_INTERVAL);
+      nextInterval = Math.min(nextInterval * RECONNECT_BACKOFF_MULTIPLIER, MAX_RECONNECT_INTERVAL);
     }
     return nextInterval;
   }

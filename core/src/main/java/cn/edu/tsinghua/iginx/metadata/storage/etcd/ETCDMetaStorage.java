@@ -23,7 +23,6 @@ import static cn.edu.tsinghua.iginx.metadata.storage.constant.Constant.*;
 import static cn.edu.tsinghua.iginx.metadata.utils.ColumnsIntervalUtils.fromString;
 import static cn.edu.tsinghua.iginx.metadata.utils.ReshardStatus.*;
 
-import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.metadata.cache.IMetaCache;
@@ -2801,25 +2800,24 @@ public class ETCDMetaStorage implements IMetaStorage {
   }
 
   @Override
-  public void loadReplicaNum() throws MetaStorageException {
+  public int setReplicaNum(int replicaNum) throws MetaStorageException {
+    int ret = replicaNum;
     try {
       lockReplicaNum();
-      Config config = ConfigDescriptor.getInstance().getConfig();
       GetResponse response =
           this.client.getKVClient().get(ByteSequence.from(REPLICA_NUM_NODE.getBytes())).get();
       if (response.getKvs().isEmpty()) {
-        // 系统第一次启动，还没写入过replicaNum，将配置文件中的replicaNum持久化到etcd
+        // 系统第一次启动，还没写入过replicaNum，将replicaNum持久化到etcd
         this.client
             .getKVClient()
             .put(
                 ByteSequence.from(REPLICA_NUM_NODE.getBytes()),
-                ByteSequence.from(
-                    String.valueOf(config.getReplicaNum()).getBytes(StandardCharsets.UTF_8)))
+                ByteSequence.from(String.valueOf(replicaNum).getBytes(StandardCharsets.UTF_8)))
             .get();
       } else if (response.getCount() == 1) {
         // 从etcd中读取之前设置好的replicaNum
         byte[] data = response.getKvs().get(0).getValue().getBytes();
-        config.setReplicaNum(JsonUtils.fromJson(data, Integer.class));
+        ret = JsonUtils.fromJson(data, Integer.class);
       } else {
         throw new MetaStorageException("The kv count for REPLICA_NUM_NODE should be 1.");
       }
@@ -2831,5 +2829,6 @@ public class ETCDMetaStorage implements IMetaStorage {
         releaseReplicaNum();
       }
     }
+    return ret;
   }
 }

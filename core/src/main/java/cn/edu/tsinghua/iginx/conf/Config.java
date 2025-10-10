@@ -216,6 +216,16 @@ public class Config {
 
   private int batchSizeImportCsv = 10000;
 
+  /////////////
+
+  private long initialReconnectInterval = 2;
+
+  private long maxReconnectInterval = 128;
+
+  private int reconnectBackoffMultiplier = 2;
+
+  /////////////
+
   private boolean isUTTestEnv = false; // 是否是单元测试环境
 
   public int getMaxTimeseriesLength() {
@@ -922,5 +932,29 @@ public class Config {
 
   public void setDefaultScheduledTransformJobDir(String defaultScheduledTransformJobDir) {
     this.defaultScheduledTransformJobDir = defaultScheduledTransformJobDir;
+  }
+
+  public long getInitialReconnectInterval() {
+    return initialReconnectInterval;
+  }
+
+  public void setInitialReconnectInterval(long initialReconnectInterval) {
+    this.initialReconnectInterval = initialReconnectInterval;
+  }
+
+  public long getMaxReconnectInterval() {
+    return maxReconnectInterval;
+  }
+
+  public void setMaxReconnectInterval(long maxReconnectInterval) {
+    this.maxReconnectInterval = maxReconnectInterval;
+  }
+
+  public int getReconnectBackoffMultiplier() {
+    return reconnectBackoffMultiplier;
+  }
+
+  public void setReconnectBackoffMultiplier(int reconnectBackoffMultiplier) {
+    this.reconnectBackoffMultiplier = reconnectBackoffMultiplier;
   }
 }
