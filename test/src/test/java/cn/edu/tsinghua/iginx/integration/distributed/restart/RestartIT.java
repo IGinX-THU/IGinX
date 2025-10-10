@@ -352,7 +352,7 @@ public class RestartIT {
       session.executeSql(insert);
       assertTrue(expectSuccess);
       // 等待数据同步
-      Thread.sleep(2000);
+      Thread.sleep(5000);
     } catch (SessionException e) {
       assertFalse(expectSuccess);
       assertEquals(expectedMessage, e.getMessage());
