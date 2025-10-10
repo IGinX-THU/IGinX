@@ -27,7 +27,10 @@ import static org.junit.Assert.fail;
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
+import cn.edu.tsinghua.iginx.thrift.StorageEngineInfo;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,8 +38,6 @@ import org.slf4j.LoggerFactory;
 public class RestartIT {
 
   protected static final Logger LOGGER = LoggerFactory.getLogger(RestartIT.class);
-
-  protected static String SHOW_CLUSTER_INFO = "SHOW CLUSTER INFO;";
 
   protected static String SELECT_ALL = "select * from *;";
 
@@ -91,7 +92,7 @@ public class RestartIT {
       String expected =
           "ResultSets:\n"
               + "+---+----+---+\n"
-              + "|key| a.g|z.g|\n"
+              + "|key| a.m|z.g|\n"
               + "+---+----+---+\n"
               + "|  0|   0|  0|\n"
               + "|  1|  10| 10|\n"
@@ -117,11 +118,12 @@ public class RestartIT {
     try {
       session6888.openSession();
       testShowReplicaNumber(session6888);
+      testStorageConnectivity(session6888, Arrays.asList("true", "true", "false"));
 
       String expected =
           "ResultSets:\n"
               + "+---+----+---+\n"
-              + "|key| a.g|z.g|\n"
+              + "|key| a.m|z.g|\n"
               + "+---+----+---+\n"
               + "|  0|   0|  0|\n"
               + "|  1|  10| 10|\n"
@@ -137,7 +139,7 @@ public class RestartIT {
       expected =
           "ResultSets:\n"
               + "+---+----+---+\n"
-              + "|key| a.g|z.g|\n"
+              + "|key| a.m|z.g|\n"
               + "+---+----+---+\n"
               + "|  0|   0|  0|\n"
               + "|  1|  10| 10|\n"
@@ -159,7 +161,7 @@ public class RestartIT {
       expected =
           "ResultSets:\n"
               + "+---+----+---+\n"
-              + "|key| a.g|z.g|\n"
+              + "|key| a.m|z.g|\n"
               + "+---+----+---+\n"
               + "|  0|   0|  0|\n"
               + "|  1|  10| 10|\n"
@@ -186,11 +188,12 @@ public class RestartIT {
     try {
       session6889.openSession();
       testShowReplicaNumber(session6889);
+      testStorageConnectivity(session6889, Arrays.asList("false", "true", "true"));
 
       String expected =
           "ResultSets:\n"
               + "+---+----+---+\n"
-              + "|key| a.g|z.g|\n"
+              + "|key| a.m|z.g|\n"
               + "+---+----+---+\n"
               + "|  0|   0|  0|\n"
               + "|  1|  10| 10|\n"
@@ -207,7 +210,7 @@ public class RestartIT {
       expected =
           "ResultSets:\n"
               + "+---+----+---+\n"
-              + "|key| a.g|z.g|\n"
+              + "|key| a.m|z.g|\n"
               + "+---+----+---+\n"
               + "|  0|   0|  0|\n"
               + "|  1|  10| 10|\n"
@@ -221,7 +224,7 @@ public class RestartIT {
       // filesystem6668未启动，数据写入失败
       insert = "insert into z(key, g) values (4, 40);";
       testInsert(
-          session6888,
+          session6889,
           insert,
           false,
           "some sub-task execute failure, details: Insert task failed for unconnected storage: 0");
@@ -229,7 +232,7 @@ public class RestartIT {
       expected =
           "ResultSets:\n"
               + "+---+----+---+\n"
-              + "|key| a.g|z.g|\n"
+              + "|key| a.m|z.g|\n"
               + "+---+----+---+\n"
               + "|  0|   0|  0|\n"
               + "|  1|  10| 10|\n"
@@ -259,7 +262,53 @@ public class RestartIT {
       session6889.openSession();
       testShowReplicaNumber(session6888);
       testShowReplicaNumber(session6889);
-      // TODO
+      testStorageConnectivity(session6888, Arrays.asList("true", "true", "true"));
+      testStorageConnectivity(session6889, Arrays.asList("true", "true", "true"));
+
+      String expected =
+          "ResultSets:\n"
+              + "+---+----+---+\n"
+              + "|key| a.m|z.g|\n"
+              + "+---+----+---+\n"
+              + "|  0|   0|  0|\n"
+              + "|  1|  10| 10|\n"
+              + "|  2| 100| 20|\n"
+              + "|  3|1000| 30|\n"
+              + "|  4|null| 40|\n"
+              + "+---+----+---+\n"
+              + "Total line number = 5\n";
+      testSelect(session6888, expected);
+
+      expected =
+          "ResultSets:\n"
+              + "+---+----+---+\n"
+              + "|key| a.m|z.g|\n"
+              + "+---+----+---+\n"
+              + "|  0|   0|  0|\n"
+              + "|  1|  10| 10|\n"
+              + "|  2| 100| 20|\n"
+              + "|  3|1000| 30|\n"
+              + "|  4|null| 40|\n"
+              + "+---+----+---+\n"
+              + "Total line number = 5\n";
+      testSelect(session6889, expected);
+
+      String insert = "insert into a(key, m) values (4, 10000);";
+      testInsert(session6889, insert, true, "");
+
+      expected =
+          "ResultSets:\n"
+              + "+---+-----+---+\n"
+              + "|key|  a.m|z.g|\n"
+              + "+---+-----+---+\n"
+              + "|  0|    0|  0|\n"
+              + "|  1|   10| 10|\n"
+              + "|  2|  100| 20|\n"
+              + "|  3| 1000| 30|\n"
+              + "|  4|10000| 40|\n"
+              + "+---+-----+---+\n"
+              + "Total line number = 5\n";
+      testSelect(session6888, expected);
 
     } catch (SessionException e) {
       LOGGER.error("fail to open session, caused by: ", e);
@@ -284,7 +333,17 @@ public class RestartIT {
     }
   }
 
-  private void testStorageConnectivity(List<Boolean> expected) {}
+  private void testStorageConnectivity(Session session, List<String> expected) {
+    try {
+      List<StorageEngineInfo> storages = session.getClusterInfo().getStorageEngineInfos();
+      assertEquals(
+          expected,
+          storages.stream().map(StorageEngineInfo::getConnectable).collect(Collectors.toList()));
+    } catch (SessionException e) {
+      LOGGER.error("fail to show cluster info, caused by: ", e);
+      fail();
+    }
+  }
 
   private void testInsert(
       Session session, String insert, boolean expectSuccess, String expectedMessage) {

@@ -153,24 +153,47 @@ public class StoragePhysicalTaskExecutor {
         Operator op = operators.get(0);
 
         String storageUnit = task.getStorageUnit();
+        StorageUnitMeta masterStorageUnit = task.getTargetFragment().getMasterStorageUnit();
+        List<StorageUnitMeta> replicas = masterStorageUnit.getReplicas();
+        replicas.add(masterStorageUnit);
         switch (op.getType()) {
           case Project:
             if (!hasInitialized) {
               p = reconnectStorage(storageId);
-              if (p == null) { // 重连失败，返回一个空的结果集
-                task.setResult(new TaskExecuteResult(new EmptyRowStream()));
-                executeParentTaskIfNeed(task);
-                continue;
-              }
-              hasInitialized = true;
+              hasInitialized = p != null;
             }
+
+            // 重连失败，尝试更换为副本中的数据
+            if (!hasInitialized) {
+              boolean foundAvailableStorage = false;
+              for (StorageUnitMeta replica : replicas) {
+                if (replica.getId().equals(storageUnit)) {
+                  continue;
+                }
+                long replicaId = replica.getStorageEngineId();
+                if (metaManager.isStorageEngineInConnection(replicaId)
+                    || reconnectStorage(replicaId) != null) {
+                  foundAvailableStorage = true;
+                  storageTaskQueues.get(replica.getId()).addTask(task);
+                  break;
+                }
+              }
+
+              // 未找到可用的存储单元，查询失败
+              if (!foundAvailableStorage) {
+                List<Long> storageIds =
+                    replicas.stream()
+                        .map(StorageUnitMeta::getStorageEngineId)
+                        .collect(Collectors.toList());
+                task.setResult(new TaskExecuteResult(new UnconnectedStorageException(storageIds)));
+                executeParentTaskIfNeed(task);
+              }
+              continue;
+            }
+
             break;
           case Insert:
           case Delete:
-            StorageUnitMeta masterStorageUnit = task.getTargetFragment().getMasterStorageUnit();
-            List<StorageUnitMeta> replicas = masterStorageUnit.getReplicas();
-            replicas.add(masterStorageUnit);
-
             if (!hasInitialized) {
               p = reconnectStorage(storageId);
               if (p == null) { // 重连失败，则写入/删除失败

@@ -86,7 +86,7 @@ jobs:
             - name: Change IGinX-6888 config
               uses: ./.github/actions/edit
               with:
-                  paths: conf/config.properties
+                  paths: core/target/iginx-core-${VERSION}/conf/config.properties
                   statements: |
                       s/client.connectPool.maxTotal=100/client.connectPool.maxTotal=100,127.0.0.1#6667#iotdb12#username=root#password=root#sessionPoolSize=20#has_data=false#is_read_only=false/g
                       s/replicaNum=0/replicaNum=1/g
@@ -110,9 +110,7 @@ jobs:
             - name: Stop IGinX-6889
               uses: ./.github/actions/iginxRunner
               with:
-                  iginx-home-path: IGinX-6889/iginx-core-${VERSION}
                   iginx-port: "6889"
-                  rest-port: "7889"
                   if-stop: true
 
             - name: Prepare Data For IGinX-6888
@@ -138,9 +136,7 @@ jobs:
             - name: Stop IGinX-6889
               uses: ./.github/actions/iginxRunner
               with:
-                  iginx-home-path: IGinX-6889/iginx-core-${VERSION}
                   iginx-port: "6889"
-                  rest-port: "7889"
                   if-stop: true
 
             - name: Start IGinX-6888
@@ -169,9 +165,7 @@ jobs:
             - name: Stop IGinX-6889
               uses: ./.github/actions/iginxRunner
               with:
-                  iginx-home-path: IGinX-6889/iginx-core-${VERSION}
                   iginx-port: "6889"
-                  rest-port: "7889"
                   if-stop: true
 
             - name: Start IGinX-6888

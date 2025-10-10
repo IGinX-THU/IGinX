@@ -78,4 +78,4 @@ runs:
           shell: bash
           run: |
               chmod +x "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx_kill.sh"
-              "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx_kill.sh"
+              "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx_kill.sh" ${{ inputs.iginx-port }}
