@@ -348,6 +348,7 @@ public class RestartIT {
   private void testInsert(
       Session session, String insert, boolean expectSuccess, String expectedMessage) {
     try {
+      LOGGER.info("executing: {}", insert);
       session.executeSql(insert);
       assertTrue(expectSuccess);
     } catch (SessionException e) {
@@ -358,6 +359,7 @@ public class RestartIT {
 
   private void testSelect(Session session, String expected) {
     try {
+      LOGGER.info("executing: {}", SELECT_ALL);
       SessionExecuteSqlResult res = session.executeSql(SELECT_ALL);
       assertEquals(expected, res.getResultInString(false, ""));
     } catch (SessionException e) {
