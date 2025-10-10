@@ -351,6 +351,7 @@ public class RestartIT {
       LOGGER.info("executing: {}", insert);
       session.executeSql(insert);
       assertTrue(expectSuccess);
+      // 等待数据同步
       Thread.sleep(2000);
     } catch (SessionException e) {
       assertFalse(expectSuccess);

@@ -30,7 +30,7 @@ on:
                 default: 30
 
 jobs:
-    Cluster-Test:
+    Restart-Test:
         timeout-minutes: ${{ inputs.timeout-minutes }}
         strategy:
             fail-fast: false
