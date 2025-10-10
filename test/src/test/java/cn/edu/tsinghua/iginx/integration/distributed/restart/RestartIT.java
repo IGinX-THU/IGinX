@@ -351,9 +351,12 @@ public class RestartIT {
       LOGGER.info("executing: {}", insert);
       session.executeSql(insert);
       assertTrue(expectSuccess);
+      Thread.sleep(2000);
     } catch (SessionException e) {
       assertFalse(expectSuccess);
       assertEquals(expectedMessage, e.getMessage());
+    } catch (InterruptedException e) {
+      fail();
     }
   }
 
