@@ -154,7 +154,7 @@ public class StoragePhysicalTaskExecutor {
 
         String storageUnit = task.getStorageUnit();
         StorageUnitMeta masterStorageUnit = task.getTargetFragment().getMasterStorageUnit();
-        List<StorageUnitMeta> replicas = masterStorageUnit.getReplicas();
+        List<StorageUnitMeta> replicas = new ArrayList<>(masterStorageUnit.getReplicas());
         replicas.add(masterStorageUnit);
         switch (op.getType()) {
           case Project:
