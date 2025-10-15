@@ -42,7 +42,6 @@ import java.nio.file.Paths;
 import java.security.InvalidParameterException;
 import java.util.*;
 import java.util.regex.Pattern;
-
 import org.apache.commons.cli.*;
 import org.apache.commons.csv.CSVPrinter;
 import org.jline.reader.Completer;
@@ -90,7 +89,8 @@ public class IginxClient {
 
   private static final String SCRIPT_HINT = "./start-cli.sh(start-cli.bat if Windows)";
 
-  private static final Pattern EXIT_OR_QUIT_PATTERN = Pattern.compile("^\\s*(exit|quit)\\s*;\\s*$", Pattern.CASE_INSENSITIVE);
+  private static final Pattern EXIT_OR_QUIT_PATTERN =
+      Pattern.compile("^\\s*(exit|quit)\\s*;\\s*$", Pattern.CASE_INSENSITIVE);
 
   static String host = "127.0.0.1";
   static String port = "6888";
