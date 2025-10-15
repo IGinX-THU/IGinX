@@ -41,6 +41,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.InvalidParameterException;
 import java.util.*;
+import java.util.regex.Pattern;
 import org.apache.commons.cli.*;
 import org.apache.commons.csv.CSVPrinter;
 import org.jline.reader.Completer;
@@ -146,7 +147,7 @@ public class IginxClient {
 
   static {
     // 注册一些基础命令：\c 清空 buffer, \h 帮助(吞整行参数), \q 退出
-    registerCommand('c', "clear", false, "clear the query buffer.", new ClearCommand());
+    registerCommand('c', "clean", false, "clear the query buffer.", new ClearCommand());
     registerCommand('h', "help", true, "Display help.", new HelpCommand());
     registerCommand('q', "quit", false, "Quit the client.", new QuitCommand());
     registerCommand('q', "exit", false, "Quit the client.", new QuitCommand());
@@ -185,9 +186,8 @@ public class IginxClient {
 
   private static void showHelpList() {
     // todo: 模仿 mysql，完善输出的内容
-    System.out.println(
-        "List of all IGinX commands:\n"
-            + "Note that all text commands must be first on line and end with ';'");
+    System.out.println("List of all IGinX commands:\n" +
+            "Note that all text commands must be first on line and end with ';'");
     for (CommandDef def : COMMANDS) {
       System.out.printf("  \\%c    %-10s   %s\n", def.ch, def.name, def.help);
     }
@@ -470,7 +470,9 @@ public class IginxClient {
     return n;
   }
 
-  /** 查找长格式的客户端命令，如 quit、help、print，大小写不敏感 */
+  /**
+   * 查找长格式的客户端命令，如 quit、help、print，大小写不敏感
+   */
   private static CommandDef findCommand(String s, int startPos) {
     if (s == null || startPos < 0 || startPos >= s.length()) {
       return null;
@@ -492,7 +494,9 @@ public class IginxClient {
     return null;
   }
 
-  /** 查找短格式的客户端命令，如 \q、\h、\p，大小写敏感 */
+  /**
+   * 查找短格式的客户端命令，如 \q、\h、\p，大小写敏感
+   */
   private static CommandDef findCommand(char ch) {
     for (CommandDef cmd : COMMANDS) {
       if (cmd.ch == ch) {
