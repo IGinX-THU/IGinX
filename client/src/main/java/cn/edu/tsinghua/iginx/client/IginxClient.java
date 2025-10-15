@@ -42,6 +42,7 @@ import java.nio.file.Paths;
 import java.security.InvalidParameterException;
 import java.util.*;
 import java.util.regex.Pattern;
+
 import org.apache.commons.cli.*;
 import org.apache.commons.csv.CSVPrinter;
 import org.jline.reader.Completer;
@@ -89,6 +90,8 @@ public class IginxClient {
 
   private static final String SCRIPT_HINT = "./start-cli.sh(start-cli.bat if Windows)";
 
+  private static final Pattern EXIT_OR_QUIT_PATTERN = Pattern.compile("^\\s*(exit|quit)\\s*;\\s*$", Pattern.CASE_INSENSITIVE);
+
   static String host = "127.0.0.1";
   static String port = "6888";
   static String username = "root";
@@ -107,113 +110,6 @@ public class IginxClient {
 
   private static final StringBuilder buffer = new StringBuilder();
   private static final StringBuilder validSqlBuffer = new StringBuilder();
-
-  private static final Character DEFAULT_DELIMITER = ';';
-
-  // 状态机的状态
-  enum State {
-    NORMAL, // 普通代码
-    SINGLE_QUOTE, // 单引号字符串
-    DOUBLE_QUOTE, // 双引号字符串
-    BACKTICK_QUOTE, // 反引号标识符
-    BLOCK_COMMENT // /* ... */ 块注释，可嵌套
-  }
-
-  private static State state = State.NORMAL;
-  private static int blockCommentDepth = 0;
-
-  // --- 命令表相关 ---
-  private interface CommandHandler {
-    OperationResult handle(String param) throws Exception;
-  }
-
-  private static class CommandDef {
-    final char ch;
-    final String name;
-    final boolean takesParams;
-    final String help;
-    final CommandHandler handler;
-
-    CommandDef(char ch, String name, boolean takesParams, String help, CommandHandler handler) {
-      this.ch = ch;
-      this.name = name;
-      this.takesParams = takesParams;
-      this.help = help;
-      this.handler = handler;
-    }
-  }
-
-  private static final List<CommandDef> COMMANDS = new ArrayList<>();
-
-  static {
-    // 注册一些基础命令：\c 清空 buffer, \h 帮助(吞整行参数), \q 退出
-    registerCommand('c', "clean", false, "clear the query buffer.", new ClearCommand());
-    registerCommand('h', "help", true, "Display help.", new HelpCommand());
-    registerCommand('q', "quit", false, "Quit the client.", new QuitCommand());
-    registerCommand('q', "exit", false, "Quit the client.", new QuitCommand());
-    registerCommand('p', "print", false, "Print current command.", new PrintCommand());
-    // todo: 注册更多客户端指令
-  }
-
-  private static void registerCommand(
-      char ch, String name, boolean takesParams, String help, CommandHandler handler) {
-    COMMANDS.add(new CommandDef(ch, name, takesParams, help, handler));
-  }
-
-  private static class ClearCommand implements CommandHandler {
-    @Override
-    public OperationResult handle(String param) {
-      buffer.setLength(0);
-      validSqlBuffer.setLength(0);
-      System.out.println("Query buffer cleared.");
-      return OperationResult.DO_NOTHING;
-    }
-  }
-
-  private static class HelpCommand implements CommandHandler {
-    @Override
-    public OperationResult handle(String param) {
-      String p = (param == null) ? "" : param.trim();
-      if (!p.isEmpty()) {
-        if (p.startsWith("\\")) p = p.substring(1).trim();
-        showHelpForParam(p);
-      } else {
-        showHelpList();
-      }
-      return OperationResult.DO_NOTHING;
-    }
-  }
-
-  private static void showHelpList() {
-    // todo: 模仿 mysql，完善输出的内容
-    System.out.println("List of all IGinX commands:\n" +
-            "Note that all text commands must be first on line and end with ';'");
-    for (CommandDef def : COMMANDS) {
-      System.out.printf("  \\%c    %-10s   %s\n", def.ch, def.name, def.help);
-    }
-  }
-
-  private static void showHelpForParam(String param) {
-    System.out.println("showHelpForParam, param is : " + param);
-    // todo: 需要实现 HELP SQL 指令，比如 "HELP INSERT"，传给server后，server能返回相应的帮助提示
-  }
-
-  private static class QuitCommand implements CommandHandler {
-    @Override
-    public OperationResult handle(String param) {
-      return OperationResult.STOP;
-    }
-  }
-
-  private static class PrintCommand implements CommandHandler {
-    @Override
-    public OperationResult handle(String param) {
-      System.out.println("--------------");
-      System.out.println(buffer);
-      System.out.println("--------------");
-      return OperationResult.DO_NOTHING;
-    }
-  }
 
   private static Options createOptions() {
     Options options = new Options();
@@ -248,6 +144,18 @@ public class IginxClient {
     }
     return true;
   }
+
+  // 状态机的状态
+  enum State {
+    NORMAL, // 普通代码
+    SINGLE_QUOTE, // 单引号字符串
+    DOUBLE_QUOTE, // 双引号字符串
+    BACKTICK_QUOTE, // 反引号标识符
+    BLOCK_COMMENT // /* ... */ 块注释，可嵌套
+  }
+
+  private static State state = State.NORMAL;
+  private static int blockCommentDepth = 0;
 
   public static void main(String[] args) {
     Options options = createOptions();
@@ -395,147 +303,13 @@ public class IginxClient {
     if (command == null || command.trim().isEmpty()) {
       return true;
     }
-
-    // 如果当前已经处于非 NORMAL 状态（例如在块注释或字符串中），直接按逐字符状态机处理
-    if (state != State.NORMAL) {
-      return processChars(command, 0);
-    }
-
-    // 在 NORMAL 状态下，先检查是否是长格式命令
-    int pos = findFirstNonSpaceNonComment(command, 0);
-    if (pos < command.length()) {
-      CommandDef def = findCommand(command, pos);
-      if (def != null) {
-        // 找到长格式命令，提取参数并执行
-        String param = "";
-        int commandEnd = pos + def.name.length();
-        if (commandEnd < command.length()) {
-          param = command.substring(commandEnd).trim();
-        }
-
-        try {
-          OperationResult result = def.handler.handle(param);
-          if (result == OperationResult.STOP) {
-            return false;
-          }
-          return true; // 命令执行完毕，继续循环
-        } catch (Exception e) {
-          System.out.println("Error executing command " + def.name + ": " + e.getMessage());
-          return true;
-        }
-      }
-    }
-
-    // 如果不是长格式命令，进入逐字符处理
-    return processChars(command, 0);
-  }
-
-  /** 在字符串 s 中从 from 开始查找第一个“非空白、非注释”的字符索引。如果遇到行注释 (-- ) 或者未闭合的块注释，认为该行后面没有非注释字符，直接返回 s.length()。 */
-  private static int findFirstNonSpaceNonComment(String s, int startIdx) {
-    int i = startIdx;
-    int n = s.length();
-    while (i < n) {
-      char c = s.charAt(i);
-      // 空白直接跳过
-      if (Character.isWhitespace(c)) {
-        i++;
-        continue;
-      }
-      // 行注释 -- 到行尾
-      if (c == '-' && i + 1 < n && s.charAt(i + 1) == '-') {
-        return n;
-      }
-      // 块注释 /* ... */ （支持嵌套）
-      if (c == '/' && i + 1 < n && s.charAt(i + 1) == '*') {
-        int depth = 1;
-        i += 2;
-        while (i + 1 < n && depth > 0) {
-          if (s.charAt(i) == '/' && s.charAt(i + 1) == '*') {
-            depth++;
-            i += 2;
-          } else if (s.charAt(i) == '*' && s.charAt(i + 1) == '/') {
-            depth--;
-            i += 2;
-          } else {
-            i++;
-          }
-        }
-        // 如果注释没有在本行闭合，认为本行没有后续的非注释字符
-        if (depth > 0) return n;
-        continue;
-      }
-      // 其它字符：找到了第一个非注释字符
-      return i;
-    }
-    return n;
-  }
-
-  /**
-   * 查找长格式的客户端命令，如 quit、help、print，大小写不敏感
-   */
-  private static CommandDef findCommand(String s, int startPos) {
-    if (s == null || startPos < 0 || startPos >= s.length()) {
-      return null;
-    }
-
-    int endPos = startPos;
-    while (endPos < s.length() && Character.isLetter(s.charAt(endPos))) {
-      endPos++;
-    }
-
-    String commandName = s.substring(startPos, endPos);
-
-    for (CommandDef cmd : COMMANDS) {
-      if (cmd.name.equalsIgnoreCase(commandName)) {
-        return cmd;
-      }
-    }
-
-    return null;
-  }
-
-  /**
-   * 查找短格式的客户端命令，如 \q、\h、\p，大小写敏感
-   */
-  private static CommandDef findCommand(char ch) {
-    for (CommandDef cmd : COMMANDS) {
-      if (cmd.ch == ch) {
-        return cmd;
-      }
-    }
-    return null;
-  }
-
-  /** 逐字符处理逻辑抽成函数，从 startIdx 开始处理字符串 command。 返回 true 表示继续 REPL 循环，false 表示退出（quit）。 */
-  private static boolean processChars(String command, int startIdx)
-      throws SessionException, IOException {
-    for (int i = startIdx; i < command.length(); i++) {
+    for (int i = 0; i < command.length(); i++) {
       char c = command.charAt(i);
       char next = (i + 1 < command.length()) ? command.charAt(i + 1) : '\0';
 
       switch (state) {
         case NORMAL:
-          if (c == '\\' && next != '\0') {
-            CommandDef def = findCommand(next);
-            if (def != null) {
-              String param = "";
-              if (def.takesParams) {
-                param = command.substring(i + 2).trim();
-                i = command.length();
-              } else {
-                i++;
-              }
-              try {
-                OperationResult r = def.handler.handle(param);
-                if (r == OperationResult.STOP) {
-                  return false;
-                }
-                continue;
-              } catch (Exception e) {
-                System.out.println("Error executing command \\" + def.ch + ": " + e.getMessage());
-              }
-            }
-          } else if (c == '-' && next == '-') { // -- 行注释
+          if (c == '-' && next == '-') { // -- 注释
             buffer.append(command.substring(i));
             buffer.append(System.lineSeparator());
             return true;
@@ -556,29 +330,11 @@ public class IginxClient {
             state = State.BACKTICK_QUOTE;
             buffer.append(c);
             validSqlBuffer.append(c);
-          } else if (c == DEFAULT_DELIMITER) {
-            OperationResult res;
-            int pos = findFirstNonSpaceNonComment(buffer.toString(), 0);
-            String bufferString = buffer.toString();
-            CommandDef def = findCommand(bufferString, pos);
-            if (def != null) {
-              // 找到长格式命令，提取参数并执行
-              String param = "";
-              int commandEnd = pos + def.name.length();
-              if (commandEnd < bufferString.length()) {
-                param = bufferString.substring(commandEnd).trim();
-              }
-              try {
-                res = def.handler.handle(param);
-              } catch (Exception e) {
-                System.out.println("Error executing command " + def.name + ": " + e.getMessage());
-                return true;
-              }
-            } else {
-              buffer.append(c);
-              validSqlBuffer.append(c);
-              res = handleInputStatement(buffer.toString());
-            }
+          } else if (c == ';') {
+            // 真正的结束符
+            buffer.append(c);
+            validSqlBuffer.append(c);
+            OperationResult res = handleInputStatement(buffer.toString());
             switch (res) {
               case STOP:
                 return false;
@@ -645,6 +401,9 @@ public class IginxClient {
       throws SessionException, IOException {
     String trimedStatement = statement.replaceAll(" +", " ").toLowerCase().trim();
 
+    if (EXIT_OR_QUIT_PATTERN.matcher(validSqlBuffer.toString()).matches()) {
+      return OperationResult.STOP;
+    }
     long startTime = System.currentTimeMillis();
     if (isSqlWithStream(trimedStatement)) {
       processSqlWithStream(statement);
