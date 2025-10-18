@@ -1197,7 +1197,7 @@ public class TransformIT {
     assertTrue(Files.deleteIfExists(Paths.get(outputFileName)));
   }
 
-  //    @Tes
+  //    @Test
   public void cancelJobTest() {
     LOGGER.info("cancelJobTest");
     try {
