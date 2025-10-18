@@ -34,7 +34,7 @@ runs:
           with:
               name: iotdb
               version: 0.12.6
-              url: "https://github.com/thulab/IginX-benchmarks/raw/main/resources/apache-iotdb-0.12.6-server-bin.zip"
+              url: "https://github.com/IGinX-THU/IGinX-resources/raw/main/resources/apache-iotdb-0.12.6-server-bin.zip"
               subdir: "apache-iotdb-0.12.6-server-bin"
               ext: "zip"
 
