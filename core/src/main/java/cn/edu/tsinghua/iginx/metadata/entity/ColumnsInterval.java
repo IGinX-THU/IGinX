@@ -21,6 +21,7 @@ package cn.edu.tsinghua.iginx.metadata.entity;
 
 import static cn.edu.tsinghua.iginx.engine.logical.utils.PathUtils.addSuffix;
 
+import cn.edu.tsinghua.iginx.metadata.utils.ColumnsIntervalUtils;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.util.Objects;
 
@@ -84,7 +85,7 @@ public final class ColumnsInterval implements Comparable<ColumnsInterval> {
 
   @Override
   public String toString() {
-    return startColumn + "-" + endColumn;
+    return ColumnsIntervalUtils.toString(this);
   }
 
   public String getSchemaPrefix() {
