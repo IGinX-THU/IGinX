@@ -214,14 +214,14 @@ jobs:
                   work-name: restart-iginx-meta
                   metadata: ${{ matrix.metadata }}
 
-            #            - name: TestController IT
-            #              if: always()
-            #              shell: bash -el {0}
-            #              env:
-            #                  METADATA_STORAGE: ${{ matrix.metadata }}
-            #              run: |
-            #                  chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/test_union.sh"
-            #                  mvn test -q -Dtest=Controller -DfailIfNoTests=false -P-format
+            - name: TestController IT
+              if: always()
+              shell: bash -el {0}
+              env:
+                  METADATA_STORAGE: ${{ matrix.metadata }}
+              run: |
+                  chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/test_union.sh"
+                  mvn test -q -Dtest=Controller -DfailIfNoTests=false -P-format
 
             - name: Show IGinX log
               if: always()
