@@ -215,6 +215,10 @@ public class SQLTestTools {
                   }
                 })
             .start();
+
+        // sleep 45s for new thread to print script output(30s timeout in script)
+        Thread.sleep(45000);
+
         return 0;
       } else {
         // 读取脚本输出

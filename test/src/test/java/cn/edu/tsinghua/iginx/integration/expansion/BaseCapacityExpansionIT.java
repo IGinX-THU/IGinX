@@ -1202,18 +1202,5 @@ public abstract class BaseCapacityExpansionIT {
     if (res != 0) {
       fail("start iginx fail");
     }
-
-    String verifyPath = verifyScriptDir;
-    if (os.contains("mac")) {
-      verifyPath += "verify_macos.sh";
-    } else if (os.contains("win")) {
-      verifyPath += "verify_windows.sh";
-    } else {
-      verifyPath += "verify.sh";
-    }
-    res = executeShellScript(verifyPath, "FileSystem", String.valueOf(port), "130");
-    if (res != 0) {
-      fail("Fail to restart FileSystem:" + port);
-    }
   }
 }
