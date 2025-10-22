@@ -52,7 +52,7 @@ public class RestServer implements Runnable {
     try {
       server = startServer();
     } catch (Exception e) {
-      LOGGER.error("启动Rest服务失败，请检查是否启动了IoTDB服务以及相关配置参数是否正确", e);
+      LOGGER.error("启动Rest服务({})失败，请检查是否启动了IoTDB服务以及相关配置参数是否正确", baseURI, e);
       System.exit(1);
     }
     LOGGER.info("Iginx REST server has been available at {}.", baseURI);

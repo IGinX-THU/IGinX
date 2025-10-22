@@ -21,7 +21,7 @@ package cn.edu.tsinghua.iginx.metadata.storage.constant;
 
 public class Constant {
 
-  public static final String IGINX_NODE_PREFIX = "/iginx";
+  public static final String IGINX_INFO_NODE_PREFIX = "/iginx/info";
 
   public static final String FRAGMENT_NODE_PREFIX = "/fragment";
 
@@ -29,7 +29,17 @@ public class Constant {
 
   public static final String STORAGE_ENGINE_NODE_PREFIX = "/storage";
 
+  public static final String IGINX_CONNECTION_NODE_PREFIX = "/iginx/connection-iginx";
+
+  public static final String STORAGE_CONNECTION_NODE_PREFIX = "/iginx/connection-storage";
+
+  public static final String IGINX_LOCK_NODE = "/lock/iginx";
+
   public static final String STORAGE_ENGINE_LOCK_NODE = "/lock/storage";
+
+  public static final String IGINX_CONNECTION_LOCK_NODE = "/lock/connection-iginx";
+
+  public static final String STORAGE_CONNECTION_LOCK_NODE = "/lock/connection-storage";
 
   public static final String FRAGMENT_LOCK_NODE = "/lock/fragment";
 
@@ -84,8 +94,6 @@ public class Constant {
 
   public static final String USER_LOCK_NODE = "/lock/user";
 
-  public static final String SCHEMA_MAPPING_PREFIX = "/schema";
-
   public static final String RESHARD_STATUS_LOCK_NODE = "/lock/status/reshard";
 
   public static final String RESHARD_COUNTER_LOCK_NODE = "/lock/counter/reshard";
@@ -98,4 +106,8 @@ public class Constant {
   public static final String FRAGMENT_HEAT_COUNTER_LOCK_NODE = "/lock/counter/fragment/heat";
 
   public static final String TIMESERIES_HEAT_COUNTER_LOCK_NODE = "/lock/counter/timeseries/heat";
+
+  public static final String REPLICA_NUM_NODE = "/replicaNum";
+
+  public static final String REPLICA_NUM_LOCK_NODE = "/lock/replicaNum";
 }

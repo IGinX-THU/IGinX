@@ -87,17 +87,13 @@ for %%i in (%*) do (
 if NOT DEFINED MAIN_CLASS set MAIN_CLASS=cn.edu.tsinghua.iginx.Iginx
 if NOT DEFINED JAVA_HOME goto :err
 
-
 @REM -----------------------------------------------------------------------------
 @REM Compute Memory for JVM configurations
 
 if ["%system_cpu_cores%"] LSS ["1"] set system_cpu_cores="1"
 
 set liner=0
-for /f  %%b in ('wmic ComputerSystem get TotalPhysicalMemory') do (
-	set /a liner+=1
-	if !liner!==2 set system_memory=%%b
-)
+for /f "tokens=*" %%a in ('powershell -NoProfile -Command "Get-CimInstance Win32_ComputerSystem | %% { $_.TotalPhysicalMemory }"') do set system_memory=%%a
 
 echo wsh.echo FormatNumber(cdbl(%system_memory%)/(1024*1024), 0) > %temp%\tmp.vbs
 for /f "tokens=*" %%a in ('cscript //nologo %temp%\tmp.vbs') do set system_memory_in_mb=%%a
@@ -129,7 +125,8 @@ set LOCAL_JAVA_OPTS=^
  -cp %CLASSPATH%^
  -DIGINX_HOME=%IGINX_HOME%^
  -DIGINX_DRIVER=%IGINX_DRIVER%^
- -DIGINX_CONF=%IGINX_CONF%
+ -DIGINX_CONF=%IGINX_CONF%^
+ -Dfile.encoding=UTF-8
 
 @REM set DRIVER=
 @REM setx DRIVER "%IGINX_HOME%\driver"

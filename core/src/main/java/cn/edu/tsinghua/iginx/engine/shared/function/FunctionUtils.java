@@ -204,11 +204,13 @@ public class FunctionUtils {
 
     String target = pathParams.get(0);
 
-    Pattern pattern = Pattern.compile(StringUtils.reformatPath(target) + ".*");
+    Pattern patternNormal = Pattern.compile(StringUtils.reformatPath(target));
+    Pattern patternTagKV = Pattern.compile(StringUtils.reformatPath(target) + ".*");
     List<Field> targetFields = new ArrayList<>();
     List<Integer> indices = new ArrayList<>();
     for (int i = 0; i < fields.size(); i++) {
       Field field = fields.get(i);
+      Pattern pattern = field.getTags().isEmpty() ? patternNormal : patternTagKV;
       if (pattern.matcher(field.getFullName()).matches()) {
         String name = function.getIdentifier() + "(";
         String fullName = function.getIdentifier() + "(";

@@ -86,14 +86,18 @@ public class TPCHNewIT {
       Assert.fail();
     }
 
+    TPCHUtils.showRules(session);
+
     ArrayListMultimap<String, Long> timeCosts =
         TPCHUtils.readTimeCostsFromFile(TPCHUtils.NEW_TIME_COSTS_PATH);
     for (String queryId : queryIds) {
       long timeCost = TPCHUtils.executeTPCHQuery(session, queryId, needValidate);
       timeCosts.get(queryId).add(timeCost);
-      System.out.printf(
-          "Successfully execute TPC-H query %s in new branch in iteration %d, time cost: %dms%n",
-          queryId, iterationTimes, timeCost);
+      LOGGER.info(
+          "Successfully execute TPC-H query {} in new branch in iteration {}, time cost: {}ms",
+          queryId,
+          iterationTimes,
+          timeCost);
     }
     TPCHUtils.clearAndRewriteTimeCostsToFile(timeCosts, TPCHUtils.NEW_TIME_COSTS_PATH);
   }

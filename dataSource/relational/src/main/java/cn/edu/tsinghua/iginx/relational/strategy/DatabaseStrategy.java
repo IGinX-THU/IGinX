@@ -19,7 +19,10 @@
  */
 package cn.edu.tsinghua.iginx.relational.strategy;
 
+import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
+import cn.edu.tsinghua.iginx.engine.physical.exception.StorageInitializationException;
 import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
+import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import com.zaxxer.hikari.HikariConfig;
@@ -28,6 +31,36 @@ import java.util.List;
 import java.util.Map;
 
 public interface DatabaseStrategy {
+  /**
+   * 初始化数据库连接
+   *
+   * @throws StorageInitializationException 如果存储初始化失败
+   */
+  Connection initConnection() throws StorageInitializationException;
+
+  /**
+   * 获取数据库连接
+   *
+   * @param databaseName 数据库名称
+   * @return 数据库连接对象
+   */
+  Connection getConnection(String databaseName);
+
+  /**
+   * 关闭数据库连接
+   *
+   * @param databaseName 数据库名称
+   * @throws SQLException 如果关闭连接时发生SQL异常
+   */
+  void closeConnection(String databaseName);
+
+  /**
+   * 释放底层连接
+   *
+   * @throws PhysicalException 如果释放资源时发生物理层异常
+   */
+  public void release() throws PhysicalException;
+
   /**
    * 获取带引号的标识符名称
    *
@@ -40,18 +73,16 @@ public interface DatabaseStrategy {
    * 根据数据库名称和存储引擎元数据生成数据库连接URL
    *
    * @param databaseName 数据库名称
-   * @param meta 存储引擎元数据
    * @return 完整的数据库连接URL
    */
-  String getUrl(String databaseName, StorageEngineMeta meta);
+  String getUrl(String databaseName);
 
   /**
    * 根据存储引擎元数据生成基本连接URL
    *
-   * @param meta 存储引擎元数据
    * @return 基本连接URL
    */
-  String getConnectUrl(StorageEngineMeta meta);
+  String getConnectUrl();
 
   void configureDataSource(HikariConfig config, String databaseName, StorageEngineMeta meta);
 
@@ -85,7 +116,7 @@ public interface DatabaseStrategy {
   /**
    * 执行批量数据插入操作（Upsert）
    *
-   * @param conn 数据库连接
+   * @param conn 数据库连接对象
    * @param databaseName 目标数据库名称
    * @param stmt SQL语句对象
    * @param tableToColumnEntries 表名到列信息的映射，包含表名、主键和列名列表
@@ -103,8 +134,17 @@ public interface DatabaseStrategy {
   /**
    * 获取用于平均值计算的类型转换表达式
    *
-   * @param param 需要计算平均值的表达式
+   * @param param 需要计算平均值的表达式，可能是一个列名或其他表达式
    * @return 包含类型转换的平均值表达式
    */
   String getAvgCastExpression(Expression param);
+
+  /**
+   * 从数据库的信息模式（information_schema）中获取边界信息（如列的起止范围）。
+   *
+   * @return 包含边界信息的ColumnsInterval对象
+   * @throws PhysicalException 物理层异常
+   * @throws SQLException SQL相关异常
+   */
+  ColumnsInterval getColumnsBoundary() throws PhysicalException, SQLException;
 }

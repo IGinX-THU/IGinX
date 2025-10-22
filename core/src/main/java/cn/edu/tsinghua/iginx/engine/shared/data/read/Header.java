@@ -25,6 +25,7 @@ import static cn.edu.tsinghua.iginx.engine.shared.Constants.RESERVED_COLS;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
 import cn.edu.tsinghua.iginx.engine.shared.Constants;
+import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.util.*;
@@ -34,6 +35,12 @@ public final class Header {
 
   public static final Header EMPTY_HEADER = new Header(Collections.emptyList());
 
+  public static final Header EMPTY_HEADER_WITH_KEY = new Header(Field.KEY, Collections.emptyList());
+
+  public static final Header SHOW_COLUMNS_HEADER =
+      new Header(
+          Arrays.asList(new Field("Path", DataType.BINARY), new Field("Type", DataType.BINARY)));
+
   private final Field key;
 
   private final List<Field> fields;
@@ -41,6 +48,8 @@ public final class Header {
   private final Map<String, Integer> indexMap;
 
   private final Map<String, List<Integer>> patternIndexCache;
+
+  private List<DataType> types = null;
 
   public Header(List<Field> fields) {
     this(null, fields);
@@ -118,6 +127,15 @@ public final class Header {
     }
   }
 
+  public List<DataType> getDataTypes() {
+    if (types != null) {
+      return types;
+    }
+    types = new ArrayList<>();
+    fields.forEach(field -> types.add(field.getType()));
+    return types;
+  }
+
   @Override
   public String toString() {
     return "Header{" + "key=" + key + ", fields=" + fields + '}';
@@ -138,28 +156,33 @@ public final class Header {
    *
    * @param patterns Project算子参数
    * @param isRemainKey Project算子参数
-   * @return 投影后的header
+   * @return 投影后的header、投影列的旧索引indexList
    */
-  public Header projectedHeader(List<String> patterns, boolean isRemainKey) {
+  public Pair<Header, List<Integer>> projectedHeader(List<String> patterns, boolean isRemainKey) {
     List<Field> targetFields = new ArrayList<>();
-    for (Field field : fields) {
+    List<Integer> indexList = new ArrayList<>();
+    for (int i = 0; i < fields.size(); i++) {
+      Field field = getField(i);
       if (isRemainKey && field.getName().endsWith("." + KEY)) {
         targetFields.add(field);
+        indexList.add(i);
         continue;
       }
       for (String pattern : patterns) {
         if (!StringUtils.isPattern(pattern)) {
           if (pattern.equals(field.getName())) {
             targetFields.add(field);
+            indexList.add(i);
           }
         } else {
           if (Pattern.matches(StringUtils.reformatPath(pattern), field.getName())) {
             targetFields.add(field);
+            indexList.add(i);
           }
         }
       }
     }
-    return new Header(key, targetFields);
+    return new Pair<>(new Header(key, targetFields), indexList);
   }
 
   /**
@@ -289,7 +312,7 @@ public final class Header {
    * @return 排序后的ReorderedHeaderWrapped类，包含header（排序后）、targetFields（保留的列的列表）、reorderMap（保留列新索引：旧索引）
    */
   public ReorderedHeaderWrapped reorderedHeaderWrapped(
-      List<String> patterns, List<Boolean> isPyUDFList) {
+      List<String> patterns, List<Boolean> isPyUDFList) throws PhysicalException {
     List<Field> targetFields = new ArrayList<>();
     Map<Integer, Integer> reorderMap = new HashMap<>();
 
@@ -313,10 +336,15 @@ public final class Header {
           }
         }
       } else {
+        Set<String> patternSet = new HashSet<>();
         for (int i = 0; i < fields.size(); i++) {
           Field field = getField(i);
           if (pattern.equals(field.getName())) {
+            if (patternSet.contains(field.getFullName())) {
+              throw new PhysicalException(String.format("Column '%s' is ambiguous.", pattern));
+            }
             matchedFields.add(new Pair<>(field, i));
+            patternSet.add(field.getFullName());
           }
         }
       }
@@ -343,7 +371,8 @@ public final class Header {
    * @param isPyUDFList 指示每列是否是udf返回的，是则不排序
    * @return 排序后的header
    */
-  public Header reorderedHeader(List<String> patterns, List<Boolean> isPyUDFList) {
+  public Header reorderedHeader(List<String> patterns, List<Boolean> isPyUDFList)
+      throws PhysicalException {
     return reorderedHeaderWrapped(patterns, isPyUDFList).getHeader();
   }
 

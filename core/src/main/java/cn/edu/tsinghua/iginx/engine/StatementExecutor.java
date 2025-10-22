@@ -795,8 +795,14 @@ public class StatementExecutor {
     process(ctx);
   }
 
-  private void setEmptyQueryResp(RequestContext ctx) throws PhysicalException {
+  private void setEmptyQueryResp(RequestContext ctx, List<String> paths, boolean hasKey) throws PhysicalException {
     Result result = new Result(RpcUtils.SUCCESS);
+//    if (hasKey) {
+//      result.setKeys(new Long[0]);
+//    }
+//    result.setValuesList(new ArrayList<>());
+//    result.setBitmapList(new ArrayList<>());
+//    result.setPaths(paths);
     BigIntVector vector =
         (BigIntVector)
             org.apache.arrow.vector.types.pojo.Field.notNullable(
@@ -854,7 +860,7 @@ public class StatementExecutor {
       return;
     }
     if (stream == null) {
-      setEmptyQueryResp(ctx);
+      setEmptyQueryResp(ctx, new ArrayList<>(), false);
       return;
     }
     LongAdder adder = new LongAdder();

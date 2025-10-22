@@ -168,13 +168,15 @@ public class Config {
 
   private String pythonCMD = "python3";
 
+  private long UDFTimeout = -1;
+
   private int transformTaskThreadPoolSize = 10;
 
   private int transformMaxRetryTimes = 3;
 
   private String defaultScheduledTransformJobDir = "transform_jobs";
 
-  private boolean needInitBasicUDFFunctions = true;
+  private boolean needInitBasicUDFFunctions = false;
 
   private List<String> udfList = new ArrayList<>();
 
@@ -222,6 +224,16 @@ public class Config {
   /////////////
 
   private int batchSizeImportCsv = 10000;
+
+  /////////////
+
+  private long initialReconnectInterval = 2;
+
+  private long maxReconnectInterval = 128;
+
+  private int reconnectBackoffMultiplier = 2;
+
+  /////////////
 
   private boolean isUTTestEnv = false; // 是否是单元测试环境
 
@@ -779,6 +791,14 @@ public class Config {
     this.pythonCMD = pythonCMD;
   }
 
+  public long getUDFTimeout() {
+    return UDFTimeout;
+  }
+
+  public void setUDFTimeout(long UDFTimeout) {
+    this.UDFTimeout = UDFTimeout;
+  }
+
   public int getTransformTaskThreadPoolSize() {
     return transformTaskThreadPoolSize;
   }
@@ -929,6 +949,30 @@ public class Config {
 
   public void setDefaultScheduledTransformJobDir(String defaultScheduledTransformJobDir) {
     this.defaultScheduledTransformJobDir = defaultScheduledTransformJobDir;
+  }
+
+  public long getInitialReconnectInterval() {
+    return initialReconnectInterval;
+  }
+
+  public void setInitialReconnectInterval(long initialReconnectInterval) {
+    this.initialReconnectInterval = initialReconnectInterval;
+  }
+
+  public long getMaxReconnectInterval() {
+    return maxReconnectInterval;
+  }
+
+  public void setMaxReconnectInterval(long maxReconnectInterval) {
+    this.maxReconnectInterval = maxReconnectInterval;
+  }
+
+  public int getReconnectBackoffMultiplier() {
+    return reconnectBackoffMultiplier;
+  }
+
+  public void setReconnectBackoffMultiplier(int reconnectBackoffMultiplier) {
+    this.reconnectBackoffMultiplier = reconnectBackoffMultiplier;
   }
 
   public int getExecutionBatchRowCount() {

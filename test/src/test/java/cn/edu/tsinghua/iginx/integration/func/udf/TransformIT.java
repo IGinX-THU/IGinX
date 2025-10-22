@@ -970,7 +970,8 @@ public class TransformIT {
       }
       try {
         session.removeStorageEngine(
-            Collections.singletonList(new RemovedStorageEngineInfo("127.0.0.1", 6660, "", "")));
+            Collections.singletonList(new RemovedStorageEngineInfo("127.0.0.1", 6660, "", "")),
+            true);
       } catch (SessionException e) {
         LOGGER.error("Remove read-only dummy engine failed:", e);
       }
@@ -1265,7 +1266,7 @@ public class TransformIT {
 
       verifyJobFinishedBlocked(jobId);
 
-      Assert.assertTrue(greenMail.waitForIncomingEmail(10 * 1000, 2));
+      Assert.assertTrue(greenMail.waitForIncomingEmail(20 * 1000, 2));
 
       assertEquals(2, greenMail.getReceivedMessages().length);
       assertEquals("Job " + jobId + " is created", greenMail.getReceivedMessages()[0].getSubject());

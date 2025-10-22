@@ -32,6 +32,7 @@ import cn.edu.tsinghua.iginx.utils.ByteUtils;
 import cn.edu.tsinghua.iginx.utils.RpcUtils;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import lombok.Data;
 import org.apache.arrow.memory.BufferAllocator;
@@ -177,6 +178,52 @@ public class Result {
 
     try {
       resp.setQueryArrowData(getArrowDataFromStream(allocator, fetchSize));
+//      List<String> paths = new ArrayList<>();
+//      List<Map<String, String>> tagsList = new ArrayList<>();
+//      List<DataType> types = new ArrayList<>();
+//
+//      Header header = resultStream.getHeader();
+//
+//      if (header.hasKey()) {
+//        paths.add(Field.KEY.getFullName());
+//        types.add(Field.KEY.getType());
+//        tagsList.add(new HashMap<>());
+//      }
+//
+//      resultStream
+//          .getHeader()
+//          .getFields()
+//          .forEach(
+//              field -> {
+//                paths.add(field.getFullName());
+//                types.add(field.getType());
+//                if (field.getTags() == null) {
+//                  tagsList.add(new HashMap<>());
+//                } else {
+//                  tagsList.add(field.getTags());
+//                }
+//              });
+//
+//      // 先估算元信息大小
+//      int metadataSize = SizeLimiter.estimateMetadataSize(paths, tagsList, types);
+//      LOGGER.info("metadataSize: {}", metadataSize);
+//      if (metadataSize > SizeLimiter.DEFAULT_MAX_BYTES) {
+//        LOGGER.warn(
+//            "size of metadata is {} bytes, which exceeds DEFAULT_MAX_BYTES(100MB)", metadataSize);
+//      }
+//
+//      // 收集行，直到达到 fetchSize 或超过默认最大字节数（100MB）
+//      SizeLimiter.LimitedResult limitedResult =
+//          SizeLimiter.collectRowsUntilLimit(
+//              resultStream, types, header.hasKey(), fetchSize, metadataSize);
+//      LOGGER.debug(
+//          "fetch {} rows, total size: {} bytes", limitedResult.rowCount, limitedResult.totalSize);
+//
+//      resp.setColumns(paths);
+//      resp.setTagsList(tagsList);
+//      resp.setDataTypeList(types);
+//      resp.setQueryDataSet(new QueryDataSetV2(limitedResult.valuesList, limitedResult.bitmapList));
+
       // OUTFILE AS STREAM
       resp.setExportStreamDir(exportByteStreamDir);
 
@@ -236,6 +283,106 @@ public class Result {
     } catch (IOException | PhysicalException e) {
       LOGGER.error("unexpected error when load row stream: ", e);
       resp.setStatus(RpcUtils.FAILURE);
+      // TODO
+//      List<DataType> types = new ArrayList<>();
+//
+//      Header header = resultStream.getHeader();
+//
+//      if (header.hasKey()) {
+//        types.add(Field.KEY.getType());
+//      }
+//
+//      resultStream.getHeader().getFields().forEach(field -> types.add(field.getType()));
+//
+//      // 收集行，直到达到 fetchSize 或超过默认最大字节数（100MB）
+//      SizeLimiter.LimitedResult limitedResult =
+//          SizeLimiter.collectRowsUntilLimit(resultStream, types, header.hasKey(), fetchSize, 0);
+//      LOGGER.debug(
+//          "fetch {} rows, total size: {} bytes", limitedResult.rowCount, limitedResult.totalSize);
+//
+//      resp.setHasMoreResults(resultStream.hasNext());
+//      resp.setQueryDataSet(new QueryDataSetV2(limitedResult.valuesList, limitedResult.bitmapList));
+//    } catch (PhysicalException e) {
+//      LOGGER.error("unexpected error when load row stream: ", e);
+//      resp.setStatus(RpcUtils.FAILURE);
+//    }
+//    return resp;
+//  }
+//
+//  static class SizeLimiter {
+//
+//    static final int DEFAULT_MAX_BYTES = 100 * 1024 * 1024; // 100MB
+//
+//    static class LimitedResult {
+//      public final List<ByteBuffer> valuesList;
+//      public final List<ByteBuffer> bitmapList;
+//      public final int totalSize;
+//      public final int rowCount;
+//
+//      public LimitedResult(
+//          List<ByteBuffer> valuesList, List<ByteBuffer> bitmapList, int totalSize, int rowCount) {
+//        this.valuesList = valuesList;
+//        this.bitmapList = bitmapList;
+//        this.totalSize = totalSize;
+//        this.rowCount = rowCount;
+//      }
+//    }
+//
+//    public static int estimateMetadataSize(
+//        List<String> paths, List<Map<String, String>> tagsList, List<DataType> types) {
+//      int size = 0;
+//      for (String path : paths) {
+//        size += path.getBytes(StandardCharsets.UTF_8).length;
+//      }
+//      for (Map<String, String> tags : tagsList) {
+//        for (Map.Entry<String, String> entry : tags.entrySet()) {
+//          size += entry.getKey().getBytes(StandardCharsets.UTF_8).length;
+//          size += entry.getValue().getBytes(StandardCharsets.UTF_8).length;
+//        }
+//      }
+//      size += types.size();
+//      return size;
+//    }
+//
+//    public static LimitedResult collectRowsUntilLimit(
+//        RowStream resultStream,
+//        List<DataType> types,
+//        boolean hasKey,
+//        int fetchSize,
+//        int initialSize)
+//        throws PhysicalException {
+//      List<ByteBuffer> valuesList = new ArrayList<>();
+//      List<ByteBuffer> bitmapList = new ArrayList<>();
+//
+//      int totalSize = initialSize;
+//      int rowCount = 0;
+//      while (resultStream.hasNext() && rowCount < fetchSize) {
+//        Row row = resultStream.next();
+//        Object[] rawValues = row.getValues();
+//        Object[] rowValues = rawValues;
+//        if (hasKey) {
+//          rowValues = new Object[rawValues.length + 1];
+//          rowValues[0] = row.getKey();
+//          System.arraycopy(rawValues, 0, rowValues, 1, rawValues.length);
+//        }
+//        ByteBuffer valueBuf = ByteUtils.getRowByteBuffer(rowValues, types);
+//        Bitmap bitmap = new Bitmap(rowValues.length);
+//        for (int i = 0; i < rowValues.length; i++) {
+//          if (rowValues[i] != null) {
+//            bitmap.mark(i);
+//          }
+//        }
+//        ByteBuffer bitmapBuf = ByteBuffer.wrap(bitmap.getBytes());
+//        valuesList.add(valueBuf);
+//        bitmapList.add(bitmapBuf);
+//        rowCount++;
+//        totalSize += valueBuf.remaining() + bitmapBuf.remaining();
+//        if (totalSize > DEFAULT_MAX_BYTES) {
+//          break;
+//        }
+//      }
+//
+//      return new LimitedResult(valuesList, bitmapList, totalSize, rowCount);
     }
     return resp;
   }

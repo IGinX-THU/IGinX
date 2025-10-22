@@ -104,7 +104,7 @@ public abstract class AbstractRelationalMeta {
 
   public abstract String getDropTableStatement();
 
-  public abstract boolean supportCreateDatabase();
+  public abstract boolean isSupportCreateDatabase();
 
   public abstract String getDropDatabaseStatement();
 
@@ -160,20 +160,30 @@ public abstract class AbstractRelationalMeta {
    *
    * @return 正则表达式的操作符
    */
-  public abstract String getRegexpOp();
+  public abstract String getRegexp();
 
   /**
    * 获取不匹配正则表达式的操作符
    *
    * @return 不匹配正则表达式的操作符
    */
-  public abstract String getNotRegexpOp();
+  public abstract String getNotRegexp();
+
+  public abstract boolean isSupportBooleanType();
 
   /** jdbc获取元数据是否支持反斜杠的识别 */
   public abstract boolean jdbcSupportSpecialChar();
 
   public abstract boolean jdbcSupportGetTableNameFromResultSet();
 
+  public abstract boolean isSupportBoundaryQuery();
+
   /** 设置是否支持创建数据库 */
   public void setSupportCreateDatabase(boolean supportCreateDatabase) {}
+
+  /** 获取单表的最大列数 */
+  public abstract int getMaxColumnNumLimit();
+
+  /** 获取单行的最大字节数 */
+  public abstract int getMaxSingleRowSizeLimit();
 }

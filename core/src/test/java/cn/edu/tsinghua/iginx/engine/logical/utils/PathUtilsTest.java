@@ -22,12 +22,16 @@ package cn.edu.tsinghua.iginx.engine.logical.utils;
 import static org.junit.Assert.assertEquals;
 
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
+import cn.edu.tsinghua.iginx.utils.Pair;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import org.junit.Test;
 
 public class PathUtilsTest {
 
   @Test
-  public void test() {
+  public void testTrimColumnsInterval() {
     ColumnsInterval interval1 = new ColumnsInterval("*", "*");
     ColumnsInterval expected1 = new ColumnsInterval(null, null);
     assertEquals(expected1, PathUtils.trimColumnsInterval(interval1));
@@ -47,5 +51,36 @@ public class PathUtilsTest {
     ColumnsInterval interval5 = new ColumnsInterval("a.*.*.c", "b.*.*.*.c");
     ColumnsInterval expected5 = new ColumnsInterval("a.!", "b.~");
     assertEquals(expected5, PathUtils.trimColumnsInterval(interval5));
+  }
+
+  @Test
+  public void testRecoverRenamedPattern() {
+    List<Pair<String, String>> aliasList1 = Collections.singletonList(new Pair<>("a.*", "b.*"));
+    String pattern1 = "b.a.d";
+    List<String> expected1 = Collections.singletonList("a.a.d");
+    assertEquals(expected1, PathUtils.recoverRenamedPattern(aliasList1, pattern1));
+
+    List<Pair<String, String>> aliasList2 =
+        Arrays.asList(new Pair<>("k", "a.t1"), new Pair<>("v", "a.t2"));
+    String pattern2 = "a.*";
+    List<String> expected2 = Arrays.asList("k", "v");
+    assertEquals(expected2, PathUtils.recoverRenamedPattern(aliasList2, pattern2));
+
+    List<Pair<String, String>> aliasList3 =
+        Arrays.asList(new Pair<>("k", "a.t1"), new Pair<>("v", "a.t2"));
+    String pattern3 = "z";
+    List<String> expected3 = Collections.singletonList("z");
+    assertEquals(expected3, PathUtils.recoverRenamedPattern(aliasList3, pattern3));
+
+    List<Pair<String, String>> aliasList4 = Collections.singletonList(new Pair<>("*", "a.*"));
+    String pattern4 = "a.b.c";
+    List<String> expected4 = Collections.singletonList("b.c");
+    assertEquals(expected4, PathUtils.recoverRenamedPattern(aliasList4, pattern4));
+
+    List<Pair<String, String>> aliasList5 =
+        Collections.singletonList(new Pair<>("a\\parquet.c", "v"));
+    String pattern5 = "v";
+    List<String> expected5 = Collections.singletonList("a\\parquet.c");
+    assertEquals(expected5, PathUtils.recoverRenamedPattern(aliasList5, pattern5));
   }
 }

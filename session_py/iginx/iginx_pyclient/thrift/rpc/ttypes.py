@@ -4661,14 +4661,16 @@ class IginxInfo(object):
      - id
      - ip
      - port
+     - connectable
 
     """
 
 
-    def __init__(self, id=None, ip=None, port=None,):
+    def __init__(self, id=None, ip=None, port=None, connectable=None,):
         self.id = id
         self.ip = ip
         self.port = port
+        self.connectable = connectable
 
     def read(self, iprot):
         if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
@@ -4694,6 +4696,11 @@ class IginxInfo(object):
                     self.port = iprot.readI32()
                 else:
                     iprot.skip(ftype)
+            elif fid == 4:
+                if ftype == TType.STRING:
+                    self.connectable = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                else:
+                    iprot.skip(ftype)
             else:
                 iprot.skip(ftype)
             iprot.readFieldEnd()
@@ -4716,6 +4723,10 @@ class IginxInfo(object):
             oprot.writeFieldBegin('port', TType.I32, 3)
             oprot.writeI32(self.port)
             oprot.writeFieldEnd()
+        if self.connectable is not None:
+            oprot.writeFieldBegin('connectable', TType.STRING, 4)
+            oprot.writeString(self.connectable.encode('utf-8') if sys.version_info[0] == 2 else self.connectable)
+            oprot.writeFieldEnd()
         oprot.writeFieldStop()
         oprot.writeStructEnd()
 
@@ -4726,6 +4737,8 @@ class IginxInfo(object):
             raise TProtocolException(message='Required field ip is unset!')
         if self.port is None:
             raise TProtocolException(message='Required field port is unset!')
+        if self.connectable is None:
+            raise TProtocolException(message='Required field connectable is unset!')
         return
 
     def __repr__(self):
@@ -4747,17 +4760,19 @@ class StorageEngineInfo(object):
      - ip
      - port
      - type
+     - connectable
      - schemaPrefix
      - dataPrefix
 
     """
 
 
-    def __init__(self, id=None, ip=None, port=None, type=None, schemaPrefix=None, dataPrefix=None,):
+    def __init__(self, id=None, ip=None, port=None, type=None, connectable=None, schemaPrefix=None, dataPrefix=None,):
         self.id = id
         self.ip = ip
         self.port = port
         self.type = type
+        self.connectable = connectable
         self.schemaPrefix = schemaPrefix
         self.dataPrefix = dataPrefix
 
@@ -4792,10 +4807,15 @@ class StorageEngineInfo(object):
                     iprot.skip(ftype)
             elif fid == 5:
                 if ftype == TType.STRING:
-                    self.schemaPrefix = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                    self.connectable = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
                 else:
                     iprot.skip(ftype)
             elif fid == 6:
+                if ftype == TType.STRING:
+                    self.schemaPrefix = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 7:
                 if ftype == TType.STRING:
                     self.dataPrefix = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
                 else:
@@ -4826,12 +4846,16 @@ class StorageEngineInfo(object):
             oprot.writeFieldBegin('type', TType.I32, 4)
             oprot.writeI32(self.type)
             oprot.writeFieldEnd()
+        if self.connectable is not None:
+            oprot.writeFieldBegin('connectable', TType.STRING, 5)
+            oprot.writeString(self.connectable.encode('utf-8') if sys.version_info[0] == 2 else self.connectable)
+            oprot.writeFieldEnd()
         if self.schemaPrefix is not None:
-            oprot.writeFieldBegin('schemaPrefix', TType.STRING, 5)
+            oprot.writeFieldBegin('schemaPrefix', TType.STRING, 6)
             oprot.writeString(self.schemaPrefix.encode('utf-8') if sys.version_info[0] == 2 else self.schemaPrefix)
             oprot.writeFieldEnd()
         if self.dataPrefix is not None:
-            oprot.writeFieldBegin('dataPrefix', TType.STRING, 6)
+            oprot.writeFieldBegin('dataPrefix', TType.STRING, 7)
             oprot.writeString(self.dataPrefix.encode('utf-8') if sys.version_info[0] == 2 else self.dataPrefix)
             oprot.writeFieldEnd()
         oprot.writeFieldStop()
@@ -4846,6 +4870,8 @@ class StorageEngineInfo(object):
             raise TProtocolException(message='Required field port is unset!')
         if self.type is None:
             raise TProtocolException(message='Required field type is unset!')
+        if self.connectable is None:
+            raise TProtocolException(message='Required field connectable is unset!')
         return
 
     def __repr__(self):
@@ -8496,13 +8522,15 @@ class RemoveStorageEngineReq(object):
     Attributes:
      - sessionId
      - removedStorageEngineInfoList
+     - forAllIginx
 
     """
 
 
-    def __init__(self, sessionId=None, removedStorageEngineInfoList=None,):
+    def __init__(self, sessionId=None, removedStorageEngineInfoList=None, forAllIginx=None,):
         self.sessionId = sessionId
         self.removedStorageEngineInfoList = removedStorageEngineInfoList
+        self.forAllIginx = forAllIginx
 
     def read(self, iprot):
         if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
@@ -8529,6 +8557,11 @@ class RemoveStorageEngineReq(object):
                     iprot.readListEnd()
                 else:
                     iprot.skip(ftype)
+            elif fid == 3:
+                if ftype == TType.BOOL:
+                    self.forAllIginx = iprot.readBool()
+                else:
+                    iprot.skip(ftype)
             else:
                 iprot.skip(ftype)
             iprot.readFieldEnd()
@@ -8550,6 +8583,10 @@ class RemoveStorageEngineReq(object):
                 iter761.write(oprot)
             oprot.writeListEnd()
             oprot.writeFieldEnd()
+        if self.forAllIginx is not None:
+            oprot.writeFieldBegin('forAllIginx', TType.BOOL, 3)
+            oprot.writeBool(self.forAllIginx)
+            oprot.writeFieldEnd()
         oprot.writeFieldStop()
         oprot.writeStructEnd()
 
@@ -8558,6 +8595,8 @@ class RemoveStorageEngineReq(object):
             raise TProtocolException(message='Required field sessionId is unset!')
         if self.removedStorageEngineInfoList is None:
             raise TProtocolException(message='Required field removedStorageEngineInfoList is unset!')
+        if self.forAllIginx is None:
+            raise TProtocolException(message='Required field forAllIginx is unset!')
         return
 
     def __repr__(self):
@@ -9405,6 +9444,7 @@ IginxInfo.thrift_spec = (
     (1, TType.I64, 'id', None, None, ),  # 1
     (2, TType.STRING, 'ip', 'UTF8', None, ),  # 2
     (3, TType.I32, 'port', None, None, ),  # 3
+    (4, TType.STRING, 'connectable', 'UTF8', None, ),  # 4
 )
 all_structs.append(StorageEngineInfo)
 StorageEngineInfo.thrift_spec = (
@@ -9413,8 +9453,9 @@ StorageEngineInfo.thrift_spec = (
     (2, TType.STRING, 'ip', 'UTF8', None, ),  # 2
     (3, TType.I32, 'port', None, None, ),  # 3
     (4, TType.I32, 'type', None, None, ),  # 4
-    (5, TType.STRING, 'schemaPrefix', 'UTF8', None, ),  # 5
-    (6, TType.STRING, 'dataPrefix', 'UTF8', None, ),  # 6
+    (5, TType.STRING, 'connectable', 'UTF8', None, ),  # 5
+    (6, TType.STRING, 'schemaPrefix', 'UTF8', None, ),  # 6
+    (7, TType.STRING, 'dataPrefix', 'UTF8', None, ),  # 7
 )
 all_structs.append(MetaStorageInfo)
 MetaStorageInfo.thrift_spec = (
@@ -9709,6 +9750,7 @@ RemoveStorageEngineReq.thrift_spec = (
     None,  # 0
     (1, TType.I64, 'sessionId', None, None, ),  # 1
     (2, TType.LIST, 'removedStorageEngineInfoList', (TType.STRUCT, [RemovedStorageEngineInfo, None], False), None, ),  # 2
+    (3, TType.BOOL, 'forAllIginx', None, None, ),  # 3
 )
 all_structs.append(ShowSessionIDReq)
 ShowSessionIDReq.thrift_spec = (

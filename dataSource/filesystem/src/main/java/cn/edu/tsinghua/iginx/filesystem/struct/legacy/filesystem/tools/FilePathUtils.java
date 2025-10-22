@@ -19,6 +19,8 @@
  */
 package cn.edu.tsinghua.iginx.filesystem.struct.legacy.filesystem.tools;
 
+import static cn.edu.tsinghua.iginx.constant.GlobalConstant.DOT;
+import static cn.edu.tsinghua.iginx.constant.GlobalConstant.ESCAPED_DOT;
 import static cn.edu.tsinghua.iginx.filesystem.struct.legacy.filesystem.shared.Constant.*;
 
 import cn.edu.tsinghua.iginx.auth.FilePermissionManager;
@@ -32,6 +34,8 @@ import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
 public class FilePathUtils {
+
+  public static final String DOT_PLACEHOLDER = "\uF000";
 
   public static File normalize(File file, FileAccessType... type) throws SecurityException {
 
@@ -76,14 +80,23 @@ public class FilePathUtils {
     if (path == null) {
       return root;
     }
-    String[] parts = path.split("\\.");
+
+    String safePath = unescapePath(path);
+    Pattern splitter = Pattern.compile(Pattern.quote(DOT));
+    String[] parts = splitter.split(safePath);
     StringBuilder res = new StringBuilder();
     for (String s : parts) {
-      s = s.replace("\\", ".");
+      s = s.replace(DOT_PLACEHOLDER, DOT);
       res.append(s).append(SEPARATOR);
     }
-    res = new StringBuilder(res.substring(0, res.length() - 1));
+    res.setLength(res.length() - 1);
     return root + res;
+  }
+
+  public static void main(String[] args) {
+    String ROOT = "A";
+    String PATH = "escape.path\\\\.a\nb\\.txt";
+    System.out.println(toNormalFilePath(ROOT, PATH));
   }
 
   public static String convertAbsolutePathToPath(String root, String filePath, String storageUnit) {
@@ -103,22 +116,24 @@ public class FilePathUtils {
       if (tmp.isEmpty()) {
         return SEPARATOR;
       }
-      return tmp.replace(SEPARATOR, ".");
+      return tmp.replace(SEPARATOR, DOT);
     } else { // 对普通文件操作
       String[] parts;
       tmp = filePath.substring(filePath.indexOf(root) + root.length());
       if (!tmp.contains(SEPARATOR)) { // 一级目录或文件
-        return tmp.replace(".", "\\");
+        tmp = tmp.replace("\\", "\\\\");
+        tmp = tmp.replace(DOT, ESCAPED_DOT);
+        return tmp;
       }
-      if (SEPARATOR.equals("\\")) { // 针对win系统
-        parts = tmp.split("\\\\");
-      } else {
-        parts = tmp.split(SEPARATOR);
-      }
+
+      Pattern splitter = Pattern.compile(Pattern.quote(SEPARATOR));
+      parts = splitter.split(tmp);
+
       StringBuilder res = new StringBuilder();
       for (String s : parts) {
-        s = s.replace(".", "\\");
-        res.append(s).append(".");
+        s = s.replace("\\", "\\\\");
+        s = s.replace(DOT, ESCAPED_DOT);
+        res.append(s).append(DOT);
       }
       return res.substring(0, res.length() - 1);
     }
@@ -132,13 +147,7 @@ public class FilePathUtils {
     if (storageUnit != null) {
       target.append(storageUnit).append(SEPARATOR);
     }
-    String[] parts = path.split("\\.");
-    StringBuilder res = new StringBuilder();
-    for (String s : parts) {
-      s = s.replace("\\", ".");
-      res.append(s).append(SEPARATOR);
-    }
-    target.append(res.substring(0, res.length() - 1));
+    target.append(toNormalFilePath("", path));
     if (storageUnit != null) {
       target.append(FILE_EXTENSION);
     }
@@ -153,5 +162,44 @@ public class FilePathUtils {
       }
     }
     return false;
+  }
+
+  public static String unescapePath(String path) {
+    StringBuilder target = new StringBuilder(path.length());
+    boolean escaping = false;
+
+    for (int i = 0; i < path.length(); i++) {
+      char c = path.charAt(i);
+
+      if (!escaping) {
+        if (c == '\\') {
+          escaping = true;
+        } else {
+          target.append(c);
+        }
+        continue;
+      }
+
+      // 进入 escaping 状态
+      switch (c) {
+        case '.':
+          target.append(DOT_PLACEHOLDER);
+          break;
+        case '\\':
+          target.append('\\');
+          break;
+        default:
+          // 原样保留
+          target.append('\\').append(c);
+      }
+      escaping = false;
+    }
+
+    // 处理最后一个单独的 '\'
+    if (escaping) {
+      target.append('\\');
+    }
+
+    return target.toString();
   }
 }

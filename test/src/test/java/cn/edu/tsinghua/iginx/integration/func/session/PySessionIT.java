@@ -50,7 +50,8 @@ public class PySessionIT {
   protected static MultiConnection session;
   private static final String PATH =
       Paths.get(
-              EnvUtils.loadEnv(Constants.IGINX_HOME, System.getProperty("user.dir")),
+              EnvUtils.loadEnv(Constants.PROJECT_ROOT, EnvUtils.getProjectRoot(1)),
+              "test",
               "src",
               "test",
               "resources",
@@ -240,7 +241,7 @@ public class PySessionIT {
       throw new RuntimeException(e);
     }
     // 检查Python脚本的输出是否符合预期
-    assertTrue(result.contains("path    type    "));
+    assertTrue(result.contains("Path    Type    "));
     assertTrue(result.contains("b'test.a.a'        b'BINARY'        "));
     assertTrue(result.contains("b'test.a.b'        b'BINARY'        "));
     assertTrue(result.contains("b'test.b.b'        b'BINARY'        "));

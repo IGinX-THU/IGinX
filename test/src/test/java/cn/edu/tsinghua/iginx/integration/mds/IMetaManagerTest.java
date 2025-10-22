@@ -19,24 +19,30 @@
  */
 package cn.edu.tsinghua.iginx.integration.mds;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
+import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
+import cn.edu.tsinghua.iginx.metadata.entity.FragmentMeta;
+import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.junit.*;
+import java.util.stream.Stream;
+import org.junit.jupiter.api.*;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 public class IMetaManagerTest {
 
   private static IMetaManager iMetaManager;
 
-  @BeforeClass
+  @BeforeAll
   public static void beforeClass() {
     if (System.getenv("STORAGE") != null) {
       switch (System.getenv("STORAGE")) {
@@ -60,46 +66,13 @@ public class IMetaManagerTest {
     iMetaManager = DefaultMetaManager.getInstance();
   }
 
-  @AfterClass
+  @AfterAll
   public static void afterClass() {
     iMetaManager = null;
   }
 
-  @Before
-  public void setUp() {}
-
-  @After
+  @AfterEach
   public void tearDown() {}
-
-  @Test
-  public void schemaMappingTest() {
-    // add schema1-key1-1
-    iMetaManager.addOrUpdateSchemaMappingItem("schema1", "key1", 1);
-    // query schema1-key1-1
-    assertEquals(1, iMetaManager.getSchemaMappingItem("schema1", "key1"));
-    // query non-exists schema1-key2
-    assertEquals(-1, iMetaManager.getSchemaMappingItem("schema1", "key2"));
-    // query non-exists schema2-key1
-    assertEquals(-1, iMetaManager.getSchemaMappingItem("schema2", "key1"));
-    // add schema2-key1-2, schema2-key2-4
-    Map<String, Integer> schemaMap2 = new HashMap<>();
-    schemaMap2.put("key1", 2);
-    schemaMap2.put("key2", 4);
-    iMetaManager.addOrUpdateSchemaMapping("schema2", schemaMap2);
-    // query schema2
-    Map<String, Integer> queriedSchemaMap2 = iMetaManager.getSchemaMapping("schema2");
-    for (String key : queriedSchemaMap2.keySet()) {
-      assertEquals(schemaMap2.get(key), queriedSchemaMap2.get(key));
-    }
-    // add schema2-key3-6
-    schemaMap2.put("key3", 6);
-    iMetaManager.addOrUpdateSchemaMappingItem("schema2", "key3", 6);
-    // query schema2
-    queriedSchemaMap2 = iMetaManager.getSchemaMapping("schema2");
-    for (String key : queriedSchemaMap2.keySet()) {
-      assertEquals(schemaMap2.get(key), queriedSchemaMap2.get(key));
-    }
-  }
 
   @Test
   public void storageEngineTest() {
@@ -130,5 +103,53 @@ public class IMetaManagerTest {
   @Test
   public void storageUnitAndFragmentTest() {
     // TODO: 测试优先级
+  }
+
+  @ParameterizedTest
+  @MethodSource("provideColumnsIntervals")
+  public void specialCharInColumnIntervalOfFragmentMeta(ColumnsInterval interval) throws Exception {
+    FragmentMeta fragmentMeta =
+        new FragmentMeta(interval, KeyInterval.getDefaultKeyInterval(), "test");
+    iMetaManager.addFragment(fragmentMeta);
+    try {
+      long pointsCount = System.identityHashCode(fragmentMeta);
+      iMetaManager.updateFragmentPoints(fragmentMeta, pointsCount);
+      Map<FragmentMeta, Long> points = iMetaManager.loadFragmentPoints();
+      assertEquals(pointsCount, points.get(fragmentMeta).longValue());
+    } finally {
+      iMetaManager.removeFragment(fragmentMeta);
+    }
+  }
+
+  private static Stream<ColumnsInterval> provideColumnsIntervals() {
+    return Stream.concat(
+        Stream.of(
+            new ColumnsInterval("start column", "end column"), // 正常情况
+            new ColumnsInterval(null, null), // 两端为 null
+            new ColumnsInterval("null", "null"), // 两端为 null
+            new ColumnsInterval("start column", null), // 仅结束列为 null
+            new ColumnsInterval(null, "end column"), // 仅开始列为 null
+            new ColumnsInterval("", ""), // 空字符串
+            new ColumnsInterval(" ", " "), // 空格
+            new ColumnsInterval(
+                "data.sensor\\.1.temp",
+                "data.sensor\\.2.temp"), // Basic directory structure with escaped dots
+            new ColumnsInterval(
+                "sys.dev\\.a.metrics", "sys.dev\\.z.metrics"), // Mixed escaped and directory dot
+            new ColumnsInterval(
+                "log\\.2024\\.03.data",
+                "log\\.2024\\.04.data"), // Multiple escaped dots in sequence
+            new ColumnsInterval(
+                "org.apache.commons\\.io.files",
+                "org.apache.commons\\.lang.utils"), // Deeper directory structure
+            new ColumnsInterval(
+                "com.app\\.v1\\.0.config",
+                "com.app\\.v2\\.0.config"), // Complex path with version numbers
+            new ColumnsInterval("特殊字符.测试", "结束列.测试"), // Unicode 字符
+            new ColumnsInterval("\\Dab.cd\\N-", "-ab\\\\.c\\.d") // 包含转义字符
+            ),
+        "-\\_:@#$~^{}\""
+            .chars()
+            .mapToObj(c -> new ColumnsInterval("start" + (char) c, "end" + (char) c)));
   }
 }

@@ -30,15 +30,10 @@ runs:
           working-directory: ${{ github.workspace }}
           run: |
               for port in ${{ inputs.ports }}; do
-                mkdir -p $port
-                mkdir -p volumes$port
-                mkdir -p volumes$port/etcd
-                mkdir -p volumes$port/minio
-                mkdir -p volumes$port/dameng
-                cp -f docker/dameng/docker-compose.yml $port/docker-compose-$port.yml
-                sed -i"" -e "s/5236:5236/$port:5236/g" $port/docker-compose-$port.yml
-                sed -i"" -e "s/\/volumes/\/volumes$port/g" $port/docker-compose-$port.yml
-                sed -i"" -e "s/container_name: dm8/container_name: ${{ inputs.version }}-$port/g" $port/docker-compose-$port.yml
+                mkdir -p $port/volumes/dameng
+                cp -f docker/dameng/docker-compose.yml $port/docker-compose.yml
+                sed -i"" -e "s/5236:5236/$port:5236/g" $port/docker-compose.yml
+                sed -i"" -e "s/container_name: dm8/container_name: ${{ inputs.version }}-$port/g" $port/docker-compose.yml
               done
               echo "docker-compose.yml created successfully"
 
@@ -48,7 +43,7 @@ runs:
           run: |
               for port in ${{ inputs.ports }}; do
                 sudo chown -R $(whoami) $port/
-                sudo nohup docker compose -f $port/docker-compose-$port.yml up -d
+                sudo nohup docker compose -f $port/docker-compose.yml up -d
               done
               sleep 10
               docker ps -a
@@ -80,7 +75,7 @@ runs:
           run: |
               for port in ${{ inputs.ports }}; do
                 sudo chown -R $(whoami) $port/
-                sudo nohup docker compose -f $port/docker-compose-$port.yml up -d
+                sudo nohup docker compose -f $port/docker-compose.yml up -d
               done
               sleep 30
               docker ps -a

@@ -128,7 +128,9 @@ public class ConfLoader {
   }
 
   public List<String> getQueryIds() {
-    return Arrays.asList(properties.getProperty("query_ids").split(","));
+    String queryIds = properties.getProperty("query_ids");
+    queryIds = properties.getProperty(String.format("%s_query_ids", getStorageType()), queryIds);
+    return Arrays.asList(queryIds.split(","));
   }
 
   public int getMaxRepetitionsNum() {

@@ -12,6 +12,14 @@ runs:
         - name: Setup Docker
           uses: ./.github/actions/setup/docker
 
+        - if: runner.os == 'Linux'
+          name: Install Docker Compose
+          shell: bash
+          run: |
+              DOCKER_COMPOSE_VERSION=v2.30.1
+              sudo curl -L "https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+              sudo chmod +x /usr/local/bin/docker-compose
+
         - if: runner.os == 'Linux' || runner.os == 'macOS'
           name: Download Oracle Database Docker image
           shell: bash

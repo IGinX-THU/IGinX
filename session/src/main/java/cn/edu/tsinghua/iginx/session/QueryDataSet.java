@@ -168,4 +168,8 @@ public class QueryDataSet {
   public ExportCSV getExportCSV() {
     return exportCSV;
   }
+
+  public int getActualSize() {
+    return valuesList.size();
+  }
 }

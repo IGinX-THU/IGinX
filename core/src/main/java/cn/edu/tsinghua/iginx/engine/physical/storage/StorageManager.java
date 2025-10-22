@@ -21,18 +21,22 @@ package cn.edu.tsinghua.iginx.engine.physical.storage;
 
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
+import cn.edu.tsinghua.iginx.engine.physical.storage.reconnect.StorageReconnectionManager;
+import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import org.quartz.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,11 +55,15 @@ public class StorageManager {
 
   public StorageManager(List<StorageEngineMeta> metaList) {
     initClassLoaderAndDrivers();
+    List<StorageEngineMeta> successList = new ArrayList<>();
     for (StorageEngineMeta meta : metaList) {
-      if (!initStorage(meta)) {
-        System.exit(-1);
+      if (initStorage(meta)) {
+        successList.add(meta);
+      } else {
+        StorageReconnectionManager.getInstance().addStorageEngine(meta);
       }
     }
+    DefaultMetaManager.getInstance().addStorageConnection(successList);
   }
 
   /** 仅适用于已经被注册的引擎 */

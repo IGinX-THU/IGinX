@@ -23,6 +23,7 @@ import static cn.edu.tsinghua.iginx.thrift.StorageEngineType.filesystem;
 import static org.junit.Assert.fail;
 
 import cn.edu.tsinghua.iginx.exception.SessionException;
+import cn.edu.tsinghua.iginx.filesystem.format.csv.CsvFormat;
 import cn.edu.tsinghua.iginx.filesystem.format.raw.RawFormat;
 import cn.edu.tsinghua.iginx.filesystem.service.FileSystemConfig;
 import cn.edu.tsinghua.iginx.filesystem.struct.tree.FileTree;
@@ -33,6 +34,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.StringJoiner;
 import org.jetbrains.annotations.NotNull;
+import org.junit.Assume;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,6 +42,9 @@ import org.slf4j.LoggerFactory;
 public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(FileSystemCapacityExpansionIT.class);
+
+  protected static final boolean isOnWin =
+      System.getProperty("os.name").toLowerCase().contains("win");
 
   public FileSystemCapacityExpansionIT() {
     super(filesystem, getAddStorageParams(), new FileSystemHistoryDataGenerator());
@@ -89,9 +94,11 @@ public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
 
     // show dummy columns
     try (TempDummyDataSource ignoredFileTree =
-            new TempDummyDataSource(session, 16667, filesystem, getLegacyFileSystemDummyParams());
+            new TempDummyDataSource(
+                session, 16667, filesystem, getLegacyFileSystemDummyParams("test/test/a"));
         TempDummyDataSource ignoredLegacyFileSystem =
-            new TempDummyDataSource(session, 16668, filesystem, getFileTreeDummyParams())) {
+            new TempDummyDataSource(
+                session, 16668, filesystem, getFileTreeDummyParams("test/test/a"))) {
       testShowDummyColumns();
     } catch (SessionException e) {
       LOGGER.error("add or remove read only storage engine failed ", e);
@@ -108,11 +115,15 @@ public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
   protected void testQuerySpecialHistoryData() {
     testQueryLegacyFileSystem();
     testQueryFileTree();
+    testEscape();
+    testQueryLegacyFileSystemSpecialPath();
+    testQueryFileTreeSpecialPath();
   }
 
   private void testQueryLegacyFileSystem() {
     try (TempDummyDataSource ignored =
-        new TempDummyDataSource(session, filesystem, getLegacyFileSystemDummyParams())) {
+        new TempDummyDataSource(
+            session, filesystem, getLegacyFileSystemDummyParams("test/test/a"))) {
       testQueryRawChunks();
     } catch (SessionException e) {
       LOGGER.error("add or remove read only storage engine failed ", e);
@@ -122,26 +133,73 @@ public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
 
   private void testQueryFileTree() {
     try (TempDummyDataSource ignored =
-        new TempDummyDataSource(session, filesystem, getFileTreeDummyParams())) {
+            new TempDummyDataSource(
+                session, 16667, filesystem, getFileTreeDummyParams("test/test/a"));
+        TempDummyDataSource ignoredCsv =
+            new TempDummyDataSource(session, 16668, filesystem, getFileTreeCsvDummyParams())) {
       testQueryRawChunks();
       testQueryParquets();
+      testQueryCSV();
+      testQueryMultiFormat();
     } catch (SessionException e) {
       LOGGER.error("add or remove read only storage engine failed ", e);
       fail();
     }
   }
 
-  private static @NotNull Map<String, String> getLegacyFileSystemDummyParams() {
+  private void testEscape() {
+    // 转义字符不在 windows 上测试
+    Assume.assumeFalse(isOnWin);
+    try (TempDummyDataSource ignored =
+        new TempDummyDataSource(session, 16669, filesystem, getFileTreeEscapeDummyParams())) {
+      String statement = "select `a\\nb\\.txt` from escape.path;";
+      String expect =
+          "ResultSets:\n"
+              + "+---+--------------------+\n"
+              + "|key|escape.path.a\nb\\.txt|\n"
+              + "+---+--------------------+\n"
+              + "|  0|             abcdefg|\n"
+              + "+---+--------------------+\n"
+              + "Total line number = 1\n";
+      SQLTestTools.executeAndCompare(session, statement, expect);
+    } catch (SessionException e) {
+      LOGGER.error("add or remove read only storage engine failed ", e);
+      fail();
+    }
+  }
+
+  private static @NotNull Map<String, String> getLegacyFileSystemDummyParams(String dummyDir) {
     Map<String, String> params = new LinkedHashMap<>();
-    params.put("dummy_dir", "test/test/a");
+    params.put("dummy_dir", dummyDir);
     params.put("iginx_port", "6888");
     params.put("chunk_size_in_bytes", "1048576");
     return params;
   }
 
-  private static @NotNull Map<String, String> getFileTreeDummyParams() {
+  private static @NotNull Map<String, String> getFileTreeDummyParams(String dummyDir) {
     Map<String, String> params = new LinkedHashMap<>();
-    params.put("dummy_dir", "test/test/a");
+    params.put("dummy_dir", dummyDir);
+    params.put("iginx_port", "6888");
+    params.put("dummy.struct", FileTree.NAME);
+    params.put("dummy.config.formats." + RawFormat.NAME + ".pageSize", "1048576");
+    params.put("dummy.config.formats." + CsvFormat.NAME + ".inferSchema", "true");
+    params.put("dummy.config.formats." + CsvFormat.NAME + ".parseTypeFromHeader", "false");
+    return params;
+  }
+
+  private static @NotNull Map<String, String> getFileTreeCsvDummyParams() {
+    Map<String, String> params = new LinkedHashMap<>();
+    params.put("dummy_dir", "test/test/csv");
+    params.put("iginx_port", "6888");
+    params.put("dummy.struct", FileTree.NAME);
+    params.put("dummy.config.formats." + CsvFormat.NAME + ".dateFormat", "yyyy/MM/dd");
+    params.put("dummy.config.formats." + CsvFormat.NAME + ".allowDuplicateColumnNames", "true");
+    return params;
+  }
+
+  private static @NotNull Map<String, String> getFileTreeEscapeDummyParams() {
+    Map<String, String> params = new LinkedHashMap<>();
+    params.put("dummy_dir", "test/test/escape");
     params.put("iginx_port", "6888");
     params.put("dummy.struct", FileTree.NAME);
     params.put("dummy.config.formats." + RawFormat.NAME + ".pageSize", "1048576");
@@ -152,80 +210,97 @@ public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
     String statement = "SHOW COLUMNS a.*;";
     String expected =
         "Columns:\n"
-            + "+--------------------------------------+--------+\n"
-            + "|                                  Path|DataType|\n"
-            + "+--------------------------------------+--------+\n"
-            + "|                        a.Iris\\parquet|  BINARY|\n"
-            + "|           a.Iris\\parquet.petal.length|  DOUBLE|\n"
-            + "|            a.Iris\\parquet.petal.width|  DOUBLE|\n"
-            + "|           a.Iris\\parquet.sepal.length|  DOUBLE|\n"
-            + "|            a.Iris\\parquet.sepal.width|  DOUBLE|\n"
-            + "|                a.Iris\\parquet.variety|  BINARY|\n"
-            + "|                         a.b.c.d.1\\txt|  BINARY|\n"
-            + "|                             a.e.2\\txt|  BINARY|\n"
-            + "|                           a.f.g.3\\txt|  BINARY|\n"
-            + "|                   a.floatTest\\parquet|  BINARY|\n"
-            + "|        a.floatTest\\parquet.floatValue|   FLOAT|\n"
-            + "|               a.other.MT cars\\parquet|  BINARY|\n"
-            + "|            a.other.MT cars\\parquet.am| INTEGER|\n"
-            + "|          a.other.MT cars\\parquet.carb| INTEGER|\n"
-            + "|           a.other.MT cars\\parquet.cyl| INTEGER|\n"
-            + "|          a.other.MT cars\\parquet.disp|  DOUBLE|\n"
-            + "|          a.other.MT cars\\parquet.drat|  DOUBLE|\n"
-            + "|          a.other.MT cars\\parquet.gear| INTEGER|\n"
-            + "|            a.other.MT cars\\parquet.hp| INTEGER|\n"
-            + "|         a.other.MT cars\\parquet.model|  BINARY|\n"
-            + "|           a.other.MT cars\\parquet.mpg|  DOUBLE|\n"
-            + "|          a.other.MT cars\\parquet.qsec|  DOUBLE|\n"
-            + "|            a.other.MT cars\\parquet.vs| INTEGER|\n"
-            + "|            a.other.MT cars\\parquet.wt|  DOUBLE|\n"
-            + "|                 a.other.price\\parquet|  BINARY|\n"
-            + "| a.other.price\\parquet.airconditioning|  BINARY|\n"
-            + "|            a.other.price\\parquet.area|    LONG|\n"
-            + "|        a.other.price\\parquet.basement|  BINARY|\n"
-            + "|       a.other.price\\parquet.bathrooms|    LONG|\n"
-            + "|        a.other.price\\parquet.bedrooms|    LONG|\n"
-            + "|a.other.price\\parquet.furnishingstatus|  BINARY|\n"
-            + "|       a.other.price\\parquet.guestroom|  BINARY|\n"
-            + "| a.other.price\\parquet.hotwaterheating|  BINARY|\n"
-            + "|        a.other.price\\parquet.mainroad|  BINARY|\n"
-            + "|         a.other.price\\parquet.parking|    LONG|\n"
-            + "|        a.other.price\\parquet.prefarea|  BINARY|\n"
-            + "|           a.other.price\\parquet.price|    LONG|\n"
-            + "|         a.other.price\\parquet.stories|    LONG|\n"
-            + "+--------------------------------------+--------+\n"
-            + "Total line number = 38\n";
-    SQLTestTools.executeAndCompare(session, statement, expected);
+            + "+---------------------------------------+--------+\n"
+            + "|                                   Path|DataType|\n"
+            + "+---------------------------------------+--------+\n"
+            + "|                   a.floatTest\\.parquet|  BINARY|\n"
+            + "|                        a.lineitem\\.tsv|  BINARY|\n"
+            + "|                        a.Iris\\.parquet|  BINARY|\n"
+            + "|                             a.e.2\\.txt|  BINARY|\n"
+            + "|                         a.b.c.d.1\\.txt|  BINARY|\n"
+            + "|                           a.f.g.3\\.txt|  BINARY|\n"
+            + "|               a.other.MT cars\\.parquet|  BINARY|\n"
+            + "|                 a.other.price\\.parquet|  BINARY|\n"
+            + "|        a.floatTest\\.parquet.floatValue|   FLOAT|\n"
+            + "|           a.other.MT cars\\.parquet.cyl| INTEGER|\n"
+            + "|         a.other.MT cars\\.parquet.model|  BINARY|\n"
+            + "|          a.other.MT cars\\.parquet.carb| INTEGER|\n"
+            + "|          a.other.MT cars\\.parquet.qsec|  DOUBLE|\n"
+            + "|           a.other.MT cars\\.parquet.mpg|  DOUBLE|\n"
+            + "|            a.other.MT cars\\.parquet.am| INTEGER|\n"
+            + "|            a.other.MT cars\\.parquet.wt|  DOUBLE|\n"
+            + "|            a.other.MT cars\\.parquet.vs| INTEGER|\n"
+            + "|            a.other.MT cars\\.parquet.hp| INTEGER|\n"
+            + "|          a.other.MT cars\\.parquet.drat|  DOUBLE|\n"
+            + "|          a.other.MT cars\\.parquet.disp|  DOUBLE|\n"
+            + "|          a.other.MT cars\\.parquet.gear| INTEGER|\n"
+            + "|         a.other.price\\.parquet.stories|    LONG|\n"
+            + "|       a.other.price\\.parquet.bathrooms|    LONG|\n"
+            + "|        a.other.price\\.parquet.mainroad|  BINARY|\n"
+            + "|a.other.price\\.parquet.furnishingstatus|  BINARY|\n"
+            + "|       a.other.price\\.parquet.guestroom|  BINARY|\n"
+            + "|         a.other.price\\.parquet.parking|    LONG|\n"
+            + "|           a.other.price\\.parquet.price|    LONG|\n"
+            + "|        a.other.price\\.parquet.bedrooms|    LONG|\n"
+            + "|            a.other.price\\.parquet.area|    LONG|\n"
+            + "|        a.other.price\\.parquet.basement|  BINARY|\n"
+            + "| a.other.price\\.parquet.airconditioning|  BINARY|\n"
+            + "|        a.other.price\\.parquet.prefarea|  BINARY|\n"
+            + "| a.other.price\\.parquet.hotwaterheating|  BINARY|\n"
+            + "|              a.lineitem\\.tsv.l_partkey|    LONG|\n"
+            + "|                  a.lineitem\\.tsv.l_tax|  DOUBLE|\n"
+            + "|             a.lineitem\\.tsv.l_shipmode|  BINARY|\n"
+            + "|           a.lineitem\\.tsv.l_linenumber|    LONG|\n"
+            + "|           a.lineitem\\.tsv.l_returnflag|  BINARY|\n"
+            + "|           a.lineitem\\.tsv.l_linestatus|  BINARY|\n"
+            + "|        a.lineitem\\.tsv.l_extendedprice|  DOUBLE|\n"
+            + "|             a.lineitem\\.tsv.l_shipdate|    LONG|\n"
+            + "|             a.lineitem\\.tsv.l_orderkey|    LONG|\n"
+            + "|              a.lineitem\\.tsv.l_comment|  BINARY|\n"
+            + "|             a.lineitem\\.tsv.l_discount|  DOUBLE|\n"
+            + "|           a.lineitem\\.tsv.l_commitdate|    LONG|\n"
+            + "|         a.lineitem\\.tsv.l_shipinstruct|  BINARY|\n"
+            + "|              a.lineitem\\.tsv.l_suppkey|    LONG|\n"
+            + "|          a.lineitem\\.tsv.l_receiptdate|    LONG|\n"
+            + "|             a.lineitem\\.tsv.l_quantity|    LONG|\n"
+            + "|            a.Iris\\.parquet.petal.width|  DOUBLE|\n"
+            + "|            a.Iris\\.parquet.sepal.width|  DOUBLE|\n"
+            + "|           a.Iris\\.parquet.sepal.length|  DOUBLE|\n"
+            + "|           a.Iris\\.parquet.petal.length|  DOUBLE|\n"
+            + "|                a.Iris\\.parquet.variety|  BINARY|\n"
+            + "+---------------------------------------+--------+\n"
+            + "Total line number = 55\n";
+    SQLTestTools.executeAndCompare(session, statement, expected, true);
   }
 
   private void testQueryRawChunks() {
-    String statement = "select 1\\txt from a.*;";
+    String statement = "select 1\\.txt from a.*;";
     String expect =
         "ResultSets:\n"
             + "+---+---------------------------------------------------------------------------+\n"
-            + "|key|                                                              a.b.c.d.1\\txt|\n"
+            + "|key|                                                             a.b.c.d.1\\.txt|\n"
             + "+---+---------------------------------------------------------------------------+\n"
             + "|  0|979899100101102103104105106107108109110111112113114115116117118119120121122|\n"
             + "+---+---------------------------------------------------------------------------+\n"
             + "Total line number = 1\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
 
-    statement = "select 2\\txt from a.*;";
+    statement = "select 2\\.txt from a.*;";
     expect =
         "ResultSets:\n"
             + "+---+----------------------------------------------------+\n"
-            + "|key|                                           a.e.2\\txt|\n"
+            + "|key|                                          a.e.2\\.txt|\n"
             + "+---+----------------------------------------------------+\n"
             + "|  0|6566676869707172737475767778798081828384858687888990|\n"
             + "+---+----------------------------------------------------+\n"
             + "Total line number = 1\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
 
-    statement = "select 3\\txt from a.*;";
+    statement = "select 3\\.txt from a.*;";
     expect =
         "ResultSets:\n"
             + "+---+------------------------------------------+\n"
-            + "|key|                               a.f.g.3\\txt|\n"
+            + "|key|                              a.f.g.3\\.txt|\n"
             + "+---+------------------------------------------+\n"
             + "|  0|012345678910111213141516171819202122232425|\n"
             + "+---+------------------------------------------+\n"
@@ -237,110 +312,312 @@ public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
     String statement;
     String expect;
 
-    statement = "select petal.length from `a.Iris\\parquet` where key >= 10 and key <20;";
+    statement = "select petal.length from `a.Iris\\.parquet` where key >= 10 and key <20;";
     expect =
         "ResultSets:\n"
-            + "+---+---------------------------+\n"
-            + "|key|a.Iris\\parquet.petal.length|\n"
-            + "+---+---------------------------+\n"
-            + "| 10|                        1.5|\n"
-            + "| 11|                        1.6|\n"
-            + "| 12|                        1.4|\n"
-            + "| 13|                        1.1|\n"
-            + "| 14|                        1.2|\n"
-            + "| 15|                        1.5|\n"
-            + "| 16|                        1.3|\n"
-            + "| 17|                        1.4|\n"
-            + "| 18|                        1.7|\n"
-            + "| 19|                        1.5|\n"
-            + "+---+---------------------------+\n"
+            + "+---+----------------------------+\n"
+            + "|key|a.Iris\\.parquet.petal.length|\n"
+            + "+---+----------------------------+\n"
+            + "| 10|                         1.5|\n"
+            + "| 11|                         1.6|\n"
+            + "| 12|                         1.4|\n"
+            + "| 13|                         1.1|\n"
+            + "| 14|                         1.2|\n"
+            + "| 15|                         1.5|\n"
+            + "| 16|                         1.3|\n"
+            + "| 17|                         1.4|\n"
+            + "| 18|                         1.7|\n"
+            + "| 19|                         1.5|\n"
+            + "+---+----------------------------+\n"
             + "Total line number = 10\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
 
     statement =
-        "select `Iris\\parquet`.petal.length, other.`MT cars\\parquet`.mpg from a where key >= 10 and key <20;";
+        "select `Iris\\.parquet`.petal.length, other.`MT cars\\.parquet`.mpg from a where key >= 10 and key <20;";
     expect =
         "ResultSets:\n"
-            + "+---+---------------------------+---------------------------+\n"
-            + "|key|a.Iris\\parquet.petal.length|a.other.MT cars\\parquet.mpg|\n"
-            + "+---+---------------------------+---------------------------+\n"
-            + "| 10|                        1.5|                       17.8|\n"
-            + "| 11|                        1.6|                       16.4|\n"
-            + "| 12|                        1.4|                       17.3|\n"
-            + "| 13|                        1.1|                       15.2|\n"
-            + "| 14|                        1.2|                       10.4|\n"
-            + "| 15|                        1.5|                       10.4|\n"
-            + "| 16|                        1.3|                       14.7|\n"
-            + "| 17|                        1.4|                       32.4|\n"
-            + "| 18|                        1.7|                       30.4|\n"
-            + "| 19|                        1.5|                       33.9|\n"
-            + "+---+---------------------------+---------------------------+\n"
+            + "+---+----------------------------+----------------------------+\n"
+            + "|key|a.Iris\\.parquet.petal.length|a.other.MT cars\\.parquet.mpg|\n"
+            + "+---+----------------------------+----------------------------+\n"
+            + "| 10|                         1.5|                        17.8|\n"
+            + "| 11|                         1.6|                        16.4|\n"
+            + "| 12|                         1.4|                        17.3|\n"
+            + "| 13|                         1.1|                        15.2|\n"
+            + "| 14|                         1.2|                        10.4|\n"
+            + "| 15|                         1.5|                        10.4|\n"
+            + "| 16|                         1.3|                        14.7|\n"
+            + "| 17|                         1.4|                        32.4|\n"
+            + "| 18|                         1.7|                        30.4|\n"
+            + "| 19|                         1.5|                        33.9|\n"
+            + "+---+----------------------------+----------------------------+\n"
             + "Total line number = 10\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
 
     statement = "select disp, furnishingstatus from a.* where key >= 10 and key <20;";
     expect =
         "ResultSets:\n"
-            + "+---+----------------------------+--------------------------------------+\n"
-            + "|key|a.other.MT cars\\parquet.disp|a.other.price\\parquet.furnishingstatus|\n"
-            + "+---+----------------------------+--------------------------------------+\n"
-            + "| 10|                       167.6|                             furnished|\n"
-            + "| 11|                       275.8|                        semi-furnished|\n"
-            + "| 12|                       275.8|                        semi-furnished|\n"
-            + "| 13|                       275.8|                             furnished|\n"
-            + "| 14|                       472.0|                        semi-furnished|\n"
-            + "| 15|                       460.0|                        semi-furnished|\n"
-            + "| 16|                       440.0|                           unfurnished|\n"
-            + "| 17|                        78.7|                             furnished|\n"
-            + "| 18|                        75.7|                             furnished|\n"
-            + "| 19|                        71.1|                        semi-furnished|\n"
-            + "+---+----------------------------+--------------------------------------+\n"
+            + "+---+-----------------------------+---------------------------------------+\n"
+            + "|key|a.other.MT cars\\.parquet.disp|a.other.price\\.parquet.furnishingstatus|\n"
+            + "+---+-----------------------------+---------------------------------------+\n"
+            + "| 10|                        167.6|                              furnished|\n"
+            + "| 11|                        275.8|                         semi-furnished|\n"
+            + "| 12|                        275.8|                         semi-furnished|\n"
+            + "| 13|                        275.8|                              furnished|\n"
+            + "| 14|                        472.0|                         semi-furnished|\n"
+            + "| 15|                        460.0|                         semi-furnished|\n"
+            + "| 16|                        440.0|                            unfurnished|\n"
+            + "| 17|                         78.7|                              furnished|\n"
+            + "| 18|                         75.7|                              furnished|\n"
+            + "| 19|                         71.1|                         semi-furnished|\n"
+            + "+---+-----------------------------+---------------------------------------+\n"
             + "Total line number = 10\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
 
     statement =
-        "select Iris\\parquet.petal.length from a where key < 50 and other.price\\parquet.furnishingstatus ==\"unfurnished\";";
+        "select Iris\\.parquet.petal.length from a where key < 50 and other.price\\.parquet.furnishingstatus ==\"unfurnished\";";
     expect =
         "ResultSets:\n"
-            + "+---+---------------------------+\n"
-            + "|key|a.Iris\\parquet.petal.length|\n"
-            + "+---+---------------------------+\n"
-            + "|  7|                        1.5|\n"
-            + "|  9|                        1.5|\n"
-            + "| 16|                        1.3|\n"
-            + "| 21|                        1.5|\n"
-            + "| 28|                        1.4|\n"
-            + "| 30|                        1.6|\n"
-            + "| 33|                        1.4|\n"
-            + "| 38|                        1.3|\n"
-            + "| 42|                        1.3|\n"
-            + "| 48|                        1.5|\n"
-            + "+---+---------------------------+\n"
+            + "+---+----------------------------+\n"
+            + "|key|a.Iris\\.parquet.petal.length|\n"
+            + "+---+----------------------------+\n"
+            + "|  7|                         1.5|\n"
+            + "|  9|                         1.5|\n"
+            + "| 16|                         1.3|\n"
+            + "| 21|                         1.5|\n"
+            + "| 28|                         1.4|\n"
+            + "| 30|                         1.6|\n"
+            + "| 33|                         1.4|\n"
+            + "| 38|                         1.3|\n"
+            + "| 42|                         1.3|\n"
+            + "| 48|                         1.5|\n"
+            + "+---+----------------------------+\n"
             + "Total line number = 10\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
 
     // test float value compare
-    statement = "select floatValue from `a.floatTest\\parquet` where floatValue >= 22.33;";
+    statement = "select floatValue from `a.floatTest\\.parquet` where floatValue >= 22.33;";
     expect =
         "ResultSets:\n"
-            + "+---+------------------------------+\n"
-            + "|key|a.floatTest\\parquet.floatValue|\n"
-            + "+---+------------------------------+\n"
-            + "|  0|                         22.33|\n"
-            + "|  1|                         44.55|\n"
-            + "+---+------------------------------+\n"
+            + "+---+-------------------------------+\n"
+            + "|key|a.floatTest\\.parquet.floatValue|\n"
+            + "+---+-------------------------------+\n"
+            + "|  0|                          22.33|\n"
+            + "|  1|                          44.55|\n"
+            + "+---+-------------------------------+\n"
             + "Total line number = 2\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
 
-    statement = "select floatValue from `a.floatTest\\parquet` where floatValue = 44.55;";
+    statement = "select floatValue from `a.floatTest\\.parquet` where floatValue = 44.55;";
     expect =
         "ResultSets:\n"
-            + "+---+------------------------------+\n"
-            + "|key|a.floatTest\\parquet.floatValue|\n"
-            + "+---+------------------------------+\n"
-            + "|  1|                         44.55|\n"
-            + "+---+------------------------------+\n"
+            + "+---+-------------------------------+\n"
+            + "|key|a.floatTest\\.parquet.floatValue|\n"
+            + "+---+-------------------------------+\n"
+            + "|  1|                          44.55|\n"
+            + "+---+-------------------------------+\n"
             + "Total line number = 1\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
+  }
+
+  private void testQueryCSV() {
+    String statement =
+        "select l_extendedprice, l_shipdate from `a.lineitem\\.tsv` where key >= 10 and key <20;";
+    String expect =
+        "ResultSets:\n"
+            + "+---+-------------------------------+--------------------------+\n"
+            + "|key|a.lineitem\\.tsv.l_extendedprice|a.lineitem\\.tsv.l_shipdate|\n"
+            + "+---+-------------------------------+--------------------------+\n"
+            + "| 10|                        1860.06|              754934400000|\n"
+            + "| 11|                       30357.04|              755798400000|\n"
+            + "| 12|                       25039.56|              751824000000|\n"
+            + "| 13|                        29672.4|              821203200000|\n"
+            + "| 14|                        15136.5|              783532800000|\n"
+            + "| 15|                       26627.12|              782236800000|\n"
+            + "| 16|                        46901.5|              776275200000|\n"
+            + "| 17|                       38485.18|              704304000000|\n"
+            + "| 18|                       12998.16|              831398400000|\n"
+            + "| 19|                        9415.26|              823104000000|\n"
+            + "+---+-------------------------------+--------------------------+\n"
+            + "Total line number = 10\n";
+    SQLTestTools.executeAndCompare(session, statement, expect);
+
+    statement =
+        "select l_orderkey_1, l_orderkey_2, l_orderkey_3, l_shipdate from `csv.lineitem\\.csv`;";
+    expect =
+        "ResultSets:\n"
+            + "+---+------------------------------+------------------------------+------------------------------+----------------------------+\n"
+            + "|key|csv.lineitem\\.csv.l_orderkey_1|csv.lineitem\\.csv.l_orderkey_2|csv.lineitem\\.csv.l_orderkey_3|csv.lineitem\\.csv.l_shipdate|\n"
+            + "+---+------------------------------+------------------------------+------------------------------+----------------------------+\n"
+            + "|  0|                             1|                             2|                             3|                826646400000|\n"
+            + "|  1|                             1|                             2|                             3|                829238400000|\n"
+            + "|  2|                             1|                             2|                             3|                822844800000|\n"
+            + "|  3|                             1|                             2|                             3|                830016000000|\n"
+            + "|  4|                             1|                             2|                             3|                828115200000|\n"
+            + "+---+------------------------------+------------------------------+------------------------------+----------------------------+\n"
+            + "Total line number = 5\n";
+    SQLTestTools.executeAndCompare(session, statement, expect);
+  }
+
+  private void testQueryMultiFormat() {
+    String statement =
+        "select 3\\.txt, disp, lineitem\\.tsv.l_suppkey, lineitem\\.csv.l_extendedprice from * where key >= 0 and key <10;";
+    String expect =
+        "ResultSets:\n"
+            + "+---+------------------------------------------+-----------------------------+-------------------------+---------------------------------+\n"
+            + "|key|                              a.f.g.3\\.txt|a.other.MT cars\\.parquet.disp|a.lineitem\\.tsv.l_suppkey|csv.lineitem\\.csv.l_extendedprice|\n"
+            + "+---+------------------------------------------+-----------------------------+-------------------------+---------------------------------+\n"
+            + "|  0|012345678910111213141516171819202122232425|                        160.0|                        4|                         17954.55|\n"
+            + "|  1|                                      null|                        160.0|                        9|                         34850.16|\n"
+            + "|  2|                                      null|                        108.0|                        5|                          7712.48|\n"
+            + "|  3|                                      null|                        258.0|                        6|                          25284.0|\n"
+            + "|  4|                                      null|                        360.0|                        8|                         22200.48|\n"
+            + "|  5|                                      null|                        225.0|                        3|                             null|\n"
+            + "|  6|                                      null|                        360.0|                        2|                             null|\n"
+            + "|  7|                                      null|                        146.7|                        2|                             null|\n"
+            + "|  8|                                      null|                        140.8|                       10|                             null|\n"
+            + "|  9|                                      null|                        167.6|                        8|                             null|\n"
+            + "+---+------------------------------------------+-----------------------------+-------------------------+---------------------------------+\n"
+            + "Total line number = 10\n";
+    SQLTestTools.executeAndCompare(session, statement, expect);
+  }
+
+  @Test
+  public void testQueryLegacyFileSystemSpecialPath() {
+    try (TempDummyDataSource ignored =
+        new TempDummyDataSource(
+            session,
+            16669,
+            filesystem,
+            getLegacyFileSystemDummyParams("test/test/txt/dir!@#$%^&()[]{};',.=+~ -目录"))) {
+      String statement = "SHOW COLUMNS `dir!@#$%^&()[]{};',\\.=+~ -目录`.*;";
+      String expected =
+          "Columns:\n"
+              + "+------------------------------------------------------------------+--------+\n"
+              + "|                                                              Path|DataType|\n"
+              + "+------------------------------------------------------------------+--------+\n"
+              + "|dir!@#$%^&()[]{};',\\.=+~ -目录.example!@#$%^&()[]{};',\\.=+~ -\\.txt|  BINARY|\n"
+              + "|   dir!@#$%^&()[]{};',\\.=+~ -目录.示例!@#$%^&()[]{};',\\.=+~ -\\.TXT|  BINARY|\n"
+              + "+------------------------------------------------------------------+--------+\n"
+              + "Total line number = 2\n";
+      SQLTestTools.executeAndCompare(session, statement, expected, true);
+
+      statement =
+          "select `example!@#$%^&()[]{};',\\.=+~ -\\.txt`, `示例!@#$%^&()[]{};',\\.=+~ -\\.TXT` from `dir!@#$%^&()[]{};',\\.=+~ -目录`;";
+      expected =
+          "ResultSets:\n"
+              + "+---+------------------------------------------------------------------+---------------------------------------------------------------+\n"
+              + "|key|dir!@#$%^&()[]{};',\\.=+~ -目录.example!@#$%^&()[]{};',\\.=+~ -\\.txt|dir!@#$%^&()[]{};',\\.=+~ -目录.示例!@#$%^&()[]{};',\\.=+~ -\\.TXT|\n"
+              + "+---+------------------------------------------------------------------+---------------------------------------------------------------+\n"
+              + "|  0|                                                      example line|                                                   example line|\n"
+              + "+---+------------------------------------------------------------------+---------------------------------------------------------------+\n"
+              + "Total line number = 1\n";
+      SQLTestTools.executeAndCompare(session, statement, expected);
+    } catch (SessionException e) {
+      LOGGER.error("add or remove read only storage engine failed ", e);
+      fail();
+    }
+    if (!isOnWin) {
+      try (TempDummyDataSource ignored =
+          new TempDummyDataSource(
+              session,
+              16669,
+              filesystem,
+              getLegacyFileSystemDummyParams("test/test/txt/dir\\Ndir\\Ddir"))) {
+        String statement = "SHOW COLUMNS `dir\\Ndir\\Ddir`.*;";
+        String expected =
+            "Columns:\n"
+                + "+----------------------------+--------+\n"
+                + "|                        Path|DataType|\n"
+                + "+----------------------------+--------+\n"
+                + "|dir\\\\Ndir\\\\Ddir.example\\.txt|  BINARY|\n"
+                + "+----------------------------+--------+\n"
+                + "Total line number = 1\n";
+        SQLTestTools.executeAndCompare(session, statement, expected, true);
+
+        statement = "select `example\\.txt` from *;";
+        expected =
+            "ResultSets:\n"
+                + "+---+----------------------------+\n"
+                + "|key|dir\\\\Ndir\\\\Ddir.example\\.txt|\n"
+                + "+---+----------------------------+\n"
+                + "|  0|                example line|\n"
+                + "+---+----------------------------+\n"
+                + "Total line number = 1\n";
+        SQLTestTools.executeAndCompare(session, statement, expected);
+      } catch (SessionException e) {
+        LOGGER.error("add or remove read only storage engine failed ", e);
+        fail();
+      }
+    }
+  }
+
+  @Test
+  public void testQueryFileTreeSpecialPath() {
+    try (TempDummyDataSource ignored =
+        new TempDummyDataSource(
+            session,
+            16670,
+            filesystem,
+            getFileTreeDummyParams("test/test/txt/dir!@#$%^&()[]{};',.=+~ -目录"))) {
+      String statement = "SHOW COLUMNS `dir!@#$%^&()[]{};',.=+~ -目录`.*;";
+      String expected =
+          "Columns:\n"
+              + "+-----------------------------------------------------------------+--------+\n"
+              + "|                                                             Path|DataType|\n"
+              + "+-----------------------------------------------------------------+--------+\n"
+              + "|dir!@#$%^&()[]{};',.=+~ -目录.example!@#$%^&()[]{};',\\.=+~ -\\.txt|  BINARY|\n"
+              + "|   dir!@#$%^&()[]{};',.=+~ -目录.示例!@#$%^&()[]{};',\\.=+~ -\\.TXT|  BINARY|\n"
+              + "+-----------------------------------------------------------------+--------+\n"
+              + "Total line number = 2\n";
+      SQLTestTools.executeAndCompare(session, statement, expected, true);
+
+      statement =
+          "select `example!@#$%^&()[]{};',\\.=+~ -\\.txt`, `示例!@#$%^&()[]{};',\\.=+~ -\\.TXT` from `dir!@#$%^&()[]{};',.=+~ -目录`;";
+      expected =
+          "ResultSets:\n"
+              + "+---+-----------------------------------------------------------------+--------------------------------------------------------------+\n"
+              + "|key|dir!@#$%^&()[]{};',.=+~ -目录.example!@#$%^&()[]{};',\\.=+~ -\\.txt|dir!@#$%^&()[]{};',.=+~ -目录.示例!@#$%^&()[]{};',\\.=+~ -\\.TXT|\n"
+              + "+---+-----------------------------------------------------------------+--------------------------------------------------------------+\n"
+              + "|  0|                                                     example line|                                                  example line|\n"
+              + "+---+-----------------------------------------------------------------+--------------------------------------------------------------+\n"
+              + "Total line number = 1\n";
+      SQLTestTools.executeAndCompare(session, statement, expected);
+    } catch (SessionException e) {
+      LOGGER.error("add or remove read only storage engine failed ", e);
+      fail();
+    }
+    if (!isOnWin) {
+      try (TempDummyDataSource ignored =
+          new TempDummyDataSource(
+              session,
+              16669,
+              filesystem,
+              getLegacyFileSystemDummyParams("test/test/txt/dir\\Ndir\\Ddir"))) {
+        String statement = "SHOW COLUMNS `dir\\Ndir\\Ddir`.*;";
+        String expected =
+            "Columns:\n"
+                + "+----------------------------+--------+\n"
+                + "|                        Path|DataType|\n"
+                + "+----------------------------+--------+\n"
+                + "|dir\\\\Ndir\\\\Ddir.example\\.txt|  BINARY|\n"
+                + "+----------------------------+--------+\n"
+                + "Total line number = 1\n";
+        SQLTestTools.executeAndCompare(session, statement, expected, true);
+
+        statement = "select `example\\.txt` from *;";
+        expected =
+            "ResultSets:\n"
+                + "+---+----------------------------+\n"
+                + "|key|dir\\\\Ndir\\\\Ddir.example\\.txt|\n"
+                + "+---+----------------------------+\n"
+                + "|  0|                example line|\n"
+                + "+---+----------------------------+\n"
+                + "Total line number = 1\n";
+        SQLTestTools.executeAndCompare(session, statement, expected);
+      } catch (SessionException e) {
+        LOGGER.error("add or remove read only storage engine failed ", e);
+        fail();
+      }
+    }
   }
 }

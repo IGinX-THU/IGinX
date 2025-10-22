@@ -54,7 +54,7 @@ public class FileTreeParquetDummyTest extends AbstractDummyTest {
 
   private static Config getConfig() {
     Map<String, Object> map = new HashMap<>();
-    Configs.put(map, "home\\parquet", FileTreeConfig.Fields.prefix);
+    Configs.put(map, "home\\.parquet", FileTreeConfig.Fields.prefix);
     return ConfigFactory.parseMap(map);
   }
 
@@ -154,11 +154,11 @@ public class FileTreeParquetDummyTest extends AbstractDummyTest {
 
   @Test
   public void testSingleFileAsRoot() throws PhysicalException, IOException {
-    testSingleFile(root, "home\\parquet");
+    testSingleFile(root, "home\\.parquet");
   }
 
   @Test
   public void testNestedSingleFile() throws PhysicalException, IOException {
-    testSingleFile(root.resolve("user.parquet"), "home\\parquet.user\\parquet");
+    testSingleFile(root.resolve("user.parquet"), "home\\.parquet.user\\.parquet");
   }
 }
