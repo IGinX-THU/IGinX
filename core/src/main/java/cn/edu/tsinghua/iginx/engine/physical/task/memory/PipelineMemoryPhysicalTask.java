@@ -108,7 +108,7 @@ public class PipelineMemoryPhysicalTask extends UnaryMemoryPhysicalTask<BatchStr
 
     @Override
     public boolean hasNext() throws PhysicalException {
-      return source.hasNext();
+      return (!executor.isEmpty()) && source.hasNext();
     }
 
     @Override

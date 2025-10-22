@@ -40,7 +40,15 @@ public class ProjectExecutor extends StatelessUnaryExecutor {
       ExecutorContext context,
       Schema inputSchema,
       List<? extends ScalarExpression<?>> expressions) {
-    super(context, inputSchema);
+    this(context, inputSchema, expressions, false);
+  }
+
+  public ProjectExecutor(
+      ExecutorContext context,
+      Schema inputSchema,
+      List<? extends ScalarExpression<?>> expressions,
+      boolean empty) {
+    super(context, inputSchema, empty);
     this.expressions = new ArrayList<>(expressions);
   }
 

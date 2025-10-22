@@ -27,14 +27,25 @@ import org.apache.arrow.vector.types.pojo.Schema;
 
 public abstract class StatelessUnaryExecutor extends UnaryExecutor {
 
+  protected final boolean empty;
+
   protected StatelessUnaryExecutor(ExecutorContext context, Schema inputSchema) {
+    this(context, inputSchema, false);
+  }
+
+  protected StatelessUnaryExecutor(ExecutorContext context, Schema inputSchema, boolean empty) {
     super(context, inputSchema);
+    this.empty = empty;
   }
 
   public Batch compute(Batch batch) throws ComputeException {
     Batch result = computeImpl(batch);
     result.setSequenceNumber(batch.getSequenceNumber());
     return result;
+  }
+
+  public boolean isEmpty() {
+    return empty;
   }
 
   protected abstract Batch computeImpl(Batch batch) throws ComputeException;
