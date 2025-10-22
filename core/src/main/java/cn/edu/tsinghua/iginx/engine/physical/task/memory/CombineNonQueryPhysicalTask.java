@@ -23,9 +23,8 @@ import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.task.PhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskResult;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStreams;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStreams;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import java.util.List;
@@ -34,7 +33,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /** 目前专门用于 CombineNonQuery 操作符 */
-public class CombineNonQueryPhysicalTask extends MultiMemoryPhysicalTask<BatchStream, RowStream> {
+public class CombineNonQueryPhysicalTask extends MultiMemoryPhysicalTask<RowStream, RowStream> {
   @SuppressWarnings("unused")
   private static final Logger LOGGER = LoggerFactory.getLogger(CombineNonQueryPhysicalTask.class);
 
@@ -44,7 +43,7 @@ public class CombineNonQueryPhysicalTask extends MultiMemoryPhysicalTask<BatchSt
   }
 
   @Override
-  public TaskResult<BatchStream> execute() {
+  public TaskResult<RowStream> execute() {
     List<Operator> operators = getOperators();
     if (operators.size() != 1) {
       return new TaskResult<>(new PhysicalException("unexpected multiple memory physical task"));
@@ -76,11 +75,11 @@ public class CombineNonQueryPhysicalTask extends MultiMemoryPhysicalTask<BatchSt
     if (exception != null) {
       return new TaskResult<>(exception);
     }
-    return new TaskResult<>(BatchStreams.empty());
+    return new TaskResult<>(RowStreams.empty());
   }
 
   @Override
-  public Class<BatchStream> getResultClass() {
-    return BatchStream.class;
+  public Class<RowStream> getResultClass() {
+    return RowStream.class;
   }
 }

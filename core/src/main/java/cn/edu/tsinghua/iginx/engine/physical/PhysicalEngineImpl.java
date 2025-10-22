@@ -131,11 +131,6 @@ public class PhysicalEngineImpl implements PhysicalEngine {
   }
 
   @Override
-  public StoragePhysicalTaskExecutor getStoragePhysicalTaskExecutor() {
-    return storageTaskExecutor;
-  }
-
-  @Override
   public StorageManager getStorageManager() {
     return storageTaskExecutor.getStorageManager();
   }

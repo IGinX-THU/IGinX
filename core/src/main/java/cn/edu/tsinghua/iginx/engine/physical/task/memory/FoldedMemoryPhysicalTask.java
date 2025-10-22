@@ -128,7 +128,7 @@ public class FoldedMemoryPhysicalTask extends MultiMemoryPhysicalTask<BatchStrea
     }
 
     PhysicalOptimizer optimizer = physicalEngine.getOptimizer();
-    PhysicalTask<BatchStream> task = optimizer.optimize(finalRoot, getContext());
+    PhysicalTask<BatchStream> task = optimizer.optimize(finalRoot, getContext(), BatchStream.class);
 
     task.setFollowerTask(getFollowerTask());
     setFollowerTask(null);

@@ -25,9 +25,9 @@ import cn.edu.tsinghua.iginx.engine.physical.task.PhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.memory.BinaryMemoryPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.memory.MultiMemoryPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.memory.UnaryMemoryPhysicalTask;
+import cn.edu.tsinghua.iginx.engine.physical.task.utils.PhysicalCloseable;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.constraint.ConstraintManager;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.*;
 
 public class NaivePhysicalOptimizer implements PhysicalOptimizer {
@@ -37,13 +37,14 @@ public class NaivePhysicalOptimizer implements PhysicalOptimizer {
   }
 
   @Override
-  public PhysicalTask<BatchStream> optimize(Operator root, RequestContext context) {
+  public <RESULT extends PhysicalCloseable> PhysicalTask<RESULT> optimize(
+      Operator root, RequestContext context, Class<RESULT> clazz) {
     if (root == null) {
       return null;
     }
     NaivePhysicalPlanner planner = new NaivePhysicalPlanner();
     PhysicalTask<?> task = planner.construct(root.copy(), context);
-    PhysicalTask<BatchStream> result = planner.convert(task, context, BatchStream.class);
+    PhysicalTask<RESULT> result = planner.convert(task, context, clazz);
     setFollowerTask(result);
     return result;
   }

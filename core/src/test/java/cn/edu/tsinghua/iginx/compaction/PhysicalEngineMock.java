@@ -20,16 +20,10 @@
 package cn.edu.tsinghua.iginx.compaction;
 
 import cn.edu.tsinghua.iginx.engine.physical.PhysicalEngine;
-import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.optimizer.PhysicalOptimizer;
 import cn.edu.tsinghua.iginx.engine.physical.storage.StorageManager;
-import cn.edu.tsinghua.iginx.engine.physical.storage.execute.StoragePhysicalTaskExecutor;
 import cn.edu.tsinghua.iginx.engine.physical.task.PhysicalTask;
-import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.constraint.ConstraintManager;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStreams;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 
 public class PhysicalEngineMock implements PhysicalEngine {
 
@@ -47,17 +41,7 @@ public class PhysicalEngineMock implements PhysicalEngine {
   }
 
   @Override
-  public StoragePhysicalTaskExecutor getStoragePhysicalTaskExecutor() {
-    return null;
-  }
-
-  @Override
   public StorageManager getStorageManager() {
     return null;
-  }
-
-  @Override
-  public BatchStream execute(RequestContext ctx, Operator root) throws PhysicalException {
-    return BatchStreams.empty();
   }
 }

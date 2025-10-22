@@ -25,7 +25,6 @@ import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
 import cn.edu.tsinghua.iginx.metadata.entity.FragmentMeta;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageUnitMeta;
-import cn.edu.tsinghua.iginx.resource.exception.ResourceException;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.*;
 import org.slf4j.Logger;
@@ -126,11 +125,7 @@ public class LowWriteFragmentCompaction extends Compaction {
           totalPoints += fragmentMetaPointsMap.getOrDefault(fragmentMeta, 0L);
         }
 
-        try {
-          compactFragmentGroupToTargetStorageUnit(fragmentGroup, maxStorageUnitMeta, totalPoints);
-        } catch (ResourceException e) {
-          throw new PhysicalException(e);
-        }
+        compactFragmentGroupToTargetStorageUnit(fragmentGroup, maxStorageUnitMeta, totalPoints);
       } else {
         LOGGER.info("fragmentGroup size = {}", fragmentGroup.size());
       }

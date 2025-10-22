@@ -20,6 +20,7 @@
 package cn.edu.tsinghua.iginx.engine.shared.data.read;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
+import cn.edu.tsinghua.iginx.engine.physical.task.utils.PhysicalCloseable;
 import java.util.Collections;
 import java.util.NoSuchElementException;
 import java.util.Objects;
@@ -63,5 +64,44 @@ public class RowStreams {
 
   public static RowStream empty() {
     return EMPTY;
+  }
+
+  private static class ExtraClosableRowStream implements RowStream {
+
+    private final RowStream delegate;
+    private final PhysicalCloseable closeable;
+
+    public ExtraClosableRowStream(RowStream delegate, PhysicalCloseable closeable) {
+      this.delegate = Objects.requireNonNull(delegate);
+      this.closeable = Objects.requireNonNull(closeable);
+    }
+
+    @Override
+    public Header getHeader() throws PhysicalException {
+      return delegate.getHeader();
+    }
+
+    @Override
+    public boolean hasNext() throws PhysicalException {
+      return delegate.hasNext();
+    }
+
+    @Override
+    public Row next() throws PhysicalException {
+      return delegate.next();
+    }
+
+    @Override
+    public void close() throws PhysicalException {
+      try {
+        delegate.close();
+      } finally {
+        closeable.close();
+      }
+    }
+  }
+
+  public static RowStream closeWith(RowStream resultStream, PhysicalCloseable closeable) {
+    return new ExtraClosableRowStream(resultStream, closeable);
   }
 }

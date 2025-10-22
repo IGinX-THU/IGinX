@@ -21,18 +21,13 @@
 from enum import Enum
 
 import pandas as pd
-import pyarrow as pa
 
 from .thrift.rpc.ttypes import SqlType, AggregateType, ExecuteSqlResp
 from .utils.bitmap import Bitmap
-from .utils.byte_utils import get_long_array, get_values_by_data_type, BytesParser, get_batch_from_arrow, \
-    get_byte_by_type
+from .utils.byte_utils import get_long_array, get_values_by_data_type, BytesParser
 from .thrift.rpc.ttypes import DataType
 
 def map_dtype(dtype):
-    """
-    Convert a Pandas.Dataframe data type to IGinX DataType.
-    """
     if pd.api.types.is_bool_dtype(dtype):
         return DataType.BOOLEAN
     elif pd.api.types.is_integer_dtype(dtype):
@@ -49,37 +44,6 @@ def map_dtype(dtype):
         return DataType.DOUBLE
     else:
         return DataType.BINARY  # all other types are treated as BINARY
-
-
-def map_atype(arrow_type):
-    """
-    Convert a PyArrow data type to IGinX DataType.
-    """
-    if pa.types.is_boolean(arrow_type):
-        return DataType.BOOLEAN
-
-    elif pa.types.is_integer(arrow_type):
-        if arrow_type.bit_width == 32:
-            return DataType.INTEGER
-        elif arrow_type.bit_width == 64:
-            return DataType.LONG
-        else:
-            raise ValueError(f"Unsupported arrow type: {arrow_type}")
-
-    elif pa.types.is_floating(arrow_type):
-        if arrow_type == pa.float32():
-            return DataType.FLOAT
-        elif arrow_type == pa.float64():
-            return DataType.DOUBLE
-        else:
-            raise ValueError(f"Unsupported arrow type: {arrow_type}")
-
-    elif pa.types.is_binary(arrow_type) or pa.types.is_string(arrow_type):
-        return DataType.BINARY
-
-    else:
-        raise ValueError(f"Unsupported arrow type: {arrow_type}")
-
 
 # TODO: process NA values
 def column_dataset_from_df(df: pd.DataFrame, prefix: str = ""):
@@ -168,24 +132,16 @@ class Point(object):
 
 
 class QueryDataSet(object):
-    def __init__(self, paths, timestamps, values_list, type_list, table:None):
+
+    def __init__(self, paths, types, timestamps, values_list, bitmap_list):
         self.__paths = paths
-        self.__timestamps = timestamps
-        self.__values = values_list
-        self.__table = table # save arrow table for dataframe convertion
-        self.__types = type_list
-
-
-    @classmethod
-    def from_old_data(cls, paths, types, timestamps, values_list, bitmap_list):
-        paths = paths
 
         if timestamps is None:
-            timestamps = []
+            self.__timestamps = []
         else:
-            timestamps = get_long_array(timestamps)
+            self.__timestamps = get_long_array(timestamps)
 
-        values = []
+        self.__values = []
         if values_list is not None:
             for i in range(len(values_list)):
                 values = []
@@ -196,17 +152,7 @@ class QueryDataSet(object):
                         values.append(value_parser.next(types[j]))
                     else:
                         values.append(None)
-                values.append(values)
-        return cls(paths, timestamps, values, types, None)
-
-    @classmethod
-    def from_arrow(cls, table: pa.Table):
-        paths = [col for col in table.column_names if col != "key"]  # remove key
-        timestamps = table["key"].to_pylist() if "key" in table.column_names else []
-        types = [map_atype(field.type) for field in list(table.schema) if field.name != "key"]
-        column_data = [table[col].to_pylist() for col in paths]
-        values = list(zip(*column_data))
-        return cls(paths, timestamps, values, types, table)
+                self.__values.append(values)
 
     def get_paths(self):
         return self.__paths
@@ -217,24 +163,14 @@ class QueryDataSet(object):
     def get_values(self):
         return self.__values
 
-    def get_types(self):
-        return self.__types
-
-    def get_row_count(self):
-        return len(self.__values)
-
-    def has_key(self):
-        return self.__timestamps
-
     def __str__(self):
-        value = "Time\t" if self.has_key() else ""
+        value = "Time\t"
         for path in self.__paths:
             value += path + "\t"
         value += "\n"
 
-        for i in range(len(self.__values)):
-            if self.has_key():
-                value += str(self.__timestamps[i]) + "\t"
+        for i in range(len(self.__timestamps)):
+            value += str(self.__timestamps[i]) + "\t"
             for j in range(len(self.__paths)):
                 if self.__values[i][j] is None:
                     value += "null\t"
@@ -244,8 +180,6 @@ class QueryDataSet(object):
         return value
 
     def to_df(self):
-        if self.__table is not None:
-            return self.__table.to_pandas()
         has_key = self.__timestamps != []
         columns = ["key"] if has_key else []
         for column in self.__paths:
@@ -266,30 +200,13 @@ class QueryDataSet(object):
 
 class AggregateQueryDataSet(object):
 
-    def __init__(self, paths, timestamps, values, type, table:None):
+    def __init__(self, resp, type):
         self.__type = type
-        self.__paths = paths
-        self.__timestamps = timestamps
-        self.__values = values
-        self.__table = table
-
-    @classmethod
-    def from_resp(cls, resp, type):
-        type = type
-        paths = resp.paths
-        timestamps = None
+        self.__paths = resp.paths
+        self.__timestamps = None
         if resp.keys is not None:
-            timestamps = get_long_array(resp.keys)
-        values = get_values_by_data_type(resp.valuesList, resp.dataTypeList)
-        return cls(paths, timestamps, values, type)
-
-    @classmethod
-    def from_arrow(cls, table: pa.Table, type):
-        paths = [col for col in table.column_names if col != "key"]  # remove key
-        timestamps = table["key"].to_pylist() if "key" in table.column_names else None
-        column_data = [table[col].to_pylist() for col in paths]
-        values = list(zip(*column_data))
-        return cls(paths, timestamps, values, type, table)
+            self.__timestamps = get_long_array(resp.keys)
+        self.__values = get_values_by_data_type(resp.valuesList, resp.dataTypeList)
 
     def get_type(self):
         return self.__type
@@ -319,8 +236,6 @@ class AggregateQueryDataSet(object):
         return value
 
     def to_df(self):
-        if self.__table is not None:
-            return self.__table.to_pandas()
         columns = []
         values = []
         # multiple row with different keys, each path, and it's value will be turned into a dataframe
@@ -346,22 +261,26 @@ class StatementExecuteDataSet(object):
         NO_MORE = 2,
         UNKNOWN = 3
 
-    def __init__(self, session, query_id, fetch_size, dataset:QueryDataSet, exportStreamDir=None,
+    def __init__(self, session, query_id, columns, types, fetch_size, values_list, bitmap_list, exportStreamDir=None,
                  exportCSV=None):
         self.__session = session
         self.__query_id = query_id
+        self.__columns = columns
+        self.__types = types
         self.__fetch_size = fetch_size
-        self.__dataset = dataset
+        self.__values_list = values_list
+        self.__bitmap_list = bitmap_list
         self.__state = StatementExecuteDataSet.State.UNKNOWN
         self.__exportStreamDir = exportStreamDir
         self.__exportCSV = exportCSV
         self.__index = 0
 
     def fetch(self):
-        if self.__dataset and self.__index < self.__dataset.get_row_count():
+        if self.__bitmap_list and self.__index != len(self.__bitmap_list):
             return
 
-        self.__dataset = None
+        self.__bitmap_list = None
+        self.__values_list = None
         self.__index = 0
 
         tp = self.__session._fetch(self.__query_id, self.__fetch_size)
@@ -372,56 +291,62 @@ class StatementExecuteDataSet(object):
             self.__state = StatementExecuteDataSet.State.NO_MORE
 
         if tp[1]:
-            self.__dataset = QueryDataSet.from_arrow(get_batch_from_arrow(tp[1]))
+            self.__bitmap_list = tp[1].bitmapList
+            self.__values_list = tp[1].valuesList
 
     def has_more(self):
-        if self.__dataset and self.__index < self.__dataset.get_row_count():
+        if self.__values_list and self.__index < len(self.__values_list):
             return True
 
-        self.__dataset = None
+        self.__bitmap_list = None
+        self.__values_list = None
         self.__index = 0
 
         if self.__state == StatementExecuteDataSet.State.HAS_MORE or self.__state == StatementExecuteDataSet.State.UNKNOWN:
             self.fetch()
 
-        return self.__dataset
+        return self.__values_list
 
     def next(self):
         if not self.has_more():
             return None
 
-        values = []
-        if self.__dataset.has_key():
-            values.append(self.__dataset.get_timestamps()[self.__index])
-            values.extend(self.__dataset.get_values()[self.__index])
-        else:
-            values = self.__dataset.get_values()[self.__index]
+        values_buffer = self.__values_list[self.__index]
+        bitmap_buffer = self.__bitmap_list[self.__index]
         self.__index += 1
+
+        bitmap = Bitmap(len(self.__types), bitmap_buffer)
+        value_parser = BytesParser(values_buffer)
+        values = []
+        for i in range(len(self.__types)):
+            if bitmap.get(i):
+                values.append(value_parser.next(self.__types[i]))
+            else:
+                values.append(None)
         return values
 
-    def next_row_as_bytes(self, remove_key=True):
+    def next_row_as_bytes(self, remove_key):
         if not self.has_more():
             return None
 
-        vlist = self.__dataset.get_values()[self.__index]
-        tlist = self.__dataset.get_types()
-        bytes_list = [get_byte_by_type(vlist[i], tlist[i]) for i in range(len(tlist))]
-        if not remove_key:
-            bytes_list.insert(0, get_byte_by_type(self.__dataset.get_timestamps()[self.__index], DataType.LONG))
+        values_buffer = self.__values_list[self.__index]
+        bitmap_buffer = self.__bitmap_list[self.__index]
         self.__index += 1
-        return bytes_list
 
-    def has_key(self):
-        return self.__dataset.has_key()
+        bitmap = Bitmap(len(self.__types), bitmap_buffer)
+        bytes_list = BytesParser(values_buffer).get_bytes_from_types(self.__types, bitmap)
+        if remove_key:
+            bytes_list = bytes_list[1:]
+        return bytes_list
 
     def close(self):
         self.__session._close_statement(query_id=self.__query_id)
 
     def columns(self):
-        return self.__dataset.get_paths()
+        return self.__columns
 
     def types(self):
-        return self.__dataset.get_types()
+        return self.__types
 
     def get_export_stream_dir(self):
         return self.__exportStreamDir

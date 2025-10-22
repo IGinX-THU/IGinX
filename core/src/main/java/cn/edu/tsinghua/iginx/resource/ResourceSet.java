@@ -22,17 +22,19 @@ package cn.edu.tsinghua.iginx.resource;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ConstantPool;
 import cn.edu.tsinghua.iginx.engine.physical.task.utils.TaskResultMap;
-import javax.annotation.WillCloseWhenClosed;
 import org.apache.arrow.memory.BufferAllocator;
+import org.apache.arrow.memory.RootAllocator;
 
 public class ResourceSet implements AutoCloseable {
+
+  private static final RootAllocator ROOT_ALLOCATOR = new RootAllocator(Long.MAX_VALUE);
 
   private final BufferAllocator allocator;
   private final ConstantPool constantPool;
   private final TaskResultMap taskResultMap;
 
-  public ResourceSet(@WillCloseWhenClosed BufferAllocator allocator) {
-    this.allocator = allocator;
+  public ResourceSet(String name) {
+    this.allocator = ROOT_ALLOCATOR.newChildAllocator(name, 0, Long.MAX_VALUE);
     this.constantPool = new ConstantPool(allocator);
     this.taskResultMap = new TaskResultMap();
   }

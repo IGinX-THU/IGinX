@@ -28,7 +28,6 @@ import pandas as pd
 from thrift.protocol import TBinaryProtocol
 from thrift.transport import TSocket, TTransport
 from pathlib import Path
-import pyarrow as pa
 
 from .cluster_info import ClusterInfo
 from .dataset import column_dataset_from_df, QueryDataSet, AggregateQueryDataSet, StatementExecuteDataSet
@@ -64,7 +63,7 @@ from .thrift.rpc.ttypes import (
 )
 from .time_series import TimeSeries
 from .utils.bitmap import Bitmap
-from .utils.byte_utils import timestamps_to_bytes, row_values_to_bytes, column_values_to_bytes, bitmap_to_bytes, get_batch_from_arrow
+from .utils.byte_utils import timestamps_to_bytes, row_values_to_bytes, column_values_to_bytes, bitmap_to_bytes
 
 logger = logging.getLogger("IginX")
 
@@ -427,8 +426,10 @@ class Session(object):
                            startKey=start_time, endKey=end_time, timePrecision=timePrecision)
         resp = self.__client.queryData(req)
         Session.verify_status(resp.status)
-        result=get_batch_from_arrow(resp.queryArrowData)
-        return QueryDataSet.from_arrow(result)
+        paths = resp.paths
+        data_types = resp.dataTypeList
+        raw_data_set = resp.queryDataSet
+        return QueryDataSet(paths, data_types, raw_data_set.keys, raw_data_set.valuesList, raw_data_set.bitmapList)
 
     def last_query(self, paths, start_time=0, timePrecision=None):
         if len(paths) == 0:
@@ -438,7 +439,11 @@ class Session(object):
                            timePrecision=timePrecision)
         resp = self.__client.lastQuery(req)
         Session.verify_status(resp.status)
-        return QueryDataSet.from_arrow(get_batch_from_arrow(resp.queryArrowData))
+        paths = resp.paths
+        data_types = resp.dataTypeList
+        raw_data_set = resp.queryDataSet
+        return QueryDataSet(paths, data_types, raw_data_set.keys, raw_data_set.valuesList,
+                            raw_data_set.bitmapList)
 
     def downsample_query_no_interval(self, paths, type, precision, timePrecision=None):
         return self.downsample_query(paths, MIN_KEY, MAX_KEY, type, precision, timePrecision)
@@ -450,14 +455,18 @@ class Session(object):
                                  precision=precision, timePrecision=timePrecision)
         resp = self.__client.downsampleQuery(req)
         Session.verify_status(resp.status)
-        return QueryDataSet.from_arrow(get_batch_from_arrow(resp.queryArrowData))
+        paths = resp.paths
+        data_types = resp.dataTypeList
+        raw_data_set = resp.queryDataSet
+        return QueryDataSet(paths, data_types, raw_data_set.keys, raw_data_set.valuesList,
+                            raw_data_set.bitmapList)
 
     def aggregate_query(self, paths, start_time, end_time, type, timePrecision=None):
         req = AggregateQueryReq(sessionId=self.__session_id, paths=paths, startKey=start_time, endKey=end_time,
                                 aggregateType=type, timePrecision=timePrecision)
         resp = self.__client.aggregateQuery(req)
         Session.verify_status(resp.status)
-        return AggregateQueryDataSet.from_arrow(get_batch_from_arrow(resp.queryArrowData), type=type)
+        return AggregateQueryDataSet(resp=resp, type=type)
 
     def delete_data(self, path, start_time, end_time, timePrecision=None):
         self.batch_delete_data([path], start_time, end_time, timePrecision)
@@ -505,10 +514,9 @@ class Session(object):
         req = ExecuteStatementReq(sessionId=self.__session_id, statement=statement, fetchSize=fetch_size)
         resp = self.__client.executeStatement(req)
         Session.verify_status(resp.status)
-        table = get_batch_from_arrow(resp.queryArrowData)
-        res = QueryDataSet.from_arrow(table)
-        return StatementExecuteDataSet(self, resp.queryId, fetch_size, res,
-                                       resp.exportStreamDir, resp.exportCSV)
+        return StatementExecuteDataSet(self, resp.queryId, resp.columns, resp.dataTypeList, fetch_size,
+                                       resp.queryDataSet.valuesList, resp.queryDataSet.bitmapList, resp.exportStreamDir,
+                                       resp.exportCSV)
 
     def load_csv(self, statement):
         req = ExecuteSqlReq(sessionId=self.__session_id, statement=statement)
@@ -614,7 +622,12 @@ class Session(object):
         count_map = {}
 
         for i in range(len(columns)):
-            origin_column = columns[i].replace("\\", ".")
+            origin_column = columns[i]
+            if origin_column == "key":
+                columns[i] = ""
+                final_cnt -= 1
+                continue
+
             count = count_map.get(origin_column, 0)
             count += 1
             count_map[origin_column] = count
@@ -648,7 +661,7 @@ class Session(object):
                 with open(column, mode) as fos:
                     for value in binary_data_list:
                         # 写入对应列的数据
-                        fos.write(value[i])
+                        fos.write(value[i-1])
             except IOError as e:
                 raise RuntimeError(f"Encounter an error when writing file {column}, because {e}")
 
@@ -656,6 +669,9 @@ class Session(object):
         cache = []
         row_index = 0
         fetch_size = 1000
+        types = list(dataset.types())
+        if remove_key:
+            types.pop(0)
 
         while dataset.has_more() and row_index < fetch_size:
             byte_value = dataset.next_row_as_bytes(True)
@@ -680,10 +696,10 @@ class Session(object):
             os.makedirs(directory)
         with open(path, 'w', newline='') as file:  # newline='' 是为了防止在Windows上写入额外的空行
             writer = csv.writer(file)
-            has_key = resp.has_key()
+            has_key = resp.columns()[0] == "key"
 
             if export_csv.isExportHeader:
-                header_names = ["key"] if has_key else []
+                header_names = ["key"] if not has_key else []
                 header_names.extend(resp.columns())
                 writer.writerow(header_names)
 
@@ -697,7 +713,7 @@ class Session(object):
         print(f"Successfully wrote csv file: \"{os.path.abspath(path)}\".")
 
     def cache_result(self, dataset, skip_header):
-        has_key = dataset.has_key()
+        has_key = dataset.columns()[0] == "key"
         cache = []
         if not skip_header:
             cache.append(dataset.columns())
@@ -734,7 +750,7 @@ class Session(object):
         req = FetchResultsReq(sessionId=self.__session_id, queryId=query_id, fetchSize=fetch_size)
         resp = self.__client.fetchResults(req)
         Session.verify_status(resp.status)
-        return (resp.hasMoreResults, resp.queryArrowData)
+        return (resp.hasMoreResults, resp.queryDataSet)
 
     def _close_statement(self, query_id):
         req = CloseStatementReq(sessionId=self.__session_id, queryId=query_id)

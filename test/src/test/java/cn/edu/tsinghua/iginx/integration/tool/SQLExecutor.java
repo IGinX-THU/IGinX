@@ -193,11 +193,11 @@ public class SQLExecutor {
               start.await();
               String actualOutput = execute(statement);
               if (ignoreOrder && !TestUtils.isResultSetEqual(expected, actualOutput)) {
-              failedList.add(new Pair<>(statement, new Pair<>(expected, actualOutput)));
-            } else if (!ignoreOrder && !expected.equals(actualOutput)) {
+                failedList.add(new Pair<>(statement, new Pair<>(expected, actualOutput)));
+              } else if (!ignoreOrder && !expected.equals(actualOutput)) {
                 failedList.add(new Pair<>(statement, new Pair<>(expected, actualOutput)));
               }
-            LOGGER.info("Successfully execute statement: \"{}\"", statement);
+              LOGGER.info("Successfully execute statement: \"{}\"", statement);
             } catch (Throwable e) {
               LOGGER.error("Statement: \"{}\" execute fail. Caused by: ", statement, e);
               failedList.add(new Pair<>(statement, new Pair<>(expected, e.toString())));

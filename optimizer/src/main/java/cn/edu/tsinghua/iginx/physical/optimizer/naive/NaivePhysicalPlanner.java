@@ -196,7 +196,7 @@ public class NaivePhysicalPlanner {
         convert(sourceTask, context, BatchStream.class), context);
   }
 
-  public PhysicalTask<BatchStream> construct(CombineNonQuery operator, RequestContext context) {
+  public PhysicalTask<RowStream> construct(CombineNonQuery operator, RequestContext context) {
     List<PhysicalTask<RowStream>> sourceTasks = new ArrayList<>();
     for (Source source : operator.getSources()) {
       sourceTasks.add(convert(fetch(source, context), context, RowStream.class));

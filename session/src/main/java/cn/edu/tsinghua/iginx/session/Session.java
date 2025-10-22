@@ -1035,25 +1035,33 @@ public class Session {
     executeWithCheck(() -> (ref.resp = client.executeStatement(req)).status);
 
     long queryId = ref.resp.getQueryId();
-    ByteUtils.DataSet dataSet = ByteUtils.getDataFromArrowData(ref.resp.getQueryArrowData());
-    //    List<String> columns = dataset.getPaths();
-    //    List<DataType> dataTypes = dataset.getDataTypeList();
-
-    //    QueryDataSetV2 dataSetV2 = ref.resp.getQueryDataSet();
+    List<String> columns = ref.resp.getColumns();
+    List<DataType> dataTypes = ref.resp.getDataTypeList();
+    QueryDataSetV2 dataSetV2 = ref.resp.getQueryDataSet();
     String warningMessage = ref.resp.getWarningMsg();
     String dir = ref.resp.getExportStreamDir();
     ExportCSV exportCSV = ref.resp.getExportCSV();
 
-    return new QueryDataSet(this, queryId, fetchSize, dataSet, warningMessage, dir, exportCSV);
+    return new QueryDataSet(
+        this,
+        queryId,
+        columns,
+        dataTypes,
+        fetchSize,
+        dataSetV2.valuesList,
+        dataSetV2.bitmapList,
+        warningMessage,
+        dir,
+        exportCSV);
   }
 
-  Pair<List<ByteBuffer>, Boolean> fetchResult(long queryId, int fetchSize) throws SessionException {
+  Pair<QueryDataSetV2, Boolean> fetchResult(long queryId, int fetchSize) throws SessionException {
     FetchResultsReq req = new FetchResultsReq(sessionId, queryId);
     req.setFetchSize(fetchSize);
     Reference<FetchResultsResp> ref = new Reference<>();
     executeWithCheck(() -> (ref.resp = client.fetchResults(req)).status);
 
-    return new Pair<>(ref.resp.getQueryArrowData(), ref.resp.isHasMoreResults());
+    return new Pair<>(ref.resp.getQueryDataSet(), ref.resp.isHasMoreResults());
   }
 
   public void uploadFileChunk(FileChunk chunk) throws SessionException {

@@ -19,50 +19,61 @@
  */
 package cn.edu.tsinghua.iginx.session;
 
+import static cn.edu.tsinghua.iginx.utils.ByteUtils.*;
+
 import cn.edu.tsinghua.iginx.thrift.DownsampleQueryResp;
 import cn.edu.tsinghua.iginx.thrift.LastQueryResp;
 import cn.edu.tsinghua.iginx.thrift.QueryDataResp;
 import cn.edu.tsinghua.iginx.thrift.ShowColumnsResp;
-import cn.edu.tsinghua.iginx.utils.ByteUtils;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 public class SessionQueryDataSet {
 
   private final long[] keys;
-  private final List<String> paths;
-  private final List<Map<String, String>> tagsList;
-  private final List<List<Object>> values;
+  private List<String> paths;
+  private List<Map<String, String>> tagsList;
+  private List<List<Object>> values;
 
   public SessionQueryDataSet(LastQueryResp resp) {
-    ByteUtils.DataSet dataSet = ByteUtils.getDataFromArrowData(resp.getQueryArrowData());
-    this.keys = dataSet.getKeys();
-    this.paths = dataSet.getPaths();
-    this.tagsList = dataSet.getTagsList();
-    this.values = dataSet.getValues();
+    this.paths = resp.getPaths();
+    this.tagsList = resp.getTagsList();
+    this.keys = getLongArrayFromByteBuffer(resp.queryDataSet.keys);
+    this.values =
+        getValuesFromBufferAndBitmaps(
+            resp.dataTypeList, resp.queryDataSet.valuesList, resp.queryDataSet.bitmapList);
   }
 
   public SessionQueryDataSet(ShowColumnsResp resp) {
     this.paths = resp.getPaths();
     this.keys = null;
-    this.tagsList = null;
-    this.values = null;
   }
 
   public SessionQueryDataSet(QueryDataResp resp) {
-    ByteUtils.DataSet dataSet = ByteUtils.getDataFromArrowData(resp.getQueryArrowData());
-    this.keys = dataSet.getKeys() == null ? new long[0] : dataSet.getKeys();
-    this.paths = dataSet.getPaths();
-    this.tagsList = dataSet.getTagsList();
-    this.values = dataSet.getValues();
+    this.paths = resp.getPaths();
+    this.tagsList = resp.getTagsList();
+    this.keys = getLongArrayFromByteBuffer(resp.queryDataSet.keys);
+    this.values =
+        getValuesFromBufferAndBitmaps(
+            resp.dataTypeList, resp.queryDataSet.valuesList, resp.queryDataSet.bitmapList);
   }
 
   public SessionQueryDataSet(DownsampleQueryResp resp) {
-    ByteUtils.DataSet dataSet = ByteUtils.getDataFromArrowData(resp.getQueryArrowData());
-    this.keys = dataSet.getKeys() == null ? new long[0] : dataSet.getKeys();
-    this.paths = dataSet.getPaths();
-    this.tagsList = dataSet.getTagsList();
-    this.values = dataSet.getValues();
+    this.paths = resp.getPaths();
+    this.tagsList = resp.getTagsList();
+    if (resp.queryDataSet != null) {
+      this.keys = getLongArrayFromByteBuffer(resp.queryDataSet.keys);
+      this.values =
+          getValuesFromBufferAndBitmaps(
+              resp.dataTypeList, resp.queryDataSet.valuesList, resp.queryDataSet.bitmapList);
+    } else {
+      this.keys = new long[0];
+      values = new ArrayList<>();
+    }
+    if (this.paths == null) {
+      this.paths = new ArrayList<>();
+    }
   }
 
   public List<String> getPaths() {
@@ -71,10 +82,6 @@ public class SessionQueryDataSet {
 
   public long[] getKeys() {
     return keys;
-  }
-
-  public List<Map<String, String>> getTagsList() {
-    return tagsList;
   }
 
   public List<List<Object>> getValues() {

@@ -4043,10 +4043,10 @@ public class SQLSessionIT {
             + "+-+-+---------+---------+\n"
             + "|s|s|us.d1.key|us.d1.key|\n"
             + "+-+-+---------+---------+\n"
-            + "|0|1|        0|        0|\n"
-            + "|0|2|        0|        1|\n"
-            + "|1|1|        1|        0|\n"
-            + "|1|2|        1|        1|\n"
+            + "|1|0|        0|        0|\n"
+            + "|1|1|        0|        1|\n"
+            + "|2|0|        1|        0|\n"
+            + "|2|1|        1|        1|\n"
             + "+-+-+---------+---------+\n"
             + "Total line number = 4\n";
     executor.executeAndCompare(statement, expected);

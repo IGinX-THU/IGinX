@@ -21,13 +21,10 @@ package cn.edu.tsinghua.iginx.engine.shared;
 
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.engine.physical.PhysicalEngine;
-import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ConstantPool;
 import cn.edu.tsinghua.iginx.engine.physical.task.PhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskContext;
 import cn.edu.tsinghua.iginx.engine.physical.task.utils.TaskResultMap;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
-import cn.edu.tsinghua.iginx.resource.ResourceSet;
 import cn.edu.tsinghua.iginx.sql.statement.Statement;
 import cn.edu.tsinghua.iginx.thrift.SqlType;
 import cn.edu.tsinghua.iginx.thrift.Status;
@@ -64,15 +61,13 @@ public class RequestContext implements TaskContext {
 
   private boolean useStream;
 
-  private PhysicalTask<BatchStream> physicalTree;
+  private PhysicalTask<?> physicalTree;
 
   private String loadCSVFileName;
 
   private ByteBuffer UDFModuleByteBuffer;
 
   private boolean isRemoteSession;
-
-  private ResourceSet resourceSet;
 
   private BufferAllocator allocator;
 
@@ -153,11 +148,5 @@ public class RequestContext implements TaskContext {
   @Override
   public void addWarningMessage(String message) {
     warningMsg.add(message);
-  }
-
-  public void closeResources() throws PhysicalException {
-    if (getResourceSet() != null) {
-      getResourceSet().close();
-    }
   }
 }

@@ -129,13 +129,17 @@ public class SQLWarmupIT implements AutoCloseable {
   }
 
   @Test
-  public void warmup() throws SessionException {
+  public void warmup() {
     LOGGER.info("Start warmup with {} records", records);
     for (int i = 0; i < repeat; i++) {
       LOGGER.info("Repeat {}/{} times ", i + 1, repeat);
       for (int j = 0; j < queries.length; j++) {
         LOGGER.info("Execute query {}/{}: {}", j + 1, queries.length, queries[j]);
-        session.executeSql(queries[j]);
+        try {
+          session.executeSql(queries[j]);
+        } catch (SessionException e) {
+          LOGGER.error("Failed to execute query: {}", queries[j], e);
+        }
       }
     }
   }

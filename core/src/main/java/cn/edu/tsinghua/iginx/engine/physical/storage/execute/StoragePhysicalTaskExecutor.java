@@ -25,7 +25,6 @@ import cn.edu.tsinghua.iginx.engine.physical.exception.NonExecutablePhysicalTask
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.TooManyPhysicalTasksException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.UnconnectedStorageException;
-import cn.edu.tsinghua.iginx.engine.physical.exception.UnexpectedOperatorException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.UnsupportedPhysicalTaskException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.MemoryPhysicalTaskDispatcher;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.stream.EmptyRowStream;
@@ -43,7 +42,6 @@ import cn.edu.tsinghua.iginx.engine.physical.task.memory.MemoryPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.FetchMetricsRowStream;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStreams;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.*;
 import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
@@ -149,7 +147,7 @@ public class StoragePhysicalTaskExecutor {
 
         List<Operator> operators = task.getOperators();
         if (operators.isEmpty()) {
-          task.setResult(new TaskExecuteResult(new NonExecutablePhysicalTaskException()));
+          setResult(task, new TaskExecuteResult(new NonExecutablePhysicalTaskException()));
           continue;
         }
         Operator op = operators.get(0);
@@ -187,7 +185,7 @@ public class StoragePhysicalTaskExecutor {
                     replicas.stream()
                         .map(StorageUnitMeta::getStorageEngineId)
                         .collect(Collectors.toList());
-                task.setResult(new TaskExecuteResult(new UnconnectedStorageException(storageIds)));
+                setResult(task, new TaskExecuteResult(new UnconnectedStorageException(storageIds)));
                 executeParentTaskIfNeed(task);
               }
               continue;
@@ -199,7 +197,8 @@ public class StoragePhysicalTaskExecutor {
             if (!hasInitialized) {
               p = reconnectStorage(storageId);
               if (p == null) { // 重连失败，则写入/删除失败
-                task.setResult(
+                setResult(
+                    task,
                     new TaskExecuteResult(
                         new UnconnectedStorageException(op.getType(), storageId)));
                 failToExecuteInsertOrDelete(task, replicas);
@@ -218,7 +217,8 @@ public class StoragePhysicalTaskExecutor {
                               !metaManager.isStorageEngineInConnection(replicaId)
                                   && reconnectStorage(replicaId) == null;
                           if (unconnected) {
-                            task.setResult(
+                            setResult(
+                                task,
                                 new TaskExecuteResult(
                                     new UnconnectedStorageException(op.getType(), replicaId)));
                           }
@@ -231,17 +231,18 @@ public class StoragePhysicalTaskExecutor {
 
             break;
           default:
-            task.setResult(new TaskExecuteResult(new UnsupportedPhysicalTaskException()));
+            setResult(task, new TaskExecuteResult(new UnsupportedPhysicalTaskException()));
             continue;
         }
 
         if (p.v.getQueue().size() > maxCachedPhysicalTaskPerStorage) {
-          task.setResult(new TaskExecuteResult(new TooManyPhysicalTasksException(storageId)));
+          setResult(task, new TaskExecuteResult(new TooManyPhysicalTasksException(storageId)));
           continue;
         }
 
-        if (isCancelled(task.getSessionId())) {
-          LOGGER.warn("StoragePhysicalTask[sessionId={}] is cancelled.", task.getSessionId());
+        if (isCancelled(task.getContext().getSessionId())) {
+          LOGGER.warn(
+              "StoragePhysicalTask[sessionId={}] is cancelled.", task.getContext().getSessionId());
           continue;
         }
 
@@ -263,7 +264,7 @@ public class StoragePhysicalTaskExecutor {
       Pair<IStorage, ThreadPoolExecutor> pair) {
     TaskExecuteResult result = null;
     long taskId = System.nanoTime();
-    long startTime = System.currentTimeMillis();
+    long startTime = System.nanoTime();
     try {
       FragmentMeta fragmentMeta = task.getTargetFragment();
       boolean isDummyStorageUnit = task.isDummyStorageUnit();
@@ -303,9 +304,9 @@ public class StoragePhysicalTaskExecutor {
       LOGGER.error("Monitor catch error:", e);
     }
 
-    long span = System.currentTimeMillis() - startTime;
-    task.setSpan(span);
-    task.setResult(result);
+    long span = System.nanoTime() - startTime;
+    task.getMetrics().accumulateCpuTime(span);
+    setResult(task, result);
 
     executeParentTaskIfNeed(task);
 
@@ -314,7 +315,7 @@ public class StoragePhysicalTaskExecutor {
       if (exception != null) {
         LOGGER.error(
             "task {} will not broadcasting to replicas for the sake of exception", task, exception);
-        task.setResult(new TaskExecuteResult(exception));
+        setResult(task, new TaskExecuteResult(exception));
       } else {
         StorageUnitMeta masterStorageUnit = task.getTargetFragment().getMasterStorageUnit();
         List<String> replicaIds =

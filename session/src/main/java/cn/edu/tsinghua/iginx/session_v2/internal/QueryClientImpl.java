@@ -19,6 +19,9 @@
  */
 package cn.edu.tsinghua.iginx.session_v2.internal;
 
+import static cn.edu.tsinghua.iginx.utils.ByteUtils.getLongArrayFromByteBuffer;
+import static cn.edu.tsinghua.iginx.utils.ByteUtils.getValueFromByteBufferByDataType;
+
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.session_v2.QueryClient;
 import cn.edu.tsinghua.iginx.session_v2.exception.IginXException;
@@ -40,6 +43,8 @@ import cn.edu.tsinghua.iginx.thrift.LastQueryReq;
 import cn.edu.tsinghua.iginx.thrift.LastQueryResp;
 import cn.edu.tsinghua.iginx.thrift.QueryDataReq;
 import cn.edu.tsinghua.iginx.thrift.QueryDataResp;
+import cn.edu.tsinghua.iginx.thrift.QueryDataSet;
+import cn.edu.tsinghua.iginx.utils.Bitmap;
 import cn.edu.tsinghua.iginx.utils.ByteUtils;
 import cn.edu.tsinghua.iginx.utils.StatusUtils;
 import java.nio.ByteBuffer;
@@ -91,7 +96,8 @@ public class QueryClientImpl extends AbstractFunctionClient implements QueryClie
         throw new IginXException("simple query failure: ", e);
       }
     }
-    return buildIginXTable(resp.getQueryArrowData());
+    return buildIginXTable(
+        resp.getQueryDataSet(), resp.getPaths(), resp.getTagsList(), resp.getDataTypeList());
   }
 
   private IginXTable aggregateQuery(AggregateQuery query) throws IginXException {
@@ -122,17 +128,16 @@ public class QueryClientImpl extends AbstractFunctionClient implements QueryClie
     }
 
     // 构造结果集
-    ByteUtils.DataSet dataSet = ByteUtils.getDataFromArrowData(resp.getQueryArrowData());
-    measurements = dataSet.getPaths();
-    List<Map<String, String>> tagsList = dataSet.getTagsList();
-    List<DataType> dataTypes = dataSet.getDataTypeList();
-    List<List<Object>> values = dataSet.getValues();
+    measurements = resp.getPaths();
+    List<Map<String, String>> tagsList = resp.getTagsList();
+    List<DataType> dataTypes = resp.getDataTypeList();
+    Object[] values = ByteUtils.getValuesByDataType(resp.valuesList, resp.dataTypeList);
     List<IginXColumn> columns = new ArrayList<>();
     Map<String, Object> recordValues = new HashMap<>();
     for (int i = 0; i < measurements.size(); i++) {
       IginXColumn column = new IginXColumn(measurements.get(i), tagsList.get(i), dataTypes.get(i));
       columns.add(column);
-      recordValues.put(measurements.get(i), values.get(0).get(i));
+      recordValues.put(measurements.get(i), values[i]);
     }
     IginXHeader header = new IginXHeader(columns);
     IginXRecord record = new IginXRecord(header, recordValues);
@@ -165,7 +170,8 @@ public class QueryClientImpl extends AbstractFunctionClient implements QueryClie
         throw new IginXException("downsample query failure: ", e);
       }
     }
-    return buildIginXTable(resp.getQueryArrowData());
+    return buildIginXTable(
+        resp.getQueryDataSet(), resp.getPaths(), resp.getTagsList(), resp.getDataTypeList());
   }
 
   private IginXTable lastQuery(LastQuery query) throws IginXException {
@@ -192,7 +198,8 @@ public class QueryClientImpl extends AbstractFunctionClient implements QueryClie
       }
     }
 
-    return buildIginXTable(resp.getQueryArrowData());
+    return buildIginXTable(
+        resp.getQueryDataSet(), resp.getPaths(), resp.getTagsList(), resp.getDataTypeList());
   }
 
   @Override
@@ -262,13 +269,16 @@ public class QueryClientImpl extends AbstractFunctionClient implements QueryClie
         .collect(Collectors.toList());
   }
 
-  private IginXTable buildIginXTable(List<ByteBuffer> queryArrowData) {
-    ByteUtils.DataSet dataSet = ByteUtils.getDataFromArrowData(queryArrowData);
-    boolean hasKey = dataSet.getKeys() != null;
-    long[] keys = dataSet.getKeys();
-    List<String> measurements = dataSet.getPaths();
-    List<DataType> dataTypes = dataSet.getDataTypeList();
-    List<Map<String, String>> tagsList = dataSet.getTagsList();
+  private IginXTable buildIginXTable(
+      QueryDataSet dataSet,
+      List<String> measurements,
+      List<Map<String, String>> tagsList,
+      List<DataType> dataTypes) {
+    boolean hasTimestamp = dataSet.getKeys() != null;
+    long[] timestamps = new long[0];
+    if (hasTimestamp) {
+      timestamps = getLongArrayFromByteBuffer(dataSet.keys);
+    }
 
     List<IginXColumn> columns = new ArrayList<>();
     Map<Integer, String> columnIndexMap = new HashMap<>();
@@ -279,17 +289,21 @@ public class QueryClientImpl extends AbstractFunctionClient implements QueryClie
       columns.add(new IginXColumn(measurement, tags, dataType));
       columnIndexMap.put(i, measurement);
     }
-    IginXHeader header = new IginXHeader(hasKey ? IginXColumn.TIME : null, columns);
+    IginXHeader header = new IginXHeader(hasTimestamp ? IginXColumn.TIME : null, columns);
     List<IginXRecord> records = new ArrayList<>();
-    for (int i = 0; i < dataSet.getValues().size(); i++) {
+    for (int i = 0; i < dataSet.valuesList.size(); i++) {
+      ByteBuffer valuesBuffer = dataSet.valuesList.get(i);
+      ByteBuffer bitmapBuffer = dataSet.bitmapList.get(i);
+      Bitmap bitmap = new Bitmap(dataTypes.size(), bitmapBuffer.array());
       Map<String, Object> values = new HashMap<>();
       for (int j = 0; j < dataTypes.size(); j++) {
-        Object value = dataSet.getValues().get(i).get(j);
-        if (value != null) {
-          values.put(columnIndexMap.get(j), value);
+        if (bitmap.get(j)) {
+          values.put(
+              columnIndexMap.get(j),
+              getValueFromByteBufferByDataType(valuesBuffer, dataTypes.get(j)));
         }
       }
-      records.add(new IginXRecord(hasKey ? keys[i] : 0L, header, values));
+      records.add(new IginXRecord(hasTimestamp ? timestamps[i] : 0L, header, values));
     }
     return new IginXTable(header, records);
   }

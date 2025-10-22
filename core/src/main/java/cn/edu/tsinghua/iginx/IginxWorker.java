@@ -21,6 +21,7 @@ package cn.edu.tsinghua.iginx;
 
 import static cn.edu.tsinghua.iginx.metadata.utils.IdUtils.generateDummyStorageUnitId;
 import static cn.edu.tsinghua.iginx.metadata.utils.StorageEngineUtils.*;
+import static cn.edu.tsinghua.iginx.utils.ByteUtils.getLongArrayFromByteBuffer;
 import static cn.edu.tsinghua.iginx.utils.HostUtils.*;
 import static cn.edu.tsinghua.iginx.utils.StringUtils.isEqual;
 
@@ -36,7 +37,6 @@ import cn.edu.tsinghua.iginx.engine.ContextBuilder;
 import cn.edu.tsinghua.iginx.engine.StatementExecutor;
 import cn.edu.tsinghua.iginx.engine.logical.optimizer.IRuleCollection;
 import cn.edu.tsinghua.iginx.engine.physical.PhysicalEngineImpl;
-import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
 import cn.edu.tsinghua.iginx.engine.physical.storage.StorageManager;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
@@ -885,21 +885,18 @@ public class IginxWorker implements IService.Iface {
   public ExecuteStatementResp executeStatement(ExecuteStatementReq req) {
     StatementExecutor executor = StatementExecutor.getInstance();
     RequestContext ctx = contextBuilder.build(req);
-    executor.execute(ctx, false); // resource will be released when closed
+    executor.execute(ctx);
     queryManager.registerQuery(ctx.getId(), ctx);
-    return ctx.getResult().getExecuteStatementResp(ctx.getAllocator(), req.getFetchSize());
+    return ctx.getResult().getExecuteStatementResp(req.getFetchSize());
   }
 
   @Override
   public FetchResultsResp fetchResults(FetchResultsReq req) {
     RequestContext context = queryManager.getQuery(req.queryId);
     if (context == null) {
-      return new FetchResultsResp(
-          new Status(RpcUtils.FAILURE.code)
-              .setMessage("Query has been closed or cleaned due to time out."),
-          false);
+      return new FetchResultsResp(RpcUtils.SUCCESS, false);
     }
-    return context.getResult().fetch(context.getAllocator(), req.getFetchSize());
+    return context.getResult().fetch(req.getFetchSize());
   }
 
   @Override
@@ -923,15 +920,7 @@ public class IginxWorker implements IService.Iface {
 
   @Override
   public Status closeStatement(CloseStatementReq req) {
-    try {
-      queryManager.releaseQuery(req.queryId);
-    } catch (PhysicalException e) {
-      String err = String.format("failed to close resources for query:%s", req.queryId);
-      LOGGER.error(err, e);
-      Status res = new Status(RpcUtils.FAILURE.code);
-      res.setMessage(err);
-      return res;
-    }
+    queryManager.releaseQuery(req.queryId);
     return RpcUtils.SUCCESS;
   }
 
@@ -1280,10 +1269,8 @@ public class IginxWorker implements IService.Iface {
     RequestContext ctx = contextBuilder.build(queryDataReq);
     executor.execute(ctx);
     QueryDataResp queryDataResp = ctx.getResult().getQueryDataResp();
-    ByteUtils.DataSet dataSet = ByteUtils.getDataFromArrowData(queryDataResp.getQueryArrowData());
 
-    List<DataType> types = dataSet.getDataTypeList();
-    for (DataType type : types) {
+    for (DataType type : queryDataResp.getDataTypeList()) {
       if (type.equals(DataType.BINARY) || type.equals(DataType.BOOLEAN)) {
         LOGGER.error("Unsupported data type: {}", type);
         return new CurveMatchResp(RpcUtils.FAILURE);
@@ -1297,9 +1284,13 @@ public class IginxWorker implements IService.Iface {
     List<Double> upper = CurveMatchUtils.getWindow(queryList, maxWarpingWindow, true);
     List<Double> lower = CurveMatchUtils.getWindow(queryList, maxWarpingWindow, false);
 
-    List<String> paths = dataSet.getPaths();
-    long[] keys = dataSet.getKeys();
-    List<List<Object>> values = dataSet.getValues();
+    List<String> paths = queryDataResp.getPaths();
+    long[] queryTimestamps = getLongArrayFromByteBuffer(queryDataResp.getQueryDataSet().keys);
+    List<List<Object>> values =
+        ByteUtils.getValuesFromBufferAndBitmaps(
+            queryDataResp.getDataTypeList(),
+            queryDataResp.getQueryDataSet().getValuesList(),
+            queryDataResp.getQueryDataSet().getBitmapList());
 
     double globalBestResult = Double.MAX_VALUE;
     long globalMatchedKey = 0L;
@@ -1310,9 +1301,9 @@ public class IginxWorker implements IService.Iface {
       List<Double> value = new ArrayList<>();
       List<Integer> timestampsIndex = new ArrayList<>();
       int cnt = 0;
-      for (int j = 0; j < keys.length; j++) {
+      for (int j = 0; j < queryTimestamps.length; j++) {
         if (values.get(j).get(i) != null) {
-          timestamps.add(keys[j]);
+          timestamps.add(queryTimestamps[j]);
           value.add(ValueUtils.transformToDouble(values.get(j).get(i)));
           timestampsIndex.add(cnt);
           cnt++;
