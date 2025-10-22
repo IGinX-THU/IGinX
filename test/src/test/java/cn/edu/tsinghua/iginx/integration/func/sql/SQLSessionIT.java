@@ -7224,7 +7224,10 @@ public class SQLSessionIT {
                 "maxTimeseriesLength",
                 "batchSize",
                 "parallelGroupByPoolSize",
-                "username"));
+                "username",
+                "initialReconnectInterval",
+                "maxReconnectInterval",
+                "reconnectBackoffMultiplier"));
 
     assertEquals(expectedConfigNames, configs.keySet());
   }
