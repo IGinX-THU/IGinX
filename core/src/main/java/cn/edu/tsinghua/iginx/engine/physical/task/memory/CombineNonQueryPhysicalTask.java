@@ -20,6 +20,7 @@
 package cn.edu.tsinghua.iginx.engine.physical.task.memory;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
+import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
 import cn.edu.tsinghua.iginx.engine.physical.task.PhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskResult;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
@@ -27,6 +28,7 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStreams;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import org.slf4j.Logger;
@@ -56,24 +58,24 @@ public class CombineNonQueryPhysicalTask extends MultiMemoryPhysicalTask<RowStre
       return new TaskResult<>(
           new PhysicalException("multiple memory physical task shouldn't have follower task"));
     }
-    PhysicalException exception = null;
+    List<Exception> exceptions = new ArrayList<>();
     for (PhysicalTask<?> parentTask : getParentTasks()) {
       try {
         parentTask.getResult().get().close();
       } catch (PhysicalException | ExecutionException | InterruptedException e) {
-        if (exception == null) {
-          if (e instanceof PhysicalException) {
-            exception = (PhysicalException) e;
-          } else {
-            exception = new PhysicalException(e);
-          }
-        } else {
-          exception.addSuppressed(e);
-        }
+        exceptions.add(e);
       }
     }
-    if (exception != null) {
-      return new TaskResult<>(exception);
+    if (!exceptions.isEmpty()) {
+      StringBuilder message = new StringBuilder("some sub-task execute failure, details: ");
+      for (Exception exception : exceptions) {
+        message.append(exception.getMessage());
+      }
+      PhysicalException e = new PhysicalTaskExecuteFailureException(message.toString());
+      for (Exception exception : exceptions) {
+        e.addSuppressed(exception);
+      }
+      return new TaskResult<>(e);
     }
     return new TaskResult<>(RowStreams.empty());
   }
