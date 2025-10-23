@@ -50,8 +50,7 @@ public class ProjectInfoGenerator implements UnaryExecutorFactory<ProjectExecuto
     for (Pair<String, Integer> pair : columnsAndIndices) {
       ret.add(new FieldNode(pair.v, pair.k));
     }
-    boolean empty = ret.isEmpty() || (inputSchema.hasKey() && ret.size() == 1);
-    return new ProjectExecutor(context, inputSchema.raw(), ret, empty);
+    return new ProjectExecutor(context, inputSchema.raw(), ret);
   }
 
   /**

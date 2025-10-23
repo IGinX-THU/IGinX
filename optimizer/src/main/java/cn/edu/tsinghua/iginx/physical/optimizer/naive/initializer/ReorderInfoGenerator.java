@@ -54,7 +54,8 @@ public class ReorderInfoGenerator implements UnaryExecutorFactory<ProjectExecuto
     for (Pair<String, Integer> pair : columnsAndIndices) {
       ret.add(new FieldNode(pair.v, pair.k));
     }
-    return new ProjectExecutor(context, inputSchema.raw(), ret);
+    boolean empty = ret.isEmpty() || (inputSchema.hasKey() && ret.size() == 1);
+    return new ProjectExecutor(context, inputSchema.raw(), ret, empty);
   }
 
   /**
