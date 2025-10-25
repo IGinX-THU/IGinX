@@ -215,8 +215,10 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
   }
 
   private RowStream executeProjectFromOperator(Project project, Table table) {
-    Header targetHeader =
+    Pair<Header, List<Integer>> pair =
         table.getHeader().projectedHeader(project.getPatterns(), project.isRemainKey());
+    Header targetHeader = pair.getK();
+    List<Integer> indexList = pair.getV();
     List<Field> targetFields = targetHeader.getFields();
     List<Row> targetRows = new ArrayList<>();
     table.reset();
@@ -224,7 +226,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
       Row row = table.next();
       Object[] objects = new Object[targetFields.size()];
       for (int i = 0; i < targetFields.size(); i++) {
-        objects[i] = row.getValue(targetFields.get(i));
+        objects[i] = row.getValue(indexList.get(i));
       }
       targetRows.add(new Row(targetHeader, row.getKey(), objects));
     }
@@ -271,7 +273,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
           "downsample operator is not support for row stream without key.");
     }
     if (downsample.notSetInterval() && table.getRowSize() <= 0) {
-      return Table.EMPTY_TABLE;
+      return Table.EMPTY_TABLE_WITH_KEY;
     }
 
     long precision = downsample.getPrecision();
@@ -283,12 +285,13 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
       FunctionParams params = functionCall.getParams();
 
       Table functable = RowUtils.preRowTransform(table, rowTransformMap, functionCall);
-      Header tmpHeader = functable.getHeader();
+      Header tmpHeader;
       TreeMap<Long, List<Row>> groups = RowUtils.computeDownsampleGroup(downsample, functable);
 
       // <<window_start, window_end> row>
       List<Pair<Pair<Long, Long>, Row>> transformedRawRows = new ArrayList<>();
       for (Map.Entry<Long, List<Row>> entry : groups.entrySet()) {
+        tmpHeader = functable.getHeader();
         long windowStartKey = entry.getKey();
         long windowEndKey = windowStartKey + precision - 1;
         List<Row> group = entry.getValue();
@@ -325,7 +328,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
         }
       }
       if (transformedRawRows.isEmpty()) {
-        return Table.EMPTY_TABLE;
+        return Table.EMPTY_TABLE_WITH_KEY;
       }
 
       // 只让第一张表保留 window_start, window_end 列，这样按key join后无需删除重复列
@@ -516,7 +519,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     return new Table(newHeader, rows);
   }
 
-  private RowStream executeReorder(Reorder reorder, Table table) {
+  private RowStream executeReorder(Reorder reorder, Table table) throws PhysicalException {
     Header header = table.getHeader();
 
     Header.ReorderedHeaderWrapped res =
@@ -524,6 +527,11 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     Header newHeader = res.getHeader();
     List<Field> targetFields = res.getTargetFields();
     Map<Integer, Integer> reorderMap = res.getReorderMap();
+
+    if (targetFields.isEmpty()) {
+      return table.getEmptyTable();
+    }
+
     List<Row> rows = new ArrayList<>();
     table
         .getRows()
@@ -574,7 +582,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     if (remainColumnSize == fieldSize) { // 没有空列
       return table;
     } else if (remainIndexes.isEmpty()) { // 全是空列
-      return rows.isEmpty() ? table : Table.EMPTY_TABLE;
+      return rows.isEmpty() ? table : table.getEmptyTable();
     }
 
     List<Field> newFields = new ArrayList<>(remainColumnSize);

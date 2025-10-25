@@ -710,9 +710,9 @@ public class StatementExecutor {
 
     Result result = ctx.getResult();
     long pointsNum = 0;
-    if (ctx.getResult().getValuesList() != null) {
-      Object[] row =
-          ByteUtils.getValuesByDataType(result.getValuesList().get(0), result.getDataTypes());
+    List<ByteBuffer> values = result.getValuesList();
+    if (values != null && !values.isEmpty()) {
+      Object[] row = ByteUtils.getValuesByDataType(values.get(0), result.getDataTypes());
       pointsNum = Arrays.stream(row).mapToLong(e -> (Long) e).sum();
     }
 
@@ -736,9 +736,11 @@ public class StatementExecutor {
     process(ctx);
   }
 
-  private void setEmptyQueryResp(RequestContext ctx, List<String> paths) {
+  private void setEmptyQueryResp(RequestContext ctx, List<String> paths, boolean hasKey) {
     Result result = new Result(RpcUtils.SUCCESS);
-    result.setKeys(new Long[0]);
+    if (hasKey) {
+      result.setKeys(new Long[0]);
+    }
     result.setValuesList(new ArrayList<>());
     result.setBitmapList(new ArrayList<>());
     result.setPaths(paths);
@@ -790,7 +792,7 @@ public class StatementExecutor {
     }
 
     if (stream == null) {
-      setEmptyQueryResp(ctx, new ArrayList<>());
+      setEmptyQueryResp(ctx, new ArrayList<>(), false);
       return;
     }
 
@@ -811,11 +813,11 @@ public class StatementExecutor {
               }
             });
 
-    List<Long> timestampList = new ArrayList<>();
+    List<Long> keyList = new ArrayList<>();
     List<ByteBuffer> valuesList = new ArrayList<>();
     List<ByteBuffer> bitmapList = new ArrayList<>();
 
-    boolean hasTimestamp = stream.getHeader().hasKey();
+    boolean hasKey = stream.getHeader().hasKey();
     while (stream.hasNext()) {
       Row row = stream.next();
 
@@ -830,13 +832,13 @@ public class StatementExecutor {
       }
       bitmapList.add(ByteBuffer.wrap(bitmap.getBytes()));
 
-      if (hasTimestamp) {
-        timestampList.add(row.getKey());
+      if (hasKey) {
+        keyList.add(row.getKey());
       }
     }
 
     if (valuesList.isEmpty()) { // empty result
-      setEmptyQueryResp(ctx, paths);
+      setEmptyQueryResp(ctx, paths, hasKey);
       return;
     }
 
@@ -846,9 +848,9 @@ public class StatementExecutor {
       status.setMessage(ctx.getWarningMsg());
     }
     result = new Result(status);
-    if (timestampList.size() != 0) {
-      Long[] timestamps = timestampList.toArray(new Long[timestampList.size()]);
-      result.setKeys(timestamps);
+    if (!keyList.isEmpty()) {
+      Long[] keys = keyList.toArray(new Long[keyList.size()]);
+      result.setKeys(keys);
     }
     result.setValuesList(valuesList);
     result.setBitmapList(bitmapList);

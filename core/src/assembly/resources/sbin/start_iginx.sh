@@ -64,7 +64,8 @@ if [ -n "$JAVA_HOME" ]; then
       break
     fi
   done
-else
+fi
+if [[ -z "${JAVA// /}" ]]; then
   JAVA=java
 fi
 
@@ -128,6 +129,7 @@ LOCAL_JAVA_OPTS=(
  -DIGINX_HOME="$IGINX_HOME"
  -DIGINX_DRIVER="$IGINX_DRIVER"
  -DIGINX_CONF="$IGINX_CONF"
+ -Dfile.encoding=UTF-8
 )
 
 exec "$JAVA" ${HEAP_OPTS[@]} ${IGINX_JAVA_OPTS[@]} ${LOCAL_JAVA_OPTS[@]} "$MAIN_CLASS" "$@"

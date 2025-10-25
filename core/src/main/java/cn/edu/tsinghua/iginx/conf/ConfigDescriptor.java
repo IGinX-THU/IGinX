@@ -33,14 +33,11 @@ public class ConfigDescriptor {
 
   private ConfigDescriptor() {
     config = new Config();
-    LOGGER.info("load parameters from config.properties.");
     loadPropsFromFile();
     if (config.isEnableEnvParameter()) {
-      LOGGER.info("load parameters from env.");
       loadPropsFromEnv(); // 如果在环境变量中设置了相关参数，则会覆盖配置文件中设置的参数
     }
     if (config.isNeedInitBasicUDFFunctions()) {
-      LOGGER.info("load UDF list from file.");
       loadUDFListFromFile();
     }
   }
@@ -50,22 +47,30 @@ public class ConfigDescriptor {
   }
 
   private void loadPropsFromFile() {
-    try (InputStream in =
-        new FileInputStream(EnvUtils.loadEnv(Constants.CONF, Constants.CONFIG_FILE))) {
+    // runs/debugged in IDE: IGINX_HOME not set, use user.dir as root
+    // runs by script: IGINX_HOME should always have been set
+    String iginxHomePath = EnvUtils.loadEnv(Constants.IGINX_HOME, System.getProperty("user.dir"));
+
+    String confPath = EnvUtils.loadEnv(Constants.CONF, Constants.CONFIG_FILE);
+    if (!FileUtils.isAbsolutePath(confPath)) {
+      // if relative, build absolute path
+      confPath = String.join(File.separator, iginxHomePath, confPath);
+    }
+
+    try (InputStream in = new FileInputStream(confPath)) {
+      LOGGER.info("load parameters from file: {}.", confPath);
       BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(in));
 
       Properties properties = new Properties();
       properties.load(bufferedReader);
 
-      // runs/debugged in IDE: IGINX_HOME not set, use user.dir as root
-      // runs by script: IGINX_HOME should always have been set
-      String iginxHomePath = EnvUtils.loadEnv(Constants.IGINX_HOME, System.getProperty("user.dir"));
       String udfPath = properties.getProperty("defaultUDFDir", "udf_funcs");
       if (!FileUtils.isAbsolutePath(udfPath)) {
         // if relative, build absolute path
         udfPath = String.join(File.separator, iginxHomePath, udfPath);
       }
       config.setDefaultUDFDir(udfPath);
+      config.setUDFTimeout(Long.parseLong(properties.getProperty("UDFTimeout", "-1")));
       config.setIp(properties.getProperty("ip", "0.0.0.0"));
       config.setPort(Integer.parseInt(properties.getProperty("port", "6888")));
       config.setUsername(properties.getProperty("username", "root"));
@@ -234,17 +239,22 @@ public class ConfigDescriptor {
           properties.getProperty(
               "ruleBasedOptimizer",
               "NotFilterRemoveRule=on,FragmentPruningByFilterRule=on,ColumnPruningRule=on,FragmentPruningByPatternRule=on"));
+      config.setInitialReconnectInterval(
+          Long.parseLong(properties.getProperty("initialReconnectInterval", "2")));
+      config.setMaxReconnectInterval(
+          Long.parseLong(properties.getProperty("maxReconnectInterval", "128")));
+      config.setReconnectBackoffMultiplier(
+          Integer.parseInt(properties.getProperty("reconnectBackoffMultiplier", "2")));
     } catch (IOException e) {
-      config.setUTTestEnv(true);
-      config.setNeedInitBasicUDFFunctions(false);
       loadPropsFromEnv();
-      LOGGER.warn(
-          "Use default config, because fail to load properties(This error may be expected if it occurs during UT testing): ",
-          e);
+      if (!config.isUTTestEnv()) {
+        LOGGER.warn("Use default config, because fail to load properties; ", e);
+      }
     }
   }
 
   private void loadPropsFromEnv() {
+    LOGGER.info("load parameters from env.");
     config.setIp(EnvUtils.loadEnv("ip", config.getIp()));
     config.setPort(EnvUtils.loadEnv("port", config.getPort()));
     config.setUsername(EnvUtils.loadEnv("username", config.getUsername()));
@@ -363,12 +373,19 @@ public class ConfigDescriptor {
     config.setUTTestEnv(EnvUtils.loadEnv("utTestEnv", config.isUTTestEnv()));
     config.setRuleBasedOptimizer(
         EnvUtils.loadEnv("ruleBasedOptimizer", config.getRuleBasedOptimizer()));
+    config.setInitialReconnectInterval(
+        EnvUtils.loadEnv("initialReconnectInterval", config.getInitialReconnectInterval()));
+    config.setMaxReconnectInterval(
+        EnvUtils.loadEnv("maxReconnectInterval", config.getMaxReconnectInterval()));
+    config.setReconnectBackoffMultiplier(
+        EnvUtils.loadEnv("reconnectBackoffMultiplier", config.getReconnectBackoffMultiplier()));
   }
 
   private void loadUDFListFromFile() {
     String UDFFilePath =
         String.join(File.separator, config.getDefaultUDFDir(), Constants.UDF_LIST_FILE);
     try (InputStream in = new FileInputStream(UDFFilePath)) {
+      LOGGER.info("load UDF list from file: {}.", UDFFilePath);
       BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(in));
 
       String line = null;

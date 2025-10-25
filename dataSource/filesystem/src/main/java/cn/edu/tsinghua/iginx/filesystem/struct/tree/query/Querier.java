@@ -26,17 +26,21 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 import javax.annotation.Nullable;
 
 public interface Querier extends Closeable {
 
-  List<RowStream> query() throws IOException;
+  List<Future<RowStream>> query();
 
   interface Builder extends Closeable {
     Querier build(DataTarget parentTarget) throws IOException;
 
     interface Factory {
-      Builder create(@Nullable String prefix, Path path, FileTreeConfig config) throws IOException;
+      Builder create(
+          @Nullable String prefix, Path path, FileTreeConfig config, ExecutorService executor)
+          throws IOException;
     }
   }
 }

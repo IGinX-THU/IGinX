@@ -48,7 +48,7 @@ statement
    | SHOW TRANSFORM JOB STATUS jobId = INT # showJobStatusStatement
    | CANCEL TRANSFORM JOB jobId = INT # cancelJobStatement
    | SHOW (jobStatus)? TRANSFORM JOBS # showEligibleJobStatement
-   | REMOVE STORAGEENGINE removedStorageEngine (COMMA removedStorageEngine)* # removeStorageEngineStatement
+   | REMOVE STORAGEENGINE removedStorageEngine (COMMA removedStorageEngine)* (FOR ALL)? # removeStorageEngineStatement
    | SET CONFIG configName = stringLiteral configValue = stringLiteral # setConfigStatement
    | SHOW CONFIG (configName = stringLiteral)? # showConfigStatement
    | SHOW SESSIONID # showSessionIDStatement
@@ -83,7 +83,7 @@ ruleAssignment
    ;
 
 cteName
-   : ID
+   : identifier
    ;
 
 columnsList
@@ -91,7 +91,7 @@ columnsList
    ;
 
 cteColumn
-   : ID
+   : identifier
    ;
 
 queryClause
@@ -337,7 +337,7 @@ aggLen
    ;
 
 asClause
-   : AS? ID
+   : AS? identifier
    ;
 
 timeInterval
@@ -348,8 +348,7 @@ timeInterval
    ;
 
 limitClause
-   : LIMIT INT COMMA INT
-   | LIMIT INT offsetClause?
+   : LIMIT INT offsetClause?
    | offsetClause? LIMIT INT
    ;
 
@@ -490,9 +489,8 @@ jobStatus
    ;
 
 nodeName
-   : ID
+   : identifier
    | STAR
-   | BACK_QUOTE_STRING_LITERAL_NOT_EMPTY
    | keyWords
    ;
 
@@ -633,6 +631,11 @@ realLiteral
 
 removedStorageEngine
    : LR_BRACKET ip = stringLiteral COMMA port = INT COMMA schemaPrefix = stringLiteral COMMA dataPrefix = stringLiteral RR_BRACKET
+   ;
+
+identifier
+   : ID
+   | BACK_QUOTE_STRING_LITERAL_NOT_EMPTY
    ;
    //============================
    
@@ -1430,7 +1433,7 @@ fragment CN_CHAR
    ;
 
 BACK_QUOTE_STRING_LITERAL_NOT_EMPTY
-   : BACK_QUOTE ('\\' . | ~ '"')+? BACK_QUOTE
+   : BACK_QUOTE ('\\' . | ~ '`')+? BACK_QUOTE
    ;
 
 DOUBLE_QUOTE_STRING_LITERAL

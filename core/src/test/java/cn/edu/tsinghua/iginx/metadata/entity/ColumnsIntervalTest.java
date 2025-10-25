@@ -51,9 +51,9 @@ public class ColumnsIntervalTest {
         ColumnsInterval columnsInterval = new ColumnsInterval(str);
       } catch (Exception e) {
         flag = true;
-        LOGGER.error("expect true but was false, with {}", str, e);
       }
       if (!flag) {
+        LOGGER.error("expect true but was false, with {}", str);
         fail();
       }
     }

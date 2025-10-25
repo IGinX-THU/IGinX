@@ -140,13 +140,8 @@ public class ParseTest {
 
   @Test
   public void testParseSpecialClause() {
-    String limit = "SELECT a FROM test LIMIT 2, 5;";
-    UnarySelectStatement statement = (UnarySelectStatement) TestUtils.buildStatement(limit);
-    assertEquals(5, statement.getLimit());
-    assertEquals(2, statement.getOffset());
-
-    String orderBy = "SELECT a FROM test ORDER BY KEY";
-    statement = (UnarySelectStatement) TestUtils.buildStatement(orderBy);
+    String orderBy = "SELECT a FROM test ORDER BY KEY;";
+    UnarySelectStatement statement = (UnarySelectStatement) TestUtils.buildStatement(orderBy);
     assertEquals(1, statement.getOrderByExpressions().size());
     assertTrue(
         statement
@@ -164,7 +159,7 @@ public class ParseTest {
     assertEquals(5, statement.getOffset());
     assertEquals(10, statement.getLimit());
 
-    String groupBy = "SELECT max(a) FROM test OVER WINDOW (size 5 IN (10, 120])";
+    String groupBy = "SELECT max(a) FROM test OVER WINDOW (size 5 IN (10, 120]);";
     statement = (UnarySelectStatement) TestUtils.buildStatement(groupBy);
 
     assertEquals(11, statement.getStartKey());
@@ -201,19 +196,14 @@ public class ParseTest {
 
   @Test
   public void testParseLimitClause() {
-    String selectWithLimit = "SELECT * FROM a.b LIMIT 10";
-    String selectWithLimitAndOffset01 = "SELECT * FROM a.b LIMIT 2, 10";
-    String selectWithLimitAndOffset02 = "SELECT * FROM a.b LIMIT 10 OFFSET 2";
-    String selectWithLimitAndOffset03 = "SELECT * FROM a.b OFFSET 2 LIMIT 10";
+    String selectWithLimit = "SELECT * FROM a.b LIMIT 10;";
+    String selectWithLimitAndOffset02 = "SELECT * FROM a.b LIMIT 10 OFFSET 2;";
+    String selectWithLimitAndOffset03 = "SELECT * FROM a.b OFFSET 2 LIMIT 10;";
 
     UnarySelectStatement statement =
         (UnarySelectStatement) TestUtils.buildStatement(selectWithLimit);
     assertEquals(10, statement.getLimit());
     assertEquals(0, statement.getOffset());
-
-    statement = (UnarySelectStatement) TestUtils.buildStatement(selectWithLimitAndOffset01);
-    assertEquals(10, statement.getLimit());
-    assertEquals(2, statement.getOffset());
 
     statement = (UnarySelectStatement) TestUtils.buildStatement(selectWithLimitAndOffset02);
     assertEquals(10, statement.getLimit());
@@ -243,8 +233,16 @@ public class ParseTest {
   }
 
   @Test
+  public void testParseEscape() {
+    String s = "select `a\\nb\\.txt` from escape;";
+    UnarySelectStatement statement = (UnarySelectStatement) TestUtils.buildStatement(s);
+    assertEquals(
+        new HashSet<>(Collections.singletonList("escape.a\nb\\.txt")), statement.getPathSet());
+  }
+
+  @Test
   public void testParseShowReplication() {
-    String showReplicationStr = "SHOW REPLICA NUMBER";
+    String showReplicationStr = "SHOW REPLICA NUMBER;";
     ShowReplicationStatement statement =
         (ShowReplicationStatement) TestUtils.buildStatement(showReplicationStr);
     assertEquals(StatementType.SHOW_REPLICATION, statement.statementType);
@@ -305,7 +303,7 @@ public class ParseTest {
 
   @Test
   public void testJoin() {
-    String joinStr = "SELECT * FROM cpu1, cpu2";
+    String joinStr = "SELECT * FROM cpu1, cpu2;";
     UnarySelectStatement selectStatement = (UnarySelectStatement) TestUtils.buildStatement(joinStr);
 
     assertEquals(2, selectStatement.getFromParts().size());
@@ -316,7 +314,7 @@ public class ParseTest {
         new JoinCondition(JoinType.CrossJoin, null, Collections.emptyList());
     assertEquals(joinCondition, selectStatement.getFromParts().get(1).getJoinCondition());
 
-    joinStr = "SELECT * FROM cpu1, cpu2, cpu3";
+    joinStr = "SELECT * FROM cpu1, cpu2, cpu3;";
     selectStatement = (UnarySelectStatement) TestUtils.buildStatement(joinStr);
 
     assertEquals(3, selectStatement.getFromParts().size());
@@ -330,7 +328,7 @@ public class ParseTest {
     joinCondition = new JoinCondition(JoinType.CrossJoin, null, Collections.emptyList());
     assertEquals(joinCondition, selectStatement.getFromParts().get(2).getJoinCondition());
 
-    joinStr = "SELECT * FROM cpu1 LEFT JOIN cpu2 ON cpu1.usage = cpu2.usage";
+    joinStr = "SELECT * FROM cpu1 LEFT JOIN cpu2 ON cpu1.usage = cpu2.usage;";
     selectStatement = (UnarySelectStatement) TestUtils.buildStatement(joinStr);
 
     assertEquals(2, selectStatement.getFromParts().size());
@@ -344,7 +342,7 @@ public class ParseTest {
             Collections.emptyList());
     assertEquals(joinCondition, selectStatement.getFromParts().get(1).getJoinCondition());
 
-    joinStr = "SELECT * FROM cpu1 RIGHT OUTER JOIN cpu2 USING usage";
+    joinStr = "SELECT * FROM cpu1 RIGHT OUTER JOIN cpu2 USING usage;";
     selectStatement = (UnarySelectStatement) TestUtils.buildStatement(joinStr);
 
     assertEquals(2, selectStatement.getFromParts().size());
@@ -355,7 +353,7 @@ public class ParseTest {
         new JoinCondition(JoinType.RightOuterJoin, null, Collections.singletonList("usage"));
     assertEquals(joinCondition, selectStatement.getFromParts().get(1).getJoinCondition());
 
-    joinStr = "SELECT * FROM cpu1 FULL OUTER JOIN cpu2 ON cpu1.usage = cpu2.usage";
+    joinStr = "SELECT * FROM cpu1 FULL OUTER JOIN cpu2 ON cpu1.usage = cpu2.usage;";
     selectStatement = (UnarySelectStatement) TestUtils.buildStatement(joinStr);
 
     assertEquals(2, selectStatement.getFromParts().size());
@@ -369,7 +367,7 @@ public class ParseTest {
             Collections.emptyList());
     assertEquals(joinCondition, selectStatement.getFromParts().get(1).getJoinCondition());
 
-    joinStr = "SELECT * FROM cpu1 JOIN cpu2 ON cpu1.usage = cpu2.usage";
+    joinStr = "SELECT * FROM cpu1 JOIN cpu2 ON cpu1.usage = cpu2.usage;";
     selectStatement = (UnarySelectStatement) TestUtils.buildStatement(joinStr);
 
     assertEquals(2, selectStatement.getFromParts().size());
@@ -383,7 +381,7 @@ public class ParseTest {
             Collections.emptyList());
     assertEquals(joinCondition, selectStatement.getFromParts().get(1).getJoinCondition());
 
-    joinStr = "SELECT * FROM cpu1 INNER JOIN cpu2 USING usage";
+    joinStr = "SELECT * FROM cpu1 INNER JOIN cpu2 USING usage;";
     selectStatement = (UnarySelectStatement) TestUtils.buildStatement(joinStr);
 
     assertEquals(2, selectStatement.getFromParts().size());

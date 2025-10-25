@@ -47,6 +47,25 @@
                 <plugins>
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-antrun-plugin</artifactId>
+                        <version>3.0.0</version>
+                        <executions>
+                            <execution>
+                                <id>download-dameng-jdbc</id>
+                                <goals>
+                                    <goal>run</goal>
+                                </goals>
+                                <phase>initialize</phase>
+                                <configuration>
+                                    <target>
+                                        <get dest="src/main/resources/dameng-jdbc-1.8-SNAPSHOT.jar" ignoreerrors="false" skipexisting="true" src="https://raw.githubusercontent.com/IGinX-THU/IGinX-resources/main/resources/dameng-jdbc-1.8-SNAPSHOT.jar" usetimestamp="true" verbose="true"/>
+                                    </target>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-install-plugin</artifactId>
                         <version>3.1.2</version>
                         <executions>
@@ -67,7 +86,7 @@
                                 </goals>
                                 <phase>generate-sources</phase>
                                 <configuration>
-                                    <file>src/main/resources/pemja-0.5-SNAPSHOT.jar</file>
+                                    <file>src/main/resources/pemja-0.2.2.jar</file>
                                 </configuration>
                             </execution>
                         </executions>

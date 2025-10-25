@@ -29,6 +29,7 @@ import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.func.session.InsertAPIType;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.integration.tool.DBConf;
+import cn.edu.tsinghua.iginx.integration.tool.TestUtils;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import cn.edu.tsinghua.iginx.thrift.DataType;
@@ -257,9 +258,41 @@ public class TagIT {
     Controller.clearData(session);
   }
 
-  private void executeAndCompare(String statement, String expectedOutput) {
+  public void executeAndCompare(String statement, String expectedOutput) {
+    executeAndCompare(statement, expectedOutput, false);
+  }
+
+  private void executeAndCompare(String statement, String expectedOutput, boolean ignoreOrder) {
     String actualOutput = execute(statement);
-    assertEquals(expectedOutput, actualOutput);
+    if (ignoreOrder) {
+      if (!TestUtils.isResultSetEqual(expectedOutput, actualOutput)) {
+        LOGGER.error(
+            "Statement: \"{}\" execute fail,\nexpected:\"{}\",\nactual:\"{}\"",
+            statement,
+            expectedOutput,
+            actualOutput);
+        fail();
+      }
+    } else {
+      assertEquals(expectedOutput, actualOutput);
+    }
+  }
+
+  public void executeAndCompareLineCount(String statement, int expectedLineCount) {
+    String actualOutput = execute(statement);
+    List<String> actualLines = Arrays.asList(actualOutput.split("\n"));
+    // 计算行数
+    if (actualLines.get(actualLines.size() - 1).startsWith("Total line number = ")) {
+      String lineCountStr =
+          actualLines.get(actualLines.size() - 1).replace("Total line number = ", "");
+      int actualLineCount = Integer.parseInt(lineCountStr.trim());
+      // 比较行数
+      assertEquals(expectedLineCount, actualLineCount);
+    } else if (actualLines.get(actualLines.size() - 1).startsWith("Empty set.")) {
+      assertEquals(expectedLineCount, 0);
+    } else {
+      fail();
+    }
   }
 
   private String execute(String statement) {
@@ -314,49 +347,15 @@ public class TagIT {
             + "|     ah.hr03.v{t1=vv11}|    LONG|\n"
             + "+-----------------------+--------+\n"
             + "Total line number = 13\n";
-    executeAndCompare(statement, expected);
+    executeAndCompare(statement, expected, true);
 
     statement = "SHOW COLUMNS ah.* limit 6;";
-    expected =
-        "Columns:\n"
-            + "+-----------------------+--------+\n"
-            + "|                   Path|DataType|\n"
-            + "+-----------------------+--------+\n"
-            + "|              ah.hr01.s|    LONG|\n"
-            + "|ah.hr01.s{t1=v1,t2=vv1}|    LONG|\n"
-            + "|              ah.hr01.v|    LONG|\n"
-            + "|ah.hr01.v{t1=v2,t2=vv1}|    LONG|\n"
-            + "|              ah.hr02.s| BOOLEAN|\n"
-            + "|       ah.hr02.s{t1=v1}| BOOLEAN|\n"
-            + "+-----------------------+--------+\n"
-            + "Total line number = 6\n";
-    executeAndCompare(statement, expected);
+    int expectedLineCount = 6;
+    executeAndCompareLineCount(statement, expectedLineCount);
 
     statement = "SHOW COLUMNS ah.* limit 3 offset 7;";
-    expected =
-        "Columns:\n"
-            + "+-----------------------+--------+\n"
-            + "|                   Path|DataType|\n"
-            + "+-----------------------+--------+\n"
-            + "|       ah.hr02.v{t1=v1}|  BINARY|\n"
-            + "| ah.hr02.v{t1=v1,t2=v2}|  BINARY|\n"
-            + "|ah.hr03.s{t1=v1,t2=vv2}| BOOLEAN|\n"
-            + "+-----------------------+--------+\n"
-            + "Total line number = 3\n";
-    executeAndCompare(statement, expected);
-
-    statement = "SHOW COLUMNS ah.* limit 7, 3;";
-    expected =
-        "Columns:\n"
-            + "+-----------------------+--------+\n"
-            + "|                   Path|DataType|\n"
-            + "+-----------------------+--------+\n"
-            + "|       ah.hr02.v{t1=v1}|  BINARY|\n"
-            + "| ah.hr02.v{t1=v1,t2=v2}|  BINARY|\n"
-            + "|ah.hr03.s{t1=v1,t2=vv2}| BOOLEAN|\n"
-            + "+-----------------------+--------+\n"
-            + "Total line number = 3\n";
-    executeAndCompare(statement, expected);
+    expectedLineCount = 3;
+    executeAndCompareLineCount(statement, expectedLineCount);
 
     statement = "SHOW COLUMNS ah.hr02.*;";
     expected =
@@ -371,20 +370,11 @@ public class TagIT {
             + "|ah.hr02.v{t1=v1,t2=v2}|  BINARY|\n"
             + "+----------------------+--------+\n"
             + "Total line number = 5\n";
-    executeAndCompare(statement, expected);
+    executeAndCompare(statement, expected, true);
 
     statement = "SHOW COLUMNS ah.hr02.* limit 3 offset 2;";
-    expected =
-        "Columns:\n"
-            + "+----------------------+--------+\n"
-            + "|                  Path|DataType|\n"
-            + "+----------------------+--------+\n"
-            + "|             ah.hr02.v|  BINARY|\n"
-            + "|      ah.hr02.v{t1=v1}|  BINARY|\n"
-            + "|ah.hr02.v{t1=v1,t2=v2}|  BINARY|\n"
-            + "+----------------------+--------+\n"
-            + "Total line number = 3\n";
-    executeAndCompare(statement, expected);
+    expectedLineCount = 3;
+    executeAndCompareLineCount(statement, expectedLineCount);
 
     statement = "SHOW COLUMNS ah.hr02.*, ah.hr03.*;";
     expected =
@@ -403,7 +393,7 @@ public class TagIT {
             + "|     ah.hr03.v{t1=vv11}|    LONG|\n"
             + "+-----------------------+--------+\n"
             + "Total line number = 9\n";
-    executeAndCompare(statement, expected);
+    executeAndCompare(statement, expected, true);
 
     statement = "SHOW COLUMNS ah.hr02.* with t1=v1;";
     expected =
@@ -416,19 +406,11 @@ public class TagIT {
             + "|ah.hr02.v{t1=v1,t2=v2}|  BINARY|\n"
             + "+----------------------+--------+\n"
             + "Total line number = 3\n";
-    executeAndCompare(statement, expected);
+    executeAndCompare(statement, expected, true);
 
     statement = "SHOW COLUMNS ah.hr02.* with t1=v1 limit 2 offset 1;";
-    expected =
-        "Columns:\n"
-            + "+----------------------+--------+\n"
-            + "|                  Path|DataType|\n"
-            + "+----------------------+--------+\n"
-            + "|      ah.hr02.v{t1=v1}|  BINARY|\n"
-            + "|ah.hr02.v{t1=v1,t2=v2}|  BINARY|\n"
-            + "+----------------------+--------+\n"
-            + "Total line number = 2\n";
-    executeAndCompare(statement, expected);
+    expectedLineCount = 2;
+    executeAndCompareLineCount(statement, expectedLineCount);
 
     statement = "SHOW COLUMNS ah.hr02.* with_precise t1=v1;";
     expected =
@@ -440,7 +422,7 @@ public class TagIT {
             + "|ah.hr02.v{t1=v1}|  BINARY|\n"
             + "+----------------+--------+\n"
             + "Total line number = 2\n";
-    executeAndCompare(statement, expected);
+    executeAndCompare(statement, expected, true);
 
     statement = "SHOW COLUMNS ah.hr02.* with_precise t1=v1 AND t2=v2;";
     expected =
@@ -451,7 +433,7 @@ public class TagIT {
             + "|ah.hr02.v{t1=v1,t2=v2}|  BINARY|\n"
             + "+----------------------+--------+\n"
             + "Total line number = 1\n";
-    executeAndCompare(statement, expected);
+    executeAndCompare(statement, expected, true);
 
     statement = "SHOW COLUMNS ah.hr02.* with t1=v1 AND t2=v2;";
     expected =
@@ -462,7 +444,7 @@ public class TagIT {
             + "|ah.hr02.v{t1=v1,t2=v2}|  BINARY|\n"
             + "+----------------------+--------+\n"
             + "Total line number = 1\n";
-    executeAndCompare(statement, expected);
+    executeAndCompare(statement, expected, true);
 
     statement = "SHOW COLUMNS  ah.* WITHOUT TAG;";
     expected =
@@ -476,7 +458,7 @@ public class TagIT {
             + "|ah.hr02.v|  BINARY|\n"
             + "+---------+--------+\n"
             + "Total line number = 4\n";
-    executeAndCompare(statement, expected);
+    executeAndCompare(statement, expected, true);
   }
 
   @Test
@@ -916,7 +898,7 @@ public class TagIT {
             + "|     ah.hr03.v{t1=vv11}|    LONG|\n"
             + "+-----------------------+--------+\n"
             + "Total line number = 13\n";
-    executeAndCompare(showColumns, expected);
+    executeAndCompare(showColumns, expected, true);
 
     String deleteTimeSeries = "DELETE COLUMNS ah.*.s WITH t1=v1;";
     execute(deleteTimeSeries);
@@ -939,7 +921,7 @@ public class TagIT {
             + "|     ah.hr03.v{t1=vv11}|    LONG|\n"
             + "+-----------------------+--------+\n"
             + "Total line number = 10\n";
-    executeAndCompare(showColumns, expected);
+    executeAndCompare(showColumns, expected, true);
 
     String showColumnsData = "SELECT s FROM ah.* WITH t1=v1;";
     expected = "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
@@ -964,7 +946,7 @@ public class TagIT {
             + "|     ah.hr03.v{t1=vv11}|    LONG|\n"
             + "+-----------------------+--------+\n"
             + "Total line number = 8\n";
-    executeAndCompare(showColumns, expected);
+    executeAndCompare(showColumns, expected, true);
 
     showColumnsData = "SELECT v FROM ah.* WITH t1=v1;";
     expected =
@@ -1002,7 +984,7 @@ public class TagIT {
             + "|     ah.hr03.v{t1=vv11}|    LONG|\n"
             + "+-----------------------+--------+\n"
             + "Total line number = 13\n";
-    executeAndCompare(showColumns, expected);
+    executeAndCompare(showColumns, expected, true);
 
     String deleteTimeSeries = "DELETE COLUMNS ah.*.v WITH t1=v1 AND t2=v2;";
     execute(deleteTimeSeries);
@@ -1027,7 +1009,7 @@ public class TagIT {
             + "|     ah.hr03.v{t1=vv11}|    LONG|\n"
             + "+-----------------------+--------+\n"
             + "Total line number = 12\n";
-    executeAndCompare(showColumns, expected);
+    executeAndCompare(showColumns, expected, true);
 
     String showColumnsData = "SELECT v FROM ah.* WITH t1=v1 AND t2=v2;";
     expected = "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
@@ -1054,7 +1036,7 @@ public class TagIT {
             + "|     ah.hr03.v{t1=vv11}|    LONG|\n"
             + "+-----------------------+--------+\n"
             + "Total line number = 10\n";
-    executeAndCompare(showColumns, expected);
+    executeAndCompare(showColumns, expected, true);
 
     showColumnsData = "SELECT * FROM * WITH t1=v1 AND t2=vv2 OR t1=vv1 AND t2=v2;";
     expected = "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";

@@ -20,6 +20,7 @@
 package cn.edu.tsinghua.iginx.rest;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 import cn.edu.tsinghua.iginx.rest.bean.Metric;
 import cn.edu.tsinghua.iginx.rest.bean.Query;
@@ -145,7 +146,7 @@ public class ParseTest {
           + "]";
 
   private final ObjectMapper mapper = new ObjectMapper();
-  private List<Metric> metricList = new ArrayList<>();
+  private final List<Metric> metricList = new ArrayList<>();
 
   public static Long transTimeFromString(String str) {
     switch (str) {
@@ -256,6 +257,7 @@ public class ParseTest {
       assertEquals(it.getValue(), "server2");
     } catch (Exception e) {
       LOGGER.error("Error occurred during execution ", e);
+      fail();
     }
   }
 
@@ -275,6 +277,7 @@ public class ParseTest {
       }
     } catch (Exception e) {
       LOGGER.error("Error occurred during execution ", e);
+      fail();
     }
   }
 
@@ -300,6 +303,7 @@ public class ParseTest {
       }
     } catch (Exception e) {
       LOGGER.error("Error occurred during execution ", e);
+      fail();
     }
   }
 
@@ -321,6 +325,7 @@ public class ParseTest {
       }
     } catch (Exception e) {
       LOGGER.error("Error occurred during execution ", e);
+      fail();
     }
   }
 
@@ -353,21 +358,26 @@ public class ParseTest {
       int MetricNum = 0;
 
       for (QueryMetric queryMetric : query.getQueryMetrics()) {
-        for (Map.Entry<String, List<String>> entry : queryMetric.getTags().get(0).entrySet()) {
-          String mapKey = entry.getKey();
-          if (MetricNum == 0) {
-            assertEquals(mapKey, "high");
-            assertEquals(entry.getValue().get(0), "emi");
-          } else {
-            assertEquals(mapKey, "name");
-            assertEquals(entry.getValue().get(0), "lem");
-            assertEquals(entry.getValue().get(1), "blade");
+        for (Map<String, List<String>> tags : queryMetric.getTags()) {
+          for (Map.Entry<String, List<String>> entry : tags.entrySet()) {
+            String mapKey = entry.getKey();
+            if (MetricNum == 0) {
+              assertEquals("high", mapKey);
+              assertEquals(1, entry.getValue().size());
+              assertEquals("emi", entry.getValue().get(0));
+            } else {
+              assertEquals("name", mapKey);
+              assertEquals(2, entry.getValue().size());
+              assertEquals("lem", entry.getValue().get(0));
+              assertEquals("blade", entry.getValue().get(1));
+            }
+            MetricNum++;
           }
-          MetricNum++;
         }
       }
     } catch (Exception e) {
       LOGGER.error("Error occurred during execution ", e);
+      fail();
     }
   }
 
@@ -382,6 +392,7 @@ public class ParseTest {
       assertEquals(query.getQueryMetrics().get(1).getName(), "archive_file_search");
     } catch (Exception e) {
       LOGGER.error("Error occurred during execution ", e);
+      fail();
     }
   }
 
@@ -402,6 +413,7 @@ public class ParseTest {
       assertEquals(dur, queryMetric.getAggregators().get(1).getDur());
     } catch (Exception e) {
       LOGGER.error("Error occurred during execution ", e);
+      fail();
     }
   }
 }

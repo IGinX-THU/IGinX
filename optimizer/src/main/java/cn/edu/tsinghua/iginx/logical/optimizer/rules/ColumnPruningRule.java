@@ -111,7 +111,15 @@ public class ColumnPruningRule extends Rule {
           columns.clear();
           columns.addAll(reorder.getPatterns());
         } else {
-          ArrayList<String> patterns = new ArrayList<>(columns);
+          ArrayList<String> patterns = new ArrayList<>();
+          for (String column : columns) {
+            for (String pattern : reorder.getPatterns()) {
+              if (StringUtils.match(column, pattern)) {
+                patterns.add(column);
+                break;
+              }
+            }
+          }
           Collections.sort(patterns);
           reorder.setPatterns(patterns);
         }
@@ -123,7 +131,15 @@ public class ColumnPruningRule extends Rule {
           columns.addAll(project.getPatterns());
           tagFilter = project.getTagFilter();
         } else {
-          ArrayList<String> patterns = new ArrayList<>(columns);
+          ArrayList<String> patterns = new ArrayList<>();
+          for (String column : columns) {
+            for (String pattern : project.getPatterns()) {
+              if (StringUtils.match(column, pattern)) {
+                patterns.add(column);
+                break;
+              }
+            }
+          }
           Collections.sort(patterns);
           project.setPatterns(patterns);
           if (tagFilter == null) {

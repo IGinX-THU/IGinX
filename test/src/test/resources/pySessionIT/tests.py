@@ -70,7 +70,7 @@ class Tests:
             cluster_info = self.session.get_cluster_info()
             retStr += str(cluster_info) + "\n"
             # 删除加入的存储引擎
-            self.session.execute_sql('REMOVE STORAGEENGINE  ("127.0.0.1", 6670, "", "");')
+            self.session.execute_sql('REMOVE STORAGEENGINE ("127.0.0.1", 6670, "", "") FOR ALL;')
             # 删除后输出所有存储引擎
             cluster_info = self.session.get_cluster_info()
             retStr += str(cluster_info) + "\n"
@@ -102,8 +102,8 @@ class Tests:
             cluster_info = self.session.get_cluster_info()
             retStr += str(cluster_info) + "\n"
             # 删除加入的存储引擎
-            self.session.execute_sql('REMOVE STORAGEENGINE  ("127.0.0.1", 6670, "", "");')
-            self.session.execute_sql('REMOVE STORAGEENGINE  ("127.0.0.1", 6671, "", "");')
+            self.session.execute_sql('REMOVE STORAGEENGINE ("127.0.0.1", 6670, "", "") FOR ALL;')
+            self.session.execute_sql('REMOVE STORAGEENGINE ("127.0.0.1", 6671, "", "") FOR ALL;')
             # 删除新建的parquet文件
             os.remove('pq/dummy/example.parquet')
             # 删除新建的文件夹

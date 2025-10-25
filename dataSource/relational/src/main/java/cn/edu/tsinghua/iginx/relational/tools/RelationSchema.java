@@ -19,7 +19,7 @@
  */
 package cn.edu.tsinghua.iginx.relational.tools;
 
-import static cn.edu.tsinghua.iginx.constant.GlobalConstant.SEPARATOR;
+import static cn.edu.tsinghua.iginx.constant.GlobalConstant.DOT;
 
 public class RelationSchema {
 
@@ -52,11 +52,11 @@ public class RelationSchema {
   }
 
   public static String getQuoteFullName(String tableName, String columnName, char quote) {
-    return getQuotName(tableName, quote) + SEPARATOR + getQuotName(columnName, quote);
+    return getQuotName(tableName, quote) + DOT + getQuotName(columnName, quote);
   }
 
   public static String getFullName(String tableName, String columnName) {
-    return tableName + SEPARATOR + columnName;
+    return tableName + DOT + columnName;
   }
 
   public String getDatabaseName() {
@@ -72,7 +72,7 @@ public class RelationSchema {
   }
 
   public String getQuoteFullName() {
-    return getQuotName(tableName, quote) + SEPARATOR + getQuotName(columnName, quote);
+    return getQuotName(tableName, quote) + DOT + getQuotName(columnName, quote);
   }
 
   public String getQuotTableName() {

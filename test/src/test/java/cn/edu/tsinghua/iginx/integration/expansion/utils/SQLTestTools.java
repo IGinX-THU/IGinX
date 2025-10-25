@@ -22,6 +22,7 @@ package cn.edu.tsinghua.iginx.integration.expansion.utils;
 import static org.junit.Assert.*;
 
 import cn.edu.tsinghua.iginx.exception.SessionException;
+import cn.edu.tsinghua.iginx.integration.tool.TestUtils;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import java.io.BufferedReader;
@@ -37,9 +38,25 @@ public class SQLTestTools {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(SQLTestTools.class);
 
-  public static void executeAndCompare(Session session, String statement, String exceptOutput) {
+  public static void executeAndCompare(Session session, String statement, String expectedOutput) {
+    executeAndCompare(session, statement, expectedOutput, false);
+  }
+
+  public static void executeAndCompare(
+      Session session, String statement, String expectedOutput, boolean ignoreOrder) {
     String actualOutput = execute(session, statement);
-    assertEquals(exceptOutput, actualOutput);
+    if (ignoreOrder) {
+      if (!TestUtils.isResultSetEqual(expectedOutput, actualOutput)) {
+        LOGGER.error(
+            "Statement: \"{}\" execute fail,\nexpected:\"{}\",\nactual:\"{}\"",
+            statement,
+            expectedOutput,
+            actualOutput);
+        fail();
+      }
+    } else {
+      assertEquals(expectedOutput, actualOutput);
+    }
   }
 
   private static String execute(Session session, String statement) {
@@ -220,5 +237,12 @@ public class SQLTestTools {
       LOGGER.error("unexpected error: ", e);
     }
     return 0;
+  }
+
+  /** 比较结果是否包含expectedOutput * */
+  public static boolean executeAndContainValue(
+      Session session, String statement, String expectedOutput) {
+    String actualOutput = execute(session, statement);
+    return actualOutput.contains(expectedOutput);
   }
 }

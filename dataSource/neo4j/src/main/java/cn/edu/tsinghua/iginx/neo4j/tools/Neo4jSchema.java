@@ -19,7 +19,7 @@
  */
 package cn.edu.tsinghua.iginx.neo4j.tools;
 
-import static cn.edu.tsinghua.iginx.constant.GlobalConstant.SEPARATOR;
+import static cn.edu.tsinghua.iginx.constant.GlobalConstant.DOT;
 
 public class Neo4jSchema {
 
@@ -64,7 +64,7 @@ public class Neo4jSchema {
   }
 
   public static String getQuoteFullName(String labelName, String propertyName) {
-    return getQuoteName(labelName) + SEPARATOR + getQuoteName(propertyName);
+    return getQuoteName(labelName) + DOT + getQuoteName(propertyName);
   }
 
   public String getFullName() {
@@ -72,6 +72,6 @@ public class Neo4jSchema {
   }
 
   public static String getFullName(String tableName, String columnName) {
-    return tableName + SEPARATOR + columnName;
+    return tableName + DOT + columnName;
   }
 }

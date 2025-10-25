@@ -52,6 +52,9 @@ public class FileSystemHistoryDataGenerator extends BaseHistoryDataGenerator {
   private static final Logger LOGGER =
       LoggerFactory.getLogger(FileSystemHistoryDataGenerator.class);
 
+  protected static final boolean isOnWin =
+      System.getProperty("os.name").toLowerCase().contains("win");
+
   public FileSystemHistoryDataGenerator() {}
 
   @Override
@@ -135,21 +138,35 @@ public class FileSystemHistoryDataGenerator extends BaseHistoryDataGenerator {
   }
 
   private void writeSpecificDirectoriesAndFiles() {
-    // a
-    // ├── b
-    // │   └── c
-    // │       └── d
-    // │           └── 1.txt
-    // ├── e
-    // │   └── 2.txt
-    // ├── f
-    // │   └── g
-    // │       └── 3.txt
-    // ├── Iris.parquet
-    // ├── floatTest.parquet
-    // └── other
-    //     ├── MT cars.parquet
-    //     └── price.parquet
+    // test
+    // ├── csv
+    // │   └── lineitem.csv
+    // ├── a
+    // │   ├── b
+    // │   │   └── c
+    // │   │       └── d
+    // │   │           └── 1.txt
+    // │   ├── e
+    // │   │   └── 2.txt
+    // │   ├── f
+    // │   │   └── g
+    // │   │       └── 3.txt
+    // │   ├── Iris.parquet
+    // │   ├── floatTest.parquet
+    // │   ├── lineitem.tsv
+    // │   └── other
+    // │       ├── MT cars.parquet
+    // │       └── price.parquet
+    // ├── escape (仅在 linux 和 mac 上创建)
+    // │   └── path
+    // │       └── a\nb.txt
+    // └── txt
+    //     ├── dir!@#$%^&()[]{};',.=+~ -目录
+    //     │   ├── example!@#$%^&()[]{};',.=+~ -.txt
+    //     │   └── 示例!@#$%^&()[]{};',.=+~ -.TXT
+    //     └── dir\Ndir\Ddir (仅在 linux 和 mac 上创建)
+    //         └── example.txt
+
     StringBuilder content1 = new StringBuilder();
     StringBuilder content2 = new StringBuilder();
     StringBuilder content3 = new StringBuilder();
@@ -176,6 +193,30 @@ public class FileSystemHistoryDataGenerator extends BaseHistoryDataGenerator {
         parquetResourceDir + "MT cars.parquet", Paths.get("test", "a", "other", "MT cars.parquet"));
     copyFileFromResource(
         parquetResourceDir + "price.parquet", Paths.get("test", "a", "other", "price.parquet"));
+
+    String csvResourceDir = "dummy/csv/";
+    copyFileFromResource(csvResourceDir + "lineitem.tsv", Paths.get("test", "a", "lineitem.tsv"));
+    copyFileFromResource(csvResourceDir + "lineitem.csv", Paths.get("test", "csv", "lineitem.csv"));
+
+    if (!isOnWin) {
+      createAndWriteFile("abcdefg".getBytes(), "test", "escape", "path", "a\nb.txt");
+    }
+
+    String txtResourceDir = "dummy/txt/";
+    String specialName = "!@#$%^&()[]{};',.=+~ -";
+    String folderName = "dir" + specialName + "目录";
+    copyFileFromResource(
+        txtResourceDir + "example.txt",
+        Paths.get("test", "txt", folderName, "example" + specialName + ".txt"));
+    copyFileFromResource(
+        txtResourceDir + "example.txt",
+        Paths.get("test", "txt", folderName, "示例" + specialName + ".TXT"));
+
+    if (!isOnWin) {
+      copyFileFromResource(
+          txtResourceDir + "example.txt",
+          Paths.get("test", "txt", "dir\\Ndir\\Ddir", "example.txt"));
+    }
   }
 
   private static void copyFileFromResource(String resourcePath, Path targetPath) {

@@ -17,11 +17,18 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package cn.edu.tsinghua.iginx.metadata.hook;
+package cn.edu.tsinghua.iginx.engine.physical.exception;
 
-import java.util.Map;
+import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
+import java.util.List;
 
-public interface SchemaMappingChangeHook {
+public class UnconnectedStorageException extends PhysicalException {
 
-  void onChange(String schema, Map<String, Integer> schemaMapping);
+  public UnconnectedStorageException(OperatorType opType, long storageId) {
+    super(opType + " task failed for unconnected storage: " + storageId);
+  }
+
+  public UnconnectedStorageException(List<Long> storageIds) {
+    super("storage task failed because these storages are unconnected: " + storageIds);
+  }
 }

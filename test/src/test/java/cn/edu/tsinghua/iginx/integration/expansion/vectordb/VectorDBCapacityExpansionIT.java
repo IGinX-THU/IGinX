@@ -58,12 +58,12 @@ public class VectorDBCapacityExpansionIT extends BaseCapacityExpansionIT {
 
   @Override
   protected void shutdownDatabase(int port) {
-    shutOrRestart(port, true, "milvus");
+    shutOrRestart(port, true, "milvus", 120);
   }
 
   @Override
   protected void startDatabase(int port) {
-    shutOrRestart(port, false, "milvus");
+    shutOrRestart(port, false, "milvus", 120);
   }
 
   @Override
@@ -376,8 +376,9 @@ public class VectorDBCapacityExpansionIT extends BaseCapacityExpansionIT {
             + "|     dummy.tm.wf05.wt02.vector|  BINARY|\n"
             + "+------------------------------+--------+\n"
             + "Total line number = 14\n";
-    SQLTestTools.executeAndCompare(session, statement, expected);
+    SQLTestTools.executeAndCompare(session, statement, expected, true);
     session.removeStorageEngine(
-        Arrays.asList(new RemovedStorageEngineInfo(LOCAL_IP, readOnlyPort, schemaPrefix, "")));
+        Arrays.asList(new RemovedStorageEngineInfo(LOCAL_IP, readOnlyPort, schemaPrefix, "")),
+        true);
   }
 }

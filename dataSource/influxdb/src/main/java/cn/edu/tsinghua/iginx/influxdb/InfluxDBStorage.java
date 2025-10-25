@@ -69,6 +69,7 @@ import com.influxdb.client.write.Point;
 import com.influxdb.query.FluxColumn;
 import com.influxdb.query.FluxRecord;
 import com.influxdb.query.FluxTable;
+import io.reactivex.rxjava3.core.Flowable;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
@@ -254,7 +255,7 @@ public class InfluxDBStorage implements IStorage {
   }
 
   @Override
-  public List<Column> getColumns(Set<String> patterns, TagFilter tagFilter) {
+  public Flowable<Column> getColumns(Set<String> patterns, TagFilter tagFilter) {
     List<Column> timeseries = new ArrayList<>();
     for (Bucket bucket :
         client.getBucketsApi().findBucketsByOrgName(organization.getName())) { // get all the bucket
@@ -397,7 +398,7 @@ public class InfluxDBStorage implements IStorage {
       }
     }
 
-    return timeseries;
+    return Flowable.fromIterable(timeseries);
   }
 
   @Override
@@ -658,7 +659,7 @@ public class InfluxDBStorage implements IStorage {
 
     // TODO：filter中的path有多个tag时暂未实现下推
     List<String> filterPaths = FilterUtils.getAllPathsFromFilter(filter);
-    List<Column> columns = getColumns(new HashSet<>(filterPaths), tagFilter);
+    List<Column> columns = getColumns(new HashSet<>(filterPaths), tagFilter).toList().blockingGet();
     boolean hasMultiTags = hasMultiTags(columns);
 
     if (filter != null && !hasMultiTags) {

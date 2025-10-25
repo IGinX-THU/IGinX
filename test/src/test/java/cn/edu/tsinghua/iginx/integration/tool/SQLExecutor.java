@@ -28,6 +28,7 @@ import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -101,11 +102,46 @@ public class SQLExecutor {
   }
 
   public void executeAndCompare(String statement, String expectedOutput) {
+    executeAndCompare(statement, expectedOutput, false);
+  }
+
+  public void executeAndCompare(String statement, String expectedOutput, boolean ignoreOrder) {
     String actualOutput = execute(statement);
     if (!needCompareResult) {
       return;
     }
-    assertEquals(expectedOutput, actualOutput);
+    if (ignoreOrder) {
+      if (!TestUtils.isResultSetEqual(expectedOutput, actualOutput)) {
+        LOGGER.error(
+            "Statement: \"{}\" execute fail,\nexpected:\"{}\",\nactual:\"{}\"",
+            statement,
+            expectedOutput,
+            actualOutput);
+        fail();
+      }
+    } else {
+      assertEquals(expectedOutput, actualOutput);
+    }
+  }
+
+  public void executeAndCompareLineCount(String statement, int expectedLineCount) {
+    String actualOutput = execute(statement);
+    if (!needCompareResult) {
+      return;
+    }
+    List<String> actualLines = Arrays.asList(actualOutput.split("\n"));
+    // 计算行数
+    if (actualLines.get(actualLines.size() - 1).startsWith("Total line number = ")) {
+      String lineCountStr =
+          actualLines.get(actualLines.size() - 1).replace("Total line number = ", "");
+      int actualLineCount = Integer.parseInt(lineCountStr.trim());
+      // 比较行数
+      assertEquals(expectedLineCount, actualLineCount);
+    } else if (actualLines.get(actualLines.size() - 1).startsWith("Empty set.")) {
+      assertEquals(expectedLineCount, 0);
+    } else {
+      fail();
+    }
   }
 
   public void executeAndCompareErrMsg(String statement, String expectedErrMsg) {
@@ -114,7 +150,7 @@ public class SQLExecutor {
     try {
       conn.executeSql(statement);
     } catch (SessionException e) {
-      LOGGER.info("Statement: \"{}\" execute fail. Because: ", statement, e);
+      LOGGER.info("Statement: \"{}\" execute fail, with message: {}.", statement, e.getMessage());
       assertEquals(expectedErrMsg, e.getMessage());
     }
   }
@@ -151,6 +187,7 @@ public class SQLExecutor {
           () -> {
             String statement = pair.getK();
             String expected = pair.getV();
+            boolean ignoreOrder = statement.toLowerCase().startsWith("show columns");
             start.countDown();
 
             try {
@@ -160,9 +197,12 @@ public class SQLExecutor {
             }
 
             String actualOutput = execute(statement);
-            if (!expected.equals(actualOutput)) {
+            if (ignoreOrder && !TestUtils.isResultSetEqual(expected, actualOutput)) {
+              failedList.add(new Pair<>(statement, new Pair<>(expected, actualOutput)));
+            } else if (!ignoreOrder && !expected.equals(actualOutput)) {
               failedList.add(new Pair<>(statement, new Pair<>(expected, actualOutput)));
             }
+            LOGGER.info("Successfully execute statement: \"{}\"", statement);
             end.countDown();
           });
     }

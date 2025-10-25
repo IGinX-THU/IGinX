@@ -26,6 +26,7 @@ import cn.edu.tsinghua.iginx.filesystem.struct.tree.query.Querier.Builder;
 import com.typesafe.config.Config;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.concurrent.ExecutorService;
 import javax.annotation.Nullable;
 
 class FormatQuerierBuilder implements Builder {
@@ -34,12 +35,19 @@ class FormatQuerierBuilder implements Builder {
   private final Path path;
   private final FileFormat format;
   private final Config config;
+  private final ExecutorService executor;
 
-  FormatQuerierBuilder(@Nullable String prefix, Path path, FileFormat format, Config config) {
+  FormatQuerierBuilder(
+      @Nullable String prefix,
+      Path path,
+      FileFormat format,
+      Config config,
+      ExecutorService executor) {
     this.format = format;
     this.prefix = prefix;
     this.path = path;
     this.config = config;
+    this.executor = executor;
   }
 
   @Override
@@ -48,6 +56,6 @@ class FormatQuerierBuilder implements Builder {
   @Override
   public Querier build(DataTarget subTarget) throws IOException {
     FileFormat.Reader reader = format.newReader(prefix, path, config);
-    return new FormatQuerier(path, prefix, subTarget, reader);
+    return new FormatQuerier(path, prefix, subTarget, reader, executor);
   }
 }

@@ -19,15 +19,20 @@
  */
 package cn.edu.tsinghua.iginx.relational.strategy;
 
+import static cn.edu.tsinghua.iginx.constant.GlobalConstant.DOT;
 import static cn.edu.tsinghua.iginx.relational.tools.Constants.*;
 
+import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
+import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
-import cn.edu.tsinghua.iginx.relational.datatype.transformer.DamengDataTypeTransformer;
+import cn.edu.tsinghua.iginx.relational.datatype.transformer.IDataTypeTransformer;
+import cn.edu.tsinghua.iginx.relational.exception.RelationalTaskExecuteFailureException;
 import cn.edu.tsinghua.iginx.relational.meta.AbstractRelationalMeta;
 import cn.edu.tsinghua.iginx.relational.tools.ColumnField;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
+import cn.edu.tsinghua.iginx.utils.StringUtils;
 import com.zaxxer.hikari.HikariConfig;
 import java.sql.*;
 import java.util.*;
@@ -41,7 +46,7 @@ import org.slf4j.LoggerFactory;
 public class DamengDatabaseStrategy extends AbstractDatabaseStrategy {
   private static final Logger LOGGER = LoggerFactory.getLogger(DamengDatabaseStrategy.class);
 
-  private final DamengDataTypeTransformer dataTypeTransformer;
+  private final IDataTypeTransformer dataTypeTransformer;
 
   private static AbstractRelationalMeta checkAndSetPrivileges(
       AbstractRelationalMeta relationalMeta, StorageEngineMeta storageEngineMeta) {
@@ -79,23 +84,23 @@ public class DamengDatabaseStrategy extends AbstractDatabaseStrategy {
   public DamengDatabaseStrategy(
       AbstractRelationalMeta relationalMeta, StorageEngineMeta storageEngineMeta) {
     super(checkAndSetPrivileges(relationalMeta, storageEngineMeta), storageEngineMeta);
-    this.dataTypeTransformer = DamengDataTypeTransformer.getInstance();
+    this.dataTypeTransformer = relationalMeta.getDataTypeTransformer();
   }
 
   @Override
-  public String getUrl(String databaseName, StorageEngineMeta meta) {
-    return getConnectUrl(meta);
+  public String getUrl(String databaseName) {
+    return getConnectUrl();
   }
 
   @Override
-  public String getConnectUrl(StorageEngineMeta meta) {
-    Map<String, String> extraParams = meta.getExtraParams();
+  public String getConnectUrl() {
+    Map<String, String> extraParams = storageEngineMeta.getExtraParams();
     String username = extraParams.get(USERNAME);
     String password = extraParams.get(PASSWORD);
 
     return String.format(
         "jdbc:dm://%s:%s?user=%s&password=\"%s\"",
-        meta.getIp(), meta.getPort(), username, password);
+        storageEngineMeta.getIp(), storageEngineMeta.getPort(), username, password);
   }
 
   @Override
@@ -116,7 +121,7 @@ public class DamengDatabaseStrategy extends AbstractDatabaseStrategy {
 
   @Override
   public String getSchemaPattern(String databaseName, boolean isDummy) {
-    if (isDummy || relationalMeta.supportCreateDatabase()) {
+    if (isDummy || relationalMeta.isSupportCreateDatabase()) {
       return databaseName;
     }
     return storageEngineMeta.getExtraParams().get(USERNAME);
@@ -135,7 +140,7 @@ public class DamengDatabaseStrategy extends AbstractDatabaseStrategy {
       String columnNames = entry.getValue().k.substring(0, entry.getValue().k.length() - 2);
       List<String> values = entry.getValue().v;
       String[] parts = columnNames.split(", ");
-      if (relationalMeta.supportCreateDatabase()) {
+      if (relationalMeta.isSupportCreateDatabase()) {
         Map<String, ColumnField> columnMap = getColumnMap(conn, tableName, databaseName);
         this.batchInsert(conn, tableName, columnMap, parts, values);
       } else {
@@ -162,6 +167,7 @@ public class DamengDatabaseStrategy extends AbstractDatabaseStrategy {
     List<String> insertKeys = new ArrayList<>();
     List<String> updateKeys = new ArrayList<>();
     try {
+      conn.setAutoCommit(false); // 关闭自动提交
       StringBuilder placeHolder = new StringBuilder();
 
       int start = 0, end = 0, step = 0;
@@ -214,7 +220,6 @@ public class DamengDatabaseStrategy extends AbstractDatabaseStrategy {
                   getQuotName(tableName),
                   getQuotName(KEY_NAME) + "," + partStr,
                   placeHolder));
-      conn.setAutoCommit(false); // 关闭自动提交
       for (int i = 0; i < insertKeys.size(); i++) {
         String[] vals = valueMap.get(insertKeys.get(i));
         insertStmt.setString(1, vals[0]);
@@ -414,5 +419,64 @@ public class DamengDatabaseStrategy extends AbstractDatabaseStrategy {
       resultList.add(currentPart.toString().trim());
     }
     return resultList.toArray(new String[0]);
+  }
+
+  @Override
+  public ColumnsInterval getColumnsBoundary()
+      throws PhysicalException, SQLException, RelationalTaskExecuteFailureException {
+    String defaultDb = relationalMeta.getDefaultDatabaseName();
+    String columnNames = "owner, table_name, column_name";
+    List<String> exceptSchema = new ArrayList<>();
+    exceptSchema.add(relationalMeta.getDefaultDatabaseName());
+    exceptSchema.addAll(relationalMeta.getSystemDatabaseName());
+    String conditionStatement =
+        exceptSchema.stream()
+            .map(s -> "'" + s + "'")
+            .collect(Collectors.joining(", ", " WHERE owner NOT IN (", ")"));
+    if (boundaryLevel < 1) {
+      String sql = "SELECT min(owner), max(owner) FROM all_tables " + conditionStatement;
+      try (Connection conn = getConnection(defaultDb);
+          Statement statement = conn.createStatement();
+          ResultSet rs = statement.executeQuery(sql)) {
+        if (rs.next()) {
+          String minPath = rs.getString(1);
+          String maxPath = rs.getString(2);
+          return new ColumnsInterval(minPath, StringUtils.nextString(maxPath));
+        } else {
+          throw new RelationalTaskExecuteFailureException("no data!");
+        }
+      }
+    }
+    String sqlMin =
+        "SELECT "
+            + columnNames
+            + " FROM all_tab_columns"
+            + conditionStatement
+            + " ORDER BY owner, table_name, column_name LIMIT 1";
+    String sqlMax =
+        "SELECT "
+            + columnNames
+            + " FROM all_tab_columns"
+            + conditionStatement
+            + " ORDER BY owner DESC, table_name DESC, column_name DESC LIMIT 1";
+
+    String minPath = null;
+    String maxPath = null;
+    try (Connection conn = getConnection(defaultDb);
+        Statement statement = conn.createStatement()) {
+      try (ResultSet rs = statement.executeQuery(sqlMin)) {
+        if (rs.next()) {
+          minPath = rs.getString(1) + DOT + rs.getString(2) + DOT + rs.getString(3);
+        }
+      }
+      try (ResultSet rs = statement.executeQuery(sqlMax)) {
+        if (rs.next()) {
+          maxPath = rs.getString(1) + DOT + rs.getString(2) + DOT + rs.getString(3);
+        }
+      }
+    }
+    minPath = minPath == null ? defaultDb : minPath;
+    maxPath = maxPath == null ? defaultDb : maxPath;
+    return new ColumnsInterval(minPath, StringUtils.nextString(maxPath));
   }
 }

@@ -55,7 +55,7 @@ public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
             + "|nt.wf03.wt01.status2|    LONG|\n"
             + "+--------------------+--------+\n"
             + "Total line number = 2\n";
-    SQLTestTools.executeAndCompare(session, statement, expected);
+    SQLTestTools.executeAndCompare(session, statement, expected, true);
 
     statement = "SHOW COLUMNS;";
     if (before) {
@@ -97,7 +97,7 @@ public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
               + "+--------------------------------------------------------------------------------------+--------+\n"
               + "Total line number = 12\n";
     }
-    SQLTestTools.executeAndCompare(session, statement, expected);
+    SQLTestTools.executeAndCompare(session, statement, expected, true);
 
     if (before) {
       statement = "SHOW COLUMNS p1.*;";
@@ -120,7 +120,7 @@ public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
               + "+-----------------------+--------+\n"
               + "Total line number = 2\n";
     }
-    SQLTestTools.executeAndCompare(session, statement, expected);
+    SQLTestTools.executeAndCompare(session, statement, expected, true);
 
     statement = "SHOW COLUMNS *.wf03.wt01.*;";
     if (before) {
@@ -143,7 +143,7 @@ public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
               + "+-----------------------+--------+\n"
               + "Total line number = 2\n";
     }
-    SQLTestTools.executeAndCompare(session, statement, expected);
+    SQLTestTools.executeAndCompare(session, statement, expected, true);
   }
 
   @Override
@@ -179,7 +179,7 @@ public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
               + "+---------------------------+--------+\n"
               + "Total line number = 4\n";
     }
-    SQLTestTools.executeAndCompare(session, statement, expected);
+    SQLTestTools.executeAndCompare(session, statement, expected, true);
   }
 
   @Override
@@ -509,7 +509,7 @@ public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
             + "|mn.wf01.wt01.temperature|  DOUBLE|\n"
             + "+------------------------+--------+\n"
             + "Total line number = 3\n";
-    SQLTestTools.executeAndCompare(session, statement, expected);
+    SQLTestTools.executeAndCompare(session, statement, expected, true);
 
     statement = "SHOW COLUMNS nt.*;";
     expected =
@@ -523,7 +523,7 @@ public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
             + "|nt.wf04.wt01.temperature|  DOUBLE|\n"
             + "+------------------------+--------+\n"
             + "Total line number = 4\n";
-    SQLTestTools.executeAndCompare(session, statement, expected);
+    SQLTestTools.executeAndCompare(session, statement, expected, true);
 
     statement = "SHOW COLUMNS tm.*;";
     expected =
@@ -536,7 +536,7 @@ public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
             + "|tm.wf05.wt01.temperature|  DOUBLE|\n"
             + "+------------------------+--------+\n"
             + "Total line number = 3\n";
-    SQLTestTools.executeAndCompare(session, statement, expected);
+    SQLTestTools.executeAndCompare(session, statement, expected, true);
   }
 
   // no param is allowed to be updated
@@ -548,12 +548,12 @@ public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
 
   @Override
   protected void shutdownDatabase(int port) {
-    shutOrRestart(port, true, "mongodb");
+    shutOrRestart(port, true, "mongodb", 30);
   }
 
   @Override
   protected void startDatabase(int port) {
-    shutOrRestart(port, false, "mongodb");
+    shutOrRestart(port, false, "mongodb", 30);
   }
 
   @Override

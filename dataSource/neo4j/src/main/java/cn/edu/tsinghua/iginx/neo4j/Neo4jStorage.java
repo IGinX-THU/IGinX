@@ -19,7 +19,7 @@
  */
 package cn.edu.tsinghua.iginx.neo4j;
 
-import static cn.edu.tsinghua.iginx.constant.GlobalConstant.SEPARATOR;
+import static cn.edu.tsinghua.iginx.constant.GlobalConstant.DOT;
 import static cn.edu.tsinghua.iginx.neo4j.tools.Constants.IDENTITY_PROPERTY_NAME;
 import static cn.edu.tsinghua.iginx.neo4j.tools.DataTransformer.fromIginxType;
 import static cn.edu.tsinghua.iginx.neo4j.tools.DataTransformer.fromStringDataType;
@@ -50,6 +50,7 @@ import cn.edu.tsinghua.iginx.neo4j.tools.PathUtils;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
+import io.reactivex.rxjava3.core.Flowable;
 import java.util.*;
 import java.util.concurrent.*;
 import org.neo4j.driver.*;
@@ -367,7 +368,7 @@ public class Neo4jStorage implements IStorage {
   }
 
   @Override
-  public List<Column> getColumns(Set<String> patternSet, TagFilter tagFilter)
+  public Flowable<Column> getColumns(Set<String> patternSet, TagFilter tagFilter)
       throws PhysicalException {
     try (Session session = driver.session()) {
       Map<String, Map<String, String>> labelToProperties =
@@ -377,7 +378,7 @@ public class Neo4jStorage implements IStorage {
       for (Map.Entry<String, Map<String, String>> entry : labelToProperties.entrySet()) {
         for (Map.Entry<String, String> property : entry.getValue().entrySet()) {
           Pair<String, Map<String, String>> pair =
-              splitFullName(entry.getKey() + SEPARATOR + property.getKey());
+              splitFullName(entry.getKey() + DOT + property.getKey());
           Column column =
               new Column(
                   trimPrefix(pair.getK()),
@@ -388,7 +389,7 @@ public class Neo4jStorage implements IStorage {
         }
       }
 
-      return columns;
+      return Flowable.fromIterable(columns);
     } catch (Exception e) {
       throw new PhysicalException(String.format("execute query task in neo4j failure"));
     }
@@ -405,7 +406,7 @@ public class Neo4jStorage implements IStorage {
 
       for (Map.Entry<String, Map<String, String>> entry : labelToProperties.entrySet()) {
         for (Map.Entry<String, String> property : entry.getValue().entrySet()) {
-          String path = trimPrefix(entry.getKey() + SEPARATOR + property.getKey());
+          String path = trimPrefix(entry.getKey() + DOT + property.getKey());
           if (org.apache.commons.lang3.StringUtils.isNotEmpty(prefix)
               && org.apache.commons.lang3.StringUtils.isNotEmpty(path)
               && !path.startsWith(prefix)) {
