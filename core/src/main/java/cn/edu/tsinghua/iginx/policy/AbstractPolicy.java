@@ -32,6 +32,11 @@ public abstract class AbstractPolicy implements IPolicy {
   protected List<Long> generateStorageEngineIdList(int startIndex, int num) {
     List<Long> storageEngineIdList = new ArrayList<>();
     List<StorageEngineMeta> storageEngines = iMetaManager.getWritableStorageEngineList();
+
+    if (storageEngines.size() < num) {
+      throw new IllegalArgumentException("not enough storage engines for replication");
+    }
+
     for (int i = startIndex; i < startIndex + num; i++) {
       storageEngineIdList.add(storageEngines.get(i % storageEngines.size()).getId());
     }

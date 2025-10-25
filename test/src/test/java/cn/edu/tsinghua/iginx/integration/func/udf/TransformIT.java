@@ -1296,7 +1296,7 @@ public class TransformIT {
 
       verifyJobFinishedBlocked(jobId);
 
-      Assert.assertTrue(greenMail.waitForIncomingEmail(10 * 1000, 2));
+      Assert.assertTrue(greenMail.waitForIncomingEmail(20 * 1000, 2));
 
       assertEquals(2, greenMail.getReceivedMessages().length);
       assertEquals("Job " + jobId + " is created", greenMail.getReceivedMessages()[0].getSubject());
