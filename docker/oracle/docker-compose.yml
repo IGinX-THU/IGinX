@@ -21,20 +21,15 @@
 version: '3.5'
 
 services:
-  dameng:
-    image: dm8_single:dm8_20241022_rev244896_x86_rh6_64
-    container_name: dm8
+  oracle:
+    image: container-registry.oracle.com/database/free:23.5.0.0-lite
+    container_name: oracle23
     restart: always
     privileged: true
     ports:
-      - "5236:5236"
+      - "1521:1521"
     environment:
-      LD_LIBRARY_PATH: /opt/dmdbms/bin
-      PAGE_SIZE: 16
-      EXTENT_SIZE: 32
-      LOG_SIZE: 1024
-      UNICODE_FLAG: 1
-      CASE_SENSITIVE: 0
-      INSTANCE_NAME: dm8_test
+      ORACLE_PDB: ORCLPDB
+      ORACLE_PWD: ORCLPWD
     volumes:
-      - "./volumes/dameng:/opt/dmdbms/data"
+      - "./volumes/oradata:/opt/oracle/oradata"

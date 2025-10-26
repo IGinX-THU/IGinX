@@ -19,6 +19,7 @@
  */
 package cn.edu.tsinghua.iginx.policy.historical;
 
+import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
 import cn.edu.tsinghua.iginx.metadata.entity.*;
@@ -48,6 +49,8 @@ import org.slf4j.LoggerFactory;
 public class HistoricalPolicy extends AbstractPolicy implements IPolicy {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(HistoricalPolicy.class);
+
+  private static final Config config = ConfigDescriptor.getInstance().getConfig();
 
   private Sampler sampler;
   private List<String> suffixList = new ArrayList<>();
@@ -102,14 +105,11 @@ public class HistoricalPolicy extends AbstractPolicy implements IPolicy {
     KeyInterval keyInterval = Utils.getKeyIntervalFromDataStatement(statement);
     List<StorageEngineMeta> storageEngineList = iMetaManager.getStorageEngineList();
     int storageEngineNum = storageEngineList.size();
-    int replicaNum =
-        Math.min(1 + ConfigDescriptor.getInstance().getConfig().getReplicaNum(), storageEngineNum);
+    int replicaNum = config.getReplicaNum() + 1;
 
-    String[] historicalPrefixList =
-        ConfigDescriptor.getInstance().getConfig().getHistoricalPrefixList().split(",");
+    String[] historicalPrefixList = config.getHistoricalPrefixList().split(",");
     Arrays.sort(historicalPrefixList);
-    int expectedStorageUnitNum =
-        ConfigDescriptor.getInstance().getConfig().getExpectedStorageUnitNum();
+    int expectedStorageUnitNum = config.getExpectedStorageUnitNum();
 
     List<String> prefixList = new ArrayList<>();
     List<ColumnsInterval> columnsIntervalList = new ArrayList<>();
@@ -160,9 +160,7 @@ public class HistoricalPolicy extends AbstractPolicy implements IPolicy {
     if (statement.getType() == StatementType.INSERT) {
       startKey =
           ((InsertStatement) statement).getEndKey()
-              + TimeUnit.SECONDS.toMillis(
-                      ConfigDescriptor.getInstance().getConfig().getDisorderMargin())
-                  * 2
+              + TimeUnit.SECONDS.toMillis(config.getDisorderMargin()) * 2
               + 1;
     } else {
       throw new IllegalArgumentException(
@@ -172,8 +170,7 @@ public class HistoricalPolicy extends AbstractPolicy implements IPolicy {
     List<FragmentMeta> fragmentList = new ArrayList<>();
     List<StorageUnitMeta> storageUnitList = new ArrayList<>();
     int storageEngineNum = iMetaManager.getWritableStorageEngineList().size();
-    int replicaNum =
-        Math.min(1 + ConfigDescriptor.getInstance().getConfig().getReplicaNum(), storageEngineNum);
+    int replicaNum = config.getReplicaNum() + 1;
     List<Long> storageEngineIdList;
     Pair<FragmentMeta, StorageUnitMeta> pair;
 

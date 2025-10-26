@@ -229,4 +229,6 @@ public interface IMetaStorage {
 
   void registerMaxActiveEndKeyStatisticsChangeHook(MaxActiveEndKeyStatisticsChangeHook hook)
       throws MetaStorageException;
+
+  int setReplicaNum(int replicaNum) throws MetaStorageException;
 }

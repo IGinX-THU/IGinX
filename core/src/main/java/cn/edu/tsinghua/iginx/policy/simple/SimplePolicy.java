@@ -86,7 +86,7 @@ public class SimplePolicy extends AbstractPolicy implements IPolicy {
     List<String> paths = Utils.getNonWildCardPaths(Utils.getPathListFromStatement(statement));
     KeyInterval keyInterval = Utils.getKeyIntervalFromDataStatement(statement);
 
-    if (ConfigDescriptor.getInstance().getConfig().getClients().indexOf(",") > 0) {
+    if (config.getClients().indexOf(",") > 0) {
       Pair<Map<ColumnsInterval, List<FragmentMeta>>, List<StorageUnitMeta>> pair =
           generateInitialFragmentsAndStorageUnitsByClients(paths, keyInterval);
       return new Pair<>(
@@ -109,11 +109,9 @@ public class SimplePolicy extends AbstractPolicy implements IPolicy {
     List<StorageEngineMeta> storageEngineList = iMetaManager.getWritableStorageEngineList();
     int storageEngineNum = storageEngineList.size();
 
-    String[] clients = ConfigDescriptor.getInstance().getConfig().getClients().split(",");
-    int instancesNumPerClient =
-        ConfigDescriptor.getInstance().getConfig().getInstancesNumPerClient() - 1;
-    int replicaNum =
-        Math.min(1 + ConfigDescriptor.getInstance().getConfig().getReplicaNum(), storageEngineNum);
+    String[] clients = config.getClients().split(",");
+    int instancesNumPerClient = config.getInstancesNumPerClient() - 1;
+    int replicaNum = config.getReplicaNum() + 1;
     String[] prefixes = new String[clients.length * instancesNumPerClient];
     for (int i = 0; i < clients.length; i++) {
       for (int j = 0; j < instancesNumPerClient; j++) {
@@ -206,8 +204,7 @@ public class SimplePolicy extends AbstractPolicy implements IPolicy {
     }
 
     int storageEngineNum = iMetaManager.getStorageEngineNum();
-    int replicaNum =
-        Math.min(1 + ConfigDescriptor.getInstance().getConfig().getReplicaNum(), storageEngineNum);
+    int replicaNum = config.getReplicaNum() + 1;
     List<Long> storageEngineIdList;
     Pair<FragmentMeta, StorageUnitMeta> pair;
     int index = 0;
@@ -303,9 +300,7 @@ public class SimplePolicy extends AbstractPolicy implements IPolicy {
     if (statement.getType() == StatementType.INSERT) {
       startKey =
           ((InsertStatement) statement).getEndKey()
-              + TimeUnit.SECONDS.toMillis(
-                      ConfigDescriptor.getInstance().getConfig().getDisorderMargin())
-                  * 2
+              + TimeUnit.SECONDS.toMillis(config.getDisorderMargin()) * 2
               + 1;
     } else {
       throw new IllegalArgumentException(
@@ -319,8 +314,7 @@ public class SimplePolicy extends AbstractPolicy implements IPolicy {
     List<StorageUnitMeta> storageUnitList = new ArrayList<>();
 
     int storageEngineNum = iMetaManager.getStorageEngineNum();
-    int replicaNum =
-        Math.min(1 + ConfigDescriptor.getInstance().getConfig().getReplicaNum(), storageEngineNum);
+    int replicaNum = config.getReplicaNum() + 1;
     List<Long> storageEngineIdList;
     Pair<FragmentMeta, StorageUnitMeta> pair;
     int index = 0;

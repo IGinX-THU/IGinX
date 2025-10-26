@@ -2706,4 +2706,35 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
     }
     return true;
   }
+
+  @Override
+  public int setReplicaNum(int replicaNum) throws MetaStorageException {
+    InterProcessMutex mutex = new InterProcessMutex(client, REPLICA_NUM_LOCK_NODE);
+    int ret = replicaNum;
+    try {
+      mutex.acquire();
+      if (client.checkExists().forPath(REPLICA_NUM_NODE) == null) {
+        // 系统第一次启动，还没写入过replicaNum，将replicaNum持久化到zk
+        client
+            .create()
+            .creatingParentsIfNeeded()
+            .withMode(CreateMode.PERSISTENT)
+            .forPath(REPLICA_NUM_NODE, String.valueOf(replicaNum).getBytes(StandardCharsets.UTF_8));
+      } else {
+        // 从zk中读取之前设置好的replicaNum
+        byte[] data = client.getData().forPath(REPLICA_NUM_NODE);
+        ret = JsonUtils.fromJson(data, Integer.class);
+      }
+    } catch (Exception e) {
+      throw new MetaStorageException("get error when load replica number", e);
+    } finally {
+      try {
+        mutex.release();
+      } catch (Exception e) {
+        throw new MetaStorageException(
+            "get error when release interprocess lock for " + REPLICA_NUM_LOCK_NODE, e);
+      }
+    }
+    return ret;
+  }
 }

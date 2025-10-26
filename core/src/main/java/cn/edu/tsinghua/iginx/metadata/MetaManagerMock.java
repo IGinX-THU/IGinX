@@ -74,6 +74,11 @@ public class MetaManagerMock implements IMetaManager {
   }
 
   @Override
+  public boolean isStorageEngineInConnection(long id) {
+    return false;
+  }
+
+  @Override
   public List<StorageEngineMeta> getWritableStorageEngineList() {
     return null;
   }
@@ -429,5 +434,10 @@ public class MetaManagerMock implements IMetaManager {
   @Override
   public List<StorageEngineMeta> getStorageEngineListFromConf() {
     return null;
+  }
+
+  @Override
+  public int setReplicaNum(int replicaNum) {
+    return 0;
   }
 }

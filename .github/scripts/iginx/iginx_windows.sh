@@ -41,7 +41,7 @@ fi
 sh -c "sleep 3"
 
 log_file="iginx-$1.log"
-timeout=30
+timeout=60
 interval=2
 
 elapsed_time=0
