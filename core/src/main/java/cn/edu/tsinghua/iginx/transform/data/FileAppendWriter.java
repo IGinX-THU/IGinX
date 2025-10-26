@@ -47,6 +47,11 @@ public class FileAppendWriter extends ExportWriter {
     this.fileName = normalizeFileName(name).toString();
     this.hasWriteHeader = false;
     File file = new File(fileName);
+    try {
+      LOGGER.info("Preparing file {} for transform job.", file.getCanonicalPath());
+    } catch (IOException e) {
+      LOGGER.error("Failed to get path for {}", fileName);
+    }
     createFileIfNotExist(file);
   }
 
@@ -75,9 +80,11 @@ public class FileAppendWriter extends ExportWriter {
       header.getFields().forEach(field -> headerList.add(field.getFullName()));
       writeFile(fileName, String.join(",", headerList) + "\n");
       hasWriteHeader = true;
+      LOGGER.info("Writing {} to {}.\n", String.join(",", headerList), fileName);
     }
     for (Row row : batchData.getRowList()) {
       writeFile(fileName, row.toCSVTypeString() + "\n");
+      LOGGER.info("Writing {} to {}.\n", row.toCSVTypeString(), fileName);
     }
   }
 
