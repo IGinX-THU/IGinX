@@ -98,7 +98,6 @@ public class Job {
       needExport = true;
       writer = new FileAppendWriter(req.getFileName());
       exportFile = req.getFileName();
-      LOGGER.info("Build job with exporting to file: {}", exportFile);
     } else if (exportType.equals(ExportType.IGINX)) {
       needExport = true;
       writer = new IginXWriter(sessionId, TRANSFORM_PREFIX);

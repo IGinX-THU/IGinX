@@ -21,12 +21,19 @@ package cn.edu.tsinghua.iginx.utils;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
-import org.apache.commons.io.IOUtils;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.yaml.snakeyaml.LoaderOptions;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.Constructor;
+import org.yaml.snakeyaml.nodes.MappingNode;
+import org.yaml.snakeyaml.nodes.Node;
+import org.yaml.snakeyaml.nodes.NodeTuple;
+import org.yaml.snakeyaml.nodes.ScalarNode;
 
 public class YAMLReader {
 
@@ -40,65 +47,94 @@ public class YAMLReader {
 
   public YAMLReader(String path) throws FileNotFoundException {
     this.path = path;
-    this.yaml = new Yaml(new Constructor(JobFromYAML.class, new LoaderOptions()));
+    this.yaml = new Yaml(new YAMLConstructor(JobFromYAML.class, new LoaderOptions()));
     this.file = new File(path);
     if (!file.exists()) {
       throw new FileNotFoundException(file.getAbsolutePath());
     }
   }
 
-  public String normalize(String conf) {
-    String taskType = "(?i)taskType";
-    String dataFlowType = "(?i)dataFlowType";
-    String timeout = "(?i)timeout";
-    String pyTaskName = "(?i)pyTaskName";
-    String outputPrefix = "(?i)outputPrefix";
-    String sqlList = "(?i)sqlList";
-
-    conf = conf.replaceAll(taskType, "taskType");
-    conf = conf.replaceAll(dataFlowType, "dataFlowType");
-    conf = conf.replaceAll(timeout, "timeout");
-    conf = conf.replaceAll(pyTaskName, "pyTaskName");
-    conf = conf.replaceAll(outputPrefix, "outputPrefix");
-    conf = conf.replaceAll(sqlList, "sqlList");
-
-    String exportType = "(?i)exportType";
-    String exportFile = "(?i)exportFile";
-    String exportNameList = "(?i)exportNameList";
-    String schedule = "(?i)schedule";
-
-    conf = conf.replaceAll(exportType, "exportType");
-    conf = conf.replaceAll(exportFile, "exportFile");
-    conf = conf.replaceAll(exportNameList, "exportNameList");
-    conf = conf.replaceAll(schedule, "schedule");
-
-    return conf;
-  }
-
-  public String convertToString(String filePath) {
-    String conf = null;
-    InputStream in = null;
-    try {
-      in = new BufferedInputStream(new FileInputStream(filePath));
-      conf = IOUtils.toString(in, String.valueOf(StandardCharsets.UTF_8));
-      conf = normalize(conf);
-    } catch (IOException e) {
-      LOGGER.error("Fail to find file, path={}", filePath);
-    } finally {
-      try {
-        if (in != null) {
-          in.close();
-        }
-      } catch (IOException e) {
-        LOGGER.error("Fail to close the file, path={}", filePath);
-      }
-    }
-    return conf;
-  }
-
   public JobFromYAML getJobFromYAML() {
-    String yamlFile = convertToString(path);
-    InputStream result = new ByteArrayInputStream(yamlFile.getBytes(StandardCharsets.UTF_8));
-    return yaml.load(result);
+    try (InputStream in =
+        new ByteArrayInputStream(
+            new String(java.nio.file.Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8)
+                .getBytes(StandardCharsets.UTF_8)); ) {
+      return yaml.loadAs(in, JobFromYAML.class);
+    } catch (FileNotFoundException e) {
+      LOGGER.error("Fail to find file, path={}", path, e);
+    } catch (IOException e) {
+      LOGGER.error("Fail to read the yaml file, path={}", path, e);
+    }
+    return null;
+  }
+
+  public static class YAMLConstructor extends Constructor {
+    public YAMLConstructor(Class<?> root, LoaderOptions options) {
+      super(root, options);
+    }
+
+    @Override
+    protected Map<Object, Object> constructMapping(MappingNode node) {
+      List<NodeTuple> tuples = node.getValue();
+      List<NodeTuple> normalizedTuples = new ArrayList<>();
+
+      for (NodeTuple tuple : tuples) {
+        Node keyNode = tuple.getKeyNode();
+        Node valueNode = tuple.getValueNode();
+
+        if (keyNode instanceof ScalarNode) {
+          ScalarNode scalarNode = (ScalarNode) keyNode;
+          String originalKey = scalarNode.getValue();
+          String normalizedKey = normalizeKey(originalKey);
+
+          if (!normalizedKey.equals(originalKey)) {
+            // key 是final的，所以需要复制
+            ScalarNode newKeyNode =
+                new ScalarNode(
+                    scalarNode.getTag(),
+                    normalizedKey,
+                    scalarNode.getStartMark(),
+                    scalarNode.getEndMark(),
+                    scalarNode.getScalarStyle());
+            normalizedTuples.add(new NodeTuple(newKeyNode, valueNode));
+          } else {
+            normalizedTuples.add(tuple);
+          }
+        } else {
+          normalizedTuples.add(tuple);
+        }
+      }
+      node.setValue(normalizedTuples);
+      return super.constructMapping(node);
+    }
+
+    private String normalizeKey(String key) {
+      String lower = key.toLowerCase(Locale.ROOT);
+
+      switch (lower) {
+        case "tasktype":
+          return "taskType";
+        case "dataflowtype":
+          return "dataFlowType";
+        case "timeout":
+          return "timeout";
+        case "pytaskname":
+          return "pyTaskName";
+        case "outputprefix":
+          return "outputPrefix";
+        case "sqllist":
+          return "sqlList";
+        case "exporttype":
+          return "exportType";
+        case "exportfile":
+          return "exportFile";
+        case "exportnamelist":
+          return "exportNameList";
+        case "schedule":
+          return "schedule";
+      }
+
+      return key;
+    }
   }
 }
