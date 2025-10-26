@@ -48,6 +48,7 @@ public class FileAppendWriter extends ExportWriter {
     this.hasWriteHeader = false;
     File file = new File(fileName);
     try {
+      LOGGER.info("original filename: {}, normalized filename: {}", name, fileName);
       LOGGER.info("Preparing file {} for transform job.", file.getCanonicalPath());
     } catch (IOException e) {
       LOGGER.error("Failed to get path for {}", fileName);

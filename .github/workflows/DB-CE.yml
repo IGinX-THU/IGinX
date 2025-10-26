@@ -148,19 +148,18 @@ jobs:
               if: always()
               id: failed_reports
               run: |
-                mkdir -p failed-reports
-                find . -type f -path "*/target/surefire-reports/*.txt" -o -path "*/target/surefire-reports/*.xml" | while read f; do
-                  if grep -qE "FAILURE|ERROR|<failure>|<error>" "$f"; then
-                    mkdir -p "$(dirname failed-reports/$f)"
-                    cp "$f" "failed-reports/$f"
-                  fi
-                done
-                echo "FAILED_REPORTS=$(find failed-reports -type f | wc -l)" >> $GITHUB_ENV
+                  mkdir -p failed-reports
+                  find . -type f -path "*/target/surefire-reports/*.txt" -o -path "*/target/surefire-reports/*.xml" | while read f; do
+                    if grep -qE "FAILURE|ERROR|<failure>|<error>" "$f"; then
+                      mkdir -p "$(dirname failed-reports/$f)"
+                      cp "$f" "failed-reports/$f"
+                    fi
+                  done
+                  echo "FAILED_REPORTS=$(find failed-reports -type f | wc -l)" >> $GITHUB_ENV
 
             - name: Upload failed test reports
               if: always() && env.FAILED_REPORTS != '0'
               uses: actions/upload-artifact@v4
               with:
-                name: failed-surefire-reports
-                path: failed-reports/
-
+                  name: failed-surefire-reports
+                  path: failed-reports/
