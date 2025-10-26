@@ -148,6 +148,8 @@ jobs:
             metadata-matrix: '["zookeeper"]'
     cluster-test:
         uses: ./.github/workflows/cluster-test.yml
+    restart-test:
+        uses: ./.github/workflows/restart-test.yml
     analyze-required-test-check:
         if: always()
         needs: # List of jobs that must pass. Add more jobs if needed.
@@ -173,6 +175,7 @@ jobs:
             - db-ce-Oracle
             - db-ce-no-optimizer-Oracle
             - cluster-test
+            - restart-test
         runs-on: ubuntu-latest
         steps:
             - name: Decide whether the needed jobs succeeded or failed

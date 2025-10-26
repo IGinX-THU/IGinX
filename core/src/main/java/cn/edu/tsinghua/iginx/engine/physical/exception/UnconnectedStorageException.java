@@ -19,9 +19,16 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.exception;
 
-public class NonExecutablePhysicalTaskException extends PhysicalException {
+import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
+import java.util.List;
 
-  public NonExecutablePhysicalTaskException() {
-    super("storage physical task should have one more operators");
+public class UnconnectedStorageException extends PhysicalException {
+
+  public UnconnectedStorageException(OperatorType opType, long storageId) {
+    super(opType + " task failed for unconnected storage: " + storageId);
+  }
+
+  public UnconnectedStorageException(List<Long> storageIds) {
+    super("storage task failed because these storages are unconnected: " + storageIds);
   }
 }

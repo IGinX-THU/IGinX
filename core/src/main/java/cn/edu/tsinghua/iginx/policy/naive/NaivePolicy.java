@@ -19,6 +19,7 @@
  */
 package cn.edu.tsinghua.iginx.policy.naive;
 
+import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
 import cn.edu.tsinghua.iginx.metadata.entity.*;
@@ -40,6 +41,8 @@ import org.slf4j.LoggerFactory;
 public class NaivePolicy extends AbstractPolicy implements IPolicy {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(NaivePolicy.class);
+
+  private static final Config config = ConfigDescriptor.getInstance().getConfig();
 
   private Sampler sampler;
 
@@ -83,7 +86,7 @@ public class NaivePolicy extends AbstractPolicy implements IPolicy {
     List<String> paths = Utils.getNonWildCardPaths(Utils.getPathListFromStatement(statement));
     KeyInterval keyInterval = Utils.getKeyIntervalFromDataStatement(statement);
 
-    if (ConfigDescriptor.getInstance().getConfig().getClients().indexOf(",") > 0) {
+    if (config.getClients().indexOf(",") > 0) {
       Pair<Map<ColumnsInterval, List<FragmentMeta>>, List<StorageUnitMeta>> pair =
           generateInitialFragmentsAndStorageUnitsByClients(paths, keyInterval);
       return new Pair<>(
@@ -102,8 +105,7 @@ public class NaivePolicy extends AbstractPolicy implements IPolicy {
     List<StorageUnitMeta> storageUnitList = new ArrayList<>();
 
     int storageEngineNum = iMetaManager.getStorageEngineNum();
-    int replicaNum =
-        Math.min(1 + ConfigDescriptor.getInstance().getConfig().getReplicaNum(), storageEngineNum);
+    int replicaNum = config.getReplicaNum() + 1;
     List<Long> storageEngineIdList;
     Pair<FragmentMeta, StorageUnitMeta> pair;
     int index = 0;
@@ -183,11 +185,9 @@ public class NaivePolicy extends AbstractPolicy implements IPolicy {
     List<StorageEngineMeta> storageEngineList = iMetaManager.getWritableStorageEngineList();
     int storageEngineNum = storageEngineList.size();
 
-    String[] clients = ConfigDescriptor.getInstance().getConfig().getClients().split(",");
-    int instancesNumPerClient =
-        ConfigDescriptor.getInstance().getConfig().getInstancesNumPerClient();
-    int totalReplicaNum =
-        Math.min(1 + ConfigDescriptor.getInstance().getConfig().getReplicaNum(), storageEngineNum);
+    String[] clients = config.getClients().split(",");
+    int instancesNumPerClient = config.getInstancesNumPerClient();
+    int totalReplicaNum = config.getReplicaNum() + 1;
     String[] prefixes = new String[clients.length * instancesNumPerClient];
     for (int i = 0; i < clients.length; i++) {
       for (int j = 0; j < instancesNumPerClient; j++) {
@@ -292,8 +292,7 @@ public class NaivePolicy extends AbstractPolicy implements IPolicy {
     List<StorageUnitMeta> storageUnitList = new ArrayList<>();
 
     int storageEngineNum = iMetaManager.getStorageEngineNum();
-    int replicaNum =
-        Math.min(1 + ConfigDescriptor.getInstance().getConfig().getReplicaNum(), storageEngineNum);
+    int replicaNum = config.getReplicaNum() + 1;
     List<Long> storageEngineIdList;
     Pair<FragmentMeta, StorageUnitMeta> pair;
     int index = 0;
@@ -343,9 +342,7 @@ public class NaivePolicy extends AbstractPolicy implements IPolicy {
     if (statement.getType() == StatementType.INSERT) {
       startKey =
           ((InsertStatement) statement).getEndKey()
-              + TimeUnit.SECONDS.toMillis(
-                      ConfigDescriptor.getInstance().getConfig().getDisorderMargin())
-                  * 2
+              + TimeUnit.SECONDS.toMillis(config.getDisorderMargin()) * 2
               + 1;
     } else {
       throw new IllegalArgumentException(
@@ -355,8 +352,7 @@ public class NaivePolicy extends AbstractPolicy implements IPolicy {
     List<FragmentMeta> fragmentList = new ArrayList<>();
     List<StorageUnitMeta> storageUnitList = new ArrayList<>();
     int storageEngineNum = iMetaManager.getWritableStorageEngineList().size();
-    int replicaNum =
-        Math.min(1 + ConfigDescriptor.getInstance().getConfig().getReplicaNum(), storageEngineNum);
+    int replicaNum = config.getReplicaNum() + 1;
     List<Long> storageEngineIdList;
     Pair<FragmentMeta, StorageUnitMeta> pair;
 
