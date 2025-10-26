@@ -17,10 +17,3 @@ jobs:
             metadata-matrix: '["zookeeper"]'
             os-matrix: '["ubuntu-latest"]'
             db-matrix: '["IoTDB12"]'
-    db-ce:
-        uses: ./.github/workflows/DB-CE.yml
-        with:
-            metadata-matrix: '["zookeeper"]'
-            functest: "TransformIT"
-            os-matrix: '["ubuntu-latest"]'
-            db-matrix: '["IoTDB12"]'

@@ -1153,6 +1153,7 @@ public class Session {
     try {
       YAMLReader yamlReader = new YAMLReader(filepath);
       JobFromYAML jobFromYAML = yamlReader.getJobFromYAML();
+      LOGGER.info("filename from yaml: {}", jobFromYAML.getExportFile() == null ? "none" : jobFromYAML.getExportFile());
       CommitTransformJobReq req = jobFromYAML.toCommitTransformJobReq(sessionId);
       Reference<CommitTransformJobResp> ref = new Reference<>();
       executeWithCheck(() -> (ref.resp = client.commitTransformJob(req)).status);
