@@ -2095,17 +2095,31 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         || extra.equals(SQLConstant.SINGLE_QUOTES)) {
       return map;
     }
+    // 去掉前后引号
     extra = extra.substring(1, extra.length() - 1);
-    String[] kvStr = extra.split(SQLConstant.COMMA);
-    for (String kv : kvStr) {
-      String[] kvArray = kv.split(SQLConstant.EQUAL);
+    // 手动分割，支持\ 转义
+    List<String> kvStrs = new ArrayList<>();
+    StringBuilder current = new StringBuilder();
+    boolean escape = false;
+    for (int i = 0; i < extra.length(); i++) {
+      char c = extra.charAt(i);
+      if (escape) {
+        current.append(c); // 直接追加被转义的字符
+        escape = false;
+      } else if (c == '\\') {
+        escape = true; // 标记下一个字符被转义
+      } else if (c == ',') {
+        kvStrs.add(current.toString());
+        current.setLength(0);
+      } else {
+        current.append(c);
+      }
+    }
+    kvStrs.add(current.toString()); // 最后一段
+
+    for (String kv : kvStrs) {
+      String[] kvArray = kv.split("=", 2); // 只按第一个=分割
       if (kvArray.length != 2) {
-        if (kv.contains("dir")) {
-          // for windows absolute path
-          String dirType = kv.substring(0, kv.indexOf(SQLConstant.EQUAL)).trim();
-          String dirPath = kv.substring(kv.indexOf(SQLConstant.EQUAL) + 1).trim();
-          map.put(dirType, dirPath);
-        }
         continue;
       }
       map.put(kvArray[0].trim(), kvArray[1].trim());

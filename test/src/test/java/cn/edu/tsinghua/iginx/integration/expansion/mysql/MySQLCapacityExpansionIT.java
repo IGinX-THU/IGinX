@@ -49,17 +49,17 @@ public class MySQLCapacityExpansionIT extends BaseCapacityExpansionIT {
     Constant.oriPort = dbConf.getDBCEPortMap().get(Constant.ORI_PORT_NAME);
     Constant.expPort = dbConf.getDBCEPortMap().get(Constant.EXP_PORT_NAME);
     Constant.readOnlyPort = dbConf.getDBCEPortMap().get(Constant.READ_ONLY_PORT_NAME);
-    updatedParams.put("password", "newPassword");
+    updatedParams.put("password", "newPassword\\\\\\,\\\"\\'");
   }
 
   @Override
   protected void updateParams(int port) {
-    changeParams(port, null, "newPassword");
+    changeParams(port, null, "newPassword\\\\,\\\"\\'");
   }
 
   @Override
   protected void restoreParams(int port) {
-    changeParams(port, "newPassword", null);
+    changeParams(port, "newPassword\\\\,\\\"\\'", null);
   }
 
   @Override
