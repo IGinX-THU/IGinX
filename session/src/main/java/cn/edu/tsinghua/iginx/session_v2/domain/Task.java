@@ -37,17 +37,21 @@ public class Task {
 
   private final String pyTaskName;
 
+  private final String outputPrefix;
+
   public Task(
       TaskType taskType,
       DataFlowType dataFlowType,
       long timeout,
       List<String> sqlList,
-      String pyTaskName) {
+      String pyTaskName,
+      String outputPrefix) {
     this.taskType = taskType;
     this.dataFlowType = dataFlowType;
     this.timeout = timeout;
     this.sqlList = sqlList;
     this.pyTaskName = pyTaskName;
+    this.outputPrefix = outputPrefix;
   }
 
   public Task(Task.Builder builder) {
@@ -56,7 +60,8 @@ public class Task {
         builder.dataFlowType,
         builder.timeout,
         builder.sqlList,
-        builder.pyTaskName);
+        builder.pyTaskName,
+        builder.outputPrefix);
   }
 
   public static Task.Builder builder() {
@@ -83,6 +88,10 @@ public class Task {
     return pyTaskName;
   }
 
+  public String getOutputPrefix() {
+    return outputPrefix;
+  }
+
   public static class Builder {
 
     private TaskType taskType;
@@ -95,6 +104,8 @@ public class Task {
 
     private String pyTaskName;
 
+    private String outputPrefix;
+
     public Task.Builder dataFlowType(DataFlowType dataFlowType) {
       this.dataFlowType = dataFlowType;
       return this;
@@ -106,16 +117,24 @@ public class Task {
     }
 
     public Task.Builder sql(String sql) {
-      Arguments.checkTaskType(TaskType.IGINX, taskType);
-      this.taskType = TaskType.IGINX;
+      Arguments.checkTaskType(TaskType.SQL, taskType);
+      this.taskType = TaskType.SQL;
       this.sqlList.add(sql);
       return this;
     }
 
-    public Task.Builder pyTaskName(String pyTaskName) {
+    public Task.Builder pyTask(String pyTaskName) {
       Arguments.checkTaskType(TaskType.PYTHON, taskType);
       this.taskType = TaskType.PYTHON;
       this.pyTaskName = pyTaskName;
+      return this;
+    }
+
+    public Task.Builder pyTask(String pyTaskName, String outputPrefix) {
+      Arguments.checkTaskType(TaskType.PYTHON, taskType);
+      this.taskType = TaskType.PYTHON;
+      this.pyTaskName = pyTaskName;
+      this.outputPrefix = outputPrefix;
       return this;
     }
 
