@@ -17,36 +17,18 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package cn.edu.tsinghua.iginx.transform.pojo;
+package cn.edu.tsinghua.iginx.engine.physical.exception;
 
-import cn.edu.tsinghua.iginx.thrift.TaskInfo;
-import cn.edu.tsinghua.iginx.utils.TaskFromYAML;
-import java.util.ArrayList;
+import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import java.util.List;
 
-public class IginXTask extends Task {
+public class UnconnectedStorageException extends PhysicalException {
 
-  private final List<String> sqlList = new ArrayList<>();
-
-  public IginXTask(TaskInfo info) {
-    super(info);
-    if (info.isSetSqlList()) {
-      sqlList.addAll(info.getSqlList());
-    } else {
-      throw new IllegalArgumentException("IginX task must have a SQL statement.");
-    }
+  public UnconnectedStorageException(OperatorType opType, long storageId) {
+    super(opType + " task failed for unconnected storage: " + storageId);
   }
 
-  public IginXTask(TaskFromYAML info) {
-    super(info);
-    if (info.getSqlList() != null && !info.getSqlList().isEmpty()) {
-      sqlList.addAll(info.getSqlList());
-    } else {
-      throw new IllegalArgumentException("IginX task must have a SQL statement.");
-    }
-  }
-
-  public List<String> getSqlList() {
-    return sqlList;
+  public UnconnectedStorageException(List<Long> storageIds) {
+    super("storage task failed because these storages are unconnected: " + storageIds);
   }
 }

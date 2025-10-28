@@ -21,7 +21,7 @@ package cn.edu.tsinghua.iginx.engine.physical.exception;
 
 public class NonExecutablePhysicalTaskException extends PhysicalException {
 
-  public NonExecutablePhysicalTaskException(String message) {
-    super(message);
+  public NonExecutablePhysicalTaskException() {
+    super("storage physical task should have one more operators");
   }
 }

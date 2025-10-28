@@ -109,7 +109,7 @@ enum ExportType {
 }
 
 enum TaskType {
-    IGINX,
+    SQL,
     PYTHON
 }
 
@@ -564,6 +564,7 @@ struct TaskInfo {
     3: optional i64 timeout
     4: optional list<string> sqlList
     5: optional string pyTaskName
+    6: optional string outputPrefix
 }
 
 struct CommitTransformJobReq {

@@ -67,6 +67,8 @@ public class IginxWorker implements IService.Iface {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(IginxWorker.class);
 
+  private static final Config config = ConfigDescriptor.getInstance().getConfig();
+
   private static final IginxWorker instance = new IginxWorker();
 
   private final IMetaManager metaManager = DefaultMetaManager.getInstance();
@@ -84,14 +86,13 @@ public class IginxWorker implements IService.Iface {
   // to init scheduled jobs
   private final TransformJobManager transformJobManager = TransformJobManager.getInstance();
 
-  private static final Config config = ConfigDescriptor.getInstance().getConfig();
-
   private IginxWorker() {
     // if there are new local filesystem in conf, add them to cluster.
     if (!addLocalStorageEngineMetas()) {
       LOGGER.error("there are no valid storage engines!");
       System.exit(-1);
     }
+    loadReplicaNum();
   }
 
   private boolean addLocalStorageEngineMetas() {
@@ -132,6 +133,18 @@ public class IginxWorker implements IService.Iface {
       return false;
     }
     return true;
+  }
+
+  private void loadReplicaNum() {
+    int replicaNumConf = config.getReplicaNum();
+    int writableStorageNum = metaManager.getWritableStorageEngineList().size();
+    // 取配置文件里的replicaNum和集群中可写的存储节点的数量减一作为集群的写入副本数，之后再和元数据中的配置比较
+    int replicaNumToBeSet = Math.min(replicaNumConf, writableStorageNum - 1);
+    // 保证副本数大于等于0
+    replicaNumToBeSet = Math.max(0, replicaNumToBeSet);
+    int replicaNumInMeta = metaManager.setReplicaNum(replicaNumToBeSet);
+    config.setReplicaNum(replicaNumInMeta);
+    LOGGER.info("Replica number has been set to {}.", replicaNumInMeta);
   }
 
   public static IginxWorker getInstance() {
@@ -673,7 +686,7 @@ public class IginxWorker implements IService.Iface {
       return new GetReplicaNumResp(RpcUtils.ACCESS_DENY);
     }
     GetReplicaNumResp resp = new GetReplicaNumResp(RpcUtils.SUCCESS);
-    resp.setReplicaNum(ConfigDescriptor.getInstance().getConfig().getReplicaNum() + 1);
+    resp.setReplicaNum(config.getReplicaNum() + 1);
     return resp;
   }
 
@@ -821,7 +834,6 @@ public class IginxWorker implements IService.Iface {
     storageEngineInfos.sort(Comparator.comparingLong(StorageEngineInfo::getId));
     resp.setStorageEngineInfos(storageEngineInfos);
 
-    Config config = ConfigDescriptor.getInstance().getConfig();
     List<MetaStorageInfo> metaStorageInfos = null;
     LocalMetaStorageInfo localMetaStorageInfo = null;
 
@@ -980,7 +992,7 @@ public class IginxWorker implements IService.Iface {
     if (!sourceCheckedPath.isPresent()) {
       errorMsg = String.format("Register file %s has no execute permission", filePath);
       LOGGER.error(errorMsg);
-      return RpcUtils.FAILURE.setMessage(errorMsg);
+      return new Status(RpcUtils.FAILURE).setMessage(errorMsg);
     }
 
     File sourceFile = sourceCheckedPath.get().toFile();
@@ -988,14 +1000,14 @@ public class IginxWorker implements IService.Iface {
       if (!req.isRemote) {
         errorMsg = String.format("Register file not exist in declared path, path=%s", filePath);
         LOGGER.error(errorMsg);
-        return RpcUtils.FAILURE.setMessage(errorMsg);
+        return new Status(RpcUtils.FAILURE).setMessage(errorMsg);
       }
     } else if (!req.isRemote) {
       // python file
       if (sourceFile.isFile() && !sourceFile.getName().endsWith(".py")) {
         errorMsg = "Register file must be a python file.";
         LOGGER.error(errorMsg);
-        return RpcUtils.FAILURE.setMessage(errorMsg);
+        return new Status(RpcUtils.FAILURE).setMessage(errorMsg);
       }
 
       // python module dir, class name must contains '.'
@@ -1009,14 +1021,14 @@ public class IginxWorker implements IService.Iface {
                     + className
                     + " is an invalid class name.";
             LOGGER.error(errorMsg);
-            return RpcUtils.FAILURE.setMessage(errorMsg);
+            return new Status(RpcUtils.FAILURE).setMessage(errorMsg);
           }
         }
       }
     } else if (req.getModuleFile() == null || req.getModuleFile().length == 0) {
       errorMsg = "Read remote python module failed with no data.";
       LOGGER.error(errorMsg);
-      return RpcUtils.FAILURE.setMessage(errorMsg);
+      return new Status(RpcUtils.FAILURE).setMessage(errorMsg);
     }
 
     List<TransformTaskMeta> transformTaskMetas = new ArrayList<>();
@@ -1026,7 +1038,7 @@ public class IginxWorker implements IService.Iface {
           && transformTaskMeta.containsIpPort(config.getIp(), config.getPort())) {
         errorMsg = String.format("Function %s already exist", transformTaskMeta);
         LOGGER.error(errorMsg);
-        return RpcUtils.FAILURE.setMessage(errorMsg);
+        return new Status(RpcUtils.FAILURE).setMessage(errorMsg);
       }
       transformTaskMetas.add(transformTaskMeta);
     }
@@ -1042,7 +1054,7 @@ public class IginxWorker implements IService.Iface {
     if (!destCheckedPath.isPresent()) {
       errorMsg = String.format("Register file %s has no write permission", destPath);
       LOGGER.error(errorMsg);
-      return RpcUtils.FAILURE.setMessage(errorMsg);
+      return new Status(RpcUtils.FAILURE).setMessage(errorMsg);
     }
 
     File destFile = destCheckedPath.get().toFile();
@@ -1050,7 +1062,7 @@ public class IginxWorker implements IService.Iface {
     if (destFile.exists()) {
       errorMsg = String.format("Register file(s) already exist, name=%s", fileName);
       LOGGER.error(errorMsg);
-      return RpcUtils.FAILURE.setMessage(errorMsg);
+      return new Status(RpcUtils.FAILURE).setMessage(errorMsg);
     }
 
     FunctionManager fm = FunctionManager.getInstance();
@@ -1072,7 +1084,7 @@ public class IginxWorker implements IService.Iface {
           String.format(
               "Fail to %s register file(s), path=%s", req.isRemote ? "load" : "copy", sourceFile);
       LOGGER.error(errorMsg);
-      return RpcUtils.FAILURE.setMessage(errorMsg);
+      return new Status(RpcUtils.FAILURE).setMessage(errorMsg);
     } catch (Exception e) {
       errorMsg =
           String.format(
@@ -1085,7 +1097,7 @@ public class IginxWorker implements IService.Iface {
       } catch (IOException ee) {
         LOGGER.error("fail to delete udf module {}.", destFile.getPath(), ee);
       }
-      return RpcUtils.FAILURE.setMessage(errorMsg);
+      return new Status(RpcUtils.FAILURE).setMessage(errorMsg);
     }
 
     // safety check
@@ -1098,7 +1110,7 @@ public class IginxWorker implements IService.Iface {
                 sourceFile, banModules);
         LOGGER.error(errorMsg);
         safeDeleteUDF(destFile);
-        return RpcUtils.FAILURE.setMessage(errorMsg);
+        return new Status(RpcUtils.FAILURE).setMessage(errorMsg);
       }
     } catch (Exception e) {
       errorMsg =
@@ -1107,7 +1119,7 @@ public class IginxWorker implements IService.Iface {
               sourceFile.getName());
       LOGGER.error(errorMsg, e);
       safeDeleteUDF(destFile);
-      return RpcUtils.FAILURE.setMessage(errorMsg);
+      return new Status(RpcUtils.FAILURE).setMessage(errorMsg);
     }
 
     UDFType type;
@@ -1166,20 +1178,20 @@ public class IginxWorker implements IService.Iface {
     if (transformTaskMeta == null) {
       errorMsg = "Function does not exist";
       LOGGER.error(errorMsg);
-      return RpcUtils.FAILURE.setMessage(errorMsg);
+      return new Status(RpcUtils.FAILURE).setMessage(errorMsg);
     }
 
     TransformJobManager manager = TransformJobManager.getInstance();
     if (manager.isRegisterTaskRunning(name)) {
       errorMsg = String.format("Function %s is running.", name);
       LOGGER.error(errorMsg);
-      return RpcUtils.FAILURE.setMessage(errorMsg);
+      return new Status(RpcUtils.FAILURE).setMessage(errorMsg);
     }
 
     if (!transformTaskMeta.containsIpPort(config.getIp(), config.getPort())) {
       errorMsg = String.format("Function exists in node: %s", config.getIp());
       LOGGER.error(errorMsg);
-      return RpcUtils.FAILURE.setMessage(errorMsg);
+      return new Status(RpcUtils.FAILURE).setMessage(errorMsg);
     }
 
     String filePath =
@@ -1199,7 +1211,7 @@ public class IginxWorker implements IService.Iface {
           String.format(
               "User has no write permission in target directory, task %s cannot be dropped.", name);
       LOGGER.error(errorMsg);
-      return RpcUtils.FAILURE.setMessage(errorMsg);
+      return new Status(RpcUtils.FAILURE).setMessage(errorMsg);
     }
 
     File file = normalizedFile.get().toFile();
@@ -1208,7 +1220,7 @@ public class IginxWorker implements IService.Iface {
       metaManager.dropTransformTask(name);
       errorMsg = String.format("Register file not exist, path=%s", filePath);
       LOGGER.error(errorMsg);
-      return RpcUtils.FAILURE.setMessage(errorMsg);
+      return new Status(RpcUtils.FAILURE).setMessage(errorMsg);
     }
 
     try {

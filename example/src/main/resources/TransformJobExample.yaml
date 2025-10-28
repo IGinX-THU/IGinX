@@ -20,7 +20,7 @@
 
 ---
 taskList:
-- taskType: "iginx"
+- taskType: "sql"
   timeout: 10000000
   sqlList:
   - "select value1, value2, value3, value4 from transform;"
