@@ -19,11 +19,14 @@
  */
 package cn.edu.tsinghua.iginx.client;
 
+import static cn.edu.tsinghua.iginx.client.constant.Constants.*;
 import static cn.edu.tsinghua.iginx.constant.GlobalConstant.DOT;
 import static cn.edu.tsinghua.iginx.constant.GlobalConstant.ESCAPED_DOT;
 import static cn.edu.tsinghua.iginx.utils.CSVUtils.getCSVBuilder;
 import static cn.edu.tsinghua.iginx.utils.FileUtils.exportByteStream;
 
+import cn.edu.tsinghua.iginx.client.state.InputState;
+import cn.edu.tsinghua.iginx.client.state.NormalState;
 import cn.edu.tsinghua.iginx.constant.GlobalConstant;
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.session.QueryDataSet;
@@ -41,7 +44,6 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.InvalidParameterException;
 import java.util.*;
-import java.util.regex.Pattern;
 import org.apache.commons.cli.*;
 import org.apache.commons.csv.CSVPrinter;
 import org.jline.reader.Completer;
@@ -58,46 +60,11 @@ import org.jline.terminal.TerminalBuilder;
 /** args[]: -h 127.0.0.1 -p 6888 -u root -pw root */
 public class IginxClient {
 
-  private static final String IGINX_CLI_PREFIX = "IGinX> ";
-  private static final String IGINX_CLI_PREFIX_WAITING_INPUT = "     > ";
-  private static final String IGINX_CLI_PREFIX_SINGLE_QUOTE = "    '> ";
-  private static final String IGINX_CLI_PREFIX_DOUBLE_QUOTE = "    \"> ";
-  private static final String IGINX_CLI_PREFIX_BACKTICK_QUOTE = "    `> ";
-  private static final String IGINX_CLI_PREFIX_BLOCK_COMMENT = "   /*> ";
-
-  private static final String HOST_ARGS = "h";
-  private static final String HOST_NAME = "host";
-
-  private static final String PORT_ARGS = "p";
-  private static final String PORT_NAME = "port";
-
-  private static final String USERNAME_ARGS = "u";
-  private static final String USERNAME_NAME = "username";
-
-  private static final String PASSWORD_ARGS = "pw";
-  private static final String PASSWORD_NAME = "password";
-
-  private static final String EXECUTE_ARGS = "e";
-  private static final String EXECUTE_NAME = "execute";
-
-  private static final String FETCH_SIZE_ARGS = "fs";
-  private static final String FETCH_SIZE_NAME = "fetch_size";
-
-  private static final String HELP_ARGS = "help";
-
-  private static final int MAX_HELP_CONSOLE_WIDTH = 88;
-
-  private static final String SCRIPT_HINT = "./start-cli.sh(start-cli.bat if Windows)";
-
-  private static final Pattern EXIT_OR_QUIT_PATTERN =
-      Pattern.compile("^\\s*(exit|quit)\\s*;\\s*$", Pattern.CASE_INSENSITIVE);
-
   static String host = "127.0.0.1";
   static String port = "6888";
   static String username = "root";
   static String password = "root";
   static int fetchSize = 1000;
-
   static String execute = "";
 
   private static int MAX_GETDATA_NUM = 100;
@@ -145,17 +112,8 @@ public class IginxClient {
     return true;
   }
 
-  // 状态机的状态
-  enum State {
-    NORMAL, // 普通代码
-    SINGLE_QUOTE, // 单引号字符串
-    DOUBLE_QUOTE, // 双引号字符串
-    BACKTICK_QUOTE, // 反引号标识符
-    BLOCK_COMMENT // /* ... */ 块注释，可嵌套
-  }
-
-  private static State state = State.NORMAL;
-  private static int blockCommentDepth = 0;
+  private int blockCommentDepth = 0;
+  private InputState inputState = new NormalState();
 
   public static void main(String[] args) {
     Options options = createOptions();
@@ -190,7 +148,8 @@ public class IginxClient {
                   }
                 }));
 
-    serve(args);
+    IginxClient client = new IginxClient();
+    client.serve(args);
   }
 
   private static String parseArg(String arg, String name, boolean isRequired, String defaultValue) {
@@ -209,7 +168,7 @@ public class IginxClient {
     return str;
   }
 
-  private static void serve(String[] args) {
+  private void serve(String[] args) {
     try {
       Terminal terminal = TerminalBuilder.builder().system(true).build();
 
@@ -234,29 +193,9 @@ public class IginxClient {
         echoStarting();
         displayLogo(loadClientVersion());
 
-        String command = "";
+        String command;
         while (true) {
-          switch (state) {
-            case NORMAL:
-              if (validSqlBuffer.toString().replaceAll("\\s+", " ").trim().isEmpty()) {
-                command = reader.readLine(IGINX_CLI_PREFIX);
-              } else {
-                command = reader.readLine(IGINX_CLI_PREFIX_WAITING_INPUT);
-              }
-              break;
-            case SINGLE_QUOTE:
-              command = reader.readLine(IGINX_CLI_PREFIX_SINGLE_QUOTE);
-              break;
-            case DOUBLE_QUOTE:
-              command = reader.readLine(IGINX_CLI_PREFIX_DOUBLE_QUOTE);
-              break;
-            case BACKTICK_QUOTE:
-              command = reader.readLine(IGINX_CLI_PREFIX_BACKTICK_QUOTE);
-              break;
-            case BLOCK_COMMENT:
-              command = reader.readLine(IGINX_CLI_PREFIX_BLOCK_COMMENT);
-              break;
-          }
+          command = reader.readLine(inputState.getPrompt(IginxClient.this));
           boolean continues = processCommand(command);
           if (!continues) {
             break;
@@ -299,106 +238,22 @@ public class IginxClient {
     return "unknown";
   }
 
-  private static boolean processCommand(String command) throws SessionException, IOException {
+  private boolean processCommand(String command) throws SessionException {
     if (command == null || command.trim().isEmpty()) {
       return true;
     }
-    for (int i = 0; i < command.length(); i++) {
-      char c = command.charAt(i);
-      char next = (i + 1 < command.length()) ? command.charAt(i + 1) : '\0';
 
-      switch (state) {
-        case NORMAL:
-          if (c == '-' && next == '-') { // -- 注释
-            buffer.append(command.substring(i));
-            buffer.append(System.lineSeparator());
-            return true;
-          } else if (c == '/' && next == '*') { // 块注释开始
-            state = State.BLOCK_COMMENT;
-            blockCommentDepth = 1;
-            buffer.append(c).append(next);
-            i++;
-          } else if (c == '\'') {
-            state = State.SINGLE_QUOTE;
-            buffer.append(c);
-            validSqlBuffer.append(c);
-          } else if (c == '"') {
-            state = State.DOUBLE_QUOTE;
-            buffer.append(c);
-            validSqlBuffer.append(c);
-          } else if (c == '`') {
-            state = State.BACKTICK_QUOTE;
-            buffer.append(c);
-            validSqlBuffer.append(c);
-          } else if (c == ';') {
-            // 真正的结束符
-            buffer.append(c);
-            validSqlBuffer.append(c);
-            OperationResult res = handleInputStatement(buffer.toString());
-            switch (res) {
-              case STOP:
-                return false;
-              case CONTINUE:
-                continue;
-              default:
-                break;
-            }
-            buffer.setLength(0);
-            validSqlBuffer.setLength(0);
-          } else {
-            buffer.append(c);
-            validSqlBuffer.append(c);
-          }
-          break;
-
-        case SINGLE_QUOTE:
-          buffer.append(c);
-          validSqlBuffer.append(c);
-          if (c == '\'' && (i == 0 || command.charAt(i - 1) != '\\')) {
-            state = State.NORMAL;
-          }
-          break;
-
-        case DOUBLE_QUOTE:
-          buffer.append(c);
-          validSqlBuffer.append(c);
-          if (c == '"' && (i == 0 || command.charAt(i - 1) != '\\')) {
-            state = State.NORMAL;
-          }
-          break;
-
-        case BACKTICK_QUOTE:
-          buffer.append(c);
-          validSqlBuffer.append(c);
-          if (c == '`') {
-            state = State.NORMAL;
-          }
-          break;
-
-        case BLOCK_COMMENT:
-          buffer.append(c);
-          if (c == '/' && next == '*') {
-            blockCommentDepth++;
-            buffer.append(next);
-            i++;
-          } else if (c == '*' && next == '/') {
-            blockCommentDepth--;
-            buffer.append(next);
-            i++;
-            if (blockCommentDepth == 0) {
-              state = State.NORMAL;
-            }
-          }
-          break;
-      }
+    if (!inputState.handleInput(command, IginxClient.this)) {
+      return false;
     }
+
+    // 重置缓冲区
     buffer.append(System.lineSeparator());
     validSqlBuffer.append(System.lineSeparator());
     return true;
   }
 
-  private static OperationResult handleInputStatement(String statement)
-      throws SessionException, IOException {
+  public OperationResult handleInputStatement(String statement) throws SessionException {
     String trimedStatement = statement.replaceAll(" +", " ").toLowerCase().trim();
 
     if (EXIT_OR_QUIT_PATTERN.matcher(validSqlBuffer.toString()).matches()) {
@@ -903,7 +758,35 @@ public class IginxClient {
             + "\n");
   }
 
-  enum OperationResult {
+  public StringBuilder getBuffer() {
+    return buffer;
+  }
+
+  public StringBuilder getValidSqlBuffer() {
+    return validSqlBuffer;
+  }
+
+  public InputState getInputState() {
+    return inputState;
+  }
+
+  public void setInputState(InputState inputState) {
+    this.inputState = inputState;
+  }
+
+  public int getBlockCommentDepth() {
+    return blockCommentDepth;
+  }
+
+  public void incrementBlockCommentDepth() {
+    this.blockCommentDepth++;
+  }
+
+  public void decrementBlockCommentDepth() {
+    this.blockCommentDepth--;
+  }
+
+  public enum OperationResult {
     STOP,
     CONTINUE,
     DO_NOTHING,
