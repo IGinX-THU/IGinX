@@ -89,6 +89,22 @@ jobs:
               with:
                   if-test-udf: "true"
 
+            - name: Run recognize delimiter test
+              if: always()
+              shell: bash -el {0}
+              run: |
+                  mvn test -q -Dtest=RecognizeDelimiterIT -DfailIfNoTests=false -P-format
+                  if [ "$RUNNER_OS" == "Linux" ]; then
+                    chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_recognize_delimiter.sh"
+                    "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_recognize_delimiter.sh" ${VERSION}
+                  elif [ "$RUNNER_OS" == "Windows" ]; then
+                    chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_recognize_delimiter_windows.sh"
+                    "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_recognize_delimiter_windows.sh" ${VERSION}
+                  elif [ "$RUNNER_OS" == "macOS" ]; then
+                    chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_recognize_delimiter_macos.sh"
+                    "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_recognize_delimiter_macos.sh" ${VERSION}
+                  fi
+
             - name: Run UDF path test
               if: always()
               shell: bash -el {0}
