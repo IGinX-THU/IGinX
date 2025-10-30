@@ -106,4 +106,8 @@ public class Constant {
   public static final String FRAGMENT_HEAT_COUNTER_LOCK_NODE = "/lock/counter/fragment/heat";
 
   public static final String TIMESERIES_HEAT_COUNTER_LOCK_NODE = "/lock/counter/timeseries/heat";
+
+  public static final String REPLICA_NUM_NODE = "/replicaNum";
+
+  public static final String REPLICA_NUM_LOCK_NODE = "/lock/replicaNum";
 }

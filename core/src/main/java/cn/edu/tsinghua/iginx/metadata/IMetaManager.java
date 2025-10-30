@@ -46,6 +46,9 @@ public interface IMetaManager {
   /** 获取与当前iginx连接的存储引擎实例的原信息 */
   List<StorageEngineMeta> getConnectStorageEngines();
 
+  /** 查询某个存储引擎是否已连接 */
+  boolean isStorageEngineInConnection(long id);
+
   List<StorageEngineMeta> getWritableStorageEngineList();
 
   /** 获取存储引擎实例的数量 */
@@ -237,4 +240,6 @@ public interface IMetaManager {
 
   /** resolve storage engine list from config file */
   List<StorageEngineMeta> getStorageEngineListFromConf();
+
+  int setReplicaNum(int replicaNum);
 }

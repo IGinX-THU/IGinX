@@ -21,16 +21,36 @@
 # below JavaApp is the name of running Java process
 jps
 
-pids=( $(jps | grep Iginx | awk '{print $1}') )
+PORT=$1
+
+# get the PID of the process listening on the specified port
+if [ -n "$MSYSTEM" ]; then
+  # Windows
+  pids=( $(netstat -ano | grep ":$PORT" | grep LISTEN | awk '{print $5}' | sort | uniq) )
+else
+  # Linux/macOS
+  pids=( $(lsof -i :$PORT -sTCP:LISTEN -t) )
+fi
+
+# only keep the IGinX process
+iginx_pids=( $(jps | grep Iginx | awk '{print $1}') )
+target_pids=()
+for pid in "${pids[@]}"; do
+  for iginx_pid in "${iginx_pids[@]}"; do
+    if [ "$pid" == "$iginx_pid" ]; then
+      target_pids+=("$pid")
+    fi
+  done
+done
 
 if [ -n "$MSYSTEM" ]; then
   # need to use taskkill on windows
-  for pid in "${pids[@]}"; do
+  for pid in "${target_pids[@]}"; do
        echo "killing $pid"
        sh -c "taskkill -f -pid $pid"
   done
 else
-  for pid in "${pids[@]}"; do
+  for pid in "${target_pids[@]}"; do
        echo "killing $pid"
        kill -9 $pid
   done

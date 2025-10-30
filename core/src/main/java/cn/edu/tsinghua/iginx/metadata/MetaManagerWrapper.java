@@ -81,6 +81,11 @@ public class MetaManagerWrapper implements IMetaManager {
   }
 
   @Override
+  public boolean isStorageEngineInConnection(long id) {
+    return metaManager.isStorageEngineInConnection(id);
+  }
+
+  @Override
   public List<StorageEngineMeta> getWritableStorageEngineList() {
     return metaManager.getWritableStorageEngineList();
   }
@@ -450,5 +455,10 @@ public class MetaManagerWrapper implements IMetaManager {
   @Override
   public List<StorageEngineMeta> getStorageEngineListFromConf() {
     return metaManager.getStorageEngineListFromConf();
+  }
+
+  @Override
+  public int setReplicaNum(int replicaNum) {
+    return metaManager.setReplicaNum(replicaNum);
   }
 }
