@@ -40,14 +40,9 @@ public class BlockCommentState implements InputState {
       char current = command.charAt(i);
       char next = (i + 1 < length) ? command.charAt(i + 1) : '\0';
 
-      buffer.append(current);
-
-      if (current == '/' && next == '*') { // 处理嵌套的块注释开始
-        buffer.append(next);
-        i += 2;
-        client.incrementBlockCommentDepth();
-      } else if (current == '*' && next == '/') { // 处理块注释结束
-        buffer.append(next);
+      // 处理块注释结束
+      if (current == '*' && next == '/') {
+        buffer.append(current).append(next);
         i += 2;
         client.decrementBlockCommentDepth();
         // 如果所有嵌套的块注释都已结束，则返回到正常状态
@@ -57,7 +52,20 @@ public class BlockCommentState implements InputState {
           String remaining = (i < length) ? command.substring(i) : "";
           return client.getInputState().handleInput(remaining, client);
         }
+        continue;
       }
+
+      // 处理嵌套的块注释开始
+      if (current == '/' && next == '*') {
+        buffer.append(current).append(next);
+        i += 2;
+        client.incrementBlockCommentDepth();
+        continue;
+      }
+
+      // 添加当前字符
+      buffer.append(current);
+      i++;
     }
     return true;
   }

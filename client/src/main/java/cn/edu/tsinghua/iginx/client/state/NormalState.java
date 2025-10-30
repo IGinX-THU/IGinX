@@ -55,6 +55,7 @@ public class NormalState implements InputState {
       if (current == '/' && next == '*') {
         buffer.append(current).append(next);
         i += 2;
+        client.incrementBlockCommentDepth();
         client.setInputState(new BlockCommentState());
         // 将剩余字符交给新状态处理
         String remaining = (i < length) ? command.substring(i) : "";
