@@ -673,19 +673,11 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         .forEach(
             storageEngine -> {
               String ipStr = storageEngine.ip.getText();
-              String schemaPrefixStr = storageEngine.schemaPrefix.getText();
-              String dataPrefixStr = storageEngine.dataPrefix.getText();
               String ip =
                   ipStr.substring(
                       ipStr.indexOf(SQLConstant.QUOTE) + 1, ipStr.lastIndexOf(SQLConstant.QUOTE));
-              String schemaPrefix =
-                  schemaPrefixStr.substring(
-                      schemaPrefixStr.indexOf(SQLConstant.QUOTE) + 1,
-                      schemaPrefixStr.lastIndexOf(SQLConstant.QUOTE));
-              String dataPrefix =
-                  dataPrefixStr.substring(
-                      dataPrefixStr.indexOf(SQLConstant.QUOTE) + 1,
-                      dataPrefixStr.lastIndexOf(SQLConstant.QUOTE));
+              String schemaPrefix = parseParamWithEscaped(storageEngine.schemaPrefix.getText());
+              String dataPrefix = parseParamWithEscaped(storageEngine.dataPrefix.getText());
               statement.addStorageEngine(
                   new RemovedStorageEngineInfo(
                       ip,
@@ -2085,6 +2077,25 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
           "The number of columns in sub-query doesn't equal to outer row.");
     }
     return subStatement;
+  }
+
+  private String parseParamWithEscaped(String text) {
+    boolean escape = false;
+    StringBuilder res = new StringBuilder();
+    // 去掉前后引号
+    text = text.substring(1, text.length() - 1);
+    for (int i = 0; i < text.length(); i++) {
+      char c = text.charAt(i);
+      if (escape) {
+        res.append(c); // 直接追加被转义的字符
+        escape = false;
+      } else if (c == '\\') {
+        escape = true; // 标记下一个字符被转义
+      } else {
+        res.append(c);
+      }
+    }
+    return res.toString();
   }
 
   private Map<String, String> parseExtra(StringLiteralContext ctx) {
