@@ -89,22 +89,6 @@ jobs:
               with:
                   if-test-udf: "true"
 
-            - name: Run recognize delimiter test
-              if: always()
-              shell: bash -el {0}
-              run: |
-                  mvn test -q -Dtest=RecognizeDelimiterIT -DfailIfNoTests=false -P-format
-                  if [ "$RUNNER_OS" == "Linux" ]; then
-                    chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_recognize_delimiter.sh"
-                    "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_recognize_delimiter.sh" ${VERSION}
-                  elif [ "$RUNNER_OS" == "Windows" ]; then
-                    chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_recognize_delimiter_windows.sh"
-                    "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_recognize_delimiter_windows.sh" ${VERSION}
-                  elif [ "$RUNNER_OS" == "macOS" ]; then
-                    chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_recognize_delimiter_macos.sh"
-                    "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_recognize_delimiter_macos.sh" ${VERSION}
-                  fi
-
             - name: Run UDF path test
               if: always()
               shell: bash -el {0}
@@ -161,52 +145,6 @@ jobs:
               shell: bash
               run: |
                   cat iginx-*.log
-
-            - name: set client test context
-              uses: ./.github/actions/context
-              with:
-                  work-name: restart-iginx-meta
-                  metadata: ${{ matrix.metadata }}
-
-            - name: set client test context
-              uses: ./.github/actions/context
-              with:
-                  DB-name: ${{ matrix.DB-name }}
-                  shell: client-before
-
-            # TODO: extract it to a separate job to test
-            # large image export only tested in FileSystem
-            - name: Test Client Export File
-              shell: bash -el {0}
-              run: |
-                  if [[ "${{ matrix.DB-name }}" == "FileSystem" ]]; then
-                      mvn test -q -Dtest=ExportFileIT -DfailIfNoTests=false -P-format
-                  else
-                      mvn test -q -Dtest=ExportFileIT#checkExportByteStream -DfailIfNoTests=false -P-format
-                      mvn test -q -Dtest=ExportFileIT#checkExportCsv -DfailIfNoTests=false -P-format
-                  fi
-
-            - name: Stop IGinX and Metadata, Clear Metadata Data, then Start Them
-              uses: ./.github/actions/context
-              with:
-                  work-name: restart-iginx-meta
-                  metadata: ${{ matrix.metadata }}
-
-            - name: set client test context
-              uses: ./.github/actions/context
-              with:
-                  shell: client-after
-
-            - name: test event expansion support
-              uses: ./.github/actions/context
-              with:
-                  shell: client-event-expansion
-
-            - name: Test Client Import File
-              if: always()
-              shell: bash -el {0}
-              run: |
-                  mvn test -q -Dtest=ImportFileIT -DfailIfNoTests=false -P-format
 
             - name: clean metadata and restart IGinX
               uses: ./.github/actions/context

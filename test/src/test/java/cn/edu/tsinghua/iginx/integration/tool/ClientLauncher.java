@@ -23,6 +23,7 @@ import cn.edu.tsinghua.iginx.utils.ShellRunner;
 import java.io.*;
 import java.util.Arrays;
 import java.util.concurrent.*;
+import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,6 +35,8 @@ public class ClientLauncher {
   private final ExecutorService executor;
   private final LinkedBlockingQueue<String> outputQueue = new LinkedBlockingQueue<>();
   private final StringBuffer resultBuffer = new StringBuffer();
+
+  private static final Pattern TIME_COST_PATTERN = Pattern.compile("Time cost:\\s*\\d+\\s*ms");
 
   public ClientLauncher() {
     Process tempProcess = null;
@@ -117,8 +120,12 @@ public class ClientLauncher {
     this.executor = tempExecutor;
   }
 
-  /** Execute a single command and capture its output. */
   public void readLine(String command) {
+    this.readLine(command, 0);
+  }
+
+  /** Execute a single command and capture its output. */
+  public void readLine(String command, int timeoutMs) {
     if (process == null || writer == null) {
       LOGGER.error("Client process is not initialized.");
       return;
@@ -136,20 +143,39 @@ public class ClientLauncher {
     writer.flush();
 
     StringBuilder output = new StringBuilder();
-    long lastOutputTime = System.currentTimeMillis();
+    long startTime = System.currentTimeMillis();
 
     try {
       while (true) {
-        String line = outputQueue.poll(100, TimeUnit.MILLISECONDS);
+        if (timeoutMs > 0 && (System.currentTimeMillis() - startTime > timeoutMs)) {
+          LOGGER.error("Command '{}' timed out after {} ms.", command, timeoutMs);
+          if (process.isAlive()) {
+            process.destroyForcibly();
+            LOGGER.warn("Forcibly destroyed the stuck process for command '{}'.", command);
+          }
+          break;
+        }
+
+        if (!process.isAlive()) {
+          LOGGER.warn(
+              "Process exited unexpectedly while waiting for command '{}' to finish.", command);
+          break; // 进程意外退出，退出循环
+        }
+
+        String line = outputQueue.poll(500, TimeUnit.MILLISECONDS);
 
         if (line != null) {
+          // 检查是否是时间日志，表示命令执行完毕
+          if (TIME_COST_PATTERN.matcher(line.trim()).find()) {
+            LOGGER.debug("Detected time cost log, command finished.");
+            output.append(line).append(System.lineSeparator());
+            break;
+          }
+
+          // 否则，将输出追加到结果中（过滤掉发出的命令）
           if (!line.trim().isEmpty() && !line.contains(command)) {
             output.append(line).append(System.lineSeparator());
           }
-          lastOutputTime = System.currentTimeMillis();
-        } else if (System.currentTimeMillis() - lastOutputTime > 3000) {
-          // 3 seconds of silence → assume command finished
-          break;
         }
       }
     } catch (InterruptedException e) {
@@ -163,6 +189,16 @@ public class ClientLauncher {
   /** Get the command execution result. */
   public String getResult() {
     return resultBuffer.toString();
+  }
+
+  public boolean expectedOutputContains(String result) {
+    String ret = resultBuffer.toString();
+    if (ret.contains(result)) {
+      return true;
+    } else {
+      LOGGER.error("Expected output: {}, actually output: {}", result, ret);
+      return false;
+    }
   }
 
   /** Close the client process gracefully. */

@@ -444,7 +444,7 @@ public class IginxClient {
         System.out.print(FormatUtils.formatCount(total));
       }
       res.close();
-    } catch (SessionException e) {
+    } catch (SessionException | IOException e) {
       System.out.println(e.getMessage());
     } catch (Exception e) {
       System.out.println(

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package cn.edu.tsinghua.iginx.integration.other;
+package cn.edu.tsinghua.iginx.integration.tool;
 
 import static org.junit.Assert.fail;
 
@@ -30,16 +30,11 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class FileLoaderTest {
-  private static final Logger LOGGER = LoggerFactory.getLogger(FileLoaderTest.class);
-
-  private static final String DOWNLOAD_PATH = "../downloads";
+public class FileLoader {
+  private static final Logger LOGGER = LoggerFactory.getLogger(FileLoader.class);
 
   protected static String defaultTestHost = "127.0.0.1";
   protected static int defaultTestPort = 6888;
@@ -48,26 +43,7 @@ public class FileLoaderTest {
 
   private static Session session;
 
-  public FileLoaderTest() {}
-
-  @BeforeClass
-  public static void setUp() {
-    try {
-      session = new Session(defaultTestHost, defaultTestPort, defaultTestUser, defaultTestPass);
-      session.openSession();
-    } catch (SessionException e) {
-      LOGGER.error("open session error.", e);
-    }
-  }
-
-  @AfterClass
-  public static void tearDown() {
-    try {
-      session.closeSession();
-    } catch (SessionException e) {
-      LOGGER.error("close session error.", e);
-    }
-  }
+  public FileLoader() {}
 
   /**
    * 每处理几块打一次日志，以每块10KB为标准
@@ -75,7 +51,7 @@ public class FileLoaderTest {
    * @param fileSize 文件大小
    * @return 每次日志 / 块数
    */
-  private int decideLogStep(long fileSize) {
+  private static int decideLogStep(long fileSize) {
     if (fileSize < 100 * 1024 * 1024) {
       // 100MB以内
       return 10;
@@ -88,28 +64,41 @@ public class FileLoaderTest {
     }
   }
 
-  public void loadFile(String path) {
-    if (path == null || path.trim().isEmpty()) {
-      LOGGER.error("Invalid file path: {}", path);
-      fail();
-    }
+  public static void loadFile(String path) {
+    try {
+      session = new Session(defaultTestHost, defaultTestPort, defaultTestUser, defaultTestPass);
+      session.openSession();
 
-    // 从文件路径生成数据列名：[最后一级目录名].[文件名]，文件名中的“-”和“.”都被替换为“_”
-    Path filePath = Paths.get(path).toAbsolutePath();
-    String fileName = filePath.getFileName().toString();
-    Path parent = filePath.getParent();
+      if (path == null || path.trim().isEmpty()) {
+        LOGGER.error("Invalid file path: {}", path);
+        fail();
+      }
 
-    if (parent != null) {
-      String parentDirName = parent.getFileName().toString();
-      String columnName = (parentDirName + "." + fileName.replace(".", "_")).replace("-", "_");
-      loadFile(path, columnName);
-    } else {
-      LOGGER.error("File {} can't be in root dir.", path);
-      fail();
+      // 从文件路径生成数据列名：[最后一级目录名].[文件名]，文件名中的“-”和“.”都被替换为“_”
+      Path filePath = Paths.get(path).toAbsolutePath();
+      String fileName = filePath.getFileName().toString();
+      Path parent = filePath.getParent();
+
+      if (parent != null) {
+        String parentDirName = parent.getFileName().toString();
+        String columnName = (parentDirName + "." + fileName.replace(".", "_")).replace("-", "_");
+        loadFile(path, columnName);
+      } else {
+        LOGGER.error("File {} can't be in root dir.", path);
+        fail();
+      }
+    } catch (SessionException e) {
+      LOGGER.error("open session error.", e);
+    } finally {
+      try {
+        session.closeSession();
+      } catch (SessionException e) {
+        LOGGER.error("close session error.", e);
+      }
     }
   }
 
-  public void loadFile(String path, String columnName) {
+  public static void loadFile(String path, String columnName) {
     loadFile(path, 10 * 1024, columnName);
   }
 
@@ -120,7 +109,7 @@ public class FileLoaderTest {
    * @param chunkSize chunk大小，默认10KB
    * @param columnName 存入IGinX的列名
    */
-  public void loadFile(String path, int chunkSize, String columnName) {
+  public static void loadFile(String path, int chunkSize, String columnName) {
     try {
       FileInputStream inputStream = new FileInputStream(path);
       byte[] buffer = new byte[chunkSize];
@@ -141,7 +130,7 @@ public class FileLoaderTest {
     }
   }
 
-  private void processChunk(byte[] chunk, String pathName, int chunkIndex, int step)
+  private static void processChunk(byte[] chunk, String pathName, int chunkIndex, int step)
       throws SessionException {
     if (chunkIndex % step == 0) {
       LOGGER.info("Processing #{} chunk for {}", chunkIndex, pathName);
@@ -159,11 +148,5 @@ public class FileLoaderTest {
     List<DataType> dataTypeList = new ArrayList<>(Collections.singletonList(DataType.BINARY));
 
     session.insertRowRecords(paths, timestamps, valueList, dataTypeList, null);
-  }
-
-  @Test
-  public void loadLargeImage() {
-    String fileName = "large_img.jpg";
-    loadFile(DOWNLOAD_PATH + "/" + fileName);
   }
 }
