@@ -135,6 +135,13 @@ public class FileUtils {
     try (SevenZFile sevenZFile = new SevenZFile(new File(archivePath))) {
       SevenZArchiveEntry entry;
       while ((entry = sevenZFile.getNextEntry()) != null) {
+        String entryName = entry.getName();
+        File destinationFile = new File(destinationDir, entryName);
+        if (!isEntryPathSafe(destinationFile, destinationDir)) {
+          throw new IOException(
+              "Zip Slip vulnerability detected in 7z file! Malicious entry: " + entryName);
+        }
+
         if (entry.isDirectory()) {
           // 如果是目录，则创建它
           new File(destinationDir, entry.getName()).mkdirs();
@@ -157,5 +164,19 @@ public class FileUtils {
       }
     }
     LOGGER.info("7z 文件解压完成: {}", archivePath);
+  }
+  /**
+   * 验证解压后的文件路径是否在安全的目标目录内。
+   *
+   * @param destinationFile 解压后的目标文件
+   * @param destDir 预设的安全解压目录
+   * @return 如果路径安全则返回 true，否则返回 false
+   */
+  private static boolean isEntryPathSafe(File destinationFile, File destDir) throws IOException {
+    // 使用 getCanonicalPath() 获取规范的、绝对路径，它会解析所有的 . 和 ..
+    String canonicalDestPath = destinationFile.getCanonicalPath();
+    String canonicalDirPath = destDir.getCanonicalPath();
+    // 检查目标文件的规范路径是否以目标目录的规范路径开头
+    return canonicalDestPath.startsWith(canonicalDirPath);
   }
 }

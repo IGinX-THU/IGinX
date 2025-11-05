@@ -148,11 +148,7 @@ public class ClientLauncher {
     try {
       while (true) {
         if (timeoutMs > 0 && (System.currentTimeMillis() - startTime > timeoutMs)) {
-          LOGGER.error("Command '{}' timed out after {} ms.", command, timeoutMs);
-          if (process.isAlive()) {
-            process.destroyForcibly();
-            LOGGER.warn("Forcibly destroyed the stuck process for command '{}'.", command);
-          }
+          LOGGER.warn("Command '{}' timed out after {} ms.", command, timeoutMs);
           break;
         }
 

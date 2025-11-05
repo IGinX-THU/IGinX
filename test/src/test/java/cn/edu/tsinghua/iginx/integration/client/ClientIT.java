@@ -86,21 +86,21 @@ public class ClientIT {
         client.expectedOutputContains("ResultSets") && !client.getResult().contains("Parse Error"));
 
     // 模拟用户逐行输入
-    client.readLine("show -- comment");
-    client.readLine("/*");
-    client.readLine("comment;");
-    client.readLine("*/cluster");
-    client.readLine("info;");
+    client.readLine("show -- comment", 1000);
+    client.readLine("/*", 1000);
+    client.readLine("comment;", 1000);
+    client.readLine("*/cluster", 1000);
+    client.readLine("info;", 1000);
     assertTrue(
         client.expectedOutputContains("IginX infos")
             && !client.getResult().contains("Parse Error"));
 
     // 检测有语句残留在 buffer 中
-    client.readLine("select *");
-    client.readLine("from (show columns); select a.*");
+    client.readLine("select *", 1000);
+    client.readLine("from (show columns); select a.*", 1000);
     assertTrue(
         client.expectedOutputContains("ResultSets") && !client.getResult().contains("Parse Error"));
-    client.readLine("from *;");
+    client.readLine("from *;", 1000);
     assertTrue(
         client.expectedOutputContains("ResultSets") && !client.getResult().contains("Parse Error"));
   }
