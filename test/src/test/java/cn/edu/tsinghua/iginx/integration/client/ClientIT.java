@@ -60,9 +60,7 @@ public class ClientIT {
 
   public ClientIT() throws IOException {
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
-    // TODO:提交前修改
-    // runningEngine = conf.getStorageType();
-    runningEngine = "FileSystem";
+    runningEngine = conf.getStorageType();
     if (Files.notExists(DOWNLOADS_DIR_PATH)) {
       Files.createDirectories(DOWNLOADS_DIR_PATH);
     }
