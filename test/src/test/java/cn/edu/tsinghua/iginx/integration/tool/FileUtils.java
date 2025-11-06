@@ -32,6 +32,7 @@ import java.nio.file.StandardCopyOption;
 import java.util.stream.Stream;
 import org.apache.commons.compress.archivers.sevenz.SevenZArchiveEntry;
 import org.apache.commons.compress.archivers.sevenz.SevenZFile;
+import org.apache.commons.io.FilenameUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -128,55 +129,43 @@ public class FileUtils {
    */
   public static void extract7zFile(String archivePath, String destinationPath) throws IOException {
     File destinationDir = new File(destinationPath);
-    if (!destinationDir.exists()) {
-      destinationDir.mkdirs();
+    if (!destinationDir.exists() && !destinationDir.mkdirs()) {
+      throw new IOException("Failed to create destination directory: " + destinationPath);
     }
 
     try (SevenZFile sevenZFile = new SevenZFile(new File(archivePath))) {
       SevenZArchiveEntry entry;
       while ((entry = sevenZFile.getNextEntry()) != null) {
-        String entryName = entry.getName();
-        File destinationFile = new File(destinationDir, entryName);
-        if (!isEntryPathSafe(destinationFile, destinationDir)) {
+        // normalize() 会移除路径中的 ".." 和 "."，并处理不同操作系统的分隔符。
+        String normalizedPath = FilenameUtils.normalize(entry.getName());
+        if (normalizedPath == null) {
           throw new IOException(
-              "Zip Slip vulnerability detected in 7z file! Malicious entry: " + entryName);
+              "Malicious path detected in archive, attempting path traversal: " + entry.getName());
         }
 
+        File destinationFile = new File(destinationDir, normalizedPath);
+
         if (entry.isDirectory()) {
-          // 如果是目录，则创建它
-          new File(destinationDir, entry.getName()).mkdirs();
+          if (!destinationFile.exists() && !destinationFile.mkdirs()) {
+            throw new IOException("Failed to create directory within archive: " + destinationFile);
+          }
         } else {
-          // 如果是文件，则解压它
-          File outputFile = new File(destinationDir, entry.getName());
-          // 确保父目录存在
-          File parent = outputFile.getParentFile();
-          if (parent != null) {
+          File parent = destinationFile.getParentFile();
+          if (parent != null && !parent.exists()) {
             parent.mkdirs();
           }
 
-          try (FileOutputStream outputStream = new FileOutputStream(outputFile)) {
-            byte[] content = new byte[(int) entry.getSize()];
-            sevenZFile.read(content);
-            outputStream.write(content);
+          try (FileOutputStream outputStream = new FileOutputStream(destinationFile)) {
+            byte[] buffer = new byte[8192];
+            int bytesRead;
+            while ((bytesRead = sevenZFile.read(buffer)) != -1) {
+              outputStream.write(buffer, 0, bytesRead);
+            }
           }
-          LOGGER.info("解压文件: {}", outputFile.getAbsolutePath());
+          LOGGER.info("Extracted file: {}", destinationFile.getAbsolutePath());
         }
       }
     }
-    LOGGER.info("7z 文件解压完成: {}", archivePath);
-  }
-  /**
-   * 验证解压后的文件路径是否在安全的目标目录内。
-   *
-   * @param destinationFile 解压后的目标文件
-   * @param destDir 预设的安全解压目录
-   * @return 如果路径安全则返回 true，否则返回 false
-   */
-  private static boolean isEntryPathSafe(File destinationFile, File destDir) throws IOException {
-    // 使用 getCanonicalPath() 获取规范的、绝对路径，它会解析所有的 . 和 ..
-    String canonicalDestPath = destinationFile.getCanonicalPath();
-    String canonicalDirPath = destDir.getCanonicalPath();
-    // 检查目标文件的规范路径是否以目标目录的规范路径开头
-    return canonicalDestPath.startsWith(canonicalDirPath);
+    LOGGER.info("7z file extracted successfully to: {}", destinationPath);
   }
 }
