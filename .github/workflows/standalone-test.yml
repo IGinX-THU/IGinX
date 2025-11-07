@@ -94,16 +94,6 @@ jobs:
               shell: bash -el {0}
               run: |
                   mvn test -q -Dtest=UDFPathIT -DfailIfNoTests=false -P-format
-                  if [ "$RUNNER_OS" == "Linux" ]; then
-                    chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_py_register.sh"
-                    "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_py_register.sh" ${VERSION}
-                  elif [ "$RUNNER_OS" == "Windows" ]; then
-                    chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_py_register_windows.sh"
-                    "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_py_register_windows.sh" ${VERSION}
-                  elif [ "$RUNNER_OS" == "macOS" ]; then
-                    chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_py_register_macos.sh"
-                    "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_py_register_macos.sh" ${VERSION}
-                  fi
 
             # two steps:
             # 1. test relative path
@@ -111,18 +101,7 @@ jobs:
             - name: Run Transform Job tests
               shell: bash -el {0}
               run: |
-                  mvn test -q -Dtest=TransformJobPathIT#prepare -DfailIfNoTests=false -P-format
-                  if [ "$RUNNER_OS" == "Linux" ]; then
-                    chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_job_register.sh"
-                    "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_job_register.sh" ${VERSION}
-                  elif [ "$RUNNER_OS" == "Windows" ]; then
-                    chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_job_register_windows.sh"
-                    "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_job_register_windows.sh" ${VERSION}
-                  elif [ "$RUNNER_OS" == "macOS" ]; then
-                    chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_job_register_macos.sh"
-                    "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_job_register_macos.sh" ${VERSION}
-                  fi
-                  mvn test -q -Dtest=TransformJobPathIT#verifyResult -DfailIfNoTests=false -P-format
+                  mvn test -q -Dtest=TransformJobPathIT -DfailIfNoTests=false -P-format
                   mvn test -q -Dtest=TransformJobRestartIT#prepare -DfailIfNoTests=false -P-format
 
             - name: Stop IGinX

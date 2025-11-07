@@ -138,7 +138,8 @@ public class FileUtils {
       while ((entry = sevenZFile.getNextEntry()) != null) {
         File destinationFile = new File(destinationDir, entry.getName());
         if (!destinationFile.toPath().toAbsolutePath().normalize().startsWith(destinationDirPath)) {
-          throw new IOException("Zip Slip vulnerability detected! Malicious entry: " + entry.getName());
+          throw new IOException(
+              "Zip Slip vulnerability detected! Malicious entry: " + entry.getName());
         }
 
         if (entry.isDirectory()) {

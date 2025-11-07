@@ -35,6 +35,7 @@ public class ClientLauncher {
   private final ExecutorService executor;
   private final LinkedBlockingQueue<String> outputQueue = new LinkedBlockingQueue<>();
   private final StringBuffer resultBuffer = new StringBuffer();
+  private final File clientRootDir;
 
   private static final Pattern TIME_COST_PATTERN = Pattern.compile("Time cost:\\s*\\d+\\s*ms");
 
@@ -48,6 +49,7 @@ public class ClientLauncher {
               t.setDaemon(true);
               return t;
             });
+    File clientRootDir = null;
 
     try {
       // Locate client version directory
@@ -64,18 +66,25 @@ public class ClientLauncher {
       }
 
       String version = matchingFiles[0].getName();
-      String clientUnixPath = "../client/target/" + version + "/sbin/start_cli.sh";
-      String clientWinPath =
-          new File("../client/target/" + version + "/sbin/start_cli.bat").getCanonicalPath();
+
+      clientRootDir = new File(clientDir, version);
+      File clientUnixScript = new File(clientRootDir, "sbin/start_cli.sh");
+      File clientWinScript = new File(clientRootDir, "sbin/start_cli.bat");
 
       // Start CLI client
       ProcessBuilder pb = new ProcessBuilder();
+      pb.directory(clientRootDir);
+      LOGGER.info(
+          "Setting client script working directory to: {}", clientRootDir.getAbsolutePath());
+
       if (ShellRunner.isOnWin()) {
-        pb.command("cmd.exe", "/c", clientWinPath);
+        pb.command("cmd.exe", "/c", clientWinScript.getAbsolutePath());
       } else {
-        Process before = Runtime.getRuntime().exec(new String[] {"chmod", "+x", clientUnixPath});
+        Process before =
+            Runtime.getRuntime()
+                .exec(new String[] {"chmod", "+x", clientUnixScript.getAbsolutePath()});
         before.waitFor();
-        pb.command("bash", "-c", clientUnixPath);
+        pb.command("bash", "-c", clientUnixScript.getAbsolutePath());
       }
 
       pb.redirectErrorStream(true);
@@ -118,6 +127,7 @@ public class ClientLauncher {
     this.process = tempProcess;
     this.writer = tempWriter;
     this.executor = tempExecutor;
+    this.clientRootDir = clientRootDir;
   }
 
   public void readLine(String command) {
@@ -185,6 +195,10 @@ public class ClientLauncher {
   /** Get the command execution result. */
   public String getResult() {
     return resultBuffer.toString();
+  }
+
+  public String getClientRootDir() {
+    return clientRootDir.getAbsolutePath();
   }
 
   public boolean expectedOutputContains(String result) {
