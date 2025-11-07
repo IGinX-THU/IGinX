@@ -32,7 +32,6 @@ import java.nio.file.StandardCopyOption;
 import java.util.stream.Stream;
 import org.apache.commons.compress.archivers.sevenz.SevenZArchiveEntry;
 import org.apache.commons.compress.archivers.sevenz.SevenZFile;
-import org.apache.commons.io.FilenameUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -133,17 +132,14 @@ public class FileUtils {
       throw new IOException("Failed to create destination directory: " + destinationPath);
     }
 
+    Path destinationDirPath = destinationDir.toPath().toAbsolutePath();
     try (SevenZFile sevenZFile = new SevenZFile(new File(archivePath))) {
       SevenZArchiveEntry entry;
       while ((entry = sevenZFile.getNextEntry()) != null) {
-        // normalize() 会移除路径中的 ".." 和 "."，并处理不同操作系统的分隔符。
-        String normalizedPath = FilenameUtils.normalize(entry.getName());
-        if (normalizedPath == null) {
-          throw new IOException(
-              "Malicious path detected in archive, attempting path traversal: " + entry.getName());
+        File destinationFile = new File(destinationDir, entry.getName());
+        if (!destinationFile.toPath().toAbsolutePath().normalize().startsWith(destinationDirPath)) {
+          throw new IOException("Zip Slip vulnerability detected! Malicious entry: " + entry.getName());
         }
-
-        File destinationFile = new File(destinationDir, normalizedPath);
 
         if (entry.isDirectory()) {
           if (!destinationFile.exists() && !destinationFile.mkdirs()) {
