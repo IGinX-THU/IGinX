@@ -115,6 +115,10 @@ runs:
               echo $PYTHON_PATH
               echo "IGINX_PYTHON_PATH=$PYTHON_PATH" >> $GITHUB_ENV
 
+        - name: Get project info
+          id: project
+          uses: ./.github/actions/project
+
         - if: inputs.scope=='all'
           name: Install Python dependencies
           shell: bash -el {0}
@@ -161,10 +165,6 @@ runs:
               # to access conda env in scripts
               echo "IGINX_CONDA_ENV=${{ inputs.iginx-conda-env }}" >> $GITHUB_ENV
               echo "IGINX_CONDA_FLAG=${{ inputs.iginx-conda-flag }}" >> $GITHUB_ENV
-
-        - name: Get project info
-          id: project
-          uses: ./.github/actions/project
 
         - name: Set up environment variable
           shell: bash
