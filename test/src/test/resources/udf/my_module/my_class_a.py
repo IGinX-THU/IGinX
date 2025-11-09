@@ -15,7 +15,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
- 
+
+from iginx_udf import UDSFWrapper
+
+@UDSFWrapper
 class ClassA:
     def print_self(self):
         return "class A"
@@ -25,12 +28,13 @@ class ClassA:
         obj = SubClassA()
         return obj.print_self()
 
-    def transform(self, data, args, kvargs):
+    def eval(self, data, args, kvargs):
         self.print_self()
         self.print_inner()
         return [["col_outer_a"], ["LONG"], [1]]
 
 
+@UDSFWrapper
 class ClassB:
     def print_self(self):
         return "class B"
@@ -40,7 +44,7 @@ class ClassB:
         obj = SubClassA()
         return obj.print_self()
 
-    def transform(self, data, args, kvargs):
+    def eval(self, data, args, kvargs):
         self.print_self()
         self.print_inner()
         return [["col_outer_b"], ["LONG"], [1]]

@@ -17,10 +17,11 @@
 #
  
 from dateutil import parser
+from iginx_udf import UDSFWrapper
 
-
+@UDSFWrapper
 class Test:
-    def transform(self, data, args, kvargs):
+    def eval(self, data, args, kvargs):
         datetime_string = "2023-04-05 14:30:00"
         parsed_datetime = parser.parse(datetime_string)
 

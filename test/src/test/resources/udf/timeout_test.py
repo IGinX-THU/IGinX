@@ -1,6 +1,9 @@
 import time
 import threading
 
+from iginx_udf import UDSFWrapper
+
+@UDSFWrapper
 class TimeoutTest:
     def __init__(self):
         pass
@@ -28,7 +31,7 @@ class TimeoutTest:
         model = BlipForConditionalGeneration.from_pretrained("Salesforce/blip-image-captioning-base")
         print("finished downloading.")
 
-    def transform(self, data, args, kvargs):
+    def eval(self, data, args, kvargs):
         """测三种情况"""
         if args[0]==1:
             self.timeout(data, args, kvargs)

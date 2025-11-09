@@ -34,3 +34,5 @@ runs:
               else
                python -m pip install pandas==2.2.3 numpy thrift pemjax
               fi
+              cd ${{ steps.project.outputs.workspace }}/udf_funcs/iginx_udf
+              python -m pip install -e .
