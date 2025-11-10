@@ -23,7 +23,7 @@ COPY . /root/iginx
 WORKDIR /root/iginx
 RUN mvn clean package -pl client -am -Dmaven.test.skip=true -P-format -e
 
-FROM openjdk:11-jre-slim
+FROM eclipse-temurin:11-jre
 COPY --from=builder /root/iginx/client/target/iginx-client-0.9.0-SNAPSHOT/ /iginx_client/
 
 RUN mkdir -p /iginx_client/logs
