@@ -324,8 +324,26 @@ public class TagIT {
     return res.getResultInString(false, "");
   }
 
+  // 合并没有额外写入操作的测试减少重复写入
   @Test
-  public void testShowColumnsWithTags() {
+  public void runNormalTest() {
+    testShowColumnsWithTags();
+    testCountPoints();
+    testCountPath();
+    testBasicQuery();
+    testKeyFilter();
+    testValueFilter();
+    testQueryWithoutTags();
+    testQueryWithTag();
+    testQueryWithMultiTags();
+    testQueryWithWildcardTag();
+    testQueryWithAggregate();
+    testMixQueryWithAggregate();
+    testAlias();
+    testSubQuery();
+  }
+
+  private void testShowColumnsWithTags() {
     String statement = "SHOW COLUMNS ah.*;";
     String expected =
         "Columns:\n"
@@ -461,16 +479,14 @@ public class TagIT {
     executeAndCompare(statement, expected, true);
   }
 
-  @Test
-  public void testCountPoints() {
+  private void testCountPoints() {
     if (isScaling) return;
     String statement = "COUNT POINTS;";
     String expected = "Points num: 26\n";
     executeAndCompare(statement, expected);
   }
 
-  @Test
-  public void testCountPath() {
+  private void testCountPath() {
     String statement = "SELECT COUNT(*) FROM ah;";
     String expected =
         "ResultSets:\n"
@@ -483,8 +499,7 @@ public class TagIT {
     executeAndCompare(statement, expected);
   }
 
-  @Test
-  public void testBasicQuery() {
+  private void testBasicQuery() {
     String statement = "SELECT * FROM ah;";
     String expected =
         "ResultSets:\n"
@@ -505,8 +520,7 @@ public class TagIT {
     executeAndCompare(statement, expected);
   }
 
-  @Test
-  public void testKeyFilter() {
+  private void testKeyFilter() {
     String statement = "SELECT s FROM ah.* WHERE key < 100;";
     String expected =
         "ResultSets:\n"
@@ -558,8 +572,7 @@ public class TagIT {
     executeAndCompare(statement, expected);
   }
 
-  @Test
-  public void testValueFilter() {
+  private void testValueFilter() {
     // 至少有一列的值大于等于4
     String statement = "SELECT s FROM ah.hr01 WHERE s >= 4;";
     String expected =
@@ -600,8 +613,7 @@ public class TagIT {
     executeAndCompare(statement, expected);
   }
 
-  @Test
-  public void testQueryWithoutTags() {
+  private void testQueryWithoutTags() {
     String statement = "SELECT s FROM ah.*;";
     String expected =
         "ResultSets:\n"
@@ -670,8 +682,7 @@ public class TagIT {
     executeAndCompare(statement, expected);
   }
 
-  @Test
-  public void testQueryWithTag() {
+  private void testQueryWithTag() {
     String statement = "SELECT s FROM ah.* with t1=v1;";
     String expected =
         "ResultSets:\n"
@@ -700,8 +711,7 @@ public class TagIT {
     executeAndCompare(statement, expected);
   }
 
-  @Test
-  public void testQueryWithMultiTags() {
+  private void testQueryWithMultiTags() {
     String statement = "SELECT s FROM ah.* with t1=v1 OR t2=v2;";
     String expected =
         "ResultSets:\n"
@@ -1043,8 +1053,7 @@ public class TagIT {
     executeAndCompare(showColumnsData, expected);
   }
 
-  @Test
-  public void testQueryWithWildcardTag() {
+  private void testQueryWithWildcardTag() {
     String statement = "SELECT s FROM ah.* with t2=*;";
     String expected =
         "ResultSets:\n"
@@ -1062,8 +1071,7 @@ public class TagIT {
     executeAndCompare(statement, expected);
   }
 
-  @Test
-  public void testQueryWithAggregate() {
+  private void testQueryWithAggregate() {
     String statement = "SELECT sum(v) FROM ah.hr03 with t1=vv11;";
     String expected =
         "ResultSets:\n"
@@ -1120,8 +1128,7 @@ public class TagIT {
     executeAndCompare(statement, expected);
   }
 
-  @Test
-  public void testMixQueryWithAggregate() {
+  private void testMixQueryWithAggregate() {
     String statement = "select last(s) from ah.hr01;";
     String expected =
         "ResultSets:\n"
@@ -1405,8 +1412,7 @@ public class TagIT {
     executeAndCompare(statement, expected);
   }
 
-  @Test
-  public void testAlias() {
+  private void testAlias() {
     String statement = "SELECT s AS ts FROM ah.hr02;";
     String expected =
         "ResultSets:\n"
@@ -1468,8 +1474,7 @@ public class TagIT {
     executeAndCompare(statement, expected);
   }
 
-  @Test
-  public void testSubQuery() {
+  private void testSubQuery() {
     String statement = "SELECT SUM(ts2) FROM (SELECT s AS ts1, v AS ts2 FROM ah.hr03 with t1=v1);";
     String expected =
         "ResultSets:\n"

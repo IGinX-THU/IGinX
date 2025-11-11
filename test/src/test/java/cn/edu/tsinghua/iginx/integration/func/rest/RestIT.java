@@ -198,111 +198,109 @@ public class RestIT {
     assertEquals(output, result);
   }
 
+  // 合并没有额外写入操作的测试减少重复写入
   @Test
-  public void testQueryWithoutTags() {
+  public void runNormalTest() {
+    testQueryWithoutTags();
+    testQueryWithTags();
+    testQueryWrongTags();
+    testQueryOneTagWrong();
+    testQueryWrongName();
+    testQueryWrongTime();
+    testQueryAvg();
+    testQueryCount();
+    testQueryFirst();
+    testQueryLast();
+    testQueryMax();
+    testQueryMin();
+    testQuerySum();
+  }
+
+  private void testQueryWithoutTags() {
     String json = "testQueryWithoutTags.json";
     String result =
         "{\"queries\":[{\"sample_size\": 3,\"results\": [{ \"name\": \"archive.file.tracked\",\"group_by\": [{\"name\": \"type\",\"type\": \"number\"}], \"tags\": {\"dc\": [\"DC1\"],\"host\": [\"server1\"]}, \"values\": [[1359788300000,13.2],[1359788400000,123.3],[1359788410000,23.1]]}]},{\"sample_size\": 1,\"results\": [{ \"name\": \"archive.file.search\",\"group_by\": [{\"name\": \"type\",\"type\": \"number\"}], \"tags\": {\"host\": [\"server2\"]}, \"values\": [[1359786400000,321.0]]}]}]}";
     executeAndCompare(json, result);
   }
 
-  @Test
-  public void testQueryWithTags() {
+  private void testQueryWithTags() {
     String json = "testQueryWithTags.json";
     String result =
         "{\"queries\":[{\"sample_size\": 3,\"results\": [{ \"name\": \"archive.file.tracked\",\"group_by\": [{\"name\": \"type\",\"type\": \"number\"}], \"tags\": {\"dc\": [\"DC1\"],\"host\": [\"server1\"]}, \"values\": [[1359788300000,13.2],[1359788400000,123.3],[1359788410000,23.1]]}]}]}";
     executeAndCompare(json, result);
   }
 
-  @Test
-  public void testQueryWrongTags() {
+  private void testQueryWrongTags() {
     String json = "testQueryWrongTags.json";
     String result =
         "{\"queries\":[{\"sample_size\": 0,\"results\": [{ \"name\": \"archive.file.tracked\",\"group_by\": [{\"name\": \"type\",\"type\": \"number\"}], \"tags\": {}, \"values\": []}]}]}";
     executeAndCompare(json, result);
   }
 
-  @Test
-  public void testQueryOneTagWrong() {
+  private void testQueryOneTagWrong() {
     String json = "testQueryOneTagWrong.json";
     String result =
         "{\"queries\":[{\"sample_size\": 0,\"results\": [{ \"name\": \"archive.file.tracked\",\"group_by\": [{\"name\": \"type\",\"type\": \"number\"}], \"tags\": {}, \"values\": []}]}]}";
     executeAndCompare(json, result);
   }
 
-  @Test
-  public void testQueryWrongName() {
+  private void testQueryWrongName() {
     String json = "testQueryWrongName.json";
     String result =
         "{\"queries\":[{\"sample_size\": 0,\"results\": [{ \"name\": \"archive_.a.b.c\",\"group_by\": [{\"name\": \"type\",\"type\": \"number\"}], \"tags\": {}, \"values\": []}]}]}";
     executeAndCompare(json, result);
   }
 
-  @Test
-  public void testQueryWrongTime() {
+  private void testQueryWrongTime() {
     String json = "testQueryWrongTime.json";
     String result =
         "{\"queries\":[{\"sample_size\": 0,\"results\": [{ \"name\": \"archive.file.tracked\",\"group_by\": [{\"name\": \"type\",\"type\": \"number\"}], \"tags\": {}, \"values\": []}]}]}";
     executeAndCompare(json, result);
   }
 
-  //    @Test
-  //    public void testQuery(){
-  //        String json = "";
-  //        String result = "";
-  //        executeAndCompare(json,result);
-  //    }
-
-  @Test
-  public void testQueryAvg() {
+  private void testQueryAvg() {
     String json = "testQueryAvg.json";
     String result =
         "{\"queries\":[{\"sample_size\": 9,\"results\": [{ \"names\": [\"window_start\", \"window_end\", \"archive.file.tracked\"],\"group_by\": [{\"name\": \"type\",\"type\": \"number\"}], \"tags\": {\"dc\": [\"DC1\"],\"host\": [\"server1\"]}, \"values\": [[1359788298001,1359788298001],[1359788398001,1359788398001],[1359788408001,1359788408001],[1359788298001,1359788300000],[1359788398001,1359788400000],[1359788408001,1359788410000],[1359788298001,13.2],[1359788398001,123.3],[1359788408001,23.1]]}]}]}";
     executeAndCompare(json, result);
   }
 
-  @Test
-  public void testQueryCount() {
+  private void testQueryCount() {
     String json = "testQueryCount.json";
     String result =
         "{\"queries\":[{\"sample_size\": 3,\"results\": [{ \"names\": [\"window_start\", \"window_end\", \"archive.file.tracked\"],\"group_by\": [{\"name\": \"type\",\"type\": \"number\"}], \"tags\": {\"dc\": [\"DC1\"],\"host\": [\"server1\"]}, \"values\": [[1359763200001,1359763200001],[1359763200001,1359849600000],[1359763200001,3]]}]}]}";
     executeAndCompare(json, result);
   }
 
-  @Test
-  public void testQueryFirst() {
+  private void testQueryFirst() {
     String json = "testQueryFirst.json";
     String result =
         "{\"queries\":[{\"sample_size\": 3,\"results\": [{ \"names\": [\"window_start\", \"window_end\", \"archive.file.tracked\"],\"group_by\": [{\"name\": \"type\",\"type\": \"number\"}], \"tags\": {\"dc\": [\"DC1\"],\"host\": [\"server1\"]}, \"values\": [[1359763200001,1359763200001],[1359763200001,1359936000000],[1359763200001,13.2]]}]}]}";
     executeAndCompare(json, result);
   }
 
-  @Test
-  public void testQueryLast() {
+  private void testQueryLast() {
     String json = "testQueryLast.json";
     String result =
         "{\"queries\":[{\"sample_size\": 3,\"results\": [{ \"names\": [\"window_start\", \"window_end\", \"archive.file.tracked\"],\"group_by\": [{\"name\": \"type\",\"type\": \"number\"}], \"tags\": {\"dc\": [\"DC1\"],\"host\": [\"server1\"]}, \"values\": [[1359763200001,1359763200001],[1359763200001,1359936000000],[1359763200001,23.1]]}]}]}";
     executeAndCompare(json, result);
   }
 
-  @Test
-  public void testQueryMax() {
+  private void testQueryMax() {
     String json = "testQueryMax.json";
     String result =
         "{\"queries\":[{\"sample_size\": 3,\"results\": [{ \"names\": [\"window_start\", \"window_end\", \"archive.file.tracked\"],\"group_by\": [{\"name\": \"type\",\"type\": \"number\"}], \"tags\": {\"dc\": [\"DC1\"],\"host\": [\"server1\"]}, \"values\": [[1359763200001,1359763200001],[1359763200001,1359936000000],[1359763200001,123.3]]}]}]}";
     executeAndCompare(json, result);
   }
 
-  @Test
-  public void testQueryMin() {
+  private void testQueryMin() {
     String json = "testQueryMin.json";
     String result =
         "{\"queries\":[{\"sample_size\": 3,\"results\": [{ \"names\": [\"window_start\", \"window_end\", \"archive.file.tracked\"],\"group_by\": [{\"name\": \"type\",\"type\": \"number\"}], \"tags\": {\"dc\": [\"DC1\"],\"host\": [\"server1\"]}, \"values\": [[1359763200001,1359763200001],[1359763200001,1359936000000],[1359763200001,13.2]]}]}]}";
     executeAndCompare(json, result);
   }
 
-  @Test
-  public void testQuerySum() {
+  private void testQuerySum() {
     String json = "testQuerySum.json";
     String result =
         "{\"queries\":[{\"sample_size\": 3,\"results\": [{ \"names\": [\"window_start\", \"window_end\", \"archive.file.tracked\"],\"group_by\": [{\"name\": \"type\",\"type\": \"number\"}], \"tags\": {\"dc\": [\"DC1\"],\"host\": [\"server1\"]}, \"values\": [[1359763200001,1359763200001],[1359763200001,1359936000000],[1359763200001,159.6]]}]}]}";
