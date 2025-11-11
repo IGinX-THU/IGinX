@@ -216,8 +216,8 @@ public class SQLTestTools {
                 })
             .start();
 
-        // sleep 45s for new thread to print script output(30s timeout in script)
-        Thread.sleep(45000);
+        // sleep 125s for new thread to print script output(120s timeout in script)
+        Thread.sleep(125000);
 
         return 0;
       } else {
