@@ -32,7 +32,6 @@ import cn.edu.tsinghua.iginx.metadata.hook.*;
 import cn.edu.tsinghua.iginx.metadata.storage.IMetaStorage;
 import cn.edu.tsinghua.iginx.metadata.utils.ReshardStatus;
 import cn.edu.tsinghua.iginx.session.Session;
-import cn.edu.tsinghua.iginx.transform.pojo.TriggerDescriptor;
 import cn.edu.tsinghua.iginx.utils.JsonUtils;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import io.etcd.jetcd.*;
@@ -78,8 +77,8 @@ public class ETCDMetaStorage implements IMetaStorage {
   private final Lock storageUnitLeaseLock = new ReentrantLock();
   private final Lock fragmentLeaseLock = new ReentrantLock();
   private final Lock userLeaseLock = new ReentrantLock();
-  private final Lock transformLeaseLock = new ReentrantLock();
-  private final Lock jobTriggerLeaseLock = new ReentrantLock();
+  private final Lock pyFunctionLeaseLock = new ReentrantLock();
+  private final Lock transformJobLeaseLock = new ReentrantLock();
   private final Lock fragmentRequestsCounterLeaseLock = new ReentrantLock();
   private final Lock fragmentHeatCounterLeaseLock = new ReentrantLock();
   private final Lock timeseriesHeatCounterLeaseLock = new ReentrantLock();
@@ -107,12 +106,12 @@ public class ETCDMetaStorage implements IMetaStorage {
   private Watch.Watcher userWatcher;
   private UserChangeHook userChangeHook = null;
   private long userLease = -1L;
-  private Watch.Watcher transformWatcher;
-  private TransformChangeHook transformChangeHook = null;
-  private JobTriggerChangeHook jobTriggerChangeHook = null;
-  private long transformLease = -1L;
+  private Watch.Watcher pyFunctionWatcher;
+  private PyFunctionChangeHook pyFunctionChangeHook = null;
+  private TransformJobChangeHook transformJobChangeHook = null;
+  private long pyFunctionLease = -1L;
 
-  private long jobTriggerLease = -1L;
+  private long transformJobLease = -1L;
 
   private long fragmentRequestsCounterLease = -1L;
 
@@ -380,37 +379,36 @@ public class ETCDMetaStorage implements IMetaStorage {
                   public void onCompleted() {}
                 });
 
-    // 注册 transform 的监听
-    this.transformWatcher =
+    // 注册 python function 的监听
+    this.pyFunctionWatcher =
         client
             .getWatchClient()
             .watch(
-                ByteSequence.from(TRANSFORM_NODE_PREFIX.getBytes()),
+                ByteSequence.from(PYFUNCTION_NODE_PREFIX.getBytes()),
                 WatchOption.newBuilder()
-                    .withPrefix(ByteSequence.from(TRANSFORM_NODE_PREFIX.getBytes()))
+                    .withPrefix(ByteSequence.from(PYFUNCTION_NODE_PREFIX.getBytes()))
                     .withPrevKV(true)
                     .build(),
                 new Watch.Listener() {
                   @Override
                   public void onNext(WatchResponse watchResponse) {
-                    if (ETCDMetaStorage.this.transformChangeHook == null) {
+                    if (ETCDMetaStorage.this.pyFunctionChangeHook == null) {
                       return;
                     }
                     for (WatchEvent event : watchResponse.getEvents()) {
-                      TransformTaskMeta taskMeta;
+                      PyFunctionMeta functionMeta;
                       switch (event.getEventType()) {
                         case PUT:
-                          taskMeta =
+                          functionMeta =
                               JsonUtils.fromJson(
-                                  event.getKeyValue().getValue().getBytes(),
-                                  TransformTaskMeta.class);
-                          transformChangeHook.onChange(taskMeta.getName(), taskMeta);
+                                  event.getKeyValue().getValue().getBytes(), PyFunctionMeta.class);
+                          pyFunctionChangeHook.onChange(functionMeta.getName(), functionMeta);
                           break;
                         case DELETE:
-                          taskMeta =
+                          functionMeta =
                               JsonUtils.fromJson(
-                                  event.getPrevKV().getValue().getBytes(), TransformTaskMeta.class);
-                          transformChangeHook.onChange(taskMeta.getName(), null);
+                                  event.getPrevKV().getValue().getBytes(), PyFunctionMeta.class);
+                          pyFunctionChangeHook.onChange(functionMeta.getName(), null);
                           break;
                         default:
                           LOGGER.error("unexpected watchEvent: {}", event.getEventType());
@@ -2447,48 +2445,48 @@ public class ETCDMetaStorage implements IMetaStorage {
     this.reshardCounterChangeHook = hook;
   }
 
-  private void lockTransform() throws MetaStorageException {
+  private void lockPyFunction() throws MetaStorageException {
     try {
-      transformLeaseLock.lock();
-      transformLease = client.getLeaseClient().grant(MAX_LOCK_TIME).get().getID();
+      pyFunctionLeaseLock.lock();
+      pyFunctionLease = client.getLeaseClient().grant(MAX_LOCK_TIME).get().getID();
       client
           .getLockClient()
-          .lock(ByteSequence.from(TRANSFORM_LOCK_NODE.getBytes()), transformLease);
+          .lock(ByteSequence.from(PYFUNCTION_LOCK_NODE.getBytes()), pyFunctionLease);
     } catch (Exception e) {
-      transformLeaseLock.unlock();
-      throw new MetaStorageException("acquire transform mutex error: ", e);
+      pyFunctionLeaseLock.unlock();
+      throw new MetaStorageException("acquire python function mutex error: ", e);
     }
   }
 
-  private void releaseTransform() throws MetaStorageException {
+  private void releasePyFunction() throws MetaStorageException {
     try {
-      client.getLockClient().unlock(ByteSequence.from(TRANSFORM_LOCK_NODE.getBytes())).get();
-      client.getLeaseClient().revoke(transformLease).get();
-      transformLease = -1L;
+      client.getLockClient().unlock(ByteSequence.from(PYFUNCTION_LOCK_NODE.getBytes())).get();
+      client.getLeaseClient().revoke(pyFunctionLease).get();
+      pyFunctionLease = -1L;
     } catch (Exception e) {
       throw new MetaStorageException("release user mutex error: ", e);
     } finally {
-      transformLeaseLock.unlock();
+      pyFunctionLeaseLock.unlock();
     }
   }
 
   @Override
-  public void registerTransformChangeHook(TransformChangeHook hook) {
-    transformChangeHook = hook;
+  public void registerPyFunctionChangeHook(PyFunctionChangeHook hook) {
+    pyFunctionChangeHook = hook;
   }
 
   @Override
-  public List<TransformTaskMeta> loadTransformTask() throws MetaStorageException {
+  public List<PyFunctionMeta> loadPyFunction() throws MetaStorageException {
     try {
-      lockTransform();
-      Map<String, TransformTaskMeta> taskMetaMap = new HashMap<>();
+      lockPyFunction();
+      Map<String, PyFunctionMeta> taskMetaMap = new HashMap<>();
       GetResponse response =
           this.client
               .getKVClient()
               .get(
-                  ByteSequence.from(TRANSFORM_NODE_PREFIX.getBytes()),
+                  ByteSequence.from(PYFUNCTION_NODE_PREFIX.getBytes()),
                   GetOption.newBuilder()
-                      .withPrefix(ByteSequence.from(TRANSFORM_NODE_PREFIX.getBytes()))
+                      .withPrefix(ByteSequence.from(PYFUNCTION_NODE_PREFIX.getBytes()))
                       .build())
               .get();
       if (response.getCount() != 0L) {
@@ -2496,83 +2494,83 @@ public class ETCDMetaStorage implements IMetaStorage {
             .getKvs()
             .forEach(
                 e -> {
-                  TransformTaskMeta taskMeta =
-                      JsonUtils.fromJson(e.getValue().getBytes(), TransformTaskMeta.class);
+                  PyFunctionMeta taskMeta =
+                      JsonUtils.fromJson(e.getValue().getBytes(), PyFunctionMeta.class);
                   taskMetaMap.put(taskMeta.getName(), taskMeta);
                 });
       }
       return new ArrayList<>(taskMetaMap.values());
     } catch (ExecutionException | InterruptedException e) {
-      LOGGER.error("got error when load transform: ", e);
+      LOGGER.error("got error when load python functions: ", e);
       throw new MetaStorageException(e);
     } finally {
-      if (transformLease != -1) {
-        releaseTransform();
+      if (pyFunctionLease != -1) {
+        releasePyFunction();
       }
     }
   }
 
   @Override
-  public void addTransformTask(TransformTaskMeta transformTask) throws MetaStorageException {
-    updateTransformTask(transformTask);
+  public void addPyFunction(PyFunctionMeta pyFunctionMeta) throws MetaStorageException {
+    updatePyFunction(pyFunctionMeta);
   }
 
   @Override
-  public void updateTransformTask(TransformTaskMeta transformTask) throws MetaStorageException {
+  public void updatePyFunction(PyFunctionMeta pyFunctionMeta) throws MetaStorageException {
     try {
-      lockTransform();
+      lockPyFunction();
       this.client
           .getKVClient()
           .put(
-              ByteSequence.from((TRANSFORM_NODE_PREFIX + transformTask.getName()).getBytes()),
-              ByteSequence.from(JsonUtils.toJson(transformTask)))
+              ByteSequence.from((PYFUNCTION_NODE_PREFIX + pyFunctionMeta.getName()).getBytes()),
+              ByteSequence.from(JsonUtils.toJson(pyFunctionMeta)))
           .get();
     } catch (ExecutionException | InterruptedException e) {
-      LOGGER.error("got error when add/update transform: ", e);
+      LOGGER.error("got error when add/update python functions: ", e);
       throw new MetaStorageException(e);
     } finally {
-      if (transformLease != -1) {
-        releaseTransform();
+      if (pyFunctionLease != -1) {
+        releasePyFunction();
       }
     }
-    if (transformChangeHook != null) {
-      transformChangeHook.onChange(transformTask.getName(), transformTask);
+    if (pyFunctionChangeHook != null) {
+      pyFunctionChangeHook.onChange(pyFunctionMeta.getName(), pyFunctionMeta);
     }
   }
 
   @Override
-  public void dropTransformTask(String name) throws MetaStorageException {
+  public void dropPyFunction(String name) throws MetaStorageException {
     try {
-      lockTransform();
+      lockPyFunction();
       this.client
           .getKVClient()
-          .delete(ByteSequence.from((TRANSFORM_NODE_PREFIX + name).getBytes()))
+          .delete(ByteSequence.from((PYFUNCTION_NODE_PREFIX + name).getBytes()))
           .get();
     } catch (ExecutionException | InterruptedException e) {
-      LOGGER.error("got error when remove transform: ", e);
+      LOGGER.error("got error when remove python functions: ", e);
       throw new MetaStorageException(e);
     } finally {
-      if (transformLease != -1) {
-        releaseTransform();
+      if (pyFunctionLease != -1) {
+        releasePyFunction();
       }
     }
-    if (transformChangeHook != null) {
-      transformChangeHook.onChange(name, null);
+    if (pyFunctionChangeHook != null) {
+      pyFunctionChangeHook.onChange(name, null);
     }
   }
 
   @Override
-  public List<TriggerDescriptor> loadJobTrigger() throws MetaStorageException {
+  public List<TransformJobMeta> loadTransformJobs() throws MetaStorageException {
     try {
-      lockJobTrigger();
-      Map<String, TriggerDescriptor> triggerMap = new HashMap<>();
+      lockTransformJob();
+      Map<String, TransformJobMeta> jobMetaMap = new HashMap<>();
       GetResponse response =
           this.client
               .getKVClient()
               .get(
-                  ByteSequence.from(JOB_TRIGGER_NODE_PREFIX.getBytes()),
+                  ByteSequence.from(TRANSFORM_JOB_NODE_PREFIX.getBytes()),
                   GetOption.newBuilder()
-                      .withPrefix(ByteSequence.from(JOB_TRIGGER_NODE_PREFIX.getBytes()))
+                      .withPrefix(ByteSequence.from(TRANSFORM_JOB_NODE_PREFIX.getBytes()))
                       .build())
               .get();
       if (response.getCount() != 0L) {
@@ -2580,98 +2578,98 @@ public class ETCDMetaStorage implements IMetaStorage {
             .getKvs()
             .forEach(
                 e -> {
-                  TriggerDescriptor descriptor =
-                      JsonUtils.fromJson(e.getValue().getBytes(), TriggerDescriptor.class);
-                  triggerMap.put(descriptor.getName(), descriptor);
+                  TransformJobMeta jobMeta =
+                      JsonUtils.fromJson(e.getValue().getBytes(), TransformJobMeta.class);
+                  jobMetaMap.put(jobMeta.getName(), jobMeta);
                 });
       }
-      return new ArrayList<>(triggerMap.values());
+      return new ArrayList<>(jobMetaMap.values());
     } catch (ExecutionException | InterruptedException e) {
-      LOGGER.error("got error when load job triggers: ", e);
+      LOGGER.error("got error when load transform jobs: ", e);
       throw new MetaStorageException(e);
     } finally {
-      if (jobTriggerLease != -1) {
-        releaseJobTrigger();
+      if (transformJobLease != -1) {
+        releaseTransformJob();
       }
     }
   }
 
   @Override
-  public void registerJobTriggerChangeHook(JobTriggerChangeHook hook) {
-    jobTriggerChangeHook = hook;
+  public void registerTransformJobChangeHook(TransformJobChangeHook hook) {
+    transformJobChangeHook = hook;
   }
 
-  private void lockJobTrigger() throws MetaStorageException {
+  private void lockTransformJob() throws MetaStorageException {
     try {
-      jobTriggerLeaseLock.lock();
-      jobTriggerLease = client.getLeaseClient().grant(MAX_LOCK_TIME).get().getID();
+      transformJobLeaseLock.lock();
+      transformJobLease = client.getLeaseClient().grant(MAX_LOCK_TIME).get().getID();
       client
           .getLockClient()
-          .lock(ByteSequence.from(JOB_TRIGGER_LOCK_NODE.getBytes()), jobTriggerLease);
+          .lock(ByteSequence.from(TRANSFORM_JOB_LOCK_NODE.getBytes()), transformJobLease);
     } catch (Exception e) {
-      jobTriggerLeaseLock.unlock();
-      throw new MetaStorageException("acquire job trigger mutex error: ", e);
+      transformJobLeaseLock.unlock();
+      throw new MetaStorageException("acquire transform job mutex error: ", e);
     }
   }
 
-  private void releaseJobTrigger() throws MetaStorageException {
+  private void releaseTransformJob() throws MetaStorageException {
     try {
-      client.getLockClient().unlock(ByteSequence.from(JOB_TRIGGER_LOCK_NODE.getBytes())).get();
-      client.getLeaseClient().revoke(jobTriggerLease).get();
-      jobTriggerLease = -1L;
+      client.getLockClient().unlock(ByteSequence.from(TRANSFORM_JOB_LOCK_NODE.getBytes())).get();
+      client.getLeaseClient().revoke(transformJobLease).get();
+      transformJobLease = -1L;
     } catch (Exception e) {
-      throw new MetaStorageException("release job trigger mutex error: ", e);
+      throw new MetaStorageException("release transform job mutex error: ", e);
     } finally {
-      jobTriggerLeaseLock.unlock();
+      transformJobLeaseLock.unlock();
     }
   }
 
   @Override
-  public void storeJobTrigger(TriggerDescriptor jobTriggerDescriptor) throws MetaStorageException {
-    updateJobTrigger(jobTriggerDescriptor);
+  public void storeTransformJob(TransformJobMeta jobMeta) throws MetaStorageException {
+    updateTransformJob(jobMeta);
   }
 
   @Override
-  public void updateJobTrigger(TriggerDescriptor descriptor) throws MetaStorageException {
+  public void updateTransformJob(TransformJobMeta descriptor) throws MetaStorageException {
     try {
-      lockJobTrigger();
+      lockTransformJob();
       this.client
           .getKVClient()
           .put(
-              ByteSequence.from((JOB_TRIGGER_NODE_PREFIX + descriptor.getName()).getBytes()),
+              ByteSequence.from((TRANSFORM_JOB_NODE_PREFIX + descriptor.getName()).getBytes()),
               ByteSequence.from(JsonUtils.toJson(descriptor)))
           .get();
     } catch (ExecutionException | InterruptedException e) {
-      LOGGER.error("got error when storing job trigger: ", e);
+      LOGGER.error("got error when storing transform job: ", e);
       throw new MetaStorageException(e);
     } finally {
-      if (jobTriggerLease != -1) {
-        releaseJobTrigger();
+      if (transformJobLease != -1) {
+        releaseTransformJob();
       }
     }
-    if (jobTriggerChangeHook != null) {
-      jobTriggerChangeHook.onChange(descriptor.getName(), descriptor);
+    if (transformJobChangeHook != null) {
+      transformJobChangeHook.onChange(descriptor.getName(), descriptor);
     }
   }
 
   @Override
-  public void dropJobTrigger(String name) throws MetaStorageException {
+  public void dropTransformJob(String name) throws MetaStorageException {
     try {
-      lockJobTrigger();
+      lockTransformJob();
       this.client
           .getKVClient()
-          .delete(ByteSequence.from((JOB_TRIGGER_NODE_PREFIX + name).getBytes()))
+          .delete(ByteSequence.from((TRANSFORM_JOB_NODE_PREFIX + name).getBytes()))
           .get();
     } catch (ExecutionException | InterruptedException e) {
-      LOGGER.error("got error when remove job trigger: ", e);
+      LOGGER.error("got error when remove transform job: ", e);
       throw new MetaStorageException(e);
     } finally {
-      if (jobTriggerLease != -1) {
-        releaseJobTrigger();
+      if (transformJobLease != -1) {
+        releaseTransformJob();
       }
     }
-    if (jobTriggerChangeHook != null) {
-      jobTriggerChangeHook.onChange(name, null);
+    if (transformJobChangeHook != null) {
+      transformJobChangeHook.onChange(name, null);
     }
   }
 
@@ -2767,8 +2765,8 @@ public class ETCDMetaStorage implements IMetaStorage {
     this.userWatcher.close();
     this.userWatcher = null;
 
-    this.transformWatcher.close();
-    this.transformWatcher = null;
+    this.pyFunctionWatcher.close();
+    this.pyFunctionWatcher = null;
 
     this.client.close();
     this.client = null;
