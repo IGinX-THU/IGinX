@@ -19,6 +19,12 @@
  */
 package cn.edu.tsinghua.iginx.engine.shared.function.system;
 
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.CallNode;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpression;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpressionUtils;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
+import cn.edu.tsinghua.iginx.engine.physical.utils.PhysicalExpressionPlannerUtils;
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
@@ -30,6 +36,9 @@ import cn.edu.tsinghua.iginx.engine.shared.function.RowMappingFunction;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
+import org.apache.arrow.vector.types.pojo.Schema;
 
 public class Ratio implements RowMappingFunction {
 
@@ -92,5 +101,30 @@ public class Ratio implements RowMappingFunction {
                     new Field("ratio(" + pathA + ", " + pathB + ")", DataType.DOUBLE)));
 
     return new Row(newHeader, row.getKey(), new Object[] {ret});
+  }
+
+  @Override
+  public ScalarExpression<?> transform(
+      ExecutorContext context, Schema schema, FunctionParams params, boolean setAlias)
+      throws ComputeException {
+    List<ScalarExpression<?>> inputs =
+        PhysicalExpressionPlannerUtils.getRowMappingFunctionArgumentExpressions(
+            context, schema, params, false);
+
+    if (inputs.size() != 2) {
+      throw new ComputeException(
+          "unexpected params number for ratio, expected 2, but got " + inputs.size());
+    }
+    Schema argumentsSchema =
+        ScalarExpressionUtils.getOutputSchema(context.getAllocator(), inputs, schema);
+    String outputColumnName =
+        "ratio"
+            + argumentsSchema.getFields().stream()
+                .map(org.apache.arrow.vector.types.pojo.Field::getName)
+                .collect(Collectors.joining(", ", "(", ")"));
+    return new CallNode<>(
+        new cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.arithmetic.Ratio(),
+        setAlias ? outputColumnName : null,
+        inputs);
   }
 }

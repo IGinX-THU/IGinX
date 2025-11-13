@@ -135,21 +135,7 @@ public class ValueUtils {
             dataType1.toString() + " and " + dataType2.toString() + " can't be compared");
       }
     }
-    switch (dataType1) {
-      case INTEGER:
-        return Integer.compare(v1.getIntV(), v2.getIntV());
-      case LONG:
-        return Long.compare(v1.getLongV(), v2.getLongV());
-      case BOOLEAN:
-        return Boolean.compare(v1.getBoolV(), v2.getBoolV());
-      case FLOAT:
-        return Float.compare(v1.getFloatV(), v2.getFloatV());
-      case DOUBLE:
-        return Double.compare(v1.getDoubleV(), v2.getDoubleV());
-      case BINARY:
-        return v1.getBinaryVAsString().compareTo(v2.getBinaryVAsString());
-    }
-    return 0;
+    return compare(v1.getValue(), v2.getValue(), dataType1);
   }
 
   public static boolean regexCompare(Value value, Value regex) {
@@ -166,6 +152,16 @@ public class ValueUtils {
   }
 
   public static int compare(Object o1, Object o2, DataType dataType) {
+    // Nulls are considered smaller than non-nulls
+    if (o1 == null) {
+      if (o2 == null) {
+        return 0; // Both are null
+      }
+      return -1;
+    } else if (o2 == null) {
+      return 1;
+    }
+
     switch (dataType) {
       case INTEGER:
         return Integer.compare((Integer) o1, (Integer) o2);
