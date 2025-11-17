@@ -21,16 +21,23 @@ package cn.edu.tsinghua.iginx.integration.other;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
 
 import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.func.session.InsertAPIType;
+import cn.edu.tsinghua.iginx.integration.tool.ClientLauncher;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -90,6 +97,15 @@ public class TransformJobPathIT {
     session.closeSession();
   }
 
+  @Test
+  public void testTransformJobPath() throws SessionException, IOException, InterruptedException {
+    prepare();
+    registerJobByClientUsingRelativePath();
+    // waiting job to be completed
+    Thread.sleep(3000);
+    verifyResult();
+  }
+
   public void insertData() {
     List<String> pathList =
         new ArrayList<String>() {
@@ -123,8 +139,7 @@ public class TransformJobPathIT {
     Controller.after(session);
   }
 
-  @Test
-  public void prepare() throws SessionException {
+  private void prepare() throws SessionException {
     insertData();
     SessionExecuteSqlResult result = session.executeSql("select count(*) from *;");
     result.print(false, "");
@@ -144,8 +159,30 @@ public class TransformJobPathIT {
     assertEquals(200, index);
   }
 
-  @Test
-  public void verifyResult() throws SessionException {
+  private void registerJobByClientUsingRelativePath() throws IOException {
+    ClientLauncher client = new ClientLauncher();
+    Path source =
+        Paths.get(
+            "src",
+            "test",
+            "resources",
+            "transform",
+            "TransformMultiplePythonJobsWithExportToIginx.yaml");
+    Path target =
+        Paths.get(client.getClientRootDir(), "TransformMultiplePythonJobsWithExportToIginx.yaml");
+    Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING);
+
+    try {
+      String statement =
+          "commit transform job \"TransformMultiplePythonJobsWithExportToIginx.yaml\";";
+      client.readLine(statement);
+      assertTrue(client.expectedOutputContains("job id:"));
+    } finally {
+      client.close();
+    }
+  }
+
+  private void verifyResult() throws SessionException {
     SessionExecuteSqlResult queryResult = session.executeSql("SELECT * FROM transform;");
     queryResult.print(false, "");
     int timeIndex = queryResult.getPaths().indexOf("transform.key");

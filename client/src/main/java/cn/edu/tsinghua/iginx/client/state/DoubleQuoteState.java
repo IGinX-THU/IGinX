@@ -17,11 +17,20 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package cn.edu.tsinghua.iginx.metadata.hook;
+package cn.edu.tsinghua.iginx.client.state;
 
-import cn.edu.tsinghua.iginx.metadata.entity.TransformTaskMeta;
+import static cn.edu.tsinghua.iginx.client.constant.Constants.IGINX_CLI_PREFIX_DOUBLE_QUOTE;
 
-public interface TransformChangeHook {
+import cn.edu.tsinghua.iginx.client.IginxClient;
 
-  void onChange(String className, TransformTaskMeta transformTask);
+public class DoubleQuoteState extends AbstractQuoteState {
+
+  public DoubleQuoteState() {
+    super('"');
+  }
+
+  @Override
+  public String getPrompt(IginxClient client) {
+    return IGINX_CLI_PREFIX_DOUBLE_QUOTE;
+  }
 }

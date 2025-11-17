@@ -154,7 +154,7 @@
             <dependency>
                 <groupId>cn.edu.tsinghua.iginx</groupId>
                 <artifactId>pemja</artifactId>
-                <version>0.2.2</version>
+                <version>0.2.3</version>
             </dependency>
             <dependency>
                 <groupId>org.slf4j</groupId>
@@ -208,7 +208,7 @@
             <dependency>
                 <groupId>commons-io</groupId>
                 <artifactId>commons-io</artifactId>
-                <version>2.15.1</version>
+                <version>2.20.0</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.commons</groupId>
@@ -316,6 +316,16 @@
                 <groupId>io.reactivex.rxjava3</groupId>
                 <artifactId>rxjava</artifactId>
                 <version>3.1.11</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-compress</artifactId>
+                <version>1.28.0</version>
+            </dependency>
+            <dependency>
+                <groupId>org.tukaani</groupId>
+                <artifactId>xz</artifactId>
+                <version>1.10</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

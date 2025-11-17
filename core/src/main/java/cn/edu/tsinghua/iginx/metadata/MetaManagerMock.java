@@ -26,7 +26,6 @@ import cn.edu.tsinghua.iginx.metadata.hook.StorageUnitHook;
 import cn.edu.tsinghua.iginx.policy.simple.ColumnCalDO;
 import cn.edu.tsinghua.iginx.sql.statement.InsertStatement;
 import cn.edu.tsinghua.iginx.thrift.AuthType;
-import cn.edu.tsinghua.iginx.transform.pojo.TriggerDescriptor;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.*;
 
@@ -327,52 +326,52 @@ public class MetaManagerMock implements IMetaManager {
   }
 
   @Override
-  public boolean addTransformTask(TransformTaskMeta transformTask) {
+  public boolean addPyFunction(PyFunctionMeta pyFunctionMeta) {
     return false;
   }
 
   @Override
-  public boolean updateTransformTask(TransformTaskMeta transformTask) {
+  public boolean updatePyFunction(PyFunctionMeta pyFunctionMeta) {
     return false;
   }
 
   @Override
-  public boolean dropTransformTask(String name) {
+  public boolean dropPyFunction(String name) {
     return false;
   }
 
   @Override
-  public TransformTaskMeta getTransformTask(String name) {
+  public PyFunctionMeta getPyFunction(String name) {
     return null;
   }
 
   @Override
-  public List<TransformTaskMeta> getTransformTasks() {
+  public List<PyFunctionMeta> getPyFunctions() {
     return null;
   }
 
   @Override
-  public List<TransformTaskMeta> getTransformTasksByModule(String moduleName) {
+  public List<PyFunctionMeta> getPyFunctionsByModule(String moduleName) {
     return null;
   }
 
   @Override
-  public boolean storeJobTrigger(TriggerDescriptor jobTriggerDescriptor) {
+  public boolean storeTransformJob(TransformJobMeta jobMeta) {
     return false;
   }
 
   @Override
-  public boolean updateJobTrigger(TriggerDescriptor jobTriggerDescriptor) {
+  public boolean updateTransformJob(TransformJobMeta jobMeta) {
     return false;
   }
 
   @Override
-  public boolean dropJobTrigger(String name) {
+  public boolean dropTransformJob(String name) {
     return false;
   }
 
   @Override
-  public List<TriggerDescriptor> getJobTriggers() {
+  public List<TransformJobMeta> getTransformJobs() {
     return Collections.emptyList();
   }
 
