@@ -102,7 +102,7 @@ public class DamengCapacityExpansionIT extends BaseCapacityExpansionIT {
         Statement stmt = connection.createStatement()) {
       String alterStmt =
           String.format(
-              "ALTER USER %s IDENTIFIED BY %s", getQuotName(username), getQuotName(newPw));
+              "ALTER USER %s IDENTIFIED BY '%s'", getQuotName(username), getQuotName(newPw));
       LOGGER.info("alter statement in {}: {}", port, alterStmt);
       stmt.execute(alterStmt);
     } catch (SQLException e) {

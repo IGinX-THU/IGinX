@@ -123,7 +123,7 @@ public class OracleCapacityExpansionIT extends BaseCapacityExpansionIT {
         Statement stmt = connection.createStatement()) {
       String alterStmt =
           String.format(
-              "ALTER USER %s IDENTIFIED BY %s",
+              "ALTER USER %s IDENTIFIED BY '%s'",
               OracleHistoryDataGenerator.getQuotName(username),
               OracleHistoryDataGenerator.getQuotName(newPw));
       LOGGER.info("alter statement in {}: {}", port, alterStmt);

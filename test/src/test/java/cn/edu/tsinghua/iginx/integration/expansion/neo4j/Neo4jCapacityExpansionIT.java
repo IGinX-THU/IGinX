@@ -81,7 +81,7 @@ public class Neo4jCapacityExpansionIT extends BaseCapacityExpansionIT {
                   .withConnectionLivenessCheckTimeout(300, java.util.concurrent.TimeUnit.SECONDS)
                   .build());
       Session session = driver.session();
-      String cypherQuery = "ALTER CURRENT USER SET PASSWORD FROM $oldPass TO $newPass";
+      String cypherQuery = "ALTER CURRENT USER SET PASSWORD FROM '$oldPass' TO '$newPass'";
 
       session.writeTransaction(
           tx -> {
