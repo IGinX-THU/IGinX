@@ -768,10 +768,12 @@ public abstract class BaseCapacityExpansionIT {
   private void testAddAndRemoveStorageEngineWithPrefix() {
     String dataPrefix1 = "nt.wf03";
     String dataPrefix2 = "nt.wf04";
+    String dataPrefix3 = "\\,\\\"\\'"; // 输入为\\,\"\' -> 实际dataPrefix为\,"'
     String schemaPrefixSuffix = "";
     String schemaPrefix1 = "p1";
     String schemaPrefix2 = "p2";
     String schemaPrefix3 = "p3";
+    String schemaPrefix4 = "\\,\\\"\\'"; // 输入为\\,\"\' -> 实际schemaPrefix为\,"'
 
     List<List<Object>> valuesList = EXP_VALUES_LIST1;
 
@@ -895,6 +897,38 @@ public abstract class BaseCapacityExpansionIT {
             "remove history data source should throw error when removing the node that does not exist");
         fail();
       }
+    }
+    testShowClusterInfo(2);
+    // 测试转义符在schema_prefix和data_prefix中是否能够正确转义，成功add storageengine与remove storageengine
+    addStorageEngine(expPort, true, true, null, schemaPrefix4, portsToExtraParams.get(expPort));
+    statement = "select wt01.status2 from `,\"'.nt.wf03`;";
+    pathList = Collections.singletonList(",\"'.nt.wf03.wt01.status2");
+    SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
+    addStorageEngine(
+        expPort, true, true, dataPrefix3, schemaPrefix4, portsToExtraParams.get(expPort));
+    // 检查添加是否正确
+    try {
+      List<StorageEngineInfo> engineInfoList = session.getClusterInfo().getStorageEngineInfos();
+      long id = -1;
+      for (StorageEngineInfo info : engineInfoList) {
+        if (info.getIp().equals("127.0.0.1")
+            && info.getPort() == expPort
+            && info.getDataPrefix().equals(dataPrefix3)
+            && info.getSchemaPrefix().equals(schemaPrefix4)
+            && info.getType().equals(type)) {
+          id = info.getId();
+        }
+      }
+      if (id != -1) {
+        LOGGER.info("Successfully add storage engine with escape characters.");
+      } else {
+        LOGGER.error("Fail to add storage engine with escape characters.");
+        fail();
+      }
+      session.executeSql(String.format(removeStatement, expPort, schemaPrefix4, null));
+      session.executeSql(String.format(removeStatement, expPort, schemaPrefix4, dataPrefix3));
+    } catch (SessionException e) {
+      LOGGER.error("remove history data source through sql error: ", e);
     }
     testShowClusterInfo(2);
   }
