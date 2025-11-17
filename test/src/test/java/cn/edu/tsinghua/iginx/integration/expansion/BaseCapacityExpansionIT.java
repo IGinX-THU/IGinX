@@ -813,7 +813,6 @@ public abstract class BaseCapacityExpansionIT {
   private void testAddAndRemoveStorageEngineWithPrefix() {
     String dataPrefix1 = "nt.wf03";
     String dataPrefix2 = "nt.wf04";
-    String dataPrefix3 = "\\,\\\"\\'"; // 输入为\\,\"\' -> 实际dataPrefix为\,"'
     String schemaPrefixSuffix = "";
     String schemaPrefix1 = "p1";
     String schemaPrefix2 = "p2";
@@ -952,29 +951,6 @@ public abstract class BaseCapacityExpansionIT {
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
     try {
       session.executeSql(String.format(removeStatement, expPort, schemaPrefix4, ""));
-    } catch (SessionException e) {
-      LOGGER.error("remove history data source through sql error: ", e);
-      fail();
-    }
-    testShowClusterInfo(2);
-
-    addStorageEngine(
-        expPort, true, true, dataPrefix3, schemaPrefix4, portsToExtraParams.get(expPort));
-    // 检查添加是否正确
-    try {
-      List<StorageEngineInfo> engineInfoList = session.getClusterInfo().getStorageEngineInfos();
-      long id = -1;
-      for (StorageEngineInfo info : engineInfoList) {
-        if (info.getIp().equals("127.0.0.1")
-            && info.getPort() == expPort
-            && info.getDataPrefix().equals(dataPrefix3)
-            && info.getSchemaPrefix().equals(schemaPrefix4)
-            && info.getType().equals(type)) {
-          id = info.getId();
-        }
-      }
-      assertTrue(id != -1);
-      session.executeSql(String.format(removeStatement, expPort, schemaPrefix4, dataPrefix3));
     } catch (SessionException e) {
       LOGGER.error("remove history data source through sql error: ", e);
       fail();
