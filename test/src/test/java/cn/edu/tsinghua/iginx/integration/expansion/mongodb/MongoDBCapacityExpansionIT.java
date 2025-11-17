@@ -547,7 +547,7 @@ public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
   protected void restoreParams(int port) {}
 
   @Override
-  protected void testAddStorageEngineWithSpecialCharPassword(String prefix) {}
+  protected void testAddStorageEngineWithSpecialCharParam(String prefix) {}
 
   @Override
   protected void shutdownDatabase(int port) {

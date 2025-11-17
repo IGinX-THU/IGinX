@@ -418,8 +418,7 @@ public abstract class BaseCapacityExpansionIT {
   }
 
   // 测试密码修改为包含特殊字符等情况，还能否正常AddStorageEngine
-  protected void testAddStorageEngineWithSpecialCharPassword(String prefix)
-      throws SessionException {
+  protected void testAddStorageEngineWithSpecialCharParam(String prefix) throws SessionException {
     String originalParams = portsToExtraParams.get(readOnlyPort);
     String newPassword = updatedParams.get("password");
 
@@ -515,7 +514,7 @@ public abstract class BaseCapacityExpansionIT {
             new RemovedStorageEngineInfo("127.0.0.1", readOnlyPort, prefix, "")),
         true);
 
-    testAddStorageEngineWithSpecialCharPassword(prefix);
+    testAddStorageEngineWithSpecialCharParam(prefix);
 
     // 改回数据库参数
     restoreParams(readOnlyPort);
@@ -952,7 +951,7 @@ public abstract class BaseCapacityExpansionIT {
     pathList = Collections.singletonList(",\"'.nt.wf03.wt01.status2");
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
     try {
-      session.executeSql(String.format(removeStatement, expPort, schemaPrefix4, null));
+      session.executeSql(String.format(removeStatement, expPort, schemaPrefix4, ""));
     } catch (SessionException e) {
       LOGGER.error("remove history data source through sql error: ", e);
       fail();
