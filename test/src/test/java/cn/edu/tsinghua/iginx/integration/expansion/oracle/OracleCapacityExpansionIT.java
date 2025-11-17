@@ -121,11 +121,7 @@ public class OracleCapacityExpansionIT extends BaseCapacityExpansionIT {
     }
     try (Connection connection = DriverManager.getConnection(jdbcUrl);
         Statement stmt = connection.createStatement()) {
-      String alterStmt =
-          String.format(
-              "ALTER USER %s IDENTIFIED BY '%s'",
-              OracleHistoryDataGenerator.getQuotName(username),
-              OracleHistoryDataGenerator.getQuotName(newPw));
+      String alterStmt = String.format("ALTER USER '%s' IDENTIFIED BY '%s'", username, newPw);
       LOGGER.info("alter statement in {}: {}", port, alterStmt);
       stmt.execute(alterStmt);
     } catch (SQLException e) {
