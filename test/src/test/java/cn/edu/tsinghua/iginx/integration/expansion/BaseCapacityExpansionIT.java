@@ -158,7 +158,7 @@ public abstract class BaseCapacityExpansionIT {
       statement.append(port);
       statement.append(", \"");
       statement.append(type.name());
-      statement.append("\", \"");
+      statement.append("\", '");
       statement.append("has_data=");
       statement.append(hasData);
       statement.append(", is_read_only=");
@@ -188,7 +188,7 @@ public abstract class BaseCapacityExpansionIT {
         statement.append(", schema_prefix=");
         statement.append(schemaPrefix);
       }
-      statement.append("\");");
+      statement.append("');");
 
       LOGGER.info("Execute Statement: \"{}\"", statement);
       session.executeSql(statement.toString());
