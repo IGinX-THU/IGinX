@@ -70,8 +70,7 @@ public class IoTDB12CapacityExpansionIT extends BaseCapacityExpansionIT {
     try {
       Session session = new Session("127.0.0.1", port, "root", oldPw);
       session.open();
-      session.executeNonQueryStatement(
-          String.format("ALTER USER root SET PASSWORD '%s';", newPw));
+      session.executeNonQueryStatement(String.format("ALTER USER root SET PASSWORD '%s';", newPw));
       session.close();
       LOGGER.info("alter password to 127.0.0.1:{} success!", port);
     } catch (IoTDBConnectionException | StatementExecutionException e) {
