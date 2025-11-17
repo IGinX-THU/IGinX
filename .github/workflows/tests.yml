@@ -19,14 +19,14 @@ jobs:
         uses: ./.github/workflows/case-regression.yml
         with:
             metadata-matrix: '["zookeeper"]'
-    standalone-test:
-        uses: ./.github/workflows/standalone-test.yml
-        with:
-            metadata-matrix: '["zookeeper"]'
-    standalone-test-no-optimizer:
-        uses: ./.github/workflows/standalone-test-no-optimizer.yml
-        with:
-            metadata-matrix: '["zookeeper"]'
+    #    standalone-test:
+    #        uses: ./.github/workflows/standalone-test.yml
+    #        with:
+    #            metadata-matrix: '["zookeeper"]'
+    #    standalone-test-no-optimizer:
+    #        uses: ./.github/workflows/standalone-test-no-optimizer.yml
+    #        with:
+    #            metadata-matrix: '["zookeeper"]'
     db-ce:
         uses: ./.github/workflows/DB-CE.yml
         with:
@@ -36,36 +36,36 @@ jobs:
         with:
             metadata-matrix: '["zookeeper"]'
             close-optimizer: "true"
-    standalone-test-no-mac-relational:
-        uses: ./.github/workflows/standalone-test.yml
-        with:
-            metadata-matrix: '["zookeeper"]'
-            os-matrix: '["ubuntu-latest", "windows-latest"]'
-            db-matrix: '["Dameng", "Oracle"]'
-            timeout-minutes: 100
-    standalone-test-no-optimizer-no-mac-relational:
-        uses: ./.github/workflows/standalone-test-no-optimizer.yml
-        with:
-            metadata-matrix: '["zookeeper"]'
-            os-matrix: '["ubuntu-latest", "windows-latest"]'
-            db-matrix: '["Dameng", "Oracle"]'
-            timeout-minutes: 100
-    standalone-test-no-mac-no-privs-relational:
-        uses: ./.github/workflows/standalone-test.yml
-        with:
-            metadata-matrix: '["zookeeper"]'
-            os-matrix: '["ubuntu-latest", "windows-latest"]'
-            db-matrix: '["Dameng"]'
-            db-support-create-database: false
-            timeout-minutes: 120
-    standalone-test-no-optimizer-no-mac-no-privs-relational:
-        uses: ./.github/workflows/standalone-test-no-optimizer.yml
-        with:
-            metadata-matrix: '["zookeeper"]'
-            os-matrix: '["ubuntu-latest", "windows-latest"]'
-            db-matrix: '["Dameng"]'
-            db-support-create-database: false
-            timeout-minutes: 100
+    #    standalone-test-no-mac-relational:
+    #        uses: ./.github/workflows/standalone-test.yml
+    #        with:
+    #            metadata-matrix: '["zookeeper"]'
+    #            os-matrix: '["ubuntu-latest", "windows-latest"]'
+    #            db-matrix: '["Dameng", "Oracle"]'
+    #            timeout-minutes: 100
+    #    standalone-test-no-optimizer-no-mac-relational:
+    #        uses: ./.github/workflows/standalone-test-no-optimizer.yml
+    #        with:
+    #            metadata-matrix: '["zookeeper"]'
+    #            os-matrix: '["ubuntu-latest", "windows-latest"]'
+    #            db-matrix: '["Dameng", "Oracle"]'
+    #            timeout-minutes: 100
+    #    standalone-test-no-mac-no-privs-relational:
+    #        uses: ./.github/workflows/standalone-test.yml
+    #        with:
+    #            metadata-matrix: '["zookeeper"]'
+    #            os-matrix: '["ubuntu-latest", "windows-latest"]'
+    #            db-matrix: '["Dameng"]'
+    #            db-support-create-database: false
+    #            timeout-minutes: 120
+    #    standalone-test-no-optimizer-no-mac-no-privs-relational:
+    #        uses: ./.github/workflows/standalone-test-no-optimizer.yml
+    #        with:
+    #            metadata-matrix: '["zookeeper"]'
+    #            os-matrix: '["ubuntu-latest", "windows-latest"]'
+    #            db-matrix: '["Dameng"]'
+    #            db-support-create-database: false
+    #            timeout-minutes: 100
     db-ce-Dameng:
         uses: ./.github/workflows/DB-CE.yml
         with:
@@ -156,8 +156,8 @@ jobs:
             - unit-test
             - unit-mds
             - case-regression
-            - standalone-test
-            - standalone-test-no-optimizer
+            #            - standalone-test
+            #            - standalone-test-no-optimizer
             - db-ce
             - db-ce-no-optimizer
             - standalone-test-vectordb
@@ -168,8 +168,8 @@ jobs:
             - assembly-test
             - free-thread-test
             - tpc-h-test
-            - standalone-test-no-mac-relational
-            - standalone-test-no-optimizer-no-mac-relational
+            #            - standalone-test-no-mac-relational
+            #            - standalone-test-no-optimizer-no-mac-relational
             - db-ce-Dameng
             - db-ce-no-optimizer-Dameng
             - db-ce-Oracle

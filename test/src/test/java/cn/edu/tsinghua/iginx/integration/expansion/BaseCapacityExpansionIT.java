@@ -945,11 +945,20 @@ public abstract class BaseCapacityExpansionIT {
       }
     }
     testShowClusterInfo(2);
+
     // 测试转义符在schema_prefix和data_prefix中是否能够正确转义，成功add storageengine与remove storageengine
     addStorageEngine(expPort, true, true, null, schemaPrefix4, portsToExtraParams.get(expPort));
     statement = "select wt01.status2 from `,\"'.nt.wf03`;";
     pathList = Collections.singletonList(",\"'.nt.wf03.wt01.status2");
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
+    try {
+      session.executeSql(String.format(removeStatement, expPort, schemaPrefix4, null));
+    } catch (SessionException e) {
+      LOGGER.error("remove history data source through sql error: ", e);
+      fail();
+    }
+    testShowClusterInfo(2);
+
     addStorageEngine(
         expPort, true, true, dataPrefix3, schemaPrefix4, portsToExtraParams.get(expPort));
     // 检查添加是否正确
@@ -966,10 +975,10 @@ public abstract class BaseCapacityExpansionIT {
         }
       }
       assertTrue(id != -1);
-      session.executeSql(String.format(removeStatement, expPort, schemaPrefix4, null));
       session.executeSql(String.format(removeStatement, expPort, schemaPrefix4, dataPrefix3));
     } catch (SessionException e) {
       LOGGER.error("remove history data source through sql error: ", e);
+      fail();
     }
     testShowClusterInfo(2);
   }
