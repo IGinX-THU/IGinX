@@ -45,6 +45,9 @@ public class RedisCapacityExpansionIT extends BaseCapacityExpansionIT {
   }
 
   @Override
+  protected void testAddStorageEngineWithSpecialCharPassword(String prefix) {}
+
+  @Override
   protected void testQuerySpecialHistoryData() {
     String statement = "select * from redis;";
     String expect =

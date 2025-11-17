@@ -19,15 +19,16 @@
  */
 package cn.edu.tsinghua.iginx.integration.expansion.iotdb;
 
-import static cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools.executeShellScript;
 import static cn.edu.tsinghua.iginx.thrift.StorageEngineType.iotdb12;
-import static org.junit.Assert.fail;
 
 import cn.edu.tsinghua.iginx.integration.expansion.BaseCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.constant.Constant;
 import cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools;
 import java.util.Arrays;
 import java.util.List;
+import org.apache.iotdb.rpc.IoTDBConnectionException;
+import org.apache.iotdb.rpc.StatementExecutionException;
+import org.apache.iotdb.session.Session;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,12 +48,12 @@ public class IoTDB12CapacityExpansionIT extends BaseCapacityExpansionIT {
 
   @Override
   protected void updateParams(int port) {
-    changeParams(port, "root", "newPassword");
+    changeParams(port, "root", updatedParams.get("password"));
   }
 
   @Override
   protected void restoreParams(int port) {
-    changeParams(port, "newPassword", "root");
+    changeParams(port, updatedParams.get("password"), "root");
   }
 
   @Override
@@ -66,17 +67,15 @@ public class IoTDB12CapacityExpansionIT extends BaseCapacityExpansionIT {
   }
 
   private void changeParams(int port, String oldPw, String newPw) {
-    String scriptPath = updateParamsScriptDir + "iotdb.sh";
-    String os = System.getProperty("os.name").toLowerCase();
-    if (os.contains("mac")) {
-      scriptPath = updateParamsScriptDir + "iotdb_macos.sh";
-    } else if (os.contains("win")) {
-      scriptPath = updateParamsScriptDir + "iotdb_windows.sh";
-    }
-    // 脚本参数：对应端口，旧密码，新密码
-    int res = executeShellScript(scriptPath, String.valueOf(port), oldPw, newPw);
-    if (res != 0) {
-      fail("Fail to update iotdb params.");
+    try {
+      Session session = new Session("127.0.0.1", port, "root", oldPw);
+      session.open();
+      session.executeNonQueryStatement(
+          String.format("ALTER USER root SET PASSWORD \"%s\";", newPw));
+      session.close();
+      LOGGER.info("alter password to 127.0.0.1:{} success!", port);
+    } catch (IoTDBConnectionException | StatementExecutionException e) {
+      LOGGER.error("alter password to 127.0.0.1:{} failure: ", port, e);
     }
   }
 

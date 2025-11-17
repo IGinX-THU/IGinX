@@ -74,6 +74,9 @@ public class InfluxDBCapacityExpansionIT extends BaseCapacityExpansionIT {
     changeParams(port, "testOrg");
   }
 
+  @Override
+  protected void testAddStorageEngineWithSpecialCharPassword(String prefix) {}
+
   private void changeParams(int port, String newOrgName) {
     String scriptPath = updateParamsScriptDir + "influxdb.sh";
     String os = System.getProperty("os.name").toLowerCase();

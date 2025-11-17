@@ -40,7 +40,7 @@ import org.slf4j.LoggerFactory;
 public class OracleCapacityExpansionIT extends BaseCapacityExpansionIT {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(OracleCapacityExpansionIT.class);
-  private static final String newPass = "ORCLPWD"; // 新密码保持不变，因为oracle密码错误次数过多会锁定账号
+  private static final String newPass = "ORCLPWD\\,\\\\\"\\'"; // 新密码保持不变，因为oracle密码错误次数过多会锁定账号
   private static final HashMap<Integer, String> portsToUsername = new HashMap<>();
   private static final HashMap<Integer, String> portsToPassword = new HashMap<>();
 
@@ -92,12 +92,12 @@ public class OracleCapacityExpansionIT extends BaseCapacityExpansionIT {
 
   @Override
   protected void updateParams(int port) {
-    changeParams(port, newPass);
+    changeParams(port, portsToPassword.get(port), updatedParams.get("password"));
   }
 
   @Override
   protected void restoreParams(int port) {
-    changeParams(port, portsToPassword.get(port));
+    changeParams(port, updatedParams.get("password"), portsToPassword.get(port));
   }
 
   @Override
@@ -110,10 +110,10 @@ public class OracleCapacityExpansionIT extends BaseCapacityExpansionIT {
     shutOrRestart(port, false, "oracle", 120);
   }
 
-  private void changeParams(int port, String newPw) {
+  private void changeParams(int port, String oldPw, String newPw) {
     String username = portsToUsername.get(port);
     String jdbcUrl =
-        String.format("jdbc:oracle:thin:system/ORCLPWD@127.0.0.1:%d/%s", port, "ORCLPDB");
+        String.format("jdbc:oracle:thin:system/%s@127.0.0.1:%d/%s", oldPw, port, "ORCLPDB");
     try {
       Class.forName("oracle.jdbc.driver.OracleDriver");
     } catch (ClassNotFoundException e) {

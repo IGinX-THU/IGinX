@@ -417,6 +417,50 @@ public abstract class BaseCapacityExpansionIT {
     }
   }
 
+  // 测试密码修改为包含特殊字符等情况，还能否正常AddStorageEngine
+  protected void testAddStorageEngineWithSpecialCharPassword(String prefix)
+      throws SessionException {
+    String originalParams = portsToExtraParams.get(readOnlyPort);
+    String newPassword = updatedParams.get("password");
+
+    Map<String, String> paramsMap = new LinkedHashMap<>();
+    if (originalParams != null && !originalParams.isEmpty()) {
+      for (String pair : originalParams.split(",")) {
+        String[] kv = pair.split("=", 2);
+        if (kv.length == 2) {
+          paramsMap.put(kv[0], kv[1]);
+        }
+      }
+    }
+    if (newPassword != null) {
+      paramsMap.put("password", newPassword);
+    }
+    String extraParams =
+        paramsMap.entrySet().stream()
+            .map(entry -> entry.getKey() + "=" + entry.getValue())
+            .collect(Collectors.joining(","));
+    // 添加只读节点
+    addStorageEngine(readOnlyPort, true, true, null, prefix, extraParams);
+    // 修改
+    List<StorageEngineInfo> engineInfoList = session.getClusterInfo().getStorageEngineInfos();
+    long id = -1;
+    for (StorageEngineInfo info : engineInfoList) {
+      if (info.getIp().equals("127.0.0.1")
+          && info.getPort() == readOnlyPort
+          && info.getDataPrefix().equals("null")
+          && info.getSchemaPrefix().equals(prefix)
+          && info.getType().equals(type)) {
+        id = info.getId();
+      }
+    }
+    assertTrue(id != -1);
+    // 删除，不影响后续测试
+    session.removeStorageEngine(
+        Collections.singletonList(
+            new RemovedStorageEngineInfo("127.0.0.1", readOnlyPort, prefix, "")),
+        true);
+  }
+
   /** 测试引擎修改参数（目前仅支持dummy & read-only） */
   protected void testUpdateEngineParams() throws SessionException {
     // 修改前后通过相同schema_prefix查询判断引擎成功更新
@@ -470,6 +514,8 @@ public abstract class BaseCapacityExpansionIT {
         Collections.singletonList(
             new RemovedStorageEngineInfo("127.0.0.1", readOnlyPort, prefix, "")),
         true);
+
+    testAddStorageEngineWithSpecialCharPassword(prefix);
 
     // 改回数据库参数
     restoreParams(readOnlyPort);
@@ -919,12 +965,7 @@ public abstract class BaseCapacityExpansionIT {
           id = info.getId();
         }
       }
-      if (id != -1) {
-        LOGGER.info("Successfully add storage engine with escape characters.");
-      } else {
-        LOGGER.error("Fail to add storage engine with escape characters.");
-        fail();
-      }
+      assertTrue(id != -1);
       session.executeSql(String.format(removeStatement, expPort, schemaPrefix4, null));
       session.executeSql(String.format(removeStatement, expPort, schemaPrefix4, dataPrefix3));
     } catch (SessionException e) {

@@ -2079,23 +2079,38 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     return subStatement;
   }
 
-  private String parseParamWithEscaped(String text) {
+  private List<String> parseWithEscape(String text, char delimiter) {
+    List<String> parts = new ArrayList<>();
+    StringBuilder current = new StringBuilder();
     boolean escape = false;
-    StringBuilder res = new StringBuilder();
-    // 去掉前后引号
-    text = text.substring(1, text.length() - 1);
+
     for (int i = 0; i < text.length(); i++) {
       char c = text.charAt(i);
+
       if (escape) {
-        res.append(c); // 直接追加被转义的字符
+        current.append(c); // 直接追加被转义的字符
         escape = false;
       } else if (c == '\\') {
         escape = true; // 标记下一个字符被转义
+      } else if (delimiter != (char) 0 && c == delimiter) {
+        // 如果是分隔符，且未被转义
+        parts.add(current.toString());
+        current.setLength(0); // 重置
       } else {
-        res.append(c);
+        current.append(c);
       }
     }
-    return res.toString();
+    parts.add(current.toString()); // 添加最后一段
+    return parts;
+  }
+
+  private String parseParamWithEscaped(String text) {
+    // 去掉前后引号
+    text = text.substring(1, text.length() - 1);
+    // 不进行分割
+    List<String> result = parseWithEscape(text, (char) 0);
+    // 不分割时，List中永远只有一个元素
+    return result.get(0);
   }
 
   private Map<String, String> parseExtra(StringLiteralContext ctx) {
@@ -2108,26 +2123,8 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     }
     // 去掉前后引号
     extra = extra.substring(1, extra.length() - 1);
-    // 手动分割，支持\ 转义
-    List<String> kvStrs = new ArrayList<>();
-    StringBuilder current = new StringBuilder();
-    boolean escape = false;
-    for (int i = 0; i < extra.length(); i++) {
-      char c = extra.charAt(i);
-      if (escape) {
-        current.append(c); // 直接追加被转义的字符
-        escape = false;
-      } else if (c == '\\') {
-        escape = true; // 标记下一个字符被转义
-      } else if (c == ',') {
-        kvStrs.add(current.toString());
-        current.setLength(0);
-      } else {
-        current.append(c);
-      }
-    }
-    kvStrs.add(current.toString()); // 最后一段
-
+    // 调用通用方法，按 ',' 分割
+    List<String> kvStrs = parseWithEscape(extra, ',');
     for (String kv : kvStrs) {
       String[] kvArray = kv.split("=", 2); // 只按第一个=分割
       if (kvArray.length != 2) {

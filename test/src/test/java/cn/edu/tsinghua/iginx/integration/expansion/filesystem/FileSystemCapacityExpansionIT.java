@@ -83,6 +83,9 @@ public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
   protected void restoreParams(int port) {}
 
   @Override
+  protected void testAddStorageEngineWithSpecialCharPassword(String prefix) {}
+
+  @Override
   protected void shutdownDatabase(int port) {}
 
   @Override

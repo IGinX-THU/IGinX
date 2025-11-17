@@ -43,7 +43,7 @@ public class DamengCapacityExpansionIT extends BaseCapacityExpansionIT {
   private static final Logger LOGGER =
       LoggerFactory.getLogger(
           cn.edu.tsinghua.iginx.integration.expansion.dameng.DamengCapacityExpansionIT.class);
-  private static final String newPass = "newPassword";
+  private static final String newPass = "newPassword\\,\\\\\"\\'";
   private static final HashMap<Integer, String> portsToUsername = new HashMap<>();
   private static final HashMap<Integer, String> portsToPassword = new HashMap<>();
 
@@ -71,12 +71,12 @@ public class DamengCapacityExpansionIT extends BaseCapacityExpansionIT {
 
   @Override
   protected void updateParams(int port) {
-    changeParams(port, portsToPassword.get(port), newPass);
+    changeParams(port, portsToPassword.get(port), updatedParams.get("password"));
   }
 
   @Override
   protected void restoreParams(int port) {
-    changeParams(port, newPass, portsToPassword.get(port));
+    changeParams(port, updatedParams.get("password"), portsToPassword.get(port));
   }
 
   @Override
