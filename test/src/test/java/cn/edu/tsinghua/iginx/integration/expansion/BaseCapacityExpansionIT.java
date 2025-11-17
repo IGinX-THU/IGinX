@@ -53,7 +53,7 @@ public abstract class BaseCapacityExpansionIT {
 
   protected static Session session;
 
-  protected static final String ALTER_ENGINE_STRING = "alter storageengine %d with params \"%s\";";
+  protected static final String ALTER_ENGINE_STRING = "alter storageengine %d with params '%s';";
 
   private static final ConfLoader testConf = new ConfLoader(Controller.CONFIG_FILE);
 
