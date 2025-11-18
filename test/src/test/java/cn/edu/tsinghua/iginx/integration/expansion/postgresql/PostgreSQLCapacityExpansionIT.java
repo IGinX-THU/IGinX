@@ -162,12 +162,12 @@ public class PostgreSQLCapacityExpansionIT extends BaseCapacityExpansionIT {
 
   @Override
   protected void updateParams(int port) {
-    changeParams(port, "postgres", updatedParams.get("password"));
+    changeParams(port, "postgres", "newPassword,\\\"''");
   }
 
   @Override
   protected void restoreParams(int port) {
-    changeParams(port, updatedParams.get("password"), "postgres");
+    changeParams(port, "newPassword,\\\"'", "postgres");
   }
 
   @Override
