@@ -72,7 +72,7 @@ public class DamengCapacityExpansionIT extends BaseCapacityExpansionIT {
   protected void updateParams(int port) {
     // 达梦/JDBC 连接字符串中，字符串里的单引号必须替换为两个单引号 (' -> '')
     // 并且绝对不要在 SQL 拼接时使用 replace("'", "\\'")，达梦不认反斜杠转义
-    changeParams(port, portsToPassword.get(port), "newPassword,\\\"''");
+    changeParams(port, portsToPassword.get(port), "newPassword,\\\"\"'");
   }
 
   @Override
@@ -101,7 +101,7 @@ public class DamengCapacityExpansionIT extends BaseCapacityExpansionIT {
     }
     try (Connection connection = DriverManager.getConnection(jdbcUrl, "SYSDBA", oldPw);
         Statement stmt = connection.createStatement()) {
-      String alterStmt = String.format("ALTER USER \"%s\" IDENTIFIED BY '%s'", username, newPw);
+      String alterStmt = String.format("ALTER USER \"%s\" IDENTIFIED BY \"%s\"", username, newPw);
       LOGGER.info("alter statement in {}: {}", port, alterStmt);
       stmt.execute(alterStmt);
     } catch (SQLException e) {
