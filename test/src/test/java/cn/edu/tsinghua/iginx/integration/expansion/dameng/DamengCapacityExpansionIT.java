@@ -43,7 +43,6 @@ public class DamengCapacityExpansionIT extends BaseCapacityExpansionIT {
   private static final Logger LOGGER =
       LoggerFactory.getLogger(
           cn.edu.tsinghua.iginx.integration.expansion.dameng.DamengCapacityExpansionIT.class);
-  private static final String newPass = "newPassword\\,\\\\\"\\'";
   private static final HashMap<Integer, String> portsToUsername = new HashMap<>();
   private static final HashMap<Integer, String> portsToPassword = new HashMap<>();
 
@@ -66,17 +65,20 @@ public class DamengCapacityExpansionIT extends BaseCapacityExpansionIT {
         StorageEngineType.relational,
         "engine=dameng, username=SYSDBA, password=SYSDBA001",
         new DamengHistoryDataGenerator());
-    updatedParams.put("password", newPass);
+    updatedParams.put("password", "newPassword\\,\\\\\"\\'");
   }
 
   @Override
   protected void updateParams(int port) {
-    changeParams(port, portsToPassword.get(port), updatedParams.get("password"));
+    // 达梦/JDBC 连接字符串中，字符串里的单引号必须替换为两个单引号 (' -> '')
+    // 并且绝对不要在 SQL 拼接时使用 replace("'", "\\'")，达梦不认反斜杠转义
+    changeParams(port, portsToPassword.get(port), "newPassword,\\\"''");
   }
 
   @Override
   protected void restoreParams(int port) {
-    changeParams(port, updatedParams.get("password"), portsToPassword.get(port));
+    // JDBC的密码连接不涉及转义问题，直接传入原始密码即可
+    changeParams(port, "newPassword,\\\"'", portsToPassword.get(port));
   }
 
   @Override
@@ -91,16 +93,15 @@ public class DamengCapacityExpansionIT extends BaseCapacityExpansionIT {
 
   private void changeParams(int port, String oldPw, String newPw) {
     String username = portsToUsername.get(port);
-    String jdbcUrl =
-        String.format("jdbc:dm://127.0.0.1:%d?user=SYSDBA&password=%s", port, getQuotName(oldPw));
+    String jdbcUrl = String.format("jdbc:dm://127.0.0.1:%d", port);
     try {
       Class.forName("dm.jdbc.driver.DmDriver");
     } catch (ClassNotFoundException e) {
       throw new RuntimeException(e);
     }
-    try (Connection connection = DriverManager.getConnection(jdbcUrl);
+    try (Connection connection = DriverManager.getConnection(jdbcUrl, "SYSDBA", oldPw);
         Statement stmt = connection.createStatement()) {
-      String alterStmt = String.format("ALTER USER '%s' IDENTIFIED BY '%s'", username, newPw);
+      String alterStmt = String.format("ALTER USER \"%s\" IDENTIFIED BY '%s'", username, newPw);
       LOGGER.info("alter statement in {}: {}", port, alterStmt);
       stmt.execute(alterStmt);
     } catch (SQLException e) {

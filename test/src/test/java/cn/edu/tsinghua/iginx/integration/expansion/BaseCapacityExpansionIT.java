@@ -817,7 +817,7 @@ public abstract class BaseCapacityExpansionIT {
     String schemaPrefix1 = "p1";
     String schemaPrefix2 = "p2";
     String schemaPrefix3 = "p3";
-    String schemaPrefix4 = "\\,\\\"\\'"; // 输入为\\,\"\' -> 实际schemaPrefix为\,"'
+    String schemaPrefix4 = "\\,\\\"\\'"; // 输入为\,\"\' -> 实际schemaPrefix为,"'
 
     List<List<Object>> valuesList = EXP_VALUES_LIST1;
 

@@ -187,7 +187,7 @@ public class PostgreSQLCapacityExpansionIT extends BaseCapacityExpansionIT {
     } catch (ClassNotFoundException e) {
       throw new RuntimeException(e);
     }
-    try (Connection connection = DriverManager.getConnection(jdbcUrl, "root", oldPw);
+    try (Connection connection = DriverManager.getConnection(jdbcUrl, "postgres", oldPw);
         Statement stmt = connection.createStatement()) {
       String alterStmt = String.format("ALTER USER postgres WITH PASSWORD '%s';", newPw);
       LOGGER.info("alter statement in {}: {}", port, alterStmt);

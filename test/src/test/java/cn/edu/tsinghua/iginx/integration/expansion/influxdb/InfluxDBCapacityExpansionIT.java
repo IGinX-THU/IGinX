@@ -69,7 +69,13 @@ public class InfluxDBCapacityExpansionIT extends BaseCapacityExpansionIT {
 
   @Override
   protected void updateParams(int port) {
-    changeParams(port, updatedParams.get("organization"));
+    // HTTP传输不涉及转义问题，直接传入原始字符串即可
+    changeParams(port, "newOrg,\\\"'");
+  }
+
+  @Override
+  protected void restoreParams(int port) {
+    changeParams(port, "testOrg");
   }
 
   @Override
@@ -80,11 +86,6 @@ public class InfluxDBCapacityExpansionIT extends BaseCapacityExpansionIT {
   @Override
   protected void startDatabase(int port) {
     shutOrRestart(port, false, "influxdb", 30);
-  }
-
-  @Override
-  protected void restoreParams(int port) {
-    changeParams(port, "testOrg");
   }
 
   @Override

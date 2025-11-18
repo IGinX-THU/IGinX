@@ -59,7 +59,8 @@ public class MySQLCapacityExpansionIT extends BaseCapacityExpansionIT {
 
   @Override
   protected void restoreParams(int port) {
-    changeParams(port, updatedParams.get("password"), null);
+    // JDBC的密码连接不涉及转义问题，直接传入原始密码即可
+    changeParams(port, "newPassword,\\\"'", null);
   }
 
   @Override
