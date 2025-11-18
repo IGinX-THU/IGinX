@@ -19,7 +19,6 @@
  */
 package cn.edu.tsinghua.iginx.integration.expansion.influxdb;
 
-import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.expPort;
 import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.readOnlyPort;
 import static cn.edu.tsinghua.iginx.thrift.StorageEngineType.influxdb;
 import static org.junit.Assert.assertTrue;
@@ -29,7 +28,6 @@ import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.expansion.BaseCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.constant.Constant;
-import cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.integration.tool.DBConf;
 import cn.edu.tsinghua.iginx.thrift.RemovedStorageEngineInfo;
@@ -131,24 +129,6 @@ public class InfluxDBCapacityExpansionIT extends BaseCapacityExpansionIT {
         Collections.singletonList(
             new RemovedStorageEngineInfo("127.0.0.1", readOnlyPort, prefix, "")),
         true);
-  }
-
-  @Override
-  protected void testSpecialPrefix(List<List<Object>> valuesList) {
-    String schemaPrefix = "\\,\\\"\\'"; // 输入为\,\"\' -> 实际schemaPrefix为,\"'
-    // 测试转义符在schema_prefix中是否能够正确转义，成功add storageengine与remove storageengine
-    String removeStatement = "remove storageengine (\"127.0.0.1\", %d, \"%s\", \"%s\") for all;";
-    addStorageEngine(expPort, true, true, null, schemaPrefix, portsToExtraParams.get(expPort));
-    // InfluxDB内部进一步将\" -> "
-    String statement = "select wt01.status2 from `,\\\"'.nt.wf03`;";
-    List<String> pathList = Collections.singletonList(",\"'.nt.wf03.wt01.status2");
-    SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
-    try {
-      session.executeSql(String.format(removeStatement, expPort, schemaPrefix, ""));
-    } catch (SessionException e) {
-      LOGGER.error("remove history data source through sql error: ", e);
-      fail();
-    }
   }
 
   private void changeParams(int port, String newOrgName) {

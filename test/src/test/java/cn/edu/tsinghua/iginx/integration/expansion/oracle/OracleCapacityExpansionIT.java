@@ -91,9 +91,7 @@ public class OracleCapacityExpansionIT extends BaseCapacityExpansionIT {
 
   @Override
   protected void updateParams(int port) {
-    // Oracle/JDBC 连接字符串中，字符串里的单引号必须替换为两个单引号 (' -> '')
-    // Oracle不认反斜杠转义
-    changeParams(port, "newPassword,\\\"''");
+    changeParams(port, "newPassword,\\\"'");
   }
 
   @Override
@@ -123,7 +121,8 @@ public class OracleCapacityExpansionIT extends BaseCapacityExpansionIT {
     try (Connection connection = DriverManager.getConnection(jdbcUrl);
         Statement stmt = connection.createStatement()) {
       stmt.setEscapeProcessing(false);
-      String alterStmt = String.format("ALTER USER \"%s\" IDENTIFIED BY '%s'", username, newPw);
+      // 使用q'[...]'方式避免密码中单引号引起的问题
+      String alterStmt = String.format("ALTER USER \"%s\" IDENTIFIED BY q'[%s]'", username, newPw);
       LOGGER.info("alter statement in {}: {}", port, alterStmt);
       stmt.execute(alterStmt);
     } catch (SQLException e) {

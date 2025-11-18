@@ -810,10 +810,9 @@ public abstract class BaseCapacityExpansionIT {
     SQLTestTools.executeAndCompare(session, statement, expect);
   }
 
-  protected void testSpecialPrefix(List<List<Object>> valuesList) {
+  private void testSpecialPrefix(String removeStatement, List<List<Object>> valuesList) {
     String schemaPrefix = "\\,\\\"\\'"; // 输入为\,\"\' -> 实际schemaPrefix为,"'
     // 测试转义符在schema_prefix中是否能够正确转义，成功add storageengine与remove storageengine
-    String removeStatement = "remove storageengine (\"127.0.0.1\", %d, \"%s\", \"%s\") for all;";
     addStorageEngine(expPort, true, true, null, schemaPrefix, portsToExtraParams.get(expPort));
     String statement = "select wt01.status2 from `,\"'.nt.wf03`;";
     List<String> pathList = Collections.singletonList(",\"'.nt.wf03.wt01.status2");
@@ -959,7 +958,7 @@ public abstract class BaseCapacityExpansionIT {
     }
     testShowClusterInfo(2);
 
-    testSpecialPrefix(valuesList);
+    testSpecialPrefix(removeStatement, valuesList);
 
     testShowClusterInfo(2);
   }
