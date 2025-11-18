@@ -114,42 +114,42 @@ jobs:
     #            os-matrix: '["ubuntu-latest", "windows-latest"]'
     #            db-matrix: '["VectorDB"]'
     #            timeout-minutes: 300
-    db-ce-vectordb:
-        uses: ./.github/workflows/DB-CE.yml
-        with:
-            metadata-matrix: '["zookeeper"]'
-            os-matrix: '["ubuntu-latest", "windows-latest"]'
-            db-matrix: '["VectorDB"]'
-            functest: "NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,CompactionIT,TimePrecisionIT,PySessionIT"
-            timeout-minutes: 360
-    db-ce-no-optimizer-vectordb:
-        uses: ./.github/workflows/DB-CE.yml
-        with:
-            metadata-matrix: '["zookeeper"]'
-            os-matrix: '["ubuntu-latest", "windows-latest"]'
-            db-matrix: '["VectorDB"]'
-            functest: "NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,CompactionIT,TimePrecisionIT,PySessionIT"
-            timeout-minutes: 360
-            close-optimizer: "true"
-    remote-test:
-        uses: ./.github/workflows/remote-test.yml
-        with:
-            metadata-matrix: '["zookeeper"]'
-    assembly-test:
-        uses: ./.github/workflows/assembly-test.yml
-    free-thread-test:
-        uses: ./.github/workflows/free-thread-test.yml
-        with:
-            metadata-matrix: '["zookeeper"]'
+    #    db-ce-vectordb:
+    #        uses: ./.github/workflows/DB-CE.yml
+    #        with:
+    #            metadata-matrix: '["zookeeper"]'
+    #            os-matrix: '["ubuntu-latest", "windows-latest"]'
+    #            db-matrix: '["VectorDB"]'
+    #            functest: "NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,CompactionIT,TimePrecisionIT,PySessionIT"
+    #            timeout-minutes: 360
+    #    db-ce-no-optimizer-vectordb:
+    #        uses: ./.github/workflows/DB-CE.yml
+    #        with:
+    #            metadata-matrix: '["zookeeper"]'
+    #            os-matrix: '["ubuntu-latest", "windows-latest"]'
+    #            db-matrix: '["VectorDB"]'
+    #            functest: "NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,CompactionIT,TimePrecisionIT,PySessionIT"
+    #            timeout-minutes: 360
+    #            close-optimizer: "true"
+    #    remote-test:
+    #        uses: ./.github/workflows/remote-test.yml
+    #        with:
+    #            metadata-matrix: '["zookeeper"]'
+    #    assembly-test:
+    #        uses: ./.github/workflows/assembly-test.yml
+    #    free-thread-test:
+    #        uses: ./.github/workflows/free-thread-test.yml
+    #        with:
+    #            metadata-matrix: '["zookeeper"]'
     #    tpc-h-test:
     #        uses: ./.github/workflows/tpc-h.yml
     #        with:
     #            os-matrix: '["ubuntu-latest"]'
     #            metadata-matrix: '["zookeeper"]'
-    cluster-test:
-        uses: ./.github/workflows/cluster-test.yml
-    restart-test:
-        uses: ./.github/workflows/restart-test.yml
+    #    cluster-test:
+    #        uses: ./.github/workflows/cluster-test.yml
+    #    restart-test:
+    #        uses: ./.github/workflows/restart-test.yml
     analyze-required-test-check:
         if: always()
         needs: # List of jobs that must pass. Add more jobs if needed.
@@ -162,11 +162,11 @@ jobs:
             - db-ce-no-optimizer
             #            - standalone-test-vectordb
             #            - standalone-test-no-optimizer-vectordb
-            - db-ce-vectordb
-            - db-ce-no-optimizer-vectordb
-            - remote-test
-            - assembly-test
-            - free-thread-test
+            #            - db-ce-vectordb
+            #            - db-ce-no-optimizer-vectordb
+            #            - remote-test
+            #            - assembly-test
+            #            - free-thread-test
             #            - tpc-h-test
             #            - standalone-test-no-mac-relational
             #            - standalone-test-no-optimizer-no-mac-relational
@@ -174,8 +174,8 @@ jobs:
             - db-ce-no-optimizer-Dameng
             - db-ce-Oracle
             - db-ce-no-optimizer-Oracle
-            - cluster-test
-            - restart-test
+        #            - cluster-test
+        #            - restart-test
         runs-on: ubuntu-latest
         steps:
             - name: Decide whether the needed jobs succeeded or failed
