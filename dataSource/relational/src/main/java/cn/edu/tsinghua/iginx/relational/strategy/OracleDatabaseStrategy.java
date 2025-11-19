@@ -70,7 +70,7 @@ public class OracleDatabaseStrategy extends AbstractDatabaseStrategy {
     String database = extraParams.getOrDefault(DATABASE, relationalMeta.getDefaultDatabaseName());
 
     return String.format(
-        "jdbc:oracle:thin:\"%s\"/%s@%s:%d/%s",
+        "jdbc:oracle:thin:\"%s\"/\"%s\"@%s:%d/%s",
         username, password, storageEngineMeta.getIp(), storageEngineMeta.getPort(), database);
   }
 
