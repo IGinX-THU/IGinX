@@ -70,22 +70,21 @@ public class Neo4jCapacityExpansionIT extends BaseCapacityExpansionIT {
   }
 
   private void changeParams(int port, String oldPw, String newPw) {
-    try (
-      Driver driver =
-          GraphDatabase.driver(
-              "bolt://127.0.0.1:" + port,
-              AuthTokens.basic("neo4j", oldPw),
-              Config.builder()
-                  .withMaxConnectionPoolSize(5)
-                  .withConnectionTimeout(10000, TimeUnit.MILLISECONDS)
-                  .withConnectionLivenessCheckTimeout(300, java.util.concurrent.TimeUnit.SECONDS)
-                  .build());
-      Session session = driver.session()) {
+    try (Driver driver =
+            GraphDatabase.driver(
+                "bolt://127.0.0.1:" + port,
+                AuthTokens.basic("neo4j", oldPw),
+                Config.builder()
+                    .withMaxConnectionPoolSize(5)
+                    .withConnectionTimeout(10000, TimeUnit.MILLISECONDS)
+                    .withConnectionLivenessCheckTimeout(300, java.util.concurrent.TimeUnit.SECONDS)
+                    .build());
+        Session session = driver.session()) {
       String cypherQuery = "ALTER USER neo4j SET PASSWORD $newPassword;";
 
       session.writeTransaction(
           tx -> {
-              Map<String, Object> params = Collections.singletonMap("newPassword", newPw);
+            Map<String, Object> params = Collections.singletonMap("newPassword", newPw);
             tx.run(cypherQuery, params);
             return null;
           });
