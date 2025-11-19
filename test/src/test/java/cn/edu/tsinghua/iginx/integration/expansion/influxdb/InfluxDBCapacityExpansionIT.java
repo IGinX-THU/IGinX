@@ -19,28 +19,17 @@
  */
 package cn.edu.tsinghua.iginx.integration.expansion.influxdb;
 
-import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.readOnlyPort;
 import static cn.edu.tsinghua.iginx.thrift.StorageEngineType.influxdb;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
-import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.expansion.BaseCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.constant.Constant;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.integration.tool.DBConf;
-import cn.edu.tsinghua.iginx.thrift.RemovedStorageEngineInfo;
-import cn.edu.tsinghua.iginx.thrift.StorageEngineInfo;
 import com.influxdb.client.InfluxDBClient;
 import com.influxdb.client.InfluxDBClientFactory;
-import com.influxdb.client.OrganizationsApi;
-import com.influxdb.client.domain.Organization;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
+import com.influxdb.client.UsersApi;
+import com.influxdb.client.domain.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,8 +48,8 @@ public class InfluxDBCapacityExpansionIT extends BaseCapacityExpansionIT {
     Constant.expPort = dbConf.getDBCEPortMap().get(Constant.EXP_PORT_NAME);
     Constant.readOnlyPort = dbConf.getDBCEPortMap().get(Constant.READ_ONLY_PORT_NAME);
     wrongExtraParams.add(
-        "username=user, password=12345678, token=testToken, organization=wrongOrg");
-    updatedParams.put("organization", "newOrg\\,\\\\\"\\'");
+        "username=user, password=wrongPwd, token=testToken, organization=testOrg");
+    updatedParams.put("password", "newPassword\\,\\\\\"\\'");
   }
 
   // dummy key range cannot be extended yet
@@ -70,12 +59,12 @@ public class InfluxDBCapacityExpansionIT extends BaseCapacityExpansionIT {
   @Override
   protected void updateParams(int port) {
     // HTTP传输不涉及转义问题，直接传入原始字符串即可
-    changeParams(port, "newOrg,\\\"'");
+    changeParams(port, "12345678", "newPassword,\\\"'");
   }
 
   @Override
   protected void restoreParams(int port) {
-    changeParams(port, "testOrg");
+    changeParams(port, "newPassword,\\\"'", "12345678");
   }
 
   @Override
@@ -88,75 +77,32 @@ public class InfluxDBCapacityExpansionIT extends BaseCapacityExpansionIT {
     shutOrRestart(port, false, "influxdb", 30);
   }
 
-  @Override
-  protected void testAddStorageEngineWithSpecialCharParam(String prefix) throws SessionException {
-    String originalParams = portsToExtraParams.get(readOnlyPort);
-    String newOrgName = updatedParams.get("organization");
-
-    Map<String, String> paramsMap = new LinkedHashMap<>();
-    if (originalParams != null && !originalParams.isEmpty()) {
-      for (String pair : originalParams.split(",")) {
-        String[] kv = pair.split("=", 2);
-        if (kv.length == 2) {
-          paramsMap.put(kv[0], kv[1]);
-        }
-      }
-    }
-    if (newOrgName != null) {
-      paramsMap.put("organization", newOrgName);
-    }
-    String extraParams =
-        paramsMap.entrySet().stream()
-            .map(entry -> entry.getKey() + "=" + entry.getValue())
-            .collect(Collectors.joining(","));
-    // 添加只读节点
-    addStorageEngine(readOnlyPort, true, true, null, prefix, extraParams);
-    // 修改
-    List<StorageEngineInfo> engineInfoList = session.getClusterInfo().getStorageEngineInfos();
-    long id = -1;
-    for (StorageEngineInfo info : engineInfoList) {
-      if (info.getIp().equals("127.0.0.1")
-          && info.getPort() == readOnlyPort
-          && info.getDataPrefix().equals("null")
-          && info.getSchemaPrefix().equals(prefix)
-          && info.getType().equals(type)) {
-        id = info.getId();
-      }
-    }
-    assertTrue(id != -1);
-    // 删除，不影响后续测试
-    session.removeStorageEngine(
-        Collections.singletonList(
-            new RemovedStorageEngineInfo("127.0.0.1", readOnlyPort, prefix, "")),
-        true);
-  }
-
-  private void changeParams(int port, String newOrgName) {
-    // 1. 定义连接参数
+  private void changeParams(int port, String oldPassword, String newPassword) {
     String hostUrl = "http://localhost:" + port;
-    String token = "testToken";
+    String adminToken = "testOrg"; // 必须是 Operator Token
 
-    // 2. 使用 Java API 客户端
-    // try-with-resources 确保客户端在使用后自动关闭
-    try (InfluxDBClient client = InfluxDBClientFactory.create(hostUrl, token.toCharArray())) {
-      OrganizationsApi orgApi = client.getOrganizationsApi();
+    try (InfluxDBClient client = InfluxDBClientFactory.create(hostUrl, adminToken.toCharArray())) {
+      UsersApi usersApi = client.getUsersApi();
 
-      // 3. 查找组织
-      List<Organization> orgs = orgApi.findOrganizations();
-      if (orgs.isEmpty()) {
-        fail("Fail to update influxdb params: No organizations found.");
+      // 1. 查找用户
+      User user =
+          usersApi.findUsers().stream()
+              .filter(u -> u.getName().equals("user"))
+              .findFirst()
+              .orElse(null);
+
+      if (user == null) {
+        LOGGER.error("User not found");
         return;
       }
-      // 4. 获取第一个组织并更新它（只有一个组织）
-      Organization orgToUpdate = orgs.get(0);
-      System.out.println(
-          "Updating org ID: " + orgToUpdate.getId() + " from name '" + orgToUpdate.getName() + "'");
-      orgToUpdate.setName(newOrgName);
-      Organization updatedOrg = orgApi.updateOrganization(orgToUpdate);
-      System.out.println("Successfully updated org name to: " + updatedOrg.getName());
+
+      // 2. 执行修改
+      usersApi.updateUserPassword(user.getId(), oldPassword, newPassword);
+
+      LOGGER.info("Password updated successfully for user: user");
+
     } catch (Exception e) {
-      e.printStackTrace();
-      fail("Fail to update influxdb params via API: " + e.getMessage());
+      throw new RuntimeException("Failed to update password: " + e.getMessage());
     }
   }
 }
