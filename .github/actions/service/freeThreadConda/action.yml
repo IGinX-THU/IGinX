@@ -16,6 +16,10 @@ runs:
               conda-remove-defaults: "true"
               run-post: "false"
 
+        - name: Get project info
+          id: project
+          uses: ./.github/actions/project
+
         # currently we can only install free-thread python 3.13 by conda-forge. latest miniconda only supports 3.12
         # thus in action steps ahead, remember to 'conda activate $ENV_NAME' at start if conda should be used
         - name: Check channels & install python3.13
@@ -34,3 +38,5 @@ runs:
               else
                python -m pip install pandas==2.2.3 numpy thrift pemjax
               fi
+              cd ${{ steps.project.outputs.workspace }}/udf_funcs/iginx_udf
+              python -m pip install -e .

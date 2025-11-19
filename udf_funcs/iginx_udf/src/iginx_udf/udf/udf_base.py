@@ -18,30 +18,27 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
+from abc import ABC, abstractmethod
 
-from iginx_udf import UDAFWrapper
+"""
+Base UDF Wrapper Class
+__cls: user's UDF class
+_wrapped: instance of user's UDF class
+"""
+class UDFWrapper(ABC):
+    def __init__(self, cls):
+        self.__cls = cls
 
-@UDAFWrapper
-class UDFSum:
-    def __init__(self):
-        pass
+    def __call__(self, *args, **kwargs):
+        self._wrapped = self.__cls(*args, **kwargs)
+        return self
 
-    def eval(self, data, args, kvargs):
-        res = self.buildHeader(data)
+    def __getattr__(self, item):
+        return getattr(self._wrapped, item)
 
-        sumRow = []
-        rows = data[2:]
-        for row in list(zip(*rows))[1:]:
-            sum = 0
-            for num in row:
-                if num is not None:
-                    sum += num
-            sumRow.append(sum)
-        res.append(sumRow)
-        return res
+    @abstractmethod
+    def transform(self, data, *args, **kwargs):
+        """
+        called by Java
+        """
 
-    def buildHeader(self, data):
-        colNames = []
-        for name in data[0][1:]:
-            colNames.append("udf_sum(" + name + ")")
-        return [colNames, data[1][1:]]

@@ -19,13 +19,14 @@
 #
 
 import math
+from iginx_udf import UDTFWrapper
 
-
+@UDTFWrapper
 class UDFArcCos:
     def __init__(self):
         pass
 
-    def transform(self, data, args, kvargs):
+    def eval(self, data, args, kvargs):
         res = self.buildHeader(data)
         arccosRow = []
         for num in data[2][1:]:

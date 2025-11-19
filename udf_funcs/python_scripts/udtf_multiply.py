@@ -18,11 +18,14 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
+from iginx_udf import UDTFWrapper
+
+@UDTFWrapper
 class UDFMultiply:
   def __init__(self):
     pass
 
-  def transform(self, data, args, kvargs):
+  def eval(self, data, args, kvargs):
     res = self.buildHeader(data)
     multiplyRet = 1.0
     for num in data[2][1:]:
