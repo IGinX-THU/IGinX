@@ -51,12 +51,12 @@ public class Neo4jCapacityExpansionIT extends BaseCapacityExpansionIT {
 
   @Override
   protected void updateParams(int port) {
-    changeParams(port, "neo4jtest", updatedParams.get("password"));
+    changeParams(port, "neo4jtest", "newPassword,\\\"'");
   }
 
   @Override
   protected void restoreParams(int port) {
-    changeParams(port, updatedParams.get("password"), "neo4jtest");
+    changeParams(port, "newPassword,\\\"'", "neo4jtest");
   }
 
   @Override
@@ -70,7 +70,7 @@ public class Neo4jCapacityExpansionIT extends BaseCapacityExpansionIT {
   }
 
   private void changeParams(int port, String oldPw, String newPw) {
-    try {
+    try (
       Driver driver =
           GraphDatabase.driver(
               "bolt://127.0.0.1:" + port,
@@ -80,16 +80,12 @@ public class Neo4jCapacityExpansionIT extends BaseCapacityExpansionIT {
                   .withConnectionTimeout(10000, TimeUnit.MILLISECONDS)
                   .withConnectionLivenessCheckTimeout(300, java.util.concurrent.TimeUnit.SECONDS)
                   .build());
-      Session session = driver.session();
-      String cypherQuery = "ALTER CURRENT USER SET PASSWORD FROM $oldPass TO $newPass";
+      Session session = driver.session()) {
+      String cypherQuery = "ALTER USER neo4j SET PASSWORD $newPassword;";
 
       session.writeTransaction(
           tx -> {
-            // 因为有两个参数，所以创建一个 HashMap
-            Map<String, Object> params = new HashMap<>();
-            params.put("oldPass", oldPw);
-            params.put("newPass", newPw);
-
+              Map<String, Object> params = Collections.singletonMap("newPassword", newPw);
             tx.run(cypherQuery, params);
             return null;
           });
