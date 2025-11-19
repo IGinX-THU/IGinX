@@ -78,9 +78,9 @@ public class InfluxDBCapacityExpansionIT extends BaseCapacityExpansionIT {
 
   private void changeParams(int port, String oldPassword, String newPassword) {
     String hostUrl = "http://localhost:" + port;
-    String adminToken = "testOrg"; // 必须是 Operator Token
+    String token = "testToken"; // 必须是 Operator Token
 
-    try (InfluxDBClient client = InfluxDBClientFactory.create(hostUrl, adminToken.toCharArray())) {
+    try (InfluxDBClient client = InfluxDBClientFactory.create(hostUrl, token.toCharArray())) {
       UsersApi usersApi = client.getUsersApi();
 
       // 1. 查找用户
