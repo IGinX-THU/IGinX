@@ -810,6 +810,21 @@ public abstract class BaseCapacityExpansionIT {
     SQLTestTools.executeAndCompare(session, statement, expect);
   }
 
+  private void testSpecialPrefix(String removeStatement, List<List<Object>> valuesList) {
+    String schemaPrefix = "\\,\\\"\\'"; // 输入为\,\"\' -> 实际schemaPrefix为,"'
+    // 测试转义符在schema_prefix中是否能够正确转义，成功add storageengine与remove storageengine
+    addStorageEngine(expPort, true, true, null, schemaPrefix, portsToExtraParams.get(expPort));
+    String statement = "select wt01.status2 from `,\"'.nt.wf03`;";
+    List<String> pathList = Collections.singletonList(",\"'.nt.wf03.wt01.status2");
+    SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
+    try {
+      session.executeSql(String.format(removeStatement, expPort, schemaPrefix, ""));
+    } catch (SessionException e) {
+      LOGGER.error("remove history data source through sql error: ", e);
+      fail();
+    }
+  }
+
   private void testAddAndRemoveStorageEngineWithPrefix() {
     String dataPrefix1 = "nt.wf03";
     String dataPrefix2 = "nt.wf04";
@@ -817,7 +832,6 @@ public abstract class BaseCapacityExpansionIT {
     String schemaPrefix1 = "p1";
     String schemaPrefix2 = "p2";
     String schemaPrefix3 = "p3";
-    String schemaPrefix4 = "\\,\\\"\\'"; // 输入为\,\"\' -> 实际schemaPrefix为,"'
 
     List<List<Object>> valuesList = EXP_VALUES_LIST1;
 
@@ -944,17 +958,8 @@ public abstract class BaseCapacityExpansionIT {
     }
     testShowClusterInfo(2);
 
-    // 测试转义符在schema_prefix和data_prefix中是否能够正确转义，成功add storageengine与remove storageengine
-    addStorageEngine(expPort, true, true, null, schemaPrefix4, portsToExtraParams.get(expPort));
-    statement = "select wt01.status2 from `,\"'.nt.wf03`;";
-    pathList = Collections.singletonList(",\"'.nt.wf03.wt01.status2");
-    SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
-    try {
-      session.executeSql(String.format(removeStatement, expPort, schemaPrefix4, ""));
-    } catch (SessionException e) {
-      LOGGER.error("remove history data source through sql error: ", e);
-      fail();
-    }
+    testSpecialPrefix(removeStatement, valuesList);
+
     testShowClusterInfo(2);
   }
 
