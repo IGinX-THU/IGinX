@@ -86,14 +86,13 @@ public class OracleCapacityExpansionIT extends BaseCapacityExpansionIT {
           }
         },
         new OracleHistoryDataGenerator());
-    updatedParams.put("password", "newPassword\\,\\\\\"\\'");
+    updatedParams.put("password", "newPassword\\,\\\\\\'");
   }
 
   @Override
   protected void updateParams(int port) {
-    // Oracle/JDBC 连接字符串中，字符串里的双引号必须替换为两个双引号 (" -> "")
-    // Oracle不认反斜杠转义
-    changeParams(port, "newPassword,\\\"\"'");
+    // Oracle密码不支持"
+    changeParams(port, "newPassword,\\'");
   }
 
   @Override
