@@ -19,6 +19,8 @@
  */
 package cn.edu.tsinghua.iginx.influxdb.tools;
 
+import static cn.edu.tsinghua.iginx.influxdb.tools.FluxUtils.escapeStringLiteral;
+
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.*;
 import java.util.*;
 
@@ -56,11 +58,14 @@ public class TagFilterUtils {
         break;
       case Base:
         BaseTagFilter baseFilter = (BaseTagFilter) filter;
-        builder.append("r.").append(baseFilter.getTagKey());
+        builder.append("r[\"").append(escapeStringLiteral(baseFilter.getTagKey())).append("\"]");
         if (baseFilter.getTagValue().equals("*")) {
           builder.append(" =~ /.+/ ");
         } else {
-          builder.append(" == \"").append(baseFilter.getTagValue()).append("\" ");
+          builder
+              .append(" == \"")
+              .append(escapeStringLiteral(baseFilter.getTagValue()))
+              .append("\" ");
         }
         break;
         // TODO: case label
@@ -72,11 +77,11 @@ public class TagFilterUtils {
           String key = entry.getKey();
           String value = entry.getValue();
           builder.append("(");
-          builder.append("r.").append(key);
+          builder.append("r[\"").append(escapeStringLiteral(key)).append("\"]");
           if (value.equals("*")) {
             builder.append(" =~ /.+/ ");
           } else {
-            builder.append(" == \"").append(value).append("\" ");
+            builder.append(" == \"").append(escapeStringLiteral(value)).append("\" ");
           }
           builder.append(")");
           builder.append(" and ");

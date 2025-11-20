@@ -19,6 +19,8 @@
  */
 package cn.edu.tsinghua.iginx.influxdb;
 
+import static cn.edu.tsinghua.iginx.influxdb.tools.FluxUtils.escapeRegexWithWildcard;
+import static cn.edu.tsinghua.iginx.influxdb.tools.FluxUtils.escapeStringLiteral;
 import static cn.edu.tsinghua.iginx.influxdb.tools.TimeUtils.instantToNs;
 import static com.influxdb.client.domain.WritePrecision.NS;
 
@@ -231,7 +233,7 @@ public class InfluxDBStorage implements IStorage {
 
     for (int i = startIndex; i != endIndex; i += step) {
       String bucketName = bucketNames.get(i);
-      String statement = String.format(SHOW_TIME_SERIES, bucketName);
+      String statement = String.format(SHOW_TIME_SERIES, escapeStringLiteral(bucketName));
       List<FluxTable> tables = client.getQueryApi().query(statement, organization.getId());
       if (tables.isEmpty()) {
         continue;
@@ -283,7 +285,7 @@ public class InfluxDBStorage implements IStorage {
           || patterns.size() == 0
           || patterns.contains("*")
           || patterns.contains("*.*")) {
-        statement = String.format(SHOW_TIME_SERIES, bucket.getName());
+        statement = String.format(SHOW_TIME_SERIES, escapeStringLiteral(bucket.getName()));
         tables = client.getQueryApi().query(statement, organization.getId());
       } else {
         boolean thisBucketIsQueried = false;
@@ -337,7 +339,10 @@ public class InfluxDBStorage implements IStorage {
             // query time series based on pattern
             statement =
                 String.format(
-                    SHOW_TIME_SERIES_BY_PATTERN, bucket.getName(), measPattern, fieldPattern);
+                    SHOW_TIME_SERIES_BY_PATTERN,
+                    escapeStringLiteral(bucket.getName()),
+                    measPattern,
+                    fieldPattern);
             LOGGER.info("executing column query: {}", statement);
             tables.addAll(client.getQueryApi().query(statement, organization.getId()));
           }
@@ -534,7 +539,7 @@ public class InfluxDBStorage implements IStorage {
       String statement =
           String.format(
               "from(bucket:\"%s\") |> range(start: time(v: %s), stop: time(v: %s))",
-              bucket, startKey, endKey);
+              escapeStringLiteral(bucket), startKey, endKey);
       if (!bucketQueries.get(bucket).equals("()")) {
         statement += String.format(" |> filter(fn: (r) => %s)", bucketQueries.get(bucket));
       }
@@ -591,7 +596,8 @@ public class InfluxDBStorage implements IStorage {
       long startTime,
       long endTime,
       boolean isDummy) {
-    String statement = String.format(QUERY_DATA, bucketName, startTime, endTime);
+    String statement =
+        String.format(QUERY_DATA, escapeStringLiteral(bucketName), startTime, endTime);
     if (paths.size() != 1 || !paths.get(0).equals("*")) {
       StringBuilder filterStr = new StringBuilder(" |> filter(fn: (r) => ");
       filterStr.append('('); // make the or statement together
@@ -606,15 +612,18 @@ public class InfluxDBStorage implements IStorage {
 
         String measurement = schema.getMeasurement();
         if (measurement.contains("*")) {
-          measurement = StringUtils.reformatPath(measurement);
+          String safeRegex = escapeRegexWithWildcard(measurement);
+          filterStr.append("r._measurement =~ /").append(safeRegex).append("/");
+        } else {
+          // 精确匹配：使用 escapeStringLiteral 处理双引号
+          filterStr
+              .append("r._measurement == \"")
+              .append(escapeStringLiteral(measurement))
+              .append("\"");
         }
-        filterStr.append(
-            schema.getMeasurement().contains("*")
-                ? "r._measurement =~ /" + measurement + "/"
-                : "r._measurement == \"" + measurement + "\"");
 
         String field = schema.getField();
-        field = StringUtils.reformatPath(field);
+        field = escapeRegexWithWildcard(field);
         filterStr.append(" and ");
         filterStr.append("r._field =~ /").append(field).append("/");
 
@@ -624,32 +633,24 @@ public class InfluxDBStorage implements IStorage {
           assert tags.size() == 1;
           String key = InfluxDBSchema.TAG;
           String value = tags.get(key);
-          if (value.contains("*")) {
-            StringBuilder valueBuilder = new StringBuilder();
-            for (Character character : value.toCharArray()) {
-              if (character.equals('.')) {
-                valueBuilder.append("\\.");
-              } else if (character.equals('*')) {
-                valueBuilder.append(".*");
-              } else {
-                valueBuilder.append(character);
-              }
-            }
 
-            value = valueBuilder.toString();
+          if (value.contains("*")) {
+            // 处理 * 为 .*，并转义其他正则特殊字符（如括号、加号等）
+            String regexValue = escapeRegexWithWildcard(value);
             filterStr.append("r.").append(key).append(" =~ /");
-            filterStr.append(value);
+            filterStr.append(regexValue);
             filterStr.append("/");
           } else {
+            // 精确匹配：使用 escapeStringLiteral
             filterStr.append("r.").append(key).append(" == \"");
-            filterStr.append(value);
+            filterStr.append(escapeStringLiteral(value));
             filterStr.append("\"");
           }
         }
 
         filterStr.append(')');
       }
-      filterStr.append(')'); // make the or statement together
+      filterStr.append(')');
       if (tagFilter != null && tagFilter.getType() != TagFilterType.WithoutTag) {
         filterStr.append(" and ").append(TagFilterUtils.transformToFilterStr(tagFilter));
       }
@@ -683,6 +684,7 @@ public class InfluxDBStorage implements IStorage {
         int index = 0;
         for (Map.Entry<String, List<String>> entry : measurementToFieldsMap.entrySet()) {
           String measurement = entry.getKey();
+          String safeMeasurementRegex = escapeRegexWithWildcard(measurement);
           String pivotStr =
               String.format(
                   pivotFormat,
@@ -693,7 +695,7 @@ public class InfluxDBStorage implements IStorage {
               .append(" = ")
               .append(
                   prefix.replace(
-                      "r._measurement =~ /.+/", "r._measurement =~ /" + measurement + "/"))
+                      "r._measurement =~ /.+/", "r._measurement =~ /" + safeMeasurementRegex + "/"))
               .append(pivotStr)
               .append("\n");
           index++;
@@ -1476,7 +1478,10 @@ public class InfluxDBStorage implements IStorage {
                     Instant.ofEpochMilli(keyRange.getActualBeginKey()), ZoneId.of("UTC")),
                 OffsetDateTime.ofInstant(
                     Instant.ofEpochMilli(keyRange.getActualEndKey()), ZoneId.of("UTC")),
-                String.format(DELETE_DATA, schema.getMeasurement(), schema.getField()),
+                String.format(
+                    DELETE_DATA,
+                    escapeStringLiteral(schema.getMeasurement()),
+                    escapeStringLiteral(schema.getField())),
                 bucket,
                 organization);
       }

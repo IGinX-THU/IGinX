@@ -19,6 +19,9 @@
  */
 package cn.edu.tsinghua.iginx.influxdb.tools;
 
+import static cn.edu.tsinghua.iginx.influxdb.tools.FluxUtils.escapeRegexRaw;
+import static cn.edu.tsinghua.iginx.influxdb.tools.FluxUtils.escapeStringLiteral;
+
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.influxdb.query.entity.InfluxDBSchema;
@@ -84,19 +87,24 @@ public class FilterTransformer {
   private static String toString(ValueFilter filter) {
     // path 获取的是 table.field，需要删掉.前面的table名。
     InfluxDBSchema schema = new InfluxDBSchema(filter.getPath());
-    String path = schema.getFieldString();
-    String value = valueToString(filter.getValue());
+    String path = escapeStringLiteral(schema.getFieldString());
+    String rawValue = filter.getValue().getBinaryVAsString();
 
     switch (filter.getOp()) {
       case LIKE:
       case LIKE_AND:
         // SQL的正则匹配需要全部匹配，但InfluxDB可以部分匹配，所以需要在最后加上$以保证匹配全部字符串。
-        return "r[\"" + path + "\"]  =~ /" + filter.getValue().getBinaryVAsString() + "$/";
+        return "r[\"" + path + "\"]  =~ /" + escapeRegexRaw(rawValue) + "$/";
       case NOT_LIKE:
       case NOT_LIKE_AND:
-        return "r[\"" + path + "\"]  !~ /" + filter.getValue().getBinaryVAsString() + "$/";
+        return "r[\"" + path + "\"]  !~ /" + escapeRegexRaw(rawValue) + "$/";
       default:
-        return "r[\"" + path + "\"] " + Op.op2StrWithoutAndOr(filter.getOp()) + " " + value;
+        return "r[\""
+            + path
+            + "\"] "
+            + Op.op2StrWithoutAndOr(filter.getOp())
+            + " "
+            + valueToString(filter.getValue());
     }
   }
 
@@ -120,8 +128,8 @@ public class FilterTransformer {
     // path 获取的是 table.field，需要删掉.前面的table名。
     InfluxDBSchema schemaA = new InfluxDBSchema(filter.getPathA());
     InfluxDBSchema schemaB = new InfluxDBSchema(filter.getPathB());
-    String pathA = schemaA.getFieldString();
-    String pathB = schemaB.getFieldString();
+    String pathA = escapeStringLiteral(schemaA.getFieldString());
+    String pathB = escapeStringLiteral(schemaB.getFieldString());
 
     return "r[\""
         + pathA
@@ -148,7 +156,7 @@ public class FilterTransformer {
 
   private static String valueToString(Value value) {
     if (value.getDataType() == DataType.BINARY) {
-      return "\"" + value.getBinaryVAsString() + "\"";
+      return "\"" + escapeStringLiteral(value.getBinaryVAsString()) + "\"";
     }
     return value.toString();
   }

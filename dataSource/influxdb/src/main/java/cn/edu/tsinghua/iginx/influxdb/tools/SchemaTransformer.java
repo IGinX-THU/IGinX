@@ -19,6 +19,8 @@
  */
 package cn.edu.tsinghua.iginx.influxdb.tools;
 
+import static cn.edu.tsinghua.iginx.influxdb.tools.FluxUtils.escapeStringLiteral;
+
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.influxdb.query.entity.InfluxDBSchema;
 import cn.edu.tsinghua.iginx.utils.Pair;
@@ -37,7 +39,10 @@ public class SchemaTransformer {
     if (parts.length > 2) {
       String measurementName = parts[index++];
       if (!measurementName.equals("*")) {
-        queryBuilder.append(String.format("r._measurement ==\"%s\" and ", measurementName));
+        queryBuilder
+            .append("r._measurement ==\"")
+            .append(escapeStringLiteral(measurementName))
+            .append("\" and ");
       }
     }
 
