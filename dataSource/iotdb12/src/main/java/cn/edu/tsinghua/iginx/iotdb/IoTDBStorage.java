@@ -353,7 +353,7 @@ public class IoTDBStorage implements IStorage {
         if (path.contains("\\")) {
           return new TaskExecuteResult(new EmptyRowStream());
         }
-        builder.append(IoTDBUtils.formatPath(path));
+        builder.append(IoTDBUtils.escapeStringLiteral(path));
         builder.append(',');
       }
       String statement =
@@ -432,7 +432,7 @@ public class IoTDBStorage implements IStorage {
         if (path.startsWith("*") && path.indexOf("*.", 1) != 2) {
           path = "*." + path;
         }
-        builder.append(IoTDBUtils.formatPath(path));
+        builder.append(IoTDBUtils.escapeStringLiteral(path));
         builder.append(',');
       }
       String statement =
