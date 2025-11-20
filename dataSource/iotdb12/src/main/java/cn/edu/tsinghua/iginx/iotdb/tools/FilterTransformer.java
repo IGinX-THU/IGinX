@@ -78,10 +78,12 @@ public class FilterTransformer {
   }
 
   private static String toString(ValueFilter filter) {
-    String value =
-        filter.getValue().getDataType() == DataType.BINARY
-            ? "'" + filter.getValue().getBinaryVAsString() + "'"
-            : filter.getValue().getValue().toString();
+    String value;
+    if (filter.getValue().getDataType() == DataType.BINARY) {
+      value = "'" + IoTDBUtils.escapeStringLiteral(filter.getValue().getBinaryVAsString()) + "'";
+    } else {
+      value = filter.getValue().getValue().toString();
+    }
 
     switch (filter.getOp()) {
       case LIKE:
@@ -127,7 +129,9 @@ public class FilterTransformer {
 
     for (Value value : filter.getValues()) {
       if (value.getDataType() == DataType.BINARY) {
-        sb.append("'").append(value.getBinaryVAsString()).append("', ");
+        sb.append("'")
+            .append(IoTDBUtils.escapeStringLiteral(value.getBinaryVAsString()))
+            .append("', ");
       } else {
         sb.append(value).append(", ");
       }
