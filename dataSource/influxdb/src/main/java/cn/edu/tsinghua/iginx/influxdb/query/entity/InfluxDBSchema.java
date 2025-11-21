@@ -77,15 +77,6 @@ public class InfluxDBSchema {
     return field;
   }
 
-  /**
-   * 获取用作引号中string的field字段，这里需要将\转义为\\，其他无需转义
-   *
-   * @return 转义后的field字段
-   */
-  public String getFieldString() {
-    return field.replace("\\", "\\\\");
-  }
-
   public Map<String, String> getTags() {
     return tags;
   }
