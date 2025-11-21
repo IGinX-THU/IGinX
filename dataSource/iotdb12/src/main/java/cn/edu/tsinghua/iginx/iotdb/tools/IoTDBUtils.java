@@ -42,37 +42,47 @@ public class IoTDBUtils {
       return "";
     }
     // 简单按点分割（假设节点名称内部不包含点，或者点是层级分隔符）
-    String[] nodes = path.split("\\.");
+    String[] parts = path.split(".", 2);
+
     StringBuilder sb = new StringBuilder();
 
-    for (int i = 0; i < nodes.length; i++) {
-      if (i > 0) {
-        sb.append(".");
-      }
-      String node = nodes[i];
-
-      // 核心逻辑：判断是否需要引用
-      if (isWildcard(node)) {
-        // 如果是通配符，原样保留，不加引号
-        sb.append(node);
-      } else {
-        // 普通节点，加双引号保护，防止特殊字符破坏 SQL 结构
-        sb.append(quoteNode(node));
-      }
+    // 1. 处理头部：强制引用 (防止存储组名包含特殊字符)
+    if (isWildcard(parts[0])) {
+      sb.append(quoteNode(parts[0]));
+    } else {
+      sb.append(parts[0]);
     }
+
+    // 2. 处理尾部：如果有剩余部分，直接原样拼接
+    if (parts.length > 1) {
+      sb.append(".").append(parts[1]);
+    }
+
     return sb.toString();
   }
 
   /** 判断节点是否包含通配符 IoTDB 的通配符通常是 * 或 **，或者 prefix* */
   private static boolean isWildcard(String node) {
-    // 如果节点包含 *，通常表示模糊匹配（如 unit*），也不应该加引号变成字面量
-    return node.contains("*");
+    if (!node.contains("*")) {
+      return false; // 根本不是通配符
+    }
+    // 检查是否包含危险字符
+    // 如果包含 双引号("), 单引号('), 逗号(,), 反斜杠(\), 空格 等，
+    // 即使它带了星号，也必须加引号保护，否则会造成注入或语法错误。
+    if (node.contains("\"")
+        || node.contains("'")
+        || node.contains(",")
+        || node.contains("\\")
+        || node.contains(" ")) {
+      return false; // 不安全，必须引用
+    }
+    return true;
   }
 
   /** 为节点名称添加双引号，并转义内部的双引号 */
   public static String quoteNode(String node) {
     if (node == null) return "";
     // 简单策略：如果包含非字母数字下划线，就用双引号包裹
-    return "\"" + node.replace("\"", "\\\"") + "\"";
+    return "\"" + escapeStringLiteral(node) + "\"";
   }
 }
