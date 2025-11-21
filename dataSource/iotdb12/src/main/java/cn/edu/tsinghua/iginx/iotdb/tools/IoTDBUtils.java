@@ -29,8 +29,8 @@ public class IoTDBUtils {
     if (value == null) {
       return "";
     }
-    // 注意替换顺序：先替换反斜杠，再替换单引号
-    return value.replace("\\", "\\\\").replace("'", "\\'");
+    // 注意替换顺序：先替换反斜杠，再替换单引号和双引号
+    return value.replace("\\", "\\\\").replace("'", "\\'").replace("\"", "\\\"");
   }
 
   /**
