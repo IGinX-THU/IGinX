@@ -85,7 +85,15 @@ public class FilterTransformer {
     // path 获取的是 table.field，需要删掉.前面的table名。
     InfluxDBSchema schema = new InfluxDBSchema(filter.getPath());
     String path = FluxUtils.escapeStringLiteral(schema.getFieldString());
-    String rawValue = filter.getValue().getBinaryVAsString();
+
+    String rawValue;
+    if (filter.getValue().getDataType() == DataType.BINARY) {
+      // 只有 BINARY 类型才调用 getBinaryVAsString
+      rawValue = filter.getValue().getBinaryVAsString();
+    } else {
+      // 其他类型（数值、布尔等）直接转 String
+      rawValue = filter.getValue().getValue().toString();
+    }
 
     switch (filter.getOp()) {
       case LIKE:
