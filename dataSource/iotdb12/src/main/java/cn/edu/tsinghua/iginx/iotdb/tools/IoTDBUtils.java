@@ -42,15 +42,15 @@ public class IoTDBUtils {
       return "";
     }
     // 简单按点分割（假设节点名称内部不包含点，或者点是层级分隔符）
-    String[] parts = path.split(".", 2);
+    String[] parts = path.split("\\.", 2);
 
     StringBuilder sb = new StringBuilder();
 
     // 1. 处理头部：强制引用 (防止存储组名包含特殊字符)
     if (isWildcard(parts[0])) {
-      sb.append(quoteNode(parts[0]));
-    } else {
       sb.append(parts[0]);
+    } else {
+      sb.append(quoteNode(parts[0]));
     }
 
     // 2. 处理尾部：如果有剩余部分，直接原样拼接
