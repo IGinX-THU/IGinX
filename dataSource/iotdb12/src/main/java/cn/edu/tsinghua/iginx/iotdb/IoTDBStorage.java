@@ -44,7 +44,6 @@ import cn.edu.tsinghua.iginx.iotdb.exception.IoTDBTaskExecuteFailureException;
 import cn.edu.tsinghua.iginx.iotdb.query.entity.IoTDBQueryRowStream;
 import cn.edu.tsinghua.iginx.iotdb.tools.DataViewWrapper;
 import cn.edu.tsinghua.iginx.iotdb.tools.FilterTransformer;
-import cn.edu.tsinghua.iginx.iotdb.tools.IoTDBUtils;
 import cn.edu.tsinghua.iginx.iotdb.tools.TagKVUtils;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
@@ -350,10 +349,10 @@ public class IoTDBStorage implements IStorage {
       }
       for (String path : paths) {
         // TODO 暂时屏蔽含有\的pattern
-        if (path.contains("\\")) {
+        if (path.contains("\\") || path.contains("\"") || path.contains("\'")) {
           return new TaskExecuteResult(new EmptyRowStream());
         }
-        builder.append(IoTDBUtils.formatPath(path));
+        builder.append(path);
         builder.append(',');
       }
       String statement =
@@ -426,13 +425,13 @@ public class IoTDBStorage implements IStorage {
       }
       for (String path : paths) {
         // TODO 暂时屏蔽含有\的pattern
-        if (path.contains("\\")) {
+        if (path.contains("\\") || path.contains("\"") || path.contains("\'")) {
           return new TaskExecuteResult(new EmptyRowStream());
         }
         if (path.startsWith("*") && path.indexOf("*.", 1) != 2) {
           path = "*." + path;
         }
-        builder.append(IoTDBUtils.formatPath(path));
+        builder.append(path);
         builder.append(',');
       }
       String statement =
