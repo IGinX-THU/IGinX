@@ -121,6 +121,14 @@ public class IoTDBStorage implements IStorage {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(IoTDBStorage.class);
 
+  private static final Pattern ILLEGAL_CHARS = Pattern.compile("[\\\\\"',]");
+
+  public static boolean containsIllegalChar(String path) {
+    if (path == null) return false;
+    Matcher matcher = ILLEGAL_CHARS.matcher(path);
+    return matcher.find();
+  }
+
   public IoTDBStorage(StorageEngineMeta meta) throws StorageInitializationException {
     this.meta = meta;
     if (!meta.getStorageEngine().equals(StorageEngineType.iotdb12)) {
@@ -349,7 +357,7 @@ public class IoTDBStorage implements IStorage {
       }
       for (String path : paths) {
         // TODO 暂时屏蔽含有\的pattern
-        if (path.contains("\\")) {
+        if (containsIllegalChar(path)) {
           return new TaskExecuteResult(new EmptyRowStream());
         }
         builder.append(path);
@@ -425,7 +433,7 @@ public class IoTDBStorage implements IStorage {
       }
       for (String path : paths) {
         // TODO 暂时屏蔽含有\的pattern
-        if (path.contains("\\")) {
+        if (containsIllegalChar(path)) {
           return new TaskExecuteResult(new EmptyRowStream());
         }
         if (path.startsWith("*") && path.indexOf("*.", 1) != 2) {
