@@ -37,7 +37,10 @@ public class SchemaTransformer {
     if (parts.length > 2) {
       String measurementName = parts[index++];
       if (!measurementName.equals("*")) {
-        queryBuilder.append(String.format("r._measurement ==\"%s\" and ", measurementName));
+        queryBuilder
+            .append("r._measurement ==\"")
+            .append(FluxUtils.escapeStringLiteral(measurementName))
+            .append("\" and ");
       }
     }
 

@@ -53,7 +53,7 @@ public abstract class BaseCapacityExpansionIT {
 
   protected static Session session;
 
-  protected static final String ALTER_ENGINE_STRING = "alter storageengine %d with params \"%s\";";
+  protected static final String ALTER_ENGINE_STRING = "alter storageengine %d with params '%s';";
 
   private static final ConfLoader testConf = new ConfLoader(Controller.CONFIG_FILE);
 
@@ -158,7 +158,7 @@ public abstract class BaseCapacityExpansionIT {
       statement.append(port);
       statement.append(", \"");
       statement.append(type.name());
-      statement.append("\", \"");
+      statement.append("\", '");
       statement.append("has_data=");
       statement.append(hasData);
       statement.append(", is_read_only=");
@@ -188,7 +188,7 @@ public abstract class BaseCapacityExpansionIT {
         statement.append(", schema_prefix=");
         statement.append(schemaPrefix);
       }
-      statement.append("\");");
+      statement.append("');");
 
       LOGGER.info("Execute Statement: \"{}\"", statement);
       session.executeSql(statement.toString());
@@ -417,6 +417,49 @@ public abstract class BaseCapacityExpansionIT {
     }
   }
 
+  // 测试密码修改为包含特殊字符等情况，还能否正常AddStorageEngine
+  protected void testAddStorageEngineWithSpecialCharParam(String prefix) throws SessionException {
+    String originalParams = portsToExtraParams.get(readOnlyPort);
+    String newPassword = updatedParams.get("password");
+
+    Map<String, String> paramsMap = new LinkedHashMap<>();
+    if (originalParams != null && !originalParams.isEmpty()) {
+      for (String pair : originalParams.split(",")) {
+        String[] kv = pair.split("=", 2);
+        if (kv.length == 2) {
+          paramsMap.put(kv[0], kv[1]);
+        }
+      }
+    }
+    if (newPassword != null) {
+      paramsMap.put("password", newPassword);
+    }
+    String extraParams =
+        paramsMap.entrySet().stream()
+            .map(entry -> entry.getKey() + "=" + entry.getValue())
+            .collect(Collectors.joining(","));
+    // 添加只读节点
+    addStorageEngine(readOnlyPort, true, true, null, prefix, extraParams);
+    // 修改
+    List<StorageEngineInfo> engineInfoList = session.getClusterInfo().getStorageEngineInfos();
+    long id = -1;
+    for (StorageEngineInfo info : engineInfoList) {
+      if (info.getIp().equals("127.0.0.1")
+          && info.getPort() == readOnlyPort
+          && info.getDataPrefix().equals("null")
+          && info.getSchemaPrefix().equals(prefix)
+          && info.getType().equals(type)) {
+        id = info.getId();
+      }
+    }
+    assertTrue(id != -1);
+    // 删除，不影响后续测试
+    session.removeStorageEngine(
+        Collections.singletonList(
+            new RemovedStorageEngineInfo("127.0.0.1", readOnlyPort, prefix, "")),
+        true);
+  }
+
   /** 测试引擎修改参数（目前仅支持dummy & read-only） */
   protected void testUpdateEngineParams() throws SessionException {
     // 修改前后通过相同schema_prefix查询判断引擎成功更新
@@ -470,6 +513,8 @@ public abstract class BaseCapacityExpansionIT {
         Collections.singletonList(
             new RemovedStorageEngineInfo("127.0.0.1", readOnlyPort, prefix, "")),
         true);
+
+    testAddStorageEngineWithSpecialCharParam(prefix);
 
     // 改回数据库参数
     restoreParams(readOnlyPort);
@@ -765,6 +810,21 @@ public abstract class BaseCapacityExpansionIT {
     SQLTestTools.executeAndCompare(session, statement, expect);
   }
 
+  private void testSpecialPrefix(String removeStatement, List<List<Object>> valuesList) {
+    String schemaPrefix = "\\,\\\"\\'"; // 输入为\,\"\' -> 实际schemaPrefix为,"'
+    // 测试转义符在schema_prefix中是否能够正确转义，成功add storageengine与remove storageengine
+    addStorageEngine(expPort, true, true, null, schemaPrefix, portsToExtraParams.get(expPort));
+    String statement = "select wt01.status2 from `,\"'.nt.wf03`;";
+    List<String> pathList = Collections.singletonList(",\"'.nt.wf03.wt01.status2");
+    SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
+    try {
+      session.executeSql(String.format(removeStatement, expPort, schemaPrefix, ""));
+    } catch (SessionException e) {
+      LOGGER.error("remove history data source through sql error: ", e);
+      fail();
+    }
+  }
+
   private void testAddAndRemoveStorageEngineWithPrefix() {
     String dataPrefix1 = "nt.wf03";
     String dataPrefix2 = "nt.wf04";
@@ -896,6 +956,10 @@ public abstract class BaseCapacityExpansionIT {
         fail();
       }
     }
+    testShowClusterInfo(2);
+
+    testSpecialPrefix(removeStatement, valuesList);
+
     testShowClusterInfo(2);
   }
 

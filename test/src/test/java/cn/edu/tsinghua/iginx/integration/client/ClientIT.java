@@ -195,7 +195,8 @@ public class ClientIT {
       Files.createDirectories(dirDummy);
     }
     FileUtils.copyFiles(dirExported, dirDummy, ".ext");
-    String dirDummyPath = dirDummy.toAbsolutePath().toString();
+    // 对于 Windows，需要将路径中的反斜杠替换为斜杠
+    String dirDummyPath = dirDummy.toAbsolutePath().toString().replace("\\", "/");
     String statement =
         String.format(
             "ADD STORAGEENGINE (\"127.0.0.1\", 6670, \"filesystem\", \"dummy_dir=%s,iginx_port=6888,has_data=true,is_read_only=true\");",
