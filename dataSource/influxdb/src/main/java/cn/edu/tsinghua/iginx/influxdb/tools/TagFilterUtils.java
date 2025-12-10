@@ -56,11 +56,17 @@ public class TagFilterUtils {
         break;
       case Base:
         BaseTagFilter baseFilter = (BaseTagFilter) filter;
-        builder.append("r.").append(baseFilter.getTagKey());
+        builder
+            .append("r[\"")
+            .append(FluxUtils.escapeStringLiteral(baseFilter.getTagKey()))
+            .append("\"]");
         if (baseFilter.getTagValue().equals("*")) {
           builder.append(" =~ /.+/ ");
         } else {
-          builder.append(" == \"").append(baseFilter.getTagValue()).append("\" ");
+          builder
+              .append(" == \"")
+              .append(FluxUtils.escapeStringLiteral(baseFilter.getTagValue()))
+              .append("\" ");
         }
         break;
         // TODO: case label
@@ -72,11 +78,11 @@ public class TagFilterUtils {
           String key = entry.getKey();
           String value = entry.getValue();
           builder.append("(");
-          builder.append("r.").append(key);
+          builder.append("r[\"").append(FluxUtils.escapeStringLiteral(key)).append("\"]");
           if (value.equals("*")) {
             builder.append(" =~ /.+/ ");
           } else {
-            builder.append(" == \"").append(value).append("\" ");
+            builder.append(" == \"").append(FluxUtils.escapeStringLiteral(value)).append("\" ");
           }
           builder.append(")");
           builder.append(" and ");

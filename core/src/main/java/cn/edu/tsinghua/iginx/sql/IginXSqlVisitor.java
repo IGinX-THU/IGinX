@@ -2144,6 +2144,12 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     for (String kv : kvStrs) {
       String[] kvArray = kv.split("=", 2); // 只按第一个=分割
       if (kvArray.length != 2) {
+        if (kv.contains("dir")) {
+          // for windows absolute path
+          String dirType = kv.substring(0, kv.indexOf(SQLConstant.EQUAL)).trim();
+          String dirPath = kv.substring(kv.indexOf(SQLConstant.EQUAL) + 1).trim();
+          map.put(dirType, dirPath);
+        }
         continue;
       }
       map.put(kvArray[0].trim(), kvArray[1].trim());

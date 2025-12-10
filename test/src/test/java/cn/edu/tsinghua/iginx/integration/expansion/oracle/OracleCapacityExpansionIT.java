@@ -40,7 +40,6 @@ import org.slf4j.LoggerFactory;
 public class OracleCapacityExpansionIT extends BaseCapacityExpansionIT {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(OracleCapacityExpansionIT.class);
-  private static final String newPass = "ORCLPWD"; // 新密码保持不变，因为oracle密码错误次数过多会锁定账号
   private static final HashMap<Integer, String> portsToUsername = new HashMap<>();
   private static final HashMap<Integer, String> portsToPassword = new HashMap<>();
 
@@ -87,12 +86,13 @@ public class OracleCapacityExpansionIT extends BaseCapacityExpansionIT {
           }
         },
         new OracleHistoryDataGenerator());
-    updatedParams.put("password", newPass);
+    updatedParams.put("password", "newPassword\\,\\\\\\'");
   }
 
   @Override
   protected void updateParams(int port) {
-    changeParams(port, newPass);
+    // Oracle密码不支持"
+    changeParams(port, "newPassword,\\'");
   }
 
   @Override
@@ -121,11 +121,7 @@ public class OracleCapacityExpansionIT extends BaseCapacityExpansionIT {
     }
     try (Connection connection = DriverManager.getConnection(jdbcUrl);
         Statement stmt = connection.createStatement()) {
-      String alterStmt =
-          String.format(
-              "ALTER USER %s IDENTIFIED BY %s",
-              OracleHistoryDataGenerator.getQuotName(username),
-              OracleHistoryDataGenerator.getQuotName(newPw));
+      String alterStmt = String.format("ALTER USER \"%s\" IDENTIFIED BY \"%s\"", username, newPw);
       LOGGER.info("alter statement in {}: {}", port, alterStmt);
       stmt.execute(alterStmt);
     } catch (SQLException e) {
