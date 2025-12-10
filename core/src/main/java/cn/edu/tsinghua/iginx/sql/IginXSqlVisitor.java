@@ -673,19 +673,11 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         .forEach(
             storageEngine -> {
               String ipStr = storageEngine.ip.getText();
-              String schemaPrefixStr = storageEngine.schemaPrefix.getText();
-              String dataPrefixStr = storageEngine.dataPrefix.getText();
               String ip =
                   ipStr.substring(
                       ipStr.indexOf(SQLConstant.QUOTE) + 1, ipStr.lastIndexOf(SQLConstant.QUOTE));
-              String schemaPrefix =
-                  schemaPrefixStr.substring(
-                      schemaPrefixStr.indexOf(SQLConstant.QUOTE) + 1,
-                      schemaPrefixStr.lastIndexOf(SQLConstant.QUOTE));
-              String dataPrefix =
-                  dataPrefixStr.substring(
-                      dataPrefixStr.indexOf(SQLConstant.QUOTE) + 1,
-                      dataPrefixStr.lastIndexOf(SQLConstant.QUOTE));
+              String schemaPrefix = parseParamWithEscaped(storageEngine.schemaPrefix.getText());
+              String dataPrefix = parseParamWithEscaped(storageEngine.dataPrefix.getText());
               statement.addStorageEngine(
                   new RemovedStorageEngineInfo(
                       ip,
@@ -2087,6 +2079,31 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     return subStatement;
   }
 
+  private String parseParamWithEscaped(String text) {
+    // 去掉前后引号
+    text = text.substring(1, text.length() - 1);
+    boolean escape = false;
+    StringBuilder rawSegment = new StringBuilder();
+    for (int i = 0; i < text.length(); i++) {
+      char c = text.charAt(i);
+      if (escape) {
+        // 对","进行非标准转义处理
+        if (c != ',') {
+          rawSegment.append('\\');
+        }
+        rawSegment.append(c);
+        escape = false;
+      } else if (c == '\\') {
+        // 遇到反斜杠，标记进入转义状态，暂不追加
+        escape = true;
+      } else {
+        rawSegment.append(c);
+      }
+    }
+    // 不分割时，List中永远只有一个元素
+    return StringEscapeUtil.unescape(rawSegment.toString());
+  }
+
   private Map<String, String> parseExtra(StringLiteralContext ctx) {
     Map<String, String> map = new HashMap<>();
     String extra = ctx.getText().trim();
@@ -2095,17 +2112,38 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         || extra.equals(SQLConstant.SINGLE_QUOTES)) {
       return map;
     }
+    // 去掉前后引号
     extra = extra.substring(1, extra.length() - 1);
-    String[] kvStr = extra.split(SQLConstant.COMMA);
-    for (String kv : kvStr) {
-      String[] kvArray = kv.split(SQLConstant.EQUAL);
-      if (kvArray.length != 2) {
-        if (kv.contains("dir")) {
-          // for windows absolute path
-          String dirType = kv.substring(0, kv.indexOf(SQLConstant.EQUAL)).trim();
-          String dirPath = kv.substring(kv.indexOf(SQLConstant.EQUAL) + 1).trim();
-          map.put(dirType, dirPath);
+    // 调用通用方法，按 ',' 分割
+    List<String> kvStrs = new ArrayList<>();
+    StringBuilder rawSegment = new StringBuilder();
+    boolean escape = false;
+    for (int i = 0; i < extra.length(); i++) {
+      char c = extra.charAt(i);
+      if (escape) {
+        // 对","进行非标准转义处理
+        if (c != ',') {
+          rawSegment.append('\\');
         }
+        rawSegment.append(c);
+        escape = false;
+      } else if (c == '\\') {
+        // 遇到反斜杠，标记进入转义状态，暂不追加
+        escape = true;
+      } else if (c == ',') {
+        // 遇到未转义的分隔符，进行切分
+        // 注意：这里调用 unescape 是为了处理 segment 内部的其他转义（如 \n, \u0041）
+        kvStrs.add(StringEscapeUtil.unescape(rawSegment.toString()));
+        rawSegment.setLength(0);
+      } else {
+        rawSegment.append(c);
+      }
+    }
+    kvStrs.add(StringEscapeUtil.unescape(rawSegment.toString()));
+
+    for (String kv : kvStrs) {
+      String[] kvArray = kv.split("=", 2); // 只按第一个=分割
+      if (kvArray.length != 2) {
         continue;
       }
       map.put(kvArray[0].trim(), kvArray[1].trim());

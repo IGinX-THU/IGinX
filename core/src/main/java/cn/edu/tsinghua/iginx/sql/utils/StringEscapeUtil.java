@@ -21,7 +21,7 @@ package cn.edu.tsinghua.iginx.sql.utils;
 
 public class StringEscapeUtil {
 
-  /** 把字符串中的转义序列（如 \n, \t, \\ 等）还原为真实字符 */
+  /** 把字符串中的转义序列（如 \n, \t, \", \', \\ 等）还原为真实字符 */
   public static String unescape(String input) {
     if (input == null) {
       return "";
@@ -61,6 +61,12 @@ public class StringEscapeUtil {
           break;
         case '\\':
           target.append('\\');
+          break;
+        case '\'':
+          target.append('\'');
+          break;
+        case '\"':
+          target.append('\"');
           break;
         case 'u': // Unicode 转义
           if (i + 4 < input.length()) {

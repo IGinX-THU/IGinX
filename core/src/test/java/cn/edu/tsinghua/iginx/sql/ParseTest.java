@@ -29,19 +29,14 @@ import cn.edu.tsinghua.iginx.engine.shared.expr.KeyExpression;
 import cn.edu.tsinghua.iginx.engine.shared.function.MappingType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.PathFilter;
-import cn.edu.tsinghua.iginx.sql.statement.AddStorageEngineStatement;
-import cn.edu.tsinghua.iginx.sql.statement.DeleteColumnsStatement;
-import cn.edu.tsinghua.iginx.sql.statement.DeleteStatement;
-import cn.edu.tsinghua.iginx.sql.statement.InsertFromSelectStatement;
-import cn.edu.tsinghua.iginx.sql.statement.InsertStatement;
-import cn.edu.tsinghua.iginx.sql.statement.ShowReplicationStatement;
-import cn.edu.tsinghua.iginx.sql.statement.StatementType;
+import cn.edu.tsinghua.iginx.sql.statement.*;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.FromPartType;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.SubQueryFromPart;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.join.JoinCondition;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.join.JoinType;
 import cn.edu.tsinghua.iginx.sql.statement.select.SelectStatement;
 import cn.edu.tsinghua.iginx.sql.statement.select.UnarySelectStatement;
+import cn.edu.tsinghua.iginx.thrift.RemovedStorageEngineInfo;
 import cn.edu.tsinghua.iginx.thrift.StorageEngine;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import java.util.Arrays;
@@ -251,11 +246,13 @@ public class ParseTest {
   @Test
   public void testParseAddStorageEngine() {
     String addStorageEngineStr =
-        "ADD STORAGEENGINE (\"127.0.0.1\", 6667, \"iotdb12\", \"username=root, password=root\"), ('127.0.0.1', 6668, 'influxdb', 'key1=val1, key2=val2');";
+        "ADD STORAGEENGINE (\"127.0.0.1\", 6667, \"iotdb12\", \"username=root, password=root\"), "
+            + "('127.0.0.1', 6668, 'influxdb', 'key1=val1, key2=val2'), "
+            + "('127.0.0.1', 3306, 'relational', 'engine=mysql, schema_prefix=\\,\\n\\r\\f\\b\\\\\\\"\\'\\u0041');";
     AddStorageEngineStatement statement =
         (AddStorageEngineStatement) TestUtils.buildStatement(addStorageEngineStr);
 
-    assertEquals(2, statement.getEngines().size());
+    assertEquals(3, statement.getEngines().size());
 
     Map<String, String> extra01 = new HashMap<>();
     extra01.put("username", "root");
@@ -269,8 +266,26 @@ public class ParseTest {
     StorageEngine engine02 =
         new StorageEngine("127.0.0.1", 6668, StorageEngineType.influxdb, extra02);
 
+    Map<String, String> extra03 = new HashMap<>();
+    extra03.put("engine", "mysql");
+    extra03.put("schema_prefix", ",\n\r\f\b\\\"'A");
+    StorageEngine engine03 =
+        new StorageEngine("127.0.0.1", 3306, StorageEngineType.relational, extra03);
+
     assertEquals(engine01, statement.getEngines().get(0));
     assertEquals(engine02, statement.getEngines().get(1));
+    assertEquals(engine03, statement.getEngines().get(2));
+  }
+
+  @Test
+  public void testParseRemoveStorageEngine() {
+    String removeStorageEngineStr =
+        "REMOVE STORAGEENGINE (\"127.0.0.1\", 6667, \"\\,\\n\\r\\f\\b\\\\\\\"\\'\\u0041\", \"\\,\\n\\r\\f\\b\\\\\\\"\\'\\u0041\");";
+    RemoveStorageEngineStatement statement =
+        (RemoveStorageEngineStatement) TestUtils.buildStatement(removeStorageEngineStr);
+    RemovedStorageEngineInfo engine =
+        new RemovedStorageEngineInfo("127.0.0.1", 6667, ",\n\r\f\b\\\"'A", ",\n\r\f\b\\\"'A");
+    assertEquals(engine, statement.getStorageEngineList().get(0));
   }
 
   @Test
