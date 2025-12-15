@@ -811,7 +811,8 @@ public abstract class BaseCapacityExpansionIT {
   }
 
   private void testSpecialPrefix(String removeStatement, List<List<Object>> valuesList) {
-    String schemaPrefix = "\\,\\\"\\'\\\\\\n\\r\\f\\b\\t\\u0041"; // 输入为\,\"\'\\\n\r\f\b\t\u0041 -> 实际schemaPrefix为,"'\\n\r\f\b\tA
+    // 输入为\,\"\'\\\n\r\f\b\t\u0041 -> 实际schemaPrefix为,"'\\n\r\f\b\tA
+    String schemaPrefix = "\\,\\\"\\'\\\\\\n\\r\\f\\b\\t\\u0041";
     // 测试转义符在schema_prefix中是否能够正确转义，成功add storageengine与remove storageengine
     addStorageEngine(expPort, true, true, null, schemaPrefix, portsToExtraParams.get(expPort));
     String statement = "select wt01.status2 from `,\"'\\\n\r\f\b\tA.nt.wf03`;";
