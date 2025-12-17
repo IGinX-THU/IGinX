@@ -19,9 +19,7 @@
  */
 package cn.edu.tsinghua.iginx.sql;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 import cn.edu.tsinghua.iginx.engine.shared.expr.BaseExpression;
 import cn.edu.tsinghua.iginx.engine.shared.expr.FuncExpression;
@@ -248,7 +246,7 @@ public class ParseTest {
     String addStorageEngineStr =
         "ADD STORAGEENGINE (\"127.0.0.1\", 6667, \"iotdb12\", \"username=root, password=root\"), "
             + "('127.0.0.1', 6668, 'influxdb', 'key1=val1, key2=val2'), "
-            + "('127.0.0.1', 3306, 'relational', 'engine=mysql, schema_prefix=\\,\\n\\r\\f\\b\\\\\\\"\\'\\u0041');";
+            + "('127.0.0.1', 3306, 'relational', 'engine=mysql, schema_prefix=\\,\\n\\r\\f\\b\\\\\"\\'\\u0041');";
     AddStorageEngineStatement statement =
         (AddStorageEngineStatement) TestUtils.buildStatement(addStorageEngineStr);
 
@@ -275,6 +273,20 @@ public class ParseTest {
     assertEquals(engine01, statement.getEngines().get(0));
     assertEquals(engine02, statement.getEngines().get(1));
     assertEquals(engine03, statement.getEngines().get(2));
+
+    // 对于含有转义后字符的直接报错
+    String wrongAddStorageEngineStr =
+        "ADD STORAGEENGINE ('127.0.0.1', 3306, 'relational', 'engine=mysql, schema_prefix=\n');";
+    IllegalArgumentException exception =
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> {
+              AddStorageEngineStatement stmt =
+                  (AddStorageEngineStatement) TestUtils.buildStatement(wrongAddStorageEngineStr);
+            });
+    // 确保抛出的异常是你刚刚写的那一个，而不是代码其他地方崩了
+    String expectedMessage = "String literal contains unescaped control characters";
+    assertTrue(exception.getMessage().contains(expectedMessage));
   }
 
   @Test
@@ -286,6 +298,20 @@ public class ParseTest {
     RemovedStorageEngineInfo engine =
         new RemovedStorageEngineInfo("127.0.0.1", 6667, ",\n\r\f\b\\\"'A", ",\n\r\f\b\\\"'A");
     assertEquals(engine, statement.getStorageEngineList().get(0));
+    // 对于含有转义后字符的直接报错
+    String wrongRemoveStorageEngineStr =
+        "REMOVE STORAGEENGINE (\"127.0.0.1\", 6667, \"\n\", \"\n\");";
+    IllegalArgumentException exception =
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> {
+              RemoveStorageEngineStatement stmt =
+                  (RemoveStorageEngineStatement)
+                      TestUtils.buildStatement(wrongRemoveStorageEngineStr);
+            });
+    // 确保抛出的异常是你刚刚写的那一个，而不是代码其他地方崩了
+    String expectedMessage = "String literal contains unescaped control characters";
+    assertTrue(exception.getMessage().contains(expectedMessage));
   }
 
   @Test

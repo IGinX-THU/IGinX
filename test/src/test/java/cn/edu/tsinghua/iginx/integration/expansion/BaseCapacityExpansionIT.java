@@ -824,6 +824,16 @@ public abstract class BaseCapacityExpansionIT {
       LOGGER.error("remove history data source through sql error: ", e);
       fail();
     }
+    // 如果含有转义后的字符（例如：\n \r \t），将不被允许插入
+    schemaPrefix = "\n";
+    String res =
+        addStorageEngine(expPort, true, true, null, schemaPrefix, portsToExtraParams.get(expPort));
+    if (res == null) {
+      LOGGER.error("String literal contains unescaped control characters, should not be added");
+      fail();
+    } else {
+      LOGGER.info("Successfully rejected schema prefix with unescaped control characters.");
+    }
   }
 
   private void testAddAndRemoveStorageEngineWithPrefix() {
