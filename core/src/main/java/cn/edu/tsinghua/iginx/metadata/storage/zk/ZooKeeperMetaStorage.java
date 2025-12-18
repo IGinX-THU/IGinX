@@ -33,7 +33,6 @@ import cn.edu.tsinghua.iginx.metadata.hook.*;
 import cn.edu.tsinghua.iginx.metadata.storage.IMetaStorage;
 import cn.edu.tsinghua.iginx.metadata.utils.ReshardStatus;
 import cn.edu.tsinghua.iginx.session.Session;
-import cn.edu.tsinghua.iginx.transform.pojo.TriggerDescriptor;
 import cn.edu.tsinghua.iginx.utils.JsonUtils;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.math.BigDecimal;
@@ -116,8 +115,8 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
   private UserChangeHook userChangeHook = null;
   private TimeSeriesChangeHook timeSeriesChangeHook = null;
   private VersionChangeHook versionChangeHook = null;
-  private TransformChangeHook transformChangeHook = null;
-  private JobTriggerChangeHook jobTriggerChangeHook = null;
+  private PyFunctionChangeHook pyFunctionChangeHook = null;
+  private TransformJobChangeHook transformJobChangeHook = null;
   private ReshardStatusChangeHook reshardStatusChangeHook = null;
   private ReshardCounterChangeHook reshardCounterChangeHook = null;
   private MaxActiveEndKeyStatisticsChangeHook maxActiveEndKeyStatisticsChangeHook = null;
@@ -130,9 +129,9 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
 
   protected TreeCache versionCache;
 
-  private TreeCache transformCache;
+  private TreeCache pyFunctionCache;
 
-  private TreeCache jobTriggerCache;
+  private TreeCache transformJobCache;
 
   public ZooKeeperMetaStorage() {
     client =
@@ -1552,30 +1551,30 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
   }
 
   @Override
-  public void registerTransformChangeHook(TransformChangeHook hook) {
-    this.transformChangeHook = hook;
+  public void registerPyFunctionChangeHook(PyFunctionChangeHook hook) {
+    this.pyFunctionChangeHook = hook;
   }
 
   @Override
-  public List<TransformTaskMeta> loadTransformTask() throws MetaStorageException {
-    InterProcessMutex mutex = new InterProcessMutex(this.client, TRANSFORM_LOCK_NODE);
+  public List<PyFunctionMeta> loadPyFunction() throws MetaStorageException {
+    InterProcessMutex mutex = new InterProcessMutex(this.client, PYFUNCTION_LOCK_NODE);
     try {
       mutex.acquire();
-      List<TransformTaskMeta> tasks = new ArrayList<>();
-      if (this.client.checkExists().forPath(TRANSFORM_NODE_PREFIX) == null) {
+      List<PyFunctionMeta> tasks = new ArrayList<>();
+      if (this.client.checkExists().forPath(PYFUNCTION_NODE_PREFIX) == null) {
         // 当前还没有数据，创建父节点，然后不需要解析数据
         client
             .create()
             .creatingParentsIfNeeded()
             .withMode(CreateMode.PERSISTENT)
-            .forPath(TRANSFORM_NODE_PREFIX);
+            .forPath(PYFUNCTION_NODE_PREFIX);
       } else {
-        List<String> classNames = this.client.getChildren().forPath(TRANSFORM_NODE_PREFIX);
+        List<String> classNames = this.client.getChildren().forPath(PYFUNCTION_NODE_PREFIX);
         for (String className : classNames) {
-          byte[] data = this.client.getData().forPath(TRANSFORM_NODE_PREFIX + "/" + className);
-          TransformTaskMeta task = JsonUtils.fromJson(data, TransformTaskMeta.class);
+          byte[] data = this.client.getData().forPath(PYFUNCTION_NODE_PREFIX + "/" + className);
+          PyFunctionMeta task = JsonUtils.fromJson(data, PyFunctionMeta.class);
           if (task == null) {
-            LOGGER.error("resolve data from {}/{} error", TRANSFORM_NODE_PREFIX, className);
+            LOGGER.error("resolve data from {}/{} error", PYFUNCTION_NODE_PREFIX, className);
             continue;
           }
           tasks.add(task);
@@ -1584,57 +1583,57 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
       registerTransformListener();
       return tasks;
     } catch (Exception e) {
-      throw new MetaStorageException("get error when load transform tasks", e);
+      throw new MetaStorageException("get error when load python functions", e);
     } finally {
       try {
         mutex.release();
       } catch (Exception e) {
         throw new MetaStorageException(
-            "get error when release interprocess lock for " + TRANSFORM_LOCK_NODE, e);
+            "get error when release interprocess lock for " + PYFUNCTION_LOCK_NODE, e);
       }
     }
   }
 
   private void registerTransformListener() throws Exception {
-    this.transformCache = new TreeCache(this.client, TRANSFORM_NODE_PREFIX);
+    this.pyFunctionCache = new TreeCache(this.client, PYFUNCTION_NODE_PREFIX);
     TreeCacheListener listener =
         (curatorFramework, event) -> {
-          if (transformChangeHook == null) {
+          if (pyFunctionChangeHook == null) {
             return;
           }
-          TransformTaskMeta taskMeta;
+          PyFunctionMeta taskMeta;
           switch (event.getType()) {
             case NODE_ADDED:
             case NODE_UPDATED:
               if (event.getData() == null
                   || event.getData().getPath() == null
-                  || event.getData().getPath().equals(TRANSFORM_NODE_PREFIX)) {
+                  || event.getData().getPath().equals(PYFUNCTION_NODE_PREFIX)) {
                 return; // 前缀事件，非含数据的节点的变化，不需要处理
               }
-              taskMeta = JsonUtils.fromJson(event.getData().getData(), TransformTaskMeta.class);
+              taskMeta = JsonUtils.fromJson(event.getData().getData(), PyFunctionMeta.class);
               if (taskMeta != null) {
-                transformChangeHook.onChange(taskMeta.getName(), taskMeta);
+                pyFunctionChangeHook.onChange(taskMeta.getName(), taskMeta);
               } else {
-                LOGGER.error("resolve transform task from zookeeper error");
+                LOGGER.error("resolve python function from zookeeper error");
               }
               break;
             case NODE_REMOVED:
               String path = event.getData().getPath();
               String[] pathParts = path.split("/");
               String className = pathParts[pathParts.length - 1];
-              transformChangeHook.onChange(className, null);
+              pyFunctionChangeHook.onChange(className, null);
               break;
             default:
               break;
           }
         };
-    this.transformCache.getListenable().addListener(listener);
-    this.transformCache.start();
+    this.pyFunctionCache.getListenable().addListener(listener);
+    this.pyFunctionCache.start();
   }
 
   @Override
-  public void addTransformTask(TransformTaskMeta transformTask) throws MetaStorageException {
-    InterProcessMutex mutex = new InterProcessMutex(this.client, TRANSFORM_LOCK_NODE);
+  public void addPyFunction(PyFunctionMeta pyFunctionMeta) throws MetaStorageException {
+    InterProcessMutex mutex = new InterProcessMutex(this.client, PYFUNCTION_LOCK_NODE);
     try {
       mutex.acquire();
       this.client
@@ -1642,200 +1641,197 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
           .creatingParentsIfNeeded()
           .withMode(CreateMode.PERSISTENT)
           .forPath(
-              TRANSFORM_NODE_PREFIX + "/" + transformTask.getName(),
-              JsonUtils.toJson(transformTask));
+              PYFUNCTION_NODE_PREFIX + "/" + pyFunctionMeta.getName(),
+              JsonUtils.toJson(pyFunctionMeta));
     } catch (Exception e) {
-      throw new MetaStorageException("get error when add transform task", e);
+      throw new MetaStorageException("get error when add python function", e);
     } finally {
       try {
         mutex.release();
       } catch (Exception e) {
         throw new MetaStorageException(
-            "get error when release interprocess lock for " + TRANSFORM_LOCK_NODE, e);
+            "get error when release interprocess lock for " + PYFUNCTION_LOCK_NODE, e);
       }
     }
   }
 
   @Override
-  public void updateTransformTask(TransformTaskMeta transformTask) throws MetaStorageException {
-    InterProcessMutex mutex = new InterProcessMutex(this.client, TRANSFORM_LOCK_NODE);
+  public void updatePyFunction(PyFunctionMeta pyFunctionMeta) throws MetaStorageException {
+    InterProcessMutex mutex = new InterProcessMutex(this.client, PYFUNCTION_LOCK_NODE);
     try {
       mutex.acquire();
       this.client
           .setData()
           .forPath(
-              TRANSFORM_NODE_PREFIX + "/" + transformTask.getName(),
-              JsonUtils.toJson(transformTask));
+              PYFUNCTION_NODE_PREFIX + "/" + pyFunctionMeta.getName(),
+              JsonUtils.toJson(pyFunctionMeta));
     } catch (Exception e) {
-      throw new MetaStorageException("get error when update transform task", e);
+      throw new MetaStorageException("get error when update python function", e);
     } finally {
       try {
         mutex.release();
       } catch (Exception e) {
         throw new MetaStorageException(
-            "get error when release interprocess lock for " + TRANSFORM_LOCK_NODE, e);
+            "get error when release interprocess lock for " + PYFUNCTION_LOCK_NODE, e);
       }
     }
   }
 
   @Override
-  public void dropTransformTask(String name) throws MetaStorageException {
-    InterProcessMutex mutex = new InterProcessMutex(this.client, TRANSFORM_LOCK_NODE);
+  public void dropPyFunction(String name) throws MetaStorageException {
+    InterProcessMutex mutex = new InterProcessMutex(this.client, PYFUNCTION_LOCK_NODE);
     try {
       mutex.acquire();
-      this.client.delete().forPath(TRANSFORM_NODE_PREFIX + "/" + name);
+      this.client.delete().forPath(PYFUNCTION_NODE_PREFIX + "/" + name);
     } catch (Exception e) {
-      throw new MetaStorageException("get error when drop transform task", e);
+      throw new MetaStorageException("get error when dropping python function", e);
     } finally {
       try {
         mutex.release();
       } catch (Exception e) {
         throw new MetaStorageException(
-            "get error when release interprocess lock for " + TRANSFORM_LOCK_NODE, e);
+            "get error when release interprocess lock for " + PYFUNCTION_LOCK_NODE, e);
       }
     }
   }
 
   @Override
-  public List<TriggerDescriptor> loadJobTrigger() throws MetaStorageException {
-    InterProcessMutex mutex = new InterProcessMutex(this.client, JOB_TRIGGER_LOCK_NODE);
+  public List<TransformJobMeta> loadTransformJobs() throws MetaStorageException {
+    InterProcessMutex mutex = new InterProcessMutex(this.client, TRANSFORM_JOB_LOCK_NODE);
     try {
       mutex.acquire();
-      List<TriggerDescriptor> descriptors = new ArrayList<>();
-      if (this.client.checkExists().forPath(JOB_TRIGGER_NODE_PREFIX) == null) {
+      List<TransformJobMeta> jobMetas = new ArrayList<>();
+      if (this.client.checkExists().forPath(TRANSFORM_JOB_NODE_PREFIX) == null) {
         // 当前还没有数据，创建父节点，然后不需要解析数据
         client
             .create()
             .creatingParentsIfNeeded()
             .withMode(CreateMode.PERSISTENT)
-            .forPath(JOB_TRIGGER_NODE_PREFIX);
+            .forPath(TRANSFORM_JOB_NODE_PREFIX);
       } else {
-        List<String> triggerNames = this.client.getChildren().forPath(JOB_TRIGGER_NODE_PREFIX);
+        List<String> triggerNames = this.client.getChildren().forPath(TRANSFORM_JOB_NODE_PREFIX);
         for (String name : triggerNames) {
-          byte[] data = this.client.getData().forPath(JOB_TRIGGER_NODE_PREFIX + "/" + name);
-          TriggerDescriptor descriptor = JsonUtils.fromJson(data, TriggerDescriptor.class);
+          byte[] data = this.client.getData().forPath(TRANSFORM_JOB_NODE_PREFIX + "/" + name);
+          TransformJobMeta descriptor = JsonUtils.fromJson(data, TransformJobMeta.class);
           if (descriptor == null) {
-            LOGGER.error("resolve data from {}/{} error", JOB_TRIGGER_NODE_PREFIX, name);
+            LOGGER.error("resolve data from {}/{} error", TRANSFORM_JOB_NODE_PREFIX, name);
             continue;
           }
-          descriptors.add(descriptor);
+          jobMetas.add(descriptor);
         }
       }
-      registerJobTriggerListener();
-      return descriptors;
+      registerTransformJobListener();
+      return jobMetas;
     } catch (Exception e) {
-      throw new MetaStorageException("get error when load job triggers", e);
+      throw new MetaStorageException("get error when load transform jobs", e);
     } finally {
       try {
         mutex.release();
       } catch (Exception e) {
         throw new MetaStorageException(
-            "get error when release interprocess lock for " + JOB_TRIGGER_LOCK_NODE, e);
+            "get error when release interprocess lock for " + TRANSFORM_JOB_LOCK_NODE, e);
       }
     }
   }
 
-  private void registerJobTriggerListener() throws Exception {
-    this.jobTriggerCache = new TreeCache(this.client, JOB_TRIGGER_NODE_PREFIX);
+  private void registerTransformJobListener() throws Exception {
+    this.transformJobCache = new TreeCache(this.client, TRANSFORM_JOB_NODE_PREFIX);
     TreeCacheListener listener =
         (curatorFramework, event) -> {
-          if (jobTriggerChangeHook == null) {
+          if (transformJobChangeHook == null) {
             return;
           }
-          TriggerDescriptor descriptor;
+          TransformJobMeta jobMeta;
           switch (event.getType()) {
             case NODE_ADDED:
             case NODE_UPDATED:
               if (event.getData() == null
                   || event.getData().getPath() == null
-                  || event.getData().getPath().equals(JOB_TRIGGER_NODE_PREFIX)) {
+                  || event.getData().getPath().equals(TRANSFORM_JOB_NODE_PREFIX)) {
                 return; // 前缀事件，非含数据的节点的变化，不需要处理
               }
-              descriptor = JsonUtils.fromJson(event.getData().getData(), TriggerDescriptor.class);
-              if (descriptor != null) {
-                jobTriggerChangeHook.onChange(descriptor.getName(), descriptor);
+              jobMeta = JsonUtils.fromJson(event.getData().getData(), TransformJobMeta.class);
+              if (jobMeta != null) {
+                transformJobChangeHook.onChange(jobMeta.getName(), jobMeta);
               } else {
-                LOGGER.error("resolve job trigger from zookeeper error");
+                LOGGER.error("resolve transform job from zookeeper error");
               }
               break;
             case NODE_REMOVED:
               String path = event.getData().getPath();
               String[] pathParts = path.split("/");
               String name = pathParts[pathParts.length - 1];
-              jobTriggerChangeHook.onChange(name, null);
+              transformJobChangeHook.onChange(name, null);
               break;
             default:
               break;
           }
         };
-    this.jobTriggerCache.getListenable().addListener(listener);
-    this.jobTriggerCache.start();
+    this.transformJobCache.getListenable().addListener(listener);
+    this.transformJobCache.start();
   }
 
   @Override
-  public void registerJobTriggerChangeHook(JobTriggerChangeHook hook) {
-    jobTriggerChangeHook = hook;
+  public void registerTransformJobChangeHook(TransformJobChangeHook hook) {
+    transformJobChangeHook = hook;
   }
 
   @Override
-  public void storeJobTrigger(TriggerDescriptor descriptor) throws MetaStorageException {
-    InterProcessMutex mutex = new InterProcessMutex(this.client, JOB_TRIGGER_LOCK_NODE);
+  public void storeTransformJob(TransformJobMeta jobMeta) throws MetaStorageException {
+    InterProcessMutex mutex = new InterProcessMutex(this.client, TRANSFORM_JOB_LOCK_NODE);
     try {
       mutex.acquire();
       this.client
           .create()
           .creatingParentsIfNeeded()
           .withMode(CreateMode.PERSISTENT)
-          .forPath(
-              JOB_TRIGGER_NODE_PREFIX + "/" + descriptor.getName(), JsonUtils.toJson(descriptor));
+          .forPath(TRANSFORM_JOB_NODE_PREFIX + "/" + jobMeta.getName(), JsonUtils.toJson(jobMeta));
     } catch (Exception e) {
-      throw new MetaStorageException("get error when saving job trigger", e);
+      throw new MetaStorageException("get error when saving transform job", e);
     } finally {
       try {
         mutex.release();
       } catch (Exception e) {
         throw new MetaStorageException(
-            "get error when release interprocess lock for " + JOB_TRIGGER_LOCK_NODE, e);
+            "get error when release interprocess lock for " + TRANSFORM_JOB_LOCK_NODE, e);
       }
     }
   }
 
   @Override
-  public void dropJobTrigger(String name) throws MetaStorageException {
-    InterProcessMutex mutex = new InterProcessMutex(this.client, JOB_TRIGGER_LOCK_NODE);
+  public void dropTransformJob(String name) throws MetaStorageException {
+    InterProcessMutex mutex = new InterProcessMutex(this.client, TRANSFORM_JOB_LOCK_NODE);
     try {
       mutex.acquire();
-      this.client.delete().forPath(JOB_TRIGGER_NODE_PREFIX + "/" + name);
+      this.client.delete().forPath(TRANSFORM_JOB_NODE_PREFIX + "/" + name);
     } catch (Exception e) {
-      throw new MetaStorageException("get error when drop job trigger", e);
+      throw new MetaStorageException("get error when drop transform job", e);
     } finally {
       try {
         mutex.release();
       } catch (Exception e) {
         throw new MetaStorageException(
-            "get error when release interprocess lock for " + JOB_TRIGGER_LOCK_NODE, e);
+            "get error when release interprocess lock for " + TRANSFORM_JOB_LOCK_NODE, e);
       }
     }
   }
 
   @Override
-  public void updateJobTrigger(TriggerDescriptor jobTriggerDescriptor) throws MetaStorageException {
-    InterProcessMutex mutex = new InterProcessMutex(this.client, JOB_TRIGGER_LOCK_NODE);
+  public void updateTransformJob(TransformJobMeta jobMeta) throws MetaStorageException {
+    InterProcessMutex mutex = new InterProcessMutex(this.client, TRANSFORM_JOB_LOCK_NODE);
     try {
       mutex.acquire();
       this.client
           .setData()
-          .forPath(
-              JOB_TRIGGER_NODE_PREFIX + "/" + jobTriggerDescriptor.getName(),
-              JsonUtils.toJson(jobTriggerDescriptor));
+          .forPath(TRANSFORM_JOB_NODE_PREFIX + "/" + jobMeta.getName(), JsonUtils.toJson(jobMeta));
     } catch (Exception e) {
-      throw new MetaStorageException("get error when updateing job trigger", e);
+      throw new MetaStorageException("get error when updating transform job", e);
     } finally {
       try {
         mutex.release();
       } catch (Exception e) {
         throw new MetaStorageException(
-            "get error when release interprocess lock for " + JOB_TRIGGER_LOCK_NODE, e);
+            "get error when release interprocess lock for " + TRANSFORM_JOB_LOCK_NODE, e);
       }
     }
   }

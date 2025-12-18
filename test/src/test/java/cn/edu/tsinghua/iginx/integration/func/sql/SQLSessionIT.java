@@ -254,8 +254,41 @@ public class SQLSessionIT {
     executor.execute(clearData);
   }
 
+  // 合并没有额外写入操作的测试减少重复写入
   @Test
-  public void testCountPath() {
+  public void runNormalTest() {
+    testCountPath();
+    testCountPoints();
+    testShowColumns();
+    testShowReplicaNum();
+    testTimeRangeQuery();
+    testLimitAndOffsetQuery();
+    testFirstLastQuery();
+    testAggregateQuery();
+    testAggregateQueryWithArithExpr();
+    testDownSampleQuery();
+    testDownSampleQueryWithArithExpr();
+    testRangeDownSampleQuery();
+    testSlideWindowByTimeQuery();
+    testRangeSlideWindowByTimeQuery();
+    testRangeSlideWindowByTimeNoIntervalQuery();
+    testAlias();
+    testAggregateSubQuery();
+    testSelectFromAggregate();
+    testValueFilterSubQuery();
+    testMultiSubQuery();
+    testErrorClause();
+    testExplain();
+    testBaseInfoConcurrentQuery();
+    testShowConfig();
+    testSetMappingTransform();
+    testMappingTransform();
+    testSingleLineComment();
+    testMultiLineComment();
+    testSelectWithoutFromClause();
+  }
+
+  private void testCountPath() {
     String statement = "SELECT COUNT(*) FROM us.d1;";
     String expected =
         "ResultSets:\n"
@@ -268,16 +301,14 @@ public class SQLSessionIT {
     executor.executeAndCompare(statement, expected);
   }
 
-  @Test
-  public void testCountPoints() {
+  private void testCountPoints() {
     if (isScaling) return;
     String statement = "COUNT POINTS;";
     String expected = "Points num: 60000\n";
     executor.executeAndCompare(statement, expected);
   }
 
-  @Test
-  public void testShowColumns() {
+  private void testShowColumns() {
     if (!isAbleToShowColumns || isScaling) {
       return;
     }
@@ -341,15 +372,13 @@ public class SQLSessionIT {
     executor.executeAndCompare(statement, expected, true);
   }
 
-  @Test
-  public void testShowReplicaNum() {
+  private void testShowReplicaNum() {
     String statement = "SHOW REPLICA NUMBER;";
     String expected = "Replica num: 1\n";
     executor.executeAndCompare(statement, expected);
   }
 
-  @Test
-  public void testTimeRangeQuery() {
+  private void testTimeRangeQuery() {
     String statement = "SELECT s1 FROM us.d1 WHERE key > 100 AND key < 120;";
     String expected =
         "ResultSets:\n"
@@ -1141,8 +1170,7 @@ public class SQLSessionIT {
     executor.executeAndCompare(statement, expected);
   }
 
-  @Test
-  public void testLimitAndOffsetQuery() {
+  private void testLimitAndOffsetQuery() {
     String statement = "SELECT s1 FROM us.d1 WHERE key > 0 AND key < 10000 limit 10;";
     String expected =
         "ResultSets:\n"
@@ -1391,8 +1419,7 @@ public class SQLSessionIT {
     executor.executeAndCompare(statement, expected);
   }
 
-  @Test
-  public void testFirstLastQuery() {
+  private void testFirstLastQuery() {
     String statement = "SELECT FIRST(s2) FROM us.d1 WHERE key > 0;";
     String expected =
         "ResultSets:\n"
@@ -1522,8 +1549,7 @@ public class SQLSessionIT {
     executor.executeAndCompare(statement, expected);
   }
 
-  @Test
-  public void testAggregateQuery() {
+  private void testAggregateQuery() {
     String statement = "SELECT %s(s1), %s(s2) FROM us.d1 WHERE key > 0 AND key < 1000;";
     List<String> funcTypeList =
         Arrays.asList("MAX", "MIN", "FIRST_VALUE", "LAST_VALUE", "SUM", "AVG", "COUNT");
@@ -1586,8 +1612,7 @@ public class SQLSessionIT {
     }
   }
 
-  @Test
-  public void testAggregateQueryWithArithExpr() {
+  private void testAggregateQueryWithArithExpr() {
     String statement = "SELECT %s(s1 + s2), %s(s2 * 3) FROM us.d1 WHERE key > 0 AND key < 100;";
     List<String> funcTypeList =
         Arrays.asList("MAX", "MIN", "FIRST_VALUE", "LAST_VALUE", "SUM", "AVG", "COUNT");
@@ -1698,8 +1723,7 @@ public class SQLSessionIT {
     executor.executeAndCompare(query, expected);
   }
 
-  @Test
-  public void testDownSampleQuery() {
+  private void testDownSampleQuery() {
     String statement = "SELECT %s(s1), %s(s4) FROM us.d1 OVER WINDOW (size 100 IN (0, 1000));";
     List<String> funcTypeList =
         Arrays.asList("MAX", "MIN", "FIRST_VALUE", "LAST_VALUE", "SUM", "AVG", "COUNT");
@@ -1834,8 +1858,7 @@ public class SQLSessionIT {
             .anyMatch(s -> s.contains("Downsample") && s.contains("avg") && s.contains("count")));
   }
 
-  @Test
-  public void testDownSampleQueryWithArithExpr() {
+  private void testDownSampleQueryWithArithExpr() {
     String statement =
         "SELECT %s(s4 - s1), %s(s4 * s1 * 2) FROM us.d1 OVER WINDOW (size 10 IN (0, 100));";
     List<String> funcTypeList =
@@ -1961,8 +1984,7 @@ public class SQLSessionIT {
     }
   }
 
-  @Test
-  public void testRangeDownSampleQuery() {
+  private void testRangeDownSampleQuery() {
     String statement =
         "SELECT %s(s1), %s(s4) FROM us.d1 WHERE key > 600 AND s1 <= 900 OVER WINDOW (size 100 IN (0, 1000));";
     List<String> funcTypeList =
@@ -2039,8 +2061,7 @@ public class SQLSessionIT {
     }
   }
 
-  @Test
-  public void testSlideWindowByTimeQuery() {
+  private void testSlideWindowByTimeQuery() {
     String statement =
         "SELECT %s(s1), %s(s4) FROM us.d1 OVER WINDOW (size 100 IN (0, 1000) SLIDE 50);";
     List<String> funcTypeList =
@@ -2229,8 +2250,7 @@ public class SQLSessionIT {
     }
   }
 
-  @Test
-  public void testRangeSlideWindowByTimeQuery() {
+  private void testRangeSlideWindowByTimeQuery() {
     String statement =
         "SELECT %s(s1), %s(s4) FROM us.d1 WHERE key > 300 AND s1 <= 600 OVER WINDOW (size 100 IN (0, 1000) SLIDE 50);";
     List<String> funcTypeList =
@@ -2335,8 +2355,7 @@ public class SQLSessionIT {
     }
   }
 
-  @Test
-  public void testRangeSlideWindowByTimeNoIntervalQuery() {
+  private void testRangeSlideWindowByTimeNoIntervalQuery() {
     String statement =
         "SELECT %s(s1), %s(s4) FROM us.d1 WHERE key > 300 AND s1 <= 600 OVER WINDOW (SIZE 100 SLIDE 50);";
     List<String> funcTypeList =
@@ -3862,8 +3881,7 @@ public class SQLSessionIT {
     executor.executeAndCompare(statement, expected);
   }
 
-  @Test
-  public void testAlias() {
+  private void testAlias() {
     // time series alias
     String statement = "SELECT s1 AS rename_series, s2 FROM us.d1 WHERE s1 >= 1000 AND s1 < 1010;";
     String expected =
@@ -4142,8 +4160,7 @@ public class SQLSessionIT {
         statement, "Parse Error: line 1:13 no viable alternative at input 'AS `'");
   }
 
-  @Test
-  public void testAggregateSubQuery() {
+  private void testAggregateSubQuery() {
     String statement =
         "SELECT %s_s1 FROM (SELECT %s(s1) AS %s_s1 FROM us.d1 OVER WINDOW(SIZE 60 IN [1000, 1600)));";
     List<String> funcTypeList =
@@ -4270,8 +4287,7 @@ public class SQLSessionIT {
     }
   }
 
-  @Test
-  public void testSelectFromAggregate() {
+  private void testSelectFromAggregate() {
     String statement =
         "SELECT `%s(us.d1.s1)` FROM (SELECT %s(s1) FROM us.d1 OVER WINDOW(SIZE 60 IN [1000, 1600)));";
     List<String> funcTypeList =
@@ -4398,8 +4414,7 @@ public class SQLSessionIT {
     }
   }
 
-  @Test
-  public void testValueFilterSubQuery() {
+  private void testValueFilterSubQuery() {
     String statement =
         "SELECT ts FROM (SELECT s1 AS ts FROM us.d1 WHERE us.d1.s1 >= 1000 AND us.d1.s1 < 1010);";
     String expected =
@@ -4451,8 +4466,7 @@ public class SQLSessionIT {
     executor.executeAndCompare(statement, expected);
   }
 
-  @Test
-  public void testMultiSubQuery() {
+  private void testMultiSubQuery() {
     String statement =
         "SELECT AVG(s1) AS avg_s1, SUM(s2) AS sum_s2 FROM us.d1 OVER WINDOW (size 10 IN [1000, 1100));";
     String expected =
@@ -6721,8 +6735,7 @@ public class SQLSessionIT {
     executor.executeAndCompare(query, expected);
   }
 
-  @Test
-  public void testErrorClause() {
+  private void testErrorClause() {
     String errClause =
         "DELETE FROM us.d1.s1 WHERE key > 105 AND key < 115 AND key >= 120 AND key <= 230;";
     executor.executeAndCompareErrMsg(
@@ -6781,8 +6794,7 @@ public class SQLSessionIT {
         errClause, "ORDER BY column can not use SetToSet/SetToRow functions.");
   }
 
-  @Test
-  public void testExplain() {
+  private void testExplain() {
     if (isScaling) return;
     String explain = "explain select max(s2), min(s1) from us.d1;";
     String expected =
@@ -7074,8 +7086,7 @@ public class SQLSessionIT {
     executor.executeAndCompare(query, expected);
   }
 
-  @Test
-  public void testBaseInfoConcurrentQuery() {
+  private void testBaseInfoConcurrentQuery() {
     if (isScaling) {
       return;
     }
@@ -7187,8 +7198,7 @@ public class SQLSessionIT {
     executor.concurrentExecuteAndCompare(statementsAndExpectRes);
   }
 
-  @Test
-  public void testShowConfig() {
+  private void testShowConfig() {
     String statement = "show config \"memoryTaskThreadPoolSize\";";
     String expected =
         "Config Info:\n"
@@ -7338,8 +7348,7 @@ public class SQLSessionIT {
     executor.executeAndCompare(query, expect);
   }
 
-  @Test
-  public void testSetMappingTransform() {
+  private void testSetMappingTransform() {
     String query = "SELECT max(s1), min(s2) from us.d1;";
     String expect =
         "ResultSets:\n"
@@ -7379,8 +7388,7 @@ public class SQLSessionIT {
     }
   }
 
-  @Test
-  public void testMappingTransform() {
+  private void testMappingTransform() {
     String query = "SELECT first(s1), last(s2) from us.d1;";
     String expect =
         "ResultSets:\n"
@@ -7504,8 +7512,7 @@ public class SQLSessionIT {
     assertTrue(inTime * 3 >= existsTime || existsTime * 3 >= inTime);
   }
 
-  @Test
-  public void testSingleLineComment() {
+  private void testSingleLineComment() {
     String statement =
         "SELECT\n"
             + "    s1, s2\n"
@@ -7526,8 +7533,7 @@ public class SQLSessionIT {
     executor.executeAndCompare(statement, expect);
   }
 
-  @Test
-  public void testMultiLineComment() {
+  private void testMultiLineComment() {
     String statement =
         "SELECT\n"
             + "    s1, s2\n"
@@ -7550,8 +7556,7 @@ public class SQLSessionIT {
     executor.executeAndCompare(statement, expect);
   }
 
-  @Test
-  public void testSelectWithoutFromClause() {
+  private void testSelectWithoutFromClause() {
     String statement = "select 1+1 as one_plus_one, 2, 3*3, 10 as ten;";
     String expected =
         "ResultSets:\n"

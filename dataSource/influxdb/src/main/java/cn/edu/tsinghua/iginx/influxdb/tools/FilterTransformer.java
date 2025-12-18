@@ -84,19 +84,32 @@ public class FilterTransformer {
   private static String toString(ValueFilter filter) {
     // path 获取的是 table.field，需要删掉.前面的table名。
     InfluxDBSchema schema = new InfluxDBSchema(filter.getPath());
-    String path = schema.getFieldString();
-    String value = valueToString(filter.getValue());
+    String path = FluxUtils.escapeStringLiteral(schema.getField());
+
+    String rawValue;
+    if (filter.getValue().getDataType() == DataType.BINARY) {
+      // 只有 BINARY 类型才调用 getBinaryVAsString
+      rawValue = filter.getValue().getBinaryVAsString();
+    } else {
+      // 其他类型（数值、布尔等）直接转 String
+      rawValue = filter.getValue().getValue().toString();
+    }
 
     switch (filter.getOp()) {
       case LIKE:
       case LIKE_AND:
         // SQL的正则匹配需要全部匹配，但InfluxDB可以部分匹配，所以需要在最后加上$以保证匹配全部字符串。
-        return "r[\"" + path + "\"]  =~ /" + filter.getValue().getBinaryVAsString() + "$/";
+        return "r[\"" + path + "\"]  =~ /" + FluxUtils.escapeRegexRaw(rawValue) + "$/";
       case NOT_LIKE:
       case NOT_LIKE_AND:
-        return "r[\"" + path + "\"]  !~ /" + filter.getValue().getBinaryVAsString() + "$/";
+        return "r[\"" + path + "\"]  !~ /" + FluxUtils.escapeRegexRaw(rawValue) + "$/";
       default:
-        return "r[\"" + path + "\"] " + Op.op2StrWithoutAndOr(filter.getOp()) + " " + value;
+        return "r[\""
+            + path
+            + "\"] "
+            + Op.op2StrWithoutAndOr(filter.getOp())
+            + " "
+            + valueToString(filter.getValue());
     }
   }
 
@@ -120,8 +133,8 @@ public class FilterTransformer {
     // path 获取的是 table.field，需要删掉.前面的table名。
     InfluxDBSchema schemaA = new InfluxDBSchema(filter.getPathA());
     InfluxDBSchema schemaB = new InfluxDBSchema(filter.getPathB());
-    String pathA = schemaA.getFieldString();
-    String pathB = schemaB.getFieldString();
+    String pathA = FluxUtils.escapeStringLiteral(schemaA.getField());
+    String pathB = FluxUtils.escapeStringLiteral(schemaB.getField());
 
     return "r[\""
         + pathA
@@ -148,7 +161,7 @@ public class FilterTransformer {
 
   private static String valueToString(Value value) {
     if (value.getDataType() == DataType.BINARY) {
-      return "\"" + value.getBinaryVAsString() + "\"";
+      return "\"" + FluxUtils.escapeStringLiteral(value.getBinaryVAsString()) + "\"";
     }
     return value.toString();
   }

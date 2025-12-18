@@ -49,7 +49,6 @@ import cn.edu.tsinghua.iginx.sql.statement.InsertStatement;
 import cn.edu.tsinghua.iginx.thrift.AuthType;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.thrift.UserType;
-import cn.edu.tsinghua.iginx.transform.pojo.TriggerDescriptor;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.SnowFlakeUtils;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
@@ -118,8 +117,8 @@ public class DefaultMetaManager implements IMetaManager {
       initFragment();
       initPolicy();
       initUser();
-      initTransform();
-      initJobTrigger();
+      initPyFunctions();
+      initTransformJob();
       initMaxActiveEndKeyStatistics();
       initReshardStatus();
       initReshardCounter();
@@ -413,31 +412,31 @@ public class DefaultMetaManager implements IMetaManager {
     }
   }
 
-  private void initTransform() throws MetaStorageException {
-    storage.registerTransformChangeHook(
-        ((name, transformTask) -> {
-          if (transformTask == null) {
-            cache.dropTransformTask(name);
+  private void initPyFunctions() throws MetaStorageException {
+    storage.registerPyFunctionChangeHook(
+        ((name, pyFunctionMeta) -> {
+          if (pyFunctionMeta == null) {
+            cache.dropPyFunction(name);
           } else {
-            cache.addOrUpdateTransformTask(transformTask);
+            cache.addOrUpdatePyFunction(pyFunctionMeta);
           }
         }));
-    for (TransformTaskMeta task : storage.loadTransformTask()) {
-      cache.addOrUpdateTransformTask(task);
+    for (PyFunctionMeta task : storage.loadPyFunction()) {
+      cache.addOrUpdatePyFunction(task);
     }
   }
 
-  private void initJobTrigger() throws MetaStorageException {
-    storage.registerJobTriggerChangeHook(
-        ((name, descriptor) -> {
-          if (descriptor == null) {
-            cache.dropJobTrigger(name);
+  private void initTransformJob() throws MetaStorageException {
+    storage.registerTransformJobChangeHook(
+        ((name, job) -> {
+          if (job == null) {
+            cache.dropTransformJob(name);
           } else {
-            cache.addOrUpdateJobTrigger(descriptor);
+            cache.addOrUpdateTransformJob(job);
           }
         }));
-    for (TriggerDescriptor descriptor : storage.loadJobTrigger()) {
-      cache.addOrUpdateJobTrigger(descriptor);
+    for (TransformJobMeta job : storage.loadTransformJobs()) {
+      cache.addOrUpdateTransformJob(job);
     }
   }
 
@@ -1471,94 +1470,94 @@ public class DefaultMetaManager implements IMetaManager {
   }
 
   @Override
-  public boolean addTransformTask(TransformTaskMeta transformTask) {
+  public boolean addPyFunction(PyFunctionMeta pyFunctionMeta) {
     try {
-      storage.addTransformTask(transformTask);
-      cache.addOrUpdateTransformTask(transformTask);
+      storage.addPyFunction(pyFunctionMeta);
+      cache.addOrUpdatePyFunction(pyFunctionMeta);
       return true;
     } catch (MetaStorageException e) {
-      LOGGER.error("add transform task error: ", e);
+      LOGGER.error("add python function error: ", e);
       return false;
     }
   }
 
   @Override
-  public boolean updateTransformTask(TransformTaskMeta transformTask) {
+  public boolean updatePyFunction(PyFunctionMeta pyFunctionMeta) {
     try {
-      storage.updateTransformTask(transformTask);
-      cache.addOrUpdateTransformTask(transformTask);
+      storage.updatePyFunction(pyFunctionMeta);
+      cache.addOrUpdatePyFunction(pyFunctionMeta);
       return true;
     } catch (MetaStorageException e) {
-      LOGGER.error("add transform task error: ", e);
+      LOGGER.error("add python function error: ", e);
       return false;
     }
   }
 
   @Override
-  public boolean dropTransformTask(String name) {
+  public boolean dropPyFunction(String name) {
     try {
-      cache.dropTransformTask(name);
-      storage.dropTransformTask(name);
+      cache.dropPyFunction(name);
+      storage.dropPyFunction(name);
       return true;
     } catch (MetaStorageException e) {
-      LOGGER.error("drop transform task error: ", e);
+      LOGGER.error("drop python function error: ", e);
       return false;
     }
   }
 
   @Override
-  public TransformTaskMeta getTransformTask(String name) {
-    return cache.getTransformTask(name);
+  public PyFunctionMeta getPyFunction(String name) {
+    return cache.getPyFunction(name);
   }
 
   @Override
-  public List<TransformTaskMeta> getTransformTasks() {
-    return cache.getTransformTasks();
+  public List<PyFunctionMeta> getPyFunctions() {
+    return cache.getPyFunctions();
   }
 
   @Override
-  public List<TransformTaskMeta> getTransformTasksByModule(String moduleName) {
-    return cache.getTransformTasksByModule(moduleName);
+  public List<PyFunctionMeta> getPyFunctionsByModule(String moduleName) {
+    return cache.getPyFunctionsByModule(moduleName);
   }
 
-  public boolean storeJobTrigger(TriggerDescriptor descriptor) {
+  public boolean storeTransformJob(TransformJobMeta job) {
     try {
-      storage.storeJobTrigger(descriptor);
-      cache.addOrUpdateJobTrigger(descriptor);
+      storage.storeTransformJob(job);
+      cache.addOrUpdateTransformJob(job);
       return true;
     } catch (MetaStorageException e) {
-      LOGGER.error("add job trigger error: ", e);
+      LOGGER.error("add transform job error: ", e);
       return false;
     }
   }
 
   @Override
-  public boolean dropJobTrigger(String name) {
+  public boolean dropTransformJob(String name) {
     try {
-      cache.dropJobTrigger(name);
-      storage.dropJobTrigger(name);
+      cache.dropTransformJob(name);
+      storage.dropTransformJob(name);
       return true;
     } catch (MetaStorageException e) {
-      LOGGER.error("drop job trigger error: ", e);
+      LOGGER.error("drop transform job error: ", e);
       return false;
     }
   }
 
   @Override
-  public boolean updateJobTrigger(TriggerDescriptor jobTriggerDescriptor) {
+  public boolean updateTransformJob(TransformJobMeta jobMeta) {
     try {
-      storage.updateJobTrigger(jobTriggerDescriptor);
-      cache.addOrUpdateJobTrigger(jobTriggerDescriptor);
+      storage.updateTransformJob(jobMeta);
+      cache.addOrUpdateTransformJob(jobMeta);
       return true;
     } catch (MetaStorageException e) {
-      LOGGER.error("update job trigger error: ", e);
+      LOGGER.error("update transform job error: ", e);
       return false;
     }
   }
 
   @Override
-  public List<TriggerDescriptor> getJobTriggers() {
-    return cache.getJobTriggers();
+  public List<TransformJobMeta> getTransformJobs() {
+    return cache.getTransformJob();
   }
 
   @Override

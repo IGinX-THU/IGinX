@@ -19,11 +19,19 @@
  */
 package cn.edu.tsinghua.iginx.integration.other;
 
+import static org.junit.Assert.assertTrue;
+
 import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.func.udf.UDFTestTools;
+import cn.edu.tsinghua.iginx.integration.tool.ClientLauncher;
 import cn.edu.tsinghua.iginx.session.Session;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.junit.AfterClass;
@@ -57,9 +65,14 @@ public class UDFPathIT {
     session.closeSession();
   }
 
-  /** ensure every udf in list is registered */
   @Test
-  public void testUDFFuncList() {
+  public void testUDFPath() throws IOException {
+    testUDFFuncList();
+    testRegisterUDFByClientUsingRelativePath();
+  }
+
+  /** ensure every udf in list is registered */
+  private void testUDFFuncList() {
     List<String> UdfNameList;
     List<String> UdfList = config.getUdfList();
     UdfNameList =
@@ -75,5 +88,24 @@ public class UDFPathIT {
             .collect(Collectors.toList());
     UDFTestTools tools = new UDFTestTools(session);
     tools.isUDFsRegistered(UdfNameList);
+  }
+
+  private void testRegisterUDFByClientUsingRelativePath() throws IOException {
+    ClientLauncher client = new ClientLauncher();
+    Path source = Paths.get("src", "test", "resources", "udf", "mock_udf.py");
+    Path target = Paths.get(client.getClientRootDir(), "mock_udf.py");
+    Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING);
+
+    try {
+      String statement = "CREATE FUNCTION UDAF \"mock_udf\" FROM \"MockUDF\" IN \"mock_udf.py\";";
+      client.readLine(statement);
+      assertTrue(client.expectedOutputContains("success"));
+
+      statement = "DROP FUNCTION \"mock_udf\";";
+      client.readLine(statement);
+      assertTrue(client.expectedOutputContains("success"));
+    } finally {
+      client.close();
+    }
   }
 }

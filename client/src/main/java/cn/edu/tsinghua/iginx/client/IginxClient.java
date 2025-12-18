@@ -19,11 +19,14 @@
  */
 package cn.edu.tsinghua.iginx.client;
 
+import static cn.edu.tsinghua.iginx.client.constant.Constants.*;
 import static cn.edu.tsinghua.iginx.constant.GlobalConstant.DOT;
 import static cn.edu.tsinghua.iginx.constant.GlobalConstant.ESCAPED_DOT;
 import static cn.edu.tsinghua.iginx.utils.CSVUtils.getCSVBuilder;
 import static cn.edu.tsinghua.iginx.utils.FileUtils.exportByteStream;
 
+import cn.edu.tsinghua.iginx.client.state.InputState;
+import cn.edu.tsinghua.iginx.client.state.NormalState;
 import cn.edu.tsinghua.iginx.constant.GlobalConstant;
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.session.QueryDataSet;
@@ -57,42 +60,11 @@ import org.jline.terminal.TerminalBuilder;
 /** args[]: -h 127.0.0.1 -p 6888 -u root -pw root */
 public class IginxClient {
 
-  private static final String IGINX_CLI_PREFIX = "IGinX> ";
-  private static final String IGINX_CLI_PREFIX_WAITING_INPUT = "     > ";
-
-  private static final String HOST_ARGS = "h";
-  private static final String HOST_NAME = "host";
-
-  private static final String PORT_ARGS = "p";
-  private static final String PORT_NAME = "port";
-
-  private static final String USERNAME_ARGS = "u";
-  private static final String USERNAME_NAME = "username";
-
-  private static final String PASSWORD_ARGS = "pw";
-  private static final String PASSWORD_NAME = "password";
-
-  private static final String EXECUTE_ARGS = "e";
-  private static final String EXECUTE_NAME = "execute";
-
-  private static final String FETCH_SIZE_ARGS = "fs";
-  private static final String FETCH_SIZE_NAME = "fetch_size";
-
-  private static final String HELP_ARGS = "help";
-
-  private static final int MAX_HELP_CONSOLE_WIDTH = 88;
-
-  private static final String SCRIPT_HINT = "./start-cli.sh(start-cli.bat if Windows)";
-
-  private static final String QUIT_COMMAND = "quit;";
-  private static final String EXIT_COMMAND = "exit;";
-
   static String host = "127.0.0.1";
   static String port = "6888";
   static String username = "root";
   static String password = "root";
   static int fetchSize = 1000;
-
   static String execute = "";
 
   private static int MAX_GETDATA_NUM = 100;
@@ -103,7 +75,8 @@ public class IginxClient {
   private static CommandLine commandLine;
   private static Session session;
 
-  private static final StringBuilder cache = new StringBuilder();
+  private static final StringBuilder buffer = new StringBuilder();
+  private static final StringBuilder validSqlBuffer = new StringBuilder();
 
   private static Options createOptions() {
     Options options = new Options();
@@ -139,6 +112,9 @@ public class IginxClient {
     return true;
   }
 
+  private int blockCommentDepth = 0;
+  private InputState inputState = new NormalState();
+
   public static void main(String[] args) {
     Options options = createOptions();
 
@@ -172,7 +148,8 @@ public class IginxClient {
                   }
                 }));
 
-    serve(args);
+    IginxClient client = new IginxClient();
+    client.serve(args);
   }
 
   private static String parseArg(String arg, String name, boolean isRequired, String defaultValue) {
@@ -191,7 +168,7 @@ public class IginxClient {
     return str;
   }
 
-  private static void serve(String[] args) {
+  private void serve(String[] args) {
     try {
       Terminal terminal = TerminalBuilder.builder().system(true).build();
 
@@ -218,11 +195,7 @@ public class IginxClient {
 
         String command;
         while (true) {
-          if (cache.toString().trim().isEmpty()) {
-            command = reader.readLine(IGINX_CLI_PREFIX);
-          } else {
-            command = reader.readLine(IGINX_CLI_PREFIX_WAITING_INPUT);
-          }
+          command = reader.readLine(inputState.getPrompt(IginxClient.this));
           boolean continues = processCommand(command);
           if (!continues) {
             break;
@@ -265,38 +238,25 @@ public class IginxClient {
     return "unknown";
   }
 
-  private static boolean processCommand(String command) throws SessionException, IOException {
+  private boolean processCommand(String command) throws SessionException {
     if (command == null || command.trim().isEmpty()) {
       return true;
     }
-    String[] cmds = command.split(";", -1);
-    int lastIndex = cmds.length - 1;
-    for (int i = 0; i < lastIndex; i++) {
-      cache.append(cmds[i]);
-      if (cache.toString().trim().isEmpty()) {
-        continue;
-      }
-      cache.append(";");
-      OperationResult res = handleInputStatement(cache.toString());
-      cache.setLength(0);
-      switch (res) {
-        case STOP:
-          return false;
-        case CONTINUE:
-          continue;
-        default:
-          break;
-      }
+
+    if (!inputState.handleInput(command, IginxClient.this)) {
+      return false;
     }
-    cache.append(cmds[lastIndex]).append(System.lineSeparator());
+
+    // 重置缓冲区
+    buffer.append(System.lineSeparator());
+    validSqlBuffer.append(System.lineSeparator());
     return true;
   }
 
-  private static OperationResult handleInputStatement(String statement)
-      throws SessionException, IOException {
+  public OperationResult handleInputStatement(String statement) throws SessionException {
     String trimedStatement = statement.replaceAll(" +", " ").toLowerCase().trim();
 
-    if (trimedStatement.equals(EXIT_COMMAND) || trimedStatement.equals(QUIT_COMMAND)) {
+    if (EXIT_OR_QUIT_PATTERN.matcher(validSqlBuffer.toString()).matches()) {
       return OperationResult.STOP;
     }
     long startTime = System.currentTimeMillis();
@@ -484,7 +444,7 @@ public class IginxClient {
         System.out.print(FormatUtils.formatCount(total));
       }
       res.close();
-    } catch (SessionException e) {
+    } catch (SessionException | IOException e) {
       System.out.println(e.getMessage());
     } catch (Exception e) {
       System.out.println(
@@ -798,7 +758,35 @@ public class IginxClient {
             + "\n");
   }
 
-  enum OperationResult {
+  public StringBuilder getBuffer() {
+    return buffer;
+  }
+
+  public StringBuilder getValidSqlBuffer() {
+    return validSqlBuffer;
+  }
+
+  public InputState getInputState() {
+    return inputState;
+  }
+
+  public void setInputState(InputState inputState) {
+    this.inputState = inputState;
+  }
+
+  public int getBlockCommentDepth() {
+    return blockCommentDepth;
+  }
+
+  public void incrementBlockCommentDepth() {
+    this.blockCommentDepth++;
+  }
+
+  public void decrementBlockCommentDepth() {
+    this.blockCommentDepth--;
+  }
+
+  public enum OperationResult {
     STOP,
     CONTINUE,
     DO_NOTHING,
