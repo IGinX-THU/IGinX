@@ -181,3 +181,70 @@ SELECT KEY AS v, bin AS KEY from val;
 SELECT * FROM (SHOW COLUMNS num.*);
 SELECT value2meta(SELECT * FROM * LIMIT 10) FROM *;
 -- spotless:on
+-- TPC-H Q1 Like
+SELECT
+    flag_a,
+    flag_b,
+    MAX( num.i ) AS max_i,
+    MAX( num.l ) AS max_l,
+    MAX( num.f ) AS max_f,
+    MAX( num.d ) AS max_d,
+    MIN( num.i ) AS min_i,
+    MIN( num.l ) AS min_l,
+    MIN( num.f ) AS min_f,
+    MIN( num.d ) AS min_d,
+    AVG( num.i ) AS avg_i,
+    AVG( num.l ) AS avg_l,
+    AVG( num.f ) AS avg_f,
+    AVG( num.d ) AS avg_d,
+    SUM( num.i ) AS sum_i,
+    SUM( num.l ) AS sum_l,
+    SUM( num.d ) AS sum_d,
+    SUM( num.f ) AS sum_f,
+    COUNT( num.i ) AS count_i,
+    COUNT( num.l ) AS count_l,
+    COUNT( num.f ) AS count_f,
+    COUNT( num.d ) AS count_d
+FROM
+    (
+        SELECT
+            i,
+            l,
+            f,
+            d,
+            (
+                i % 2
+            ) AS flag_a,
+            (
+                (
+                    l + 1
+                )% 2
+            ) AS flag_b
+        FROM
+            num
+        WHERE
+            num.l < 100000
+    )
+GROUP BY
+    flag_a,
+    flag_b
+ORDER BY
+    flag_a,
+    flag_b;
+
+-- TPC-H Q6 Like
+SELECT
+    SUM( double_value )
+FROM
+    (
+        SELECT
+            d * f AS double_value
+        FROM
+            num
+        WHERE
+            num.l >= 0
+            AND num.l < 100000
+            AND num.d >= 0.0
+            AND num.f <= 100000.0
+            AND num.i < 100000
+    );
