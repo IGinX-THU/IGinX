@@ -37,6 +37,8 @@ public class StringEscapeUtilTest {
     assertEquals("It\\works", StringEscapeUtil.unescape("It\\\\works"));
     assertEquals("a\\.txt", StringEscapeUtil.unescape("a\\\\.txt"));
     assertEquals("a\\.txt", StringEscapeUtil.unescape("a\\.txt"));
+    assertEquals("single'quote", StringEscapeUtil.unescape("single\\'quote"));
+    assertEquals("double\"quote", StringEscapeUtil.unescape("double\\\"quote"));
 
     // Java 不支持 \a \v 这种转义，原样保留
     assertEquals("\\a", StringEscapeUtil.unescape("\\a"));

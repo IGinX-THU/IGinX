@@ -169,6 +169,7 @@ import cn.edu.tsinghua.iginx.utils.StringUtils;
 import cn.edu.tsinghua.iginx.utils.TimeUtils;
 import java.util.*;
 import java.util.stream.Collectors;
+import org.apache.commons.text.StringEscapeUtils;
 
 public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
@@ -2079,38 +2080,32 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     return subStatement;
   }
 
-  private List<String> parseWithEscape(String text, char delimiter) {
-    List<String> parts = new ArrayList<>();
-    StringBuilder current = new StringBuilder();
-    boolean escape = false;
-
-    for (int i = 0; i < text.length(); i++) {
-      char c = text.charAt(i);
-
-      if (escape) {
-        current.append(c); // 直接追加被转义的字符
-        escape = false;
-      } else if (c == '\\') {
-        escape = true; // 标记下一个字符被转义
-      } else if (delimiter != (char) 0 && c == delimiter) {
-        // 如果是分隔符，且未被转义
-        parts.add(current.toString());
-        current.setLength(0); // 重置
-      } else {
-        current.append(c);
-      }
-    }
-    parts.add(current.toString()); // 添加最后一段
-    return parts;
-  }
-
   private String parseParamWithEscaped(String text) {
     // 去掉前后引号
     text = text.substring(1, text.length() - 1);
-    // 不进行分割
-    List<String> result = parseWithEscape(text, (char) 0);
+    boolean escape = false;
+    StringBuilder rawSegment = new StringBuilder();
+    for (int i = 0; i < text.length(); i++) {
+      char c = text.charAt(i);
+      if (escape) {
+        // 对","进行非标准转义处理
+        if (c != ',') {
+          rawSegment.append('\\');
+        }
+        rawSegment.append(c);
+        escape = false;
+      } else if (c == '\\') {
+        // 遇到反斜杠，标记进入转义状态，暂不追加
+        escape = true;
+      } else if (c == '\n' || c == '\r' || c == '\t' || c == '\b' || c == '\f') {
+        throw new IllegalArgumentException(
+            "String literal contains unescaped control characters (like newlines or tabs). Please use \\n, \\t, etc. instead.");
+      } else {
+        rawSegment.append(c);
+      }
+    }
     // 不分割时，List中永远只有一个元素
-    return result.get(0);
+    return StringEscapeUtils.unescapeJava(rawSegment.toString());
   }
 
   private Map<String, String> parseExtra(StringLiteralContext ctx) {
@@ -2124,13 +2119,40 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     // 去掉前后引号
     extra = extra.substring(1, extra.length() - 1);
     // 调用通用方法，按 ',' 分割
-    List<String> kvStrs = parseWithEscape(extra, ',');
+    List<String> kvStrs = new ArrayList<>();
+    StringBuilder rawSegment = new StringBuilder();
+    boolean escape = false;
+    for (int i = 0; i < extra.length(); i++) {
+      char c = extra.charAt(i);
+      if (escape) {
+        // 对","进行非标准转义处理
+        if (c != ',') {
+          rawSegment.append('\\');
+        }
+        rawSegment.append(c);
+        escape = false;
+      } else if (c == '\\') {
+        // 遇到反斜杠，标记进入转义状态，暂不追加
+        escape = true;
+      } else if (c == ',') {
+        // 遇到未转义的分隔符，进行切分
+        kvStrs.add(StringEscapeUtils.unescapeJava(rawSegment.toString()));
+        rawSegment.setLength(0);
+      } else if (c == '\n' || c == '\r' || c == '\t' || c == '\b' || c == '\f') {
+        throw new IllegalArgumentException(
+            "String literal contains unescaped control characters (like newlines or tabs). Please use \\n, \\t, etc. instead.");
+      } else {
+        rawSegment.append(c);
+      }
+    }
+    kvStrs.add(StringEscapeUtils.unescapeJava(rawSegment.toString()));
+
     for (String kv : kvStrs) {
       String[] kvArray = kv.split("=", 2); // 只按第一个=分割
       if (kvArray.length != 2) {
         continue;
       }
-      map.put(kvArray[0].trim(), kvArray[1].trim());
+      map.put(kvArray[0].trim(), kvArray[1]);
     }
     return map;
   }
