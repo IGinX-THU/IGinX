@@ -36,6 +36,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -911,7 +912,8 @@ public class Session {
   }
 
   public SessionExecuteSqlResult executeSql(String statement) throws SessionException {
-    ExecuteSqlReq req = new ExecuteSqlReq(sessionId, statement);
+    ExecuteSqlReq req =
+        new ExecuteSqlReq(sessionId, escapeStorageEngineControlCharacters(statement));
     Reference<ExecuteSqlResp> ref = new Reference<>();
     executeWithCheck(() -> (ref.resp = client.executeSql(req)).status);
 
@@ -1249,5 +1251,73 @@ public class Session {
 
   public int getPort() {
     return port;
+  }
+
+  static String escapeStorageEngineControlCharacters(String statement) {
+    if (statement == null || !isStorageEngineStatement(statement)) {
+      return statement;
+    }
+
+    StringBuilder builder = new StringBuilder(statement.length());
+    boolean inSingleQuote = false;
+    boolean inDoubleQuote = false;
+    boolean escaped = false;
+
+    for (int i = 0; i < statement.length(); i++) {
+      char c = statement.charAt(i);
+
+      if ((inSingleQuote || inDoubleQuote) && !escaped && isControlCharacter(c)) {
+        builder.append(getEscapeSequence(c));
+        continue;
+      }
+
+      if ((inSingleQuote || inDoubleQuote) && !escaped && c == '\\') {
+        builder.append(c);
+        escaped = true;
+        continue;
+      }
+
+      if (!escaped && c == '\'' && !inDoubleQuote) {
+        inSingleQuote = !inSingleQuote;
+      } else if (!escaped && c == '"' && !inSingleQuote) {
+        inDoubleQuote = !inDoubleQuote;
+      }
+
+      builder.append(c);
+      escaped = false;
+    }
+
+    return builder.toString();
+  }
+
+  private static boolean isStorageEngineStatement(String statement) {
+    if (statement == null) {
+      return false;
+    }
+    String trimmedUpper = statement.trim().toUpperCase(Locale.ENGLISH);
+    return trimmedUpper.startsWith("ADD STORAGEENGINE")
+        || trimmedUpper.startsWith("REMOVE STORAGEENGINE")
+        || trimmedUpper.startsWith("ALTER STORAGEENGINE");
+  }
+
+  private static boolean isControlCharacter(char c) {
+    return c == '\n' || c == '\r' || c == '\t' || c == '\b' || c == '\f';
+  }
+
+  private static String getEscapeSequence(char c) {
+    switch (c) {
+      case '\n':
+        return "\\n";
+      case '\r':
+        return "\\r";
+      case '\t':
+        return "\\t";
+      case '\b':
+        return "\\b";
+      case '\f':
+        return "\\f";
+      default:
+        return String.valueOf(c);
+    }
   }
 }

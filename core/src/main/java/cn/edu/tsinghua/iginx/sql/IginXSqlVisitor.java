@@ -2152,7 +2152,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       if (kvArray.length != 2) {
         continue;
       }
-      map.put(kvArray[0].trim(), kvArray[1].trim());
+      map.put(kvArray[0].trim(), kvArray[1]);
     }
     return map;
   }
