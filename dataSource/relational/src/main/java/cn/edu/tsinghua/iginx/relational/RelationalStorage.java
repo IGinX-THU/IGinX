@@ -116,6 +116,10 @@ public class RelationalStorage implements IStorage {
 
   private final char quote;
 
+  private final int maxSingleRowSizeLimit;
+
+  private final int maxColumnNumLimit;
+
   public RelationalStorage(StorageEngineMeta meta)
       throws StorageInitializationException, SQLException {
     this.meta = meta;
@@ -133,6 +137,9 @@ public class RelationalStorage implements IStorage {
     Connection conn = dbStrategy.initConnection();
     escape = conn.getMetaData().getSearchStringEscape();
     quote = relationalMeta.getQuote();
+    // 限制：maxSingleRowSizeLimit需要减8,maxColumnNumLimit需要减1，留出一列给Key
+    maxSingleRowSizeLimit = buildSingleRowSizeLimit() - 8;
+    maxColumnNumLimit = buildMaxColumnNumLimit() - 1;
   }
 
   private void buildRelationalMeta() throws RelationalTaskExecuteFailureException {
@@ -147,6 +154,66 @@ public class RelationalStorage implements IStorage {
       relationalMeta = new JDBCMeta(meta, properties);
     } catch (IOException | URISyntaxException e) {
       throw new RelationalTaskExecuteFailureException("failed to load meta properties", e);
+    }
+  }
+
+  private int buildSingleRowSizeLimit() {
+    // 保留一列给key
+    int systemLimit = relationalMeta.getMaxSingleRowSizeLimit();
+    String configValue = meta.getExtraParams().get("max_single_row_size");
+    if (configValue == null) {
+      LOGGER.info("max_single_row_size is not provided, using default limit {}", systemLimit);
+      return systemLimit;
+    }
+    try {
+      // 解析用户配置
+      int configuredLimit = Integer.parseInt(configValue);
+      // 最小值校验：至少要能存下一个 Binary 和 LONG 类型的数据
+      // 假设 Binary 是最小单位，防止用户配出负数或 0
+      int minLimit =
+          relationalMeta.getDataTypeTransformer().getDataTypeSize(DataType.BINARY)
+              + relationalMeta.getDataTypeTransformer().getDataTypeSize(DataType.LONG);
+      if (configuredLimit < minLimit) {
+        LOGGER.warn(
+            "Configured max_single_row_size ({}) is too small (valid payload < {}). Using default limit {}",
+            configValue,
+            minLimit,
+            systemLimit);
+        return systemLimit;
+      }
+      return configuredLimit;
+    } catch (NumberFormatException e) {
+      LOGGER.warn(
+          "Invalid format for max_single_row_size: '{}'. Using default limit {}",
+          configValue,
+          systemLimit);
+      return systemLimit;
+    }
+  }
+
+  private int buildMaxColumnNumLimit() {
+    int systemLimit = relationalMeta.getMaxColumnNumLimit();
+    String configValue = meta.getExtraParams().get("max_column_num");
+    if (configValue == null) {
+      LOGGER.info("max_column_num is not provided, using default {}", systemLimit);
+      return systemLimit;
+    }
+    try {
+      int configuredLimit = Integer.parseInt(configValue);
+      if (configuredLimit < 2) {
+        LOGGER.warn(
+            "Configured max_column_num ({}) is too small. Using default limit {}",
+            configValue,
+            systemLimit);
+        return systemLimit;
+      }
+      return configuredLimit;
+    } catch (NumberFormatException e) {
+      LOGGER.warn(
+          "Invalid format for max_column_num: '{}'. Using default limit {}",
+          configValue,
+          systemLimit);
+      return systemLimit;
     }
   }
 
@@ -2757,9 +2824,6 @@ public class RelationalStorage implements IStorage {
     List<Integer> columnIndexList = new ArrayList<>();
     columnIndexList.add(0);
     int singleRowSize = existedRowSize, columnNum = existedColumnNum;
-    // 限制：maxSingleRowSizeLimit需要减8,maxColumnNumLimit需要减1，留出一列给Key
-    int maxSingleRowSizeLimit = relationalMeta.getMaxSingleRowSizeLimit() - 8,
-        maxColumnNumLimit = relationalMeta.getMaxColumnNumLimit() - 1;
     for (int i = 0; i < columnCount; i++) {
       int colSize = relationalMeta.getDataTypeTransformer().getDataTypeSize(columnList.get(i).v);
       // 单列超限
