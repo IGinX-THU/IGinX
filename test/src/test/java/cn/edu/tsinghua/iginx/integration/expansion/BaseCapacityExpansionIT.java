@@ -811,28 +811,20 @@ public abstract class BaseCapacityExpansionIT {
   }
 
   private void testSpecialPrefix(String removeStatement, List<List<Object>> valuesList) {
-    // 输入为\,\"\'\\\n\r\f\b\t\u0041 -> 实际schemaPrefix为,"'\\n\r\f\b\tA
-    String schemaPrefix = "\\,\\\"\\'\\\\\\n\\r\\f\\b\\t\\u0041";
+    // 输入为\,\"\'\\\n\r\f\b\t\u0041\n\r\f\b\t
+    // 包含对转义字符以及控制字符的混合测试
+    String schemaPrefix = "\\,\\\"\\'\\\\\\n\\r\\f\\b\\t\\u0041\n\r\f\b\t";
     // 测试转义符在schema_prefix中是否能够正确转义，成功add storageengine与remove storageengine
     addStorageEngine(expPort, true, true, null, schemaPrefix, portsToExtraParams.get(expPort));
-    String statement = "select wt01.status2 from `,\"'\\\n\r\f\b\tA.nt.wf03`;";
-    List<String> pathList = Collections.singletonList(",\"'\\\n\r\f\b\tA.nt.wf03.wt01.status2");
+    String statement = "select wt01.status2 from `,\"'\\\n\r\f\b\tA\n\r\f\b\t.nt.wf03`;";
+    List<String> pathList =
+        Collections.singletonList(",\"'\\\n\r\f\b\tA\n\r\f\b\t.nt.wf03.wt01.status2");
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
     try {
       session.executeSql(String.format(removeStatement, expPort, schemaPrefix, ""));
     } catch (SessionException e) {
       LOGGER.error("remove history data source through sql error: ", e);
       fail();
-    }
-    // 如果含有转义后的字符（例如：\n \r \t），将不被允许插入
-    schemaPrefix = "\n";
-    String res =
-        addStorageEngine(expPort, true, true, null, schemaPrefix, portsToExtraParams.get(expPort));
-    if (res == null) {
-      LOGGER.error("String literal contains unescaped control characters, should not be added");
-      fail();
-    } else {
-      LOGGER.info("Successfully rejected schema prefix with unescaped control characters.");
     }
   }
 
