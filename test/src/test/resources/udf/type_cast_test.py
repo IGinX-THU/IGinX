@@ -16,11 +16,14 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+from iginx_udf import UDSFWrapper
+
+@UDSFWrapper
 class TypeCastTest():
     """
     测试用的UDF
     """
-    def transform(self, data, args, kvargs):
+    def eval(self, data, args, kvargs):
         res = self.buildHeader(data)
         values = [
             [1, 23372, 567, 1, 9999],

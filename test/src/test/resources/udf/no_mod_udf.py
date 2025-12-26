@@ -15,7 +15,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
- 
+
+from iginx_udf import UDTFWrapper
+
+@UDTFWrapper
 class NoModUDF():
     """
     :return: return the exact same table after replacing column names with "no_mod(${COL_NAME})"
@@ -23,7 +26,7 @@ class NoModUDF():
     def __init__(self):
         pass
 
-    def transform(self, data, args, kvargs):
+    def eval(self, data, args, kvargs):
         for i, element in enumerate(data[0]):
             if i == 0:
                 continue  # skip key
