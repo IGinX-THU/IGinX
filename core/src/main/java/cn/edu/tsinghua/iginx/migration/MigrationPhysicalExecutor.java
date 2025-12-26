@@ -22,13 +22,14 @@ package cn.edu.tsinghua.iginx.migration;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.storage.execute.StoragePhysicalTaskExecutor;
-import cn.edu.tsinghua.iginx.engine.physical.task.MemoryPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.StoragePhysicalTask;
-import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
-import cn.edu.tsinghua.iginx.engine.physical.task.UnaryMemoryPhysicalTask;
+import cn.edu.tsinghua.iginx.engine.physical.task.TaskResult;
+import cn.edu.tsinghua.iginx.engine.physical.task.memory.MemoryPhysicalTask;
+import cn.edu.tsinghua.iginx.engine.physical.task.memory.row.UnaryRowMemoryPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStreams;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.RawData;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.RawDataType;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.RowDataView;
@@ -49,6 +50,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 
 public class MigrationPhysicalExecutor {
 
@@ -72,86 +74,87 @@ public class MigrationPhysicalExecutor {
     projectOperators.add(project);
     StoragePhysicalTask projectPhysicalTask = new StoragePhysicalTask(projectOperators, ctx);
 
-    List<Operator> selectOperators = new ArrayList<>();
     List<Filter> selectTimeFilters = new ArrayList<>();
     selectTimeFilters.add(new KeyFilter(Op.GE, keyInterval.getStartKey()));
     selectTimeFilters.add(new KeyFilter(Op.L, keyInterval.getEndKey()));
-    selectOperators.add(
-        new Select(new OperatorSource(project), new AndFilter(selectTimeFilters), null));
-    MemoryPhysicalTask selectPhysicalTask =
-        new UnaryMemoryPhysicalTask(selectOperators, projectPhysicalTask, ctx);
+    Select selectOperator =
+        new Select(new OperatorSource(project), new AndFilter(selectTimeFilters), null);
+    MemoryPhysicalTask<RowStream> selectPhysicalTask =
+        new UnaryRowMemoryPhysicalTask(projectPhysicalTask, selectOperator, ctx);
     projectPhysicalTask.setFollowerTask(selectPhysicalTask);
 
     storageTaskExecutor.commit(projectPhysicalTask);
 
-    TaskExecuteResult selectResult = selectPhysicalTask.getResult();
-    RowStream selectRowStream = selectResult.getRowStream();
+    try (TaskResult<RowStream> projectResult = selectPhysicalTask.getResult().get();
+        RowStream selectRowStream = projectResult.unwrap()) {
+      List<String> selectResultPaths = new ArrayList<>();
+      List<DataType> selectResultTypes = new ArrayList<>();
+      selectRowStream
+          .getHeader()
+          .getFields()
+          .forEach(
+              field -> {
+                selectResultPaths.add(field.getName());
+                selectResultTypes.add(field.getType());
+              });
 
-    List<String> selectResultPaths = new ArrayList<>();
-    List<DataType> selectResultTypes = new ArrayList<>();
-    selectRowStream
-        .getHeader()
-        .getFields()
-        .forEach(
-            field -> {
-              selectResultPaths.add(field.getName());
-              selectResultTypes.add(field.getType());
-            });
+      List<Long> timestampList = new ArrayList<>();
+      List<ByteBuffer> valuesList = new ArrayList<>();
+      List<Bitmap> bitmapList = new ArrayList<>();
+      List<ByteBuffer> bitmapBufferList = new ArrayList<>();
 
-    List<Long> timestampList = new ArrayList<>();
-    List<ByteBuffer> valuesList = new ArrayList<>();
-    List<Bitmap> bitmapList = new ArrayList<>();
-    List<ByteBuffer> bitmapBufferList = new ArrayList<>();
+      boolean hasTimestamp = selectRowStream.getHeader().hasKey();
+      while (selectRowStream.hasNext()) {
+        Row row = selectRowStream.next();
+        Object[] rowValues = row.getValues();
+        valuesList.add(ByteUtils.getRowByteBuffer(rowValues, selectResultTypes));
+        Bitmap bitmap = new Bitmap(rowValues.length);
+        for (int i = 0; i < rowValues.length; i++) {
+          if (rowValues[i] != null) {
+            bitmap.mark(i);
+          }
+        }
+        bitmapBufferList.add(ByteBuffer.wrap(bitmap.getBytes()));
+        bitmapList.add(bitmap);
+        if (hasTimestamp) {
+          timestampList.add(row.getKey());
+        }
 
-    boolean hasTimestamp = selectRowStream.getHeader().hasKey();
-    while (selectRowStream.hasNext()) {
-      Row row = selectRowStream.next();
-      Object[] rowValues = row.getValues();
-      valuesList.add(ByteUtils.getRowByteBuffer(rowValues, selectResultTypes));
-      Bitmap bitmap = new Bitmap(rowValues.length);
-      for (int i = 0; i < rowValues.length; i++) {
-        if (rowValues[i] != null) {
-          bitmap.mark(i);
+        // 按行批量插入数据
+        if (timestampList.size()
+            == ConfigDescriptor.getInstance().getConfig().getMigrationBatchSize()) {
+          insertDataByBatch(
+              ctx,
+              timestampList,
+              valuesList,
+              bitmapList,
+              bitmapBufferList,
+              toMigrateFragment,
+              selectResultPaths,
+              selectResultTypes,
+              targetStorageUnitMeta.getId(),
+              storageTaskExecutor);
+          timestampList.clear();
+          valuesList.clear();
+          bitmapList.clear();
+          bitmapBufferList.clear();
         }
       }
-      bitmapBufferList.add(ByteBuffer.wrap(bitmap.getBytes()));
-      bitmapList.add(bitmap);
-      if (hasTimestamp) {
-        timestampList.add(row.getKey());
-      }
-
-      // 按行批量插入数据
-      if (timestampList.size()
-          == ConfigDescriptor.getInstance().getConfig().getMigrationBatchSize()) {
-        insertDataByBatch(
-            ctx,
-            timestampList,
-            valuesList,
-            bitmapList,
-            bitmapBufferList,
-            toMigrateFragment,
-            selectResultPaths,
-            selectResultTypes,
-            targetStorageUnitMeta.getId(),
-            storageTaskExecutor);
-        timestampList.clear();
-        valuesList.clear();
-        bitmapList.clear();
-        bitmapBufferList.clear();
-      }
+      insertDataByBatch(
+          ctx,
+          timestampList,
+          valuesList,
+          bitmapList,
+          bitmapBufferList,
+          toMigrateFragment,
+          selectResultPaths,
+          selectResultTypes,
+          targetStorageUnitMeta.getId(),
+          storageTaskExecutor);
+      return RowStreams.empty();
+    } catch (InterruptedException | ExecutionException e) {
+      throw new PhysicalException(e);
     }
-    insertDataByBatch(
-        ctx,
-        timestampList,
-        valuesList,
-        bitmapList,
-        bitmapBufferList,
-        toMigrateFragment,
-        selectResultPaths,
-        selectResultTypes,
-        targetStorageUnitMeta.getId(),
-        storageTaskExecutor);
-    return selectResult.getRowStream();
   }
 
   private void insertDataByBatch(
@@ -182,9 +185,10 @@ public class MigrationPhysicalExecutor {
     insertOperators.add(new Insert(new FragmentSource(toMigrateFragment), rowDataView));
     StoragePhysicalTask insertPhysicalTask = new StoragePhysicalTask(insertOperators, ctx);
     storageTaskExecutor.commitWithTargetStorageUnitId(insertPhysicalTask, storageUnitId);
-    TaskExecuteResult insertResult = insertPhysicalTask.getResult();
-    if (insertResult.getException() != null) {
-      throw insertResult.getException();
+    try {
+      insertPhysicalTask.getResult().get().close();
+    } catch (InterruptedException | ExecutionException e) {
+      throw new PhysicalException(e);
     }
   }
 }

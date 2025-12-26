@@ -141,16 +141,18 @@ public abstract class Compaction {
         Set<String> pathRegexSet = new HashSet<>();
         ShowColumns showColumns =
             new ShowColumns(new GlobalSource(), pathRegexSet, null, Integer.MAX_VALUE, 0);
-        RowStream rowStream = physicalEngine.execute(new RequestContext(), showColumns);
+
         SortedSet<String> pathSet = new TreeSet<>();
-        while (rowStream != null && rowStream.hasNext()) {
-          Row row = rowStream.next();
-          String timeSeries = new String((byte[]) row.getValue(0));
-          if (timeSeries.contains("{") && timeSeries.contains("}")) {
-            timeSeries = timeSeries.split("\\{")[0];
-          }
-          if (fragmentMeta.getColumnsInterval().isContain(timeSeries)) {
-            pathSet.add(timeSeries);
+        try (RowStream rowStream = physicalEngine.execute(new RequestContext(), showColumns)) {
+          while (rowStream != null && rowStream.hasNext()) {
+            Row row = rowStream.next();
+            String timeSeries = new String((byte[]) row.getValue(0));
+            if (timeSeries.contains("{") && timeSeries.contains("}")) {
+              timeSeries = timeSeries.split("\\{")[0];
+            }
+            if (fragmentMeta.getColumnsInterval().isContain(timeSeries)) {
+              pathSet.add(timeSeries);
+            }
           }
         }
 
@@ -159,7 +161,7 @@ public abstract class Compaction {
           Migration migration =
               new Migration(
                   new GlobalSource(), fragmentMeta, new ArrayList<>(pathSet), targetStorageUnit);
-          physicalEngine.execute(new RequestContext(), migration);
+          try (RowStream ignored = physicalEngine.execute(new RequestContext(), migration)) {}
         }
       }
     }

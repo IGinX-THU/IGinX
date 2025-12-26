@@ -1,41 +1,15 @@
 -- spotless:off
 -- filter
-SELECT *
-FROM (SELECT val.bool AS b1,
-             val.bool AS b2,
-             num.i AS i1,
-             num.i AS i2,
-             num.l AS l1,
-             num.l AS l2,
-             num.f AS f1,
-             num.f AS f2,
-             num.d AS d1,
-             num.d AS d2,
-             val.bin AS v1,
-             val.bin AS v2
-      FROM (SELECT * FROM *))
-WHERE b1 == b2 AND v1 == v2 AND i1 == i2 AND l1 == l2 AND f1 == f2 AND d1 == d2
-  AND b1 >= b2 AND v1 >= v2 AND i1 >= i2 AND l1 >= l2 AND f1 >= f2 AND d1 >= d2
-  AND b1 <= b2 AND v1 <= v2 AND i1 <= i2 AND l1 <= l2 AND f1 <= f2 AND d1 <= d2
-  AND (b1 <> b2 OR v1 <> v2 OR i1 <> i2 OR l1 <> l2 OR f1 <> f2 OR d1 <> d2
-    OR b1 < b2  OR v1 < v2  OR i1 < i2  OR l1 < l2  OR f1 < f2  OR d1 < d2
-    OR b1 > b2  OR v1 > v2  OR i1 > i2  OR l1 > l2  OR f1 > f2  OR d1 > d2
-    OR NOT ( v1 LIKE '^$' OR v2 NOT LIKE '^.*')
-  )
-  AND (
-   KEY < 0 OR KEY <= -1 OR KEY >= 10000000
-   OR KEY == 0 OR KEY > 0
-  )
-  AND (l1 == 0 OR l2 <> 0)
-  AND (l1 <= 0 OR l2 > 0)
-  AND (l1 < 0 OR l2 >= 0)
-  AND (d1 == 0.0 OR d2 <> 0.0)
-  AND (d1 <= 0.0 OR d2 > 0.0)
-  AND (d1 < 0.0 OR d2 >= 0.0)
-  AND( l1 in (0, 1, 2) OR l2 not in (0, 1, 2))
-  AND( d1 in (0.0, 1.0, 2.0) OR d2 not in (0.0, 1.0, 2.0))
-  AND( v1 in ('0', '1', '2') OR v2 not in ('0', '1', '2'))
-;
+SELECT * FROM num AS n WHERE KEY < 0 OR KEY >= 0;
+SELECT * FROM num AS n WHERE i = 1 OR l = 2 OR f = 3.0 OR d = 4.0;
+SELECT * FROM val AS v WHERE bin = '1' OR bin = '2' OR bin = '3' OR bin = '4';
+SELECT * FROM num AS n WHERE i <> 1 AND l <> 1 AND f <> 1.0 AND d <> 1.0;
+SELECT * FROM val AS v WHERE bin <> '1' AND bin <> '2' AND bin <> '3' AND bin <> '4';
+SELECT * FROM val AS v WHERE NOT (bin LIKE '^$') OR (bin LIKE '^.*$');
+SELECT * FROM num AS n WHERE l in (1, 2) OR d in (3.0, 4.0);
+SELECT * FROM val AS v WHERE bin IN ('1', '2') OR bin IN ('3', '4');
+SELECT * FROM num AS n WHERE i + 1 = 2 OR l - 2 = 4 OR f * 3.0 = 8.0 OR d / 4.0 = 16.0;
+SELECT * FROM val AS v WHERE SUBSTRING(bin, 1, 1) = '1' OR SUBSTRING(bin, 1, 1) = '2';
 
 -- expression
 SELECT
@@ -68,7 +42,7 @@ SELECT
     EXTRACT(l,'day'),
     EXTRACT(l,'hour'),
     EXTRACT(l,'minute'),
-    EXTRACT(l, 'second')
+    EXTRACT(l,'second')
 FROM num;
 
 SELECT SUBSTRING(bin, 1, 1) FROM val;
@@ -146,36 +120,36 @@ SELECT * FROM val ORDER BY bool DESC, bin DESC;
 
 -- join
 WITH p(v) AS (SELECT l FROM num WHERE key < 100)
-SELECT * FROM p AS l, p as r;
+SELECT * FROM p AS l, p AS r;
 
 WITH p(v) AS (SELECT l FROM num WHERE key < 100)
-SELECT * FROM p AS x, p as y where x.v = y.v AND x.v > 10;
+SELECT * FROM p AS x, p AS y where x.v = y.v AND x.v > 10;
 
 SELECT * FROM num JOIN val USING KEY;
 
-SELECT * FROM num as x JOIN num as y USING i;
-SELECT * FROM num as x JOIN num as y USING l;
-SELECT * FROM num as x JOIN num as y USING f;
-SELECT * FROM num as x JOIN num as y USING d;
-SELECT * FROM val as x JOIN val as y USING bin;
+SELECT * FROM num AS x JOIN num AS y USING i JOIN num AS z ON x.i = z.l;
+SELECT * FROM num AS x JOIN num AS y USING l JOIN num AS z ON x.l = z.f;
+SELECT * FROM num AS x JOIN num AS y USING f JOIN num AS z ON x.f = z.d;
+SELECT * FROM num AS x JOIN num AS y USING d JOIN num AS z ON x.d = z.i;
+SELECT * FROM val AS x JOIN val AS y USING bin JOIN val AS z ON x.bin = z.bin;
 
-SELECT * FROM num as x LEFT JOIN num as y USING i;
-SELECT * FROM num as x LEFT JOIN num as y USING l;
-SELECT * FROM num as x LEFT JOIN num as y USING f;
-SELECT * FROM num as x LEFT JOIN num as y USING d;
-SELECT * FROM val as x LEFT JOIN val as y USING bin;
+SELECT * FROM num AS x LEFT JOIN num AS y USING i LEFT JOIN num AS z ON x.i = z.f;
+SELECT * FROM num AS x LEFT JOIN num AS y USING l LEFT JOIN num AS z ON x.l = z.d;
+SELECT * FROM num AS x LEFT JOIN num AS y USING f LEFT JOIN num AS z ON x.f = z.i;
+SELECT * FROM num AS x LEFT JOIN num AS y USING d LEFT JOIN num AS z ON x.d = z.l;
+SELECT * FROM val AS x LEFT JOIN val AS y USING bin LEFT JOIN val AS z ON x.bin = z.bin;
 
-SELECT * FROM num as x RIGHT JOIN num as y USING i;
-SELECT * FROM num as x RIGHT JOIN num as y USING l;
-SELECT * FROM num as x RIGHT JOIN num as y USING f;
-SELECT * FROM num as x RIGHT JOIN num as y USING d;
-SELECT * FROM val as x RIGHT JOIN val as y USING bin;
+SELECT * FROM num AS x RIGHT JOIN num AS y USING i RIGHT JOIN num AS z ON y.i = z.d;
+SELECT * FROM num AS x RIGHT JOIN num AS y USING l RIGHT JOIN num AS z ON y.l = z.i;
+SELECT * FROM num AS x RIGHT JOIN num AS y USING f RIGHT JOIN num AS z ON y.f = z.l;
+SELECT * FROM num AS x RIGHT JOIN num AS y USING d RIGHT JOIN num AS z ON y.d = z.f;
+SELECT * FROM val AS x RIGHT JOIN val AS y USING bin RIGHT JOIN val AS z ON y.bin = z.bin;
 
-SELECT * FROM num as x FULL JOIN num as y USING i;
-SELECT * FROM num as x FULL JOIN num as y USING l;
-SELECT * FROM num as x FULL JOIN num as y USING f;
-SELECT * FROM num as x FULL JOIN num as y USING d;
-SELECT * FROM val as x FULL JOIN val as y USING bin;
+SELECT * FROM num AS x FULL JOIN num AS y USING i FULL JOIN num AS z ON x.i = z.i;
+SELECT * FROM num AS x FULL JOIN num AS y USING l FULL JOIN num AS z ON x.l = z.l;
+SELECT * FROM num AS x FULL JOIN num AS y USING f FULL JOIN num AS z ON x.f = z.f;
+SELECT * FROM num AS x FULL JOIN num AS y USING d FULL JOIN num AS z ON x.d = z.d;
+SELECT * FROM val AS x FULL JOIN val AS y USING bin FULL JOIN val AS z ON x.bin = z.bin;
 
 SELECT l-(SELECT AVG(`l`) FROM num) FROM num;
 SELECT l FROM num WHERE EXISTS(SELECT * FROM num WHERE key =1);
@@ -195,7 +169,7 @@ SELECT * FROM * INTERSECT SELECT * FROM *;
 -- not standard
 SELECT FIRST(*), LAST(*) FROM *;
 
-SELECT sequence() as s1, sequence(-20, 30) as s2 from *;
+SELECT sequence() AS s1, sequence(-20, 30) AS s2 from *;
 
 select KEY AS KEY from *;
 SELECT KEY AS v, i AS KEY from num;
@@ -207,3 +181,70 @@ SELECT KEY AS v, bin AS KEY from val;
 SELECT * FROM (SHOW COLUMNS num.*);
 SELECT value2meta(SELECT * FROM * LIMIT 10) FROM *;
 -- spotless:on
+-- TPC-H Q1 Like
+SELECT
+    flag_a,
+    flag_b,
+    MAX( num.i ) AS max_i,
+    MAX( num.l ) AS max_l,
+    MAX( num.f ) AS max_f,
+    MAX( num.d ) AS max_d,
+    MIN( num.i ) AS min_i,
+    MIN( num.l ) AS min_l,
+    MIN( num.f ) AS min_f,
+    MIN( num.d ) AS min_d,
+    AVG( num.i ) AS avg_i,
+    AVG( num.l ) AS avg_l,
+    AVG( num.f ) AS avg_f,
+    AVG( num.d ) AS avg_d,
+    SUM( num.i ) AS sum_i,
+    SUM( num.l ) AS sum_l,
+    SUM( num.d ) AS sum_d,
+    SUM( num.f ) AS sum_f,
+    COUNT( num.i ) AS count_i,
+    COUNT( num.l ) AS count_l,
+    COUNT( num.f ) AS count_f,
+    COUNT( num.d ) AS count_d
+FROM
+    (
+        SELECT
+            i,
+            l,
+            f,
+            d,
+            (
+                i % 2
+            ) AS flag_a,
+            (
+                (
+                    l + 1
+                )% 2
+            ) AS flag_b
+        FROM
+            num
+        WHERE
+            num.l < 100000
+    )
+GROUP BY
+    flag_a,
+    flag_b
+ORDER BY
+    flag_a,
+    flag_b;
+
+-- TPC-H Q6 Like
+SELECT
+    SUM( double_value )
+FROM
+    (
+        SELECT
+            d * f AS double_value
+        FROM
+            num
+        WHERE
+            num.l >= 0
+            AND num.l < 100000
+            AND num.d >= 0.0
+            AND num.f <= 100000.0
+            AND num.i < 100000
+    );
