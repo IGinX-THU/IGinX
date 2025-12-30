@@ -125,7 +125,7 @@ public class RelationalStorage implements IStorage {
       throw new StorageInitializationException("cannot build relational meta: ", e);
     }
     engineName = meta.getExtraParams().get("engine");
-    dbStrategy = DatabaseStrategyFactory.getStrategy(engineName, relationalMeta, meta);
+    dbStrategy = DatabaseStrategyFactory.create(relationalMeta, meta);
     if (!testConnection(this.meta)) {
       throw new StorageInitializationException("cannot connect to " + meta.toString());
     }

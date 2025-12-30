@@ -35,6 +35,16 @@ public class JDBCMeta extends AbstractRelationalMeta {
 
   private final IDataTypeTransformer dataTypeTransformer;
 
+  private final String avgCastExpressionBase;
+
+  private final String avgCastExpressionDefault;
+
+  private final boolean boundaryQueryUseDbConnection;
+
+  private final String boundaryQueryCatalogColumn;
+
+  private final String boundaryQuerySchemaColumn;
+
   private final List<String> systemDatabaseName;
 
   private final List<String> databaseCreatePrivileges;
@@ -106,6 +116,15 @@ public class JDBCMeta extends AbstractRelationalMeta {
     } else {
       dataTypeTransformer = new JDBCDataTypeTransformer(properties);
     }
+
+    avgCastExpressionBase = properties.getProperty("avg_cast_expression_base", "%s(%s)").trim();
+    avgCastExpressionDefault =
+        properties.getProperty("avg_cast_expression_default", "%s(%s)").trim();
+    boundaryQueryUseDbConnection =
+        Boolean.parseBoolean(properties.getProperty("boundary_query_use_db_connection", "false"));
+
+    boundaryQueryCatalogColumn = properties.getProperty("boundary_query_catalog_column", "").trim();
+    boundaryQuerySchemaColumn = properties.getProperty("boundary_query_schema_column", "").trim();
     systemDatabaseName = Arrays.asList(properties.getProperty("system_databases").split(","));
     databaseCreatePrivileges =
         Arrays.asList(properties.getProperty("database_create_privileges", "").split(","));
@@ -163,6 +182,31 @@ public class JDBCMeta extends AbstractRelationalMeta {
   @Override
   public IDataTypeTransformer getDataTypeTransformer() {
     return dataTypeTransformer;
+  }
+
+  @Override
+  public String getAvgCastExpressionBase() {
+    return avgCastExpressionBase;
+  }
+
+  @Override
+  public String getAvgCastExpressionDefault() {
+    return avgCastExpressionDefault;
+  }
+
+  @Override
+  public boolean isBoundaryQueryUseDbConnection() {
+    return boundaryQueryUseDbConnection;
+  }
+
+  @Override
+  public String getBoundaryQueryCatalogColumn() {
+    return boundaryQueryCatalogColumn;
+  }
+
+  @Override
+  public String getBoundaryQuerySchemaColumn() {
+    return boundaryQuerySchemaColumn;
   }
 
   @Override

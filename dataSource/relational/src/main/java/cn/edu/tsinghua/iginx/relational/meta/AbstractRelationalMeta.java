@@ -54,6 +54,16 @@ public abstract class AbstractRelationalMeta {
    */
   public abstract IDataTypeTransformer getDataTypeTransformer();
 
+  public abstract String getAvgCastExpressionBase();
+
+  public abstract String getAvgCastExpressionDefault();
+
+  public abstract boolean isBoundaryQueryUseDbConnection();
+
+  public abstract String getBoundaryQueryCatalogColumn();
+
+  public abstract String getBoundaryQuerySchemaColumn();
+
   /**
    * 获取系统数据库名称，用于忽略，如pg的template0,template1
    *
