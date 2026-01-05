@@ -24,7 +24,7 @@ import static cn.edu.tsinghua.iginx.relational.tools.Constants.*;
 
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.relational.meta.AbstractRelationalMeta;
-import cn.edu.tsinghua.iginx.relational.strategy.base.AbstractManualUpsertStrategy;
+import cn.edu.tsinghua.iginx.relational.strategy.base.AbstractDatabaseStrategyWIthoutUpsert;
 import cn.edu.tsinghua.iginx.relational.tools.ColumnField;
 import com.zaxxer.hikari.HikariConfig;
 import java.sql.*;
@@ -34,7 +34,7 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class OracleDatabaseStrategy extends AbstractManualUpsertStrategy {
+public class OracleDatabaseStrategy extends AbstractDatabaseStrategyWIthoutUpsert {
   private static final Logger LOGGER = LoggerFactory.getLogger(OracleDatabaseStrategy.class);
 
   public OracleDatabaseStrategy(

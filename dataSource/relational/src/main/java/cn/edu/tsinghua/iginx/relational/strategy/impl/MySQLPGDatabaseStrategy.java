@@ -35,8 +35,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public class GeneralNativeDatabaseStrategy extends AbstractDatabaseStrategy {
-  public GeneralNativeDatabaseStrategy(
+public class MySQLPGDatabaseStrategy extends AbstractDatabaseStrategy {
+  public MySQLPGDatabaseStrategy(
       AbstractRelationalMeta relationalMeta, StorageEngineMeta storageEngineMeta) {
     super(relationalMeta, storageEngineMeta);
   }

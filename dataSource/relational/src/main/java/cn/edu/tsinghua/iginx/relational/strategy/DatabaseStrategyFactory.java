@@ -23,7 +23,7 @@ import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.relational.meta.AbstractRelationalMeta;
 import cn.edu.tsinghua.iginx.relational.strategy.base.AbstractDatabaseStrategy;
 import cn.edu.tsinghua.iginx.relational.strategy.impl.DamengDatabaseStrategy;
-import cn.edu.tsinghua.iginx.relational.strategy.impl.GeneralNativeDatabaseStrategy;
+import cn.edu.tsinghua.iginx.relational.strategy.impl.MySQLPGDatabaseStrategy;
 import cn.edu.tsinghua.iginx.relational.strategy.impl.OracleDatabaseStrategy;
 import java.util.Map;
 
@@ -40,7 +40,7 @@ public class DatabaseStrategyFactory {
     if (engine.contains("oracle")) {
       return new OracleDatabaseStrategy(meta, storageEngineMeta);
     } else {
-      return new GeneralNativeDatabaseStrategy(meta, storageEngineMeta);
+      return new MySQLPGDatabaseStrategy(meta, storageEngineMeta);
     }
   }
 }

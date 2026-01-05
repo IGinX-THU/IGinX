@@ -46,12 +46,12 @@ import java.util.stream.IntStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public abstract class AbstractManualUpsertStrategy extends AbstractDatabaseStrategy {
-  private static final Logger LOGGER = LoggerFactory.getLogger(AbstractManualUpsertStrategy.class);
+public abstract class AbstractDatabaseStrategyWIthoutUpsert extends AbstractDatabaseStrategy {
+  private static final Logger LOGGER = LoggerFactory.getLogger(AbstractDatabaseStrategyWIthoutUpsert.class);
 
   protected final IDataTypeTransformer dataTypeTransformer;
 
-  public AbstractManualUpsertStrategy(
+  public AbstractDatabaseStrategyWIthoutUpsert(
       AbstractRelationalMeta relationalMeta, StorageEngineMeta storageEngineMeta) {
     super(relationalMeta, storageEngineMeta);
     this.dataTypeTransformer = relationalMeta.getDataTypeTransformer();
@@ -101,7 +101,7 @@ public abstract class AbstractManualUpsertStrategy extends AbstractDatabaseStrat
     Map<String, String[]> valueMap =
         values.stream()
             .map(value -> value.substring(0, value.length() - 2))
-            .map(AbstractManualUpsertStrategy::splitByCommaWithQuotes)
+            .map(AbstractDatabaseStrategyWIthoutUpsert::splitByCommaWithQuotes)
             .collect(Collectors.toMap(arr -> arr[0], arr -> arr));
 
     List<String> allKeys = new ArrayList<>(valueMap.keySet());
