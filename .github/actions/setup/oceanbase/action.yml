@@ -1,0 +1,8 @@
+name: "OceanBase"
+description: "setup OceanBase"
+
+runs:
+    using: "composite"
+    steps:
+        - name: Setup Docker
+          uses: ./.github/actions/setup/docker

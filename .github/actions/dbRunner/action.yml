@@ -21,6 +21,10 @@ inputs:
         description: "MySQL ports"
         required: false
         default: 3306
+    OceanBase-ports:
+        description: "OceanBase ports"
+        required: false
+        default: 2881
     PostgreSQL-ports:
         description: "PostgreSQL ports"
         required: false
@@ -143,6 +147,16 @@ runs:
           uses: ./.github/actions/service/mysql
           with:
               ports: ${{ inputs.MySQL-ports }}
+
+        - if: inputs.DB-name=='OceanBase'
+          name: Setup OceanBase
+          uses: ./.github/actions/setup/oceanbase
+
+        - if: inputs.DB-name=='OceanBase'
+          name: Start OceanBase Service
+          uses: ./.github/actions/service/oceanbase
+          with:
+              ports: ${{ inputs.OceanBase-ports }}
 
         - if: inputs.DB-name=='VectorDB'
           name: Run Milvus DB
