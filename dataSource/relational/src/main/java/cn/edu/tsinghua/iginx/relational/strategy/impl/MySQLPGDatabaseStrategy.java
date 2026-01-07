@@ -34,8 +34,12 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MySQLPGDatabaseStrategy extends AbstractDatabaseStrategy {
+  private static final Logger LOGGER = LoggerFactory.getLogger(MySQLPGDatabaseStrategy.class);
+
   public MySQLPGDatabaseStrategy(
       AbstractRelationalMeta relationalMeta, StorageEngineMeta storageEngineMeta) {
     super(relationalMeta, storageEngineMeta);
@@ -91,7 +95,6 @@ public class MySQLPGDatabaseStrategy extends AbstractDatabaseStrategy {
               + ") datnames WHERE datname NOT IN ("
               + buildExceptDbsSqlList()
               + ")";
-
       try (Connection conn = getConnection(defaultDb);
           Statement statement = conn.createStatement();
           ResultSet rs = statement.executeQuery(sqlGetDB)) {
