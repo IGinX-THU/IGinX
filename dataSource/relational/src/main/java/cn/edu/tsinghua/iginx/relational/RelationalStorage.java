@@ -2672,6 +2672,9 @@ public class RelationalStorage implements IStorage {
 
   /** JDBC中的路径中的 . 不需要转义 */
   private String reformatForJDBC(String path) {
+    if (relationalMeta.isJdbcStrictPathEscape()) {
+      return StringUtils.reformatPath(path).replace("\\\\\\", "\\\\\\\\\\").replace("\\.", ".");
+    }
     return StringUtils.reformatPath(path).replace("\\.", ".");
   }
 

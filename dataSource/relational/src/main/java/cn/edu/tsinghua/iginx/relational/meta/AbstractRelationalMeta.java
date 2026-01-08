@@ -196,4 +196,6 @@ public abstract class AbstractRelationalMeta {
 
   /** 获取单行的最大字节数 */
   public abstract int getMaxSingleRowSizeLimit();
+
+  public abstract boolean isJdbcStrictPathEscape();
 }

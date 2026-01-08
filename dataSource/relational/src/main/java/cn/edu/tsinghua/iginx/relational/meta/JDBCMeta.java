@@ -105,6 +105,8 @@ public class JDBCMeta extends AbstractRelationalMeta {
 
   private final int maxSingleRowSizeLimit;
 
+  private final boolean jdbcStrictPathEscape;
+
   public JDBCMeta(StorageEngineMeta meta, Properties properties) {
     super(meta);
     quote = properties.getProperty("quote").charAt(0);
@@ -162,6 +164,8 @@ public class JDBCMeta extends AbstractRelationalMeta {
         Boolean.parseBoolean(properties.getProperty("support_boundary_query", "false"));
     maxColumnNumLimit = Integer.parseInt(properties.getProperty("max_column_num_limit"));
     maxSingleRowSizeLimit = Integer.parseInt(properties.getProperty("max_single_row_size_limit"));
+    jdbcStrictPathEscape =
+        Boolean.parseBoolean(properties.getProperty("jdbc_strict_path_escape", "false"));
   }
 
   @Override
@@ -366,5 +370,10 @@ public class JDBCMeta extends AbstractRelationalMeta {
   @Override
   public int getMaxSingleRowSizeLimit() {
     return maxSingleRowSizeLimit;
+  }
+
+  @Override
+  public boolean isJdbcStrictPathEscape() {
+    return jdbcStrictPathEscape;
   }
 }
