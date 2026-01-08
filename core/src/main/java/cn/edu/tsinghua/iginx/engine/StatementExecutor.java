@@ -356,6 +356,11 @@ public class StatementExecutor {
         if (type == StatementType.SELECT) {
           SelectStatement selectStatement = (SelectStatement) ctx.getStatement();
           if (selectStatement.isNeedPhysicalExplain()) {
+            try (RowStream ignore = stream) {
+              while (stream.hasNext()) {
+                stream.next();
+              }
+            }
             processExplainPhysicalStatement(ctx);
             return;
           }
@@ -385,7 +390,7 @@ public class StatementExecutor {
 
   private void processExplainPhysicalStatement(RequestContext ctx)
       throws PhysicalException, StatementExecutionException {
-    PhysicalTask root = ctx.getPhysicalTree();
+    PhysicalTask<?> root = ctx.getPhysicalTree();
     List<Field> fields =
         new ArrayList<>(
             Arrays.asList(
@@ -393,7 +398,7 @@ public class StatementExecutor {
                 new Field("Execute Time", DataType.BINARY),
                 new Field("Task Type", DataType.BINARY),
                 new Field("Task Info", DataType.BINARY),
-                new Field("Affect Rows", DataType.INTEGER)));
+                new Field("Affect Rows", DataType.LONG)));
     Header header = new Header(fields);
 
     TaskInfoVisitor visitor = new TaskInfoVisitor();
@@ -752,9 +757,11 @@ public class StatementExecutor {
     Statement statement = ctx.getStatement();
     switch (statement.getType()) {
       case INSERT:
+        stream.close();
         ctx.setResult(new Result(RpcUtils.SUCCESS));
         break;
       case DELETE:
+        stream.close();
         DeleteStatement deleteStatement = (DeleteStatement) statement;
         if (deleteStatement.isInvolveDummyData()) {
           throw new StatementExecutionException(CLEAR_DUMMY_DATA_CAUTION);
@@ -799,47 +806,49 @@ public class StatementExecutor {
     List<String> paths = new ArrayList<>();
     List<Map<String, String>> tagsList = new ArrayList<>();
     List<DataType> types = new ArrayList<>();
-    stream
-        .getHeader()
-        .getFields()
-        .forEach(
-            field -> {
-              paths.add(field.getFullName());
-              types.add(field.getType());
-              if (field.getTags() == null) {
-                tagsList.add(new HashMap<>());
-              } else {
-                tagsList.add(field.getTags());
-              }
-            });
 
     List<Long> keyList = new ArrayList<>();
     List<ByteBuffer> valuesList = new ArrayList<>();
     List<ByteBuffer> bitmapList = new ArrayList<>();
 
-    boolean hasKey = stream.getHeader().hasKey();
-    while (stream.hasNext()) {
-      Row row = stream.next();
+    try (RowStream ignore = stream) {
+      stream
+          .getHeader()
+          .getFields()
+          .forEach(
+              field -> {
+                paths.add(field.getFullName());
+                types.add(field.getType());
+                if (field.getTags() == null) {
+                  tagsList.add(new HashMap<>());
+                } else {
+                  tagsList.add(field.getTags());
+                }
+              });
+      boolean hasKey = stream.getHeader().hasKey();
+      while (stream.hasNext()) {
+        Row row = stream.next();
 
-      Object[] rowValues = row.getValues();
-      valuesList.add(ByteUtils.getRowByteBuffer(rowValues, types));
+        Object[] rowValues = row.getValues();
+        valuesList.add(ByteUtils.getRowByteBuffer(rowValues, types));
 
-      Bitmap bitmap = new Bitmap(rowValues.length);
-      for (int i = 0; i < rowValues.length; i++) {
-        if (rowValues[i] != null) {
-          bitmap.mark(i);
+        Bitmap bitmap = new Bitmap(rowValues.length);
+        for (int i = 0; i < rowValues.length; i++) {
+          if (rowValues[i] != null) {
+            bitmap.mark(i);
+          }
+        }
+        bitmapList.add(ByteBuffer.wrap(bitmap.getBytes()));
+
+        if (hasKey) {
+          keyList.add(row.getKey());
         }
       }
-      bitmapList.add(ByteBuffer.wrap(bitmap.getBytes()));
 
-      if (hasKey) {
-        keyList.add(row.getKey());
+      if (valuesList.isEmpty()) { // empty result
+        setEmptyQueryResp(ctx, paths, hasKey);
+        return;
       }
-    }
-
-    if (valuesList.isEmpty()) { // empty result
-      setEmptyQueryResp(ctx, paths, hasKey);
-      return;
     }
 
     Status status = RpcUtils.SUCCESS;
@@ -858,8 +867,6 @@ public class StatementExecutor {
     result.setTagsList(tagsList);
     result.setDataTypes(types);
     ctx.setResult(result);
-
-    stream.close();
   }
 
   private void setShowTSRowStreamResult(RequestContext ctx, RowStream stream)
@@ -875,19 +882,21 @@ public class StatementExecutor {
     List<Map<String, String>> tagsList = new ArrayList<>();
     List<DataType> types = new ArrayList<>();
 
-    while (stream.hasNext()) {
-      Row row = stream.next();
-      Object[] rowValues = row.getValues();
+    try (RowStream ignored = stream) {
+      while (stream.hasNext()) {
+        Row row = stream.next();
+        Object[] rowValues = row.getValues();
 
-      if (rowValues.length == 2) {
-        paths.add(new String((byte[]) rowValues[0]));
-        DataType type = DataTypeUtils.getDataTypeFromString(new String((byte[]) rowValues[1]));
-        if (type == null) {
-          LOGGER.warn("unknown data type [{}]", rowValues[1]);
+        if (rowValues.length == 2) {
+          paths.add(new String((byte[]) rowValues[0]));
+          DataType type = DataTypeUtils.getDataTypeFromString(new String((byte[]) rowValues[1]));
+          if (type == null) {
+            LOGGER.warn("unknown data type [{}]", rowValues[1]);
+          }
+          types.add(type);
+        } else {
+          LOGGER.warn("show columns result col size = {}", rowValues.length);
         }
-        types.add(type);
-      } else {
-        LOGGER.warn("show columns result col size = {}", rowValues.length);
       }
     }
 

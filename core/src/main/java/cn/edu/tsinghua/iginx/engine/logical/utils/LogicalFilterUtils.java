@@ -1151,4 +1151,55 @@ public class LogicalFilterUtils {
         throw new IllegalArgumentException("unsupported filter: " + filter);
     }
   }
+
+  public static Filter foldConst(Filter filter) {
+    switch (filter.getType()) {
+      case Or:
+        List<Filter> orFoldedChildren =
+            ((OrFilter) filter)
+                .getChildren().stream()
+                    .map(LogicalFilterUtils::foldConst)
+                    .filter(f -> !(f instanceof BoolFilter && !((BoolFilter) f).isTrue()))
+                    .collect(Collectors.toList());
+        if (orFoldedChildren.stream()
+            .anyMatch(f -> f instanceof BoolFilter && ((BoolFilter) f).isTrue())) {
+          return new BoolFilter(true);
+        }
+        if (orFoldedChildren.isEmpty()) {
+          return new BoolFilter(false);
+        } else if (orFoldedChildren.size() == 1) {
+          return orFoldedChildren.get(0);
+        } else {
+          return new OrFilter(orFoldedChildren);
+        }
+      case And:
+        List<Filter> andFoldedChildren =
+            ((AndFilter) filter)
+                .getChildren().stream()
+                    .map(LogicalFilterUtils::foldConst)
+                    .filter(f -> !(f instanceof BoolFilter && ((BoolFilter) f).isTrue()))
+                    .collect(Collectors.toList());
+        if (andFoldedChildren.stream()
+            .anyMatch(f -> f instanceof BoolFilter && !((BoolFilter) f).isTrue())) {
+          return new BoolFilter(false);
+        }
+        if (andFoldedChildren.isEmpty()) {
+          return new BoolFilter(true);
+        } else if (andFoldedChildren.size() == 1) {
+          return andFoldedChildren.get(0);
+        } else {
+          return new AndFilter(andFoldedChildren);
+        }
+      case Not:
+        NotFilter notFilter = (NotFilter) filter;
+        Filter child = foldConst(notFilter.getChild());
+        if (child instanceof BoolFilter) {
+          return new BoolFilter(!((BoolFilter) child).isTrue());
+        } else {
+          return new NotFilter(child);
+        }
+      default:
+        return filter;
+    }
+  }
 }

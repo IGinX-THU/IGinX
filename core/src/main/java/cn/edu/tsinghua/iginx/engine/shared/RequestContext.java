@@ -19,18 +19,23 @@
  */
 package cn.edu.tsinghua.iginx.engine.shared;
 
+import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
+import cn.edu.tsinghua.iginx.engine.physical.PhysicalEngine;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.ConstantPool;
 import cn.edu.tsinghua.iginx.engine.physical.task.PhysicalTask;
+import cn.edu.tsinghua.iginx.engine.physical.task.TaskContext;
+import cn.edu.tsinghua.iginx.engine.physical.task.utils.TaskResultMap;
 import cn.edu.tsinghua.iginx.sql.statement.Statement;
 import cn.edu.tsinghua.iginx.thrift.SqlType;
 import cn.edu.tsinghua.iginx.thrift.Status;
 import cn.edu.tsinghua.iginx.utils.SnowFlakeUtils;
 import java.nio.ByteBuffer;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import lombok.Data;
+import org.apache.arrow.memory.BufferAllocator;
 
 @Data
-public class RequestContext {
+public class RequestContext implements TaskContext {
 
   private long id;
 
@@ -56,7 +61,7 @@ public class RequestContext {
 
   private boolean useStream;
 
-  private PhysicalTask physicalTree;
+  private PhysicalTask<?> physicalTree;
 
   private String loadCSVFileName;
 
@@ -64,7 +69,21 @@ public class RequestContext {
 
   private boolean isRemoteSession;
 
-  private String warningMsg;
+  private BufferAllocator allocator;
+
+  private ConstantPool constantPool;
+
+  private TaskResultMap taskResultMap;
+
+  private PhysicalEngine physicalEngine;
+
+  private List<String> warningMsg = Collections.synchronizedList(new ArrayList<>());
+
+  private int batchRowCount =
+      ConfigDescriptor.getInstance().getConfig().getExecutionBatchRowCount();
+
+  private int groupByInitialGroupBufferCapacity =
+      ConfigDescriptor.getInstance().getConfig().getGroupByInitialGroupBufferCapacity();
 
   private void init() {
     this.id = SnowFlakeUtils.getInstance().nextId();
@@ -114,10 +133,6 @@ public class RequestContext {
     extraParams.put(key, value);
   }
 
-  public boolean isUseStream() {
-    return useStream;
-  }
-
   public void setResult(Result result) {
     this.result = result;
     if (this.result != null) {
@@ -126,11 +141,12 @@ public class RequestContext {
     this.endTime = System.currentTimeMillis();
   }
 
-  public void setWarningMsg(String warningMsg) {
-    this.warningMsg = warningMsg;
+  public String getWarningMsg() {
+    return String.join("\n", warningMsg);
   }
 
-  public String getWarningMsg() {
-    return warningMsg;
+  @Override
+  public void addWarningMessage(String message) {
+    warningMsg.add(message);
   }
 }

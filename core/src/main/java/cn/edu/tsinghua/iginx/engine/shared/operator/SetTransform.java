@@ -27,6 +27,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class SetTransform extends AbstractUnaryOperator {
 
@@ -76,7 +77,9 @@ public class SetTransform extends AbstractUnaryOperator {
 
   @Override
   public Operator copy() {
-    return new SetTransform(getSource().copy(), new ArrayList<>(functionCallList));
+    return new SetTransform(
+        getSource().copy(),
+        functionCallList.stream().map(FunctionCall::copy).collect(Collectors.toList()));
   }
 
   @Override

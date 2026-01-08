@@ -152,6 +152,10 @@
             <artifactId>hutool-all</artifactId>
         </dependency>
         <dependency>
+            <groupId>cn.edu.tsinghua</groupId>
+            <artifactId>arrow-0patch</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.apache.arrow</groupId>
             <artifactId>arrow-vector</artifactId>
         </dependency>

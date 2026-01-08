@@ -24,6 +24,9 @@ import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class ByteUtils {
 
@@ -503,6 +506,21 @@ public class ByteUtils {
         return bytes;
       default:
         throw new UnsupportedOperationException(dataType.toString());
+    }
+  }
+
+  // 检测是否为函数调用结果
+  public static final Pattern FUNC_CALL_PATTERN = Pattern.compile("(.*)\\((.*)\\)$");
+
+  // 获取与原有基于 RowStream 的执行器兼容的 fullName
+  public static String getCompatibleFullName(String name, Map<String, String> metadata) {
+    Matcher matcher = FUNC_CALL_PATTERN.matcher(name);
+    if (matcher.matches() && metadata != null && !metadata.isEmpty()) {
+      String funcName = matcher.group(1);
+      String pathName = matcher.group(2);
+      return funcName + "(" + TagKVUtils.toFullName(pathName, metadata) + ")";
+    } else {
+      return TagKVUtils.toFullName(name, metadata);
     }
   }
 }
