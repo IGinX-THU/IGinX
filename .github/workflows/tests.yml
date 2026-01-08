@@ -23,23 +23,23 @@ jobs:
         uses: ./.github/workflows/standalone-test.yml
         with:
             metadata-matrix: '["zookeeper"]'
-            db-matrix: '["OceanBase"]'
+            db-matrix: '["OceanBase", "MySQL"]'
     standalone-test-no-optimizer:
         uses: ./.github/workflows/standalone-test-no-optimizer.yml
         with:
             metadata-matrix: '["zookeeper"]'
-            db-matrix: '["OceanBase"]'
+            db-matrix: '["OceanBase", "MySQL"]'
     db-ce:
         uses: ./.github/workflows/DB-CE.yml
         with:
             metadata-matrix: '["zookeeper"]'
-            db-matrix: '["OceanBase"]'
+            db-matrix: '["OceanBase", "MySQL"]'
     db-ce-no-optimizer:
         uses: ./.github/workflows/DB-CE.yml
         with:
             metadata-matrix: '["zookeeper"]'
             close-optimizer: "true"
-            db-matrix: '["OceanBase"]'
+            db-matrix: '["OceanBase", "MySQL"]'
     #    standalone-test-no-mac-relational:
     #        uses: ./.github/workflows/standalone-test.yml
     #        with:
