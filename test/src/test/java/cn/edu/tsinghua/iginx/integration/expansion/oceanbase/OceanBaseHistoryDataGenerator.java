@@ -52,7 +52,7 @@ public class OceanBaseHistoryDataGenerator extends BaseHistoryDataGenerator {
 
   private static final String DROP_DATABASE_STATEMENT = "DROP DATABASE IF EXISTS `%s`;";
 
-  private static final String USERNAME = "root@sys";
+  private static final String USERNAME = "root@tset";
 
   private static final String PASSWORD = "";
 

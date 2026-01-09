@@ -43,7 +43,7 @@ public class OceanBaseCapacityExpansionIT extends BaseCapacityExpansionIT {
   public OceanBaseCapacityExpansionIT() {
     super(
         StorageEngineType.relational,
-        "engine=oceanbase, username=root@sys",
+        "engine=oceanbase, username=root@test",
         new OceanBaseHistoryDataGenerator());
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
     DBConf dbConf = conf.loadDBConf(conf.getStorageType());
@@ -70,7 +70,7 @@ public class OceanBaseCapacityExpansionIT extends BaseCapacityExpansionIT {
     } catch (ClassNotFoundException e) {
       throw new RuntimeException(e);
     }
-    try (Connection connection = DriverManager.getConnection(jdbcUrl, "root@sys", oldPw);
+    try (Connection connection = DriverManager.getConnection(jdbcUrl, "root@test", oldPw);
         Statement stmt = connection.createStatement()) {
       String alterStmt = String.format("ALTER USER 'root' IDENTIFIED BY '%s';", newPw);
       LOGGER.info("alter statement in {}: {}", port, alterStmt);
