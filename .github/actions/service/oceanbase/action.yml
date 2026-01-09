@@ -48,7 +48,7 @@ runs:
                 if docker ps -a --format '{{.Names}}' | grep -q "^${name}$"; then
                   docker rm -f "${name}" || true
                 fi
-                docker run --platform linux/amd64 -d -p ${port}:2881 --name "${name}" -e MODE=${{ inputs.mode }} oceanbase/oceanbase-ce
+                docker run -d -p ${port}:2881 --name "${name}" -e MODE=${{ inputs.mode }} oceanbase/oceanbase-ce
               done
 
         - if: runner.os == 'Windows'

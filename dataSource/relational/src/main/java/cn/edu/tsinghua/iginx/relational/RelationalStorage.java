@@ -3356,7 +3356,7 @@ public class RelationalStorage implements IStorage {
     // 构造 regex
     String regexBase = toRegex(logicalTableName + TABLE_SUFFIX_DELIMITER);
     String tableNameRegex = "^" + regexBase + "([0-9]+)$";
-    Pattern pattern = Pattern.compile(tableNameRegex);
+    Pattern pattern = Pattern.compile(tableNameRegex, Pattern.CASE_INSENSITIVE);
     return foundTables.stream()
         .filter(t -> pattern.matcher(t).matches())
         .collect(Collectors.toList());
