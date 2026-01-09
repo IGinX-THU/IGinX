@@ -52,7 +52,7 @@ public class OceanBaseHistoryDataGenerator extends BaseHistoryDataGenerator {
 
   private static final String DROP_DATABASE_STATEMENT = "DROP DATABASE IF EXISTS `%s`;";
 
-  private static final String USERNAME = "root@tset";
+  private static final String USERNAME = "root@sys";
 
   private static final String PASSWORD = "";
 
@@ -206,7 +206,9 @@ public class OceanBaseHistoryDataGenerator extends BaseHistoryDataGenerator {
         String databaseName = databaseSet.getString("DATNAME");
         if (databaseName.equalsIgnoreCase("information_schema")
             || databaseName.equalsIgnoreCase("sys")
-            || databaseName.equalsIgnoreCase("performance_schema")) {
+            || databaseName.equalsIgnoreCase("performance_schema")
+            || databaseName.equalsIgnoreCase("mysql")
+            || databaseName.equalsIgnoreCase("ocs")) {
           continue;
         }
         dropDatabaseStatement.addBatch(String.format(DROP_DATABASE_STATEMENT, databaseName));
