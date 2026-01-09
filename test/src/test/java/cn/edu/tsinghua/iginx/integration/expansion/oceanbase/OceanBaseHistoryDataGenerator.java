@@ -52,7 +52,7 @@ public class OceanBaseHistoryDataGenerator extends BaseHistoryDataGenerator {
 
   private static final String DROP_DATABASE_STATEMENT = "DROP DATABASE IF EXISTS `%s`;";
 
-  private static final String USERNAME = "root@test";
+  private static final String USERNAME = "root@sys";
 
   private static final String PASSWORD = "";
 
@@ -130,7 +130,7 @@ public class OceanBaseHistoryDataGenerator extends BaseHistoryDataGenerator {
             DataType dataType = dataTypeList.get(index);
             createTableStr.append(getQuotName(columnName));
             createTableStr.append(" ");
-            createTableStr.append(toMySQLType(dataType));
+            createTableStr.append(toOceanbaseType(dataType));
             createTableStr.append(", ");
           }
           stmt.execute(
@@ -205,11 +205,8 @@ public class OceanBaseHistoryDataGenerator extends BaseHistoryDataGenerator {
       while (databaseSet.next()) {
         String databaseName = databaseSet.getString("DATNAME");
         if (databaseName.equalsIgnoreCase("information_schema")
-            || databaseName.equalsIgnoreCase("mysql")
             || databaseName.equalsIgnoreCase("sys")
-            || databaseName.equalsIgnoreCase("performance_schema")
-            || databaseName.equalsIgnoreCase("oceanbase")
-            || databaseName.equalsIgnoreCase("test")) {
+            || databaseName.equalsIgnoreCase("performance_schema")) {
           continue;
         }
         dropDatabaseStatement.addBatch(String.format(DROP_DATABASE_STATEMENT, databaseName));
@@ -235,7 +232,7 @@ public class OceanBaseHistoryDataGenerator extends BaseHistoryDataGenerator {
     }
   }
 
-  private static String toMySQLType(DataType dataType) {
+  private static String toOceanbaseType(DataType dataType) {
     switch (dataType) {
       case BOOLEAN:
         return "BOOLEAN";

@@ -122,7 +122,7 @@ public class MySQLHistoryDataGenerator extends BaseHistoryDataGenerator {
             DataType dataType = dataTypeList.get(index);
             createTableStr.append(getQuotName(columnName));
             createTableStr.append(" ");
-            createTableStr.append(toPostgreSQL(dataType));
+            createTableStr.append(toMySQL(dataType));
             createTableStr.append(", ");
           }
           stmt.execute(
@@ -226,7 +226,7 @@ public class MySQLHistoryDataGenerator extends BaseHistoryDataGenerator {
     }
   }
 
-  private static String toPostgreSQL(DataType dataType) {
+  private static String toMySQL(DataType dataType) {
     switch (dataType) {
       case BOOLEAN:
         return "BOOLEAN";
