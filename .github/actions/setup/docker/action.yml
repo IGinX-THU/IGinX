@@ -35,4 +35,4 @@ runs:
               sudo curl -LO https://github.com/abiosoft/colima/releases/download/v0.8.1/colima-Darwin-arm64
               sudo install colima-Darwin-arm64 $COLIMA_PATH && sudo chmod +x $COLIMA_PATH
               sudo curl -L -o $LIMACTL_PATH https://github.com/mikekazakov/lima-nohvf/raw/master/limactl && sudo chmod +x $LIMACTL_PATH
-              colima start --cpu 4 --memory 8 --network-address --arch arm64 --vm-type=qemu
+              colima start --cpu 4 --memory 8 --network-address --arch x86_64 --vm-type=qemu
