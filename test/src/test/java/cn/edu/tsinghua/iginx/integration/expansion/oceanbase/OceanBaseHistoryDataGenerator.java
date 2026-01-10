@@ -208,7 +208,8 @@ public class OceanBaseHistoryDataGenerator extends BaseHistoryDataGenerator {
             || databaseName.equalsIgnoreCase("sys")
             || databaseName.equalsIgnoreCase("performance_schema")
             || databaseName.equalsIgnoreCase("mysql")
-            || databaseName.equalsIgnoreCase("ocs")) {
+            || databaseName.equalsIgnoreCase("ocs")
+            || databaseName.equalsIgnoreCase("oceanbase")) {
           continue;
         }
         dropDatabaseStatement.addBatch(String.format(DROP_DATABASE_STATEMENT, databaseName));
