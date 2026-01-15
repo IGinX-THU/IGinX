@@ -94,7 +94,7 @@ runs:
               for port in ${{ inputs.ports }}; do
                 name="oceanbase-ce-$port"
                 echo "waiting for ${name} ..."
-                for i in $(seq 1 200); do
+                for i in $(seq 1 90); do
                   if docker logs "${name}" 2>&1 | tail -n 20 | grep -q "boot success"; then
                     echo "${name} boot success"
                     break
@@ -103,7 +103,7 @@ runs:
                 done
                 if ! docker logs "${name}" 2>&1 | tail -n 50 | grep -q "boot success"; then
                   echo "${name} failed to bootstrap";
-                  docker logs --tail 200 "${name}" || true
+                  docker logs "${name}" 2>&1 || true
                   exit 1
                 fi
               done

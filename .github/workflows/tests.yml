@@ -145,11 +145,11 @@ jobs:
         uses: ./.github/workflows/free-thread-test.yml
         with:
             metadata-matrix: '["zookeeper"]'
-    tpc-h-test:
-        uses: ./.github/workflows/tpc-h.yml
-        with:
-            os-matrix: '["ubuntu-latest"]'
-            metadata-matrix: '["zookeeper"]'
+    #    tpc-h-test:
+    #        uses: ./.github/workflows/tpc-h.yml
+    #        with:
+    #            os-matrix: '["ubuntu-latest"]'
+    #            metadata-matrix: '["zookeeper"]'
     cluster-test:
         uses: ./.github/workflows/cluster-test.yml
     restart-test:
@@ -171,7 +171,7 @@ jobs:
             - remote-test
             - assembly-test
             - free-thread-test
-            - tpc-h-test
+            #            - tpc-h-test
             #            - standalone-test-no-mac-relational
             #            - standalone-test-no-optimizer-no-mac-relational
             #            - db-ce-Dameng

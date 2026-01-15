@@ -29,8 +29,7 @@ runs:
           shell: bash
           run: |
               brew update
-              brew install docker qemu lima colima
-              brew install lima-additional-guestagents
+              brew install docker colima
               colima delete -f || true
-              colima start --cpu 4 --memory 8 --disk 20 --network-address --arch x86_64 --vm-type=qemu
+              colima start --cpu 4 --memory 8 --disk 20 --network-address --vm-type=vz
               docker info
