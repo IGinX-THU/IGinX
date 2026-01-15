@@ -32,5 +32,5 @@ runs:
               brew install docker colima lima qemu
               brew install lima-additional-guestagents
               colima delete -f || true
-              colima start --cpu 4 --memory 8 --disk 20 --network-address --arch aarch64 --vm-type=qemu
+              colima start --cpu 4 --memory 8 --disk 20 --arch aarch64 --vm-type=qemu
               docker info
