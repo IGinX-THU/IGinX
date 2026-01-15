@@ -94,7 +94,7 @@ runs:
               for port in ${{ inputs.ports }}; do
                 name="oceanbase-ce-$port"
                 echo "waiting for ${name} ..."
-                for i in $(seq 1 500); do
+                for i in $(seq 1 200); do
                   if docker logs "${name}" 2>&1 | tail -n 20 | grep -q "boot success"; then
                     echo "${name} boot success"
                     break
