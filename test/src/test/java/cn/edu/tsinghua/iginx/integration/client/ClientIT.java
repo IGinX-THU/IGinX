@@ -199,7 +199,7 @@ public class ClientIT {
     String dirDummyPath = dirDummy.toAbsolutePath().toString().replace("\\", "/");
     String statement =
         String.format(
-            "ADD STORAGEENGINE (\"127.0.0.1\", 6670, \"filesystem\", \"dummy_dir=%s,iginx_port=6888,has_data=true,is_read_only=true\");",
+            "ADD STORAGEENGINE (\"127.0.0.1\", 6670, \"filesystem\", OPTIONS (dummy_dir '%s', iginx_port '6888', has_data 'true', is_read_only 'true'));",
             dirDummyPath);
     client.readLine(statement);
     assertTrue(client.expectedOutputContains("success"));

@@ -153,7 +153,7 @@ public class ClusterIT {
 
   private void addStorageEngine(Session session) throws InterruptedException {
     String addStorageEngine =
-        "ADD STORAGEENGINE (\"127.0.0.1\", 6667, \"iotdb12\", \"has_data=true, is_read_only=true, username=root, sessionPoolSize=20, schema_prefix=prefix\");";
+        "ADD STORAGEENGINE (\"127.0.0.1\", 6667, \"iotdb12\", OPTIONS (has_data 'true', is_read_only 'true', username 'root', sessionPoolSize '20', schema_prefix 'prefix'));";
     try {
       LOGGER.info("Execute Statement: \"{}\"", addStorageEngine);
       session.executeSql(addStorageEngine);

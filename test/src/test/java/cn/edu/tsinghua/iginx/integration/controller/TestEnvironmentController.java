@@ -32,9 +32,6 @@ public class TestEnvironmentController {
 
   private static Session session;
 
-  private static final String ADD_STORAGE_ENGINE =
-      "ADD STORAGEENGINE (\"%s\", %s, \"%s\", \"%s\");";
-
   public void setTestTasks(List<String> taskList, String filePath) {
     try {
       File file = new File(filePath); // 文件路径
@@ -51,12 +48,14 @@ public class TestEnvironmentController {
   }
 
   private String toCmd(StorageEngineMeta meta) {
-    StringBuilder extraArg = new StringBuilder();
+    StringBuilder options = new StringBuilder();
+    List<String> optionList = new ArrayList<>();
     for (Map.Entry<String, String> entry : meta.getExtraParams().entrySet()) {
-      extraArg.append(entry.getKey()).append(":").append(entry.getValue()).append(",");
+      optionList.add(entry.getKey() + " '" + entry.getValue() + "'");
     }
-    extraArg.deleteCharAt(extraArg.length() - 1);
+    options.append("OPTIONS (").append(String.join(", ", optionList)).append(")");
     return String.format(
-        ADD_STORAGE_ENGINE, meta.getIp(), meta.getPort(), meta.getStorageEngine(), extraArg);
+        "ADD STORAGEENGINE (\"%s\", %s, \"%s\", %s);",
+        meta.getIp(), meta.getPort(), meta.getStorageEngine(), options.toString());
   }
 }

@@ -158,37 +158,51 @@ public abstract class BaseCapacityExpansionIT {
       statement.append(port);
       statement.append(", \"");
       statement.append(type.name());
-      statement.append("\", '");
-      statement.append("has_data=");
-      statement.append(hasData);
-      statement.append(", is_read_only=");
-      statement.append(isReadOnly);
+      statement.append("\", OPTIONS (");
+
+      // 构建 OPTIONS 参数列表
+      List<String> options = new ArrayList<>();
+      options.add("has_data '" + hasData + "'");
+      options.add("is_read_only '" + isReadOnly + "'");
+
       if (this instanceof InfluxDBCapacityExpansionIT) {
-        statement.append(", url=http://localhost:");
-        statement.append(port);
-        statement.append("/");
+        options.add("url 'http://localhost:" + port + "/'");
       }
       if (IS_EMBEDDED) {
-        statement.append(String.format(", dummy_dir=%s/", DBCE_PARQUET_FS_TEST_DIR));
-        statement.append(PORT_TO_ROOT.get(port));
-        statement.append(
-            String.format(", dir=%s/" + IGINX_DATA_PATH_PREFIX_NAME, DBCE_PARQUET_FS_TEST_DIR));
-        statement.append(PORT_TO_ROOT.get(port));
-        statement.append(", iginx_port=").append(oriPortIginx);
+        options.add(
+            "dummy_dir '"
+                + String.format("%s/%s", DBCE_PARQUET_FS_TEST_DIR, PORT_TO_ROOT.get(port))
+                + "'");
+        options.add(
+            "dir '"
+                + String.format(
+                    "%s/%s%s",
+                    DBCE_PARQUET_FS_TEST_DIR, IGINX_DATA_PATH_PREFIX_NAME, PORT_TO_ROOT.get(port))
+                + "'");
+        options.add("iginx_port '" + oriPortIginx + "'");
       }
       if (extraParams != null) {
-        statement.append(", ");
-        statement.append(extraParams);
+        // extraParams 可能是 "key1=val1,key2=val2" 格式，需要解析
+        String[] params = extraParams.split(",");
+        for (String param : params) {
+          param = param.trim();
+          if (param.contains("=")) {
+            String[] kv = param.split("=", 2);
+            options.add(kv[0].trim() + " '" + kv[1].trim() + "'");
+          } else {
+            options.add(param);
+          }
+        }
       }
       if (dataPrefix != null) {
-        statement.append(", data_prefix=");
-        statement.append(dataPrefix);
+        options.add("data_prefix '" + dataPrefix + "'");
       }
       if (schemaPrefix != null) {
-        statement.append(", schema_prefix=");
-        statement.append(schemaPrefix);
+        options.add("schema_prefix '" + schemaPrefix + "'");
       }
-      statement.append("');");
+
+      statement.append(String.join(", ", options));
+      statement.append("));");
 
       LOGGER.info("Execute Statement: \"{}\"", statement);
       session.executeSql(statement.toString());
