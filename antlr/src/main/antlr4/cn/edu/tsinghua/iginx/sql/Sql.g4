@@ -453,7 +453,11 @@ storageEngineSpec
    ;
 
 storageEngine
-   : LR_BRACKET ip = stringLiteral COMMA port = INT COMMA engineType = stringLiteral COMMA extra = stringLiteral RR_BRACKET
+   : LR_BRACKET ip = stringLiteral COMMA port = INT COMMA engineType = stringLiteral COMMA OPTIONS LR_BRACKET storageEngineOption (COMMA storageEngineOption)* RR_BRACKET RR_BRACKET
+   ;
+
+storageEngineOption
+   : key = nodeName OPERATOR_EQ? value = stringLiteral
    ;
 
 timeValue
@@ -596,6 +600,7 @@ keyWords
    | THEN
    | ELSE
    | END
+   | OPTIONS
    ;
 
 dateFormat
@@ -1175,6 +1180,10 @@ END
    : E N D
    ;
 
+OPTIONS
+   : O P T I O N S
+   ;
+
 SEQUENCE
    : S E Q U E N C E
    ;
@@ -1437,11 +1446,25 @@ BACK_QUOTE_STRING_LITERAL_NOT_EMPTY
    ;
 
 DOUBLE_QUOTE_STRING_LITERAL
-   : '"' ('\\' . | ~ '"')*? '"'
+   : '"' DOUBLE_QUOTE_STRING_CONTENT* '"'
+   ;
+
+fragment DOUBLE_QUOTE_STRING_CONTENT
+   : '"' '"' // Escaped double quote: "" -> "
+   | '\\' . // Backslash escape sequences
+   | ~ ["\\] // Any other character
+   
    ;
 
 SINGLE_QUOTE_STRING_LITERAL
-   : '\'' ('\\' . | ~ '\'')*? '\''
+   : '\'' SINGLE_QUOTE_STRING_CONTENT* '\''
+   ;
+
+fragment SINGLE_QUOTE_STRING_CONTENT
+   : '\'' '\'' // Escaped single quote: '' -> ' (must be first!)
+   | '\\' . // Backslash escape sequences
+   | ~ ['\\] // Any other character
+   
    ;
    //Characters and write it this way for case sensitivity
    

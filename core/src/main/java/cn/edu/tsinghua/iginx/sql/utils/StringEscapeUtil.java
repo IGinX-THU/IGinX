@@ -19,82 +19,171 @@
  */
 package cn.edu.tsinghua.iginx.sql.utils;
 
+/**
+ * SQL string literal escape utility, following MySQL/SQL standard escape rules. This utility class
+ * provides methods to unescape SQL string literals according to the SQL standard and MySQL
+ * conventions.
+ *
+ * <p>Supported escape sequences:
+ *
+ * <ul>
+ *   <li>Single quote: {@code ''} or {@code \'} → {@code '}
+ *   <li>Double quote: {@code ""} or {@code \"} → {@code "}
+ *   <li>Backslash: {@code \\} → {@code \}
+ *   <li>Newline: {@code \n} → line feed (0x0A)
+ *   <li>Carriage return: {@code \r} → carriage return (0x0D)
+ *   <li>Tab: {@code \t} → horizontal tab (0x09)
+ *   <li>Backspace: {@code \b} → backspace (0x08)
+ *   <li>Form feed: {@code \f} → form feed (0x0C)
+ *   <li>Null: {@code \0} → null character (0x00)
+ *   <li>Unicode: {@code \\uXXXX} → Unicode character (hexadecimal)
+ * </ul>
+ *
+ * <p>This implementation follows MySQL's string literal handling, which is compatible with the SQL
+ * standard.
+ */
 public class StringEscapeUtil {
 
-  /** 把字符串中的转义序列（如 \n, \t, \", \', \\ 等）还原为真实字符 */
+  /**
+   * Unescapes a SQL string literal according to MySQL/SQL standard rules. This method handles all
+   * standard SQL escape sequences including single quote escaping ({@code ''} or {@code \'}),
+   * backslash sequences, control characters, and Unicode escapes.
+   *
+   * <p>The input should be the content between the quotes (not including the quotes themselves).
+   *
+   * @param input the string literal content to unescape (without surrounding quotes)
+   * @return the unescaped string
+   */
   public static String unescape(String input) {
-    if (input == null) {
-      return "";
+    if (input == null || input.isEmpty()) {
+      return input == null ? "" : input;
     }
 
-    StringBuilder target = new StringBuilder(input.length());
-    boolean escaping = false;
+    StringBuilder result = new StringBuilder(input.length());
+    int length = input.length();
+    int i = 0;
 
-    for (int i = 0; i < input.length(); i++) {
+    while (i < length) {
       char c = input.charAt(i);
 
-      if (!escaping) {
-        if (c == '\\') {
-          escaping = true;
-        } else {
-          target.append(c);
+      // Handle backslash escape sequences (MySQL/SQL standard)
+      if (c == '\\' && i + 1 < length) {
+        char next = input.charAt(i + 1);
+        switch (next) {
+          case 'n':
+            result.append('\n');
+            i += 2;
+            continue;
+          case 'r':
+            result.append('\r');
+            i += 2;
+            continue;
+          case 't':
+            result.append('\t');
+            i += 2;
+            continue;
+          case 'b':
+            result.append('\b');
+            i += 2;
+            continue;
+          case 'f':
+            result.append('\f');
+            i += 2;
+            continue;
+          case '0':
+            result.append('\0');
+            i += 2;
+            continue;
+          case '\\':
+            result.append('\\');
+            i += 2;
+            continue;
+          case '\'':
+            result.append('\'');
+            i += 2;
+            continue;
+          case '"':
+            result.append('"');
+            i += 2;
+            continue;
+          case 'u':
+            // Unicode escape: \\uXXXX
+            if (i + 5 < length) {
+              try {
+                String hex = input.substring(i + 2, i + 6);
+                int codePoint = Integer.parseInt(hex, 16);
+                result.append((char) codePoint);
+                i += 6;
+                continue;
+              } catch (NumberFormatException e) {
+                // Invalid Unicode escape, treat as literal \\u
+                result.append('\\').append('u');
+                i += 2;
+                continue;
+              }
+            } else {
+              // Incomplete Unicode escape
+              result.append('\\').append('u');
+              i += 2;
+              continue;
+            }
+          default:
+            // Unknown escape sequence: MySQL ignores the backslash and keeps only the following
+            // character (default behavior, unless NO_BACKSLASH_ESCAPES mode is enabled)
+            // For example: \A -> A, \x -> x
+            result.append(next);
+            i += 2;
+            continue;
         }
+      }
+
+      // Handle single quote escaping for single-quoted strings: '' -> '
+      // Note: This is only valid in single-quoted strings, but we handle it here
+      // for compatibility with both single and double-quoted strings
+      if (c == '\'' && i + 1 < length && input.charAt(i + 1) == '\'') {
+        result.append('\'');
+        i += 2;
         continue;
       }
 
-      // 进入 escaping 状态
-      switch (c) {
-        case 'b':
-          target.append('\b');
-          break;
-        case 'f':
-          target.append('\f');
-          break;
-        case 'n':
-          target.append('\n');
-          break;
-        case 'r':
-          target.append('\r');
-          break;
-        case 't':
-          target.append('\t');
-          break;
-        case '\\':
-          target.append('\\');
-          break;
-        case '\'':
-          target.append('\'');
-          break;
-        case '\"':
-          target.append('\"');
-          break;
-        case 'u': // Unicode 转义
-          if (i + 4 < input.length()) {
-            String hex = input.substring(i + 1, i + 5);
-            try {
-              int code = Integer.parseInt(hex, 16);
-              target.append((char) code);
-              i += 4;
-            } catch (NumberFormatException e) {
-              target.append("\\u").append(hex); // 非法的 Unicode 序列，原样输出
-              i += 4;
-            }
-          } else {
-            target.append("\\u"); // 不完整的 Unicode 序列
-          }
-          break;
-        default:
-          // 非标准转义，原样保留
-          target.append('\\').append(c);
+      // Handle double quote escaping for double-quoted strings: "" -> "
+      if (c == '"' && i + 1 < length && input.charAt(i + 1) == '"') {
+        result.append('"');
+        i += 2;
+        continue;
       }
-      escaping = false;
+
+      // Regular character
+      result.append(c);
+      i++;
     }
 
-    // 处理最后一个单独的 '\'
-    if (escaping) {
-      target.append('\\');
+    return result.toString();
+  }
+
+  /**
+   * Unescapes a SQL string literal from a token text (including surrounding quotes). This method
+   * automatically detects whether the string is single-quoted or double-quoted, removes the quotes,
+   * and then unescapes the content.
+   *
+   * @param tokenText the string literal token text including quotes (e.g., "'value'" or
+   *     "\"value\"")
+   * @return the unescaped string value
+   */
+  public static String unescapeStringLiteral(String tokenText) {
+    if (tokenText == null || tokenText.length() < 2) {
+      return "";
     }
 
-    return target.toString();
+    // Determine quote type and extract content
+    char firstChar = tokenText.charAt(0);
+    if ((firstChar == '\'' && tokenText.charAt(tokenText.length() - 1) == '\'')
+        || (firstChar == '"' && tokenText.charAt(tokenText.length() - 1) == '"')) {
+      String content = tokenText.substring(1, tokenText.length() - 1);
+      return unescape(content);
+    }
+
+    // If not properly quoted, return as-is (shouldn't happen in valid SQL)
+    return tokenText;
   }
 }

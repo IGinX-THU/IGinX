@@ -26,6 +26,7 @@ import static cn.edu.tsinghua.iginx.sql.statement.select.SelectStatement.caseWhe
 import static cn.edu.tsinghua.iginx.sql.statement.select.SelectStatement.keyCount;
 import static cn.edu.tsinghua.iginx.sql.statement.select.SelectStatement.markJoinCount;
 import static cn.edu.tsinghua.iginx.sql.statement.select.SelectStatement.sequenceCount;
+import static cn.edu.tsinghua.iginx.sql.utils.StringEscapeUtil.unescapeStringLiteral;
 
 import cn.edu.tsinghua.iginx.engine.logical.utils.LogicalFilterUtils;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
@@ -169,7 +170,6 @@ import cn.edu.tsinghua.iginx.utils.StringUtils;
 import cn.edu.tsinghua.iginx.utils.TimeUtils;
 import java.util.*;
 import java.util.stream.Collectors;
-import org.apache.commons.text.StringEscapeUtils;
 
 public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
@@ -303,8 +303,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
   private ImportFile parseImportFileClause(ImportFileClauseContext ctx) {
     if (ctx.csvFile() != null) {
-      String filePath = ctx.csvFile().filePath.getText();
-      filePath = filePath.substring(1, filePath.length() - 1);
+      String filePath = unescapeStringLiteral(ctx.csvFile().filePath.getText());
       ImportCsv importCsv = new ImportCsv(filePath);
       parseCsvFile(ctx.csvFile(), importCsv.getCsvFile());
       if (ctx.HEADER() != null) {
@@ -475,8 +474,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
   private ExportFile parseExportFileClause(ExportFileClauseContext ctx) {
     if (ctx.csvFile() != null) {
-      String filePath = ctx.csvFile().filePath.getText();
-      filePath = filePath.substring(1, filePath.length() - 1);
+      String filePath = unescapeStringLiteral(ctx.csvFile().filePath.getText());
       ExportCsv exportCsv = new ExportCsv(filePath);
       parseCsvFile(ctx.csvFile(), exportCsv.getCsvFile());
       if (ctx.HEADER() != null) {
@@ -484,8 +482,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       }
       return exportCsv;
     } else if (ctx.streamFile() != null) {
-      String dirPath = ctx.streamFile().dirPath.getText();
-      dirPath = dirPath.substring(1, dirPath.length() - 1);
+      String dirPath = unescapeStringLiteral(ctx.streamFile().dirPath.getText());
       return new ExportByteStream(dirPath);
     } else {
       throw new SQLParserException("Unknown export file type");
@@ -500,13 +497,11 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         throw new SQLParserException("FILEDS should be used with TERMINATED, ENCLOSED or ESCAPED.");
       }
       if (ctx.fieldsOption().TERMINATED() != null) {
-        String delimiter = ctx.fieldsOption().fieldsTerminated.getText();
-        delimiter = delimiter.substring(1, delimiter.length() - 1);
+        String delimiter = unescapeStringLiteral(ctx.fieldsOption().fieldsTerminated.getText());
         csvFile.setDelimiter(delimiter);
       }
       if (ctx.fieldsOption().ENCLOSED() != null) {
-        String quote = ctx.fieldsOption().enclosed.getText();
-        quote = quote.substring(1, quote.length() - 1);
+        String quote = unescapeStringLiteral(ctx.fieldsOption().enclosed.getText());
         if (quote.length() != 1) {
           throw new SQLParserException("a char is expected behind ENCLOSED BY.");
         }
@@ -516,8 +511,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         }
       }
       if (ctx.fieldsOption().ESCAPED() != null) {
-        String escaped = ctx.fieldsOption().escaped.getText();
-        escaped = escaped.substring(1, escaped.length() - 1);
+        String escaped = unescapeStringLiteral(ctx.fieldsOption().escaped.getText());
         if (escaped.length() != 1) {
           throw new SQLParserException("a char is expected behind ENCLOSED BY.");
         }
@@ -526,8 +520,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     }
 
     if (ctx.linesOption() != null) {
-      String recordSeparator = ctx.linesOption().linesTerminated.getText();
-      recordSeparator = recordSeparator.substring(1, recordSeparator.length() - 1);
+      String recordSeparator = unescapeStringLiteral(ctx.linesOption().linesTerminated.getText());
       String CRLF = "\r\n";
       csvFile.setRecordSeparator(recordSeparator);
     }
@@ -571,7 +564,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       int port = Integer.parseInt(engine.port.getText());
       String typeStr = engine.engineType.getText().trim();
       String type = typeStr.substring(1, typeStr.length() - 1);
-      Map<String, String> extra = parseExtra(engine.extra);
+      Map<String, String> extra = parseStorageEngineOptions(engine.storageEngineOption());
       addStorageEngineStatement.setEngines(
           new StorageEngine(ip, port, StorageEngineType.valueOf(type.toLowerCase()), extra));
     }
@@ -819,8 +812,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
   @Override
   public Statement visitRegisterTaskStatement(RegisterTaskStatementContext ctx) {
-    String filePath = ctx.filePath.getText();
-    filePath = filePath.substring(1, filePath.length() - 1);
+    String filePath = unescapeStringLiteral(ctx.filePath.getText());
 
     List<UDFClassPair> classPairs = new ArrayList<>();
     ctx.udfClassRef()
@@ -828,8 +820,8 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
             e -> {
               UDFClassPair p =
                   new UDFClassPair(e.name.getText().trim(), e.className.getText().trim());
-              p.name = p.name.substring(1, p.name.length() - 1).trim();
-              p.classPath = p.classPath.substring(1, p.classPath.length() - 1).trim();
+              p.name = unescapeStringLiteral(p.name).trim();
+              p.classPath = unescapeStringLiteral(p.classPath).trim();
               classPairs.add(p);
             });
 
@@ -856,15 +848,13 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
   @Override
   public Statement visitDropTaskStatement(DropTaskStatementContext ctx) {
-    String name = ctx.name.getText();
-    name = name.substring(1, name.length() - 1);
+    String name = unescapeStringLiteral(ctx.name.getText());
     return new DropTaskStatement(name);
   }
 
   @Override
   public Statement visitCommitTransformJobStatement(CommitTransformJobStatementContext ctx) {
-    String path = ctx.filePath.getText();
-    path = path.substring(1, path.length() - 1);
+    String path = unescapeStringLiteral(ctx.filePath.getText());
     return new CommitTransformJobStatement(path);
   }
 
@@ -935,10 +925,8 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
   @Override
   public Statement visitSetConfigStatement(SetConfigStatementContext ctx) {
-    String name = ctx.configName.getText();
-    name = name.substring(1, name.length() - 1);
-    String value = ctx.configValue.getText();
-    value = value.substring(1, value.length() - 1);
+    String name = unescapeStringLiteral(ctx.configName.getText());
+    String value = unescapeStringLiteral(ctx.configValue.getText());
     return new SetConfigStatement(name, value);
   }
 
@@ -948,8 +936,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     if (ctx.configName == null) {
       configName = "*";
     } else {
-      configName = ctx.configName.getText();
-      configName = configName.substring(1, configName.length() - 1);
+      configName = unescapeStringLiteral(ctx.configName.getText());
     }
     return new ShowConfigStatement(configName);
   }
@@ -1256,7 +1243,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         }
         Op op = Op.str2Op(strOp);
         String regex = context.regex.getText();
-        Value value = new Value(regex.substring(1, regex.length() - 1));
+        Value value = new Value(unescapeStringLiteral(regex));
         if (leftPath != null) {
           conditions.add(new ValueFilter(leftPath, op, value));
         } else {
@@ -1816,7 +1803,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     Value value;
     if (ctx.regex != null) {
       String regex = ctx.regex.getText();
-      value = new Value(regex.substring(1, regex.length() - 1));
+      value = new Value(unescapeStringLiteral(regex));
     } else {
       value = new Value(parseValue(ctx.constant()));
     }
@@ -2081,31 +2068,30 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
   }
 
   private String parseParamWithEscaped(String text) {
-    // 去掉前后引号
-    text = text.substring(1, text.length() - 1);
-    boolean escape = false;
-    StringBuilder rawSegment = new StringBuilder();
-    for (int i = 0; i < text.length(); i++) {
-      char c = text.charAt(i);
-      if (escape) {
-        // 对","进行非标准转义处理
-        if (c != ',') {
-          rawSegment.append('\\');
-        }
-        rawSegment.append(c);
-        escape = false;
-      } else if (c == '\\') {
-        // 遇到反斜杠，标记进入转义状态，暂不追加
-        escape = true;
-      } else if (c == '\n' || c == '\r' || c == '\t' || c == '\b' || c == '\f') {
-        throw new IllegalArgumentException(
-            "String literal contains unescaped control characters (like newlines or tabs). Please use \\n, \\t, etc. instead.");
-      } else {
-        rawSegment.append(c);
-      }
+    // 使用统一的字符串转义处理（遵循 MySQL/SQL 标准）
+    return unescapeStringLiteral(text);
+  }
+
+  private Map<String, String> parseStorageEngineOptions(
+      List<SqlParser.StorageEngineOptionContext> optionCtxList) {
+    Map<String, String> map = new HashMap<>();
+    if (optionCtxList == null || optionCtxList.isEmpty()) {
+      return map;
     }
-    // 不分割时，List中永远只有一个元素
-    return StringEscapeUtils.unescapeJava(rawSegment.toString());
+    for (SqlParser.StorageEngineOptionContext opt : optionCtxList) {
+      // key 是 nodeName，可以包含关键字（如 PASSWORD），需要使用 parseNodeName 解析
+      if (opt.key == null) {
+        throw new SQLParserException("Storage engine option key cannot be null");
+      }
+      String key = parseNodeName(opt.key);
+
+      String raw = opt.value.getText(); // 例如 'root' 或 "root"
+
+      // 使用统一的字符串转义处理（遵循 MySQL/SQL 标准）
+      String value = unescapeStringLiteral(raw);
+      map.put(key, value);
+    }
+    return map;
   }
 
   private Map<String, String> parseExtra(StringLiteralContext ctx) {
@@ -2116,45 +2102,87 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         || extra.equals(SQLConstant.SINGLE_QUOTES)) {
       return map;
     }
-    // 去掉前后引号
-    extra = extra.substring(1, extra.length() - 1);
-    // 调用通用方法，按 ',' 分割
-    List<String> kvStrs = new ArrayList<>();
-    StringBuilder rawSegment = new StringBuilder();
-    boolean escape = false;
-    for (int i = 0; i < extra.length(); i++) {
-      char c = extra.charAt(i);
-      if (escape) {
-        // 对","进行非标准转义处理
-        if (c != ',') {
-          rawSegment.append('\\');
-        }
-        rawSegment.append(c);
-        escape = false;
-      } else if (c == '\\') {
-        // 遇到反斜杠，标记进入转义状态，暂不追加
-        escape = true;
-      } else if (c == ',') {
-        // 遇到未转义的分隔符，进行切分
-        kvStrs.add(StringEscapeUtils.unescapeJava(rawSegment.toString()));
-        rawSegment.setLength(0);
-      } else if (c == '\n' || c == '\r' || c == '\t' || c == '\b' || c == '\f') {
-        throw new IllegalArgumentException(
-            "String literal contains unescaped control characters (like newlines or tabs). Please use \\n, \\t, etc. instead.");
-      } else {
-        rawSegment.append(c);
-      }
-    }
-    kvStrs.add(StringEscapeUtils.unescapeJava(rawSegment.toString()));
 
+    // 先去掉引号，得到原始内容
+    String content = extra.substring(1, extra.length() - 1);
+
+    // 按 ',' 分割（需要处理转义的逗号）
+    List<String> kvStrs = splitWithEscape(content, ',');
+
+    // 解析每个 key=value 对
     for (String kv : kvStrs) {
       String[] kvArray = kv.split("=", 2); // 只按第一个=分割
       if (kvArray.length != 2) {
         continue;
       }
-      map.put(kvArray[0].trim(), kvArray[1]);
+      // 对 value 进行转义处理（key 通常不需要转义）
+      String key = kvArray[0].trim();
+      String rawValue = kvArray[1].trim();
+      // value 可能是带引号的字符串字面量，需要去掉引号并转义
+      String value = rawValue;
+      if ((rawValue.startsWith("'") && rawValue.endsWith("'"))
+          || (rawValue.startsWith("\"") && rawValue.endsWith("\""))) {
+        value = unescapeStringLiteral(rawValue);
+      } else {
+        // 如果不是带引号的字符串，使用统一的转义处理
+        // MySQL 允许未转义的控制字符，所以这里直接处理转义即可
+        value = StringEscapeUtil.unescape(value);
+      }
+      map.put(key, value);
     }
     return map;
+  }
+
+  /**
+   * Split string by delimiter while respecting escaped delimiters (following MySQL/SQL standard).
+   * This method handles escape sequences properly, so delimiters that are escaped are not used as
+   * split points.
+   *
+   * @param text the text to split
+   * @param delimiter the delimiter character
+   * @return list of split parts
+   */
+  private List<String> splitWithEscape(String text, char delimiter) {
+    List<String> parts = new ArrayList<>();
+    StringBuilder current = new StringBuilder();
+    int length = text.length();
+    int i = 0;
+
+    while (i < length) {
+      char c = text.charAt(i);
+
+      // Handle backslash escape sequences - don't treat escaped delimiter as split point
+      if (c == '\\' && i + 1 < length) {
+        char next = text.charAt(i + 1);
+        current.append(c).append(next);
+        i += 2;
+        continue;
+      }
+
+      // Handle quote escaping ('' or "") - these shouldn't contain delimiters
+      if ((c == '\'' && i + 1 < length && text.charAt(i + 1) == '\'')
+          || (c == '"' && i + 1 < length && text.charAt(i + 1) == '"')) {
+        current.append(c).append(text.charAt(i + 1));
+        i += 2;
+        continue;
+      }
+
+      // Check for delimiter
+      if (delimiter != 0 && c == delimiter) {
+        parts.add(current.toString());
+        current.setLength(0);
+        i++;
+        continue;
+      }
+
+      // Regular character
+      current.append(c);
+      i++;
+    }
+
+    // Add the last part
+    parts.add(current.toString());
+    return parts;
   }
 
   private void parseInsertValuesSpec(InsertValuesSpecContext ctx, InsertStatement insertStatement) {
@@ -2204,10 +2232,10 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     } else if (ctx.dateExpression() != null) {
       return parseDateExpression(ctx.dateExpression());
     } else if (ctx.stringLiteral() != null) {
-      // trim, "str" may look like ""str"".
+      // Use unified string literal unescape (following MySQL/SQL standard)
       // Attention!! DataType in thrift interface only! support! binary!
-      String str = ctx.stringLiteral().getText();
-      return str.substring(1, str.length() - 1).getBytes();
+      String str = unescapeStringLiteral(ctx.stringLiteral().getText());
+      return str.getBytes();
     } else if (ctx.realLiteral() != null) {
       // maybe contains minus, see Sql.g4 for more details.
       return Double.parseDouble(ctx.getText());

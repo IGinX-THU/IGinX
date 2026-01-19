@@ -36,13 +36,14 @@ public class StringEscapeUtilTest {
     assertEquals("formfeed\fpage", StringEscapeUtil.unescape("formfeed\\fpage"));
     assertEquals("It\\works", StringEscapeUtil.unescape("It\\\\works"));
     assertEquals("a\\.txt", StringEscapeUtil.unescape("a\\\\.txt"));
-    assertEquals("a\\.txt", StringEscapeUtil.unescape("a\\.txt"));
+    // \. 是未知转义序列，忽略反斜杠，只保留点
+    assertEquals("a.txt", StringEscapeUtil.unescape("a\\.txt"));
     assertEquals("single'quote", StringEscapeUtil.unescape("single\\'quote"));
     assertEquals("double\"quote", StringEscapeUtil.unescape("double\\\"quote"));
 
-    // Java 不支持 \a \v 这种转义，原样保留
-    assertEquals("\\a", StringEscapeUtil.unescape("\\a"));
-    assertEquals("\\v\n", StringEscapeUtil.unescape("\\v\\n"));
+    // 未知转义序列忽略反斜杠，只保留后面的字符
+    assertEquals("a", StringEscapeUtil.unescape("\\a"));
+    assertEquals("v\n", StringEscapeUtil.unescape("\\v\\n"));
 
     // unicode转义
     assertEquals("你好", StringEscapeUtil.unescape("\\u4F60\\u597D"));
