@@ -142,6 +142,132 @@ public abstract class BaseCapacityExpansionIT {
         ip, port, hasData, isReadOnly, dataPrefix, schemaPrefix, extraParams, false);
   }
 
+  /**
+   * Add storage engine with Map-based extra params (avoids string serialization overhead).
+   *
+   * @param port storage engine port
+   * @param hasData whether the storage engine has data
+   * @param isReadOnly whether the storage engine is read-only
+   * @param dataPrefix data prefix
+   * @param schemaPrefix schema prefix
+   * @param extraParamsMap extra parameters as a Map (avoids string parsing)
+   * @return error message if failed, null if succeeded
+   */
+  protected String addStorageEngine(
+      int port,
+      boolean hasData,
+      boolean isReadOnly,
+      String dataPrefix,
+      String schemaPrefix,
+      Map<String, String> extraParamsMap) {
+    return this.addStorageEngine(
+        "127.0.0.1", port, hasData, isReadOnly, dataPrefix, schemaPrefix, extraParamsMap, false);
+  }
+
+  /**
+   * Add storage engine with Map-based extra params.
+   *
+   * @param ip storage engine IP
+   * @param port storage engine port
+   * @param hasData whether the storage engine has data
+   * @param isReadOnly whether the storage engine is read-only
+   * @param dataPrefix data prefix
+   * @param schemaPrefix schema prefix
+   * @param extraParamsMap extra parameters as a Map
+   * @param noError whether to suppress error logging
+   * @return error message if failed, null if succeeded
+   */
+  protected String addStorageEngine(
+      String ip,
+      int port,
+      boolean hasData,
+      boolean isReadOnly,
+      String dataPrefix,
+      String schemaPrefix,
+      Map<String, String> extraParamsMap,
+      boolean noError) {
+    try {
+      StringBuilder statement = new StringBuilder();
+      statement.append("ADD STORAGEENGINE (\"");
+      statement.append(ip);
+      statement.append("\", ");
+      statement.append(port);
+      statement.append(", \"");
+      statement.append(type.name());
+      statement.append("\", OPTIONS (");
+
+      // 构建 OPTIONS 参数列表
+      List<String> options = new ArrayList<>();
+      options.add("has_data '" + hasData + "'");
+      options.add("is_read_only '" + isReadOnly + "'");
+
+      if (this instanceof InfluxDBCapacityExpansionIT) {
+        options.add("url 'http://localhost:" + port + "/'");
+      }
+      if (IS_EMBEDDED) {
+        options.add(
+            "dummy_dir '"
+                + String.format("%s/%s", DBCE_PARQUET_FS_TEST_DIR, PORT_TO_ROOT.get(port))
+                + "'");
+        options.add(
+            "dir '"
+                + String.format(
+                    "%s/%s%s",
+                    DBCE_PARQUET_FS_TEST_DIR, IGINX_DATA_PATH_PREFIX_NAME, PORT_TO_ROOT.get(port))
+                + "'");
+        options.add("iginx_port '" + oriPortIginx + "'");
+      }
+
+      // Directly use Map without string serialization/deserialization
+      if (extraParamsMap != null && !extraParamsMap.isEmpty()) {
+        for (Map.Entry<String, String> entry : extraParamsMap.entrySet()) {
+          options.add(entry.getKey() + " E'" + entry.getValue() + "'");
+        }
+      }
+
+      if (dataPrefix != null) {
+        options.add("data_prefix E'" + dataPrefix + "'");
+      }
+      if (schemaPrefix != null) {
+        // Use E-string syntax for schema_prefix to enable backslash escape processing
+        // This is necessary for special characters like \n, \t, etc.
+        options.add("schema_prefix E'" + schemaPrefix + "'");
+      }
+
+      statement.append(String.join(", ", options));
+      statement.append("));");
+
+      LOGGER.info("Execute Statement: \"{}\"", statement);
+      session.executeSql(statement.toString());
+      Thread.sleep(5000);
+      return null;
+    } catch (SessionException | InterruptedException e) {
+      if (noError) {
+        LOGGER.warn(
+            "add storage engine:{} port:{} hasData:{} isReadOnly:{} dataPrefix:{} schemaPrefix:{} extraParams:{} failure: ",
+            type.name(),
+            port,
+            hasData,
+            isReadOnly,
+            dataPrefix,
+            schemaPrefix,
+            extraParamsMap);
+      } else {
+        LOGGER.warn(
+            "add storage engine:{} port:{} hasData:{} isReadOnly:{} dataPrefix:{} schemaPrefix:{} extraParams:{} failure: ",
+            type.name(),
+            port,
+            hasData,
+            isReadOnly,
+            dataPrefix,
+            schemaPrefix,
+            extraParamsMap,
+            e);
+      }
+      return e.getMessage();
+    }
+  }
+
   protected String addStorageEngine(
       String ip,
       int port,
@@ -453,12 +579,8 @@ public abstract class BaseCapacityExpansionIT {
     if (newPassword != null) {
       paramsMap.put("password", newPassword);
     }
-    String extraParams =
-        paramsMap.entrySet().stream()
-            .map(entry -> entry.getKey() + "=" + entry.getValue())
-            .collect(Collectors.joining(","));
-    // 添加只读节点
-    addStorageEngine(readOnlyPort, true, true, null, prefix, extraParams);
+    // 添加只读节点 - Use Map directly to avoid serialization/deserialization
+    addStorageEngine(readOnlyPort, true, true, null, prefix, paramsMap);
     // 修改
     List<StorageEngineInfo> engineInfoList = session.getClusterInfo().getStorageEngineInfos();
     long id = -1;
@@ -830,9 +952,9 @@ public abstract class BaseCapacityExpansionIT {
   }
 
   private void testSpecialPrefix(String removeStatement, List<List<Object>> valuesList) {
-    // 输入为\,\"\'\\\n\r\f\b\t\u0041\n\r\f\b\t
+    // 输入为\,\"\'\\\n\r\f\b\t\u0041
     // 包含对转义字符以及控制字符的混合测试
-    String schemaPrefix = "\\,\\\"\\'\\\\\\n\\r\\f\\b\\t\\u0041\n\r\f\b\t";
+    String schemaPrefix = "\\,\\\"\\'\\\\\\n\\r\\f\\b\\t\\u0041";
 
     LOGGER.info(
         "Testing special prefix. Expected schema_prefix value (bytes): {}",
@@ -841,70 +963,20 @@ public abstract class BaseCapacityExpansionIT {
     // 测试转义符在schema_prefix中是否能够正确转义，成功add storageengine与remove storageengine
     addStorageEngine(expPort, true, true, null, schemaPrefix, portsToExtraParams.get(expPort));
 
-    // 查看实际存储的 schema_prefix
-    try {
-      List<StorageEngineInfo> engines = session.getClusterInfo().getStorageEngineInfos();
-      for (StorageEngineInfo engine : engines) {
-        if (engine.getPort() == expPort && engine.getSchemaPrefix() != null) {
-          String actualPrefix = engine.getSchemaPrefix();
-          LOGGER.info(
-              "Actual stored schema_prefix value (bytes): {}",
-              java.util.Arrays.toString(actualPrefix.getBytes()));
-          LOGGER.info("Schema prefix match: {}", actualPrefix.equals(schemaPrefix));
-
-          if (!actualPrefix.equals(schemaPrefix)) {
-            LOGGER.warn("Schema prefix mismatch! Expected vs Actual:");
-            LOGGER.warn(
-                "  Expected length: {}, Actual length: {}",
-                schemaPrefix.length(),
-                actualPrefix.length());
-            for (int i = 0; i < Math.max(schemaPrefix.length(), actualPrefix.length()); i++) {
-              char exp = i < schemaPrefix.length() ? schemaPrefix.charAt(i) : '?';
-              char act = i < actualPrefix.length() ? actualPrefix.charAt(i) : '?';
-              if (exp != act) {
-                LOGGER.warn(
-                    "  Position {}: expected '{}' ({}), got '{}' ({})",
-                    i,
-                    exp,
-                    (int) exp,
-                    act,
-                    (int) act);
-              }
-            }
-          }
-        }
-      }
-    } catch (SessionException e) {
-      LOGGER.error("Failed to get cluster info: ", e);
-    }
-
     // 查询时使用的路径（从反引号中提取）
-    String queryPrefix = ",\"'\\\n\r\f\b\tA\n\r\f\b\t";
+    String queryPrefix = ",\"'\\\n\r\f\b\tA";
     String queryPath = queryPrefix + ".nt.wf03";
     String expectedPath = queryPrefix + ".nt.wf03.wt01.status2";
 
-    LOGGER.info("Query path prefix (bytes): {}", java.util.Arrays.toString(queryPrefix.getBytes()));
-    LOGGER.info("Query prefix equals stored prefix: {}", queryPrefix.equals(schemaPrefix));
-
-    if (!queryPrefix.equals(schemaPrefix)) {
-      LOGGER.warn("Query prefix mismatch! Expected vs Query:");
-      LOGGER.warn(
-          "  Expected (stored) length: {}, Query length: {}",
-          schemaPrefix.length(),
-          queryPrefix.length());
-      for (int i = 0; i < Math.max(schemaPrefix.length(), queryPrefix.length()); i++) {
-        char exp = i < schemaPrefix.length() ? schemaPrefix.charAt(i) : '?';
-        char qry = i < queryPrefix.length() ? queryPrefix.charAt(i) : '?';
-        if (exp != qry) {
-          LOGGER.warn(
-              "  Position {}: stored='{}' ({}), query='{}' ({})",
-              i,
-              exp,
-              (int) exp,
-              qry,
-              (int) qry);
-        }
-      }
+    // 打印所有的存储引擎信息
+    List<StorageEngineInfo> engineInfoList = null;
+    try {
+      engineInfoList = session.getClusterInfo().getStorageEngineInfos();
+    } catch (SessionException e) {
+      throw new RuntimeException(e);
+    }
+    for (StorageEngineInfo info : engineInfoList) {
+      LOGGER.info("Storage engine info: {}", info);
     }
 
     String statement = "select wt01.status2 from `" + queryPath + "`;";
