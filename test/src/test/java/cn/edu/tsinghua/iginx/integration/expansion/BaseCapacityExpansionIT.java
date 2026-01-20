@@ -34,6 +34,7 @@ import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.session.ClusterInfo;
 import cn.edu.tsinghua.iginx.session.QueryDataSet;
 import cn.edu.tsinghua.iginx.session.Session;
+import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import cn.edu.tsinghua.iginx.thrift.RemovedStorageEngineInfo;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineInfo;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
@@ -956,10 +957,6 @@ public abstract class BaseCapacityExpansionIT {
     // 包含对转义字符以及控制字符的混合测试
     String schemaPrefix = "\\,\\\"\\'\\\\\\n\\r\\f\\b\\t\\u0041";
 
-    LOGGER.info(
-        "Testing special prefix. Expected schema_prefix value (bytes): {}",
-        java.util.Arrays.toString(schemaPrefix.getBytes()));
-
     // 测试转义符在schema_prefix中是否能够正确转义，成功add storageengine与remove storageengine
     addStorageEngine(expPort, true, true, null, schemaPrefix, portsToExtraParams.get(expPort));
 
@@ -979,10 +976,25 @@ public abstract class BaseCapacityExpansionIT {
       LOGGER.info("Storage engine info: {}", info);
     }
 
+    // Query all columns to see what paths actually exist
+    try {
+      LOGGER.info("Querying all columns to verify data exists...");
+      SessionExecuteSqlResult result = session.executeSql("SHOW COLUMNS;");
+      List<String> columns = result.getPaths();
+      if (columns != null) {
+        for (String path : columns) {
+            LOGGER.info("Found column: {}", path);
+        }
+      }
+    } catch (SessionException e) {
+      LOGGER.error("Failed to query columns", e);
+    }
+
     String statement = "select wt01.status2 from `" + queryPath + "`;";
     List<String> pathList = Collections.singletonList(expectedPath);
 
     LOGGER.info("Executing query: {}", statement);
+    LOGGER.info("Expected path: {}", expectedPath);
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
     try {
       session.executeSql(String.format(removeStatement, expPort, schemaPrefix, ""));
