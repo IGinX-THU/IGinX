@@ -231,7 +231,7 @@ public class StringEscapeUtil {
    * @param content the string content (without surrounding quotes)
    * @return the string with only quote escaping processed
    */
-  private static String unescapeQuotesOnly(String content) {
+  public static String unescapeQuotesOnly(String content) {
     if (content == null || content.isEmpty()) {
       return content == null ? "" : content;
     }

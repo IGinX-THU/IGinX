@@ -2118,19 +2118,23 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       return map;
     }
 
-    // Use unescapeStringLiteral to handle both standard strings and E-strings uniformly
-    // This will:
-    // - Detect E-string prefix (E' or e')
-    // - Remove outer quotes
-    // - Process escape sequences appropriately ('' for standard, \n \t etc. for E-string)
-    String content = unescapeStringLiteral(tokenText);
+    // Remove outer quotes and E-prefix, but preserve internal escape sequences
+    // This is important: we need to preserve escapes so splitWithEscape can correctly
+    // identify escaped delimiters (e.g., \,) vs actual delimiters
+    String content = removeOuterQuotes(tokenText);
 
     if (content.isEmpty()) {
       return map;
     }
 
+    // Detect if this was an E-string (need to know for later unescaping)
+    boolean isEscapeString =
+        tokenText.length() >= 3
+            && (tokenText.charAt(0) == 'E' || tokenText.charAt(0) == 'e')
+            && (tokenText.charAt(1) == '\'' || tokenText.charAt(1) == '"');
+
     // Split by ',' to get key=value pairs
-    // Note: splitWithEscape handles escaped commas within values
+    // splitWithEscape handles escaped commas within values (preserves \, as not a delimiter)
     List<String> kvStrs = splitWithEscape(content, ',');
 
     // 解析每个 key=value 对
@@ -2141,14 +2145,58 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       }
       // 对 value 进行转义处理（key 通常不需要转义）
       String key = kvArray[0].trim();
-      String value = kvArray[1].trim();
+      String rawValue = kvArray[1].trim();
 
-      // At this point, the value has already been unescaped by unescapeStringLiteral
-      // No need for additional escape processing
+      // Now unescape the value based on string type
+      String value;
+      if (isEscapeString) {
+        // E-string: process all escape sequences
+        value = StringEscapeUtil.unescape(rawValue);
+      } else {
+        // Standard string: only process quote escaping, preserve backslashes
+        value = StringEscapeUtil.unescapeQuotesOnly(rawValue);
+      }
+
       map.put(key, value);
     }
 
     return map;
+  }
+
+  /**
+   * Removes only the outer quotes and E-prefix from a SQL string literal, without processing any
+   * internal escape sequences. This preserves escape sequences like \, \n etc. so they can be
+   * handled later after splitting.
+   *
+   * @param tokenText the string literal token text including quotes and optional E prefix
+   * @return the string content without outer quotes/prefix, but with all internal escapes preserved
+   */
+  private String removeOuterQuotes(String tokenText) {
+    if (tokenText == null || tokenText.length() < 2) {
+      return "";
+    }
+
+    int startIndex = 0;
+    // Skip E-string prefix if present
+    if (tokenText.length() >= 3 && (tokenText.charAt(0) == 'E' || tokenText.charAt(0) == 'e')) {
+      char secondChar = tokenText.charAt(1);
+      if (secondChar == '\'' || secondChar == '"') {
+        startIndex = 1; // Skip the 'E' prefix
+      }
+    }
+
+    // Remove outer quotes
+    if (startIndex < tokenText.length()) {
+      char firstQuote = tokenText.charAt(startIndex);
+      char lastChar = tokenText.charAt(tokenText.length() - 1);
+
+      if ((firstQuote == '\'' && lastChar == '\'') || (firstQuote == '"' && lastChar == '"')) {
+        return tokenText.substring(startIndex + 1, tokenText.length() - 1);
+      }
+    }
+
+    // If not properly quoted, return as-is
+    return tokenText;
   }
 
   /**

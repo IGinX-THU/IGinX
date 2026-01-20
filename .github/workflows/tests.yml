@@ -19,14 +19,14 @@ jobs:
         uses: ./.github/workflows/case-regression.yml
         with:
             metadata-matrix: '["zookeeper"]'
-#    standalone-test:
-#        uses: ./.github/workflows/standalone-test.yml
-#        with:
-#            metadata-matrix: '["zookeeper"]'
-#    standalone-test-no-optimizer:
-#        uses: ./.github/workflows/standalone-test-no-optimizer.yml
-#        with:
-#            metadata-matrix: '["zookeeper"]'
+    standalone-test:
+        uses: ./.github/workflows/standalone-test.yml
+        with:
+            metadata-matrix: '["zookeeper"]'
+    standalone-test-no-optimizer:
+        uses: ./.github/workflows/standalone-test-no-optimizer.yml
+        with:
+            metadata-matrix: '["zookeeper"]'
     db-ce:
         uses: ./.github/workflows/DB-CE.yml
         with:
@@ -50,22 +50,22 @@ jobs:
             os-matrix: '["ubuntu-latest", "windows-latest"]'
             db-matrix: '["Dameng", "Oracle"]'
             timeout-minutes: 100
-#    standalone-test-no-mac-no-privs-relational:
-#        uses: ./.github/workflows/standalone-test.yml
-#        with:
-#            metadata-matrix: '["zookeeper"]'
-#            os-matrix: '["ubuntu-latest", "windows-latest"]'
-#            db-matrix: '["Dameng"]'
-#            db-support-create-database: false
-#            timeout-minutes: 120
-#    standalone-test-no-optimizer-no-mac-no-privs-relational:
-#        uses: ./.github/workflows/standalone-test-no-optimizer.yml
-#        with:
-#            metadata-matrix: '["zookeeper"]'
-#            os-matrix: '["ubuntu-latest", "windows-latest"]'
-#            db-matrix: '["Dameng"]'
-#            db-support-create-database: false
-#            timeout-minutes: 100
+    standalone-test-no-mac-no-privs-relational:
+        uses: ./.github/workflows/standalone-test.yml
+        with:
+            metadata-matrix: '["zookeeper"]'
+            os-matrix: '["ubuntu-latest", "windows-latest"]'
+            db-matrix: '["Dameng"]'
+            db-support-create-database: false
+            timeout-minutes: 120
+    standalone-test-no-optimizer-no-mac-no-privs-relational:
+        uses: ./.github/workflows/standalone-test-no-optimizer.yml
+        with:
+            metadata-matrix: '["zookeeper"]'
+            os-matrix: '["ubuntu-latest", "windows-latest"]'
+            db-matrix: '["Dameng"]'
+            db-support-create-database: false
+            timeout-minutes: 100
     db-ce-Dameng:
         uses: ./.github/workflows/DB-CE.yml
         with:
@@ -131,51 +131,51 @@ jobs:
             functest: "NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,CompactionIT,TimePrecisionIT,PySessionIT"
             timeout-minutes: 360
             close-optimizer: "true"
-#    remote-test:
-#        uses: ./.github/workflows/remote-test.yml
-#        with:
-#            metadata-matrix: '["zookeeper"]'
-#    assembly-test:
-#        uses: ./.github/workflows/assembly-test.yml
-#    free-thread-test:
-#        uses: ./.github/workflows/free-thread-test.yml
-#        with:
-#            metadata-matrix: '["zookeeper"]'
-#    tpc-h-test:
-#        uses: ./.github/workflows/tpc-h.yml
-#        with:
-#            os-matrix: '["ubuntu-latest"]'
-#            metadata-matrix: '["zookeeper"]'
-#    cluster-test:
-#        uses: ./.github/workflows/cluster-test.yml
-#    restart-test:
-#        uses: ./.github/workflows/restart-test.yml
+    remote-test:
+        uses: ./.github/workflows/remote-test.yml
+        with:
+            metadata-matrix: '["zookeeper"]'
+    assembly-test:
+        uses: ./.github/workflows/assembly-test.yml
+    free-thread-test:
+        uses: ./.github/workflows/free-thread-test.yml
+        with:
+            metadata-matrix: '["zookeeper"]'
+    tpc-h-test:
+        uses: ./.github/workflows/tpc-h.yml
+        with:
+            os-matrix: '["ubuntu-latest"]'
+            metadata-matrix: '["zookeeper"]'
+    cluster-test:
+        uses: ./.github/workflows/cluster-test.yml
+    restart-test:
+        uses: ./.github/workflows/restart-test.yml
     analyze-required-test-check:
         if: always()
         needs: # List of jobs that must pass. Add more jobs if needed.
             - unit-test
             - unit-mds
             - case-regression
-#            - standalone-test
-#            - standalone-test-no-optimizer
+            - standalone-test
+            - standalone-test-no-optimizer
             - db-ce
             - db-ce-no-optimizer
             - standalone-test-vectordb
             - standalone-test-no-optimizer-vectordb
             - db-ce-vectordb
             - db-ce-no-optimizer-vectordb
-#            - remote-test
-#            - assembly-test
-#            - free-thread-test
-#            - tpc-h-test
+            - remote-test
+            - assembly-test
+            - free-thread-test
+            - tpc-h-test
             - standalone-test-no-mac-relational
             - standalone-test-no-optimizer-no-mac-relational
             - db-ce-Dameng
             - db-ce-no-optimizer-Dameng
             - db-ce-Oracle
             - db-ce-no-optimizer-Oracle
-#            - cluster-test
-#            - restart-test
+            - cluster-test
+            - restart-test
         runs-on: ubuntu-latest
         steps:
             - name: Decide whether the needed jobs succeeded or failed
