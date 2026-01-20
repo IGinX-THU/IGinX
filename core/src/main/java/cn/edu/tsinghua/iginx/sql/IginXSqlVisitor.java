@@ -2094,42 +2094,60 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     return map;
   }
 
+  /**
+   * Parses the old-style extra params string from ALTER STORAGEENGINE statement.
+   *
+   * <p>Supports both standard strings ('...') and E-strings (E'...'):
+   *
+   * <ul>
+   *   <li>Standard: {@code 'key1=value1, key2=value2'} - only {@code ''} escaping
+   *   <li>E-string: {@code E'key1=val\n1, key2=val\t2'} - all backslash escapes
+   * </ul>
+   *
+   * @param ctx the string literal context containing the params
+   * @return a map of key-value pairs
+   */
   private Map<String, String> parseExtra(StringLiteralContext ctx) {
     Map<String, String> map = new HashMap<>();
-    String extra = ctx.getText().trim();
-    if (extra.isEmpty()
-        || extra.equals(SQLConstant.DOUBLE_QUOTES)
-        || extra.equals(SQLConstant.SINGLE_QUOTES)) {
+    String tokenText = ctx.getText().trim();
+
+    // Check for empty or just quotes
+    if (tokenText.isEmpty()
+        || tokenText.equals(SQLConstant.DOUBLE_QUOTES)
+        || tokenText.equals(SQLConstant.SINGLE_QUOTES)) {
       return map;
     }
 
-    // 先去掉引号，得到原始内容
-    String content = extra.substring(1, extra.length() - 1);
+    // Use unescapeStringLiteral to handle both standard strings and E-strings uniformly
+    // This will:
+    // - Detect E-string prefix (E' or e')
+    // - Remove outer quotes
+    // - Process escape sequences appropriately ('' for standard, \n \t etc. for E-string)
+    String content = unescapeStringLiteral(tokenText);
 
-    // 按 ',' 分割（需要处理转义的逗号）
+    if (content.isEmpty()) {
+      return map;
+    }
+
+    // Split by ',' to get key=value pairs
+    // Note: splitWithEscape handles escaped commas within values
     List<String> kvStrs = splitWithEscape(content, ',');
 
     // 解析每个 key=value 对
     for (String kv : kvStrs) {
-      String[] kvArray = kv.split("=", 2); // 只按第一个=分割
+      String[] kvArray = kv.split("=", 2); // Split only on first '='
       if (kvArray.length != 2) {
         continue;
       }
       // 对 value 进行转义处理（key 通常不需要转义）
       String key = kvArray[0].trim();
-      String rawValue = kvArray[1].trim();
-      // value 可能是带引号的字符串字面量，需要去掉引号并转义
-      String value = rawValue;
-      if ((rawValue.startsWith("'") && rawValue.endsWith("'"))
-          || (rawValue.startsWith("\"") && rawValue.endsWith("\""))) {
-        value = unescapeStringLiteral(rawValue);
-      } else {
-        // 如果不是带引号的字符串，使用统一的转义处理
-        // MySQL 允许未转义的控制字符，所以这里直接处理转义即可
-        value = StringEscapeUtil.unescape(value);
-      }
+      String value = kvArray[1].trim();
+
+      // At this point, the value has already been unescaped by unescapeStringLiteral
+      // No need for additional escape processing
       map.put(key, value);
     }
+
     return map;
   }
 

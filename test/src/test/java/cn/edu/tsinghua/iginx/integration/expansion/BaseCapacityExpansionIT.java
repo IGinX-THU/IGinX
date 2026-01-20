@@ -182,16 +182,18 @@ public abstract class BaseCapacityExpansionIT {
                 + "'");
         options.add("iginx_port '" + oriPortIginx + "'");
       }
-      if (extraParams != null) {
+      if (extraParams != null && !extraParams.trim().isEmpty()) {
         // extraParams 可能是 "key1=val1,key2=val2" 格式，需要解析
         String[] params = extraParams.split(",");
         for (String param : params) {
           param = param.trim();
-          if (param.contains("=")) {
-            String[] kv = param.split("=", 2);
-            options.add(kv[0].trim() + " '" + kv[1].trim() + "'");
-          } else {
-            options.add(param);
+          if (!param.isEmpty()) { // 过滤空字符串
+            if (param.contains("=")) {
+              String[] kv = param.split("=", 2);
+              options.add(kv[0].trim() + " '" + kv[1].trim() + "'");
+            } else {
+              options.add(param);
+            }
           }
         }
       }
@@ -831,11 +833,84 @@ public abstract class BaseCapacityExpansionIT {
     // 输入为\,\"\'\\\n\r\f\b\t\u0041\n\r\f\b\t
     // 包含对转义字符以及控制字符的混合测试
     String schemaPrefix = "\\,\\\"\\'\\\\\\n\\r\\f\\b\\t\\u0041\n\r\f\b\t";
+
+    LOGGER.info(
+        "Testing special prefix. Expected schema_prefix value (bytes): {}",
+        java.util.Arrays.toString(schemaPrefix.getBytes()));
+
     // 测试转义符在schema_prefix中是否能够正确转义，成功add storageengine与remove storageengine
     addStorageEngine(expPort, true, true, null, schemaPrefix, portsToExtraParams.get(expPort));
-    String statement = "select wt01.status2 from `,\"'\\\n\r\f\b\tA\n\r\f\b\t.nt.wf03`;";
-    List<String> pathList =
-        Collections.singletonList(",\"'\\\n\r\f\b\tA\n\r\f\b\t.nt.wf03.wt01.status2");
+
+    // 查看实际存储的 schema_prefix
+    try {
+      List<StorageEngineInfo> engines = session.getClusterInfo().getStorageEngineInfos();
+      for (StorageEngineInfo engine : engines) {
+        if (engine.getPort() == expPort && engine.getSchemaPrefix() != null) {
+          String actualPrefix = engine.getSchemaPrefix();
+          LOGGER.info(
+              "Actual stored schema_prefix value (bytes): {}",
+              java.util.Arrays.toString(actualPrefix.getBytes()));
+          LOGGER.info("Schema prefix match: {}", actualPrefix.equals(schemaPrefix));
+
+          if (!actualPrefix.equals(schemaPrefix)) {
+            LOGGER.warn("Schema prefix mismatch! Expected vs Actual:");
+            LOGGER.warn(
+                "  Expected length: {}, Actual length: {}",
+                schemaPrefix.length(),
+                actualPrefix.length());
+            for (int i = 0; i < Math.max(schemaPrefix.length(), actualPrefix.length()); i++) {
+              char exp = i < schemaPrefix.length() ? schemaPrefix.charAt(i) : '?';
+              char act = i < actualPrefix.length() ? actualPrefix.charAt(i) : '?';
+              if (exp != act) {
+                LOGGER.warn(
+                    "  Position {}: expected '{}' ({}), got '{}' ({})",
+                    i,
+                    exp,
+                    (int) exp,
+                    act,
+                    (int) act);
+              }
+            }
+          }
+        }
+      }
+    } catch (SessionException e) {
+      LOGGER.error("Failed to get cluster info: ", e);
+    }
+
+    // 查询时使用的路径（从反引号中提取）
+    String queryPrefix = ",\"'\\\n\r\f\b\tA\n\r\f\b\t";
+    String queryPath = queryPrefix + ".nt.wf03";
+    String expectedPath = queryPrefix + ".nt.wf03.wt01.status2";
+
+    LOGGER.info("Query path prefix (bytes): {}", java.util.Arrays.toString(queryPrefix.getBytes()));
+    LOGGER.info("Query prefix equals stored prefix: {}", queryPrefix.equals(schemaPrefix));
+
+    if (!queryPrefix.equals(schemaPrefix)) {
+      LOGGER.warn("Query prefix mismatch! Expected vs Query:");
+      LOGGER.warn(
+          "  Expected (stored) length: {}, Query length: {}",
+          schemaPrefix.length(),
+          queryPrefix.length());
+      for (int i = 0; i < Math.max(schemaPrefix.length(), queryPrefix.length()); i++) {
+        char exp = i < schemaPrefix.length() ? schemaPrefix.charAt(i) : '?';
+        char qry = i < queryPrefix.length() ? queryPrefix.charAt(i) : '?';
+        if (exp != qry) {
+          LOGGER.warn(
+              "  Position {}: stored='{}' ({}), query='{}' ({})",
+              i,
+              exp,
+              (int) exp,
+              qry,
+              (int) qry);
+        }
+      }
+    }
+
+    String statement = "select wt01.status2 from `" + queryPath + "`;";
+    List<String> pathList = Collections.singletonList(expectedPath);
+
+    LOGGER.info("Executing query: {}", statement);
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
     try {
       session.executeSql(String.format(removeStatement, expPort, schemaPrefix, ""));
