@@ -62,12 +62,23 @@ public class NormalState implements InputState {
         return client.getInputState().handleInput(remaining, client);
       }
 
+      // 处理 E-string 前缀 (E'...' 或 e'...' 或 E"..." 或 e"...")
+      if ((current == 'E' || current == 'e') && (next == '\'' || next == '"')) {
+        buffer.append(current).append(next);
+        validSqlBuffer.append(current).append(next);
+        i += 2;
+        client.setInputState(createQuoteState(next, true));
+        // 将剩余字符交给新状态处理
+        String remaining = (i < length) ? command.substring(i) : "";
+        return client.getInputState().handleInput(remaining, client);
+      }
+
       // 处理各种引号
       if (current == '\'' || current == '"' || current == '`') {
         buffer.append(current);
         validSqlBuffer.append(current);
         i++;
-        client.setInputState(createQuoteState(current));
+        client.setInputState(createQuoteState(current, false));
         // 将剩余字符交给新状态处理
         String remaining = (i < length) ? command.substring(i) : "";
         return client.getInputState().handleInput(remaining, client);
@@ -95,12 +106,12 @@ public class NormalState implements InputState {
     return true;
   }
 
-  private InputState createQuoteState(char quote) {
+  private InputState createQuoteState(char quote, boolean isEscapedString) {
     switch (quote) {
       case '\'':
-        return new SingleQuoteState();
+        return new SingleQuoteState(isEscapedString);
       case '"':
-        return new DoubleQuoteState();
+        return new DoubleQuoteState(isEscapedString);
       case '`':
         return new BacktickQuoteState();
       default:

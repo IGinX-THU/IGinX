@@ -24,9 +24,15 @@ import cn.edu.tsinghua.iginx.exception.SessionException;
 
 public abstract class AbstractQuoteState implements InputState {
   private final char quote;
+  private final boolean isEscapedString;
 
   public AbstractQuoteState(char quote) {
+    this(quote, false);
+  }
+
+  public AbstractQuoteState(char quote, boolean isEscapedString) {
     this.quote = quote;
+    this.isEscapedString = isEscapedString;
   }
 
   @Override
@@ -38,15 +44,34 @@ public abstract class AbstractQuoteState implements InputState {
     while (i < length) {
       char current = command.charAt(i);
       char last = (i - 1 >= 0) ? command.charAt(i - 1) : '\0';
+      char next = (i + 1 < length) ? command.charAt(i + 1) : '\0';
       buffer.append(current);
       validSqlBuffer.append(current);
 
       // 检查是否遇到结束的引号（考虑转义情况）
-      if (current == quote && last != '\\') {
-        client.setInputState(new NormalState());
-        // 将剩余字符交给新状态处理
-        String remaining = (i + 1 < length) ? command.substring(i + 1) : "";
-        return client.getInputState().handleInput(remaining, client);
+      if (current == quote) {
+        boolean isEscaped = false;
+
+        if (isEscapedString) {
+          // E-string: 使用反斜杠转义 (如 \' 或 \")
+          isEscaped = (last == '\\');
+        } else {
+          // 标准字符串: 使用双引号转义 (如 '' 或 "")
+          isEscaped = (next == quote);
+          if (isEscaped) {
+            // 跳过第二个引号
+            i++;
+            buffer.append(next);
+            validSqlBuffer.append(next);
+          }
+        }
+
+        if (!isEscaped) {
+          client.setInputState(new NormalState());
+          // 将剩余字符交给新状态处理
+          String remaining = (i + 1 < length) ? command.substring(i + 1) : "";
+          return client.getInputState().handleInput(remaining, client);
+        }
       }
 
       i++;

@@ -27,7 +27,8 @@ import org.junit.Test;
 public class StringEscapeUtilTest {
 
   @Test
-  public void testSqlUnescape() {
+  public void testInternalUnescape() {
+    // 测试内部 unescape() 方法（用于 E-string）
     // 常见转义
     assertEquals("hello\nworld", StringEscapeUtil.unescape("hello\\nworld"));
     assertEquals("tab\tindent", StringEscapeUtil.unescape("tab\\tindent"));
@@ -58,5 +59,57 @@ public class StringEscapeUtilTest {
     assertEquals("abc\\", StringEscapeUtil.unescape("abc\\"));
 
     assertEquals("", StringEscapeUtil.unescape(""));
+  }
+
+  @Test
+  public void testUnescapeStringLiteral() {
+    // ========== Standard Strings (no E prefix) - backslashes preserved ==========
+    // Windows paths work naturally
+    assertEquals(
+        "C:\\Users\\test.py", StringEscapeUtil.unescapeStringLiteral("'C:\\Users\\test.py'"));
+    assertEquals(
+        "C:\\temp\\file.txt", StringEscapeUtil.unescapeStringLiteral("\"C:\\temp\\file.txt\""));
+    assertEquals(
+        "D:\\data\\test\\file.csv",
+        StringEscapeUtil.unescapeStringLiteral("'D:\\data\\test\\file.csv'"));
+
+    // Unix/Linux paths
+    assertEquals(
+        "/home/user/test.py", StringEscapeUtil.unescapeStringLiteral("'/home/user/test.py'"));
+    assertEquals("/tmp/file.txt", StringEscapeUtil.unescapeStringLiteral("\"/tmp/file.txt\""));
+
+    // Backslash sequences are NOT processed in standard strings
+    assertEquals("path\\nfile.txt", StringEscapeUtil.unescapeStringLiteral("'path\\nfile.txt'"));
+    assertEquals("path\\tfile.txt", StringEscapeUtil.unescapeStringLiteral("'path\\tfile.txt'"));
+    assertEquals("value\\ntest", StringEscapeUtil.unescapeStringLiteral("'value\\ntest'"));
+
+    // Quote escaping still works
+    assertEquals("It's OK", StringEscapeUtil.unescapeStringLiteral("'It''s OK'"));
+    assertEquals("Say \"Hi\"", StringEscapeUtil.unescapeStringLiteral("\"Say \"\"Hi\"\"\""));
+
+    // ========== E-Strings (E prefix) - all escapes processed ==========
+    // Backslash escapes work in E-strings
+    assertEquals("value\ntest", StringEscapeUtil.unescapeStringLiteral("E'value\\ntest'"));
+    assertEquals("tab\there", StringEscapeUtil.unescapeStringLiteral("E'tab\\there'"));
+    assertEquals("a\\b", StringEscapeUtil.unescapeStringLiteral("E'a\\\\b'"));
+    assertEquals("quote'here", StringEscapeUtil.unescapeStringLiteral("E'quote\\'here'"));
+
+    // E-strings also support lowercase 'e'
+    assertEquals("test\n", StringEscapeUtil.unescapeStringLiteral("e'test\\n'"));
+    assertEquals("tab\t", StringEscapeUtil.unescapeStringLiteral("e\"tab\\t\""));
+
+    // Windows paths in E-strings need double backslashes
+    assertEquals(
+        "C:\\Users\\test.py", StringEscapeUtil.unescapeStringLiteral("E'C:\\\\Users\\\\test.py'"));
+
+    // All escape sequences work in E-strings
+    assertEquals("\r\n\t\b\f\0", StringEscapeUtil.unescapeStringLiteral("E'\\r\\n\\t\\b\\f\\0'"));
+    assertEquals("A", StringEscapeUtil.unescapeStringLiteral("E'\\u0041'"));
+
+    // ========== Edge Cases ==========
+    assertEquals("", StringEscapeUtil.unescapeStringLiteral("''"));
+    assertEquals("", StringEscapeUtil.unescapeStringLiteral("E''"));
+    assertEquals("", StringEscapeUtil.unescapeStringLiteral(""));
+    assertEquals("", StringEscapeUtil.unescapeStringLiteral(null));
   }
 }

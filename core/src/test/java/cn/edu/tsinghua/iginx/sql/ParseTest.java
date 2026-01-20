@@ -281,9 +281,10 @@ public class ParseTest {
     assertEquals(engine01, statement.getEngines().get(0));
     assertEquals(engine02, statement.getEngines().get(1));
 
-    // ========== 测试用例 2: 特殊字符转义 ==========
+    // ========== 测试用例 2: 特殊字符转义（使用 E-string） ==========
+    // E-string 语法（E'...'）启用反斜杠转义，类似 PostgreSQL
     String addStorageEngineStrWithEscape =
-        "ADD STORAGEENGINE ('127.0.0.1', 3306, 'relational', OPTIONS (engine 'mysql', schema_prefix '\\,\\n\\r\\f\\b\\\\\"\\'\\u0041'));";
+        "ADD STORAGEENGINE ('127.0.0.1', 3306, 'relational', OPTIONS (engine 'mysql', schema_prefix E'\\,\\n\\r\\f\\b\\\\\"\\'\\u0041'));";
     AddStorageEngineStatement statementWithEscape =
         (AddStorageEngineStatement) TestUtils.buildStatement(addStorageEngineStrWithEscape);
 
@@ -325,9 +326,10 @@ public class ParseTest {
         new StorageEngine("127.0.0.1", 3307, StorageEngineType.relational, extra05);
     assertEquals(engine05, statementWithMixedEquals.getEngines().get(0));
 
-    // ========== 测试用例 5: 更多转义字符（\t, \0, Unicode, Windows 路径） ==========
+    // ========== 测试用例 5: 更多转义字符（\t, \0, Unicode）+ Windows 路径 ==========
+    // 混合使用：标准字符串用于路径（不转义反斜杠），E-string 用于需要转义的值
     String addStorageEngineStrWithMoreEscapes =
-        "ADD STORAGEENGINE ('127.0.0.1', 3308, 'relational', OPTIONS (path 'C:\\\\Users\\\\test\\\\file.txt', tab 'col1\\tcol2', null_char 'text\\0end', unicode '\\u4F60\\u597D', quote 'It\\'s OK'));";
+        "ADD STORAGEENGINE ('127.0.0.1', 3308, 'relational', OPTIONS (path 'C:\\Users\\test\\file.txt', tab E'col1\\tcol2', null_char E'text\\0end', unicode E'\\u4F60\\u597D', quote 'It''s OK'));";
     AddStorageEngineStatement statementWithMoreEscapes =
         (AddStorageEngineStatement) TestUtils.buildStatement(addStorageEngineStrWithMoreEscapes);
 
@@ -342,9 +344,10 @@ public class ParseTest {
         new StorageEngine("127.0.0.1", 3308, StorageEngineType.relational, extra06);
     assertEquals(engine06, statementWithMoreEscapes.getEngines().get(0));
 
-    // ========== 测试用例 6: 双引号字符串字面量 ==========
+    // ========== 测试用例 6: 双引号字符串字面量 + 反斜杠转义 ==========
+    // 使用 E 前缀处理 \" 转义，或使用 "" 转义（标准字符串）
     String addStorageEngineStrWithDoubleQuotes =
-        "ADD STORAGEENGINE (\"127.0.0.1\", 3309, \"relational\", OPTIONS (engine \"mysql\", schema_prefix \"test\\\"value\"));";
+        "ADD STORAGEENGINE (\"127.0.0.1\", 3309, \"relational\", OPTIONS (engine \"mysql\", schema_prefix E\"test\\\"value\"));";
     AddStorageEngineStatement statementWithDoubleQuotes =
         (AddStorageEngineStatement) TestUtils.buildStatement(addStorageEngineStrWithDoubleQuotes);
 
@@ -357,10 +360,9 @@ public class ParseTest {
     assertEquals(engine07, statementWithDoubleQuotes.getEngines().get(0));
 
     // ========== 测试用例 7: 单引号转义（'' 和 \'） ==========
-    // 在 SQL 中：'It''s OK' 表示 It's OK（两个单引号转义为一个单引号）
-    // 在 Java 字符串中：需要写成 "'It''s OK'"（四个单引号）
+    // 标准字符串支持 '' 转义，E-string 支持 \' 转义
     String addStorageEngineStrWithSingleQuoteEscapes =
-        "ADD STORAGEENGINE ('127.0.0.1', 3311, 'relational', OPTIONS (value1 'It''s OK', value2 'He\\'s fine', value3 'She said ''Hello'''));";
+        "ADD STORAGEENGINE ('127.0.0.1', 3311, 'relational', OPTIONS (value1 'It''s OK', value2 E'He\\'s fine', value3 'She said ''Hello'''));";
     AddStorageEngineStatement statementWithSingleQuoteEscapes =
         (AddStorageEngineStatement)
             TestUtils.buildStatement(addStorageEngineStrWithSingleQuoteEscapes);
@@ -375,10 +377,9 @@ public class ParseTest {
     assertEquals(engine11, statementWithSingleQuoteEscapes.getEngines().get(0));
 
     // ========== 测试用例 8: 双引号转义（"" 和 \"） ==========
-    // 在 SQL 中："Say \"\"Hello\"\"" 表示 Say "Hello"（两个双引号转义为一个双引号）
-    // 在 Java 字符串中：需要写成 "\"Say \\\"\\\"Hello\\\"\\\"\""（转义反斜杠和双引号）
+    // 标准字符串支持 "" 转义，E-string 支持 \" 转义
     String addStorageEngineStrWithDoubleQuoteEscapes =
-        "ADD STORAGEENGINE (\"127.0.0.1\", 3312, \"relational\", OPTIONS (value1 \"Say \"\"Hello\"\"\", value2 \"He\\\"s here\", value3 \"She said \\\"OK\\\"\"));";
+        "ADD STORAGEENGINE (\"127.0.0.1\", 3312, \"relational\", OPTIONS (value1 \"Say \"\"Hello\"\"\", value2 E\"He\\\"s here\", value3 E\"She said \\\"OK\\\"\"));";
     AddStorageEngineStatement statementWithDoubleQuoteEscapes =
         (AddStorageEngineStatement)
             TestUtils.buildStatement(addStorageEngineStrWithDoubleQuoteEscapes);
@@ -429,56 +430,20 @@ public class ParseTest {
     assertEquals(engine09, statementMultipleMixed.getEngines().get(0));
     assertEquals(engine10, statementMultipleMixed.getEngines().get(1));
 
-    // ========== 测试用例 11: 实际特殊字符 vs SQL 转义序列（完整测试）==========
-    // MySQL 允许两种方式输入特殊字符：
-    // 1. 直接输入实际的特殊字符（如用户按回车键输入换行符）
-    // 2. 使用转义序列（如 \n）
-    // 两种方式都是合法的 SQL 语法，应该产生相同的结果
-
-    // 方式 1: 使用实际的特殊字符（模拟用户在交互式 SQL 客户端中输入）
-    // 注意：在 Java 中，特殊字符需要用 Java 转义语法表示，但它们在 SQL 中是实际的字符
-    String addStorageEngineStrWithRealChars =
-        "ADD STORAGEENGINE ('127.0.0.1', 3313, 'relational', OPTIONS ("
-            + "newline '\n', " // Java: \n = 实际换行符（用户按回车键）
-            + "tab '\t', " // Java: \t = 实际制表符（用户按 Tab 键）
-            + "carriage '\r', " // Java: \r = 实际回车符
-            + "formfeed '\f', " // Java: \f = 实际换页符
-            + "backspace '\b', " // Java: \b = 实际退格符
-            + "null_char '\0', " // Java: \0 = 实际空字符
-            + "backslash '\\\\', " // Java: \\\\ = 实际反斜杠（SQL 中看到单个 \）
-            + "single_quote '\\'', " // Java: \' = 实际单引号
-            + "double_quote '\"'" // Java: \" = 实际双引号
-            + "));";
-    AddStorageEngineStatement statementWithRealChars =
-        (AddStorageEngineStatement) TestUtils.buildStatement(addStorageEngineStrWithRealChars);
-
-    assertEquals(1, statementWithRealChars.getEngines().size());
-    Map<String, String> extra13 = new HashMap<>();
-    extra13.put("newline", "\n");
-    extra13.put("tab", "\t");
-    extra13.put("carriage", "\r");
-    extra13.put("formfeed", "\f");
-    extra13.put("backspace", "\b");
-    extra13.put("null_char", "\0");
-    extra13.put("backslash", "\\");
-    extra13.put("single_quote", "'");
-    extra13.put("double_quote", "\"");
-    StorageEngine engine13 =
-        new StorageEngine("127.0.0.1", 3313, StorageEngineType.relational, extra13);
-    assertEquals(engine13, statementWithRealChars.getEngines().get(0));
-
-    // 方式 2: 使用 SQL 转义序列（用户在单行中输入反斜杠+字符）
+    // ========== 测试用例 11: E-string 语法（PostgreSQL 风格）==========
+    // E-string（E'...'）启用反斜杠转义序列，类似 PostgreSQL
+    // 使用 E 前缀明确表示需要处理转义序列
     String addStorageEngineStrWithEscapeSeq =
         "ADD STORAGEENGINE ('127.0.0.1', 3314, 'relational', OPTIONS ("
-            + "newline '\\n', " // SQL: \n 转义序列 → 换行符
-            + "tab '\\t', " // SQL: \t 转义序列 → 制表符
-            + "carriage '\\r', " // SQL: \r 转义序列 → 回车符
-            + "formfeed '\\f', " // SQL: \f 转义序列 → 换页符
-            + "backspace '\\b', " // SQL: \b 转义序列 → 退格符
-            + "null_char '\\0', " // SQL: \0 转义序列 → 空字符
-            + "backslash '\\\\', " // SQL: \\ 转义序列 → 反斜杠
-            + "single_quote '\\'', " // SQL: \' 转义序列 → 单引号
-            + "double_quote '\\\"'" // SQL: \" 转义序列 → 双引号
+            + "newline E'\\n', " // E-string: \n 转义序列 → 换行符
+            + "tab E'\\t', " // E-string: \t 转义序列 → 制表符
+            + "carriage E'\\r', " // E-string: \r 转义序列 → 回车符
+            + "formfeed E'\\f', " // E-string: \f 转义序列 → 换页符
+            + "backspace E'\\b', " // E-string: \b 转义序列 → 退格符
+            + "null_char E'\\0', " // E-string: \0 转义序列 → 空字符
+            + "backslash E'\\\\', " // E-string: \\ 转义序列 → 反斜杠
+            + "single_quote E'\\'', " // E-string: \' 转义序列 → 单引号
+            + "double_quote E'\\\"'" // E-string: \" 转义序列 → 双引号
             + "));";
     AddStorageEngineStatement statementWithEscapeSeq =
         (AddStorageEngineStatement) TestUtils.buildStatement(addStorageEngineStrWithEscapeSeq);
@@ -498,24 +463,65 @@ public class ParseTest {
         new StorageEngine("127.0.0.1", 3314, StorageEngineType.relational, extra14);
     assertEquals(engine14, statementWithEscapeSeq.getEngines().get(0));
 
-    // 验证两种方式产生相同的结果（符合 MySQL 行为）
-    assertEquals(
-        statementWithRealChars.getEngines().get(0).getExtraParams(),
-        statementWithEscapeSeq.getEngines().get(0).getExtraParams());
+    // ========== 测试用例 12: 标准字符串 vs E-string 对比 ==========
+    // 标准字符串：反斜杠不转义（保留为字面量）
+    String addStorageEngineStrStandard =
+        "ADD STORAGEENGINE ('127.0.0.1', 3313, 'relational', OPTIONS ("
+            + "path 'C:\\Users\\test.py', " // 标准: 反斜杠保留
+            + "value 'line1\\nline2', " // 标准: \n 不转义，保持为字面 \n
+            + "sep '\\t', " // 标准: \t 不转义
+            + "desc 'first\\nsecond\\tthird'" // 标准: 所有反斜杠序列都不转义
+            + "));";
+    AddStorageEngineStatement statementStandard =
+        (AddStorageEngineStatement) TestUtils.buildStatement(addStorageEngineStrStandard);
 
-    // ========== 测试用例 12: 完整的 SQL 转义字符测试 ==========
+    assertEquals(1, statementStandard.getEngines().size());
+    Map<String, String> extra13 = new HashMap<>();
+    extra13.put("path", "C:\\Users\\test.py");
+    extra13.put("value", "line1\\nline2"); // 字面 \n 字符串，不是换行符
+    extra13.put("sep", "\\t"); // 字面 \t 字符串，不是制表符
+    extra13.put("desc", "first\\nsecond\\tthird"); // 所有反斜杠都保留
+    StorageEngine engine13 =
+        new StorageEngine("127.0.0.1", 3313, StorageEngineType.relational, extra13);
+    assertEquals(engine13, statementStandard.getEngines().get(0));
+
+    // 对比：同样的数据用 E-string 会被转义
+    String addStorageEngineStrEstring =
+        "ADD STORAGEENGINE ('127.0.0.1', 3317, 'relational', OPTIONS ("
+            + "value E'line1\\nline2', " // E-string: \n → 换行符
+            + "sep E'\\t', " // E-string: \t → 制表符
+            + "desc E'first\\nsecond\\tthird'" // E-string: 转义处理
+            + "));";
+    AddStorageEngineStatement statementEstring =
+        (AddStorageEngineStatement) TestUtils.buildStatement(addStorageEngineStrEstring);
+
+    assertEquals(1, statementEstring.getEngines().size());
+    Map<String, String> extra17 = new HashMap<>();
+    extra17.put("value", "line1\nline2"); // 实际换行符
+    extra17.put("sep", "\t"); // 实际制表符
+    extra17.put("desc", "first\nsecond\tthird"); // 实际控制字符
+    StorageEngine engine17 =
+        new StorageEngine("127.0.0.1", 3317, StorageEngineType.relational, extra17);
+    assertEquals(engine17, statementEstring.getEngines().get(0));
+
+    // 验证两者结果不同（标准字符串保留反斜杠，E-string 转义）
+    assertNotEquals(
+        statementStandard.getEngines().get(0).getExtraParams().get("value"),
+        statementEstring.getEngines().get(0).getExtraParams().get("value"));
+
+    // ========== 测试用例 13: 完整的转义字符测试（使用 E-string） ==========
     // 测试所有支持的 SQL 转义序列
     String addStorageEngineStrWithAllEscapes =
         "ADD STORAGEENGINE ('127.0.0.1', 3315, 'relational', OPTIONS ("
-            + "newline '\\n', " // SQL: \n → 换行符
-            + "tab '\\t', " // SQL: \t → 制表符
-            + "carriage '\\r', " // SQL: \r → 回车符
-            + "formfeed '\\f', " // SQL: \f → 换页符
-            + "backspace '\\b', " // SQL: \b → 退格符
-            + "null_char '\\0', " // SQL: \0 → 空字符
-            + "backslash '\\\\', " // SQL: \\ → 反斜杠
-            + "single_quote '\\'', " // SQL: \' → 单引号
-            + "double_quote '\\\"'" // SQL: \" → 双引号
+            + "newline E'\\n', " // E-string: \n → 换行符
+            + "tab E'\\t', " // E-string: \t → 制表符
+            + "carriage E'\\r', " // E-string: \r → 回车符
+            + "formfeed E'\\f', " // E-string: \f → 换页符
+            + "backspace E'\\b', " // E-string: \b → 退格符
+            + "null_char E'\\0', " // E-string: \0 → 空字符
+            + "backslash E'\\\\', " // E-string: \\ → 反斜杠
+            + "single_quote E'\\'', " // E-string: \' → 单引号
+            + "double_quote E'\\\"'" // E-string: \" → 双引号
             + "));";
     AddStorageEngineStatement statementWithAllEscapes =
         (AddStorageEngineStatement) TestUtils.buildStatement(addStorageEngineStrWithAllEscapes);
@@ -535,11 +541,11 @@ public class ParseTest {
         new StorageEngine("127.0.0.1", 3315, StorageEngineType.relational, extra15);
     assertEquals(engine15, statementWithAllEscapes.getEngines().get(0));
 
-    // ========== 测试用例 13: 组合转义字符测试 ==========
+    // ========== 测试用例 14: 组合转义字符测试（使用 E-string） ==========
     // 测试多个转义字符组合在一个值中
     String addStorageEngineStrWithCombinedEscapes =
         "ADD STORAGEENGINE ('127.0.0.1', 3316, 'relational', OPTIONS ("
-            + "combined 'line1\\nline2\\ttab\\rcarriage\\fformfeed\\bbackspace\\0null\\\\backslash\\'quote'"
+            + "combined E'line1\\nline2\\ttab\\rcarriage\\fformfeed\\bbackspace\\0null\\\\backslash\\'quote'"
             + "));";
     AddStorageEngineStatement statementWithCombinedEscapes =
         (AddStorageEngineStatement)
