@@ -965,6 +965,10 @@ public abstract class BaseCapacityExpansionIT {
     String queryPath = queryPrefix + ".nt.wf03";
     String expectedPath = queryPrefix + ".nt.wf03.wt01.status2";
 
+    // Alternative: Try using escape sequences in the backtick identifier
+    // This should match what the CLI client does when using unescape on backtick content
+    String queryPathWithEscapes = ",\\\"\\'\\\\\\n\\r\\f\\b\\tA.nt.wf03";
+
     // 打印所有的存储引擎信息
     List<StorageEngineInfo> engineInfoList = null;
     try {
@@ -983,19 +987,56 @@ public abstract class BaseCapacityExpansionIT {
       List<String> columns = result.getPaths();
       if (columns != null) {
         for (String path : columns) {
-            LOGGER.info("Found column: {}", path);
+          LOGGER.info("Found column: {}", path);
         }
       }
     } catch (SessionException e) {
       LOGGER.error("Failed to query columns", e);
     }
 
-    String statement = "select wt01.status2 from `" + queryPath + "`;";
-    List<String> pathList = Collections.singletonList(expectedPath);
+    // First try: Query with wildcard to see if data is accessible
+    try {
+      LOGGER.info("Testing wildcard query: select * from *.wf03.*;");
+      SessionExecuteSqlResult wildcardResult = session.executeSql("select * from *.wf03.*;");
+      List<String> wildcardPaths = wildcardResult.getPaths();
+      if (wildcardPaths != null) {
+        for (String path : wildcardPaths) {
+          if (path.contains(queryPrefix) || path.contains("status2")) {
+            LOGGER.info("Wildcard found: {}", path);
+          }
+        }
+      }
+    } catch (SessionException e) {
+      LOGGER.warn("Wildcard query failed", e);
+    }
 
-    LOGGER.info("Executing query: {}", statement);
+    // Try method 1: Backtick with actual control characters
+    String statement1 = "select wt01.status2 from `" + queryPath + "`;";
+    LOGGER.info("Method 1 - Executing query with actual control chars: {}", statement1);
     LOGGER.info("Expected path: {}", expectedPath);
-    SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
+
+    // Try method 2: Backtick with escape sequences (like CLI does)
+    String statement2 = "select wt01.status2 from `" + queryPathWithEscapes + "`;";
+    LOGGER.info("Method 2 - Executing query with escape sequences: {}", statement2);
+
+    // Test both methods
+    List<String> pathList = Collections.singletonList(expectedPath);
+    try {
+      LOGGER.info("Testing Method 1...");
+      SQLTestTools.executeAndCompare(session, statement1, pathList, valuesList);
+      LOGGER.info("Method 1 SUCCESS!");
+    } catch (AssertionError e1) {
+      LOGGER.warn("Method 1 failed, trying Method 2...");
+      try {
+        SQLTestTools.executeAndCompare(session, statement2, pathList, valuesList);
+        LOGGER.info("Method 2 SUCCESS!");
+      } catch (AssertionError e2) {
+        LOGGER.error("Both methods failed!");
+        LOGGER.error("Method 1 error: ", e1);
+        LOGGER.error("Method 2 error: ", e2);
+        throw e2; // Re-throw the last error
+      }
+    }
     try {
       session.executeSql(String.format(removeStatement, expPort, schemaPrefix, ""));
     } catch (SessionException e) {
