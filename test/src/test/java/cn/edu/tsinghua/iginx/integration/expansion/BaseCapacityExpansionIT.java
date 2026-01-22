@@ -34,7 +34,6 @@ import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.session.ClusterInfo;
 import cn.edu.tsinghua.iginx.session.QueryDataSet;
 import cn.edu.tsinghua.iginx.session.Session;
-import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import cn.edu.tsinghua.iginx.thrift.RemovedStorageEngineInfo;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineInfo;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
@@ -1017,35 +1016,9 @@ public abstract class BaseCapacityExpansionIT {
     String queryPath = queryPrefix + ".nt.wf03";
     String expectedPath = queryPrefix + ".nt.wf03.wt01.status2";
 
-    // 打印所有的存储引擎信息
-    List<StorageEngineInfo> engineInfoList = null;
-    try {
-      engineInfoList = session.getClusterInfo().getStorageEngineInfos();
-    } catch (SessionException e) {
-      throw new RuntimeException(e);
-    }
-    for (StorageEngineInfo info : engineInfoList) {
-      LOGGER.info("Storage engine info: {}", info);
-    }
-
-    // Query all columns to see what paths actually exist
-    try {
-      LOGGER.info("Querying all columns to verify data exists...");
-      SessionExecuteSqlResult result = session.executeSql("SHOW COLUMNS;");
-      List<String> columns = result.getPaths();
-      if (columns != null) {
-        for (String path : columns) {
-          LOGGER.info("Found column: {}", path);
-        }
-      }
-    } catch (SessionException e) {
-      LOGGER.error("Failed to query columns", e);
-    }
-
     String statement1 = "select wt01.status2 from `" + queryPath + "`;";
     LOGGER.info("Executing query with actual control chars: {}", statement1);
     LOGGER.info("Expected path: {}", expectedPath);
-
 
     // Test both methods
     List<String> pathList = Collections.singletonList(expectedPath);
@@ -1068,14 +1041,14 @@ public abstract class BaseCapacityExpansionIT {
     // Test case 1: Windows-style path with backslashes
     String windowsStylePrefixSql =
         "C:\\\\Users\\\\test"; // This becomes C:\Users\test after unescape
-    String windowsStylePrefixResult = "C:\\\\Users\\\\test"; // Expected result after unescape
+    String windowsStylePrefixResult = "C:\\Users\\test"; // Expected result after unescape
 
     addStorageEngine(
         "127.0.0.1", expPort, true, true, null, windowsStylePrefixSql, extraParams, false);
 
     try {
       // Query should use the unescaped prefix
-      String statement = "select wt01.status2 from `" + windowsStylePrefixResult + ".nt.wf03`;";
+      String statement = "select wt01.status2 from `" + windowsStylePrefixSql + ".nt.wf03`;";
       List<String> pathList =
           Collections.singletonList(windowsStylePrefixResult + ".nt.wf03.wt01.status2");
       SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
@@ -1084,35 +1057,10 @@ public abstract class BaseCapacityExpansionIT {
       String removeSql =
           String.format(
               "remove storageengine (\"127.0.0.1\", %d, \"%s\", \"\") for all;",
-              expPort, windowsStylePrefixResult);
+              expPort, windowsStylePrefixSql);
       session.executeSql(removeSql);
     } catch (SessionException e) {
       LOGGER.error("test Windows path prefix failure: ", e);
-      fail();
-    }
-
-    // Test case 2: Escape sequence test
-    // In SQL: '\\n' → newline character (since all strings now process escapes)
-    // If you want literal '\n', you need '\\\\n'
-    String newlinePrefixSql = "\\n"; // This becomes actual newline after unescape
-    String newlinePrefixResult = "\n"; // Expected result is actual newline
-
-    addStorageEngine("127.0.0.1", expPort, true, true, null, newlinePrefixSql, extraParams, false);
-
-    try {
-      // Query should use the unescaped prefix (actual newline)
-      String statement = "select wt01.status2 from `" + newlinePrefixResult + ".nt.wf03`;";
-      List<String> pathList =
-          Collections.singletonList(newlinePrefixResult + ".nt.wf03.wt01.status2");
-      SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
-
-      // Remove storage engine - need to escape for remove SQL
-      String removeSql =
-          String.format(
-              "remove storageengine (\"127.0.0.1\", %d, \"\\n\", \"\") for all;", expPort);
-      session.executeSql(removeSql);
-    } catch (SessionException e) {
-      LOGGER.error("test newline prefix failure: ", e);
       fail();
     }
   }

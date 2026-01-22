@@ -236,7 +236,8 @@ public class UDFIT {
             "mock_udf.py");
     String udfName = "mock_udf";
     tool.executeReg(
-        String.format(SINGLE_UDF_REGISTER_SQL, "UDAF", udfName, "MockUDF", escapePathForSql(filePath)));
+        String.format(
+            SINGLE_UDF_REGISTER_SQL, "UDAF", udfName, "MockUDF", escapePathForSql(filePath)));
     assertTrue(tool.isUDFRegistered(udfName));
     taskToBeRemoved.add(udfName);
 
@@ -879,7 +880,8 @@ public class UDFIT {
             "no_mod_udf.py");
     String udfName = "no_mod";
     tool.executeReg(
-        String.format(SINGLE_UDF_REGISTER_SQL, "UDTF", udfName, "NoModUDF", escapePathForSql(filePath)));
+        String.format(
+            SINGLE_UDF_REGISTER_SQL, "UDTF", udfName, "NoModUDF", escapePathForSql(filePath)));
     taskToBeRemoved.add(udfName);
 
     String query = "SELECT no_mod(1);";
@@ -1530,7 +1532,8 @@ public class UDFIT {
             "udf",
             "tensor_test.py");
     String statement =
-        String.format(SINGLE_UDF_REGISTER_SQL, "udsf", name, "TensorTest", escapePathForSql(filePath));
+        String.format(
+            SINGLE_UDF_REGISTER_SQL, "udsf", name, "TensorTest", escapePathForSql(filePath));
     tool.executeReg(statement);
     assertTrue(tool.isUDFRegistered(name));
     taskToBeRemoved.add(name);
