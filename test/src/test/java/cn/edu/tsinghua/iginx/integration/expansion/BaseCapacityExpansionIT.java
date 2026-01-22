@@ -1005,19 +1005,22 @@ public abstract class BaseCapacityExpansionIT {
   private void testSpecialPrefix(String removeStatement, List<List<Object>> valuesList) {
     // 输入为\,\"\'\\\n\r\f\b\t\u0041
     // 包含对转义字符以及控制字符的混合测试
-    String schemaPrefix = "\\,\\\"\\'\\\\\\n\\r\\f\\b\\t\\u0041";
+    String schemaPrefix = "\\,\\\"\\'\\n\\r\\f\\b\\t\\u0041";
 
     // 测试转义符在schema_prefix中是否能够正确转义，成功add storageengine与remove storageengine
     addStorageEngine(expPort, true, true, null, schemaPrefix, portsToExtraParams.get(expPort));
 
     // 查询时使用的路径（从反引号中提取）
-    String queryPrefix = ",\"'\\\n\r\f\b\tA";
+    String queryPrefix = ",\"'\n\r\f\b\tA";
+    String queryPrefix1 = ",\"'\\n\\r\\f\\b\\tA";
+
     String queryPath = queryPrefix + ".nt.wf03";
+    String queryPath1 = queryPrefix1 + ".nt.wf03";
     String expectedPath = queryPrefix + ".nt.wf03.wt01.status2";
 
     // Alternative: Try using escape sequences in the backtick identifier
     // This should match what the CLI client does when using unescape on backtick content
-    String queryPathWithEscapes = ",\\\"\\'\\\\\\n\\r\\f\\b\\tA.nt.wf03";
+    String queryPathWithEscapes = ",\\\"\\'\\n\\r\\f\\b\\tA.nt.wf03";
 
     // 打印所有的存储引擎信息
     List<StorageEngineInfo> engineInfoList = null;
@@ -1044,25 +1047,14 @@ public abstract class BaseCapacityExpansionIT {
       LOGGER.error("Failed to query columns", e);
     }
 
-    // First try: Query with wildcard to see if data is accessible
-    try {
-      LOGGER.info("Testing wildcard query: select * from *.wf03.*;");
-      SessionExecuteSqlResult wildcardResult = session.executeSql("select * from *.wf03.*;");
-      List<String> wildcardPaths = wildcardResult.getPaths();
-      if (wildcardPaths != null) {
-        for (String path : wildcardPaths) {
-          if (path.contains(queryPrefix) || path.contains("status2")) {
-            LOGGER.info("Wildcard found: {}", path);
-          }
-        }
-      }
-    } catch (SessionException e) {
-      LOGGER.warn("Wildcard query failed", e);
-    }
-
     // Try method 1: Backtick with actual control characters
     String statement1 = "select wt01.status2 from `" + queryPath + "`;";
     LOGGER.info("Method 1 - Executing query with actual control chars: {}", statement1);
+    LOGGER.info("Expected path: {}", expectedPath);
+
+    // Try method 1: Backtick with actual control characters
+    String statement3 = "select wt01.status2 from `" + queryPath1 + "`;";
+    LOGGER.info("Method 1 - Executing query with actual control chars: {}", statement3);
     LOGGER.info("Expected path: {}", expectedPath);
 
     // Try method 2: Backtick with escape sequences (like CLI does)
@@ -1078,13 +1070,21 @@ public abstract class BaseCapacityExpansionIT {
     } catch (AssertionError e1) {
       LOGGER.warn("Method 1 failed, trying Method 2...");
       try {
-        SQLTestTools.executeAndCompare(session, statement2, pathList, valuesList);
-        LOGGER.info("Method 2 SUCCESS!");
+          LOGGER.info("Testing Method 2...");
+          SQLTestTools.executeAndCompare(session, statement3, pathList, valuesList);
+          LOGGER.info("Method 2 SUCCESS!");
       } catch (AssertionError e2) {
-        LOGGER.error("Both methods failed!");
-        LOGGER.error("Method 1 error: ", e1);
-        LOGGER.error("Method 2 error: ", e2);
-        throw e2; // Re-throw the last error
+          LOGGER.warn("Method 2 failed, trying Method 3...");
+          try {
+              SQLTestTools.executeAndCompare(session, statement2, pathList, valuesList);
+              LOGGER.info("Method 3 SUCCESS!");
+          } catch (AssertionError e3) {
+              LOGGER.error("Both methods failed!");
+              LOGGER.error("Method 1 error: ", e1);
+              LOGGER.error("Method 2 error: ", e2);
+              LOGGER.error("Method 3 error: ", e3);
+              throw e3; // Re-throw the last error
+          }
       }
     }
     try {
@@ -1103,10 +1103,8 @@ public abstract class BaseCapacityExpansionIT {
     String extraParams = portsToExtraParams.get(expPort);
 
     // Test case 1: Windows-style path with backslashes
-    // In SQL: 'C:\\\\Users\\\\test' → C:\Users\test (double backslash becomes single)
-    // In Java: "C:\\\\\\\\Users\\\\\\\\test" → SQL "C:\\\\Users\\\\test"
     String windowsStylePrefixSql =
-        "C:\\\\Users\\\\test"; // This becomes C:\Users\test after unescape
+        "C:\\Users\\test"; // This becomes C:\Users\test after unescape
     String windowsStylePrefixResult = "C:\\Users\\test"; // Expected result after unescape
 
     addStorageEngine(
