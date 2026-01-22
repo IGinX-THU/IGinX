@@ -210,6 +210,18 @@ public class UDFTestTools {
   }
 
   /**
+   * Escape backslashes in a path for use in SQL string literals. Since all strings now support
+   * backslash escape sequences, Windows paths need to have backslashes escaped when used in SQL
+   * string literals (both single and double quotes).
+   *
+   * @param path the path to escape
+   * @return the path with backslashes escaped (e.g., "C:\Users" -> "C:\\Users")
+   */
+  private static String escapePathForSql(String path) {
+    return path.replace("\\", "\\\\");
+  }
+
+  /**
    * generate multiple UDFs' registration sql command
    *
    * @param types UDF types
@@ -229,7 +241,9 @@ public class UDFTestTools {
                     String.format(
                         "%s \"%s\" FROM \"%s\"", types.get(i), names.get(i), classPaths.get(i)))
             .collect(Collectors.joining(", "));
-    return String.format(MULTI_UDF_REGISTER_SQL, udfs, modulePath);
+    // Escape backslashes in modulePath for Windows compatibility
+    String escapedModulePath = escapePathForSql(modulePath);
+    return String.format(MULTI_UDF_REGISTER_SQL, udfs, escapedModulePath);
   }
 
   // all UDFs will be registered in one type
@@ -240,6 +254,8 @@ public class UDFTestTools {
         IntStream.range(0, names.size())
             .mapToObj(i -> String.format("\"%s\" FROM \"%s\"", names.get(i), classPaths.get(i)))
             .collect(Collectors.joining(", "));
-    return String.format(MULTI_UDF_REGISTER_SQL, type + " " + udfs, modulePath);
+    // Escape backslashes in modulePath for Windows compatibility
+    String escapedModulePath = escapePathForSql(modulePath);
+    return String.format(MULTI_UDF_REGISTER_SQL, type + " " + udfs, escapedModulePath);
   }
 }
