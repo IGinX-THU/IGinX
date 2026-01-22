@@ -97,6 +97,18 @@ public class TransformIT {
 
   private static final String SHOW_TIME_SERIES_SQL = "SHOW COLUMNS;";
 
+  /**
+   * Escape backslashes in a path for use in SQL string literals. Since all strings now support
+   * backslash escape sequences, Windows paths need to have backslashes escaped when used in SQL
+   * string literals (both single and double quotes).
+   *
+   * @param path the path to escape
+   * @return the path with backslashes escaped (e.g., "C:\Users" -> "C:\\Users")
+   */
+  private static String escapePathForSql(String path) {
+    return path.replace("\\", "\\\\");
+  }
+
   private static final String QUERY_SQL_1 = "SELECT s2 FROM us.d1 WHERE key >= 14800;";
 
   private static final String QUERY_SQL_2 = "SELECT s1, s2 FROM us.d1 WHERE key < 200;";
@@ -206,13 +218,15 @@ public class TransformIT {
 
   private void registerTask(String task) throws SessionException {
     dropTask(task);
-    session.executeSql(String.format(CREATE_SQL_FORMATTER, task, task, TASK_MAP.get(task)));
+    session.executeSql(
+        String.format(CREATE_SQL_FORMATTER, task, task, escapePathForSql(TASK_MAP.get(task))));
   }
 
   private void registerTask(String task, String className, String filename)
       throws SessionException {
     dropTask(task);
-    session.executeSql(String.format(CREATE_SQL_FORMATTER, task, className, filename));
+    session.executeSql(
+        String.format(CREATE_SQL_FORMATTER, task, className, escapePathForSql(filename)));
   }
 
   /**
@@ -343,7 +357,9 @@ public class TransformIT {
     LOGGER.info("commitSingleSqlStatementByYamlTest");
     try {
       String yamlFileName = OUTPUT_DIR_PREFIX + File.separator + "TransformSingleSqlStatement.yaml";
-      long jobId = session.commitTransformJob(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
+      long jobId =
+          session.commitTransformJob(
+              String.format(COMMIT_SQL_FORMATTER, escapePathForSql(yamlFileName)));
       verifyJobFinishedBlocked(jobId);
     } catch (SessionException | InterruptedException e) {
       LOGGER.error("Transform:  execute fail. Caused by:", e);
@@ -357,7 +373,9 @@ public class TransformIT {
     String outputFileName = OUTPUT_DIR_PREFIX + File.separator + "export_file_after_10_s.txt";
     try {
       String yamlFileName = OUTPUT_DIR_PREFIX + File.separator + "TransformScheduledAfter10s.yaml";
-      long jobId = session.commitTransformJob(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
+      long jobId =
+          session.commitTransformJob(
+              String.format(COMMIT_SQL_FORMATTER, escapePathForSql(yamlFileName)));
 
       Thread.sleep(3000L); // sleep 3s to delay insertion
       String insertSQL = "insert into scheduleData(key, %s) values(1, 2);";
@@ -395,7 +413,9 @@ public class TransformIT {
       String yamlFileName = OUTPUT_DIR_PREFIX + File.separator + "TransformScheduledEvery10s.yaml";
       // add col0
       session.executeSql(String.format(insertSQL, "col0"));
-      long jobId = session.commitTransformJob(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
+      long jobId =
+          session.commitTransformJob(
+              String.format(COMMIT_SQL_FORMATTER, escapePathForSql(yamlFileName)));
       try {
 
         Thread.sleep(3000L); // sleep 3s to make sure first try is triggered.
@@ -497,7 +517,9 @@ public class TransformIT {
       dropAllTask();
       String yamlFileName =
           OUTPUT_DIR_PREFIX + File.separator + "TransformScheduledEvery10sWrong.yaml";
-      long jobId = session.commitTransformJob(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
+      long jobId =
+          session.commitTransformJob(
+              String.format(COMMIT_SQL_FORMATTER, escapePathForSql(yamlFileName)));
       String outputFileName =
           OUTPUT_DIR_PREFIX + File.separator + "export_file_continue_on_failure.txt";
       try {
@@ -535,7 +557,9 @@ public class TransformIT {
     try {
       String insertSQL = "insert into scheduleData(key, %s) values(1, 2);";
       String yamlFileName = OUTPUT_DIR_PREFIX + File.separator + "TransformScheduledCron.yaml";
-      long jobId = session.commitTransformJob(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
+      long jobId =
+          session.commitTransformJob(
+              String.format(COMMIT_SQL_FORMATTER, escapePathForSql(yamlFileName)));
       try {
         // add col0
         session.executeSql(String.format(insertSQL, "col0"));
@@ -571,7 +595,9 @@ public class TransformIT {
           tenSecondsLater.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
       appendFile(new File(yamlFileName), "\nschedule: \"at '" + formattedDateTime + "'\"");
 
-      long jobId = session.commitTransformJob(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
+      long jobId =
+          session.commitTransformJob(
+              String.format(COMMIT_SQL_FORMATTER, escapePathForSql(yamlFileName)));
       Thread.sleep(2000L); // add new data after 2s, before job is triggered.
       // add col0
       session.executeSql(String.format(insertSQL, "col0"));
@@ -631,7 +657,9 @@ public class TransformIT {
           OUTPUT_DIR_PREFIX + File.separator + "TransformMultipleSqlStatements.yaml";
       String outputFileName =
           OUTPUT_DIR_PREFIX + File.separator + "export_file_multiple_sql_statements_by_yaml.txt";
-      long jobId = session.commitTransformJob(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
+      long jobId =
+          session.commitTransformJob(
+              String.format(COMMIT_SQL_FORMATTER, escapePathForSql(yamlFileName)));
 
       verifyJobFinishedBlocked(jobId);
       verifyMultipleSqlStatements(outputFileName);
@@ -796,7 +824,9 @@ public class TransformIT {
       String yamlFileName = OUTPUT_DIR_PREFIX + File.separator + "TransformSinglePythonJob.yaml";
       String outputFileName =
           OUTPUT_DIR_PREFIX + File.separator + "export_file_single_python_job_by_yaml.txt";
-      long jobId = session.commitTransformJob(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
+      long jobId =
+          session.commitTransformJob(
+              String.format(COMMIT_SQL_FORMATTER, escapePathForSql(yamlFileName)));
 
       verifyJobFinishedBlocked(jobId);
       verifySinglePythonJob(outputFileName, 200);
@@ -879,7 +909,9 @@ public class TransformIT {
       String yamlFileName = OUTPUT_DIR_PREFIX + File.separator + "TransformMultiplePythonJobs.yaml";
       String outputFileName =
           OUTPUT_DIR_PREFIX + File.separator + "export_file_multiple_python_jobs_by_yaml.txt";
-      long jobId = session.commitTransformJob(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
+      long jobId =
+          session.commitTransformJob(
+              String.format(COMMIT_SQL_FORMATTER, escapePathForSql(yamlFileName)));
 
       verifyJobFinishedBlocked(jobId);
       verifyMultiplePythonJobs(outputFileName);
@@ -900,7 +932,9 @@ public class TransformIT {
 
       String yamlFileName =
           OUTPUT_DIR_PREFIX + File.separator + "TransformMultiplePythonJobsWithExportToIginx.yaml";
-      long jobId = session.commitTransformJob(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
+      long jobId =
+          session.commitTransformJob(
+              String.format(COMMIT_SQL_FORMATTER, escapePathForSql(yamlFileName)));
 
       verifyJobFinishedBlocked(jobId);
 
@@ -945,7 +979,9 @@ public class TransformIT {
 
       String yamlFileName =
           OUTPUT_DIR_PREFIX + File.separator + "TransformBinaryExportToIginx.yaml";
-      long jobId = session.commitTransformJob(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
+      long jobId =
+          session.commitTransformJob(
+              String.format(COMMIT_SQL_FORMATTER, escapePathForSql(yamlFileName)));
 
       verifyJobFinishedBlocked(jobId);
 
@@ -1080,7 +1116,9 @@ public class TransformIT {
 
       String yamlFileName = OUTPUT_DIR_PREFIX + File.separator + jobFile;
       String outputFileName = OUTPUT_DIR_PREFIX + File.separator + outputFile;
-      long jobId = session.commitTransformJob(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
+      long jobId =
+          session.commitTransformJob(
+              String.format(COMMIT_SQL_FORMATTER, escapePathForSql(yamlFileName)));
 
       verifyJobFinishedBlocked(jobId);
       verifyMixedPythonJobs(outputFileName);
@@ -1111,7 +1149,9 @@ public class TransformIT {
       YAMLWriter writer = new YAMLWriter();
       writer.writeJobIntoYAML(new File(yamlFileName), job);
 
-      long jobId = session.commitTransformJob(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
+      long jobId =
+          session.commitTransformJob(
+              String.format(COMMIT_SQL_FORMATTER, escapePathForSql(yamlFileName)));
 
       verifyJobFinishedBlocked(jobId);
       verifyMixedPythonJobs(outputFileName);
@@ -1128,7 +1168,9 @@ public class TransformIT {
     try {
       String yamlFileName =
           OUTPUT_DIR_PREFIX + File.separator + "TransformMixedPythonAndSQLNoOutputPrefix.yaml";
-      long jobId = session.commitTransformJob(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
+      long jobId =
+          session.commitTransformJob(
+              String.format(COMMIT_SQL_FORMATTER, escapePathForSql(yamlFileName)));
 
       fail(); // not rejected
     } catch (SessionException e) {
@@ -1309,7 +1351,9 @@ public class TransformIT {
       greenMail.setUser("from@localhost", "password");
       String yamlFileName =
           OUTPUT_DIR_PREFIX + File.separator + "TransformSingleSqlStatementWithEmail.yaml";
-      long jobId = session.commitTransformJob(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
+      long jobId =
+          session.commitTransformJob(
+              String.format(COMMIT_SQL_FORMATTER, escapePathForSql(yamlFileName)));
 
       verifyJobFinishedBlocked(jobId);
 

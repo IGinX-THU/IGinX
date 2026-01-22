@@ -365,8 +365,8 @@ public abstract class BaseCapacityExpansionIT {
   }
 
   /**
-   * Build ADD STORAGEENGINE SQL with double quote for schema_prefix (for testing "" escape). This
-   * is needed because addStorageEngine() uses single quotes.
+   * Build ADD STORAGEENGINE SQL with double quote for schema_prefix. This is needed because
+   * addStorageEngine() uses single quotes. All strings now support backslash escape sequences.
    */
   private String buildAddStorageEngineSqlWithDoubleQuote(
       int port, String schemaPrefix, String extraParams) {
@@ -408,60 +408,7 @@ public abstract class BaseCapacityExpansionIT {
       }
     }
 
-    // Use double quotes for schema_prefix
-    options.add("schema_prefix \"" + schemaPrefix + "\"");
-
-    statement.append(String.join(", ", options));
-    statement.append("));");
-
-    return statement.toString();
-  }
-
-  /**
-   * Build ADD STORAGEENGINE SQL with double quote and backslash escape for schema_prefix (for
-   * testing \" escape). All strings now support backslash escape sequences.
-   */
-  private String buildAddStorageEngineSqlWithDoubleQuoteEscape(
-      int port, String schemaPrefix, String extraParams) {
-    StringBuilder statement = new StringBuilder();
-    statement.append("ADD STORAGEENGINE (\"127.0.0.1\", ");
-    statement.append(port);
-    statement.append(", \"");
-    statement.append(type.name());
-    statement.append("\", OPTIONS (");
-
-    List<String> options = new ArrayList<>();
-    options.add("has_data 'true'");
-    options.add("is_read_only 'true'");
-
-    if (this instanceof InfluxDBCapacityExpansionIT) {
-      options.add("url 'http://localhost:" + port + "/'");
-    }
-    if (IS_EMBEDDED) {
-      options.add(
-          "dummy_dir '"
-              + String.format("%s/%s", DBCE_PARQUET_FS_TEST_DIR, PORT_TO_ROOT.get(port))
-              + "'");
-      options.add(
-          "dir '"
-              + String.format(
-                  "%s/%s%s",
-                  DBCE_PARQUET_FS_TEST_DIR, IGINX_DATA_PATH_PREFIX_NAME, PORT_TO_ROOT.get(port))
-              + "'");
-      options.add("iginx_port '" + oriPortIginx + "'");
-    }
-    if (extraParams != null && !extraParams.trim().isEmpty()) {
-      String[] params = extraParams.split(",");
-      for (String param : params) {
-        param = param.trim();
-        if (!param.isEmpty() && param.contains("=")) {
-          String[] kv = param.split("=", 2);
-          options.add(kv[0].trim() + " '" + kv[1].trim() + "'");
-        }
-      }
-    }
-
-    // Use double quotes with backslash escape for schema_prefix
+    // Use double quotes for schema_prefix (supports both "" and \" escaping)
     options.add("schema_prefix \"" + schemaPrefix + "\"");
 
     statement.append(String.join(", ", options));
@@ -1281,8 +1228,7 @@ public abstract class BaseCapacityExpansionIT {
 
     // Test case 4: Double quote with backslash escape (use \" to escape)
     // SQL: schema_prefix "test\"s" -> Result: test"s
-    String addSql4 =
-        buildAddStorageEngineSqlWithDoubleQuoteEscape(expPort, "test\\\"s", extraParams);
+    String addSql4 = buildAddStorageEngineSqlWithDoubleQuote(expPort, "test\\\"s", extraParams);
     LOGGER.info("Testing double quote escape (\\\" style), execute: {}", addSql4);
 
     try {
@@ -1432,8 +1378,8 @@ public abstract class BaseCapacityExpansionIT {
     SQLTestTools.executeAndCompare(session, statement, pathListAns, EXP_VALUES_LIST2);
 
     // 通过 sql 语句测试移除节点
-    // Use E-string syntax for schema_prefix to enable backslash escape processing
-    String removeStatement = "remove storageengine (\"127.0.0.1\", %d, E\"%s\", \"%s\") for all;";
+    // All strings now support backslash escape sequences, no E prefix needed
+    String removeStatement = "remove storageengine (\"127.0.0.1\", %d, \"%s\", \"%s\") for all;";
     try {
       session.executeSql(
           String.format(removeStatement, expPort, "p1" + schemaPrefixSuffix, dataPrefix1));
@@ -1464,12 +1410,12 @@ public abstract class BaseCapacityExpansionIT {
 
     testShowClusterInfo(2);
 
-    // Test standard string (without E prefix) preserves backslashes
+    // Test string with escape sequences (all strings now support backslash escapes)
     testStandardStringPrefix(valuesList);
 
     testShowClusterInfo(2);
 
-    // Test quote escaping in schema_prefix (both standard '' and E-string \' escaping)
+    // Test quote escaping in schema_prefix (both standard '' and backslash \' escaping)
     testQuoteEscapeInPrefix(valuesList);
 
     testShowClusterInfo(2);
