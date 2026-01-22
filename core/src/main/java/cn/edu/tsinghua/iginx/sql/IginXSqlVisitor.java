@@ -2097,11 +2097,12 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
   /**
    * Parses the old-style extra params string from ALTER STORAGEENGINE statement.
    *
-   * <p>Supports both standard strings ('...') and E-strings (E'...'):
+   * <p>All string literals (both single and double quotes) now support backslash escape sequences:
    *
    * <ul>
-   *   <li>Standard: {@code 'key1=value1, key2=value2'} - only {@code ''} escaping
-   *   <li>E-string: {@code E'key1=val\n1, key2=val\t2'} - all backslash escapes
+   *   <li>{@code 'key1=value1, key2=value2'} - supports {@code ''} and {@code \'} escaping
+   *   <li>{@code 'key1=val\n1, key2=val\t2'} - supports all backslash escapes ({@code \n}, {@code
+   *       \t}, {@code \\}, etc.)
    * </ul>
    *
    * @param ctx the string literal context containing the params
@@ -2118,7 +2119,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       return map;
     }
 
-    // Remove outer quotes and E-prefix, but preserve internal escape sequences
+    // Remove outer quotes, but preserve internal escape sequences
     // This is important: we need to preserve escapes so splitWithEscape can correctly
     // identify escaped delimiters (e.g., \,) vs actual delimiters
     String content = removeOuterQuotes(tokenText);
@@ -2126,12 +2127,6 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     if (content.isEmpty()) {
       return map;
     }
-
-    // Detect if this was an E-string (need to know for later unescaping)
-    boolean isEscapeString =
-        tokenText.length() >= 3
-            && (tokenText.charAt(0) == 'E' || tokenText.charAt(0) == 'e')
-            && (tokenText.charAt(1) == '\'' || tokenText.charAt(1) == '"');
 
     // Split by ',' to get key=value pairs
     // splitWithEscape handles escaped commas within values (preserves \, as not a delimiter)
@@ -2147,15 +2142,8 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       String key = kvArray[0].trim();
       String rawValue = kvArray[1].trim();
 
-      // Now unescape the value based on string type
-      String value;
-      if (isEscapeString) {
-        // E-string: process all escape sequences
-        value = StringEscapeUtil.unescape(rawValue);
-      } else {
-        // Standard string: only process quote escaping, preserve backslashes
-        value = StringEscapeUtil.unescapeQuotesOnly(rawValue);
-      }
+      // All strings now support backslash escape sequences
+      String value = StringEscapeUtil.unescape(rawValue);
 
       map.put(key, value);
     }
@@ -2164,35 +2152,24 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
   }
 
   /**
-   * Removes only the outer quotes and E-prefix from a SQL string literal, without processing any
-   * internal escape sequences. This preserves escape sequences like \, \n etc. so they can be
-   * handled later after splitting.
+   * Removes only the outer quotes from a SQL string literal, without processing any internal escape
+   * sequences. This preserves escape sequences like \, \n etc. so they can be handled later after
+   * splitting.
    *
-   * @param tokenText the string literal token text including quotes and optional E prefix
-   * @return the string content without outer quotes/prefix, but with all internal escapes preserved
+   * @param tokenText the string literal token text including quotes
+   * @return the string content without outer quotes, but with all internal escapes preserved
    */
   private String removeOuterQuotes(String tokenText) {
     if (tokenText == null || tokenText.length() < 2) {
       return "";
     }
 
-    int startIndex = 0;
-    // Skip E-string prefix if present
-    if (tokenText.length() >= 3 && (tokenText.charAt(0) == 'E' || tokenText.charAt(0) == 'e')) {
-      char secondChar = tokenText.charAt(1);
-      if (secondChar == '\'' || secondChar == '"') {
-        startIndex = 1; // Skip the 'E' prefix
-      }
-    }
-
     // Remove outer quotes
-    if (startIndex < tokenText.length()) {
-      char firstQuote = tokenText.charAt(startIndex);
-      char lastChar = tokenText.charAt(tokenText.length() - 1);
+    char firstQuote = tokenText.charAt(0);
+    char lastChar = tokenText.charAt(tokenText.length() - 1);
 
-      if ((firstQuote == '\'' && lastChar == '\'') || (firstQuote == '"' && lastChar == '"')) {
-        return tokenText.substring(startIndex + 1, tokenText.length() - 1);
-      }
+    if ((firstQuote == '\'' && lastChar == '\'') || (firstQuote == '"' && lastChar == '"')) {
+      return tokenText.substring(1, tokenText.length() - 1);
     }
 
     // If not properly quoted, return as-is

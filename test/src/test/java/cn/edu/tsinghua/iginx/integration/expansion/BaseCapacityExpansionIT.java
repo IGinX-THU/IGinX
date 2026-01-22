@@ -54,8 +54,8 @@ public abstract class BaseCapacityExpansionIT {
 
   protected static Session session;
 
-  // Use E-string syntax to enable backslash escape processing in params
-  protected static final String ALTER_ENGINE_STRING = "alter storageengine %d with params E'%s';";
+  // All strings support backslash escape processing
+  protected static final String ALTER_ENGINE_STRING = "alter storageengine %d with params '%s';";
 
   private static final ConfLoader testConf = new ConfLoader(Controller.CONFIG_FILE);
 
@@ -222,17 +222,15 @@ public abstract class BaseCapacityExpansionIT {
       // Directly use Map without string serialization/deserialization
       if (extraParamsMap != null && !extraParamsMap.isEmpty()) {
         for (Map.Entry<String, String> entry : extraParamsMap.entrySet()) {
-          options.add(entry.getKey() + " E'" + entry.getValue() + "'");
+          options.add(entry.getKey() + " '" + entry.getValue() + "'");
         }
       }
 
       if (dataPrefix != null) {
-        options.add("data_prefix E'" + dataPrefix + "'");
+        options.add("data_prefix '" + dataPrefix + "'");
       }
       if (schemaPrefix != null) {
-        // Use E-string syntax for schema_prefix to enable backslash escape processing
-        // This is necessary for special characters like \n, \t, etc.
-        options.add("schema_prefix E'" + schemaPrefix + "'");
+        options.add("schema_prefix '" + schemaPrefix + "'");
       }
 
       statement.append(String.join(", ", options));
@@ -269,7 +267,7 @@ public abstract class BaseCapacityExpansionIT {
     }
   }
 
-  /** Add storage engine with E-string format for schema_prefix (default behavior). */
+  /** Add storage engine with string-based extra params. */
   protected String addStorageEngine(
       String ip,
       int port,
@@ -279,28 +277,6 @@ public abstract class BaseCapacityExpansionIT {
       String schemaPrefix,
       String extraParams,
       boolean noError) {
-    // Default: use E-string format for schema_prefix
-    return addStorageEngine(
-        ip, port, hasData, isReadOnly, dataPrefix, schemaPrefix, extraParams, noError, true);
-  }
-
-  /**
-   * Add storage engine with configurable schema_prefix format.
-   *
-   * @param isEscape If true, use E-string format (E'...') for schema_prefix to enable backslash
-   *     escape processing. If false, use standard string format ('...') where backslashes are
-   *     preserved literally.
-   */
-  protected String addStorageEngine(
-      String ip,
-      int port,
-      boolean hasData,
-      boolean isReadOnly,
-      String dataPrefix,
-      String schemaPrefix,
-      String extraParams,
-      boolean noError,
-      boolean isEscape) {
     try {
       StringBuilder statement = new StringBuilder();
       statement.append("ADD STORAGEENGINE (\"");
@@ -351,12 +327,7 @@ public abstract class BaseCapacityExpansionIT {
         options.add("data_prefix '" + dataPrefix + "'");
       }
       if (schemaPrefix != null) {
-        // Use E-string or standard string based on isEscape parameter
-        if (isEscape) {
-          options.add("schema_prefix E'" + schemaPrefix + "'");
-        } else {
-          options.add("schema_prefix '" + schemaPrefix + "'");
-        }
+        options.add("schema_prefix '" + schemaPrefix + "'");
       }
 
       statement.append(String.join(", ", options));
@@ -369,18 +340,17 @@ public abstract class BaseCapacityExpansionIT {
     } catch (SessionException | InterruptedException e) {
       if (noError) {
         LOGGER.warn(
-            "add storage engine:{} port:{} hasData:{} isReadOnly:{} dataPrefix:{} schemaPrefix:{} extraParams:{} isEscape:{} failure: ",
+            "add storage engine:{} port:{} hasData:{} isReadOnly:{} dataPrefix:{} schemaPrefix:{} extraParams:{} failure: ",
             type.name(),
             port,
             hasData,
             isReadOnly,
             dataPrefix,
             schemaPrefix,
-            extraParams,
-            isEscape);
+            extraParams);
       } else {
         LOGGER.warn(
-            "add storage engine:{} port:{} hasData:{} isReadOnly:{} dataPrefix:{} schemaPrefix:{} extraParams:{} isEscape:{} failure: ",
+            "add storage engine:{} port:{} hasData:{} isReadOnly:{} dataPrefix:{} schemaPrefix:{} extraParams:{} failure: ",
             type.name(),
             port,
             hasData,
@@ -388,7 +358,6 @@ public abstract class BaseCapacityExpansionIT {
             dataPrefix,
             schemaPrefix,
             extraParams,
-            isEscape,
             e);
       }
       return e.getMessage();
@@ -449,10 +418,10 @@ public abstract class BaseCapacityExpansionIT {
   }
 
   /**
-   * Build ADD STORAGEENGINE SQL with E-string double quote for schema_prefix (for testing \" escape
-   * in E-string).
+   * Build ADD STORAGEENGINE SQL with double quote and backslash escape for schema_prefix (for
+   * testing \" escape). All strings now support backslash escape sequences.
    */
-  private String buildAddStorageEngineSqlWithEStringDoubleQuote(
+  private String buildAddStorageEngineSqlWithDoubleQuoteEscape(
       int port, String schemaPrefix, String extraParams) {
     StringBuilder statement = new StringBuilder();
     statement.append("ADD STORAGEENGINE (\"127.0.0.1\", ");
@@ -492,8 +461,8 @@ public abstract class BaseCapacityExpansionIT {
       }
     }
 
-    // Use E-string with double quotes for schema_prefix
-    options.add("schema_prefix E\"" + schemaPrefix + "\"");
+    // Use double quotes with backslash escape for schema_prefix
+    options.add("schema_prefix \"" + schemaPrefix + "\"");
 
     statement.append(String.join(", ", options));
     statement.append("));");
@@ -1180,79 +1149,76 @@ public abstract class BaseCapacityExpansionIT {
   }
 
   /**
-   * Test standard string (without E prefix) preserves backslashes. This is important for
-   * Windows-style paths and literal backslashes.
+   * Test Windows-style paths and escape sequences in schema_prefix. All strings now support
+   * backslash escape sequences.
    */
   private void testStandardStringPrefix(List<List<Object>> valuesList) {
     String extraParams = portsToExtraParams.get(expPort);
 
-    // Test case 1: Windows-style path with backslashes (should be preserved in standard string)
-    // Note: In Java string literal, "\\" becomes "\" after Java compiler interpretation
-    // When passed to SQL without E prefix, the backslash should be preserved
-    String windowsStylePrefix = "C:\\Users\\test";
+    // Test case 1: Windows-style path with backslashes
+    // In SQL: 'C:\\\\Users\\\\test' → C:\Users\test (double backslash becomes single)
+    // In Java: "C:\\\\\\\\Users\\\\\\\\test" → SQL "C:\\\\Users\\\\test"
+    String windowsStylePrefixSql =
+        "C:\\\\Users\\\\test"; // This becomes C:\Users\test after unescape
+    String windowsStylePrefixResult = "C:\\Users\\test"; // Expected result after unescape
 
-    // Use isEscape=false to use standard string format (without E prefix)
     addStorageEngine(
-        "127.0.0.1", expPort, true, true, null, windowsStylePrefix, extraParams, false, false);
+        "127.0.0.1", expPort, true, true, null, windowsStylePrefixSql, extraParams, false);
 
     try {
-      // Query should use the exact prefix with backslashes preserved
-      String statement = "select wt01.status2 from `" + windowsStylePrefix + ".nt.wf03`;";
+      // Query should use the unescaped prefix
+      String statement = "select wt01.status2 from `" + windowsStylePrefixResult + ".nt.wf03`;";
       List<String> pathList =
-          Collections.singletonList(windowsStylePrefix + ".nt.wf03.wt01.status2");
+          Collections.singletonList(windowsStylePrefixResult + ".nt.wf03.wt01.status2");
       SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
 
       // Remove storage engine
       String removeSql =
           String.format(
               "remove storageengine (\"127.0.0.1\", %d, \"%s\", \"\") for all;",
-              expPort, windowsStylePrefix);
+              expPort, windowsStylePrefixResult);
       session.executeSql(removeSql);
     } catch (SessionException e) {
-      LOGGER.error("test standard string prefix failure: ", e);
+      LOGGER.error("test Windows path prefix failure: ", e);
       fail();
     }
 
-    // Test case 2: Compare E-string vs standard string behavior
-    // E-string: '\n' becomes newline character
-    // Standard string: '\n' remains as two characters (backslash + n)
-    // Java literal "\\n" -> SQL standard string: '\n' -> Result: '\n' (2 chars)
-    String literalBackslashN = "\\n";
+    // Test case 2: Escape sequence test
+    // In SQL: '\\n' → newline character (since all strings now process escapes)
+    // If you want literal '\n', you need '\\\\n'
+    String newlinePrefixSql = "\\n"; // This becomes actual newline after unescape
+    String newlinePrefixResult = "\n"; // Expected result is actual newline
 
-    // Use isEscape=false to use standard string format
-    addStorageEngine(
-        "127.0.0.1", expPort, true, true, null, literalBackslashN, extraParams, false, false);
+    addStorageEngine("127.0.0.1", expPort, true, true, null, newlinePrefixSql, extraParams, false);
 
     try {
-      // Query should use literal '\n' (not newline)
-      String statement = "select wt01.status2 from `" + literalBackslashN + ".nt.wf03`;";
+      // Query should use the unescaped prefix (actual newline)
+      String statement = "select wt01.status2 from `" + newlinePrefixResult + ".nt.wf03`;";
       List<String> pathList =
-          Collections.singletonList(literalBackslashN + ".nt.wf03.wt01.status2");
+          Collections.singletonList(newlinePrefixResult + ".nt.wf03.wt01.status2");
       SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
 
-      // Remove storage engine
+      // Remove storage engine - need to escape for remove SQL
       String removeSql =
           String.format(
-              "remove storageengine (\"127.0.0.1\", %d, \"%s\", \"\") for all;",
-              expPort, literalBackslashN);
+              "remove storageengine (\"127.0.0.1\", %d, \"\\n\", \"\") for all;", expPort);
       session.executeSql(removeSql);
     } catch (SessionException e) {
-      LOGGER.error("test literal backslash-n prefix failure: ", e);
+      LOGGER.error("test newline prefix failure: ", e);
       fail();
     }
   }
 
   /**
    * Test quote escaping in schema_prefix. Tests both SQL standard quote escaping ('', "") and
-   * E-string quote escaping (\', \").
+   * backslash quote escaping (\', \"). All strings now support backslash escape sequences.
    */
   private void testQuoteEscapeInPrefix(List<List<Object>> valuesList) {
     String extraParams = portsToExtraParams.get(expPort);
 
-    // Test case 1: Single quote in standard string (use '' to escape)
+    // Test case 1: Single quote in string (use '' to escape)
     // SQL: schema_prefix 'test''s' -> Result: test's
-    // Pass "test''s" with isEscape=false to generate: schema_prefix 'test''s'
-    addStorageEngine("127.0.0.1", expPort, true, true, null, "test''s", extraParams, false, false);
+    addStorageEngine("127.0.0.1", expPort, true, true, null, "test''s", extraParams, false);
 
     try {
       // Query should use the prefix with single quote
@@ -1266,16 +1232,14 @@ public abstract class BaseCapacityExpansionIT {
               "remove storageengine (\"127.0.0.1\", %d, \"test's\", \"\") for all;", expPort);
       session.executeSql(removeSql1);
     } catch (SessionException e) {
-      LOGGER.error("test single quote escape in standard string failure: ", e);
+      LOGGER.error("test single quote escape ('' style) failure: ", e);
       fail();
     }
 
-    // Test case 2: Double quote in standard string (use "" to escape)
+    // Test case 2: Double quote in string (use "" to escape)
     // SQL: schema_prefix "test""s" -> Result: test"s
-    // Note: addStorageEngine uses single quotes, so we need to build SQL manually for double quote
-    // test
     String addSql2 = buildAddStorageEngineSqlWithDoubleQuote(expPort, "test\"\"s", extraParams);
-    LOGGER.info("Testing double quote escape in standard string, execute: {}", addSql2);
+    LOGGER.info("Testing double quote escape (\"\" style), execute: {}", addSql2);
 
     try {
       session.executeSql(addSql2);
@@ -1291,14 +1255,13 @@ public abstract class BaseCapacityExpansionIT {
               "remove storageengine (\"127.0.0.1\", %d, \"test\\\"s\", \"\") for all;", expPort);
       session.executeSql(removeSql2);
     } catch (SessionException e) {
-      LOGGER.error("test double quote escape in standard string failure: ", e);
+      LOGGER.error("test double quote escape (\"\" style) failure: ", e);
       fail();
     }
 
-    // Test case 3: Single quote in E-string (use \' to escape)
-    // SQL: schema_prefix E'test\'s' -> Result: test's
-    // Pass "test\\'s" (Java) -> "test\'s" (SQL) with isEscape=true
-    addStorageEngine("127.0.0.1", expPort, true, true, null, "test\\'s", extraParams, false, true);
+    // Test case 3: Single quote with backslash escape (use \' to escape)
+    // SQL: schema_prefix 'test\'s' -> Result: test's
+    addStorageEngine("127.0.0.1", expPort, true, true, null, "test\\'s", extraParams, false);
 
     try {
       // Query should use the prefix with single quote
@@ -1312,15 +1275,15 @@ public abstract class BaseCapacityExpansionIT {
               "remove storageengine (\"127.0.0.1\", %d, \"test's\", \"\") for all;", expPort);
       session.executeSql(removeSql3);
     } catch (SessionException e) {
-      LOGGER.error("test single quote escape in E-string failure: ", e);
+      LOGGER.error("test single quote escape (\\' style) failure: ", e);
       fail();
     }
 
-    // Test case 4: Double quote in E-string (use \" to escape)
-    // SQL: schema_prefix E"test\"s" -> Result: test"s
+    // Test case 4: Double quote with backslash escape (use \" to escape)
+    // SQL: schema_prefix "test\"s" -> Result: test"s
     String addSql4 =
-        buildAddStorageEngineSqlWithEStringDoubleQuote(expPort, "test\\\"s", extraParams);
-    LOGGER.info("Testing double quote escape in E-string, execute: {}", addSql4);
+        buildAddStorageEngineSqlWithDoubleQuoteEscape(expPort, "test\\\"s", extraParams);
+    LOGGER.info("Testing double quote escape (\\\" style), execute: {}", addSql4);
 
     try {
       session.executeSql(addSql4);
@@ -1336,15 +1299,14 @@ public abstract class BaseCapacityExpansionIT {
               "remove storageengine (\"127.0.0.1\", %d, \"test\\\"s\", \"\") for all;", expPort);
       session.executeSql(removeSql4);
     } catch (SessionException e) {
-      LOGGER.error("test double quote escape in E-string failure: ", e);
+      LOGGER.error("test double quote escape (\\\" style) failure: ", e);
       fail();
     }
 
     // Test case 5: Combined escapes - quotes and backslashes
-    // SQL: schema_prefix E'test\'s\\path' -> Result: test's\path
-    // Pass "test\\'s\\\\path" (Java) -> "test\'s\\path" (SQL) with isEscape=true
+    // SQL: schema_prefix 'test\'s\\path' -> Result: test's\path
     addStorageEngine(
-        "127.0.0.1", expPort, true, true, null, "test\\'s\\\\path", extraParams, false, true);
+        "127.0.0.1", expPort, true, true, null, "test\\'s\\\\path", extraParams, false);
 
     try {
       // Query should use the prefix with both quote and backslash

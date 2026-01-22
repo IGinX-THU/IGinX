@@ -26,11 +26,7 @@ import cn.edu.tsinghua.iginx.client.IginxClient;
 public class SingleQuoteState extends AbstractQuoteState {
 
   public SingleQuoteState() {
-    this(false);
-  }
-
-  public SingleQuoteState(boolean isEscapedString) {
-    super('\'', isEscapedString);
+    super('\'');
   }
 
   @Override

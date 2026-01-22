@@ -1392,8 +1392,7 @@ INF
    ;
 
 stringLiteral
-   : ESCAPE_STRING_LITERAL
-   | SINGLE_QUOTE_STRING_LITERAL
+   : SINGLE_QUOTE_STRING_LITERAL
    | DOUBLE_QUOTE_STRING_LITERAL
    ;
 
@@ -1444,14 +1443,6 @@ fragment CN_CHAR
 
 BACK_QUOTE_STRING_LITERAL_NOT_EMPTY
    : BACK_QUOTE ('\\' . | ~ '`')+? BACK_QUOTE
-   ;
-   // E-string (escape string) - PostgreSQL style
-   
-   // E'...' or E"..." enables backslash escape sequences
-   
-ESCAPE_STRING_LITERAL
-   : E '\'' SINGLE_QUOTE_STRING_CONTENT* '\''
-   | E '"' DOUBLE_QUOTE_STRING_CONTENT* '"'
    ;
 
 DOUBLE_QUOTE_STRING_LITERAL

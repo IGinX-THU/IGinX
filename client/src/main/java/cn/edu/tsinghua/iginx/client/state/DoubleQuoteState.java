@@ -26,11 +26,7 @@ import cn.edu.tsinghua.iginx.client.IginxClient;
 public class DoubleQuoteState extends AbstractQuoteState {
 
   public DoubleQuoteState() {
-    this(false);
-  }
-
-  public DoubleQuoteState(boolean isEscapedString) {
-    super('"', isEscapedString);
+    super('"');
   }
 
   @Override

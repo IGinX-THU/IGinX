@@ -24,15 +24,9 @@ import cn.edu.tsinghua.iginx.exception.SessionException;
 
 public abstract class AbstractQuoteState implements InputState {
   private final char quote;
-  private final boolean isEscapedString;
 
   public AbstractQuoteState(char quote) {
-    this(quote, false);
-  }
-
-  public AbstractQuoteState(char quote, boolean isEscapedString) {
     this.quote = quote;
-    this.isEscapedString = isEscapedString;
   }
 
   @Override
@@ -50,23 +44,19 @@ public abstract class AbstractQuoteState implements InputState {
 
       // 检查是否遇到结束的引号（考虑转义情况）
       if (current == quote) {
-        boolean isEscaped = false;
+        // 支持两种转义方式：
+        // 1. 反斜杠转义 (如 \' 或 \")
+        // 2. 双引号转义 (如 '' 或 "")
+        boolean isBackslashEscaped = (last == '\\');
+        boolean isDoubleQuoteEscaped = (next == quote);
 
-        if (isEscapedString) {
-          // E-string: 使用反斜杠转义 (如 \' 或 \")
-          isEscaped = (last == '\\');
-        } else {
-          // 标准字符串: 使用双引号转义 (如 '' 或 "")
-          isEscaped = (next == quote);
-          if (isEscaped) {
-            // 跳过第二个引号
-            i++;
-            buffer.append(next);
-            validSqlBuffer.append(next);
-          }
-        }
-
-        if (!isEscaped) {
+        if (isDoubleQuoteEscaped && !isBackslashEscaped) {
+          // 双引号转义：跳过第二个引号
+          i++;
+          buffer.append(next);
+          validSqlBuffer.append(next);
+        } else if (!isBackslashEscaped) {
+          // 没有转义，结束引号状态
           client.setInputState(new NormalState());
           // 将剩余字符交给新状态处理
           String remaining = (i + 1 < length) ? command.substring(i + 1) : "";

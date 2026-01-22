@@ -58,6 +58,18 @@ public class ClientIT {
 
   ClientLauncher client;
 
+  /**
+   * Escape backslashes in a path for use in SQL string literals. Since all strings now support
+   * backslash escape sequences, Windows paths need to have backslashes escaped when used in SQL
+   * string literals (both single and double quotes).
+   *
+   * @param path the path to escape
+   * @return the path with backslashes escaped (e.g., "C:\Users" -> "C:\\Users")
+   */
+  private static String escapePathForSql(String path) {
+    return path.replace("\\", "\\\\");
+  }
+
   public ClientIT() throws IOException {
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
     runningEngine = conf.getStorageType();
@@ -159,8 +171,10 @@ public class ClientIT {
       Files.createDirectories(dir);
     }
     String dirPath = dir.toAbsolutePath().toString();
+    String escapedDirPath = escapePathForSql(dirPath);
 
-    String statement = String.format("select * from test into outfile \"%s\" as stream;", dirPath);
+    String statement =
+        String.format("select * from test into outfile \"%s\" as stream;", escapedDirPath);
     String expected = String.format("Successfully write 4 file(s) to directory: \"%s\".", dirPath);
     client.readLine(statement);
     assertTrue(client.expectedOutputContains(expected));
@@ -175,8 +189,10 @@ public class ClientIT {
     }
     Path path = Paths.get("src", "test", "resources", "fileReadAndWrite", "csv", "test.csv");
     csvPath = path.toAbsolutePath().toString();
+    String escapedCsvPath = escapePathForSql(csvPath);
 
-    String statement = String.format("select * from test into outfile \"%s\" as csv;", csvPath);
+    String statement =
+        String.format("select * from test into outfile \"%s\" as csv;", escapedCsvPath);
     String expected = String.format("Successfully write csv file: \"%s\".", csvPath);
     client.readLine(statement);
     assertTrue(client.expectedOutputContains(expected));
@@ -209,7 +225,9 @@ public class ClientIT {
       Files.createDirectories(dir);
     }
     String dirPath = dir.toAbsolutePath().toString();
-    statement = String.format("select * from byteDummy into outfile \"%s\" as stream;", dirPath);
+    String escapedDirPath = escapePathForSql(dirPath);
+    statement =
+        String.format("select * from byteDummy into outfile \"%s\" as stream;", escapedDirPath);
     String expected = String.format("Successfully write 4 file(s) to directory: \"%s\".", dirPath);
     client.readLine(statement);
     assertTrue(client.expectedOutputContains(expected));
@@ -249,17 +267,20 @@ public class ClientIT {
       Files.createDirectories(dir);
     }
     dirPath = dir.toAbsolutePath().toString();
+    String escapedDirPath = escapePathForSql(dirPath);
     String statement =
         String.format(
-            "select large_img_jpg from downloads into outfile \"%s\" as stream;", dirPath);
+            "select large_img_jpg from downloads into outfile \"%s\" as stream;", escapedDirPath);
     String expected = String.format("Successfully write 1 file(s) to directory: \"%s\".", dirPath);
     client.readLine(statement);
     assertTrue(client.expectedOutputContains(expected));
   }
 
   private void testImportNormalCsv() {
+    String escapedCsvPath = escapePathForSql(csvPath);
     String statement =
-        String.format("LOAD DATA FROM INFILE \"%s\" AS CSV INTO t(key, d, b, c, a);", csvPath);
+        String.format(
+            "LOAD DATA FROM INFILE \"%s\" AS CSV INTO t(key, d, b, c, a);", escapedCsvPath);
     client.readLine(statement);
     String expected = "Successfully write 5 record(s) to: [t.a, t.b, t.c, t.d]";
     assertTrue(client.expectedOutputContains(expected));
@@ -287,6 +308,7 @@ public class ClientIT {
     Path target = Paths.get("src", "test", "resources", "fileReadAndWrite", "csv", "test1");
     Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING);
     String targetPath = target.toAbsolutePath().toString();
+    String escapedTargetPath = escapePathForSql(targetPath);
 
     String header = "key,d m,b,[c],a";
     List<String> lines = Files.readAllLines(target);
@@ -294,7 +316,7 @@ public class ClientIT {
     Files.write(target, lines);
 
     String statement =
-        String.format("LOAD DATA FROM INFILE \"%s\" AS CSV INTO t1 AT 10;", targetPath);
+        String.format("LOAD DATA FROM INFILE \"%s\" AS CSV INTO t1 AT 10;", escapedTargetPath);
     client.readLine(statement);
     String expected = "Successfully write 5 record(s) to: [t1._c_, t1.a, t1.b, t1.d_m]";
     assertTrue(client.expectedOutputContains(expected));
@@ -322,9 +344,10 @@ public class ClientIT {
     String zipPath = FileUtils.downloadFile(LARGE_CSV_URL, downloadsDir, "bigcsv.7z");
     FileUtils.extract7zFile(zipPath, downloadsDir);
     String bigCsvPath = Paths.get(downloadsDir, "test_bigcsv.csv").toAbsolutePath().toString();
+    String escapedBigCsvPath = escapePathForSql(bigCsvPath);
 
     String statement =
-        String.format("LOAD DATA FROM INFILE \"%s\" AS CSV INTO bigcsv;", bigCsvPath);
+        String.format("LOAD DATA FROM INFILE \"%s\" AS CSV INTO bigcsv;", escapedBigCsvPath);
     client.readLine(statement, 1000 * 300); // 设置5分钟超时时间
     String expected = "Successfully write 120000 record(s) to: [bigcsv.test_c0, bigcsv.test_c1,";
     assertTrue(client.expectedOutputContains(expected));

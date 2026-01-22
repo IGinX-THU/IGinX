@@ -24,7 +24,7 @@ package cn.edu.tsinghua.iginx.sql.utils;
  * provides methods to unescape SQL string literals according to the SQL standard and MySQL
  * conventions.
  *
- * <p>Supported escape sequences:
+ * <p>All string literals support backslash escape sequences:
  *
  * <ul>
  *   <li>Single quote: {@code ''} or {@code \'} → {@code '}
@@ -162,27 +162,18 @@ public class StringEscapeUtil {
   }
 
   /**
-   * Unescapes a SQL string literal from a token text (including surrounding quotes). This method
-   * follows PostgreSQL's E-string syntax:
-   *
-   * <ul>
-   *   <li><b>Standard strings</b> ({@code '...'} or {@code "..."}): Only process quote escaping
-   *       ({@code ''} and {@code ""}), backslashes are preserved as-is. This is safe for file paths
-   *       like {@code 'C:\Users\test.py'}.
-   *   <li><b>Escape strings</b> ({@code E'...'} or {@code E"..."}): Process all escape sequences
-   *       including {@code \n}, {@code \t}, {@code \\}, etc. Use this for data values that need
-   *       control characters.
-   * </ul>
+   * Unescapes a SQL string literal from a token text (including surrounding quotes). All string
+   * literals support backslash escape sequences.
    *
    * <p>Examples:
    *
    * <pre>
-   *   'C:\Users\test.py'    → C:\Users\test.py (backslashes preserved)
-   *   E'value\ntest'        → value<newline>test (escape processed)
-   *   E'C:\\Users\\test.py' → C:\Users\test.py (double backslash becomes single)
+   *   'value\ntest'        → value<newline>test (escape processed)
+   *   'C:\\Users\\test.py' → C:\Users\test.py (double backslash becomes single)
+   *   'It''s OK'           → It's OK (quote escaping)
    * </pre>
    *
-   * @param tokenText the string literal token text including quotes and optional E prefix
+   * @param tokenText the string literal token text including quotes
    * @return the unescaped string value
    */
   public static String unescapeStringLiteral(String tokenText) {
@@ -190,76 +181,17 @@ public class StringEscapeUtil {
       return "";
     }
 
-    // Check for E-string prefix (PostgreSQL style: E'...' or E"...")
-    boolean isEscapeString = false;
-    int startIndex = 0;
-    if (tokenText.length() >= 3 && (tokenText.charAt(0) == 'E' || tokenText.charAt(0) == 'e')) {
-      char secondChar = tokenText.charAt(1);
-      if (secondChar == '\'' || secondChar == '"') {
-        isEscapeString = true;
-        startIndex = 1; // Skip the 'E' prefix
-      }
-    }
+    char firstChar = tokenText.charAt(0);
+    char lastChar = tokenText.charAt(tokenText.length() - 1);
 
-    // Determine quote type and extract content
-    if (startIndex < tokenText.length()) {
-      char firstQuote = tokenText.charAt(startIndex);
-      char lastChar = tokenText.charAt(tokenText.length() - 1);
-
-      if ((firstQuote == '\'' && lastChar == '\'') || (firstQuote == '"' && lastChar == '"')) {
-        String content = tokenText.substring(startIndex + 1, tokenText.length() - 1);
-
-        if (isEscapeString) {
-          // E-string: process all escape sequences (backslash escapes enabled)
-          return unescape(content);
-        } else {
-          // Standard string: only process quote escaping, preserve backslashes
-          return unescapeQuotesOnly(content);
-        }
-      }
+    // Check for properly quoted string
+    if ((firstChar == '\'' && lastChar == '\'') || (firstChar == '"' && lastChar == '"')) {
+      String content = tokenText.substring(1, tokenText.length() - 1);
+      // All strings process backslash escape sequences
+      return unescape(content);
     }
 
     // If not properly quoted, return as-is (shouldn't happen in valid SQL)
     return tokenText;
-  }
-
-  /**
-   * Unescapes only quote characters ({@code ''} and {@code ""}), preserving all other characters
-   * including backslashes. This is used for standard SQL strings where backslash escape sequences
-   * are not processed.
-   *
-   * @param content the string content (without surrounding quotes)
-   * @return the string with only quote escaping processed
-   */
-  public static String unescapeQuotesOnly(String content) {
-    if (content == null || content.isEmpty()) {
-      return content == null ? "" : content;
-    }
-
-    StringBuilder result = new StringBuilder(content.length());
-    int length = content.length();
-
-    for (int i = 0; i < length; i++) {
-      char c = content.charAt(i);
-
-      // Handle single quote escaping: '' -> '
-      if (c == '\'' && i + 1 < length && content.charAt(i + 1) == '\'') {
-        result.append('\'');
-        i++; // Skip next quote
-        continue;
-      }
-
-      // Handle double quote escaping: "" -> "
-      if (c == '"' && i + 1 < length && content.charAt(i + 1) == '"') {
-        result.append('"');
-        i++; // Skip next quote
-        continue;
-      }
-
-      // All other characters (including backslashes) are preserved as-is
-      result.append(c);
-    }
-
-    return result.toString();
   }
 }
