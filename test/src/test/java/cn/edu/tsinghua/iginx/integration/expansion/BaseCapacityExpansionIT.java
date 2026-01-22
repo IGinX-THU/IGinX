@@ -1015,12 +1015,7 @@ public abstract class BaseCapacityExpansionIT {
     String queryPrefix1 = ",\"'\\n\\r\\f\\b\\tA";
 
     String queryPath = queryPrefix + ".nt.wf03";
-    String queryPath1 = queryPrefix1 + ".nt.wf03";
     String expectedPath = queryPrefix + ".nt.wf03.wt01.status2";
-
-    // Alternative: Try using escape sequences in the backtick identifier
-    // This should match what the CLI client does when using unescape on backtick content
-    String queryPathWithEscapes = ",\\\"\\'\\n\\r\\f\\b\\tA.nt.wf03";
 
     // 打印所有的存储引擎信息
     List<StorageEngineInfo> engineInfoList = null;
@@ -1047,46 +1042,14 @@ public abstract class BaseCapacityExpansionIT {
       LOGGER.error("Failed to query columns", e);
     }
 
-    // Try method 1: Backtick with actual control characters
     String statement1 = "select wt01.status2 from `" + queryPath + "`;";
-    LOGGER.info("Method 1 - Executing query with actual control chars: {}", statement1);
+    LOGGER.info("Executing query with actual control chars: {}", statement1);
     LOGGER.info("Expected path: {}", expectedPath);
 
-    // Try method 1: Backtick with actual control characters
-    String statement3 = "select wt01.status2 from `" + queryPath1 + "`;";
-    LOGGER.info("Method 1 - Executing query with actual control chars: {}", statement3);
-    LOGGER.info("Expected path: {}", expectedPath);
-
-    // Try method 2: Backtick with escape sequences (like CLI does)
-    String statement2 = "select wt01.status2 from `" + queryPathWithEscapes + "`;";
-    LOGGER.info("Method 2 - Executing query with escape sequences: {}", statement2);
 
     // Test both methods
     List<String> pathList = Collections.singletonList(expectedPath);
-    try {
-      LOGGER.info("Testing Method 1...");
-      SQLTestTools.executeAndCompare(session, statement1, pathList, valuesList);
-      LOGGER.info("Method 1 SUCCESS!");
-    } catch (AssertionError e1) {
-      LOGGER.warn("Method 1 failed, trying Method 2...");
-      try {
-          LOGGER.info("Testing Method 2...");
-          SQLTestTools.executeAndCompare(session, statement3, pathList, valuesList);
-          LOGGER.info("Method 2 SUCCESS!");
-      } catch (AssertionError e2) {
-          LOGGER.warn("Method 2 failed, trying Method 3...");
-          try {
-              SQLTestTools.executeAndCompare(session, statement2, pathList, valuesList);
-              LOGGER.info("Method 3 SUCCESS!");
-          } catch (AssertionError e3) {
-              LOGGER.error("Both methods failed!");
-              LOGGER.error("Method 1 error: ", e1);
-              LOGGER.error("Method 2 error: ", e2);
-              LOGGER.error("Method 3 error: ", e3);
-              throw e3; // Re-throw the last error
-          }
-      }
-    }
+    SQLTestTools.executeAndCompare(session, statement1, pathList, valuesList);
     try {
       session.executeSql(String.format(removeStatement, expPort, schemaPrefix, ""));
     } catch (SessionException e) {
@@ -1104,8 +1067,8 @@ public abstract class BaseCapacityExpansionIT {
 
     // Test case 1: Windows-style path with backslashes
     String windowsStylePrefixSql =
-        "C:\\Users\\test"; // This becomes C:\Users\test after unescape
-    String windowsStylePrefixResult = "C:\\Users\\test"; // Expected result after unescape
+        "C:\\\\Users\\\\test"; // This becomes C:\Users\test after unescape
+    String windowsStylePrefixResult = "C:\\\\Users\\\\test"; // Expected result after unescape
 
     addStorageEngine(
         "127.0.0.1", expPort, true, true, null, windowsStylePrefixSql, extraParams, false);
