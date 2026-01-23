@@ -20,12 +20,9 @@
 package cn.edu.tsinghua.iginx.integration.expansion.mysql;
 
 import cn.edu.tsinghua.iginx.exception.SessionException;
-import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.expansion.BaseCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.constant.Constant;
 import cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools;
-import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
-import cn.edu.tsinghua.iginx.integration.tool.DBConf;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -42,13 +39,14 @@ public class MySQLCapacityExpansionIT extends BaseCapacityExpansionIT {
   public MySQLCapacityExpansionIT() {
     super(
         StorageEngineType.relational,
-        "engine=mysql, username=root",
+        createPortsToExtraParams(
+            new HashMap<String, String>() {
+              {
+                put("engine", "mysql");
+                put("username", "root");
+              }
+            }),
         new MySQLHistoryDataGenerator());
-    ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
-    DBConf dbConf = conf.loadDBConf(conf.getStorageType());
-    Constant.oriPort = dbConf.getDBCEPortMap().get(Constant.ORI_PORT_NAME);
-    Constant.expPort = dbConf.getDBCEPortMap().get(Constant.EXP_PORT_NAME);
-    Constant.readOnlyPort = dbConf.getDBCEPortMap().get(Constant.READ_ONLY_PORT_NAME);
     updatedParams.put("password", "newPassword\\,\\\\\"\\'");
   }
 

@@ -34,6 +34,7 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.HashMap;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,29 +61,28 @@ public class OracleCapacityExpansionIT extends BaseCapacityExpansionIT {
   public OracleCapacityExpansionIT() {
     super(
         StorageEngineType.relational,
-        new HashMap<Integer, String>() {
+        new HashMap<Integer, Map<String, String>>() {
           {
-            put(
-                oriPort,
-                "engine=oracle, username="
-                    + portsToUsername.get(oriPort)
-                    + ", password="
-                    + portsToPassword.get(oriPort)
-                    + ", database=ORCLPDB");
-            put(
-                expPort,
-                "engine=oracle, username="
-                    + portsToUsername.get(expPort)
-                    + ", password="
-                    + portsToPassword.get(expPort)
-                    + ", database=ORCLPDB");
-            put(
-                readOnlyPort,
-                "engine=oracle, username="
-                    + portsToUsername.get(readOnlyPort)
-                    + ", password="
-                    + portsToPassword.get(readOnlyPort)
-                    + ", database=ORCLPDB");
+            Map<String, String> oriParams = new HashMap<>();
+            oriParams.put("engine", "oracle");
+            oriParams.put("username", portsToUsername.get(oriPort));
+            oriParams.put("password", portsToPassword.get(oriPort));
+            oriParams.put("database", "ORCLPDB");
+            put(oriPort, oriParams);
+
+            Map<String, String> expParams = new HashMap<>();
+            expParams.put("engine", "oracle");
+            expParams.put("username", portsToUsername.get(expPort));
+            expParams.put("password", portsToPassword.get(expPort));
+            expParams.put("database", "ORCLPDB");
+            put(expPort, expParams);
+
+            Map<String, String> readOnlyParams = new HashMap<>();
+            readOnlyParams.put("engine", "oracle");
+            readOnlyParams.put("username", portsToUsername.get(readOnlyPort));
+            readOnlyParams.put("password", portsToPassword.get(readOnlyPort));
+            readOnlyParams.put("database", "ORCLPDB");
+            put(readOnlyPort, readOnlyParams);
           }
         },
         new OracleHistoryDataGenerator());

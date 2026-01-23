@@ -457,7 +457,11 @@ storageEngine
    ;
 
 storageEngineOption
-   : key = nodeName OPERATOR_EQ? value = stringLiteral
+   : key = storageEngineOptionKey OPERATOR_EQ? value = stringLiteral
+   ;
+
+storageEngineOptionKey
+   : nodeName (DOT nodeName)*
    ;
 
 timeValue

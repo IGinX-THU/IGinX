@@ -25,22 +25,14 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import cn.edu.tsinghua.iginx.exception.SessionException;
-import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.expansion.BaseCapacityExpansionIT;
-import cn.edu.tsinghua.iginx.integration.expansion.constant.Constant;
-import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
-import cn.edu.tsinghua.iginx.integration.tool.DBConf;
 import cn.edu.tsinghua.iginx.thrift.RemovedStorageEngineInfo;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineInfo;
 import com.influxdb.client.InfluxDBClient;
 import com.influxdb.client.InfluxDBClientFactory;
 import com.influxdb.client.OrganizationsApi;
 import com.influxdb.client.domain.Organization;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,15 +43,22 @@ public class InfluxDBCapacityExpansionIT extends BaseCapacityExpansionIT {
   public InfluxDBCapacityExpansionIT() {
     super(
         influxdb,
-        "username=user, password=12345678, token=testToken, organization=testOrg",
+        createPortsToExtraParams(
+            new HashMap<String, String>() {
+              {
+                put("username", "user");
+                put("password", "12345678");
+                put("token", "testToken");
+                put("organization", "testOrg");
+              }
+            }),
         new InfluxDBHistoryDataGenerator());
-    ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
-    DBConf dbConf = conf.loadDBConf(conf.getStorageType());
-    Constant.oriPort = dbConf.getDBCEPortMap().get(Constant.ORI_PORT_NAME);
-    Constant.expPort = dbConf.getDBCEPortMap().get(Constant.EXP_PORT_NAME);
-    readOnlyPort = dbConf.getDBCEPortMap().get(Constant.READ_ONLY_PORT_NAME);
-    wrongExtraParams.add(
-        "username=user, password=12345678, token=testToken, organization=wrongOrg");
+    Map<String, String> wrongParams = new HashMap<>();
+    wrongParams.put("username", "user");
+    wrongParams.put("password", "12345678");
+    wrongParams.put("token", "testToken");
+    wrongParams.put("organization", "wrongOrg");
+    wrongExtraParams.add(wrongParams);
     updatedParams.put("organization", "newOrg\\,\\\\\"\\'");
   }
 
@@ -90,27 +89,18 @@ public class InfluxDBCapacityExpansionIT extends BaseCapacityExpansionIT {
 
   @Override
   protected void testAddStorageEngineWithSpecialCharParam(String prefix) throws SessionException {
-    String originalParams = portsToExtraParams.get(readOnlyPort);
+    Map<String, String> originalParams = portsToExtraParams.get(readOnlyPort);
     String newOrgName = updatedParams.get("organization");
 
     Map<String, String> paramsMap = new LinkedHashMap<>();
     if (originalParams != null && !originalParams.isEmpty()) {
-      for (String pair : originalParams.split(",")) {
-        String[] kv = pair.split("=", 2);
-        if (kv.length == 2) {
-          paramsMap.put(kv[0], kv[1]);
-        }
-      }
+      paramsMap.putAll(originalParams);
     }
     if (newOrgName != null) {
       paramsMap.put("organization", newOrgName);
     }
-    String extraParams =
-        paramsMap.entrySet().stream()
-            .map(entry -> entry.getKey() + "=" + entry.getValue())
-            .collect(Collectors.joining(","));
     // 添加只读节点
-    addStorageEngine(readOnlyPort, true, true, null, prefix, extraParams);
+    addStorageEngine(readOnlyPort, true, true, null, prefix, paramsMap);
     // 修改
     List<StorageEngineInfo> engineInfoList = session.getClusterInfo().getStorageEngineInfos();
     long id = -1;

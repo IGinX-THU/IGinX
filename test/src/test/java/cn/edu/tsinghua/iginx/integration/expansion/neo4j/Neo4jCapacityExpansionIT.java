@@ -19,14 +19,13 @@
  */
 package cn.edu.tsinghua.iginx.integration.expansion.neo4j;
 
-import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.expansion.BaseCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.constant.Constant;
 import cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools;
-import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
-import cn.edu.tsinghua.iginx.integration.tool.DBConf;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import org.neo4j.driver.*;
 import org.slf4j.Logger;
@@ -39,13 +38,14 @@ public class Neo4jCapacityExpansionIT extends BaseCapacityExpansionIT {
   public Neo4jCapacityExpansionIT() {
     super(
         StorageEngineType.neo4j,
-        "username=neo4j, password=neo4jtest",
+        createPortsToExtraParams(
+            new HashMap<String, String>() {
+              {
+                put("username", "neo4j");
+                put("password", "neo4jtest");
+              }
+            }),
         new Neo4jHistoryDataGenerator());
-    ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
-    DBConf dbConf = conf.loadDBConf(conf.getStorageType());
-    Constant.oriPort = dbConf.getDBCEPortMap().get(Constant.ORI_PORT_NAME);
-    Constant.expPort = dbConf.getDBCEPortMap().get(Constant.EXP_PORT_NAME);
-    Constant.readOnlyPort = dbConf.getDBCEPortMap().get(Constant.READ_ONLY_PORT_NAME);
     updatedParams.put("password", "newPassword\\,\\\\\"\\'");
   }
 

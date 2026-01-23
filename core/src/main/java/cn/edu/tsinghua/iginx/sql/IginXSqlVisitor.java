@@ -2079,11 +2079,11 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       return map;
     }
     for (SqlParser.StorageEngineOptionContext opt : optionCtxList) {
-      // key 是 nodeName，可以包含关键字（如 PASSWORD），需要使用 parseNodeName 解析
+      // key 是 storageEngineOptionKey (nodeName (DOT nodeName)*)，支持点号，如 dummy.struct
       if (opt.key == null) {
         throw new SQLParserException("Storage engine option key cannot be null");
       }
-      String key = parseNodeName(opt.key);
+      String key = parseStorageEngineOptionKey(opt.key);
 
       String raw = opt.value.getText(); // 例如 'root' 或 "root"
 
@@ -2092,6 +2092,25 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       map.put(key, value);
     }
     return map;
+  }
+
+  /**
+   * Parse storage engine option key which can contain dots (e.g., dummy.struct). The key is defined
+   * as nodeName (DOT nodeName)* in the grammar.
+   *
+   * @param ctx the storageEngineOptionKey context
+   * @return the parsed key string (e.g., "dummy.struct")
+   */
+  private String parseStorageEngineOptionKey(SqlParser.StorageEngineOptionKeyContext ctx) {
+    StringBuilder key = new StringBuilder();
+    List<SqlParser.NodeNameContext> nodeNames = ctx.nodeName();
+    for (int i = 0; i < nodeNames.size(); i++) {
+      if (i > 0) {
+        key.append('.');
+      }
+      key.append(parseNodeName(nodeNames.get(i)));
+    }
+    return key.toString();
   }
 
   /**

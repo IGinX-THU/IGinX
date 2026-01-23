@@ -27,10 +27,12 @@ import static org.junit.Assert.*;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
+import cn.edu.tsinghua.iginx.integration.expansion.constant.Constant;
 import cn.edu.tsinghua.iginx.integration.expansion.filesystem.FileSystemCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.influxdb.InfluxDBCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
+import cn.edu.tsinghua.iginx.integration.tool.DBConf;
 import cn.edu.tsinghua.iginx.session.ClusterInfo;
 import cn.edu.tsinghua.iginx.session.QueryDataSet;
 import cn.edu.tsinghua.iginx.session.Session;
@@ -60,9 +62,9 @@ public abstract class BaseCapacityExpansionIT {
 
   protected StorageEngineType type;
 
-  protected Map<Integer, String> portsToExtraParams;
+  protected Map<Integer, Map<String, String>> portsToExtraParams;
 
-  protected List<String> wrongExtraParams = new ArrayList<>();
+  protected List<Map<String, String>> wrongExtraParams = new ArrayList<>();
 
   protected Map<String, String> updatedParams = new HashMap<>();
 
@@ -84,62 +86,54 @@ public abstract class BaseCapacityExpansionIT {
 
   protected static BaseHistoryDataGenerator generator;
 
-  public BaseCapacityExpansionIT(
-      StorageEngineType type, String extraParams, BaseHistoryDataGenerator generator) {
-    this(
-        type,
-        new HashMap<Integer, String>() {
-          {
-            put(oriPort, extraParams);
-            put(expPort, extraParams);
-            put(readOnlyPort, extraParams);
-          }
-        },
-        generator);
-  }
-
+  /**
+   * Constructor that accepts Map<Integer, Map<String, String>> directly. Use this when you need
+   * different extraParams for different ports.
+   *
+   * @param type storage engine type
+   * @param portsToExtraParams map of port to extra parameters
+   * @param generator history data generator
+   */
   public BaseCapacityExpansionIT(
       StorageEngineType type,
-      Map<Integer, String> portsToExtraParams,
+      Map<Integer, Map<String, String>> portsToExtraParams,
       BaseHistoryDataGenerator generator) {
     this.type = type;
     this.portsToExtraParams = portsToExtraParams;
     BaseCapacityExpansionIT.generator = generator;
   }
 
-  protected String addStorageEngine(
-      int port,
-      boolean hasData,
-      boolean isReadOnly,
-      String dataPrefix,
-      String schemaPrefix,
-      String extraParams) {
-    return this.addStorageEngine(
-        port, hasData, isReadOnly, dataPrefix, schemaPrefix, extraParams, false);
-  }
+  /**
+   * Static factory method that accepts Map<String, String> and automatically fills ports. This is a
+   * convenience method that reduces code duplication in subclasses. Note: This is a static method
+   * to avoid generic type erasure conflicts with the constructor.
+   *
+   * @param extraParamsMap extra parameters as a Map (will be applied to all ports)
+   * @return a new BaseCapacityExpansionIT instance
+   */
+  protected static Map<Integer, Map<String, String>> createPortsToExtraParams(
+      Map<String, String> extraParamsMap) {
+    // Read port values from configuration
+    ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
+    DBConf dbConf = conf.loadDBConf(conf.getStorageType());
+    int oriPortValue = dbConf.getDBCEPortMap().get(ORI_PORT_NAME);
+    int expPortValue = dbConf.getDBCEPortMap().get(EXP_PORT_NAME);
+    int readOnlyPortValue = dbConf.getDBCEPortMap().get(READ_ONLY_PORT_NAME);
 
-  protected String addStorageEngine(
-      int port,
-      boolean hasData,
-      boolean isReadOnly,
-      String dataPrefix,
-      String schemaPrefix,
-      String extraParams,
-      boolean noError) {
-    return this.addStorageEngine(
-        "127.0.0.1", port, hasData, isReadOnly, dataPrefix, schemaPrefix, extraParams, noError);
-  }
+    // Set static port values in Constant class
+    Constant.oriPort = oriPortValue;
+    Constant.expPort = expPortValue;
+    Constant.readOnlyPort = readOnlyPortValue;
 
-  protected String addStorageEngine(
-      String ip,
-      int port,
-      boolean hasData,
-      boolean isReadOnly,
-      String dataPrefix,
-      String schemaPrefix,
-      String extraParams) {
-    return this.addStorageEngine(
-        ip, port, hasData, isReadOnly, dataPrefix, schemaPrefix, extraParams, false);
+    // Create portsToExtraParams map with the same extraParams for all ports
+    Map<Integer, Map<String, String>> portsToExtraParams = new HashMap<>();
+    Map<String, String> extraParams =
+        extraParamsMap != null ? new HashMap<>(extraParamsMap) : new HashMap<>();
+    portsToExtraParams.put(oriPortValue, new HashMap<>(extraParams));
+    portsToExtraParams.put(expPortValue, new HashMap<>(extraParams));
+    portsToExtraParams.put(readOnlyPortValue, new HashMap<>(extraParams));
+
+    return portsToExtraParams;
   }
 
   /**
@@ -162,6 +156,54 @@ public abstract class BaseCapacityExpansionIT {
       Map<String, String> extraParamsMap) {
     return this.addStorageEngine(
         "127.0.0.1", port, hasData, isReadOnly, dataPrefix, schemaPrefix, extraParamsMap, false);
+  }
+
+  /**
+   * Add storage engine with Map-based extra params.
+   *
+   * @param port storage engine port
+   * @param hasData whether the storage engine has data
+   * @param isReadOnly whether the storage engine is read-only
+   * @param dataPrefix data prefix
+   * @param schemaPrefix schema prefix
+   * @param extraParamsMap extra parameters as a Map
+   * @param noError whether to suppress error logging
+   * @return error message if failed, null if succeeded
+   */
+  protected String addStorageEngine(
+      int port,
+      boolean hasData,
+      boolean isReadOnly,
+      String dataPrefix,
+      String schemaPrefix,
+      Map<String, String> extraParamsMap,
+      boolean noError) {
+    return this.addStorageEngine(
+        "127.0.0.1", port, hasData, isReadOnly, dataPrefix, schemaPrefix, extraParamsMap, noError);
+  }
+
+  /**
+   * Add storage engine with Map-based extra params.
+   *
+   * @param ip storage engine IP
+   * @param port storage engine port
+   * @param hasData whether the storage engine has data
+   * @param isReadOnly whether the storage engine is read-only
+   * @param dataPrefix data prefix
+   * @param schemaPrefix schema prefix
+   * @param extraParamsMap extra parameters as a Map
+   * @return error message if failed, null if succeeded
+   */
+  protected String addStorageEngine(
+      String ip,
+      int port,
+      boolean hasData,
+      boolean isReadOnly,
+      String dataPrefix,
+      String schemaPrefix,
+      Map<String, String> extraParamsMap) {
+    return this.addStorageEngine(
+        ip, port, hasData, isReadOnly, dataPrefix, schemaPrefix, extraParamsMap, false);
   }
 
   /**
@@ -221,7 +263,8 @@ public abstract class BaseCapacityExpansionIT {
       // Directly use Map without string serialization/deserialization
       if (extraParamsMap != null && !extraParamsMap.isEmpty()) {
         for (Map.Entry<String, String> entry : extraParamsMap.entrySet()) {
-          options.add(entry.getKey() + " '" + entry.getValue() + "'");
+          String key = entry.getKey();
+          options.add(key + " '" + entry.getValue() + "'");
         }
       }
 
@@ -266,109 +309,12 @@ public abstract class BaseCapacityExpansionIT {
     }
   }
 
-  /** Add storage engine with string-based extra params. */
-  protected String addStorageEngine(
-      String ip,
-      int port,
-      boolean hasData,
-      boolean isReadOnly,
-      String dataPrefix,
-      String schemaPrefix,
-      String extraParams,
-      boolean noError) {
-    try {
-      StringBuilder statement = new StringBuilder();
-      statement.append("ADD STORAGEENGINE (\"");
-      statement.append(ip);
-      statement.append("\", ");
-      statement.append(port);
-      statement.append(", \"");
-      statement.append(type.name());
-      statement.append("\", OPTIONS (");
-
-      // 构建 OPTIONS 参数列表
-      List<String> options = new ArrayList<>();
-      options.add("has_data '" + hasData + "'");
-      options.add("is_read_only '" + isReadOnly + "'");
-
-      if (this instanceof InfluxDBCapacityExpansionIT) {
-        options.add("url 'http://localhost:" + port + "/'");
-      }
-      if (IS_EMBEDDED) {
-        options.add(
-            "dummy_dir '"
-                + String.format("%s/%s", DBCE_PARQUET_FS_TEST_DIR, PORT_TO_ROOT.get(port))
-                + "'");
-        options.add(
-            "dir '"
-                + String.format(
-                    "%s/%s%s",
-                    DBCE_PARQUET_FS_TEST_DIR, IGINX_DATA_PATH_PREFIX_NAME, PORT_TO_ROOT.get(port))
-                + "'");
-        options.add("iginx_port '" + oriPortIginx + "'");
-      }
-      if (extraParams != null && !extraParams.trim().isEmpty()) {
-        // extraParams 可能是 "key1=val1,key2=val2" 格式，需要解析
-        String[] params = extraParams.split(",");
-        for (String param : params) {
-          param = param.trim();
-          if (!param.isEmpty()) { // 过滤空字符串
-            if (param.contains("=")) {
-              String[] kv = param.split("=", 2);
-              options.add(kv[0].trim() + " '" + kv[1].trim() + "'");
-            } else {
-              options.add(param);
-            }
-          }
-        }
-      }
-      if (dataPrefix != null) {
-        options.add("data_prefix '" + dataPrefix + "'");
-      }
-      if (schemaPrefix != null) {
-        options.add("schema_prefix '" + schemaPrefix + "'");
-      }
-
-      statement.append(String.join(", ", options));
-      statement.append("));");
-
-      LOGGER.info("Execute Statement: \"{}\"", statement);
-      session.executeSql(statement.toString());
-      Thread.sleep(5000);
-      return null;
-    } catch (SessionException | InterruptedException e) {
-      if (noError) {
-        LOGGER.warn(
-            "add storage engine:{} port:{} hasData:{} isReadOnly:{} dataPrefix:{} schemaPrefix:{} extraParams:{} failure: ",
-            type.name(),
-            port,
-            hasData,
-            isReadOnly,
-            dataPrefix,
-            schemaPrefix,
-            extraParams);
-      } else {
-        LOGGER.warn(
-            "add storage engine:{} port:{} hasData:{} isReadOnly:{} dataPrefix:{} schemaPrefix:{} extraParams:{} failure: ",
-            type.name(),
-            port,
-            hasData,
-            isReadOnly,
-            dataPrefix,
-            schemaPrefix,
-            extraParams,
-            e);
-      }
-      return e.getMessage();
-    }
-  }
-
   /**
    * Build ADD STORAGEENGINE SQL with double quote for schema_prefix. This is needed because
    * addStorageEngine() uses single quotes. All strings now support backslash escape sequences.
    */
   private String buildAddStorageEngineSqlWithDoubleQuote(
-      int port, String schemaPrefix, String extraParams) {
+      int port, String schemaPrefix, Map<String, String> extraParamsMap) {
     StringBuilder statement = new StringBuilder();
     statement.append("ADD STORAGEENGINE (\"127.0.0.1\", ");
     statement.append(port);
@@ -396,14 +342,10 @@ public abstract class BaseCapacityExpansionIT {
               + "'");
       options.add("iginx_port '" + oriPortIginx + "'");
     }
-    if (extraParams != null && !extraParams.trim().isEmpty()) {
-      String[] params = extraParams.split(",");
-      for (String param : params) {
-        param = param.trim();
-        if (!param.isEmpty() && param.contains("=")) {
-          String[] kv = param.split("=", 2);
-          options.add(kv[0].trim() + " '" + kv[1].trim() + "'");
-        }
+    if (extraParamsMap != null && !extraParamsMap.isEmpty()) {
+      for (Map.Entry<String, String> entry : extraParamsMap.entrySet()) {
+        String key = entry.getKey();
+        options.add(key + " '" + entry.getValue() + "'");
       }
     }
 
@@ -573,7 +515,7 @@ public abstract class BaseCapacityExpansionIT {
       int port, boolean hasData, boolean isReadOnly, String dataPrefix, String schemaPrefix) {
     // wrong params
     String res;
-    for (String params : wrongExtraParams) {
+    for (Map<String, String> params : wrongExtraParams) {
       res = addStorageEngine(port, hasData, isReadOnly, dataPrefix, schemaPrefix, params, true);
       if (res != null) {
         LOGGER.info(
@@ -614,17 +556,12 @@ public abstract class BaseCapacityExpansionIT {
 
   // 测试密码修改为包含特殊字符等情况，还能否正常AddStorageEngine
   protected void testAddStorageEngineWithSpecialCharParam(String prefix) throws SessionException {
-    String originalParams = portsToExtraParams.get(readOnlyPort);
+    Map<String, String> originalParams = portsToExtraParams.get(readOnlyPort);
     String newPassword = updatedParams.get("password");
 
     Map<String, String> paramsMap = new LinkedHashMap<>();
     if (originalParams != null && !originalParams.isEmpty()) {
-      for (String pair : originalParams.split(",")) {
-        String[] kv = pair.split("=", 2);
-        if (kv.length == 2) {
-          paramsMap.put(kv[0], kv[1]);
-        }
-      }
+      paramsMap.putAll(originalParams);
     }
     if (newPassword != null) {
       paramsMap.put("password", newPassword);
@@ -1036,15 +973,14 @@ public abstract class BaseCapacityExpansionIT {
    * backslash escape sequences.
    */
   private void testStandardStringPrefix(List<List<Object>> valuesList) {
-    String extraParams = portsToExtraParams.get(expPort);
+    Map<String, String> extraParams = portsToExtraParams.get(expPort);
 
     // Test case 1: Windows-style path with backslashes
     String windowsStylePrefixSql =
         "C:\\\\Users\\\\test"; // This becomes C:\Users\test after unescape
     String windowsStylePrefixResult = "C:\\Users\\test"; // Expected result after unescape
 
-    addStorageEngine(
-        "127.0.0.1", expPort, true, true, null, windowsStylePrefixSql, extraParams, false);
+    addStorageEngine("127.0.0.1", expPort, true, true, null, windowsStylePrefixSql, extraParams);
 
     try {
       // Query should use the unescaped prefix
@@ -1070,11 +1006,11 @@ public abstract class BaseCapacityExpansionIT {
    * backslash quote escaping (\', \"). All strings now support backslash escape sequences.
    */
   private void testQuoteEscapeInPrefix(List<List<Object>> valuesList) {
-    String extraParams = portsToExtraParams.get(expPort);
+    Map<String, String> extraParams = portsToExtraParams.get(expPort);
 
     // Test case 1: Single quote in string (use '' to escape)
     // SQL: schema_prefix 'test''s' -> Result: test's
-    addStorageEngine("127.0.0.1", expPort, true, true, null, "test''s", extraParams, false);
+    addStorageEngine("127.0.0.1", expPort, true, true, null, "test''s", extraParams);
 
     try {
       // Query should use the prefix with single quote
@@ -1117,7 +1053,7 @@ public abstract class BaseCapacityExpansionIT {
 
     // Test case 3: Single quote with backslash escape (use \' to escape)
     // SQL: schema_prefix 'test\'s' -> Result: test's
-    addStorageEngine("127.0.0.1", expPort, true, true, null, "test\\'s", extraParams, false);
+    addStorageEngine("127.0.0.1", expPort, true, true, null, "test\\'s", extraParams);
 
     try {
       // Query should use the prefix with single quote
@@ -1160,8 +1096,7 @@ public abstract class BaseCapacityExpansionIT {
 
     // Test case 5: Combined escapes - quotes and backslashes
     // SQL: schema_prefix 'test\'s\\path' -> Result: test's\path
-    addStorageEngine(
-        "127.0.0.1", expPort, true, true, null, "test\\'s\\\\path", extraParams, false);
+    addStorageEngine("127.0.0.1", expPort, true, true, null, "test\\'s\\\\path", extraParams);
 
     try {
       // Query should use the prefix with both quote and backslash

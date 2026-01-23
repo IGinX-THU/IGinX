@@ -32,7 +32,6 @@ import cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools;
 import cn.edu.tsinghua.iginx.integration.tool.TempDummyDataSource;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.StringJoiner;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Assume;
 import org.junit.Test;
@@ -47,21 +46,16 @@ public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
       System.getProperty("os.name").toLowerCase().contains("win");
 
   public FileSystemCapacityExpansionIT() {
-    super(filesystem, getAddStorageParams(), new FileSystemHistoryDataGenerator());
+    super(
+        filesystem,
+        createPortsToExtraParams(getAddStorageParams()),
+        new FileSystemHistoryDataGenerator());
   }
 
-  private static String getAddStorageParams() {
+  private static Map<String, String> getAddStorageParams() {
     Map<String, String> params = new LinkedHashMap<>();
     params.put("dummy.struct", FileSystemConfig.DEFAULT_DATA_STRUCT);
-    return getAddStorageParams(params);
-  }
-
-  public static String getAddStorageParams(Map<String, String> params) {
-    StringJoiner joiner = new StringJoiner(",");
-    for (Map.Entry<String, String> entry : params.entrySet()) {
-      joiner.add(entry.getKey() + "=" + entry.getValue());
-    }
-    return joiner.toString();
+    return params;
   }
 
   // skip this test

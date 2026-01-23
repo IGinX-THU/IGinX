@@ -35,6 +35,7 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.*;
+import java.util.HashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,7 +64,14 @@ public class DamengCapacityExpansionIT extends BaseCapacityExpansionIT {
   public DamengCapacityExpansionIT() {
     super(
         StorageEngineType.relational,
-        "engine=dameng, username=SYSDBA, password=SYSDBA001",
+        createPortsToExtraParams(
+            new HashMap<String, String>() {
+              {
+                put("engine", "dameng");
+                put("username", "SYSDBA");
+                put("password", "SYSDBA001");
+              }
+            }),
         new DamengHistoryDataGenerator());
     updatedParams.put("password", "newPassword\\,\\\\\"\\'");
   }

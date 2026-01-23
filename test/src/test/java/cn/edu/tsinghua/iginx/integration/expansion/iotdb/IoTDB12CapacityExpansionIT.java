@@ -25,7 +25,9 @@ import cn.edu.tsinghua.iginx.integration.expansion.BaseCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.constant.Constant;
 import cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import org.apache.iotdb.rpc.IoTDBConnectionException;
 import org.apache.iotdb.rpc.StatementExecutionException;
 import org.apache.iotdb.session.Session;
@@ -39,10 +41,25 @@ public class IoTDB12CapacityExpansionIT extends BaseCapacityExpansionIT {
   public IoTDB12CapacityExpansionIT() {
     super(
         iotdb12,
-        "username=root, password=root, sessionPoolSize=20",
+        createPortsToExtraParams(
+            new HashMap<String, String>() {
+              {
+                put("username", "root");
+                put("password", "root");
+                put("sessionPoolSize", "20");
+              }
+            }),
         new IoTDB12HistoryDataGenerator());
-    wrongExtraParams.add("username=root, password=wrong, sessionPoolSize=20");
-    wrongExtraParams.add("username=wrong, password=root, sessionPoolSize=20");
+    Map<String, String> wrongParams1 = new HashMap<>();
+    wrongParams1.put("username", "root");
+    wrongParams1.put("password", "wrong");
+    wrongParams1.put("sessionPoolSize", "20");
+    wrongExtraParams.add(wrongParams1);
+    Map<String, String> wrongParams2 = new HashMap<>();
+    wrongParams2.put("username", "wrong");
+    wrongParams2.put("password", "root");
+    wrongParams2.put("sessionPoolSize", "20");
+    wrongExtraParams.add(wrongParams2);
     updatedParams.put("password", "newPassword");
   }
 
