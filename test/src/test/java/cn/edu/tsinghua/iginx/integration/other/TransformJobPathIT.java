@@ -32,6 +32,7 @@ import cn.edu.tsinghua.iginx.integration.tool.ClientLauncher;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import cn.edu.tsinghua.iginx.thrift.DataType;
+import cn.edu.tsinghua.iginx.utils.SqlPathUtil;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -65,18 +66,6 @@ public class TransformJobPathIT {
 
   private static final String CREATE_SQL_FORMATTER =
       "CREATE FUNCTION TRANSFORM \"%s\" FROM \"%s\" IN \"%s\";";
-
-  /**
-   * Escape backslashes in a path for use in SQL string literals. Since all strings now support
-   * backslash escape sequences, Windows paths need to have backslashes escaped when used in SQL
-   * string literals (both single and double quotes).
-   *
-   * @param path the path to escape
-   * @return the path with backslashes escaped (e.g., "C:\Users" -> "C:\\Users")
-   */
-  private static String escapePathForSql(String path) {
-    return path.replace("\\", "\\\\");
-  }
 
   private static final Map<String, String> TASK_MAP = new HashMap<>();
 
@@ -158,7 +147,7 @@ public class TransformJobPathIT {
     for (String task : TASK_MAP.keySet()) {
       session.executeSql(
           String.format(
-              CREATE_SQL_FORMATTER, task, task, escapePathForSql(TASK_MAP.get(task))));
+              CREATE_SQL_FORMATTER, task, task, SqlPathUtil.escapePathForSql(TASK_MAP.get(task))));
     }
   }
 

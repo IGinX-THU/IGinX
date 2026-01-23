@@ -35,6 +35,7 @@ import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.RegisterTaskInfo;
 import cn.edu.tsinghua.iginx.thrift.UDFType;
 import cn.edu.tsinghua.iginx.utils.FileUtils;
+import cn.edu.tsinghua.iginx.utils.SqlPathUtil;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -103,18 +104,6 @@ public class UDFIT {
           "idle_classes.py");
 
   private static UDFTestTools tool;
-
-  /**
-   * Escape backslashes in a path for use in SQL string literals. Since all strings now support
-   * backslash escape sequences, Windows paths need to have backslashes escaped when used in SQL
-   * string literals (both single and double quotes).
-   *
-   * @param path the path to escape
-   * @return the path with backslashes escaped (e.g., "C:\Users" -> "C:\\Users")
-   */
-  private static String escapePathForSql(String path) {
-    return path.replace("\\", "\\\\");
-  }
 
   @BeforeClass
   public static void setUp() throws SessionException {
@@ -237,7 +226,11 @@ public class UDFIT {
     String udfName = "mock_udf";
     tool.executeReg(
         String.format(
-            SINGLE_UDF_REGISTER_SQL, "UDAF", udfName, "MockUDF", escapePathForSql(filePath)));
+            SINGLE_UDF_REGISTER_SQL,
+            "UDAF",
+            udfName,
+            "MockUDF",
+            SqlPathUtil.escapePathForSql(filePath)));
     assertTrue(tool.isUDFRegistered(udfName));
     taskToBeRemoved.add(udfName);
 
@@ -881,7 +874,11 @@ public class UDFIT {
     String udfName = "no_mod";
     tool.executeReg(
         String.format(
-            SINGLE_UDF_REGISTER_SQL, "UDTF", udfName, "NoModUDF", escapePathForSql(filePath)));
+            SINGLE_UDF_REGISTER_SQL,
+            "UDTF",
+            udfName,
+            "NoModUDF",
+            SqlPathUtil.escapePathForSql(filePath)));
     taskToBeRemoved.add(udfName);
 
     String query = "SELECT no_mod(1);";
@@ -1166,7 +1163,11 @@ public class UDFIT {
     String udfName = "module_udf_test";
     tool.executeReg(
         String.format(
-            SINGLE_UDF_REGISTER_SQL, "udsf", udfName, classPath, escapePathForSql(MODULE_PATH)));
+            SINGLE_UDF_REGISTER_SQL,
+            "udsf",
+            udfName,
+            classPath,
+            SqlPathUtil.escapePathForSql(MODULE_PATH)));
     assertTrue(tool.isUDFRegistered(udfName));
     taskToBeRemoved.add(udfName);
 
@@ -1423,7 +1424,7 @@ public class UDFIT {
             + "\" from \""
             + classPaths.get(2)
             + "\" in \""
-            + escapePathForSql(MODULE_PATH)
+            + SqlPathUtil.escapePathForSql(MODULE_PATH)
             + "\";";
     tool.executeRegFail(register);
     assertTrue(tool.isUDFsUnregistered(names));
@@ -1453,7 +1454,11 @@ public class UDFIT {
     String type = "udsf";
     tool.executeReg(
         String.format(
-            SINGLE_UDF_REGISTER_SQL, type, name, classPath, escapePathForSql(MODULE_PATH)));
+            SINGLE_UDF_REGISTER_SQL,
+            type,
+            name,
+            classPath,
+            SqlPathUtil.escapePathForSql(MODULE_PATH)));
     assertTrue(tool.isUDFRegistered(name));
     taskToBeRemoved.add(name);
 
@@ -1533,7 +1538,11 @@ public class UDFIT {
             "tensor_test.py");
     String statement =
         String.format(
-            SINGLE_UDF_REGISTER_SQL, "udsf", name, "TensorTest", escapePathForSql(filePath));
+            SINGLE_UDF_REGISTER_SQL,
+            "udsf",
+            name,
+            "TensorTest",
+            SqlPathUtil.escapePathForSql(filePath));
     tool.executeReg(statement);
     assertTrue(tool.isUDFRegistered(name));
     taskToBeRemoved.add(name);
@@ -1597,7 +1606,11 @@ public class UDFIT {
             "type_cast_test.py");
     String statement =
         String.format(
-            SINGLE_UDF_REGISTER_SQL, "udsf", name, "TypeCastTest", escapePathForSql(filePath));
+            SINGLE_UDF_REGISTER_SQL,
+            "udsf",
+            name,
+            "TypeCastTest",
+            SqlPathUtil.escapePathForSql(filePath));
     tool.executeReg(statement);
     assertTrue(tool.isUDFRegistered(name));
     taskToBeRemoved.add(name);
@@ -1642,7 +1655,11 @@ public class UDFIT {
             "timeout_test.py");
     String statement =
         String.format(
-            SINGLE_UDF_REGISTER_SQL, "udsf", name, "TimeoutTest", escapePathForSql(filePath));
+            SINGLE_UDF_REGISTER_SQL,
+            "udsf",
+            name,
+            "TimeoutTest",
+            SqlPathUtil.escapePathForSql(filePath));
     tool.executeReg(statement);
     assertTrue(tool.isUDFRegistered(name));
     taskToBeRemoved.add(name);
