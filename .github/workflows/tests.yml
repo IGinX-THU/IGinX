@@ -23,23 +23,23 @@ jobs:
         uses: ./.github/workflows/standalone-test.yml
         with:
             metadata-matrix: '["zookeeper"]'
-            db-matrix: '["OceanBase", "MySQL"]'
+            db-matrix: '["MySQL"]'
     standalone-test-no-optimizer:
         uses: ./.github/workflows/standalone-test-no-optimizer.yml
         with:
             metadata-matrix: '["zookeeper"]'
-            db-matrix: '["OceanBase", "MySQL"]'
+            db-matrix: '["MySQL"]'
     db-ce:
         uses: ./.github/workflows/DB-CE.yml
         with:
             metadata-matrix: '["zookeeper"]'
-            db-matrix: '["OceanBase", "MySQL"]'
+            db-matrix: '["MySQL"]'
     db-ce-no-optimizer:
         uses: ./.github/workflows/DB-CE.yml
         with:
             metadata-matrix: '["zookeeper"]'
             close-optimizer: "true"
-            db-matrix: '["OceanBase", "MySQL"]'
+            db-matrix: '["MySQL"]'
     #    standalone-test-no-mac-relational:
     #        uses: ./.github/workflows/standalone-test.yml
     #        with:
@@ -54,7 +54,7 @@ jobs:
     #            os-matrix: '["ubuntu-latest", "windows-latest"]'
     #            db-matrix: '["Dameng", "Oracle"]'
     #            timeout-minutes: 100
-    #    standalone-test-no-mac-no-privs-relational:
+    #    standalone-test-no-mac-no-privs-dameng:
     #        uses: ./.github/workflows/standalone-test.yml
     #        with:
     #            metadata-matrix: '["zookeeper"]'
@@ -62,7 +62,7 @@ jobs:
     #            db-matrix: '["Dameng"]'
     #            db-support-create-database: false
     #            timeout-minutes: 120
-    #    standalone-test-no-optimizer-no-mac-no-privs-relational:
+    #    standalone-test-no-optimizer-no-mac-no-privs-dameng:
     #        uses: ./.github/workflows/standalone-test-no-optimizer.yml
     #        with:
     #            metadata-matrix: '["zookeeper"]'
@@ -104,6 +104,37 @@ jobs:
     #            functest: "NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,CompactionIT,TimePrecisionIT,PySessionIT"
     #            timeout-minutes: 120
     #            close-optimizer: "true"
+    standalone-test-oceanbase:
+        uses: ./.github/workflows/standalone-test.yml
+        with:
+            metadata-matrix: '["zookeeper"]'
+            os-matrix: '["ubuntu-latest"]'
+            db-matrix: '["OceanBase"]'
+            timeout-minutes: 300
+    standalone-test-no-optimizer-oceanbase:
+        uses: ./.github/workflows/standalone-test-no-optimizer.yml
+        with:
+            metadata-matrix: '["zookeeper"]'
+            os-matrix: '["ubuntu-latest"]'
+            db-matrix: '["OceanBase"]'
+            timeout-minutes: 300
+    db-ce-oceanbase:
+        uses: ./.github/workflows/DB-CE.yml
+        with:
+            metadata-matrix: '["zookeeper"]'
+            os-matrix: '["ubuntu-latest"]'
+            db-matrix: '["OceanBase"]'
+            functest: "NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,CompactionIT,TimePrecisionIT,PySessionIT"
+            timeout-minutes: 360
+    db-ce-no-optimizer-oceanbase:
+        uses: ./.github/workflows/DB-CE.yml
+        with:
+            metadata-matrix: '["zookeeper"]'
+            os-matrix: '["ubuntu-latest"]'
+            db-matrix: '["OceanBase"]'
+            functest: "NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,CompactionIT,TimePrecisionIT,PySessionIT"
+            timeout-minutes: 360
+            close-optimizer: "true"
     #    standalone-test-vectordb:
     #        uses: ./.github/workflows/standalone-test.yml
     #        with:
@@ -178,6 +209,10 @@ jobs:
             #            - db-ce-no-optimizer-Dameng
             #            - db-ce-Oracle
             #            - db-ce-no-optimizer-Oracle
+            - standalone-test-oceanbase
+            - standalone-test-no-optimizer-oceanbase
+            - db-ce-oceanbase
+            - db-ce-no-optimizer-oceanbase
             - cluster-test
             - restart-test
         runs-on: ubuntu-latest

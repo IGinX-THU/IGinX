@@ -219,27 +219,54 @@ public class RelationalStorage implements IStorage {
 
   private Properties getProperties(String engine, @Nullable String propertiesPath)
       throws URISyntaxException, IOException {
+    // 如果用户指定了自定义路径，直接使用该配置（不加载默认配置）
     if (propertiesPath != null) {
       try (InputStream propertiesIS = Files.newInputStream(Paths.get(propertiesPath))) {
         Properties properties = new Properties();
         properties.load(propertiesIS);
+        LOGGER.info("loaded properties from custom path: {}", propertiesPath);
         return properties;
       } catch (IOException e) {
         LOGGER.warn("failed to load properties from path: {}", propertiesPath, e);
       }
     }
 
+    // 先加载默认配置（基于PostgreSQL标准）
+    Properties properties = new Properties();
+    String defaultMetaFileName = "default-meta.properties";
+    URL defaultUrl = getClass().getClassLoader().getResource(defaultMetaFileName);
+    if (defaultUrl != null) {
+      try (InputStream defaultIS = defaultUrl.openStream()) {
+        properties.load(defaultIS);
+        LOGGER.info("loaded default meta properties from class path: {}", defaultMetaFileName);
+      } catch (IOException e) {
+        LOGGER.warn("failed to load default meta properties: {}", defaultMetaFileName, e);
+      }
+    } else {
+      LOGGER.warn("default meta properties file not found: {}", defaultMetaFileName);
+    }
+
+    // 再加载特定数据源的配置，覆盖默认配置
     String metaFileName = engine.toLowerCase() + META_TEMPLATE_SUFFIX;
-    LOGGER.info("loading engine '{}' default properties from class path: {}", engine, metaFileName);
     URL url = getClass().getClassLoader().getResource(metaFileName);
-    if (url == null) {
-      throw new IOException("cannot find default meta properties file: " + metaFileName);
+    if (url != null) {
+      try (InputStream propertiesIS = url.openStream()) {
+        Properties engineProperties = new Properties();
+        engineProperties.load(propertiesIS);
+        // 将特定数据源的配置覆盖到默认配置上
+        properties.putAll(engineProperties);
+        LOGGER.info(
+            "loaded engine '{}' specific properties from class path: {}", engine, metaFileName);
+      } catch (IOException e) {
+        LOGGER.warn("failed to load engine specific properties: {}", metaFileName, e);
+      }
+    } else {
+      LOGGER.info(
+          "engine specific properties file not found: {}, using default configuration only",
+          metaFileName);
     }
-    try (InputStream propertiesIS = url.openStream()) {
-      Properties properties = new Properties();
-      properties.load(propertiesIS);
-      return properties;
-    }
+
+    return properties;
   }
 
   @Override
