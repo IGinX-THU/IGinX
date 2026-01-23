@@ -1165,7 +1165,7 @@ public abstract class BaseCapacityExpansionIT {
 
     try {
       // Query should use the prefix with both quote and backslash
-      String statement = "select wt01.status2 from `test's\\path.nt.wf03`;";
+      String statement = "select wt01.status2 from `test's\\\\path.nt.wf03`;";
       List<String> pathList = Collections.singletonList("test's\\path.nt.wf03.wt01.status2");
       SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
 
