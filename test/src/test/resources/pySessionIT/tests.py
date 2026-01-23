@@ -404,7 +404,8 @@ class Tests:
         retStr = ""
         try:
             import os
-            path = f"{os.getcwd()}/src/test/resources/pySessionIT/files/a.csv"
+            # Replace backslashes with forward slashes for Windows compatibility in SQL string literals
+            path = f"{os.getcwd()}/src/test/resources/pySessionIT/files/a.csv".replace("\\", "/")
             statement = f"LOAD DATA FROM INFILE '{path}' AS CSV INTO test(key, a.a, a.b, b.b, c.c);"
             resp = self.session.load_csv(statement)
             retStr += str(resp) + "\n"
