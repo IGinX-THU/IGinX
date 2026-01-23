@@ -242,28 +242,28 @@ public class RelationalStorage implements IStorage {
       } catch (IOException e) {
         LOGGER.warn("failed to load default meta properties: {}", defaultMetaFileName, e);
       }
-    } else {
-      LOGGER.warn("default meta properties file not found: {}", defaultMetaFileName);
     }
 
-    // 再加载特定数据源的配置，覆盖默认配置
+    // 再加载特定数据源的配置，覆盖默认配置（必需）
     String metaFileName = engine.toLowerCase() + META_TEMPLATE_SUFFIX;
+    LOGGER.info("loading engine '{}' default properties from class path: {}", engine, metaFileName);
     URL url = getClass().getClassLoader().getResource(metaFileName);
-    if (url != null) {
-      try (InputStream propertiesIS = url.openStream()) {
-        Properties engineProperties = new Properties();
-        engineProperties.load(propertiesIS);
-        // 将特定数据源的配置覆盖到默认配置上
-        properties.putAll(engineProperties);
-        LOGGER.info(
-            "loaded engine '{}' specific properties from class path: {}", engine, metaFileName);
-      } catch (IOException e) {
-        LOGGER.warn("failed to load engine specific properties: {}", metaFileName, e);
+    if (url == null) {
+      throw new IOException("cannot find default meta properties file: " + metaFileName);
+    }
+    try (InputStream propertiesIS = url.openStream()) {
+      Properties engineProperties = new Properties();
+      engineProperties.load(propertiesIS);
+      // 将特定数据源的配置覆盖到默认配置上（跳过空字符串，只覆盖非空值）
+      for (String key : engineProperties.stringPropertyNames()) {
+        String value = engineProperties.getProperty(key);
+        // 只覆盖非空且非空字符串的值，避免空字符串覆盖default中的有效值
+        if (value != null && !value.trim().isEmpty()) {
+          properties.setProperty(key, value);
+        }
       }
-    } else {
       LOGGER.info(
-          "engine specific properties file not found: {}, using default configuration only",
-          metaFileName);
+          "loaded engine '{}' specific properties from class path: {}", engine, metaFileName);
     }
 
     return properties;
