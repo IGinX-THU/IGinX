@@ -1503,7 +1503,11 @@ public class UDFIT {
 
       String statement =
           String.format(
-              SINGLE_UDF_REGISTER_SQL, type, name, classPath, tempModuleDir.getCanonicalPath());
+              SINGLE_UDF_REGISTER_SQL,
+              type,
+              name,
+              classPath,
+              SqlPathUtil.escapePathForSql(tempModuleDir.getCanonicalPath()));
       tool.executeRegFail(statement);
       assertFalse(tool.isUDFRegistered(name));
     } catch (Exception e) {
