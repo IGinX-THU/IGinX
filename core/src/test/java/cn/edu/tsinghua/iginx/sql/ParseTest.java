@@ -229,7 +229,12 @@ public class ParseTest {
     String s = "select `a\\nb\\.txt` from escape;";
     UnarySelectStatement statement = (UnarySelectStatement) TestUtils.buildStatement(s);
     assertEquals(
-        new HashSet<>(Collections.singletonList("escape.a\nb.txt")), statement.getPathSet());
+        new HashSet<>(Collections.singletonList("escape.a\\nb\\.txt")), statement.getPathSet());
+
+    String s2 = "select `a``b.txt` from escape;";
+    UnarySelectStatement statement2 = (UnarySelectStatement) TestUtils.buildStatement(s2);
+    assertEquals(
+        new HashSet<>(Collections.singletonList("escape.a`b.txt")), statement2.getPathSet());
   }
 
   @Test

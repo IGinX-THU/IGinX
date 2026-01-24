@@ -371,8 +371,7 @@ public class MilvusClientUtils {
             .vectorFieldName(MILVUS_VECTOR_FIELD_NAME)
             .build());
 
-    // Note: Path registration is handled by the caller (e.g., insertRecords) with the correct path
-    // (without [[TYPE]] suffix) to ensure query matching works correctly.
+    // Path registration is handled by the caller with the original path
 
     client.createIndex(
         CreateIndexReq.builder()

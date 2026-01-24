@@ -136,9 +136,10 @@ public class MilvusStorage implements IStorage {
         if (!collections.contains(NameUtils.escape(collectionName))) {
           MilvusClientUtils.createCollection(
               client, databaseName, collectionName, DataType.LONG, data.getDataType(j), pathSystem);
-          // Add the original path (without [[TYPE]] suffix) to path system for query matching
-          PathUtils.getPathSystem(client, pathSystem).addPath(path, false, dataType);
         }
+        // Always register the original path (without [[TYPE]] suffix) for query matching,
+        // even if the collection already exists (e.g., leftover collections on Windows).
+        PathUtils.getPathSystem(client, pathSystem).addPath(path, false, dataType);
 
         int cnt = 0;
         int rowIndex = 0;
