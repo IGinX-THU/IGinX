@@ -371,8 +371,8 @@ public class MilvusClientUtils {
             .vectorFieldName(MILVUS_VECTOR_FIELD_NAME)
             .build());
 
-    PathUtils.getPathSystem(client, pathSystem)
-        .addPath(PathUtils.getPathUnescaped(databaseName, collectionName, ""), false, fieldType);
+    // Note: Path registration is handled by the caller (e.g., insertRecords) with the correct path
+    // (without [[TYPE]] suffix) to ensure query matching works correctly.
 
     client.createIndex(
         CreateIndexReq.builder()

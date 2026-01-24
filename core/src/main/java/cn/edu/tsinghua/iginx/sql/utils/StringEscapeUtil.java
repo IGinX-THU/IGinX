@@ -194,4 +194,32 @@ public class StringEscapeUtil {
     // If not properly quoted, return as-is (shouldn't happen in valid SQL)
     return tokenText;
   }
+
+  /**
+   * Unescapes a backtick identifier. In MySQL, backslashes within backtick identifiers are treated
+   * as literal characters, not escape sequences. The only escaping needed is for the backtick
+   * itself (which must be doubled: `` `` ``).
+   *
+   * <p>This method simply returns the input as-is, since no escape processing is needed for
+   * backtick identifiers. All characters, including backslashes, are preserved literally.
+   *
+   * <p>Examples:
+   *
+   * <ul>
+   *   <li>{@code `a.Iris\.parquet`} → {@code a.Iris\.parquet} (backslash and dot are literal)
+   *   <li>{@code `table\n`} → {@code table\n} (backslash and n are literal, not a newline)
+   *   <li>{@code `table``name`} → {@code table`name} (doubled backtick becomes single backtick)
+   * </ul>
+   *
+   * @param input the backtick identifier content (without surrounding backticks)
+   * @return the identifier content with doubled backticks normalized to single backticks
+   */
+  public static String unescapeBacktickIdentifier(String input) {
+    if (input == null) {
+      return "";
+    }
+    // In MySQL, backslashes in backtick identifiers are literal, not escape sequences.
+    // We only normalize doubled backticks to a single backtick.
+    return input.replace("``", "`");
+  }
 }

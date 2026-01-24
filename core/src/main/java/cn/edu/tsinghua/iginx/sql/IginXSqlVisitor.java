@@ -296,7 +296,9 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
   private String parseIdentifier(SqlParser.IdentifierContext ctx) {
     if (ctx.BACK_QUOTE_STRING_LITERAL_NOT_EMPTY() != null) {
       String identifier = ctx.BACK_QUOTE_STRING_LITERAL_NOT_EMPTY().getText();
-      return StringEscapeUtil.unescape(identifier.substring(1, identifier.length() - 1));
+      // Use special unescape method for backtick identifiers to preserve unknown escapes like \.
+      return StringEscapeUtil.unescapeBacktickIdentifier(
+          identifier.substring(1, identifier.length() - 1));
     }
     return ctx.getText();
   }

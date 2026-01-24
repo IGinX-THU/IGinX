@@ -104,4 +104,14 @@ public class StringEscapeUtilTest {
     assertEquals("", StringEscapeUtil.unescapeStringLiteral(""));
     assertEquals("", StringEscapeUtil.unescapeStringLiteral(null));
   }
+
+  @Test
+  public void testUnescapeBacktickIdentifier() {
+    assertEquals(
+        "a.Iris\\.parquet", StringEscapeUtil.unescapeBacktickIdentifier("a.Iris\\.parquet"));
+    assertEquals("table`name", StringEscapeUtil.unescapeBacktickIdentifier("table``name"));
+    assertEquals("table\\n", StringEscapeUtil.unescapeBacktickIdentifier("table\\n"));
+    assertEquals("", StringEscapeUtil.unescapeBacktickIdentifier(""));
+    assertEquals("", StringEscapeUtil.unescapeBacktickIdentifier(null));
+  }
 }

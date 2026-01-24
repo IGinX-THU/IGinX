@@ -948,7 +948,6 @@ public abstract class BaseCapacityExpansionIT {
 
     // 查询时使用的路径（从反引号中提取）
     String queryPrefix = ",\"'\n\r\f\b\tA";
-    String queryPrefix1 = ",\"'\\n\\r\\f\\b\\tA";
 
     String queryPath = queryPrefix + ".nt.wf03";
     String expectedPath = queryPrefix + ".nt.wf03.wt01.status2";
@@ -984,7 +983,7 @@ public abstract class BaseCapacityExpansionIT {
 
     try {
       // Query should use the unescaped prefix
-      String statement = "select wt01.status2 from `" + windowsStylePrefixSql + ".nt.wf03`;";
+      String statement = "select wt01.status2 from `" + windowsStylePrefixResult + ".nt.wf03`;";
       List<String> pathList =
           Collections.singletonList(windowsStylePrefixResult + ".nt.wf03.wt01.status2");
       SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
@@ -1094,24 +1093,23 @@ public abstract class BaseCapacityExpansionIT {
       fail();
     }
 
-    // Test case 5: Combined escapes - quotes and backslashes
-    // SQL: schema_prefix 'test\'s\\path' -> Result: test's\path
-    addStorageEngine("127.0.0.1", expPort, true, true, null, "test\\'s\\\\path", extraParams);
+    // Test case 5: Backtick in prefix (use `` in backtick identifier)
+    // SQL: schema_prefix 'test`name' -> Result: test`name
+    addStorageEngine("127.0.0.1", expPort, true, true, null, "test`name", extraParams);
 
     try {
-      // Query should use the prefix with both quote and backslash
-      String statement = "select wt01.status2 from `test's\\\\path.nt.wf03`;";
-      List<String> pathList = Collections.singletonList("test's\\path.nt.wf03.wt01.status2");
+      // Query should use doubled backticks to represent a literal backtick
+      String statement = "select wt01.status2 from `test``name.nt.wf03`;";
+      List<String> pathList = Collections.singletonList("test`name.nt.wf03.wt01.status2");
       SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
 
       // Remove storage engine
       String removeSql5 =
           String.format(
-              "remove storageengine (\"127.0.0.1\", %d, \"test's\\\\path\", \"\") for all;",
-              expPort);
+              "remove storageengine (\"127.0.0.1\", %d, \"test`name\", \"\") for all;", expPort);
       session.executeSql(removeSql5);
     } catch (SessionException e) {
-      LOGGER.error("test combined quote and backslash escape failure: ", e);
+      LOGGER.error("test backtick escape (`` style) failure: ", e);
       fail();
     }
   }
