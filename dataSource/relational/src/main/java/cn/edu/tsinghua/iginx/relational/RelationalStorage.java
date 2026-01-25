@@ -246,8 +246,10 @@ public class RelationalStorage implements IStorage {
   public boolean testConnection(StorageEngineMeta meta) {
     try {
       Class.forName(relationalMeta.getDriverClass());
-      DriverManager.getConnection(dbStrategy.getConnectUrl());
-      return true;
+      try (Connection conn = DriverManager.getConnection(dbStrategy.getConnectUrl())) {
+        // Connection is automatically closed by try-with-resources
+        return true;
+      }
     } catch (SQLException | ClassNotFoundException e) {
       LOGGER.error("Cannot connect to {}", meta, e);
       return false;
