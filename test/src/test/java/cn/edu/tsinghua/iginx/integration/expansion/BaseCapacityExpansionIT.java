@@ -1095,6 +1095,13 @@ public abstract class BaseCapacityExpansionIT {
 
     // Test case 5: Backtick in prefix (use `` in backtick identifier)
     // SQL: schema_prefix 'test`name' -> Result: test`name
+    // Skip this test for IoTDB because IoTDB's SQL parser does not support backticks in paths
+    if (type == StorageEngineType.iotdb12) {
+      LOGGER.info(
+          "Skipping backtick escape test for IoTDB (IoTDB SQL parser does not support backticks in paths)");
+      return;
+    }
+
     addStorageEngine("127.0.0.1", expPort, true, true, null, "test`name", extraParams);
 
     try {
