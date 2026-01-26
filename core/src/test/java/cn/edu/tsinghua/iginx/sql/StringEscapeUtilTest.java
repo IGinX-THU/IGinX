@@ -41,6 +41,8 @@ public class StringEscapeUtilTest {
     assertEquals("a.txt", StringEscapeUtil.unescape("a\\.txt"));
     assertEquals("single'quote", StringEscapeUtil.unescape("single\\'quote"));
     assertEquals("double\"quote", StringEscapeUtil.unescape("double\\\"quote"));
+    // \Z -> ASCII 26 (Ctrl+Z, 0x1A)
+    assertEquals("ctrl" + (char) 0x1A + "z", StringEscapeUtil.unescape("ctrl\\Zz"));
 
     // 未知转义序列忽略反斜杠，只保留后面的字符
     assertEquals("a", StringEscapeUtil.unescape("\\a"));
@@ -86,6 +88,7 @@ public class StringEscapeUtilTest {
 
     // All escape sequences work
     assertEquals("\r\n\t\b\f\0", StringEscapeUtil.unescapeStringLiteral("'\\r\\n\\t\\b\\f\\0'"));
+    assertEquals((char) 0x1A + "", StringEscapeUtil.unescapeStringLiteral("'\\Z'"));
     assertEquals("A", StringEscapeUtil.unescapeStringLiteral("'\\u0041'"));
 
     // Quote escaping still works (both '' and \')

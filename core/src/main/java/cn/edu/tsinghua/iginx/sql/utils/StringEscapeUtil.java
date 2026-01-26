@@ -36,6 +36,7 @@ package cn.edu.tsinghua.iginx.sql.utils;
  *   <li>Backspace: {@code \b} → backspace (0x08)
  *   <li>Form feed: {@code \f} → form feed (0x0C)
  *   <li>Null: {@code \0} → null character (0x00)
+ *   <li>Ctrl+Z: {@code \Z} → ASCII 26 (0x1A)
  *   <li>Unicode: {@code \\uXXXX} → Unicode character (hexadecimal)
  * </ul>
  *
@@ -92,6 +93,11 @@ public class StringEscapeUtil {
             continue;
           case '0':
             result.append('\0');
+            i += 2;
+            continue;
+          case 'Z':
+            // MySQL escape sequence: \Z -> ASCII 26 (Ctrl+Z, 0x1A)
+            result.append((char) 0x1A);
             i += 2;
             continue;
           case '\\':
