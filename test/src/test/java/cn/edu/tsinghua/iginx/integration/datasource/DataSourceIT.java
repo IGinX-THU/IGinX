@@ -237,6 +237,13 @@ public class DataSourceIT {
     insertData(0, 500000, "us.d1.s1");
     insertData(0, 500000, "us.d1.s2");
 
+    // Wait for data to be fully persisted and queryable (especially on Windows)
+    try {
+      Thread.sleep(3000);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+    }
+
     Project project = new Project(source, Collections.singletonList("us.d1.s1"), null);
     TaskExecuteResult result = storage.executeProject(project, dataArea);
     checkResult(result);
