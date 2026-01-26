@@ -119,22 +119,24 @@ public class JDBCMeta extends AbstractRelationalMeta {
       dataTypeTransformer = new JDBCDataTypeTransformer(properties);
     }
 
-    avgCastExpressionBase = properties.getProperty("avg_cast_expression_base", "%s(%s)").trim();
-    avgCastExpressionDefault =
-        properties.getProperty("avg_cast_expression_default", "%s(%s)").trim();
+    // 所有默认值现在由 default-meta.properties 提供，不再在代码中设置默认值
+    avgCastExpressionBase = properties.getProperty("avg_cast_expression_base").trim();
+    avgCastExpressionDefault = properties.getProperty("avg_cast_expression_default").trim();
     boundaryQueryUseDbConnection =
-        Boolean.parseBoolean(properties.getProperty("boundary_query_use_db_connection", "false"));
+        Boolean.parseBoolean(properties.getProperty("boundary_query_use_db_connection"));
 
-    boundaryQueryCatalogColumn = properties.getProperty("boundary_query_catalog_column", "").trim();
-    boundaryQuerySchemaColumn = properties.getProperty("boundary_query_schema_column", "").trim();
+    boundaryQueryCatalogColumn = properties.getProperty("boundary_query_catalog_column").trim();
+    boundaryQuerySchemaColumn = properties.getProperty("boundary_query_schema_column").trim();
     systemDatabaseName = Arrays.asList(properties.getProperty("system_databases").split(","));
     databaseCreatePrivileges =
-        Arrays.asList(properties.getProperty("database_create_privileges", "").split(","));
-    queryUserPrivilegesStatement = properties.getProperty("query_user_privilege_statement", "");
+        Arrays.asList(properties.getProperty("database_create_privileges").split(","));
+    queryUserPrivilegesStatement = properties.getProperty("query_user_privilege_statement");
     databaseQuerySql = properties.getProperty("database_query_sql");
-    dummyDatabaseQuerySql = properties.getProperty("dummy_database_query_sql", databaseQuerySql);
-    supportCreateDatabase =
-        Boolean.parseBoolean(properties.getProperty("support_create_database", "true"));
+    // dummy_database_query_sql 如果为空，回退到 database_query_sql（向后兼容）
+    String dummyQuery = properties.getProperty("dummy_database_query_sql");
+    dummyDatabaseQuerySql =
+        (dummyQuery != null && !dummyQuery.trim().isEmpty()) ? dummyQuery : databaseQuerySql;
+    supportCreateDatabase = Boolean.parseBoolean(properties.getProperty("support_create_database"));
     databaseDropStatement = properties.getProperty("drop_database_statement");
     databaseCreateStatement = properties.getProperty("create_database_statement");
     createTableStatement = properties.getProperty("create_table_statement");
@@ -153,19 +155,15 @@ public class JDBCMeta extends AbstractRelationalMeta {
     isSupportFullJoin = Boolean.parseBoolean(properties.getProperty("is_support_full_join"));
     regexp = properties.getProperty("regex_like_expression");
     notRegex = properties.getProperty("not_regex_like_expression");
-    supportBooleanType =
-        Boolean.parseBoolean(properties.getProperty("support_boolean_type", "true"));
+    supportBooleanType = Boolean.parseBoolean(properties.getProperty("support_boolean_type"));
     jdbcSupportBackslash =
         Boolean.parseBoolean(properties.getProperty("jdbc_support_special_char"));
     this.jdbcSupportGetTableNameFromResultSet =
-        Boolean.parseBoolean(
-            properties.getProperty("jdbc_support_get_table_name_from_result_set", "true"));
-    supportBoundaryQuery =
-        Boolean.parseBoolean(properties.getProperty("support_boundary_query", "false"));
+        Boolean.parseBoolean(properties.getProperty("jdbc_support_get_table_name_from_result_set"));
+    supportBoundaryQuery = Boolean.parseBoolean(properties.getProperty("support_boundary_query"));
     maxColumnNumLimit = Integer.parseInt(properties.getProperty("max_column_num_limit"));
     maxSingleRowSizeLimit = Integer.parseInt(properties.getProperty("max_single_row_size_limit"));
-    jdbcStrictPathEscape =
-        Boolean.parseBoolean(properties.getProperty("jdbc_strict_path_escape", "false"));
+    jdbcStrictPathEscape = Boolean.parseBoolean(properties.getProperty("jdbc_strict_path_escape"));
   }
 
   @Override
