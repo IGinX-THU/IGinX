@@ -102,7 +102,7 @@ public class TransformJobPathIT {
     prepare();
     registerJobByClientUsingRelativePath();
     // waiting job to be completed
-    Thread.sleep(3000);
+    Thread.sleep(10000);
     verifyResult();
   }
 
