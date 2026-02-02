@@ -55,7 +55,8 @@ public abstract class BaseCapacityExpansionIT {
 
   protected static Session session;
 
-  protected static final String ALTER_ENGINE_STRING = "alter storageengine %d with params '%s';";
+  /** Format: alter storageengine <id> options (key1='value1', key2='value2'); */
+  protected static final String ALTER_ENGINE_STRING = "alter storageengine %d options (%s);";
 
   private static final ConfLoader testConf = new ConfLoader(Controller.CONFIG_FILE);
 
@@ -623,11 +624,11 @@ public abstract class BaseCapacityExpansionIT {
     }
     assertTrue(id != -1);
 
-    String newParams =
+    String optionsClause =
         updatedParams.entrySet().stream()
-            .map(entry -> entry.getKey() + "=" + entry.getValue())
+            .map(entry -> entry.getKey() + " '" + entry.getValue().replace("'", "''") + "'")
             .collect(Collectors.joining(", "));
-    session.executeSql(String.format(ALTER_ENGINE_STRING, id, newParams));
+    session.executeSql(String.format(ALTER_ENGINE_STRING, id, optionsClause));
 
     // 重新查询
     statement = "select wt01.status, wt01.temperature from " + prefix + ".tm.wf05;";
@@ -940,7 +941,7 @@ public abstract class BaseCapacityExpansionIT {
   private void testSpecialPrefix(String removeStatement, List<List<Object>> valuesList) {
     // 输入为\,\"\'\\\n\r\f\b\t\u0041
     // 包含对转义字符以及控制字符的混合测试
-    String schemaPrefix = "\\,\\\"\\'\\n\\r\\f\\b\\t\\u0041\n\r\f\b\t\u0041";
+    String schemaPrefix = ",\"''\\n\\r\\f\\b\\t\\u0041\n\r\f\b\t\u0041";
 
     // 测试转义符在schema_prefix中是否能够正确转义，成功add storageengine与remove storageengine
     addStorageEngine(expPort, true, true, null, schemaPrefix, portsToExtraParams.get(expPort));

@@ -120,8 +120,7 @@ public class SqlEscapeUtils {
             }
             break;
           default:
-            // Preserve unknown escape (e.g. Windows path D:\a\b → keep backslash)
-            sb.append('\\').append(next);
+            sb.append(next);
             i += 2;
         }
       } else {

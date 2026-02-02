@@ -205,10 +205,13 @@ public class ClientLauncher {
     String ret = resultBuffer.toString();
     if (ret.contains(result)) {
       return true;
-    } else {
-      LOGGER.error("Expected output: {}, actually output: {}", result, ret);
-      return false;
     }
+    // On Windows, server may return paths with backslashes; normalize for comparison
+    if (ret.replace('\\', '/').contains(result.replace('\\', '/'))) {
+      return true;
+    }
+    LOGGER.error("Expected output: {}, actually output: {}", result, ret);
+    return false;
   }
 
   /** Close the client process gracefully. */

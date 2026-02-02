@@ -139,7 +139,6 @@ import cn.edu.tsinghua.iginx.sql.SqlParser.SimpleWhenClauseContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.SpecialClauseContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.SqlStatementContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.StorageEngineContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.StringLiteralContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.SubqueryContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.TableReferenceContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.TagEquationContext;
@@ -593,7 +592,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
   @Override
   public Statement visitAlterEngineStatement(SqlParser.AlterEngineStatementContext ctx) {
     long engineId = Long.parseLong(ctx.engineId.getText());
-    Map<String, String> newParams = parseExtra(ctx.params);
+    Map<String, String> newParams = parseStorageEngineOptions(ctx.storageEngineOption());
     return new AlterEngineStatement(engineId, newParams);
   }
 
@@ -2130,137 +2129,6 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       key.append(parseNodeName(nodeNames.get(i)));
     }
     return key.toString();
-  }
-
-  /**
-   * Parses the old-style extra params string from ALTER STORAGEENGINE statement.
-   *
-   * <p>All string literals (both single and double quotes) now support backslash escape sequences:
-   *
-   * <ul>
-   *   <li>{@code 'key1=value1, key2=value2'} - supports {@code ''} and {@code \'} escaping
-   *   <li>{@code 'key1=val\n1, key2=val\t2'} - supports all backslash escapes ({@code \n}, {@code
-   *       \t}, {@code \\}, etc.)
-   * </ul>
-   *
-   * @param ctx the string literal context containing the params
-   * @return a map of key-value pairs
-   */
-  private Map<String, String> parseExtra(StringLiteralContext ctx) {
-    Map<String, String> map = new HashMap<>();
-    String tokenText = ctx.getText().trim();
-
-    // Check for empty or just quotes
-    if (tokenText.isEmpty()
-        || tokenText.equals(SQLConstant.DOUBLE_QUOTES)
-        || tokenText.equals(SQLConstant.SINGLE_QUOTES)) {
-      return map;
-    }
-
-    // Remove outer quotes, but preserve internal escape sequences
-    // This is important: we need to preserve escapes so splitWithEscape can correctly
-    // identify escaped delimiters (e.g., \,) vs actual delimiters
-    String content = removeOuterQuotes(tokenText);
-
-    if (content.isEmpty()) {
-      return map;
-    }
-
-    // Split by ',' to get key=value pairs
-    // splitWithEscape handles escaped commas within values (preserves \, as not a delimiter)
-    List<String> kvStrs = splitWithEscape(content, ',');
-
-    // 解析每个 key=value 对
-    for (String kv : kvStrs) {
-      String[] kvArray = kv.split("=", 2); // Split only on first '='
-      if (kvArray.length != 2) {
-        continue;
-      }
-      // Value is used as-is (no backslash unescape); client/Session send already-unescaped SQL.
-      String key = kvArray[0].trim();
-      String value = kvArray[1].trim();
-
-      map.put(key, value);
-    }
-
-    return map;
-  }
-
-  /**
-   * Removes only the outer quotes from a SQL string literal, without processing any internal escape
-   * sequences. This preserves escape sequences like \, \n etc. so they can be handled later after
-   * splitting.
-   *
-   * @param tokenText the string literal token text including quotes
-   * @return the string content without outer quotes, but with all internal escapes preserved
-   */
-  private String removeOuterQuotes(String tokenText) {
-    if (tokenText == null || tokenText.length() < 2) {
-      return "";
-    }
-
-    // Remove outer quotes
-    char firstQuote = tokenText.charAt(0);
-    char lastChar = tokenText.charAt(tokenText.length() - 1);
-
-    if ((firstQuote == '\'' && lastChar == '\'') || (firstQuote == '"' && lastChar == '"')) {
-      return tokenText.substring(1, tokenText.length() - 1);
-    }
-
-    // If not properly quoted, return as-is
-    return tokenText;
-  }
-
-  /**
-   * Split string by delimiter while respecting escaped delimiters (following MySQL/SQL standard).
-   * This method handles escape sequences properly, so delimiters that are escaped are not used as
-   * split points.
-   *
-   * @param text the text to split
-   * @param delimiter the delimiter character
-   * @return list of split parts
-   */
-  private List<String> splitWithEscape(String text, char delimiter) {
-    List<String> parts = new ArrayList<>();
-    StringBuilder current = new StringBuilder();
-    int length = text.length();
-    int i = 0;
-
-    while (i < length) {
-      char c = text.charAt(i);
-
-      // Handle backslash escape sequences - don't treat escaped delimiter as split point
-      if (c == '\\' && i + 1 < length) {
-        char next = text.charAt(i + 1);
-        current.append(c).append(next);
-        i += 2;
-        continue;
-      }
-
-      // Handle quote escaping ('' or "") - these shouldn't contain delimiters
-      if ((c == '\'' && i + 1 < length && text.charAt(i + 1) == '\'')
-          || (c == '"' && i + 1 < length && text.charAt(i + 1) == '"')) {
-        current.append(c).append(text.charAt(i + 1));
-        i += 2;
-        continue;
-      }
-
-      // Check for delimiter
-      if (delimiter != 0 && c == delimiter) {
-        parts.add(current.toString());
-        current.setLength(0);
-        i++;
-        continue;
-      }
-
-      // Regular character
-      current.append(c);
-      i++;
-    }
-
-    // Add the last part
-    parts.add(current.toString());
-    return parts;
   }
 
   private void parseInsertValuesSpec(InsertValuesSpecContext ctx, InsertStatement insertStatement) {

@@ -34,7 +34,7 @@ statement
    | SHOW COLUMNS showColumnsOptions # showColumnsStatement
    | SHOW REPLICA NUMBER # showReplicationStatement
    | ADD STORAGEENGINE storageEngineSpec # addStorageEngineStatement
-   | ALTER STORAGEENGINE engineId = INT WITH PARAMS params = stringLiteral # alterEngineStatement
+   | ALTER STORAGEENGINE engineId = INT OPTIONS LR_BRACKET storageEngineOption (COMMA storageEngineOption)* RR_BRACKET # alterEngineStatement
    | SHOW CLUSTER INFO # showClusterInfoStatement
    | CREATE USER username = nodeName IDENTIFIED BY password = nodeName # createUserStatement
    | GRANT permissionSpec TO USER username = nodeName # grantUserStatement
