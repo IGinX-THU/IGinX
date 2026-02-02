@@ -163,7 +163,6 @@ import cn.edu.tsinghua.iginx.sql.statement.select.CommonTableExpression;
 import cn.edu.tsinghua.iginx.sql.statement.select.SelectStatement;
 import cn.edu.tsinghua.iginx.sql.statement.select.UnarySelectStatement;
 import cn.edu.tsinghua.iginx.sql.utils.ExpressionUtils;
-import cn.edu.tsinghua.iginx.sql.utils.StringEscapeUtil;
 import cn.edu.tsinghua.iginx.thrift.*;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
@@ -296,9 +295,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
   private String parseIdentifier(SqlParser.IdentifierContext ctx) {
     if (ctx.BACK_QUOTE_STRING_LITERAL_NOT_EMPTY() != null) {
       String identifier = ctx.BACK_QUOTE_STRING_LITERAL_NOT_EMPTY().getText();
-      // Use special unescape method for backtick identifiers to preserve unknown escapes like \.
-      return StringEscapeUtil.unescapeBacktickIdentifier(
-          identifier.substring(1, identifier.length() - 1));
+      return unescapeStringLiteral(identifier);
     }
     return ctx.getText();
   }
@@ -2159,12 +2156,9 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       if (kvArray.length != 2) {
         continue;
       }
-      // 对 value 进行转义处理（key 通常不需要转义）
+      // Value is used as-is (no backslash unescape); client/Session send already-unescaped SQL.
       String key = kvArray[0].trim();
-      String rawValue = kvArray[1].trim();
-
-      // All strings now support backslash escape sequences
-      String value = StringEscapeUtil.unescape(rawValue);
+      String value = kvArray[1].trim();
 
       map.put(key, value);
     }

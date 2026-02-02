@@ -24,7 +24,6 @@ import static org.junit.Assert.fail;
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.thrift.JobState;
-import cn.edu.tsinghua.iginx.utils.SqlPathUtil;
 import java.io.File;
 import java.util.List;
 import java.util.Map;
@@ -75,9 +74,7 @@ public class TransformJobRestartIT {
     LOGGER.info("preparing scheduled job...");
     String yamlFileName =
         OUTPUT_DIR_PREFIX + File.separator + "TransformScheduledEvery10sNoExport.yaml";
-    long jobId =
-        session.commitTransformJob(
-            String.format(COMMIT_SQL_FORMATTER, SqlPathUtil.escapePathForSql(yamlFileName)));
+    long jobId = session.commitTransformJob(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
     LOGGER.info("job id: {}", jobId);
   }
 

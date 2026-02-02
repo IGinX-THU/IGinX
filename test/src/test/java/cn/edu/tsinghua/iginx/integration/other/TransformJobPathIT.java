@@ -32,7 +32,6 @@ import cn.edu.tsinghua.iginx.integration.tool.ClientLauncher;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import cn.edu.tsinghua.iginx.thrift.DataType;
-import cn.edu.tsinghua.iginx.utils.SqlPathUtil;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -145,9 +144,7 @@ public class TransformJobPathIT {
     SessionExecuteSqlResult result = session.executeSql("select count(*) from *;");
     result.print(false, "");
     for (String task : TASK_MAP.keySet()) {
-      session.executeSql(
-          String.format(
-              CREATE_SQL_FORMATTER, task, task, SqlPathUtil.escapePathForSql(TASK_MAP.get(task))));
+      session.executeSql(String.format(CREATE_SQL_FORMATTER, task, task, TASK_MAP.get(task)));
     }
   }
 

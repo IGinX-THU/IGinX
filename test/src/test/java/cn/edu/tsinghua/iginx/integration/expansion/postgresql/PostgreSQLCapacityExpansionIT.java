@@ -57,7 +57,7 @@ public class PostgreSQLCapacityExpansionIT extends BaseCapacityExpansionIT {
     wrongExtraParams.add(wrongParams);
     // wrong password situation cannot be tested because trust mode is used
 
-    updatedParams.put("password", "newPassword\\,\\\\\"\\'");
+    updatedParams.put("password", "newPassword,\\\"'");
   }
 
   @Override

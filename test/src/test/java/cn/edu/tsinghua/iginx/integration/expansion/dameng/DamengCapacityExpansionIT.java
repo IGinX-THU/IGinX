@@ -73,7 +73,7 @@ public class DamengCapacityExpansionIT extends BaseCapacityExpansionIT {
               }
             }),
         new DamengHistoryDataGenerator());
-    updatedParams.put("password", "newPassword\\,\\\\\"\\'");
+    updatedParams.put("password", "newPassword,\\\"'");
   }
 
   @Override

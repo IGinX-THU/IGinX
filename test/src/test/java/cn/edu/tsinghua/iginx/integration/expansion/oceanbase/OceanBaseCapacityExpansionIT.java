@@ -20,18 +20,16 @@
 package cn.edu.tsinghua.iginx.integration.expansion.oceanbase;
 
 import cn.edu.tsinghua.iginx.exception.SessionException;
-import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.expansion.BaseCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.constant.Constant;
 import cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools;
-import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
-import cn.edu.tsinghua.iginx.integration.tool.DBConf;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,14 +41,15 @@ public class OceanBaseCapacityExpansionIT extends BaseCapacityExpansionIT {
   public OceanBaseCapacityExpansionIT() {
     super(
         StorageEngineType.relational,
-        "engine=oceanbase, username=root@test",
+        createPortsToExtraParams(
+            new HashMap<String, String>() {
+              {
+                put("engine", "oceanbase");
+                put("username", "root@test");
+              }
+            }),
         new OceanBaseHistoryDataGenerator());
-    ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
-    DBConf dbConf = conf.loadDBConf(conf.getStorageType());
-    Constant.oriPort = dbConf.getDBCEPortMap().get(Constant.ORI_PORT_NAME);
-    Constant.expPort = dbConf.getDBCEPortMap().get(Constant.EXP_PORT_NAME);
-    Constant.readOnlyPort = dbConf.getDBCEPortMap().get(Constant.READ_ONLY_PORT_NAME);
-    updatedParams.put("password", "newPassword\\,\\\\\"\\'");
+    updatedParams.put("password", "newPassword,\\\"'");
   }
 
   @Override

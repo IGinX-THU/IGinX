@@ -27,7 +27,6 @@ import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import cn.edu.tsinghua.iginx.thrift.LoadUDFResp;
 import cn.edu.tsinghua.iginx.thrift.RegisterTaskInfo;
-import cn.edu.tsinghua.iginx.utils.SqlPathUtil;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -230,8 +229,7 @@ public class UDFTestTools {
                     String.format(
                         "%s \"%s\" FROM \"%s\"", types.get(i), names.get(i), classPaths.get(i)))
             .collect(Collectors.joining(", "));
-    String escapedModulePath = SqlPathUtil.escapePathForSql(modulePath);
-    return String.format(MULTI_UDF_REGISTER_SQL, udfs, escapedModulePath);
+    return String.format(MULTI_UDF_REGISTER_SQL, udfs, modulePath);
   }
 
   // all UDFs will be registered in one type
@@ -242,7 +240,6 @@ public class UDFTestTools {
         IntStream.range(0, names.size())
             .mapToObj(i -> String.format("\"%s\" FROM \"%s\"", names.get(i), classPaths.get(i)))
             .collect(Collectors.joining(", "));
-    String escapedModulePath = SqlPathUtil.escapePathForSql(modulePath);
-    return String.format(MULTI_UDF_REGISTER_SQL, type + " " + udfs, escapedModulePath);
+    return String.format(MULTI_UDF_REGISTER_SQL, type + " " + udfs, modulePath);
   }
 }

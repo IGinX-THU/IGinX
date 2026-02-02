@@ -226,11 +226,14 @@ public class ParseTest {
 
   @Test
   public void testParseEscape() {
+    // Backtick identifiers use raw parsing: only `` → `, no backslash unescape
+    // So \n and \. stay as literal backslash-n and backslash-dot
     String s = "select `a\\nb\\.txt` from escape;";
     UnarySelectStatement statement = (UnarySelectStatement) TestUtils.buildStatement(s);
     assertEquals(
         new HashSet<>(Collections.singletonList("escape.a\\nb\\.txt")), statement.getPathSet());
 
+    // Doubled backtick becomes single backtick
     String s2 = "select `a``b.txt` from escape;";
     UnarySelectStatement statement2 = (UnarySelectStatement) TestUtils.buildStatement(s2);
     assertEquals(

@@ -27,6 +27,7 @@ import static cn.edu.tsinghua.iginx.utils.FileUtils.exportByteStream;
 
 import cn.edu.tsinghua.iginx.client.state.InputState;
 import cn.edu.tsinghua.iginx.client.state.NormalState;
+import cn.edu.tsinghua.iginx.client.utils.SqlEscapeUtils;
 import cn.edu.tsinghua.iginx.constant.GlobalConstant;
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.session.QueryDataSet;
@@ -254,24 +255,25 @@ public class IginxClient {
   }
 
   public OperationResult handleInputStatement(String statement) throws SessionException {
-    String trimedStatement = statement.replaceAll(" +", " ").toLowerCase().trim();
+    String unescaped = SqlEscapeUtils.unescapeStringLiteralsInSql(statement);
+    String trimedStatement = unescaped.replaceAll(" +", " ").toLowerCase().trim();
 
     if (EXIT_OR_QUIT_PATTERN.matcher(validSqlBuffer.toString()).matches()) {
       return OperationResult.STOP;
     }
     long startTime = System.currentTimeMillis();
     if (isSqlWithStream(trimedStatement)) {
-      processSqlWithStream(statement);
+      processSqlWithStream(unescaped);
     } else if (isLoadDataFromCsv(trimedStatement)) {
-      processLoadCsv(statement);
+      processLoadCsv(unescaped);
     } else if (isSetTimeUnit(trimedStatement)) {
-      processSetTimeUnit(statement);
+      processSetTimeUnit(unescaped);
     } else if (isRegisterPy(trimedStatement)) {
-      processPythonRegister(statement);
+      processPythonRegister(unescaped);
     } else if (isCommitTransformJob(trimedStatement)) {
-      processCommitTransformJob(statement);
+      processCommitTransformJob(unescaped);
     } else {
-      processSql(statement);
+      processSql(unescaped);
     }
     long endTime = System.currentTimeMillis();
     System.out.printf("Time cost: %d ms\n", endTime - startTime);
