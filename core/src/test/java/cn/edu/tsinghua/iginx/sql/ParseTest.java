@@ -240,6 +240,34 @@ public class ParseTest {
         new HashSet<>(Collections.singletonList("escape.a`b.txt")), statement2.getPathSet());
   }
 
+  /** Tag key: 反引号包裹（可选）；Tag value: 单/双引号包裹（可选）。仅做引号加倍，不做反斜杠转义。 */
+  @Test
+  public void testParseTagKeyTagValue() {
+    // 反引号 key + 单引号 value（'' → '）
+    String insert1 =
+        "INSERT INTO root.sg (key, s[`host`='localhost'], v[`dc`='dc1']) values (1, 2, 3);";
+    InsertStatement stmt1 = (InsertStatement) TestUtils.buildStatement(insert1);
+    assertEquals(2, stmt1.getTagsList().size());
+    assertEquals(Collections.singletonMap("host", "localhost"), stmt1.getTagsList().get(0));
+    assertEquals(Collections.singletonMap("dc", "dc1"), stmt1.getTagsList().get(1));
+
+    // 反引号 key + 双引号 value
+    String insert2 = "INSERT INTO root.sg (key, s[`env`=\"prod\"]) values (1, 2);";
+    InsertStatement stmt2 = (InsertStatement) TestUtils.buildStatement(insert2);
+    assertEquals(1, stmt2.getTagsList().size());
+    assertEquals(Collections.singletonMap("env", "prod"), stmt2.getTagsList().get(0));
+
+    // 无引号（ID）仍兼容
+    String insert3 = "INSERT INTO root.sg (key, s[host=local]) values (1, 2);";
+    InsertStatement stmt3 = (InsertStatement) TestUtils.buildStatement(insert3);
+    assertEquals(Collections.singletonMap("host", "local"), stmt3.getTagsList().get(0));
+
+    // 单引号 value 内 '' → '
+    String insert4 = "INSERT INTO root.sg (key, s[`k`='It''s OK']) values (1, 2);";
+    InsertStatement stmt4 = (InsertStatement) TestUtils.buildStatement(insert4);
+    assertEquals(Collections.singletonMap("k", "It's OK"), stmt4.getTagsList().get(0));
+  }
+
   @Test
   public void testParseShowReplication() {
     String showReplicationStr = "SHOW REPLICA NUMBER;";

@@ -300,6 +300,26 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     return ctx.getText();
   }
 
+  /** Tag key: backtick-quoted → unescape (`` → `); plain ID → as-is. */
+  private String parseTagKey(SqlParser.TagKeyContext ctx) {
+    String text = ctx.getText();
+    if (text.length() >= 2 && text.startsWith("`") && text.endsWith("`")) {
+      return unescapeStringLiteral(text);
+    }
+    return text;
+  }
+
+  /** Tag value: single/double-quoted → unescape (quote-doubling only); STAR or ID → as-is. */
+  private String parseTagValue(SqlParser.TagValueContext ctx) {
+    String text = ctx.getText();
+    if (text.length() >= 2
+        && ((text.startsWith("'") && text.endsWith("'"))
+            || (text.startsWith("\"") && text.endsWith("\"")))) {
+      return unescapeStringLiteral(text);
+    }
+    return text;
+  }
+
   private ImportFile parseImportFileClause(ImportFileClauseContext ctx) {
     if (ctx.csvFile() != null) {
       String filePath = unescapeStringLiteral(ctx.csvFile().filePath.getText());
@@ -1641,8 +1661,8 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     if (ctx.orTagExpression() != null) {
       return parseOrTagExpression(ctx.orTagExpression());
     }
-    String tagKey = ctx.tagKey().getText();
-    String tagValue = ctx.tagValue().getText();
+    String tagKey = parseTagKey(ctx.tagKey());
+    String tagValue = parseTagValue(ctx.tagValue());
     return new BaseTagFilter(tagKey, tagValue);
   }
 
@@ -1657,8 +1677,8 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
   private BasePreciseTagFilter parseAndPreciseExpression(AndPreciseExpressionContext ctx) {
     Map<String, String> tagKVMap = new HashMap<>();
     for (PreciseTagExpressionContext tagCtx : ctx.preciseTagExpression()) {
-      String tagKey = tagCtx.tagKey().getText();
-      String tagValue = tagCtx.tagValue().getText();
+      String tagKey = parseTagKey(tagCtx.tagKey());
+      String tagValue = parseTagValue(tagCtx.tagValue());
       tagKVMap.put(tagKey, tagValue);
     }
     return new BasePreciseTagFilter(tagKVMap);
@@ -2369,8 +2389,8 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
   private Map<String, String> parseTagList(TagListContext ctx) {
     Map<String, String> tags = new HashMap<>();
     for (TagEquationContext tagCtx : ctx.tagEquation()) {
-      String tagKey = tagCtx.tagKey().getText();
-      String tagValue = tagCtx.tagValue().getText();
+      String tagKey = parseTagKey(tagCtx.tagKey());
+      String tagValue = parseTagValue(tagCtx.tagValue());
       tags.put(tagKey, tagValue);
     }
     return tags;

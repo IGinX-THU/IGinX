@@ -264,12 +264,13 @@ tagEquation
    ;
 
 tagKey
-   : ID
+   : identifier
    ;
 
 tagValue
-   : ID
+   : stringLiteral
    | STAR
+   | ID
    ;
 
 fromClause

@@ -19,17 +19,6 @@
  */
 package cn.edu.tsinghua.iginx.client.utils;
 
-/**
- * Utility class for SQL string literal handling in session/client layer.
- *
- * <ul>
- *   <li>{@link #escapeStringLiteralsInSql}: Used when SQL comes from Java string literals (e.g.
- *       EscapingSessionWrapper). {@code \n} → {@code \\n} so server receives literal \n.
- *   <li>{@link #unescapeStringLiteralsInSql}: Used by CLI before sending to session. User-typed
- *       {@code \n} (two chars) → newline, {@code \\n} (three chars) → literal \ and n. Backend then
- *       uses raw parsing (no backslash unescape), so CLI and Java session behavior match.
- * </ul>
- */
 public class SqlEscapeUtils {
 
   /**
@@ -131,7 +120,8 @@ public class SqlEscapeUtils {
             }
             break;
           default:
-            sb.append(next);
+            // Preserve unknown escape (e.g. Windows path D:\a\b → keep backslash)
+            sb.append('\\').append(next);
             i += 2;
         }
       } else {
