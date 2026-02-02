@@ -33,9 +33,6 @@ public class StringEscapeUtilTest {
     assertEquals("a\\\\b", StringEscapeUtil.unescapeStringLiteral("'a\\\\b'"));
 
     assertEquals(
-        "C:\\\\Users\\\\test.py",
-        StringEscapeUtil.unescapeStringLiteral("'C:\\\\Users\\\\test.py'"));
-    assertEquals(
         "C:\\\\temp\\\\file.txt",
         StringEscapeUtil.unescapeStringLiteral("\"C:\\\\temp\\\\file.txt\""));
     assertEquals(

@@ -251,164 +251,38 @@ public class ParseTest {
   /**
    * 测试 ADD STORAGEENGINE 语句的解析功能
    *
-   * <p>测试覆盖： 1. 基本语法（多个存储引擎、单引号/双引号字符串） 2. 特殊字符转义（\n, \r, \t, \b, \f, \0, \\, \', \", Unicode） 3.
-   * 等号语法（key = 'value' 和 key 'value'） 4. 混合等号使用（同一 OPTIONS 中混合使用） 5. 引号转义（'' 和 \' 用于单引号，"" 和 \"
-   * 用于双引号） 6. 空字符串值 7. Windows 路径转义 8. Unicode 字符
+   * <p>测试覆盖： 1. 引号（双引号 ""/\" + 单引号 ''、空字符串） 2. 多引擎与等号混合 3. 反斜杠字面量（path、unicode、''、各 key + 组合值）
    *
-   * <p>所有字符串都支持反斜杠转义序列（\n, \t, \\等）
+   * <p>后端仅做引号加倍，不做反斜杠转义
    */
   @Test
   public void testParseAddStorageEngine() {
-    // ========== 测试用例 1: 基本语法 ==========
-    String addStorageEngineStr =
-        "ADD STORAGEENGINE (\"127.0.0.1\", 6667, \"iotdb12\", OPTIONS (username 'root', password 'root')), "
-            + "('127.0.0.1', 6668, 'influxdb', OPTIONS (key1 'val1', key2 'val2'));";
-    AddStorageEngineStatement statement =
-        (AddStorageEngineStatement) TestUtils.buildStatement(addStorageEngineStr);
+    // ========== 测试用例 1: 双引号与单引号（"" → "、\" 字面量、'' → '、空字符串） ==========
+    String addStorageEngineStrQuotes =
+        "ADD STORAGEENGINE (\"127.0.0.1\", 3309, \"relational\", OPTIONS ("
+            + "engine \"mysql\", schema_prefix \"test\\\"value\", "
+            + "d1 \"Say \"\"Hello\"\"\", d2 \"He\\\"s here\", d3 \"She said \\\"OK\\\"\", "
+            + "s1 'It''s OK', s2 'He''s fine', s3 'She said ''Hello''', empty_key '', non_empty 'value'));";
+    AddStorageEngineStatement statementQuotes =
+        (AddStorageEngineStatement) TestUtils.buildStatement(addStorageEngineStrQuotes);
 
-    assertEquals(2, statement.getEngines().size());
+    assertEquals(1, statementQuotes.getEngines().size());
+    Map<String, String> extraQuotes = new HashMap<>();
+    extraQuotes.put("engine", "mysql");
+    extraQuotes.put("schema_prefix", "test\\\"value");
+    extraQuotes.put("d1", "Say \"Hello\"");
+    extraQuotes.put("d2", "He\\\"s here");
+    extraQuotes.put("d3", "She said \\\"OK\\\"");
+    extraQuotes.put("s1", "It's OK");
+    extraQuotes.put("s2", "He's fine");
+    extraQuotes.put("s3", "She said 'Hello'");
+    extraQuotes.put("empty_key", "");
+    extraQuotes.put("non_empty", "value");
+    StorageEngine engineQuotes =
+        new StorageEngine("127.0.0.1", 3309, StorageEngineType.relational, extraQuotes);
+    assertEquals(engineQuotes, statementQuotes.getEngines().get(0));
 
-    Map<String, String> extra01 = new HashMap<>();
-    extra01.put("username", "root");
-    extra01.put("password", "root");
-    StorageEngine engine01 =
-        new StorageEngine("127.0.0.1", 6667, StorageEngineType.iotdb12, extra01);
-
-    Map<String, String> extra02 = new HashMap<>();
-    extra02.put("key1", "val1");
-    extra02.put("key2", "val2");
-    StorageEngine engine02 =
-        new StorageEngine("127.0.0.1", 6668, StorageEngineType.influxdb, extra02);
-
-    assertEquals(engine01, statement.getEngines().get(0));
-    assertEquals(engine02, statement.getEngines().get(1));
-
-    // ========== 测试用例 2: 特殊字符转义 ==========
-    // 所有字符串都支持反斜杠转义
-    String addStorageEngineStrWithEscape =
-        "ADD STORAGEENGINE ('127.0.0.1', 3306, 'relational', OPTIONS (engine 'mysql', schema_prefix '\\,\\n\\r\\f\\b\\\\\"\\'\\u0041'));";
-    AddStorageEngineStatement statementWithEscape =
-        (AddStorageEngineStatement) TestUtils.buildStatement(addStorageEngineStrWithEscape);
-
-    assertEquals(1, statementWithEscape.getEngines().size());
-    Map<String, String> extra03Escape = new HashMap<>();
-    extra03Escape.put("engine", "mysql");
-    extra03Escape.put("schema_prefix", ",\n\r\f\b\\\"'A");
-    StorageEngine engine03Escape =
-        new StorageEngine("127.0.0.1", 3306, StorageEngineType.relational, extra03Escape);
-    assertEquals(engine03Escape, statementWithEscape.getEngines().get(0));
-
-    // ========== 测试用例 3: 等号语法 ==========
-    String addStorageEngineStrWithEquals =
-        "ADD STORAGEENGINE ('127.0.0.1', 3306, 'relational', OPTIONS (engine = 'mysql', schema_prefix = 'test'));";
-    AddStorageEngineStatement statementWithEquals =
-        (AddStorageEngineStatement) TestUtils.buildStatement(addStorageEngineStrWithEquals);
-
-    assertEquals(1, statementWithEquals.getEngines().size());
-    Map<String, String> extra04 = new HashMap<>();
-    extra04.put("engine", "mysql");
-    extra04.put("schema_prefix", "test");
-    StorageEngine engine04 =
-        new StorageEngine("127.0.0.1", 3306, StorageEngineType.relational, extra04);
-    assertEquals(engine04, statementWithEquals.getEngines().get(0));
-
-    // ========== 测试用例 4: 混合等号语法 ==========
-    String addStorageEngineStrWithMixedEquals =
-        "ADD STORAGEENGINE ('127.0.0.1', 3307, 'relational', OPTIONS (engine = 'mysql', schema_prefix 'test', port = '3306', user 'root'));";
-    AddStorageEngineStatement statementWithMixedEquals =
-        (AddStorageEngineStatement) TestUtils.buildStatement(addStorageEngineStrWithMixedEquals);
-
-    assertEquals(1, statementWithMixedEquals.getEngines().size());
-    Map<String, String> extra05 = new HashMap<>();
-    extra05.put("engine", "mysql");
-    extra05.put("schema_prefix", "test");
-    extra05.put("port", "3306");
-    extra05.put("user", "root");
-    StorageEngine engine05 =
-        new StorageEngine("127.0.0.1", 3307, StorageEngineType.relational, extra05);
-    assertEquals(engine05, statementWithMixedEquals.getEngines().get(0));
-
-    // ========== 测试用例 5: 更多转义字符（\t, \0, Unicode）+ Windows 路径 ==========
-    // 注意：Windows 路径需要双反斜杠，因为所有字符串都处理转义
-    String addStorageEngineStrWithMoreEscapes =
-        "ADD STORAGEENGINE ('127.0.0.1', 3308, 'relational', OPTIONS (path 'C:\\\\Users\\\\test\\\\file.txt', tab 'col1\\tcol2', null_char 'text\\0end', unicode '\\u4F60\\u597D', quote 'It''s OK'));";
-    AddStorageEngineStatement statementWithMoreEscapes =
-        (AddStorageEngineStatement) TestUtils.buildStatement(addStorageEngineStrWithMoreEscapes);
-
-    assertEquals(1, statementWithMoreEscapes.getEngines().size());
-    Map<String, String> extra06 = new HashMap<>();
-    extra06.put("path", "C:\\Users\\test\\file.txt");
-    extra06.put("tab", "col1\tcol2");
-    extra06.put("null_char", "text\0end");
-    extra06.put("unicode", "你好");
-    extra06.put("quote", "It's OK");
-    StorageEngine engine06 =
-        new StorageEngine("127.0.0.1", 3308, StorageEngineType.relational, extra06);
-    assertEquals(engine06, statementWithMoreEscapes.getEngines().get(0));
-
-    // ========== 测试用例 6: 双引号字符串字面量 + 反斜杠转义 ==========
-    String addStorageEngineStrWithDoubleQuotes =
-        "ADD STORAGEENGINE (\"127.0.0.1\", 3309, \"relational\", OPTIONS (engine \"mysql\", schema_prefix \"test\\\"value\"));";
-    AddStorageEngineStatement statementWithDoubleQuotes =
-        (AddStorageEngineStatement) TestUtils.buildStatement(addStorageEngineStrWithDoubleQuotes);
-
-    assertEquals(1, statementWithDoubleQuotes.getEngines().size());
-    Map<String, String> extra07 = new HashMap<>();
-    extra07.put("engine", "mysql");
-    extra07.put("schema_prefix", "test\"value");
-    StorageEngine engine07 =
-        new StorageEngine("127.0.0.1", 3309, StorageEngineType.relational, extra07);
-    assertEquals(engine07, statementWithDoubleQuotes.getEngines().get(0));
-
-    // ========== 测试用例 7: 单引号转义（'' 和 \'） ==========
-    // 支持两种方式转义单引号
-    String addStorageEngineStrWithSingleQuoteEscapes =
-        "ADD STORAGEENGINE ('127.0.0.1', 3311, 'relational', OPTIONS (value1 'It''s OK', value2 'He\\'s fine', value3 'She said ''Hello'''));";
-    AddStorageEngineStatement statementWithSingleQuoteEscapes =
-        (AddStorageEngineStatement)
-            TestUtils.buildStatement(addStorageEngineStrWithSingleQuoteEscapes);
-
-    assertEquals(1, statementWithSingleQuoteEscapes.getEngines().size());
-    Map<String, String> extra11 = new HashMap<>();
-    extra11.put("value1", "It's OK");
-    extra11.put("value2", "He's fine");
-    extra11.put("value3", "She said 'Hello'");
-    StorageEngine engine11 =
-        new StorageEngine("127.0.0.1", 3311, StorageEngineType.relational, extra11);
-    assertEquals(engine11, statementWithSingleQuoteEscapes.getEngines().get(0));
-
-    // ========== 测试用例 8: 双引号转义（"" 和 \"） ==========
-    // 支持两种方式转义双引号
-    String addStorageEngineStrWithDoubleQuoteEscapes =
-        "ADD STORAGEENGINE (\"127.0.0.1\", 3312, \"relational\", OPTIONS (value1 \"Say \"\"Hello\"\"\", value2 \"He\\\"s here\", value3 \"She said \\\"OK\\\"\"));";
-    AddStorageEngineStatement statementWithDoubleQuoteEscapes =
-        (AddStorageEngineStatement)
-            TestUtils.buildStatement(addStorageEngineStrWithDoubleQuoteEscapes);
-
-    assertEquals(1, statementWithDoubleQuoteEscapes.getEngines().size());
-    Map<String, String> extra12 = new HashMap<>();
-    extra12.put("value1", "Say \"Hello\"");
-    extra12.put("value2", "He\"s here");
-    extra12.put("value3", "She said \"OK\"");
-    StorageEngine engine12 =
-        new StorageEngine("127.0.0.1", 3312, StorageEngineType.relational, extra12);
-    assertEquals(engine12, statementWithDoubleQuoteEscapes.getEngines().get(0));
-
-    // ========== 测试用例 9: 空字符串值 ==========
-    String addStorageEngineStrWithEmptyValue =
-        "ADD STORAGEENGINE ('127.0.0.1', 3310, 'relational', OPTIONS (empty_key '', non_empty 'value'));";
-    AddStorageEngineStatement statementWithEmptyValue =
-        (AddStorageEngineStatement) TestUtils.buildStatement(addStorageEngineStrWithEmptyValue);
-
-    assertEquals(1, statementWithEmptyValue.getEngines().size());
-    Map<String, String> extra08 = new HashMap<>();
-    extra08.put("empty_key", "");
-    extra08.put("non_empty", "value");
-    StorageEngine engine08 =
-        new StorageEngine("127.0.0.1", 3310, StorageEngineType.relational, extra08);
-    assertEquals(engine08, statementWithEmptyValue.getEngines().get(0));
-
-    // ========== 测试用例 10: 多个存储引擎混合等号 ==========
+    // ========== 测试用例 2: 多个存储引擎、等号混合 ==========
     String addStorageEngineStrMultipleMixed =
         "ADD STORAGEENGINE (\"127.0.0.1\", 6667, \"iotdb12\", OPTIONS (username = 'root', password 'root')), "
             + "('127.0.0.1', 6668, 'influxdb', OPTIONS (key1 'val1', key2 = 'val2'));";
@@ -431,55 +305,39 @@ public class ParseTest {
     assertEquals(engine09, statementMultipleMixed.getEngines().get(0));
     assertEquals(engine10, statementMultipleMixed.getEngines().get(1));
 
-    // ========== 测试用例 11: 完整的转义字符测试 ==========
-    // 测试所有支持的 SQL 转义序列
+    // ========== 测试用例 3: 反斜杠字面量（path、unicode、''、各 key + 组合值） ==========
     String addStorageEngineStrWithAllEscapes =
         "ADD STORAGEENGINE ('127.0.0.1', 3315, 'relational', OPTIONS ("
-            + "newline '\\n', " // \n → 换行符
-            + "tab '\\t', " // \t → 制表符
-            + "carriage '\\r', " // \r → 回车符
-            + "formfeed '\\f', " // \f → 换页符
-            + "backspace '\\b', " // \b → 退格符
-            + "null_char '\\0', " // \0 → 空字符
-            + "backslash '\\\\', " // \\ → 反斜杠
-            + "single_quote '\\'', " // \' → 单引号
-            + "double_quote '\\\"'" // \" → 双引号
+            + "path 'C:\\\\Users\\\\test\\\\file.txt', tab 'col1\\tcol2', null_char 'text\\0end', unicode '\\u4F60\\u597D', quote 'It''s OK', "
+            + "schema_prefix ',\\n\\r\\f\\b\\\\\"''\\\\u0041', "
+            + "newline '\\n', carriage '\\r', formfeed '\\f', backspace '\\b', "
+            + "backslash '\\\\', single_quote '''', double_quote '\\\"', "
+            + "combined 'line1\\nline2\\ttab\\rcarriage\\fformfeed\\bbackspace\\0null\\\\backslash''quote'"
             + "));";
     AddStorageEngineStatement statementWithAllEscapes =
         (AddStorageEngineStatement) TestUtils.buildStatement(addStorageEngineStrWithAllEscapes);
 
     assertEquals(1, statementWithAllEscapes.getEngines().size());
     Map<String, String> extra15 = new HashMap<>();
-    extra15.put("newline", "\n");
-    extra15.put("tab", "\t");
-    extra15.put("carriage", "\r");
-    extra15.put("formfeed", "\f");
-    extra15.put("backspace", "\b");
-    extra15.put("null_char", "\0");
-    extra15.put("backslash", "\\");
+    extra15.put("path", "C:\\\\Users\\\\test\\\\file.txt");
+    extra15.put("tab", "col1\\tcol2");
+    extra15.put("null_char", "text\\0end");
+    extra15.put("unicode", "\\" + "u4F60\\" + "u597D");
+    extra15.put("quote", "It's OK");
+    extra15.put("schema_prefix", ",\\n\\r\\f\\b\\\\\"'\\\\" + "u0041");
+    extra15.put("newline", "\\n");
+    extra15.put("carriage", "\\r");
+    extra15.put("formfeed", "\\f");
+    extra15.put("backspace", "\\b");
+    extra15.put("backslash", "\\\\");
     extra15.put("single_quote", "'");
-    extra15.put("double_quote", "\"");
+    extra15.put("double_quote", "\\\"");
+    extra15.put(
+        "combined",
+        "line1\\nline2\\ttab\\rcarriage\\fformfeed\\bbackspace\\0null\\\\backslash'quote");
     StorageEngine engine15 =
         new StorageEngine("127.0.0.1", 3315, StorageEngineType.relational, extra15);
     assertEquals(engine15, statementWithAllEscapes.getEngines().get(0));
-
-    // ========== 测试用例 12: 组合转义字符测试 ==========
-    // 测试多个转义字符组合在一个值中
-    String addStorageEngineStrWithCombinedEscapes =
-        "ADD STORAGEENGINE ('127.0.0.1', 3316, 'relational', OPTIONS ("
-            + "combined 'line1\\nline2\\ttab\\rcarriage\\fformfeed\\bbackspace\\0null\\\\backslash\\'quote'"
-            + "));";
-    AddStorageEngineStatement statementWithCombinedEscapes =
-        (AddStorageEngineStatement)
-            TestUtils.buildStatement(addStorageEngineStrWithCombinedEscapes);
-
-    assertEquals(1, statementWithCombinedEscapes.getEngines().size());
-    Map<String, String> extra16 = new HashMap<>();
-    extra16.put(
-        "combined", "line1\nline2\ttab\rcarriage\fformfeed\bbackspace\0null\\backslash'quote");
-    StorageEngine engine16 =
-        new StorageEngine("127.0.0.1", 3316, StorageEngineType.relational, extra16);
-    assertEquals(engine16, statementWithCombinedEscapes.getEngines().get(0));
   }
 
   @Test
