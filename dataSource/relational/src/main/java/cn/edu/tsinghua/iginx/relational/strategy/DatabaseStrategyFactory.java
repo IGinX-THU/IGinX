@@ -21,27 +21,26 @@ package cn.edu.tsinghua.iginx.relational.strategy;
 
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.relational.meta.AbstractRelationalMeta;
+import cn.edu.tsinghua.iginx.relational.strategy.base.AbstractDatabaseStrategy;
+import cn.edu.tsinghua.iginx.relational.strategy.impl.DamengDatabaseStrategy;
+import cn.edu.tsinghua.iginx.relational.strategy.impl.MySQLPGDatabaseStrategy;
+import cn.edu.tsinghua.iginx.relational.strategy.impl.OracleDatabaseStrategy;
+import java.util.Map;
 
 public class DatabaseStrategyFactory {
-  public static DatabaseStrategy getStrategy(
-      String engineName,
-      AbstractRelationalMeta relationalMeta,
-      StorageEngineMeta storageEngineMeta) {
-    if (engineName == null) {
-      throw new IllegalArgumentException("Engine name cannot be null");
-    }
+  public static AbstractDatabaseStrategy create(
+      AbstractRelationalMeta meta, StorageEngineMeta storageEngineMeta) {
+    Map<String, String> params = storageEngineMeta.getExtraParams();
+    String engine = params.getOrDefault("engine", "").toLowerCase();
+    String driver = meta.getDriverClass();
 
-    switch (engineName.toLowerCase()) {
-      case "oracle":
-        return new OracleDatabaseStrategy(relationalMeta, storageEngineMeta);
-      case "dameng":
-        return new DamengDatabaseStrategy(relationalMeta, storageEngineMeta);
-      case "mysql":
-        return new MySQLDatabaseStrategy(relationalMeta, storageEngineMeta);
-      case "postgresql":
-        return new PostgreSQLDatabaseStrategy(relationalMeta, storageEngineMeta);
-      default:
-        throw new UnsupportedOperationException("Unsupported engine: " + engineName);
+    if (engine.contains("dameng")) {
+      return new DamengDatabaseStrategy(meta, storageEngineMeta);
+    }
+    if (engine.contains("oracle")) {
+      return new OracleDatabaseStrategy(meta, storageEngineMeta);
+    } else {
+      return new MySQLPGDatabaseStrategy(meta, storageEngineMeta);
     }
   }
 }

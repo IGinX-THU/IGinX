@@ -1,0 +1,56 @@
+name: "OceanBase"
+description: "start OceanBase CE instances (MySQL mode)"
+inputs:
+    ports:
+        description: The server ports to listen on.
+        default: "2881"
+        required: false
+    mode:
+        description: OceanBase container mode.
+        default: "slim"
+        required: false
+
+runs:
+    using: "composite"
+    steps:
+        - if: runner.os == 'Linux'
+          name: Pull OceanBase CE image
+          shell: bash
+          run: |
+              docker pull oceanbase/oceanbase-ce
+
+        - if: runner.os == 'Linux'
+          name: Start OceanBase Containers
+          shell: bash
+          run: |
+              set -e
+              for port in ${{ inputs.ports }}; do
+                name="oceanbase-ce-$port"
+                if docker ps -a --format '{{.Names}}' | grep -q "^${name}$"; then
+                  docker rm -f "${name}" || true
+                fi
+                docker run -d -p ${port}:2881 --name "${name}" -e MODE=${{ inputs.mode }} oceanbase/oceanbase-ce
+              done
+
+        - if: runner.os == 'Linux'
+          name: Wait for OceanBase bootstrap
+          shell: bash
+          run: |
+              set -e
+              for port in ${{ inputs.ports }}; do
+                name="oceanbase-ce-$port"
+                echo "waiting for ${name} ..."
+                for i in $(seq 1 90); do
+                  if docker logs "${name}" 2>&1 | tail -n 20 | grep -q "boot success"; then
+                    echo "${name} boot success"
+                    break
+                  fi
+                  docker stats --no-stream
+                  sleep 5
+                done
+                if ! docker logs "${name}" 2>&1 | tail -n 50 | grep -q "boot success"; then
+                  echo "${name} failed to bootstrap";
+                  docker logs --tail 200 "${name}" || true
+                  exit 1
+                fi
+              done

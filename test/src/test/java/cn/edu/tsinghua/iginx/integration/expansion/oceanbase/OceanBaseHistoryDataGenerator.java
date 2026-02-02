@@ -17,12 +17,16 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package cn.edu.tsinghua.iginx.integration.expansion.mysql;
+package cn.edu.tsinghua.iginx.integration.expansion.oceanbase;
 
 import cn.edu.tsinghua.iginx.integration.expansion.BaseHistoryDataGenerator;
 import cn.edu.tsinghua.iginx.integration.expansion.constant.Constant;
 import cn.edu.tsinghua.iginx.thrift.DataType;
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -31,9 +35,9 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class MySQLHistoryDataGenerator extends BaseHistoryDataGenerator {
+public class OceanBaseHistoryDataGenerator extends BaseHistoryDataGenerator {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(MySQLHistoryDataGenerator.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(OceanBaseHistoryDataGenerator.class);
 
   private static final char SEPARATOR = '.';
 
@@ -48,22 +52,26 @@ public class MySQLHistoryDataGenerator extends BaseHistoryDataGenerator {
 
   private static final String DROP_DATABASE_STATEMENT = "DROP DATABASE IF EXISTS `%s`;";
 
-  public MySQLHistoryDataGenerator() {
-    Constant.oriPort = 3306;
-    Constant.expPort = 3307;
-    Constant.readOnlyPort = 3308;
+  private static final String USERNAME = "root@test";
+
+  private static final String PASSWORD = "";
+
+  public OceanBaseHistoryDataGenerator() {
+    Constant.oriPort = 2881;
+    Constant.expPort = 2882;
+    Constant.readOnlyPort = 2883;
   }
 
   private Connection connect(int port, boolean useSystemDatabase, String databaseName) {
     try {
       String url;
       if (useSystemDatabase) {
-        url = String.format("jdbc:mysql://127.0.0.1:%d/", port);
+        url = String.format("jdbc:oceanbase://127.0.0.1:%d/", port);
       } else {
-        url = String.format("jdbc:mysql://127.0.0.1:%d/%s", port, databaseName);
+        url = String.format("jdbc:oceanbase://127.0.0.1:%d/%s", port, databaseName);
       }
-      Class.forName("com.mysql.cj.jdbc.Driver");
-      return DriverManager.getConnection(url, "root", null);
+      Class.forName("com.oceanbase.jdbc.Driver");
+      return DriverManager.getConnection(url, USERNAME, PASSWORD);
     } catch (SQLException | ClassNotFoundException e) {
       throw new RuntimeException(e);
     }
@@ -122,7 +130,7 @@ public class MySQLHistoryDataGenerator extends BaseHistoryDataGenerator {
             DataType dataType = dataTypeList.get(index);
             createTableStr.append(getQuotName(columnName));
             createTableStr.append(" ");
-            createTableStr.append(toMySQL(dataType));
+            createTableStr.append(toOceanbaseType(dataType));
             createTableStr.append(", ");
           }
           stmt.execute(
@@ -178,7 +186,6 @@ public class MySQLHistoryDataGenerator extends BaseHistoryDataGenerator {
 
   @Override
   public void writeSpecialHistoryData() {
-    // write float value
     writeHistoryData(
         Constant.readOnlyPort,
         Constant.READ_ONLY_FLOAT_PATH_LIST,
@@ -197,10 +204,12 @@ public class MySQLHistoryDataGenerator extends BaseHistoryDataGenerator {
 
       while (databaseSet.next()) {
         String databaseName = databaseSet.getString("DATNAME");
-        if (databaseName.equalsIgnoreCase("performance_schema")
-            || databaseName.equalsIgnoreCase("information_schema")
+        if (databaseName.equalsIgnoreCase("information_schema")
+            || databaseName.equalsIgnoreCase("sys")
+            || databaseName.equalsIgnoreCase("performance_schema")
             || databaseName.equalsIgnoreCase("mysql")
-            || databaseName.equalsIgnoreCase("sys")) {
+            || databaseName.equalsIgnoreCase("ocs")
+            || databaseName.equalsIgnoreCase("oceanbase")) {
           continue;
         }
         dropDatabaseStatement.addBatch(String.format(DROP_DATABASE_STATEMENT, databaseName));
@@ -226,7 +235,7 @@ public class MySQLHistoryDataGenerator extends BaseHistoryDataGenerator {
     }
   }
 
-  private static String toMySQL(DataType dataType) {
+  private static String toOceanbaseType(DataType dataType) {
     switch (dataType) {
       case BOOLEAN:
         return "BOOLEAN";
@@ -237,7 +246,7 @@ public class MySQLHistoryDataGenerator extends BaseHistoryDataGenerator {
       case FLOAT:
         return "REAL";
       case DOUBLE:
-        return "DOUBLE PRECISION";
+        return "DOUBLE";
       case BINARY:
       default:
         return "TEXT";

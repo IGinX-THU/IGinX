@@ -50,7 +50,7 @@ jobs:
             os-matrix: '["ubuntu-latest", "windows-latest"]'
             db-matrix: '["Dameng", "Oracle"]'
             timeout-minutes: 100
-    standalone-test-no-mac-no-privs-relational:
+    standalone-test-no-mac-no-privs-dameng:
         uses: ./.github/workflows/standalone-test.yml
         with:
             metadata-matrix: '["zookeeper"]'
@@ -58,7 +58,7 @@ jobs:
             db-matrix: '["Dameng"]'
             db-support-create-database: false
             timeout-minutes: 120
-    standalone-test-no-optimizer-no-mac-no-privs-relational:
+    standalone-test-no-optimizer-no-mac-no-privs-dameng:
         uses: ./.github/workflows/standalone-test-no-optimizer.yml
         with:
             metadata-matrix: '["zookeeper"]'
@@ -66,7 +66,21 @@ jobs:
             db-matrix: '["Dameng"]'
             db-support-create-database: false
             timeout-minutes: 100
-    db-ce-Dameng:
+    standalone-test-oceanbase:
+        uses: ./.github/workflows/standalone-test.yml
+        with:
+            metadata-matrix: '["zookeeper"]'
+            os-matrix: '["ubuntu-latest"]'
+            db-matrix: '["OceanBase"]'
+            timeout-minutes: 300
+    standalone-test-no-optimizer-oceanbase:
+        uses: ./.github/workflows/standalone-test-no-optimizer.yml
+        with:
+            metadata-matrix: '["zookeeper"]'
+            os-matrix: '["ubuntu-latest"]'
+            db-matrix: '["OceanBase"]'
+            timeout-minutes: 300
+    db-ce-dameng:
         uses: ./.github/workflows/DB-CE.yml
         with:
             metadata-matrix: '["zookeeper"]'
@@ -74,7 +88,7 @@ jobs:
             db-matrix: '["Dameng"]'
             functest: "NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,CompactionIT,TimePrecisionIT,PySessionIT"
             timeout-minutes: 120
-    db-ce-no-optimizer-Dameng:
+    db-ce-no-optimizer-dameng:
         uses: ./.github/workflows/DB-CE.yml
         with:
             metadata-matrix: '["zookeeper"]'
@@ -83,20 +97,20 @@ jobs:
             functest: "NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,CompactionIT,TimePrecisionIT,PySessionIT"
             timeout-minutes: 120
             close-optimizer: "true"
-    db-ce-Oracle:
+    db-ce-only-linux-relational:
         uses: ./.github/workflows/DB-CE.yml
         with:
             metadata-matrix: '["zookeeper"]'
             os-matrix: '["ubuntu-latest"]'
-            db-matrix: '["Oracle"]'
+            db-matrix: '["Oracle", "OceanBase"]'
             functest: "NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,CompactionIT,TimePrecisionIT,PySessionIT"
             timeout-minutes: 120
-    db-ce-no-optimizer-Oracle:
+    db-ce-no-optimizer-only-linux-relational:
         uses: ./.github/workflows/DB-CE.yml
         with:
             metadata-matrix: '["zookeeper"]'
             os-matrix: '["ubuntu-latest"]'
-            db-matrix: '["Oracle"]'
+            db-matrix: '["Oracle", "OceanBase"]'
             functest: "NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,CompactionIT,TimePrecisionIT,PySessionIT"
             timeout-minutes: 120
             close-optimizer: "true"
@@ -170,10 +184,12 @@ jobs:
             - tpc-h-test
             - standalone-test-no-mac-relational
             - standalone-test-no-optimizer-no-mac-relational
-            - db-ce-Dameng
-            - db-ce-no-optimizer-Dameng
-            - db-ce-Oracle
-            - db-ce-no-optimizer-Oracle
+            - db-ce-dameng
+            - db-ce-no-optimizer-dameng
+            - db-ce-only-linux-relational
+            - db-ce-no-optimizer-only-linux-relational
+            - standalone-test-oceanbase
+            - standalone-test-no-optimizer-oceanbase
             - cluster-test
             - restart-test
         runs-on: ubuntu-latest

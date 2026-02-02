@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package cn.edu.tsinghua.iginx.relational.strategy;
+package cn.edu.tsinghua.iginx.relational.strategy.base;
 
 import static cn.edu.tsinghua.iginx.relational.tools.Constants.*;
 
@@ -28,7 +28,7 @@ import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.relational.datatype.transformer.IDataTypeTransformer;
 import cn.edu.tsinghua.iginx.relational.exception.RelationalException;
 import cn.edu.tsinghua.iginx.relational.meta.AbstractRelationalMeta;
-import cn.edu.tsinghua.iginx.utils.Pair;
+import cn.edu.tsinghua.iginx.relational.strategy.DatabaseStrategy;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import com.zaxxer.hikari.pool.HikariPool;
@@ -217,62 +217,11 @@ public abstract class AbstractDatabaseStrategy implements DatabaseStrategy {
   }
 
   @Override
-  public void executeBatchInsert(
-      Connection conn,
-      String databaseName,
-      Statement stmt,
-      Map<String, Pair<String, List<String>>> tableToColumnEntries,
-      char quote)
-      throws SQLException {
-    // 默认的批量插入实现
-    for (Map.Entry<String, Pair<String, List<String>>> entry : tableToColumnEntries.entrySet()) {
-      String tableName = entry.getKey();
-      String columnNames = entry.getValue().k.substring(0, entry.getValue().k.length() - 2);
-      List<String> values = entry.getValue().v;
-
-      StringBuilder statement = new StringBuilder();
-      statement.append("INSERT INTO ");
-      statement.append(getQuotName(tableName));
-      statement.append(" (");
-      statement.append(getQuotName(KEY_NAME));
-      statement.append(", ");
-
-      // 处理列名
-      String[] parts = columnNames.split(", ");
-      StringBuilder columnNamesBuilder = new StringBuilder();
-      for (String part : parts) {
-        columnNamesBuilder.append(getQuotName(part)).append(", ");
-      }
-      statement.append(columnNamesBuilder.substring(0, columnNamesBuilder.length() - 2));
-
-      statement.append(") VALUES ");
-      for (String value : values) {
-        statement.append("(");
-        statement.append(value, 0, value.length() - 2);
-        statement.append("), ");
-      }
-      statement.delete(statement.length() - 2, statement.length());
-
-      // 处理冲突
-      statement.append(relationalMeta.getUpsertStatement());
-      for (String part : parts) {
-        if (part.equals(KEY_NAME)) continue;
-        statement.append(
-            String.format(
-                relationalMeta.getUpsertConflictStatement(), getQuotName(part), getQuotName(part)));
-        statement.append(", ");
-      }
-      statement.delete(statement.length() - 2, statement.length());
-      statement.append(";");
-
-      stmt.addBatch(statement.toString());
-    }
-    stmt.executeBatch();
-  }
-
-  @Override
   public String getAvgCastExpression(Expression param) {
-    return "%s(%s)";
+    if (param.getType() == Expression.ExpressionType.Base) {
+      return relationalMeta.getAvgCastExpressionBase();
+    }
+    return relationalMeta.getAvgCastExpressionDefault();
   }
 
   @Override

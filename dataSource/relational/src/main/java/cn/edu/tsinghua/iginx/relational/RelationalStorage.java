@@ -129,7 +129,7 @@ public class RelationalStorage implements IStorage {
       throw new StorageInitializationException("cannot build relational meta: ", e);
     }
     engineName = meta.getExtraParams().get("engine");
-    dbStrategy = DatabaseStrategyFactory.getStrategy(engineName, relationalMeta, meta);
+    dbStrategy = DatabaseStrategyFactory.create(relationalMeta, meta);
     if (!testConnection(this.meta)) {
       throw new StorageInitializationException("cannot connect to " + meta.toString());
     }
@@ -217,6 +217,8 @@ public class RelationalStorage implements IStorage {
     }
   }
 
+  private static final String DEFAULT_META_FILE = "default-meta.properties";
+
   private Properties getProperties(String engine, @Nullable String propertiesPath)
       throws URISyntaxException, IOException {
     if (propertiesPath != null) {
@@ -229,17 +231,32 @@ public class RelationalStorage implements IStorage {
       }
     }
 
+    // 先加载 default-meta（PostgreSQL 基线），再按 engine 覆盖差异，减少各 engine 配置量
+    URL defaultUrl = getClass().getClassLoader().getResource(DEFAULT_META_FILE);
+    if (defaultUrl == null) {
+      throw new IOException("cannot find default meta: " + DEFAULT_META_FILE);
+    }
+    Properties properties = new Properties();
+    try (InputStream is = defaultUrl.openStream()) {
+      properties.load(is);
+    }
     String metaFileName = engine.toLowerCase() + META_TEMPLATE_SUFFIX;
-    LOGGER.info("loading engine '{}' default properties from class path: {}", engine, metaFileName);
-    URL url = getClass().getClassLoader().getResource(metaFileName);
-    if (url == null) {
-      throw new IOException("cannot find default meta properties file: " + metaFileName);
+    URL engineUrl = getClass().getClassLoader().getResource(metaFileName);
+    if (engineUrl != null) {
+      LOGGER.info(
+          "loading engine '{}' overrides from {} (base: {})",
+          engine,
+          metaFileName,
+          DEFAULT_META_FILE);
+      try (InputStream is = engineUrl.openStream()) {
+        Properties overrides = new Properties();
+        overrides.load(is);
+        properties.putAll(overrides);
+      }
+    } else {
+      LOGGER.info("no engine-specific '{}', using {} only", metaFileName, DEFAULT_META_FILE);
     }
-    try (InputStream propertiesIS = url.openStream()) {
-      Properties properties = new Properties();
-      properties.load(propertiesIS);
-      return properties;
-    }
+    return properties;
   }
 
   @Override
@@ -2674,6 +2691,9 @@ public class RelationalStorage implements IStorage {
 
   /** JDBC中的路径中的 . 不需要转义 */
   private String reformatForJDBC(String path) {
+    if (relationalMeta.isJdbcStrictPathEscape()) {
+      return StringUtils.reformatPath(path).replace("\\\\\\", "\\\\\\\\\\").replace("\\.", ".");
+    }
     return StringUtils.reformatPath(path).replace("\\.", ".");
   }
 
@@ -3355,7 +3375,7 @@ public class RelationalStorage implements IStorage {
     // 构造 regex
     String regexBase = toRegex(logicalTableName + TABLE_SUFFIX_DELIMITER);
     String tableNameRegex = "^" + regexBase + "([0-9]+)$";
-    Pattern pattern = Pattern.compile(tableNameRegex);
+    Pattern pattern = Pattern.compile(tableNameRegex, Pattern.CASE_INSENSITIVE);
     return foundTables.stream()
         .filter(t -> pattern.matcher(t).matches())
         .collect(Collectors.toList());

@@ -29,12 +29,8 @@ runs:
           shell: bash
           run: |
               brew update
-              brew install docker qemu
-              brew install colima
-              LIMACTL_PATH=$(brew --prefix)/bin/limactl
-              sudo curl -L -o $LIMACTL_PATH https://github.com/mikekazakov/lima-nohvf/raw/master/limactl && sudo chmod +x $LIMACTL_PATH
-              colima start --network-address --arch arm64 --vm-type=qemu
-              docker --version
-              colima status
-              brew install docker-compose
-              docker-compose --version
+              brew install docker qemu lima colima
+              brew install lima-additional-guestagents
+              colima delete -f || true
+              colima start --cpu 4 --memory 8 --disk 20 --network-address --arch x86_64 --vm-type=qemu
+              docker info
