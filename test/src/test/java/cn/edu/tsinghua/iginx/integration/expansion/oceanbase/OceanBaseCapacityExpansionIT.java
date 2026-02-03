@@ -49,12 +49,12 @@ public class OceanBaseCapacityExpansionIT extends BaseCapacityExpansionIT {
               }
             }),
         new OceanBaseHistoryDataGenerator());
-    updatedParams.put("password", "newPassword,\\\"''");
+    updatedParams.put("password", "newPassword,\\\"'");
   }
 
   @Override
   protected void updateParams(int port) {
-    changeParams(port, null, updatedParams.get("password"));
+    changeParams(port, null, "newPassword,\\\"''");
   }
 
   @Override

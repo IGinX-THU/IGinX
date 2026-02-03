@@ -76,8 +76,6 @@ public abstract class BaseCapacityExpansionIT {
 
   public static final String DBCE_PARQUET_FS_TEST_DIR = "test";
 
-  protected static final String updateParamsScriptDir = ".github/scripts/dataSources/update/";
-
   protected static final String shutdownScriptDir = ".github/scripts/dataSources/shutdown/";
 
   protected static final String restartScriptDir = ".github/scripts/dataSources/restart/";
@@ -938,162 +936,108 @@ public abstract class BaseCapacityExpansionIT {
     SQLTestTools.executeAndCompare(session, statement, expect);
   }
 
+  /**
+   * 测试 schema_prefix 中各类字符的转义与存储：控制字符、单引号双写、双引号双写、混合、反引号。 每个用例统一：stored = 实际存的值（query/expected
+   * path），addPrefix = ADD 时传入，removePrefix = REMOVE SQL 中 schema_prefix 的写法。
+   */
   private void testSpecialPrefix(String removeStatement, List<List<Object>> valuesList) {
-    // 输入为\,\"\'\\\n\r\f\b\t\u0041
-    // 包含对转义字符以及控制字符的混合测试
-    String schemaPrefix = ",\"''\\n\\r\\f\\b\\t\\u0041\n\r\f\b\t\u0041";
+    Map<String, String> extraParams = portsToExtraParams.get(expPort);
+    List<String> pathList;
 
-    // 测试转义符在schema_prefix中是否能够正确转义，成功add storageengine与remove storageengine
-    addStorageEngine(expPort, true, true, null, schemaPrefix, portsToExtraParams.get(expPort));
+    // ---------- Case 0: 控制字符（无引号，单引号 REMOVE 模板直接拼） ----------
+    String schemaPrefix = ",\\n\\r\\f\\b\\t\\u0041\n\r\f\b\t\u0041";
+    String queryPrefix = ",\\n\\r\\f\\b\\t\\u0041\n\r\f\b\tA";
 
-    // 查询时使用的路径（从反引号中提取）
-    String queryPrefix = ",\"'\\n\\r\\f\\b\\t\\u0041\n\r\f\b\tA";
-
-    String queryPath = queryPrefix + ".nt.wf03";
-    String expectedPath = queryPrefix + ".nt.wf03.wt01.status2";
-
-    String statement1 = "select wt01.status2 from `" + queryPath + "`;";
-    LOGGER.info("Executing query with actual control chars: {}", statement1);
-    LOGGER.info("Expected path: {}", expectedPath);
-
-    // Test both methods
-    List<String> pathList = Collections.singletonList(expectedPath);
-    SQLTestTools.executeAndCompare(session, statement1, pathList, valuesList);
+    addStorageEngine(expPort, true, true, null, schemaPrefix, extraParams);
+    pathList = Collections.singletonList(queryPrefix + ".nt.wf03.wt01.status2");
+    SQLTestTools.executeAndCompare(
+        session, "select wt01.status2 from `" + queryPrefix + ".nt.wf03`;", pathList, valuesList);
     try {
       session.executeSql(String.format(removeStatement, expPort, schemaPrefix, ""));
     } catch (SessionException e) {
       LOGGER.error("remove history data source through sql error: ", e);
       fail();
     }
-  }
 
-  /**
-   * Test Windows-style paths in schema_prefix. Backend does not unescape; use one backslash in Java
-   * for one backslash in stored path.
-   */
-  private void testStandardStringPrefix(List<List<Object>> valuesList) {
-    Map<String, String> extraParams = portsToExtraParams.get(expPort);
+    // ---------- Case 1: 单引号双写 '' -> 存 test's，ADD 用单引号、REMOVE 用双引号 ----------
+    String stored1 = "test's";
+    String addPrefix1 = "test''s";
 
-    // Test case 1: Windows-style path with backslashes
-    // Backend does not unescape: use one backslash so stored path is C:\Users\test
-    String windowsStylePrefixSql = "C:\\Users\\test";
-    String windowsStylePrefixResult = "C:\\Users\\test";
+    addStorageEngine("127.0.0.1", expPort, true, true, null, addPrefix1, extraParams);
+    pathList = Collections.singletonList(stored1 + ".nt.wf03.wt01.status2");
+    SQLTestTools.executeAndCompare(
+        session, "select wt01.status2 from `" + stored1 + ".nt.wf03`;", pathList, valuesList);
+    try {
+      session.executeSql(
+          String.format(
+              "remove storageengine (\"127.0.0.1\", %d, \"%s\", \"\") for all;", expPort, stored1));
+    } catch (SessionException e) {
+      LOGGER.error("test single quote ('' 双写) failure: ", e);
+      fail();
+    }
 
-    addStorageEngine("127.0.0.1", expPort, true, true, null, windowsStylePrefixSql, extraParams);
+    // ---------- Case 2: 双引号双写 "" -> 存 test"s，ADD/REMOVE 均双引号+双写 ----------
+    String stored2 = "test\"s";
+    String addPrefix2 = "test\"\"s";
 
     try {
-      // Query uses the same prefix literal as ADD (backend does not unescape)
-      String statement = "select wt01.status2 from `" + windowsStylePrefixResult + ".nt.wf03`;";
-      List<String> pathList =
-          Collections.singletonList(windowsStylePrefixResult + ".nt.wf03.wt01.status2");
-      SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
+      session.executeSql(buildAddStorageEngineSqlWithDoubleQuote(expPort, addPrefix2, extraParams));
+    } catch (SessionException e) {
+      throw new RuntimeException(e);
+    }
+    pathList = Collections.singletonList(stored2 + ".nt.wf03.wt01.status2");
+    SQLTestTools.executeAndCompare(
+        session, "select wt01.status2 from `" + stored2 + ".nt.wf03`;", pathList, valuesList);
+    try {
+      session.executeSql(
+          String.format(
+              "remove storageengine (\"127.0.0.1\", %d, '%s', '') for all;", expPort, stored2));
+    } catch (SessionException e) {
+      LOGGER.error("test double quote (\"\" 双写) failure: ", e);
+      fail();
+    }
 
-      // Remove storage engine (same literal as ADD)
-      String removeSql =
+    // ---------- Case 3: 同时含 ' 与 "，双引号双写 "" -> 存 test\'a"b ----------
+    String stored3 = "test\\'a\\\"b";
+    String addPrefix3 = "test\\'a\\\"\"b";
+
+    try {
+      session.executeSql(buildAddStorageEngineSqlWithDoubleQuote(expPort, addPrefix3, extraParams));
+    } catch (SessionException e) {
+      throw new RuntimeException(e);
+    }
+    pathList = Collections.singletonList(stored3 + ".nt.wf03.wt01.status2");
+    SQLTestTools.executeAndCompare(
+        session, "select wt01.status2 from `" + stored3 + ".nt.wf03`;", pathList, valuesList);
+    try {
+      session.executeSql(
           String.format(
               "remove storageengine (\"127.0.0.1\", %d, \"%s\", \"\") for all;",
-              expPort, windowsStylePrefixSql);
-      session.executeSql(removeSql);
+              expPort, addPrefix3));
     } catch (SessionException e) {
-      LOGGER.error("test Windows path prefix failure: ", e);
-      fail();
-    }
-  }
-
-  /**
-   * Test quote escaping in schema_prefix. Standard escaping ('', "") is supported; backslash (\',
-   * \") is stored literally (backend does not unescape).
-   */
-  private void testQuoteEscapeInPrefix(List<List<Object>> valuesList) {
-    Map<String, String> extraParams = portsToExtraParams.get(expPort);
-
-    // Test case 1: Single quote in string (use '' to escape)
-    // SQL: schema_prefix 'test''s' -> Result: test's
-    addStorageEngine("127.0.0.1", expPort, true, true, null, "test''s", extraParams);
-
-    try {
-      // Query should use the prefix with single quote
-      String statement = "select wt01.status2 from `test's.nt.wf03`;";
-      List<String> pathList = Collections.singletonList("test's.nt.wf03.wt01.status2");
-      SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
-
-      // Remove storage engine
-      String removeSql1 =
-          String.format(
-              "remove storageengine (\"127.0.0.1\", %d, \"test's\", \"\") for all;", expPort);
-      session.executeSql(removeSql1);
-    } catch (SessionException e) {
-      LOGGER.error("test single quote escape ('' style) failure: ", e);
+      LOGGER.error("test prefix with ' and \" (双写) failure: ", e);
       fail();
     }
 
-    // Test case 2: Double quote in string (use "" to escape)
-    // SQL: schema_prefix "test""s" -> Result: test"s
-    String addSql2 = buildAddStorageEngineSqlWithDoubleQuote(expPort, "test\"\"s", extraParams);
-    LOGGER.info("Testing double quote escape (\"\" style), execute: {}", addSql2);
-
-    try {
-      session.executeSql(addSql2);
-
-      // Query should use the prefix with double quote
-      String statement = "select wt01.status2 from `test\"s.nt.wf03`;";
-      List<String> pathList = Collections.singletonList("test\"s.nt.wf03.wt01.status2");
-      SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
-
-      // Remove storage engine
-      String removeSql2 =
-          String.format(
-              "remove storageengine (\"127.0.0.1\", %d, \"test\\\"s\", \"\") for all;", expPort);
-      session.executeSql(removeSql2);
-    } catch (SessionException e) {
-      LOGGER.error("test double quote escape (\"\" style) failure: ", e);
-      fail();
-    }
-
-    // Test case 3: Backslash-quote stored literally (\' and \") — backend does not unescape
-    // One prefix covering both; double-quoted SQL so both can appear in literal
-    String literalPrefix = "test\\'a\\\"b"; // stored as test\'a\"b
-    String addSql3 = buildAddStorageEngineSqlWithDoubleQuote(expPort, literalPrefix, extraParams);
-    LOGGER.info(
-        "Testing backslash-quote literal (\\' and \\\" not unescaped), execute: {}", addSql3);
-
-    try {
-      session.executeSql(addSql3);
-      String statement = "select wt01.status2 from `test\\'a\\\"b.nt.wf03`;";
-      List<String> pathList = Collections.singletonList("test\\'a\\\"b.nt.wf03.wt01.status2");
-      SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
-      String removeSql3 =
-          String.format(
-              "remove storageengine (\"127.0.0.1\", %d, \"%s\", \"\") for all;",
-              expPort, literalPrefix);
-      session.executeSql(removeSql3);
-    } catch (SessionException e) {
-      LOGGER.error("test backslash-quote literal (\\' and \\\" not unescaped) failure: ", e);
-      fail();
-    }
-
-    // Test case 4: Backtick in prefix (use `` in backtick identifier)
-    // SQL: schema_prefix 'test`name' -> Result: test`name
-    // Skip this test for IoTDB because IoTDB's SQL parser does not support backticks in paths
+    // ---------- Case 4: 反引号，ADD/REMOVE 双引号包裹（` 在双引号内为普通字符） ----------
     if (type == StorageEngineType.iotdb12) {
-      LOGGER.info(
-          "Skipping backtick escape test for IoTDB (IoTDB SQL parser does not support backticks in paths)");
+      LOGGER.info("Skipping backtick test for IoTDB (parser does not support backticks in paths)");
       return;
     }
+    String stored4 = "test`name";
+    String addPrefix4 = "test`name";
 
-    addStorageEngine("127.0.0.1", expPort, true, true, null, "test`name", extraParams);
-
+    addStorageEngine("127.0.0.1", expPort, true, true, null, addPrefix4, extraParams);
+    pathList = Collections.singletonList(stored4 + ".nt.wf03.wt01.status2");
+    SQLTestTools.executeAndCompare(
+        session, "select wt01.status2 from `test``name.nt.wf03`;", pathList, valuesList);
     try {
-      // Query should use doubled backticks to represent a literal backtick
-      String statement = "select wt01.status2 from `test``name.nt.wf03`;";
-      List<String> pathList = Collections.singletonList("test`name.nt.wf03.wt01.status2");
-      SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
-      String removeSql4 =
+      session.executeSql(
           String.format(
-              "remove storageengine (\"127.0.0.1\", %d, \"test`name\", \"\") for all;", expPort);
-      session.executeSql(removeSql4);
+              "remove storageengine (\"127.0.0.1\", %d, \"%s\", \"\") for all;",
+              expPort, addPrefix4));
     } catch (SessionException e) {
-      LOGGER.error("test backtick escape (`` style) failure: ", e);
+      LOGGER.error("test backtick (`` in path) failure: ", e);
       fail();
     }
   }
@@ -1203,8 +1147,8 @@ public abstract class BaseCapacityExpansionIT {
     pathListAns.add("p3.nt.wf04.wt01.temperature");
     SQLTestTools.executeAndCompare(session, statement, pathListAns, EXP_VALUES_LIST2);
 
-    // 通过 sql 语句测试移除节点（后端不处理反斜杠转义，仅处理 '' "" ``）
-    String removeStatement = "remove storageengine (\"127.0.0.1\", %d, \"%s\", \"%s\") for all;";
+    // 通过 sql 语句测试移除节点（用单引号包裹 schema/data prefix，便于转义单引号 ''）
+    String removeStatement = "remove storageengine (\"127.0.0.1\", %d, '%s', '%s') for all;";
     try {
       session.executeSql(
           String.format(removeStatement, expPort, "p1" + schemaPrefixSuffix, dataPrefix1));
@@ -1235,13 +1179,7 @@ public abstract class BaseCapacityExpansionIT {
 
     testShowClusterInfo(2);
 
-    // Test string prefix (backend does not unescape; literals stored as-is)
-    testStandardStringPrefix(valuesList);
-
     testShowClusterInfo(2);
-
-    // Test quote escaping in schema_prefix ('' "" only; \' \" stored literally)
-    testQuoteEscapeInPrefix(valuesList);
 
     testShowClusterInfo(2);
   }

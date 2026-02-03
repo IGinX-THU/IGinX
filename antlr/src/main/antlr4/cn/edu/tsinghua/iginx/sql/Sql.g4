@@ -1455,10 +1455,8 @@ DOUBLE_QUOTE_STRING_LITERAL
    ;
 
 fragment DOUBLE_QUOTE_STRING_CONTENT
-   : '"' '"' // Escaped double quote: "" -> "
-   | '\\' . // Backslash escape sequences
-   | ~ ["\\] // Any other character
-   
+   : '"' '"' // Escaped double quote: "" -> " (only escape, no backslash)
+   | ~ ["]
    ;
 
 SINGLE_QUOTE_STRING_LITERAL
@@ -1466,10 +1464,8 @@ SINGLE_QUOTE_STRING_LITERAL
    ;
 
 fragment SINGLE_QUOTE_STRING_CONTENT
-   : '\'' '\'' // Escaped single quote: '' -> ' (must be first!)
-   | '\\' . // Backslash escape sequences
-   | ~ ['\\] // Any other character
-   
+   : '\'' '\'' // Escaped single quote: '' -> ' (only escape, no backslash)
+   | ~ [']
    ;
    //Characters and write it this way for case sensitivity
    

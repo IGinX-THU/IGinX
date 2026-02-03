@@ -279,17 +279,15 @@ public class ParseTest {
   /**
    * 测试 ADD STORAGEENGINE 语句的解析功能
    *
-   * <p>测试覆盖： 1. 引号（双引号 ""/\" + 单引号 ''、空字符串） 2. 多引擎与等号混合 3. 反斜杠字面量（path、unicode、''、各 key + 组合值）
-   *
-   * <p>后端仅做引号加倍，不做反斜杠转义
+   * <p>测试覆盖： 1. 引号（双引号仅 "" 双写、单引号 '' 双写、空字符串） 2. 多引擎与等号混合 3. 反斜杠字面量（仅 ''/"" 转义，\ 为普通字符）
    */
   @Test
   public void testParseAddStorageEngine() {
-    // ========== 测试用例 1: 双引号与单引号（"" → "、\" 字面量、'' → '、空字符串） ==========
+    // ========== 测试用例 1: 双引号双写 "" → "、单引号双写 '' → '、空字符串 ==========
     String addStorageEngineStrQuotes =
         "ADD STORAGEENGINE (\"127.0.0.1\", 3309, \"relational\", OPTIONS ("
-            + "engine \"mysql\", schema_prefix \"test\\\"value\", "
-            + "d1 \"Say \"\"Hello\"\"\", d2 \"He\\\"s here\", d3 \"She said \\\"OK\\\"\", "
+            + "engine \"mysql\", schema_prefix \"test\"\"value\", "
+            + "d1 \"Say \"\"Hello\"\"\", d2 \"He\"\"s here\", d3 \"She said \"\"OK\"\"\", "
             + "s1 'It''s OK', s2 'He''s fine', s3 'She said ''Hello''', empty_key '', non_empty 'value'));";
     AddStorageEngineStatement statementQuotes =
         (AddStorageEngineStatement) TestUtils.buildStatement(addStorageEngineStrQuotes);
@@ -297,10 +295,10 @@ public class ParseTest {
     assertEquals(1, statementQuotes.getEngines().size());
     Map<String, String> extraQuotes = new HashMap<>();
     extraQuotes.put("engine", "mysql");
-    extraQuotes.put("schema_prefix", "test\\\"value");
+    extraQuotes.put("schema_prefix", "test\"value");
     extraQuotes.put("d1", "Say \"Hello\"");
-    extraQuotes.put("d2", "He\\\"s here");
-    extraQuotes.put("d3", "She said \\\"OK\\\"");
+    extraQuotes.put("d2", "He\"s here");
+    extraQuotes.put("d3", "She said \"OK\"");
     extraQuotes.put("s1", "It's OK");
     extraQuotes.put("s2", "He's fine");
     extraQuotes.put("s3", "She said 'Hello'");
@@ -333,11 +331,11 @@ public class ParseTest {
     assertEquals(engine09, statementMultipleMixed.getEngines().get(0));
     assertEquals(engine10, statementMultipleMixed.getEngines().get(1));
 
-    // ========== 测试用例 3: 反斜杠字面量（path、unicode、''、各 key + 组合值） ==========
+    // ========== 测试用例 3: 仅 ''/"" 转义，反斜杠为字面量 ==========
     String addStorageEngineStrWithAllEscapes =
         "ADD STORAGEENGINE ('127.0.0.1', 3315, 'relational', OPTIONS ("
             + "path 'C:\\\\Users\\\\test\\\\file.txt', tab 'col1\\tcol2', null_char 'text\\0end', unicode '\\u4F60\\u597D', quote 'It''s OK', "
-            + "schema_prefix ',\\n\\r\\f\\b\\\\\"''\\\\u0041', "
+            + "schema_prefix ',\\n\\r\\f\\b\\\"''\\u0041', "
             + "newline '\\n', carriage '\\r', formfeed '\\f', backspace '\\b', "
             + "backslash '\\\\', single_quote '''', double_quote '\\\"', "
             + "combined 'line1\\nline2\\ttab\\rcarriage\\fformfeed\\bbackspace\\0null\\\\backslash''quote'"
@@ -350,9 +348,9 @@ public class ParseTest {
     extra15.put("path", "C:\\\\Users\\\\test\\\\file.txt");
     extra15.put("tab", "col1\\tcol2");
     extra15.put("null_char", "text\\0end");
-    extra15.put("unicode", "\\" + "u4F60\\" + "u597D");
+    extra15.put("unicode", "\\u4F60\\u597D");
     extra15.put("quote", "It's OK");
-    extra15.put("schema_prefix", ",\\n\\r\\f\\b\\\\\"'\\\\" + "u0041");
+    extra15.put("schema_prefix", ",\\n\\r\\f\\b\\\"'\\u0041");
     extra15.put("newline", "\\n");
     extra15.put("carriage", "\\r");
     extra15.put("formfeed", "\\f");
