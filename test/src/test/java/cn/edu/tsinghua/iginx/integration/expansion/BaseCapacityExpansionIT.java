@@ -624,7 +624,7 @@ public abstract class BaseCapacityExpansionIT {
 
     String optionsClause =
         updatedParams.entrySet().stream()
-            .map(entry -> entry.getKey() + " '" + entry.getValue().replace("'", "''") + "'")
+            .map(entry -> entry.getKey() + " '" + entry.getValue() + "'")
             .collect(Collectors.joining(", "));
     session.executeSql(String.format(ALTER_ENGINE_STRING, id, optionsClause));
 

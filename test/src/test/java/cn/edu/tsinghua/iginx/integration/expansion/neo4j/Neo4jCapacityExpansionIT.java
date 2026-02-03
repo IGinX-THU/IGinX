@@ -46,7 +46,7 @@ public class Neo4jCapacityExpansionIT extends BaseCapacityExpansionIT {
               }
             }),
         new Neo4jHistoryDataGenerator());
-    updatedParams.put("password", "newPassword,\\\"'");
+    updatedParams.put("password", "newPassword,\\\"''");
   }
 
   @Override
