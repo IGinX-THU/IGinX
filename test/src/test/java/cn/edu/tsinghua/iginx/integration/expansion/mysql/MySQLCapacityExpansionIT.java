@@ -52,7 +52,7 @@ public class MySQLCapacityExpansionIT extends BaseCapacityExpansionIT {
 
   @Override
   protected void updateParams(int port) {
-      changeParams(port, null, "newPassword,\\\\\"\\'");
+    changeParams(port, null, "newPassword,\\\\\"\\'");
   }
 
   @Override
