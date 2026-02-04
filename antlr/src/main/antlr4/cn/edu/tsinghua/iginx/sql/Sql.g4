@@ -1447,7 +1447,12 @@ fragment CN_CHAR
    ;
 
 BACK_QUOTE_STRING_LITERAL_NOT_EMPTY
-   : BACK_QUOTE ('``' | ~ '`')+ BACK_QUOTE
+   : BACK_QUOTE BACK_QUOTE_STRING_CONTENT+ BACK_QUOTE
+   ;
+
+fragment BACK_QUOTE_STRING_CONTENT
+   : '\\' . // Backslash escape: \` -> `, \\ -> \
+   | ~ ['`\\]
    ;
 
 DOUBLE_QUOTE_STRING_LITERAL
@@ -1455,8 +1460,8 @@ DOUBLE_QUOTE_STRING_LITERAL
    ;
 
 fragment DOUBLE_QUOTE_STRING_CONTENT
-   : '"' '"' // Escaped double quote: "" -> " (only escape, no backslash)
-   | ~ ["]
+   : '\\' . // Backslash escape: \" -> ", \\ -> \
+   | ~ ["\\]
    ;
 
 SINGLE_QUOTE_STRING_LITERAL
@@ -1464,8 +1469,8 @@ SINGLE_QUOTE_STRING_LITERAL
    ;
 
 fragment SINGLE_QUOTE_STRING_CONTENT
-   : '\'' '\'' // Escaped single quote: '' -> ' (only escape, no backslash)
-   | ~ [']
+   : '\\' . // Backslash escape: \' -> ', \\ -> \
+   | ~ ['\\]
    ;
    //Characters and write it this way for case sensitivity
    

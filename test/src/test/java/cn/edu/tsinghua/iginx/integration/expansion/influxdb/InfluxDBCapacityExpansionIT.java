@@ -59,7 +59,7 @@ public class InfluxDBCapacityExpansionIT extends BaseCapacityExpansionIT {
     wrongParams.put("token", "testToken");
     wrongParams.put("organization", "wrongOrg");
     wrongExtraParams.add(wrongParams);
-    updatedParams.put("organization", "newOrg,\\\"''");
+    updatedParams.put("organization", "newOrg,\\\"\\'");
   }
 
   // dummy key range cannot be extended yet

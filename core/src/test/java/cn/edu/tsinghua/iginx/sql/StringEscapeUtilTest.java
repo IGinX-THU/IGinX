@@ -27,26 +27,31 @@ import org.junit.Test;
 public class StringEscapeUtilTest {
   @Test
   public void testUnescapeStringLiteral() {
-    // Raw parsing: only quote stripping and doubled-quote collapse, no backslash unescape
+    // Backslash escape for single/double-quoted: \' → ', \" → ", \\ → \
+    assertEquals("It's ok", StringEscapeUtil.unescapeStringLiteral("'It\\'s ok'"));
+    assertEquals("It's ok", StringEscapeUtil.unescapeStringLiteral("\"It's ok\""));
+    assertEquals("It\\'s ok", StringEscapeUtil.unescapeStringLiteral("'It\\\\\'s ok'"));
+    assertEquals("It\\'s ok", StringEscapeUtil.unescapeStringLiteral("\"It\\\\'s ok\""));
+
+    assertEquals("It\"s ok", StringEscapeUtil.unescapeStringLiteral("\"It\\\"s ok\""));
+    assertEquals("It\"s ok", StringEscapeUtil.unescapeStringLiteral("'It\"s ok'"));
+    assertEquals("It\\\"s ok", StringEscapeUtil.unescapeStringLiteral("\"It\\\\\"s ok\""));
+    assertEquals("It\\\"s ok", StringEscapeUtil.unescapeStringLiteral("'It\\\\\\\"s ok'"));
+
+    // Other backslash sequences left as-is (only \', \", \\ are unescaped)
     assertEquals("value\\ntest", StringEscapeUtil.unescapeStringLiteral("'value\\ntest'"));
-    assertEquals("tab\\there", StringEscapeUtil.unescapeStringLiteral("'tab\\there'"));
-    assertEquals("a\\\\b", StringEscapeUtil.unescapeStringLiteral("'a\\\\b'"));
+    assertEquals("a\\b", StringEscapeUtil.unescapeStringLiteral("'a\\\\b'"));
 
     assertEquals(
-        "C:\\\\temp\\\\file.txt",
-        StringEscapeUtil.unescapeStringLiteral("\"C:\\\\temp\\\\file.txt\""));
-    assertEquals(
-        "D:\\\\data\\\\test\\\\file.csv",
-        StringEscapeUtil.unescapeStringLiteral("'D:\\\\data\\\\test\\\\file.csv'"));
-
+        "C:\\temp\\file.txt", StringEscapeUtil.unescapeStringLiteral("\"C:\\\\temp\\\\file.txt\""));
     assertEquals(
         "/home/user/test.py", StringEscapeUtil.unescapeStringLiteral("'/home/user/test.py'"));
     assertEquals("/tmp/file.txt", StringEscapeUtil.unescapeStringLiteral("\"/tmp/file.txt\""));
 
-    // Quote doubling only: '' → ', "" → ", `` → `
-    assertEquals("It's OK", StringEscapeUtil.unescapeStringLiteral("'It''s OK'"));
-    assertEquals("Say \"Hi\"", StringEscapeUtil.unescapeStringLiteral("\"Say \"\"Hi\"\"\""));
-    assertEquals("foo`bar", StringEscapeUtil.unescapeStringLiteral("`foo``bar`"));
+    // Backtick: backslash escape (\` → `, \\ → \)
+    assertEquals("foo`bar", StringEscapeUtil.unescapeStringLiteral("`foo\\`bar`"));
+    assertEquals("a`b", StringEscapeUtil.unescapeStringLiteral("`a\\`b`"));
+    assertEquals("a\\`b", StringEscapeUtil.unescapeStringLiteral("`a\\\\`b`"));
 
     // Edge cases
     assertEquals("", StringEscapeUtil.unescapeStringLiteral("''"));

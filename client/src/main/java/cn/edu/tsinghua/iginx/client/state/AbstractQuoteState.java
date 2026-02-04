@@ -38,24 +38,13 @@ public abstract class AbstractQuoteState implements InputState {
     while (i < length) {
       char current = command.charAt(i);
       char last = (i - 1 >= 0) ? command.charAt(i - 1) : '\0';
-      char next = (i + 1 < length) ? command.charAt(i + 1) : '\0';
       buffer.append(current);
       validSqlBuffer.append(current);
 
-      // 检查是否遇到结束的引号（考虑转义情况）
+      // 检查是否遇到结束的引号（仅反斜杠转义 \' 或 \"）
       if (current == quote) {
-        // 支持两种转义方式：
-        // 1. 反斜杠转义 (如 \' 或 \")
-        // 2. 双引号转义 (如 '' 或 "")
         boolean isBackslashEscaped = (last == '\\');
-        boolean isDoubleQuoteEscaped = (next == quote);
-
-        if (isDoubleQuoteEscaped && !isBackslashEscaped) {
-          // 双引号转义：跳过第二个引号
-          i++;
-          buffer.append(next);
-          validSqlBuffer.append(next);
-        } else if (!isBackslashEscaped) {
+        if (!isBackslashEscaped) {
           // 没有转义，结束引号状态
           client.setInputState(new NormalState());
           // 将剩余字符交给新状态处理

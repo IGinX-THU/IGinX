@@ -50,14 +50,10 @@ public class SqlEscapeUtils {
         }
       } else {
         if (c == quoteChar) {
-          if (i + 1 < sql.length() && sql.charAt(i + 1) == quoteChar) {
-            literalContent.append(c).append(sql.charAt(i + 1));
-            i++;
-          } else {
-            result.append(unescapeLiteralContent(literalContent.toString()));
-            result.append(c);
-            inString = false;
-          }
+          // End of string (backslash escape only, no double-quote escape)
+          result.append(unescapeLiteralContent(literalContent.toString()));
+          result.append(c);
+          inString = false;
         } else {
           literalContent.append(c);
         }
@@ -118,6 +114,13 @@ public class SqlEscapeUtils {
               sb.append('\\').append('u');
               i += 2;
             }
+            break;
+          case '\'':
+          case '"':
+          case '`':
+            // Keep \' \" \` as-is so server receives backslash-quote
+            sb.append('\\').append(next);
+            i += 2;
             break;
           default:
             sb.append(next);

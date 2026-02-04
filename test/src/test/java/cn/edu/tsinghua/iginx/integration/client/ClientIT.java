@@ -222,6 +222,45 @@ public class ClientIT {
     checkFiles(dir, "byteDummy.test", ".ext");
   }
 
+  @Test
+  public void testStringLiteralEscapeInClient() {
+    // 清理数据
+    client.readLine("clear data;");
+    assertTrue(client.expectedOutputContains("success"));
+
+    // 预期得到：It's ok
+    client.readLine("INSERT INTO usr(path) VALUES ('It\\'s ok');");
+    assertTrue(client.expectedOutputContains("success"));
+    client.readLine("INSERT INTO usr(path) VALUES (\"It's ok\");");
+    assertTrue(client.expectedOutputContains("success"));
+
+    // 预期得到：It\\'s ok
+    client.readLine("INSERT INTO usr(path) VALUES ('It\\\\\\'s ok');");
+    assertTrue(client.expectedOutputContains("success"));
+    client.readLine("INSERT INTO usr(path) VALUES (\"It\\\\'s ok\");");
+    assertTrue(client.expectedOutputContains("success"));
+
+    // 预期得到：It\"s ok
+    client.readLine("INSERT INTO usr(path) VALUES (\"It\\\"s ok\");");
+    assertTrue(client.expectedOutputContains("success"));
+    client.readLine("INSERT INTO usr(path) VALUES ('It\"s ok');");
+    assertTrue(client.expectedOutputContains("success"));
+
+    // 预期得到：It\\\"s ok
+    client.readLine("INSERT INTO usr(path) VALUES (\"It\\\\\\\"s ok\");");
+    assertTrue(client.expectedOutputContains("success"));
+    client.readLine("INSERT INTO usr(path) VALUES ('It\\\\\\\"s ok');");
+    assertTrue(client.expectedOutputContains("success"));
+
+    // 查询并检查结果中是否包含预期字符串
+    client.readLine("SELECT path FROM usr ORDER BY key;");
+    String result = client.getResult();
+    assertTrue(result.contains("It's ok"));
+    assertTrue(result.contains("It\\'s ok"));
+    assertTrue(result.contains("It\"s ok"));
+    assertTrue(result.contains("It\\\"s ok"));
+  }
+
   public void checkFiles(Path dir, String prefix, String extension) {
     File dirFile = dir.toFile();
 

@@ -21,12 +21,11 @@ package cn.edu.tsinghua.iginx.sql.utils;
 
 public class StringEscapeUtil {
   /**
-   * Returns the raw content of a string literal token without backslash unescaping. Only strips
-   * surrounding quotes and applies quote-doubling ('' → ', "" → ", `` → `). Used when the client
-   * has already unescaped the SQL before sending; the backend then does not interpret \n, \\, etc.
+   * Returns the unescaped content of a string literal token. Strips surrounding quotes and applies
+   * backslash escape for all quote types: \' → ', \" → ", \` → `, \\ → \.
    *
    * @param tokenText the string literal token text including quotes
-   * @return the content with only quote-doubling applied, no backslash unescape
+   * @return the content with backslash unescape applied
    */
   public static String unescapeStringLiteral(String tokenText) {
     if (tokenText == null || tokenText.length() < 2) {
@@ -37,15 +36,28 @@ public class StringEscapeUtil {
     if (q != last || (q != '\'' && q != '"' && q != '`')) {
       return tokenText;
     }
-    StringBuilder sb = new StringBuilder();
-    for (int i = 1; i < tokenText.length() - 1; i++) {
-      if (tokenText.charAt(i) == q
-          && i + 1 < tokenText.length() - 1
-          && tokenText.charAt(i + 1) == q) {
-        sb.append(q);
-        i++;
+    String inner = tokenText.substring(1, tokenText.length() - 1);
+    // Single-, double-, or backtick-quoted: backslash unescape (\' → ', \" → ", \` → `, \\ → \)
+    return unescapeBackslashQuoted(inner, q);
+  }
+
+  /** Unescapes backslash sequences: \' → ', \" → ", \` → `, \\ → \. */
+  private static String unescapeBackslashQuoted(String content, char quoteChar) {
+    StringBuilder sb = new StringBuilder(content.length());
+    for (int i = 0; i < content.length(); i++) {
+      char c = content.charAt(i);
+      if (c == '\\' && i + 1 < content.length()) {
+        char next = content.charAt(i + 1);
+        if (next == '\\') {
+          sb.append('\\');
+        } else if (next == '\'' || next == '"' || next == '`') {
+          sb.append(next);
+        } else {
+          sb.append(c).append(next);
+        }
+        i++; // skip next char
       } else {
-        sb.append(tokenText.charAt(i));
+        sb.append(c);
       }
     }
     return sb.toString();

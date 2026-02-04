@@ -308,8 +308,8 @@ public abstract class BaseCapacityExpansionIT {
   }
 
   /**
-   * Build ADD STORAGEENGINE SQL with double quote for schema_prefix. Backend does not unescape
-   * string literals; only '' "" `` are processed.
+   * Build ADD STORAGEENGINE SQL with double quote for schema_prefix. Backend uses backslash escape
+   * for string literals (\" → ", \\ → \).
    */
   private String buildAddStorageEngineSqlWithDoubleQuote(
       int port, String schemaPrefix, Map<String, String> extraParamsMap) {
@@ -347,8 +347,9 @@ public abstract class BaseCapacityExpansionIT {
       }
     }
 
-    // Use double quotes for schema_prefix (supports both "" and \" escaping)
-    options.add("schema_prefix \"" + schemaPrefix + "\"");
+    // Use double quotes for schema_prefix (backslash escape: \" → ", \\ → \)
+    options.add(
+        "schema_prefix \"" + schemaPrefix.replace("\\", "\\\\").replace("\"", "\\\"") + "\"");
 
     statement.append(String.join(", ", options));
     statement.append("));");
@@ -937,8 +938,8 @@ public abstract class BaseCapacityExpansionIT {
   }
 
   /**
-   * 测试 schema_prefix 中各类字符的转义与存储：控制字符、单引号双写、双引号双写、混合、反引号。 每个用例统一：stored = 实际存的值（query/expected
-   * path），addPrefix = ADD 时传入，removePrefix = REMOVE SQL 中 schema_prefix 的写法。
+   * 测试 schema_prefix 中各类字符的转义与存储：控制字符、单引号反斜杠转义 \'、双引号反斜杠转义 \"、混合、反引号。 每个用例统一：stored =
+   * 实际存的值（query/expected path），addPrefix = ADD 时传入，removePrefix = REMOVE SQL 中 schema_prefix 的写法。
    */
   private void testSpecialPrefix(String removeStatement, List<List<Object>> valuesList) {
     Map<String, String> extraParams = portsToExtraParams.get(expPort);
@@ -959,9 +960,9 @@ public abstract class BaseCapacityExpansionIT {
       fail();
     }
 
-    // ---------- Case 1: 单引号双写 '' -> 存 test's，ADD 用单引号、REMOVE 用双引号 ----------
+    // ---------- Case 1: 单引号反斜杠转义 \' -> 存 test's，ADD 用单引号、REMOVE 用双引号 ----------
     String stored1 = "test's";
-    String addPrefix1 = "test''s";
+    String addPrefix1 = "test\\'s";
 
     addStorageEngine("127.0.0.1", expPort, true, true, null, addPrefix1, extraParams);
     pathList = Collections.singletonList(stored1 + ".nt.wf03.wt01.status2");
@@ -972,13 +973,13 @@ public abstract class BaseCapacityExpansionIT {
           String.format(
               "remove storageengine (\"127.0.0.1\", %d, \"%s\", \"\") for all;", expPort, stored1));
     } catch (SessionException e) {
-      LOGGER.error("test single quote ('' 双写) failure: ", e);
+      LOGGER.error("test single quote (\\' escape) failure: ", e);
       fail();
     }
 
-    // ---------- Case 2: 双引号双写 "" -> 存 test"s，ADD/REMOVE 均双引号+双写 ----------
+    // ---------- Case 2: 双引号反斜杠转义 \" -> 存 test"s，ADD/REMOVE 均双引号+反斜杠转义 ----------
     String stored2 = "test\"s";
-    String addPrefix2 = "test\"\"s";
+    String addPrefix2 = "test\\\"s";
 
     try {
       session.executeSql(buildAddStorageEngineSqlWithDoubleQuote(expPort, addPrefix2, extraParams));
@@ -993,13 +994,13 @@ public abstract class BaseCapacityExpansionIT {
           String.format(
               "remove storageengine (\"127.0.0.1\", %d, '%s', '') for all;", expPort, stored2));
     } catch (SessionException e) {
-      LOGGER.error("test double quote (\"\" 双写) failure: ", e);
+      LOGGER.error("test double quote (\\\" escape) failure: ", e);
       fail();
     }
 
-    // ---------- Case 3: 同时含 ' 与 "，双引号双写 "" -> 存 test\'a"b ----------
-    String stored3 = "test\\'a\\\"b";
-    String addPrefix3 = "test\\'a\\\"\"b";
+    // ---------- Case 3: 同时含 \' 与 \"，双引号内反斜杠转义 -> 存 test\'a"b ----------
+    String stored3 = "test\\'a\"b";
+    String addPrefix3 = "test\\'a\\\"b";
 
     try {
       session.executeSql(buildAddStorageEngineSqlWithDoubleQuote(expPort, addPrefix3, extraParams));
@@ -1010,34 +1011,35 @@ public abstract class BaseCapacityExpansionIT {
     SQLTestTools.executeAndCompare(
         session, "select wt01.status2 from `" + stored3 + ".nt.wf03`;", pathList, valuesList);
     try {
+      String removePrefix3 = addPrefix3.replace("\\", "\\\\").replace("\"", "\\\"");
       session.executeSql(
           String.format(
               "remove storageengine (\"127.0.0.1\", %d, \"%s\", \"\") for all;",
-              expPort, addPrefix3));
+              expPort, removePrefix3));
     } catch (SessionException e) {
-      LOGGER.error("test prefix with ' and \" (双写) failure: ", e);
+      LOGGER.error("test prefix with \\' and \\\" failure: ", e);
       fail();
     }
 
-    // ---------- Case 4: 反引号，ADD/REMOVE 双引号包裹（` 在双引号内为普通字符） ----------
+    // ---------- Case 4: 反引号反斜杠转义 \`，ADD/REMOVE 双引号包裹 ----------
     if (type == StorageEngineType.iotdb12) {
       LOGGER.info("Skipping backtick test for IoTDB (parser does not support backticks in paths)");
       return;
     }
     String stored4 = "test`name";
-    String addPrefix4 = "test`name";
+    String addPrefix4 = "test`name"; // value test`name; in backtick SQL use `test\`name`
 
     addStorageEngine("127.0.0.1", expPort, true, true, null, addPrefix4, extraParams);
     pathList = Collections.singletonList(stored4 + ".nt.wf03.wt01.status2");
     SQLTestTools.executeAndCompare(
-        session, "select wt01.status2 from `test``name.nt.wf03`;", pathList, valuesList);
+        session, "select wt01.status2 from `test\\`name.nt.wf03`;", pathList, valuesList);
     try {
       session.executeSql(
           String.format(
               "remove storageengine (\"127.0.0.1\", %d, \"%s\", \"\") for all;",
               expPort, addPrefix4));
     } catch (SessionException e) {
-      LOGGER.error("test backtick (`` in path) failure: ", e);
+      LOGGER.error("test backtick (\\` in path) failure: ", e);
       fail();
     }
   }
@@ -1147,7 +1149,7 @@ public abstract class BaseCapacityExpansionIT {
     pathListAns.add("p3.nt.wf04.wt01.temperature");
     SQLTestTools.executeAndCompare(session, statement, pathListAns, EXP_VALUES_LIST2);
 
-    // 通过 sql 语句测试移除节点（用单引号包裹 schema/data prefix，便于转义单引号 ''）
+    // 通过 sql 语句测试移除节点（用单引号包裹 schema/data prefix，便于转义单引号 \'）
     String removeStatement = "remove storageengine (\"127.0.0.1\", %d, '%s', '%s') for all;";
     try {
       session.executeSql(

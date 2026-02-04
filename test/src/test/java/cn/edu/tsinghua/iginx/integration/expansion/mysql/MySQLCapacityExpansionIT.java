@@ -47,7 +47,7 @@ public class MySQLCapacityExpansionIT extends BaseCapacityExpansionIT {
               }
             }),
         new MySQLHistoryDataGenerator());
-    updatedParams.put("password", "newPassword,\\\"''");
+    updatedParams.put("password", "newPassword,\\\"\\'");
   }
 
   @Override
